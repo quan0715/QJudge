@@ -21,8 +21,12 @@ from ..services.anticheat_storage import (
     generate_put_url,
     get_s3_client,
 )
+from ..services.attendance import ATTENDANCE_EVENT_TYPES
 from ..services.exam_submission import normalize_source_module
 from .exam_validation_response import validate_exam_operation_for_view
+
+# Attendance event types that a TA may create on behalf of a student.
+_TEACHER_ASSISTED_ATTENDANCE_EVENT_TYPES = frozenset(ATTENDANCE_EVENT_TYPES.values())
 
 FRAME_WINDOW_TOLERANCE_MS = 1_000
 PRE_LOSS_WINDOW_MS = 6_000
@@ -250,19 +254,46 @@ class ExamEvidenceMixin:
     )
     def evidence_upload_intents(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        participant, error_response = self._validate_evidence_participant(request, contest)
-        if error_response is not None:
-            return error_response
 
         serializer = EvidenceUploadIntentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        event = get_object_or_404(
-            ExamEvent,
-            contest=contest,
-            user=request.user,
-            id=data["event_id"],
+
+        # Look up the event by contest+id first so we can detect teacher-assisted mode.
+        event = get_object_or_404(ExamEvent, contest=contest, id=data["event_id"])
+        target_user = event.user
+
+        # Teacher-assisted path: actor uploads evidence for a student's event.
+        # Constrained to attendance events that were explicitly teacher-assisted so
+        # managers cannot use this bypass for regular anti-cheat events.
+        teacher_assisted = (
+            target_user.id != request.user.id
+            and event.event_type in _TEACHER_ASSISTED_ATTENDANCE_EVENT_TYPES
+            and isinstance(event.metadata, dict)
+            and event.metadata.get("attendance_mode") == "teacher_assisted"
         )
+        if teacher_assisted:
+            if not can_manage_contest(request.user, contest):
+                return Response(
+                    {"detail": "Permission denied: only contest managers may upload evidence for another user."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            requested_source_module = normalize_source_module(data.get("source_module"))
+            if requested_source_module != ExamEvidenceFrame.SourceModule.ATTENDANCE:
+                return Response(
+                    {"detail": "Teacher-assisted evidence upload only accepts attendance source module."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            # Normal path: event must belong to the requesting user.
+            if event.user.id != request.user.id:
+                return Response(
+                    {"detail": "Permission denied: event does not belong to this user."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            participant, error_response = self._validate_evidence_participant(request, contest)
+            if error_response is not None:
+                return error_response
 
         metadata = event.metadata if isinstance(event.metadata, dict) else {}
         evidence_cluster_id = str(data.get("evidence_cluster_id") or metadata.get("evidence_cluster_id") or "")
@@ -290,7 +321,7 @@ class ExamEvidenceMixin:
         if not frames:
             unavailable = ExamEvidenceFrame.objects.create(
                 contest=contest,
-                user=request.user,
+                user=target_user,
                 exam_event=event,
                 evidence_cluster_id=evidence_cluster_id,
                 source_module=source_module,
@@ -329,7 +360,7 @@ class ExamEvidenceMixin:
                 captured_at_ms = int(frame["client_captured_at_ms"])
                 object_key = build_raw_object_key(
                     contest_id=contest.id,
-                    user_id=request.user.id,
+                    user_id=target_user.id,
                     upload_session_id=upload_session_id,
                     ts_ms=captured_at_ms,
                     seq=seq,
@@ -337,7 +368,7 @@ class ExamEvidenceMixin:
                 )
                 manifest = ExamEvidenceFrame.objects.create(
                     contest=contest,
-                    user=request.user,
+                    user=target_user,
                     exam_event=event,
                     evidence_cluster_id=evidence_cluster_id,
                     source_module=source_module,
@@ -406,15 +437,45 @@ class ExamEvidenceMixin:
         frame_payloads = list(data["frames"])
         ids = [item["evidence_frame_id"] for item in frame_payloads]
 
-        rows = {
-            row.id: row
-            for row in ExamEvidenceFrame.objects.filter(
+        # Teacher-assisted path: managers may confirm evidence they uploaded for a student.
+        # Requires event_id to constrain the bypass to a single known attendance event.
+        is_teacher_assisted_confirm = False
+        if event_id is not None and can_manage_contest(request.user, contest):
+            ta_event = ExamEvent.objects.filter(
                 contest=contest,
-                user=request.user,
-                id__in=ids,
-                status=ExamEvidenceFrame.Status.ISSUED,
-            )
-        }
+                id=event_id,
+                event_type__in=_TEACHER_ASSISTED_ATTENDANCE_EVENT_TYPES,
+            ).first()
+            if (
+                ta_event is not None
+                and isinstance(ta_event.metadata, dict)
+                and ta_event.metadata.get("attendance_mode") == "teacher_assisted"
+                and ta_event.user.id != request.user.id
+            ):
+                is_teacher_assisted_confirm = True
+
+        if is_teacher_assisted_confirm:
+            # Frames are owned by the student (target_user), not the TA.
+            rows = {
+                row.id: row
+                for row in ExamEvidenceFrame.objects.filter(
+                    contest=contest,
+                    exam_event_id=event_id,
+                    source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+                    id__in=ids,
+                    status=ExamEvidenceFrame.Status.ISSUED,
+                )
+            }
+        else:
+            rows = {
+                row.id: row
+                for row in ExamEvidenceFrame.objects.filter(
+                    contest=contest,
+                    user=request.user,
+                    id__in=ids,
+                    status=ExamEvidenceFrame.Status.ISSUED,
+                )
+            }
         row_source_modules = {row.source_module for row in rows.values()}
         if len(row_source_modules) > 1:
             return Response(
@@ -423,9 +484,10 @@ class ExamEvidenceMixin:
             )
         source_module = next(iter(row_source_modules), None)
 
-        participant, error_response = self._validate_evidence_participant(request, contest, source_module=source_module)
-        if error_response is not None:
-            return error_response
+        if not is_teacher_assisted_confirm:
+            participant, error_response = self._validate_evidence_participant(request, contest, source_module=source_module)
+            if error_response is not None:
+                return error_response
 
         if len(rows) != len(set(ids)):
             return Response(
@@ -454,15 +516,27 @@ class ExamEvidenceMixin:
 
         confirmed = []
         with transaction.atomic():
-            locked_rows = {
-                row.id: row
-                for row in ExamEvidenceFrame.objects.select_for_update().filter(
-                    contest=contest,
-                    user=request.user,
-                    id__in=ids,
-                    status=ExamEvidenceFrame.Status.ISSUED,
-                )
-            }
+            if is_teacher_assisted_confirm:
+                locked_rows = {
+                    row.id: row
+                    for row in ExamEvidenceFrame.objects.select_for_update().filter(
+                        contest=contest,
+                        exam_event_id=event_id,
+                        source_module=ExamEvidenceFrame.SourceModule.ATTENDANCE,
+                        id__in=ids,
+                        status=ExamEvidenceFrame.Status.ISSUED,
+                    )
+                }
+            else:
+                locked_rows = {
+                    row.id: row
+                    for row in ExamEvidenceFrame.objects.select_for_update().filter(
+                        contest=contest,
+                        user=request.user,
+                        id__in=ids,
+                        status=ExamEvidenceFrame.Status.ISSUED,
+                    )
+                }
             if len(locked_rows) != len(set(ids)):
                 return Response(
                     {"error": "confirm can only target issued frames for the same contest/user"},

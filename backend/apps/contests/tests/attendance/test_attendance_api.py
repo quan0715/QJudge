@@ -831,3 +831,119 @@ def test_teacher_assisted_check_in_requires_uploaded_evidence_to_be_ready() -> N
     )
 
     assert build_attendance_status(contest, participant)["checkInStatus"] == "teacher_assisted"
+
+
+# ---------------------------------------------------------------------------
+# Teacher-assisted evidence upload regression tests
+# These cover the bug where evidence_upload_intents/confirm used user=request.user
+# (the TA) to look up events/frames that actually belong to the student.
+# ---------------------------------------------------------------------------
+
+def _make_teacher_assisted_event(contest: Contest, teacher, student) -> ExamEvent:
+    """Create a teacher-assisted attendance check-in event for student."""
+    return ExamEvent.objects.create(
+        contest=contest,
+        user=student,  # event belongs to student
+        event_type="attendance_check_in",
+        metadata={
+            "attendance_purpose": "check_in",
+            "attendance_mode": "teacher_assisted",
+            "assisted_by_user_id": teacher.id,
+            "assisted_by_username": teacher.username,
+            "reason": "camera unavailable",
+            "source_module": "attendance",
+            "evidence_cluster_id": "attendance-test",
+            "photo_required": True,
+            "required_photo_kinds": ["room"],
+        },
+    )
+
+
+@pytest.mark.django_db
+def test_ta_can_create_evidence_upload_intent_for_student() -> None:
+    """TA can request upload URLs for a teacher-assisted attendance event."""
+    api_client = APIClient()
+    teacher = make_user("ta_intent_teacher", role="teacher")
+    student = make_user("ta_intent_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student)
+    event = _make_teacher_assisted_event(contest, teacher, student)
+
+    api_client.force_authenticate(user=teacher)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        {
+            "event_id": event.id,
+            "evidence_cluster_id": "attendance-test",
+            "source_module": "attendance",
+            "evidence_mode": "audit",
+            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201, response.data
+    assert len(response.data["items"]) == 1
+    frame = ExamEvidenceFrame.objects.get(id=response.data["items"][0]["evidence_frame_id"])
+    assert frame.user_id == student.id  # frame must be owned by student, not TA
+
+
+@pytest.mark.django_db
+def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
+    """A regular student cannot upload evidence for another student's event."""
+    api_client = APIClient()
+    owner = make_user("ta_perm_owner", role="teacher")
+    student_a = make_user("ta_perm_student_a")
+    student_b = make_user("ta_perm_student_b")
+    contest = make_contest(owner=owner)
+    ContestParticipant.objects.create(contest=contest, user=student_a)
+    ContestParticipant.objects.create(contest=contest, user=student_b)
+    event = _make_teacher_assisted_event(contest, owner, student_a)
+
+    # student_b tries to upload for student_a's event
+    api_client.force_authenticate(user=student_b)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        {
+            "event_id": event.id,
+            "source_module": "attendance",
+            "evidence_mode": "audit",
+            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+        },
+        format="json",
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_manager_cannot_use_ta_bypass_for_non_attendance_event() -> None:
+    """Manager cannot use the TA bypass path for a non-attendance (anti-cheat) event."""
+    api_client = APIClient()
+    teacher = make_user("ta_bypass_teacher", role="teacher")
+    student = make_user("ta_bypass_student")
+    contest = make_contest(owner=teacher)
+    ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.IN_PROGRESS)
+    # Create a non-attendance event (screen_share_stopped)
+    other_event = ExamEvent.objects.create(
+        contest=contest,
+        user=student,
+        event_type="screen_share_stopped",
+        metadata={"attendance_mode": "teacher_assisted"},  # spoofed metadata
+    )
+
+    api_client.force_authenticate(user=teacher)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        {
+            "event_id": other_event.id,
+            "source_module": "attendance",
+            "evidence_mode": "audit",
+            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+        },
+        format="json",
+    )
+
+    # Should fail: event is not an attendance type, so TA bypass does not apply.
+    # The normal path rejects because event.user != request.user.
+    assert response.status_code == 403
