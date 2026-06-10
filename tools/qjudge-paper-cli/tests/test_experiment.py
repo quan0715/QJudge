@@ -13,6 +13,16 @@ from qjudge_paper_cli.experiment import (
 )
 
 
+def test_exam3_subjective_preset_registered():
+    preset = EXPERIMENT_PRESETS["exam3-subjective"]
+
+    assert preset["exam_key"] == "exam3"
+    assert preset["contest_id"] == "d4edfae6-c286-4edc-911c-14aed410f503"
+    assert len(preset["question_ids"]) == 18
+    assert preset["question_ids"][0] == "239f665c-adac-4c92-868d-3868e6df3c29"
+    assert preset["question_ids"][-1] == "927d5d2b-d44c-489b-83a4-cd979949b351"
+
+
 def test_exam2_diverse_preset_uses_three_distinct_question_shapes():
     preset = EXPERIMENT_PRESETS["exam2-diverse"]
 

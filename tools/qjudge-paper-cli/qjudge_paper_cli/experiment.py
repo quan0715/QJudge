@@ -87,6 +87,31 @@ EXPERIMENT_PRESETS: dict[str, dict[str, Any]] = {
             "e7ffda48-61f1-4aad-8337-1ba266c0c951",
         ],
     },
+    "exam3-subjective": {
+        "exam_key": "exam3",
+        "contest_id": "d4edfae6-c286-4edc-911c-14aed410f503",
+        "description": "Exam3 all subjective/short-answer questions (114下 OS 第二次考試).",
+        "question_ids": [
+            "239f665c-adac-4c92-868d-3868e6df3c29",
+            "8d229fe3-fa8c-45fb-a560-65b5b00a915a",
+            "be2ff616-0006-4b10-8976-b7fc9fc920e5",
+            "e3572dd2-f9f1-429a-86fc-adb4cfb1d05b",
+            "e1a4ae63-c63b-476e-9cfa-f7629aa4ba5e",
+            "7450802f-c278-4f46-86df-c4f76950b05d",
+            "ec39ce08-2e77-4e08-b2e9-c2f550a14027",
+            "b6817d9c-93b7-4444-b0b6-8e2e57e803bb",
+            "7c8ccf8f-c88b-4267-8c89-f75c540ad82f",
+            "e0e7fb6b-4497-4653-adcd-7c533eeba109",
+            "1e9747dc-29f2-4075-b4c0-e5477c8a4fe9",
+            "47c20268-e5ba-4c51-923a-3fc0c067d95c",
+            "f6d2d163-401a-4fbc-abc9-ee4368209f5d",
+            "2f935d79-4782-401b-8fcf-76e4388561ea",
+            "bae5f1a8-52da-4f83-a277-6ce42ce8410e",
+            "0687ba99-8ee9-4ee2-a2ca-068603e075ac",
+            "ef4f48a4-63ec-4de2-b23a-87a79f9023f6",
+            "927d5d2b-d44c-489b-83a4-cd979949b351",
+        ],
+    },
 }
 
 SUMMARY_COLUMNS = [

@@ -23,6 +23,8 @@ DEFAULT_MODEL_PRICING: dict[str, dict[str, int]] = {
     "openai-mini": {"input": 75, "output": 450},
     "openai-mini-medium": {"input": 75, "output": 450},
     "deepseek-v4": {"input": 14, "output": 28},
+    "deepseek-v4-flash": {"input": 14, "output": 28},
+    "deepseek-v4-pro": {"input": 55, "output": 219},
     "deepseek-v4-thinking": {"input": 14, "output": 28},
 }
 
