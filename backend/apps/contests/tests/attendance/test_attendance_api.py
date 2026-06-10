@@ -868,6 +868,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
     contest = make_contest(owner=teacher)
     ContestParticipant.objects.create(contest=contest, user=student)
     event = _make_teacher_assisted_event(contest, teacher, student)
+    now_ms = int(timezone.now().timestamp() * 1000)
 
     api_client.force_authenticate(user=teacher)
     response = api_client.post(
@@ -877,7 +878,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
             "evidence_cluster_id": "attendance-test",
             "source_module": "attendance",
             "evidence_mode": "audit",
-            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+            "frames": [{"client_captured_at_ms": now_ms, "seq": 1}],
         },
         format="json",
     )
