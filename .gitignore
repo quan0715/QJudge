@@ -169,6 +169,7 @@ running/
 .opencode/
 .superpowers/
 .agents/
+.playwright-mcp/
 .mcp.json
 
 # Generated media experiments

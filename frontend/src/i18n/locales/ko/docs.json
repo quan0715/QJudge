@@ -29,6 +29,7 @@
       "exam-precheck-anticheat": "Exam Pre-check 및 부정행위 방지 시퀀스",
       "exam-proctoring": "시험 감독 및 수동 개입",
       "exam-statistics": "시험 통계 및 검토",
+      "identity-auth-extension": "인증 모듈 유지보수 및 확장",
       "judge-system": "채점 시스템",
       "mcp-setup": "MCP 설정",
       "overview": "플랫폼 개요",
