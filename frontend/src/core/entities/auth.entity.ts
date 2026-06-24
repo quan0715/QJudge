@@ -69,6 +69,19 @@ export interface User {
   subscription?: UserSubscription;
 }
 
+export interface AuthProviderOption {
+  key: string;
+  category: "campus" | "social";
+  display_name: string;
+  logo_url?: string;
+  supports_registration: boolean;
+}
+
+export interface AuthOptions {
+  email_password_enabled: boolean;
+  providers: AuthProviderOption[];
+}
+
 export interface AuthSuccessData {
   access_token: string;
   user: User;

@@ -2,30 +2,34 @@ import { useState } from "react";
 import { InlineLoading } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import type { AuthProviderOption } from "@/core/entities/auth.entity";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
+import { useAuthOptions } from "@/features/auth/hooks";
 import { usePendingActions, PendingActionBanner } from "@/features/auth/pending-actions";
-import { useTheme } from "@/shared/ui/theme/ThemeContext";
+import { getProviderDescription, getProviderDisplayName } from "@/features/auth/utils/authProviderLabels";
 
-const CAMPUS_PROVIDERS = [
-  {
-    id: "nycu",
-    name: "NYCU 國立陽明交通大學",
-    nameEn: "National Yang Ming Chiao Tung University",
-    description: "使用校內 Portal 單一入口帳號進行身份驗證登入",
-    logo: "/illustrations/nycu-logo.png",
-    logoDark: "/illustrations/nycu-logo-white.png",
-  },
-];
+const ProviderLogo = ({ provider, alt }: { provider: AuthProviderOption; alt: string }) => {
+  if (provider.logo_url) {
+    return (
+      <img
+        src={provider.logo_url}
+        alt={alt}
+        className="auth-school-list-item__logo"
+      />
+    );
+  }
+
+  return <span className="auth-school-list-item__logo">{alt.charAt(0).toUpperCase()}</span>;
+};
 
 const CampusSsoScreen = () => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { options } = useAuthOptions();
   // Auto-syncs query params (e.g. teacher_activation_token) → sessionStorage
   usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
-
-  const isDark = theme === "g100" || theme === "g90";
+  const campusProviders = options.providers.filter((provider) => provider.category === "campus");
 
   const handleSsoLogin = async (providerId: string) => {
     try {
@@ -44,32 +48,29 @@ const CampusSsoScreen = () => {
       <div className="auth-form">
         <PendingActionBanner />
         <div className="auth-school-list">
-          {CAMPUS_PROVIDERS.map((provider) => (
-            <button
-              key={provider.id}
-              type="button"
-              className="auth-school-list-item"
-              onClick={() => handleSsoLogin(provider.id)}
-              disabled={loading !== null}
-            >
-              <div className="auth-school-list-item__logo-container">
-                <img
-                  src={isDark && provider.logoDark ? provider.logoDark : provider.logo}
-                  alt={provider.name}
-                  className="auth-school-list-item__logo"
-                />
-              </div>
-              <div className="auth-school-list-item__content">
-                <h3 className="auth-school-list-item__title">
-                  {t(`auth.campusSso.providers.${provider.id}.name`, provider.name)}
-                </h3>
-                <p className="auth-school-list-item__desc">
-                  {t(`auth.campusSso.providers.${provider.id}.description`, provider.description)}
-                </p>
-              </div>
-              <ArrowRight size={20} className="auth-school-list-item__arrow" />
-            </button>
-          ))}
+          {campusProviders.map((provider) => {
+            const displayName = getProviderDisplayName(t, provider);
+            const description = getProviderDescription(t, provider);
+
+            return (
+              <button
+                key={provider.key}
+                type="button"
+                className="auth-school-list-item"
+                onClick={() => handleSsoLogin(provider.key)}
+                disabled={loading !== null}
+              >
+                <div className="auth-school-list-item__logo-container">
+                  <ProviderLogo provider={provider} alt={displayName} />
+                </div>
+                <div className="auth-school-list-item__content">
+                  <h3 className="auth-school-list-item__title">{displayName}</h3>
+                  {description && <p className="auth-school-list-item__desc">{description}</p>}
+                </div>
+                <ArrowRight size={20} className="auth-school-list-item__arrow" />
+              </button>
+            );
+          })}
         </div>
 
         {loading && (

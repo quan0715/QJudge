@@ -3,6 +3,7 @@ Django settings for OJ Platform backend.
 Base settings shared across all environments.
 """
 
+import json
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -376,6 +377,50 @@ GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
 GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_OAUTH_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+# Public login method metadata. Secrets and protocol validation details stay server-side.
+AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
+DEFAULT_AUTH_PROVIDER_OPTIONS = [
+    {
+        "key": "nycu",
+        "category": "campus",
+        "display_name": "NYCU 國立陽明交通大學",
+        "logo_url": "/illustrations/nycu-logo.png",
+        "supports_registration": True,
+    },
+    {
+        "key": "github",
+        "category": "social",
+        "display_name": "GitHub",
+        "supports_registration": True,
+    },
+    {
+        "key": "google",
+        "category": "social",
+        "display_name": "Google",
+        "logo_url": "/illustrations/google-icon.svg",
+        "supports_registration": True,
+    },
+]
+
+
+def _load_auth_provider_options():
+    raw = os.getenv("AUTH_PROVIDER_OPTIONS_JSON")
+    if not raw:
+        return DEFAULT_AUTH_PROVIDER_OPTIONS
+
+    try:
+        options = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("AUTH_PROVIDER_OPTIONS_JSON must be valid JSON") from exc
+
+    if not isinstance(options, list):
+        raise RuntimeError("AUTH_PROVIDER_OPTIONS_JSON must be a JSON array")
+
+    return options
+
+
+AUTH_PROVIDER_OPTIONS = _load_auth_provider_options()
 
 # Judge Engine settings
 JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"

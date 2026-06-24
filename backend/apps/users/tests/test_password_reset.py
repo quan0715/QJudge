@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -61,6 +61,20 @@ class PasswordResetTests(TestCase):
         self.oauth_user.refresh_from_db()
         self.assertIsNone(self.oauth_user.password_reset_token)
 
+    @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
+    def test_forgot_password_is_rejected_when_email_password_disabled(self):
+        response = self.client.post(
+            self.forgot_url,
+            {"email": self.email_user.email},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
+        self.email_user.refresh_from_db()
+        self.assertIsNone(self.email_user.password_reset_token)
+
     def test_reset_password_with_invalid_token_fails(self):
         response = self.client.post(
             self.reset_url,
@@ -74,6 +88,29 @@ class PasswordResetTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(response.data["success"])
         self.assertEqual(response.data["error"]["code"], "INVALID_RESET_TOKEN")
+
+    @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
+    def test_reset_password_is_rejected_when_email_password_disabled(self):
+        self.email_user.password_reset_token = "valid-token"
+        self.email_user.password_reset_expires_at = timezone.now() + timedelta(minutes=30)
+        self.email_user.save(update_fields=["password_reset_token", "password_reset_expires_at"])
+
+        response = self.client.post(
+            self.reset_url,
+            {
+                "token": "valid-token",
+                "new_password": "BrandNewPass123!",
+                "new_password_confirm": "BrandNewPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
+        self.email_user.refresh_from_db()
+        self.assertTrue(self.email_user.check_password("StrongPass123!"))
+        self.assertEqual(self.email_user.password_reset_token, "valid-token")
 
     def test_reset_password_with_expired_token_fails(self):
         self.email_user.password_reset_token = "expired-token"

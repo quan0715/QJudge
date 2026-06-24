@@ -13,6 +13,7 @@ import type {
 } from "@/core/entities/auth.entity";
 import type {
   AuthResponseDto,
+  AuthOptionsResponseDto,
   CurrentUserResponseDto,
   PreferencesResponseDto,
   UserSearchResponseDto,
@@ -42,6 +43,13 @@ export const register = async (
   return requestJson<AuthResponseDto>(
     httpClient.post("/api/v1/auth/email/register", credentials),
     "Registration failed"
+  );
+};
+
+export const getAuthOptions = async (): Promise<AuthOptionsResponseDto> => {
+  return requestJson<AuthOptionsResponseDto>(
+    httpClient.get("/api/v1/auth/options"),
+    "Failed to fetch auth options"
   );
 };
 
@@ -232,6 +240,7 @@ export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
 export const authRepository = {
   login,
   register,
+  getAuthOptions,
   getCurrentUser,
   logout,
   changePassword,

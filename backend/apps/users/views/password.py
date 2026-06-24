@@ -13,8 +13,9 @@ from ..serializers import (
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
 )
+from ..auth.options import is_email_password_auth_enabled
 from ..services import EmailAuthService
-from .common import SchemaAPIView
+from .common import SchemaAPIView, email_password_disabled_response
 
 User = get_user_model()
 
@@ -31,6 +32,9 @@ class ChangePasswordView(SchemaAPIView):
     serializer_class = ChangePasswordSerializer
 
     def post(self, request):
+        if not is_email_password_auth_enabled():
+            return email_password_disabled_response()
+
         user = request.user
 
         # Only email users can change password
@@ -87,6 +91,9 @@ class ForgotPasswordView(SchemaAPIView):
     serializer_class = ForgotPasswordSerializer
 
     def post(self, request):
+        if not is_email_password_auth_enabled():
+            return email_password_disabled_response()
+
         serializer = ForgotPasswordSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({
@@ -130,6 +137,9 @@ class ResetPasswordView(SchemaAPIView):
     serializer_class = ResetPasswordSerializer
 
     def post(self, request):
+        if not is_email_password_auth_enabled():
+            return email_password_disabled_response()
+
         serializer = ResetPasswordSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({

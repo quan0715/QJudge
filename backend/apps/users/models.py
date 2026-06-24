@@ -270,6 +270,72 @@ class UserProfile(models.Model):
         self.save()
 
 
+class ExternalIdentity(models.Model):
+    """External provider identity linked to a QJudge user."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='external_identities',
+        verbose_name='使用者',
+    )
+    provider_key = models.CharField(
+        max_length=64,
+        db_index=True,
+        verbose_name='Provider Key',
+    )
+    subject = models.CharField(
+        max_length=255,
+        verbose_name='Provider Subject',
+    )
+    email = models.EmailField(
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Provider Email',
+    )
+    email_verified = models.BooleanField(
+        default=False,
+        verbose_name='Provider Email 已驗證',
+    )
+    profile_snapshot = models.JSONField(
+        blank=True,
+        default=dict,
+        verbose_name='Provider Profile Snapshot',
+    )
+    last_login_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='最後登入時間',
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='建立時間',
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='更新時間',
+    )
+
+    class Meta:
+        db_table = 'external_identities'
+        verbose_name = '外部身份'
+        verbose_name_plural = '外部身份'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['provider_key', 'subject'],
+                name='unique_external_identity_provider_subject',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['user', 'provider_key']),
+            models.Index(fields=['provider_key', 'email']),
+        ]
+
+    def __str__(self):
+        return f"{self.provider_key}:{self.subject} -> {self.user_id}"
+
+
 class TeacherActivationInvite(models.Model):
     """Invite link that lets a specific email activate teacher access."""
 
@@ -361,5 +427,4 @@ class UserLoginRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username} login at {self.created_at} ({self.login_method})"
-
 

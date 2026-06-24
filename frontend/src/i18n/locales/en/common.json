@@ -54,9 +54,25 @@
       "subtitle": "Select your university to login",
       "title": "Campus Authentication"
     },
+    "providerActions": {
+      "loginWith": "Login with {{provider}}",
+      "registerWith": "Create account with {{provider}}"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "Log in using your university portal account",
+        "displayName": "NYCU (National Yang Ming Chiao Tung University)"
+      }
+    },
     "login": {
-      "email": "Email",
-      "emailPlaceholder": "student@example.com",
+      "email": "Email / Username",
+      "emailPlaceholder": "Email or username",
       "failed": "Login failed",
       "feature1Desc": "Real-time feedback",
       "feature1Title": "Instant Grading",
@@ -74,8 +90,8 @@
       "oauthFailed": "Failed to initiate login",
       "or": "Or login with other methods",
       "password": "Password",
-      "passwordPlaceholder": "Enter your password",
-      "registerNow": "Register now",
+      "passwordPlaceholder": "Password",
+      "registerNow": "Create account",
       "ssoLogin": "Campus Authentication",
       "submit": "Login",
       "subtitle": "Welcome back, please login to your account",
@@ -98,6 +114,8 @@
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter your password",
       "email": "Email",
+      "emailDivider": "Or register with email",
+      "emailSubmit": "Email registration",
       "emailPlaceholder": "Enter your email",
       "failed": "Registration failed",
       "failedRetry": "Registration failed, please try again later",

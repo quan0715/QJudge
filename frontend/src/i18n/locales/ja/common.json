@@ -54,9 +54,25 @@
       "subtitle": "ログインする大学を選択してください",
       "title": "キャンパス認証"
     },
+    "providerActions": {
+      "loginWith": "{{provider}} でログイン",
+      "registerWith": "{{provider}} でアカウント作成"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "大学のポータルアカウントを使用してログインします",
+        "displayName": "NYCU (国立陽明交通大学)"
+      }
+    },
     "login": {
-      "email": "メールアドレス",
-      "emailPlaceholder": "student@example.com",
+      "email": "メールアドレス / ユーザー名",
+      "emailPlaceholder": "メールアドレスまたはユーザー名",
       "failed": "ログインに失敗しました",
       "feature1Desc": "リアルタイムなフィードバック",
       "feature1Title": "秒速の採点",
@@ -74,8 +90,8 @@
       "oauthFailed": "ログインを開始できませんでした",
       "or": "または、他の方法でログイン",
       "password": "パスワード",
-      "passwordPlaceholder": "パスワードを入力",
-      "registerNow": "新規登録",
+      "passwordPlaceholder": "パスワード",
+      "registerNow": "アカウント作成",
       "ssoLogin": "SSO でログイン",
       "submit": "ログイン",
       "subtitle": "おかえりなさい、アカウントにログインしてください",
@@ -98,6 +114,8 @@
       "confirmPassword": "パスワード確認",
       "confirmPasswordPlaceholder": "パスワードを再入力",
       "email": "メールアドレス",
+      "emailDivider": "またはメールで登録",
+      "emailSubmit": "メール登録",
       "emailPlaceholder": "メールアドレスを入力",
       "failed": "登録に失敗しました",
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",

@@ -54,9 +54,25 @@
       "subtitle": "選擇您的學校進行身份驗證登入",
       "title": "校園身份驗證"
     },
+    "providerActions": {
+      "loginWith": "使用 {{provider}} 登入",
+      "registerWith": "使用 {{provider}} 建立帳號"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "使用校內 Portal 單一入口帳號進行身份驗證登入",
+        "displayName": "NYCU 國立陽明交通大學"
+      }
+    },
     "login": {
-      "email": "Email",
-      "emailPlaceholder": "QStudent",
+      "email": "Email / Username",
+      "emailPlaceholder": "信箱或使用者名稱",
       "failed": "登入失敗",
       "feature1Desc": "即時反饋",
       "feature1Title": "秒級批改",
@@ -74,8 +90,8 @@
       "oauthFailed": "無法啟動登入流程",
       "or": "或使用其他方式登入",
       "password": "密碼",
-      "passwordPlaceholder": "輸入您的密碼",
-      "registerNow": "立即註冊",
+      "passwordPlaceholder": "密碼",
+      "registerNow": "建立帳號",
       "ssoLogin": "校園身份驗證登入",
       "submit": "登入",
       "subtitle": "歡迎回來，請登入您的帳號",
@@ -98,6 +114,8 @@
       "confirmPassword": "確認密碼",
       "confirmPasswordPlaceholder": "再次輸入密碼",
       "email": "Email",
+      "emailDivider": "或使用 Email 註冊",
+      "emailSubmit": "Email 註冊",
       "emailPlaceholder": "輸入您的 Email",
       "failed": "註冊失敗",
       "failedRetry": "註冊失敗，請稍後再試",

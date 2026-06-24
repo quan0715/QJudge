@@ -52,11 +52,27 @@
       },
       "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
       "subtitle": "로그인할 대학교를 선택하세요",
-      "title": " campus 인증"
+      "title": "캠퍼스 인증"
+    },
+    "providerActions": {
+      "loginWith": "{{provider}} 로 로그인",
+      "registerWith": "{{provider}} 로 계정 만들기"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "대학교 포털 계정을 사용하여 로그인합니다",
+        "displayName": "NYCU (국립 양명 교통 대학교)"
+      }
     },
     "login": {
-      "email": "이메일",
-      "emailPlaceholder": "student@example.com",
+      "email": "이메일 / 사용자 이름",
+      "emailPlaceholder": "이메일 또는 사용자 이름",
       "failed": "로그인 실패",
       "feature1Desc": "실시간 피드백",
       "feature1Title": "즉각적인 채점",
@@ -74,8 +90,8 @@
       "oauthFailed": "로그인을 시작할 수 없습니다",
       "or": "또는 다른 방법으로 로그인",
       "password": "비밀번호",
-      "passwordPlaceholder": "비밀번호 입력",
-      "registerNow": "지금 가입하기",
+      "passwordPlaceholder": "비밀번호",
+      "registerNow": "계정 만들기",
       "ssoLogin": "SSO 로 로그인",
       "submit": "로그인",
       "subtitle": "환영합니다, 계정에 로그인하세요",
@@ -98,6 +114,8 @@
       "confirmPassword": "비밀번호 확인",
       "confirmPasswordPlaceholder": "비밀번호 재입력",
       "email": "이메일",
+      "emailDivider": "또는 이메일로 가입",
+      "emailSubmit": "이메일 가입",
       "emailPlaceholder": "이메일 입력",
       "failed": "가입 실패",
       "failedRetry": "가입 실패, 나중에 다시 시도하세요",

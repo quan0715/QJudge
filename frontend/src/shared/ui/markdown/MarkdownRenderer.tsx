@@ -1,5 +1,7 @@
 import {
   memo,
+  useEffect,
+  useId,
   useState,
   useCallback,
   useMemo,
@@ -7,6 +9,7 @@ import {
   Children,
 } from "react";
 import ReactMarkdown from "react-markdown";
+import type { Options as ReactMarkdownOptions } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
@@ -98,6 +101,8 @@ interface MarkdownRendererProps {
   enableHighlight?: boolean;
   /** Enable copy button for code blocks */
   enableCopy?: boolean;
+  /** Render ```mermaid code fences as diagrams (enable only for trusted docs) */
+  enableMermaid?: boolean;
   /** Allow raw HTML in markdown (unsafe for untrusted content) */
   allowRawHtml?: boolean;
   /** Additional className for styling */
@@ -109,7 +114,7 @@ interface MarkdownRendererProps {
 // Extract language from code element className
 const getLanguageFromClassName = (className?: string): string | null => {
   if (!className) return null;
-  const match = className.match(/language-(\w+)/);
+  const match = className.match(/language-([\w-]+)/);
   return match ? match[1] : null;
 };
 
@@ -128,11 +133,98 @@ const extractTextContent = (children: React.ReactNode): string => {
   return "";
 };
 
+type MermaidApi = (typeof import("mermaid"))["default"];
+
+let mermaidLoader: Promise<MermaidApi> | null = null;
+
+const loadMermaid = () => {
+  if (!mermaidLoader) {
+    mermaidLoader = import("mermaid").then((module) => {
+      const mermaidApi = module.default;
+      mermaidApi.initialize({
+        startOnLoad: false,
+        securityLevel: "strict",
+        theme: "neutral",
+      });
+      return mermaidApi;
+    });
+  }
+
+  return mermaidLoader;
+};
+
+const MermaidBlock: React.FC<{ chart: string }> = ({ chart }) => {
+  const reactId = useId();
+  const diagramId = useMemo(
+    () => `mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
+    [reactId],
+  );
+  const [renderResult, setRenderResult] = useState<{
+    chart: string;
+    svg: string;
+    hasError: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    loadMermaid()
+      .then((mermaidApi) => mermaidApi.render(diagramId, chart))
+      .then(({ svg: renderedSvg }) => {
+        if (isActive) {
+          setRenderResult({ chart, svg: renderedSvg, hasError: false });
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setRenderResult({ chart, svg: "", hasError: true });
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [chart, diagramId]);
+
+  const isCurrentResult = renderResult?.chart === chart;
+
+  if (isCurrentResult && renderResult.hasError) {
+    return (
+      <div className="mermaid-block mermaid-block--error">
+        <p>Mermaid 圖表語法無法渲染，以下顯示原始碼。</p>
+        <pre>
+          <code>{chart}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  if (!isCurrentResult || !renderResult.svg) {
+    return (
+      <div
+        className="mermaid-block mermaid-block--loading"
+        aria-label="Mermaid 圖表載入中"
+      />
+    );
+  }
+
+  return (
+    <div
+      className="mermaid-block"
+      data-testid="mermaid-diagram"
+      aria-label="Mermaid 圖表"
+      role="img"
+      dangerouslySetInnerHTML={{ __html: renderResult.svg }}
+    />
+  );
+};
+
 // Code block with copy button and language label
 const CodeBlock: React.FC<{
   children: React.ReactNode;
   enableCopy: boolean;
-}> = ({ children, enableCopy }) => {
+  enableMermaid: boolean;
+}> = ({ children, enableCopy, enableMermaid }) => {
   const [copied, setCopied] = useState(false);
 
   // Extract language from code element
@@ -156,14 +248,18 @@ const CodeBlock: React.FC<{
   };
 
   const displayLanguage = getDisplayLanguage(language);
+  const codeContent = useMemo(() => extractTextContent(children), [children]);
 
   const handleCopy = useCallback(() => {
-    const codeContent = extractTextContent(children);
     navigator.clipboard.writeText(codeContent).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [children]);
+  }, [codeContent]);
+
+  if (enableMermaid && language === "mermaid") {
+    return <MermaidBlock chart={codeContent.trim()} />;
+  }
 
   return (
     <div className="code-block-wrapper">
@@ -200,6 +296,7 @@ const CodeBlock: React.FC<{
  * - Math formulas with KaTeX (optional)
  * - Syntax highlighting (optional)
  * - Copy button for code blocks (optional)
+ * - Mermaid diagrams for trusted docs (optional)
  *
  * Supported languages for syntax highlighting:
  * - C, C++, Python, Java, JavaScript, TypeScript
@@ -233,17 +330,12 @@ const BASE_COMPONENTS: Record<
   td: ({ children }) => <TableCell>{children}</TableCell>,
 };
 
-const PreWithCopy: React.ComponentType<{ children?: React.ReactNode }> = ({
-  children,
-}) => <CodeBlock enableCopy>{children}</CodeBlock>;
-
-const COMPONENTS_WITH_COPY = { ...BASE_COMPONENTS, pre: PreWithCopy };
-
 const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   children,
   enableMath = false,
   enableHighlight = false,
   enableCopy = false,
+  enableMermaid = false,
   allowRawHtml = false,
   className = "",
   style,
@@ -253,13 +345,15 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
   // deltas). Without this, rehypeHighlight/rehypeKatex would be re-run on
   // identical content.
   const remarkPlugins = useMemo(() => {
-    const plugins: any[] = [remarkGfm];
+    const plugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
+      remarkGfm,
+    ];
     if (enableMath) plugins.push(remarkMath);
     return plugins;
   }, [enableMath]);
 
   const rehypePlugins = useMemo(() => {
-    const plugins: any[] = [];
+    const plugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [];
     if (allowRawHtml) plugins.push(rehypeRaw);
     plugins.push(rehypeSlug);
     if (enableMath) plugins.push(rehypeKatex);
@@ -269,7 +363,19 @@ const MarkdownRendererComponent: React.FC<MarkdownRendererProps> = ({
     return plugins;
   }, [allowRawHtml, enableMath, enableHighlight]);
 
-  const components = enableCopy ? COMPONENTS_WITH_COPY : BASE_COMPONENTS;
+  const components = useMemo(() => {
+    if (!enableCopy && !enableMermaid) return BASE_COMPONENTS;
+
+    const PreBlock: React.ComponentType<{ children?: React.ReactNode }> = ({
+      children: preChildren,
+    }) => (
+      <CodeBlock enableCopy={enableCopy} enableMermaid={enableMermaid}>
+        {preChildren}
+      </CodeBlock>
+    );
+
+    return { ...BASE_COMPONENTS, pre: PreBlock };
+  }, [enableCopy, enableMermaid]);
 
   const normalizedChildren = normalizeMarkdownText(children);
 
