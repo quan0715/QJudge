@@ -5,6 +5,7 @@ import {
   usePaperExamAutoSave,
 } from "./usePaperExamAutoSave";
 import { submitExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { createEmptyOpenAnswerDocument } from "@/shared/ui/editor";
 
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
   submitExamAnswer: vi.fn().mockResolvedValue({}),
@@ -24,6 +25,14 @@ describe("buildExamAnswerPayload", () => {
   it("returns text payload for subjective string values", () => {
     expect(buildExamAnswerPayload("my answer", "essay")).toEqual({
       text: "my answer",
+    });
+  });
+
+  it("returns document payload for open document answers", () => {
+    const document = createEmptyOpenAnswerDocument();
+
+    expect(buildExamAnswerPayload(document, "essay", "open_document")).toEqual({
+      document,
     });
   });
 });
@@ -110,6 +119,32 @@ describe("usePaperExamAutoSave", () => {
       "contest-3",
       "33",
       { text: "explain" },
+    );
+  });
+
+  it("submits document payload for open document answers", async () => {
+    const setAnswers = vi.fn();
+    const document = createEmptyOpenAnswerDocument();
+    const { result } = renderHook(() =>
+      usePaperExamAutoSave({
+        contestId: "contest-4",
+        setAnswers: setAnswers as never,
+      }),
+    );
+
+    act(() => {
+      result.current.handleAnswerChange("44", document, "essay", "open_document");
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+    });
+
+    expect(mockedSubmitExamAnswer).toHaveBeenCalledWith(
+      "contest-4",
+      "44",
+      { document },
     );
   });
 

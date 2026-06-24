@@ -364,6 +364,7 @@ Avoid OS keychain integration in V1 because it can introduce desktop permission 
 - add independent multi-model blind grading
 - add Human H0 export
 - add deterministic three-model voting
+- add cross-review packets
 - add AI-vs-Human H0 aggregation reports
 
 ## Reduced-Workload Rationale

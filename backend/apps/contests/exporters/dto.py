@@ -44,6 +44,7 @@ class ContestProblemDTO:
     label: str
     problem: ProblemDTO
     max_score: int = 0
+    score_policy: str = "normal"  # normal | excluded | full_marks
 
     @property
     def score(self) -> int:
@@ -52,6 +53,14 @@ class ContestProblemDTO:
         Export/report logic should prefer `max_score`.
         """
         return self.max_score
+
+    @property
+    def is_excluded(self) -> bool:
+        return self.score_policy == "excluded"
+
+    @property
+    def is_full_marks(self) -> bool:
+        return self.score_policy == "full_marks"
 
 
 @dataclass

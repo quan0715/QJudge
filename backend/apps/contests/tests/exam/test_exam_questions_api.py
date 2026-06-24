@@ -406,6 +406,27 @@ class TestValidation:
         }, format="json")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_answer_format_accepts_markdown_math_for_subjective_question(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Show the derivation.",
+            "score": 5,
+            "answer_format": "markdown_math",
+        }, format="json")
+        assert res.status_code == status.HTTP_201_CREATED
+        assert res.data["answer_format"] == "markdown_math"
+
+    def test_answer_format_rejects_unknown_values(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "Show the derivation.",
+            "score": 5,
+            "answer_format": "canvas",
+        }, format="json")
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Auto-Order

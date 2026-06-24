@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("question_bank", "0017_eliminate_question_bank_legacy_adapters"),
-        ("contests", "0081_remove_auto_unlock_fields"),
+        ("contests", "0085_examquestion_redistribute_policy"),
     ]
 
     operations = [

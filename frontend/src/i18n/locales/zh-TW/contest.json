@@ -430,6 +430,46 @@
       "shortAnswerPlaceholder": "輸入你的答案...",
       "trueOption": "是 (True)"
     },
+    "group": {
+      "sharedStem": "題組題幹",
+      "totalScore": "小計 {{score}} 分"
+    },
+    "mathEditor": {
+      "ariaLabel": "數學解答編輯器",
+      "editFormula": "編輯公式",
+      "emptyPreview": "尚未輸入",
+      "fields": {
+        "base": "底數",
+        "denominator": "分母",
+        "exponent": "指數",
+        "lines": "等式列",
+        "numerator": "分子",
+        "radicand": "根號內",
+        "subscript": "下標"
+      },
+      "placeholder": "輸入計算過程，可用上方按鈕插入常用公式",
+      "previewLabel": "預覽",
+      "removeFormula": "移除公式",
+      "textSegmentLabel": "文字段落",
+      "toolbar": {
+        "aligned": "多行等式",
+        "fraction": "分式",
+        "label": "數學工具列",
+        "pi": "圓周率",
+        "power": "次方",
+        "sqrt": "根號",
+        "subscript": "下標",
+        "theta": "角度 theta"
+      }
+    },
+    "markdownEditor": {
+      "ariaLabel": "Markdown 解答編輯器",
+      "placeholder": "輸入解答，可使用 Markdown 排版"
+    },
+    "openAnswer": {
+      "ariaLabel": "開放題作答紙",
+      "placeholder": "輸入解題過程，可用工具列或 / 插入公式"
+    },
     "questionTypes": {
       "coding": "程式題",
       "essay": "問答題",
@@ -780,6 +820,13 @@
     "addOption": "新增選項",
     "addQuestion": "建立題目",
     "aiAssistant": "AI 助教",
+    "answerFormat": "作答格式",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "數學作答",
+      "openDocument": "開放作答紙",
+      "plainText": "純文字"
+    },
     "answerNotSet": "（未設定答案）",
     "autoSaveEnabled": "自動儲存中",
     "codingPreviewPlaceholder": "待編輯",
@@ -796,7 +843,7 @@
     "deleteOption": "刪除選項",
     "explanation": "詳解",
     "explanationNotSet": "（未設定詳解）",
-    "explanationPlaceholder": "補充解題思路、評分重點或觀念解析（支援 Markdown）",
+    "explanationPlaceholder": "輸入完整解題過程、推導或觀念解析；不要把評分用最終答案只放在這裡",
     "falseOption": "否 (False)",
     "hideQuestionList": "隱藏題目列表",
     "importFromBank": "從題庫匯入",
@@ -827,6 +874,8 @@
     "questionLockedReason": "已有學生正式作答，競賽題目已鎖定",
     "questionNumber": "第 {{num}} 題",
     "questionUpdated": "題目已更新",
+    "gradingReferenceAnswer": "評分參考答案",
+    "gradingReferencePlaceholder": "輸入評分用答案要點或最終結論；完整推導請放在詳解",
     "referenceAnswer": "參考答案",
     "referenceNotSet": "（未設定參考答案）",
     "referencePlaceholder": "參考答案（可選，支援 Markdown）",
@@ -837,8 +886,9 @@
     "scoreLabel": "分",
     "scoreUnit": "{{score}} 分",
     "selectQuestionType": "選擇題目類型",
-    "shortAnswerPlaceholder": "輸入簡答標準答案（如數字、關鍵字）",
+    "shortAnswerPlaceholder": "輸入評分用答案要點或最終結論；完整推導請放在詳解",
     "showQuestionList": "顯示題目列表",
+    "solutionExplanation": "詳解（解題過程）",
     "sortUpdateFailed": "排序更新失敗",
     "sourceBankLabel": "題庫",
     "sourceInsert": "插入",
@@ -978,6 +1028,18 @@
     "saveAndNextStudent": "儲存並下一位學生",
     "saved": "已儲存",
     "score": "分數",
+    "scorePolicy": {
+      "confirmExcluded": "確定要將第 {{index}} 題設為不計分？所有學生的此題成績將不計入總分。",
+      "confirmFullMarks": "確定要將第 {{index}} 題設為送分？所有學生將獲得此題滿分。",
+      "confirmNormal": "確定要將第 {{index}} 題恢復為正常計分？",
+      "excluded": "不計分",
+      "fullMarks": "送分",
+      "menuTitle": "分數政策",
+      "normal": "正常計分",
+      "setExcluded": "設為不計分",
+      "setFullMarks": "設為送分",
+      "setNormal": "恢復正常計分"
+    },
     "searchStudent": "搜尋學生",
     "selectAnswerToGrade": "選擇一位學生的作答來開始批改",
     "selectQuestion": "選擇題目",

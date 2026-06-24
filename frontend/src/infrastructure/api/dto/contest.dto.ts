@@ -6,6 +6,9 @@ import type {
   ContestType,
   ContestDeliveryMode,
   ExamStatusType,
+  ExamQuestionAnswerFormat,
+  ExamQuestionScorePolicy,
+  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 
 export interface ContestProblemSummaryDto {
@@ -33,9 +36,17 @@ export interface ExamQuestionDto {
   prompt?: string;
   options?: unknown[];
   correct_answer?: unknown;
+  reference_answer_document?: OpenAnswerDocument | null;
   explanation?: string;
+  explanation_document?: OpenAnswerDocument | null;
   score?: number;
+  effective_max_score?: number;
+  score_policy?: ExamQuestionScorePolicy;
+  score_policy_config?: { redistribute_to?: string[] } | null;
   order?: number;
+  group_id?: number | string | null;
+  order_in_group?: number | null;
+  answer_format?: ExamQuestionAnswerFormat | string;
   source_bank?: {
     id?: number | string;
     name?: string;
@@ -45,6 +56,36 @@ export interface ExamQuestionDto {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface ExamQuestionGroupDto {
+  id?: number | string;
+  contest?: number | string;
+  title?: string;
+  shared_stem_markdown?: string;
+  order?: number;
+  total_score?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ExamPaperDto {
+  questions?: ExamQuestionDto[];
+  groups?: ExamQuestionGroupDto[];
+  blocks?: ExamPaperBlockDto[];
+}
+
+export type ExamPaperBlockDto =
+  | {
+      kind?: "question";
+      id?: number | string;
+      question?: ExamQuestionDto;
+    }
+  | {
+      kind?: "group";
+      id?: number | string;
+      group?: ExamQuestionGroupDto;
+      children?: ExamQuestionDto[];
+    };
 
 export interface ContestDto {
   id: number | string;
@@ -221,6 +262,7 @@ export interface ParticipantPaperReportRowDto {
   status?: ParticipantDashboardStatusDto;
   score?: number | null;
   max_score?: number;
+  score_policy?: string;
 }
 
 export interface ParticipantCodingProblemRowDto {

@@ -19,6 +19,7 @@ from apps.question_bank.question_assets import (
 from ..models import (
     Contest,
     ExamQuestion,
+    ExamQuestionScorePolicy,
     ExamStatus,
     ExamQuestionType,
 )
@@ -33,6 +34,7 @@ from ..services.export_service import (
     parse_scale,
 )
 from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.score_recalculation import recalculate_all_scores
 from .activity import ContestActivityViewSet
 from .exam_validation_response import build_device_conflict_response_for_view
 
@@ -100,6 +102,17 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         if self._is_admin(contest):
             return ExamQuestionSerializer
         return ExamQuestionStudentSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        contest = self._get_contest()
+        context['contest'] = contest
+        # Inject effective_max_scores for admin serializer (computed once, avoids N+1)
+        if self._is_admin(contest):
+            from ..services.exam_scoring import ExamScoringService
+            scoring = ExamScoringService(contest)
+            context['effective_max_scores'] = scoring.get_effective_max_scores()
+        return context
 
     def _check_student_device_guard(self):
         """Run device guard for student read actions (list/retrieve).
@@ -234,16 +247,37 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
-            contest=contest,
-            actor_id=getattr(self.request.user, "id", None),
-            action="exam_question.update",
-        )
-        serializer.save()
-        ensure_contest_binding_for_exam_question(
-            exam_question=serializer.instance,
-            actor=self.request.user,
-        )
+
+        # Allow score_policy changes even when contest is locked (post-exam adjustment)
+        updating_fields = set(self.request.data.keys())
+        score_policy_only = updating_fields <= {"score_policy", "score_policy_config"}
+        if not score_policy_only:
+            ensure_contest_question_editable(
+                contest=contest,
+                actor_id=getattr(self.request.user, "id", None),
+                action="exam_question.update",
+            )
+
+        old_policy = serializer.instance.score_policy
+        old_score = serializer.instance.score
+        with transaction.atomic():
+            serializer.save()
+            new_policy = serializer.instance.score_policy
+            new_score = serializer.instance.score
+
+            ensure_contest_binding_for_exam_question(
+                exam_question=serializer.instance,
+                actor=self.request.user,
+            )
+
+            # Recalculate all scores when policy or max score changes
+            policy_changed = old_policy != new_policy
+            score_changed_for_full_marks = (
+                new_policy == ExamQuestionScorePolicy.FULL_MARKS
+                and old_score != new_score
+            )
+            if policy_changed or score_changed_for_full_marks:
+                recalculate_all_scores(contest)
 
         ContestActivityViewSet.log_activity(
             contest,

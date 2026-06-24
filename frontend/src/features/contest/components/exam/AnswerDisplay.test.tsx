@@ -1,4 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { describe, it, expect, vi } from "vitest";
+
+import AnswerDisplay from "./AnswerDisplay";
+
+vi.mock("@/shared/ui/markdown/MarkdownContent", () => {
+  const Renderer = ({ children, kind }: { children: ReactNode; kind: string }) => (
+    <span data-testid="markdown-content" data-kind={kind}>
+      {children}
+    </span>
+  );
+  return {
+    default: {
+      Simple: ({ children }: { children: ReactNode }) => <Renderer kind="simple">{children}</Renderer>,
+      Rich: ({ children }: { children: ReactNode }) => <Renderer kind="rich">{children}</Renderer>,
+      Problem: ({ children }: { children: ReactNode }) => <Renderer kind="problem">{children}</Renderer>,
+    },
+  };
+});
 
 // Import the internal helpers via the module. Since they are not exported,
 // we test them indirectly through the component behavior. However, the core
@@ -100,5 +119,71 @@ describe("formatCorrectLabel", () => {
 
   it("formats array for multiple choice", () => {
     expect(formatCorrectLabel([0, 2], ["A", "B", "C"])).toBe("A. A, C. C");
+  });
+});
+
+describe("AnswerDisplay rendering", () => {
+  it("renders subjective reference answer and explanation with problem markdown", () => {
+    render(
+      <AnswerDisplay
+        questionType="essay"
+        answerContent={{ text: "student answer" }}
+        options={[]}
+        correctAnswer="$x=1$"
+        explanation="$\\frac12$"
+        answerFormat="plain_text"
+      />,
+    );
+
+    const reference = screen
+      .getAllByTestId("markdown-content")
+      .find((node) => node.textContent === "$x=1$");
+    const explanation = screen
+      .getAllByTestId("markdown-content")
+      .find((node) => node.textContent?.includes("frac12"));
+    expect(reference).toHaveAttribute("data-kind", "problem");
+    expect(explanation).toHaveAttribute("data-kind", "problem");
+  });
+
+  it("renders objective options and correct summary with problem markdown", () => {
+    render(
+      <AnswerDisplay
+        questionType="single_choice"
+        answerContent={{ selected: 1 }}
+        options={["$\\frac{\\pi}{5}$", "$\\frac{2\\pi}{5}$"]}
+        correctAnswer={1}
+      />,
+    );
+
+    const renderedMath = screen
+      .getAllByTestId("markdown-content")
+      .filter((node) => node.textContent === "$\\frac{2\\pi}{5}$");
+    expect(renderedMath).toHaveLength(2);
+    expect(renderedMath.every((node) => node.getAttribute("data-kind") === "problem")).toBe(true);
+  });
+
+  it("renders open document subjective answers", () => {
+    render(
+      <AnswerDisplay
+        questionType="essay"
+        answerFormat="open_document"
+        answerContent={{
+          document: {
+            version: 1,
+            nodes: [
+              {
+                type: "paragraph",
+                children: [{ type: "text", text: "先列式" }],
+              },
+            ],
+          },
+        }}
+        options={[]}
+        correctAnswer={null}
+      />,
+    );
+
+    expect(screen.getByText("先列式")).toBeInTheDocument();
+    expect(screen.queryByText("未作答")).not.toBeInTheDocument();
   });
 });

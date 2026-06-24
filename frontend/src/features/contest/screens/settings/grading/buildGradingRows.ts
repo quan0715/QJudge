@@ -43,9 +43,13 @@ export function buildGradingRows(
       questionIndex: qIdx + 1,
       questionPrompt: q?.prompt ?? "",
       questionExplanation: q?.explanation ?? "",
+      questionExplanationDocument: q?.explanationDocument ?? null,
       questionType: qType,
+      answerFormat: q?.answerFormat,
       questionOptions: q?.options ?? [],
       maxScore: q?.score ?? 0,
+      effectiveMaxScore: q?.effectiveMaxScore,
+      scorePolicy: q?.scorePolicy ?? "normal",
       answerContent: a.answer,
       score: a.score,
       feedback: a.feedback ?? "",
@@ -53,6 +57,7 @@ export function buildGradingRows(
       gradedAt: a.gradedAt,
       isAutoGraded: isAuto && a.score !== null,
       correctAnswer: q?.correctAnswer ?? null,
+      referenceAnswerDocument: q?.referenceAnswerDocument ?? null,
     };
   });
 }

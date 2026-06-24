@@ -109,6 +109,7 @@ const mapPaperOverviewRowDto = (
   status: mapParticipantDashboardStatusDto(dto?.status || {}),
   score: dto?.score != null ? Number(dto.score) : null,
   maxScore: Number(dto?.max_score ?? 0),
+  scorePolicy: dto?.score_policy || undefined,
 });
 
 const mapPaperQuestionDetailDto = (
@@ -131,6 +132,7 @@ const mapPaperQuestionDetailDto = (
   gradedAt: dto?.graded_at || null,
   isCorrect: dto?.is_correct ?? null,
   status: mapParticipantDashboardStatusDto(dto?.status || {}),
+  scorePolicy: dto?.score_policy || undefined,
 });
 
 const mapCodingProblemRowDto = (

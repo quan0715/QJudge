@@ -6,6 +6,32 @@
   max-width: 720px;
 }
 
+.groupStem {
+  margin-bottom: layout.$spacing-06;
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+}
+
+.groupStemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-04;
+  margin-bottom: layout.$spacing-04;
+}
+
+.groupStemTitle {
+  @include type.type-style("heading-compact-01");
+  color: var(--cds-text-primary);
+}
+
+.groupStemScore {
+  @include type.type-style("label-01");
+  flex-shrink: 0;
+  color: var(--cds-text-helper);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -67,6 +93,32 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-04;
+}
+
+.optionMarkdownLabel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.optionLetter {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.optionMarkdownContent {
+  display: inline;
+  min-width: 0;
+
+  p {
+    display: inline;
+    margin: 0;
+  }
+
+  :global(.katex-display) {
+    margin: 0;
+  }
 }
 
 .textArea {

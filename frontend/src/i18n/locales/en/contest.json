@@ -430,6 +430,46 @@
       "shortAnswerPlaceholder": "Enter your answer...",
       "trueOption": "True"
     },
+    "group": {
+      "sharedStem": "Question group stem",
+      "totalScore": "Subtotal {{score}} pts"
+    },
+    "mathEditor": {
+      "ariaLabel": "Math answer editor",
+      "editFormula": "Edit formula",
+      "emptyPreview": "No input yet",
+      "fields": {
+        "base": "Base",
+        "denominator": "Denominator",
+        "exponent": "Exponent",
+        "lines": "Equation lines",
+        "numerator": "Numerator",
+        "radicand": "Inside root",
+        "subscript": "Subscript"
+      },
+      "placeholder": "Write your calculation steps. Use the toolbar to insert common formulas.",
+      "previewLabel": "Preview",
+      "removeFormula": "Remove formula",
+      "textSegmentLabel": "Text segment",
+      "toolbar": {
+        "aligned": "Aligned equations",
+        "fraction": "Fraction",
+        "label": "Math toolbar",
+        "pi": "Pi",
+        "power": "Power",
+        "sqrt": "Square root",
+        "subscript": "Subscript",
+        "theta": "Theta"
+      }
+    },
+    "markdownEditor": {
+      "ariaLabel": "Markdown answer editor",
+      "placeholder": "Write your answer. Markdown formatting is supported."
+    },
+    "openAnswer": {
+      "ariaLabel": "Open answer sheet",
+      "placeholder": "Write your reasoning. Use the toolbar or / to insert formulas."
+    },
     "questionTypes": {
       "coding": "Coding",
       "essay": "Essay",
@@ -780,6 +820,13 @@
     "addOption": "Add option",
     "addQuestion": "Add Question",
     "aiAssistant": "AI assistant",
+    "answerFormat": "Answer format",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "Math answer",
+      "openDocument": "Open answer sheet",
+      "plainText": "Plain text"
+    },
     "answerNotSet": "(Answer not set)",
     "autoSaveEnabled": "Auto-saving",
     "codingPreviewPlaceholder": "Not edited yet",
@@ -796,7 +843,7 @@
     "deleteOption": "Delete option",
     "explanation": "Explanation",
     "explanationNotSet": "(Explanation not set)",
-    "explanationPlaceholder": "Add solution notes, grading hints, or concept explanations (supports Markdown)",
+    "explanationPlaceholder": "Enter the full solution process, derivation, or concept explanation; do not put only the grading answer here",
     "falseOption": "False",
     "hideQuestionList": "Hide question list",
     "importFromBank": "Import from Question Bank",
@@ -827,6 +874,8 @@
     "questionLockedReason": "A student has started the exam. Questions are locked.",
     "questionNumber": "Q{{num}}",
     "questionUpdated": "Question updated",
+    "gradingReferenceAnswer": "Grading Reference Answer",
+    "gradingReferencePlaceholder": "Enter grading answer points or the final conclusion; put full derivations in Explanation",
     "referenceAnswer": "Reference Answer",
     "referenceNotSet": "(Reference answer not set)",
     "referencePlaceholder": "Reference answer (optional, supports Markdown)",
@@ -837,8 +886,9 @@
     "scoreLabel": "pts",
     "scoreUnit": "{{score}} pts",
     "selectQuestionType": "Select Question Type",
-    "shortAnswerPlaceholder": "Enter short answer (e.g. number, keyword)",
+    "shortAnswerPlaceholder": "Enter grading answer points or the final conclusion; put full derivations in Explanation",
     "showQuestionList": "Show question list",
+    "solutionExplanation": "Explanation (solution process)",
     "sortUpdateFailed": "Sort update failed",
     "sourceBankLabel": "Question Bank",
     "sourceInsert": "Insert",
@@ -978,6 +1028,18 @@
     "saveAndNextStudent": "Save & Next Student",
     "saved": "Saved",
     "score": "Score",
+    "scorePolicy": {
+      "confirmExcluded": "Are you sure you want to exclude Question {{index}} from scoring? All students' scores for this question will not count toward the total.",
+      "confirmFullMarks": "Are you sure you want to give full marks on Question {{index}}? All students will receive full score for this question.",
+      "confirmNormal": "Are you sure you want to restore normal scoring for Question {{index}}?",
+      "excluded": "Excluded",
+      "fullMarks": "Full Marks",
+      "menuTitle": "Score Policy",
+      "normal": "Normal",
+      "setExcluded": "Exclude from scoring",
+      "setFullMarks": "Give full marks",
+      "setNormal": "Restore normal scoring"
+    },
     "searchStudent": "Search student",
     "selectAnswerToGrade": "Select a student's answer to start grading",
     "selectQuestion": "Select Question",

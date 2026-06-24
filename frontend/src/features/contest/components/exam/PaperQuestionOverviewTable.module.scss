@@ -49,6 +49,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Excluded score (strikethrough, muted) */
+.cellScoreExcluded {
+  font-variant-numeric: tabular-nums;
+  text-decoration: line-through;
+  color: var(--cds-text-helper, #6f6f6f);
+}
+
+/* Full marks star badge */
+.policyBadgeFullMarks {
+  color: var(--cds-support-success, #198038);
+  font-size: 0.75rem;
+}
+
 /* Feedback cell */
 .cellFeedback {
   color: var(--cds-text-secondary);

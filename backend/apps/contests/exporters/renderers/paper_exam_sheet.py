@@ -55,11 +55,13 @@ class PaperExamSheetRenderer(BaseRenderer):
         return pdf_file
 
     def render_html(self) -> str:
+        from apps.contests.services.exam_scoring import ExamScoringService
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).order_by("order", "id")
         )
         is_zh = self.is_chinese
-        total_score = sum(q.score for q in questions)
+        scoring = ExamScoringService(self.contest)
+        total_score = scoring.get_max_total_score()
 
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []

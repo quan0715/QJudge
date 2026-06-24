@@ -68,6 +68,32 @@
   min-width: 0;
 }
 
+.optionText {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.optionLetter {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.optionMarkdown {
+  display: inline;
+  min-width: 0;
+
+  p {
+    display: inline;
+    margin: 0;
+  }
+
+  :global(.katex-display) {
+    margin: 0;
+  }
+}
+
 .selectedIcon {
   flex-shrink: 0;
   color: var(--cds-link-primary);
@@ -114,7 +140,17 @@
   flex-shrink: 0;
 }
 
+.correctValues {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .correctValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
   color: var(--cds-support-success);
   font-weight: 500;
 }

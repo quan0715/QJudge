@@ -391,6 +391,7 @@ const ContestExamGradingScreen: React.FC = () => {
               }
               selectionRequest={selectionRequest}
               readOnly={isCodingContest}
+              onRefreshData={refreshData}
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen

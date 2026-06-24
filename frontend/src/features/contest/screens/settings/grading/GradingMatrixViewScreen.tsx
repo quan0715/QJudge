@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
+import { isCountedQuestion, computeStudentDisplayTotal } from "./scorePolicyUtils";
 import styles from "./GradingMatrixView.module.scss";
 
 interface GradingMatrixViewScreenProps {
@@ -39,14 +40,16 @@ export default function GradingMatrixViewScreen({
   const studentTotalScore = useMemo(() => {
     const scoreMap = new Map<string, number>();
     students.forEach((student) => {
-      let total = 0;
-      questionProgress.forEach((question) => {
+      const items = questionProgress.map((question) => {
         const answer = answerLookup.get(`${question.questionId}:${student.studentId}`);
-        if (answer?.score !== null && answer?.score !== undefined) {
-          total += answer.score;
-        }
+        return {
+          maxScore: question.maxScore,
+          effectiveMaxScore: question.effectiveMaxScore,
+          scorePolicy: question.scorePolicy,
+          score: answer?.score ?? null,
+        };
       });
-      scoreMap.set(student.studentId, total);
+      scoreMap.set(student.studentId, computeStudentDisplayTotal(items));
     });
     return scoreMap;
   }, [students, questionProgress, answerLookup]);
@@ -54,6 +57,10 @@ export default function GradingMatrixViewScreen({
   const questionAverageScore = useMemo(() => {
     const scoreMap = new Map<string, number | null>();
     questionProgress.forEach((question) => {
+      if (!isCountedQuestion(question.scorePolicy)) {
+        scoreMap.set(question.questionId, null);
+        return;
+      }
       let sum = 0;
       let gradedCount = 0;
       students.forEach((student) => {
