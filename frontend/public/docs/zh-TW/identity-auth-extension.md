@@ -1,5 +1,5 @@
-> 文件狀態：草稿，2026-06-23  
-> 適用範圍：`backend/apps/users`、`backend/apps/oauth`、`frontend/src/features/auth`  
+> 文件狀態：草稿，2026-06-24
+> 適用範圍：`backend/apps/users`、`backend/apps/oauth`、`frontend/src/features/auth`
 > 目標讀者：QJudge 維護者、部署學校的系統管理者、準備串接 SSO/OAuth 的貢獻者
 
 # 身份模組維護與擴充草稿
@@ -27,6 +27,86 @@ QJudge 內部仍應維持單一授權模型：所有登入方式最後都簽發 
 
 目前設計已經有 provider registry 的雛形，但還不是完整可插拔架構。新增一所學校時，仍需要修改後端設定、後端 provider class、前端校園清單與翻譯文字。
 
+### 目前資料模型確認
+
+`User` 目前有 `email`、`auth_provider`、`oauth_id`、`email_verified`、`role` 等欄位；`UserProfile` 目前保存顯示名稱、頭像、語言、主題與 editor 偏好。兩者目前都沒有 `institution` 欄位，也沒有獨立的 `Institution` model。
+
+如果未來是一校一套部署，短期可以先不新增 `institution`。若同一套 QJudge 要服務多所學校，建議新增 `Institution`、`IdentityProvider.institution`，並在 `ExternalIdentity` 或 user profile 上保存來源學校，否則同 email 合併、provider 顯示、資料治理與報表分群會混在一起。
+
+## 已確認決策
+
+| 議題 | 決策 | 文件影響 |
+| --- | --- | --- |
+| Email/Password | 部署者必須能完全關閉 Email/Password，只保留學校 SSO | 新增 `AUTH_EMAIL_PASSWORD_ENABLED=false` 類型設定；關閉後 login/register/password reset/change password 都不顯示也不接受 API |
+| 教師啟用 | 維持目前教師啟用邀請流程 | SSO 只負責登入與建立 user；teacher role 仍由 QJudge 內部邀請流程授權 |
+| Institution | 目前 model 沒有 | 單校部署可先不做；多校共用時再新增 `Institution` 關聯 |
+| 帳號合併 | 同 email 視為同一個 QJudge user | 保留 `User.email` unique；外部身份以 email 找既有 user 後再建立 provider link |
+| Provider 管理 | 先以 env/seed 管理 | Phase 1 不做 admin UI；用 seed 載入 provider metadata 與 env secret |
+| OAuth service 實作 | 不整個重寫，短期繼承既有 `BaseOAuthService` | GitHub/Google/NYCU 仍走子類別；中期抽成可設定的 OAuth/OIDC adapter，provider 特例只留小型 hook |
+
+## 目前身份認證時序圖
+
+下面是現行系統的實際時序，不是目標架構。重點是：Email/Password 與 OAuth 最後都會落到同一個 `User` 與 QJudge JWT cookie；教師啟用是登入後的獨立流程。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as 使用者
+    participant FE as Frontend auth pages
+    participant API as apps.users views
+    participant Email as EmailAuthService
+    participant OAuth as BaseOAuthService 子類別
+    participant IdP as 第三方 SSO/OAuth
+    participant DB as User / UserProfile
+    participant JWT as JWTService
+    participant TA as TeacherActivationInvite
+
+    alt Email/Password 登入
+        U->>FE: 輸入 email / password
+        FE->>API: POST /api/v1/auth/login
+        API->>Email: login(email, password)
+        Email->>DB: 以 email 或 username 查 auth_provider=email
+        DB-->>Email: User
+        Email-->>API: 驗證成功的 User
+        API->>JWT: generate_tokens(user)
+        JWT->>DB: 更新 last_login_at
+        JWT-->>API: access / refresh
+        API-->>FE: 設定 JWT cookie，回傳 user
+    else OAuth / SSO 登入
+        U->>FE: 點選 NYCU / GitHub / Google
+        FE->>API: GET /api/v1/auth/{provider}/login
+        API->>OAuth: get_authorization_url(redirect_uri, state)
+        OAuth-->>API: authorization_url
+        API-->>FE: authorization_url
+        FE->>IdP: redirect
+        IdP-->>FE: callback code
+        FE->>API: POST /api/v1/auth/{provider}/callback
+        API->>OAuth: exchange_code(code, redirect_uri)
+        OAuth->>IdP: token endpoint + userinfo endpoint
+        IdP-->>OAuth: access token + profile
+        OAuth->>DB: get_or_create_user by email
+        DB-->>OAuth: 既有或新建 User
+        OAuth-->>API: User
+        API->>JWT: generate_tokens(user)
+        JWT->>DB: 更新 last_login_at
+        API-->>FE: 設定 JWT cookie，回傳 user
+    end
+
+    opt 教師啟用邀請
+        U->>FE: 開啟 /teacher-activation?token=...
+        FE->>API: GET /teacher-activations/preview
+        API->>TA: 依 token_digest 查邀請
+        TA-->>API: invite 狀態
+        API-->>FE: requires_login / can_consume
+        U->>FE: 以任一登入方式登入後確認開通
+        FE->>API: POST /teacher-activations/consume
+        API->>TA: select_for_update invite
+        API->>DB: 若 user.role=student，升級為 teacher
+        API->>JWT: 重新簽發 token
+        API-->>FE: 教師權限已開通
+    end
+```
+
 ## 核心維護原則
 
 1. 外部身份只在身份模組內處理。
@@ -45,7 +125,7 @@ QJudge 內部仍應維持單一授權模型：所有登入方式最後都簽發 
 4. 帳號連結必須可追蹤、可審計、可回復。
    - 同一個 QJudge user 可以綁定多個外部身份。
    - 同一個外部身份不能綁到多個 QJudge user。
-   - 自動用 email 合併帳號前，必須確認 provider 回傳的 email 已驗證。
+   - 產品決策上同 email 視為同一個 QJudge user；安全實作上，provider 必須是可信 email 來源，或明確回傳 `email_verified=true`。
 
 ## 目前不足與建議解法
 
@@ -55,6 +135,7 @@ QJudge 內部仍應維持單一授權模型：所有登入方式最後都簽發 
 | provider 清單寫在 `services.py` 與前端畫面 | 開源後每所學校都要改程式碼 | 新增 `IdentityProvider` 設定來源與 `/api/v1/auth/providers` endpoint，由前端動態渲染 |
 | OAuth state 產生後沒有完整的 callback 驗證流程 | 容易留下 CSRF、login injection 或 callback 混淆風險 | 使用 signed state + cache session，callback 必須驗證 `state`、`redirect_uri`、provider、TTL；OIDC 額外驗證 `nonce` |
 | 尚未標準化 OIDC 驗證 | Google/OIDC 類 provider 目前偏向 userinfo fallback，id_token 驗證不足 | 對 OIDC provider 實作 discovery、JWKS 驗章、issuer/audience/exp/nonce 驗證 |
+| Email/Password 不能由部署端完全關閉 | 學校只允許 SSO 時，仍會露出本機密碼入口 | 新增 `AUTH_EMAIL_PASSWORD_ENABLED`；關閉後後端拒絕 Email login/register/password reset，前端隱藏相關 UI |
 | Email 自動合併規則過寬 | 未驗證 email 或 provider bug 可能誤綁既有帳號 | 只有 `email_verified=true` 才允許自動連結；否則建立 pending link 並要求既有帳號登入確認 |
 | 校園 SSO UI 寫死 NYCU | 其他學校部署時要改 frontend code | provider metadata 回傳 `display_name`、`logo_url`、`category`、`enabled`、`sort_order` |
 | provider secret 全在 settings env | 多學校、多環境管理不易，旋轉 secret 缺乏流程 | 支援 env JSON 或 DB 設定；secret 以環境變數或加密欄位注入，不進 Git |
@@ -182,7 +263,7 @@ class ExternalIdentity(models.Model):
 
 ### 2. 新增 provider 設定
 
-建議部署設定使用 env JSON 或 admin seed，例如：
+Phase 1 先用 env JSON 或 admin seed 管理 provider，不做管理介面。範例：
 
 ```json
 {
@@ -246,9 +327,11 @@ class ExternalIdentity(models.Model):
 ### Phase 1：補文件與安全底線
 
 - 保留現有 `BaseOAuthService`。
+- 新增 `AUTH_EMAIL_PASSWORD_ENABLED`，讓部署者可以完全關閉 Email/Password。
 - 補 state 驗證、callback TTL、provider enabled 檢查。
 - 補 `/api/v1/auth/providers`，讓前端先從後端讀 provider 清單。
 - 把 NYCU/GitHub/Google 的 UI 清單從畫面常數移到 provider metadata。
+- Provider metadata 先由 env/seed 載入，不先做 admin UI。
 
 ### Phase 2：新增資料模型
 
@@ -258,7 +341,8 @@ class ExternalIdentity(models.Model):
 
 ### Phase 3：抽 adapter
 
-- 將 `NYCUOAuthService`、`GitHubOAuthService`、`GoogleOAuthService` 收斂成 `OAuth2Adapter` 與 `OIDCAdapter` 的設定案例。
+- 不要把 `GitHubOAuthService`、`GoogleOAuthService`、`NYCUOAuthService` 整個重寫成彼此無關的流程；短期繼續繼承 `BaseOAuthService`。
+- 將 `NYCUOAuthService`、`GitHubOAuthService`、`GoogleOAuthService` 逐步收斂成 `OAuth2Adapter` 與 `OIDCAdapter` 的設定案例。
 - Provider 特例只能放在小型 hook，例如 GitHub primary email lookup，不應散落在主登入流程。
 
 ### Phase 4：支援更多校園協定
@@ -278,16 +362,17 @@ class ExternalIdentity(models.Model):
 - callback 驗證 `state`、`nonce`、PKCE、issuer、audience。
 - provider secret 不進 Git、不印在 log。
 - 登入失敗 log 只記 provider、錯誤類型、request id，不記 access token 或完整 claims。
-- role mapping 不得自動給 admin；admin 仍應由 QJudge 管理者手動授權。
-- 若 provider 暫停或 secret 過期，Email/Password 或至少 admin emergency login 仍可使用。
+- role mapping 不得自動給 admin；admin 仍應由 QJudge 管理者手動授權或透過 seed 建立。
+- 若部署關閉 Email/Password，必須提供 seed/bootstrap 流程建立第一個 admin 或允許指定 SSO 身份成為 admin。
 
-## 待定問題
+## 已關閉問題
 
-- 是否允許部署者完全關閉 Email/Password，只保留學校 SSO？
-- teacher 身份要由 SSO claims 自動賦予，還是維持目前教師啟用邀請流程？
-- 多校共用一套 QJudge 時，是否需要在 user/profile 上保存 institution？
-- 若兩個學校回傳相同 email，是否允許同一個 QJudge user 綁定兩個校園身份？
-- 是否需要管理介面讓 admin 啟用/停用 provider，或先以 env/seed 管理即可？
+- 允許部署者完全關閉 Email/Password，只保留學校 SSO。
+- teacher 身份維持目前教師啟用邀請流程，不由 SSO claims 自動升級。
+- 目前 model 沒有 `institution`；多校共用時再新增。
+- 同 email 視為同一個 QJudge user。
+- provider 管理先用 env/seed，不先做 admin UI。
+- OAuth provider service 短期繼承既有 `BaseOAuthService`；中期再抽可設定 adapter。
 
 ---
 
