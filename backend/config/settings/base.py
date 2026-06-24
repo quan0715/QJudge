@@ -293,15 +293,6 @@ CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken head
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 
-# Feature flags
-# Contest ACL role source:
-# - False: legacy contest-scoped owner/co_owner/participant resolution
-# - True: classroom-bound contest resolves role from classroom scope first
-# Default is enabled because classroom-bound contests are now authoritative.
-CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
-    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "true").lower() == "true"
-)
-
 # Redis Cache settings
 # Using Django's built-in Redis backend (Django 4.0+)
 CACHES = {
@@ -392,7 +383,6 @@ JUDGE_MAX_CPU_TIME = int(os.getenv("JUDGE_MAX_CPU_TIME", "10"))  # seconds
 JUDGE_MAX_MEMORY = int(os.getenv("JUDGE_MAX_MEMORY", "256"))  # MB
 
 # Docker settings for judge system
-DOCKER_HOST = os.getenv("DOCKER_HOST", None)  # None = use default socket
 DOCKER_IMAGE_JUDGE = os.getenv("DOCKER_IMAGE_JUDGE", "oj-judge:latest")
 DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv("DOCKER_JUDGE_PIDS_LIMIT", "64"))
 DOCKER_JUDGE_TMPFS_SIZE = os.getenv("DOCKER_JUDGE_TMPFS_SIZE", "100M")
