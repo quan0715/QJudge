@@ -43,7 +43,13 @@ export function usePaperExamAutoSave({
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
   const pendingSaves = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const inFlightSaveCount = useRef(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  const hasPendingWork = useCallback(
+    () => pendingSaves.current.size > 0 || inFlightSaveCount.current > 0,
+    [],
+  );
 
   // Restore any locally-cached drafts so answers survive a page reload caused
   // by a server error.  Only applies when the server hasn't returned saved
@@ -73,14 +79,21 @@ export function usePaperExamAutoSave({
       setSaveStatus("saving");
       const timeout = setTimeout(() => {
         const answerPayload = buildExamAnswerPayload(value, questionType);
-        submitExamAnswer(contestId, questionId, answerPayload)
-          .then(() => setSaveStatus("saved"))
-          .catch(() => setSaveStatus("error"));
         pendingSaves.current.delete(questionId);
+        inFlightSaveCount.current += 1;
+        submitExamAnswer(contestId, questionId, answerPayload)
+          .then(() => {
+            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
+            setSaveStatus(hasPendingWork() ? "saving" : "saved");
+          })
+          .catch(() => {
+            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
+            setSaveStatus("error");
+          });
       }, AUTO_SAVE_DELAY);
       pendingSaves.current.set(questionId, timeout);
     },
-    [contestId, setAnswers],
+    [contestId, hasPendingWork, setAnswers],
   );
 
   return { handleAnswerChange, saveStatus };

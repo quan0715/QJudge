@@ -112,4 +112,42 @@ describe("usePaperExamAutoSave", () => {
       { text: "explain" },
     );
   });
+
+  it("does not report saved while a newer answer is still pending debounce", async () => {
+    let resolveFirstSave: (() => void) | undefined;
+    mockedSubmitExamAnswer.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstSave = () => resolve({} as never);
+        }),
+    );
+
+    const setAnswers = vi.fn();
+    const { result } = renderHook(() =>
+      usePaperExamAutoSave({
+        contestId: "contest-4",
+        setAnswers: setAnswers as never,
+      }),
+    );
+
+    act(() => {
+      result.current.handleAnswerChange("q1", "first", "essay");
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      result.current.handleAnswerChange("q2", "second", "essay");
+    });
+
+    await act(async () => {
+      resolveFirstSave?.();
+      await Promise.resolve();
+    });
+
+    expect(result.current.saveStatus).toBe("saving");
+  });
 });

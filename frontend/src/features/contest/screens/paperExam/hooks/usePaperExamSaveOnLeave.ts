@@ -50,8 +50,9 @@ export function usePaperExamSaveOnLeave({
       try {
         await submitExamAnswer(cId, questionId, payload);
         setSaveStatus("saved");
-      } catch {
+      } catch (error) {
         setSaveStatus("error");
+        throw error;
       }
     },
     [getQuestionType],
@@ -64,8 +65,8 @@ export function usePaperExamSaveOnLeave({
   const saveIfDirty = useCallback(
     async (questionId: string) => {
       if (!dirtySetRef.current.has(questionId)) return;
-      dirtySetRef.current.delete(questionId);
       await saveQuestion(questionId);
+      dirtySetRef.current.delete(questionId);
     },
     [saveQuestion],
   );
@@ -78,9 +79,13 @@ export function usePaperExamSaveOnLeave({
     setSaveStatus("saving");
     try {
       await Promise.all(dirtyIds.map((id) => saveQuestion(id)));
+      for (const id of dirtyIds) {
+        dirtySetRef.current.delete(id);
+      }
       setSaveStatus("saved");
-    } catch {
+    } catch (error) {
       setSaveStatus("error");
+      throw error;
     }
   }, [saveQuestion]);
 
