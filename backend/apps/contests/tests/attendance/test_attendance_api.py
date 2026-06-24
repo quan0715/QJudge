@@ -70,6 +70,24 @@ def test_teacher_can_get_qr_token() -> None:
 
 
 @pytest.mark.django_db
+def test_qr_token_endpoint_reuses_active_credential() -> None:
+    api_client = APIClient()
+    teacher = make_user("attendance_qr_reuse_teacher", role="teacher")
+    contest = make_contest(owner=teacher)
+    api_client.force_authenticate(user=teacher)
+
+    first = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+    second = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.data["token"] == first.data["token"]
+    assert second.data["manual_code"] == first.data["manual_code"]
+    assert second.data["qr_value"] == first.data["qr_value"]
+    assert second.data["expires_at"] == first.data["expires_at"]
+
+
+@pytest.mark.django_db
 def test_student_cannot_get_qr_token() -> None:
     api_client = APIClient()
     teacher = make_user("attendance_qr_owner", role="teacher")
