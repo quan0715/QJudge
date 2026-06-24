@@ -1,8 +1,5 @@
 """
-Legacy question-bank workflows.
-
-These flows still serve older bank/contest entrypoints, but they now
-delegate canonical lifecycle concerns to ``question_assets.py``.
+Question-bank workflows built on QuestionAsset, QuestionVersion, and membership rows.
 """
 from __future__ import annotations
 
@@ -11,28 +8,20 @@ from typing import Any
 from uuid import UUID
 
 from django.db import IntegrityError, transaction
-from django.db.models import Max, Q, Sum
+from django.db.models import Max, Q
 
 from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem
 
-from .models import QuestionBank, Question
+from .models import QuestionAsset, QuestionBank, QuestionBankMembership
 from .question_assets import (
-    ensure_question_asset_for_bank_question,
     ensure_question_bank_membership,
     sync_exam_question_question_asset,
 )
-from .write_workflows import materialize_bank_question_adapter
 
 
-def _next_question_order(bank: QuestionBank) -> int:
-    """Return the next order value for a new question in *bank*.
-
-    Must be called while holding a row-level lock on *bank* via
-    ``select_for_update()`` inside an atomic transaction to prevent
-    concurrent requests from receiving the same order number.
-    """
-    result = Question.objects.filter(bank=bank).aggregate(max_order=Max("order"))
+def _next_membership_order(bank: QuestionBank) -> int:
+    result = QuestionBankMembership.objects.filter(bank=bank).aggregate(max_order=Max("order"))
     return (result["max_order"] if result["max_order"] is not None else -1) + 1
 
 
@@ -111,7 +100,7 @@ def get_or_create_personal_bank(
 
 
 def _get_asset_description(problem: CodingProblem) -> dict[str, str]:
-    """Read flat content fields from QuestionAsset payload with legacy fallback."""
+    """Read flat content fields from QuestionAsset payload."""
     from .question_assets import extract_content_from_payload
     if not problem.question_asset_id:
         return {"description": "", "input_description": "", "output_description": "", "hint": ""}
@@ -173,68 +162,21 @@ def _user_may_ingest_coding_problem(*, user, problem: CodingProblem) -> bool:
     ).exists()
 
 
-def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created_by=None) -> Question:
+def upsert_problem_into_bank(problem: CodingProblem, bank: QuestionBank, created_by=None) -> QuestionBankMembership:
     if bank.category != QuestionBank.Category.CODING:
         raise ValueError(
             f"Cannot add a coding problem to a '{bank.category}' bank "
             f"(bank '{bank.name}' only accepts '{QuestionBank.Category.CODING}' questions)."
         )
-    content = _get_asset_description(problem)
-    asset_title = ""
-    asset_difficulty = "medium"
-    if problem.question_asset_id:
-        try:
-            asset_title = problem.question_asset.title or ""
-            asset_difficulty = (problem.question_asset.payload or {}).get("difficulty", "medium")
-        except Exception:
-            pass
-    title = asset_title or "Untitled"
-    prompt = content.get("description", "") or ""
-
-    score_sum = problem.test_cases.aggregate(total=Sum("score")).get("total") or 100
-
-    defaults = {
-        "question_type": Question.QuestionType.CODING,
-        "title": title,
-        "prompt": prompt,
-        "score": int(score_sum),
-        "difficulty": asset_difficulty,
-        "time_limit": problem.time_limit,
-        "memory_limit": problem.memory_limit,
-        "created_by": created_by or problem.created_by,
-        "metadata": {
-            "legacy_problem_id": str(problem.id),
-        },
-    }
-
-    # Problem should already have a QuestionAsset (Phase 0 invariant).
-    # Fallback: create on the fly for legacy data that hasn't been backfilled.
     if not problem.question_asset_id:
         from .question_assets import ensure_problem_question_asset
         ensure_problem_question_asset(problem=problem, actor=created_by or problem.created_by)
         problem.refresh_from_db(fields=["question_asset", "question_version"])
-    question_asset = problem.question_asset
-    question_version = problem.question_version
-    existing = (
-        Question.objects.filter(bank=bank, question_asset=question_asset)
-        .order_by("-updated_at", "-id")
-        .first()
-    )
-    if existing is None:
-        existing = (
-            Question.objects.filter(bank=bank, metadata__legacy_problem_id=str(problem.id))
-            .order_by("-updated_at", "-id")
-            .first()
-        )
-
-    return materialize_bank_question_adapter(
+    return ensure_question_bank_membership(
         bank=bank,
-        question_asset=question_asset,
-        question_version=question_version,
+        question_asset=problem.question_asset,
+        order=_next_membership_order(bank),
         actor=created_by or problem.created_by,
-        existing=existing,
-        coding_ext=_build_coding_ext_payload(problem),
-        **defaults,
     )
 
 
@@ -242,7 +184,7 @@ def upsert_exam_question_into_bank(
     exam_question: ExamQuestion,
     bank: QuestionBank,
     created_by=None,
-) -> Question:
+) -> QuestionBankMembership:
     if bank.category != QuestionBank.Category.EXAM:
         raise ValueError(
             f"Cannot add an exam question to a '{bank.category}' bank "
@@ -254,145 +196,61 @@ def upsert_exam_question_into_bank(
             "Exam question is not reconstructible for bank ingest: "
             f"{reconstructibility.reason}"
         )
-    defaults = {
-        "question_type": Question.QuestionType.EXAM,
-        "title": "",
-        "prompt": exam_question.prompt,
-        "options": exam_question.options or [],
-        "correct_answer": exam_question.correct_answer,
-        "score": exam_question.score,
-        "order": exam_question.order,
-        "created_by": created_by or exam_question.contest.owner,
-        "metadata": {
-            "legacy_exam_question_id": str(exam_question.id),
-            "legacy_contest_id": str(exam_question.contest_id),
-            "legacy_question_type": exam_question.question_type,
-        },
-    }
-
-    existing = Question.objects.filter(bank=bank).filter(
-        Q(metadata__legacy_exam_question_id=str(exam_question.id))
-    ).first()
-
     question_asset, question_version = sync_exam_question_question_asset(
         exam_question=exam_question,
         actor=created_by or exam_question.contest.owner,
     )
-
-    question = materialize_bank_question_adapter(
+    membership = ensure_question_bank_membership(
         bank=bank,
         question_asset=question_asset,
-        question_version=question_version,
+        order=exam_question.order,
         actor=created_by or exam_question.contest.owner,
-        existing=existing,
-        **defaults,
     )
-    sync_exam_question_bank_source(exam_question=exam_question, bank_question=question)
-    return question
+    sync_exam_question_bank_source(exam_question=exam_question, membership=membership)
+    return membership
 
 
-def sync_exam_question_bank_source(*, exam_question: ExamQuestion, bank_question: Question) -> None:
-    bank = bank_question.bank
+def sync_exam_question_bank_source(*, exam_question: ExamQuestion, membership: QuestionBankMembership) -> None:
+    bank = membership.bank
     ExamQuestion.objects.filter(pk=exam_question.pk).update(
         source_bank_id=bank.uuid,
         source_bank_name=bank.name,
-        source_question_id=bank_question.id,
+        source_question_id=membership.id,
         source_mode="copy",
     )
     exam_question.source_bank_id = bank.uuid
     exam_question.source_bank_name = bank.name
-    exam_question.source_question_id = bank_question.id
+    exam_question.source_question_id = membership.id
     exam_question.source_mode = "copy"
 
 
-def clone_question_to_bank(source_question: Question, target_bank: QuestionBank, user) -> Question:
+def clone_membership_to_bank(
+    source_membership: QuestionBankMembership,
+    target_bank: QuestionBank,
+    user,
+) -> QuestionBankMembership:
     if target_bank.is_archived:
         raise ValueError("Cannot clone into an archived bank.")
-    if target_bank.category and source_question.question_type:
-        expected_type = (
-            Question.QuestionType.CODING
-            if target_bank.category == QuestionBank.Category.CODING
-            else Question.QuestionType.EXAM
+    if target_bank.category != source_membership.bank.category:
+        raise ValueError(
+            f"Cannot clone a {source_membership.bank.category} question "
+            f"into a {target_bank.category} bank."
         )
-        if source_question.question_type != expected_type:
-            raise ValueError(
-                f"Cannot clone a {source_question.question_type} question "
-                f"into a {target_bank.category} bank."
-            )
 
     with transaction.atomic():
         QuestionBank.objects.select_for_update().get(pk=target_bank.pk)
-
-        question_asset = source_question.question_asset
-        question_version = source_question.question_version
-        if not question_asset or not question_version:
-            question_asset, question_version = ensure_question_asset_for_bank_question(
-                question=source_question,
-                actor=user,
-            )
-
-        existing = (
-            Question.objects.filter(
-                bank=target_bank,
-                question_asset=question_asset,
-            )
-            .order_by("-updated_at", "-id")
-            .first()
-        )
-        if existing:
-            ensure_question_bank_membership(
-                bank=target_bank,
-                question_asset=question_asset,
-                order=existing.order,
-                legacy_question=existing,
-                actor=user,
-            )
-            return existing
-
-        coding_ext = None
-        if source_question.question_type == Question.QuestionType.CODING and hasattr(source_question, "coding_ext"):
-            ext = source_question.coding_ext
-            # Flatten legacy translations[0] to top-level content fields
-            legacy_translations = ext.translations or []
-            if legacy_translations and isinstance(legacy_translations, list):
-                t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
-                content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
-            else:
-                content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
-            coding_ext = {
-                **content,
-                "test_cases": ext.test_cases,
-                "language_configs": ext.language_configs,
-                "forbidden_keywords": ext.forbidden_keywords,
-                "required_keywords": ext.required_keywords,
-            }
-        cloned = materialize_bank_question_adapter(
+        existing = QuestionBankMembership.objects.filter(
             bank=target_bank,
-            question_asset=question_asset,
-            question_version=question_version,
+            question_asset=source_membership.question_asset,
+        ).first()
+        if existing:
+            return existing
+        return ensure_question_bank_membership(
+            bank=target_bank,
+            question_asset=source_membership.question_asset,
+            order=_next_membership_order(target_bank),
             actor=user,
-            question_type=source_question.question_type,
-            title=source_question.title,
-            prompt=source_question.prompt,
-            options=source_question.options,
-            correct_answer=source_question.correct_answer,
-            score=source_question.score,
-            order=_next_question_order(target_bank),
-            difficulty=source_question.difficulty,
-            time_limit=source_question.time_limit,
-            memory_limit=source_question.memory_limit,
-            source_question=source_question,
-            source_bank=source_question.bank,
-            created_by=user,
-            metadata={
-                **(source_question.metadata or {}),
-                "cloned_from_question_id": str(source_question.id),
-                "cloned_from_bank_id": str(source_question.bank.uuid),
-                "cloned_from_bank_pk": source_question.bank_id,
-            },
-            coding_ext=coding_ext,
         )
-    return cloned
 
 
 def is_publicly_accessible_bank(bank: QuestionBank) -> bool:
@@ -429,17 +287,44 @@ def _is_effectively_accessible_bank_for_user(*, bank: QuestionBank, user) -> boo
     return is_publicly_accessible_bank(bank)
 
 
-def _get_effective_synced_ids_for_user(*, user, metadata_key: str) -> set[str]:
+def _source_id_from_membership_payload(
+    membership: QuestionBankMembership,
+    *,
+    source_type: str,
+) -> str | None:
+    version = membership.question_asset.latest_version
+    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    payload_source_type = payload.get("source_type")
+    if payload_source_type and payload_source_type != source_type:
+        return None
+    source_id = payload.get("source_id")
+    if source_id is None:
+        return None
+    return str(source_id)
+
+
+def _get_effective_synced_ids_for_user(
+    *,
+    user,
+    source_type: str,
+) -> set[str]:
     resolved: set[str] = set()
     rows = (
-        Question.objects.filter(**{f"metadata__{metadata_key}__isnull": False})
-        .select_related("bank", "bank__owner")
+        QuestionBankMembership.objects.select_related(
+            "bank",
+            "bank__owner",
+            "question_asset",
+            "question_asset__latest_version",
+        )
         .order_by("-updated_at", "-id")
     )
     for row in rows:
         if not _is_effectively_accessible_bank_for_user(bank=row.bank, user=user):
             continue
-        value = (row.metadata or {}).get(metadata_key)
+        value = _source_id_from_membership_payload(
+            row,
+            source_type=source_type,
+        )
         if value is None:
             continue
         try:
@@ -449,8 +334,15 @@ def _get_effective_synced_ids_for_user(*, user, metadata_key: str) -> set[str]:
     return resolved
 
 
-def _resolve_effective_existing_question(*, queryset, user) -> Question | None:
-    rows = list(queryset.select_related("bank", "bank__owner").order_by("-updated_at", "-id"))
+def _resolve_effective_existing_membership(*, queryset, user) -> QuestionBankMembership | None:
+    rows = list(
+        queryset.select_related(
+            "bank",
+            "bank__owner",
+            "question_asset",
+            "question_asset__latest_version",
+        ).order_by("-updated_at", "-id")
+    )
     for row in rows:
         if row.bank.is_archived:
             continue
@@ -469,7 +361,10 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
     }
 
     if category in (None, "coding"):
-        synced = _get_effective_synced_ids_for_user(user=user, metadata_key="legacy_problem_id")
+        synced = _get_effective_synced_ids_for_user(
+            user=user,
+            source_type="problem",
+        )
         from apps.question_bank.models import ContestQuestionBinding
         bank_imported = set(
             ContestQuestionBinding.objects.filter(
@@ -506,7 +401,10 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         result["coding"] = coding_items
 
     if category in (None, "exam"):
-        synced = _get_effective_synced_ids_for_user(user=user, metadata_key="legacy_exam_question_id")
+        synced = _get_effective_synced_ids_for_user(
+            user=user,
+            source_type="exam_question",
+        )
         exam_rows = (
             ExamQuestion.objects.filter(Q(contest__owner=user) | Q(contest__admins=user))
             .filter(source_bank_id__isnull=True)
@@ -588,11 +486,8 @@ def ingest_question_bank_inbox_items(
                     ensure_problem_question_asset(problem=source, actor=user)
                     source.refresh_from_db(fields=["question_asset", "question_version"])
 
-                existing_filters = Q(metadata__legacy_problem_id=str(source.id))
-                if source.question_asset_id:
-                    existing_filters |= Q(question_asset=source.question_asset)
-                existing = _resolve_effective_existing_question(
-                    queryset=Question.objects.filter(existing_filters),
+                existing = _resolve_effective_existing_membership(
+                    queryset=QuestionBankMembership.objects.filter(question_asset=source.question_asset),
                     user=user,
                 )
                 if existing:
@@ -600,22 +495,15 @@ def ingest_question_bank_inbox_items(
                         raise ValueError(f"Problem {source_id} already synced to an accessible bank")
                     if existing.bank_id != target_bank.id:
                         existing.bank = target_bank
-                        existing.order = _next_question_order(target_bank)
-                        existing.save(update_fields=["bank", "order", "updated_at"])
+                        existing.order = _next_membership_order(target_bank)
+                        existing.added_by = user
+                        existing.save(update_fields=["bank", "order", "added_by", "updated_at"])
                         moved_question_ids.append(str(existing.id))
-                    if existing.question_asset_id:
-                        ensure_question_bank_membership(
-                            bank=target_bank,
-                            question_asset=existing.question_asset,
-                            order=existing.order,
-                            legacy_question=existing,
-                            actor=user,
-                        )
                     ingested_question_ids.append(str(existing.id))
                     continue
 
-                question = upsert_problem_into_bank(problem=source, bank=target_bank, created_by=user)
-                ingested_question_ids.append(str(question.id))
+                membership = upsert_problem_into_bank(problem=source, bank=target_bank, created_by=user)
+                ingested_question_ids.append(str(membership.id))
                 continue
 
             source = (
@@ -626,10 +514,12 @@ def ingest_question_bank_inbox_items(
             if not source:
                 raise ValueError(f"Exam question {source_id} not found")
 
-            existing = _resolve_effective_existing_question(
-                queryset=Question.objects.filter(
-                    Q(metadata__legacy_exam_question_id=str(source.id))
-                ),
+            question_asset, _question_version = sync_exam_question_question_asset(
+                exam_question=source,
+                actor=user,
+            )
+            existing = _resolve_effective_existing_membership(
+                queryset=QuestionBankMembership.objects.filter(question_asset=question_asset),
                 user=user,
             )
             if existing:
@@ -637,27 +527,20 @@ def ingest_question_bank_inbox_items(
                     raise ValueError(f"Exam question {source_id} already synced to an accessible bank")
                 if existing.bank_id != target_bank.id:
                     existing.bank = target_bank
-                    existing.order = _next_question_order(target_bank)
-                    existing.save(update_fields=["bank", "order", "updated_at"])
+                    existing.order = _next_membership_order(target_bank)
+                    existing.added_by = user
+                    existing.save(update_fields=["bank", "order", "added_by", "updated_at"])
                     moved_question_ids.append(str(existing.id))
-                if existing.question_asset_id:
-                    ensure_question_bank_membership(
-                        bank=target_bank,
-                        question_asset=existing.question_asset,
-                        order=existing.order,
-                        legacy_question=existing,
-                        actor=user,
-                    )
-                sync_exam_question_bank_source(exam_question=source, bank_question=existing)
+                sync_exam_question_bank_source(exam_question=source, membership=existing)
                 ingested_question_ids.append(str(existing.id))
                 continue
 
-            question = upsert_exam_question_into_bank(
+            membership = upsert_exam_question_into_bank(
                 exam_question=source,
                 bank=target_bank,
                 created_by=user,
             )
-            ingested_question_ids.append(str(question.id))
+            ingested_question_ids.append(str(membership.id))
 
     return {
         "target_bank_id": str(target_bank.uuid),

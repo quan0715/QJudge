@@ -22,12 +22,9 @@ from apps.core.services import (
     store_markdown_image,
 )
 
-from apps.contests.models import ExamQuestion
-
-from .models import QuestionBank, Question, QuestionBankMembership, QuestionBankSubscription
+from .models import QuestionBank, QuestionBankSubscription
 from .read_models import (
     build_read_row_for_membership,
-    build_read_row_for_question,
     get_bank_for_read,
     get_bank_questions_payload,
     resolve_bank_question_target_for_user,
@@ -40,12 +37,13 @@ from .serializers import (
     QuestionInboxIngestSerializer,
     QuestionInboxItemSerializer,
     QuestionBankItemWriteSerializer,
+    QUESTION_TYPE_CODING,
+    QUESTION_TYPE_EXAM,
 )
 from .permissions import IsQuestionBankAdminReviewer, IsQuestionBankOwner
-from .write_workflows import create_bank_question, update_bank_question, update_bank_question_membership
-from .write_workflows import materialize_bank_question_adapter_for_membership
+from .write_workflows import create_bank_question, update_bank_question_membership
 from .bank_workflows import (
-    clone_question_to_bank,
+    clone_membership_to_bank,
     get_or_create_personal_bank,
     ingest_question_bank_inbox_items,
     is_publicly_accessible_bank,
@@ -56,21 +54,8 @@ logger = logging.getLogger(__name__)
 
 
 def _serialize_bank_question_response(*, question=None, membership=None):
-    if membership is None and question is not None:
-        membership = (
-            QuestionBankMembership.objects.select_related(
-                "bank",
-                "question_asset",
-                "question_asset__latest_version",
-                "added_by",
-            )
-            .filter(legacy_question=question)
-            .first()
-        )
     if membership is not None:
         return QuestionBankItemReadSerializer(build_read_row_for_membership(membership=membership)).data
-    if question is not None:
-        return QuestionBankItemReadSerializer(build_read_row_for_question(question=question)).data
     raise Http404
 
 
@@ -102,7 +87,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                     verified=True,
                     review_status=QuestionBank.ReviewStatus.APPROVED,
                 )
-                .annotate(question_count=Count("questions", distinct=True))
+                .annotate(question_count=Count("asset_memberships", distinct=True))
             )
 
         if self.action == "retrieve":
@@ -115,14 +100,14 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             if self._is_admin_user(self.request.user):
                 return (
                     QuestionBank.objects.filter(is_archived=False)
-                    .annotate(question_count=Count("questions", distinct=True))
+                    .annotate(question_count=Count("asset_memberships", distinct=True))
                 )
             return (
                 QuestionBank.objects.filter(
                     Q(owner=self.request.user, is_archived=False)
                     | visibility_filter
                 )
-                .annotate(question_count=Count("questions", distinct=True))
+                .annotate(question_count=Count("asset_memberships", distinct=True))
             )
 
         if self.action == "review_queue":
@@ -133,14 +118,14 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                     is_archived=False,
                     review_status=QuestionBank.ReviewStatus.PENDING,
                 )
-                .annotate(question_count=Count("questions", distinct=True))
+                .annotate(question_count=Count("asset_memberships", distinct=True))
                 .order_by("submitted_at", "-updated_at")
             )
 
         if self.action == "submit_for_review":
             return (
                 QuestionBank.objects.filter(is_archived=False)
-                .annotate(question_count=Count("questions", distinct=True))
+                .annotate(question_count=Count("asset_memberships", distinct=True))
             )
         if self.action == "review":
             return QuestionBank.objects.filter(is_archived=False)
@@ -148,7 +133,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         if self.action == "subscribe":
             return (
                 QuestionBank.objects.filter(is_archived=False)
-                .annotate(question_count=Count("questions", distinct=True))
+                .annotate(question_count=Count("asset_memberships", distinct=True))
             )
 
         return (
@@ -156,7 +141,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
                 owner=self.request.user,
                 is_archived=False,
             )
-            .annotate(question_count=Count("questions", distinct=True))
+            .annotate(question_count=Count("asset_memberships", distinct=True))
             .order_by("-updated_at", "id")
         )
 
@@ -288,7 +273,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, bank)
         if bank.review_status == QuestionBank.ReviewStatus.PENDING:
             raise DRFValidationError("This bank is already pending review.")
-        if not bank.questions.exists():
+        if not bank.asset_memberships.exists():
             raise DRFValidationError("Please add at least one question before submission.")
 
         bank.review_status = QuestionBank.ReviewStatus.PENDING
@@ -377,7 +362,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         ).values_list("bank_id", flat=True)
         queryset = (
             QuestionBank.objects.filter(id__in=bank_ids, is_archived=False)
-            .annotate(question_count=Count("questions", distinct=True))
+            .annotate(question_count=Count("asset_memberships", distinct=True))
         )
         serializer = QuestionBankSerializer(
             queryset, many=True, context={"request": request}
@@ -407,9 +392,9 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         question_type = serializer.validated_data.get("question_type")
-        if bank.category == QuestionBank.Category.CODING and question_type != Question.QuestionType.CODING:
+        if bank.category == QuestionBank.Category.CODING and question_type != QUESTION_TYPE_CODING:
             raise DRFValidationError("Coding bank only accepts coding questions.")
-        if bank.category == QuestionBank.Category.EXAM and question_type != Question.QuestionType.EXAM:
+        if bank.category == QuestionBank.Category.EXAM and question_type != QUESTION_TYPE_EXAM:
             raise DRFValidationError("Exam bank only accepts exam questions.")
 
         membership = create_bank_question(
@@ -433,8 +418,6 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         target_bank_uuid = None
         if target.membership:
             target_bank_uuid = str(target.membership.bank.uuid)
-        elif target.legacy_question:
-            target_bank_uuid = str(target.legacy_question.bank.uuid)
 
         if target_bank_uuid != str(bank.uuid):
             raise Http404
@@ -453,25 +436,16 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         )
 
         if request.method.lower() == "get":
-            return Response(
-                _serialize_bank_question_response(
-                    question=target.legacy_question,
-                    membership=target.membership,
-                )
-            )
+            return Response(_serialize_bank_question_response(membership=target.membership))
 
         if request.method.lower() == "delete":
-            if target.membership:
-                target.membership.delete()
-            if target.legacy_question and (
-                not target.membership or target.membership.legacy_question_id == target.legacy_question.id
-            ):
-                target.legacy_question.delete()
+            if not target.membership:
+                raise Http404
+            target.membership.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         partial = True
-        instance = target.legacy_question
-        serializer = QuestionBankItemWriteSerializer(instance, data=request.data, partial=partial)
+        serializer = QuestionBankItemWriteSerializer(data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         if target.membership:
             membership = update_bank_question_membership(
@@ -481,16 +455,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             )
             membership.refresh_from_db()
             return Response(_serialize_bank_question_response(membership=membership))
-        if instance is None:
-            raise Http404
-        question = update_bank_question(
-            question=instance,
-            validated_data=serializer.validated_data,
-            actor=request.user,
-        )
-        question.refresh_from_db()
-        membership = target.membership or getattr(question, "asset_membership", None)
-        return Response(_serialize_bank_question_response(question=question, membership=membership))
+        raise Http404
 
     @action(
         detail=True,
@@ -509,16 +474,11 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             allow_cloneable=True,
         )
 
-        source_question = target.legacy_question
-        if source_question is None:
-            if not target.membership:
-                raise Http404
-            source_question = materialize_bank_question_adapter_for_membership(
-                membership=target.membership,
-                actor=request.user,
-            )
+        if not target.membership:
+            raise Http404
 
-        if source_question.bank.owner_id != request.user.id and not is_publicly_accessible_bank(source_question.bank):
+        source_membership = target.membership
+        if source_membership.bank.owner_id != request.user.id and not is_publicly_accessible_bank(source_membership.bank):
             raise PermissionDenied("Question is not cloneable.")
 
         payload = QuestionCloneSerializer(data=request.data or {})
@@ -528,13 +488,13 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         try:
             target_bank = get_or_create_personal_bank(
                 user=request.user,
-                category=source_question.bank.category,
+                category=source_membership.bank.category,
                 target_bank_uuid=target_bank_id,
             )
         except ValueError as exc:
             logger.warning("Clone question validation error: %s", exc)
             raise DRFValidationError("Invalid input.")
 
-        cloned = clone_question_to_bank(source_question, target_bank, request.user)
+        cloned = clone_membership_to_bank(source_membership, target_bank, request.user)
         cloned.refresh_from_db()
-        return Response(_serialize_bank_question_response(question=cloned), status=status.HTTP_201_CREATED)
+        return Response(_serialize_bank_question_response(membership=cloned), status=status.HTTP_201_CREATED)

@@ -32,7 +32,7 @@ export const resolveExamQuestionTypeFromBankQuestion = (question: BankQuestion):
     question.metadata && typeof question.metadata === "object"
       ? (question.metadata as Record<string, unknown>)
       : {};
-  const rawType = metadata.legacy_question_type;
+  const rawType = metadata.question_type;
   if (typeof rawType === "string" && EXAM_QUESTION_TYPE_SET.has(rawType as ExamQuestionType)) {
     return rawType as ExamQuestionType;
   }

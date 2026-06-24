@@ -1,39 +1,25 @@
 """
-Write-side workflows for question bank question CRUD.
+Write-side workflows for question bank item CRUD.
 
-Keep serializer classes focused on payload validation while business-side
-effects (coding ext persistence + canonical asset sync) live here.
+Question bank writes publish `QuestionVersion` records and maintain
+`QuestionBankMembership`; no materialized bank-question adapter is created.
 """
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import transaction
 
-from .models import Question, QuestionAsset, QuestionCodingExt
+from .models import QuestionAsset
 from .question_assets import (
     create_question_asset_for_bank_payload,
     ensure_question_bank_membership,
+    extract_content_from_payload,
     publish_question_version,
-    publish_question_version_for_bank_payload,
 )
 
-
-def _coding_ext_to_model_defaults(ext: dict) -> dict:
-    """Convert flat coding_ext dict to QuestionCodingExt model field defaults.
-
-    The QuestionCodingExt model stores content in a ``translations`` JSONField (list),
-    while the API now uses flat fields (description, input_description, etc.).
-    This helper bridges the two formats.
-    """
-    content_keys = ("description", "input_description", "output_description", "hint")
-    translation_entry = {k: ext.get(k, "") for k in content_keys}
-    has_content = any(translation_entry.values())
-    return {
-        "translations": [translation_entry] if has_content else [],
-        "test_cases": ext.get("test_cases", []),
-        "language_configs": ext.get("language_configs", []),
-        "forbidden_keywords": ext.get("forbidden_keywords", []),
-        "required_keywords": ext.get("required_keywords", []),
-    }
+QUESTION_TYPE_CODING = "coding"
+QUESTION_TYPE_EXAM = "exam"
 
 
 @transaction.atomic
@@ -46,7 +32,7 @@ def create_bank_question(*, bank, created_by, validated_data):
         actor=actor,
         title=payload.get("title", ""),
         prompt=payload.get("prompt", ""),
-        question_type=payload.get("question_type", Question.QuestionType.CODING),
+        question_type=payload.get("question_type", QUESTION_TYPE_CODING),
         score=payload.get("score", 100),
         order=payload.get("order", 0),
         difficulty=payload.get("difficulty", "medium"),
@@ -65,49 +51,13 @@ def create_bank_question(*, bank, created_by, validated_data):
     )
 
 
-@transaction.atomic
-def update_bank_question(*, question: Question, validated_data, actor=None) -> Question:
-    payload = dict(validated_data)
-    coding_ext = payload.pop("coding_ext", None)
-    resolved_actor = actor or question.created_by or question.bank.owner
-    question_asset, question_version = publish_question_version_for_bank_payload(
-        question=question,
-        pending_data=payload,
-        coding_ext=coding_ext,
-        actor=resolved_actor,
-    )
-
-    for attr, value in payload.items():
-        setattr(question, attr, value)
-    question.question_asset = question_asset
-    question.question_version = question_version
-    question.save()
-
-    if coding_ext is not None:
-        QuestionCodingExt.objects.update_or_create(
-            question=question,
-            defaults=_coding_ext_to_model_defaults(coding_ext),
-        )
-
-    ensure_question_bank_membership(
-        bank=question.bank,
-        question_asset=question_asset,
-        order=question.order,
-        legacy_question=question,
-        actor=resolved_actor,
-    )
-    return question
-
-
 def _asset_question_type(question_asset: QuestionAsset) -> str:
     if question_asset.asset_type == QuestionAsset.AssetType.CODING:
-        return Question.QuestionType.CODING
-    return Question.QuestionType.EXAM
+        return QUESTION_TYPE_CODING
+    return QUESTION_TYPE_EXAM
 
 
 def _coding_ext_from_payload(payload: dict) -> dict:
-    from .question_assets import extract_content_from_payload
-
     content = extract_content_from_payload(payload)
     return {
         **content,
@@ -118,21 +68,14 @@ def _coding_ext_from_payload(payload: dict) -> dict:
     }
 
 
-def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext: dict | None) -> dict:
+def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext: dict | None) -> dict[str, Any]:
     version = membership.question_asset.latest_version
     existing_payload = version.payload if version and isinstance(version.payload, dict) else {}
     question_type = pending_data.get("question_type") or _asset_question_type(membership.question_asset)
     metadata = pending_data.get("metadata", existing_payload.get("metadata") or {})
-    if isinstance(metadata, dict) and isinstance(existing_payload.get("metadata"), dict):
-        protected_metadata = {
-            key: value
-            for key, value in existing_payload["metadata"].items()
-            if key.startswith("legacy_")
-        }
-        metadata = {**metadata, **protected_metadata}
 
     effective_coding_ext = coding_ext
-    if effective_coding_ext is None and question_type == Question.QuestionType.CODING:
+    if effective_coding_ext is None and question_type == QUESTION_TYPE_CODING:
         effective_coding_ext = _coding_ext_from_payload(existing_payload)
 
     payload = {
@@ -146,19 +89,25 @@ def _payload_for_membership_update(*, membership, pending_data: dict, coding_ext
         "metadata": metadata if isinstance(metadata, dict) else {},
     }
     source_keys = (
+        "source_type",
+        "source_id",
+        "source_contest_id",
         "source_question_id",
         "source_bank_id",
         "source_bank_name",
-        "legacy_problem_id",
-        "legacy_exam_question_id",
     )
     for key in source_keys:
         if key in existing_payload:
             payload[key] = existing_payload[key]
 
-    if question_type == Question.QuestionType.CODING:
+    if question_type == QUESTION_TYPE_CODING:
         coding_payload = effective_coding_ext or {}
         payload.update(_coding_ext_from_payload(coding_payload))
+    else:
+        payload["question_type"] = pending_data.get(
+            "question_type",
+            existing_payload.get("question_type", membership.question_asset.asset_type),
+        )
     return payload
 
 
@@ -189,120 +138,3 @@ def update_bank_question_membership(*, membership, validated_data, actor=None):
         membership.order = pending_data["order"]
         membership.save(update_fields=["order", "updated_at"])
     return membership
-
-
-@transaction.atomic
-def materialize_bank_question_adapter(
-    *,
-    bank,
-    question_asset,
-    question_version,
-    actor,
-    question_type,
-    title,
-    prompt,
-    score,
-    order=0,
-    difficulty="medium",
-    time_limit=1000,
-    memory_limit=128,
-    options=None,
-    correct_answer=None,
-    metadata=None,
-    created_by=None,
-    source_question=None,
-    source_bank=None,
-    coding_ext=None,
-    existing: Question | None = None,
-) -> Question:
-    adapter_payload = {
-        "question_type": question_type,
-        "title": title or "",
-        "prompt": prompt or "",
-        "options": options or [],
-        "correct_answer": correct_answer,
-        "score": score,
-        "order": order,
-        "difficulty": difficulty or "medium",
-        "time_limit": time_limit or 1000,
-        "memory_limit": memory_limit or 128,
-        "metadata": metadata or {},
-        "created_by": created_by,
-        "source_question": source_question,
-        "source_bank": source_bank,
-        "question_asset": question_asset,
-        "question_version": question_version,
-    }
-
-    if existing is None:
-        question = Question.objects.create(
-            bank=bank,
-            **adapter_payload,
-        )
-    else:
-        for attr, value in adapter_payload.items():
-            setattr(existing, attr, value)
-        existing.bank = bank
-        existing.save(update_fields=[*adapter_payload.keys(), "bank", "updated_at"])
-        question = existing
-
-    if question.question_type == Question.QuestionType.CODING:
-        QuestionCodingExt.objects.update_or_create(
-            question=question,
-            defaults=_coding_ext_to_model_defaults(coding_ext or {}),
-        )
-
-    ensure_question_bank_membership(
-        bank=bank,
-        question_asset=question_asset,
-        order=question.order,
-        legacy_question=question,
-        actor=actor,
-    )
-    return question
-
-
-@transaction.atomic
-def materialize_bank_question_adapter_for_membership(*, membership, actor=None) -> Question:
-    if membership.legacy_question_id:
-        return membership.legacy_question
-
-    version = membership.question_asset.latest_version
-    if version is None:
-        raise ValueError("Question asset has no published version")
-    payload = version.payload if isinstance(version.payload, dict) else {}
-    question_type = (
-        Question.QuestionType.CODING
-        if membership.question_asset.asset_type == QuestionAsset.AssetType.CODING
-        else Question.QuestionType.EXAM
-    )
-    coding_ext = None
-    if question_type == Question.QuestionType.CODING:
-        from .question_assets import extract_content_from_payload
-        content = extract_content_from_payload(payload)
-        coding_ext = {
-            **content,
-            "test_cases": payload.get("test_cases") or [],
-            "language_configs": payload.get("language_configs") or [],
-            "forbidden_keywords": payload.get("forbidden_keywords") or [],
-            "required_keywords": payload.get("required_keywords") or [],
-        }
-    return materialize_bank_question_adapter(
-        bank=membership.bank,
-        question_asset=membership.question_asset,
-        question_version=version,
-        actor=actor or membership.added_by or membership.question_asset.owner,
-        question_type=question_type,
-        title=version.title or membership.question_asset.title,
-        prompt=version.prompt if version else "",
-        score=payload.get("score") or 100,
-        order=membership.order,
-        difficulty=payload.get("difficulty") or "medium",
-        time_limit=payload.get("time_limit") or 1000,
-        memory_limit=payload.get("memory_limit") or 128,
-        options=payload.get("options") or [],
-        correct_answer=payload.get("correct_answer"),
-        metadata=(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}) or {},
-        created_by=membership.added_by or membership.question_asset.owner,
-        coding_ext=coding_ext,
-    )

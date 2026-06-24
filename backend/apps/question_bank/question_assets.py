@@ -4,6 +4,19 @@ from typing import Any
 
 from django.db.models import Max
 
+from apps.contests.models import ExamQuestion, ExamQuestionType
+from apps.problems.models import CodingProblem
+
+from .models import (
+    ContestQuestionBinding,
+    QuestionAsset,
+    QuestionBankMembership,
+    QuestionVersion,
+)
+
+QUESTION_TYPE_CODING = "coding"
+QUESTION_TYPE_EXAM = "exam"
+
 
 def extract_content_from_payload(payload: dict) -> dict[str, str]:
     """Extract description/input_description/output_description/hint from payload."""
@@ -17,17 +30,6 @@ def extract_content_from_payload(payload: dict) -> dict[str, str]:
         "hint": payload.get("hint", ""),
     }
 
-from apps.contests.models import ExamQuestion, ExamQuestionType
-from apps.problems.models import CodingProblem
-
-from .models import (
-    ContestQuestionBinding,
-    Question,
-    QuestionAsset,
-    QuestionBankMembership,
-    QuestionVersion,
-)
-
 
 def _asset_type_for_exam_question_type(question_type: str) -> str:
     mapping = {
@@ -40,53 +42,18 @@ def _asset_type_for_exam_question_type(question_type: str) -> str:
     return mapping.get(question_type, QuestionAsset.AssetType.ESSAY)
 
 
-def _build_exam_question_asset_payload(exam_question: ExamQuestion) -> dict[str, Any]:
-    return {
-        "question_type": exam_question.question_type,
-        "options": exam_question.options or [],
-        "correct_answer": exam_question.correct_answer,
-        "score": exam_question.score,
-        "order": exam_question.order,
-        "legacy_exam_question_id": str(exam_question.id),
-        "legacy_contest_id": str(exam_question.contest_id),
-    }
+def _asset_type_for_bank_question_payload(*, question_type: str, metadata, options, correct_answer) -> str:
+    if question_type == QUESTION_TYPE_CODING:
+        return QuestionAsset.AssetType.CODING
 
-
-def _build_bank_question_asset_payload(question: Question) -> dict[str, Any]:
-    payload = {
-        "score": question.score,
-        "order": question.order,
-        "difficulty": question.difficulty,
-        "time_limit": question.time_limit,
-        "memory_limit": question.memory_limit,
-        "options": question.options or [],
-        "correct_answer": question.correct_answer,
-        "metadata": question.metadata or {},
-    }
-    if question.question_type == Question.QuestionType.CODING and hasattr(question, "coding_ext"):
-        ext = question.coding_ext
-        # Flatten legacy translations[0] to top-level content fields
-        legacy_translations = ext.translations or []
-        if legacy_translations and isinstance(legacy_translations, list):
-            t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
-            payload["description"] = t.get("description", "")
-            payload["input_description"] = t.get("input_description", "")
-            payload["output_description"] = t.get("output_description", "")
-            payload["hint"] = t.get("hint", "")
-        else:
-            payload["description"] = ""
-            payload["input_description"] = ""
-            payload["output_description"] = ""
-            payload["hint"] = ""
-        payload.update(
-            {
-                "test_cases": ext.test_cases or [],
-                "language_configs": ext.language_configs or [],
-                "forbidden_keywords": ext.forbidden_keywords or [],
-                "required_keywords": ext.required_keywords or [],
-            }
-        )
-    return payload
+    if isinstance(correct_answer, bool):
+        return QuestionAsset.AssetType.TRUE_FALSE
+    if isinstance(correct_answer, list):
+        return QuestionAsset.AssetType.MULTIPLE_CHOICE
+    if isinstance(correct_answer, int) and isinstance(options, list) and options:
+        return QuestionAsset.AssetType.SINGLE_CHOICE
+    raw_type = (metadata if isinstance(metadata, dict) else {}).get("question_type")
+    return _asset_type_for_exam_question_type(raw_type or ExamQuestionType.ESSAY)
 
 
 def _build_bank_question_asset_payload_from_components(
@@ -112,7 +79,7 @@ def _build_bank_question_asset_payload_from_components(
         "correct_answer": correct_answer,
         "metadata": metadata or {},
     }
-    if question_type == Question.QuestionType.CODING:
+    if question_type == QUESTION_TYPE_CODING:
         coding_payload = coding_ext or {}
         content = extract_content_from_payload(coding_payload)
         payload["description"] = content["description"]
@@ -127,95 +94,11 @@ def _build_bank_question_asset_payload_from_components(
                 "required_keywords": coding_payload.get("required_keywords") or [],
             }
         )
-    return payload
-
-
-def _existing_bank_question_coding_ext_payload(question: Question) -> dict[str, Any]:
-    if question.question_type != Question.QuestionType.CODING or not hasattr(question, "coding_ext"):
-        return {
-            "description": "",
-            "input_description": "",
-            "output_description": "",
-            "hint": "",
-            "test_cases": [],
-            "language_configs": [],
-            "forbidden_keywords": [],
-            "required_keywords": [],
-        }
-    ext = question.coding_ext
-    # Flatten legacy translations[0] to top-level content fields
-    legacy_translations = ext.translations or []
-    if legacy_translations and isinstance(legacy_translations, list):
-        t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
-        description = t.get("description", "")
-        input_description = t.get("input_description", "")
-        output_description = t.get("output_description", "")
-        hint = t.get("hint", "")
     else:
-        description = ""
-        input_description = ""
-        output_description = ""
-        hint = ""
-    return {
-        "description": description,
-        "input_description": input_description,
-        "output_description": output_description,
-        "hint": hint,
-        "test_cases": ext.test_cases or [],
-        "language_configs": ext.language_configs or [],
-        "forbidden_keywords": ext.forbidden_keywords or [],
-        "required_keywords": ext.required_keywords or [],
-    }
-
-
-def _asset_type_for_bank_question(question: Question) -> str:
-    if question.question_type == Question.QuestionType.CODING:
-        return QuestionAsset.AssetType.CODING
-
-    metadata = question.metadata if isinstance(question.metadata, dict) else {}
-    raw_type = metadata.get("legacy_question_type")
-    if raw_type in {
-        ExamQuestionType.TRUE_FALSE,
-        ExamQuestionType.SINGLE_CHOICE,
-        ExamQuestionType.MULTIPLE_CHOICE,
-        ExamQuestionType.SHORT_ANSWER,
-        ExamQuestionType.ESSAY,
-    }:
-        return _asset_type_for_exam_question_type(raw_type)
-
-    correct = question.correct_answer
-    options = question.options if isinstance(question.options, list) else []
-    if isinstance(correct, bool):
-        return QuestionAsset.AssetType.TRUE_FALSE
-    if isinstance(correct, list):
-        return QuestionAsset.AssetType.MULTIPLE_CHOICE
-    if isinstance(correct, int) and options:
-        return QuestionAsset.AssetType.SINGLE_CHOICE
-    return QuestionAsset.AssetType.ESSAY
-
-
-def _asset_type_for_bank_question_payload(*, question_type: str, metadata, options, correct_answer) -> str:
-    if question_type == Question.QuestionType.CODING:
-        return QuestionAsset.AssetType.CODING
-
-    metadata = metadata if isinstance(metadata, dict) else {}
-    raw_type = metadata.get("legacy_question_type")
-    if raw_type in {
-        ExamQuestionType.TRUE_FALSE,
-        ExamQuestionType.SINGLE_CHOICE,
-        ExamQuestionType.MULTIPLE_CHOICE,
-        ExamQuestionType.SHORT_ANSWER,
-        ExamQuestionType.ESSAY,
-    }:
-        return _asset_type_for_exam_question_type(raw_type)
-
-    if isinstance(correct_answer, bool):
-        return QuestionAsset.AssetType.TRUE_FALSE
-    if isinstance(correct_answer, list):
-        return QuestionAsset.AssetType.MULTIPLE_CHOICE
-    if isinstance(correct_answer, int) and isinstance(options, list) and options:
-        return QuestionAsset.AssetType.SINGLE_CHOICE
-    return QuestionAsset.AssetType.ESSAY
+        payload["question_type"] = _asset_type_for_exam_question_type(
+            (metadata if isinstance(metadata, dict) else {}).get("question_type", "")
+        )
+    return payload
 
 
 def publish_question_version(
@@ -331,74 +214,6 @@ def create_question_asset_for_bank_payload(
     )
 
 
-def publish_question_version_for_bank_payload(
-    *,
-    question: Question,
-    pending_data: dict[str, Any],
-    coding_ext: dict[str, Any] | None = None,
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
-    effective_question_type = pending_data.get("question_type", question.question_type)
-    effective_title = pending_data.get("title", question.title)
-    effective_prompt = pending_data.get("prompt", "")
-    effective_score = pending_data.get("score", question.score)
-    effective_order = pending_data.get("order", question.order)
-    effective_difficulty = pending_data.get("difficulty", question.difficulty)
-    effective_time_limit = pending_data.get("time_limit", question.time_limit)
-    effective_memory_limit = pending_data.get("memory_limit", question.memory_limit)
-    effective_options = pending_data.get("options", question.options)
-    effective_correct_answer = pending_data.get("correct_answer", question.correct_answer)
-    effective_metadata = pending_data.get("metadata", question.metadata)
-    effective_coding_ext = coding_ext if coding_ext is not None else _existing_bank_question_coding_ext_payload(question)
-    owner = actor or question.created_by or question.bank.owner
-    asset_type = _asset_type_for_bank_question_payload(
-        question_type=effective_question_type,
-        metadata=effective_metadata,
-        options=effective_options,
-        correct_answer=effective_correct_answer,
-    )
-    payload = _build_bank_question_asset_payload_from_components(
-        question_type=effective_question_type,
-        score=effective_score,
-        order=effective_order,
-        difficulty=effective_difficulty,
-        time_limit=effective_time_limit,
-        memory_limit=effective_memory_limit,
-        options=effective_options,
-        correct_answer=effective_correct_answer,
-        metadata=effective_metadata,
-        coding_ext=effective_coding_ext,
-    )
-
-    if question.question_asset_id:
-        asset = question.question_asset
-        QuestionAsset.objects.filter(pk=asset.pk).update(
-            owner=owner or asset.owner,
-            asset_type=asset_type,
-            visibility=QuestionAsset.Visibility.PRIVATE,
-            status=QuestionAsset.Status.ACTIVE,
-        )
-        asset.refresh_from_db(fields=["owner", "asset_type", "visibility", "status"])
-        version = publish_question_version(
-            question_asset=asset,
-            title=effective_title,
-            prompt=effective_prompt,
-            payload=payload,
-            actor=owner,
-        )
-        return asset, version
-
-    return create_question_asset(
-        owner=owner,
-        asset_type=asset_type,
-        title=effective_title,
-        prompt=effective_prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
-        payload=payload,
-        actor=owner,
-    )
-
-
 def write_coding_content_to_asset(
     *,
     owner,
@@ -412,14 +227,12 @@ def write_coding_content_to_asset(
     language_configs: list[dict[str, Any]] | None = None,
     forbidden_keywords: list[str] | None = None,
     required_keywords: list[str] | None = None,
-    legacy_problem_id: str | None = None,
+    source_type: str | None = None,
+    source_id: str | None = None,
     existing_asset: QuestionAsset | None = None,
     actor=None,
 ) -> tuple[QuestionAsset, QuestionVersion]:
-    """
-    Write coding problem content to QuestionAsset (source of truth).
-    Creates a new asset or publishes a new version on an existing one.
-    """
+    """Write coding problem content to QuestionAsset (source of truth)."""
     cf = content_fields or {}
     payload = {
         "difficulty": difficulty or "medium",
@@ -434,8 +247,9 @@ def write_coding_content_to_asset(
         "forbidden_keywords": forbidden_keywords or [],
         "required_keywords": required_keywords or [],
     }
-    if legacy_problem_id:
-        payload["legacy_problem_id"] = legacy_problem_id
+    if source_id:
+        payload["source_type"] = source_type or "problem"
+        payload["source_id"] = source_id
 
     if existing_asset:
         QuestionAsset.objects.filter(pk=existing_asset.pk).update(
@@ -466,12 +280,7 @@ def write_coding_content_to_asset(
 
 
 def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tuple[QuestionAsset, QuestionVersion]:
-    """Ensure a CodingProblem has a QuestionAsset.
-
-    If the problem already has one, return it.  Otherwise create a new asset
-    via ``write_coding_content_to_asset`` (the canonical write path) and link
-    it back to the problem row.
-    """
+    """Ensure a CodingProblem has a QuestionAsset."""
     if problem.question_asset_id:
         return problem.question_asset, problem.question_version
 
@@ -479,7 +288,6 @@ def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tupl
     if owner is None:
         raise ValueError(f"Cannot resolve owner for problem {problem.id}")
 
-    # No translations on model anymore; create a minimal asset
     question_asset, question_version = write_coding_content_to_asset(
         owner=owner,
         title="",
@@ -501,7 +309,8 @@ def ensure_problem_question_asset(*, problem: CodingProblem, actor=None) -> tupl
         ),
         forbidden_keywords=problem.forbidden_keywords or [],
         required_keywords=problem.required_keywords or [],
-        legacy_problem_id=str(problem.id),
+        source_type="problem",
+        source_id=str(problem.id),
         actor=owner,
     )
 
@@ -521,7 +330,16 @@ def sync_exam_question_question_asset(
 ) -> tuple[QuestionAsset, QuestionVersion]:
     title = (exam_question.prompt or "").replace("\n", " ").strip()[:120] or f"Q{(exam_question.order or 0) + 1}"
     prompt = exam_question.prompt or ""
-    payload = _build_exam_question_asset_payload(exam_question)
+    payload = {
+        "question_type": exam_question.question_type,
+        "options": exam_question.options or [],
+        "correct_answer": exam_question.correct_answer,
+        "score": exam_question.score,
+        "order": exam_question.order,
+        "source_type": "exam_question",
+        "source_id": str(exam_question.id),
+        "source_contest_id": str(exam_question.contest_id),
+    }
     asset_type = _asset_type_for_exam_question_type(exam_question.question_type)
 
     if exam_question.question_asset_id:
@@ -564,89 +382,21 @@ def ensure_question_bank_membership(
     bank,
     question_asset: QuestionAsset,
     order: int,
-    legacy_question: Question | None = None,
     actor=None,
 ) -> QuestionBankMembership:
-    if legacy_question is not None:
-        existing_by_legacy = QuestionBankMembership.objects.filter(
-            legacy_question=legacy_question
-        ).first()
-        if existing_by_legacy and (
-            existing_by_legacy.bank_id != bank.id
-            or existing_by_legacy.question_asset_id != question_asset.id
-        ):
-            existing_by_legacy.bank = bank
-            existing_by_legacy.question_asset = question_asset
-            existing_by_legacy.order = order
-            existing_by_legacy.added_by = actor
-            existing_by_legacy.save(
-                update_fields=["bank", "question_asset", "order", "added_by", "updated_at"]
-            )
-            return existing_by_legacy
     membership, _ = QuestionBankMembership.objects.update_or_create(
         bank=bank,
         question_asset=question_asset,
         defaults={
             "order": order,
-            "legacy_question": legacy_question,
             "added_by": actor,
         },
     )
     return membership
 
 
-def ensure_question_asset_for_bank_question(
-    *,
-    question: Question,
-    actor=None,
-) -> tuple[QuestionAsset, QuestionVersion]:
-    asset_type = _asset_type_for_bank_question(question)
-    title = question.title or ""
-    prompt = question.prompt or ""
-    payload = _build_bank_question_asset_payload(question)
-    owner = question.created_by or question.bank.owner
-
-    if question.question_asset_id:
-        asset = question.question_asset
-        version = publish_question_version(
-            question_asset=asset,
-            title=title,
-            prompt=prompt,
-            payload=payload,
-            actor=actor or owner,
-        )
-    else:
-        asset, version = create_question_asset(
-            owner=owner,
-            asset_type=asset_type,
-            title=title,
-            prompt=prompt,
-            visibility=QuestionAsset.Visibility.PRIVATE,
-            payload=payload,
-            actor=actor or owner,
-        )
-    Question.objects.filter(pk=question.pk).update(
-        question_asset=asset,
-        question_version=version,
-    )
-    question.question_asset = asset
-    question.question_version = version
-    ensure_question_bank_membership(
-        bank=question.bank,
-        question_asset=asset,
-        order=question.order,
-        legacy_question=question,
-        actor=actor or owner,
-    )
-    return asset, version
-
-
 def cleanup_orphan_asset_if_needed(question_asset, *, coding_problem=None):
-    """Delete QuestionAsset (+ CodingProblem) if no contest bindings or bank memberships remain.
-
-    Call after removing a contest binding to avoid leaving orphaned records
-    that have no UI entry point for management or deletion.
-    """
+    """Delete QuestionAsset (+ CodingProblem) if no contest bindings or bank memberships remain."""
     if question_asset is None:
         return False
 
@@ -662,11 +412,9 @@ def cleanup_orphan_asset_if_needed(question_asset, *, coding_problem=None):
     if has_bank:
         return False
 
-    # Orphaned — delete CodingProblem first (SET_NULL FK won't cascade)
     if coding_problem is not None:
         coding_problem.delete()
 
-    # CASCADE deletes QuestionVersions
     question_asset.delete()
     return True
 
@@ -684,7 +432,7 @@ def ensure_contest_binding_for_exam_question(
             actor=actor or exam_question.contest.owner,
         )
     return ContestQuestionBinding.objects.update_or_create(
-        legacy_exam_question=exam_question,
+        exam_question=exam_question,
         defaults={
             "contest": exam_question.contest,
             "question_asset": question_asset,

@@ -32,7 +32,6 @@ export interface CodingQuestionExt {
 export interface BankQuestion {
   id: string;
   bankItemId: string;
-  adapterQuestionId?: string | null;
   bankId: string;
   questionType: "coding" | "exam";
   title: string;

@@ -1,27 +1,30 @@
 """
 Read-side helpers for question bank APIs.
 
-Keep query composition and access rules out of views so the module can
-move toward canonical read models without changing endpoint contracts.
+The read model is asset-first: bank items are `QuestionBankMembership`
+rows projected through the latest `QuestionVersion` payload.
 """
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from uuid import UUID
 
 from django.db.models import Q
 
 from apps.contests.models import ExamQuestion
 
 from .bank_workflows import is_publicly_accessible_bank
-from .models import ContestQuestionBinding, Question, QuestionAsset, QuestionBank, QuestionBankMembership
+from .models import ContestQuestionBinding, QuestionAsset, QuestionBank, QuestionBankMembership
+
+QUESTION_TYPE_CODING = "coding"
+QUESTION_TYPE_EXAM = "exam"
 
 
 @dataclass(frozen=True)
 class BankQuestionReadRow:
     id: str
     bank_item_id: str
-    adapter_question_id: str | None
     bank: str
     question_type: str
     title: str
@@ -50,11 +53,10 @@ class BankQuestionReadRow:
 class ResolvedBankQuestionTarget:
     bank: QuestionBank
     membership: QuestionBankMembership | None
-    legacy_question: Question | None
 
 
 def build_contest_usage_map(question_ids):
-    """Batch-query contest usages for bank questions."""
+    """Batch-query contest usages for bank membership ids and source ids."""
     if not question_ids:
         return {}
 
@@ -76,7 +78,7 @@ def build_contest_usage_map(question_ids):
         if dedupe_key in seen:
             continue
         seen.add(dedupe_key)
-        usage_map[source_question_id].append(
+        usage_map[str(source_question_id)].append(
             {
                 "contest_id": str(contest_id),
                 "contest_name": contest_name,
@@ -95,22 +97,29 @@ def get_bank_for_read(*, bank_uuid, user) -> QuestionBank | None:
 
 
 def _question_type_for_asset_type(asset_type: str) -> str:
-    return Question.QuestionType.CODING if asset_type == QuestionAsset.AssetType.CODING else Question.QuestionType.EXAM
+    return QUESTION_TYPE_CODING if asset_type == QuestionAsset.AssetType.CODING else QUESTION_TYPE_EXAM
+
+
+def _payload_for_membership(membership: QuestionBankMembership) -> dict:
+    version = membership.question_asset.latest_version
+    return version.payload if version and isinstance(version.payload, dict) else {}
 
 
 def _usage_ids_for_membership(membership: QuestionBankMembership) -> list[str]:
-    version = membership.question_asset.latest_version
-    payload = version.payload if version and isinstance(version.payload, dict) else {}
-    return [
-        str(value)
-        for value in (
-            payload.get("source_question_id"),
-            payload.get("legacy_problem_id"),
-            payload.get("legacy_exam_question_id"),
-            membership.question_asset_id,
-        )
-        if value
-    ]
+    payload = _payload_for_membership(membership)
+    ids: list[str] = []
+    for value in (
+        membership.id,
+        payload.get("source_id"),
+        membership.question_asset_id,
+    ):
+        if not value:
+            continue
+        try:
+            ids.append(str(UUID(str(value))))
+        except (TypeError, ValueError):
+            continue
+    return ids
 
 
 def _coding_ext_from_membership(membership: QuestionBankMembership, payload: dict) -> dict | None:
@@ -128,6 +137,15 @@ def _coding_ext_from_membership(membership: QuestionBankMembership, payload: dic
     }
 
 
+def build_read_row_for_membership(*, membership: QuestionBankMembership) -> BankQuestionReadRow:
+    usage_map = build_contest_usage_map(_usage_ids_for_membership(membership))
+    return _build_bank_question_read_row(
+        bank=membership.bank,
+        membership=membership,
+        usage_map=usage_map,
+    )
+
+
 def _build_bank_question_read_row(
     *,
     bank: QuestionBank,
@@ -135,23 +153,21 @@ def _build_bank_question_read_row(
     usage_map: dict,
 ) -> BankQuestionReadRow:
     version = membership.question_asset.latest_version
-    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    payload = _payload_for_membership(membership)
 
     row_id = str(membership.id)
     question_type = _question_type_for_asset_type(membership.question_asset.asset_type)
-    source_question_id = (
-        payload.get("source_question_id")
-        or payload.get("legacy_problem_id")
-        or payload.get("legacy_exam_question_id")
-    )
+    source_question_id = payload.get("source_id")
     source_bank_id = payload.get("source_bank_id")
     source_bank_name = payload.get("source_bank_name")
-    contest_usage_key = str(source_question_id) if source_question_id else str(membership.question_asset_id)
+    contest_usage_key = str(source_question_id) if source_question_id else row_id
+    metadata = (payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}) or {}
+    if payload.get("question_type"):
+        metadata = {**metadata, "question_type": payload.get("question_type")}
 
     return BankQuestionReadRow(
         id=row_id,
         bank_item_id=row_id,
-        adapter_question_id=None,
         bank=str(bank.uuid),
         question_type=question_type,
         title=(version.title if version else membership.question_asset.title) or "",
@@ -169,7 +185,7 @@ def _build_bank_question_read_row(
         contest_usages=usage_map.get(contest_usage_key, []),
         question_asset_id=str(membership.question_asset_id) if membership.question_asset_id else None,
         question_version_id=str(version.id) if version else None,
-        metadata=(payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}) or {},
+        metadata=metadata,
         created_by_username=(
             membership.added_by.username
             if membership.added_by_id
@@ -181,99 +197,10 @@ def _build_bank_question_read_row(
     )
 
 
-def _build_legacy_bank_question_read_row(
-    *,
-    bank: QuestionBank,
-    question: Question,
-    usage_map: dict,
-) -> BankQuestionReadRow:
-    payload = {
-        "options": question.options or [],
-        "correct_answer": question.correct_answer,
-        "score": question.score,
-        "difficulty": question.difficulty,
-        "time_limit": question.time_limit,
-        "memory_limit": question.memory_limit,
-        "metadata": question.metadata or {},
-    }
-    coding_ext = None
-    if question.question_type == Question.QuestionType.CODING:
-        if hasattr(question, "coding_ext"):
-            ext = question.coding_ext
-            legacy_translations = ext.translations or []
-            if legacy_translations and isinstance(legacy_translations, list):
-                t = legacy_translations[0] if isinstance(legacy_translations[0], dict) else {}
-                content = {k: t.get(k, "") for k in ("description", "input_description", "output_description", "hint")}
-            else:
-                content = {"description": "", "input_description": "", "output_description": "", "hint": ""}
-            coding_ext = {
-                **content,
-                "test_cases": ext.test_cases or [],
-                "language_configs": ext.language_configs or [],
-                "forbidden_keywords": ext.forbidden_keywords or [],
-                "required_keywords": ext.required_keywords or [],
-            }
-        else:
-            coding_ext = {
-                "description": "",
-                "input_description": "",
-                "output_description": "",
-                "hint": "",
-                "test_cases": [],
-                "language_configs": [],
-                "forbidden_keywords": [],
-                "required_keywords": [],
-            }
-    return BankQuestionReadRow(
-        id=str(question.id),
-        bank_item_id=str(question.id),
-        adapter_question_id=str(question.id),
-        bank=str(bank.uuid),
-        question_type=question.question_type,
-        title=question.title or "",
-        prompt=question.prompt or "",
-        options=payload["options"],
-        correct_answer=payload["correct_answer"],
-        score=int(payload["score"] or 0),
-        order=int(question.order),
-        difficulty=payload["difficulty"] or "medium",
-        time_limit=int(payload["time_limit"] or 1000),
-        memory_limit=int(payload["memory_limit"] or 128),
-        source_question_id=str(question.source_question_id) if question.source_question_id else None,
-        source_bank_id=str(question.source_bank.uuid) if question.source_bank_id else None,
-        source_bank_name=question.source_bank.name if question.source_bank_id else None,
-        contest_usages=usage_map.get(str(question.id), []),
-        question_asset_id=str(question.question_asset_id) if question.question_asset_id else None,
-        question_version_id=str(question.question_version_id) if question.question_version_id else None,
-        metadata=payload["metadata"],
-        created_by_username=question.created_by.username if question.created_by_id else None,
-        coding_ext=coding_ext,
-        created_at=question.created_at,
-        updated_at=question.updated_at,
-    )
-
-
-def build_read_row_for_membership(*, membership: QuestionBankMembership) -> BankQuestionReadRow:
-    usage_map = build_contest_usage_map(_usage_ids_for_membership(membership))
-    return _build_bank_question_read_row(
-        bank=membership.bank,
-        membership=membership,
-        usage_map=usage_map,
-    )
-
-
-def build_read_row_for_question(*, question: Question) -> BankQuestionReadRow:
-    usage_map = build_contest_usage_map([str(question.id)])
-    return _build_legacy_bank_question_read_row(
-        bank=question.bank,
-        question=question,
-        usage_map=usage_map,
-    )
-
-
 def get_bank_questions_payload(*, bank: QuestionBank) -> list[BankQuestionReadRow]:
     memberships = (
         bank.asset_memberships.select_related(
+            "bank",
             "question_asset",
             "question_asset__owner",
             "question_asset__latest_version",
@@ -294,37 +221,6 @@ def get_bank_questions_payload(*, bank: QuestionBank) -> list[BankQuestionReadRo
         for membership in memberships
     ]
     return sorted(rows, key=lambda row: (row.order, row.id))
-
-
-def get_question_queryset_for_user(*, user, allow_cloneable=False):
-    base = Question.objects.select_related(
-        "bank",
-        "bank__owner",
-        "created_by",
-        "source_bank",
-        "question_asset",
-        "question_version",
-    )
-
-    if allow_cloneable:
-        return (
-            base.filter(
-                Q(bank__owner=user, bank__is_archived=False)
-                | Q(
-                    bank__is_archived=False,
-                    bank__visibility=QuestionBank.Visibility.PUBLIC,
-                    bank__verified=True,
-                )
-            )
-            .filter(
-                Q(bank__owner=user)
-                | Q(bank__owner__isnull=True)
-                | Q(bank__owner__is_staff=True)
-                | Q(bank__owner__role="admin")
-            )
-        )
-
-    return base.filter(bank__owner=user, bank__is_archived=False)
 
 
 def get_membership_queryset_for_user(*, user, allow_cloneable=False):
@@ -358,23 +254,6 @@ def get_membership_queryset_for_user(*, user, allow_cloneable=False):
 
 
 def resolve_bank_question_target_for_user(*, user, raw_id, allow_cloneable=False) -> ResolvedBankQuestionTarget | None:
-    legacy_question = get_question_queryset_for_user(
-        user=user,
-        allow_cloneable=allow_cloneable,
-    ).filter(id=raw_id).first()
-    if legacy_question:
-        membership = QuestionBankMembership.objects.filter(legacy_question=legacy_question).select_related(
-            "bank",
-            "question_asset",
-            "question_asset__latest_version",
-            "added_by",
-        ).first()
-        return ResolvedBankQuestionTarget(
-            bank=legacy_question.bank,
-            membership=membership,
-            legacy_question=legacy_question,
-        )
-
     membership = get_membership_queryset_for_user(
         user=user,
         allow_cloneable=allow_cloneable,
@@ -383,6 +262,5 @@ def resolve_bank_question_target_for_user(*, user, raw_id, allow_cloneable=False
         return ResolvedBankQuestionTarget(
             bank=membership.bank,
             membership=membership,
-            legacy_question=membership.legacy_question,
         )
     return None

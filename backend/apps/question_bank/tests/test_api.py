@@ -16,13 +16,13 @@ from apps.contests.models import Contest, ExamQuestion
 from apps.contests.tests import bind_problem_to_contest
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
 from apps.question_bank.bank_workflows import (
-    clone_question_to_bank,
+    clone_membership_to_bank,
     is_publicly_accessible_bank,
     upsert_exam_question_into_bank,
     upsert_problem_into_bank,
 )
-from apps.question_bank.models import Question, QuestionAsset, QuestionBank, QuestionBankMembership, QuestionCodingExt
-from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
+from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
+from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User
 
 
@@ -72,6 +72,66 @@ def teacher_private_bank(teacher: User) -> QuestionBank:
         category=QuestionBank.Category.CODING,
         visibility=QuestionBank.Visibility.PRIVATE,
         verified=False,
+    )
+
+
+def create_bank_membership(
+    *,
+    bank: QuestionBank,
+    owner: User,
+    title: str = "Bank Item",
+    prompt: str = "desc",
+    question_type: str = "coding",
+    score: int = 100,
+    order: int = 0,
+    metadata: dict | None = None,
+    payload_extra: dict | None = None,
+) -> QuestionBankMembership:
+    if question_type == "coding":
+        asset_type = QuestionAsset.AssetType.CODING
+        payload = {
+            "score": score,
+            "order": order,
+            "difficulty": "easy",
+            "time_limit": 1000,
+            "memory_limit": 128,
+            "options": [],
+            "correct_answer": None,
+            "metadata": metadata or {},
+            "description": prompt,
+            "input_description": "",
+            "output_description": "",
+            "hint": "",
+            "test_cases": [],
+            "language_configs": [],
+            "forbidden_keywords": [],
+            "required_keywords": [],
+        }
+    else:
+        asset_type = QuestionAsset.AssetType.SINGLE_CHOICE
+        payload = {
+            "question_type": "single_choice",
+            "score": score,
+            "order": order,
+            "options": ["A", "B"],
+            "correct_answer": 0,
+            "metadata": metadata or {},
+        }
+    payload.update(payload_extra or {})
+    asset, _version = create_question_asset(
+        owner=owner,
+        asset_type=asset_type,
+        title=title,
+        prompt=prompt,
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload=payload,
+        actor=owner,
+    )
+    return ensure_question_bank_membership(
+        bank=bank,
+        question_asset=asset,
+        order=order,
+        actor=owner,
     )
 
 
@@ -261,9 +321,9 @@ class TestQuestionBankAPI:
         admin_user: User,
         teacher_private_bank: QuestionBank,
     ):
-        Question.objects.create(
+        create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Needs Review",
             prompt="desc",
             score=100,
@@ -301,9 +361,9 @@ class TestQuestionBankAPI:
         admin_user: User,
         teacher_private_bank: QuestionBank,
     ):
-        Question.objects.create(
+        create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Needs Review",
             prompt="desc",
             score=100,
@@ -333,9 +393,9 @@ class TestQuestionBankAPI:
         teacher: User,
         teacher_private_bank: QuestionBank,
     ):
-        Question.objects.create(
+        create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Needs Review",
             prompt="desc",
             score=100,
@@ -376,9 +436,9 @@ class TestQuestionBankAPI:
         teacher: User,
         public_platform_bank: QuestionBank,
     ):
-        source = Question.objects.create(
+        source = create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="A+B",
             prompt="desc",
             score=100,
@@ -393,16 +453,10 @@ class TestQuestionBankAPI:
         assert resp.status_code == status.HTTP_201_CREATED
 
         my_bank = QuestionBank.objects.get(owner=teacher, category=QuestionBank.Category.CODING)
-        cloned = Question.objects.get(bank=my_bank, title="A+B")
+        cloned = QuestionBankMembership.objects.get(bank=my_bank)
         source.refresh_from_db()
         assert source.question_asset_id is not None
         assert cloned.question_asset_id == source.question_asset_id
-        assert cloned.question_version_id == source.question_version_id
-        assert QuestionBankMembership.objects.filter(
-            bank=my_bank,
-            question_asset_id=cloned.question_asset_id,
-            legacy_question=cloned,
-        ).exists()
 
     def test_clone_from_explore_reuses_existing_asset_entry_in_target_bank(
         self,
@@ -410,9 +464,9 @@ class TestQuestionBankAPI:
         teacher: User,
         public_platform_bank: QuestionBank,
     ):
-        source = Question.objects.create(
+        source = create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="Reusable",
             prompt="desc",
             score=100,
@@ -434,9 +488,9 @@ class TestQuestionBankAPI:
         assert second_resp.status_code == status.HTTP_201_CREATED
 
         my_bank = QuestionBank.objects.get(owner=teacher, category=QuestionBank.Category.CODING)
-        assert Question.objects.filter(bank=my_bank, title="Reusable").count() == 1
-        cloned = Question.objects.get(bank=my_bank, title="Reusable")
-        assert str(second_resp.data["id"]) == str(cloned.asset_membership.id)
+        assert QuestionBankMembership.objects.filter(bank=my_bank, question_asset=source.question_asset).count() == 1
+        cloned = QuestionBankMembership.objects.get(bank=my_bank, question_asset=source.question_asset)
+        assert str(second_resp.data["id"]) == str(cloned.id)
 
     def test_list_bank_questions_with_uuid_lookup(
         self,
@@ -444,15 +498,13 @@ class TestQuestionBankAPI:
         teacher: User,
         teacher_private_bank: QuestionBank,
     ):
-        question = Question.objects.create(
+        create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="UUID Question",
             prompt="desc",
             score=100,
-            created_by=teacher,
         )
-        ensure_question_asset_for_bank_question(question=question, actor=teacher)
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.get(
@@ -469,15 +521,13 @@ class TestQuestionBankAPI:
         teacher: User,
         public_platform_bank: QuestionBank,
     ):
-        question = Question.objects.create(
+        create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="Platform Question",
             prompt="desc",
             score=100,
-            created_by=teacher,
         )
-        ensure_question_asset_for_bank_question(question=question, actor=teacher)
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.get(f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/")
@@ -492,15 +542,13 @@ class TestQuestionBankAPI:
         teacher: User,
         teacher_private_bank: QuestionBank,
     ):
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
-            title="Legacy Row",
+            owner=teacher,
+            title="Canonical Row",
             prompt="desc",
             score=100,
-            created_by=teacher,
         )
-        ensure_question_asset_for_bank_question(question=question, actor=teacher)
 
         api_client.force_authenticate(user=teacher)
         resp = api_client.get(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/")
@@ -509,50 +557,25 @@ class TestQuestionBankAPI:
         assert len(resp.data) == 1
         assert "question_asset_id" in resp.data[0]
         assert "question_version_id" in resp.data[0]
-        assert resp.data[0]["question_asset_id"] == str(question.question_asset_id)
-        assert resp.data[0]["question_version_id"] == str(question.question_version_id)
+        assert resp.data[0]["question_asset_id"] == str(membership.question_asset_id)
+        assert resp.data[0]["question_version_id"] == str(membership.question_asset.latest_version_id)
 
-    def test_list_bank_questions_projects_from_canonical_asset_not_legacy_adapter(
+    def test_list_bank_questions_projects_from_canonical_asset(
         self,
         api_client: APIClient,
         teacher: User,
         teacher_private_bank: QuestionBank,
     ):
-        question = Question.objects.create(
+        create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Canonical Title",
             prompt="canonical prompt",
             score=100,
-            created_by=teacher,
-        )
-        QuestionCodingExt.objects.create(
-            question=question,
-            translations=[
-                {
-                    "description": "canonical description",
-                    "input_description": "",
-                    "output_description": "",
-                    "hint": "",
-                }
-            ],
-            test_cases=[{"input": "1", "output": "1"}],
-        )
-        ensure_question_asset_for_bank_question(question=question, actor=teacher)
-
-        question.title = "Stale Legacy Title"
-        question.prompt = "stale legacy prompt"
-        question.save(update_fields=["title", "prompt", "updated_at"])
-        QuestionCodingExt.objects.filter(question=question).update(
-            translations=[
-                {
-                    "description": "stale legacy description",
-                    "input_description": "",
-                    "output_description": "",
-                    "hint": "",
-                }
-            ],
-            test_cases=[{"input": "2", "output": "2"}],
+            payload_extra={
+                "description": "canonical description",
+                "test_cases": [{"input": "1", "output": "1"}],
+            },
         )
 
         api_client.force_authenticate(user=teacher)
@@ -560,13 +583,12 @@ class TestQuestionBankAPI:
 
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data) == 1
-        assert resp.data[0]["adapter_question_id"] is None
         assert resp.data[0]["title"] == "Canonical Title"
         assert resp.data[0]["prompt"] == "canonical prompt"
         assert resp.data[0]["coding_ext"]["description"] == "canonical description"
         assert resp.data[0]["coding_ext"]["test_cases"] == [{"input": "1", "output": "1"}]
 
-    def test_list_bank_questions_can_render_canonical_membership_without_legacy_question(
+    def test_list_bank_questions_can_render_canonical_membership(
         self,
         api_client: APIClient,
         teacher: User,
@@ -622,7 +644,7 @@ class TestQuestionBankAPI:
             visibility=QuestionBank.Visibility.PRIVATE,
         )
         problem = CodingProblem.objects.create(
-            slug="legacy-problem",
+            slug="canonical-problem",
             created_by=teacher,
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
@@ -630,19 +652,21 @@ class TestQuestionBankAPI:
         # Create asset (source of truth for content)
         from apps.question_bank.question_assets import write_coding_content_to_asset
         asset, version = write_coding_content_to_asset(
-            owner=teacher, title="Legacy Problem", prompt="legacy description",
+            owner=teacher, title="Canonical Problem", prompt="canonical description",
             difficulty="easy", content_fields={
-                "description": "legacy description",
+                "description": "canonical description",
                 "input_description": "in", "output_description": "out", "hint": "",
-            }, actor=teacher,
+            }, source_type="problem", source_id=str(problem.id), actor=teacher,
         )
         problem.question_asset = asset
         problem.question_version = version
         problem.save(update_fields=["question_asset", "question_version"])
 
-        synced_problem_q = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
-        assert synced_problem_q is not None
-        assert synced_problem_q.metadata["legacy_problem_id"] == str(problem.id)
+        synced_problem_membership = upsert_problem_into_bank(problem, bank=bank_coding, created_by=teacher)
+        assert synced_problem_membership is not None
+        problem_payload = synced_problem_membership.question_asset.latest_version.payload
+        assert problem_payload["source_type"] == "problem"
+        assert problem_payload["source_id"] == str(problem.id)
 
         bank_exam = QuestionBank.objects.create(
             owner=teacher,
@@ -661,9 +685,11 @@ class TestQuestionBankAPI:
             order=0,
         )
 
-        synced_exam_q = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
-        assert synced_exam_q is not None
-        assert synced_exam_q.metadata["legacy_exam_question_id"] == str(exam_question.id)
+        synced_exam_membership = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
+        assert synced_exam_membership is not None
+        exam_payload = synced_exam_membership.question_asset.latest_version.payload
+        assert exam_payload["source_type"] == "exam_question"
+        assert exam_payload["source_id"] == str(exam_question.id)
 
     def test_create_exam_question_api_does_not_500_with_duplicate_exam_banks(
         self,
@@ -717,14 +743,16 @@ class TestQuestionBankAPI:
             order=0,
         )
 
-        synced_exam_q = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
+        synced_exam_membership = upsert_exam_question_into_bank(exam_question, bank=bank_exam, created_by=teacher)
         exam_question.refresh_from_db()
 
-        assert synced_exam_q is not None
-        assert synced_exam_q.metadata["legacy_exam_question_id"] == str(exam_question.id)
+        assert synced_exam_membership is not None
+        payload = synced_exam_membership.question_asset.latest_version.payload
+        assert payload["source_type"] == "exam_question"
+        assert payload["source_id"] == str(exam_question.id)
         assert str(exam_question.source_bank_id) == str(bank_exam.uuid)
         assert exam_question.source_bank_name == bank_exam.name
-        assert str(exam_question.source_question_id) == str(synced_exam_q.id)
+        assert str(exam_question.source_question_id) == str(synced_exam_membership.id)
         assert exam_question.source_mode == "copy"
 
     def test_upsert_exam_question_into_bank_rejects_non_reconstructible_question(
@@ -858,7 +886,7 @@ class TestQuestionBankAPI:
             difficulty="medium", content_fields={
                 "description": "desc", "input_description": "in",
                 "output_description": "out", "hint": "",
-            }, actor=teacher,
+            }, source_type="problem", source_id=str(problem.id), actor=teacher,
         )
         problem.question_asset = asset
         problem.question_version = version
@@ -876,9 +904,9 @@ class TestQuestionBankAPI:
 
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["ingested_count"] == 1
-        assert Question.objects.filter(
+        assert QuestionBankMembership.objects.filter(
             bank=target_bank,
-            metadata__legacy_problem_id=str(problem.id),
+            question_asset=problem.question_asset,
         ).exists()
 
     def test_inbox_ingest_problem_when_creator_null_but_contest_owner(
@@ -914,6 +942,8 @@ class TestQuestionBankAPI:
             prompt="desc",
             difficulty="medium",
             content_fields={},
+            source_type="problem",
+            source_id=str(problem.id),
             actor=teacher,
         )
         problem.question_asset = asset
@@ -936,9 +966,9 @@ class TestQuestionBankAPI:
 
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["ingested_count"] == 1
-        assert Question.objects.filter(
+        assert QuestionBankMembership.objects.filter(
             bank=target_bank,
-            metadata__legacy_problem_id=str(problem.id),
+            question_asset=problem.question_asset,
         ).exists()
 
     def test_inbox_lists_problem_when_only_existing_sync_is_inaccessible(
@@ -964,28 +994,34 @@ class TestQuestionBankAPI:
             category=QuestionBank.Category.CODING,
             visibility=QuestionBank.Visibility.PRIVATE,
         )
-        asset = QuestionAsset.objects.create(
-            owner=teacher, asset_type=QuestionAsset.AssetType.CODING,
-            title="Needs Re-ingest",
-            payload={"difficulty": "medium",
-                "description": "desc", "input_description": "in",
-                "output_description": "out", "hint": "",
-            },
-        )
+        from apps.question_bank.question_assets import write_coding_content_to_asset
+
         problem = CodingProblem.objects.create(
             slug="needs-re-ingest",
             created_by=teacher,
-            question_asset=asset,
         )
         ProblemTestCase.objects.create(problem=problem, input_data="1", output_data="1", score=100)
-        Question.objects.create(
-            bank=foreign_bank,
-            question_type=Question.QuestionType.CODING,
+        asset, version = write_coding_content_to_asset(
+            owner=teacher,
             title="Foreign Copy",
             prompt="desc",
-            score=100,
-            metadata={"legacy_problem_id": str(problem.id)},
-            created_by=other_teacher,
+            difficulty="medium",
+            content_fields={
+                "description": "desc", "input_description": "in",
+                "output_description": "out", "hint": "",
+            },
+            source_type="problem",
+            source_id=str(problem.id),
+            actor=teacher,
+        )
+        problem.question_asset = asset
+        problem.question_version = version
+        problem.save(update_fields=["question_asset", "question_version"])
+        ensure_question_bank_membership(
+            bank=foreign_bank,
+            question_asset=asset,
+            order=0,
+            actor=other_teacher,
         )
 
         api_client.force_authenticate(user=teacher)
@@ -1002,9 +1038,9 @@ class TestQuestionBankAPI:
             format="json",
         )
         assert ingest_resp.status_code == status.HTTP_200_OK
-        assert Question.objects.filter(
+        assert QuestionBankMembership.objects.filter(
             bank=target_bank,
-            metadata__legacy_problem_id=str(problem.id),
+            question_asset=problem.question_asset,
         ).exists()
 
     def test_inbox_lists_exam_question_when_only_existing_sync_is_archived(
@@ -1029,17 +1065,21 @@ class TestQuestionBankAPI:
             score=2,
             order=0,
         )
-        Question.objects.create(
+        create_bank_membership(
             bank=archived_bank,
-            question_type=Question.QuestionType.EXAM,
+            owner=teacher,
             title="Archived exam copy",
             prompt=exam_question.prompt,
-            options=exam_question.options,
-            correct_answer=exam_question.correct_answer,
             score=exam_question.score,
             order=0,
-            metadata={"legacy_exam_question_id": str(exam_question.id)},
-            created_by=teacher,
+            question_type="exam",
+            payload_extra={
+                "options": exam_question.options,
+                "correct_answer": exam_question.correct_answer,
+                "source_type": "exam_question",
+                "source_id": str(exam_question.id),
+                "source_contest_id": str(contest.id),
+            },
         )
 
         api_client.force_authenticate(user=teacher)
@@ -1082,13 +1122,13 @@ class TestQuestionBankAPI:
         assert first_resp.status_code == status.HTTP_200_OK
 
         exam_question.refresh_from_db()
-        first_bank_question = Question.objects.get(
+        first_membership = QuestionBankMembership.objects.get(
             bank=first_bank,
-            metadata__legacy_exam_question_id=str(exam_question.id),
+            question_asset=exam_question.question_asset,
         )
         assert str(exam_question.source_bank_id) == str(first_bank.uuid)
         assert exam_question.source_bank_name == first_bank.name
-        assert str(exam_question.source_question_id) == str(first_bank_question.id)
+        assert str(exam_question.source_question_id) == str(first_membership.id)
         assert exam_question.source_mode == "copy"
 
         # Archive first bank so the constraint allows a new EXAM bank for same teacher.
@@ -1112,13 +1152,13 @@ class TestQuestionBankAPI:
         assert second_resp.status_code == status.HTTP_200_OK
 
         exam_question.refresh_from_db()
-        moved_bank_question = Question.objects.get(
+        moved_membership = QuestionBankMembership.objects.get(
             bank=second_bank,
-            metadata__legacy_exam_question_id=str(exam_question.id),
+            question_asset=exam_question.question_asset,
         )
         assert str(exam_question.source_bank_id) == str(second_bank.uuid)
         assert exam_question.source_bank_name == second_bank.name
-        assert str(exam_question.source_question_id) == str(moved_bank_question.id)
+        assert str(exam_question.source_question_id) == str(moved_membership.id)
         assert exam_question.source_mode == "copy"
 
     def test_inbox_ingest_rejects_non_reconstructible_exam_question(
@@ -1155,9 +1195,8 @@ class TestQuestionBankAPI:
 
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert resp.data["success"] is False
-        assert not Question.objects.filter(
+        assert not QuestionBankMembership.objects.filter(
             bank=target_bank,
-            metadata__legacy_exam_question_id=str(exam_question.id),
         ).exists()
 
 
@@ -1193,26 +1232,26 @@ class TestQuestionBankSoftDelete:
 class TestQuestionCRUDPermissions:
     def test_delete_question_by_owner(self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank):
         api_client.force_authenticate(user=teacher)
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="To Delete",
         )
-        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/")
+        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{membership.id}/")
         assert resp.status_code == status.HTTP_204_NO_CONTENT
-        assert not Question.objects.filter(id=question.id).exists()
+        assert not QuestionBankMembership.objects.filter(id=membership.id).exists()
 
     def test_delete_question_by_non_owner_is_forbidden(
         self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank
     ):
         other = User.objects.create_user(username="other_del", email="other_del@test.com", password="x", role="teacher")
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Guarded",
         )
         api_client.force_authenticate(user=other)
-        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/")
+        resp = api_client.delete(f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{membership.id}/")
         assert resp.status_code == status.HTTP_404_NOT_FOUND  # filtered out via get_queryset
 
     def test_post_question_to_public_bank_by_non_owner_is_forbidden(
@@ -1230,19 +1269,18 @@ class TestQuestionCRUDPermissions:
 
     def test_patch_question_by_owner(self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank):
         api_client.force_authenticate(user=teacher)
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Original",
         )
         resp = api_client.patch(
-            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{membership.id}/",
             {"title": "Updated"},
             format="json",
         )
         assert resp.status_code == status.HTTP_200_OK
         assert resp.data["title"] == "Updated"
-        assert resp.data["adapter_question_id"] is None
         assert resp.data["bank_item_id"]
         assert resp.data["id"] == resp.data["bank_item_id"]
 
@@ -1250,14 +1288,14 @@ class TestQuestionCRUDPermissions:
         self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank
     ):
         other = User.objects.create_user(username="other_patch", email="other_p@test.com", password="x", role="teacher")
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Original",
         )
         api_client.force_authenticate(user=other)
         resp = api_client.patch(
-            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{membership.id}/",
             {"title": "Hacked"},
             format="json",
         )
@@ -1356,13 +1394,11 @@ class TestStudentAccess:
         self, api_client: APIClient, public_platform_bank: QuestionBank
     ):
         student = User.objects.create_user(username="student_r", email="student_r@test.com", password="x", role="student")
-        question = Question.objects.create(
+        create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="Public Q",
-            created_by=student,
         )
-        ensure_question_asset_for_bank_question(question=question, actor=student)
         api_client.force_authenticate(user=student)
         resp = api_client.get(f"/api/v1/question-banks/{public_platform_bank.uuid}/questions/")
         assert resp.status_code == status.HTTP_200_OK
@@ -1375,25 +1411,26 @@ class TestStudentAccess:
 
 @pytest.mark.django_db
 class TestMetadataReadOnly:
-    """B1: metadata must not be modifiable via PATCH."""
+    """Source-tracking payload fields must not be modifiable via PATCH."""
 
-    def test_patch_cannot_overwrite_metadata(self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank):
+    def test_patch_cannot_overwrite_source_payload_fields(self, api_client: APIClient, teacher: User, teacher_private_bank: QuestionBank):
         api_client.force_authenticate(user=teacher)
-        question = Question.objects.create(
+        membership = create_bank_membership(
             bank=teacher_private_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=teacher,
             title="Meta Q",
-            metadata={"legacy_problem_id": "original-id"},
+            payload_extra={"source_type": "problem", "source_id": "original-id"},
         )
         resp = api_client.patch(
-            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{question.id}/",
-            {"metadata": {"legacy_problem_id": "tampered"}},
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/questions/{membership.id}/",
+            {"metadata": {"source_id": "tampered"}},
             format="json",
         )
         assert resp.status_code == status.HTTP_200_OK
-        question.refresh_from_db()
-        # metadata should remain unchanged (read-only field is silently ignored)
-        assert question.metadata["legacy_problem_id"] == "original-id"
+        membership.question_asset.refresh_from_db()
+        payload = membership.question_asset.latest_version.payload
+        assert payload["source_type"] == "problem"
+        assert payload["source_id"] == "original-id"
 
 
 @pytest.mark.django_db
@@ -1442,12 +1479,12 @@ class TestCategoryValidationOnPost:
 
 @pytest.mark.django_db
 class TestCloneGuards:
-    """B5: clone_question_to_bank must reject archived banks & category mismatches."""
+    """clone_membership_to_bank must reject archived banks and category mismatches."""
 
     def test_clone_to_archived_bank_raises(self, teacher: User, public_platform_bank: QuestionBank):
-        source_q = Question.objects.create(
+        source_membership = create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="Source Q",
         )
         archived_bank = QuestionBank.objects.create(
@@ -1457,12 +1494,12 @@ class TestCloneGuards:
             is_archived=True,
         )
         with pytest.raises(ValueError, match="archived"):
-            clone_question_to_bank(source_question=source_q, target_bank=archived_bank, user=teacher)
+            clone_membership_to_bank(source_membership=source_membership, target_bank=archived_bank, user=teacher)
 
     def test_clone_category_mismatch_raises(self, teacher: User, public_platform_bank: QuestionBank):
-        coding_q = Question.objects.create(
+        coding_membership = create_bank_membership(
             bank=public_platform_bank,
-            question_type=Question.QuestionType.CODING,
+            owner=public_platform_bank.owner,
             title="Coding Q",
         )
         exam_bank = QuestionBank.objects.create(
@@ -1471,7 +1508,7 @@ class TestCloneGuards:
             category=QuestionBank.Category.EXAM,
         )
         with pytest.raises(ValueError, match="coding"):
-            clone_question_to_bank(source_question=coding_q, target_bank=exam_bank, user=teacher)
+            clone_membership_to_bank(source_membership=coding_membership, target_bank=exam_bank, user=teacher)
 
 
 @pytest.mark.django_db
@@ -1495,16 +1532,16 @@ class TestUpsertIdempotency:
             question_asset=asset,
         )
         q1 = upsert_problem_into_bank(problem=problem, bank=bank)
-        assert bank.questions.count() == 1
+        assert bank.asset_memberships.count() == 1
 
         asset.title = "Updated Prob"
         asset.save()
         q2 = upsert_problem_into_bank(problem=problem, bank=bank)
 
         assert q1.id == q2.id  # same row updated
-        assert bank.questions.count() == 1
+        assert bank.asset_memberships.count() == 1
         q2.refresh_from_db()
-        assert q2.title == "Updated Prob"
+        assert q2.question_asset.title == "Updated Prob"
 
     def test_upsert_exam_question_twice_updates_existing(self, teacher: User):
         bank = QuestionBank.objects.create(
@@ -1523,16 +1560,16 @@ class TestUpsertIdempotency:
             order=0,
         )
         q1 = upsert_exam_question_into_bank(exam_question=eq, bank=bank)
-        assert bank.questions.count() == 1
+        assert bank.asset_memberships.count() == 1
 
         eq.prompt = "Updated?"
         eq.save()
         q2 = upsert_exam_question_into_bank(exam_question=eq, bank=bank)
 
         assert q1.id == q2.id
-        assert bank.questions.count() == 1
+        assert bank.asset_memberships.count() == 1
         q2.refresh_from_db()
-        assert q2.prompt == "Updated?"
+        assert q2.question_asset.latest_version.prompt == "Updated?"
 
 
 @pytest.mark.django_db

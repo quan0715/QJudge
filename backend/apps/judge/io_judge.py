@@ -184,8 +184,6 @@ class IOJudge(BaseJudge):
         if self._client is not None:
             return
         kwargs: dict[str, Any] = {"timeout": self.docker_timeout}
-        if settings.DOCKER_HOST:
-            kwargs["base_url"] = settings.DOCKER_HOST
         try:
             client = docker.DockerClient(**kwargs)
             client.ping()

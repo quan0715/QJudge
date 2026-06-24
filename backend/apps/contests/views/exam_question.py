@@ -11,10 +11,9 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from apps.question_bank.import_resolver import resolve_bank_question_for_import
-from apps.question_bank.models import Question
+from apps.question_bank.models import QuestionAsset
 from apps.question_bank.question_assets import (
     ensure_contest_binding_for_exam_question,
-    ensure_question_asset_for_bank_question,
 )
 
 from ..models import (
@@ -62,20 +61,31 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Only contest owner/admin can manage exam questions')
 
     @staticmethod
-    def _normalize_exam_question_type(question: Question) -> str:
-        metadata = question.metadata if isinstance(question.metadata, dict) else {}
-        raw_type = metadata.get("legacy_question_type")
-        if raw_type in {
+    def _normalize_exam_question_type_from_bank_item(bank_item) -> str:
+        payload = bank_item.payload if isinstance(bank_item.payload, dict) else {}
+        raw_type = payload.get("question_type")
+        valid_types = {
             ExamQuestionType.TRUE_FALSE,
             ExamQuestionType.SINGLE_CHOICE,
             ExamQuestionType.MULTIPLE_CHOICE,
             ExamQuestionType.SHORT_ANSWER,
             ExamQuestionType.ESSAY,
-        }:
+        }
+        if raw_type in valid_types:
             return raw_type
 
-        correct = question.correct_answer
-        options = question.options if isinstance(question.options, list) else []
+        asset_type_map = {
+            QuestionAsset.AssetType.TRUE_FALSE: ExamQuestionType.TRUE_FALSE,
+            QuestionAsset.AssetType.SINGLE_CHOICE: ExamQuestionType.SINGLE_CHOICE,
+            QuestionAsset.AssetType.MULTIPLE_CHOICE: ExamQuestionType.MULTIPLE_CHOICE,
+            QuestionAsset.AssetType.SHORT_ANSWER: ExamQuestionType.SHORT_ANSWER,
+            QuestionAsset.AssetType.ESSAY: ExamQuestionType.ESSAY,
+        }
+        if bank_item.question_asset.asset_type in asset_type_map:
+            return asset_type_map[bank_item.question_asset.asset_type]
+
+        correct = payload.get("correct_answer")
+        options = payload.get("options") if isinstance(payload.get("options"), list) else []
 
         if isinstance(correct, bool):
             return ExamQuestionType.TRUE_FALSE
@@ -279,7 +289,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         ContestQuestionBinding.objects.filter(
             contest=contest,
             coding_problem__isnull=True,
-            legacy_exam_question__isnull=True,
+            exam_question__isnull=True,
             binding_type__in=exam_types,
         ).delete()
 
@@ -338,37 +348,33 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 if not question_bank_id or question_id is None:
                     raise DRFValidationError('Each item requires question_bank_id and question_id')
 
-                bank, bank_question = resolve_bank_question_for_import(
+                bank, bank_item = resolve_bank_question_for_import(
                     user=request.user,
                     question_bank_id=question_bank_id,
                     question_id=question_id,
-                    allowed_question_types={Question.QuestionType.EXAM},
+                    allowed_question_types={"exam"},
                 )
 
-                prompt = (bank_question.prompt or bank_question.title or "").strip()
+                payload = bank_item.payload if isinstance(bank_item.payload, dict) else {}
+                prompt = (bank_item.prompt or bank_item.title or "").strip()
                 if not prompt:
-                    raise DRFValidationError(f'Imported question {bank_question.id} has empty prompt/title')
+                    raise DRFValidationError(f'Imported question {bank_item.id} has empty prompt/title')
 
                 exam_question = ExamQuestion.objects.create(
                     contest=contest,
-                    question_type=self._normalize_exam_question_type(bank_question),
+                    question_type=self._normalize_exam_question_type_from_bank_item(bank_item),
                     prompt=prompt,
-                    options=bank_question.options or [],
-                    correct_answer=bank_question.correct_answer,
-                    score=max(1, int(bank_question.score or 1)),
+                    options=payload.get("options") or [],
+                    correct_answer=payload.get("correct_answer"),
+                    score=max(1, int(payload.get("score") or 1)),
                     order=next_order,
                     source_bank_id=bank.uuid,
                     source_bank_name=bank.name,
-                    source_question_id=bank_question.id,
+                    source_question_id=bank_item.id,
                     source_mode=import_mode,
+                    question_asset=bank_item.question_asset,
+                    question_version=bank_item.question_version,
                 )
-                question_asset, question_version = ensure_question_asset_for_bank_question(
-                    question=bank_question,
-                    actor=request.user,
-                )
-                exam_question.question_asset = question_asset
-                exam_question.question_version = question_version
-                exam_question.save(update_fields=["question_asset", "question_version", "updated_at"])
                 ensure_contest_binding_for_exam_question(
                     exam_question=exam_question,
                     actor=request.user,

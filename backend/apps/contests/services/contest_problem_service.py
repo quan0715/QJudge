@@ -1,132 +1,120 @@
 """Shared helpers for importing bank questions into contests."""
 
-from apps.problems.serializers import ProblemAdminSerializer
-from apps.question_bank.import_resolver import resolve_bank_question_for_import
-from apps.question_bank.models import Question
-from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
+from apps.problems.models import CodingProblem
+from apps.problems.services import ProblemService
+from apps.question_bank.import_resolver import BankQuestionImportItem, resolve_bank_question_for_import
 
 
-def materialize_problem_from_bank_question(*, contest, question, user, request=None):
-    """Create a Problem from a bank Question's coding extension data.
-
-    ``request`` is optional; when provided it is passed as serializer context.
-    """
-
-    def _normalize_weights(cases):
-        if not cases:
-            return
-        raw_weights = [max(0, int(case.get('weight_percent', 0) or 0)) for case in cases]
-        total = sum(raw_weights)
-        if total == 100:
-            return
-        if total <= 0:
-            base = 100 // len(cases)
-            remainder = 100 % len(cases)
-            for idx, case in enumerate(cases):
-                weight = base + (1 if idx < remainder else 0)
-                case['weight_percent'] = weight
-                case['score'] = weight
-            return
-
-        scaled = []
-        for weight in raw_weights:
-            scaled.append((weight * 100) / total)
-        floor_values = [int(value) for value in scaled]
-        remainder = 100 - sum(floor_values)
-        fractions = sorted(
-            enumerate(value - int(value) for value in scaled),
-            key=lambda item: item[1],
-            reverse=True,
-        )
-        for idx in range(remainder):
-            floor_values[fractions[idx][0]] += 1
-
+def _normalize_test_case_weights(cases):
+    if not cases:
+        return
+    raw_weights = [max(0, int(case.get("weight_percent", case.get("score", 0)) or 0)) for case in cases]
+    total = sum(raw_weights)
+    if total == 100:
+        for case, weight in zip(cases, raw_weights):
+            case["weight_percent"] = weight
+            case["score"] = weight
+        return
+    if total <= 0:
+        base = 100 // len(cases)
+        remainder = 100 % len(cases)
         for idx, case in enumerate(cases):
-            case['weight_percent'] = floor_values[idx]
-            case['score'] = floor_values[idx]
+            weight = base + (1 if idx < remainder else 0)
+            case["weight_percent"] = weight
+            case["score"] = weight
+        return
 
-    coding_ext = getattr(question, "coding_ext", None)
-    translations = []
-    test_cases = []
-    language_configs = []
-    forbidden_keywords = []
-    required_keywords = []
+    scaled = [(weight * 100) / total for weight in raw_weights]
+    floor_values = [int(value) for value in scaled]
+    remainder = 100 - sum(floor_values)
+    fractions = sorted(
+        enumerate(value - int(value) for value in scaled),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    for idx in range(remainder):
+        floor_values[fractions[idx][0]] += 1
 
-    if coding_ext:
-        translations = coding_ext.translations or []
-        for idx, raw_tc in enumerate(coding_ext.test_cases or []):
-            tc = dict(raw_tc or {})
-            weight_percent = tc.get('weight_percent')
-            if weight_percent is None:
-                weight_percent = tc.get('score', 0)
-            try:
-                normalized_weight = int(weight_percent)
-            except (TypeError, ValueError):
-                normalized_weight = 0
-            test_cases.append(
-                {
-                    'input_data': tc.get('input_data', ''),
-                    'output_data': tc.get('output_data', ''),
-                    'is_sample': bool(tc.get('is_sample', False)),
-                    'score': normalized_weight,
-                    'weight_percent': normalized_weight,
-                    'order': int(tc.get('order', idx)),
-                    'is_hidden': bool(tc.get('is_hidden', False)),
-                }
-            )
-        language_configs = coding_ext.language_configs or []
-        forbidden_keywords = coding_ext.forbidden_keywords or []
-        required_keywords = coding_ext.required_keywords or []
+    for case, weight in zip(cases, floor_values):
+        case["weight_percent"] = weight
+        case["score"] = weight
 
-    if not translations:
-        translations = [
+
+def _test_cases_from_payload(payload: dict) -> list[dict]:
+    cases = []
+    for idx, raw_case in enumerate(payload.get("test_cases") or []):
+        raw = dict(raw_case or {})
+        weight = raw.get("weight_percent", raw.get("score", 0))
+        try:
+            normalized_weight = int(weight)
+        except (TypeError, ValueError):
+            normalized_weight = 0
+        cases.append(
             {
-                'language': 'zh-TW',
-                'title': question.title or 'Imported Problem',
-                'description': question.prompt or '',
-                'input_description': '',
-                'output_description': '',
-                'hint': '',
+                "input_data": raw.get("input_data", ""),
+                "output_data": raw.get("output_data", ""),
+                "is_sample": bool(raw.get("is_sample", False)),
+                "score": normalized_weight,
+                "weight_percent": normalized_weight,
+                "order": int(raw.get("order", idx)),
+                "is_hidden": bool(raw.get("is_hidden", False)),
             }
-        ]
-
-    if not test_cases:
-        test_cases = [
+        )
+    if not cases:
+        cases = [
             {
-                'input_data': '',
-                'output_data': '',
-                'is_sample': True,
-                'score': 100,
-                'weight_percent': 100,
-                'order': 0,
-                'is_hidden': False,
+                "input_data": "",
+                "output_data": "",
+                "is_sample": True,
+                "score": 100,
+                "weight_percent": 100,
+                "order": 0,
+                "is_hidden": False,
             }
         ]
     else:
-        _normalize_weights(test_cases)
+        _normalize_test_case_weights(cases)
+    return cases
 
-    payload = {
-        'title': question.title or 'Imported Problem',
-        'difficulty': question.difficulty or 'medium',
-        'time_limit': question.time_limit or 1000,
-        'memory_limit': question.memory_limit or 128,
-        'translations': translations,
-        'test_cases': test_cases,
-        'language_configs': language_configs,
-        'forbidden_keywords': forbidden_keywords,
-        'required_keywords': required_keywords,
-    }
 
-    context = {'request': request} if request else {}
-    serializer = ProblemAdminSerializer(data=payload, context=context)
-    serializer.is_valid(raise_exception=True)
-    problem = serializer.save(created_by=user)
+def _language_configs_from_payload(payload: dict) -> list[dict]:
+    configs = []
+    for idx, raw_config in enumerate(payload.get("language_configs") or []):
+        raw = dict(raw_config or {})
+        configs.append(
+            {
+                "language": raw.get("language", "cpp"),
+                "template_code": raw.get("template_code", ""),
+                "is_enabled": bool(raw.get("is_enabled", True)),
+                "order": int(raw.get("order", idx)),
+            }
+        )
+    return configs
 
-    question_asset, question_version = ensure_question_asset_for_bank_question(
-        question=question,
-        actor=user,
+
+def materialize_problem_from_bank_item(
+    *,
+    contest,
+    bank_item: BankQuestionImportItem,
+    user,
+    request=None,
+) -> CodingProblem:
+    """Create a coding execution adapter from an asset-backed bank item."""
+    payload = bank_item.payload
+    title = bank_item.title or "Imported Problem"
+    problem = CodingProblem.objects.create(
+        slug=ProblemService.build_slug_from_title(title),
+        created_by=user,
+        time_limit=int(payload.get("time_limit") or 1000),
+        memory_limit=int(payload.get("memory_limit") or 128),
+        forbidden_keywords=payload.get("forbidden_keywords") or [],
+        required_keywords=payload.get("required_keywords") or [],
+        question_asset=bank_item.question_asset,
+        question_version=bank_item.question_version,
     )
-    problem.question_asset = question_asset
-    problem.question_version = question_version
-    problem.save(update_fields=['question_asset', 'question_version', 'updated_at'])
+    ProblemService.replace_related(
+        problem,
+        test_cases_data=_test_cases_from_payload(payload),
+        language_configs_data=_language_configs_from_payload(payload),
+    )
     return problem

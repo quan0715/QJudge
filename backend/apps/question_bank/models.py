@@ -194,96 +194,6 @@ class QuestionVersion(models.Model):
         return f"{self.question_asset_id}@v{self.version_number}"
 
 
-class Question(models.Model):
-    """
-    DEPRECATED — Legacy bank question adapter.
-
-    New code should read from QuestionBankMembership + QuestionAsset.payload
-    directly. This model is kept as a materialized read cache and will be
-    removed once all read paths migrate to pure asset projection.
-    """
-    class QuestionType(models.TextChoices):
-        CODING = "coding", "Coding"
-        EXAM = "exam", "Exam"
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    bank = models.ForeignKey(
-        QuestionBank,
-        on_delete=models.CASCADE,
-        related_name="questions",
-    )
-    question_type = models.CharField(
-        max_length=20,
-        choices=QuestionType.choices,
-        default=QuestionType.CODING,
-        db_index=True,
-    )
-    title = models.CharField(max_length=255, blank=True, default="")
-    prompt = models.TextField(blank=True, default="")
-    options = models.JSONField(default=list, blank=True)
-    correct_answer = models.JSONField(null=True, blank=True)
-    score = models.PositiveIntegerField(default=100)
-    order = models.IntegerField(default=0)
-
-    # Coding shared fields
-    difficulty = models.CharField(max_length=10, default="medium")
-    time_limit = models.IntegerField(default=1000)
-    memory_limit = models.IntegerField(default=128)
-
-    # Unified source tracking (set when cloned/imported from another bank)
-    source_question = models.ForeignKey(
-        "self",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="derived_questions",
-    )
-    source_bank = models.ForeignKey(
-        QuestionBank,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="sourced_questions",
-    )
-    question_asset = models.ForeignKey(
-        QuestionAsset,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="bank_question_adapters",
-    )
-    question_version = models.ForeignKey(
-        QuestionVersion,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="bank_question_adapters",
-    )
-
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="created_bank_questions",
-    )
-    metadata = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "questions"
-        ordering = ["order", "created_at"]
-        indexes = [
-            models.Index(fields=["bank", "order"]),
-            models.Index(fields=["question_type"]),
-            models.Index(fields=["source_bank", "source_question"]),
-        ]
-
-    def __str__(self):
-        return f"{self.id} - {self.title or self.prompt[:40]}"
-
-
 class QuestionBankMembership(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     bank = models.ForeignKey(
@@ -295,13 +205,6 @@ class QuestionBankMembership(models.Model):
         QuestionAsset,
         on_delete=models.CASCADE,
         related_name="bank_memberships",
-    )
-    legacy_question = models.OneToOneField(
-        Question,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="asset_membership",
     )
     order = models.IntegerField(default=0)
     added_by = models.ForeignKey(
@@ -334,7 +237,7 @@ class ContestQuestionBinding(models.Model):
 
     For coding problems: ``coding_problem`` FK points to the execution adapter
     (CodingProblem) that owns test cases, language configs, etc.
-    For exam questions: the ``legacy_exam_question`` FK is used (Phase 3 bridge).
+    For exam questions: ``exam_question`` points to the paper-exam adapter.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     contest = models.ForeignKey(
@@ -365,8 +268,7 @@ class ContestQuestionBinding(models.Model):
         help_text="For coding-type bindings: the execution adapter that owns test cases, etc.",
     )
 
-    # -- Legacy bridges (to be retired) --
-    legacy_exam_question = models.OneToOneField(
+    exam_question = models.OneToOneField(
         "contests.ExamQuestion",
         on_delete=models.SET_NULL,
         null=True,
@@ -411,33 +313,6 @@ class ContestQuestionBinding(models.Model):
 
     def __str__(self):
         return f"{self.contest_id}:{self.question_asset_id}"
-
-
-class QuestionCodingExt(models.Model):
-    """
-    DEPRECATED — Legacy coding extension for Question adapter.
-
-    Coding data (translations, test_cases, language_configs, keywords) is now
-    stored in QuestionAsset.payload. This model is kept as a materialized cache.
-    """
-    question = models.OneToOneField(
-        Question,
-        on_delete=models.CASCADE,
-        related_name="coding_ext",
-    )
-    translations = models.JSONField(default=list, blank=True)
-    test_cases = models.JSONField(default=list, blank=True)
-    language_configs = models.JSONField(default=list, blank=True)
-    forbidden_keywords = models.JSONField(default=list, blank=True)
-    required_keywords = models.JSONField(default=list, blank=True)
-
-    class Meta:
-        db_table = "questions_coding_ext"
-
-    def __str__(self):
-        return f"coding_ext:{self.question_id}"
-
-
 class QuestionBankSubscription(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

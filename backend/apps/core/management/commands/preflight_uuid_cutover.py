@@ -17,11 +17,20 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 
-TARGET_PK_TABLES = ("problems", "questions", "exam_questions")
+TARGET_PK_TABLES = (
+    "problems",
+    "question_assets",
+    "question_versions",
+    "question_bank_memberships",
+    "contest_question_bindings",
+    "exam_questions",
+)
 TARGET_ROW_COUNT_TABLES = (
     "question_banks",
-    "questions",
-    "questions_coding_ext",
+    "question_assets",
+    "question_versions",
+    "question_bank_memberships",
+    "contest_question_bindings",
     "problems",
     "exam_questions",
     "exam_answers",
@@ -29,7 +38,8 @@ TARGET_ROW_COUNT_TABLES = (
 )
 TARGET_FK_COLUMN_NAMES = (
     "problem_id",
-    "question_id",
+    "question_asset_id",
+    "question_version_id",
     "source_question_id",
 )
 INTEGER_UDT_NAMES = {"int2", "int4", "int8"}

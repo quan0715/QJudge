@@ -254,7 +254,8 @@ class ProblemService:
             language_configs=effective_lang_configs,
             forbidden_keywords=instance.forbidden_keywords or [],
             required_keywords=instance.required_keywords or [],
-            legacy_problem_id=str(instance.id),
+            source_type="problem",
+            source_id=str(instance.id),
             existing_asset=instance.question_asset,
             actor=owner,
         )
