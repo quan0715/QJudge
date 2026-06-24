@@ -67,6 +67,8 @@ jobs:
         run: |
           set -euo pipefail
           bash -n scripts/deploy-prod.sh
+          # Compose env_file entries require a physical .env file.
+          cp .env.example .env
           docker compose --env-file .env.example -f docker-compose.yml config -q
           docker compose --env-file .env.example -f docker-compose.dev.yml config -q
           docker compose -f docker-compose.test.yml config -q
