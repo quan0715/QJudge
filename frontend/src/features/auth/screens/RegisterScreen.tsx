@@ -148,7 +148,6 @@ const RegisterPage = () => {
           >
             <TextInput
               id="username"
-              size="sm"
               className="auth-input-control"
               data-testid="auth-register-username"
               labelText={t("auth.register.username")}
@@ -162,7 +161,6 @@ const RegisterPage = () => {
 
             <TextInput
               id="email"
-              size="sm"
               className="auth-input-control"
               data-testid="auth-register-email"
               type="email"
@@ -177,7 +175,6 @@ const RegisterPage = () => {
 
             <PasswordInput
               id="password"
-              size="sm"
               className="auth-input-control"
               data-testid="auth-register-password"
               labelText={t("auth.register.password")}
@@ -192,7 +189,6 @@ const RegisterPage = () => {
 
             <PasswordInput
               id="confirm-password"
-              size="sm"
               className="auth-input-control"
               data-testid="auth-register-password-confirm"
               labelText={t("auth.register.confirmPassword")}
