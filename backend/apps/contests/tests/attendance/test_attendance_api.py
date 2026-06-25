@@ -859,6 +859,7 @@ def test_teacher_assisted_check_in_requires_uploaded_evidence_to_be_ready() -> N
 
 def _make_teacher_assisted_event(contest: Contest, teacher, student) -> ExamEvent:
     """Create a teacher-assisted attendance check-in event for student."""
+    # Keep the fixture window and frame payload on the same clock.
     evidence_anchor_at_ms = int(timezone.now().timestamp() * 1000)
     return ExamEvent.objects.create(
         contest=contest,
