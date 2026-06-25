@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Explain the Cache Coherence problem and the basic rules a system must follow when a CPU wants to write a cached word.",
+  "question_id": "a89c0767-a955-4b8d-927f-d01e3d954cc0",
+  "question_type": "short_answer",
+  "reference_answer": "When a CPU wants to write a word which is in more than one caches, the system must inform all caches of the write request. If a cache has a clean copy, it can just discard the copy. If a cache has a \"dirty\" (modified) copy, the cache must either write the modified copy back to the memory before the write request can proceed or transfer the modified copy to the writer directly."
+}

@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "What is “local replacement” and “global replacement”?",
+  "question_id": "5e40582c-f1e1-45b7-be7c-9e9a2da03c95",
+  "question_type": "short_answer",
+  "reference_answer": "a. Local replacement: a process can only select a replacement frame from its own set of allocated frames.\nb. Global replacement: a process may select a replacement frame from the set of all memory frames."
+}

@@ -440,7 +440,7 @@ class ExamQuestion(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='legacy_exam_question_adapters',
+        related_name='exam_question_adapters',
         verbose_name='對應題目資產',
     )
     question_version = models.ForeignKey(
@@ -448,7 +448,7 @@ class ExamQuestion(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='legacy_exam_question_adapters',
+        related_name='exam_question_adapters',
         verbose_name='對應題目版本',
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='建立時間')

@@ -1,0 +1,236 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","3624","S109","many to one: 導致cpu只看的到 kernel 也就是1個，而導致沒有用到multi-core的優勢
+one to one :可以利用到multi-core的優勢
+one to one 可以有更好用到multi-core的優勢，因為這樣可以有更好的scalability，可以隨著number of cores去擴展","3","",""
+"2","3384","S015","1 to 1: 1 kernel thread serves 1 user thread.
+N to 1: 1 kernel thread can serve more than 1 user thread.
+N to 1 allows better utilization of multi-core processor since it could use the core frequently by switch to another thread.","2","選擇 Many-to-One 錯誤；兩種模型描述正確",""
+"3","6625","S054","one-to-one, because  many-to-one is dependent on single kernel, so it's vulnerable; in contrast, one-to-one can have many kernal one user coincided one kernel, means they run independently or currently on multi-core processors. ","3","",""
+"4","4568","S117","one to one, since user level thread can only use single processor, only use more kernel-thread can use multi-core processors.","1","未描述兩種模型定義；選擇與理由正確",""
+"5","3716","S093","One-to-one可以使用multithreading model，因為OS可以直觀的看到所有的thread，如果有thread被block的時候就可以執行其他thread；然而many-to-one model會因為一個thread被block而導致，整個process都被block，因為OS無法分別哪些user thread是被block的，所以會全部block住","3","",""
+"6","4652","S012","many-to-one means many user-level threads is assigned to one kernel-level thread
+one-t-one means one userlevel thread is assigned to one kernel-level thread
+
+one-to-one, because each user-level thread can run on cpu when its corresponding kernel-level thread runs on cpu, it doesn't have to compete with other user-level threads. ","3","",""
+"7","5297","S108","Many-to-One 為多個 user threads 對應到一個 kernel thread
+One-to-One 為一個 user thread 對應到一個 kernel thread
+One-to-One 可以善用 multi-core processors，因為他可以讓多個 kernel thread 平行運作，一次服務多個 user thread。
+Many-to-One 只有一個 kernel thread 的情況下則無法，因為只有 kernel thread 可以平行運作。","3","",""
+"8","4139","S099","One-to-One.
+因為 user-level threads 會被 OS 視為是單一個 process，即使有多條 user-level threads，只對應到一條 kernel-level thread 也無法使用到 multi-core；一條 user-level thread 直接對應一條 kernel-level thread 才可以發揮 multi-core 的優勢。","3","",""
+"9","5306","S070","1.一個是多個user-level thread對一個kernal-level thread，一個是一個user-level thread對一個kernal-level thread
+2.one to one 比較好，可以運行在多核心上，many to one 因為只對一個kernal-level thread，所以那些user-level thread只能在一個核心運行","3","",""
+"10","5147","S080","one-to-one will have better utilization of multi-core processor because each thread can allocate into different core and run concurrently. while many-to-one can only run in one core.","1","未描述兩種模型定義；選擇與理由正確",""
+"11","2768","S003","One to one
+the many-to-one is still be seemed as one , didn't make good use of the multi-core processors.","1","未描述兩種模型；選擇正確但理由過簡",""
+"12","4202","S035","One-to-One, because we can let a process (or a thread) run on different core then increase the scability when run in the multi-core processors, which is efficient. For Many-to-One, many threads bounded to one process, it can't better utilize the multi-core processors.","2","未描述 One-to-One 模型",""
+"13","5027","S037","One to one, because in Many-to-one when a user thread need to wait for an I/O other user thread in the same group would also be blocked. And one-to-one would only block its own kernel thread, so one-to-one would have better utilization","3","",""
+"14","4207","S096","Many-to-One - many user threads can use the same kernel thread to be executed.
+One-to-One - one kernel thread is created for each user thread, so only one user thread can use the same kernel thread to be executed. This model allows better utilization of multi-core processors, because kernel manages kernel threads and it can execute them on different cpu cores. However the kernel is not aware of user-level threads, so it can not execute them on different cores, thus many-to-one model can not run truly parallel on a multi-core processors.","3","",""
+"15","4802","S013","one to one","0","僅寫 one to one，未描述模型、無解釋",""
+"16","4514","S040","1:1 can use multi-core processors, since M:1 only has one kernel-level thread, and os can only schedule kernel-level thread, so this M user-level thread can't use multi-core cpu.","2","未描述 One-to-One 模型",""
+"17","6336","S124","Threads are an execution flow. An user thread cannot use multi-core processors, but entrusting it to a kernel thread allows the kernel thread to use multi-core processors to execute it. 
+If we attribute many user threads to a kernel one, he will be able to use the multiple cores to execute them all. If we attribute one thread to a kernel one, he will also be able to use the multiple cores to execute it, but that makes the throughput much more efficient (if we have N user threads, it would be more efficient to use 1 kernel to execute them rather than N ones)","2","選擇 Many-to-One 錯誤；兩種模型描述正確",""
+"18","3898","S121","Many to one means(N:1) Many user-level threads for 1 kernel level threads while One-to-one(1:1) means 1 user-level thread for 1 kernel-level threads. 
+
+The first one allows better utilization of multi-core processors because it separates the process in multiple threads that can works asynchronously thanks to the multi-core processors.","2","選擇 Many-to-One 錯誤；兩種模型描述正確",""
+"19","5991","S068","One-to-One 會有更好的利用率。多核處理器對應的是 kernel level threads 而非 user level threads。假設 kernel threads 有多條，且單一核對應一條 kernel thread。如果多條 user threads 同時對應到單一條 kernel thread 則等於多條 user threads 只能使用單一核。反之，如果是 1:1 的對應方式則每一條 user thread 都可以透過各自對應的 kernel thread 獨自只用單一核。這使得 1:1 mapping 方式可以有更好的多核處理器利用率。","3","",""
+"20","4751","S102","many to one have better utilization of multi-core processors, since one thread can only work on a processor, so in one-to-one case,  increase the number of processor do not have any benefit.","0","選擇 Many-to-One 錯誤；未描述模型",""
+"21","6408","S034","many-to-one是N個user-level和一個kernel-level，可以多個user和kernel互動。
+one-to-one是一個user-level和一個kernel-level，採一對一，且有更好的使用率在多核心processors，因為many-to-one只有一個kernel，所以所有user共享，而one-to-one不需要共享。","3","",""
+"22","6383","S084","Many-to-one的multithreading model更能利用多核的優勢，因為many-to-one可以分工並行處理，share memory也不用再額外撰寫inter-process的一些手段，creat與switch也較容易，造成較少的CPU overhead。","0","選擇 Many-to-One 錯誤；未描述模型",""
+"23","5650","S079","Although the best answer will be many too many...
+
+Here I will say the one-to-one, since in many-to-one models, we use many user level threads, but only 1 kernel level thread, this will not utilize multi-core processors, since we run many threads on only 1 kernel= 1 core. So relatively speaking, the 1-1 multithreading model allow better utilization. ","3","",""
+"24","3396","S122","many to one 
+因為她在multi的利用率較高，降低等待的時間以及行為
+","0","選擇 Many-to-One 錯誤；未描述模型",""
+"25","5345","S086","One-to-One multithreading models allows better utilization of multi-core processors, because CPU can only see the kernel level thread, One-to-One multithreading models means the number of kernel level thread are equal to user level thread, CPU can run more cores concurrently, while  Many-to-one multithreading models means there are many user level threads but one kernel level thread, CPU can only run one core while there are more than one core.","3","",""
+"26","6591","S052","Many-to-one is model with many user-level threads and one kernel-level thread. 
+One-to-one is model with one user-level thread and one kernel-level thread.
+One-to-one allows better utilization of multi-core processors because the proportion of the kernel-level thread is higher in this model.","3","",""
+"27","4883","S033","One-to-One allows better utilization因為每個threads各自對應到一個core，可以平行運作，但Many-to-One代表所有threads需要在同一個core處理，較沒有效率。","1","未描述兩種模型；選擇與理由正確",""
+"28","4168","S123","1-1 is better because many user-level threads is only seen as 1 process.","2","未描述 One-to-One 模型",""
+"29","4056","S027","One-to-One is better because 如果many-to-one這樣只有一個kernel thread,沒辦法使用multi-core
+ processors","2","未描述 One-to-One 模型",""
+"30","5595","S081","'one-to-one' multithreading model has better utilization of the multi-core processors as it allows the resources to be allocated directly without having to wait but it may have longer process time but will be executed thoroughly.","0","未描述模型；理由與核心觀念無關",""
+"31","4830","S008","One-to-One allows better utilization of multi-core processors, because when using Many-to-One, only one actual cpu is associated to it, it can not run threads simutaneously.","2","未描述 One-to-One 模型",""
+"32","4326","S078","Many-to-one, since if one thread is finish it can switch to another. ","0","選擇 Many-to-One 錯誤；未描述模型",""
+"33","5651","S087","One-to-One讓multi-core processors可以有更好的利用，因為many-to-one產生出的多個thread都在user mode裡面，但是os是看不到這些threads的，所以無法利用多核心的優勢。","2","未描述 One-to-One 模型",""
+"34","3525","S022","Many user threads is controlled by one kernel thread is called ""Many-to-one"".
+One user thread is controlled by one kernel thread is called ""One-to-One"".
+
+One-to-One allows better utilization of multi-core processors, since an application with multi-threads is controlled by multiple kernel threads, and we can allocate these threads cpu resources concurrently using multi-core processor system.","3","",""
+"35","6357","S110","one to one, because os only see one process whatever having how many user-level threads","2","未描述 One-to-One 模型",""
+"36","4153","S082","One-to-One, because processors will consider Many-to-One as a whole, so processors will not distribute the resource for the thread inside. it's not able to utilize the multi-core processor.","2","未描述 One-to-One 模型",""
+"37","5693","S105","Many-to-One. 當其中一個 user thread 被 block 住，例如 要進行 IO 時，可以將 kernel thread 指派給另一個 user thread 繼續利用 CPU 資源。","1","選擇 Many-to-One 錯誤；Many-to-One 描述正確",""
+"38","3728","S111","Many-to-one is better, 因為可以同時處理多個thread.","0","選擇 Many-to-One 錯誤；未描述模型",""
+"39","3921","S085","1:1更好，每一thread可以對應1核心，M:1則是多對應1","2","兩種模型描述正確；未說明選擇理由",""
+"40","5477","S004","N:1 model:kernel只看得到一個process，看不到內部的threads。
+1:1 model:kernel看得到process內部的所有threads，scheduler可以分配每個threads到不同cores，可以parellel。
+所以1:1 model比較適合muti-core processors。","3","",""
+"41","2177","S011","{
+  ""text"": """"
+}","0","答案為空 JSON，無實質內容",""
+"42","3706","S046","One-to-One allows better utilization of multi-core processors.
+因為One-to-One可以一個kernel對一個user，如果Many-to-One的話，一個user如果報錯，就會讓kernel卡住，讓其他user跟著一起卡住。","3","",""
+"43","2284","S005","Many-to-One : multi user thread to one kernel thread
+One - to - One : one user thread to one kernel thread
+
+
+one to one: 
+Because only kernel thread can use multi-core processors","3","",""
+"44","5925","S061","one to one.
+it will cant ne handled.","0","理由為無意義文字；未描述模型",""
+"45","4856","S014","1-1(better):parellel  多核心
+N-1:單核心","3","",""
+"46","3640","S028","one to one can has better utilization of multi-core processors
+因為1-1可以讓每一個thread分別對應到一個CPU/core去執行
+而Many-to-one則是多個thread限制在一個CPU/Core上面","3","",""
+"47","6523","S107","one-to-one allows better utilization of multi-core processors because each kernel thread has only a user thread, making it easy to addressed by multi-core processors.","2","未描述 Many-to-One 模型",""
+"48","4009","S126","many to one有比較好的利用率，因為多個thread會共享一些資源，比較好去執行多核心","0","選擇 Many-to-One 錯誤；未描述模型",""
+"49","4753","S017","1-1比較能利用，因為N-1的話是多個user level threads map到一個kernel thread上，但os只能看到那一個kernel thread，因此只能分配一個core/processor給它用，無法利用multi core來多工處理。
+1-1就相當於每個user thread map到一個kernel thread，所以相當於每個user thread都能被os分配到不同的core/processor上運行，進而達到多工處理提升效率","3","",""
+"50","4995","S115","One to one utilizes better, because for many to one, the one means one kernel thread, and there is no way to run on multiple cores for a single kernel thread. For better utilization you would need multiple kernel threads, for our case one user to one kernel utilizes cores way better than multiple user threads to one kernel thread.","3","",""
+"51","2800","S089","One-to-one，這樣的model能夠多核平行運行","1","未描述兩種模型；選擇正確但理由過簡",""
+"52","4730","S009","one to one allows better utilization. because only kernel-level threads can utilize by processors' core and user-level threads cannot. so one user-level thread to one kernel-level thread can have better utilization","2","未描述 Many-to-One 模型",""
+"53","5255","S094","Many-to-One
+因為""多對一""代空間有被有效利用，CPU可以同時執行","0","選擇 Many-to-One 錯誤；未描述模型",""
+"54","6710","S066","One-to-One更可以增加多核使用率，因為每個user-level thread都可以對應自己的kernel-level thread，而Many-to-One必須多個user-level threads共用一個kernel-level thread，而無法充分利用多核作業。","3","",""
+"55","2571","S041","one-to-one
+多個 user space 的程序對上一個 core 無法有效利用多核處理器的優勢","2","未描述 One-to-One 模型",""
+"56","6409","S031","Many-to-One allows better utilization of multi-core processors. 因為這樣可以更有效率","0","選擇 Many-to-One 錯誤；未描述模型",""
+"57","3985","S116","1:1是最好的multithread的model，N:1的model不僅不能發揮多核心的優勢，如果一個thread運行卡住，甚至還會導致面的threads也跟著卡死。","2","未描述 One-to-One 模型定義",""
+"58","4590","S059","one to one.
+
+因為一對一的處理器可以平行處理就能利用多核化平行化來增加效能
+
+但是用多對一的話是多條user-level-thread對應到單一條kernel-level thread是做不到多核心處理的,因為一個kernel要管很多user thread","3","",""
+"59","2604","S064","one-to-one
+kernel-level thread 有更好的utilization
+","1","未描述兩種模型；選擇與理由正確但過簡",""
+"60","3944","S101","many-to-one因為一次平行執行多個threads。","0","選擇 Many-to-One 錯誤；未描述模型",""
+"61","5434","S103","1.
+many-to-one : 多個user thread配1個kernel thread
+one-to-one : 1個user thread配1個kernel thread
+2. one-to-one
+3. many-to-one只有1個kernel, 即使有多個core也無法讓多個user thread使用","3","",""
+"62","5153","S104","Many-to-one 因為這樣可以時執行多個threads提高CPU utilization
+","0","選擇 Many-to-One 錯誤；未描述模型",""
+"63","4121","S023","One-to-One multithreading model is better utilization of multi-core processors, because Many-to-One can not take advantage of multiprocessor.","1","未描述兩種模型；選擇與理由正確但過簡",""
+"64","2987","S113","many-to-one multithreading models支援milti-core processor，因為multithreading models執行context switch效率較高且share address space，可以提時間效率","0","選擇 Many-to-One 錯誤；未描述模型",""
+"65","4355","S055","one to one multithreading mode 更適合
+因為其可以將一個thread分給一個core 平行運算
+反之 many to one 表示多個thread共用一個core 顯然不優
+","3","",""
+"66","3965","S119","1.one-to-one: one process對應一個operating system
+many-to-one: 許多個process對應一個operating system
+
+2.one-to-one
+對於many-to-one來說，多個process要共用一個operating system很沒效率
+
+","0","將 process/OS 與 thread/kernel 混淆，概念錯誤",""
+"67","4681","S067","Many to One 就是許多user thread 對上一個kernel thread, 
+one to one則是一個user thread 對上一個kernel thread
+
+是one to on e可以有better utilization of multi-core processors 因為Many to one 對於O.S.來說她不知道有幾個user threads 他看起來都是一樣多,但one to one O.S.就會知道總共有幾個threads 可以因此對於每個各自分配CPU","3","",""
+"68","6658","S076","A many-to-one multithreading model allows better utiltization of multi-core processors because it allows for multiple threads to run concurrently, improving efficiency. ","0","選擇 Many-to-One 錯誤；未描述模型",""
+"69","5322","S074","Many to one: is a multhreading model that maps multiple threads to one processor for task accomplishion.
+
+One-to-one: is a multhread model that maps each thread to one processor and it is better for utilization.
+
+","2","兩種模型描述正確；未說明選擇理由",""
+"70","3541","S063","One-to-one. Because only kernel-level thread can take advantage of multi-core. Many-to-one only use a kernel-level thread for many user-level threads, so all the user-level threads run on the same CPU, but the threads of One-to-One can run on different CPU. Therefore One-to-one allows better utilization of multi-core processors.","3","",""
+"71","6025","S090","Many-to-one: If one user thread is broken, than it has another user thread to execute. OS think kernel thread it's normal.
+one-to-one: If the only user thread is broken, that it can't not execute. OS thinks kernel thread it's broken.
+These two model has same utilization of multi-core processors, because the OS didn't know that there is many user threads, it only know there is one kernel threads.","0","認為兩者利用率相同，概念錯誤",""
+"72","3104","S100","Many-to-one means every user thread shares only one kernel thread.
+One-to-one means each user thread has its own kernel thread, and it can run user thread on different cores to increase utilization.","3","",""
+"73","4050","S114","One-to-One具有better utiliztion of multi-core processors , 因為one-to-one 一個user thread 對應一個kernel thread 因此可以將多個不同的kernel thread 放在mult-core processors上同時執行但是 many-to-one 則是多個user thread 對應一個kernel thread 因此無法parallel  execution . ","3","",""
+"74","2579","S038","many to one
+because each process can be got more than 1 cpu core access","0","選擇 Many-to-One 錯誤；未描述模型",""
+"75","4809","S047","如果是 User Thread-Kernel Thread是 One-To-One 的話會比 Many-To-One 還有效率，因為系統可以感知到總共有幾個 Thread 就可以利用 Multi core 的 processor 去排程 thread 到不同的 core 上","1","未描述兩種模型定義；選擇與理由正確",""
+"76","4093","S044","1. many to one is user level thread and one to one is kernel level thread
+2. one to one is better since it is managed by os and it can take advantage of multiple cpus","1","模型描述錯誤（user/kernel thread 混淆）；選擇與理由正確",""
+"77","4060","S075","many-to-one,單從運用率來說，many to one只需要多出一部分而不需要兩倍的thread來運作multi-core processors，但one-to-one得兩倍","0","選擇 Many-to-One 錯誤；理由與核心觀念無關",""
+"78","3790","S030","one to one  才能達到更高的 multi-core processor utiliztion，因為 many to one   os 並不知道其存在 多 thread，不能將多個 thread 交給不同 core 進行處理來達到利用 Multi core 的優勢","3","",""
+"79","4775","S106","1-1 allows better utilization . 
+The reason is that to  run multi process on diffeernt core , the process here means kernel process but not user process , therefore 1-1 can better utilize it  since for M-1 , the M part is actually user process , which couldn't be managed by the OS but the application itself ","2","未描述 One-to-One 模型",""
+"80","4466","S019","One-to-one models is better utilization of multi-core processor. 因為每個 user thread 都有對應的 kernel thread. 而 Many-to-one 只有一條 kernel thread. 當一個 thread blocked, 其餘 thread 跟著 blocked. 無法利用到 multi-core processors","3","",""
+"81","3206","S020","Many-to-One: many user threads are assigned to a kernel thread
+One-to-One: a user thread is assigned to a kernel thread
+One-to-One allows better utilization of multi-core processors because it will not bring down the entire process if one of threads crashes.","2","理由為 crash 而非 multi-core 平行化",""
+"82","2794","S010","One-to-One can better utilize the multi-core processors, since it can have more kernel threads, and different kernel thread can use different cores, while user thread can only bind to one core.","1","未描述兩種模型；選擇與理由正確",""
+"83","5365","S091","one-to-one,multi-core有多個kernal,各自使用可以有比較高的使用率","1","未描述兩種模型；選擇與理由正確但過簡",""
+"84","5038","S051","One-to-One is better utilization of multi-core processors since Many-to-one means only one kernel thread control many user thread.","2","未描述 One-to-One 模型",""
+"85","3777","S039","one-to-one
+user-level threads cannot take advantage on multi-core processor
+so at multi-core processor's point, many-to-one is same as one-to-one but with some overhead to create the multi-threads","2","未描述 One-to-One 模型",""
+"86","3451","S018","one-to-one更好，因為many-to-one為多個user thread共用一個kernel thread，一次也只能跑一個thread，無法完全multi-core processors的資源。","3","",""
+"87","3917","S049","one to one allow better utilization pf multi-core processor 因為 one to one 表示有多個kernel thread而m to one 代表都是user thread","2","Many-to-One 描述錯誤（稱皆為 user thread）；選擇與理由正確",""
+"88","4993","S053","0ne to 0ne 可以有效利用multi-core processors，因為每一條thread各自接在不同的process上，其他thread出問題不會受影響，但many to one會因為一個thread出問題而卡住","1","未描述兩種模型定義；理由偏向 blocking 而非 multi-core",""
+"89","4428","S092","one-to-one
+because for many-to-one, if a user-thread blocks the kernel-thread, other user-threads which is using the same kernel-thread will not be able to run.","1","未描述 One-to-One 模型；理由為 blocking 而非 multi-core",""
+"90","3836","S125","one to one:因為一次一個process能夠最有效的利用cpu，Many to one 需要非常多thread結束才會完成一個process。","0","未描述模型；理由混亂且概念錯誤",""
+"91","6593","S021","Many-to-one is better utilization of multi-core processors.because it's design is more efficient to messaging between the data.","0","選擇 Many-to-One 錯誤；未描述模型",""
+"92","6416","S050","many-to-one: many threads use one core
+one-to-one: one thread one core
+many-to-one, more thread using one core can make better utilization
+
+","2","選擇 Many-to-One 錯誤；兩種模型描述正確",""
+"93","5618","S036","1:1由1個thread對應1個CPU
+1:M由1個thread對應M個CPU
+1:M有更好的CPU使用率，因為他把同一個thread的運算交給多顆CPU去處理此方法更有效率。","1","Many-to-One 描述為 1:M（反向），概念混淆；One-to-One 描述正確",""
+"94","3674","S048","One to one可以有比較好的multi-core的使用率，因為每一個都是個別獨立，可以同時使用多個core在一個kernal上","1","未描述 Many-to-One 模型；選擇與理由正確",""
+"95","5271","S112","The one-to-one multithreading model can have better utilization. For the many-to-one multithreading model, user threads are managed by the application instead of the OS, so the OS does not know the existence of these threads. In contrast, the OS knows the existence of the thread in the one-to-one multithreading model, so it can manage the thread and use multiple core at the same time. ","3","",""
+"96","3456","S006","1. 1:1
+2. 都是開多個 user threads 的情況下，N:1 還是整能調用一個 kernel thread，但 1:1 可調用多個。","3","",""
+"97","4923","S026","Many-to-One,多核心且平行處理,效率高","0","選擇 Many-to-One 錯誤；未描述模型",""
+"98","6482","S057","Multi- ccore process 
+Manu-to-One ( N - 1 ) 被不允許  , 因為 Kernel 可允許多核心，但如果只是 User mode 是 Many , 而 kernel 只有 One CPU 則會無法應付使用 
+
+One-to-One  ( 1 - 1 )  可以被執行，User mode 與 Kernel mode 只有單一行程與單一CPU，可順利執行。","1","Many-to-One 描述尚可；選擇正確但理由未解釋 multi-core 優勢",""
+"99","6615","S002","many-to-one multithreading model allows to execute multi-threads at the same time. one-to-one multithreading model only allows one threads to be executed at the same time.
+many-to-one multithreading allows better utilization of multi-core processors because it can execute multi-threads at the same time, which is more efficient.","0","兩種模型描述皆錯誤；選擇 Many-to-One 錯誤",""
+"100","5495","S007","(a) Many-to-One describes one kernel thread maps to many user threads. One-to-One describes one kernel thread maps to one user thread.
+(b) The one-to-one allows better utilization of multi-core processors, because the user thread in a process only use 1 core from the processor, while the kernel threads can utilize the multi-core processors, so the 'One-to-One' multithreading models is better for the processors to utilize its multi-core advantage.","3","",""
+"101","6121","S016","One-to-one 為每一個程序對著一個cpu核心,因此多個程序即可讓多個核心同時平行處理，因此更有效率。
+Many-to-One為多個程序對著同一個cpu核心，因此必須排隊等候此核心執行,處理時間較One-to-one長。","3","",""
+"102","6162","S083","多對一(N:1)多執行緒模型無法使用多核心處理器或平行處理。
+一對一(1:1)多執行緒模型，只程序可以使用單一或多核心處理。
+就本題論點，那一種更能地利用多核心處理器為1:1較能更好利用多核心處理器，若以CPU使用效率而言為N:1比1:1更充分使用。","3","",""
+"103","3840","S088","many-to-one: user-level thread，一個OS管理多個user
+one-to-one: kernel-level thread，一個OS管理一個OS
+one-to-one allows better utilization of multi-core processors，many-to-one只要其中一個user block系統就會crash，one-to-one某個user block crash不會影響到其他user","0","模型描述混淆 OS 與 kernel；理由為 blocking 而非 multi-core",""
+"104","5164","S058","one-to-one model allows better utilization of multi-core processor.
+because if many-to-one, the situation is almost the same as use only one core.","2","未描述 One-to-One 模型",""
+"105","4618","S043","one-to-one ,cause many-to-one means when you have many users but only have one kernel,is not make sense.
+therefore,one-to-one means one user is allocated to one kernel,kernel thread allows better utilizatioin of multi-core processors. ","3","",""
+"106","3033","S060","one to one 一個user thread對應一個kernel thread等同可以在一個core去使用，相比於many to one使用率更大
+many to one 是很多thread對應一個kernel","3","",""
+"107","3685","S024","many to one: many users share one thread
+one to one: one user have one thread
+one to one allows better utilization of multi-core processors because multi-core or multi CPUs can serves many users simultaneously.","1","模型描述用詞不精確（users share thread）；選擇與理由正確",""
+"108","6353","S095","one to one multithreading model is better.because many to one only use single processor, ith can not take the advantage of multi-core processor.","2","未描述 One-to-One 模型",""
+"109","3522","S077","one-to-one, because multiple user level thread can only run on one processor core, but one-to-one model maps all user level thread to kernel level thread, so each user level thread can run on different processor core.","3","",""
+"110","3616","S120","One-to-One.
+For 'Many-to-One' model, the OS can only see one of them in the meanwhile, which might not use multi-core processors.","2","未描述 One-to-One 模型",""
+"111","6360","S073","one-to-one allows better utilization of muti-core processors，因為這是一個一個cpu服務一個thread，另一種情況則是一個cpu服務多個threads","3","",""
+"112","3751","S069","one-to-one,因為many to one 只對應到一個kernel thread 沒辦法使用multi core的特性 one to on 每個都還能使用一個kernel thread 可以使用multi core","3","",""
+"113","2907","S072","One-to-One will have better utilization of multi-core processors, because many threads can be seen by kernel, and kernel can put then running on the multi-core processors. 
+Many-to-One has many threads but kernel just can see one threads, so OS would not put them run on multi-core.","3","",""
+"114","3174","S042","many to one: user thread only
+one to one: kernel thread only
+one to one, 因為 kernel thread 可以配合multi-core processors, user thread則否","1","模型描述錯誤（稱 M:1 僅 user thread、1:1 僅 kernel thread）；選擇與理由正確",""
+"115","3813","S071","1.many-to-one是指一個kernel-level thread對應多個user-level thread，one-to-one是指一個kernel-level thread對應一個user-level thread
+2.one-to-one，因為多個kernel-level可以同時處理個process","3","",""
+"116","5737","S062","One-to-One has a better utilization of multi-core processors than Many-to-One.
+Because the kernel-level threads will be only used by one user-level thread.","1","未描述 Many-to-One 模型；理由僅重述模型定義未解釋 multi-core",""
+"117","4495","S045","Many-to-One 就是很多個user thread 對應到一個kernel thread One-to-One就是一個user thread至少會對到一個kernel thread。1:1可以更好地利用多核心處理，因為many-to-one多個user thread只對到一個kernel thread，os只看到kernel 所以對他來說多個user thread算是一個東西所以不會處理成多核心","3","",""
+"118","5688","S056","The one-to-one multithreading is better utilization of multi-core processors. Ans many-to-one multi-threading model, user-thread is managed by the application instead of the OS, so the OS does not know the existence of these threads. On the other hand, the OS know the existence of the thread in one-to-one multi-threading model, so it can manage the thread and use multiple core at the same time","3","",""
+"119","4858","S029","one to one 有更好的利用率，因為many to one 是不管user-level有多少process，OS都只會排單一個CPU處理，利用率下降很多","2","未描述 One-to-One 模型",""
+"120","4214","S065","One-to-One
+因為如果Many-to-One只有一個kernel level thread，只能在一個核心上做運算，不能利用multi-core。","2","未描述 One-to-One 模型",""
+"121","6413","S025","Many-to-one stands for many user threads correspond to one kernel thread, One-to-one stands for one kernel thread corresponds to one user thread.  Many-to-one allows better utilization since it can separate user threads to different core. ","2","選擇 Many-to-One 錯誤；兩種模型描述正確",""
+"122","4701","S098","User thread-Kernel thread
+one-to-one ","0","僅寫標籤，未描述模型、無解釋",""

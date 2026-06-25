@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 4,
+  "options": [],
+  "prompt": "List four common failures that may happen during a Remote Procedure Call (RPC).",
+  "question_id": "9ec3f4b7-57c6-41f8-bdc2-abd8b9614be7",
+  "question_type": "short_answer",
+  "reference_answer": "(1) Client cannot locate the server.\n(2) Request message is lost.\n(3) Reply message is lost.\n(4) Server crashes after receiving the request."
+}

@@ -200,13 +200,25 @@ filename=grade.csv
 Columns:
 
 ```csv
-index,exam_answer_id,username,answer_text,original_score,original_feedback,score,reason,synced
+index,exam_answer_id,username,answer_text,score,reason,synced
 ```
+
+The CLI also writes a local-only `human_baseline.csv` with
+`original_score` and `original_feedback`. That file is never uploaded to
+the AI session during blind grading.
+
+Blind grading sessions also attach a tool policy to the AI session task
+manifest. The policy blocks `qjudge_grading` actions that can expose existing
+grades, including `list_answers`, `question_detail`, and `dashboard`; it also
+blocks grading write actions for experiment runs.
 
 Prompt behavior:
 
 - create `rubric.md`
+- read `question_context.json`
 - read `grade.csv`
+- treat the run as blind grading: do not look up or use existing human scores
+  or feedback
 - fill `score` and `reason`
 - do not call `qjudge_grading grade`
 - do not call `qjudge_grading batch_grade`
@@ -227,8 +239,10 @@ Files:
 ```text
 manifest.json
 input_snapshot.json
+question_context.json
 rubric.md
 grade.csv
+human_baseline.csv
 run_events.jsonl
 report.md
 ```
@@ -349,8 +363,9 @@ Avoid OS keychain integration in V1 because it can introduce desktop permission 
 - add model set configuration
 - add independent multi-model blind grading
 - add Human H0 export
+- add deterministic three-model voting
 - add cross-review packets
-- add aggregation reports
+- add AI-vs-Human H0 aggregation reports
 
 ## Reduced-Workload Rationale
 
@@ -376,4 +391,4 @@ Recommended defaults:
 - run from repo first
 - use `0600` JSON token cache in V1
 - use `qjudge.paper` as a coarse CLI scope first
-- default model: `deepseek-v4-thinking`, matching current AI grading frontend default
+- default model: `deepseek-v4-flash`, matching current AI grading frontend default

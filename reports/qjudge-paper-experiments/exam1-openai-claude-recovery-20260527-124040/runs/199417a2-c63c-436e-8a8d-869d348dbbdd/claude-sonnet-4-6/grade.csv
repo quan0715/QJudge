@@ -1,0 +1,273 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","1692","S109","scalability: take advantage of multi-core, robustness: kernel thread survives in the face of thread failure","2","",""
+"2","1699","S015","1. Kernel-level thread could take advantage of multi-processor or multicore processor, while user-level threads are executed by single core.
+2. Kernel-level thread could access hardware directly, while user-level can't.","1","多核正確；第二點「直接存取硬體」非 kernel-level thread 相對 user-level thread 的標準優點，不予計分",""
+"3","1620","S054","more robust:user-level threads would 崩潰 by a failure thread 處理，kernel-level threads run concurrently can avoid.
+
+scalebility:user-level threads are bound to single core; kernel-level threads can run concurrently in multicore, scale up by # of core.","2","",""
+"4","1843","S117","robustness: 當kernel thread運行發生錯誤時不會使整個process癱瘓，但user-level thread發生錯誤會讓整個process都無法運行
+scalability: kernel thread can take advantage of multi-core processors, more efficiency, but user-level thread can only excutes on single processor","2","",""
+"5","4939","S093","不會因為有一個thread被block就將整個process block、可以透過multi-thread的方式加速process的執行","2","",""
+"6","1864","S012","1. kernel-level threads可以分配在多個processors上面跑，但是user-level threads被限制在單個processor
+2. kernel-level threads的scheduling是由os幫忙，所以application不用自己負責scheduling","1","多核正確；第二點「scheduling 由 OS 負責」為機制描述，非明確優點",""
+"7","1776","S108","1. 平行化: 不同 kernel-level 的 threads 可以在不同的 cpu core 上面運行達到平行化運算。
+2. 便利性: kernel-level threads 直接由 OS 做排程，不需要 user 親自實作。","1","多核正確；第二點「不需 user 親自實作 scheduling」描述機制，非核心優點",""
+"8","2139","S099","1. Can use the advantage of multicores.
+2. Better robustness.","2","",""
+"9","1740","S070","1.可以用到CPU多核心的優勢，user-level threads只能在單一CPU上運行
+2.user-level threads只要一個thread錯誤可能就會導致整個process壞掉，但kernel-level threds不會，其他threads會繼續運行。","2","",""
+"10","1796","S080","1. kernel-level threads can take advanatge of multi-cores, while use user-level threads can use only single core.
+2. When one of the thread in a process failed to operate, it won't effect the whole process in kernel-level thread. But in user-level threads, if one of them failed will let the entire process failed.","2","",""
+"11","1673","S003","kernel threads can really and correctly make use of multi-core processor, user-level may still bound by single cpu.
+kernel threads can survive after ones failure, but user-level may bring the whole process down.","2","",""
+"12","1838","S035","1. scability : kernel-level threads can be executed on different CPU on multi-core system, user-level threads are bounded to one process, which limits the scability.
+2. about kernel-level threads, when a thread is broken, other threads won't be influenced and keep executing. about user-level threads, when a thread is broken, it will influence or block other threads for execution.","2","",""
+"13","1817","S037","1. kernel thread能夠在多核cpu上同步進行，而user thread只能綁定在單一個cpu核心
+2. 當一個user thread被block，所有同process的user thread都會block，而kernel thread不會被其他blocked的kernel thread影響","2","",""
+"14","1697","S096","Kernel-level threads can operate fully parallel (on different CPUs simultaneously) and they don't block if any of the threads calls system call (in user-level threads the whole process will block until system call is finished)","2","",""
+"15","1653","S013","Scalability and Directly supported by OS","1","Scalability 正確；「Directly supported by OS」屬機制描述，非優點",""
+"16","1708","S040","1. kernel-level threads can use multiple cpus
+2. for user-level threads, one thread blocked will cause all process blocked, but kernel-level thread won't","2","",""
+"17","1683","S124","Kernel-level threads can take advantage of multi-core processors, while user-level threads can only be executed using one core 
+Kernel-level threads can execute privileged instructions while user-level threads have to trigger a trap in order to do so","1","多核正確；第二點「可執行特權指令」非此題語境下的標準優點",""
+"18","1827","S121","- Kernel-level threads are more robust than user-level threads : If an error occurs in user lever threads then it can break all the process. In contrats, for the kernel-level thread, the process can still run.
+- Kernel-level thread can use the advantage of multicore processors, meanwhile user-level threads can't because they are seen by the OS as only one process.","2","",""
+"19","1953","S068","1. 穩定度較高，如果遇到程序崩潰，kernel-level threads 還有機會正常執行，但是 user-level threads 可能就會因此 terminated 造成 process 停止或遭遇例外狀況
+
+2. 可以享有多核處理器的好處增加執行效率，反觀同一 process 中 user-level threads 會一起綁定到處理器中的某一個核，無法充分利用多核處理器的資源","2","",""
+"20","1607","S102","it can share memory and can have advantages when using multiple CPUs","1","多核正確；「share memory」非 kernel-level thread 的獨特優點",""
+"21","1824","S034","1) kernel-level threads可以直接與硬體互動，但user-level threads不行，需要先system call，轉到kernel-level thread，再互動。
+2)kernel-level thread can run concurrently on multiple CPU cores, while user-level is bound to single process.","1","多核正確；「直接與硬體互動」非此題標準優點",""
+"22","1544","S084","Robustness : kernel-level threads的robustness較好，user-level threads假如其中一個thread卡住，會導致其他thread也卡住。
+擴展性 : kernel-level threads的擴展性較好，因為對於OS來說，OS只看的到user-level threads是只有一個。","2","",""
+"23","2113","S079","management: kernel-level thread can use operating system to manage, therefore, they enjoy the priviledged of multi-core prosessing.
+
+also, since kernel level threads use operating system to manage and OS manages the problem of syncronization. Hence, they have higher chance of avoiding syncronization problem.
+
+Kernel level threads have more rights to access the priviliged instruction such as set system call, timer interrupt..","1","多核正確；同步問題、特權指令均非此題語境的標準優點",""
+"24","1719","S122","USE APPLICATION TO go instead use os 
+FAST
+USE low power
+efficient","0","內容與題意無項從 kernel-level thread 優點",""
+"25","6074","S086","scalibility: kernel-level threads can take advantage of multi-cores, while user-level threads bound to a single core.
+robustness: kernel-level threads are more robust as they can survive in the face of threads failure, in contrast, failure of user-level threads may bring down entire process.","2","",""
+"26","1836","S052","1. Kernel-level threads can take advantage of multi-core processor, while user-level threads can only use single processor.
+2. When one of the kernel-level threads fails to complete, the other threads can still keep executing, while user-level thread fails if the thread cannot run.","2","",""
+"27","1725","S033","1.容易生成threads跟在threads中switching
+2.較容易被programming因為kernel-level threads share memory","0","「容易生成 thread」、「share memory」均非 kernel-level thread 的獨特優點",""
+"28","1915","S123","1. Kernel-level threads can take advantage of multicore processor.
+2. Kernel-level threads can execute the priviledged instruction. ","1","多核正確；特權指令非此題標準優點",""
+"29","1808","S027","Management:User-level threads are managed by the user program,kernel-level threads are managed by the Os.
+Scheduling:User-level threads are scheduled by thread library,kernel-level threads are scheduled by the OS seduleder.","0","OS 管理、OS 排程均為機制描述，非相對 user-level thread 的明確優點",""
+"30","1626","S081","kernel level thread when needed to be switched it requires operating system to switch over and in the  user thread to switch it does not require operating system.
+user-level only involves the application and the kernel-level also uses the operating system","0","描述內容混濔，未正確表述 kernel-level thread 的優點",""
+"31","1870","S008","1. Kernel-level threads can scale their process by utilizing multicore architecture.
+2. Since each kernel-level thread is mapped to one actual cpu, contrast to the user-level (where in N:1 case), a block happens on a kernel level thread won't block the whole process, however, a block happens on a user-level may block the whole process.","2","",""
+"32","5619","S078","context switch no need to change mode
+can use privilege instruction","0","context switch 不需模式切換為錯誤描述；kernel-level thread 反而需要 mode switch",""
+"33","1793","S087","1.使用user-level threads時，如果其中一個thread被block，可能整個process都會被block，kernel-level threads不會。
+2.kernel-level threads在context switch時需要mode switch，相較user-level threads花更多時間。","1","第一點正確；第二點「context switch 花時間較多」為缺點而非優點",""
+"34","1595","S022","1. Can have better cpu utilization from the multi-core processors system.
+2. Can be managed by the OS system more easily.","1","多核正確；「OS 管理更容易」為機制描述，非明確優點",""
+"35","2789","S110","1. kernel-level threads can take advantages of multi-core systems
+2. one user-level thread be blocked -> all user-level threads be blocked, but at the same situation kernel-level threads can continue","2","",""
+"36","1713","S082","1. kernel-level threads can operate with multi-core CPU to increase its efficiency.
+2. if one thread fails, other threads still can work.","2","",""
+"37","1844","S105","1. 能直接運用多處理器執行。","1","僅列出一個正確優點（多核）",""
+"38","1686","S111","相較於user-level threads, kernel-level threads可實際並行。且由OS管理，執行權限較高。","1","可並行正確；「執行權限較高」不夠精確",""
+"39","1724","S085","可以更好的利用多核CPU資源
+不會因單thread中斷導致所有threads中止","2","",""
+"40","1820","S004","Responsiveness:執行中process內部的threads被block住，CPU仍可以切換給其他available threads執行，故process仍可繼續執行
+Resource sharing:process內的多個threads共享code section，所以多個工作可以在同一個memory space下同時工作","1","Responsiveness 正確；Resource sharing 非 kernel-level thread 獨特優點",""
+"41","2797","S011","1. context switch會更流暢。
+2. 更有辦法執行在不同的CPU核心上。","1","多核正確；context switch 更流畅為错誤（kernel-level 反而較慢）",""
+"42","1492","S046","Context switching:  kernel-level is faster than user-level.
+Scalability: kernel-level can take advantages of multi-core processors
+","1","多核正確；context switch 更快為错誤",""
+"43","1559","S005","1. manage and schedule by OS
+2. can use multi-core","1","多核正確；OS 管理屬機制描述，非明確優點",""
+"44","2759","S061","Scalability, Robustness.","2","",""
+"45","4551","S014","共享記憶體，多核心","1","多核正確；共享記憶體非 kernel-level 獨特優點",""
+"46","1676","S028","可以有多核心/CPU的使用
+
+Scalability佳，因user level thread只能侷限在一個CPU上面","1","兩點實為同一優點（多核），沒有列出第二個獨立優點",""
+"47","1684","S107","1.kernel-level thread can take advantage of multi-processors or multi-core CPUs.
+2.","1","多核正確；第二點空白",""
+"48","1577","S126","1.kernel直接由cpu控制可以做更多事
+2.user level thread 會被kernel看成一個process","0","兩點均不夠明確，未展示 kernel-level thread 的標準優點",""
+"49","1939","S017","1.kernel threads可以有效利用multi cores or multi processors來增加效率，但user thread are bound to one processor所以做不到
+
+2.kernel threads 可以即使有thread fail了也能替換成其他thread來跑，不會全盤崩潰。但user threads一但有一個thread fail了，那整個process都可能會因此卡死或崩潰","2","",""
+"50","3108","S115","Kernel level threads can do multi core making it faster, while user level is restriced to one.
+Kernel level thread can keep processing if a core goes down while if the core for user level goes down it can only abort the thread.","2","",""
+"51","1680","S089","Scale : Kernel level能運行更大規模的Program
+Robust : 在單一thread被block下，user level整個運行會被block，kernel level未被block的能維持運行","1","robustness 正確；「可运行更大規模 Program」不夠精確",""
+"52","1767","S009","kernel-level threads can manage directly by operating system, and it can scheduling by operating system ","0","OS 管理、OS 排程為重複機制描述，非明確優點",""
+"53","1563","S094","1. ULT在執行多核心時較受限，KLT可以支援執行多個核心
+2. ULT要由使用者自己做排程，KLT可以直接由kernel schedulery做排程","1","多核正確；kernel scheduler 排程屬機制描述，非明確優點",""
+"54","6555","S066","1.kernel-level can use more than one core","1","僅列出一個正確優點（多核）",""
+"55","1624","S041","Scalability:
+    user-level threads 會受限於單一的 processor
+    但 kernel-level threads 可以利用多核心的處理器來同時執行
+Management:
+    user-level threads 是被 application 管理，而 kernel-level threads 會由 OS 直接管理","1","多核正確；Management 屬機制描述，非明確優點",""
+"56","2438","S031","kernel-level threads的穩健性較高，即使一個thread卡住，其他的依然可以執行，user-level threads則會一個卡住全部一起卡住。
+kernel-level threads可以使用多個CPU或cores，user-level threads不行。","2","",""
+"57","1780","S116","1.使用多個thread會更有效率
+2.在某些process裡，因為thread間有shared memory，因此可以省下特地做資訊的傳遞的時間。
+3.使用threads可以發揮CPU多核心的優勢","1","多核正確；其餘兩點均非 kernel-level 獨特優點",""
+"58","2086","S059","1. kernel-level threads can be used in multi-processors, which is faster and can do multitasking. While user-level threads can only be used in single processor. Therefore, which limit scalability.
+
+2. kernel-level threads are more robust since they can survuve in the face of a thread failure. However, single-level threads face a single thread failure, which may bring down the entire process.","2","",""
+"59","1519","S064","scalability
+resource sharing
+","1","scalability 正確；resource sharing 非獨特優點",""
+"60","1647","S101","1. multi-core CPU
+2. shared memory","1","多核正確；shared memory 非獨特優點",""
+"61","1760","S103","1. kernel-level threads可以多核心執行
+2. OS可以直接管理kernel-level threads","1","多核正確；OS 管理屬機制描述，非明確優點",""
+"62","2216","S104","1.Kernel-level threads take advantage of multiple CPUs or multiple processors, program can scale with increasing # of CPUs. 
+
+2.If one thread is blocked in kernel-level threads, other threads can still execute. While same situation in user-level threads, this process would be blocked.","2","",""
+"63","1883","S023","1. Creating threads and switching among threads is more efficient.
+2. Some programming is easier since it shared among threads - no need to use messaging or creating shared memory segments.","0","「thread 生成與切換更有效」為错誤；kernel-level thread context switch 較慢；shared memory 非獨特優點",""
+"64","1571","S113","1.user-level threads 當block發生時所有thread都會被block，kernel thread只會block單一thread
+2.kernel-level thread支援multi-core processor","2","",""
+"65","1698","S055","scalability:kernel level thread可以使用硬體 例如平行運算加速 
+穩定性:kernel level thread 因由os管理 具有更高的穩定性 例如除以0 其可以自動根據預設Error detect ,或中斷向量表 等等處理","1","多核正確；第二點描述 exception handling，非標準 robustness 優點",""
+"66","1812","S119","kernel-level threads can take advantage of muti-core.
+kernel-level threads are managed by operating system that it can execute privilege instruction.
+","1","多核正確；特權指令非標準優點",""
+"67","2310","S067","1. kernel-level threads 具有muti-processors 的優點user-level threads 則沒有
+2. 當遇到interrupt時,kernel-level  threads會繼續執行其他的threads,而user-level 則會直接被block
+
+","2","",""
+"68","1890","S076","Kernel-level threads can take advantage of multiple threads/processes and can run concurrently. This makes then more scalable, while user-level threads have limited scalability since they are singularly bound.","1","僅列出一個優點（多核），第二點是對同一優點的解釋",""
+"69","2490","S074","1. Executed in privileged mode than user level threads.
+2. Interrupts are minimized than in user level threads.","0","privileged mode 與 interrupt minimized 均非此題標準優點",""
+"70","1855","S063","Kernel-level threads can take advantage of multi-core, user-level threads can't.
+Kernel-level threads can still survive if one thread fails, but one user-level thread dead will block all the threads in the process.","2","",""
+"71","1818","S090","1. Scalability: Kernel-level threads take advantage of multi-core processors, it can run concurrently on different cores. User-level threads is bound to a single processor, limits scalability.
+2. Robustness: Kernel-level threads are more robust because it can survive in the face of a thread failure. A failure to User-level threads may bring down the whole process.","2","",""
+"72","5986","S100","1. We can schedule kernel threads to different cores to increase multi-core utilization.
+2. It can directly use some privilege instructions.","1","多核正確；特權指令非標準優點",""
+"73","1758","S114","1. 當一個process 的kernel thread 其中一個被block後不會導致整個process blocked ，但是一個process的其中一個user-level thread 若被block (N:1 的情況下)，整個process都會被blocked
+2. 一個process 的kernel thread 可以同時放在多個multiprocessor 的cpu 上執行，但是 user-level thread 不行","2","",""
+"74","1468","S038","It can control the priority
+It can access hardware","0","控制 priority、access hardware 均非此題標準優點",""
+"75","1875","S047","可以應用到多個核心的處理器
+作業系統能感知到 thread 的內容和數量，更好地做schedule","1","多核正確；OS 感知 thread 做更好排程屬機制描述，非明確優點",""
+"76","1801","S044","1. take advantage of multuple cpus
+2. sharing memory is easier","1","多核正確；sharing memory 非獨特優點",""
+"77","1637","S075","1.可多工
+2.一個thread爆掉其他thread不會被它卡住","2","",""
+"78","1627","S030","1.kernel level threads 不會因為同一 process thread 阻塞就因此阻塞
+2.kenrcel level threads 相較 user-level threads 更能享受到 Multiprocessor 帶來的加速
+","2","",""
+"79","1728","S106","Scalibilty , kernel level threads can better utilize a multi core system while user level threads can't . 
+","1","僅列出一個優點（多核）",""
+"80","1735","S019","a. Robustness : Kernel-level threads are more robust. a process might survive when a kernel-level thread fails. While the failure of user-level thread may bring down the entire system.
+b. Kernel-level thread 才能真正 take advantage of multiple CPUs or multiple cores.
+","2","",""
+"81","1764","S020","Scalability: Kernel-level threads can take the advantage of multi-core processors, but user-level threads can not.
+Robustness: When one of the user-level threads crash, it will bring down the entire process. Kernel-level threads won't","2","",""
+"82","1611","S010","1. kernel-level threads take advantage when using multiprocessor
+2. kernel-level threads use mode switch with switching the user-level threads using context switch, which is less efficient.","1","多核正確；第二點描述 kernel-level 使用 mode switch 效率較低，為缺點",""
+"83","2115","S091","可以控制I/O
+排程","0","控制 I/O、排程均為機制描述，非明確優點",""
+"84","6188","S051","can execute in same time
+can execute privileged instruction","0","「can execute in same time」過於模糊；特權指令非標準優點",""
+"85","1712","S039","one user-level thread block may block the all other user-level threads, while kernel-level threads will not
+
+kernel-level threads can take advantage on multi-core but user-level threads can not","2","",""
+"86","1830","S018","1. can get the advantages of multi-core.
+2. if one kernel-level thread crash, another thread still work. but user-level thread crash, another user thread can not work.","2","",""
+"87","2163","S049","kernel-level threads can take advantage of muti-processor and can execute privilege execution ","1","多核正確；特權指令非標準優點",""
+"88","1861","S053","scalability kernel-thread可以同時使用多個process和CPU core平行執行
+robustness kernel-thread在其中一個thread出問題時仍有容錯空間","2","",""
+"89","1884","S092","more convenient to manage
+it has more power to be executed","0","「convenient to manage」、「more power」均過於模糊，未展示正確優點",""
+"90","1677","S125","1.multiprocessor 時效率較好
+2.不會因為一個thread出問題整個process失效","2","",""
+"91","1935","S021","the first advantage is kernel-level threads can excute in multiple core,but user-level threads only can excute in single core process.
+the second advantage is kernel-level threads' power is higher than user-level threads","1","多核正確；「power is higher」過於模糊",""
+"92","1687","S050","multi CPU/cores, have higher privilliged , can change mode between kernel and user","1","多核正確；higher privilege、mode switch 非標準優點",""
+"93","1690","S036","kernal level threads can use multiple cpu，kernal level thread有更好的穩健性
+","2","",""
+"94","1777","S048","1. kernal level的threads可以在multiprocessor上面執行，但use level只能在單一上執行
+2. 在其中一個thread fault時，user level 的整個process都會壞掉，但kernal level的不會","2","",""
+"95","2202","S112","1. kernal -level threads can use multiple CPU cores and execute in parallel, but use-level threads can only use one CPU core. 
+2. kernal-level threads have a stronger error-handling ability than user-level threads. If there is any issue when executing threads, the OS of kernal-level threads can know that maybe only one thread is happening. However, for user-level threads, the OS may only know that this is the whole process's issue. 
+","2","",""
+"96","1669","S006","scalability: kernel thread can take the advantage of multiprocessor.
+efficiency: kernel have less overhead to create
+","1","多核正確；「less overhead to create」為错誤，kernel-level thread 建立 overhead 較大",""
+"97","1992","S026","1.多核心且平行運算
+2.CPU使用效率高","1","兩點為同一優點（多核）的不同表述",""
+"98","3409","S032","1.  
+2.","0","未作答",""
+"99","2412","S057","管理 , 排程，校能 , 擴展性
+管理上，使用者執行緒使用軟體 library , 而核心使用需要使用操作性統控制
+排程上，使用者執行緒使用軟體應用程式控制，而核心執行緒也是使用操作系統控制
+效能上，使用者執行緒單純使用 context switch , 而核心執行緒則需要使用者執行緒下達 context switch 給核心執行緒較為繁複
+擴展性 核心執行緒可以使用多核心行程
+ ","1","改擴展性（多核）正確；管理、排程屬機制描述且說明核心執行緒較繁縌",""
+"100","1872","S002","1. Kernel-level threads sharing memory makes creating and switching faster and less overhead.
+2. multi-core or CPU makes higher efficiency.","1","多核正確；shared memory 使切換更快為错誤",""
+"101","1768","S007","The kernel-level threads are managed by Operating Systems. They have preveledges to use protected resources. The kernel-level threads can utilize the multi-core processors where the user-level threads can only utilize 1 core of the processors.","1","多核正確；特權資源描述不夠精確",""
+"102","2018","S016","1.Kernel-level threads執行較快,效率更高。
+2.Kernel-level threads可以使用多個cpu核心,比起user-level threads只能使用單一核心，處理效能更好。","1","多核正確；「執行較快」過於模糊，非明確優點",""
+"103","2105","S083","1,cup效率
+user-level thread:使用應用程式thread libary; kernel-level thread:作業系統
+2,排程
+user-level thread:使用使用者模式較快; kernel-level thread:使用核心模式,須使用system call","0","內容混濔；CPU 效率屬機制描述；排程點描述 user-level 較快，為 kernel-level 缺點",""
+"104","1862","S088","kernel-level thread直接由OS管理process，user-level thread的某個thread block的時候OS不知道是哪個thread bolck，而kernel-level thread會知道
+kermel-levle thread可以執行privileged execution","1","OS 可識別特定 thread 被 block（與 robustness 相關）正確；特權指令非標準優點",""
+"105","2084","S058","1.kernel-level threads is more robust
+2.kernel-level threads take advantage of multiple core","2","",""
+"106","6186","S043","1.management :user-level use application to management ,ane kernel-level use OS to management
+
+2.context switching:user-level共享記憶體,kernel-level需藉由context switching from user-level to kernel-level
+
+3.scheduling :
+user-level use application to schedule,and kernel-level use OS's scheduling
+
+","0","management、scheduling 屬機制描述；context switching 描述有誤，未展示明確優點",""
+"107","1741","S060","scalability: kernel-level threads can work in different core, user-level can't
+robustness: kernel-level threads can survive in the face of a thread filure, but filure of a user-level thread bring down entire process","2","",""
+"108","1664","S024","robustness:if some of core are broken, kernel-level threads will survive but user-level threads will break down.
+scaling:kernel-level threads can take advantages of multiple core while user-level threads not.","2","",""
+"109","1670","S095","kernel level threads have better robustness, if there is a error in kernel level threads it may survive. While user level threads may shut down, if a error occurs.
+kernel level threads can take the advantage of multi-core processor, while user level threads can only use single processor.","2","",""
+"110","1681","S077","1. kernel-level threads can run on different core at the same time
+2. kernel-level threads has more robustness than user-level threads ","2","",""
+"111","1772","S120","It can access to any shared hardware, and also can use multi-core.","1","多核正確；access shared hardware 不夠精確",""
+"112","1648","S073","management:
+ULT:由APP自己管
+KLT:由OS管
+
+排程:
+ULT:由thread library排或程式自己排
+KLT：由os自己排
+ ","0","management、scheduling 均為機制描述，非明確優點",""
+"113","1702","S069","1.kernel-level thread可以使用multi-core, user-level thread不行
+2.在一個thread壞掉不能執行(卡住的時候),kernel-level thread 其他thread可以繼續執行不受影響，在user-level thread 所有thread都無法執行","2","",""
+"114","1491","S072","1. Kernel-level threads can run on the many processors or multi-core processer. (parallel run)
+2. Kernel-level threads don't need to do mode switch when the timer is time out, this can save time. ","1","多核正確；「不需 mode switch」為错誤，kernel-level thread context switch 需要 mode switch",""
+"115","1957","S042","1. kernel-level threads 可以使用multi-core or multiprocessors, user-level 則否, kernel-level threads有更好的scalabitlity
+2. kernel-level threads 有較好的 robustness","2","",""
+"116","1770","S071","1.kernel-level thread支援multicore processor， user-level thread則沒有
+2.當kernel-level thread其中一個thread無法執行時，其他thread依然能正常執行，但user-level thread其中一個thread無法執行會導致整個process無法執行","2","",""
+"117","2269","S062","1. Scalability: kernel-level threads use multiprocessor ,and user-level threads use single processor.
+2. Management: kernel-level threads can be directly managed by the OS, and user-level threads need to be managed by the applications.","1","多核正確；Management 屬機制描述，非明確優點",""
+"118","1913","S045","1.kernerl mode的優勢在於能進行多核心處理透過os來排程達到平行運算的效果
+2.kernel mode的排程和記憶體管理是由os來進行當一個thread阻塞時不影響其他thread的運行","2","",""
+"119","1869","S056","OS managed, OS scheduling, use multi-cores or CPUs","1","多核正確；OS managed、OS scheduling 屬機制描述，非明確優點",""
+"120","1755","S029","1.可以使用多核心CPU來運算，不像user-level只能用單一CPU
+2.不需要頻繁進行mode switch","1","多核正確；「不需 mode switch」為错誤",""
+"121","1809","S065","1.kernel level threads可以運用multi-core
+2.user-level thread 會因為一個thread停止造成整個process停止，kernel-level thread可以繼續運作","2","",""
+"122","2069","S025","Kernel-level threads can take advantage of multi-processors, while user-level threads cannot.
+Kernel-level threads have higher efficiency.","1","多核正確；「higher efficiency」過於模糊，非明確優點",""
+"123","1689","S098","more safe
+can be benifit from multiprocessors","1","多核正確；more safe 表述過於模糊，未明確說明 robustness 內涵",""

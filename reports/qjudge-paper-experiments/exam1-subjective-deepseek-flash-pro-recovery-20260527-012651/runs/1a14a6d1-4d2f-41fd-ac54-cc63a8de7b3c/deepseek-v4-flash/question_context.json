@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "What is priority inversion? Describe a scenario where busy waiting (spinlock) can lead to it. How can priority inheritance solve this issue?",
+  "question_id": "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c",
+  "question_type": "essay",
+  "reference_answer": "a. Priority inversion occurs when a higher-priority task is blocked by a lower-priority one.\nb. Scenario: Low-priority A holds a lock; high-priority B spins waiting. The scheduler runs B over A, preventing A from releasing the lock.\nc. Priority inheritance solves this by temporarily boosting the priority of the lock holder (A) to the level of the waiting high-priority task (B)."
+}

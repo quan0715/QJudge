@@ -1,0 +1,879 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "2^12= 4Kb"
+      },
+      "id": "3989",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "2^{11} entries"
+      },
+      "id": "3815",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "3892",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5108",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "4K(2^12)"
+      },
+      "id": "4101",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "5378",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "6053",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5006",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "2^12=4K"
+      },
+      "id": "3664",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "4Kbyte"
+      },
+      "id": "5981",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "2334",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "32-20 = 12, 2^12 = 4096   , Ans : 4096"
+      },
+      "id": "5085",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "4KB"
+      },
+      "id": "5259",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "2^(31 - 20) = 2^11 = 2048"
+      },
+      "id": "5039",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "5326",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "4KB"
+      },
+      "id": "5036",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "2^11 = 2048 entries"
+      },
+      "id": "5294",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "2^19"
+      },
+      "id": "4826",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1024"
+      },
+      "id": "6749",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "3990",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "2^(32-20)=2^12=4096 entries"
+      },
+      "id": "5314",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "(2^32)/(2^20)=4KB"
+      },
+      "id": "4531",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "2048 (211) entries"
+      },
+      "id": "6197",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "4KB"
+      },
+      "id": "4036",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "4 KB"
+      },
+      "id": "2762",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "5400",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5621",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4477",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "2^12=4096"
+      },
+      "id": "4513",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "11098 entires"
+      },
+      "id": "5747",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5689",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "2^21"
+      },
+      "id": "2388",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4054",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "2^12 entries"
+      },
+      "id": "4030",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "2^21"
+      },
+      "id": "6579",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "2^12 = 4096"
+      },
+      "id": "4947",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "6224",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "2 ^ 12"
+      },
+      "id": "4102",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "2^32/2^20=2^12=4096"
+      },
+      "id": "4496",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4452",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "2356",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "4K entries"
+      },
+      "id": "4385",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "4K"
+      },
+      "id": "5775",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "2002",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "3684",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "4123",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "12"
+      },
+      "id": "3473",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "2(12)=4096 entries"
+      },
+      "id": "4549",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "4K enrties    也就是2的12次方  (32-20=12)"
+      },
+      "id": "3759",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5498",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "4K entries"
+      },
+      "id": "3082",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "4K entries"
+      },
+      "id": "3630",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "21"
+      },
+      "id": "2502",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "6370",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "3022",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "5483",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "2873",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "2^31/2^20=2^11"
+      },
+      "id": "5094",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "21"
+      },
+      "id": "3797",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "4671",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "2000"
+      },
+      "id": "6311",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "(2^32)/(2^20)=2^12=4*1024=4096 entries"
+      },
+      "id": "4048",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "5479",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "4204",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "2^12 = 4K"
+      },
+      "id": "4829",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4746",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "4GB"
+      },
+      "id": "5743",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "1048"
+      },
+      "id": "6378",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "11 + 32 = 43 entries of page table"
+      },
+      "id": "2240",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "3875",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "2^12 entries"
+      },
+      "id": "4656",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "2406",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4892",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "2687",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5186",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4817",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "4096(如果在正常情況，即有virtual memory運作的情形時)"
+      },
+      "id": "4790",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "2K"
+      },
+      "id": "4318",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": " 4K entries"
+      },
+      "id": "5310",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "2^12 = 4096 entries"
+      },
+      "id": "6375",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "4K"
+      },
+      "id": "3629",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "2190",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "16"
+      },
+      "id": "5779",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "2^11"
+      },
+      "id": "5533",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "3177",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "4K entries"
+      },
+      "id": "4091",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "4k"
+      },
+      "id": "4408",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "2^12 entries"
+      },
+      "id": "5568",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "5166",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4491",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "6463",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "6043",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "4913",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4642",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "4210",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "2^12=4096 entries"
+      },
+      "id": "3908",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "5647",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "2^22 entries"
+      },
+      "id": "5421",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "32 bit -  20 bit = 12 bit ;  2 的 12 次方  =  4096 entries"
+      },
+      "id": "6608",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "6545",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "2048"
+      },
+      "id": "4288",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "2^12 entries"
+      },
+      "id": "6497",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1"
+      },
+      "id": "6567",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "4096 entries"
+      },
+      "id": "4767",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "2^(32-20)=4096"
+      },
+      "id": "5902",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "5242",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "32-20 = 12， 所以2^12 = 4096"
+      },
+      "id": "4487",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "4k"
+      },
+      "id": "4166",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "4096 pages"
+      },
+      "id": "6441",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "4002",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "2^21"
+      },
+      "id": "4252",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "3936",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "2^12=4096 entries"
+      },
+      "id": "4188",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "2280",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "4KB entries"
+      },
+      "id": "3817",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "2^32/2^20 = 2^12 = 4096 entries"
+      },
+      "id": "4350",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "6232",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1MB=2^20B  32-20=12 , 2^12=4096"
+      },
+      "id": "5243",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "2^12 = 4096 entries"
+      },
+      "id": "3940",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "2的12次方entries"
+      },
+      "id": "6178",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "2^12"
+      },
+      "id": "5079",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "4096"
+      },
+      "id": "6607",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "12K"
+      },
+      "id": "5382",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "A system has 32-bit addresses and 2 GB (231) main memory where each page is 1 MB (220). How many entries of a page table will contain?",
+    "question_id": "517790a5-db10-491c-bb92-6bb654e36795",
+    "question_type": "short_answer",
+    "reference_answer": "Each page is 1 MB (220), so it needs 20 bits as an offset. Thus a 32-bit address can have at most 12-bit (32-20=12) as the page number. Therefore a page table con have at most 2^12 = 4096 entries."
+  },
+  "question_id": "517790a5-db10-491c-bb92-6bb654e36795"
+}

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Tile, InlineNotification } from "@carbon/react";
+import { Button, InlineNotification } from "@carbon/react";
 import { Checkmark, Close } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContext";
 import { httpClient } from "@/infrastructure/api/http.client";
 
 export default function OAuthAuthorizePage() {
@@ -12,7 +13,7 @@ export default function OAuthAuthorizePage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string>("MCP Client");
+  const [clientName, setClientName] = useState<string>("QJudge OAuth Client");
 
   const clientId = searchParams.get("client_id");
   const redirectUri = searchParams.get("redirect_uri");
@@ -33,6 +34,16 @@ export default function OAuthAuthorizePage() {
     const name = searchParams.get("client_name");
     if (name) setClientName(name);
   }, [searchParams]);
+
+  const metadata = useMemo(
+    () => ({
+      title: t("oauth.authorize.title", "MCP OAuth 授權"),
+      subtitle: t("oauth.authorize.description", { clientName }),
+    }),
+    [clientName, t],
+  );
+
+  useAuthLayoutMetadata(metadata);
 
   const handleApprove = async () => {
     setLoading(true);
@@ -100,7 +111,7 @@ export default function OAuthAuthorizePage() {
 
   if (!isValid) {
     return (
-      <div style={{ maxWidth: 480, margin: "4rem auto", padding: "0 1rem" }}>
+      <div className="auth-form auth-consent">
         <InlineNotification
           kind="error"
           title={t("oauth.authorize.invalidRequest")}
@@ -111,46 +122,48 @@ export default function OAuthAuthorizePage() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: "4rem auto", padding: "0 1rem" }}>
-      <Tile>
-        <h2 style={{ marginBottom: "1rem" }}>{t("oauth.authorize.title")}</h2>
-        <p style={{ marginBottom: "2rem" }}>
+    <div className="auth-form auth-consent">
+      <div className="auth-consent-summary">
+        <p className="auth-consent-kicker">MCP OAuth</p>
+        <h2 className="auth-consent-client">{clientName}</h2>
+        <p className="auth-consent-description">
           {t("oauth.authorize.description", { clientName })}
         </p>
         {user && (
-          <p style={{ marginBottom: "2rem", color: "var(--cds-text-secondary)" }}>
+          <p className="auth-consent-account">
             {user.username} ({user.email})
           </p>
         )}
+      </div>
 
-        {error && (
-          <InlineNotification
-            kind="error"
-            title={error}
-            hideCloseButton
-            style={{ marginBottom: "1rem" }}
-          />
-        )}
+      {error && (
+        <InlineNotification
+          kind="error"
+          title={error}
+          hideCloseButton
+        />
+      )}
 
-        <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
-          <Button
-            kind="secondary"
-            onClick={handleDeny}
-            disabled={loading}
-            renderIcon={Close}
-          >
-            {t("oauth.authorize.deny")}
-          </Button>
-          <Button
-            kind="primary"
-            onClick={handleApprove}
-            disabled={loading}
-            renderIcon={Checkmark}
-          >
-            {loading ? t("oauth.authorize.loading") : t("oauth.authorize.allow")}
-          </Button>
-        </div>
-      </Tile>
+      <div className="auth-actions auth-consent-actions">
+        <Button
+          kind="secondary"
+          className="auth-submit-btn"
+          onClick={handleDeny}
+          disabled={loading}
+          renderIcon={Close}
+        >
+          {t("oauth.authorize.deny")}
+        </Button>
+        <Button
+          kind="primary"
+          className="auth-submit-btn"
+          onClick={handleApprove}
+          disabled={loading}
+          renderIcon={Checkmark}
+        >
+          {loading ? t("oauth.authorize.loading") : t("oauth.authorize.allow")}
+        </Button>
+      </div>
     </div>
   );
 }

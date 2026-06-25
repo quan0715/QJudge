@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Describe the three requirements that a solution to the Critical Section problem must satisfy to be considered correct.",
+  "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0",
+  "question_type": "essay",
+  "reference_answer": "Mutual Exclusion (only one in CS); Progress (selection of next process cannot be delayed indefinitely); Bounded Waiting (limit on how many times others can enter before a request is granted)."
+}

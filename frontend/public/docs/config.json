@@ -30,7 +30,7 @@
     },
     {
       "id": "admin-guide",
-      "items": ["admin-overview"]
+      "items": ["admin-overview", "identity-auth-extension"]
     }
   ],
   "defaultDoc": "overview"

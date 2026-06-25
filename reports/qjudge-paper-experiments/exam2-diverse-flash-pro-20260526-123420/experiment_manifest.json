@@ -1,0 +1,22 @@
+{
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "ended_at": null,
+  "exam_key": "exam2",
+  "experiment_id": "exam2-diverse-flash-pro-20260526-123420",
+  "model_ids": [
+    "deepseek-v4-flash",
+    "deepseek-v4-pro"
+  ],
+  "official_grades_modified": false,
+  "preset": "exam2-diverse",
+  "question_ids": [
+    "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82",
+    "a89c0767-a955-4b8d-927f-d01e3d954cc0",
+    "8bd69984-3cd8-48b1-9da3-4c040620959e"
+  ],
+  "run_count": 6,
+  "started_at": "2026-05-26T04:34:20.398525Z",
+  "user_id": null
+}

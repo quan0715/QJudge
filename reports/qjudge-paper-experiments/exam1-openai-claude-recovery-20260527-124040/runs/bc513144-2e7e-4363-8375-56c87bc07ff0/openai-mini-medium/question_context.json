@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "What is busy waiting (spinlock)?",
+  "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0",
+  "question_type": "essay",
+  "reference_answer": "Busy waiting, also known as a spin lock, is the situation when a thread is looping, continuously checking whether a condition exists that will allow it to continue. It is often used to check if a thread can enter a critical section or to poll a device to see if data is ready (or written/sent)."
+}

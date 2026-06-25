@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "How does affinity scheduling impact cache misses, TLB misses, and page faults in a multiprocessor system?",
+  "question_id": "b8fea8c6-21b2-4e68-8da7-540504d18b30",
+  "question_type": "short_answer",
+  "reference_answer": "It reduces cache and TLB misses by keeping a thread on the same CPU, utilizing existing cached data and TLB entries. It has no effect on page faults, as physical RAM is shared among all CPUs."
+}

@@ -1,0 +1,851 @@
+{
+  "answer_count": 119,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1) request message is lost (2) reply message is lost (3) server crashes after receiving a request (4) client crashes after sending a request "
+      },
+      "id": "12054",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. LostReq: The request is lost before server receive it.\n2. LostResp: The response is lost before server receive it.\n3. Server crash: The server crashes after receiving request.\n4. Client crash: The client crashes after sending request."
+      },
+      "id": "12677",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, 連不上server\n2, server 沒有收到 request\n3, server crash after receive\n4, client crasf after sent"
+      },
+      "id": "15299",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. lost of request\n2. lost of response\n3. server crash while processing request\n3. client crash after sending request"
+      },
+      "id": "13482",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. response message lost\n2. request message lost\n3. receive server crash\n4. cannot locate the server，可能因為版本不合之類的"
+      },
+      "id": "12200",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. reply message is lost\n2. request message is lost\n3. crash after request\n4. crach after reply"
+      },
+      "id": "12578",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Server crash,\nReceiver lost,\nSender lost,\nSender crash after response,\nReceiver crash after message sent."
+      },
+      "id": "12668",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate server\n2. Request message is lost\n3. Reply message is lost\n4. Client crash after sending a message"
+      },
+      "id": "12478",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.request lost\n2.reply lost\n3.can't find sever\n4.server crash after received request"
+      },
+      "id": "12539",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "cannot locate the server: server shutdown or version mismatch.\nlost request\nlost response\nthe client crash after it send request"
+      },
+      "id": "13576",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "request message lost\nresponse message lost\nserver crash after receiving request \nclient crash before receiving response"
+      },
+      "id": "11570",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. can not locate the server\n2. the request message is lost\n3. the reply message is lost\n4. the server crash after receiving the message."
+      },
+      "id": "13119",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. Call by pointer: Server do not know the address of client\n2. Global variable: Server cannot access client's global variable\n3. unbounded array: IDL need to know the message length when transmission.\n4. Undecided multiple argument in print"
+      },
+      "id": "14385",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Request lost\n2. Response lost\n3. Server crash on receiving the request\n4. Client crash on receiving the response "
+      },
+      "id": "12948",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1.Server Crash\n2.LostReq\n3.LostResp\n4.Client crashes after sending request"
+      },
+      "id": "12500",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "1. request loss\n2. response loss\n3. server crash when processing request\n4. client crash after send request"
+      },
+      "id": "13359",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- Server crash after replying\n- Client crash after requesting\n- Request lost \n- Reply lost"
+      },
+      "id": "11435",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- The request is lost\n- The response is lost\n- The server crashed before receiving the request or before sending the response.\n- The client crashed before sending the request."
+      },
+      "id": "13697",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. server crush\n2. client crush\n3. 訊息送出時遺失\n4. 訊息接收超時"
+      },
+      "id": "14984",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "can not find server\nserver crash\nrequest message lost\nreply message lost"
+      },
+      "id": "12465",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. response message is lost.\n2. request message is lost.\n3. 找不到server(server down...)\n4. server crashes after receiving a request."
+      },
+      "id": "12743",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. Request message is lost\n2. Reply message is lost\n3. Server crashes after receiving a message\n4. Client crashes after sending a message"
+      },
+      "id": "11738",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "cannot locate server\nrequest is lost \nreply is lost\nserver crashes after request received\nclient crashes after request sent"
+      },
+      "id": "12997",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "丟失\n沒收到回應\n中斷\ndeadlock\n"
+      },
+      "id": "11971",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate the server\n2. The request message is lost\n3. The reply message is lost\n4. Server crash after receiving the request\n5. Client crash after sending the request"
+      },
+      "id": "12678",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate server\n2. Request is lost\n3. Reply is lost\n4. Server crashes"
+      },
+      "id": "13565",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.cannot locate the server \n2.request lost \n3.reply lost\n4.server crash when sender sent message"
+      },
+      "id": "12779",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. lost request\n2. lost response\n3. server crash after receive request\n4. client crash after sending request"
+      },
+      "id": "13474",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "cannot locate server\nlost request\nlost reply\nserver crashes"
+      },
+      "id": "12366",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. failure pointer\n2. failure allocation\n3. spinlocks\n4. Failure of the server"
+      },
+      "id": "11659",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Server is not Locatable (e.g. server down).\n2. Send Request is lost.\n3. Respond is lost.\n4. Server crash after receiving request."
+      },
+      "id": "13202",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "receive fail\nrespond fail \nserver crash \nclient crash "
+      },
+      "id": "11412",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "1.request的訊息不見\n2.response的訊息不見\n3.server crush"
+      },
+      "id": "12741",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. send pointer\n2. send unbounded arrays\n3. unbounded parameters\n4. using global variables as parameters"
+      },
+      "id": "11877",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "cannot locate the server\nrequest lost\nrespond lost\nserver crash after request"
+      },
+      "id": "13425",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. Lost request\n2. Lost response\n3. server crash before receive the request\n4. client crash before receive the response"
+      },
+      "id": "13345",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. request lost\n2. client crash after sending request\n3. server crash after receiving request\n4. response lost"
+      },
+      "id": "13140",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. lost of request\n2. lost of reply\n3. server crash after receive\n4. client crash after request"
+      },
+      "id": "11817",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "LostReq: 遺失request\nLostResp: 遺失response\nServer crashes after receiving request\nClient crashes after sending request"
+      },
+      "id": "12563",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.無法定位server\n2.request message is lost\n3.reply message is lost\n4.server收到request後當機"
+      },
+      "id": "12652",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. Request message is lost\n2. Reply message is lost\n3. Server crashes after receiving request\n4. Client crashes after sending request"
+      },
+      "id": "12384",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. request lost\n2. response lost \n3. Server crashed after receive\n4. Client crashed after request"
+      },
+      "id": "11686",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "request message lost\nresponse message lost\nclient crash\nserver crash"
+      },
+      "id": "11594",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. request message is lost\n2. reply message is lost\n3. server crash after receiving the request\n4. client crash after sending the request"
+      },
+      "id": "12418",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.找不到server\n2.server 故障\n3.reply 發生故障\n4.require 發生故障\n"
+      },
+      "id": "13196",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.Cannot locate the server (server down, version mismatch, other exception)\n2.Request lost \n3.Reply lost\n4.Sender crash after sending the request\n5.Server crash after receiving the request"
+      },
+      "id": "15471",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Lost response\nLost reply\nSystem crash when recieving Response\nClient crash when recieving Reply"
+      },
+      "id": "11749",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1. can't locate the server\n2. lost request message\n3. lost reply message\n4. client在發送訊息後Crash\n5.Server在接受訊息後Crash"
+      },
+      "id": "12309",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Server do not receive the message\nClient do not send the message\nServer disconnected\nClient disconnected"
+      },
+      "id": "12934",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. 找不到server位置\n2. 要求訊息遺失\n3. 回應訊息遺失\n4. server在收到request後crash"
+      },
+      "id": "13268",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. LostReq \n2. LostResp \n3. ServerCrash"
+      },
+      "id": "11523",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Request message lost\nResponse message lost\nServer crash after receive request\nClient crash after send message"
+      },
+      "id": "12490",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1.找不到伺服器(e.g.伺服器當機)\n2.請求遺失\n3.回應遺失\n4.server在接收請求後當機"
+      },
+      "id": "15537",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "request is lost, reply is lost, server crashes after message send, client crashes after receive message"
+      },
+      "id": "12358",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. cannot locate server\n2. lost of the request\n3. lost of the response\n5. server crash after receiving the request"
+      },
+      "id": "13253",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "request message lost\nreply message lost\n"
+      },
+      "id": "11302",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. Request is lost \n2. Response is lost\n3. Cannot locate the server\n4. Sender crashes after receiving request"
+      },
+      "id": "13303",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. request message is lost\n2. reply message is lost\n3. sender crashes after receiving a request message\n4. receiver crashes after sending a request message"
+      },
+      "id": "12561",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "1.cannot locate the server : server down, vesion mismatch, other exception\n2.request message is lost\n3.reply message is lost\n4.server crash after receiving a request"
+      },
+      "id": "12736",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1. LostReq: Lost of request message(請求遺失)\n2. LostResp: Lost of response message(回應遺失)\n3. SerCrash: Unsuccessful execution of request(伺服器當機)\n4. 找不到伺服器"
+      },
+      "id": "13318",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.找不到server端的位置\n2.LostRequest\n3.LostResponse\n4.Server Crash"
+      },
+      "id": "12363",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.lost Request\n2.lost response\n3.client crash\n4.server crash"
+      },
+      "id": "12696",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Cannot locate the server\n2.Request message lost\n3.Reply message lost\n4.The sender crashes after sending a request"
+      },
+      "id": "13034",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.lost response\n2.lost request\n3.sender crash after sending request\n4.receiver crash after receive request"
+      },
+      "id": "12872",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "1. The request message is lost\n2. The response message is lost\n3. The server crashes\n4. The client does not send the request"
+      },
+      "id": "13564",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. Client cannot locate the server\nii. Request message is lost \niii. Reply message is lost\niv. Sever crashes during execution"
+      },
+      "id": "15876",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Cannot locate server\nLost the request message\nLost the response message\nServer crash after request be sent\nClient crash after  response be sent "
+      },
+      "id": "13240",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate the server.\n2. The request message is lost.\n3. The response message is lost.\n4. Server crash after receive the request message.\n5. Client crash after send the request message."
+      },
+      "id": "12906",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. The request lost\n2. The response lost\n3. The sender crashes after sending request\n4. The receiver crashes after receiving request."
+      },
+      "id": "12095",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. lost request \n2. lost reply \n3.  server crash \n4.  網路斷線 "
+      },
+      "id": "11873",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.server crash\n2.cilent crash\n3.transport data loss\n4. transport data error"
+      },
+      "id": "13344",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Server fail: 如果 server 遇到什麼問題 crash 了那也沒辦法 call rpc\nRPC exec Fail: 如果打出去的 RPC 在 server 端遇到問題了那他就沒辦法正確執行\nunprocessable content 如果打出去的 RPC 格式不對的話他也沒辦法執行\nmissing endpoint 如果打得 RPC 的 funciton. 不存在或call 錯‘ function 的時候那他也沒辦法執行"
+      },
+      "id": "15880",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1.request is lost\n2. response is lost\n3. client crashes after the request is transmitted\n4. server crashes after receiving the request"
+      },
+      "id": "14287",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "receiver crash when getting message\nsender crash when sending message\nloss in Internet\ncache loss at sender\n"
+      },
+      "id": "12774",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1. request lost :  送出需求後 遠方沒收到\n2. replied lost : 遠方送出回應後 本地沒收到\n3. service crash  : service 掛了 導致無法送出回應\n4.  client crash : 送出請求後，本地掛掉"
+      },
+      "id": "12510",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "1. can't locate the server \n2. lost of request message \n3. lost of response message \n4. server crashed after  receiving the message "
+      },
+      "id": "12316",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. cannot locate the server\n2. Response message lost\n3. Reply message lost\n4. Server crashes after receive the response"
+      },
+      "id": "12728",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Cannot locate the server\n(2) Request message is lost\n(3) Reply message is lost\n(3) Server crashes after receiving a message"
+      },
+      "id": "12151",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "cannot locate server\nrequest lost\nresponse lost\nserver crash before process the response"
+      },
+      "id": "13528",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "找不到伺服器，請求遺失，回應遺失，伺服器當機\n"
+      },
+      "id": "13039",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "server crash after receive request\nclient crash after send request\nreponse lost\nrequest lost"
+      },
+      "id": "12426",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "request lost\nresponse lost\n收到request後server crash\n發出request後client crash"
+      },
+      "id": "12718",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "lost request\nlost reply\n收到request後server crash\n傳完request後client crash"
+      },
+      "id": "12617",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1. can't locate srever\n2.reply message lost\n3.request message lost\n4.server crash after message request"
+      },
+      "id": "12279",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "locate不到server\nloss reply\nloss message(送出的)\nserver 收到後crash\nclient寄出後crash"
+      },
+      "id": "12798",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "LostReq, LostResp, ServerCrash, ClientCrash"
+      },
+      "id": "12914",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.cannot locate server\n2.request lost\n3.response lost\n4.server crashed after received"
+      },
+      "id": "12083",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "Pointer,難以連接複雜.矩陣大小不一."
+      },
+      "id": "11622",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "1. request lost\n2. reply lost\n3. server crash after recieve request\n4. 不知道server location"
+      },
+      "id": "12731",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.找不到伺服器\n2.請求封包遺失\n3.回復封包遺失\n4.server收到請求時crash"
+      },
+      "id": "12748",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. server locate 找不到\n2. Request lost\n3. Response lost\n4. Client crash\n5. server 接收到後 crash"
+      },
+      "id": "12544",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate server: 找不到server的位置\n2. Request Lost: Request傳到一半消失\n3. Reply Lost: reply傳到一半消失\n4. server 在處理request、尚未傳出reply時壞掉 \n5. server 在尚未接收到request時消失"
+      },
+      "id": "12745",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. passing pointer, meaningless\n2. passing unbound array, runtime error\n3. passing variable numbers of params in pirnt()\n4. using global variables"
+      },
+      "id": "12431",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1) Can't connect server ( 無法連接伺服器 )\n1) Request lost ( 發送命令請求失敗 )\n2) Reponse lost ( 回應命令失敗 )\n3) Server crash ( 伺服器損畫 )"
+      },
+      "id": "12911",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. cannot find location\n2. request lost\n3. reply lost\n4. server crash"
+      },
+      "id": "14900",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "System Errors: e.g., function mismatch, version mismatch\nRequest triggered failure\nResponse triggered failure\nConnection problems"
+      },
+      "id": "12626",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. Cannot locate the Server\n2. Request Message is Lost\n3. Reply Message is Lost\n4. Server Crashes after receiving a request"
+      },
+      "id": "12927",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "1.LostReq:遺失請求訊息\n2.遺失回覆:回覆訊息遺失\n3.SerCrash:請求執行失敗\n4.無法定位伺服器"
+      },
+      "id": "16178",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.無法找到伺服器/ 伺服器當機/版本不匹配/其他各種錯誤。\n2.請求訊息遺失。\n3.回覆訊息遺失。\n4.伺服器在收到請求後，在處理後或處理中崩潰。\n5.用戶端發送請求後當機。"
+      },
+      "id": "15861",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "request message is lost\nreply message is lost\nserver crashes after receiving a request\nclint crashes after sending a request"
+      },
+      "id": "12886",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.the request message is lost.\n2.the reply message is lost.\n3.client crash.\n4.server crash."
+      },
+      "id": "13888",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "request message is loss\ncan't located the server\nversion mismatched\nreply message is lost \nserver crashed after receiveing a request\nclient crashed after sending a request\n"
+      },
+      "id": "16027",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "丟失回應\n丟失請求\n請求後崩潰\n回應後崩潰\n找不到server"
+      },
+      "id": "12015",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "can not locate the server\nlost of the request message\nlost of the reply message\nthe client crash after send the request\nthe server crash after receive the request"
+      },
+      "id": "12482",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.lost of request message\n2.lost of reply message\n3.sender crash after sending a request\n4.server crash after receiving a request"
+      },
+      "id": "12676",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. request lost\n2. reply lost \n3. server crashes after receiving request\n4. client crashes after sending request "
+      },
+      "id": "12965",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Client 找不到Server\nRequest在途中遺失\nServer收到Request後Crash\nReply在途中遺失\nClient收到Reply後crash"
+      },
+      "id": "12557",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.要求訊息遺失\n2.回應訊息遺失\n3.server接收到requset後當機\n4.client發送完request後當機"
+      },
+      "id": "13267",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.can't locate server\n2.request message lost\n3.reply message lost \n4.server crash after receive request"
+      },
+      "id": "12845",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Lost of Request.\n2. Lost of Response.\n3. Server crash after request.\n4. Client crash after request."
+      },
+      "id": "13094",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. cannot locate the server\n2. lost of request message\n3. lost of reply message\n4. server crashes after receives the request"
+      },
+      "id": "12410",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.cannot locate the Server\n2.Request is Lost\n3.Reply is Lost\n4.Server 在收到請求後Crash\n5.Client在送出請求後Crash "
+      },
+      "id": "12915",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. Request message is lost\n2. Reply message is lost\n3.Server crash after receiving a request\n4. Client crash after sending a request"
+      },
+      "id": "12451",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.client發送的request server沒收到\n2. server回覆的response client沒收到\n3.client 在發送完request之後當機\n4.server在接受到request之後當機"
+      },
+      "id": "12890",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "client cannot locate server\nrequest message lost\nreply mesage lost \nserver crash"
+      },
+      "id": "13541",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Skip\n"
+      },
+      "id": "13759",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1. lost request\n2. lost response\n3. client crash\n4. server crash"
+      },
+      "id": "14198",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. lost request \n2. lost response\n3. server在收到request後當機\n4. 定位不到server"
+      },
+      "id": "12730",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "request failure\nresponse failure\nserver crash\nclient crash "
+      },
+      "id": "12879",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 4,
+    "options": [],
+    "prompt": "List four common failures that may happen during a Remote Procedure Call (RPC).",
+    "question_id": "9ec3f4b7-57c6-41f8-bdc2-abd8b9614be7",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Client cannot locate the server.\n(2) Request message is lost.\n(3) Reply message is lost.\n(4) Server crashes after receiving the request."
+  },
+  "question_id": "9ec3f4b7-57c6-41f8-bdc2-abd8b9614be7"
+}

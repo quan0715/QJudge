@@ -17,11 +17,20 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
 
-TARGET_PK_TABLES = ("problems", "questions", "exam_questions")
+TARGET_PK_TABLES = (
+    "problems",
+    "question_assets",
+    "question_versions",
+    "question_bank_memberships",
+    "contest_question_bindings",
+    "exam_questions",
+)
 TARGET_ROW_COUNT_TABLES = (
     "question_banks",
-    "questions",
-    "questions_coding_ext",
+    "question_assets",
+    "question_versions",
+    "question_bank_memberships",
+    "contest_question_bindings",
     "problems",
     "contest_clarifications",
     "exam_questions",
@@ -33,7 +42,8 @@ TARGET_ROW_COUNT_TABLES = (
 )
 TARGET_FK_COLUMN_NAMES = (
     "problem_id",
-    "question_id",
+    "question_asset_id",
+    "question_version_id",
     "source_question_id",
 )
 INTEGER_UDT_NAMES = {"int2", "int4", "int8"}
@@ -50,13 +60,13 @@ ORPHAN_CHECKS = (
         """,
     ),
     (
-        "exam_questions.source_question_id -> questions.id",
+        "exam_questions.source_question_id -> question_bank_memberships.id",
         """
         SELECT COUNT(*)
         FROM exam_questions eq
-        LEFT JOIN questions q ON q.id = eq.source_question_id
+        LEFT JOIN question_bank_memberships qbm ON qbm.id = eq.source_question_id
         WHERE eq.source_question_id IS NOT NULL
-          AND q.id IS NULL
+          AND qbm.id IS NULL
         """,
     ),
     (
@@ -80,23 +90,33 @@ ORPHAN_CHECKS = (
         """,
     ),
     (
-        "questions.source_question_id -> questions.id",
+        "question_bank_memberships.question_asset_id -> question_assets.id",
         """
         SELECT COUNT(*)
-        FROM questions child
-        LEFT JOIN questions src ON src.id = child.source_question_id
-        WHERE child.source_question_id IS NOT NULL
-          AND src.id IS NULL
+        FROM question_bank_memberships qbm
+        LEFT JOIN question_assets qa ON qa.id = qbm.question_asset_id
+        WHERE qbm.question_asset_id IS NOT NULL
+          AND qa.id IS NULL
         """,
     ),
     (
-        "questions_coding_ext.question_id -> questions.id",
+        "contest_question_bindings.question_asset_id -> question_assets.id",
         """
         SELECT COUNT(*)
-        FROM questions_coding_ext ext
-        LEFT JOIN questions q ON q.id = ext.question_id
-        WHERE ext.question_id IS NOT NULL
-          AND q.id IS NULL
+        FROM contest_question_bindings cqb
+        LEFT JOIN question_assets qa ON qa.id = cqb.question_asset_id
+        WHERE cqb.question_asset_id IS NOT NULL
+          AND qa.id IS NULL
+        """,
+    ),
+    (
+        "contest_question_bindings.source_question_id -> question_bank_memberships.id",
+        """
+        SELECT COUNT(*)
+        FROM contest_question_bindings cqb
+        LEFT JOIN question_bank_memberships qbm ON qbm.id = cqb.source_question_id
+        WHERE cqb.source_question_id IS NOT NULL
+          AND qbm.id IS NULL
         """,
     ),
     (

@@ -1,0 +1,879 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "不斷的佔有cpu資源去看條件是否符合"
+      },
+      "id": "1750",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is a loop to check whether a resource (ex. mutex, semaphore) could be accessed or not. If it can't, continue the loop and waiting. If it can, access the resource and leave the loop."
+      },
+      "id": "1778",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "busy waiting, also known as spinlock, is when 高優先度的process在檢查狀態以進入critical session,但因資源被低優先度process佔用而進入不斷檢查的loop,會造成priority inversion"
+      },
+      "id": "1757",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "process一直嘗試去enter critical section, 但一直無法 access，陷入不斷嘗試的loop中"
+      },
+      "id": "1967",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "運用一個while迴圈並設計要確立的條件後，要busy waiting的process會根據條件一直做while loop的內容，只有當其可以跳出while loop的時候才可以不用waiting，之所以叫busy waiting是因為該process會搶到CPU的使用權後，卻一直執行無意義的迴圈，會浪費CPU的時間"
+      },
+      "id": "2299",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "一個process在等待特地條件發生時，卡在迴圈裡面直到條件發生才繼續往下做，cpu就會在迴圈裡面一直跑。\n會長得像\nwhile(condiction == TRUE); // busy waiting\n..."
+      },
+      "id": "1991",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "process 嘗試要存取資料(通常是進入 critical section)時，因為有其他 process 正在存取而被阻擋在外，此時欲存取資料的 process 透過 for loop 的形式，不斷檢查此資料是否變為可用，此 process 在等待時將不做任何事情，而是不斷詢問是否能存取資料，因此叫做 busy waiting。"
+      },
+      "id": "1994",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "一個 process 為了等鎖釋放或某條件成立而在回圈內空轉，佔著 CPU 資源的情況。"
+      },
+      "id": "2217",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "一個high priority thread(process)在等被lower priority thread(process)被占用的資源的時候(lock or something)，因為CPU會把資源給高優先權的，會讓高優先權的一直空轉，導致低優先權的得不到CPU資源一直卡著那個lock。"
+      },
+      "id": "1940",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is a technique problem that happened when a thread is looping, continue to check a condition exists can allow it to contiue or not. happened when it want to enter a critical section or to poll a device to get the data."
+      },
+      "id": "2210",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "A process been always watching, continuously waiting for other process to release lock for  resource."
+      },
+      "id": "1726",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "When a process want a lock or resource hold by other procrss, it keeps waiting for a lock or resource and doesn't do other things."
+      },
+      "id": "1925",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "when a thread access the resource, the resource has been locked by other thread. The accessing thread would loop continuously to check the mutex is unlock or not."
+      },
+      "id": "1966",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "Usually used for process synchronization, the idea is to stall CPU until the awaited resource is available. This can be useful if resource will be available soon and context switching time is larger then busy waiting time"
+      },
+      "id": "1863",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "one keeps(e.g. loop) holding the lock, and the other one is waiting the lock to be released. "
+      },
+      "id": "1852",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "when a thread/process is waiting for lock, if it keep use cpu without sleep, it calls busy waiting. like using a while loop keep check if the lock is freed"
+      },
+      "id": "1850",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Spinlock is when a process is executing a program and encounters a resource (lock/semaphore) that is currently occupied and that it therefore cannot access. As it's unable to proceed in its execution, the process has to wait for the resource to be available, and is going to loop and continuously check if the resource is available until it is and it can proceed. "
+      },
+      "id": "1823",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "A busy waiting occurs when a thread or a process is blocked in a loop by a condition while it is not satisfied. Most of the time, it occurs when a thread or process wait for a mutex or a semaphore."
+      },
+      "id": "1931",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "形容當一個 process 因為其他 process 正在 critical section 而因此等待進入時，會透過一個 loop 空轉卡在進入 section 前，雖然沒有進行任何實際運算或是存取，但仍然使用系統資源進行空轉"
+      },
+      "id": "2170",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "busy waiting is to use a loop to keep waiting until it get lock."
+      },
+      "id": "1798",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is a process continuous loops(waste CPU time) to check if a condition is met or lock is released, rather than going to sleep. "
+      },
+      "id": "1949",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "busy waiting又稱spinlock，是在multi-task的環境中，task需要等待其他task的資源(如lock或semaphore)，而一直定時去確認資源可不可用，此時會耗用CPU資源在等待上。"
+      },
+      "id": "2088",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "spinlock happens when a process A with higher priority wants to get the lock and go to critical section to execute, however, there is a process B of lower priority is having the lock and is inside the critical section. Hence, A is looping outside the critical section and keep trying to get the lock and waisting the CPU."
+      },
+      "id": "2323",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "multi process and threads 同時要共享資源，導致其他process進不來，需要在外面等待"
+      },
+      "id": "1877",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "busy waiting is the situation that the process is looping, continuous checking the condition exist that allow the process continue."
+      },
+      "id": "1701",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "A process or a thread is looping in software to check whether the condition exists now is over. It often occurs when a thread is waiting to get into a critical section. "
+      },
+      "id": "1951",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "當thread或process在looping時，會check是否能繼續執行後續工作，當有其他thread或process正在占用CPU執行critical section時，將無法繼續執行後續工作，會持續詢問是否可以執行工作，也就造成busy waiting。"
+      },
+      "id": "1945",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "A process is looping, continuously checking a condition exists that will allow it to continue."
+      },
+      "id": "2026",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is when a thread repeatedly checks a condition in a loop without sleeping."
+      },
+      "id": "1899",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "spinlock is basically when the the processes are in queue and they are arranged according to their priority but the higher priority always gets to run even when it was the last to come in so the processes that have lower priority does not have the chance to execute at all"
+      },
+      "id": "5336",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is when the process is looping for a required statement happed. E.g. when a process is trying to acquire a lock to enter critical section, it while keep looking for whether the lock is released."
+      },
+      "id": "2030",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "If a process need some resource but the resource was used, it will use a while loop to request until the resource release."
+      },
+      "id": "2659",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "busy waiting(spinlock)是指cpu不斷地在迴圈裡等待，常出現在使用共享資源時，只有一個或少數thread能夠進入，而其他進不去的thread只能在原地空轉等待。"
+      },
+      "id": "1981",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "A process enters a loop waiting for resources(a lock or key), and will leave the loop after getting the resource."
+      },
+      "id": "1786",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "process  keep in the loop (keep use CPU) for getting access to critical section"
+      },
+      "id": "2802",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "A process keeps waiting for some condition and occupies the CPU resource. For example, a process keep requesting for a lock which is used by other process."
+      },
+      "id": "1905",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "用無限迴圈等待 critical section 的 key。"
+      },
+      "id": "1932",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "有兩個threadA, threadB，且threadA的優先度較高，threadB的優先度較低。當threadB在CS中，但沒有權限，threadA有權限卻無法進入，只能在外持續等待。"
+      },
+      "id": "1826",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "thread或process進入等待迴圈，用於在鎖釋放時取得鎖"
+      },
+      "id": "1835",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "process/thread要存取某個共享資源或lock時，不block/不sleep，在CPU上loop continuous checking直到達成某些條件才繼續執行。例:process要求能否進入critical section或polling i/o device是否ready。"
+      },
+      "id": "2001",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "一個程式不斷迴圈以等待資源。"
+      },
+      "id": "1527",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "A atomic-instruction-based locks are looping in software to wait until the lock is released."
+      },
+      "id": "1631",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "thread  looping cpu for asking  access of lock but can't get the lock"
+      },
+      "id": "1654",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "it is that process in a loop, it will check the condition whether enough. it is often to be used to criterion section."
+      },
+      "id": "2960",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "spinning ，持續沒有被執行。"
+      },
+      "id": "3056",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "當一個task持續去(loop)看一個condition有沒有被達到，像是看可不可以進入critical section"
+      },
+      "id": "1738",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting occurs when a higher priority process in a loop keeps checking and waiting for the resources(e.g. waiting for the lock to enter critical section)."
+      },
+      "id": "1898",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "當 thread拿不到lock就會去詢問是否有釋放lock出來，這樣就會造成浪費"
+      },
+      "id": "1887",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "一個thread or process不斷的looping，持續不斷的checking某些能使它繼續前進的情況或條件是否達成了。\n比如不斷確認自己是否能進入critical section，或是I/O 操作是否完成"
+      },
+      "id": "2062",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Spinlock happens where the priority of a process caused an infinite loop due to it not having access to a critical section problem."
+      },
+      "id": "3153",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "precoess/thread卡在loop裡無法結束運行"
+      },
+      "id": "1785",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "busy waiting is some processes are waiting for lock or mutex to get into critical section, and some process are looping and did not release the key so other processes are waiting for a long time."
+      },
+      "id": "1961",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "把虛擬記憶體跟實體記憶體分開，不讓程式碼看到實際的位址"
+      },
+      "id": "1730",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "持續向系統確認某個狀態是否成立，以達到鎖的效果。"
+      },
+      "id": "6562",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "process 在 loop 內持續偵測某事件是否發生，若一直沒偵測到，就會一直在 loop 內等待"
+      },
+      "id": "1849",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "當一個行程或執行緒想要某項資源，但那項資源目前被佔用或lock，而不斷去查看critical section可否進入，或是一直在輪詢設備可否使用。"
+      },
+      "id": "2599",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "一個process沒有真正在運行而是不斷重複的去確認一個特定狀態是否存在。Spinlock通常用於確認Critical section此時是否是lock的狀態，如果不是代表沒有其他process在裡面跑並且可以進入CS去跑的。"
+      },
+      "id": "2034",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "When a process is waiting for a resource, it doesn't rest but keep checking if CPU release the resource or the running process has done, which is kind of wasting CPU utilization."
+      },
+      "id": "2213",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "process等待的時候是使用loop的方式來達到等待的效果"
+      },
+      "id": "1601",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "有共享的資料時，當一個process正在執行，另一個process進入spinlock等待。"
+      },
+      "id": "1747",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "一個low priority的process A已經拿到lock, 同時一個high priority的process B想使用A正在使用的資源, 但因為B的priority比較高, 讓A沒辦法釋放lock, B只能一直等待, 無法使用資源"
+      },
+      "id": "2029",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting means that a thread is looping since it needs to repeatedly check if the resource (such as a lock that is holding by another thread) is released."
+      },
+      "id": "2434",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is a situation when a thread is looping, continuously checking whether a condition exists that it to continue."
+      },
+      "id": "2056",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "busy waiting常見於當一個process需要等待某個資源，像是lock或semaphore等，thread會一直發出詢問直到資源釋放，可能會導致CPU 使用率下降"
+      },
+      "id": "1671",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "high priority的process 陷入spinlock loop,進入不到critical section執行不了,導致priority inversion"
+      },
+      "id": "1963",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "一個process一直在不斷的進行迴圈，一直不斷的檢查是否能進入critical section。"
+      },
+      "id": "1910",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "busy waiting 是指當threads or process在執行的過程一直跑空迴圈,去等待資源(例如:I/O 的請求或C.S.的進入)"
+      },
+      "id": "2402",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting or spinlock is the situation where a process is continuously checking a condition in a loop, instead of executing. The process busy waits (continuously runs) instead of sleeping without doing any useful work. "
+      },
+      "id": "2124",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting entails a phenomenon where a process keeps on checking for a chance to enter the critical section, but fails because there is a longer process still executing, so the process keeps on knocking without success."
+      },
+      "id": "2705",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "A task is waiting to get a shared resource and keep running on CPU to check whether the resource is available."
+      },
+      "id": "1914",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "The technique that let process(or thread) keep looping, checking for conditions that the process(or thread) can continue to execute or not. Usually used to control whether the process can go in to the critical section or not."
+      },
+      "id": "1985",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "The CPU is asking or requesting device or resource until it get the resource, and it will decrease the utilization of CPU."
+      },
+      "id": "4971",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "透過loop 迴圈，一次只放一個process進入critical section 其餘的process則會被此loop 迴圈擋在外面，不斷執行loop程式碼，直到條件允許後，才讓process進入critical section.  此loop 卡住其餘process的行為，稱為spinlock . "
+      },
+      "id": "1912",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "if a program want to into critical section  wating for  is busy to false to join in"
+      },
+      "id": "1605",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "用一個迴圈不停的去獲得 lock 的狀態"
+      },
+      "id": "2103",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "busy waiting is a situation that thread is looping and continuously checks whether it can enter the critical section."
+      },
+      "id": "1891",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "在等待運作critic section的process會一直提出lock請求，直到成功為止"
+      },
+      "id": "1815",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "透過不斷輪尋的方式來達到 critical section。"
+      },
+      "id": "1663",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "it means that a process is continuously waiting for a resource that currently isn't available , but the proces still occupies the cpu time  , so the cpu is occupied but not doing actual computation , waste of time . \n"
+      },
+      "id": "1878",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Spinlock is a process keeping in a loop and continuously checking whether there is a condition can make it continue such as entering a critical section or holding a resource."
+      },
+      "id": "1946",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "A process is not executing and it keep asking if it is allowed to get CPU."
+      },
+      "id": "1825",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "A process keep looping checking whether a resource is available."
+      },
+      "id": "3154",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "一個低優先權的Process在critical section,高優先權process在wait lock,會造成低優先權的process無法釋放lock"
+      },
+      "id": "2234",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "When process run in while loop such as while(lock){}, waiting resource to unlock."
+      },
+      "id": "1644",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "high priority thread is keep looping to wait the resource hold by other low priority thread, prevent low priority thread release the resource"
+      },
+      "id": "1876",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "a process continuously try to get the resource(lock) until it get."
+      },
+      "id": "1901",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "an atomic instruction based lock needs to loop in execution to wait until lock release"
+      },
+      "id": "2429",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "當一個process持續檢查自己是否持有lock或semaphore而一直在跑while迴圈，占用CPU資源，等待獲得lock或semaphore即是busy waiting"
+      },
+      "id": "2015",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "when a process(thread) is in a critical section, another process(thread) also want to go into the critical section, it will keep trying to enter the critical section."
+      },
+      "id": "2035",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "will lead to priority inversion"
+      },
+      "id": "1714",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "spinlock is the process is looping ,check if the codition is met it allow to excute."
+      },
+      "id": "2028",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "the process is looping, and waiting for access of critical section"
+      },
+      "id": "1716",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "threads不斷執行迴圈反覆確認是否完成"
+      },
+      "id": "1784",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "在有優先權順序的時候，高優先權的一直在loop中迴圈進不去critical section，因為低優先權的沒有把lock釋放，造成高優先權的無法進入，稱為busy waiting"
+      },
+      "id": "1944",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting means the process that has a higher priority is stuck by the process that has lower priority who lock the CPU. A process that has a higher priority will continuously ask for CPU, so the CPU cannot complete the process with lower priority smoothly and effectively.   "
+      },
+      "id": "2678",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "when a process is ready, it keeps checking if there is a change to execute"
+      },
+      "id": "1715",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "某個區塊被LOCK住,不停地詢問能不能進去區塊內,並未睡眠"
+      },
+      "id": "2099",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting is when the process waits for another one to release the lock of the critical section"
+      },
+      "id": "4079",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "指持續輪詢等待。指被一個特定條件 luck 鎖定無法執行，不斷等待，直到特定條件允許\n才能繼續執行。"
+      },
+      "id": "2569",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "Continuously checking whether it allows to be executed or not in the loop, so that the lock can not be released."
+      },
+      "id": "2111",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "A spinlock is a phenomenon where a thread holds a lock but one or many threads are kept occupying the resources and cannot exit its critical section. So the threads are starving."
+      },
+      "id": "1948",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "當一個高優先權的thread或process需要一個資源才能執行，但此資源卻在另一個低優先權的thread或process上，以至於高優先權的thread在cpu上持續迴圈等待資源，造成cpu持續被占用。"
+      },
+      "id": "2208",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "所謂忙碌等待：高優先權等待低優先權解鎖，此時不會睡眠或阻塞，而是進入迴圏等待滿足條作，此時會造成CPU浪費。"
+      },
+      "id": "2533",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "當thread在等待CS內的resource，thread不會休眠而會一直在CS外執行loop檢查是否有lock可以拿"
+      },
+      "id": "1976",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "a thread is keep waiting and checking some condition that allow it to continue"
+      },
+      "id": "2220",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "thread循環進行，持續查看是否有允許可進入執行，透過poll查看內容。\nlow-priority進入lock，但因執行順序取決於優先權高低，所以應由high-priority先執行，導致low-priority佔用lock並在裡面出不來，而high-priority卻無法進入lock。高優先權者實際上要先執行，卻被卡住而無法執行就稱為busy waitiong"
+      },
+      "id": "2060",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "a process is looping, continugous checking whether condition exist to allow it to continue\n常被用於等待進入critical section和poll device等等"
+      },
+      "id": "1828",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "when a process A with lower priority have the lock, and a process B with higher priority but not have a lock, process A will always waiting B to be executed because it has higher priority, but the process B can not execute because it does not have the lock, and A have not chance to execute to release the lock. The solution is priority inheritance, give the process that held lock the highest priority and set the priority back after that process have executed."
+      },
+      "id": "1885",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "一個process 一直在looping 等待某些條件被滿足（有可能是等待lock），這就是busy waiting"
+      },
+      "id": "1799",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "One process is keep checking the shared resource or entering critical section is available or not, while the resource is occupied by other process."
+      },
+      "id": "1806",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Assume they are two process, A and B.\nA is in Critical Section now, and B is waiting for the permission and check by a loop.\nThe condition B meet is busy waiting."
+      },
+      "id": "1923",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "一個process在某個迴圈中不斷檢查是否滿足某些條件，直到可以繼續執行，常用於檢查是否可以執行crital section"
+      },
+      "id": "1845",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "busy waiting就是一個程式遇到一個loop，CPU要一直確定那個loop的condition 是否達成，無法往下執行，CPU就會無法執行其他程式，他會在那邊一直等到condition達成"
+      },
+      "id": "1848",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "The threads is looping , continuously checking the exist state,  check whether it can run.\nAnd this may consume CPU resources, waste the resources. "
+      },
+      "id": "4944",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "busy waiting (spinlock) is the situation that the thread is looping, continuously checking whether the condition exists that allow it to continue."
+      },
+      "id": "2032",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "在loop裡面，CPU要一直check process的狀態，導致CPU被process占用很多時間但一直在空轉"
+      },
+      "id": "1906",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "當有兩個processes要進入critical section，但critical section只允許一個process進入，而另一個process等待的狀態即為busy waiting(spinlock)"
+      },
+      "id": "2382",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "就是有thread在critical section 時外面的人進不去只能等裡面的人釋放鎖才能進去，在這段時間就會一直呼叫while去看裡面的人好了沒，只能在外面空等"
+      },
+      "id": "2036",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Busy waiting, or call as spinlock, always loop to check a condition in a process, "
+      },
+      "id": "1846",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "優先權較高的行程會一直執行迴圈來輪詢cpu是否空閒"
+      },
+      "id": "2050",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "一個程式不斷在迴圈內檢查條件，條件符合程式才可以繼續運行，這會不斷佔用CPU"
+      },
+      "id": "1968",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "The status that a process keep checking whether the shared resource is occupied by another process. The process that is using the shared resource would be holding a lock."
+      },
+      "id": "2345",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "用while loop不斷測試該process能否進入critical section\n"
+      },
+      "id": "1790",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "What is busy waiting (spinlock)?",
+    "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0",
+    "question_type": "essay",
+    "reference_answer": "Busy waiting, also known as a spin lock, is the situation when a thread is looping, continuously checking whether a condition exists that will allow it to continue. It is often used to check if a thread can enter a critical section or to poll a device to see if data is ready (or written/sent)."
+  },
+  "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0"
+}

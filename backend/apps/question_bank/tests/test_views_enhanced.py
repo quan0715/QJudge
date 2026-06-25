@@ -3,7 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
-from apps.question_bank.models import QuestionBank, Question
+from apps.question_bank.models import QuestionAsset, QuestionBank
+from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 
 User = get_user_model()
 
@@ -47,11 +48,33 @@ class QuestionBankViewsEnhancedTests(APITestCase):
     def test_submit_and_review_workflow(self):
         """Test the full submit for review -> admin review workflow"""
         # Add a question first (required for submission)
-        Question.objects.create(
+        asset, _version = create_question_asset(
+            owner=self.teacher,
+            asset_type=QuestionAsset.AssetType.CODING,
+            title='Test Question',
+            prompt='',
+            visibility=QuestionAsset.Visibility.PRIVATE,
+            payload={
+                'score': 100,
+                'order': 0,
+                'difficulty': 'medium',
+                'time_limit': 1000,
+                'memory_limit': 128,
+                'options': [],
+                'correct_answer': None,
+                'metadata': {},
+                'test_cases': [],
+                'language_configs': [],
+                'forbidden_keywords': [],
+                'required_keywords': [],
+            },
+            actor=self.teacher,
+        )
+        ensure_question_bank_membership(
             bank=self.bank,
-            question_type='coding',
-            created_by=self.teacher,
-            title='Test Question'
+            question_asset=asset,
+            order=0,
+            actor=self.teacher,
         )
         
         # Submit for review

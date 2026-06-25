@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Describe the concept of \"demand paging\" as a virtual memory implementation. Why is it commonly used?",
+  "question_id": "f2dac513-8733-4f95-8e93-ce1e5e922334",
+  "question_type": "essay",
+  "reference_answer": "a. Demand paging loads pages into memory only when they are needed (on page fault), not at process start.\nb. It is commonly used because it reduces initial load time, saves memory by not loading unused pages, and allows larger programs than physical memory."
+}

@@ -1,0 +1,360 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","13260","S109","(1) time: 會需要更多的運算來解決 failure
+(2) space: 會需要更多的資料來解決 failures
+(3) information: 會需要更多的資訊來做error detection, recovery","3","列出三種正確 type（time/space/information）並有合理描述。",""
+"2","11030","S015","Information redundancy: Use additional data to handle faults. (ex. Hamming Code)
+Time redundancy: Use additional calculation to handle faults.
+Space redundancy: Use additional components (ex. Disk, Computation nodes) to handle faults.","3","列出三種正確 type，附範例（Hamming Code），描述正確。",""
+"3","13872","S054","1, time redundancy：錯誤時在執行一次
+2, space redundancy：有額外的空間作為備援
+3, information  redundancy：多個資訊可以比較，以多個相同者為主","3","列出三種正確 type，描述合理。",""
+"4","10959","S117","1. time redundancy: use extra computations to cope from failures
+2. space redundancy: add extra resources to cope from failures
+3. information redundancy: use extra resources to cope from failures","2","三種 type 皆列出，但 information 與 space 的描述對調（將 information 寫為 use extra resources）。",""
+"5","10986","S093","1. time redundancy: 提供額外的時間去計算跟處理錯誤
+2. space redundancy: 提供額外的資源去應對錯誤的發生
+3. information redundancy: 提供額外的訊息去看有沒有錯並應對錯誤的發生","3","列出三種正確 type，描述合理。",""
+"6","15735","S012","1. triple modular redundancy
+2. information redundancy
+3. Byzantine fault tolerance","1","僅 information redundancy 正確；TMR 為 space 之子類，Byzantine 非三大主類型。",""
+"7","10969","S108","time redundancy: 多次計算來避免錯誤，
+space redundancy: 多準備硬體來避免硬體壞掉，
+information redundancy: 多儲存額外的資訊，例如 parity bit 等等，來實行 error detection or correction.","3","列出三種正確 type，附範例（parity bit），描述正確。",""
+"8","10965","S099","1. Information redundancy: use extra information to detect and recover error.
+2. Time redundancy: use extra computation to cope with failure.
+3. Space redundancy: use extra resource to cope with failure.","3","列出三種正確 type，描述正確。",""
+"9","10947","S070","1.information redundancy:多一些資料來做錯誤偵測或是錯誤修改(e.g. checksum)
+2.time redundancy: 增加check point等 來做到錯誤時可以回到之前的狀態(e.g. recovery block)
+3.space redundancy:增加額外的資源、硬體等來減少(偵測)錯誤(e.g. TMR voter)","3","列出三種正確 type，附範例（checksum/recovery block/TMR），描述正確。",""
+"10","10885","S080","information redundancy: requires more information to allow error detection and recovery
+time rudundancy: require more computation time to deal with failure
+space redundancy: require more resources to deal with failure","3","列出三種正確 type，描述合理。",""
+"11","10898","S003","Information: add extra information (like checksum)
+Space: multiple resources to deal with faults
+Tims: do extra calculation","3","列出三種正確 type（Tim→Time），有簡短合理描述。",""
+"12","10992","S035","1. information redundancy : the additional information are added to detect the error or do the correction.
+2. time redundancy : do extra computation to cope with error, like recovery block. 
+3. space redundancy : additional resource or space are used to cope with error, like replication of data.","3","列出三種正確 type，附範例（recovery block/replication），描述正確。",""
+"13","11093","S037","information redundancy: use additional resource to deal with fault.
+time redundancy: repeat executing the module to and choose the result most module perform.
+space redundancy: use checkpoints to store the current status. If the primary module failed, back to checkpoint and use secondary way.","2","三種 type 皆列出，但描述全部對調（information→resource, time→voting, space→checkpoint）。",""
+"14","10957","S097","1. Space redundancy - send more data to be able to recover errors
+2. Time redundancy - do more computations to reduce probability of fault
+3. Resource redundancy - several copies of resource exists, if one resource is unavailable, the other is used","1","僅 Time 正確；Space 描述為 send more data（屬 information），Resource redundancy 非標準類型。",""
+"15","14976","S013","Information: Store extra information to achieve fault tolerance
+Time: use more computation to achieve fault tolerance
+Space: use more replications and voting mechanism to achieve fault tolerance","3","列出三種正確 type，附 voting 描述，描述正確。",""
+"16","11103","S040","information: use extra bit/data to make sure original data is good, like check sum
+time: redo multiple times when fault
+space: use more resource to do a same thing","3","列出三種正確 type，附 checksum 範例，描述合理。",""
+"17","11007","S124","Information redudancy : additional information to enable error detection/correction in data 
+Time redudancy : additional instructions to detect and correct faults during computing 
+Space redudancy : additional ressources to assure in case of ressources crash/unavailabitiy ","3","列出三種正確 type，描述正確。",""
+"18","11129","S121","Information redundancy : it adds extra information to the date to prevent corruption and bit changes
+Space redundancy : it adds extra copy of data to cope with failure
+Time redundancy : it processes several time a action to cope with failure","3","列出三種正確 type，描述合理。",""
+"19","10951","S068","Time：讓計數器可以多一些上限，使 process 以＝有更多時間可以處理或是等待回應
+Space：同一份設備複製三次或是多次，用投票當方式選出正確的資料
+Information：傳遞或是儲存的資料多一些 bit (資訊) 讓有錯誤時可以透過這些 validation bit 檢查推出正確的數值","3","列出三種正確 type，附詳細描述（counter/retry/voting/validation bits），正確。",""
+"20","10960","S102","time redundancy:透過多執行幾次來減少錯誤的發生
+space redundancy:透過額外多複製資料來減少錯誤的發生
+information redundancy:增加額外的資訊來檢查，像是checksum","3","列出三種正確 type，描述合理（checksum 範例）。",""
+"21","11086","S034","1.information redundancy: 增加額外的資訊來偵錯或修復。
+2.time redundancy: 多次計算來提高正確性。
+3.space redundancy: 使用額外的resource。","3","列出三種正確 type，描述合理。",""
+"22","10904","S084","1. Information redundancy : 提供額外的資訊處理錯誤。(ex:hamming code)
+2. Time redundancy : 提供額外運算處理錯誤。(ex:recovery block)
+3. Space redundancy : 提供額外資源處理錯誤。","3","列出三種正確 type，附範例（hamming code/recovery block）。",""
+"23","10944","S079","time redundancy: 重複執行某function 以提高正確性
+space redundancy: add extra resource to reduce fault
+information redundancy: 額外增加一個bit幫助判斷減少錯誤率 ex: ECC","3","列出三種正確 type，附範例（ECC），描述合理。",""
+"24","12994","S122","time redundancy:增加額外時間去驗證
+information redundancy 新增額外的code去驗證 如hamming code
+space  redundancy:新增額外的空間去驗證","2","列出三種 type，但三項描述均僅『增加額外X去驗證』，過於空泛，缺乏具體機制。",""
+"25","10953","S086","Information redundancy: add extra information to allow for error detection and recovery
+time redundancy: perform extra computation to cope with failure
+space redundancy: add extra resource to cope with failure","3","列出三種正確 type，描述合理。",""
+"26","10925","S052","1. Information redundancy: Add extra information to the message for error detection and recovery, e.g. parity, hamming code.
+2. Time redundancy: Add extra computations to the message to check whether the message is correct. e.g. recovery block
+3. Space redundancy: Add extra resources to the message e.g.replication of the message and receiver vote for the right one.","3","列出三種正確 type，附詳細範例（parity/hamming/recovery block/replication/voting）。",""
+"27","11025","S033","time redundancy
+space redundancy
+information redunancy","2","僅列出三種 type 名稱，無任何描述。",""
+"28","11040","S123","Information redundancy: It adds extra information for error detect and recovery.
+Time redundancy: It adds extra computation to deal with failures.
+Space redundancy: It adds extra resources to deal with failures.","3","列出三種正確 type，描述合理。",""
+"29","10892","S027","information redundancy:加入額外資訊來偵測錯誤及修復錯誤
+time redundancy:透過重複執行或重新計算來修正錯誤
+space redundancy:增加額外硬體或資源，當有元件故障時，還有副本備份可以使用","3","列出三種正確 type，附詳細描述（硬體/資源/副本備份），正確。",""
+"30","14896","S081","1. sequential redundancy
+2. Concurrency redundancy
+3. FIFO redundancy","0","sequential/concurrency/FIFO 皆非三大容錯冗餘類型。",""
+"31","10997","S008","1. Information Redundancy: Add additional information to enable error detection and recovery.
+2. Time Redundancy: Such as checkpoint with re-try, or Recovery Block. Re-try different alternative functions when failure happened.
+3. Resource Redundancy: Replication of data, software, hardware.","3","列出三種正確 type（Resource=Space），附範例（checkpoint/recovery block/replication），描述正確。",""
+"32","14331","S078","Space redundancy
+Time redundancy","1","僅列出 Space、Time 兩種 type，無描述，且缺少 Information。",""
+"33","11022","S087","Information redundancy:加入額外的資訊來進行錯誤的偵測或是復原
+Time redundancy:多次進行同個操作來避免錯誤
+Space redundancy:使用額外的資源或是硬體元件來避免錯誤","3","列出三種正確 type，描述合理。",""
+"34","10864","S022","Time redundancy, space redundancy, information redundancy.","2","僅列出三種 type 名稱，無任何描述。",""
+"35","11649","S110","space redundancy: use extra memory space
+time redundancy: execute numbers of computations to achieve fault tolerance
+information redundancy: use extra data information to correct or restore missing data 
+","2","列出三種 type，但 space 描述『use extra memory space』過於狹隘（space 應為額外硬體/元件）。",""
+"36","10924","S082","1. information redundancy: using additional information to correct the fault. (hamming code)
+2. time redundancy: using additional time to compute the correct reply. (RB)
+3. space redundancy: using additional memory space to avoid fault. (TMR)","3","列出三種正確 type，附範例（hamming code/RB/TMR），描述正確。",""
+"37","11019","S105","1. Information redundancy
+2. Time redundancy
+3. Space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"38","10930","S111","1. 資訊冗餘：藉由使用額外資訊使錯誤發生時可以回復
+2. 時間冗餘：當錯誤發生時再次執行已得到結果
+3. 空間冗餘：使用額外設備同時執行，在失敗時有backup plan","3","列出三種正確 type（資訊/時間/空間冗餘），描述合理。",""
+"39","11008","S085","資訊冗餘: 額外資訊用於驗證及復原
+時間冗餘: 額外計算時間以應對錯誤
+空間冗餘: 額外資源(軟體、硬體等)以應對錯誤
+","3","列出三種正確 type（資訊/時間/空間冗餘），描述合理。",""
+"40","10879","S004","information redundancy:增加額外的資訊以便偵錯、修復
+time redundancy:透過額外的計算來避免錯誤
+space redundancy:增加額外的resource來避免錯誤","3","列出三種正確 type，描述合理。",""
+"41","10937","S046","Information redundancy: adds extra information to error detection
+Time redundancy: performs more compatution to core the failures
+Space redundancy: adds extra resource to core the failures","3","列出三種正確 type，描述合理。",""
+"42","11015","S005","information redundancy: use extra information like extra bits to ensure the correctness. ex:hamming code
+time redundancy: use extra time to ensure the correctness
+space redundancy: use extra space to ensure the correctness","3","列出三種正確 type，附範例（hamming code），描述合理。",""
+"43","11042","S014","information redundancy
+space redundancy
+time redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"44","11066","S107","Information redundancy: extra informations for error detection and recovery
+Time redundancy: extra computations to cope with failures 
+Space redundancy: extra resources to cope with failures 
+","3","列出三種正確 type，描述合理。",""
+"45","10974","S126","1.time redundancy，重複執行或計算來處理failure
+2.space redundancy 增加額外的資源空間例如硬體來處理failure
+3.information redundancy 增加額外資訊來進行錯誤檢測或是recovery","3","列出三種正確 type，描述合理。",""
+"46","12428","S017","Information redundancy : Use extra information to help error detection and recovery e.g. 漢寧碼
+Time redundancy : it performs additional computations to cope with failure
+Space redundancy : it adds extra resources to cope with failure","3","列出三種正確 type，附範例（漢寧碼），描述合理。",""
+"47","12191","S115","Information redundancy: Adds data to tolerate data faults(ex: huffman code)
+Time redundancy: Adds time related redundancies such as checkpoint so that if a process faults it can continue.
+Space redundancy: Add file redundancy like copying files to tolerate file faults.","2","列出三種 type，但 information 範例（huffman code）屬壓縮非容錯，space 描述過於狹隘（僅 file copy）。",""
+"48","11156","S089","Information Redundancy : 給多的資料來錯誤偵測/更正(例如錯誤更正碼)
+Time Redundancy : 給多的computation to cope with error
+Space Redundancy : 給多的Resource to cope with error","3","列出三種正確 type，附範例（錯誤更正碼），描述合理。",""
+"49","10895","S009","space redundancy:  have extra space that are not used
+time redundancy: have extra computation time
+information redundancy: have redundant information of process","2","列出三種 type，但描述皆過於空泛（have extra space/time/information），缺乏具體機制。",""
+"50","11155","S094","1. information  redundancy ：增加額外的資訊來偵錯、除錯
+2. time redundancy：利用多次計算，retry來應對故障
+3. space redundancy：加入額外的硬體/process/data copy來應對故障","3","列出三種正確 type，附範例（retry/hardware/data copy），描述正確。",""
+"51","11697","S066","1. Information Redundancy 指系統存取更多資訊以應付或修復錯誤
+2. Time Redundancy 指用更多的計算次數防止錯誤發生
+3. Space Redundancy 指用更多的軟硬體資源防止錯誤發生","3","列出三種正確 type（資訊/時間/空間冗餘），描述合理。",""
+"52","11023","S041","Information:
+加入額外的資訊來除錯或是偵測錯誤
+Time:
+重複執行操作以處裡暫時性的錯誤
+Space:
+增加硬體資源、node以增加系統的容錯能力","3","列出三種正確 type，附詳細描述（node/硬體資源），正確。",""
+"53","12655","S031","1. 資訊redundancy :給額外的資訊以增加容錯
+2. 時間redundancy :給額外的時間以增加容錯
+3. 空間redundancy :給額外的資源以增加容錯","3","列出三種正確 type（資訊/時間/空間冗餘），描述合理。",""
+"54","10981","S116","time redundancy, information redundancy , space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"55","11036","S059","1. information redundancy: 增加資訊(資訊冗餘)用以偵測錯誤並更正
+2. time redundancy: 增加計算次數與操作次數以更正錯誤
+3. space redundancy: 增加硬體與額外空間以面對故障","3","列出三種正確 type，描述合理。",""
+"56","10932","S064","information redundancy：增加資訊以應對故障或恢復
+time redundancy：增加計算應付故障
+space redundancy：增加硬體資源應付故障
+","3","列出三種正確 type，描述合理。",""
+"57","11048","S101","1. Time redundancy
+2. Space redundancy
+3. Information redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"58","11045","S103","1. information redundancy
+2. time redundancy
+3. space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"59","15752","S104","information redundancy : 在原始資料中加入額外資訊用來錯誤偵測與修復
+time redundancy : 重複執行相同的操作或計算用來處理暫時性的錯誤
+space redundancy : 增加額外的硬體或是軟體資源用來分攤故障節點的任務","3","列出三種正確 type，附詳細描述（暫時性錯誤/硬體軟體備援），正確。",""
+"60","10905","S023","1. Information redundancy(加入錯誤偵測碼)
+2. Time redundancy(重新執行計算)
+3. Space redundancy(加入額外的實體備援硬體)","3","列出三種正確 type，附描述（錯誤偵測碼/重新執行/實體備援），正確。",""
+"61","10901","S113","1.time redundancy用多餘的運算時間去維護錯誤，像是可以用RB，透過多種算法搭配check point。
+2.information redundancy用多餘的傳輸資訊維護錯誤，像是hamming code。
+3.space redundancy用多餘的機器資訊去維護錯誤，像是用three module。","3","列出三種正確 type，附範例（RB/checkpoint/hamming code/three module），描述正確。",""
+"62","11001","S055","1.information redundancy 例如漢名碼
+2.time redundancy 多傳幾次
+3.space redundancy 多用幾台設備 例如voter等等","3","列出三種正確 type，附範例（漢名碼/voter），描述合理。",""
+"63","12815","S119","1.Information redundancy: it adds extra information to allow for error detection and recovery.
+2.Time redundancy: it adds extra computation to cope with failure.
+3.Space redundancy: it adds extra resources to cope with failure.","3","列出三種正確 type，描述合理。",""
+"64","10958","S067","1.time redundancy :寫多個相同功能的不同程式,讓每個程式跟預期答案去比對如果沒有達到想要的則回到原本狀態執行其他程式
+2.space redundancy :同時跑很多次相同的程式,彼此之間用投票的方式多數決,決定正確資訊是甚麼
+3.information redundancy:增加幾個bit,讓它具有偵錯跟修復的能力","3","列出三種正確 type，附詳細描述（acceptance test/voting/extra bits），正確。",""
+"65","11430","S076","Information Redundancy: Adds checks/data for error detection and monitoring (e.g. checksum and Hamming Code)
+Time Redundancy: Performs extra computations to cope with failure (e.g. retrying logic)
+Space Redundancy: Adds extra resources/components to cope with failure (e.g. extra hardware/ software versions)","3","列出三種正確 type，附範例（checksum/Hamming Code/retry/extra hardware），正確。",""
+"66","13350","S074","i. Hardware redundancy
+ii. Software redundancy
+iii. Information redundancy","1","僅 Information 為三大類型之一；Hardware/Software 屬 Space 之子類，非獨立主類型。",""
+"67","11179","S063","Information redundancy: additional information to convert error
+Time redundancy: additional computation to cope with failure
+Space redundancy: additional resource to cope with failure ","3","列出三種正確 type，描述合理。",""
+"68","11115","S090","1. Information redundancy: Add extra information for error detection and recovery.
+2. Time redundancy: Perform extra computation for dealing with errors.
+3. Space redundancy: Add extra resources for dealing with errors.","3","列出三種正確 type，描述合理。",""
+"69","12408","S100","1. Time redundancy : use additional computation to achieve fault tolerance.
+2. Resource redundancy : use additional resource to maintain fault tolerance, like RAID.
+3. Approach redundancy : use additional approaches to deal with the fault.","1","僅 Time 為標準類型；Resource 接近 Space 但非標準命名，Approach redundancy 非三大類型。",""
+"70","10877","S114","1. information redundancy
+2. Temporal redundancy 
+3. Spatial redundancy","2","列出三種正確 type（Temporal=Time, Spatial=Space），但無任何描述。",""
+"71","12052","S038","1. space redundancy 
+2.data redundancy 
+3.time redundancy ","2","列出三種正確 type（data→information），但無任何描述。",""
+"72","11041","S047","Space Redundancy：給多一點的資源 例如說有多個 replicas 去避免單一的資源故障
+Time Redundancy：可以重傳有點類似 tcp retransmission
+Information Redundancy：例如 checksum 可以做 error checking 檢測有沒有錯誤的 bit","3","列出三種正確 type，附範例（replicas/checksum/retransmission），描述正確。",""
+"73","11378","S044","infomation redundancy: add extra information to do error detection or data recovery
+time redundancy: use extra time to redo the mission
+space redundancy: use extra space to improve reliability","3","列出三種正確 type，描述合理。",""
+"74","11013","S075","time redundancy
+space redundancy
+information redundancy: TMR","1","列出三種 type 名稱，但 information 範例 TMR 實為 space redundancy，描述錯誤。",""
+"75","10875","S030","space redundancy : 提供更多的資源來對錯誤更加容忍，可以同個部件有多個 進行 voting 來避免單獨的錯誤影響整個系統  
+time redundancy : 透過儲存 checkpoint 和準備備用 演算法 ，在 主要演算法失效時使用備用演算法做替補
+information  redundancy  : 透過在資料中加入檢查碼來達到 fault tolerance ，例如 漢名碼","3","列出三種正確 type，附詳細正確描述（voting/checkpoint/漢名碼）。",""
+"76","10938","S106","info redundancy : storing additional information 
+time redundancy  : by giving extra computation (time) 
+space redundancy :allocating additional hardware resources ","3","列出三種正確 type，描述合理。",""
+"77","10896","S019","information redundancy : 增加額外 information 用於 error detection or recovering
+time redundancy : 增加額外 execution 用於處理錯誤
+space redundancy : 增加額外 resource 用於處理錯誤","3","列出三種正確 type，描述合理。",""
+"78","10908","S020","Information redundancy: it adds extra information to allow for error detection and recovery
+Time redundancy: it performs extra computations to cope with failures
+Space redundancy: it adds extra resources to cope with failures","3","列出三種正確 type，描述合理。",""
+"79","11088","S010","information redundancy: append extra information 
+space redundancy: add extra copies of resources
+time redundancy: append extra computation","3","列出三種正確 type，描述合理。",""
+"80","11132","S091","Information redundancy:使用更多資訊
+time redundancy:增加更多計算
+space redundancy:使用更多資源
+","2","列出三種 type，但描述僅為名稱之重述（使用更多資訊/計算/資源），過於空泛。",""
+"81","10928","S051","information redundancy
+time redundancy
+space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"82","13964","S039","information redundancy: extra information 用於偵錯或復原
+time redundancy: extra computation
+space redundancy: extra resource","2","列出三種 type，但描述過於簡略（僅 extra information/computation/resource），未說明具體機制。",""
+"83","10942","S018","information redundancy:加入額外資訊來檢測、修正錯誤
+time redundancy:用額外計算來處理錯誤
+space redundancy:用額外資源來處理錯誤","3","列出三種正確 type，描述合理。",""
+"84","10963","S049","1.information redundancy:提供額外資訊，讓系統可以監測修復錯誤
+2.time redundancy:執行重複運算避免錯誤
+3.space redundancy:提供額外資源處理錯誤","3","列出三種正確 type，描述合理。",""
+"85","11018","S053","information redundancy 增加資訊判斷
+time redundancy 增加計算次數
+space redundancy 增加額外設備","2","列出三種 type，但描述過於簡略（增加資訊/計算次數/設備），缺乏具體機制說明。",""
+"86","10946","S092","information redundancy: copy resource
+time redundancy: use extra time
+space redundancy: use extra space","2","列出三種 type，但 information 描述『copy resource』錯誤（應為額外資訊/位元）。",""
+"87","13183","S021",".","0","未作答，僅輸入句點。",""
+"88","11027","S050","1. time 再重新跑一次
+2. space 增加記憶體
+3. information 給更多的bit去檢查錯誤","2","列出三種 type，但 space 描述僅『增加記憶體』過於狹隘。",""
+"89","11020","S036","information redundancy:建立錯誤檢查碼
+time redundancy:給更多的時間做處理
+space redundancy:給額外的資料做備份","3","列出三種正確 type（錯誤檢查碼/更多時間/資料備份），描述合理。",""
+"90","10980","S048","1. Information redundancy
+2. Time redundancy
+3. Space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"91","11284","S112","information redundancy: 用額外的資訊檢查、處理錯誤訊息 ex. check sum
+time redundancy: 用額外時間計算錯誤訊息
+space redundancy: 增加額外的硬體或設備，例如備援CPU","3","列出三種正確 type，附範例（checksum/備援CPU），描述合理。",""
+"92","10935","S006","1. info, redundant infomations need to do error correction or detection
+2. time, redundant time needed to cope the problem
+3. space, redundant memory space needed to cope the problem","2","列出三種 type，但 space 描述僅『redundant memory space』過於狹隘。",""
+"93","11113","S057","增加訊息檢測錯誤
+不斷重複命令
+增加硬體資源","3","雖未使用英文命名，但三項描述（訊息檢測/重複命令/硬體資源）對應三種正確 type。",""
+"94","13295","S002","information redundancy: add extra data to detect errors.
+time redundancy: do it again to make sure it's right.
+space redundancy: add extra resource (back up).","3","列出三種正確 type，描述合理。",""
+"95","11085","S007","Information Redundancy: Add more information to make it recoverable
+Time Redundancy: Sacrifice more time to prevent failures or easily recover
+Space Redundancy: Sacrifice more space to prevent failures or easily recover","3","列出三種正確 type，描述合理。",""
+"96","10983","S118","1. Information Redundancy: Use algorithms to double check that the output is correct.
+2. Space Redundancy: Create an extra space to receive output.
+3. Time Redundancy: set timer and retry if not executed.","2","列出三種 type，但 information 描述（use algorithms to double check）與 space 描述（create extra space）偏離正確定義。",""
+"97","12582","S016","資訊冗餘:它增加額外資訊，以便錯誤偵測與恢復。
+時間冗餘:它執行額外的運算以應對失敗。
+空間冗餘:增加額外資源以應對故障。","3","列出三種正確 type（資訊/時間/空間冗餘），描述合理。",""
+"98","11122","S083","1.資訊冗餘：加入額外資訊(如ECC)來偵測或修正錯誤。
+2.時間冗餘：將同一操作重複執行多次，以確認結果正確或抵抗暫時性錯誤。
+3.實體冗餘：使用多個硬體元件(如多台伺服器或多個CPU)來執行相同任務，以提昇系統與容錯能力。","3","列出三種正確 type（資訊/時間/實體冗餘），附範例（ECC/retry/多個CPU），描述正確。",""
+"99","10962","S088","information redundancy : 增加information來detection or recovery error
+time redundancy : 做額外的運算來應付failure
+space redundancy : 增加resources來應付failure","3","列出三種正確 type，描述合理。",""
+"100","11202","S058","1.information redundancy : add some extra bit at the original message that we want to send , in order to detect or correct the error , for example , Hamming code. 
+2.time redundancy : use extra computation to cope with failure.
+3.space redundancy : use extra resource to cope with failure.","3","列出三種正確 type，附範例（Hamming code），描述合理。",""
+"101","10929","S043","imformation redundancy 提供資訊資源
+time  redundancy 多次運算
+space redundancy  增加硬體設備","2","列出三種 type，但描述過於簡略（提供資訊資源/多次運算/增加硬體設備）。",""
+"102","10886","S060","information redundancy: 加入一些錯誤包進行偵錯 
+Triple Modular Redundancy 
+Recovery Blocks: involves executing a primary algorithm, checking the result with an Acceptance Test (AT), and rolling back to execute a secondary algorithm if the test fails
+time redundancy: 重複的時間段壓縮（影片等）
+space redundancy: 重複空間的壓縮（圖片等）","0","time/space 描述誤解為影片與圖片壓縮，非容錯冗餘之定義。",""
+"103","10949","S024","information redundancy: add the extra information for the error detection and recovery
+time redundancy: add the extra calculation to cope with the failure
+space redundancy: add the extra resource to cope with the failure","3","列出三種正確 type，描述合理。",""
+"104","10989","S095","1.imformation redundancy 
+2.time redundancy
+3.space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"105","11094","S077","1. information redundancy use redundant be to cope with failure.
+2. time redundancy use  extra computation to cope with failure.
+3. space redundancy use extra resources to cope with failure.","3","列出三種正確 type，描述合理。",""
+"106","10883","S120","space：用多個硬體資源執行同一個process
+Information：多存位元使得錯誤可被偵測甚至修補
+time: 重複做同一個process","3","列出三種正確 type，描述合理（多個硬體/位元偵錯/重複process）。",""
+"107","10934","S073","1.information redundancy:多加額外的資訊去偵測錯誤
+2.time redundancy:花時間多跑幾次，去應對錯誤
+3.space redundancy:增加硬體資源，解決錯誤","3","列出三種正確 type，描述合理。",""
+"108","11051","S069","1.time redundancy :透過重複執行或運算來避免fail
+2.information redundancy: 透過增加bit來更正錯誤或提供更多資訊
+3.space redundancy :透過增加硬體資源來避免錯誤","3","列出三種正確 type（time/information/space），描述合理。",""
+"109","10941","S072","Information redundancy: add extra information to error detect and correct
+Time redundancy: extra computation to cope failure 
+Space redundancy: extra resource to cope failure","3","列出三種正確 type，描述合理。",""
+"110","10936","S042","1. information redundancy: extra information allow for error detection and recovery
+2. time redundancy: extra computation to cope with failure
+3. space redundancy: extra resources to cope with failure","3","列出三種正確 type，描述合理。",""
+"111","11050","S071","1.Time Redundancy: 透過增加額外的運算避免fail
+2.Space Redundancy: 透過增加額外硬體資源避免fail
+3.Information Redundancy: 透過增加額外資訊避免fail","3","列出三種正確 type，描述合理。",""
+"112","11090","S062","1. Information redundancy
+2. Time redundancy
+3. Space redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"113","11056","S045","1.information redundancy:加額外的資料來對資訊檢查錯誤和修復
+2.time redundancy:花額外的時間去重新計算，避免錯誤
+3.space redundancy:有備用的硬體裝置如果原本的壞了就可以用備用的或是用投票機制避免錯誤","3","列出三種正確 type，附詳述（檢查錯誤/retry/備用硬體/voting），正確。",""
+"114","11655","S056","1. Information redundancy- adds extra information for eror detection and correction, such as parity bits and checksums
+2. Time Redundancy - peforms extra computations or retries to cover from failures
+3. Sapace Redundancy - uses extra hardware, software, or replicated resources to tolerate failures","3","列出三種正確 type，附範例（parity bits/checksums/retries/hardware replication），正確。",""
+"115","11105","S128","1. notification
+2. Try except
+3. server-client communication
+","0","notification/try-except/server-client 皆非三大容錯冗餘類型。",""
+"116","10975","S029","1. information  redundancy 
+2. space redundancy
+3. time redundancy","2","僅列出三種 type 名稱，無任何描述。",""
+"117","10988","S065","time redundancy:花額外時間計算來應對系統失效
+space redundancy:花額外資源來應對系統失效
+information redundancy:傳送額外資訊用來修正或檢查錯誤","3","列出三種正確 type（time/space/information），描述合理。",""
+"118","11037","S098","information redundancy: use additional information to detect error or recovery
+time redundancy: use additional computation to prevent fault
+space redundancy: use additional variables or datastructure to prevent fault
+","2","列出三種 type，但 space 描述（additional variables/datastructure）偏離 space 本意（應為硬體/實體資源）。",""

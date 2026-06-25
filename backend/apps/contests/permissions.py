@@ -1,7 +1,6 @@
 """
 Permissions and role detection for contests.
 """
-from django.conf import settings
 from rest_framework import permissions
 from django.utils import timezone
 
@@ -63,14 +62,6 @@ def _native_contest_scope(user, contest) -> str:
     return 'outsider'
 
 
-def _is_classroom_acl_source_enabled() -> bool:
-    """
-    Classroom-bound contests should resolve permissions from the classroom scope
-    by default. The env flag remains as an escape hatch.
-    """
-    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', True))
-
-
 def _get_primary_classroom_binding(contest):
     return (
         contest.classroom_bindings.select_related('classroom')
@@ -98,14 +89,13 @@ def get_contest_scope_role(user, contest) -> str:
 
     native = _native_contest_scope(user, contest)
 
-    if _is_classroom_acl_source_enabled():
-        binding = _get_primary_classroom_binding(contest)
-        if binding is not None:
-            from apps.classrooms.permissions import get_user_role_in_classroom
+    binding = _get_primary_classroom_binding(contest)
+    if binding is not None:
+        from apps.classrooms.permissions import get_user_role_in_classroom
 
-            classroom_role = get_user_role_in_classroom(user, binding.classroom)
-            classroom_scope = map_classroom_role_to_contest_scope(classroom_role)
-            return _max_contest_scope(classroom_scope, native)
+        classroom_role = get_user_role_in_classroom(user, binding.classroom)
+        classroom_scope = map_classroom_role_to_contest_scope(classroom_role)
+        return _max_contest_scope(classroom_scope, native)
 
     return native
 

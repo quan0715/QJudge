@@ -4,6 +4,7 @@ export interface AuthMetadata {
   title?: string;
   subtitle?: string;
   backTo?: string;
+  backLabel?: string;
 }
 
 export interface AuthLayoutContextType {
@@ -14,12 +15,12 @@ export const AuthLayoutContext = createContext<AuthLayoutContextType | null>(nul
 
 export const useAuthLayoutMetadata = (metadata: AuthMetadata) => {
   const context = useContext(AuthLayoutContext);
-  const { title, subtitle, backTo } = metadata;
+  const { title, subtitle, backTo, backLabel } = metadata;
 
   useEffect(() => {
     if (context) {
-      context.setMetadata({ title, subtitle, backTo });
+      context.setMetadata({ title, subtitle, backTo, backLabel });
     }
     // No cleanup to null here because it might clear another screen's metadata
-  }, [context, title, subtitle, backTo]);
+  }, [context, title, subtitle, backTo, backLabel]);
 };

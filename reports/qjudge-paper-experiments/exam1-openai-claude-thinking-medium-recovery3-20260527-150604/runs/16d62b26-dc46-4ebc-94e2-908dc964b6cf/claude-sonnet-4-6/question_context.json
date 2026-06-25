@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Compare the 'Many-to-One' and 'One-to-One' multithreading models. Which one allows better utilization of multi-core processors, and why?",
+  "question_id": "16d62b26-dc46-4ebc-94e2-908dc964b6cf",
+  "question_type": "essay",
+  "reference_answer": "a. Many-to-One maps many user threads to one kernel thread.\nb. One-to-One maps each user thread to a kernel thread.\nc. One-to-One is better for multi-core because it allows multiple threads to run in parallel; Many-to-One can only run one thread at a time because the kernel only sees one entity."
+}

@@ -360,6 +360,68 @@ class DurableRunWorkerTestCase(TestCase):
         self.assertIn("filename=OS-2025-Midterm-2-QA.pdf", payload["content"])
         self.assertIn("artifact_read_pdf", payload["content"])
 
+    def test_execute_run_forwards_session_tool_policy_to_ai_service(self):
+        self.session.context = {
+            "task_manifest": {
+                "tool_policy": {
+                    "qjudge_grading": {
+                        "deny_actions": [
+                            "list_answers",
+                            "question_detail",
+                            "dashboard",
+                            "grade",
+                            "batch_grade",
+                            "ungrade",
+                        ],
+                    }
+                }
+            }
+        }
+        self.session.save(update_fields=["context"])
+        user_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.USER,
+            content="Blind grade",
+        )
+        assistant_message = AIMessage.objects.create(
+            session=self.session,
+            role=AIMessage.Role.ASSISTANT,
+            content="",
+            metadata={"run_status": "running"},
+        )
+        run = AIChatRun.objects.create(
+            session=self.session,
+            user=self.user,
+            status=AIChatRun.Status.RUNNING,
+            content="Blind grade",
+            user_message=user_message,
+            assistant_message=assistant_message,
+            thread_id=self.session.session_id,
+        )
+
+        with patch(
+            "apps.ai.services.run_runtime.build_ai_service_headers",
+            return_value={"X-AI-Internal-Token": "test"},
+        ), patch("apps.ai.services.run_runtime.httpx.Client", _MockHttpClient):
+            execute_run(str(run.id))
+
+        payload = _MockHttpClient.calls[0]["kwargs"]["json"]
+        self.assertEqual(
+            payload["tool_policy"],
+            {
+                "qjudge_grading": {
+                    "deny_actions": [
+                        "list_answers",
+                        "question_detail",
+                        "dashboard",
+                        "grade",
+                        "batch_grade",
+                        "ungrade",
+                    ],
+                }
+            },
+        )
+
     def test_execute_resume_run_preserves_model_id_for_ai_service(self):
         assistant_message = AIMessage.objects.create(
             session=self.session,

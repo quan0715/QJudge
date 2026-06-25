@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Explain Belady’s Anomaly in the context of page replacement algorithms. Which replacement algorithm has this anomaly?",
+  "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b",
+  "question_type": "essay",
+  "reference_answer": "a. Belady’s Anomaly occurs when increasing the number of page frames leads to more page faults.\nb. The FIFO replacement has Belady’s Anomaly. It occurs because FIFO doesn't consider access patterns; older pages might be replaced despite future use."
+}

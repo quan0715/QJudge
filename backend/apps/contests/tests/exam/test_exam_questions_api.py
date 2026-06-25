@@ -20,8 +20,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
-from apps.question_bank.models import Question, QuestionBank
-from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBank
+from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
 
@@ -87,6 +87,47 @@ def url(contest_id, question_id=None):
     if question_id:
         return f"{base}{question_id}/"
     return base
+
+
+def _create_exam_bank_item(
+    *,
+    bank: QuestionBank,
+    owner,
+    prompt: str,
+    question_type: str = "single_choice",
+    options: list[str] | None = None,
+    correct_answer=1,
+    score: int = 4,
+):
+    asset_type = {
+        "single_choice": QuestionAsset.AssetType.SINGLE_CHOICE,
+        "multiple_choice": QuestionAsset.AssetType.MULTIPLE_CHOICE,
+        "true_false": QuestionAsset.AssetType.TRUE_FALSE,
+        "short_answer": QuestionAsset.AssetType.SHORT_ANSWER,
+        "essay": QuestionAsset.AssetType.ESSAY,
+    }.get(question_type, QuestionAsset.AssetType.ESSAY)
+    asset, _version = create_question_asset(
+        owner=owner,
+        asset_type=asset_type,
+        title=prompt,
+        prompt=prompt,
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload={
+            "question_type": question_type,
+            "options": options or ["3", "4"],
+            "correct_answer": correct_answer,
+            "score": score,
+            "order": 0,
+        },
+        actor=owner,
+    )
+    membership = ensure_question_bank_membership(
+        bank=bank,
+        question_asset=asset,
+        order=0,
+        actor=owner,
+    )
+    return asset, membership
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -615,19 +656,14 @@ class TestImportFromQuestionBank:
             visibility=QuestionBank.Visibility.PRIVATE,
             verified=False,
         )
-        question = Question.objects.create(
+        _asset, membership = _create_exam_bank_item(
             bank=bank,
-            question_type=Question.QuestionType.EXAM,
-            title="",
+            owner=teacher,
             prompt="2+2 = ?",
             options=["3", "4"],
             correct_answer=1,
             score=4,
-            metadata={"legacy_question_type": "single_choice"},
         )
-        ensure_question_asset_for_bank_question(question=question, actor=teacher)
-        question.refresh_from_db()
-        membership = question.asset_membership
 
         res = api_client.post(
             url(contest.id) + "import-from-bank/",
@@ -648,20 +684,77 @@ class TestImportFromQuestionBank:
         assert rows.first().question_type == "single_choice"
         assert rows.first().score == 4
 
-    def test_import_from_bank_rejects_legacy_question_id_fallback(self, api_client, teacher, contest):
+    def test_owner_can_import_asset_only_exam_question_from_membership(self, api_client, teacher, contest):
         api_client.force_authenticate(user=teacher)
         bank = QuestionBank.objects.create(
             owner=teacher,
-            name="Teacher Exam Bank Legacy Reject",
+            name="Teacher Asset Only Exam Bank",
             category=QuestionBank.Category.EXAM,
             visibility=QuestionBank.Visibility.PRIVATE,
             verified=False,
         )
-        question = Question.objects.create(
+        asset, _version = create_question_asset(
+            owner=teacher,
+            asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
+            title="2+2 = ?",
+            prompt="2+2 = ?",
+            visibility=QuestionAsset.Visibility.PRIVATE,
+            payload={
+                "question_type": "single_choice",
+                "options": ["3", "4"],
+                "correct_answer": 1,
+                "score": 4,
+                "order": 0,
+            },
+            actor=teacher,
+        )
+        membership = ensure_question_bank_membership(
             bank=bank,
-            question_type=Question.QuestionType.EXAM,
-            title="",
-            prompt="legacy fallback",
+            question_asset=asset,
+            order=0,
+            actor=teacher,
+        )
+
+        res = api_client.post(
+            url(contest.id) + "import-from-bank/",
+            {
+                "items": [
+                    {
+                        "question_bank_id": str(bank.uuid),
+                        "question_id": str(membership.id),
+                    }
+                ],
+            },
+            format="json",
+        )
+
+        assert res.status_code == status.HTTP_201_CREATED
+        rows = ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
+        assert rows.count() == 1
+        imported = rows.first()
+        assert imported.prompt == "2+2 = ?"
+        assert imported.question_type == "single_choice"
+        assert imported.score == 4
+        assert imported.source_question_id == membership.id
+        assert ContestQuestionBinding.objects.filter(
+            contest=contest,
+            question_asset=asset,
+            exam_question=imported,
+        ).exists()
+
+    def test_import_from_bank_rejects_non_membership_question_id(self, api_client, teacher, contest):
+        api_client.force_authenticate(user=teacher)
+        bank = QuestionBank.objects.create(
+            owner=teacher,
+            name="Teacher Exam Bank Non Membership Reject",
+            category=QuestionBank.Category.EXAM,
+            visibility=QuestionBank.Visibility.PRIVATE,
+            verified=False,
+        )
+        asset, _membership = _create_exam_bank_item(
+            bank=bank,
+            owner=teacher,
+            prompt="non-membership fallback",
             score=1,
         )
 
@@ -671,7 +764,7 @@ class TestImportFromQuestionBank:
                 "items": [
                     {
                         "question_bank_id": str(bank.uuid),
-                        "question_id": str(question.id),
+                        "question_id": str(asset.id),
                     }
                 ],
             },

@@ -1,0 +1,20 @@
+{
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "dataset_dir": "/Users/quan/online_judge/paper/data/raw/qjudge-exams/exam2",
+  "ended_at": "2026-05-26T07:25:38.408352Z",
+  "exam_key": "exam2",
+  "experiment_id": "exam2-diverse-openai-retry-q14-medium-20260526-152319",
+  "model_ids": [
+    "openai-mini-medium"
+  ],
+  "official_grades_modified": false,
+  "preset": "exam2-diverse",
+  "question_ids": [
+    "a89c0767-a955-4b8d-927f-d01e3d954cc0"
+  ],
+  "run_count": 1,
+  "started_at": "2026-05-26T07:23:19.538760Z",
+  "user_id": null
+}

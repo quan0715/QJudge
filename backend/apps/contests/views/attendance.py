@@ -11,7 +11,6 @@ from ..permissions import can_manage_contest
 from ..services.attendance import (
     ATTENDANCE_EVENT_TYPES,
     ATTENDANCE_REFRESH_SECONDS,
-    ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
     validate_self_scan_credential,
     build_attendance_error_payload,
     build_attendance_qr_value,
@@ -65,6 +64,17 @@ class ParticipantExamRecordResetSerializer(serializers.Serializer):
     user_id = serializers.IntegerField(min_value=1)
 
 
+def _seconds_until(iso_value: str) -> int:
+    try:
+        expires_at = timezone.datetime.fromisoformat(iso_value)
+    except ValueError:
+        return ATTENDANCE_REFRESH_SECONDS
+    if timezone.is_naive(expires_at):
+        expires_at = timezone.make_aware(expires_at)
+    remaining_seconds = (expires_at - timezone.now()).total_seconds()
+    return max(0, int(remaining_seconds + 0.999))
+
+
 def _attendance_disabled_response(contest: Contest) -> Response | None:
     if contest.attendance_check_enabled:
         return None
@@ -106,6 +116,9 @@ class AttendanceMixin:
             )
 
         credential = create_attendance_credential(contest, purpose)
+        expires_at = credential.get("expires_at") or (
+            timezone.now() + timezone.timedelta(seconds=ATTENDANCE_REFRESH_SECONDS)
+        ).isoformat()
         return Response(
             {
                 "purpose": purpose,
@@ -113,10 +126,8 @@ class AttendanceMixin:
                 "manual_code": credential["manual_code"],
                 "qr_value": build_attendance_qr_value(purpose, credential["token"]),
                 "refresh_after_seconds": ATTENDANCE_REFRESH_SECONDS,
-                "expires_in_seconds": ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
-                "expires_at": (
-                    timezone.now() + timezone.timedelta(seconds=ATTENDANCE_TOKEN_MAX_AGE_SECONDS)
-                ).isoformat(),
+                "expires_in_seconds": _seconds_until(expires_at),
+                "expires_at": expires_at,
             }
         )
 

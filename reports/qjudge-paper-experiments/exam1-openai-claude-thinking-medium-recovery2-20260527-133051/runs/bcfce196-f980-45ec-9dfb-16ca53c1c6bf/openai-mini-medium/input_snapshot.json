@@ -1,0 +1,879 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "shared: process memory, code, text\nnot shared:  thread id, stack, program counter"
+      },
+      "id": "2582",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "shared:\ncode, static data, process ID\n\nnot shared:\nprogram counter, stack, CPU registers"
+      },
+      "id": "2621",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "shared: global variable, shared meomory, \nnot shared: thread id, stack pointer, program counter"
+      },
+      "id": "6022",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "shared: file desceiption, code, data\nnot shared: thread ID, stack, stack pointer"
+      },
+      "id": "3719",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "shared: heap section, text section, global variable\nnot shared: thread ID, stack section, program counter"
+      },
+      "id": "4386",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "shared: open files, text, global data\nnot shared: pc, stack, signal mask"
+      },
+      "id": "3261",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Shared: code section, global variable, static variable\nNot shared: thread ID, stack, program counter"
+      },
+      "id": "4043",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "Shared: Heap, text, data\nNot shared: Program counter, register, stack pointer"
+      },
+      "id": "3004",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "shared:text(code)、static data、global variable\nnot shared:threadID、program counter、stack"
+      },
+      "id": "2516",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "shared: BSS segment, data, opened file descriptor\nnot-shared: ThreadID, saved cpu register, program counter"
+      },
+      "id": "4069",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Not shared:\nStack(like local variables), Stack pointer, thread id\nShared\nheap, code , data section"
+      },
+      "id": "3150",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "shared :  1. data/global variable 2. text segment(code) 3. open file\nnot shared : 1. stack pointer 2. program counter 3. CPU register"
+      },
+      "id": "3298",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Shared: heap, shared library, global variable\nnot shared: PC, stack, cpu register"
+      },
+      "id": "4159",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "Shared:\n- file descriptors\n- global variables\n- process id\n\nNot shared:\n- program counter\n- stack pointer\n- cpu registers"
+      },
+      "id": "2710",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "1. stack, register, process ID\n2. saved CPU register, thread ID, stack pointer."
+      },
+      "id": "4038",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "shared: PC, register, stack\nnot shared: text, data, bss"
+      },
+      "id": "3877",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Global variables, text (code) and data are shared between threads \nThread ID, priority and stack pointer aren't"
+      },
+      "id": "2243",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "not shared by threads :\n- PC (program counter)\n- Stack\n- SP (Stack pointer)\n\nshared by threads : \n- Static data \n- text (code)\n- heap"
+      },
+      "id": "2828",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "Shared: 全域變數，記憶體，process ID\nNot Shared: 區域變數，暫存器內容，thread IDs"
+      },
+      "id": "6603",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "Shared: heap, program, process ID\nNOT shared : threads ID, stack, CPU register"
+      },
+      "id": "2874",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "shared:\nglobal variable, memory, static data\n\nnot shared:\nthread ID, saved CPU register, program counter"
+      },
+      "id": "4165",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. global variable, address space, page table\n2. thread ID, program counter, priority"
+      },
+      "id": "3572",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "Shared: Text segment, Data segment, BSS segment, signal\nNot Shared: Program Counter, Stack Pointer, Thread ID, signal mask"
+      },
+      "id": "4177",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "shared: id 排程 time\n\nnot shared: dAta memory  \n"
+      },
+      "id": "6078",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Not shared: thread ID, saved CPU register, stack\nShared: process ID, memory"
+      },
+      "id": "3839",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Shared: Process ID, signal, global variables \nNot shared: Thread ID, signal mask, stack pointer"
+      },
+      "id": "3711",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "not share:priority、 process count、CUP ID\n "
+      },
+      "id": "3748",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Shared attribute:\nNon-shared attribute: thread ID, register, program counter"
+      },
+      "id": "3467",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Shared:code,heap,static data\nNot shared:thread ID,Saved CPU register,stack"
+      },
+      "id": "2895",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "three attributes that are shared-\n1. parent and child\n2. pointer counter \n3.  linked allocation\nthree attributes that are not shared-\n1. program counter \n2. threadID\n3. slack"
+      },
+      "id": "2273",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Shared:\n1. text\n2. bss\n3. user id / group id\n\nNot Shared:\n1. thread ID\n2. stack pointer\n3. program counter"
+      },
+      "id": "3233",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "share: code section, global variable \nnot share: stack, thread ID, PCB"
+      },
+      "id": "3388",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "shared:Text,Bss,Data\nnot shared:register,program counter,stack pointer"
+      },
+      "id": "3205",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Shared: Global variables, text, heap\n\nNon-shared: Program counter, stack pointer, thread ID"
+      },
+      "id": "2778",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "shared: code,  global variable, PCB\nnot shared: thread ID, program counter, stack "
+      },
+      "id": "4989",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Shared: data, user id, process id\nNot shared: thread id, stack pointer, program counter"
+      },
+      "id": "3133",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "Shared: text segment, static memories, global memories.\n\nNot shared: local variables, dynamic memories, thread ID."
+      },
+      "id": "4422",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "Shared: memory, PID, open work file\nNot shared: TID, stack pointer, program counter, stack"
+      },
+      "id": "2700",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "共享: data segment, bss segment, 當前目錄\n不共享: program counter, stack, thread id"
+      },
+      "id": "2693",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "share:code section、data section、global 變數\nnot share:thread id,program counter,stack"
+      },
+      "id": "2986",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "shared: pid, uid, heap.\nnot shared: thread id, stack, mutex."
+      },
+      "id": "1987",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "Shared: Signals, Global register, CPU　memory\nNot Shared: Thread ID, Program counter, Saved CPU register, Stack pointer, priority"
+      },
+      "id": "2757",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Shared:\nCode\nData\nHeap\n\nNot shared:\nThread ID\nStacks\nCPU registers\n"
+      },
+      "id": "1972",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Share : Thread , Global Replacement , Heap\nNot Share : Thread ID , Stack , Stack Pointer"
+      },
+      "id": "5505",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "not shared:stack、register、thread ID\nshared:cpu、os、data"
+      },
+      "id": "2603",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Shared: Global Variables, Memory space\n\nNot Shared: Thread ID, Stack Pointer, Program Counter"
+      },
+      "id": "2776",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "shared: signal, stack, global variable\nnot shared: thread ID, program counter, signal mask "
+      },
+      "id": "2513",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "share:code,memory,program counter\nno share:thread id,stack,register"
+      },
+      "id": "2836",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "shared : global variables, shared data,  page table\n\n\nnot shared: Program counter, priority, signal mask, saved cpu registers, stack pointer"
+      },
+      "id": "5554",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Three attributes shared are global variables, libraries, heap.\nThree that are not shared are program count, local variables, stack pointer. "
+      },
+      "id": "2818",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "shared : text segment, BSS segment, User ID\nnot shared : thread ID, CPU register, program counter"
+      },
+      "id": "2453",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "shared among threads: global variable, static data, \nnot shared among threads: CPU register, stack pointer ,thread ID"
+      },
+      "id": "2717",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "share：程式碼、全域變數、memory\nnot share：thread ID、CPU register、stack"
+      },
+      "id": "3838",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "shared: code, memory, data\nnot shared: threads ID, registers, pointer"
+      },
+      "id": "6628",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "shared: Heap, BSS, information in the code file\nnot shared: Thread ID, Stack, CPU register"
+      },
+      "id": "2331",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "threads shared : Text segment 、 BSS segment、 Data segment、全域變數\nthreads not shared : Thread ID、 Program Counter、 Stack Point"
+      },
+      "id": "3859",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "shared: data segment , open files , BSS segment, text segment,\nnot shared: thread ID, program counter, stack, stack pointer\n"
+      },
+      "id": "5014",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "Shared: global variable, memory address, text\n\nnot shared: saved CPU register, thread ID, stack pointer"
+      },
+      "id": "3914",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "shared: 1. code 2.全域變數 3. 記憶體\n\nnot shared:1. program counter 2. stack 3. register value"
+      },
+      "id": "2218",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Shared: static data, \nNot shared: Thread ID, local variables, pointer"
+      },
+      "id": "2763",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "shared : \n1. CPU\n2. memory\n3. global variable\nnot shared : \n1. thread ID\n2. register\n3. stack"
+      },
+      "id": "4454",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "SHARED: text segment , data segment , BSS segment\nNOT SHARED: thread ID , program counter , stack pointer"
+      },
+      "id": "6211",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "shared: CPU utilization, throughput, waiting time\nnot shared: Thread ID, Saving CPU register, Program Counter, Stack"
+      },
+      "id": "2814",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "shared:data,code,open file\nnot shared:program counter,stack pointer,register"
+      },
+      "id": "3594",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "shared:global variable, text code, process ID\n\nnon shared: program counter, register, stack section.\n"
+      },
+      "id": "3515",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "not shared: thread ID, saved CPU register, stack pointer\nshared: data segment, context segment, "
+      },
+      "id": "2990",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "same: Data, code, process execute address,O.S.\n\nnot-share: thread ID,priority,stack pointer"
+      },
+      "id": "3847",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Three attributes that are shared among threads include memory - local address, global variables, and files. \nThree attributes not shared include stack pointer, program counter, and registers."
+      },
+      "id": "4512",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Shared\n1. Working directory\n2. Global variable\n3. Process ID\n\nNot Shared\n1. Thread ID\n2. Track counter\n3. Pointer"
+      },
+      "id": "4459",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "shared: Memory, BSS segment, file descriptor\nnot shared: thread ID, stack, CPU register"
+      },
+      "id": "2870",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Shared: text segment, data segment, heap\nNot shared: stack, register, thread ID"
+      },
+      "id": "3763",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "Shared : code text, global variables, shared memory region.\nNot shared : CPU registers, stack, program counter."
+      },
+      "id": "3784",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "Shared :\n1. code section\n2. data section \n3. heap \nNot shared:\n1. thread ID\n2. stack \n3. register set"
+      },
+      "id": "3402",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.PID、PARENT PID、process status\n2.TID、register、PC"
+      },
+      "id": "2134",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Shared:\nGlobal Variable\n在同一個 process 底下（Process ID 同）\n程式的值會一樣 （但沒 share 同一個 memory）\n會從 fork 後的下一段程式執行 \n\nNot Shared:\nThread ID\nProgram Counter\nStack (local variable)\n"
+      },
+      "id": "2837",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "shared: heap, user and group id, open file descriptor\nnot shared: thread id, program counter, stack"
+      },
+      "id": "2869",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "shared:\nprocess id \nglobal variable(對於thread)\nprocess time\nnot shared:\nthread id \nlocal variable(對於thread)\nCPU register"
+      },
+      "id": "3925",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "三個 share among threads\n1. heap 2. code 3. resources\n三個 not shared among threads\npc stack registers"
+      },
+      "id": "2585",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "shared : heap , global variable, static program \nnot shared : cpu register , stack , stack pointer "
+      },
+      "id": "3957",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Shared : PID, files, Code, globel variables\nNot shared : Thread ID, save CPU registers, Program Counter, Stack\n"
+      },
+      "id": "3504",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Shared: heap, global variables\nNon-shared: stack, program counter, CPU registers"
+      },
+      "id": "2680",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Global variales, are shared.\nThread ID, program counter, stack pointer are not shared."
+      },
+      "id": "4049",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "share:code,data,file\nnot share:register,PC,stack"
+      },
+      "id": "2648",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "shared: heap, code, global variable\nnot shared: thread ID, PC, stack"
+      },
+      "id": "4219",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "shared:\ntext segment, data segment, BSS segment\n\nnot shared:\nCPU register, stack pointer, program counter"
+      },
+      "id": "4470",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "shared: text,program id,heap\nnot shared: thread id,stack,program counter"
+      },
+      "id": "2893",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "shared : static data , code, file discription\nnot shared: stack ,thread ID, priority"
+      },
+      "id": "3319",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "shared: heap, text(code), global variable\nnot shared: stack, register, program counter"
+      },
+      "id": "4058",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "shared: text, code, BSS\nnot shared: stack, thread ID, priority"
+      },
+      "id": "3502",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.thread id\n2.Saved cpu register\n3.stack"
+      },
+      "id": "2476",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "thread ID ,stack ,Process counter -not shared\nMemory,address,register-shared\n "
+      },
+      "id": "6322",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "shared: global variables, heap, user ID\nnot shared: thread ID, program counter, local variables"
+      },
+      "id": "2772",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "shared among threads: group ID 、BSS 、text\nnot shared among threads: thread ID 、stack、local variable"
+      },
+      "id": "2718",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "shared : BSS segment, user id, group id, signal, text segment\nnot shared : signal mask, thread id, stack"
+      },
+      "id": "3048",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "shared: memory \nnot shared: CPU register, counter, thread ID, variables"
+      },
+      "id": "6399",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "share: text, data, bss\nnot share: cpu register, program pointer, stack pointer"
+      },
+      "id": "2909",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "Share :heap,pc,data\nnot share:cp,暫存集,stack"
+      },
+      "id": "3618",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "Shared: 1. file directory; 2. memory space; 3. data\nNot shared: 1. stack; 2. thread ID; 3. registers"
+      },
+      "id": "2520",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "Process ID , Stack , Register , PC counter\nID 無法共享，必須各自獨立\nSteck  堆疊無法供享\n暫存器 與 PC counter 計數器\n以上無法共享用"
+      },
+      "id": "5265",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "Shared: variables, static data, memory\nNot shared: thread ID, stack pointer, saved CPU register"
+      },
+      "id": "6091",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Shared:\n(a) global variables\n(b) mutex / semephors\n(c) text / code\n(d) shared memories (shm)\n\nNot shared:\n(a) stack\n(b) process counter / ID\n(d) CPU registers"
+      },
+      "id": "6364",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Shared attributes : 全域變數,記憶體,heap\nNot shared attributes : 暫存器, 計數器,stack pointer,thread ID"
+      },
+      "id": "4628",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "執行緒不共享的屬性：\n1,計數器。\n2,堆疊指標。\n3,暫存器。\n執行緒共享的屬性：\n1,變數\n2,檔案\n"
+      },
+      "id": "4893",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "shared: data,bss,file\nnot shared: thread ID,CPU register,stack pointer"
+      },
+      "id": "2892",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "shared: global variable, heap, memory.\nnot shared: CPU register, stack, thread id."
+      },
+      "id": "3809",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "shared:memory,CPU,\nnot shared:thread ID ,PC ,utilization,priority"
+      },
+      "id": "3666",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "no share: thread id; priority; stack \nshare: memory; global變量； process id"
+      },
+      "id": "2697",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "share: memory, heap, program text\nnot shared: stack, priority, thread ID"
+      },
+      "id": "2673",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "shared:memory\nnot shared:threads id , saved cpu register, stack pointer"
+      },
+      "id": "6222",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "the same: process ID, global variable, file descriptor \nnot the same: stack, program counter, CPU register content"
+      },
+      "id": "3149",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Shared: User/Group ID, Text, file descriptor\nPrivate: Thread ID, Stack Pointer, Stack"
+      },
+      "id": "2795",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "shared:text segment、static data 、global data、BSS segment\n\nnot shared:TID、PC、stack pointer"
+      },
+      "id": "3119",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "shared: memory, PCB, heap\nnot shared: stack, stack pointer, CPU register"
+      },
+      "id": "2843",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Shared among threads: heap, open file, code and data.\nNot shared: Thread ID, stack, program counter, stack pointer."
+      },
+      "id": "3535",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "share: global variable, local variable, heap\nnot share: thread ID, saved cpu register, stack pointer"
+      },
+      "id": "2823",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "shared : heap、 data、 Bss\nnot shared : stack、 stack pointer、 register、 program counter"
+      },
+      "id": "2977",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "shared: code, data, OS sources(opened files)\nnot shared: Threads ID, program counter, stack pointer"
+      },
+      "id": "4476",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "not share:1.thread id 2.program counter3.stack pointer\nshare:1.memory space 2. Stack 3. Queue"
+      },
+      "id": "2973",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Thread ID, Saved CPU Scheduling, Signal Mask, Stack Pointer, Stack (local, temporary, return address), Program Counter"
+      },
+      "id": "2715",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "shared\n1.stack \n2.stack pointer\n3.全域變數\nnot shared\n1.threads ID\n2.區域變數\n3.register"
+      },
+      "id": "3652",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "shared：memory, code, global variables\nnot shared：thread ID, stack, stack pointer"
+      },
+      "id": "3446",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Shared attributes: global variable, signal, files\nNot shared attributes: thread priority, thread ID, stack"
+      },
+      "id": "5711",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "shared: text section(code), heap, variable\nnot shared: thread_ID, programming counter, stack"
+      },
+      "id": "2764",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 6,
+    "options": [],
+    "prompt": "List three attributes that are shared among threads in the same process, and three that are not shared.",
+    "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf",
+    "question_type": "essay",
+    "reference_answer": "a. Shared: Memory space, file descriptors, global variables.\nb. Not shared: Thread ID, registers, stack."
+  },
+  "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf"
+}

@@ -1,0 +1,170 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12211","S109","當預期的等待的時間較短時，比較適合不斷的poll直到需要的資源變成available
+","1","僅說明 spin lock 適用條件（短等待），未說明 blocking lock 條件",""
+"2","12406","S015","If the resource is be blocked for a short time (shorter than the time doing context switch twice), using a spin lock is more appropriate since it saves more time.","1","僅說明 spin lock 適用條件（短於 context switch），未說明 blocking lock 條件",""
+"3","15727","S054","1, 耗費資源少時
+2, 執行緒競爭資源不激烈時","1","僅說明 spin lock 適用條件（資源少、低競爭），未說明 blocking lock",""
+"4","13074","S117","if critical section spend less time, more appropriate to use spin lock.
+if critical section spend more time, more appropriate to use blocking lock.","2","",""
+"5","12318","S093","預期resources很快之後就可以使用，因為spin lock是在while迴圈中一直檢查該資源是否能用，如果能用就脫離迴圈；而blocking lock會直接讓其去wait，是在預期resources很久之後才會使用","2","",""
+"6","12387","S012","if the process only has to wait a short time (shorter than the time cost by context switch) to access the reource it is spining on, it is sappropriate use a spin lock","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"7","12526","S108","spin lock is preffered when the waiting time of recieveing a message or response is relatively short.
+To be more specific, shorter than the context switch time.","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"8","12377","S099","當 expected waiting time 較短時，適合直接使用 spin lock","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"9","12415","S070","如果等待的時間比兩個content switch還少的時候","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"10","13220","S080","spin lock: is expected to be used when the waiting time of the resource is expected to be short
+blocking lock: is expected to be used when the waiting time of the resource is expected to be long","2","",""
+"11","11502","S003","waiting time is expected to be short","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"12","13029","S035","In SMP system, when the waiting time for resource is short, it is more appropriate to use a spin lock versus a blocking lock.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"13","13836","S037","When a critical region is expected to consume short time. The waste cycles cost is less than the overhead of context switch.","1","僅說明 spin lock 條件（短 critical section），未說明 blocking lock",""
+"14","12685","S097","If the resource will be freed very soon, then it's cheaper to busy-wait (spin-lock) rather then block, because of the context-switch cost","1","僅說明 spin lock 條件（資源很快釋放），未說明 blocking lock",""
+"15","12658","S013","under not long waiting in critical section","1","僅說明 spin lock 條件（不長等待），未說明 blocking lock",""
+"16","13128","S040","if the expect waiting time is less then context switch + wakeup + ..., the overhead of blocking lock, then use spin lock may be the batter idea.
+or just the critical section is short -> use spin lock","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"17","11392","S124","Spinlock is more appropriate to use instead of blocking lock if the CRS take a short time to execute","1","僅說明 spin lock 條件（短 critical section），未說明 blocking lock",""
+"18","13365","S121","it is more appropriate to spin lock if the ressource will be released soon i.e. if the time before the released smaller the context switch for the blocking.","1","僅說明 spin lock 條件（資源即將釋放），未說明 blocking lock",""
+"19","14111","S068","當零界區間比較短的時候，這樣可以減少 context switch 帶來的開銷","1","僅說明 spin lock 條件（臨界區短），未說明 blocking lock",""
+"20","12360","S102","持有lock的時間短的話，spin比較好
+持有時間久的話，block比較好","2","",""
+"21","12588","S034","等待時間較短時使用spin，等待時間較長或競爭激烈時使用block。","2","",""
+"22","11567","S084","spin lock適合等待鎖的時間較短的任務上；block lock則適合等待鎖的時間較長的任務，
+因此，假如某個thread是要等待ready list的鎖，這種短時間需求的就適合用spin的方式。","2","",""
+"23","12894","S079","if the critical section is short (small), then it is better to use spin lock then blocking lock","1","僅說明 spin lock 條件（短 critical section），未說明 blocking lock",""
+"24","12078","S122","spin :預計等待時間短 threads較少時
+blocking lock :預計等待時間長 threads較多時","2","",""
+"25","12443","S086","spin lock is more appropriate to use when the expected response time is short, because it can reduce overhead.","1","僅說明 spin lock 條件（短回應時間），未說明 blocking lock",""
+"26","13471","S052","If the waiting time to acquire a lock is short, then it is more appropriate to use a spin lock.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"27","13300","S123","It is more appropriate to use a spin lock when the wait time is expected to be short.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"28","12161","S027","spin: thread 不讓出cpu,一直檢查 shared resource ,適合短等待
+block: thread 讓出 cpu,進入 waiting state 等 resource,適合長等待","2","",""
+"29","12959","S081","1. Atomic add/subtract
+2. Test-and-Set Lock","0","答案未回答問題，列舉 Atomic/Test-and-Set 機制而非 spin/block lock 適用條件",""
+"30","12869","S008","When the expected time of waiting the lock is short (perhaps shorter than the context switch overhead), it is more appropriate to use a spin lock. However, when the expected time to wait the lock to release is long, or there are potentially large lock contention (many processes want to acquire the lock, which may lead to bus contention and slow down all CPUs that acquiring the bus), it is more appropriate to use a blocking lock.","2","",""
+"31","13921","S078","If the critical section is short","1","僅說明 spin lock 條件（短 critical section），未說明 blocking lock",""
+"32","12907","S087","當等待的時間很短的時候較希望使用spinlock","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"33","13071","S022","Higher context switching cost situation.","0","過於模糊，未明確指向 spin 或 blocking lock 的適用條件",""
+"34","13213","S110","when the task takes short time, it's better spinning than blocking","1","僅說明 spin lock 條件（短任務），未說明 blocking lock",""
+"35","13064","S082","The average executing time is shorter than the context switch time.","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"36","12947","S105","When the expected time till the lock released is shorter than the time consumed by context switching.","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"37","11715","S111","在預期等待時間較短、CR較小的情況下，使用spin lock的表現較好。","1","僅說明 spin lock 條件（短等待/短 CR），未說明 blocking lock",""
+"38","12269","S085","spin lock: 在迴圈中等待鎖，預期等待時間短時使用
+blocking lock: 移至阻塞模式，可以讓其他任務使用CPU資源，預期等待時間長時使用","2","",""
+"39","12450","S004","spin lock:thread會一直busy waiting直到shared resource可用，適合競爭者少、等待時間短
+blocking lock:thread會放棄CPU，直到shared resource可用才被喚醒，適合競爭者多、等待時間長","2","",""
+"40","12180","S046","When the wait time is expected to be short. ","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"41","11537","S005","If the  context switching time  is more bigger than waiting time","1","僅說明 spin lock 條件（context switch > 等待時間），未說明 blocking lock",""
+"42","11488","S014","spin lock:short waiting time","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"43","15254","S107","when the expected waiting time is short.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"44","12844","S126","等待時間短的用spin lock 比較好，讓他自己spin，因為等待時間短還用block的話可能連複製跟switch都還沒完成","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"45","15269","S017","在SMP system中，spin lock更適合用在waiting shared resource的時間短，且競爭資源的人較少的時候，這樣可以提升performance
+
+相反，在waiting shared resource的時間長，且競爭資源的人較多的時候，就適合blocking lock","2","",""
+"46","11505","S115","Spin: poll a certain resource until available, appropriate if response time is short
+Block: Stop a processer untill all required resources are available, appropriate when response times are long
+","2","",""
+"47","12177","S089","Spin lock會反覆Check是否有可用的Resource而Blocking則會停用CPU直到有可用的Resource
+在Wait time短的情況下比較適合用Spin lock","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"48","15101","S009","If the cache space is limited, it's more appropriate to use spin lock","0","論述不正確，cache space 非 spin lock 的主要適用條件判斷依據",""
+"49","13086","S094","spin適合等待時間短，cirical section很短，contention很嚴重的情況","0","稱 spin 適合 contention 嚴重的情況，與標準答案矛盾（spin 適用低競爭）",""
+"50","13390","S066","1. 當等待時間較短時，比較適合使用spin lock
+2. 當等待時間較長時，比較適合使用blocking lock","2","",""
+"51","12375","S041","在SMP system中，當等待時間很短的時候，會傾向使用 spin","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"52","15246","S031","在較短critical section或資源佔用較少的情況，使用spin lock較好，因為blocking lock 還需context switch等操作，若較快就可以釋放資源，用spin lock 的成本較低。","1","僅說明 spin lock 條件（短 critical section），未說明 blocking lock",""
+"53","12240","S116","當前一個process預期會很快結束時 並交出lock時就會比較適合用spinlock","1","僅說明 spin lock 條件（process 很快結束），未說明 blocking lock",""
+"54","13083","S059","Use spin lock
+1. 競爭的threads 數量很少
+2. 平均等待時間短
+Use clocking lock
+1. 競爭的threads 數量很多
+2. 平均等待時間長","2","",""
+"55","11265","S064","預計等待時間較短的情況","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"56","12908","S101","Spin lock continuously checks until resource available; blocking lock change to waiting status until resource available. When the conditions need to wait for long time, blocking lock is more suitable because it wastes less CPU for checking.","1","僅說明 blocking lock 適用長等待，未明確說明 spin lock 條件",""
+"57","12435","S103","當預期的等待時間很短或比較少人在搶奪資源的時候，適合用spin lock","1","僅說明 spin lock 條件（短等待、少競爭），未說明 blocking lock",""
+"58","13047","S104","當等待時間低於context switch所需的時間，或是在資源競爭程度較低的情況","1","僅說明 spin lock 條件（低於 context switch、低競爭），未說明 blocking lock",""
+"59","12973","S023","Spin lock(忙碌等待): 讓 Thread 不斷檢查資源是否可用，適合等待時間極短或競爭者較少的情況
+Blocking lock(阻塞並Context Switch): 讓出 CPU 進入等待狀態，適合等待時間較長或競爭激烈的情況","2","",""
+"60","12155","S113","spin lock是會一直去問資源是否釋放，適用在waiting time比較短的情況。
+blocking lock是若資源還沒釋放先去waiting，等到資源釋放了再操作，需要搭配context switch，適合在waiting time比較長的環境上","2","",""
+"61","12424","S055","當預計的process等待處理時間很短 就可以使用spin lock 其得和context switch操作所需的時間進行比較
+反之若任務處理時間很長 spin lock就會掛機太久時間 造成效能的浪費","1","僅說明 spin lock 條件（短等待、少競爭），未明確說明 blocking lock",""
+"62","12571","S119","Waiting time for the shared resources is expected to be short ->using a spin lock.
+Waiting time for the shared resources is expected to be long  ->using a blocking lock","2","",""
+"63","12665","S067","當我預計process會執行很短的時間,所以block 造成的context switch消耗會比他spin的消耗還要多的時候,就會使用spin,反之當我評估系統要執行一段時間讓他spin造成的損失比block還要多的時候就會block","2","",""
+"64","13236","S076","Spin lock is more appropriate when the critical section is short and the wait is expected to be brief.
+Blocking lock is more appropriate when the wait is expected to be long and the context switch overhead is worth paying. ","2","",""
+"65","16089","S074","In SMP, Spinlock is more appropriate than blocking under these conditions
+i. Short critical section 
+ii. Low contention
+iii. Non-blocking contexts
+iv. Multicore availabiluty","1","僅說明 spin lock 條件（短 CS、低競爭），未說明 blocking lock",""
+"66","13121","S063","If the waiting time for the sharing resource is expected to be short and context switch may take more time.","1","僅說明 spin lock 條件（短等待、context switch 耗時），未說明 blocking lock",""
+"67","12776","S090","Conditions that the waiting time is expected to be short.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"68","12883","S100","When the waiting time for resources is short, we use spin lock because the we can save the overhead of blocking and context-switch. ","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"69","11758","S114","當spin lock 的時間小於 context switch 的時間時，較適合做 spin lock ","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"70","13231","S038","when the are relative not busy and less users it is better
+","0","過於模糊，未明確說明 spin 或 blocking lock 的適用條件",""
+"71","12394","S047","執行時間短的時候適合使用 Spin lock，不然如果今天那個負載的執行時間很長他 Spin lock 會一直空轉，浪費資源","1","僅說明 spin lock 條件（短執行時間），未明確說明 blocking lock",""
+"72","13794","S044","for spin lock, it's suitable for short waiting time or short critical section execution time, such as mission is in ready queue.
+for blocking lock, it's suitable for long waiting time or long critical section execution time.","2","",""
+"73","12566","S075","when the progress time is short.","1","僅說明 spin lock 條件（短執行時間），未說明 blocking lock",""
+"74","12327","S030","在 需要時間很短，導致 contex switch 的開銷 大過於 spin lock 時 。使用 spin lock 的表現會比 blocking lock好","1","僅說明 spin lock 條件（短等待、context switch 開銷大），未說明 blocking lock",""
+"75","12193","S106","when the expected waiting time is less than the time spent on context switching ","1","僅說明 spin lock 條件（短於 context switch），未說明 blocking lock",""
+"76","12505","S019","Spin lock 會在 CPU polling 直到 event happen，因此是適用於 wait time 短，CPU 競爭者少的情境","1","僅說明 spin lock 條件（短等待、少競爭），未說明 blocking lock",""
+"77","12058","S020","When the process is doing the task which is not time-consuming.","1","僅說明 spin lock 條件（非耗時任務），未說明 blocking lock",""
+"78","13695","S010","when the critical region is short, and the wait time is expect to be low.","1","僅說明 spin lock 條件（短 critical region），未說明 blocking lock",""
+"79","12830","S091","resource較少可以使用spin lock","1","僅說明 spin lock 條件（資源少），未說明 blocking lock",""
+"80","12291","S051","spin can use for short critical section, and blocking lock can use for long critical section.","2","",""
+"81","12865","S039","當預期的waiting time很短時","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"82","12503","S018","當process等待資源的時間較低時，更適合用spin lock","1","僅說明 spin lock 條件（等待時間低），未說明 blocking lock",""
+"83","12130","S049","smp中通常在系統負載小，執行時間短的情況下使用spin lock","1","僅說明 spin lock 條件（負載小、執行時間短），未說明 blocking lock",""
+"84","12577","S053","在所需資源等待時間少，不需長期佔用時，spin lock可避免context switch帶來的巨量開銷","1","僅說明 spin lock 條件（等待時間少），未說明 blocking lock",""
+"85","12707","S092","Depends on the length of the critical session.
+It is more appropriate to use a spin lock when the critical session is short. (ex: kernel lock, ready queue)
+It is more appropriate to use a blocking lock when the critical session is long. (ex: disk I/O)","2","",""
+"86","11956","S125","For long critical sections","0","過於簡略模糊，未說明是 spin 或 blocking lock 適用長 critical section",""
+"87","13219","S021",".","0","無意義內容，未回答問題",""
+"88","12529","S050","spin lock 適合在waiting time比較短或是競爭對手較少時","1","僅說明 spin lock 條件（短等待、少競爭），未說明 blocking lock",""
+"89","14057","S036","預期鎖會在較短的時間內釋放","1","僅說明 spin lock 條件（鎖短時間釋放），未說明 blocking lock",""
+"90","12249","S048","在CR值比較小的時候適合用spin lock，因為可以一直重複查看lock是否有被釋出，而也不太占用資源；在CR值比較大的時候適合用blocking lock，因為這時候如果可以透過blocking lock 可以讓CPU暫時釋出做其他的事情","2","",""
+"91","12481","S112","spin lock: 用於比較不忙、競爭者少的時候。可以等一段時間，也可以減少context switching 的成本
+blocking lock: 用於比較忙、競爭者多的時候。","2","",""
+"92","12270","S006","1. spin, while you expect the wating time won't be too long 
+2. block, while you expect the wating time might to too long, so you let OS the wake you up again","2","",""
+"93","12534","S057","SMP 系統，什麼條件?  
+Spin :  短時間使用
+blocking : 長時間使用","2","",""
+"94","14736","S002","the conditions with less waiting time or smaller number of threads are more appropriate to use a spin lock.
+the conditions with more waiting time or larger number of threads are more appropriate to use a blocking lock.","2","",""
+"95","12580","S007","If the processing time is short, it is encouraged to use spin lock rather than a blocking lock.","1","僅說明 spin lock 條件（短處理時間），未說明 blocking lock",""
+"96","11827","S118","In an SMP system, spin is more appropriate when the wait time for a shared resource is expected to be short.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"97","16171","S016","當共享資源的等待時間預期會很長時，帶有上下文切換的區塊是合適的。
+當共享資源的等待時間預期會很短時，SPIN是合適的。","2","",""
+"98","15476","S083","在SMP系統中提指執行緒持續在CPU上忙等檢查鎖是否可用，不進行context switch，因此延遲低但會消耗CPU資源，適合用於臨界區很短或預期等待時間很短的情況。","1","僅說明 spin lock 條件（臨界區短、短等待），未說明 blocking lock",""
+"99","12735","S088","預期等待shared resources時間很長或爭奪資源的threads很多時適合用blocking lock，反之適合用spin lock","2","",""
+"100","13618","S058","spin lock is more active , so if the resource is expected to be available very soon , it is better to use spin lock.","1","僅說明 spin lock 條件（資源很快可用），未說明 blocking lock",""
+"101","12117","S043","適合等待時間短的情境
+spin lock:  持續poll直到資源可使用 ","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"102","11923","S060","等待時間短的時候用spin
+等待時間長的時候用blocking lock","2","",""
+"103","12285","S024","when the waiting time is short, it is more appropriate to use a spin lock than a blocking lock.","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"104","12600","S095","當預計的等待時間比較短","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"105","12673","S077","spin lock: when accessing the shared resources will not wait for long time like global variable.
+blocking lock: when accessing the resources might wait for long time like I/O. ","2","",""
+"106","12245","S120","spin: 不斷請求，等待時間較短或競爭者少時適合使用。
+block: 請求失敗後sleep，資源可用時awake，適合等待時間較長或競爭者多時使用","2","",""
+"107","13063","S073","在SMP中，當沒有很多threads要競爭共享資源時可使用spin lock；當很多threads要搶共享資源時使用blocking lock就比較合適","2","",""
+"108","12607","S069","spin lock他是會一職去詢問共享的資源看是否能使用直到能使用，他適合等待時間較短以及競爭資源的人較少的資源
+block lock: thread 會直接讓出CPU，自己進入waiting queue中，這適合等待時間較長以及競爭資源的人較多的情況","2","",""
+"109","12937","S072","在等待時間預期很短的情況下，較適合使用spin lock，這樣可以避免花資源進行context switch等行為。","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"110","12297","S042","when the wait time of shared resource is short","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""
+"111","12703","S071","當預期等待時間短或競爭者少的情況是合用Spin lock，Spin lock會不斷詢問是否可以使用，每詢問一次就會占用一次CPU空間
+當預期等待時間長或競爭者多的時候適合使用Blocking lock，Blocking lock會回到Wating state，等到資源釋出後OS在喚醒它
+","2","",""
+"112","12352","S062","SMP中，若共享資源的等待時間較短，或者比較少threads在競爭資源時可以用spin lock；若共享資源的等待時間較長，或者比較多threads在競爭資源時可以用blocking lock","2","",""
+"113","12705","S045","當佔用lock那個人佔用的時間比我去block再回到CPU的時間短的時候就適合用spin lock ，反之則blocking lock","2","",""
+"114","13324","S056","Use spin locks for short waiting times on SMP systems
+Use blocking locks when lock holding time is long to avoid CPU waste","2","",""
+"115","13591","S128","SKip","0","未回答問題（僅寫 SKip）",""
+"116","13775","S029","當critical section 或是等待時間較短的情況，用spin lock會好於blocking lock","1","僅說明 spin lock 條件（短等待/短 critical section），未說明 blocking lock",""
+"117","12542","S065","在lock時間較短的時候，適合使用spin lock；在lock時間較長的時候，適合使用blocking lock","2","",""
+"118","12813","S098","waiting time is short","1","僅說明 spin lock 條件（短等待），未說明 blocking lock",""

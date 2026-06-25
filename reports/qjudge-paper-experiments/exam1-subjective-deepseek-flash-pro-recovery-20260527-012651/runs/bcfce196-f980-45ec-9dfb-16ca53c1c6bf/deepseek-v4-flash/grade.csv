@@ -1,0 +1,368 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","2582","S109","shared: process memory, code, text
+not shared:  thread id, stack, program counter","6","",""
+"2","2621","S015","shared:
+code, static data, process ID
+
+not shared:
+program counter, stack, CPU registers","6","",""
+"3","6022","S054","shared: global variable, shared meomory, 
+not shared: thread id, stack pointer, program counter","5","shared 只列出 2 項（global variable, shared memory），缺第 3 項",""
+"4","3719","S117","shared: file desceiption, code, data
+not shared: thread ID, stack, stack pointer","6","",""
+"5","4386","S093","shared: heap section, text section, global variable
+not shared: thread ID, stack section, program counter","6","",""
+"6","3261","S012","shared: open files, text, global data
+not shared: pc, stack, signal mask","6","",""
+"7","4043","S108","Shared: code section, global variable, static variable
+Not shared: thread ID, stack, program counter","6","",""
+"8","3004","S099","Shared: Heap, text, data
+Not shared: Program counter, register, stack pointer","6","",""
+"9","2516","S070","shared:text(code)、static data、global variable
+not shared:threadID、program counter、stack","6","",""
+"10","4069","S080","shared: BSS segment, data, opened file descriptor
+not-shared: ThreadID, saved cpu register, program counter","6","",""
+"11","3150","S003","Not shared:
+Stack(like local variables), Stack pointer, thread id
+Shared
+heap, code , data section","6","",""
+"12","3298","S035","shared :  1. data/global variable 2. text segment(code) 3. open file
+not shared : 1. stack pointer 2. program counter 3. CPU register","6","",""
+"13","4159","S037","Shared: heap, shared library, global variable
+not shared: PC, stack, cpu register","6","",""
+"14","2710","S096","Shared:
+- file descriptors
+- global variables
+- process id
+
+Not shared:
+- program counter
+- stack pointer
+- cpu registers","6","",""
+"15","4038","S013","1. stack, register, process ID
+2. saved CPU register, thread ID, stack pointer.","4","shared/not shared 未明確分類；shared 僅 process ID 正確",""
+"16","3877","S040","shared: PC, register, stack
+not shared: text, data, bss","0","shared/not shared 完全顛倒",""
+"17","2243","S124","Global variables, text (code) and data are shared between threads 
+Thread ID, priority and stack pointer aren't","6","",""
+"18","2828","S121","not shared by threads :
+- PC (program counter)
+- Stack
+- SP (Stack pointer)
+
+shared by threads : 
+- Static data 
+- text (code)
+- heap","6","",""
+"19","6603","S068","Shared: 全域變數，記憶體，process ID
+Not Shared: 區域變數，暫存器內容，thread IDs","6","",""
+"20","2874","S102","Shared: heap, program, process ID
+NOT shared : threads ID, stack, CPU register","6","",""
+"21","4165","S034","shared:
+global variable, memory, static data
+
+not shared:
+thread ID, saved CPU register, program counter","6","",""
+"22","3572","S084","1. global variable, address space, page table
+2. thread ID, program counter, priority","6","",""
+"23","4177","S079","Shared: Text segment, Data segment, BSS segment, signal
+Not Shared: Program Counter, Stack Pointer, Thread ID, signal mask","6","",""
+"24","6078","S122","shared: id 排程 time
+
+not shared: dAta memory  
+","0","答案模糊且概念錯誤",""
+"25","3839","S086","Not shared: thread ID, saved CPU register, stack
+Shared: process ID, memory","5","shared 只列出 2 項（process ID, memory），缺第 3 項",""
+"26","3711","S052","Shared: Process ID, signal, global variables 
+Not shared: Thread ID, signal mask, stack pointer","6","",""
+"27","3748","S033","not share:priority、 process count、CUP ID
+ ","1","未列出 shared 屬性；not shared 僅 priority 正確",""
+"28","3467","S123","Shared attribute:
+Non-shared attribute: thread ID, register, program counter","3","shared 未列出任何屬性",""
+"29","2895","S027","Shared:code,heap,static data
+Not shared:thread ID,Saved CPU register,stack","6","",""
+"30","2273","S081","three attributes that are shared-
+1. parent and child
+2. pointer counter 
+3.  linked allocation
+three attributes that are not shared-
+1. program counter 
+2. threadID
+3. slack","3","shared 三項皆錯誤（parent and child, pointer counter, linked allocation）",""
+"31","3233","S008","Shared:
+1. text
+2. bss
+3. user id / group id
+
+Not Shared:
+1. thread ID
+2. stack pointer
+3. program counter","6","",""
+"32","3388","S078","share: code section, global variable 
+not share: stack, thread ID, PCB","4","shared 僅 2 項；not shared 中 PCB 非 thread 屬性",""
+"33","3205","S087","shared:Text,Bss,Data
+not shared:register,program counter,stack pointer","6","",""
+"34","2778","S022","Shared: Global variables, text, heap
+
+Non-shared: Program counter, stack pointer, thread ID","6","",""
+"35","4989","S110","shared: code,  global variable, PCB
+not shared: thread ID, program counter, stack ","5","shared 中 PCB 非 thread 共享屬性",""
+"36","3133","S082","Shared: data, user id, process id
+Not shared: thread id, stack pointer, program counter","6","",""
+"37","4422","S105","Shared: text segment, static memories, global memories.
+
+Not shared: local variables, dynamic memories, thread ID.","5","not shared 中 dynamic memories 非 thread 私有（heap 為共享）",""
+"38","2700","S111","Shared: memory, PID, open work file
+Not shared: TID, stack pointer, program counter, stack","6","",""
+"39","2693","S085","共享: data segment, bss segment, 當前目錄
+不共享: program counter, stack, thread id","6","",""
+"40","2986","S004","share:code section、data section、global 變數
+not share:thread id,program counter,stack","6","",""
+"41","1987","S011","shared: pid, uid, heap.
+not shared: thread id, stack, mutex.","5","not shared 中 mutex 為 thread 共享而非私有",""
+"42","2757","S046","Shared: Signals, Global register, CPU　memory
+Not Shared: Thread ID, Program counter, Saved CPU register, Stack pointer, priority","4","shared 僅 signals 正確（Global register, CPU memory 非標準屬性）",""
+"43","1972","S005","Shared:
+Code
+Data
+Heap
+
+Not shared:
+Thread ID
+Stacks
+CPU registers
+","6","",""
+"44","5505","S061","Share : Thread , Global Replacement , Heap
+Not Share : Thread ID , Stack , Stack Pointer","4","shared 僅 heap 正確（Thread, Global Replacement 非標準屬性）",""
+"45","2603","S014","not shared:stack、register、thread ID
+shared:cpu、os、data","4","shared 僅 data 正確（cpu, os 非共享正確屬性）",""
+"46","2776","S028","Shared: Global Variables, Memory space
+
+Not Shared: Thread ID, Stack Pointer, Program Counter","5","shared 只列出 2 項，缺第 3 項",""
+"47","2513","S107","shared: signal, stack, global variable
+not shared: thread ID, program counter, signal mask ","5","shared 中 stack 非共享屬性（stack 為 thread 私有）",""
+"48","2836","S126","share:code,memory,program counter
+no share:thread id,stack,register","5","shared 中 program counter 非共享屬性",""
+"49","5554","S017","shared : global variables, shared data,  page table
+
+
+not shared: Program counter, priority, signal mask, saved cpu registers, stack pointer","6","",""
+"50","2818","S115","Three attributes shared are global variables, libraries, heap.
+Three that are not shared are program count, local variables, stack pointer. ","6","",""
+"51","2453","S089","shared : text segment, BSS segment, User ID
+not shared : thread ID, CPU register, program counter","6","",""
+"52","2717","S009","shared among threads: global variable, static data, 
+not shared among threads: CPU register, stack pointer ,thread ID","5","shared 只列出 2 項，缺第 3 項",""
+"53","3838","S094","share：程式碼、全域變數、memory
+not share：thread ID、CPU register、stack","6","",""
+"54","6628","S066","shared: code, memory, data
+not shared: threads ID, registers, pointer","6","",""
+"55","2331","S041","shared: Heap, BSS, information in the code file
+not shared: Thread ID, Stack, CPU register","6","",""
+"56","3859","S031","threads shared : Text segment 、 BSS segment、 Data segment、全域變數
+threads not shared : Thread ID、 Program Counter、 Stack Point","6","",""
+"57","5014","S116","shared: data segment , open files , BSS segment, text segment,
+not shared: thread ID, program counter, stack, stack pointer
+","6","",""
+"58","3914","S059","Shared: global variable, memory address, text
+
+not shared: saved CPU register, thread ID, stack pointer","6","",""
+"59","2218","S064","shared: 1. code 2.全域變數 3. 記憶體
+
+not shared:1. program counter 2. stack 3. register value","6","",""
+"60","2763","S101","Shared: static data, 
+Not shared: Thread ID, local variables, pointer","4","shared 只列出 1 項（static data），缺 2 項",""
+"61","4454","S103","shared : 
+1. CPU
+2. memory
+3. global variable
+not shared : 
+1. thread ID
+2. register
+3. stack","5","shared 中 CPU 非 thread 共享的正確屬性",""
+"62","6211","S104","SHARED: text segment , data segment , BSS segment
+NOT SHARED: thread ID , program counter , stack pointer","6","",""
+"63","2814","S023","shared: CPU utilization, throughput, waiting time
+not shared: Thread ID, Saving CPU register, Program Counter, Stack","3","shared 三項皆非 thread 屬性（CPU utilization, throughput, waiting time 為排程指標）",""
+"64","3594","S113","shared:data,code,open file
+not shared:program counter,stack pointer,register","6","",""
+"65","3515","S055","shared:global variable, text code, process ID
+
+non shared: program counter, register, stack section.
+","6","",""
+"66","2990","S119","not shared: thread ID, saved CPU register, stack pointer
+shared: data segment, context segment, ","4","shared 僅 data segment 正確（context segment 非標準屬性），缺第 3 項",""
+"67","3847","S067","same: Data, code, process execute address,O.S.
+
+not-share: thread ID,priority,stack pointer","6","",""
+"68","4512","S076","Three attributes that are shared among threads include memory - local address, global variables, and files. 
+Three attributes not shared include stack pointer, program counter, and registers.","6","",""
+"69","4459","S074","Shared
+1. Working directory
+2. Global variable
+3. Process ID
+
+Not Shared
+1. Thread ID
+2. Track counter
+3. Pointer","6","",""
+"70","2870","S063","shared: Memory, BSS segment, file descriptor
+not shared: thread ID, stack, CPU register","6","",""
+"71","3763","S090","Shared: text segment, data segment, heap
+Not shared: stack, register, thread ID","6","",""
+"72","3784","S100","Shared : code text, global variables, shared memory region.
+Not shared : CPU registers, stack, program counter.","6","",""
+"73","3402","S114","Shared :
+1. code section
+2. data section 
+3. heap 
+Not shared:
+1. thread ID
+2. stack 
+3. register set","6","",""
+"74","2134","S038","1.PID、PARENT PID、process status
+2.TID、register、PC","6","",""
+"75","2837","S047","Shared:
+Global Variable
+在同一個 process 底下（Process ID 同）
+程式的值會一樣 （但沒 share 同一個 memory）
+會從 fork 後的下一段程式執行 
+
+Not Shared:
+Thread ID
+Program Counter
+Stack (local variable)
+","5","shared 僅正確列出 global variable 與 process ID，缺第 3 項",""
+"76","2869","S044","shared: heap, user and group id, open file descriptor
+not shared: thread id, program counter, stack","6","",""
+"77","3925","S075","shared:
+process id 
+global variable(對於thread)
+process time
+not shared:
+thread id 
+local variable(對於thread)
+CPU register","5","shared 中 process time 非 thread 共享屬性",""
+"78","2585","S030","三個 share among threads
+1. heap 2. code 3. resources
+三個 not shared among threads
+pc stack registers","5","shared 中 resources 非明確的 thread 共享屬性",""
+"79","3957","S106","shared : heap , global variable, static program 
+not shared : cpu register , stack , stack pointer ","6","",""
+"80","3504","S019","Shared : PID, files, Code, globel variables
+Not shared : Thread ID, save CPU registers, Program Counter, Stack
+","6","",""
+"81","2680","S020","Shared: heap, global variables
+Non-shared: stack, program counter, CPU registers","5","shared 只列出 2 項，缺第 3 項",""
+"82","4049","S010","Global variales, are shared.
+Thread ID, program counter, stack pointer are not shared.","4","shared 只列出 1 項（global variables），缺 2 項",""
+"83","2648","S091","share:code,data,file
+not share:register,PC,stack","6","",""
+"84","4219","S051","shared: heap, code, global variable
+not shared: thread ID, PC, stack","6","",""
+"85","4470","S039","shared:
+text segment, data segment, BSS segment
+
+not shared:
+CPU register, stack pointer, program counter","6","",""
+"86","2893","S018","shared: text,program id,heap
+not shared: thread id,stack,program counter","6","",""
+"87","3319","S049","shared : static data , code, file discription
+not shared: stack ,thread ID, priority","6","",""
+"88","4058","S053","shared: heap, text(code), global variable
+not shared: stack, register, program counter","6","",""
+"89","3502","S092","shared: text, code, BSS
+not shared: stack, thread ID, priority","6","",""
+"90","2476","S125","1.thread id
+2.Saved cpu register
+3.stack","3","未列出任何 shared 屬性，且未明確分類",""
+"91","6322","S021","thread ID ,stack ,Process counter -not shared
+Memory,address,register-shared
+ ","5","shared 中 register 非共享屬性（register 為 thread 私有）",""
+"92","2772","S050","shared: global variables, heap, user ID
+not shared: thread ID, program counter, local variables","6","",""
+"93","2718","S036","shared among threads: group ID 、BSS 、text
+not shared among threads: thread ID 、stack、local variable","6","",""
+"94","3048","S048","shared : BSS segment, user id, group id, signal, text segment
+not shared : signal mask, thread id, stack","6","",""
+"95","6399","S112","shared: memory 
+not shared: CPU register, counter, thread ID, variables","4","shared 只列出 1 項（memory），缺 2 項",""
+"96","2909","S006","share: text, data, bss
+not share: cpu register, program pointer, stack pointer","6","",""
+"97","3618","S026","Share :heap,pc,data
+not share:cp,暫存集,stack","4","shared 中 pc 非共享；not shared 中 cp 不明確",""
+"98","2520","S032","Shared: 1. file directory; 2. memory space; 3. data
+Not shared: 1. stack; 2. thread ID; 3. registers","6","",""
+"99","5265","S057","Process ID , Stack , Register , PC counter
+ID 無法共享，必須各自獨立
+Steck  堆疊無法供享
+暫存器 與 PC counter 計數器
+以上無法共享用","3","未列出任何 shared 屬性；not shared 中 Process ID 實為共享屬性",""
+"100","6091","S002","Shared: variables, static data, memory
+Not shared: thread ID, stack pointer, saved CPU register","6","",""
+"101","6364","S007","Shared:
+(a) global variables
+(b) mutex / semephors
+(c) text / code
+(d) shared memories (shm)
+
+Not shared:
+(a) stack
+(b) process counter / ID
+(d) CPU registers","6","",""
+"102","4628","S016","Shared attributes : 全域變數,記憶體,heap
+Not shared attributes : 暫存器, 計數器,stack pointer,thread ID","6","",""
+"103","4893","S083","執行緒不共享的屬性：
+1,計數器。
+2,堆疊指標。
+3,暫存器。
+執行緒共享的屬性：
+1,變數
+2,檔案
+","5","shared 只列出 2 項（變數、檔案），缺第 3 項",""
+"104","2892","S088","shared: data,bss,file
+not shared: thread ID,CPU register,stack pointer","6","",""
+"105","3809","S058","shared: global variable, heap, memory.
+not shared: CPU register, stack, thread id.","6","",""
+"106","3666","S043","shared:memory,CPU,
+not shared:thread ID ,PC ,utilization,priority","4","shared 僅 memory 正確（CPU 非 thread 共享屬性），缺第 3 項",""
+"107","2697","S060","no share: thread id; priority; stack 
+share: memory; global變量； process id","6","",""
+"108","2673","S024","share: memory, heap, program text
+not shared: stack, priority, thread ID","6","",""
+"109","6222","S095","shared:memory
+not shared:threads id , saved cpu register, stack pointer","4","shared 只列出 1 項（memory），缺 2 項",""
+"110","3149","S077","the same: process ID, global variable, file descriptor 
+not the same: stack, program counter, CPU register content","6","",""
+"111","2795","S120","Shared: User/Group ID, Text, file descriptor
+Private: Thread ID, Stack Pointer, Stack","6","",""
+"112","3119","S073","shared:text segment、static data 、global data、BSS segment
+
+not shared:TID、PC、stack pointer","6","",""
+"113","2843","S069","shared: memory, PCB, heap
+not shared: stack, stack pointer, CPU register","5","shared 中 PCB 非 thread 共享屬性（PCB 為 process 層級）",""
+"114","3535","S072","Shared among threads: heap, open file, code and data.
+Not shared: Thread ID, stack, program counter, stack pointer.","6","",""
+"115","2823","S042","share: global variable, local variable, heap
+not share: thread ID, saved cpu register, stack pointer","5","shared 中 local variable 非共享屬性（存於 stack 為 thread 私有）",""
+"116","2977","S071","shared : heap、 data、 Bss
+not shared : stack、 stack pointer、 register、 program counter","6","",""
+"117","4476","S062","shared: code, data, OS sources(opened files)
+not shared: Threads ID, program counter, stack pointer","6","",""
+"118","2973","S045","not share:1.thread id 2.program counter3.stack pointer
+share:1.memory space 2. Stack 3. Queue","4","shared 僅 memory space 正確（Stack, Queue 非共享屬性）",""
+"119","2715","S056","Thread ID, Saved CPU Scheduling, Signal Mask, Stack Pointer, Stack (local, temporary, return address), Program Counter","3","未列出任何 shared 屬性",""
+"120","3652","S029","shared
+1.stack 
+2.stack pointer
+3.全域變數
+not shared
+1.threads ID
+2.區域變數
+3.register","4","shared 中 stack、stack pointer 非共享屬性；僅全域變數正確",""
+"121","3446","S065","shared：memory, code, global variables
+not shared：thread ID, stack, stack pointer","6","",""
+"122","5711","S025","Shared attributes: global variable, signal, files
+Not shared attributes: thread priority, thread ID, stack","6","",""
+"123","2764","S098","shared: text section(code), heap, variable
+not shared: thread_ID, programming counter, stack","6","",""

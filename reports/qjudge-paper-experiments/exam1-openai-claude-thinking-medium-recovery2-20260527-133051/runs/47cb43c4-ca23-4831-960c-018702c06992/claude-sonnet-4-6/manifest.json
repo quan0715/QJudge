@@ -1,0 +1,32 @@
+{
+  "blind_grading": true,
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "downloaded_artifacts": [
+    {
+      "filename": "grade.csv",
+      "id": "84c726b6-7d8a-4a2c-aacf-cdb2785b0b9a",
+      "local_path": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-openai-claude-thinking-medium-recovery2-20260527-133051/runs/47cb43c4-ca23-4831-960c-018702c06992/claude-sonnet-4-6/grade.csv",
+      "updated_at": "2026-05-27T14:04:33.212514+08:00"
+    },
+    {
+      "filename": "rubric.md",
+      "id": "c48e5343-2d1e-4bbd-86ef-e938ea0e0199",
+      "local_path": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-openai-claude-thinking-medium-recovery2-20260527-133051/runs/47cb43c4-ca23-4831-960c-018702c06992/claude-sonnet-4-6/rubric.md",
+      "updated_at": "2026-05-27T13:58:41.301236+08:00"
+    }
+  ],
+  "ended_at": 1779861905,
+  "human_baseline_path": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-openai-claude-thinking-medium-recovery2-20260527-133051/runs/47cb43c4-ca23-4831-960c-018702c06992/claude-sonnet-4-6/human_baseline.csv",
+  "model_id": "claude-sonnet-4-6",
+  "official_grades_modified": false,
+  "question_context_artifact_id": "a797098c-ddfd-4e78-9013-e9c0c111d039",
+  "question_id": "47cb43c4-ca23-4831-960c-018702c06992",
+  "run_id": "fdfdbc09-0126-4326-a6aa-97cc5cd4a55a",
+  "seed_artifact_id": "84c726b6-7d8a-4a2c-aacf-cdb2785b0b9a",
+  "session_id": "7bec6c47-f991-4038-a659-da9b03fadf24",
+  "started_at": 1779861493,
+  "terminal_event_type": "run_completed",
+  "user_id": null
+}

@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "What is the race condition?",
+  "question_id": "166f2724-ea07-47ba-b33e-15b5365b84b0",
+  "question_type": "short_answer",
+  "reference_answer": "A race condition occurs when two or more threads or processes access a shared resource such as a variable, file, or database record, and the final outcome of the program depends on the order in which the threads or processes execute."
+}

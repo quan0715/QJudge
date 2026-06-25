@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "初始化:out(\"sem\") N 次\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "11694",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Initialize: Repeat `out(\"semaphore\")` for N time\n\nFor accessing semaphore, use `in(\"semaphore\")` to acquire and `out(\"semaphore\")` to release."
+      },
+      "id": "13208",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "initialization：執行 out(\"sem\") N次\nwait：in(\"sem\")\nsignal：out(\"sem\")"
+      },
+      "id": "14648",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "initialization: out(\"sem\") N times\nwait: in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "14291",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "wait(): in(\"sem\")\nsignal(): out(\"sem\")\ninitialized: n次out(\"sem\")"
+      },
+      "id": "12770",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "initalized: out(\"sem\") for N times\nwait: in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "13340",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") 做 N 次，此可以將 semaphore 的初始值設為 N，wait 使用 in(\"sem\")，signal 使用 out(\"sem\")\n"
+      },
+      "id": "13142",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "初始化: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13033",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "initial():out(\"sem\")*N\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "12898",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "initialization: out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "14617",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Init: out(\"sem\") N times\nWait: In(\"sem\")\nSignal: out(\"sem\")"
+      },
+      "id": "11843",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. Initialization : execute out(\"sem\") for N times\n2. Wait : execute in(\"sem\")\n3. Signal : execute out(\"sem\")"
+      },
+      "id": "13630",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "for range(0,N)\n     out(\"sem\")\n\nput N lock tuples to tuple space"
+      },
+      "id": "15121",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "init: out(\"sem\")\nwait: in(\"sem\")\nsignal:  out(\"sem)"
+      },
+      "id": "13598",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "initialized: executed out(\"sem\") N times\nin(\"sem\")\nout(\"sem\")"
+      },
+      "id": "11402",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(sem) N time\nwait: in(sem)\nsignal: out(sem)"
+      },
+      "id": "14083",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") N times -> initializing the counting semaphore to N by adding n (\"sem\") tuples to the tuple table\nin(\"sem\") -> decrement 1 to the counting semaphore as we remove one (\"sem\") tuple from the tuple table, blocks if there is no (\"sem\") tuple present (ie waits if counting semaphore = 0)\nout(\"sem\") -> increment 1 to the counting semaphore as we add one (\"sem\") tuple to the tuple table "
+      },
+      "id": "11601",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Initialisation : out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "14582",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "out(sem, 0)  # 初始化\nin(sem, N)\nout(sem, N)"
+      },
+      "id": "11961",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "initial: 執行n次 out(\"sem\")\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12810",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "execute out(\"sem\") N times"
+      },
+      "id": "13139",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "Initialization : execute out(\"sem\") N times\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "11930",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "initialize: out('sem') for N times\nwrite: in('sem')\nequal: out('sem')"
+      },
+      "id": "13423",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "initilization: out(\"sem\") 執行n次\nwait:in(\"sem\")\nsignal:out(\"sem\")"
+      },
+      "id": "11821",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13041",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\") N times\nwait() (acquire lock): in(\"sem\")\nsignal() (release lock): out(\"sem\")"
+      },
+      "id": "14368",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "initialization:execute out(\"sem\") for N times\nwait():in (\"sem\")\nsignal():out (\"sem\")"
+      },
+      "id": "13066",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Initialization: executing out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13979",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Initialization:out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12758",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "initialization- out (\"sem\")\nwait-in(\"sem\")\nchange- out(\"sem\")"
+      },
+      "id": "11713",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") (use this for N times in the initialization)"
+      },
+      "id": "14399",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "initial: out(\"sem\") n time\ncall : in(\"sem\")\nbreak : out(\"sem\")"
+      },
+      "id": "11216",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Initialization:執行out(\"sem\") n次\nwait:in(\"sem\")\nsignal:out(\"sem\")"
+      },
+      "id": "12382",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Initialize: out(\"sem\")\nWait: in(\"sem\")\nRelease: out(\"sem\")"
+      },
+      "id": "12208",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "initilization: out(sem) * N\nwait: in(sem)\nsignal: out(sem)"
+      },
+      "id": "14066",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "initial: out(sem) N times\nwrite(): in(sem)\nsignal(): out(sem)"
+      },
+      "id": "14633",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "初始時 : out('smp') n次\nsignal() : out('smp')\nwait() : in('smp')"
+      },
+      "id": "12109",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "初始化: out(\"sem\")，N次\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13008",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "initialization:執行out(\"sem\")N次\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "13157",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\"sem\") N times \nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12757",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Initialization : Out(\"sem\") N times\nWait :   In(\"sem\")\nSignal : Out(\"sem\")"
+      },
+      "id": "11919",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "initialization:execute out(\"sem\") counter N\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "11706",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "initiate(): execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12700",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "initialize: 執行N次 out(\"sem\")\nwait() :  in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "13750",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "initialization : out(\"sem\") N times    相當於N個可用資源\nwait() : in(\"sem\") \nsignal() : out(\"sem\")"
+      },
+      "id": "15893",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "initialize: out(\"sem\") n times\nwait: in(\"sem\")\nsignal; out(\"sem\")"
+      },
+      "id": "11897",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Initialization : execute out('sem') N times\nwait() in('sem');\nsignal() out('sem')"
+      },
+      "id": "12711",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\") for n times\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "12487",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "Initialization ：execute out(\"sem\")N times\nwait()：in(\"sem\")\nsignal()：out(\"sem\")"
+      },
+      "id": "13850",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "initialization: execute out(\"sem\")  N times\nwait():in(\"sem\") \nsiginal():out(\"sem\") "
+      },
+      "id": "13890",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Init. :       out(\"sem\")\nwait() :    in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "12932",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "初始化 : out(\"sem\") N times\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "15919",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "Initiazation: out(\"sem\") n time\nwait:out(\"sem\")\nsignal: in(\"sem\")"
+      },
+      "id": "12826",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\"sem\") N times\nwait: in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "13973",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "initialization：out(\"sem\")\nwait()：in(\"sem\")\nsignal()：out(\"sem\")"
+      },
+      "id": "13054",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "14124",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "initialization : execute out(\"sem\") N time\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "13021",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "initialization: out(\"sem\") N次\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "11847",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\")\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "14128",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "initialize:out(\"sem\") N次\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "12666",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "初始化: out(\"sem\") N次\n當需要存取時 in(\"sem\")\n當存取結束時 out(\"sem:)\n"
+      },
+      "id": "13092",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\" sem \")N times\nwait(): in(\" sem \")\nsignal: out(\" sem \")"
+      },
+      "id": "13407",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "initial:out(\"sem\") N times\nwait:in(\"sem\")\nsignal:out(\"sem\")"
+      },
+      "id": "13165",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "14523",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "initialization(): out\nwait(): in (\"sem\")\nsignal(): out (\"sem\")"
+      },
+      "id": "11983",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\")\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "13732",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out(\"sem\") for N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13101",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "Initialized : out(cnt) N times.\nWait : in(cnt)\nSignal : out(cnt) "
+      },
+      "id": "11913",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "out(N)"
+      },
+      "id": "15681",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") n times to initial\nin(\"sem\") : when wait\nout(\"sem\"): when signal"
+      },
+      "id": "13525",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "init：out(key)  * N 建立 N 個 key 推到 tuple 裡面\nwait：in(key) 就會自己等待可以用的時候拿一個\nsignal：out(key) 會推一個到 tuple 去釋放一個 couting semaphore"
+      },
+      "id": "12788",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "initialization : out(\"sem\") N times\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "14996",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "initiated: out('a') n times\ncounting(a--): in('a')\nfinish(a++): out('a')"
+      },
+      "id": "13159",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "原理 :  signal() = in(\"sem\") wait ()= out(\"sem\")\n初始化 to n 的方法 :  執行 n 次 in(\"sem\")"
+      },
+      "id": "13053",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "initialization : out(\"sem\") for N times \nwait : in(\"sem\")\nsignal : out(\"sem\")"
+      },
+      "id": "12868",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Initialization : 執行 out(\"sem\") N 次\nWait() : in(\"sem\")\nSignal() : out(\"sem\")\n"
+      },
+      "id": "13462",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Initialization: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12623",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "initialize: out(\"sem\") for N times.\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13283",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "Initialization : execute out(\"sem\") N times\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "13263",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "execute out(\"sem\") N times means that we have N resources."
+      },
+      "id": "12922",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "initialize: out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12480",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "initialize: execute out(\"sem\") N times\nwait: in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "13114",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "initializing: out(\"sem\")\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "12695",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "initialization out(sem) * N times\nwait                in(sem)\nsignal             out(sem)"
+      },
+      "id": "13301",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "initialization: out(\"sem\", N)\nwait: in(\"sem\", 1)\nsignal: out(\"sem\", 1)"
+      },
+      "id": "13670",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "initialized():out(\"sam\")\nwait():in(\"sam\")\nsignal():out(\"sam\")"
+      },
+      "id": "12492",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "initialization:out(\"sem\")\nwait:in(\"sem\")\nsignal:out(\"sem\")"
+      },
+      "id": "11962",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") for n times\nin(\"sem\")\nout(\"sem\")"
+      },
+      "id": "13274",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "initialized:out(\"sem\")\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "13023",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "Initialization : out(\"sem\") N times\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "12852",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "Initialization: out('sem') N times\nwrite(): in('sem') \nsignal(): out('sem')"
+      },
+      "id": "13383",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "sem = n\ninit, out(\"sem\"), 或改成 out n times, 不太確定 linda 怎用\nwait, in(\"sem-1\")\nsignal, out(\"sem+1) "
+      },
+      "id": "12951",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "Initial : Out( \"sem\" )\nWait : In( \"sem\" )\nSignal : Out( \"sem\" )"
+      },
+      "id": "13304",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "initialization: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "15518",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") x N times / in(\"sem\") / out(\"sem\")\n\nInitialize / Wait / Release"
+      },
+      "id": "13150",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "wait(): IN(\"SEM\", N)\nsignal(): OUT(\"SEM\", N)"
+      },
+      "id": "12472",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "初始化:out(\"sem\")\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "16195",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1. 初始化：執行out(\"sem\") N次。\n2.wait():進入\"sem\"狀態。\n3.signal()：退出\"sem\"狀態。"
+      },
+      "id": "16144",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "initialization : 執行out(\"sem\")N次\nwait() : in(\"sem\")\nsignal() : out(\"sem\")"
+      },
+      "id": "13451",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "initialization : execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "14532",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "initialization:out(''sem'') of N times\nwait():in(''sem'')\nsignal():out(''sem'')\n"
+      },
+      "id": "12407",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "out(\"sem\") N times\nin(\"sem\")\nout(\"sem\")"
+      },
+      "id": "12256",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "initialization:execute out(\"sem\") N times\nwait(): in (\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12822",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "initialization():out(\"sem\")\nwait():in(\"sem\")\nsignal():(\"sem\")"
+      },
+      "id": "13189",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "Initialize:  out(\"sem\") N times\nwait: in(\"sem\")\nsignal: out(\"sem\")"
+      },
+      "id": "13587",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Initialize: out(\"sem\") n times\nWait: in(\"sem\")\nSignal: out(\"sem\")"
+      },
+      "id": "12816",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "initial:out('sem'):在初始化時，將tuple sem 放入tuple space\nwait: in(\"sem\"):執行wait時，將sem從tuple space取出\nsignal:out('sem'):將sem放回tuple space"
+      },
+      "id": "15822",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "initialized: out('sem') N times\nwait(): in('sem;)\nsignal():out('sem')"
+      },
+      "id": "13211",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Initial: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "13777",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "initialization: execution out(\"sem\") N times\nwait() : in(\"sem\")\nsignal(): out(\"sem\")"
+      },
+      "id": "12919",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.Initialization: 執行out(\"sem\")N次，產生N個許可權\n2.wait(): 執行in(\"sem\")一次拿走一個許可權\n3.signal(): 執行out(\"sem\")一次歸還一個許可權"
+      },
+      "id": "13428",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Init: execute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal(): out(\"sem\") "
+      },
+      "id": "12989",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "execution out('sem')*N\nwait():in('sem')\nsignal():out('sem')"
+      },
+      "id": "13382",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "A counting semphore initialized to N can be implemented in Linda by putting N identical tokens into the tuple space\n\n// Initialize semaphore to N\nfor i = 1 to N do\n       out(\"sem\")\n\n// P / wait operation\nin(\"sem\")\n\n// V / signal operation\nout(\"sem\")\n\nExplanation:\n\nout(\"sem\") adds one token to the tuple space\nin(\"sem\") removes one token, if no token exists, the process blocks\n\nSo, at most N processes can pass the semaphore at the same time"
+      },
+      "id": "15696",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Allocate memory into storage to initialize to N using the Linda coordination"
+      },
+      "id": "13953",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "initial: excute out(\"sem\") N times\nwait(): in(\"sem\")\nsignal: out(\"sem\") "
+      },
+      "id": "15231",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. initialization: out(\"sem\") N times\n2. wait(): in(\"sem\")\n3. signal(): out(\"sem\")"
+      },
+      "id": "13158",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "init():execute out(\"sem\") N times\nwait():in(\"sem\")\nsignal():out(\"sem\")"
+      },
+      "id": "13626",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "Demonstrate how a counting semaphore initialized to N can be implemented using the Linda coordination language.",
+    "question_id": "8edb59fe-821f-4597-a8e4-0bb11146517d",
+    "question_type": "short_answer",
+    "reference_answer": "Initialization: execute out(\"sem\") N times.\nWait(): execute in(\"sem\").\nSignal(): execute out(\"sem\")."
+  },
+  "question_id": "8edb59fe-821f-4597-a8e4-0bb11146517d"
+}

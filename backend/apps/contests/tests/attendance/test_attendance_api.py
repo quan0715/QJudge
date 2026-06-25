@@ -70,6 +70,24 @@ def test_teacher_can_get_qr_token() -> None:
 
 
 @pytest.mark.django_db
+def test_qr_token_endpoint_reuses_active_credential() -> None:
+    api_client = APIClient()
+    teacher = make_user("attendance_qr_reuse_teacher", role="teacher")
+    contest = make_contest(owner=teacher)
+    api_client.force_authenticate(user=teacher)
+
+    first = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+    second = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.data["token"] == first.data["token"]
+    assert second.data["manual_code"] == first.data["manual_code"]
+    assert second.data["qr_value"] == first.data["qr_value"]
+    assert second.data["expires_at"] == first.data["expires_at"]
+
+
+@pytest.mark.django_db
 def test_student_cannot_get_qr_token() -> None:
     api_client = APIClient()
     teacher = make_user("attendance_qr_owner", role="teacher")
@@ -841,6 +859,8 @@ def test_teacher_assisted_check_in_requires_uploaded_evidence_to_be_ready() -> N
 
 def _make_teacher_assisted_event(contest: Contest, teacher, student) -> ExamEvent:
     """Create a teacher-assisted attendance check-in event for student."""
+    # Keep the fixture window and frame payload on the same clock.
+    evidence_anchor_at_ms = int(timezone.now().timestamp() * 1000)
     return ExamEvent.objects.create(
         contest=contest,
         user=student,  # event belongs to student
@@ -853,6 +873,9 @@ def _make_teacher_assisted_event(contest: Contest, teacher, student) -> ExamEven
             "reason": "camera unavailable",
             "source_module": "attendance",
             "evidence_cluster_id": "attendance-test",
+            "evidence_anchor_at_ms": evidence_anchor_at_ms,
+            "evidence_window_start": evidence_anchor_at_ms - 1000,
+            "evidence_window_end": evidence_anchor_at_ms + 1000,
             "photo_required": True,
             "required_photo_kinds": ["room"],
         },
@@ -868,7 +891,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
     contest = make_contest(owner=teacher)
     ContestParticipant.objects.create(contest=contest, user=student)
     event = _make_teacher_assisted_event(contest, teacher, student)
-    now_ms = int(timezone.now().timestamp() * 1000)
+    frame_captured_at_ms = int(event.metadata["evidence_anchor_at_ms"])
 
     api_client.force_authenticate(user=teacher)
     response = api_client.post(
@@ -878,7 +901,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
             "evidence_cluster_id": "attendance-test",
             "source_module": "attendance",
             "evidence_mode": "audit",
-            "frames": [{"client_captured_at_ms": now_ms, "seq": 1}],
+            "frames": [{"client_captured_at_ms": frame_captured_at_ms, "seq": 1}],
         },
         format="json",
     )
@@ -900,6 +923,7 @@ def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
     ContestParticipant.objects.create(contest=contest, user=student_a)
     ContestParticipant.objects.create(contest=contest, user=student_b)
     event = _make_teacher_assisted_event(contest, owner, student_a)
+    frame_captured_at_ms = int(event.metadata["evidence_anchor_at_ms"])
 
     # student_b tries to upload for student_a's event
     api_client.force_authenticate(user=student_b)
@@ -909,7 +933,7 @@ def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
             "event_id": event.id,
             "source_module": "attendance",
             "evidence_mode": "audit",
-            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+            "frames": [{"client_captured_at_ms": frame_captured_at_ms, "seq": 1}],
         },
         format="json",
     )
@@ -940,7 +964,12 @@ def test_manager_cannot_use_ta_bypass_for_non_attendance_event() -> None:
             "event_id": other_event.id,
             "source_module": "attendance",
             "evidence_mode": "audit",
-            "frames": [{"client_captured_at_ms": 1000, "seq": 1}],
+            "frames": [
+                {
+                    "client_captured_at_ms": int(other_event.created_at.timestamp() * 1000),
+                    "seq": 1,
+                }
+            ],
         },
         format="json",
     )

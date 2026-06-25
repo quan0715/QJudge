@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "A system has 32-bit addresses and 2 GB (231) main memory where each page is 1 MB (220). How many entries of a page table will contain?",
+  "question_id": "517790a5-db10-491c-bb92-6bb654e36795",
+  "question_type": "short_answer",
+  "reference_answer": "Each page is 1 MB (220), so it needs 20 bits as an offset. Thus a 32-bit address can have at most 12-bit (32-20=12) as the page number. Therefore a page table con have at most 2^12 = 4096 entries."
+}

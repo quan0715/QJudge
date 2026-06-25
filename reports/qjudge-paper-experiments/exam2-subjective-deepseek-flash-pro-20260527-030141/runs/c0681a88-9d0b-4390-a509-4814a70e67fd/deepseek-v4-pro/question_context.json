@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Compare Sender-Initiated (SI-LB) and Receiver-Initiated (RI-LB) Load Balancing algorithms. Which one maintains performance under heavy load?",
+  "question_id": "c0681a88-9d0b-4390-a509-4814a70e67fd",
+  "question_type": "short_answer",
+  "reference_answer": "SI-LB probes for underloaded nodes, while RI-LB probes for overloaded nodes. RI-LB maintains better performance under heavy load because busy nodes do not waste CPU cycles probing; only idle nodes actively seek work."
+}

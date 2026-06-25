@@ -1,0 +1,830 @@
+{
+  "answer_count": 116,
+  "answers": [
+    {
+      "answer": {
+        "text": "read after TSL \nTSL with back off"
+      },
+      "id": "12609",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. Read after TSL: Read the status of lock. If the lock is available, try to acquire the lock. Only release lock and get lock cause bus traffic.\n2. TSL back off: Periodically acquire the lock. If the access failed, wait for a time and try again. The time of waiting increases when the access failed."
+      },
+      "id": "11993",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, Read before TSL\n2, TSL with back off "
+      },
+      "id": "16051",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL: 在TSL之前先讀lock確定現在是可以access的\n2. TSL with back off: 如果tsl時發現無法獲得lock，隔一段時間再去access，每次無法獲得lock，就增加下一次tsl的間隔時間"
+      },
+      "id": "12395",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with back off"
+      },
+      "id": "12018",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. each core spins on its private lock, wait from other core release the private lock\n2. backoff spin: if a core ask the lock but get it, wait for a short time to ask for the lock again. if the core still not get the key, wait for a longer time"
+      },
+      "id": "11977",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL: 會有一個 cache 為 read only 來讓所有需要做 TSL 的 processor 去做讀取，而不會像傳統 TSL 不斷發出修改的請求。 \nback down: 在 TSL 失敗以後，會暫停一段時間再去做 TSL."
+      },
+      "id": "12096",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff"
+      },
+      "id": "12201",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.read before tsl: 會變成一直讀取自己本地cache的lock變數，直到其他人釋放lock修改本地lock變數才會去嘗試拿\n2.tsl with back off: 發現lock有人用就等一段時間再去看釋放了沒，不要一直去看避免bus contention"
+      },
+      "id": "12044",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "read before the TSL, TSL with backoff"
+      },
+      "id": "13005",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "read before tsl and tsl back off"
+      },
+      "id": "11287",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with back off"
+      },
+      "id": "12604",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL: read the lock is free or not before a test which need to write the lock cause contention.\n2. backoff TSL: When process access the lock. If the lock is not free, the process would stop access the lock and wait a fix time. If the lock still not unlock after waiting, the process would double the waiting time."
+      },
+      "id": "13020",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. Write-back after TSL"
+      },
+      "id": "12396",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with back off"
+      },
+      "id": "13314",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "read before TSL: read the lock status, if lock is free, then use TSL\nbackoff: if TSL is failed, wait some time before next TSL, and the waiting time can growth exponentially with a upper limit."
+      },
+      "id": "12618",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Back-off and Read-Before"
+      },
+      "id": "11249",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Read before TSL\n- TSL backoff"
+      },
+      "id": "12781",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "因為 lock 釋放時會造成所有等待的 cpu 同時爭搶 bus 資源\n解法：read before TSL, TSL+指數退避"
+      },
+      "id": "15854",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "read before TSL、TSL with back off"
+      },
+      "id": "12024",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with back off"
+      },
+      "id": "12100",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL (在執行TSL前先用迴圈的方式讀取，例如While(lock==1))\n2. TSL with backoff (沒搶到lock就要罰等待)"
+      },
+      "id": "11359",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "read before TSL, TSL with backoff (每次做TSL的時間指數性的增加，這樣就不會有每個CPU同時做TSL導致bus contention的問題了)"
+      },
+      "id": "12493",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "增加 back off去提升\nread before TSL "
+      },
+      "id": "12349",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "read before TSL and TSL with back off"
+      },
+      "id": "12094",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL.\n2. TSL with backoff intervals."
+      },
+      "id": "12967",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL\n2.TSL with back off"
+      },
+      "id": "12273",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff"
+      },
+      "id": "12900",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with backoff"
+      },
+      "id": "11931",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "read before tsl and tsl after that"
+      },
+      "id": "11450",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL.\n2. TSL with back off time."
+      },
+      "id": "12689",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL\n2.TSL with backoff"
+      },
+      "id": "13105",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with backoff"
+      },
+      "id": "12835",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL: check whether the lock is free in advance\n2. TSL with back off: everytime asking for the locks fails, it will increase the waiting time for next request."
+      },
+      "id": "12533",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff"
+      },
+      "id": "12313",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff"
+      },
+      "id": "11530",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "read before TSL: 確定鎖被釋放再嘗試取得\nTSL with backoff: 限制嘗試取得的頻率"
+      },
+      "id": "12023",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL\n2.TSL with back off"
+      },
+      "id": "12149",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff "
+      },
+      "id": "11858",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with back-off"
+      },
+      "id": "11438",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with back off"
+      },
+      "id": "11424",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with back off"
+      },
+      "id": "12137",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL 一直read lock ，直到有空的lock 就可以執行TSL\n2.TSL backoff  拿不到LOCK就讓cpu等一段時間"
+      },
+      "id": "12383",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.Read before TSL\n2.TSL with 不斷延緩下一次poll的時間間隔"
+      },
+      "id": "14559",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL Back off"
+      },
+      "id": "11356",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1.Read before TSL\n2.TSL back-off"
+      },
+      "id": "11948",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Send before TSL\n"
+      },
+      "id": "15482",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL work back off"
+      },
+      "id": "12541",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. Mock off with TSL"
+      },
+      "id": "12928",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with back off"
+      },
+      "id": "12004",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL : 先用read普通操作看資源有無空閒，避免過度spinlock，佔用匯流排。\nTSL with backoff : 使用一個延遲時間，若還沒空閒，則延遲時間加倍，避免過度spinlock和多個行程同時請求相同資源。"
+      },
+      "id": "14669",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "read before TSL, TSL with back off"
+      },
+      "id": "11980",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with back off"
+      },
+      "id": "12746",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nback off"
+      },
+      "id": "12579",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL before back off"
+      },
+      "id": "12511",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with backoff"
+      },
+      "id": "12070",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off"
+      },
+      "id": "13654",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL and TSL with back off."
+      },
+      "id": "12506",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.backoff TSL\n2.read before TSL"
+      },
+      "id": "11853",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.Read before TSL\n2.TSL back off  其目的是為了減少access lock的頻率"
+      },
+      "id": "12141",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Read before TSL\n2.TSL with back off"
+      },
+      "id": "12341",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL\n2.TSL with back-off"
+      },
+      "id": "12305",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with exponential backoff\nThe idea is to avoid lock-attempt traffic on the bus."
+      },
+      "id": "12935",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. TSL with backoff\nii. TSL with spinlock"
+      },
+      "id": "16135",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with back off"
+      },
+      "id": "12436",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL: Use read operation to check if the lock is available. If the lock is available, then try the TSL instruction.\n2. TSL with backoff: When TSL failed, wait for a time to try TSL again."
+      },
+      "id": "12232",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL.\n2. Back-off TSL."
+      },
+      "id": "13487",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. TSL back off \n2. Read before TSL "
+      },
+      "id": "11590",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.exponetion timeout\n2.queue to access"
+      },
+      "id": "12930",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "因為 TSL 是原子操作，他會把 bus 鎖定，所以很容易造成 bus contention\n\nRead before TSL：可以先用 cache 去讀 lock 的狀態，再去做 TSL\nBackoff：當要鎖失敗的時候，先 delay 一陣子"
+      },
+      "id": "12163",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "read before TSL and TSL with backoff"
+      },
+      "id": "13162",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "get key before TSL: other progress cannot use without key\nTSL with back off"
+      },
+      "id": "12140",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1.  read before TSL : 若一開始就想 write 會先將他人設定為 invalidate， 若先 read 可以避免一直將其他人設定為 Invalidate\n2. TSL with backoff : 逐漸推遲 TSL 發生的時間 ，但要設上限避免無止盡飢餓"
+      },
+      "id": "12074",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with  back off "
+      },
+      "id": "11846",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with back off"
+      },
+      "id": "12138",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL and TSL with back-off"
+      },
+      "id": "11850",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off"
+      },
+      "id": "12048",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with offstage :延遲詢問，減少詢問資源"
+      },
+      "id": "12497",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL wait back off"
+      },
+      "id": "11936",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off"
+      },
+      "id": "13102",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off"
+      },
+      "id": "12060",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "read before tsl ,tsl back_off"
+      },
+      "id": "11844",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off\n"
+      },
+      "id": "12184",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. Use TTAS(Test-and-Test-and-Set), instead of spin for lock, it can test periodically.\n2. Use exponential backoff, it will make the check time longer."
+      },
+      "id": "12224",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.spinlock\n2.讓每個處理器都存有部分的os系統"
+      },
+      "id": "14073",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "read before TSL and TSL is back off"
+      },
+      "id": "11210",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL \n2. TSL同時隨機等待一段時間"
+      },
+      "id": "12142",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL:先用一般的read指令檢查lock的狀態，若是lock釋放，就執行TSL。\n2.TSL back off:先執行TSL，若是失敗則等待一段時間，通常是1個指令，若還是失敗則等待2個指令，1 2 4 8 ...."
+      },
+      "id": "12134",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff（定期增加時間去check）"
+      },
+      "id": "11987",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL\nTSL with back off"
+      },
+      "id": "12214",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. read before YSL\n2. TSL with backoff (忘記是不是用backoff了，反正就是問一次後就不斷增加下一次問的 delay)"
+      },
+      "id": "11937",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "在 TSL 之前就先讀取\nBreakOff - 延遲時間"
+      },
+      "id": "12153",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL.\n2. TSL with back off."
+      },
+      "id": "14426",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Read before TSL\n(b) Add a exponential time fallback to avoid abuse usage."
+      },
+      "id": "12154",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL and TSL with back off "
+      },
+      "id": "14797",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.在TSL指令之前先以普通Read檢查lock，再必要時才使用TSL讓CPU在本地cache中忙等，避免頻繁鎖住bus。\n2.使用backoff機制，當取得lock失敗時延遲一段時間再重試，減少多個CPU同時競爭bus的情況。"
+      },
+      "id": "13922",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with backing off"
+      },
+      "id": "12310",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL.\n2.TSL with backoff."
+      },
+      "id": "12940",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with block dead"
+      },
+      "id": "11906",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "read before tsl\ntsl with back off"
+      },
+      "id": "11745",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "read before TSL, and TSL with back off"
+      },
+      "id": "11966",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "tsl with back off\nread before tsl"
+      },
+      "id": "12220",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. read before TSL\n2. TSL with backoff"
+      },
+      "id": "12090",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL:執行TSL前先read，當lock=0才能TSL\nexponential backoff:請求access資源失敗後，需等待一段時間後才能再次請求，且請求時間隨次數指數級增長"
+      },
+      "id": "12042",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with backoff\n"
+      },
+      "id": "12489",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.read before TSL\n2.TSL with back off\n"
+      },
+      "id": "12145",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Read before TSL.\nTSL with backoff."
+      },
+      "id": "12496",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\nTSL with back off"
+      },
+      "id": "11952",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with backoff"
+      },
+      "id": "12340",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. Read before TSL\n2. TSL with Backoff"
+      },
+      "id": "12071",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.read befor TSL\n2. TSL with back off"
+      },
+      "id": "12416",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "read before TSL, and TSL with backoff"
+      },
+      "id": "12849",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "To reduce Test-and-Set-Lock instruction for mutex locks in MPs causing system bus contention, we can apply caching"
+      },
+      "id": "13032",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1. 先讓正在等待被執行的process 進入blocking, 等resource available後 在進入cpu\n2. 利用cache先把資料暫時存起來"
+      },
+      "id": "12904",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. TSL with backoff\n2. read before TSL"
+      },
+      "id": "12210",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "read before TSL\n過一段時間在TSL"
+      },
+      "id": "12457",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "While using the Test-and-Set-Lock (TSL) instruction for mutex locks in MPs may cause system bus contention, please suggest two ways to mitigate it.",
+    "question_id": "d8e28def-51f9-4f18-b828-1e458ebf90f2",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Read before TSL: The thread reads the lock variable normally (which can be cached). It only attempts TSL if the lock appears free.\n(2) TSL with back-off: If TSL fails, the thread waits for a defined delay before retrying, reducing continuous bus lock attempts."
+  },
+  "question_id": "d8e28def-51f9-4f18-b828-1e458ebf90f2"
+}

@@ -4,7 +4,6 @@ Unified Contest Access Policy.
 This module provides a centralized permission system for contest operations,
 replacing scattered permission checks throughout views.py.
 """
-from django.conf import settings
 from rest_framework import permissions, status
 from django.utils import timezone
 from rest_framework.response import Response
@@ -116,10 +115,6 @@ STATUS_RESTRICTIONS = {
     }
 }
 
-def _is_classroom_acl_source_enabled() -> bool:
-    return bool(getattr(settings, 'CONTEST_ACL_CLASSROOM_SOURCE_ENABLED', True))
-
-
 def _get_bound_classroom(contest: Contest):
     return (
         contest.classroom_bindings.select_related('classroom')
@@ -150,11 +145,10 @@ def get_effective_contest_scope_role(user, contest: Contest) -> str:
     Classroom ACL role names are mapped into contest scope roles before the
     permission matrix is evaluated.
     """
-    if _is_classroom_acl_source_enabled():
-        binding = _get_bound_classroom(contest)
-        if binding is not None:
-            classroom_scope_role = _get_classroom_scope_role(user, binding.classroom)
-            return map_classroom_role_to_contest_scope(classroom_scope_role)
+    binding = _get_bound_classroom(contest)
+    if binding is not None:
+        classroom_scope_role = _get_classroom_scope_role(user, binding.classroom)
+        return map_classroom_role_to_contest_scope(classroom_scope_role)
     return get_contest_scope_role(user, contest)
 
 

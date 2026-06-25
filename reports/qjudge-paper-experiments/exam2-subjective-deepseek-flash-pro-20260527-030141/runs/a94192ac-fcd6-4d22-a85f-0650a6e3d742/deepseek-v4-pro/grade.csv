@@ -1,0 +1,191 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12287","S109","發布者和訂閱者不能直接做溝通，發布者需要通過中介者: broker 來傳遞消息
+(1) 會先建立一個 channel ，就相當於建立一個相關群組
+(2) 訂閱者會通過訂閱自己有興趣的主題來接收訊息
+(3) 發布者發布消息之後，會藉由 broker 來 foward 消息","1","channel↔group 正確，但 subscribe 未對應 join group，publish 僅提 broker forward 而非 multicast to group",""
+"2","12261","S015","A channel based pub./sub. system is that publishers send messages to channel, and the channel sends it to the receiver which is interested in it.
+To implement it by group communication, we can set all the receivers that are interested in one topic to a group. And the group could be viewed as a channel. The publishers send message to the group, and the group sends it to all members.","2","",""
+"3","15837","S054"," channel-based publish/subscribe system在實行時，任何發布群組訊息都會讓有訂閱該群組頻道者接收到","1","方向正確但過於簡略，未明確說明 subscribe↔join、publish↔multicast 對應關係",""
+"4","12895","S117","在創建channel時就創一個group，將所有subscribers加入這個group，publisher如果要在這個channel發送message，就向這個group發送。如果有新的subscriber，將其加入這個group。","2","",""
+"5","12485","S093","在group communication中，在一個close group中只有該group中的人可以在此group發布message，因此group communication去實作 channel-based publish/subscribe system，可以讓publisher有一個channel(group)，而publisher可以在該group中發message所有的subscriber都會收到message，這樣就能完成 channel-based publish/subscribe system","1","提到 channel=group 與 publish→group，但 subscribe↔join group 不明確",""
+"6","15401","S012","the publisher sends message to the channel, and the middleware sends the message to all subscribers or the subscribers can poll the channel regularly ot fetch the message","0","僅描述 pub/sub 基本概念，未說明如何用 group communication 實作",""
+"7","12385","S108","首先先建立 channel，並且同時建立 group，subscribe 的方式就是讓 process 加入此 group，而 sender 只需要對此 group 發出訊息，所有 subscriber 皆會收到。 ","2","",""
+"8","12300","S070","增加新的channel的時候就新增一個group，如果有其他人要加入這個channel就加入那個group，publish的時候就可以一起寄給group裡面的所有人","2","",""
+"9","16101","S080","a channel-based publisher can publish the information and the brocker can deliver message to all subscriber in the channel.","0","僅描述 pub/sub 基本概念（broker 傳遞），未說明如何用 group communication 實作",""
+"10","11376","S003","source and data are published to a channel and subscribers can subscribe the channel and get the source. Imagine creating a specific channel as creating an associated group and joining the group through subscribing it.","1","提到 channel=group 與 subscribe=join group，但未說明 publish 對應 multicast/send to group",""
+"11","12729","S035","The publisher can send the message to the group, and the subscriber who want to get the publisher's message(or the subscriber wants the message from the publisher, just like channel-based system)  join the group. when the publisher send the message to the group, all the members in the group will get the message, which is like the operation of channel-based publish/subscribe system.","2","",""
+"12","13558","S037","We can group the subscriber with the same subscribe channel in one group. If publishers push new messages to the channel, the middleware can notify all of the subscriber by multicasting the group.","2","",""
+"13","12620","S097","1. Subscribe can be implemented by joining the group
+2. Publish can be implemented by sending message to the group","2","",""
+"14","12733","S013","Establishing two groups for publishers and subscribers with communication channel. If it is interested in the publish of the publishers,  it can be added into the group of the subscribers. Then, the publishers send message directly by the communication channel, so the subscribers can receive the message.","1","建立兩個 group（publishers/subscribers）的模型有誤，正確應為一個 channel 對應一個 group",""
+"15","12992","S040","a channel as a group, if someone subscribe a channel, add it into the group, and if publisher publish something, brocast it to the group","2","",""
+"16","11313","S124","In a channel-based publish/subscribe system, a group of recipients is subscribes to a channel, waiting for the publisher to publish something on said channel. To implement this, we could simply implement the group of subscribers as a multicast group and have the sender use multicasting to publish something by sending the data to the group as a multicast ","2","",""
+"17","13069","S121","In channel-based pub/sub, processes can subscribe to a named-channel and then received a publication from other processes that publish on the named-channel. It can be implemented such as :
+- to create a new named-channel, it creates a new group.
+- to subscribe a process to a named-channel, it adds the process to the associated group.
+- to publish on a named-channel, it sends a message to the group.","2","",""
+"18","16204","S068","因為這樣可以解決不同步 clock 造成收發訊息拖累整體效能的問題","0","答非所問，討論 clock 同步問題而非如何用 group communication 實作 channel-based pub/sub",""
+"19","12217","S102","訂閱channel = join the group
+publish a message to channel = sent message to the group
+subscribe channel  = receive message from the group","2","",""
+"20","12319","S034","event發布，在特定channel裡面的subscriber可以收到訊息，建立channel就是建立associated group，subscriber就是group的成員。","2","",""
+"21","11539","S084","在channel-based publish/subscribe系統中，publisher的訊息會發布到特定的channel上，當channel建立時等同於建立group，訂閱此channel的subscriber就是group裡的成員，這些成員都會收到publisher發布的訊息。","2","",""
+"22","15906","S079","servers publish the messages like out(""app"", 123), out(""app"", 70), onto the IN, while the client subscribe to the server with certain requirement such as in(""app"", ?x), for x less than 80. In this case, we can see that the client will subscribe to the server with (""app"", 70).
+
+for a pseudo code case we can write the server as 
+1. publish its server ID
+2. read the client's request
+3. process the request
+4. publish the result
+
+for a pseudo code case we can write the client as 
+1. read the server's ID
+2. write the request and send it to the server
+3. wait and receive reply from server","0","描述 tuple-space 風格的 pub/sub 範例碼，未說明如何用 group communication 實作 channel-based pub/sub",""
+"23","16160","S122","可以增加他們的共通性 靈活度
+","0","僅討論 pub/sub 的益處（共通性、靈活度），未回答如何實作",""
+"24","12302","S086","The channel can be mapping as a group, the subscribers join the group, the publisher multicast event to the group, and the subscribers receive the message.","2","",""
+"25","13129","S052","In a channel-based publish/subscribe system, publishers publish events on a channel, and the subscribers that are interested in can copy the message from the channel. To implement this by group communication, the subscribers can be organized in an associated group, then the publisher can send the message to the group members. The group members(subscribers) have the access to the message.","2","",""
+"26","12464","S033","因為publish/subscribe system 可以產生群組，並發送訊息給所有群組的成員，這就是group communication的概念","0","因果倒置：題目問如何用 group communication 實作 pub/sub，非 pub/sub 如何達成 group communication",""
+"27","13115","S123","Channels can be implemented as groups. Publishers can send messages to the ","0","句子未完成，內容不完整",""
+"28","12067","S027","建立channel -> 建立 group
+訂閱channel -> 加入 group
+發布event -> 向group中的所有訂閱者發佈訊息","2","",""
+"29","13891","S081","the group communication is a group of units that each unit is in the multiprocessor and whenever the channel needs to run the system or wants to use another system remotely it will use group communications to do. So the channel based publish is like transferring the cache and the subscribe is when the system can access the other system","0","內容混亂，談到 cache、multiprocessor，與 group communication 實作 pub/sub 無關",""
+"30","13673","S087","當channel設定好時，建立一個group，有人需要subscribe時就加入這個group，publish需要公布訊息的話也是透過這個group發送","2","",""
+"31","14504","S022","By closed or opened group. In closed group, only members in group can send/receive messages. In opened groups, every processes can send/receive messages.","0","僅說明 closed/open group 的差異，未將 channel/subscribe/publish 對應至 group communication 操作",""
+"32","12988","S110","make a channel as a group, subscribers are group members and publisher can send message to all subscribers","2","",""
+"33","12858","S082","Initially, publish will build a group. When subscriber subscribes, it will be added into the group so that publisher can publish to every subscribers by publishing to the group.","2","",""
+"34","12513","S105","1. Publisher push message to the system, and then the system pushes the message to the subscriber.
+2. The system pulls messages from the publishers, and then the subscriber pulls messages from the system. 
+3. The system pulls messages from the publishers and then pushes the messages to the subscriber.
+4. The publishers push messages to the system, and then the subscribers pull from the system.","0","僅列舉 pub/sub 的四種 push/pull 模式，未說明如何用 group communication 實作",""
+"35","11621","S111","將加入一個group視為訂閱，藉由在group內發出訊息，使同一個group內的人都可以接受到訊息，猶如訂閱了那個channel一般。","2","",""
+"36","12215","S085","建立群組=建立頻道
+加入群組=訂閱頻道
+傳送訊息給群組=publish","2","",""
+"37","12379","S004","每個channel對應一個group，subscriber已加入group的方式訂閱，publisher發送訊息給group，group中的所有成員都能收到訊息","2","",""
+"38","12041","S046","在publish/subscribe system中，channel可以當作最底層的group，subscribe可以等同於加入這個group，publish等同於向這個group發送資訊。","2","",""
+"39","11504","S005","Publisher ask in group.","0","過於簡略（僅 ""Publisher ask in group""），未說明 channel↔group、subscribe↔join 對應",""
+"40","11455","S014","a channel 對應一個 group communication","1","僅提及 channel 對應 group，未說明 subscribe↔join 與 publish↔multicast 對應",""
+"41","15003","S107","When a channel is created, you create an associate group. Subscriptions are made by  joining the group. The upcoming messages from publishers will be sent to subscribers through group communication.","2","",""
+"42","12754","S126","會先創一個group，ㄐ","0","句子未完成（僅寫到「ㄐ」），內容不完整",""
+"43","14892","S017","publish/subscribe的操作可以用group communication的操作來實現，創建一個channel就相當於創造了一個group，訂閱者們subscribe這個channel的動作就等同於把這幾個訂閱者們加入進這個group，publisher想要publish訊息到channel裡的操作就等同把訊息傳進這個group，group把訊息交給裡面的每一個group member就相當於channel把publisher給的資訊廣播給了訂閱channel的成員
+
+所以group communication完全可以用來實作出channel-based publish/subscribe system","2","",""
+"44","12857","S115","A channel based system is where A publisher doesnt need to know its subscriber, and can send out data to subscribers who subbed to its channel. 
+This can be implemented in group communication because within the same group all individuals can recieve data by a certain publisher.","1","僅泛稱 group 內可收資料，未明確對應 channel↔group、subscribe↔join、publish↔multicast",""
+"45","12082","S089","會命名Channel將events存起來，並將subscribers存在associated group裡，Publisher會將要公告的Event傳送給在Group裡的Subscribers","2","",""
+"46","12708","S094","一個channel對應到一個group
+subscribers訂閱channel = joint the group
+publishers發event到channel = send message to group
+再利用group communication 發通知給publishers/subscribers","2","",""
+"47","13137","S066","當有事件發生時傳入channel，所有該channel的subscriber都會收到，可以藉由加入group這個動作連帶成為subscriber，之後當訊息傳入group，所有subscriber都會收到。","2","",""
+"48","12146","S041","一個group對應一個channel，scbscriber訂閱一個channel就是加入對應的group，publisher發布message到channel就是multicast message到group","2","",""
+"49","15105","S031","發送/訂閱系統是利用發送者將訊息發送至通道，訂閱者訂閱感興趣的通道，過程中不需要知道彼此，藉此來實現group communication。","0","因果倒置：描述 pub/sub 如何實現 group communication，而非 group communication 如何實作 pub/sub",""
+"50","12099","S116","當我們創建一 個channel的時候 就順便創一個對應的group 而訂閱的方式就是加入這個group 在發布訊息的時候 就只要用group communication 傳給group的所有成員 訂閱者就都會收到","2","",""
+"51","12893","S059","publisher create channel == create a group
+subscriber 訂閱頻道 == member 加入 group
+publisher 發布頻道消息(event)會傳給broker 讓他broadcast給members 因為只有群組內部的成員會收到消息 所以可以用group communication 實作","2","",""
+"52","12924","S064","publish端會將訊息發送至channel上，subscribe端則去訂閱欲知道的訊息","0","僅描述 pub/sub 基本概念（publish 到 channel、subscribe 接收），未說明 group communication 實作方式",""
+"53","12681","S101","Create a channel, then associated group created. The subscription will be joined the group. When the publishers publish the event, all subscribers in the group will receive.","2","",""
+"54","12252","S103","建立一個群組之後，把消息發進群組給大家，需要的人自己取用，就是publish/subscribe system","1","提到建立 group 與發送訊息，「需要的人自己取用」有 pull-based 誤解，非 multicast",""
+"55","13144","S104","當系統建立一個channel時，會在底層建立一個對應的communication group，訂閱者訂閱的動作實際上就是在join group的操作，當發佈者向特定channel發佈訊息時，系統會以group multicast的方式將訊息傳出，在群組內的訂閱者都會收到訊息","2","",""
+"56","12712","S023","直接使用 Group Communication 來實作，創建一個 Channel 等同於建立一個 Group ，訂閱 (Subscribe) 該 Channel 等同於加入 (Join) 該 Group ，發布訊息即是 Multicast 到該 Group 中。","2","",""
+"57","12008","S113","可以先建立channel(group)，channel裡會有CGS管理成員的增減，當成員加入group就成為subscriber，若傳輸端publish訊息到channel，channel會multicast訊息到所有group裡面的成員上達到group communication。","2","",""
+"58","12350","S055","
+用GROUP創立群組
+用JOIN加入群組
+最後是multicast發送消息至群組","2","",""
+"59","12456","S067","因為publish/subscribe system的channel-based是訂閱者選個特定的channel訂閱,當publisher有發布相關的資訊時都會傳給subscribe,這就可以透過group communication做到,將訂閱者都放在同一個group裡,當有發布相關的資訊時就透過group直接發給全部的成員","2","",""
+"60","13124","S076","A channel can be implemented as a group. Publishers can send events to a topic/channel/ Publishing means sending messages/events to the group. Subscribing means joining a group. Subscribers receive messages from the topics/channels they are subscribed to. ","2","",""
+"61","11404","S074","Channel-based publish/subscribe is when a publisher creates content and post then a user can subscribe and acess the content. Under group communication, the publisher creates a group which gives updates on new published contents and subscribers can join and access the updates.","2","",""
+"62","12650","S063","The publisher publish the message on a channel, and the subscribers can receive it from the channel if they subscribe the publisher. We can make a associate group. While a member enter the group as the subscriber. The group communication can send the message to all the member of the group. So, a process can also be a publisher that the subscribers have subscribed.  Then all the member in the group can receive the message from publisher.","2","",""
+"63","12527","S090","Channel-based publish/subscribe system can be implemented using group communication. When a channel is created, you create a related group. Subscription is implemented by joining a group and the events from publisher are send to the group and then transfer to subscriber which is the group member.","2","",""
+"64","12734","S100","Make all subscribers being the same group. The publisher sends message to the group, and then the whole members in the group will receive the message.","2","",""
+"65","11748","S114","not sure ","0","回答「not sure」，未作答",""
+"66","13109","S038","because the same group people can make all to the same channel to saperate the group and the publisher can send thing to receiver","0","內容破碎不連貫，無法理解其意圖",""
+"67","12389","S047","channel base pub sub 就是可以去訂閱某個頻道的內容，在開 channel 的時候其實就是創建一個 group，sub 一個 channel 可以用「加入一個 group」去做、pub 的時候就是對 group 的成員做 multicast","2","",""
+"68","13418","S044","the subscribers that subscribe the same channel can be seen as the group. Then, when the publisher send something to the channel, it can be seen as the multicast in group communication, and the system will notify the subscriber who is in the group.","2","",""
+"69","12466","S075","senders publish the information and others (receivers) can subscribe them without the sender's communication and on-time connecting.","0","僅描述 pub/sub 的解耦特性，未說明如何用 group communication 實作",""
+"70","12234","S030","在  創 channel 時，將 訂閱 channel 的人 都加進 group 裡 。便可以透過 group communication 來實現 channel based publish/sub
+","2","",""
+"71","11986","S106","it can be simply implemented through groups , new subscribers can simply add in to the group that they are interested in  , while each channel makes up individual  group , therefore its a perfect match for publish/subscribe system . ","2","",""
+"72","12367","S019","channel = group
+訂閱 channel 即 join group
+Publisher send event to channel 即 send message to the whole group","2","",""
+"73","11994","S020","A pub/sub model uses intermediary broker to decouple communication","0","僅提及 pub/sub 使用 broker 解耦，未說明 group communication 實作方式",""
+"74","15330","S010","the publisher publish the message to the channel, the subscriber will be informed when new message is published.","0","僅描述 pub/sub 基本流程，未說明如何用 group communication 實作",""
+"75","12686","S091","publish:公開內容，所有人都可以看到
+subscribe:只有訂閱者可以看到內容","0","僅翻譯 pub/sub 的中文意思，未回答如何用 group communication 實作",""
+"76","12136","S051","for process subscribe a channel, it can get all message from publisher of that channel.","0","僅描述 pub/sub 基本概念（subscribe channel 可收到 publisher 訊息），未說明 group communication",""
+"77","12885","S039","channel建立: 建立一個group
+加入subscriber: 加入group
+對所有subscriber發送: 對group發送","2","",""
+"78","12209","S018","建立channel時也建立相關的group，新的subscriber透過加入group來實現，publisher發布訊息是將訊息送到group中，從而送到每個subscriber","2","",""
+"79","12038","S049","subcriberru訂閱某個channel就像是加入group一樣，只會從同個channel的publisher中拿到資源","1","僅提及 subscribe↔join group，未完整說明 channel↔group 與 publish↔multicast",""
+"80","12409","S053","建立group作為頻道，向group內發送消息只有group成員會收到(類似subscriber)，要獲得消息就加入group(進行subscribe)","2","",""
+"81","12560","S092","There is a channel for store messages, and a sender can publish the message on the channel.
+If a group wants to get the message, it can subscribe it and multicast the message.","1","部分對應但方向混淆（group 訂閱而非 subscribers 組成 group），未完整說明三項對應",""
+"82","11860","S125","1.他會將list發佈在公用channel
+2.每一個systems會自己複製一份並查看自己是否有在group名單進而知道是否recieve 資料","1","提及 channel 與 group 名單，但未明確說明 publish↔multicast 對應",""
+"83","12373","S050","建立channel=建立group
+訂閱channel=加入group
+","1","僅涵蓋 channel↔group 與 subscribe↔join，缺 publish↔multicast/send to group",""
+"84","12455","S036","先建立一個multicast group，當有subscriber時就讓他加入這個群組，當publisher要發布訊息時，發起multicast send到這個group。","2","",""
+"85","12143","S048","在channel-based的情況下要取執行group communication，可以把一個channel想像成一個group，當有新的內容時並且publisher想要推播出去或subscriber想要接收時，就透過event service去提供服務","1","僅提及 channel↔group，subscribe↔join 與 publish↔multicast 不明確（泛稱 event service）",""
+"86","12331","S112","channel: 創造一個頻道
+publisher: 丟資訊出去
+subscriber: 訂閱資訊
+
+流程: 
+1. 先建立一channel
+2. subscriber加入channel
+3. publisher丟資料出來
+4. subscriber接收這些資料","0","僅描述 pub/sub 基本流程，未提及 group communication 的 group/join/multicast 對應",""
+"87","12166","S006","publish create the channel an sent msg in it, while subscriber get the msg from the from the channel","0","僅描述 pub/sub 基本概念，未說明如何用 group communication 實作",""
+"88","12339","S057","使用 Channel 來定義 Group , 另使用 訂購 / 發送 Group 兩個命令功能，達到目的。
+Channel : Group
+Group : 訂購 
+Group : 發送 
+","1","嘗試將 channel/訂購/發送對應至 group，但表達混亂（Group:訂購、Group:發送），對應不完全正確",""
+"89","14544","S002","subscribe channel-> join group -> send to the group","2","",""
+"90","12348","S007","We can manage a group message channel so there's connection among the group to pass messages. Once a client needs to send message, it relies on the group message channel to publish the message. And receiver subscribes to the channel to receive the messages.","1","提及 group message channel 但僅描述 pub/sub 流程，未明確對應 subscribe↔join、publish↔multicast",""
+"91","14120","S118","The group can be viewed as the subscribers in channel-based system. The group can listen to the channel and ","0","句子未完成，內容不完整",""
+"92","16164","S016","1.將每","0","僅寫「1.將每」，未完成作答",""
+"93","14938","S083","在channel-based中的publish-subscribe系統中，每一個channel可以對應到一個群組。發布者
+將訊息送到該channel，實際上就是對該群組進行群播；而訂閱者則透過加入或離開對應的群組來表達訂閱或取銷訂閱。如此一來，群組通訊服務負責將訊息自動分發給所有群組成員，從而實現channel-based的發布與訂閱。","2","",""
+"94","12488","S088","events會被丟到一個named channel，subscriber會訂閱頻道並接收頻道裡的所有訊息，所以可以透過group communication來實現，建立頻道時會建立group，subscribe就是加入group，publisher會發布訊息給所有group members","2","",""
+"95","13228","S058","when a channel is created , we creat an associated group , and subscription is implemented by join the group , the sender send a message to the group then all the member in the group can receive the message.","2","",""
+"96","12059","S043","事件會被上傳到某個頻道中，並創建關聯群組 ，訂閱者在特定的訂閱頻道中可以接收訊息","1","僅提及 channel 建立 group，未明確說明 subscribe↔join group 與 publish↔multicast",""
+"97","11851","S060","建立group並加入成員（sub）然後發佈訊息（pub）","2","",""
+"98","12120","S024","publisher publish the message on one channel, and the subscriber subscribe all the message that sent on the channel.it can implement in group communication that speaker put some message on the channel, and all the listener can get to the channel and receive the message by subscirbe that channel.","0","僅描述 pub/sub 基本流程，未以 group communication 的 group/join/multicast 說明實作",""
+"99","12417","S095","要使用publish subscribe system 要先創立一個channel 有這個以後 clients 就可以自由的選擇要不要 subscribe這個channel 如果subscribe 以後就可以進行 group communication","0","僅說 subscribe 後可進行 group communication，未說明如何對應（channel↔group、subscribe↔join、publish↔multicast）",""
+"100","12336","S077","publishers of a named channel and the subscriber of that channel form a group and if publisher send a message to that channel means publisher send the message to the group and another group member which is the subscriber of that channel will receive the message. If new subscriber subscribes that channel will be added to that group. ","2","",""
+"101","14689","S120","closed group<->subscribe system（只有member可以傳訊息給closed群組，因此subscribe後進入closed group）
+open group<-> publish system（member, 非member都可以傳訊息給open群組）","1","以 closed group↔subscribe、open group↔publish 對應，但非標準單一群組模型，未完整說明 channel↔group",""
+"102","12720","S073","在channel-based的publish/subscribe系統中，一個channel對應一個group，當建立一個channel則建立一個對應的group，subscriber透過加入這個group完成subscrbe，傳送者再透過這個group傳送訊息給所有成員，如此一來，所有成員都有此channel的訊息","2","",""
+"103","12277","S069","在channel-based publish/subscribe system中event會被發佈到named-channel中訂閱著透過訂閱來訂閱channel然後他就可以接收在該channel所公告的訊息，在group communication的時候創立channel就是透過創建associate group，訂閱透過加入group來完成，要公告訊息只用向whole group都發送即可","2","",""
+"104","12693","S072","創建一個具名的頻道，可對應到創建一個group.
+對於頻道感興趣的人(subscribe) 訂閱頻道，可對應到join the group.
+發布內容到頻道(Publish)，可對應到multicating 到該group.且不需要雙方皆在線上，由broker負責傳送，
+Publisher與subscriber為decouple的。
+","2","",""
+"105","15043","S042","channel-based publish/subscribe system運作方式是publisher先將資訊發布到中介區中，subscriber會先訂閱他有興趣的channel，然後中介區再將資訊傳到這個channel中，也就是說，可以把channel視為一個group，publisher是透過中介區來將資訊傳到group中，即為group communication","1","channel=group 正確，但 publish 流程混入 broker/中介區模型，非直接 multicast to group",""
+"106","12548","S071","Events會進入Named Channel，Subscriber可以去Channel上自由查看，Publisher跟Subscriber不需要知道對方是誰","0","僅描述 pub/sub 基本概念（named channel、decouple），未說明如何用 group communication 實作",""
+"107","12198","S062","1. 建立一個group
+2. subscriber 加入group
+3. publisher send event in the group, and the subscriber can see the content","2","",""
+"108","12531","S045","1.Create a channel:創造一個group
+2.publish:發message 在這個group中
+3.subscribe:join group","2","",""
+"109","13203","S056","Each channel is implemented as a group.
+Publishers multicast messages to the group, and all subscribles in group receive the mesages","2","",""
+"110","13360","S128","a channel-based publish/subscribe system can be implemented in an internal network to ensure high bandwidth and data transfer without interruption ","0","討論內部網路頻寬與傳輸，未說明如何用 group communication 實作 channel-based pub/sub",""
+"111","13408","S029","在建立channel時，也把group建立起來。subscriber訂閱group內的publisher，之後當punlisher發布event,會push給group內的subscriber","2","",""
+"112","12376","S065","1. 創建channel:建立一個對應的group
+2. subscribe channel:將process加入group
+3. 發布message:透過multicast將訊息傳給group member","2","",""
+"113","12688","S098","建立channel(group)
+加入channel(group)
+可使用channel向所有channel裡的用戶傳遞訊息","2","",""

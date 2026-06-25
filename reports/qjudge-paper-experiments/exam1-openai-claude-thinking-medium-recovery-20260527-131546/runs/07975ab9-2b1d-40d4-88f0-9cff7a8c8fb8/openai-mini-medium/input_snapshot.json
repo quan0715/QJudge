@@ -1,0 +1,872 @@
+{
+  "answer_count": 122,
+  "answers": [
+    {
+      "answer": {
+        "text": "是當一個process太久沒有被處理，隨著時間會提升它的priority，例如 shortest job first 中一個很花時間而久未被處理的job"
+      },
+      "id": "3700",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Aging technique solves the starvation by increasing the priority of remained task periodically."
+      },
+      "id": "3486",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "as time progresses, 提高還未執行process的優先度, 避免starvation ,也就是有些低優先的process永遠執行不到."
+      },
+      "id": "5023",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "stavation"
+      },
+      "id": "4577",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "Aging是如果一個process一直因為priority太低而沒有被執行，則會使其priority上升，以此來解決starvation的問題"
+      },
+      "id": "3832",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "low priority process could increase priority with the time goes. it solves the problem that low priority process may never run on cpu because there may always exist a process has a higher priority"
+      },
+      "id": "4814",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Aging: process 在經過一段時間都沒拿到資源後，提高其優先程度。此方法是為了解決 starving 的問題，也就是低優先程度的 process 因為高優先程度的 process 不斷進入導致其永遠拿不到資源。"
+      },
+      "id": "5440",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. 當一個 process 一直沒有被分配的 CPU 資源時，該 process 會隨著時間被提高執行優先度。2. Starvation"
+      },
+      "id": "4233",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "隨者時間變長會讓低權限的thread(process)的權限慢慢變高，可以解決starvation"
+      },
+      "id": "4325",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "aging is to raise the priority of process that cannot run as the time grow, to solve the starvation"
+      },
+      "id": "5309",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Aging means the priority would grows as the time goes, to solve the starving problem"
+      },
+      "id": "2751",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "q1 : increase the priority of a process when it haven't run for a long time. q2 : the low priority process's starvation "
+      },
+      "id": "4306",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Aging make a process wait in ready state for a long time to higher priority. It prevent the starvation in priority scheduling"
+      },
+      "id": "5675",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "Problem: low-priority process doesn't get cpu time for a long time, because of the high-priority processes. Solution: processes, that haven't get cpu time for a long time, get higher priority (this is called aging)"
+      },
+      "id": "4335",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "1. increase the priority from low to high. 2. Starvation"
+      },
+      "id": "4868",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "long time not be processed process will be aging for higher priority, prevent starving."
+      },
+      "id": "4599",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Aging is when a lower priority process has been waiting for a long time, its priority becomes higher. It solves starvation."
+      },
+      "id": "2555",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Aging technique consist to increase the priority level of a process if it is waiting too long in the scheduler queue. It solves the starvation problem, where high priority processes take a the cpu utilization and do not allow low priority process to run "
+      },
+      "id": "4095",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "讓尚未執行的 process 隨著時間推移增加其對於系統資源的使用優先權，這可以避免某些低優先權的 process 始終無法獲得資源的狀況，即 starvation。"
+      },
+      "id": "5646",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "隨著時間增加會增加process的 priority，避免他持續的執行不到"
+      },
+      "id": "4342",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "aging is gradually increasing the priority of process that wait in the system for a long time. aging solve starvation."
+      },
+      "id": "4907",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. 慢慢提高低優先權的priority。2. 解決starvation。"
+      },
+      "id": "4243",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "aging says that a low priority process is raises its priority over time. this solution solve the \"starvation\" problem."
+      },
+      "id": "5821",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "可以解決低優先權和長時間被占用資源的問題，使用此方法可以解決上述問題，隨著時間越長的，他的優先權會變大，避免starvation問題產生"
+      },
+      "id": "3542",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Aging refers to as time progresses, increasing the priority of the waiting threads. It can solve starvation, which means low priority threads may never execute."
+      },
+      "id": "5501",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Aging 讓process或thread隨著時間提高priority，可以解決低priority process或thread永遠無法執行到的問題(starvation)。)"
+      },
+      "id": "4796",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "Agine是指根據時間流逝，提升thread的priority，他可以處理starvation的問題。"
+      },
+      "id": "5005",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "starvation"
+      },
+      "id": "4193",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "As time processes raises priority of each thread"
+      },
+      "id": "4116",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "In priority scheduling, since it has lower priority so whenever the higher priority is in the quene that is given focus therefore the one with lower doesnt have the chance to execute. To solve this problem they increase the priority of the lower over time so it does fall behind"
+      },
+      "id": "2592",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Aging is increase the tasks' priority when the time the task is not running increases."
+      },
+      "id": "4918",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "To prevent the low priority process not to be scheduling"
+      },
+      "id": "6127",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Aging是指一個process長時間未被執行到時，隨著時間增加它的優先度。用於解決starvation。"
+      },
+      "id": "3615",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "A process with long waiting time will get its priority increased. It solves starvation."
+      },
+      "id": "3591",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "when some process can't get the CPU for a long time, its priority can be upgraded. starvation"
+      },
+      "id": "6390",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "the priority of the process which is not yet chosen will be increase. it can solve starvation problem."
+      },
+      "id": "4263",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "process priority 會隨著等待時間增加而逐漸提升。可以解決 Starvation 問題。"
+      },
+      "id": "5759",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "當一個process等待時間越長，其priority也會逐步上升。用於解決priority scheduling中一些process無限等待的問題。"
+      },
+      "id": "3827",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "持續等待的低優先級程式將提升優先度，避免高優先級持續取得資源，低優先級者飢餓"
+      },
+      "id": "4001",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "aging是指說隨著job在系統的時間越來越久，逐步提升它的優先權。主要是解決starvation(low priority job可能永遠無法完成工作)的問題"
+      },
+      "id": "5274",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "一個task的優先級會隨著ready的時間而逐漸升高，可以解決starvation。"
+      },
+      "id": "2235",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "Aging 會將很久沒有run的process的priority提高。他主要解決的問題是starvation。"
+      },
+      "id": "3786",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Aging is increase the priority  depands on waiting time. It can solve starvation.."
+      },
+      "id": "2332",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "The process will increase priority when it not yet to be execute.  To solve starvation."
+      },
+      "id": "2487",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "aging:如果有process一直沒被執行，增加他的優先權。it solve starvation"
+      },
+      "id": "2267",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Starvation: 當priority低的一直無法被執行"
+      },
+      "id": "3647",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "aging is upgrading the priority as the time progress. It solves \"starvation\" problem."
+      },
+      "id": "3130",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "aging可以讓優先度低的隨著時間提高優先度，他是解決starvation問題的"
+      },
+      "id": "4118",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "他所解決的問題是使用priority scheduling時，如果一直有高優先權的process進來，那低優先權的process就幾乎只能永遠排在後面，這就是starvation，餓死。   aging就是能夠讓那些一直沒有進入cpu運行的processes隨著時間逐漸提高優先權，讓他們等越久優先權越高，使他們不餓死"
+      },
+      "id": "4539",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Aging is the tech of increasing priority levels as time goes on, this solves the problem that low priority processes will never be executed if high priority processes keeps coming."
+      },
+      "id": "5107",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "aging是指隨著時間推進增加為執行的task的priority，可以解決starvation"
+      },
+      "id": "2862",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "aging can make a low priority process get higher priority by the time increasing, it can solve the starvation"
+      },
+      "id": "4434",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "Aging：讓等越久的thread提高優先權，盡快完成"
+      },
+      "id": "3039",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "If a process wait for a long time, the priority will increase. Aging can solve the starvation problem."
+      },
+      "id": "6720",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "當一個 process 越久沒被執行，它的 priority 就會越高。主要是解決 starvation 問題"
+      },
+      "id": "2653",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "Aging是長時間沒執行的thread會逐步提高優先權，以解決一直沒辦法執行的Strvation飢餓問題"
+      },
+      "id": "4909",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "Aging指的是一個process如果等待很久沒被運行，他運行的優先權就會隨著時間。解決的問題是一個低優先權的process可能永遠不會被運行，也叫做starvation(飢餓)。"
+      },
+      "id": "3888",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "讓等候的thread upgrade 他的priority, solve \"starvation\""
+      },
+      "id": "4654",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "隨著時間變長，優先權逐漸提高。 解決starvation問題。"
+      },
+      "id": "2668",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "process隨著等待時間拉長priority增加，解決starvation"
+      },
+      "id": "4014",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1.隨著等待時間加長, priority會逐漸變高 2. 解決low priority process永遠搶不到資源的問題"
+      },
+      "id": "5877",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "Aging 是當一個thread一直沒被執行時我們會去提高他的priority讓他被scheduler選到執行，他解決的是Starvation。"
+      },
+      "id": "5012",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Aging is as the time progresses increase the priority of each thread, and it solve the Starvation(low-priority thread may never execute)."
+      },
+      "id": "4521",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "aging是在解決priority scheduling中低priority可能會有starvation現象，所以當低priority等很久時可以提升priority不要讓process等太久"
+      },
+      "id": "2923",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "starvation 飢餓問題 表示低權限PROCESS始終用不到CPU"
+      },
+      "id": "4415",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "隨著process progess的時間增加，priority跟著提高。starvation"
+      },
+      "id": "4053",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "Starvation 飢餓"
+      },
+      "id": "5110",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Aging is a technique that increases the priority of processes that have not run for a long time. This way low-priority tasks can run. Aging solves priority inversion."
+      },
+      "id": "5957",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Aging entails a phenomenon where each process is assigned burst time to avoid Starvation caused by longer process that takes longer to finish execution. It solve Starvation as a process can wait till forever without being able to execute."
+      },
+      "id": "5499",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "starvation"
+      },
+      "id": "3558",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Increase the priority of process through the time process in the memory. It solves starvation."
+      },
+      "id": "4401",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "It increases the priority of processes which are not executed for a long time. It can prevent the starvation problem."
+      },
+      "id": "3358",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "Aging 是指，當process在系統內過久都無法取得完工所需資源（ＣＰＵ）因此逐步將此process priority提高，以此解決“Starvation” 的問題"
+      },
+      "id": "4147",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "starvation"
+      },
+      "id": "2602",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "在排程的時候納入他運行的時間，讓運行很久的會掉到較低的 priority"
+      },
+      "id": "4855",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "the program that long time not be executed need to upgrade its priority. this can solve the starvation."
+      },
+      "id": "4211",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "避免有些process優先度低一直排在後面(前面有人插隊)而完全無法運行"
+      },
+      "id": "4131",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "當一個 progress 一直分不到 cpu 時會逐步提高其優先級來讓他能用到 CPU，他解決的問題了低優先級所遇到的 starvation"
+      },
+      "id": "3915",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "it means that  for a process that has been wiating for a long time , it increases it's priority . It solves starving problem  "
+      },
+      "id": "4850",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Aging : As time progresses increasing the priority of each process. It can solve Starvation."
+      },
+      "id": "4546",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "如果process一直沒有被執行，會隨著時間提高他的priority，來解決starvation"
+      },
+      "id": "3324",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Aging increase the priority for the not scheduled low priority processes by time, which can used to solve the starvation problem."
+      },
+      "id": "2596",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "優先權會隨著時間遞增，可以解決starvation"
+      },
+      "id": "4430",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "multilevel feedback queue, priority inversion"
+      },
+      "id": "5102",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "make a waiting process' priority increase with time, it can solve starving problem"
+      },
+      "id": "3517",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "隨著時間增加priority較低的process，為了解決stravetion problem，即有些低prioirty的process可能永遠執行不了。"
+      },
+      "id": "3578",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "定時提高所有thread priority 解決starvation"
+      },
+      "id": "3977",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "解決starving的問題，透過隨時間提升未執行的process的priority"
+      },
+      "id": "5070",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "aging means higher the priority of a process, for solving starvation problem."
+      },
+      "id": "4478",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "priority 會隨著waiting time 而升高，可以解決starvation(優先級低而一直無法執行)"
+      },
+      "id": "3949",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "Aging is the solution of starvation which is increasing the priority of process waiting for a long time."
+      },
+      "id": "6565",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "increase the waiting process's priority, starvation"
+      },
+      "id": "4950",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "Aging指的是隨著等待時間的越長priority越高，用來解決starvation的狀況。"
+      },
+      "id": "3581",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "用在隨著時間過去，會提高低優先權的一項技術，不然低優先度的永遠不會被執行到，用來解決starvation的問題"
+      },
+      "id": "4221",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "In priority scheduling, some process with lower priority cannot be scheduled, causing starvation. In order to solve this problem, aging technique increase the priority of the process that stay in the queue for a long time. The longer it stay, the more increase of the priority it get. "
+      },
+      "id": "5184",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "aging, 隨著時間增加任務權重，用於解決 starvation"
+      },
+      "id": "3464",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "隨時間,提高一直排不到飢餓狀態的優先權"
+      },
+      "id": "5047",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "指高優先權的 process 長期無法執行，被低優先權Process所佔住"
+      },
+      "id": "6537",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "Increase the priority of the process which has waited for very long time to solve the starvation problem. Starvation problem means the process with low priority may never get to execute since it has to wait for the processes with higher priority running."
+      },
+      "id": "6389",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "The aging technique is used when a thread or process is starving due to the algorithm excecuted by the sceduler. The 'Aging' technique gradually assigns higher priority to a starving process so that the sceduler will execute it. One typical example is the priority inheritance."
+      },
+      "id": "5161",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Aging就是隨著時間推移,提高低優先權程序的優先權。它解決了低權限程序長時間沒有被執行到的問題。"
+      },
+      "id": "6270",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "所謂優先排程中的老化，是指記憶體中很久沒使用的程序。"
+      },
+      "id": "6261",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "aging讓thread的priority會隨著在queue等待越久priority隨之上升，為了解決prioriry scheduling中low priority task一直在queue等待沒辦法執行的問題"
+      },
+      "id": "4075",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "as the time progress, increase each process priority, it can avoid some process starving."
+      },
+      "id": "5258",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "越久未被執行的使用者優先權越提高 使其最終優先權成為最高而輪到他執行 執行後恢復原本的優先權 可以解決優先權反轉的問題"
+      },
+      "id": "4752",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "提高大家的priority，因爲low priority的process 可能never execute"
+      },
+      "id": "6359",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "when a process that doesn't execute for a long time, increase it's priority so that it will execute. this is to solve the starvation problem."
+      },
+      "id": "3735",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "aging是隨著時間，process priority會增加。為了解決stravation problem"
+      },
+      "id": "6367",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "increasing the priority of the low priority process for solving the starving problem."
+      },
+      "id": "3582",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "A process with a lower priority might wait for a long time since there are several high-priority process enter in the system. The 'Aging' technique is a policy that promote the priority when time flies."
+      },
+      "id": "3826",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "starvation，優先權太低導致一直無法被執行"
+      },
+      "id": "4440",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "starvation(一個low priority 的process 一直沒有被執行到)"
+      },
+      "id": "3799",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Time progress will increment the priority of the process. This can solve the starvation problem, that is, a lower-priority process can not be run for a long time."
+      },
+      "id": "2810",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "as time progresses, increase the priority of each thread. problem: starvation"
+      },
+      "id": "3335",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "Aging是指process的priority隨著時間增加，用來解決low priority process長期無法被執行的問題(starvation)"
+      },
+      "id": "3885",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "增加process的priority，使之和較高priority的優先度相同，it solved starvation (lower priority process can't be executed)"
+      },
+      "id": "5922",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "增加很長時間沒有run的low priority 權限，避免在priority schedule時low priority永遠跑不了造成starvation"
+      },
+      "id": "4607",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Aging in priority is a technique that time progress increase the order of threads. To solve that problem, we can use priority inheritance and aging technique increase the priority of the process that stay in the queue for a long time. The longer it stay, the more increase of the priority it get"
+      },
+      "id": "3589",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "aging是隨著時間變長，把低優先權的進程逐步提高其優先權，這解決了高優先權進程一直佔著cpu資源使得低優先權進程一直無法被執行"
+      },
+      "id": "5087",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "aging會使得priority隨著等待時間增加，用來解決starvation問題。"
+      },
+      "id": "4237",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Aging means increase the priority of a process within time progress. It is mean to solve the problem of priority inversion."
+      },
+      "id": "6468",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "priority隨著時間而變高，避免low priority process starvation"
+      },
+      "id": "4805",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "What is the 'Aging' technique in priority scheduling, and what specific problem does it solve?",
+    "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8",
+    "question_type": "short_answer",
+    "reference_answer": "a. Aging gradually increases the priority of processes that wait in the system for a long time.\nb. It solves the problem of Starvation (indefinite blocking of low-priority processes)."
+  },
+  "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8"
+}

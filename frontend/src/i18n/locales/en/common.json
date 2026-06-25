@@ -15,20 +15,13 @@
   },
   "auth": {
     "callback": {
-      "conflictTitle": "Exam Conflict",
-      "connecting": "Connecting...",
       "errorTitle": "Login Failed",
-      "examConflict": "An active exam session was detected. Choose to take over.",
       "failed": "Login failed, please try again",
-      "finalTouch": "Final confirmation...",
       "loading": "Verifying identity",
-      "loadingDesc": "Retrieving your student information, please wait...",
       "loadingSubtitle": "Preparing your personalized coding stage",
       "loadingTitle": "Welcome to the Online Judge",
       "noCode": "No authorization code received",
-      "pleaseWait": "Please wait",
       "steps": {
-        "almost": "Almost there, please wait",
         "assembling": "Assembling workspace...",
         "igniting": "Igniting engines...",
         "preparing": "Preparing your adventure...",
@@ -38,48 +31,47 @@
       },
       "takeover": "Take over and lock old device",
       "takeoverExpired": "Takeover token expired. Please log in again.",
-      "takeoverFailed": "Takeover failed, please contact the proctor.",
-      "takingOver": "Processing...",
-      "verifyingSession": "Synchronizing session..."
+      "takeoverFailed": "Takeover failed, please contact the proctor."
     },
     "campusSso": {
       "backToLogin": "Back to login",
-      "providers": {
-        "nycu": {
-          "description": "Log in using your university portal account",
-          "name": "NYCU (National Yang Ming Chiao Tung University)"
-        }
-      },
+      "backToRegister": "Back to create account",
       "redirecting": "Redirecting to campus login...",
       "subtitle": "Select your university to login",
       "title": "Campus Authentication"
     },
+    "providerActions": {
+      "loginWith": "Login with {{provider}}",
+      "registerWith": "Create account with {{provider}}"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "Log in using your university portal account",
+        "displayName": "NYCU (National Yang Ming Chiao Tung University)"
+      }
+    },
     "login": {
-      "email": "Email",
-      "emailPlaceholder": "student@example.com",
+      "email": "Email / Username",
+      "emailPlaceholder": "Email or username",
       "failed": "Login failed",
-      "feature1Desc": "Real-time feedback",
-      "feature1Title": "Instant Grading",
-      "feature2Desc": "Flexible assessment",
-      "feature2Title": "Versatile Questions",
-      "feature3Desc": "Learning analytics",
-      "feature3Title": "Growth Tracking",
-      "githubLogin": "Login with GitHub",
-      "googleLogin": "Login with Google",
-      "heroSubtitle": "Built for online assessments - from authoring and testing to analysis, all in one place.",
-      "heroTitle": "A New Exam Experience\nfor the AI Generation",
       "invalidCredentials": "Invalid email or password",
       "loading": "Logging in...",
       "noAccount": "Don't have an account?",
       "oauthFailed": "Failed to initiate login",
-      "or": "Or login with other methods",
       "password": "Password",
-      "passwordPlaceholder": "Enter your password",
-      "registerNow": "Register now",
-      "ssoLogin": "Campus Authentication",
+      "passwordPlaceholder": "Password",
+      "registerNow": "Create account",
+      "schoolAuth": "Campus authentication",
       "submit": "Login",
       "subtitle": "Welcome back, please login to your account",
-      "title": "Login"
+      "title": "Login",
+      "emailDivider": "Or login with email or password"
     },
     "logout": {
       "confirmButton": "Log Out",
@@ -98,6 +90,8 @@
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter your password",
       "email": "Email",
+      "emailDivider": "Or register with email",
+      "emailSubmit": "Email registration",
       "emailPlaceholder": "Enter your email",
       "failed": "Registration failed",
       "failedRetry": "Registration failed, please try again later",
@@ -109,7 +103,6 @@
       "passwordMismatch": "Passwords do not match",
       "passwordPlaceholder": "Create a password",
       "passwordTooShort": "Password must be at least 8 characters",
-      "submit": "Register",
       "subtitle": "Join the platform, start your coding journey",
       "title": "Create Account",
       "username": "Username",

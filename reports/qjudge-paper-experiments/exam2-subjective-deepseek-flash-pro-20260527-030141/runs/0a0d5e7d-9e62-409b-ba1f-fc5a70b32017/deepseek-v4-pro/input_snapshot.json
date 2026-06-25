@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "當預期的等待的時間較短時，比較適合不斷的poll直到需要的資源變成available\n"
+      },
+      "id": "12211",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "If the resource is be blocked for a short time (shorter than the time doing context switch twice), using a spin lock is more appropriate since it saves more time."
+      },
+      "id": "12406",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, 耗費資源少時\n2, 執行緒競爭資源不激烈時"
+      },
+      "id": "15727",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "if critical section spend less time, more appropriate to use spin lock.\nif critical section spend more time, more appropriate to use blocking lock."
+      },
+      "id": "13074",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "預期resources很快之後就可以使用，因為spin lock是在while迴圈中一直檢查該資源是否能用，如果能用就脫離迴圈；而blocking lock會直接讓其去wait，是在預期resources很久之後才會使用"
+      },
+      "id": "12318",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "if the process only has to wait a short time (shorter than the time cost by context switch) to access the reource it is spining on, it is sappropriate use a spin lock"
+      },
+      "id": "12387",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "spin lock is preffered when the waiting time of recieveing a message or response is relatively short.\nTo be more specific, shorter than the context switch time."
+      },
+      "id": "12526",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "當 expected waiting time 較短時，適合直接使用 spin lock"
+      },
+      "id": "12377",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "如果等待的時間比兩個content switch還少的時候"
+      },
+      "id": "12415",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "spin lock: is expected to be used when the waiting time of the resource is expected to be short\nblocking lock: is expected to be used when the waiting time of the resource is expected to be long"
+      },
+      "id": "13220",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "waiting time is expected to be short"
+      },
+      "id": "11502",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "In SMP system, when the waiting time for resource is short, it is more appropriate to use a spin lock versus a blocking lock."
+      },
+      "id": "13029",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "When a critical region is expected to consume short time. The waste cycles cost is less than the overhead of context switch."
+      },
+      "id": "13836",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "If the resource will be freed very soon, then it's cheaper to busy-wait (spin-lock) rather then block, because of the context-switch cost"
+      },
+      "id": "12685",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "under not long waiting in critical section"
+      },
+      "id": "12658",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "if the expect waiting time is less then context switch + wakeup + ..., the overhead of blocking lock, then use spin lock may be the batter idea.\nor just the critical section is short -> use spin lock"
+      },
+      "id": "13128",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Spinlock is more appropriate to use instead of blocking lock if the CRS take a short time to execute"
+      },
+      "id": "11392",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "it is more appropriate to spin lock if the ressource will be released soon i.e. if the time before the released smaller the context switch for the blocking."
+      },
+      "id": "13365",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "當零界區間比較短的時候，這樣可以減少 context switch 帶來的開銷"
+      },
+      "id": "14111",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "持有lock的時間短的話，spin比較好\n持有時間久的話，block比較好"
+      },
+      "id": "12360",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "等待時間較短時使用spin，等待時間較長或競爭激烈時使用block。"
+      },
+      "id": "12588",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "spin lock適合等待鎖的時間較短的任務上；block lock則適合等待鎖的時間較長的任務，\n因此，假如某個thread是要等待ready list的鎖，這種短時間需求的就適合用spin的方式。"
+      },
+      "id": "11567",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "if the critical section is short (small), then it is better to use spin lock then blocking lock"
+      },
+      "id": "12894",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "spin :預計等待時間短 threads較少時\nblocking lock :預計等待時間長 threads較多時"
+      },
+      "id": "12078",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "spin lock is more appropriate to use when the expected response time is short, because it can reduce overhead."
+      },
+      "id": "12443",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "If the waiting time to acquire a lock is short, then it is more appropriate to use a spin lock."
+      },
+      "id": "13471",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "It is more appropriate to use a spin lock when the wait time is expected to be short."
+      },
+      "id": "13300",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "spin: thread 不讓出cpu,一直檢查 shared resource ,適合短等待\nblock: thread 讓出 cpu,進入 waiting state 等 resource,適合長等待"
+      },
+      "id": "12161",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. Atomic add/subtract\n2. Test-and-Set Lock"
+      },
+      "id": "12959",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "When the expected time of waiting the lock is short (perhaps shorter than the context switch overhead), it is more appropriate to use a spin lock. However, when the expected time to wait the lock to release is long, or there are potentially large lock contention (many processes want to acquire the lock, which may lead to bus contention and slow down all CPUs that acquiring the bus), it is more appropriate to use a blocking lock."
+      },
+      "id": "12869",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "If the critical section is short"
+      },
+      "id": "13921",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "當等待的時間很短的時候較希望使用spinlock"
+      },
+      "id": "12907",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Higher context switching cost situation."
+      },
+      "id": "13071",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "when the task takes short time, it's better spinning than blocking"
+      },
+      "id": "13213",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "The average executing time is shorter than the context switch time."
+      },
+      "id": "13064",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "When the expected time till the lock released is shorter than the time consumed by context switching."
+      },
+      "id": "12947",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "在預期等待時間較短、CR較小的情況下，使用spin lock的表現較好。"
+      },
+      "id": "11715",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "spin lock: 在迴圈中等待鎖，預期等待時間短時使用\nblocking lock: 移至阻塞模式，可以讓其他任務使用CPU資源，預期等待時間長時使用"
+      },
+      "id": "12269",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "spin lock:thread會一直busy waiting直到shared resource可用，適合競爭者少、等待時間短\nblocking lock:thread會放棄CPU，直到shared resource可用才被喚醒，適合競爭者多、等待時間長"
+      },
+      "id": "12450",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "When the wait time is expected to be short. "
+      },
+      "id": "12180",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "If the  context switching time  is more bigger than waiting time"
+      },
+      "id": "11537",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "spin lock:short waiting time"
+      },
+      "id": "11488",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "when the expected waiting time is short."
+      },
+      "id": "15254",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "等待時間短的用spin lock 比較好，讓他自己spin，因為等待時間短還用block的話可能連複製跟switch都還沒完成"
+      },
+      "id": "12844",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "在SMP system中，spin lock更適合用在waiting shared resource的時間短，且競爭資源的人較少的時候，這樣可以提升performance\n\n相反，在waiting shared resource的時間長，且競爭資源的人較多的時候，就適合blocking lock"
+      },
+      "id": "15269",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Spin: poll a certain resource until available, appropriate if response time is short\nBlock: Stop a processer untill all required resources are available, appropriate when response times are long\n"
+      },
+      "id": "11505",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Spin lock會反覆Check是否有可用的Resource而Blocking則會停用CPU直到有可用的Resource\n在Wait time短的情況下比較適合用Spin lock"
+      },
+      "id": "12177",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "If the cache space is limited, it's more appropriate to use spin lock"
+      },
+      "id": "15101",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "spin適合等待時間短，cirical section很短，contention很嚴重的情況"
+      },
+      "id": "13086",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 當等待時間較短時，比較適合使用spin lock\n2. 當等待時間較長時，比較適合使用blocking lock"
+      },
+      "id": "13390",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "在SMP system中，當等待時間很短的時候，會傾向使用 spin"
+      },
+      "id": "12375",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "在較短critical section或資源佔用較少的情況，使用spin lock較好，因為blocking lock 還需context switch等操作，若較快就可以釋放資源，用spin lock 的成本較低。"
+      },
+      "id": "15246",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "當前一個process預期會很快結束時 並交出lock時就會比較適合用spinlock"
+      },
+      "id": "12240",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "Use spin lock\n1. 競爭的threads 數量很少\n2. 平均等待時間短\nUse clocking lock\n1. 競爭的threads 數量很多\n2. 平均等待時間長"
+      },
+      "id": "13083",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "預計等待時間較短的情況"
+      },
+      "id": "11265",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Spin lock continuously checks until resource available; blocking lock change to waiting status until resource available. When the conditions need to wait for long time, blocking lock is more suitable because it wastes less CPU for checking."
+      },
+      "id": "12908",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "當預期的等待時間很短或比較少人在搶奪資源的時候，適合用spin lock"
+      },
+      "id": "12435",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "當等待時間低於context switch所需的時間，或是在資源競爭程度較低的情況"
+      },
+      "id": "13047",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Spin lock(忙碌等待): 讓 Thread 不斷檢查資源是否可用，適合等待時間極短或競爭者較少的情況\nBlocking lock(阻塞並Context Switch): 讓出 CPU 進入等待狀態，適合等待時間較長或競爭激烈的情況"
+      },
+      "id": "12973",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "spin lock是會一直去問資源是否釋放，適用在waiting time比較短的情況。\nblocking lock是若資源還沒釋放先去waiting，等到資源釋放了再操作，需要搭配context switch，適合在waiting time比較長的環境上"
+      },
+      "id": "12155",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "當預計的process等待處理時間很短 就可以使用spin lock 其得和context switch操作所需的時間進行比較\n反之若任務處理時間很長 spin lock就會掛機太久時間 造成效能的浪費"
+      },
+      "id": "12424",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "Waiting time for the shared resources is expected to be short ->using a spin lock.\nWaiting time for the shared resources is expected to be long  ->using a blocking lock"
+      },
+      "id": "12571",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "當我預計process會執行很短的時間,所以block 造成的context switch消耗會比他spin的消耗還要多的時候,就會使用spin,反之當我評估系統要執行一段時間讓他spin造成的損失比block還要多的時候就會block"
+      },
+      "id": "12665",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Spin lock is more appropriate when the critical section is short and the wait is expected to be brief.\nBlocking lock is more appropriate when the wait is expected to be long and the context switch overhead is worth paying. "
+      },
+      "id": "13236",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "In SMP, Spinlock is more appropriate than blocking under these conditions\ni. Short critical section \nii. Low contention\niii. Non-blocking contexts\niv. Multicore availabiluty"
+      },
+      "id": "16089",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "If the waiting time for the sharing resource is expected to be short and context switch may take more time."
+      },
+      "id": "13121",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Conditions that the waiting time is expected to be short."
+      },
+      "id": "12776",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "When the waiting time for resources is short, we use spin lock because the we can save the overhead of blocking and context-switch. "
+      },
+      "id": "12883",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "當spin lock 的時間小於 context switch 的時間時，較適合做 spin lock "
+      },
+      "id": "11758",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "when the are relative not busy and less users it is better\n"
+      },
+      "id": "13231",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "執行時間短的時候適合使用 Spin lock，不然如果今天那個負載的執行時間很長他 Spin lock 會一直空轉，浪費資源"
+      },
+      "id": "12394",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "for spin lock, it's suitable for short waiting time or short critical section execution time, such as mission is in ready queue.\nfor blocking lock, it's suitable for long waiting time or long critical section execution time."
+      },
+      "id": "13794",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "when the progress time is short."
+      },
+      "id": "12566",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "在 需要時間很短，導致 contex switch 的開銷 大過於 spin lock 時 。使用 spin lock 的表現會比 blocking lock好"
+      },
+      "id": "12327",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "when the expected waiting time is less than the time spent on context switching "
+      },
+      "id": "12193",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Spin lock 會在 CPU polling 直到 event happen，因此是適用於 wait time 短，CPU 競爭者少的情境"
+      },
+      "id": "12505",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "When the process is doing the task which is not time-consuming."
+      },
+      "id": "12058",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "when the critical region is short, and the wait time is expect to be low."
+      },
+      "id": "13695",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "resource較少可以使用spin lock"
+      },
+      "id": "12830",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "spin can use for short critical section, and blocking lock can use for long critical section."
+      },
+      "id": "12291",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "當預期的waiting time很短時"
+      },
+      "id": "12865",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "當process等待資源的時間較低時，更適合用spin lock"
+      },
+      "id": "12503",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "smp中通常在系統負載小，執行時間短的情況下使用spin lock"
+      },
+      "id": "12130",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "在所需資源等待時間少，不需長期佔用時，spin lock可避免context switch帶來的巨量開銷"
+      },
+      "id": "12577",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "Depends on the length of the critical session.\nIt is more appropriate to use a spin lock when the critical session is short. (ex: kernel lock, ready queue)\nIt is more appropriate to use a blocking lock when the critical session is long. (ex: disk I/O)"
+      },
+      "id": "12707",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "For long critical sections"
+      },
+      "id": "11956",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "13219",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "spin lock 適合在waiting time比較短或是競爭對手較少時"
+      },
+      "id": "12529",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "預期鎖會在較短的時間內釋放"
+      },
+      "id": "14057",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "在CR值比較小的時候適合用spin lock，因為可以一直重複查看lock是否有被釋出，而也不太占用資源；在CR值比較大的時候適合用blocking lock，因為這時候如果可以透過blocking lock 可以讓CPU暫時釋出做其他的事情"
+      },
+      "id": "12249",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "spin lock: 用於比較不忙、競爭者少的時候。可以等一段時間，也可以減少context switching 的成本\nblocking lock: 用於比較忙、競爭者多的時候。"
+      },
+      "id": "12481",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. spin, while you expect the wating time won't be too long \n2. block, while you expect the wating time might to too long, so you let OS the wake you up again"
+      },
+      "id": "12270",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "SMP 系統，什麼條件?  \nSpin :  短時間使用\nblocking : 長時間使用"
+      },
+      "id": "12534",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "the conditions with less waiting time or smaller number of threads are more appropriate to use a spin lock.\nthe conditions with more waiting time or larger number of threads are more appropriate to use a blocking lock."
+      },
+      "id": "14736",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "If the processing time is short, it is encouraged to use spin lock rather than a blocking lock."
+      },
+      "id": "12580",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "In an SMP system, spin is more appropriate when the wait time for a shared resource is expected to be short."
+      },
+      "id": "11827",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "當共享資源的等待時間預期會很長時，帶有上下文切換的區塊是合適的。\n當共享資源的等待時間預期會很短時，SPIN是合適的。"
+      },
+      "id": "16171",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "在SMP系統中提指執行緒持續在CPU上忙等檢查鎖是否可用，不進行context switch，因此延遲低但會消耗CPU資源，適合用於臨界區很短或預期等待時間很短的情況。"
+      },
+      "id": "15476",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "預期等待shared resources時間很長或爭奪資源的threads很多時適合用blocking lock，反之適合用spin lock"
+      },
+      "id": "12735",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "spin lock is more active , so if the resource is expected to be available very soon , it is better to use spin lock."
+      },
+      "id": "13618",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "適合等待時間短的情境\nspin lock:  持續poll直到資源可使用 "
+      },
+      "id": "12117",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "等待時間短的時候用spin\n等待時間長的時候用blocking lock"
+      },
+      "id": "11923",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "when the waiting time is short, it is more appropriate to use a spin lock than a blocking lock."
+      },
+      "id": "12285",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "當預計的等待時間比較短"
+      },
+      "id": "12600",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "spin lock: when accessing the shared resources will not wait for long time like global variable.\nblocking lock: when accessing the resources might wait for long time like I/O. "
+      },
+      "id": "12673",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "spin: 不斷請求，等待時間較短或競爭者少時適合使用。\nblock: 請求失敗後sleep，資源可用時awake，適合等待時間較長或競爭者多時使用"
+      },
+      "id": "12245",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "在SMP中，當沒有很多threads要競爭共享資源時可使用spin lock；當很多threads要搶共享資源時使用blocking lock就比較合適"
+      },
+      "id": "13063",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "spin lock他是會一職去詢問共享的資源看是否能使用直到能使用，他適合等待時間較短以及競爭資源的人較少的資源\nblock lock: thread 會直接讓出CPU，自己進入waiting queue中，這適合等待時間較長以及競爭資源的人較多的情況"
+      },
+      "id": "12607",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "在等待時間預期很短的情況下，較適合使用spin lock，這樣可以避免花資源進行context switch等行為。"
+      },
+      "id": "12937",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "when the wait time of shared resource is short"
+      },
+      "id": "12297",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "當預期等待時間短或競爭者少的情況是合用Spin lock，Spin lock會不斷詢問是否可以使用，每詢問一次就會占用一次CPU空間\n當預期等待時間長或競爭者多的時候適合使用Blocking lock，Blocking lock會回到Wating state，等到資源釋出後OS在喚醒它\n"
+      },
+      "id": "12703",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "SMP中，若共享資源的等待時間較短，或者比較少threads在競爭資源時可以用spin lock；若共享資源的等待時間較長，或者比較多threads在競爭資源時可以用blocking lock"
+      },
+      "id": "12352",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "當佔用lock那個人佔用的時間比我去block再回到CPU的時間短的時候就適合用spin lock ，反之則blocking lock"
+      },
+      "id": "12705",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Use spin locks for short waiting times on SMP systems\nUse blocking locks when lock holding time is long to avoid CPU waste"
+      },
+      "id": "13324",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "SKip"
+      },
+      "id": "13591",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "當critical section 或是等待時間較短的情況，用spin lock會好於blocking lock"
+      },
+      "id": "13775",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "在lock時間較短的時候，適合使用spin lock；在lock時間較長的時候，適合使用blocking lock"
+      },
+      "id": "12542",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "waiting time is short"
+      },
+      "id": "12813",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "In an SMP system, under what conditions is it more appropriate to use a spin lock versus a blocking lock?",
+    "question_id": "0a0d5e7d-9e62-409b-ba1f-fc5a70b32017",
+    "question_type": "short_answer",
+    "reference_answer": "Spin lock: Appropriate when the expected wait time is very short or contention is low.\nBlocking lock: Appropriate when the wait time is long or contention is high, allowing the CPU to be yielded."
+  },
+  "question_id": "0a0d5e7d-9e62-409b-ba1f-fc5a70b32017"
+}

@@ -1,0 +1,315 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","2311","S109","當有 low priority thread hold high priority 需要的資源，但是因為cpu會先分配給high的，因此low 永遠沒辦法完成自己的task 然後交出鎖；像是high priority 的不斷在critical section 外面 busy waiting ，但是low priority 的卻一直被拿走cpu 不能做完自己的task，因此low不能交出鎖，然後cpu就一直被浪費；可以讓在critical section 裡面的thread 先把priority提升到max(外面在bust waiting thread的最大priority)，完成後再恢復到normal level
+","3","",""
+"2","2415","S015","Priority inversion is the problem that the low priority task hold a resource which is needed by a high priority task. Causing the high priority task can't be executed.
+The scenario where busy waiting lead to it is that. Since the high priority task uses CPU more frequently, the low priority task may not release the resource. When the high priority task uses CPU, it always stays in the busy loop and not really doing anything.
+Priority inheritance solve this issue by temporary increase the priority of the low priority task to max priority. It let the task could be finished first. Once the task release the resource, the priority of the task is back to the original value.","3","",""
+"3","6278","S054","優先度高的Process 被優先度低的process卡住，但cpu 仍重複在檢查優先度高的process的狀態，無法執行並釋放優先度低的process的資源.
+
+assume process A has higher 優先度，但還未進入critical session, 正在檢查階段，but 低優先度的process B掌握了資源像是lock, 釋放不了，造成cpu空轉.
+
+讓 process B提升到一群A中maximum的優先度，執行B後釋放資源 , 再回復到原本的優先度","3","",""
+"4","3055","S117","priority 高的process被priority低的process卡住無法繼續運行。priority高的A嘗試進入critical section，但priority低的B已在cs裡面，cpu time分給了A但因B無法release lock，使得A busy waiting，無法進入cs，A被B卡住無法繼續運行。priority inherence調高進入cs的priority到最高，使得能運行完成cs並釋出lock。
+","3","",""
+"5","2656","S093","當high priority process所需要的resources被low priority process所持有時，因為low priority process需要等其他高priority process執行，而high priority process因為無法獲得該resource須一直等待。priority inheritance可以透過將high priority process的priority借給low priority process，一旦low priority process釋放出high priority process所需resource時，其priority會恢復原樣，而high priority process可以成功獲得resource去執行","2","b 面向未明確說明 spinlock busy waiting 佔用 CPU 導致低優先任務無法執行的機制",""
+"6","2854","S012","當擁有high priority的process在busy waiting時，沒辦法進入CS處理正事，而low priority的process必須等到high priority的process處理完並釋放lock才能進入CS，所以在high priority結束busy waiting之前，low priority process沒辦法做正事。
+
+priority inheritance會把low priority  -> high priority而high priority -> low priority，所以原本的high priority process變成low priority process之後就不會擋在原本low priority process 前面。","1","priority inversion 方向描述錯誤（說 low 等 high 完成才進 CS）；priority inheritance 解釋為互換 priority，亦錯誤",""
+"7","3761","S108","priority inversion: 優先程度較小的 process 正在 critical section 中，而優先程度較大的 process 卻因為使用 busy waiting 不斷占用 CPU，使得小 process 永遠無法離開 critical section，而大 process 不斷在詢問做白工。
+例子: 當某 process A 的優先程度 > process B，此時 B 在 critical section 中，其 CPU 使用權被 process A 搶走，但 critical section 的鎖尚未解開，A 不斷使用 spinlock 探詢並佔用 CPU，而 B 因為拿不到 CPU 而永遠無法離開 critical section 並解鎖。
+priority inheritance: 當 A 被阻擋時，暫時借用其 priority 來給 B 使用，讓 B 可以順利拿到 CPU 來離開 critical section 藉此解決 priotiry inversion 無限卡死的問題。","3","",""
+"8","2825","S099","1. 低優先度的 process 擋住高優先度的 process 執行的情況。
+2. 假設有 2 process: P1, P2，P1 擁有較高的執行優先度，此時 P2 正在 critical section 執行中，P1 使用 Busy waiting 佔著 CPU 資源去等待 P2 的鎖釋放，但因為 P1 佔著 CPU 資源導致 P2 無法將鎖釋放，P1 的執行反而被低優先度的 P2 擋住。
+3. ","2","c 面向（priority inheritance 解法）完全未回答",""
+"9","2228","S070","高優先權的占用CPU資源一直空轉，導致低優先權的無法得到足夠的CPU資源而一直占用lock，因此會先將佔用lock低優先權的那個thread的優先權變成在等這個lock的所有thread最高的優先權，他才能獲得足夠的CPU資源去完成","2","b 面向缺乏明確的 spinlock 情境步驟說明；a 的定義以症狀描述代替",""
+"10","3308","S080","priority inversion happened when a lower priority process have a resource that higher priority process also want to access, it may cause the lower priority one have the resource but cannot do anything. Spinlock may cause the problem because the lower priority one may have the lock to the resource, but the higher priority come into it and preemt the position without lock, so both of them can do nothing. Priority inheritance can solve it by raise the priority of the executing process with lock to the highest, so no one can defeat it untill it return the lock, and after it return the lock, let the priority of the process change to its original priority.","3","",""
+"11","4301","S003","The priority inversion mens that a process with high priority was waiting for resources which held by a low priority.
+Lets say there are three processes A, B, C , their priority is from high to low (A > B > C). C is holding a. resource and A is waiting for that resource lock. When C times up, A is waiting and so B could go first.
+Which appears that B get done earlier than A the higher one.
+The priority inheritance is that we make C to have highest priority as it have the lock, and return to original after releasing it. We can make sure that the real higher one (A) would not be bothered by this kind of situation.
+","2","b 面向描述 three-process aging 情境但未提 spinlock busy waiting 佔用 CPU 的機制",""
+"12","2884","S035","q1 : priority inversion is a process with higher priority keeps waiting or block by a process with lower priority.
+q2 : when a process A with lower priority get a lock or resource , then a process B with higher priority also want to get the lock holded by A. Then process B have to wait(in the busy waiting condition) and be blocked by process A, which leads to priority inversion.
+q3 : by using priority inheritance, when process A with lower priority get the lock, its priority will be increased so it won't be preempted by other processes, when A finish its work, its priority will be restored to the original, this can solve the priority inversion.","3","",""
+"13","3823","S037","When a low priority process has has locked a resource and a high priority process also want to access the resource, the high priority resource would spin lock to wait for the resource. However, spin lock also needs cpu resource. The high priority process would occupy the cpu resource and low priority process cannot release the lock.
+
+It make the process has the lock to max priority temporily, and return the process to the original priority after it release the lock. To prevent it wait for others spin lock.","3","",""
+"14","2358","S096","Priority inversion is when a lower-priority process holds a resource that a higher priority process requires to continue execution and the lower-priority process isn't getting CPU time due to its low priority, which makes the higher-priority process spending its CPU time on busy waiting without any useful work done. 
+Priority inheritance solves this because the lower-priority process gets the same priority as the higher-priority-process waiting for the resource, thus the lower-priority process will get CPU-time to execute and to release the resource.","3","",""
+"15","3470","S013","1. High priority cannot use the CPU since the low priority cannot release lock.
+2. High priority cannot use the CPU and is waiting the low priority to release lock since the priority between them and low priority cannot release lock before using the CPU.
+3. upgrade the priority of the low one.","2","三面向均極簡略；a 缺 inversion 明確定義；b 未提 spinlock 機制",""
+"16","2796","S040","When a low priority process (lpp) has lock and high priority process (hpp) is bus waiting for lock, lpp may never be run, since every time hpp busy waiting until timeout, goto ready queue, and lpp start use cpu. Schedular will stop lpp and let hpp run, since it has higher priority. This calls priority inversion.
+Using priority inheritance can prevent lpp be scheduled, and let lpp run, release lock.","3","",""
+"17","2087","S124","Priority inversion happens when a processus of lower priority is preventing a processus of higher priority from executing. 
+Process A is executing and enters a critical section, therefore ""locking"" it. Before A has time to release it, process B, with higher priority than A, starts executing. Since B has a higher priority than A, the processor executes B in priority, but B needs to enter the CS that A is currently occupying. B is therefore going to enter spinlock, waiting to be able to enter the CS, while A cannot execute and release it since B is occupying the processor. 
+Priority inheritance is when a process that is currently in a CS becomes of the highest priority between all fo the processes waiting for that CS. The execution and the release of the CS therefore becomes the priorised execution. 
+","3","",""
+"18","2454","S121","A priority inversion occurs when a High priority process A is blocked by a Low priority process B . For instance, A can be in a busy waiting looking for the unlock of a mutex of a critical section owned by B. Priority inheritance lead to solve this issue because, when a process enters in a Critical section then it obtains the maximum priority of all the process which want to enter in the critical section. When the process go out from the critical section, it gets back is original priority.","3","",""
+"19","6728","S068","這個現象說明高優先權 process 想要進入 critical section (CA) 而已經在 CA 裡面的低優先權 process 因為高優先權 process 到來無法獲得計算資源造成其卡在 CA 裡面，而高優先權 process 因為無法進入 CA 所以無法繼續執行造成互相等待。
+
+P1, P2, P3 為三個 process ，數字代表其優先權以及到達時間，越大代表越晚到且優先權越高。P1, P3 需要進入 CA 且 P2 不需要。P1 在 CA 裡面時 P2 來到，P1 沒有資源而卡在 CA。P2 結束後 P3來到，佔用資源但卻無法進入 CA。此時 P1 P3形成互相等待。
+
+解法：優先權繼承。先讓在 CA 裡面的 P1 暫時有最高優先權，等到離開 CA 後再回復其優先權等級。","2","b 面向情境未明確提及 spinlock busy waiting；情境描述稍混亂",""
+"20","2185","S102","當priority 較低的process拿到lock，但higher priority process在busy waiting時，cpu資源會被 high priority process占用，導致priority較低的process無法完成，而 high priority process也會因為拿不到lock也無法執行
+
+priority inheritance是把拿到lock的 process的 priority提高，確保它可以完成任務並釋放lock出來","3","",""
+"21","3831","S034","The higher-priority task continuously loops by held the lower-priority task.
+scenario:
+1)A lower-priority thread(L) hold the lock.
+2)A higher-priority thread(H) is blocked by L.
+3)Scheduler always allows to let H get CPU time because of its higher-priority.
+4)L definitely get CPU time to release the lock, causing H be blocked by the lock.
+priority inheritance:
+讓被卡這很久的process得到最高的priority，如果release the lock，那所有的priority回歸原本的。","2","b 情境描述矛盾（同時說 L 永遠無法釋鎖又說 L definitely get CPU time）",""
+"22","3227","S084","1. 優先權反轉，會變成高優先權的task反而要等低優先權的task。
+2. 假如程式使用spinlock，低優先權的task拿到lock卻不釋放，會導致高優先權的task一直在等低優先權的task釋放lock而遲遲進不去critical section，這時就會產生priority inversion。
+3. 優先權繼承是當這個低優先權task拿到lock時，把它的優先權提升到最高，讓它趕快執行完趕快釋放掉lock，等到一釋放就把它的優先權還原。","3","",""
+"23","3667","S079","Priority inversion says that a process with higher priority is executed slower then a process with lower priority. Suppose we have three processes, A,B, C, each with priority highest, middle, lowest. Process A is busy waiting, process C is having the lock and is inside the critical section. When process B preempts C, which means that process B goes into the CS grab the lock, and executes. Then the lower priority process B is running instead of the higher process A, this situation is called priority incersion.
+Priority inheritance says that, as the time passes, we raise the priority of the process that is in the CS to the  highest among all the processes waiting in the ready queue. After this process finished, then the original priority resumes.","1","b 情境邏輯錯誤（B preempt C 進 CS 揶鎖，與 spinlock 機制不符）；c 偷向 aging 概念而非 priority inheritance",""
+"24","2158","S122","高優先權的process threads被低優先權的把持，導致無法進入，在外面等待，可以用priority inheritance解決，他會將低優先權的提升至高優先權，使他們順利完成","2","b 面向（spinlock 導致 priority inversion 的情境）完全缺失",""
+"25","3740","S086","Priority inversion occurs in multi-tasking environment when the higher priority thread is waiting for a resource(lock) that is currently held by low priority thread.
+Priority inheritance increase the priority of the thread held the lock to maximum of all waiting threads by approximate amount, when the lock is released, priority goes back to normal level.","2","b 面向（spinlock 導致 priority inversion 的具體情境）缺失",""
+"26","2890","S052","一個low priority thread L 先拿到lock並進入critical section(CS)，而另一個high priority thread H比較晚到，也想進入CS，就需要等待L完成CS部分並釋放lock。但因為H的priority比較高，會一直搶到CPU時間來spinlock，導致L一直沒有CPU時間來把CS的部分執行完，就會一直佔著CS讓其他比較高prioirty的threads無法執行到CS，這就是priority inversion。
+Priority inheritance會把CS裡的thread priority提高到在等待執行CS的threads中最高的priority，讓CS裡的thread可以盡快執行完釋放lock讓其他thread來跑CS的部分，等CS裡的thread執行完離開CS，它的priority就會變回原本的priority。","3","",""
+"27","2826","S033","priority inversion是指priorty較低的process或thread搶占使用critical section，造成較高priority的process無法執行，但一直卡著CPU不讓較低的process使用。
+Busy waiting 因為高priority德process一直在looping搶佔CPU，使得低priority得process就得到優先使用許可，也沒有CPU資源可以處理工作。","1","b 描述語義混亂；c 面向完全缺失",""
+"28","2662","S123","A higher-priority process is waiting (spinlock) for the lock that is currently held by a lower-priority process.
+
+Priority inheritance is a way to increase the priority of the process that is holding the lock to the maximum,
+when the lock is released, the priority goes back to its normal level.","3","",""
+"29","2535","S027","A low priority process holds a lock while a high priorty process spins waiting for it,preventing the low priority process from running and releasing the lock.
+It can be solved by priority inheritance which will temporarily raises the low priority's priority until the resourse is released.","3","",""
+"30","6085","S081","priority inversion is basically allowing the lower priority holders with long time wait to increase the priority so that they can run. if there is priority inheritance it will make it easier to allocate the processes and directly give the priority.","0","priority inversion 定義完全錯誤（誤用 priority aging 概念）；b/c 面向幾乎缺失",""
+"31","4185","S008","A priority inversion happens when a low priority task B is holding a lock while a high priority task A has the cpu resource and is trying to acquire the lock.  In this case, it leads to task A busy doing nothing and waiting for task B. Priority inheritance can solving this issue because it force the task that is holding the lock (in this case, B) to be the maximum priority as all the task that are waiting for the lock. (In this case, B will have the same priority as A) and as B release the lock, its priority will be set back to its original priority,","3","",""
+"32","5054","S078","If a low priority process come in first and hold some resource, then a high priority process come in and it also need same process, it need to wait low priority to finish.
+Low priority can inheritance high priority, then it can finish earlier.  ","1","b 面向缺失；c 描述不完整（未說明釋鎖後 priority 復原）",""
+"33","2911","S087","假設有三個任務，優先度為L,M,H，且L<M<H，而L,H有一共享資源。L先到達並先進入共享資源執行，接著M抵達，並由M開始執行，因為優先度較高，最後H抵達，應該是H要最先執行，但是Lock還在L手上，反而會卡在優先度最低的L上。priority inheritance可以讓L先繼承H的優先度，讓L執行完把Lock交給H，再繼續由優先度最高的H執行。","2","b 面向缺少 spinlock busy waiting 佔用 CPU 導致低優先無法執行的機制說明",""
+"34","2526","S022","A process with higher priority is waiting for a resource(a key or semaphore), which is held by a process with lower priority. 
+
+A scenario where spinlock can lead to it is that a lower-priority process entered its critical section and the higher-priority process will have to wait until the lower-priority process release the key if it want to enter its critical section.
+
+A process which entered its critical section will get its priority increased so that it can finish its critical section faster and will return to its normal priority after it releases the key.","2","b 有提 spinlock，但缺乏「CPU 被高優先佔用導致低優先無法執行」的關鍵機制說明",""
+"35","4648","S110","when low priority process hold a lock which is also needed by a high priority process, high priority process can only wait but the low priority process will never get the CPU because of its priority
+
+once a process gets a lock, then its priority upgrade to the maximum priority of all processes using that lock
+","3","",""
+"36","2813","S082","The lower priority process is run earlier than the higher one. It usually happen because they want to access the same critical section and lower priority process get the lock first. To solve this problem, priority inheritance increase the priority of the process which get the lock to avoid the higher priority one can't get to run.","2","b 面向未提到 spinlock 機制",""
+"37","3587","S105","當較低 priority 的 thread 取得 critical section 的 key，而較高 priority 的 thread 不斷 preempt 並取得 CPU 資源，卻只能 busy waiting 無法往下執行，這種現象稱為 priority inversion。
+
+priority inheritance 表示當較低 priority 的 thread 取得 key 時，系統會暫時提高其 priority 以讓它順利執行完 critical section 並釋放 key。","3","",""
+"38","2354","S111","當有兩個process，其中processA有較高的優先度，processB的優先度則較低。在processB處在CS中的時候卻因為沒有CPU使用權而無法執行，導致processA有權限卻在外面空等，此狀況稱為spinlock。解決此狀況的方法是當一個process在CS越久，其優先度會逐步提升，使內部的process有機會拿到權限。","1","c 面向描述為 priority aging，非 priority inheritance；b 面向描述不清楚",""
+"39","2466","S085","當低優先級的進程A取得鎖後，高優先集的進程B進入spinlock，
+CPU資源多用於B的等待，導致A無法釋放鎖，
+將取得鎖進程的優先級提升至與等待中的程式優先級最高者相當即可解決","3","",""
+"40","2577","S004","一個low priority job A已經進入critical section並取得lock，此時有一個high priority job B也想進入critical section但沒有lock，B會busy waiting(spinlock)，由於是priority scheduling，scheduler會把CPU不斷給B，導致low priority job A拿不到CPU去完成工作並release lock，形成優先權顛倒的現象。
+解決的方法就是priority inheritance，把low priority job A的優先權提升到所有需要此共享資源中job裡面的最高，等他拿到CPU完成工作再調回原本的優先權","3","",""
+"41","4818","S011","Priority inversion是發生低優先度的任務居然會比高優先度的任務更優先的執行。","1","b/c 面向完全缺失，僅有 a 的簡短描述",""
+"42","2080","S046","If high priority thread is spinlocking, and it may prevent the low priority thread to realeased the lock.
+Priority inheritance can avoid priority inversion, 因為她會解鎖，讓 high priority 的 thread 可以運作，不用因為 low priority 的 thread 去影響他。","2","c 面向未說明 priority 提升機制，僅說「解鎖讓高優先運作」",""
+"43","1837","S005","Low priority thread get the lock and high priority process can't get the lock which make the high priority process wait.
+
+Set the low priority thread get higher priority and let it finished. Then restore the priority.","2","b 面向缺乏 spinlock busy waiting 佔用 CPU 的機制說明",""
+"44","5321","S061","A process got the higher priority, but the lower priority process is in the CS. so the code is checking the loop , it cant be executed.
+priority inheritance will increase the lower priority process priority to the highest priority process outside.","2","a 定義不够明確；c 提升 priority 的對象說明略混亂",""
+"45","4065","S014","priority inversion:優先權低的打斷優先權高的，使得優先權高的一直無法被執行
+priority inheritance:對優先權低的提高優先權","1","b 面向缺失；c 極簡且缺乏機制說明",""
+"46","2375","S028","1. priority inversion是指當一個high priority的task所需的resource(ex: lock)被low priority的占用。
+
+2. 當一個low priority task在critical section，high priority想進入，因此持續做spinlock，而priority scheduler會將CPU使用權給high priority task，因此low priority task 使用不了CPU來釋放lock，導致low priority正在""阻擋""high priority
+
+3. priority inheritance: 透過提升low priority task的priority來釋放那個resource，釋放後再變回原本的priority","3","",""
+"47","2350","S107","Process A has higher priority.
+Process B is in critical section(holding a lock).
+Process A keep looping and busy waiting, which 占用 CPU resources.
+Process B can't use CPU resources to finish its work, so it cause priority inversion.
+
+priority inheritance solve this by giving the highest priority to the process in critical section and sending it back to the original priority after leaving critical section.","3","",""
+"48","2554","S126","priority inversion是指低優先權的任務拿到lock，但是cpu都給高優先權的使用，導致低優先權的任務做不完，高優先權的拿不到lock，priority inheritance 可以讓拿到 lock的process優先權變得最高，讓他趕快執行完釋放 lock","3","",""
+"49","2645","S017","當一個高優先權的process or thread A要求一個資源，但那個資源在一個低優先權的process or thread B身上，因為A優先權高，所以B無法釋放自己的資源，導致低優先權的B block了高優先權的A。
+
+跟上面講的類似，當一個低優先權的B有了資源(比如進入critical section)，但高優先權的A也想要進去critical section，於是A一直在busy waiting不斷check自己是否能進入critical section，導致B跟本無法釋放資源(lock)離開critical section。
+
+這時priority inheritance就可以救人，它可以把擁有資源的那個低優先權的B的priority暫時調到最高等級，比那些在等待資源的其他processes都高，釋放完資源後，再讓B回到它原先的正常優先權等級
+","3","",""
+"50","3392","S115","Assume a program A has high priority, and another program b has low priority, program A continuously wants to run but due to program B it cannot do so (such as not having the key to a critical section). It keeps trying to run A but nothing happens, causing spinlock. inheritance solves this by temporarily raising  the priority of B and freeing the key. ","2","b 情境不完整，未說明 spinlock 導致低優先任務無法執行的機制",""
+"51","2247","S089","Priority inversion是指low priority拿著lock而high priority則被擋在外面
+如果low priority的process卡在loop裡(busy waiting)，high priority就會被擋住
+我們可以增加low priority的priority，讓他先執行完就能釋放lock給原本high priority的task","2","b 描述邏輯有誤（說低優先在 busy waiting，應為高優先）",""
+"52","2536","S009","priority inversion is that a high priority process is holding for a key to critical section, and a another low priority process is waiting for the key. The high priority process is looping in critical section so that low priority process never get into critical section.
+priority inheritance 
+","0","a 描述完全相反（高優先在 CS looping，低優先在外等待）；c 空白",""
+"53","5562","S094","priority inversion：高優先權thread一直被低優先權thread卡住
+
+priority inheritance可以將持有lock的低優先權thread提高優先權，使它盡快完成","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"54","6618","S066","1.當priority較低者先進入了臨界區並取得鎖，而後出現priority較高者則會發生preemption，但priority較高者並未持有鎖，因此系統處理停滯。
+2.當把持有所的priority暫時調到最高可防止發生不該發生的preemption。","2","b 面向缺少 spinlock busy waiting 的說明",""
+"55","4107","S041","high priority process A 等待 low priority process B 所持有的資源，但 B 此時在 CS 中且 A 持續占用 CPU，導致 B 無法離開 CS，不能釋放 lock 給 A。
+priority inheritance 會將 high priority 和 low priority process 的 priority 對調，讓 CPU 先執行持有 lock 的 process，等 lock 釋放後就會回復原本的 priority","3","",""
+"56","6152","S031","當低優先序持有鎖，而高優先序的試圖想請求同一個資源而占用CPU，spinlock，低優先序的會沒辦法使用CPU而無法釋放鎖，低優先序的擋住高優先序的行程，這時候就會造成priority inversion。
+priority inheritance 是將持有鎖的執行緒的優先權先提高，優先取得CPU，等到釋放鎖之後再降低優先權。
+","3","",""
+"57","4772","S116","優先權反轉指的是當一個高優先權的程式B在執行spin lock時，CS裡正在運行一個低優先權的process A。由於B的優先權較高，導致低優先權的A沒辦法繼續運行完，並把Lock釋放出來，導致高優先權的B被低優先權的A卡住。而priority inversion則是透過先讓在CS中的A增加優先權，讓A能順利執行完並將lock釋放出來，然後再把它的優先權調回去來解決priority inversion的問題。","3","",""
+"58","3702","S059","when high priority process is waiting for a resource(ex: lock or semaohore), the resource is obtained by low priority processm which is called priority inversion.
+
+If low priority process is working in the critical section, and high priority is asking for the resource but is locked. CPU assign the task to high priority process but not low priority process, which makes low priority process can't execute the task and finish the task. So spinlock happens.
+
+priority inheritance can help. we just need to heighten the highest priority to the executing task, letting it finish the process and release the resource first. Next, let the high priority process get into the critical section to execute. Finally, Lower the priority back to the original one.","3","",""
+"59","1950","S064","高優先權的process由於低優先權的process占用所需的shared data，又低優先權的process遲遲無法完成並release data，使得高優先權的process等待時間過長。
+pirority inheritance是令讓低優先權的process暫時取的高優先權，讓其能盡快完成並release data","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"60","2409","S101","當優先序小的程式A在critical section中，優先序大的程式B占用CPU，造成A無法執行且B的CPU空轉在busy waiting。
+priority inheritance會增加critical section中程式的priority，來解決這個問題。","2","c 面向未提到 priority 提升對象及釋鎖後恢復機制",""
+"61","3680","S103","1. 
+low priority的process拿到lock但無法釋放給high priority的process
+2. 
+low priority的process A先到lock, high priority的process B需要A正在使用的資源, 但OS把CPU分給B, 所以A無法釋放lock, 導致B有high priority卻沒辦法先執行
+3.
+先提升A的priority, 讓A能釋放lock, B就能拿到lock了","3","",""
+"62","6446","S104","A is a low priority thread is in critical section and holding the waiting lock, B is a high priority thread is in spin lock trying to enter the critical section. Priority scheduler always run B over A because A has high priority, this leads to A never runs it job then releases the waiting lock and allows B to run. This situation is called priority inversion because B is not doing useful work, it is essentially blocked by A.","1","b 情境描述有誤；c 面向完全缺失",""
+"63","2479","S023","Priority inversion can occur in multi-tasking environment when a higher-priority task is waiting a resource(such as a lock or a semaphore) that is currently held by a lower-priority task.
+Priority inheritance can temporarily increase the priority of a task which hold a lock.","1","b 面向缺失；c 極簡，未說明釋鎖後恢復機制",""
+"64","3315","S113","lock被低cpu佔據導致高priority拿不到lock無法進入CS，可以暫時提升低priority的priority提早釋放lock讓高priority拿到lock","2","b 未說明 spinlock 導致低優先無法執行的機制",""
+"65","2404","S055","指當high-priority process遇到spinlock時,lock被low-priority process拿走,始終進不到critical section區域,而低權限process又因使用不到CPU而完成不了,釋放不了LOCK,透過aging機制,可以解決,隨者時間讓低權限process的權限越來越高,使其可以使用cpu進而釋放lock給高權限process使用.","2","c 面向說明 aging 機制，而非 priority inheritance 的「提升持鎖者到等待者最高優先權」",""
+"66","2646","S119","1.priority較低的process一直在critical section裡面不出來，priority較高的process一直被卡在外面。
+
+2.priority inheritance:priority較低的process繼承了外面較高的priority，就可以使用較多的cpu更快的完成工作讓外面的那個process可以進來，再把priority還給他。
+","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"67","3508","S067","priority inversion 是指當某個高優先度的程式,在執行過程中因為想要的資源被低優先度的占據,例如:要進去C.S但裡面有一個低優先度的程式,系統會把CPU給高優先度的但她進不去C.S.因為裡面已經有程式了,所以導致大家都無法完成的情況
+
+priority inheritance:將那個卡在裡面的程式(低優先度)優先度升到跟高優先度的程式一樣,等到他執行完卡住的原因,再把它降回原本的優先度","3","",""
+"68","3752","S076","Priority inversion is the situation where a low-priority process or thread holds a lock to a critical section, and a high-priority task is unable to complete execution as a result. The high-priority task busy waits for the lock to be released, but instead of sleeping, it continuously runs. Since scheduler keeps choosing the high-priority task, the lock is not released. 
+Priority inheritance involves increasing the priority of processes that hold a lock in critical section to maximum priority (aging), and only once the lock is released, do the priority levels return to normal. This helps solve priority inversion. ","2","c 描述機制正確但將 priority inheritance 誤定名為 aging",""
+"69","3609","S074","Priority inversion is when a process keeps waiting for a process with a longer completion time to finish, which might cause starvation, and it happens when a process wants to enter in a critical section and it fails because there is another ongoing process, so it keeps knocking to see if it can get a chance. Priority inheritance defines the lower and upper bound time for a process so that the process in the critical section can complete its execution within a bound time, otherwise preempted for other processes to execute.","0","priority inversion 定義錯誤（將其將處理時間問題）；priority inheritance 定義完全錯誤（說是設定上下限時間）",""
+"70","2676","S063","Priority inversion: A high priority process is waiting for a shared resource which the low priority process is using.
+Priority inheritance can upgrade the priority of the process holding the resource to the highest priority. It can finish the task and release the resource. When the process release the resource, the priority of it will turn into what it was.","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"71","3485","S090","Priority inversion is the situation that the higher priority process is waiting for the lower priority process.
+If the lower priority process take the lock and go into the critical section, and the higher priority process come and take the CPU, however the higher priority process can't go into the critical section since the lock is on the lower priority process. It cause the higher priority process must wait for the lower priority process executing and release the lock.
+Priority inheritance give the lower priority process a highest priority for now temporally, so it can execute first and release the lock. After release the lock, it's priority will recover to the original.","2","b 面向缺乏明確 spinlock busy waiting 佔用 CPU 的機制說明",""
+"72","5888","S100","The process with higher priority is stuck by waiting the lock hold by the process with lower priority.
+
+When low priority process enter the critical section, and it gets the lock. Now, one process with higher priority enters into the ready queue. The scheduler preempts the lower priority process when it does not leave the critical section. Therefore, when the higher process enters the critical section, it can't get the lock and wait.
+
+Priority inheritance increases the priority of the process holding lock, and prevent it from preemption.
+ ","2","b 邏輯稍相反（說排程器搞侔低優先，應為高優先 busy waiting 佔用 CPU ）",""
+"73","2767","S114","Priority Inversion是指採preemptive策略時，低優先權的process已在critical section 內，但是高優先權的process取得CPU資源，並且因為spin lock 所以高優先權的process 卡在critical section 外等待進入critical section ，但是因為低優先權的process遲遲無法取得完工所需的資源（ＣＰＵ），因此陷入了雙方無限等待的情境，稱為Priority Inversion . 
+Priority Inheritance 可以解決此問題的方法是 ， 將在critical section 內的低優先權的process的priority 提高，使得低優先權的process可以取得完工所需的資源（ＣＰＵ）先讓它完工離開critical section 後再將其優先權值恢復。如此以來即可解決高低優先權process雙方無限等待的情境。","3","",""
+"74","1998","S038","Higher process stuck because lower process used IO and med process used cpu so deadlocked
+A process=HIGH B process=MED C process=LOW 
+C handle a printer but B have CPU  and A blocked by printer IO
+change C priority to HIGH","1","將 priority inversion 誤描為 deadlock 情境；c 極簡缺乏機制說明",""
+"75","2552","S047","如果今天 low priority 拿到了 lock 他又一直耗著那個資源，其他 high priority 的不停輪詢那個 lock 導致 CPU 也沒有閒置資源可以讓 low priority 釋放 lock 
+把拿到 lock 的 process 設成在需要 lock 的那些 process 裡面的 max priority，待他一用完 lock 就讓她返回 low priority","3","",""
+"76","2484","S044","1.有更高priority的process無法很好地利用正被lower priority process佔用的資源
+2.  higher priority process is spinlock when the lower priority process is in the critical section holding the resources that higher priority process needs.
+3. 讓在critical section的process X有最高的priority,讓其他在等待資源的processes不要去搶奪X的資源,等到X跳出critical section,X的priority level回歸正常","3","",""
+"77","2598","S075","1.process因優先度制度衝突導致無法如期執行的情況
+2.低優先度的process拿著lock時，高優先度的process因spinlock一直等待低優先度的process放出lock以運行，低優先度的process理論上的重要程度和高優先度process相同(得做完這process才能讓高優先度process執行)，但系統不知道所以此時高優先度的process只能被當低優先度process處理
+3.priority inheritance就是直接給有lock的低優先度process獲得和等他的高優先度process相同的等級，這樣就可以避免了","3","",""
+"78","2341","S030","priority inversion 指的是 有單一資源 具有互斥性，且低優先級 process 目前先持有其資源。因此導致 高優先級的 process 反而要等待低優先級的 process 執行完成 造成了優先級翻轉的問題。 
+
+當低優先級 process 持有資源時 ，高優先級會一直陷入 spinlock 就發生了 priority inversion
+
+priority inheritance 是讓低優先級的先繼承高優先級的權限將資源釋放出來後 就不再持有資源，因此高優先權 process 就可以取得資源繼續執行了","3","",""
+"79","2647","S106","1. It means that process with higher priority has to wait for the lower priority process . 
+2. Assume A as lower priority process and B as higher priority process . 
+A is currently in a critical section and then B arrives , ther fore B will take over the CPU while it can't actualy do any meaningful computation since A currently holds the resource B needs , therefore this is a condition that higher priority process has to wait for the lower priority process to finish . 
+ Priority Inheritance can solve this issue, it means if lower priority process is holding resources that higher priority needs , the low priority will become high priority .","2","b 缺少 spinlock 明確說明；c 描述過於簡略",""
+"80","2931","S019","Priority Inversion : In multitasking environment, when a high-priority thread access a resource such as file, variable, lock, or database record held by a lower priority thread.
+
+When a lower-priority thread is in critical section or holding a lock, and the higher priority thread is in spinlock. Processor 會一直分配給 high priority thread 並且 low priority thread 無法執行也無法釋放 resource.
+
+Priority inheritance 會給持有 lock or resource 的 thread maximum priority associated to the lock. 這樣就能順利執行並釋放 resource ","3","",""
+"81","2448","S020","1. A higher priority process waits for a resource which is held by lower priority process. The low priority process can not release the resource because of the priority.
+2. Lower priority process gets the key first and enter C.S. By that, higher priority process can not get the key, so it stuck into while-loop.
+3. Increase the priority of lower priority process to let it release the resource.","2","b 缺少 spinlock 佔用 CPU 機制說明；c 未提釋鎖後 priority 恢復",""
+"82","3750","S010","Priority inversion occurs when a high priority process A is waiting for the resource that a low priority process B is currently accessing. The scheduler may not schedule the process B to run, and thus it cannot release the resource for A to access. Priority inheritance increase the priority for the process accessing the resource to max, and restore to original after releasing the resource, so the low priority process can be scheduled to release its resource.","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"83","2517","S091","一個低優先權的process在critical section,而有一個高優先權的process在wait lock,會造成低優先權的process無法釋放lock","1","b/c 面向完全缺失",""
+"84","3932","S051","If job has higher priority has busy waiting, it will let job has lower priority run first.
+For example, there are process A and B, A has higher priority but B take resource let A stuck at while loop. However, B has lower priority so B is not running and can't release resource to A.
+We can use aging to solve this issue. ie. when we find B is waiting long tome we will increase its priority.","1","c 面向說 aging 機制，非 priority inheritance；a 理解有誤",""
+"85","5050","S039","low priority thread holds a resource and high priority thread is waiting for it
+
+if high priority thread keep looping to wait for it, low priority thread may have no chance to getting process and release the resource
+
+make the priority higher when holding resource, and return normal when release, to make sure it wont hold the resource and keep waiting for its turn to process","3","",""
+"86","2471","S018","priority inversion is the situation that A process is low priority but it is in the critical section(hold the lock). B process is high priority and waiting the lock. B process is executing because of its high priority, so A process can not execute to release the lock.
+busy waiting can lead to B process keep to execute, so A can not execute.
+priority inheritance is to increase the holding lock process' priority, so it can execute to release the lock, then turn its priority back to normal.","3","",""
+"87","5665","S049","priority inversion 低priority thread持有lock 而high priority thread要等到low priority thread釋放lock才能執行導致lock永遠不會被釋出 
+spinlock會讓high priority一直等待，而cpu則會優先給high priority thread執行，導致low priority一直無法執行
+priority inheritance會將在cs中的thread優先度提高到在所有跟lock相關的thread中的最大優先度，等執行完後才回復正常","3","",""
+"88","3699","S053","當一個high priority的process A，所需要的lock在low priority 的process B手上，A會進入busy waiting，但B因為priority不夠所以不能執行，導致A空等，就是priority inversion
+解決方法priority inheritance就是把A的priority繼承給B讓他可以先跑完釋放lock，讓A可以執行，再把B的priority調回去","3","",""
+"89","6135","S092","when a low priority process is in a critical section, but also a high priority process wants to enter the critical section, the high priority process will do spinlock in order to enter the critical section as soon as the low priority process leaves the critical section.
+however, when it doing spinlock, the low priority process in the critical section cannot run, which is priority inversion.
+priority inheritance means to higher the priority of the low priority process temporarily to let it finish its job and leave the critical section, after it leaves, the priority will become original priority.","3","",""
+"90","6374","S125","solve by mutual exclude","0","完全無關答案",""
+"91","2919","S021","priority inversion is the high priority process is waiting for a resource.priority inheritance can increase the priority of the process,let low priority process release it's lock .finally,the high priority process can be run. ","1","b 面向完全缺失；a/c 極簡",""
+"92","2304","S050","when the lower-priority A is in critical section, and the higher-priority B is in busy waiting. the priority of A will be temportary increase higher than B, so that it can run the process, after running the priority will be back to the original one.","3","",""
+"93","2313","S036","當high priority的thread不斷等待low priority的thread完成運算後的資源，可以藉由提高low priority的優先級，在完成運算後回復原來的優先級水平。","2","b 面向（spinlock 導致 priority inversion 的情境）缺失",""
+"94","2611","S048","priority inversion就是指高優先權的process反而會被低優先權的process卡住而沒辦法執行，因為在critical section中低優先權的沒有辦法釋放lock導致高優先權的會持續在loop中出不去。可以用priority inheritance來去改變優先權的順序，提高低優先權的process讓他們先釋放出lock，這樣就可以讓原本卡住的高優先權process執行","3","",""
+"95","6513","S112","Priority inversion means the process with a higher priority is stuck by a process with a lower priority that has a lock. In this situation, the process with higher priority will continuously ask the CPU, and the CPU cannot execute the process with a lower priority effectively because the CPU needs to respond to the process with a higher priority, and this is called busy waiting. 
+Priority inheritance can solve this problem because it can increase the priority of the process that is executing and getting the lock.     ","3","",""
+"96","2675","S006","1. 低優先級的任務被 scheduler 排在前面。
+2. Ａ(high), B(mid), C(low, executing), C 已經在執行且佔據了Ａ的 CS，所以 schedular 認為Ａ沒機會執行，所以把Ｂ排在Ａ前面，導致低優先級任務被安排先執行。
+3. 透過 priority inheritance 我們可以讓Ｃ的優先級提高，以防止Ｂ的打斷，這樣Ｃ執行完後就可以輪到高優先級的Ａ了。","2","b 面向缺少 spinlock 明確說明",""
+"97","3184","S026","高優先權的無法執行,中優先權的等待,低優先權的霸佔CPU,暫時提高低優先權的優先權至最高，讓低優先權的通過,高優先權的才有辦法執行","1","a/b 極簡且不完整；c 有提到但缺乏高優先 process 等待和恢復的說明",""
+"98","1720","S032","Priority inversion is when a high-priority process is waiting for a low-priority process to free the lock and pass the critical section. Scenario: between low priority inside the critical section and waiting process the process of priority higher than waiting process happens. If the priority for the low-priority process inside the critical section changes to a higher priority (priority inheritance), it will help.","2","b 有三 process 情境但缺少 spinlock 佔用 CPU 的機制說明",""
+"99","4110","S057","優先權反轉。指的是原本優先權較高的行程，阻擋優先權較低的行程，優先權反轉指的是優先權較低的行程反而阻擋優先權較高的行程。","1","b/c 面向完全缺失",""
+"100","5375","S002","Priority inversion means a process with higher priority is indirectly invented by a process with lower priority. Even if a process with lower priority get the resource, the OS scheduler will still execute the process with higher priority first. Therefore, the process with lower priority can not be executed and can not release the lock either. Makes the process with higher priority never get the lock.
+Priority inheritance can increase the priority of the process with the lower priority. Makes the process with lower priority to be executed and release the lock. after the lock is released, the priority will be back to the normal.","3","",""
+"101","2859","S007","(a) The priority inversion is describing a phenomenon where a high-priority thread holds a block where a low-priority thread keeps trying to access it in its critical section, so the high-priority thread is starving.
+(b) One scenario is that the sceduler keeps allocate resources to the low-priority threads so the threads frequently enter the critical section causing some threads busy waiting.
+(c) The 'Aging' techniques helps by increasing the urgency of the waiting threads so the sceduler will prioritize to allocate the resources to the threads.","0","a 描述相反（說高持 block 低在等）；b 邏輯錯誤；c 說 aging 非 priority inheritance",""
+"102","3042","S016","當一個高優先權的程序正在等待一個資源(例如clock)才能正確執行,它會在cpu上不斷迴圈看是否達到執行條件,然而此資源(clock)卻被另一個低優先權的程序占用,必須等到低優先權的程序釋放資源,就是priority inversion。priority inheritance可以將提高此低優先權程序的權限,使它高於其他程序,進而釋放clock,解決issue後再回復原先權限水準。","3","",""
+"103","3846","S083","所謂優先權反轉提指，高優先權須等待低優先資源解鎖，此時中優先權占用CPU資源，使用低優先權程序無法執行或釋放，以致高優先權程式一直在等候低優先權資源或解鎖。
+解決：將優先權使用aging增加優先權。","2","c 面向說明 aging 機制，非 priority inheritance",""
+"104","2734","S088","當一個high priority task在等待low priority task的resource (ex. lock)，high priority task會佔著CPU導致low priority task沒辦法執行，進而無法釋放lock
+high priority task會一直執行loop檢查lock被釋放了沒
+priority inheritance: 先把CS內的low priority task的priority提高到maximum priority，讓它趕快執行完就可以釋放lock了，執行完會恢復成原本的priority","3","",""
+"105","3134","S058","priority inversion is when a low priority process is busy waiting and holding something that a high priority process needed, then the higher one can not be execute.
+solution: when a process is busy waiting, increase it priority to the maximum of all process.","1","a 描述有誤（說低 busy waiting）；c 指向對象有誤",""
+"106","3034","S043","priority inversion :低優先權者先進入lock中但因其優先權低導致無法執行，可先執行的高優先權者卻被困在lock外無法執行，使其雖擁有執行權實際上卻無所作為，就是spinlock的情境。
+priority inheritance：低優先權者繼承高優先權的priority，等待越久沒被執行的low-priority，隨著時間其優先權越高，最後高於high-priority，因此原先低優先權就可被執行，可從lock中出來，讓原本的高優先權也進去lock執行，執行完後兩者皆恢復其原本的優先權高低。","1","c 面向描述為 aging（隨時間提升），非 priority inheritance；b 描述混亂",""
+"107","2340","S060","高優先級的process在等待低優先級release lock。假設有低優先級A在critical section， 高優先B想要進入。但是scheduler會讓B run over A因爲優先級的關係，所以A沒辦法run去release lock讓B跑。
+priority inheritance會提高在critical section 的process至所有等待隊列的最高級，等他release lock之後再將其priority還原到正常level","3","",""
+"108","2333","S024","when a process A have lower priority with lock, and a process B have higher priority but not have a lock, the process A will always waiting for B to execute because it have higher priority, but B will never execute because it do not have a lock, and A have no chance to execute to release the lock, this is priority inversion.
+the solution is priority inheritance, that is give the process that have lock a highest priority so that the process can execute, and set the priority back after it has executed.","3","",""
+"109","2655","S095","priority inversion 就是把較低priority process變成 high priority process.
+假設A(low priority) process正在被執行，且已經拿到lock。此時，突然出現另一個B(high priority) process需要被執行。系統因此停下Ａ改執行Ｂ。但是Ｂ也需要lock，所以Ｂ就一直處於busy waiting等待lock被釋放。但是因為Ａ沒有被執行，所以也不可能釋放lock。
+此時，就需要priority inversion把Ａ的priority 提高，讓系統可以繼續運作。","3","",""
+"110","2752","S077","high priority process is waiting for the low priority process to execute first. 
+
+when high priority process A is busy waiting to get access to the resource currently hold by low priority process B, but the scheduler will choose higher priority process to execute so process A will keep busy waiting and process B will not able to use the CPU to end its task.
+
+if system increase the priority of process B to the highest, scheduler will choose process B to execute first . B can end its task to A can access the resource later. ","3","",""
+"111","2626","S120","Priority Inversion:
+Assume there are two progress, A and B, where A has a lower priority than that of B.
+A is in the Critical Section but B occupy resources of CPU but also wait for the permission.
+Unfortunately, A can't escape from Critical Section because of the priority of using CPU resources, and B also need to wait for the permission and release the space for A.
+Priority Inheritance: 
+To solve this dilemma, we can temporary promote the priority of A to the same as B, which helps A to escape. After escaping, restore the priority of A.","3","",""
+"112","2652","S073","當有較低優先權的thread拿到lock時，又有一個更高優先權的thread進來，此使高優先權的會搶佔cpu，但高優先權的沒有拿到lock因此他也沒辦法執行crital section，而一開始拿到lock的也沒有cpu能夠執行，這種現象稱為priority inversion
+解決辦法為暫時提高拿到lock卻優先權較低的thread提高為最高優先權，等他執行完還回lock後再降回原本的","3","",""
+"113","2597","S069","就是low priority 的擁有lock，但high priority 在一直等那個lock ，因為high priority 的會優先執行因為一直無法拿到lock所以會busy waiting ,然後連帶著low priority 的也無法執行因為在busy waiting的情況下，讓low priority 的一直拿著lock就會導致priority inversion
+用priority inheritance 是讓擁有lock的人暫時將他的priority 提到最高，讓他執行完釋放lock的時候就把他的priority 降回原本的priority","3","",""
+"114","4304","S072","Process A is a lower-priority process, and Process B is a higher-priority process. When Process A into CS first, and Process B want to go into CS, but because Process B has higher-priority, CPU run the Process B, Process a cannot get resource to unlock, so Process A cannot leave out CS, Process B cannot go into CS.
+
+Priority inheritance can that which one is CS can have highest priority, so CPU will allocate resources to it first, so priority inversion is solved. When unlock, the priority will change to initial priority.","3","",""
+"115","2472","S042","priority inversion: higher-priority task is waiting for the resource (ex. lock) , which is currently held by the lower-priority task.
+A task 為 high-priority , B task 為 low-priority. 
+A task 一直 loop 等待 B task 釋出 lock,  而 B task 則因 low-priority 所以一直沒有執行, 故無法釋出 lock, 產生spinlock, 導致priority inversion 產生.
+priority inheritance can let the priority of the task that is holding the lock become maximum priority.","3","",""
+"116","2548","S071","priority inversion是指當low priority process手上持有high priority process需要的lock，但CPU scheduler永遠會讓high priority process先執行，導致high priority process一直在空轉(spinlock)，要解決此問題，要使用priority inheritance，讓low priority process的優先度暫時提高到最優先，讓他趕快執行完並把lock release出來","3","",""
+"117","3152","S062","Lower priority process擁有lock，並在critical section中執行，導致Higher priority process一直spinlock，無法取得lock進入critical section。可以透過priority inheritance解決，增加lower priority process的priority，使得兩者的priority暫時一致，直到Higher priority process取得lock後就恢復原本的priority。","3","",""
+"118","2586","S045","當low priority在critical section 裡時，hight priority進來了搶佔了CPU導致hight priority 佔著CPU但沒法進去critical section 而low priority也卡在裡面不能釋放鎖。為了解決這個問題就可以暫時把在critical section 裡的priority拉高能夠優先run 等結束出了critical section再降回原來的priority","3","",""
+"119","2357","S056","Priority inversion is a demonstration that high-priority process is waiting for a resources held by low-priority process.
+
+In order to solve priory inversion, priority inheritance will be applied. ","1","b 面向完全缺失；c 僅說「apply priority inheritance」無解釋",""
+"120","3051","S029","優先權反轉是低優先權進程一直在cpu運算，無法釋放鎖，而高優先進程一直spinlock。這時候priority inheritance 會暫時把低優先權進程提高其優先權，以便讓其趕緊做完釋放鎖，之後回到正常的優先權排程","3","",""
+"121","2898","S065","1.當一個low priority process拿到lock時，high priority process開始busy waiting，此時OS會讓high priority process佔有CPU，導致low priority process無法執行無法釋出lock，造成high priority process被low priority process卡住的情況。
+2.暫時增加low priority process的priority到最高，執行完釋出lock後再降回原本的priority。","3","",""
+"122","5122","S025","When a low-priority process is holding a lock, it may stop a process with high-priority from executing. A low-priority process A is holding a lock, and a high-priority B is busy waiting. When process A is looping, process B might never execute. 
+Priority inheritance increase the priority of the process holding a lock and decrease priority back to original priority. Thus, the processes will keep processing in priority order.","2","b 描述有誤（說 A looping，應為 B busy waiting）",""
+"123","2455","S098","priority inversion:當某優先序高的process要使用某個resource時，該resource被低優先序的process所持有
+priority inheritance:讓低優先權的process先暫時繼承高優先權process之priorty，直到該process釋放出reesource才將priority變回原樣","2","b 面向（spinlock 導致 priority inversion 的情境）完全缺失",""

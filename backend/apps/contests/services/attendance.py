@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import secrets
 import string
+import time
 from typing import Any, Callable, Literal, get_args
 
 from django.core.cache import cache
@@ -21,10 +22,12 @@ from apps.contests.services.participant_state import reset_participant_exam_reco
 
 ATTENDANCE_REFRESH_SECONDS = 60
 ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 60
+ATTENDANCE_TOKEN_GRACE_SECONDS = 30
 ATTENDANCE_QR_PREFIX = "qj-att:v1"
 ATTENDANCE_CACHE_PREFIX = "contest-attendance-token"
 ATTENDANCE_MANUAL_CODE_CACHE_PREFIX = "contest-attendance-manual-code"
 ATTENDANCE_ACTIVE_CREDENTIAL_CACHE_PREFIX = "contest-attendance-active-credential"
+ATTENDANCE_CREDENTIAL_LOCK_CACHE_PREFIX = "contest-attendance-credential-lock"
 ATTENDANCE_MANUAL_CODE_ALPHABET = "0123456789"
 ATTENDANCE_MANUAL_CODE_LENGTH = 6
 ATTENDANCE_EVENT_TYPES = {
@@ -112,6 +115,10 @@ def _active_credential_cache_key(contest: Contest, purpose: str) -> str:
     return f"{ATTENDANCE_ACTIVE_CREDENTIAL_CACHE_PREFIX}:{contest.id}:{purpose}"
 
 
+def _credential_lock_cache_key(contest: Contest, purpose: str) -> str:
+    return f"{ATTENDANCE_CREDENTIAL_LOCK_CACHE_PREFIX}:{contest.id}:{purpose}"
+
+
 def normalize_attendance_error_code(error: ValueError) -> str:
     code = str(error)
     return code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
@@ -139,44 +146,142 @@ def _generate_attendance_manual_code() -> str:
     return "".join(secrets.choice(ATTENDANCE_MANUAL_CODE_ALPHABET) for _ in range(ATTENDANCE_MANUAL_CODE_LENGTH))
 
 
-def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, str]:
-    if purpose not in ATTENDANCE_EVENT_TYPES:
-        raise ValueError("invalid_attendance_purpose")
+def _credential_cache_timeout_seconds() -> int:
+    return ATTENDANCE_TOKEN_MAX_AGE_SECONDS + ATTENDANCE_TOKEN_GRACE_SECONDS
+
+
+def _parse_cached_datetime(value: Any):
+    if isinstance(value, timezone.datetime):
+        return value if timezone.is_aware(value) else timezone.make_aware(value)
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = timezone.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed if timezone.is_aware(parsed) else timezone.make_aware(parsed)
+
+
+def _is_active_credential_fresh(value: Any, *, now=None) -> bool:
+    if not isinstance(value, dict):
+        return False
+    expires_at = _parse_cached_datetime(value.get("expires_at"))
+    if expires_at is None:
+        return False
+    return (now or timezone.now()) <= expires_at
+
+
+def _is_credential_within_validation_window(value: dict[str, Any], *, now=None) -> bool:
+    expires_at = _parse_cached_datetime(value.get("expires_at"))
+    if expires_at is None:
+        # Legacy cache entries only live for the token TTL, so accepting them avoids
+        # breaking in-flight projection screens during a deploy.
+        return True
+    return (now or timezone.now()) <= (
+        expires_at + timezone.timedelta(seconds=ATTENDANCE_TOKEN_GRACE_SECONDS)
+    )
+
+
+def _public_attendance_credential(payload: dict[str, Any]) -> dict[str, str]:
+    return {
+        "token": str(payload["token"]),
+        "manual_code": format_attendance_manual_code(str(payload["manual_code"])),
+        "issued_at": str(payload.get("issued_at") or ""),
+        "expires_at": str(payload.get("expires_at") or ""),
+        "generation": str(payload.get("generation") or "1"),
+    }
+
+
+def _build_attendance_credential_payload(
+    contest: Contest,
+    purpose: str,
+    *,
+    token: str,
+    manual_code: str,
+    generation: int,
+) -> dict[str, Any]:
+    issued_at = timezone.now()
+    expires_at = issued_at + timezone.timedelta(seconds=ATTENDANCE_TOKEN_MAX_AGE_SECONDS)
+    return {
+        "contest_id": str(contest.id),
+        "purpose": purpose,
+        "token": token,
+        "manual_code": manual_code,
+        "issued_at": issued_at.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "generation": generation,
+    }
+
+
+def _generate_new_attendance_credential(
+    contest: Contest,
+    purpose: str,
+    previous: dict[str, Any] | None,
+) -> dict[str, str]:
     token = secrets.token_urlsafe(32)
-    active_key = _active_credential_cache_key(contest, purpose)
+    generation = int(previous.get("generation") or 0) + 1 if isinstance(previous, dict) else 1
     for _attempt in range(12):
         manual_code = _generate_attendance_manual_code()
-        payload = {
-            "contest_id": str(contest.id),
-            "purpose": purpose,
-            "token": token,
-            "manual_code": manual_code,
-            "issued_at": timezone.now().isoformat(),
-        }
+        payload = _build_attendance_credential_payload(
+            contest,
+            purpose,
+            token=token,
+            manual_code=manual_code,
+            generation=generation,
+        )
+        cache_timeout = _credential_cache_timeout_seconds()
         if cache.add(
             _manual_code_cache_key(manual_code),
             payload,
-            timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+            timeout=cache_timeout,
         ):
-            previous = cache.get(active_key)
             cache.set(
                 _token_cache_key(token),
                 payload,
-                timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS,
+                timeout=cache_timeout,
             )
-            cache.set(active_key, payload, timeout=ATTENDANCE_TOKEN_MAX_AGE_SECONDS)
-            if isinstance(previous, dict):
-                previous_token = str(previous.get("token") or "")
-                previous_manual_code = str(previous.get("manual_code") or "")
-                if previous_token and previous_token != token:
-                    cache.delete(_token_cache_key(previous_token))
-                if previous_manual_code and previous_manual_code != manual_code:
-                    cache.delete(_manual_code_cache_key(previous_manual_code))
-            return {
-                "token": token,
-                "manual_code": format_attendance_manual_code(manual_code),
-            }
+            cache.set(
+                _active_credential_cache_key(contest, purpose),
+                payload,
+                timeout=cache_timeout,
+            )
+            return _public_attendance_credential(payload)
     raise ValueError("attendance_manual_code_generation_failed")
+
+
+def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, str]:
+    if purpose not in ATTENDANCE_EVENT_TYPES:
+        raise ValueError("invalid_attendance_purpose")
+    active_key = _active_credential_cache_key(contest, purpose)
+    active = cache.get(active_key)
+    if _is_active_credential_fresh(active):
+        return _public_attendance_credential(active)
+
+    lock_key = _credential_lock_cache_key(contest, purpose)
+    acquired_lock = cache.add(lock_key, "1", timeout=5)
+    if not acquired_lock:
+        for _attempt in range(10):
+            time.sleep(0.05)
+            active = cache.get(active_key)
+            if _is_active_credential_fresh(active):
+                return _public_attendance_credential(active)
+        acquired_lock = cache.add(lock_key, "1", timeout=5)
+
+    if acquired_lock:
+        try:
+            active = cache.get(active_key)
+            if _is_active_credential_fresh(active):
+                return _public_attendance_credential(active)
+            previous = active if isinstance(active, dict) else None
+            return _generate_new_attendance_credential(contest, purpose, previous)
+        finally:
+            cache.delete(lock_key)
+
+    active = cache.get(active_key)
+    if _is_active_credential_fresh(active):
+        return _public_attendance_credential(active)
+    previous = active if isinstance(active, dict) else None
+    return _generate_new_attendance_credential(contest, purpose, previous)
 
 
 def create_attendance_token(contest: Contest, purpose: str) -> str:
@@ -188,13 +293,7 @@ def validate_attendance_cache_payload(contest: Contest, purpose: str, value: Any
         raise ValueError("invalid_attendance_token")
     if str(value.get("contest_id")) != str(contest.id) or value.get("purpose") != purpose:
         raise ValueError("invalid_attendance_token")
-    active = cache.get(_active_credential_cache_key(contest, purpose))
-    if not isinstance(active, dict):
-        raise ValueError("invalid_attendance_token")
-    if (
-        active.get("token") != value.get("token")
-        or active.get("manual_code") != value.get("manual_code")
-    ):
+    if not _is_credential_within_validation_window(value):
         raise ValueError("invalid_attendance_token")
     return value
 

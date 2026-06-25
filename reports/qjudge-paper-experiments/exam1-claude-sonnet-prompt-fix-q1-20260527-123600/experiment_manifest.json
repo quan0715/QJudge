@@ -1,0 +1,27 @@
+{
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "concurrency": 1,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "dataset_dir": "/Users/quan/online_judge/paper/data/raw/qjudge-exams/exam1",
+  "ended_at": "2026-05-27T04:36:27.535805Z",
+  "exam_key": "exam1",
+  "experiment_id": "exam1-claude-sonnet-prompt-fix-q1-20260527-123600",
+  "model_ids": [
+    "claude-sonnet-4-6"
+  ],
+  "official_grades_modified": false,
+  "preset": "exam1-subjective",
+  "question_ids": [
+    "7b0b8919-6a25-48de-a6be-753fadfcb0c5"
+  ],
+  "run_count": 1,
+  "run_pairs": [
+    {
+      "model_id": "claude-sonnet-4-6",
+      "question_id": "7b0b8919-6a25-48de-a6be-753fadfcb0c5"
+    }
+  ],
+  "started_at": "2026-05-27T04:30:47.109169Z",
+  "user_id": null
+}

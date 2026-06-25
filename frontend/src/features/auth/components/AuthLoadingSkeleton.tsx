@@ -39,25 +39,15 @@ export const AuthLoadingSkeleton = () => {
   }, [activeSteps.length]);
 
   return (
-    <div className="auth-callback" style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'flex-start',
-      minHeight: '120px',
-      justifyContent: 'center'
-    }}>
-      <div style={{ position: 'relative', width: '100%' }}>
+    <div className="auth-callback">
+      <div className="auth-loading-step-frame">
         <AnimatePresence mode="wait">
           <motion.div
             key={stepIndex}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.75rem',
-            }}
+            className="auth-loading-step"
           >
             <motion.div
               animate={{ 
@@ -65,15 +55,11 @@ export const AuthLoadingSkeleton = () => {
                 opacity: [0.8, 1, 0.8]
               }}
               transition={{ repeat: Infinity, duration: 1.5 }}
-              style={{ color: 'var(--cds-link-primary, #78a9ff)', display: 'flex' }}
+              className="auth-loading-step__icon"
             >
               {activeSteps[stepIndex].icon}
             </motion.div>
-            <span style={{ 
-              fontSize: '1rem', 
-              color: 'var(--cds-text-secondary, #525252)', 
-              fontWeight: 500 
-            }}>
+            <span className="auth-loading-step__label">
               {activeSteps[stepIndex].label}
             </span>
           </motion.div>

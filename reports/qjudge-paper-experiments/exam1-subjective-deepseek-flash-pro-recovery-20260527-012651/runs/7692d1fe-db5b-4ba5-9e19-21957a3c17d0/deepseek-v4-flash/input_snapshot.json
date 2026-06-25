@@ -1,0 +1,795 @@
+{
+  "answer_count": 111,
+  "answers": [
+    {
+      "answer": {
+        "text": "progress, bounded waiting, mutual exclusive"
+      },
+      "id": "2832",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusive: at most 1 process could be in critical section at a given time.\n2. progress: When a process isn't in critical section, it must execute.\n3. finite waiting: the time a process waits for entering should be finite."
+      },
+      "id": "3030",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "no preemption: 原子操作，cs中的操作一次執行完不能被打斷\nmutual excution: 一次只有一個process可以進入cs\nhold and wait: 等待正在cs裡的process結束cs部分，才能access"
+      },
+      "id": "4209",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion, bounded waiting, progress"
+      },
+      "id": "3185",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. 有限等待\n2. 有progress\n3. 同時間只有一個process能進入CS"
+      },
+      "id": "3951",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "bounded waiting: 等待的 process 等待的時間必須為有限的\nmutual exclution: 不可以同時有兩個 process 進入 critical section\n離開 critical section 的 process 不能再有 lock 的控制權"
+      },
+      "id": "4785",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. \n2. \n3."
+      },
+      "id": "6550",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.lock\n2.progress\n3.unlock"
+      },
+      "id": "5963",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "must not considered the amount of process, it should be suitable of all kinds of resource compete.\n"
+      },
+      "id": "4653",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "The whole section should be done in once."
+      },
+      "id": "5789",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion : no two or more thread can be in the critical section simultaneously.\n2. progress :  when no thread in the critical section, the next thread want to enter the critical section should be decided in finite time.\n3. bounded waiting : no one should wait the resource or lock forever"
+      },
+      "id": "3686",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion, progress, atomic"
+      },
+      "id": "4542",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "- obtaining/releasing a resource should be an atomic operation, i.e. there can't be a race condition during resource obtaining/releasing\n- only threads/processes holding the resource can enter the critical section, other processes should busy wait or sleep\n- resource releasing order must be in the reverse order of resource obtaining order"
+      },
+      "id": "6335",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "Lock, wait, and no one can always stay inside Critical Section."
+      },
+      "id": "4553",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusive: only one process/thread can in critical section at the same time\nprogress: no process outside critical section can avoid other outside process enter critical section\n: os should deside which process to enter critical section in limit time"
+      },
+      "id": "4242",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "No process outside the CS can be blocking to a process inside it\nIf a CS is free, a process that wants to access it needs to be able to do so in a finite time \nThere can only be one process executing a CS at one time "
+      },
+      "id": "3962",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Mutual exlclusion : only one thread is allowed to be in the critical section\n- Progress\n- Waiting bounded : a thread which is waiting to enter in the critical section should not be waiting forever"
+      },
+      "id": "3273",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. 同一時間只能夠有一個或是有限個 process 進入 critical section\n2. 如果沒有任何 process 在 critical section 裡面，則需要在有限時間裡面決定哪一個 process 要進入 critical section\n3. 假設有 n 個 process 同時發出需要進入 critical section 的請求，則任一個 process 最長所需等待的 process 數量都不可以超過 n-1。"
+      },
+      "id": "6516",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "要能確保一次只能有一個在執行\n限制時間內至少要有一個能進入執行\n要能保證他有完整執行並儲存好結果"
+      },
+      "id": "5355",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1)使用號誌\n2)一次只讓一個thread/process進到critical section裡\n3)critical section外面沒有thread/process在一直等，只有當critical section裡的做完，才讓下一個進去"
+      },
+      "id": "6250",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. Mutual exclusion : 一次只能有一個人進入。\n2. Progress : 不想進入的話也不能阻擋別人進入。\n3. Bounded waiting : 有排隊等待的人都一定進的去。"
+      },
+      "id": "4086",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion: there should not be two processes entering CS at the same time\nprogress: the process running outside CS has no rights to block other process to go into CS; if there is no process in CS then the next process should decide whether to enter it in finite time\nbounded waiting: a process should not wait forever to enter CS"
+      },
+      "id": "5034",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "排程時間 處理時間 檢查時間 條件判斷"
+      },
+      "id": "6632",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. Mutual exclusion(互斥): 不能有兩個以上的thread同時在critical section\n2. Progression : 一個thread離開critical section，在有限時間內要趕快讓下一個thread進去critical section\n3. Bounded waiting : 每一個thread都不能永遠進不到critical section(不能無限等待)"
+      },
+      "id": "4151",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.不能同時有多個process在critical section處理\n2.高priority的process需要優先解決\n3."
+      },
+      "id": "4232",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusive\n2."
+      },
+      "id": "5920",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Critical Section 就是一次只有一個process可以進入執行,wait,block,p,v"
+      },
+      "id": "3534",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "the three requirements for critical section problem\n1.  \n2.\n3."
+      },
+      "id": "3733",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Mutual Exclusive.\n2. No process will wait forever.\n3. "
+      },
+      "id": "4291",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\ncan preemption\n\n"
+      },
+      "id": "6150",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion:只能有一個thread進入critical section\n2.progress:thread不能防止其他thread進入critical section\n3.bounded waiting:每個要進入的thread等待的時間是有限的"
+      },
+      "id": "3383",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion, progress, bounded waiting."
+      },
+      "id": "2997",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusive, only one access to the critical section at the same time\nhave to choose the next process in the waiting queue to get the lock in finite time\nprocess waiting the lock can't be starvation\n"
+      },
+      "id": "6002",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. 每一個process 都能執行到\n2. 沒有process 需要無限等待\n3. processes 不會同時出現在critical section"
+      },
+      "id": "6146",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. A thread outside the critical section must not block the other threads.\n2. Only one thread at a time can enter the critical section.\n3. "
+      },
+      "id": "5231",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "Progress -> 在CS外的process不能阻止其他process進入CS.\nMutual exclusion -> 同時只能有一個process在CS.\nBounded waiting -> 不能有process無止境的在外等待進入CS."
+      },
+      "id": "3438",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "不在CS內者不影響其他程式進入CS\n限定時間內決定進入CS者\n有限等待"
+      },
+      "id": "3677",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exculsion\n2.progress\n3.bounded wait"
+      },
+      "id": "3510",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "１．\n２．\n３．"
+      },
+      "id": "6556",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. For any numbers of process all can work.\n2. Only one thread access the shared memory in the same time\n3. Will not cause deadlock\n"
+      },
+      "id": "4890",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "starvation\npriority inversion\ndeadline"
+      },
+      "id": "6251",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "preemptive\n"
+      },
+      "id": "6487",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion\n2.bounded waiting time\n3.fairness"
+      },
+      "id": "2944",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.互斥:不能有兩格以上的process or thread\n2.cs如果是空的，要在有限時間把process or thread丟進去\n3.不能有thread永遠都進不去cs"
+      },
+      "id": "3428",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.同一時間只能有一個人進入critical section\n2.進入critical section後不能一直完成不了執行(busy waiting和priority inversion)\n3.離開critical section時要能夠正常把資源釋放出去"
+      },
+      "id": "5089",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "There must be a key. \nWhen there is no key the critical section cannot be accessed.\nThe key must be free when a critical section is completed."
+      },
+      "id": "2238",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "2641",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "every process has get into critical section at least one time,\nno busy waiting occur, "
+      },
+      "id": "5201",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. use the lock\n2. 硬體上做出區隔"
+      },
+      "id": "6647",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "1.偵測high priority process是否太久沒被執行\n2.交換high priority 跟 low priority process 的 priority\n3.處理完後復原原本的 priority"
+      },
+      "id": "5817",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "Peterson's Solution  is a software-based solution"
+      },
+      "id": "6736",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.每一個程式最後都會被執行\n2.執行後的結果都相同\n3.不會出現有兩個程式同時在CS中運行的情況"
+      },
+      "id": "6003",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. TLB\n2. page\n3. frame"
+      },
+      "id": "4223",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "1. 當一個process執行時，其他process waiting\n2. 被共享的資料，一次只開放一個process存取\n"
+      },
+      "id": "3636",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. 拿到lock就不能被preempt\n2.\n3."
+      },
+      "id": "4982",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "鎖在誰身上\n鎖釋放了沒\n下一個拿鎖的是誰"
+      },
+      "id": "5900",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Peterson's solution"
+      },
+      "id": "6739",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion:一次只能一個thread進入CS\nprogress:進入CS的thread不能阻止其他thread進入CS\nbounded waiting:每個thread不能永無止盡的等待進入CS"
+      },
+      "id": "3879",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "其CPU scheduling 演算法需要是preemptive \n有LOCK機制\n有aging機制"
+      },
+      "id": "3893",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.一個critical section裡面只能有一個process\n2.沒有要進去的process不能阻擋要進去critical section 裡面的process\n3.從發出request要進去critical section到真正進去critical section要有一個bound time時間限制"
+      },
+      "id": "6426",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion:同時只能有一個程式進到C.S.裡面\n\nprogress: 1.沒有要進到C.S.裡的程式不能阻止其他程式進去 2. 如果C.S.裡面沒有程式必須在有限的時間內決定誰可以進去\n\nbounded-time:想進去C.S.裡的程式要在有限的時間內進去,不能無限等待"
+      },
+      "id": "4244",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "- Priority Inheritance: Increasing the priority of processes or threads in the critical section to maximum priority until the lock is released.\n\n- Only one process or thread can enter the critical section at any given time.\n "
+      },
+      "id": "5311",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "1. Must acquire the lock\n2. The existing process must release the lock."
+      },
+      "id": "4778",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion\nPriority inheritance\nHold and wait"
+      },
+      "id": "5252",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion: there is at most one process in the critical section at a time.\n2. progress: The process that doesn't want to get in critical section can not affect the decision for choosing the process into critical section.\n3. bounded waiting: If there is N process, each process wait at most N-1 times and it can enter critical section."
+      },
+      "id": "5497",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1.  Finite wait.\n2. Mutual exclusion\n3. "
+      },
+      "id": "5970",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion : 一次只能有一個process進入自己的critical section\n2. progress : 若沒有要進入critical section的process 不能妨礙別的process 進入critical section ， 並且決定哪一個process 可以進入critical section 的時間是有限的\n3. Bounded Waiting : process在等待有限的時間內，一定可以進入critical section . "
+      },
+      "id": "3766",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.bounding waiting\n2.progress\n3.muture exclution"
+      },
+      "id": "2365",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "CS 內不可以同時有兩個 process 進入\n不可以無限等待 必須確保每個 process 都有機會進入 CS\nlock 只能給一個 process 拿著"
+      },
+      "id": "4582",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1 mutual exclusion\n2 bounded waiting\n3 program"
+      },
+      "id": "3614",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "software解決: 運用code內演算法解決\nhardware解決:直接在hardware把過程寫死讓他不會有順序問題\n直接單process: 從問題根源避免"
+      },
+      "id": "3595",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "bounding waithing 有限等待， progressive waiting  輪流進入， mutual 只有一個能進入\n"
+      },
+      "id": "3246",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "atomicity \n"
+      },
+      "id": "6145",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Progress : 不在 critical section 的 process 不能阻礙他人進入 \nMutual exclusion : 當一個 process 在 critical section, 其他 process 就不能進入\nBounded waiting : 當一個 process 進入 critical section 就必須執行完畢, 不能一直在 critical section 裡面"
+      },
+      "id": "3855",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion, progress, bounded waiting"
+      },
+      "id": "2847",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "1. independence to execution order\n2. "
+      },
+      "id": "6406",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\nlock\nsemaphore"
+      },
+      "id": "5020",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "test and set\nPeterson's solution\nsemaphore"
+      },
+      "id": "6057",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "only one thread can enter critical section at one time"
+      },
+      "id": "5820",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "同一時間只有一個process可以進入critical section\n當沒有process在critical section時，不能限制有要求進入critical section的process進入\n有process要求進入critical section，該請求必須在有限時間內完成"
+      },
+      "id": "3226",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "atomic instruction , lock"
+      },
+      "id": "3623",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "要求的資源量少於總資源量\n不能申請超過自己上限的資源\n使用完自動歸還資源"
+      },
+      "id": "6421",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion: only one process can be in the critical section at the same time.\nbounded: the process in the critical section cannot run forever (it must run in finite time).\n??(i forgot the name): when no one is in the critical section and exist processes that wants to enter the critical section, it should enter."
+      },
+      "id": "6290",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.互斥性:同個cs不能同時進行兩個thread\n2.不利用cs的thread不能佔用\n3.要在有限時間內決定哪個thread進入cs"
+      },
+      "id": "2938",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "thread ID\nCPU utilization\nthroughput"
+      },
+      "id": "6606",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "there's a limit number of process can access to the critical section at one time.\nthe access of the critical section depends on who comes first.\nthe one want to get in must have the key to get in the critical section, and the one get out critical section must return the key."
+      },
+      "id": "4212",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "只能有一個thread運行在CS裡\n不能阻攔外部的thread想進入CS\n保證當CS是空的時選擇進入CS的thread是有限的(避免閒置浪費時間)"
+      },
+      "id": "5207",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion :  一次只能有一個process進入critical section\n2.progress : 沒有進入critial section的process不能去妨礙跟決定要進去的process\n3. bounded time : 一定會有有範圍的等待時間"
+      },
+      "id": "3810",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. Anyone who cannot get the resources should sleep \n2. Only one process can get the lock, and it should be atomic\n3. The decision to dispatch the lock should be made very quickly. "
+      },
+      "id": "6748",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusive, no preempt, hold and wait"
+      },
+      "id": "5063",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1.swap\n2.提高優先權\n3.老化"
+      },
+      "id": "4544",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "1. Two processes don't go into the critical section simultaneously\n2. If the one process is inside the critical section, the others must wait\n3. No one process must wait forever"
+      },
+      "id": "3895",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "Crition Section \n1) 當一個 process 進入，其他 process 則不可進入\n2) 當一個 process 完成後，才允許其他 process 進入\n3) 一次只能一個 process 在 crition Section。\n"
+      },
+      "id": "6260",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "execute the process with higher priority"
+      },
+      "id": "6698",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Only one thread or process access the critical section at the same time.\n(b) The execution order by the threads are correct.\n(c) The threads share same semaphors, mutex, or locks."
+      },
+      "id": "5998",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1.分配的記憶體空間大小必須大於或等於所需\n2.分配的記憶體必須是連續不斷的"
+      },
+      "id": "5739",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "一次只能一個thread進入CS\nCS沒有thread會自動補上\n每個thread在CS內的時間有限"
+      },
+      "id": "3289",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "臨界區間\nits priority,memory,# of CPU "
+      },
+      "id": "6700",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "priority inversion\nhow to release the lock\nhow to enter the critical section"
+      },
+      "id": "6235",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "the priority should be as previous after solve the problem\nthe process should be executed follow the order of priority\nthe resources should be released after the process executed"
+      },
+      "id": "6479",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1. only one process or thread can enter critical section at the same time.\n2. "
+      },
+      "id": "5267",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion: There is only one thread in the Critical Section in the meanwhile.\nProgress: If the Critical Section is free now, it must allow one of the threads which want to access.\nBounded Waiting time: The waiting time of a thread which is waiting for the permission has an upper bound."
+      },
+      "id": "2957",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "Peterson's solution、 semaphore\n"
+      },
+      "id": "5882",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion:一次只有一個可以在critical section 中執行 \nprogress:如果沒有其他process在critical section 中的話不能阻止其他process要進入critical section\nbounded waiting:等待進入critical section的時間是有限的"
+      },
+      "id": "3370",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Mutual exclusion: share data cannot be uses by many threads at same time.\n2. Progress: 有人要進去CS, 其他沒有在CS或在等待的人不能決定其是否能進\n3. boundary waiting: 要在有限的時間內進CS，不能無止盡的等待。"
+      },
+      "id": "2998",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusive、 progress、 bounded waiting"
+      },
+      "id": "3401",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1.Higher priority should get the lock in prior than lower priority\n2.There is only one process(thread) in the critical section\n3.Use semaphore to run signal() and wait() to solve the busy waiting problem "
+      },
+      "id": "6429",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.如果數值的值發生變動還沒寫會去memory就被別人拿去用會造成輸出錯誤\n2.如果改動資料的memory address後面要用這個資料的人可能找不到\n3."
+      },
+      "id": "3907",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "1.只有一個process能進入CS\n2.不在CS內的process不能阻止其他process進入CS\n3.CS內的process執行完了，下一個process才可以進入CS"
+      },
+      "id": "6082",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "a lock, the priority given to processes, the scheduling algorithm "
+      },
+      "id": "6061",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "progress \nbounded waiting\nmutual exclusion"
+      },
+      "id": "3865",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "Describe the three requirements that a solution to the Critical Section problem must satisfy to be considered correct.",
+    "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0",
+    "question_type": "essay",
+    "reference_answer": "Mutual Exclusion (only one in CS); Progress (selection of next process cannot be delayed indefinitely); Bounded Waiting (limit on how many times others can enter before a request is granted)."
+  },
+  "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0"
+}

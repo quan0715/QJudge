@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Demonstrate how a counting semaphore initialized to N can be implemented using the Linda coordination language.",
+  "question_id": "8edb59fe-821f-4597-a8e4-0bb11146517d",
+  "question_type": "short_answer",
+  "reference_answer": "Initialization: execute out(\"sem\") N times.\nWait(): execute in(\"sem\").\nSignal(): execute out(\"sem\")."
+}

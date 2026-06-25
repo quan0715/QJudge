@@ -1,0 +1,317 @@
+{
+  "completed_count": 50,
+  "experiment_id": "exam1-subjective-deepseek-flash-pro-consolidated-20260527-0225",
+  "run_count": 50,
+  "source_experiments": [
+    "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232",
+    "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651"
+  ],
+  "sources": [
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "7b0b8919-6a25-48de-a6be-753fadfcb0c5",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/7b0b8919-6a25-48de-a6be-753fadfcb0c5/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "7b0b8919-6a25-48de-a6be-753fadfcb0c5",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/7b0b8919-6a25-48de-a6be-753fadfcb0c5/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "66ec6c12-2ebb-42e2-8aea-814f9b9a4c49",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/66ec6c12-2ebb-42e2-8aea-814f9b9a4c49/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "66ec6c12-2ebb-42e2-8aea-814f9b9a4c49",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/66ec6c12-2ebb-42e2-8aea-814f9b9a4c49/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "199417a2-c63c-436e-8a8d-869d348dbbdd",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/199417a2-c63c-436e-8a8d-869d348dbbdd/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "199417a2-c63c-436e-8a8d-869d348dbbdd",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/199417a2-c63c-436e-8a8d-869d348dbbdd/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/bc513144-2e7e-4363-8375-56c87bc07ff0/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "bc513144-2e7e-4363-8375-56c87bc07ff0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/bc513144-2e7e-4363-8375-56c87bc07ff0/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "f2dac513-8733-4f95-8e93-ce1e5e922334",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/f2dac513-8733-4f95-8e93-ce1e5e922334/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "f2dac513-8733-4f95-8e93-ce1e5e922334",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/f2dac513-8733-4f95-8e93-ce1e5e922334/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "47cb43c4-ca23-4831-960c-018702c06992",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/47cb43c4-ca23-4831-960c-018702c06992/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "47cb43c4-ca23-4831-960c-018702c06992",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/47cb43c4-ca23-4831-960c-018702c06992/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/fe59c063-d7d5-4d1a-8d82-90dd1e67c55b/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/fe59c063-d7d5-4d1a-8d82-90dd1e67c55b/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/1a14a6d1-4d2f-41fd-ac54-cc63a8de7b3c/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "979c5847-2933-4887-b7fd-05f878541734",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/979c5847-2933-4887-b7fd-05f878541734/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "979c5847-2933-4887-b7fd-05f878541734",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/979c5847-2933-4887-b7fd-05f878541734/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/376de8d7-fb33-4f62-be5a-b9044492c283/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/376de8d7-fb33-4f62-be5a-b9044492c283/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/bcfce196-f980-45ec-9dfb-16ca53c1c6bf/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/bcfce196-f980-45ec-9dfb-16ca53c1c6bf/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/4cec7cc1-8e3e-45e3-866e-d800c15fef66/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/4cec7cc1-8e3e-45e3-866e-d800c15fef66/deepseek-v4-pro",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "90fd763a-b0e8-4296-986b-e2b18af93a4a",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-20260526-221232/runs/90fd763a-b0e8-4296-986b-e2b18af93a4a/deepseek-v4-flash",
+      "source": "original"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "90fd763a-b0e8-4296-986b-e2b18af93a4a",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/90fd763a-b0e8-4296-986b-e2b18af93a4a/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/7cc6d0c4-5832-45da-887f-502a70a914bf/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/7cc6d0c4-5832-45da-887f-502a70a914bf/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/7692d1fe-db5b-4ba5-9e19-21957a3c17d0/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "7692d1fe-db5b-4ba5-9e19-21957a3c17d0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/7692d1fe-db5b-4ba5-9e19-21957a3c17d0/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "f2b4ceed-f4b7-4acf-bc91-903cc746807f",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/f2b4ceed-f4b7-4acf-bc91-903cc746807f/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "f2b4ceed-f4b7-4acf-bc91-903cc746807f",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/f2b4ceed-f4b7-4acf-bc91-903cc746807f/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "16d62b26-dc46-4ebc-94e2-908dc964b6cf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/16d62b26-dc46-4ebc-94e2-908dc964b6cf/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "16d62b26-dc46-4ebc-94e2-908dc964b6cf",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/16d62b26-dc46-4ebc-94e2-908dc964b6cf/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/07975ab9-2b1d-40d4-88f0-9cff7a8c8fb8/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/cb495b8c-586a-4245-a4c6-a4e19e5abe38/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/cb495b8c-586a-4245-a4c6-a4e19e5abe38/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "5e40582c-f1e1-45b7-be7c-9e9a2da03c95",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/5e40582c-f1e1-45b7-be7c-9e9a2da03c95/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "5e40582c-f1e1-45b7-be7c-9e9a2da03c95",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/5e40582c-f1e1-45b7-be7c-9e9a2da03c95/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/ff4ab35b-9b76-41a1-a6ee-36bc56d31462/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/ff4ab35b-9b76-41a1-a6ee-36bc56d31462/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "a838727e-81c8-4834-af4e-f33b520fd1e1",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/a838727e-81c8-4834-af4e-f33b520fd1e1/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "a838727e-81c8-4834-af4e-f33b520fd1e1",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/a838727e-81c8-4834-af4e-f33b520fd1e1/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "517790a5-db10-491c-bb92-6bb654e36795",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/517790a5-db10-491c-bb92-6bb654e36795/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "517790a5-db10-491c-bb92-6bb654e36795",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/517790a5-db10-491c-bb92-6bb654e36795/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/1234b7ba-540f-4a21-8d5c-d0a729a315ed/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/1234b7ba-540f-4a21-8d5c-d0a729a315ed/deepseek-v4-pro",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "166f2724-ea07-47ba-b33e-15b5365b84b0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/166f2724-ea07-47ba-b33e-15b5365b84b0/deepseek-v4-flash",
+      "source": "recovery"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "166f2724-ea07-47ba-b33e-15b5365b84b0",
+      "run_dir": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-recovery-20260527-012651/runs/166f2724-ea07-47ba-b33e-15b5365b84b0/deepseek-v4-pro",
+      "source": "recovery"
+    }
+  ],
+  "summary_csv": "/Users/quan/online_judge-paper-cli/reports/qjudge-paper-experiments/exam1-subjective-deepseek-flash-pro-consolidated-20260527-0225/summary.csv",
+  "total_cost_cents": 796,
+  "total_cost_usd": 7.96,
+  "total_elapsed_seconds": 12401.0,
+  "total_input_tokens": 25730660,
+  "total_output_tokens": 954746
+}

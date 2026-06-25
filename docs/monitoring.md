@@ -41,6 +41,10 @@ docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 ```
 
+Grafana 的 host port 預設只綁定 `127.0.0.1:3001`。遠端瀏覽請走
+Cloudflare Tunnel 的 `http://grafana:3000` 路由；不要直接把 `3001` 開到
+public internet。
+
 ## Cloudflare Tunnel 路由設定
 
 到 [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels → 選擇 tunnel → Configure → Public Hostname：
@@ -84,8 +88,10 @@ Policy：
 |------|------|
 | PostgreSQL | Active connections、Transactions/s、Cache hit ratio、Deadlocks、DB size、Tuples/s |
 | Redis | Connected clients、Memory usage、Commands/s、Hit/miss ratio |
-| Object storage | S3-compatible requests/s、Errors + traffic、Total objects、Disk usage where available |
 | Container | CPU %、Memory usage |
+
+Object storage PUT latency/error rate 由壓測腳本與 Locust 場景驗證；目前一般
+Grafana dashboard 不直接 scrape R2/S3 指標。
 
 Dashboard URL：
 - Dev：https://grafana-dev.quan.wtf/d/qjudge-monitoring/
@@ -107,7 +113,9 @@ monitoring/
 ## Troubleshooting
 
 **Grafana 面板顯示 No Data**
-確認 Prometheus targets 是否 UP。本地可直接看 http://localhost:9090/targets，或在 Grafana → Explore 頁面用 Prometheus datasource 查詢。
+確認 Prometheus targets 是否 UP。Prometheus 預設不開 host port，請優先在
+Grafana → Explore 用 Prometheus datasource 查詢；若需要直接查看
+`/targets`，臨時打開 `docker-compose.monitoring.yml` 中的 `9090:9090` port。
 
 **macOS Docker Desktop 上 Container CPU/Memory 面板沒資料**
 macOS 上 cAdvisor 不會帶 `name` label（只有 container ID）。Dashboard 已包含 macOS fallback query，會顯示所有容器的加總值。Linux 上會正常顯示各容器名稱。

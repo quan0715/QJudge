@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 6,
+  "options": [],
+  "prompt": "List three attributes that are shared among threads in the same process, and three that are not shared.",
+  "question_id": "bcfce196-f980-45ec-9dfb-16ca53c1c6bf",
+  "question_type": "essay",
+  "reference_answer": "a. Shared: Memory space, file descriptors, global variables.\nb. Not shared: Thread ID, registers, stack."
+}

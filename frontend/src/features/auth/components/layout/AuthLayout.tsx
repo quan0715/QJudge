@@ -3,7 +3,6 @@ import { useLocation, useOutlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Light, Asleep, ArrowLeft } from '@carbon/icons-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AuthHeroComposition from '../AuthHeroComposition';
 import { useTheme } from '@/shared/ui/theme/ThemeContext';
 import { useContentLanguage } from '@/shared/contexts/ContentLanguageContext';
 import { IconModeSwitcher, type IconModeOption } from '@/shared/ui/navigation/IconModeSwitcher';
@@ -20,7 +19,7 @@ const themeOptions: IconModeOption<'light' | 'dark'>[] = [
 
 const AuthLayout = () => {
   const { t } = useTranslation();
-  const { preference, setPreference } = useTheme();
+  const { theme, preference, setPreference } = useTheme();
   const { contentLanguage, setContentLanguage } = useContentLanguage();
   const location = useLocation();
   const outlet = useOutlet();
@@ -41,9 +40,24 @@ const AuthLayout = () => {
     [],
   );
 
-  const themeValue = preference === 'system' ? 'dark' : preference;
+  const themeValue = preference === 'system'
+    ? theme === 'g100' || theme === 'g90'
+      ? 'dark'
+      : 'light'
+    : preference;
 
-  const pathMetadata = useMemo(() => {
+  const authScreen = useMemo(() => {
+    const path = location.pathname;
+    if (path === '/login') return 'login';
+    if (path === '/register') return 'register';
+    if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) return 'campus-sso';
+    if (path.startsWith('/oauth/authorize')) return 'oauth-authorize';
+    if (path.startsWith('/auth/')) return 'callback';
+    if (path === '/onboarding') return 'onboarding';
+    return 'auth';
+  }, [location.pathname]);
+
+  const pathMetadata = useMemo<AuthMetadata | null>(() => {
     const path = location.pathname;
     if (path === '/login') {
       return {
@@ -57,11 +71,16 @@ const AuthLayout = () => {
         subtitle: t("auth.register.subtitle"),
       };
     }
-    if (path.startsWith('/login/campus-sso')) {
+    if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) {
+      const isRegistrationSso = path.startsWith('/register/campus-sso');
+
       return {
         title: t("auth.campusSso.title"),
         subtitle: t("auth.campusSso.subtitle"),
-        backTo: '/login',
+        backTo: isRegistrationSso ? '/register' : '/login',
+        backLabel: isRegistrationSso
+          ? t("auth.campusSso.backToRegister", "返回建立帳號")
+          : t("auth.campusSso.backToLogin", "返回登入"),
       };
     }
     if (path.startsWith('/auth/')) {
@@ -69,6 +88,14 @@ const AuthLayout = () => {
         title: t("auth.callback.loading"),
         subtitle: '',
         backTo: '/login',
+      };
+    }
+    if (path.startsWith('/oauth/authorize')) {
+      return {
+        title: t("oauth.authorize.title", "MCP OAuth 授權"),
+        subtitle: t("oauth.authorize.description", {
+          clientName: t("oauth.authorize.defaultClient", "外部應用程式"),
+        }),
       };
     }
     if (path === '/onboarding') {
@@ -89,45 +116,48 @@ const AuthLayout = () => {
 
   return (
     <AuthLayoutContext.Provider value={authLayoutValue}>
-      <div className="auth-split-wrapper">
-        <div className="auth-split-grid">
-          <section className="auth-hero-side" aria-hidden="true">
-            <div className="auth-hero-logo">
-              <BrandLockup className="auth-hero-logo__brand" size={24} />
-            </div>
-            <div className="auth-hero-shell">
-              <AuthHeroComposition />
-              <div className="auth-hero-content">
-                <h1 className="auth-hero-title">{t("auth.login.heroTitle")}</h1>
-                <p className="auth-hero-subtitle">{t("auth.login.heroSubtitle")}</p>
-              </div>
-            </div>
-          </section>
+      <div
+        className="auth-split-wrapper auth-login-visual-shell"
+        data-auth-theme={themeValue}
+        data-auth-screen={authScreen}
+      >
+        <div
+          className="auth-visual-background"
+          data-testid="auth-visual-background"
+          aria-hidden="true"
+        />
 
-          <section className="auth-form-side">
-            <div className="auth-toolbar">
-              <TextModeSwitcher
-                value={contentLanguage}
-                options={langOptions}
-                onChange={setContentLanguage}
-                ariaLabel={t("language.title", "語言")}
-              />
-              <IconModeSwitcher
-                value={themeValue}
-                options={themeOptions}
-                onChange={setPreference}
-                ariaLabel={t("theme.title", "主題")}
-                tooltipPosition="bottom"
-              />
-            </div>
-            
-            <div className="auth-form-shell">
+        <div className="auth-login-brand">
+          <BrandLockup className="auth-login-brand__lockup" size={24} />
+        </div>
+
+        <div className="auth-toolbar">
+          <TextModeSwitcher
+            value={contentLanguage}
+            options={langOptions}
+            onChange={setContentLanguage}
+            ariaLabel={t("language.title", "語言")}
+          />
+          <IconModeSwitcher
+            value={themeValue}
+            options={themeOptions}
+            onChange={setPreference}
+            ariaLabel={t("theme.title", "主題")}
+            tooltipPosition="bottom"
+          />
+        </div>
+
+        <main className="auth-login-main">
+          <section className="auth-login-split" data-testid="auth-login-split-shell">
+            <section className="auth-login-visual-panel" data-testid="auth-login-visual-panel" aria-hidden="true" />
+
+            <section className="auth-login-card" data-testid="auth-login-card-shell">
               <div className="auth-form-inner">
                 <div className="auth-nav-slot">
                   {metadata?.backTo ? (
                     <Link to={metadata.backTo} className="auth-back-link">
                       <ArrowLeft size={16} />
-                      {t("auth.campusSso.backToLogin", "返回登入")}
+                      {metadata.backLabel || t("auth.campusSso.backToLogin", "返回登入")}
                     </Link>
                   ) : (
                     <div className="auth-back-link-placeholder" />
@@ -162,9 +192,9 @@ const AuthLayout = () => {
                   </motion.div>
                 </AnimatePresence>
               </div>
-            </div>
+            </section>
           </section>
-        </div>
+        </main>
       </div>
     </AuthLayoutContext.Provider>
   );

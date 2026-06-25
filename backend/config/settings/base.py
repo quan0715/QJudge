@@ -3,6 +3,7 @@ Django settings for OJ Platform backend.
 Base settings shared across all environments.
 """
 
+import json
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -214,9 +215,12 @@ JWT_AUTH_COOKIE_SAMESITE = "Lax"  # CSRF protection
 JWT_AUTH_COOKIE_PATH = "/"
 JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 
-# OAuth 2.1 Provider settings (for MCP Server)
+# OAuth 2.1 Provider settings (for MCP Server and QJudge first-party CLI)
 OAUTH2_PROVIDER = {
-    "SCOPES": {"mcp": "Access QJudge via MCP"},
+    "SCOPES": {
+        "mcp": "Access QJudge via MCP",
+        "qjudge.paper": "Access QJudge paper exam workflows from QJudge Paper CLI",
+    },
     "DEFAULT_SCOPES": ["mcp"],
     "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,       # 1 hour
     "REFRESH_TOKEN_EXPIRE_SECONDS": 2592000,    # 30 days
@@ -242,7 +246,10 @@ SPECTACULAR_SETTINGS = {
         "authorizationCode": {
             "authorizationUrl": "/api/oauth/authorize/",
             "tokenUrl": "/api/oauth/token/",
-            "scopes": {"mcp": "MCP server access"},
+            "scopes": {
+                "mcp": "MCP server access",
+                "qjudge.paper": "QJudge Paper CLI access",
+            },
         }
     },
 }
@@ -286,15 +293,6 @@ CSRF_COOKIE_SECURE = os.getenv("DJANGO_ENV", "production") == "production"
 CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken header
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
-
-# Feature flags
-# Contest ACL role source:
-# - False: legacy contest-scoped owner/co_owner/participant resolution
-# - True: classroom-bound contest resolves role from classroom scope first
-# Default is enabled because classroom-bound contests are now authoritative.
-CONTEST_ACL_CLASSROOM_SOURCE_ENABLED = (
-    os.getenv("CONTEST_ACL_CLASSROOM_SOURCE_ENABLED", "true").lower() == "true"
-)
 
 # Redis Cache settings
 # Using Django's built-in Redis backend (Django 4.0+)
@@ -380,13 +378,56 @@ GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_OAUTH_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
+# Public login method metadata. Secrets and protocol validation details stay server-side.
+AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
+DEFAULT_AUTH_PROVIDER_OPTIONS = [
+    {
+        "key": "nycu",
+        "category": "campus",
+        "display_name": "NYCU 國立陽明交通大學",
+        "logo_url": "/illustrations/nycu-logo.png",
+        "supports_registration": True,
+    },
+    {
+        "key": "github",
+        "category": "social",
+        "display_name": "GitHub",
+        "supports_registration": True,
+    },
+    {
+        "key": "google",
+        "category": "social",
+        "display_name": "Google",
+        "logo_url": "/illustrations/google-icon.svg",
+        "supports_registration": True,
+    },
+]
+
+
+def _load_auth_provider_options():
+    raw = os.getenv("AUTH_PROVIDER_OPTIONS_JSON")
+    if not raw:
+        return DEFAULT_AUTH_PROVIDER_OPTIONS
+
+    try:
+        options = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("AUTH_PROVIDER_OPTIONS_JSON must be valid JSON") from exc
+
+    if not isinstance(options, list):
+        raise RuntimeError("AUTH_PROVIDER_OPTIONS_JSON must be a JSON array")
+
+    return options
+
+
+AUTH_PROVIDER_OPTIONS = _load_auth_provider_options()
+
 # Judge Engine settings
 JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"
 JUDGE_MAX_CPU_TIME = int(os.getenv("JUDGE_MAX_CPU_TIME", "10"))  # seconds
 JUDGE_MAX_MEMORY = int(os.getenv("JUDGE_MAX_MEMORY", "256"))  # MB
 
 # Docker settings for judge system
-DOCKER_HOST = os.getenv("DOCKER_HOST", None)  # None = use default socket
 DOCKER_IMAGE_JUDGE = os.getenv("DOCKER_IMAGE_JUDGE", "oj-judge:latest")
 DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv("DOCKER_JUDGE_PIDS_LIMIT", "64"))
 DOCKER_JUDGE_TMPFS_SIZE = os.getenv("DOCKER_JUDGE_TMPFS_SIZE", "100M")

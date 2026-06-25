@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 4,
+  "options": [],
+  "prompt": "List the four necessary conditions that must hold simultaneously for a system-wide deadlock to occur.",
+  "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf",
+  "question_type": "essay",
+  "reference_answer": "Mutual Exclusion; Hold and Wait; No Preemption; Circular Wait."
+}

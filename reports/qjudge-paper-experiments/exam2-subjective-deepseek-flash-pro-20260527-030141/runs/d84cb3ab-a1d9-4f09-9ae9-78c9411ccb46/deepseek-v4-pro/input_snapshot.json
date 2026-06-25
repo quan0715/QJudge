@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1) time: 會需要更多的運算來解決 failure\n(2) space: 會需要更多的資料來解決 failures\n(3) information: 會需要更多的資訊來做error detection, recovery"
+      },
+      "id": "13260",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: Use additional data to handle faults. (ex. Hamming Code)\nTime redundancy: Use additional calculation to handle faults.\nSpace redundancy: Use additional components (ex. Disk, Computation nodes) to handle faults."
+      },
+      "id": "11030",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, time redundancy：錯誤時在執行一次\n2, space redundancy：有額外的空間作為備援\n3, information  redundancy：多個資訊可以比較，以多個相同者為主"
+      },
+      "id": "13872",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. time redundancy: use extra computations to cope from failures\n2. space redundancy: add extra resources to cope from failures\n3. information redundancy: use extra resources to cope from failures"
+      },
+      "id": "10959",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. time redundancy: 提供額外的時間去計算跟處理錯誤\n2. space redundancy: 提供額外的資源去應對錯誤的發生\n3. information redundancy: 提供額外的訊息去看有沒有錯並應對錯誤的發生"
+      },
+      "id": "10986",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. triple modular redundancy\n2. information redundancy\n3. Byzantine fault tolerance"
+      },
+      "id": "15735",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "time redundancy: 多次計算來避免錯誤，\nspace redundancy: 多準備硬體來避免硬體壞掉，\ninformation redundancy: 多儲存額外的資訊，例如 parity bit 等等，來實行 error detection or correction."
+      },
+      "id": "10969",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy: use extra information to detect and recover error.\n2. Time redundancy: use extra computation to cope with failure.\n3. Space redundancy: use extra resource to cope with failure."
+      },
+      "id": "10965",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy:多一些資料來做錯誤偵測或是錯誤修改(e.g. checksum)\n2.time redundancy: 增加check point等 來做到錯誤時可以回到之前的狀態(e.g. recovery block)\n3.space redundancy:增加額外的資源、硬體等來減少(偵測)錯誤(e.g. TMR voter)"
+      },
+      "id": "10947",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: requires more information to allow error detection and recovery\ntime rudundancy: require more computation time to deal with failure\nspace redundancy: require more resources to deal with failure"
+      },
+      "id": "10885",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Information: add extra information (like checksum)\nSpace: multiple resources to deal with faults\nTims: do extra calculation"
+      },
+      "id": "10898",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy : the additional information are added to detect the error or do the correction.\n2. time redundancy : do extra computation to cope with error, like recovery block. \n3. space redundancy : additional resource or space are used to cope with error, like replication of data."
+      },
+      "id": "10992",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: use additional resource to deal with fault.\ntime redundancy: repeat executing the module to and choose the result most module perform.\nspace redundancy: use checkpoints to store the current status. If the primary module failed, back to checkpoint and use secondary way."
+      },
+      "id": "11093",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Space redundancy - send more data to be able to recover errors\n2. Time redundancy - do more computations to reduce probability of fault\n3. Resource redundancy - several copies of resource exists, if one resource is unavailable, the other is used"
+      },
+      "id": "10957",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "Information: Store extra information to achieve fault tolerance\nTime: use more computation to achieve fault tolerance\nSpace: use more replications and voting mechanism to achieve fault tolerance"
+      },
+      "id": "14976",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "information: use extra bit/data to make sure original data is good, like check sum\ntime: redo multiple times when fault\nspace: use more resource to do a same thing"
+      },
+      "id": "11103",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Information redudancy : additional information to enable error detection/correction in data \nTime redudancy : additional instructions to detect and correct faults during computing \nSpace redudancy : additional ressources to assure in case of ressources crash/unavailabitiy "
+      },
+      "id": "11007",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy : it adds extra information to the date to prevent corruption and bit changes\nSpace redundancy : it adds extra copy of data to cope with failure\nTime redundancy : it processes several time a action to cope with failure"
+      },
+      "id": "11129",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "Time：讓計數器可以多一些上限，使 process 以＝有更多時間可以處理或是等待回應\nSpace：同一份設備複製三次或是多次，用投票當方式選出正確的資料\nInformation：傳遞或是儲存的資料多一些 bit (資訊) 讓有錯誤時可以透過這些 validation bit 檢查推出正確的數值"
+      },
+      "id": "10951",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "time redundancy:透過多執行幾次來減少錯誤的發生\nspace redundancy:透過額外多複製資料來減少錯誤的發生\ninformation redundancy:增加額外的資訊來檢查，像是checksum"
+      },
+      "id": "10960",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy: 增加額外的資訊來偵錯或修復。\n2.time redundancy: 多次計算來提高正確性。\n3.space redundancy: 使用額外的resource。"
+      },
+      "id": "11086",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy : 提供額外的資訊處理錯誤。(ex:hamming code)\n2. Time redundancy : 提供額外運算處理錯誤。(ex:recovery block)\n3. Space redundancy : 提供額外資源處理錯誤。"
+      },
+      "id": "10904",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "time redundancy: 重複執行某function 以提高正確性\nspace redundancy: add extra resource to reduce fault\ninformation redundancy: 額外增加一個bit幫助判斷減少錯誤率 ex: ECC"
+      },
+      "id": "10944",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "time redundancy:增加額外時間去驗證\ninformation redundancy 新增額外的code去驗證 如hamming code\nspace  redundancy:新增額外的空間去驗證"
+      },
+      "id": "12994",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: add extra information to allow for error detection and recovery\ntime redundancy: perform extra computation to cope with failure\nspace redundancy: add extra resource to cope with failure"
+      },
+      "id": "10953",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy: Add extra information to the message for error detection and recovery, e.g. parity, hamming code.\n2. Time redundancy: Add extra computations to the message to check whether the message is correct. e.g. recovery block\n3. Space redundancy: Add extra resources to the message e.g.replication of the message and receiver vote for the right one."
+      },
+      "id": "10925",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "time redundancy\nspace redundancy\ninformation redunancy"
+      },
+      "id": "11025",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: It adds extra information for error detect and recovery.\nTime redundancy: It adds extra computation to deal with failures.\nSpace redundancy: It adds extra resources to deal with failures."
+      },
+      "id": "11040",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "information redundancy:加入額外資訊來偵測錯誤及修復錯誤\ntime redundancy:透過重複執行或重新計算來修正錯誤\nspace redundancy:增加額外硬體或資源，當有元件故障時，還有副本備份可以使用"
+      },
+      "id": "10892",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. sequential redundancy\n2. Concurrency redundancy\n3. FIFO redundancy"
+      },
+      "id": "14896",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Information Redundancy: Add additional information to enable error detection and recovery.\n2. Time Redundancy: Such as checkpoint with re-try, or Recovery Block. Re-try different alternative functions when failure happened.\n3. Resource Redundancy: Replication of data, software, hardware."
+      },
+      "id": "10997",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "Space redundancy\nTime redundancy"
+      },
+      "id": "14331",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy:加入額外的資訊來進行錯誤的偵測或是復原\nTime redundancy:多次進行同個操作來避免錯誤\nSpace redundancy:使用額外的資源或是硬體元件來避免錯誤"
+      },
+      "id": "11022",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Time redundancy, space redundancy, information redundancy."
+      },
+      "id": "10864",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "space redundancy: use extra memory space\ntime redundancy: execute numbers of computations to achieve fault tolerance\ninformation redundancy: use extra data information to correct or restore missing data \n"
+      },
+      "id": "11649",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy: using additional information to correct the fault. (hamming code)\n2. time redundancy: using additional time to compute the correct reply. (RB)\n3. space redundancy: using additional memory space to avoid fault. (TMR)"
+      },
+      "id": "10924",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy\n2. Time redundancy\n3. Space redundancy"
+      },
+      "id": "11019",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. 資訊冗餘：藉由使用額外資訊使錯誤發生時可以回復\n2. 時間冗餘：當錯誤發生時再次執行已得到結果\n3. 空間冗餘：使用額外設備同時執行，在失敗時有backup plan"
+      },
+      "id": "10930",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "資訊冗餘: 額外資訊用於驗證及復原\n時間冗餘: 額外計算時間以應對錯誤\n空間冗餘: 額外資源(軟體、硬體等)以應對錯誤\n"
+      },
+      "id": "11008",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "information redundancy:增加額外的資訊以便偵錯、修復\ntime redundancy:透過額外的計算來避免錯誤\nspace redundancy:增加額外的resource來避免錯誤"
+      },
+      "id": "10879",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: adds extra information to error detection\nTime redundancy: performs more compatution to core the failures\nSpace redundancy: adds extra resource to core the failures"
+      },
+      "id": "10937",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: use extra information like extra bits to ensure the correctness. ex:hamming code\ntime redundancy: use extra time to ensure the correctness\nspace redundancy: use extra space to ensure the correctness"
+      },
+      "id": "11015",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "information redundancy\nspace redundancy\ntime redundancy"
+      },
+      "id": "11042",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: extra informations for error detection and recovery\nTime redundancy: extra computations to cope with failures \nSpace redundancy: extra resources to cope with failures \n"
+      },
+      "id": "11066",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.time redundancy，重複執行或計算來處理failure\n2.space redundancy 增加額外的資源空間例如硬體來處理failure\n3.information redundancy 增加額外資訊來進行錯誤檢測或是recovery"
+      },
+      "id": "10974",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy : Use extra information to help error detection and recovery e.g. 漢寧碼\nTime redundancy : it performs additional computations to cope with failure\nSpace redundancy : it adds extra resources to cope with failure"
+      },
+      "id": "12428",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: Adds data to tolerate data faults(ex: huffman code)\nTime redundancy: Adds time related redundancies such as checkpoint so that if a process faults it can continue.\nSpace redundancy: Add file redundancy like copying files to tolerate file faults."
+      },
+      "id": "12191",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Information Redundancy : 給多的資料來錯誤偵測/更正(例如錯誤更正碼)\nTime Redundancy : 給多的computation to cope with error\nSpace Redundancy : 給多的Resource to cope with error"
+      },
+      "id": "11156",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "space redundancy:  have extra space that are not used\ntime redundancy: have extra computation time\ninformation redundancy: have redundant information of process"
+      },
+      "id": "10895",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. information  redundancy ：增加額外的資訊來偵錯、除錯\n2. time redundancy：利用多次計算，retry來應對故障\n3. space redundancy：加入額外的硬體/process/data copy來應對故障"
+      },
+      "id": "11155",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. Information Redundancy 指系統存取更多資訊以應付或修復錯誤\n2. Time Redundancy 指用更多的計算次數防止錯誤發生\n3. Space Redundancy 指用更多的軟硬體資源防止錯誤發生"
+      },
+      "id": "11697",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Information:\n加入額外的資訊來除錯或是偵測錯誤\nTime:\n重複執行操作以處裡暫時性的錯誤\nSpace:\n增加硬體資源、node以增加系統的容錯能力"
+      },
+      "id": "11023",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1. 資訊redundancy :給額外的資訊以增加容錯\n2. 時間redundancy :給額外的時間以增加容錯\n3. 空間redundancy :給額外的資源以增加容錯"
+      },
+      "id": "12655",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "time redundancy, information redundancy , space redundancy"
+      },
+      "id": "10981",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy: 增加資訊(資訊冗餘)用以偵測錯誤並更正\n2. time redundancy: 增加計算次數與操作次數以更正錯誤\n3. space redundancy: 增加硬體與額外空間以面對故障"
+      },
+      "id": "11036",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "information redundancy：增加資訊以應對故障或恢復\ntime redundancy：增加計算應付故障\nspace redundancy：增加硬體資源應付故障\n"
+      },
+      "id": "10932",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. Time redundancy\n2. Space redundancy\n3. Information redundancy"
+      },
+      "id": "11048",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy\n2. time redundancy\n3. space redundancy"
+      },
+      "id": "11045",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "information redundancy : 在原始資料中加入額外資訊用來錯誤偵測與修復\ntime redundancy : 重複執行相同的操作或計算用來處理暫時性的錯誤\nspace redundancy : 增加額外的硬體或是軟體資源用來分攤故障節點的任務"
+      },
+      "id": "15752",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy(加入錯誤偵測碼)\n2. Time redundancy(重新執行計算)\n3. Space redundancy(加入額外的實體備援硬體)"
+      },
+      "id": "10905",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.time redundancy用多餘的運算時間去維護錯誤，像是可以用RB，透過多種算法搭配check point。\n2.information redundancy用多餘的傳輸資訊維護錯誤，像是hamming code。\n3.space redundancy用多餘的機器資訊去維護錯誤，像是用three module。"
+      },
+      "id": "10901",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy 例如漢名碼\n2.time redundancy 多傳幾次\n3.space redundancy 多用幾台設備 例如voter等等"
+      },
+      "id": "11001",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Information redundancy: it adds extra information to allow for error detection and recovery.\n2.Time redundancy: it adds extra computation to cope with failure.\n3.Space redundancy: it adds extra resources to cope with failure."
+      },
+      "id": "12815",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.time redundancy :寫多個相同功能的不同程式,讓每個程式跟預期答案去比對如果沒有達到想要的則回到原本狀態執行其他程式\n2.space redundancy :同時跑很多次相同的程式,彼此之間用投票的方式多數決,決定正確資訊是甚麼\n3.information redundancy:增加幾個bit,讓它具有偵錯跟修復的能力"
+      },
+      "id": "10958",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Information Redundancy: Adds checks/data for error detection and monitoring (e.g. checksum and Hamming Code)\nTime Redundancy: Performs extra computations to cope with failure (e.g. retrying logic)\nSpace Redundancy: Adds extra resources/components to cope with failure (e.g. extra hardware/ software versions)"
+      },
+      "id": "11430",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. Hardware redundancy\nii. Software redundancy\niii. Information redundancy"
+      },
+      "id": "13350",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: additional information to convert error\nTime redundancy: additional computation to cope with failure\nSpace redundancy: additional resource to cope with failure "
+      },
+      "id": "11179",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy: Add extra information for error detection and recovery.\n2. Time redundancy: Perform extra computation for dealing with errors.\n3. Space redundancy: Add extra resources for dealing with errors."
+      },
+      "id": "11115",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Time redundancy : use additional computation to achieve fault tolerance.\n2. Resource redundancy : use additional resource to maintain fault tolerance, like RAID.\n3. Approach redundancy : use additional approaches to deal with the fault."
+      },
+      "id": "12408",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy\n2. Temporal redundancy \n3. Spatial redundancy"
+      },
+      "id": "10877",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1. space redundancy \n2.data redundancy \n3.time redundancy "
+      },
+      "id": "12052",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Space Redundancy：給多一點的資源 例如說有多個 replicas 去避免單一的資源故障\nTime Redundancy：可以重傳有點類似 tcp retransmission\nInformation Redundancy：例如 checksum 可以做 error checking 檢測有沒有錯誤的 bit"
+      },
+      "id": "11041",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "infomation redundancy: add extra information to do error detection or data recovery\ntime redundancy: use extra time to redo the mission\nspace redundancy: use extra space to improve reliability"
+      },
+      "id": "11378",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "time redundancy\nspace redundancy\ninformation redundancy: TMR"
+      },
+      "id": "11013",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "space redundancy : 提供更多的資源來對錯誤更加容忍，可以同個部件有多個 進行 voting 來避免單獨的錯誤影響整個系統  \ntime redundancy : 透過儲存 checkpoint 和準備備用 演算法 ，在 主要演算法失效時使用備用演算法做替補\ninformation  redundancy  : 透過在資料中加入檢查碼來達到 fault tolerance ，例如 漢名碼"
+      },
+      "id": "10875",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "info redundancy : storing additional information \ntime redundancy  : by giving extra computation (time) \nspace redundancy :allocating additional hardware resources "
+      },
+      "id": "10938",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "information redundancy : 增加額外 information 用於 error detection or recovering\ntime redundancy : 增加額外 execution 用於處理錯誤\nspace redundancy : 增加額外 resource 用於處理錯誤"
+      },
+      "id": "10896",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: it adds extra information to allow for error detection and recovery\nTime redundancy: it performs extra computations to cope with failures\nSpace redundancy: it adds extra resources to cope with failures"
+      },
+      "id": "10908",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: append extra information \nspace redundancy: add extra copies of resources\ntime redundancy: append extra computation"
+      },
+      "id": "11088",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy:使用更多資訊\ntime redundancy:增加更多計算\nspace redundancy:使用更多資源\n"
+      },
+      "id": "11132",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "information redundancy\ntime redundancy\nspace redundancy"
+      },
+      "id": "10928",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: extra information 用於偵錯或復原\ntime redundancy: extra computation\nspace redundancy: extra resource"
+      },
+      "id": "13964",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "information redundancy:加入額外資訊來檢測、修正錯誤\ntime redundancy:用額外計算來處理錯誤\nspace redundancy:用額外資源來處理錯誤"
+      },
+      "id": "10942",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy:提供額外資訊，讓系統可以監測修復錯誤\n2.time redundancy:執行重複運算避免錯誤\n3.space redundancy:提供額外資源處理錯誤"
+      },
+      "id": "10963",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "information redundancy 增加資訊判斷\ntime redundancy 增加計算次數\nspace redundancy 增加額外設備"
+      },
+      "id": "11018",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: copy resource\ntime redundancy: use extra time\nspace redundancy: use extra space"
+      },
+      "id": "10946",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "13183",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "1. time 再重新跑一次\n2. space 增加記憶體\n3. information 給更多的bit去檢查錯誤"
+      },
+      "id": "11027",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "information redundancy:建立錯誤檢查碼\ntime redundancy:給更多的時間做處理\nspace redundancy:給額外的資料做備份"
+      },
+      "id": "11020",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy\n2. Time redundancy\n3. Space redundancy"
+      },
+      "id": "10980",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: 用額外的資訊檢查、處理錯誤訊息 ex. check sum\ntime redundancy: 用額外時間計算錯誤訊息\nspace redundancy: 增加額外的硬體或設備，例如備援CPU"
+      },
+      "id": "11284",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. info, redundant infomations need to do error correction or detection\n2. time, redundant time needed to cope the problem\n3. space, redundant memory space needed to cope the problem"
+      },
+      "id": "10935",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "增加訊息檢測錯誤\n不斷重複命令\n增加硬體資源"
+      },
+      "id": "11113",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: add extra data to detect errors.\ntime redundancy: do it again to make sure it's right.\nspace redundancy: add extra resource (back up)."
+      },
+      "id": "13295",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Information Redundancy: Add more information to make it recoverable\nTime Redundancy: Sacrifice more time to prevent failures or easily recover\nSpace Redundancy: Sacrifice more space to prevent failures or easily recover"
+      },
+      "id": "11085",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. Information Redundancy: Use algorithms to double check that the output is correct.\n2. Space Redundancy: Create an extra space to receive output.\n3. Time Redundancy: set timer and retry if not executed."
+      },
+      "id": "10983",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "資訊冗餘:它增加額外資訊，以便錯誤偵測與恢復。\n時間冗餘:它執行額外的運算以應對失敗。\n空間冗餘:增加額外資源以應對故障。"
+      },
+      "id": "12582",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.資訊冗餘：加入額外資訊(如ECC)來偵測或修正錯誤。\n2.時間冗餘：將同一操作重複執行多次，以確認結果正確或抵抗暫時性錯誤。\n3.實體冗餘：使用多個硬體元件(如多台伺服器或多個CPU)來執行相同任務，以提昇系統與容錯能力。"
+      },
+      "id": "11122",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "information redundancy : 增加information來detection or recovery error\ntime redundancy : 做額外的運算來應付failure\nspace redundancy : 增加resources來應付failure"
+      },
+      "id": "10962",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy : add some extra bit at the original message that we want to send , in order to detect or correct the error , for example , Hamming code. \n2.time redundancy : use extra computation to cope with failure.\n3.space redundancy : use extra resource to cope with failure."
+      },
+      "id": "11202",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "imformation redundancy 提供資訊資源\ntime  redundancy 多次運算\nspace redundancy  增加硬體設備"
+      },
+      "id": "10929",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: 加入一些錯誤包進行偵錯 \nTriple Modular Redundancy \nRecovery Blocks: involves executing a primary algorithm, checking the result with an Acceptance Test (AT), and rolling back to execute a secondary algorithm if the test fails\ntime redundancy: 重複的時間段壓縮（影片等）\nspace redundancy: 重複空間的壓縮（圖片等）"
+      },
+      "id": "10886",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: add the extra information for the error detection and recovery\ntime redundancy: add the extra calculation to cope with the failure\nspace redundancy: add the extra resource to cope with the failure"
+      },
+      "id": "10949",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.imformation redundancy \n2.time redundancy\n3.space redundancy"
+      },
+      "id": "10989",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy use redundant be to cope with failure.\n2. time redundancy use  extra computation to cope with failure.\n3. space redundancy use extra resources to cope with failure."
+      },
+      "id": "11094",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "space：用多個硬體資源執行同一個process\nInformation：多存位元使得錯誤可被偵測甚至修補\ntime: 重複做同一個process"
+      },
+      "id": "10883",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy:多加額外的資訊去偵測錯誤\n2.time redundancy:花時間多跑幾次，去應對錯誤\n3.space redundancy:增加硬體資源，解決錯誤"
+      },
+      "id": "10934",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.time redundancy :透過重複執行或運算來避免fail\n2.information redundancy: 透過增加bit來更正錯誤或提供更多資訊\n3.space redundancy :透過增加硬體資源來避免錯誤"
+      },
+      "id": "11051",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Information redundancy: add extra information to error detect and correct\nTime redundancy: extra computation to cope failure \nSpace redundancy: extra resource to cope failure"
+      },
+      "id": "10941",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. information redundancy: extra information allow for error detection and recovery\n2. time redundancy: extra computation to cope with failure\n3. space redundancy: extra resources to cope with failure"
+      },
+      "id": "10936",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.Time Redundancy: 透過增加額外的運算避免fail\n2.Space Redundancy: 透過增加額外硬體資源避免fail\n3.Information Redundancy: 透過增加額外資訊避免fail"
+      },
+      "id": "11050",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy\n2. Time redundancy\n3. Space redundancy"
+      },
+      "id": "11090",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.information redundancy:加額外的資料來對資訊檢查錯誤和修復\n2.time redundancy:花額外的時間去重新計算，避免錯誤\n3.space redundancy:有備用的硬體裝置如果原本的壞了就可以用備用的或是用投票機制避免錯誤"
+      },
+      "id": "11056",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "1. Information redundancy- adds extra information for eror detection and correction, such as parity bits and checksums\n2. Time Redundancy - peforms extra computations or retries to cover from failures\n3. Sapace Redundancy - uses extra hardware, software, or replicated resources to tolerate failures"
+      },
+      "id": "11655",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "1. notification\n2. Try except\n3. server-client communication\n"
+      },
+      "id": "11105",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1. information  redundancy \n2. space redundancy\n3. time redundancy"
+      },
+      "id": "10975",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "time redundancy:花額外時間計算來應對系統失效\nspace redundancy:花額外資源來應對系統失效\ninformation redundancy:傳送額外資訊用來修正或檢查錯誤"
+      },
+      "id": "10988",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "information redundancy: use additional information to detect error or recovery\ntime redundancy: use additional computation to prevent fault\nspace redundancy: use additional variables or datastructure to prevent fault\n"
+      },
+      "id": "11037",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "Describe the three main types of redundancy used to achieve fault tolerance.",
+    "question_id": "d84cb3ab-a1d9-4f09-9ae9-78c9411ccb46",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Information Redundancy: Adding extra bits (like Hamming code) for error detection/recovery.\n(2) Time Redundancy: Performing computations multiple times to recover from transient faults.\n(3) Space Redundancy: Adding extra physical components to handle hardware failures."
+  },
+  "question_id": "d84cb3ab-a1d9-4f09-9ae9-78c9411ccb46"
+}

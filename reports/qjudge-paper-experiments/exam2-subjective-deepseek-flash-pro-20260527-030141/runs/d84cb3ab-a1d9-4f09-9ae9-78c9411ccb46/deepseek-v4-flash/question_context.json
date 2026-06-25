@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Describe the three main types of redundancy used to achieve fault tolerance.",
+  "question_id": "d84cb3ab-a1d9-4f09-9ae9-78c9411ccb46",
+  "question_type": "short_answer",
+  "reference_answer": "(1) Information Redundancy: Adding extra bits (like Hamming code) for error detection/recovery.\n(2) Time Redundancy: Performing computations multiple times to recover from transient faults.\n(3) Space Redundancy: Adding extra physical components to handle hardware failures."
+}

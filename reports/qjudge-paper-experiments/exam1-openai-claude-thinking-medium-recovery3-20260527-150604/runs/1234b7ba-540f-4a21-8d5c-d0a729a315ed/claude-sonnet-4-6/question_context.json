@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Please briefly describe the Direct Memory Access (DMA)?",
+  "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+  "question_type": "essay",
+  "reference_answer": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance."
+}

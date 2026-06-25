@@ -1,0 +1,222 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12609","S109","read after TSL 
+TSL with back off","1","Read after TSL 錯誤，應為 Read before TSL",""
+"2","11993","S015","1. Read after TSL: Read the status of lock. If the lock is available, try to acquire the lock. Only release lock and get lock cause bus traffic.
+2. TSL back off: Periodically acquire the lock. If the access failed, wait for a time and try again. The time of waiting increases when the access failed.","1","Read after TSL 錯誤，應為 Read before TSL",""
+"3","16051","S054","1, Read before TSL
+2, TSL with back off ","2","",""
+"4","12395","S117","1. read before TSL: 在TSL之前先讀lock確定現在是可以access的
+2. TSL with back off: 如果tsl時發現無法獲得lock，隔一段時間再去access，每次無法獲得lock，就增加下一次tsl的間隔時間","2","",""
+"5","12018","S093","1. read before TSL
+2. TSL with back off","2","",""
+"6","11977","S012","1. each core spins on its private lock, wait from other core release the private lock
+2. backoff spin: if a core ask the lock but get it, wait for a short time to ask for the lock again. if the core still not get the key, wait for a longer time","1","方法一 'private lock' 非 Read before TSL",""
+"7","12096","S108","Read before TSL: 會有一個 cache 為 read only 來讓所有需要做 TSL 的 processor 去做讀取，而不會像傳統 TSL 不斷發出修改的請求。 
+back down: 在 TSL 失敗以後，會暫停一段時間再去做 TSL.","2","",""
+"8","12201","S099","1. Read before TSL
+2. TSL with backoff","2","",""
+"9","12044","S070","1.read before tsl: 會變成一直讀取自己本地cache的lock變數，直到其他人釋放lock修改本地lock變數才會去嘗試拿
+2.tsl with back off: 發現lock有人用就等一段時間再去看釋放了沒，不要一直去看避免bus contention","2","",""
+"10","13005","S080","read before the TSL, TSL with backoff","2","",""
+"11","11287","S003","read before tsl and tsl back off","2","",""
+"12","12604","S035","1. Read before TSL
+2. TSL with back off","2","",""
+"13","13020","S037","1. Read before TSL: read the lock is free or not before a test which need to write the lock cause contention.
+2. backoff TSL: When process access the lock. If the lock is not free, the process would stop access the lock and wait a fix time. If the lock still not unlock after waiting, the process would double the waiting time.","2","",""
+"14","12396","S097","1. Read before TSL
+2. Write-back after TSL","1","方法二 'Write-back after TSL' 錯誤，應為 TSL with back-off",""
+"15","13314","S013","1. read before TSL
+2. TSL with back off","2","",""
+"16","12618","S040","read before TSL: read the lock status, if lock is free, then use TSL
+backoff: if TSL is failed, wait some time before next TSL, and the waiting time can growth exponentially with a upper limit.","2","",""
+"17","11249","S124","Back-off and Read-Before","2","",""
+"18","12781","S121","- Read before TSL
+- TSL backoff","2","",""
+"19","15854","S068","因為 lock 釋放時會造成所有等待的 cpu 同時爭搶 bus 資源
+解法：read before TSL, TSL+指數退避","2","",""
+"20","12024","S102","read before TSL、TSL with back off","2","",""
+"21","12100","S034","1. read before TSL
+2. TSL with back off","2","",""
+"22","11359","S084","1. Read before TSL (在執行TSL前先用迴圈的方式讀取，例如While(lock==1))
+2. TSL with backoff (沒搶到lock就要罰等待)","2","",""
+"23","12493","S079","read before TSL, TSL with backoff (每次做TSL的時間指數性的增加，這樣就不會有每個CPU同時做TSL導致bus contention的問題了)","2","",""
+"24","12349","S122","增加 back off去提升
+read before TSL ","2","",""
+"25","12094","S086","read before TSL and TSL with back off","2","",""
+"26","12967","S052","1. Read before TSL.
+2. TSL with backoff intervals.","2","",""
+"27","12273","S033","1.read before TSL
+2.TSL with back off","2","",""
+"28","12900","S123","1. Read before TSL
+2. TSL with backoff","2","",""
+"29","11931","S027","Read before TSL
+TSL with backoff","2","",""
+"30","11450","S081","read before tsl and tsl after that","1","方法二 'tsl after that' 非 TSL with back-off",""
+"31","12689","S008","1. Read before TSL.
+2. TSL with back off time.","2","",""
+"32","13105","S087","1.read before TSL
+2.TSL with backoff","2","",""
+"33","12835","S110","read before TSL
+TSL with backoff","2","",""
+"34","12533","S082","1. read before TSL: check whether the lock is free in advance
+2. TSL with back off: everytime asking for the locks fails, it will increase the waiting time for next request.","2","",""
+"35","12313","S105","1. Read before TSL
+2. TSL with backoff","2","",""
+"36","11530","S111","1. Read before TSL
+2. TSL with backoff","2","",""
+"37","12023","S085","read before TSL: 確定鎖被釋放再嘗試取得
+TSL with backoff: 限制嘗試取得的頻率","2","",""
+"38","12149","S004","1.read before TSL
+2.TSL with back off","2","",""
+"39","11858","S046","1. Read before TSL
+2. TSL with backoff ","2","",""
+"40","11438","S005","1. Read before TSL
+2. TSL with back-off","2","",""
+"41","11424","S014","Read before TSL
+TSL with back off","2","",""
+"42","12137","S107","1. Read before TSL
+2. TSL with back off","2","",""
+"43","12383","S126","1.read before TSL 一直read lock ，直到有空的lock 就可以執行TSL
+2.TSL backoff  拿不到LOCK就讓cpu等一段時間","2","",""
+"44","14559","S017","1.Read before TSL
+2.TSL with 不斷延緩下一次poll的時間間隔","2","",""
+"45","11356","S115","Read before TSL
+TSL Back off","2","",""
+"46","11948","S089","1.Read before TSL
+2.TSL back-off","2","",""
+"47","15482","S009","Send before TSL
+","0","'Send before TSL' 非正確方法",""
+"48","12541","S094","read before TSL
+TSL work back off","2","",""
+"49","12928","S066","1. Read before TSL
+2. Mock off with TSL","1","方法二 'Mock off' 錯誤，應為 TSL with back-off",""
+"50","12004","S041","Read before TSL
+TSL with back off","2","",""
+"51","14669","S031","Read before TSL : 先用read普通操作看資源有無空閒，避免過度spinlock，佔用匯流排。
+TSL with backoff : 使用一個延遲時間，若還沒空閒，則延遲時間加倍，避免過度spinlock和多個行程同時請求相同資源。","2","",""
+"52","11980","S116","read before TSL, TSL with back off","2","",""
+"53","12746","S059","1. read before TSL
+2. TSL with back off","2","",""
+"54","12579","S064","read before TSL
+back off","2","",""
+"55","12511","S101","Read before TSL
+TSL before back off","2","",""
+"56","12070","S103","1. read before TSL
+2. TSL with backoff","2","",""
+"57","13654","S104","read before TSL
+TSL with back off","2","",""
+"58","12506","S023","Read before TSL and TSL with back off.","2","",""
+"59","11853","S113","1.backoff TSL
+2.read before TSL","2","",""
+"60","12141","S055","1.Read before TSL
+2.TSL back off  其目的是為了減少access lock的頻率","2","",""
+"61","12341","S119","1.Read before TSL
+2.TSL with back off","2","",""
+"62","12305","S067","1.read before TSL
+2.TSL with back-off","2","",""
+"63","12935","S076","1. Read before TSL
+2. TSL with exponential backoff
+The idea is to avoid lock-attempt traffic on the bus.","2","",""
+"64","16135","S074","i. TSL with backoff
+ii. TSL with spinlock","1","方法二 'TSL with spinlock' 非 bus contention 緩解方法",""
+"65","12436","S063","Read before TSL
+TSL with back off","2","",""
+"66","12232","S090","1. Read before TSL: Use read operation to check if the lock is available. If the lock is available, then try the TSL instruction.
+2. TSL with backoff: When TSL failed, wait for a time to try TSL again.","2","",""
+"67","13487","S100","1. Read before TSL.
+2. Back-off TSL.","2","",""
+"68","11590","S114","1. TSL back off 
+2. Read before TSL ","2","",""
+"69","12930","S038","1.exponetion timeout
+2.queue to access","1","方法二 'queue to access' 非 Read before TSL",""
+"70","12163","S047","因為 TSL 是原子操作，他會把 bus 鎖定，所以很容易造成 bus contention
+
+Read before TSL：可以先用 cache 去讀 lock 的狀態，再去做 TSL
+Backoff：當要鎖失敗的時候，先 delay 一陣子","2","",""
+"71","13162","S044","read before TSL and TSL with backoff","2","",""
+"72","12140","S075","get key before TSL: other progress cannot use without key
+TSL with back off","1","方法一 'get key before TSL' 語意不清，非標準 Read before TSL",""
+"73","12074","S030","1.  read before TSL : 若一開始就想 write 會先將他人設定為 invalidate， 若先 read 可以避免一直將其他人設定為 Invalidate
+2. TSL with backoff : 逐漸推遲 TSL 發生的時間 ，但要設上限避免無止盡飢餓","2","",""
+"74","11846","S106","read before TSL
+TSL with  back off ","2","",""
+"75","12138","S019","1. Read before TSL
+2. TSL with back off","2","",""
+"76","11850","S020","Read before TSL and TSL with back-off","2","",""
+"77","12048","S010","read before TSL
+TSL with back off","2","",""
+"78","12497","S091","Read before TSL
+TSL with offstage :延遲詢問，減少詢問資源","2","",""
+"79","11936","S051","read before TSL
+TSL wait back off","2","",""
+"80","13102","S039","read before TSL
+TSL with back off","2","",""
+"81","12060","S018","read before TSL
+TSL with back off","2","",""
+"82","11844","S049","read before tsl ,tsl back_off","2","",""
+"83","12184","S053","read before TSL
+TSL with back off
+","2","",""
+"84","12224","S092","1. Use TTAS(Test-and-Test-and-Set), instead of spin for lock, it can test periodically.
+2. Use exponential backoff, it will make the check time longer.","2","",""
+"85","14073","S125","1.spinlock
+2.讓每個處理器都存有部分的os系統","0","兩項皆非 TSL bus contention 標準緩解方法",""
+"86","11210","S021","read before TSL and TSL is back off","2","",""
+"87","12142","S050","1. read before TSL 
+2. TSL同時隨機等待一段時間","2","",""
+"88","12134","S036","1.read before TSL:先用一般的read指令檢查lock的狀態，若是lock釋放，就執行TSL。
+2.TSL back off:先執行TSL，若是失敗則等待一段時間，通常是1個指令，若還是失敗則等待2個指令，1 2 4 8 ....","2","",""
+"89","11987","S048","1. Read before TSL
+2. TSL with backoff（定期增加時間去check）","2","",""
+"90","12214","S112","Read before TSL
+TSL with back off","2","",""
+"91","11937","S006","1. read before YSL
+2. TSL with backoff (忘記是不是用backoff了，反正就是問一次後就不斷增加下一次問的 delay)","2","",""
+"92","12153","S057","在 TSL 之前就先讀取
+BreakOff - 延遲時間","2","",""
+"93","14426","S002","1. read before TSL.
+2. TSL with back off.","2","",""
+"94","12154","S007","(a) Read before TSL
+(b) Add a exponential time fallback to avoid abuse usage.","2","",""
+"95","14797","S016","Read before TSL and TSL with back off ","2","",""
+"96","13922","S083","1.在TSL指令之前先以普通Read檢查lock，再必要時才使用TSL讓CPU在本地cache中忙等，避免頻繁鎖住bus。
+2.使用backoff機制，當取得lock失敗時延遲一段時間再重試，減少多個CPU同時競爭bus的情況。","2","",""
+"97","12310","S088","read before TSL
+TSL with backing off","2","",""
+"98","12940","S058","1.read before TSL.
+2.TSL with backoff.","2","",""
+"99","11906","S043","read before TSL
+TSL with block dead","1","方法二 'TSL with block dead' 非 TSL with back-off",""
+"100","11745","S060","read before tsl
+tsl with back off","2","",""
+"101","11966","S024","read before TSL, and TSL with back off","2","",""
+"102","12220","S095","tsl with back off
+read before tsl","2","",""
+"103","12090","S077","1. read before TSL
+2. TSL with backoff","2","",""
+"104","12042","S120","Read before TSL:執行TSL前先read，當lock=0才能TSL
+exponential backoff:請求access資源失敗後，需等待一段時間後才能再次請求，且請求時間隨次數指數級增長","2","",""
+"105","12489","S073","read before TSL
+TSL with backoff
+","2","",""
+"106","12145","S069","1.read before TSL
+2.TSL with back off
+","2","",""
+"107","12496","S072","Read before TSL.
+TSL with backoff.","2","",""
+"108","11952","S042","read before TSL
+TSL with back off","2","",""
+"109","12340","S071","1. Read before TSL
+2. TSL with backoff","2","",""
+"110","12071","S062","1. Read before TSL
+2. TSL with Backoff","2","",""
+"111","12416","S045","1.read befor TSL
+2. TSL with back off","2","",""
+"112","12849","S056","read before TSL, and TSL with backoff","2","",""
+"113","13032","S128","To reduce Test-and-Set-Lock instruction for mutex locks in MPs causing system bus contention, we can apply caching","0","'caching' 非指定緩解方法，且只給出一項",""
+"114","12904","S029","1. 先讓正在等待被執行的process 進入blocking, 等resource available後 在進入cpu
+2. 利用cache先把資料暫時存起來","0","兩項皆非 TSL bus contention 標準緩解方法",""
+"115","12210","S065","1. TSL with backoff
+2. read before TSL","2","",""
+"116","12457","S098","read before TSL
+過一段時間在TSL","2","",""

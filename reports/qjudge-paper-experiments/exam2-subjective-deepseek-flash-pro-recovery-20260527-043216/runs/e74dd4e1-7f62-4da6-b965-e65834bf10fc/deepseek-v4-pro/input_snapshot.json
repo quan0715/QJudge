@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1)可以做非同步的溝通 (2)擴充不會影響現有的訂閱者 (3)訂閱者可以自由選擇自己有興趣收到的頻道訊息"
+      },
+      "id": "11797",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. Decoupled: The middleware decouples the communication. It means that the operation of send and receive are not associated with other.\n2. Asynchronous: The middleware can store the message and send it receiver at any time. So it don't need both sender and receiver are ready.\n3. Many-to-Many communication: The middleware could receive and store the message from multiple publishers and sends it to multiple receivers."
+      },
+      "id": "12978",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, scalability\n2, decoupling\n3, 一個point同時傳送相同訊息給多個points時\n"
+      },
+      "id": "14825",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "many to many: 可以有多個publisher向多個subscriber發送message\nscalability: 如果有新的subscriber，直接加入subscriber的list，擴展方便\nloose connected: publisher不需要關注有哪些subscriber"
+      },
+      "id": "13992",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. scalability: 可以有很多的publisher跟subscriber\n2. asynchronous: 在未上線時，如果有收到message依然可以在之後上線時觀看；publisher可以上線傳完message後直接下線不用等subscriber都上線\n3. many-to-many: 可以讓many publisher傳訊息給many subscriber"
+      },
+      "id": "12514",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. scalibility: it is easy to add a publisher or a subscriber in the system without interfere other publishers or subscribers\n2. asymmertric communication; publisher and subscriber don't need to stay online in the same time to complete the communication\n3. decouple: publishers and subscribers are not tightly coupled, a publish/subscribe middleware helps transmitt the message from publishers to subscribers"
+      },
+      "id": "13065",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Decoupled: 當 publisher 傳送訊息時，Subscriber 不一定要在線上\n可擴展性: 只需要加入頻道即可接受資訊，實作方便\n匿名: 不需要知道 process 的名稱等等資訊"
+      },
+      "id": "13017",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. 可擴展性: 加入其他節點對整個系統幾乎沒有影響\n2. 節點間可以非同步通訊\n3. 可以 Many-to-Many 通訊。"
+      },
+      "id": "12817",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.擴展性高，加入容易\n2.高匿名性，不需要知道彼此的確切資料\n3.不需要大家都同時在線上"
+      },
+      "id": "12763",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "scalability: it is scalable when there is new subscriber, it wont effect the original subscriber or the publisher.\ndecoupling: the model is decoupled, the publisher and the subscribers don't need to know each other's existance.\nasychronous communication: the publisher can send message to the subscriber even when the subscriber is not online."
+      },
+      "id": "14196",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "scalability\nasynchronous\nsource replication"
+      },
+      "id": "11793",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. scability : when a new subscriber is added to the system, the performance won't be influenced or degraded.\n2. decoupling : the publisher/subscriber doesn't have to know where the publisher/subscriber is.\n3. asynchronous : the publisher and subscriber don't have to be online in the same time when they want to communicate with each other."
+      },
+      "id": "13434",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. Asynchronous\n2. many-to-many\n3. scalability"
+      },
+      "id": "15031",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: it's easier to add more nodes to pub/sub systems, because existing nodes don't know about other other nodes. So there would be no need to update nodes' info in the existing nodes\n\n2. There can be many senders in the pub/sub\n\n3. There can be several channels in the pub/sub"
+      },
+      "id": "13254",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: It's easy to be added into the group. \n2. Many to Many: by grouping the subscribers and Publishers, it can achieve group-to-group communication\n3. Decoupling: It doesn't need to know who should be sent and the receivers doesn't have to be online to receive."
+      },
+      "id": "11522",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "1. no need both sender and receiver both online\n2. many to many communication become easier\n3. more scaliable, people who want receive just subscribe, no need to modify code."
+      },
+      "id": "13754",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- Easier to implement \n- Can easily add a new subscriber instead of having to set-up a new communication \n- Less greedy (One to Many instead of Many One to One)"
+      },
+      "id": "14395",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- it allows many-to-many communication\n- scalability : it is easy to add or remove subscribers without interfering with the publishers and the other subscribers.\n- transparency : the publishers do not have to know about the subscribers."
+      },
+      "id": "14364",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. 非對稱\n2. 透明性較高\n3. 自由性較佳"
+      },
+      "id": "11933",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "可以多對多\n可以不用知道publisher、Subscriber的資訊\n容易擴充"
+      },
+      "id": "12750",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1.可擴展性：因為publisher和subscriber不會知道對方有哪些。\n2.非同步通訊：不需要publisher和subscriber同時在線。\n3.decoupled: 因為publisher和subscriber不會知道對方有哪些。"
+      },
+      "id": "15207",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. Loosely coupled (decoupled)\n2. Asynchronous，對方不用在線也能傳遞到。\n3. Many-to-many，支援多對多的溝通。"
+      },
+      "id": "11845",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "1. scalability高，在middleware我可以支援many client to many server同時使用，而點對點的通訊只針對一對client/ server，效率比較低\n2. middleware 穩定性高，如果其中一個switch fail, 還會有其他switch可以讓這個network work, 不會全部崩壞\n3. middleware model can use the share virtual memory from many other RAMs, who also use this middleware, which is more resourceful than a point to point communication."
+      },
+      "id": "16080",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "靈活性高\n避免單點中斷\n可以共享\n"
+      },
+      "id": "13419",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. Simplicity\n2. Reduce overhead\n3. Better resource utilization"
+      },
+      "id": "13290",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: publishers和subscribers數可持續增加，不影響系統效能。\n2. Asynchronous communication: publishers和subscribers不用同時在線就可以做通訊。\n3. Many-to-many communication: 多個publishers可同時傳送訊息給多個subscribers。"
+      },
+      "id": "14072",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.asynchronous communication\n2.many to many communication\n3.scalability"
+      },
+      "id": "12966",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: New subscribers can be added without affecting existing member\n2. Decoupling: Publishers and subscribers do not need to know each other.\n3. Many-to-Many: Multiple publishers can communicate with multiple subscribers."
+      },
+      "id": "13647",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Scalability:容易增加subscriber\ndecoupling: publisher/subscriber 不用互相知道\nasynchronous:雙方不用等待對方"
+      },
+      "id": "12651",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. doesnt get lost and able to reconfigure\n2. it communicates many to many models\n3. it is more stable and quicker"
+      },
+      "id": "14370",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Many-to-many property: many publishers can communicate with many subscribers.\n2. Asynchronous communication: The communication between publishers and subscribers are asynchronous, the publishers can send message even when the subscribers are not online.\n3. Scalability: It is convenient and simple to add a new publisher or subscriber without changing or affecting the whole system."
+      },
+      "id": "14033",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "1.可以非同步的傳遞訊息\n2.可以是many-to-many的傳遞訊息"
+      },
+      "id": "12474",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. Higher safety.\n2. Higher redundancy.\n3."
+      },
+      "id": "13108",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "1. easy to add and remove member\n2. support many to many communication\n3. do not need to know the receiver's information"
+      },
+      "id": "13885",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. support many to many message passing.\n2. time decoupled: sender and receiver don't need to be online at the same time. \n3. no need to know who the receiver is ."
+      },
+      "id": "14223",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. Number of traffics may reduce.\n2. "
+      },
+      "id": "15736",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. 擴展性較好\n2. decouple -- 不用知道實際傳遞的對象\n3. asynchronous"
+      },
+      "id": "12035",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "非同步: 無須發送者、接收者同時在線\n解耦: 不須互相得知身分\n多對多: 可同時存在多發送者、多接收者"
+      },
+      "id": "12862",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.scalability:加入新的subscriber不影響原本的subscriber和publisher\n2.decoupling:subscriber和publisher不需要知道彼此的存在，更彈性也更好維護\n3.many-to-many communication:允許多個subscriber溝通"
+      },
+      "id": "13037",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. 可以一次發送給所有接收者\n2. 需要的連線數量比較少，Point-to-Point需要O(N^2)，Publish/Subscribe只要O(N)\n3. "
+      },
+      "id": "12448",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "1. Decoupling\n2. Scalability\n3. many-to-many communications"
+      },
+      "id": "12670",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. Good Scalability\n2. Decouple : the publisher and subscriber don't need to know each other\n3. Don't need synchronize"
+      },
+      "id": "11863",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Pointer\narray\n"
+      },
+      "id": "11681",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: subscribers are added without knowing other subscribers' existence.\n2. Decoupling: publishers and  subscribers are decoupled.\n3. Asynchronous communication: publisher can send message when subscribers are not online."
+      },
+      "id": "12629",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.解耦合\n2.擴展性\n3."
+      },
+      "id": "13319",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "Many to many communication : 可以輕鬆時做出多對多的訊息傳輸架構\nScalabity : 增加新的publisher或subscriber不會影響到舊有的publisher或subscriber\nAsynchrounous communication : middleware暫存資料的特性允許雙方可以不必同時在線，等訂閱者上線了middleware再把資料傳給訂閱者就可以了\nDecouple : publisher和subscriber不必清楚知曉對方的資訊，只需透過middleware來做訊息中轉站就能運作"
+      },
+      "id": "11003",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Decoupling: Publisher does not need to know info about subscriber\nAsynchronous: The Publisher and subscriber do not need to be online on the same time to send messages.\nMany to many: Can establish a relationship of many publishers to many subscribers.\n"
+      },
+      "id": "11856",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability : 可以增加number of Pub/Sub來擴充\n2. 支援多對多\n3. 可以非同時"
+      },
+      "id": "12605",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "It can deal with lots of messages at one time\nIt can send message faster then point-to-point\nIf a point in point-to-point fail, the whole system will fail. But pub/sub won't."
+      },
+      "id": "15171",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. 支援非同步通訊\n2. Publisher/Subscriber 不用知道彼此\n3. 可擴充性佳\n"
+      },
+      "id": "13774",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 擴展性: 新的Subscriber不會影響舊的Subscriber\n2. 解藕性: 發送者和接收者不需要知道彼此的存在\n3. 離線性: 接收者不在線時也可使收到訊息"
+      },
+      "id": "13631",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Scalability: 當新增subscriber時，publisher不必做更動\nDecoupling: Publisher 和 Subscriber 不必知道彼此存在\nAsynchronous communication: Publisher發布訊息時，不必等Subscriber立刻處裡，Middleware會將訊息儲存或是轉送訊息"
+      },
+      "id": "12726",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1. 可擴展性 : 可以增加發布者跟訂閱者而不影響到本來的系統。\n2. 解耦性：發布者和訂閱者不需要知道彼此就可以進行訊息傳遞。\n3. 多對多 : 可以多個發布者對多個訂閱者。"
+      },
+      "id": "15834",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.DECOUPLE:訂閱者跟發布者不用互相知道彼此的資訊\n2.擴展性很好 因為DECOUPLE的特性 讓這個MODEL可以輕鬆地擴展\n3.MANY TO MANY 透過這個MODEL可以實現多對多的傳輸"
+      },
+      "id": "12682",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. asynchronous: 當publisher發布event時不需考慮subsribers是否在線,若不在也可等到subsribers online時再收訊息\n2. decoupling: publisher與subsribers之間不需要知道對方是誰\n3. scalable: 當新的訂閱者訂閱時,不會影響到先前以訂閱的人和publisher 因此這個model是很容易擴展的"
+      },
+      "id": "13679",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "支援非同步通訊\nPublish/Subscribe 不須知道彼此\nscalibility"
+      },
+      "id": "13792",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. 當訂閱者離線時，發佈者依然可以發出訊息。\n2. Decoupling: 發佈者與訂閱者並不互相知道對方。\n3. 可同時有多的訂閱者和發佈者。"
+      },
+      "id": "13827",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. 允許多對多\n2. 發送者跟接收者不用同時上線\n3. 發送者跟接收者不用互相認識\n"
+      },
+      "id": "12851",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "擴充性高：增加新的發佈者跟訂閱者不會影響現有的系統運作\n多對多通訊：支援多個發佈者跟多個訂閱者同時進行通訊\n非同步通訊：當訂閱者暫時離線時，訊息一樣可以發佈出去，不會阻礙到發佈者操作"
+      },
+      "id": "11969",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Publisher 與 Subscriber 透過中間的 Broker(Middlewre)傳遞訊息，雙方不須知道彼此存在。四大優點為: 高擴展性(Scalability)、高度解耦(Decoupling)、非同步通訊(Asynchronous)、支援多對多通訊。"
+      },
+      "id": "13737",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.Scaling方便，只需透過增減成員即可達到\n2.many-to-many，Pub/Sub是多對多的系統\n3.decoupling，傳輸端不需要知道接收端的資訊\n4.非同步，傳輸端傳資料時接收端不用在線上"
+      },
+      "id": "12573",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1. many to many\n2.具有擴展性 可以增大group的規模\n3.decoupled 可以讓sender和receiver不需要同時上線 "
+      },
+      "id": "12962",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Highly scalable\n2.Asynchronous communication\n3.Many-to-many communication"
+      },
+      "id": "13342",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.不用知道publisher and subscribe彼此是誰\n2.不用同時在線\n3.在增減member的時候不會影響原本的成員"
+      },
+      "id": "13070",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Decoupling: Publisher/Subscribers don't need to know about each other's existence\nAsynchronous Communication: Publisher can send messages to offline users.\nMany-to-Many Communication: Multiple publisher/subscribers can send messages to multiple publisher/subscribers."
+      },
+      "id": "14290",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. Decoupling where publisher don't need prior awareness or relationship with the subscriber.\nii. Dynamic network topology\niii. Scalability"
+      },
+      "id": "11892",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Good Scalability\nDecouple\nPublisher and Subscriber do not need to be online at the same time \nmany to many communication"
+      },
+      "id": "13613",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability: New subscriber can be added without affecting existing publisher and subscriber.\n2. Many-to-many communication: Multiple publishers can communicate with multiple subscriber.\n3. Asynchronous communication: The messages can be sent even though the subscriber is not online."
+      },
+      "id": "13141",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Scalability\n2. Many-to-many communication\n3. Asynchronous communication."
+      },
+      "id": "12021",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. 雙方不必認識彼此 , publisher 不需要知道subscriber是誰 , vice versa , subscriber 只需要subscribe 自己感興趣的東西即可\n2. Scalabilty 較高 ，因為若有其他人想要收到資訊 , 只需要增加一個subscriber 即可\n3.  不必同時在線 "
+      },
+      "id": "12160",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1 it can use at different os\n2 it can easier to manage data stream\n3 it is effective"
+      },
+      "id": "13790",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "1. 可以不用知道對方是誰就能傳了\n2. 好 scale，如果要建立很多 p2p 連線會很麻煩，但 pub sub 在連線的時候就是都加入就好了不用一對一的慢慢建立\n3. async，pub 可以傳完訊息以後就去做其他事情"
+      },
+      "id": "12530",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. asynchronous communication\n2. many to many communication\n3. senders and receivers are decoupled"
+      },
+      "id": "14894",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "no need to connect at the same time\ncan easily send the massage to many receiver\nno need to know the subscriber's info\n\n"
+      },
+      "id": "12987",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1.可以 多點對多點\n2. scabability : 較容易新增節點\n3. 相較於 point to point 有更好的抽象化 sub 和 pub 彼此不需要知道彼此"
+      },
+      "id": "12945",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "decouple : publisher and Subscribers don't need to know each other . \nscalibility  : it is easier to scale up since new subscribers can just add in the group , which is easier than point to point. \nassynchronous : publisher  can send the message whenever they want , don't require that subscribers has to be online ,they can receive the message when availble.  \n"
+      },
+      "id": "12624",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. Scalibility : 增加 Subscriber 時不會影響其他人\n2. Decoupling : Publisher 和 Subscriber 不會知道彼此的存在 \n3. Asynchronous communication : 透過非同步傳遞，雙方不必同時 online"
+      },
+      "id": "13250",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Scalability: The pub/sub model is highly scalable, as a new subscriber can be added without affecting the existing subscribers and publishers.\n(2) Decoupling: The pub/sub model provides a decoupled communication mechanism, where the subscribers and publishers do not know each other's existence, making the system more flexible and maintainable.\n(3) Asynchronous communication: The pub/sub model allows for asynchronous between subscribers and publishers. The messages can be delivered to the receiver even when they are not online."
+      },
+      "id": "12328",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "can have multiple publishers and multiple subscribers, can publish once and all subscriber can receive."
+      },
+      "id": "15650",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "訊息傳遞快\n簡易使用\n節省資源"
+      },
+      "id": "13192",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "Publish and Subscribe don't need to know each others.\nPublish and Subscribe don't need to work at the same time.\neasy scalability."
+      },
+      "id": "12742",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "scalibility: 增加新subscriber容易且不會影響其他現有成員\nmany to many: 支援多個publisher對多個subscriber\npublisher和subscriber不須知道彼此的存在"
+      },
+      "id": "12545",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "更高的擴展性，新的subscriber只要加入group即可，不影響其他\nPublisher與Subscriber可以不知道彼此的存在也能運作\n能實現非同步的訊息傳遞"
+      },
+      "id": "12946",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.scaliblity:subscriber的加入不會影響既有系統\n2.many to many:可以多個pub和sub做通訊\n3.loss coupling:publisher不用知道subscriber"
+      },
+      "id": "12495",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "publisher和subscriber不需要互相知道\n可以簡單增加subscriber即可收到訊息\n可以非同步傳遞資料\n可以多對多傳輸"
+      },
+      "id": "13160",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. It is decoupled, which means the publisher and subscriber dont have to run at the same time.\n2. It can be many-to-many.\n3. The publisher can publish and leave, and it does not need to check whether the subscriber gets the message."
+      },
+      "id": "13294",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.don't need to wait sender or receiver\n2.unlikely to deadlock\n3.don't need to know the receiver name\n"
+      },
+      "id": "12342",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "1. 不須知道對方名字\n2. 可多對多通訊\n3. 訂閱者可自己決定什麼時候再查看訊息"
+      },
+      "id": "13166",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.decoupling\n2.高擴增性\n3.多對多"
+      },
+      "id": "12956",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. 是非同步的model\n2. 可以多對多\n3. 想要加入新的可以動態加入\n4. publisher跟subscriber彼此不需要知道彼此是誰"
+      },
+      "id": "12799",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. 可以非同步: 不需要所有Subscriber同時在線\n2. scalability較好: 容易擴充，增加Publishr 或 subscriber 並不會造成太大影響\n3. 可以multicast: 傳多個節點非常簡單方便迅速"
+      },
+      "id": "13241",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. cost effective\n2. decouple\n3. scalablity\n4. m to n system"
+      },
+      "id": "12841",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1) 可共享資源\n2) 可非同步\n3) many  to many\n4) 使用便利"
+      },
+      "id": "13193",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. scalability: easy and allowable to adding members.\n2. decouple: no need to know who will receive the messages.\n3. asynchronous: doesn't require sender/receiver be both online."
+      },
+      "id": "15183",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) They can share messages to more than 1 receivers.\n(b) They can share messages offline.\n(c) They can close the connection if they don't need it and reopen it. (Fewer resources needed)"
+      },
+      "id": "12950",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Publish/Subscribe middleware model has higher scalability, can be asynchronous, and more decoupling. Higher scalability means that  it is easier for this model to increase message receiver. Asynchronous means that he message receiving between receivers does not affect each other. Decoupling means the Sender and the Receiver does not affect each other."
+      },
+      "id": "12181",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "1.可擴展性\n2.解耦性\n3.非同步通訊"
+      },
+      "id": "16193",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.解耦合：Publish與Subscribe不需要知道彼此的存在或位置(時間、空間、同止解耦)提升系統彈性。\n2.可擴展性：支援一對多、多對多通訊，新增或移除節點不需修改既有程式。\n3.彈性/動態訂閱：subscribe可動態加入或離開，並依需求訂閱特定事件或主題。\n\n"
+      },
+      "id": "16099",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "擴展性 : 加入新的subscriber不會影響原本的subscriber、publisher\ndecoupling : subscriber、publisher不用知道對方身分、存在、狀態、位址\nmany-to-many communication : 可以多個publishers對應多個subscribers"
+      },
+      "id": "13247",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.more scalible.\n2.decouping\n3.can do many-to-many communication"
+      },
+      "id": "14166",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "開始執行時， server端到client\nclient"
+      },
+      "id": "13391",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "1.加入減少publisher subscriber對整個系統沒有影響\n2.decouple：相互不依賴\n3.非同式通訊"
+      },
+      "id": "12150",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "scalabiliy: the number of publisher and subscriber can add and delete easily\ndecoupling\nasynchronous communication: the publisher and subscriber can send and receive message and don't need to be online at same time\nmany to many communication"
+      },
+      "id": "12669",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.many to many communication\n2.時間 decoupling\n3.擴充性高 channel 的擁有者不需要管有哪些subscriber且subscriber 可以隨時自由地進入或退出channel"
+      },
+      "id": "13006",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. it is easily scalable \n2. this can support many to many communication.\n3. it is easy to decouple the sender side and receiver side."
+      },
+      "id": "13429",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "1. 想收到的才會收到"
+      },
+      "id": "14923",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.可擴充性:當加入一個subscriber時不用改動原有的subscribe及publish\n2.decouling:subscribe跟publish不必知道對方的存在\n3.他們之間通訊可以使用不對稱通訊\n4.可以多對多通訊"
+      },
+      "id": "13623",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.他可以允許多對多的通訊\n2.他很容易加大規模在不影響現在使用者的情況下他可以透過增加訂閱者就加大規模\n3.decouple:發布者和訂閱著者可以不用互相知道身分\n"
+      },
+      "id": "13072",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Decouple: Publisher以及Subscriber不需要知道雙方的詳細資訊與存在，雙方靠著broker進行訊息傳送\n2. Scalability: 欲訂閱者可直接加入，不需要修改任何設定。\n3. 非同步:  Publisher以及Subscribe不需要同時在線上，當subscriber想接收時，上線也可接受Publisher先前發布的內容(由broker協助)."
+      },
+      "id": "13457",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. many to many communication: multiple publishers can communicate with multiple subscribers\n2. scalability: new subscribers加入時，不會影響到現有的publishers and subscribers\n3. decoupling: publishers and subscribers不用知道彼此的existense"
+      },
+      "id": "12702",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.Many-to-Many communication: 支援多對多通訊，可以同時有很多個Publisher跟Subscriber\n2.Asynchronous communication: Publisher跟Subscriber不用在線上等對方\n3.Decoupling: Publisher跟Subscriber不用知道對方是誰"
+      },
+      "id": "13246",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1.Scalability: 擴展性較point-to-point comm還要好，可在不影響Pub/Sub溝通時新增Sub\n2.Decoupled: Pub和Sub可在彼此不知道對方是誰進行communication\n3.Many-to-many: 可以多個Pub和多個Sub進行communication"
+      },
+      "id": "12791",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.decoupe:不用知道彼此之間的真實身份\n2.非同步：不用同時在線也能發送和收到資訊\n3.many to many:publisher可以同時發送資訊給不同subscriber而subcriber也能同時收到不同piblisher發的資訊"
+      },
+      "id": "13146",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Loose coupling, better scalability and asynchrous communication"
+      },
+      "id": "14392",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Skip"
+      },
+      "id": "13834",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1.scalibility\n2. many to many communication\n3. 比較有效率"
+      },
+      "id": "15061",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. 可以多對多通訊\n2. decoupling\n3. 可以非同步通訊"
+      },
+      "id": "13081",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "decoupling：publishers don't need to know whether subscriber exists or not\nasynchronous：publishers can send message when subscribers are not online\nmany-to-many communication：can have many publishers and subscribers"
+      },
+      "id": "13176",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "State three major advantages of the Publish/Subscribe middleware model over Point-to-Point communication.",
+    "question_id": "e74dd4e1-7f62-4da6-b965-e65834bf10fc",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Scalability.\n(2) Decoupling of publishers and subscribers (they don't need to know each other).\n(3) Asynchronous communication (handling offline participants)."
+  },
+  "question_id": "e74dd4e1-7f62-4da6-b965-e65834bf10fc"
+}

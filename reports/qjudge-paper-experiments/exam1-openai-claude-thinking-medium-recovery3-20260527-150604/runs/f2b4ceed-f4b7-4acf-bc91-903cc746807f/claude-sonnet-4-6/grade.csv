@@ -1,0 +1,417 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","3410","S109","internal fragmentation 是當被分配到的超過需要的，而沒有用到的部分就是內碎
+external fragmentation 是當所有未被分配的pages 加起來可以分配，但因為不是連續的，無法分配造成浪費
+internal fragmentation is associated witn the paging memory management scheme","3","",""
+"2","3243","S015","Internal fragmentation: the memory allocated to the process is more than it need, wasting the allocated memory.
+External fragmentation: the total space of memory is enough, but there too small to contain a process.
+
+External fragmentation is associated with paging memory since paging technique solves the problem of external fragmentation. But it still has the internal fragmentation problem.","2","Paging 部分先答 External 再提 Internal，說法混淆，主要論點指向 External",""
+"3","6595","S054","internal frag.:allocated memory block is larger than required memory , so remain memory stay allocated and unused.
+
+external frag. : memory frequently allocated and delocated caused many gaps that there is enough memory in total but cannot provide a continuous memory space for required.
+
+external fragmentation  ","2","Paging 答 External Fragmentation，應為 Internal",""
+"4","4469","S117","internal: 分給process用的memory超過該process的需要，但因該空間不被其他process使用，因此造成浪費
+external: memory 空間超過運行process需要的空間，但memory中的連續空間太小，無法分給process
+externel fragmentation is typically asscociated with the paging memory management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"5","3571","S093","internal fragmentation是指將memory可以切成需多相同大小的block進行使用，因為block大小相同，所以有些block中被實際存取的內容比block小，沒有被用到的部分即是interna fragmentation
+external fragmentation是指將memory切成不同大小的空間去做存取，因為memory的存取需要連續，所以經過一系列的存取和釋放空間，整段memory會有許多大小不一可使用的memory空間，如果需要一段memory space大於每一個可用的空間但小於所有可用空間的和，即為external fragmentation
+每一個Paging memory management scheme都會有internal fragmention的問題","3","",""
+"6","4205","S012","internal fragmentation是在一個page內有許多沒用到的記憶體空間
+external fragmentation是有許多未被配置的記憶體空間，但不連續，所以沒有一塊足夠大的連續記憶體空間可以分配
+
+internal fragmentation is associated with paging memory managemeny scheme，因為page size大於需求太多的話就會在一個page中出現internal fragmentation
+","3","",""
+"7","5076","S108","internal fragmentation: 分配給 process 使用的記憶體大小超過其所要求的，而那些多出來的記憶起空間變得沒有被使用。
+external fragemetation: 整個記憶體空間所剩餘的大小可以滿足要求的空間大小，但是因為其 free space 不連續，導致要求無法滿足；通常發生在很多小小的 free hole 產生時導致。
+paging memory management scheme 通常遭受 internal fragementation 的問題，頁框大小的整數倍無法剛好符合所要求的空間，便會有無用的空間浪費。","3","",""
+"8","3747","S099","1. Internal Fragmentation: 當 OS 分配的記憶體大於 process 實際請求的，在所被分配的記憶體中，內部未被使用浪費掉的空間。
+    External Fragmentation: 所以可用記憶體的空間總和大於 process 所需的，但因為記憶體不連續導致 OS 無 法分配給該 process，稱為 External Fragmentation
+
+2. Internal Fragmentation","3","",""
+"9","4941","S070","1.internal fragmention:當process allocate一個比他需求更大的memory時，會導致部分memory浪費無法被使用(ex:他需要3KB但要了4KB)
+external fragmention: memory中有總和夠用的空間可以allocate，但他們不連續無法當成一個block
+2.internal fragmention，更大的page size會導致更嚴重的internal fragmention","3","",""
+"10","4955","S080","internal fragmentation is happened when one process is allocated more memory than it need, happened when the memory is allocated in fixed size block.
+external fragmentation is that when there is still have enough memory for one process, but it is not contiguous or in the same block.
+the internal fragmentation is typically associated with the paging memory management scheme.","3","",""
+"11","4608","S003","Internal is that the allocated is more than needed, and the unused portion is unused and allocated.
+The External means that the free space seems enough but actually scattered, which make it having lots of small holes, and make us hard to fill in those holes.
+The paging is actually helping with the external fragmentation.","2","Paging 答 helping with external fragmentation，應為 Internal Fragmentation",""
+"12","4008","S035","q1 :
+Internal fragmentation : when the system allocate a memory space or block larger than the memory request, leads to some memory allocated but unused.
+
+External fragmentation : the block in the memory system are not continuous(may be caused by frequent allocation/deallocation). This may lead to a case : although the total memory space is enough for a memory request, the system doesn't have a continuous and large enough space for it, then the allocation is failed.
+q2:
+Internal fragmentation, the page size may larger than the memory request.","3","",""
+"13","4966","S037","Internal fragmentation is that when a segment of memory allocate to a process, the non-used allocated memory. External fragmentation is that there are enough free space in the memory. But there is no any free space is large enough for the request. Internal fragmentation, because it use paging and virtual memory to resolve the problem of non-contiguous memory which is external fragmentation. But paging result woud in internal fragmentation.","3","",""
+"14","3868","S096","Internal fragmentation - associated with paging memory management. when process doesn't utilize the full size of the page, the free memory of the page is wasted, because it can't be used by other processes.
+
+External fragmentation - when processes are given contiguous chunk of physical memory, it may result in chunks of used memory between processes' memory. This chunks may be too small for another process, thus they are wasted.
+","3","",""
+"15","4788","S013","1. Internal: a partition is too much for a process
+External: a partition is too small for a process
+2.External Fragmentation","1","Internal/External 定義過於簡略且描述混亂；Paging 答 External，應為 Internal",""
+"16","4409","S040","internal: os assign to process but process doesn't use all memory
+external: memory region between many contiguous process memory region
+paging can prevent external fragment but stile has internal fragment.","3","",""
+"17","2525","S124","Internal fragmentation and external fragmentation happen when partitioning memory. 
+External fragmentation happens when, between two partitions, a hole of a size so small that no process can use it is left. Therefore, a portion of memory becomes unusable and is wasted.
+Internal fragmentation happens when a partition is allocated to a process, but is too big for it to use it completely. Since this portion is allocated, another process cannot use it, and it becomes unusable and is wasted.
+As pages are fixed-sized, most of the processes simply won't use all of it, which leads to internal fragmentation.","3","",""
+"18","3429","S121","- Internal fragmentation occurs when a process has to much memory for it. It induce that there is a waste of memory because it does not use all its personal memory.
+- External fragmentation occurs when the multiple fixed partition lead to some partitions that are not assigned to a process. It can became more serious with the time, because little memory holes increase with the time. 
+
+The external fragmentation is typically associated with the paging memory management because it can solve partially the problem by managing where the stores the data in memory. It uses the concepts of frames (physical) and pages (logical) to solve it with the page table","1","External 定義描述偏差（非不連續概念）；Paging 答 External，應為 Internal",""
+"19","6435","S068","Internal Fragmentation: 當一個 process 被分配到的 memory block 大於自身所需的使用量時，memory block 裡面剩下的部分因為已經分配給該 process 所以無法被其他 process 存取，造成記憶體浪費。
+
+External Fragmentation: 當記憶體被頻繁的分配給許多不同的 process 時可能因為沒有很好的切分記憶體區域造成記憶體中有一些存在於已經被分配給 process 的 memory blocks 之間的 free memory blocks。這些 free blocks 小而不連續，使得較大的 process 沒有辦法使用這些區域造成浪費。
+
+External Fragmentation 現象一般來說比較會透過 Paging 機制處理可以解決。透過像是 Linked scheme 可以追蹤 free memory space 且不需要連續空間，可以有效充分利用未被分配的記憶體。","2","Paging 答 External Fragmentation，應為 Internal",""
+"20","4540","S102","internal fragmentation is unused memory inside the allocated memory 
+external fragmentation is unused memory pieces outside allocated memories.
+
+internal fragmentation is associated with paging memory management scheme.","3","",""
+"21","4740","S034","internal fragmentation:
+occurs when allocated memory is larger than requested, and the unused space inside fixed-size block is waste.
+external fragmentation:
+occurs when memory is enough to satisfy a request, but it is not contiguous.(scatter in small holes)
+
+external fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""
+"22","6236","S084","1. Internal fragmentation : 通常發生在block size的memory，當程式被分配到的memory大於程式所需的
+                                                  memory時，剩下用不到的部分就是內部碎片。
+    External fragmentation : 通常發生在不連續的memory hole，雖然這些hole的總大小大於程式所需要的
+                                                  memory，但因為不連續的關係而沒辦法使用，此時這些就是外部碎片。
+2. Paging memory多半是跟內部碎片有關。","3","",""
+"23","5351","S079","internal: if the memory in the partitions is not fully used.
+external: if the partition segment does not fully use the total logical memory, but we can not make further partition, then the memory waste.
+
+external","1","External 定義描述混亂；Paging 答 External，應為 Internal",""
+"24","3344","S122","INTERNAL:PROCESS THREAD所需的記憶體空間小於供給的空間，導致有些空間被占用
+
+EXTERNAL:雖然空間足夠，但記憶體空間不連續
+
+INTERNAL associated with the paging memory ","3","",""
+"25","4665","S086","Internal Fragmentation occurs when memory allocated is larger than program requested, the unused portion of allocated memory remain allocated and unused, it occurs when the memory is allocate memory by fixed size block, and the memory program requested is smaller than the block size, the unused portion of allocated memory is called internal fragmentation.
+External Fragmentation occurs when there is enough total memory to satisfy the memory program required, but it is not continuous or not a single block, this is happen in system frequently allocate and deallocate memory, leaving small holes or gaps that too small to used for new memory allocation.","2","未明確回答 Paging 對應哪種 Fragmentation",""
+"26","4630","S052","Internal fragmentation是process被分到比較大block的memory，但實際這個process不需要用到那麼多，那分配給它而沒有用到的那部分memory就被浪費了。(被分配的memory內部的浪費)
+External fragmentation則是memory剩餘可分配的block散佈在不同位置而沒有連續，這樣就算這些可用block加起來足夠給某一個memory，但因為不是連續的就無法分配給它，變成浪費。(還沒分配的memory的浪費)
+Page memory management scheme會讓最後沒用到的page不足以分配給新的process，所以會造成external fragmentation。","2","Paging 答 External Fragmentation，應為 Internal",""
+"27","4594","S033","Internal Fragmentation是當allocated的frame超過memory所需要的大小，會造成unused的memory
+External Fragmentation是指frame符合memory所需大小，但剩餘的frame無法組成contiguous的memory
+
+paging memory management scheme是跟External Fragmentation有關
+","1","External 定義描述混淤；Paging 答 External，應為 Internal",""
+"28","3980","S123","Internal fragmentation: a process is allocated more memory than its needs, and the unused portion of the memory remains allocated and unusable.
+External fragmentation: there is enough total memory to satisfy the allocation request, but the memory is not contiguous.
+External fragmentation is typically associated with paging memory management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"29","3824","S027","Internal Fragmentation occurs when the allocated memory is larger than requested,leaving unused space inside the allocated block.
+External Fragmentation occurs when free space is scattered in small blocks and cannot satisfy a large allocation request.
+Internal Fragmentation is typical.","3","",""
+"30","6185","S081","'internal fragmentation' is typically associated with paging memory management scheme","1","缺少 Internal/External 定義說明，僅指出 Paging 對應 Internal",""
+"31","4634","S008","Internal Fragmentation is when allocate the memory when only part of the memory will be used, the non-used part of that allocated memory is called Internal Fragmentation. For External Fragmentation, it means that when frequently allocate and deallocate the memory, the memory is left with many small chunks of memory, although the overall size is large enough for a new memory allocation, however, due to its dis-continuous property, it cannot be utilized for a new memory request. Internal Fragmentation is associated with the Paging memory management scheme.","3","",""
+"32","4066","S078","Internal fragmentation: allocate to a page but it was not full.
+External fragmentation: have enough memory but it was not contiguous, can not put in.
+Paging memory management is to solve external fragmentation, but it will have internal fragmentation problem","3","",""
+"33","5471","S087","Internal Fragmentation:常出現在os分配固定記憶體的系統中，因為分配的記憶體比所需要的記憶體還要大而產生Internal Fragmentation。
+External Fragmentation:可用的記憶體其實是大於所需要的記憶體，但是因為可用的記憶體被分割成很多部分，所以造成External Fragmentation。
+Paging memory scheme常發生Internal Fragmentation。","3","",""
+"34","3297","S022","Internal fragmentation occurs when a process is allocated a larger memory space than its actual need. The memory spaces in the block that are not utilized are called the internal fragments. External fragmentation occurs when the total free memory size is large enough for a new process, however there's no enough contiguous space for a block. These spaces that are not utilized are the external fragments.
+
+Internal Fragmentation.","3","",""
+"35","6308","S110","the process size not fill with the allocated memory block, wasted memory called internal fragmentation
+the uncontinue part of memory seperated by allocated block is external fragmentation
+
+external fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""
+"36","3947","S082","Internal Fragmentation: when a page is assigned a larger frame size, there is some hole called internal fragmentation.
+External Fragmentation: when some processes are implemented, there are some noncontinuous holes with little size which can't be assigned to any page.
+
+Internal Fragmentation.","3","",""
+"37","5469","S105","Internal Fragmentation 表示分配給 process 的記憶體空間中，存在沒有被實際利用的空間。
+External Fragmentation 表示存在零碎記憶體空間，無法分配給 process 使用。
+
+Paging memory management 情境下會發生 internal fragmentation。","3","",""
+"38","3576","S111","Internal fragmentation發生於當memory給予了一個大於process所需的記憶體空間時，剩餘的部分稱為internal fragmentation.
+External fragmentation發生於memory已經切成多塊partition後，剩餘的孔洞，也就是不屬於任何一個process的memory即為external fragmentation.","1","External 定義偏差（未強調不連續概念）；未回答 Paging 對應問題",""
+"39","3850","S085","internal fragmentation: 給予程式過多記憶體空間，導致資源占用
+external fragmentation: 多次發配記憶體，導致空間細碎、不連續，難以再次配發
+external fragmentation is typically associated with the paging memory management scheme","2","Paging 答 External Fragmentation，應為 Internal",""
+"40","5748","S004","Internal fragmentation:記憶體以固定大小block配置，若block大於需求，則block內剩餘的空間沒辦法分配給其他process>
+External fragmentation:記憶體動態配置，空間被切成大大小小不連續的hole，即使總空間比需求大也可能找不到連續的block來滿足
+paging memory management會有internal fragmentation的問題","3","",""
+"41","2148","S011","Internal Fragmentation是process memory內部發生不連續。
+External Fragmentation是process和process之間的memory沒有連續。
+Paging 比較容易發生External Fragmentation。","0","Internal/External 定義兩者均錯誤；Paging 答 External",""
+"42","3168","S046","Internal Fragmentation: Occurs when fixed-size block is larger than the requested, wasting the unused space inside the block.
+External Fragmentation: Occurs when total free memory is sufficient but sccatered in non-contiguous gaps,   making it impossible to satisfy request.
+External is typically associated with the Paging memory management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"43","2197","S005","Internal Fragmentation:
+after fit in the hole will have little free space wasted
+
+External:
+scattered uncontiguous hole is too small to use and wasted
+
+Internal Fragmentation, paging memory usually will have average half page of wasted","3","",""
+"44","3995","S061","Internal Fragmentation: when a memory is larger than it need, the unused portion will wasted. we call it internal fragmentation.
+External Fragmentation: A memory is enough, but it is not contiguous. the gap between the memory cant be used, so we call it external fragmentation.","2","未回答 Paging 對應問題",""
+"45","2392","S014","internal:分配到的空間大於實際佔有的空間，剩下的部分浪費。
+external:剩餘總空間足夠，但分散成碎塊，無法被大於碎塊大小的利用。
+ 
+external","2","Paging 答 External Fragmentation，應為 Internal",""
+"46","3472","S028","1. internal fragmentation: 當可以使用的記憶體大於實際被使用的記憶體，一個block裡面就會有發生部分記憶體被allocated但是沒有再被使用，就是internal fragmentation，通常發生於fix-sized block的記憶體分配方式
+
+2. External fragmentation: 當實際可以被使用的記憶體是足夠的，但是因為記憶體被多次的allocate以及deallocate，導致產生多個gap / holes，發生記憶體的不連續，導致記憶體足夠，但無法完善分配的情況
+
+3. external fragmentation is typically associated with paging memory management scheme","2","Paging 答 External Fragmentation，應為 Internal",""
+"47","6284","S107","Internal fragmentation usually happens in fixed-size memory allocation, each allocated block of memory may leave some unusable space.
+External fragmentation happens when there are frequent memory reallocation and cause lots of noncontinuous memory block which can't be used.
+
+External fragmentation is typically associated with the paging memory management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"48","3851","S126","1.internal:是指記憶體內我們分出來的區域不一定能完全塞滿，剩下的太小也沒辦法塞其他的進來，就會造成 internal fragmention
+2.external:是指記憶體內會有各種不連續的區域，但都不夠大無法讓資料從外部近來
+3.external可以在paging memory management 中避免","2","Paging 答可避免 External，方向誤誤，應訊 Internal",""
+"49","5048","S017","內部碎屑是指當一個程式被分配到的memory大小比它需要的還大時，那些多出來空著的空間就是浪費掉的內部碎屑，通常發生在memory空間被切成固定block size的情況。
+
+外部碎屑則是明明memory整體有足夠空間放置一個新程式，但是因為這些可用空間零散分布著，沒有一個足夠的連續大空間能塞下這個程式，所以那些零散分布著的空間就是被浪費掉的外部碎屑
+
+paging機制就是解決外部碎屑的終極武器，使程式不需要連續的儲存空間，可以分散在memory各處，但內部碎屑依舊存在","2","Paging 對應答為解決 External，未明確指出 associated 為 Internal",""
+"50","4717","S115","Internel fragmentation happens when a process did not fill the attribute space, while External fragmentation occurs when there should be enough memory space but due to frequent attributing no big enough free space exists for the program. 
+External is associated with the management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"51","2726","S089","Internal : allocated的memory比task需求的還多造成block內的waste
+External : memory總量是夠的，但可能因為不連續等因素導致沒有適合(足夠大)的memory block可以用
+Internal","3","",""
+"52","4965","S009","Internal Fragmentation only focus on the allocated memory in logical memory. External Fragmentation will also focus on physical memory. Internal Fragmentation typically associated with paging memory management scheme.","2","Internal/External 定義誤以 logical/physical memory 區分，不精確",""
+"53","3375","S094","Internal Fragmentation：process<partitions，系統分配了一塊記憶體分割去給某個process，但這個區塊的一部分沒有被用到，導致浪費。
+External Fragmentation：雖然某些partitions空的，但因為切成太多小區塊，它們無法拼成連續大空間，導致空間沒有被有效利用。
+Internal Fragmentation","3","",""
+"54","6665","S066","Internal Fragmentation: 當分配給process的記憶體大於實際使用量時，未使用的部分稱為Internal Fragmentation。
+External Fragmentation: 因為記憶體分配不連續而產生因為空間太小而難以使用的分散空間，稱為External Fragmentation。
+Page memory management較易發生Internal Fragmentation。","3","",""
+"55","4315","S041","1.
+Internal: 分配給程序的空間遠大於實際所需
+External: 剩餘空間足夠但因為不連續而無法分配給新請求
+2.
+Internal","3","",""
+"56","4489","S031","Internal Fragmentation : 當固定大小區塊分配記憶體時，請求空間大小 < 區塊大小時，配置的區塊中沒有使用到的空間即為Internal Fragmentation。
+External Fragmentation : 當總記憶體加總起來還有空間，但都是不連續的，沒有連續空間可供請求空間大小使用，這時候就是External Fragmentation。
+External Fragmentation is associated with the Paging memory management scheme.","2","Paging 答 External Fragmentation，應為 Internal",""
+"57","5796","S116","Internal Fragmentation指的是當每一個process被分配到大於它所需的的記憶體空間時，那些沒有被用到的記憶體空間也不能再被分配到其他的process去做使用。導致記憶體空間白白浪類的情況。
+
+External Fragmentation指的是當一個process要運行時，明明記憶體內還有足夠的空間，但卻因為不是連續的記憶體空間而無法使用。這種情況出現在當記憶體空間被頻繁的分配和收回時，那些小的gap和hole不斷的累積。","2","未回答 Paging 對應問題",""
+"58","4267","S059","1. internal fragmentation: 當分配到的記憶體大於需求,內部會有多餘的空間沒有使用成為內部碎裂
+2. external fragmentation:總記憶體足夠但是因為碎裂四散於各處且為不連續，所以不能拿來當作記憶體空間使用,稱為外部碎裂
+
+internal fragmentation","3","",""
+"59","2540","S064","internal fragmentation是由於分配到的memory大於process所需，造成空間閒置、浪費
+external fragmentation則是雖然free block size總和大於process size，但由於不連續使得process無法使用，造成空間閒置
+
+internal fragmentation
+","3","",""
+"60","3819","S101","Internal Fragmentation: 一個被分配到區塊內部沒使用到的浪費。
+External Fragmentation: 外部不連續空間，無法被利用的區塊。
+當每個page被分配到太大的block，會發生internal fragmentation。","3","",""
+"61","5325","S103","1.
+Internal Fragmentation : 分配給程式的page大小比程式本身大很多, 導致page浪費
+External Fragmentation : 有很多個小page, 總容量大於程式本身, 但無法分配給程式使用, 浪費了那些小page
+2.
+External Fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""
+"62","5716","S104","Internal fragmentation occurs when a process is allocated more memory than it needs, and the small unused portion in the memory is remained. This occurs when the memory is allocated in fixed-size block, and requested size of memory allocation is smaller than the block size. the unused portion of the memory in the block is called internal fragmentation.
+
+External fragmentation occurs when there is enough total memory available to satisfy the allocation request.
+But the memory is nit contiguous in the block. This occurs when the memory is allocated and deallocated frequently, and leaving holes in the memory block that can not be used for a new memory allcation.","2","未回答 Paging 對應問題",""
+"63","4000","S023","Internal Fragmentation occurs when is allocated more memory than it needs, and the unused portion of the memory remains allocation and unusable.
+External fragmentation occurs when there is enough total memory available to satisfy memory allocation request, but  the memory is not contiguous or available in a single block.
+Internal Fragmentation is typically associated with the Paging memory management scheme.","3","",""
+"64","4100","S113","Paging會發生Internal fragmentation
+
+Internal fragmentation發生於a process is allocated more memory than it needs，and the unused memory remains allocated and unuseful.
+
+External fragmentation發生於memory裡有足夠的free-space去allocate 資料，但可能一直搬進搬出導致這些free space並非contiguous，所以沒辦法容納一個連續的大資料","3","",""
+"65","3938","S055","internal fragmentation:見於fixed size memory frame 例如page size 4KB,若process 1KB,其在MEMORY中仍然要占用4KB
+external fragmentation:見於 non-fixed size memory 指total memory space是夠用的,但找不到一個完整連續的空間給process
+
+internal fragmentation 常見於paging scheme
+
+
+
+
+","3","",""
+"66","3642","S119","1.internal fragment :記憶體被劃分成固定的區塊，process要求的記憶體大小小於固定區塊的話，在那些固定的區塊裡面的空間就會被浪費，無法再進行配置。
+external fragment:記憶體進行動態配置，process頻繁的進入與移除會導致出現一些不連續的hole，這些不連續的hole無法再進行配置。
+
+2.external fragment","2","Paging 答 External Fragmentation，應為 Internal",""
+"67","4625","S067","Internal Fragmentation:是指當記憶體分派一個超過程式所需要的大小給他,這個多出來的區域無法再被其他人使用,閒置在那邊
+
+External Fragmentation:當我剩餘記憶體總和超過我想要載入的程式時,但由於所剩下的記憶體空間不是連續的,可能是由許多小片段組合在一起的,這種情況就是External Fragmentation
+
+Internal Fragmentation","3","",""
+"68","5639","S076","Internal Fragmentation occurs when more memory is allocated than is required. The memory remains allocated and unused. The unused portion is referred to as internal fragmentation.
+External Fragmentation occurs when there is enough total memory, but the constant allocating and deallocating of memory results in holes or gaps in a block. These gaps accumulate, but because they are not in a single block, a large allocation request cannot be satisfied even though there is enough total memory available. 
+Paging memory management scheme is associated with Internal Fragmentation. ","3","",""
+"69","5190","S074","Internal Fragmentation: entails a phenomenon where allocated memory if big than the required space so the empty disk or memory can not be used by other process that require space. It happens intenally do to space allocated being big than the space actually occupied.
+
+External Fragmentation: entails a phenomenon where a process can not get space to the memory even if the free memory is available because it has been assigned to other process which is caused by internal fragmentation.","1","External 定義錯誤（混淤為已分配空間被占用）；未回答 Paging",""
+"70","3466","S063","Internal Fragmentation happens when memory in block is wasted. It often happen when system allocates fixed-sized block for the processes.
+External Fragmentation happens when the amount of the free space is enough for the needed memory, but the free space is not  contiguous that is can not be used.
+Internal fragmentation is related to Paging memory management scheme. As the page size changing, the internal fragmentation will changing.","3","",""
+"71","5450","S090","Internal fragmentation: When the process is allocated the memory(frames or blocks) that is larger than the process, than the unused part of memory(in frames of blocks) is called internal fragmentation.
+External fragmentation: Memory(holes) is enough, but since they are not continuous, it can not allocate to process. These holes is called external fragmentation.
+Internal fragmentation is associated with paging.","3","",""
+"72","4591","S100","Internal fragmentation occurs when we have fixed size of each frame, and the frame size is too large for one process such that the remaining size of frame is wasted.
+
+External fragmentation occurs when we allocate and free memory too often, and it causes that there are many hole, that is, non-contiguous memory segment in memory. Even thought the size of those hole is sufficient for one process, we still cannot allocate memory to the process due to the non-contiguous memory.
+
+Paging memory management is associated with the internal fragmentation due to the fixed size of page frame.
+","3","",""
+"73","3922","S114","Internal Fragmentation 是 分配給process 的記憶體空間還有剩，並且這些剩餘的空間不能給其餘process 使用
+
+External Fragmentation 是指 contiguous memory 的情況下，找不到一個free hole 可以容下request memory 的process size 但是所有的free hole size 加總又超過於該 process size . 
+
+跟paging 相關的是 Internal Fragmentation . ","3","",""
+"74","2531","S038","1.internal fragmentation=a process memory not fit to all avalible hole so break to 2 or more segment
+2.external fregmentation=a  process required memory is not divide to page size and make last page have some wasted memory
+3.external fragmentation","0","Internal/External 定義互換錯誤；Paging 答 External",""
+"75","4694","S047","Internal: 因為每個區塊分配的記憶體大小是一樣的，但程式實際用到的記憶體沒有那麼多，區塊剩下的記憶體就浪費了
+External: 有足夠的記憶體可以用，但因為程式需要連續的記憶體，沒有那麼多連續的記憶體可以分配
+
+Paging通常造成 Internal Fragmentation，因為切出來的記憶體大小是一樣的，剩下的空間就浪費掉了","3","",""
+"76","3901","S044","1. internal fragmentation happens when the process is assigned the memory block larger than it needs.
+
+2. external fragmentation happens when the available memory is large enough for the requested memory allocation, but the available memory isn't contiguous or it cannot be accessed by single block.
+
+3.internal fragmentation","3","",""
+"77","3842","S075","internal:給予一個process的memory大於實際需求本身，會導致process指派的memory""內部""有空隙
+external: memory的剩餘空間雖理論上足夠給一個process，但這些空間在memory是分散的(frag)因此process無法使用剩餘的memory
+
+paging memory management scheme:只會有internal fragmentation問題","3","",""
+"78","3638","S030","internal fragmentation 指的是分配給 process 的 memory 有特定單位的大小(像是 page )，process 並沒有用完那特定單位的 memory 導致了記憶體閒置。
+
+external fragmentation 指的是 因多個 process 在記憶體空間裡導致其不連續或其他因素限制 就算 memory 有足夠大小塞下新的 process ，也無法放進去，常發生於 continuous allocation 上
+
+paging memory management 解決了 external fragmentation 但存在 internal fragmentation","3","",""
+"79","4575","S106","Internal Fragmentation means that the allocated block size is greater than actual requirement , as example , a process may only require 1Byte  but it will be allocated for a page which is 4KB . 
+External fragemntation means that there is actually enough memory space for allocating but it cannot be allocated since the memory space isn't continious . 
+ 
+external fragmentation is associated . ","2","Paging 答 External Fragmentation，應為 Internal",""
+"80","4238","S019","Internal Fragmentation is space not used in allocated page frame, and External Fragmentation is non-contiguous free space.
+ 
+Internal Fragmentation is typically associated with the paging memory management scheme. ","3","",""
+"81","3053","S020","1. Internal Fragmentation is caused by the remaining size of a page is not enough for the request memory
+    External Fragmentation is because of the non-continuous memory
+2. Internal Fragmentation","2","Internal 定義描述不清晰（說 page 剩餘不夠用，概念艷畀）",""
+"82","2925","S010","Internal fragmentation occurs when memory allocated for a process is not used up by the process.
+External fragmentation occurs when there is enough available memory for a process, but the memory is not contiguous.
+Internal fragmentation is associated with the paging memory.","3","",""
+"83","5286","S091","internal fragmentation ","0","內容完全空白，無任何說明",""
+"84","4903","S051","Internal is associated with Paging memory management scheme, which means there are memory that are not use in page.
+External means there are memory not use between two partitions of memory using by other process.","2","External 定義偏差（說成 partition 間未用空間）",""
+"85","4042","S039","internal: memory allocated is larger then process' need, cause the unuse memory cannot be use by other process
+external: there are many unallocated memory which is too small and scattered so it is hard to fulfill the large memory request
+
+external fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""
+"86","3271","S018","internal fragmentation:當process被分配的memory比他需要的多，就會產生其他process無法使用的空間。
+external fragmentation:目前總共的可分配memory足夠滿足一個process的需求，但因為它們是分散在各地的空間並沒有連續一個block使得無法使用分配。
+internal fragmentation，因為page為固定的分割空間並不會有external fragmentation的問題，但當page空間用不滿則會發生internal fragmentation。","3","",""
+"87","3802","S049","internal fragmentation process被分配到的空間比它需要的還多 導致浪費memory
+external fragmentation memory spcae還有足夠的空間 但分布過於零碎導致浪費
+paging memory導致internal fragmentation","3","",""
+"88","4804","S053","Internal fragmentation:當paging後，程式不需要每個block那麼大的空間，block中剩餘的空間就浪費了
+Exteral fragmentation:在連續空間中，雖然有充足的空間但不連續導致process放不下，可以透過paging解決","3","",""
+"89","4023","S092","internal fragmentation: a process page in a block is smaller than the block size, and some space is not used, for example, a block size is 4KB, but the page is only 3KB, means 1KB space is not used, then this 1KB space is internal fragmentation.
+
+external fragmentation: when the pages are allocated into the blocks in the memory, there are some small space between blocks, if a large contiguous page are now allocated, it do not have space for allocation, the small space between blocks is external fragmentation.
+
+external fragmentation is typically associated with the paging memory management scheme.","1","External 定義混淤（說 blocks 間隙）；Paging 答 External，應為 Internal",""
+"90","3671","S125","internal fragmentation:分配給程式的內部空間太大，導致浪費空間中的記憶體ex.空間50MB 程式30MB
+external fragmentation:外部雖然總的剩餘空間足夠，但是沒有夠大或是連續的空間能去分給程式，造成浪費","2","未回答 Paging 對應問題",""
+"91","6379","S021","internal fragmention-when space is fixed block,the request of memory size is smaller than it's block size.let tiny holl is unused.
+external fragmetion-the memory space is enough ,but the memory  space is not contiguous,so let some space is not used ","2","未回答 Paging 對應問題",""
+"92","4529","S050","Internal Fragmentation: the allocated memory of the process is too big (has left some memory didn't used).
+External Fragmentation: there's still enough memory, but they aren't contingous that makes the memory hard to allocated to other process. And is associated with paging memory management scheme.
+","2","Paging 答 External Fragmentation，應為 Internal",""
+"93","3478","S036","internal fragmentation : 分配過大的記憶體導致內部有沒使用的記憶體造成浪費。
+external fragmentation:將記憶體分配太過零散導致剩餘的記憶題空間總量雖然足以分配給下一個process但因為不連續無法分配給他。
+
+external fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""
+"94","3555","S048","1. Internal fragment指的是在資源分配多出來的時候，被分成很多塊中，會有一塊的memory中部份沒有被占滿，而那塊就稱為Internal fragment
+External fragment指的是資源被分成很多塊的時候會有比較小的hole是沒有被占用的，因為會去使用比較大塊的memory，而造成會有不連續的被使用的狀態
+2. external fragment","1","External 定義偏差；Paging 答 External，應為 Internal",""
+"95","6179","S112","Internal Fragmentation means allocating a fixed space, but leaving some unused. For instance, the fixed space is 100, using 80 of it and leaving 20 unused. 
+External fragmentation means that although the whole space is enough, every space is too small to be put in a fragmentation. For example, there are three small spaces: 20,20,20, so the whole usable area is 60. If the fragmentation is 50, it still cannot be put into the space because every space is too small. 
+External fragmentation is associated with the paging memory management scheme. 
+","2","Paging 答 External Fragmentation，應為 Internal",""
+"96","3361","S006","1. internal fragmentation:  process 沒有辦法填滿 frame 的部分
+2. external fragmentation: 連續 allocate, deallocate 後在記憶體上產生非連續的空洞
+3. internal fragmentation: 如果 page size 給太大很容易被造成","3","",""
+"97","4791","S026","Internal fragmentation:記憶體提供的比實際需要的大,剩餘的用不到
+external fragmentation:記憶體剩餘的區塊小且不連續,無法再放一區塊","2","未回答 Paging 對應問題",""
+"98","6334","S057","Internal Fragmentation : 指提供的記憶體大於所需要的空間，造成有多餘的記憶體無法使用
+Extermal Fragmentation : 指提供所需記憶體，有許多的空隙不連續性，造成所需空間無法使用，造成浪費。","2","未回答 Paging 對應問題",""
+"99","6246","S002","Internal fragmentation: The allocated memory size is larger than the needed memory in block, which may waste unused memory.
+External fragmentation: The allocated memory size is large enough but not continuous to use, which may be caused by frequently allocation and deallocation.
+internal fragmentation is typically associated with the paging memory management scheme. Large page size may increase internal fragmentation.","3","",""
+"100","5837","S007","(a) The internal fragmentation describes a process requests lots memory but its real usage is not that much, or the page table has larger block size than actually needed. The external fragmentation describes processes keep allocate and deallocate memory block, making the memory not continuous, leaving lots fragment holes in the memory but the total free memory is still high.
+(b) Therefore, internal fragmentation is typically associated with the Paging memory management scheme.","3","",""
+"101","6081","S016","1.Internal Fragmentation:在一個固定的記憶體區塊裡,程序所分配到的空間大小大於本身所需,以至於有多餘的空間被閒置,我們稱為internal fragmentation。
+External Fragmentation:在所有記憶體裡,雖然有足夠的容量,然而其空間卻是不連續性的,以至於無法提供給所需程序,而產生的空洞我們稱為External fragmentation。
+2.Internal fragmentation","3","",""
+"102","5637","S083","內部碎片：是指程式執行所分配到的記憶體，比實際須求還大，此現象未使用的空間稱為內部碎片化。
+外部碎片：是指使用的記憶體被分散小單位且不連續記憶體空間，縱使總容量足夠但因碎片化而使程序可能無法執行。","2","未回答 Paging 對應問題",""
+"103","3641","S088","internal fragmeantation: process被分配到太多memory，導致多餘的部分沒辦法被利用浪費掉
+external fragmentation: total memory足夠滿足memory allocation，但沒有夠大的contiguous block能滿足memory allocation request
+internal fragmentation","3","",""
+"104","4847","S058","internal fragmentation: a process get a memory page larger then it need, and the remaining part can't be used by others.
+external fragmentation: the remaining total memory is enough to use, but it is not contiguous, so can not be used.
+the internal fragmentation is associated with the paging memory management scheme.","3","",""
+"105","4308","S043","Internal fragment:通常發生於固定block大小的情況。所需的記憶體空間小於被分配到的記憶體空間，其中多餘的unused memory部分就稱為內部碎裂。
+External fragmentation : 總記憶體空間可分配給所有所需的使用者，但當頻繁的使用或釋放記憶體空間可能導致，總記憶體還有空間，但這些空間是分散在整個記憶體空間的，太小以至於無法再分配給其他人使用，就稱為外部碎裂。
+
+internal fragmentation is typically associated with the paging memory management scheme.","3","",""
+"106","2953","S060","internal fragmentation: 被分配到比需求更大的memory，可能發生在系統被切好fixed-size block后需要的memory比block小，block中用不到的就叫做internal fragmentation
+external fragmentation 指系統有足夠的空間，但是沒有連續或可用的空間來分配。因爲系統頻繁allocated 和dealocated之後在memory space留下了holes和gaps并且小到無法應對新的allocation所以到最後就會有這個狀況","2","未回答 Paging 對應問題",""
+"107","3107","S024","internal fragmentation: when the memory is allocated enough for the process to execute, but there is still some part of memory frame allocated are not used, this may happen when the frame is sliced into same size pages.
+external fragmentation: when the memory is allocated and deallocated to process to execute frequently, and the allocated frames are not contiguous, different size, that will result in many little part of memory (holes) are not usable to the process.
+the internal fragmentation is associated with the paging memory management scheme.","3","",""
+"108","6332","S095","internal fragmentation 是當一個process被分配的memory比他需要的還多的時候，那些沒有用到的memory就是internal fragmentation.
+external fragmentation是total memory space是足夠的，但因為這些memory不是contiguous所以process找不到一個足夠大的contiguous memory.
+internal fragmentation is typically associated with the page memory management scheme.","3","",""
+"109","3495","S077","internal fragmentation occurs when the allocated page is more than actual needed size. 
+external fragmentation occurs when the physical memory do not have enough contiguous space to allocate.
+
+internal fragmentation is associated with paging memory management scheme.","3","",""
+"110","3252","S120","Internal Fragmentation: The frame is too large for the page which is distributed to this frame, which is a waste of space.
+External Fragmentation: The total amount of RAM is enough for a process but not contiguous.
+Internal Fragmentation","3","",""
+"111","4780","S073","internal fragmentation:指當一process被分配到的記憶體大於需求時，並且多出來的空間不能被其他process使用，此現象稱為internal fragmentation
+external fragmentation:指記憶體空間太多零碎的小空間，當新的需求進來而沒有一個連續空間可以滿足他，此現象稱為external fragmentation","2","未回答 Paging 對應問題",""
+"112","3676","S069","internal fragmentation:他是分配的frame size 大於 process所需要的，而那些沒被用到的浪費的部分就叫做internal fragmentation
+external fragmentation:他是memory 有足夠的空間但是因為他不是連續地所以無法allocate 給process,這會發生在頻繁的allocate deallocate的情況造成memory 有 gap or hole這些hole沒辦法被利用就浪費了
+paging memory management主要會發生internal fragmentation
+","3","",""
+"113","6050","S072","Internal Fragmentation: 發生在固定的block size時， process size沒有block size 這麼大，但該block也無法放其他process了，造成一個block的內部有memory space不能使用。
+
+External Fragmentation: 雖然memory中有足夠的空間可以放某個大小的process, 但由於這些空間不是連續的，因此無法使用，為block跟block之間的空間浪費。","2","未回答 Paging 對應問題",""
+"114","3095","S042","internal fragmentation: the process or program is allocated more memory than it needs, the unused portion is allocated and unusable.
+external fragmentation: there is enough total memory available to access memory allocation request, but the memory is not contiguous and available in the single block.
+internal fragmentation is typucally associated with the paging memory management scheme.","3","",""
+"115","3646","S071","1.internal fragmentation是指一個process被分配到的frame大於該process實際要用的，剩下浪費的部分就是internal fragmentation
+2.external fragmentation是指整個memory分配時，每個process之間空著的memory，因為是不連續的，所以無法滿足process的需求
+3.paging memory management會發生internal fragmentation","3","",""
+"116","5431","S062","Internal Fragmentation: unused memory of a partition.
+External Fragmentation: unused partitions
+Internal Fragmentation, because Large Page size system will increase internal fragmentation ,and external fragmentation may be eliminated.","3","",""
+"117","4127","S045","internal 是一個portion還有空間但是別人不能用 external 則是全部portion加起來還有足夠的空間但因為連續的關係所以不能用。external fragmentation is associated with paging memory management scheme","2","Paging 答 External Fragmentation，應為 Internal",""
+"118","5924","S056","Internal Fragmentation is allocated by fixed block, but it may have some space. For example, the fixed space is 200, it will use 180 of it and release 20 unused.
+External Fragmentation is used when although space is enough, but each space is too small to put in a fragmentation. ","2","未回答 Paging 對應問題",""
+"119","4662","S029","內部碎片是當分配到的frame大於進程執行所需的frame 使得裡面有記憶體空洞，浪費資源。外部碎片是當系統的總記憶體大於執行進程所需，使得整體記憶體有不連續的記憶體空洞。外部碎片is typically associate with paging memory management scheme","2","Paging 答 External Fragmentation，應為 Internal",""
+"120","4057","S065","1.Internal fragmentation：記憶體在以分配的區塊內浪費。分配的記憶體比所需要的記憶體多。
+external fragmentation：記憶體在以分配的區塊外浪費。總記憶體足夠，但因為不連續所以無法使用。
+
+2.Internal fragmentation。","3","",""
+"121","6320","S025","Internal Fragmentation happen when a process has been allocated frames but partition of which remain unused.
+External Fragmentation happen when the frames has been allocated to programs but hard to find continous partitions to allocate frame to other process. 
+External Fragmentation is typically associated with the paging memory management.","2","Paging 答 External Fragmentation，應為 Internal",""
+"122","4615","S098","Internal Fragmentation:當file分配到的block大小大於本身，會造成memory space浪費。
+如:31KB file被分配到32KB 的block造成1KB memory space 浪費
+External Fragmentation:因為file分配到的空間是連續的，導致memory space中有少量的空間沒被分配到(不連續)，但實際上這些空間的實際大小仍可分配給其他file
+External Fragmentation","2","Paging 答 External Fragmentation，應為 Internal",""

@@ -102,6 +102,8 @@ _MODEL_MAP: dict[str, str] = {
     "openai-mini": "gpt-5.4-mini",
     "openai-mini-medium": "gpt-5.4-mini",
     "deepseek-v4": "deepseek-v4-flash",
+    "deepseek-v4-flash": "deepseek-v4-flash",
+    "deepseek-v4-pro": "deepseek-v4-pro",
     "deepseek-v4-thinking": "deepseek-v4-flash",
 }
 
@@ -150,6 +152,8 @@ MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
     "openai-mini": 272_000,
     "openai-mini-medium": 272_000,
     "deepseek-v4": 1_000_000,
+    "deepseek-v4-flash": 1_000_000,
+    "deepseek-v4-pro": 1_000_000,
     "deepseek-v4-thinking": 1_000_000,
 }
 
@@ -160,6 +164,8 @@ MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "openai-mini": 12_000,
     "openai-mini-medium": 12_000,
     "deepseek-v4": 12_000,
+    "deepseek-v4-flash": 12_000,
+    "deepseek-v4-pro": 12_000,
     "deepseek-v4-thinking": 12_000,
 }
 
@@ -171,6 +177,8 @@ PRICING: dict[str, dict[str, int]] = {
     "openai-mini": {"input": 75, "output": 450},
     "openai-mini-medium": {"input": 75, "output": 450},
     "deepseek-v4": {"input": 14, "output": 28},
+    "deepseek-v4-flash": {"input": 14, "output": 28},
+    "deepseek-v4-pro": {"input": 55, "output": 219},
     "deepseek-v4-thinking": {"input": 14, "output": 28},
 }
 

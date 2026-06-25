@@ -1,0 +1,32 @@
+{
+  "blind_grading": true,
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "downloaded_artifacts": [
+    {
+      "filename": "grade.csv",
+      "id": "89b31ece-3a4a-4449-927e-bfebd2bc6e3d",
+      "local_path": "reports/qjudge-paper-experiments/exam2-diverse-openai-mini-medium-dataset-20260526-150913/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/openai-mini/grade.csv",
+      "updated_at": "2026-05-26T15:10:41.564691+08:00"
+    },
+    {
+      "filename": "rubric.md",
+      "id": "57b868e4-32fc-495e-9e36-42685f4a3d3e",
+      "local_path": "reports/qjudge-paper-experiments/exam2-diverse-openai-mini-medium-dataset-20260526-150913/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/openai-mini/rubric.md",
+      "updated_at": "2026-05-26T15:09:40.307534+08:00"
+    }
+  ],
+  "ended_at": 1779779459,
+  "human_baseline_path": "reports/qjudge-paper-experiments/exam2-diverse-openai-mini-medium-dataset-20260526-150913/runs/5b9d59d3-4c5a-44ff-81ff-932d69c8cf82/openai-mini/human_baseline.csv",
+  "model_id": "openai-mini",
+  "official_grades_modified": false,
+  "question_context_artifact_id": "5ab0e454-f1c9-4159-95e9-eccc87884af4",
+  "question_id": "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82",
+  "run_id": "88211967-924b-4b13-96e8-6beae2fb0ebc",
+  "seed_artifact_id": "89b31ece-3a4a-4449-927e-bfebd2bc6e3d",
+  "session_id": "a843ad81-38b7-4ee3-a2df-886b79733960",
+  "started_at": 1779779354,
+  "terminal_event_type": "run_completed",
+  "user_id": null
+}

@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "List two advantages of kernel-level threads over user-level threads.",
+  "question_id": "199417a2-c63c-436e-8a8d-869d348dbbdd",
+  "question_type": "essay",
+  "reference_answer": "a. Multiprocessor utilization (can run on different CPUs).\nb. One thread blocking doesn't block the entire process."
+}

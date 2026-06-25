@@ -1,0 +1,362 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","11694","S109","初始化:out(""sem"") N 次
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"2","13208","S015","Initialize: Repeat `out(""semaphore"")` for N time
+
+For accessing semaphore, use `in(""semaphore"")` to acquire and `out(""semaphore"")` to release.","3","",""
+"3","14648","S054","initialization：執行 out(""sem"") N次
+wait：in(""sem"")
+signal：out(""sem"")","3","",""
+"4","14291","S117","initialization: out(""sem"") N times
+wait: in(""sem"")
+signal: out(""sem"")","3","",""
+"5","12770","S093","wait(): in(""sem"")
+signal(): out(""sem"")
+initialized: n次out(""sem"")","3","",""
+"6","13340","S012","initalized: out(""sem"") for N times
+wait: in(""sem"")
+signal: out(""sem"")","3","",""
+"7","13142","S108","out(""sem"") 做 N 次，此可以將 semaphore 的初始值設為 N，wait 使用 in(""sem"")，signal 使用 out(""sem"")
+","3","",""
+"8","13033","S099","初始化: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"9","12898","S070","initial():out(""sem"")*N
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"10","14617","S080","initialization: out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"11","11843","S003","Init: out(""sem"") N times
+Wait: In(""sem"")
+Signal: out(""sem"")","3","",""
+"12","13630","S035","1. Initialization : execute out(""sem"") for N times
+2. Wait : execute in(""sem"")
+3. Signal : execute out(""sem"")","3","",""
+"13","15121","S037","for range(0,N)
+     out(""sem"")
+
+put N lock tuples to tuple space","1","僅描述初始化（for loop out N 次），未提供 wait/signal 的 Linda in/out 操作",""
+"14","13598","S097","init: out(""sem"")
+wait: in(""sem"")
+signal:  out(""sem)","2","初始化未標明 N 次（僅 out(""sem"") 一次），signal 語法錯誤",""
+"15","11402","S013","initialized: executed out(""sem"") N times
+in(""sem"")
+out(""sem"")","3","",""
+"16","14083","S040","Initialization: out(sem) N time
+wait: in(sem)
+signal: out(sem)","3","",""
+"17","11601","S124","out(""sem"") N times -> initializing the counting semaphore to N by adding n (""sem"") tuples to the tuple table
+in(""sem"") -> decrement 1 to the counting semaphore as we remove one (""sem"") tuple from the tuple table, blocks if there is no (""sem"") tuple present (ie waits if counting semaphore = 0)
+out(""sem"") -> increment 1 to the counting semaphore as we add one (""sem"") tuple to the tuple table ","3","",""
+"18","14582","S121","Initialisation : out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"19","11961","S068","out(sem, 0)  # 初始化
+in(sem, N)
+out(sem, N)","1","使用非 Linda 標準語法 out(sem,0)/in(sem,N)/out(sem,N)，誤解 Linda primitive 用法",""
+"20","12810","S102","initial: 執行n次 out(""sem"")
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"21","13139","S034","execute out(""sem"") N times","1","僅描述初始化 out(""sem"") N times，未提供 wait/signal 的 Linda in/out 操作",""
+"22","11930","S084","Initialization : execute out(""sem"") N times
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"23","13423","S079","initialize: out('sem') for N times
+write: in('sem')
+equal: out('sem')","3","",""
+"24","11821","S122","initilization: out(""sem"") 執行n次
+wait:in(""sem"")
+signal:out(""sem"")","3","",""
+"25","13041","S086","Initialization: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"26","14368","S052","Initialization: out(""sem"") N times
+wait() (acquire lock): in(""sem"")
+signal() (release lock): out(""sem"")","3","",""
+"27","13066","S033","initialization:execute out(""sem"") for N times
+wait():in (""sem"")
+signal():out (""sem"")","3","",""
+"28","13979","S123","Initialization: executing out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"29","12758","S027","Initialization:out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"30","11713","S081","initialization- out (""sem"")
+wait-in(""sem"")
+change- out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"31","14399","S008","out(""sem"") (use this for N times in the initialization)","1","僅描述初始化（out N 次概念），未提供 wait/signal 的 Linda in/out 操作",""
+"32","11216","S078","initial: out(""sem"") n time
+call : in(""sem"")
+break : out(""sem"")","3","",""
+"33","12382","S087","Initialization:執行out(""sem"") n次
+wait:in(""sem"")
+signal:out(""sem"")","3","",""
+"34","12208","S022","Initialize: out(""sem"")
+Wait: in(""sem"")
+Release: out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"35","14066","S110","initilization: out(sem) * N
+wait: in(sem)
+signal: out(sem)","3","",""
+"36","14633","S082","initial: out(sem) N times
+write(): in(sem)
+signal(): out(sem)","3","",""
+"37","12109","S111","初始時 : out('smp') n次
+signal() : out('smp')
+wait() : in('smp')","3","",""
+"38","13008","S085","初始化: out(""sem"")，N次
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"39","13157","S004","initialization:執行out(""sem"")N次
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"40","12757","S046","Initialization: execute out(""sem"") N times 
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"41","11919","S005","Initialization : Out(""sem"") N times
+Wait :   In(""sem"")
+Signal : Out(""sem"")","3","",""
+"42","11706","S014","initialization:execute out(""sem"") counter N
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"43","12700","S107","initiate(): execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"44","13750","S126","initialize: 執行N次 out(""sem"")
+wait() :  in(""sem"")
+signal() : out(""sem"")","3","",""
+"45","15893","S017","initialization : out(""sem"") N times    相當於N個可用資源
+wait() : in(""sem"") 
+signal() : out(""sem"")","3","",""
+"46","11897","S115","initialize: out(""sem"") n times
+wait: in(""sem"")
+signal; out(""sem"")","3","",""
+"47","12711","S089","Initialization : execute out('sem') N times
+wait() in('sem');
+signal() out('sem')","3","",""
+"48","12487","S009","Initialization: out(""sem"") for n times
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"49","13850","S094","Initialization ：execute out(""sem"")N times
+wait()：in(""sem"")
+signal()：out(""sem"")","3","",""
+"50","13890","S066","initialization: execute out(""sem"")  N times
+wait():in(""sem"") 
+siginal():out(""sem"") ","3","",""
+"51","12932","S041","Init. :       out(""sem"")
+wait() :    in(""sem"")
+signal() : out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"52","15919","S031","初始化 : out(""sem"") N times
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"53","12826","S116","Initiazation: out(""sem"") n time
+wait:out(""sem"")
+signal: in(""sem"")","1","wait/signal 的 in/out 寫反：wait 用 out，signal 用 in",""
+"54","13973","S059","Initialization: execute out(""sem"") N times
+wait: in(""sem"")
+signal: out(""sem"")","3","",""
+"55","13054","S064","initialization：out(""sem"")
+wait()：in(""sem"")
+signal()：out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"56","14124","S101","Initialization: out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"57","13021","S103","initialization : execute out(""sem"") N time
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"58","11847","S104","initialization: out(""sem"") N次
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"59","14128","S023","Initialization: out(""sem"")
+wait(): in(""sem"")
+signal(): out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"60","12666","S113","initialize:out(""sem"") N次
+wait():in(""sem"")
+signal():out(""sem"")","3","",""
+"61","13092","S055","初始化: out(""sem"") N次
+當需要存取時 in(""sem"")
+當存取結束時 out(""sem:)
+","3","",""
+"62","13407","S119","Initialization: execute out("" sem "")N times
+wait(): in("" sem "")
+signal: out("" sem "")","3","",""
+"63","13165","S067","initial:out(""sem"") N times
+wait:in(""sem"")
+signal:out(""sem"")","3","",""
+"64","14523","S076","Initialization: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"65","11983","S074","initialization(): out
+wait(): in (""sem"")
+signal(): out (""sem"")","1","初始化僅寫 out 未給 tuple 名稱且未標 N 次；wait/signal 正確但整體不完整",""
+"66","13732","S063","Initialization: out(""sem"")
+wait() : in(""sem"")
+signal() : out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"67","13101","S090","Initialization: out(""sem"") for N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"68","11913","S100","Initialized : out(cnt) N times.
+Wait : in(cnt)
+Signal : out(cnt) ","3","",""
+"69","15681","S114","out(N)","0","僅寫 out(N)，無 tuple 名稱、無 wait/signal，完全錯誤",""
+"70","13525","S038","out(""sem"") n times to initial
+in(""sem"") : when wait
+out(""sem""): when signal","3","",""
+"71","12788","S047","init：out(key)  * N 建立 N 個 key 推到 tuple 裡面
+wait：in(key) 就會自己等待可以用的時候拿一個
+signal：out(key) 會推一個到 tuple 去釋放一個 couting semaphore","3","",""
+"72","14996","S044","initialization : out(""sem"") N times
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"73","13159","S075","initiated: out('a') n times
+counting(a--): in('a')
+finish(a++): out('a')","3","",""
+"74","13053","S030","原理 :  signal() = in(""sem"") wait ()= out(""sem"")
+初始化 to n 的方法 :  執行 n 次 in(""sem"")","0","signal/wait 的 in/out 完全寫反，且初始化用 in 而非 out，概念根本錯誤",""
+"75","12868","S106","initialization : out(""sem"") for N times 
+wait : in(""sem"")
+signal : out(""sem"")","3","",""
+"76","13462","S019","Initialization : 執行 out(""sem"") N 次
+Wait() : in(""sem"")
+Signal() : out(""sem"")
+","3","",""
+"77","12623","S020","Initialization: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"78","13283","S010","initialize: out(""sem"") for N times.
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"79","13263","S091","Initialization : execute out(""sem"") N times
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"80","12922","S051","execute out(""sem"") N times means that we have N resources.","1","僅解釋初始化 out N 次的意義，未提供 wait/signal 的 Linda in/out 操作",""
+"81","12480","S039","initialize: out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"82","13114","S018","initialize: execute out(""sem"") N times
+wait: in(""sem"")
+signal: out(""sem"")","3","",""
+"83","12695","S049","initializing: out(""sem"")
+wait():in(""sem"")
+signal():out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"84","13301","S053","initialization out(sem) * N times
+wait                in(sem)
+signal             out(sem)","3","",""
+"85","13670","S092","initialization: out(""sem"", N)
+wait: in(""sem"", 1)
+signal: out(""sem"", 1)","2","使用非 Linda 標準語法 out(""sem"",N)/in(""sem"",1)/out(""sem"",1)，概念可但語法有誤",""
+"86","12492","S125","initialized():out(""sam"")
+wait():in(""sam"")
+signal():out(""sam"")","2","初始化未標明 N 次（僅 out(""sam"") 一次）",""
+"87","11962","S021","initialization:out(""sem"")
+wait:in(""sem"")
+signal:out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"88","13274","S050","out(""sem"") for n times
+in(""sem"")
+out(""sem"")","3","",""
+"89","13023","S036","initialized:out(""sem"")
+wait():in(""sem"")
+signal():out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"90","12852","S048","Initialization : out(""sem"") N times
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"91","13383","S112","Initialization: out('sem') N times
+write(): in('sem') 
+signal(): out('sem')","3","",""
+"92","12951","S006","sem = n
+init, out(""sem""), 或改成 out n times, 不太確定 linda 怎用
+wait, in(""sem-1"")
+signal, out(""sem+1) ","1","使用 sem=n 非 Linda 語法；wait/signal 用 sem-1/sem+1 錯誤；學生自述不確定",""
+"93","13304","S057","Initial : Out( ""sem"" )
+Wait : In( ""sem"" )
+Signal : Out( ""sem"" )","2","初始化未標明 N 次（僅 Out(""sem"") 一次）",""
+"94","15518","S002","initialization: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"95","13150","S007","out(""sem"") x N times / in(""sem"") / out(""sem"")
+
+Initialize / Wait / Release","3","",""
+"96","12472","S118","wait(): IN(""SEM"", N)
+signal(): OUT(""SEM"", N)","0","缺少初始化；wait/signal 使用 IN/OUT 大寫且帶數值參數 N，未正確展示 Linda 語法",""
+"97","16195","S016","初始化:out(""sem"")
+wait():in(""sem"")
+signal():out(""sem"")","2","初始化未標明 N 次（僅 out(""sem"") 一次）",""
+"98","16144","S083","1. 初始化：執行out(""sem"") N次。
+2.wait():進入""sem""狀態。
+3.signal()：退出""sem""狀態。","2","初始化正確（out N 次），但 wait/signal 僅用中文描述概念，未寫出 Linda in/out primitives",""
+"99","13451","S088","initialization : 執行out(""sem"")N次
+wait() : in(""sem"")
+signal() : out(""sem"")","3","",""
+"100","14532","S058","initialization : execute out(""sem"") N times
+wait(): in(""sem"")
+signal: out(""sem"")","3","",""
+"101","12407","S043","initialization:out(''sem'') of N times
+wait():in(''sem'')
+signal():out(''sem'')
+","3","",""
+"102","12256","S060","out(""sem"") N times
+in(""sem"")
+out(""sem"")","3","",""
+"103","12822","S024","initialization:execute out(""sem"") N times
+wait(): in (""sem"")
+signal(): out(""sem"")","3","",""
+"104","13189","S095","initialization():out(""sem"")
+wait():in(""sem"")
+signal():(""sem"")","1","初始化未標 N 次；signal 漏寫 out primitive，僅寫 (""sem"")",""
+"105","13587","S077","Initialize:  out(""sem"") N times
+wait: in(""sem"")
+signal: out(""sem"")","3","",""
+"106","12816","S120","Initialize: out(""sem"") n times
+Wait: in(""sem"")
+Signal: out(""sem"")","3","",""
+"107","15822","S073","initial:out('sem'):在初始化時，將tuple sem 放入tuple space
+wait: in(""sem""):執行wait時，將sem從tuple space取出
+signal:out('sem'):將sem放回tuple space","2","初始化未標明 N 次（僅 out('sem') 一次）",""
+"108","13211","S069","initialized: out('sem') N times
+wait(): in('sem;)
+signal():out('sem')","3","",""
+"109","13777","S072","Initial: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"")","3","",""
+"110","12919","S042","initialization: execution out(""sem"") N times
+wait() : in(""sem"")
+signal(): out(""sem"")","3","",""
+"111","13428","S071","1.Initialization: 執行out(""sem"")N次，產生N個許可權
+2.wait(): 執行in(""sem"")一次拿走一個許可權
+3.signal(): 執行out(""sem"")一次歸還一個許可權","3","",""
+"112","12989","S062","Init: execute out(""sem"") N times
+wait(): in(""sem"")
+signal(): out(""sem"") ","3","",""
+"113","13382","S045","execution out('sem')*N
+wait():in('sem')
+signal():out('sem')","3","",""
+"114","15696","S056","A counting semphore initialized to N can be implemented in Linda by putting N identical tokens into the tuple space
+
+// Initialize semaphore to N
+for i = 1 to N do
+       out(""sem"")
+
+// P / wait operation
+in(""sem"")
+
+// V / signal operation
+out(""sem"")
+
+Explanation:
+
+out(""sem"") adds one token to the tuple space
+in(""sem"") removes one token, if no token exists, the process blocks
+
+So, at most N processes can pass the semaphore at the same time","3","",""
+"115","13953","S128","Allocate memory into storage to initialize to N using the Linda coordination","0","僅提 allocate memory，未使用任何 Linda primitive，完全離題",""
+"116","15231","S029","initial: excute out(""sem"") N times
+wait(): in(""sem"")
+signal: out(""sem"") ","3","",""
+"117","13158","S065","1. initialization: out(""sem"") N times
+2. wait(): in(""sem"")
+3. signal(): out(""sem"")","3","",""
+"118","13626","S098","init():execute out(""sem"") N times
+wait():in(""sem"")
+signal():out(""sem"")","3","",""

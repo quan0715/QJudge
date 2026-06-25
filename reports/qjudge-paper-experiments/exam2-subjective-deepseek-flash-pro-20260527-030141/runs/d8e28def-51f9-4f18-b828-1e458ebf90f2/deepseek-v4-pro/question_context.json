@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "While using the Test-and-Set-Lock (TSL) instruction for mutex locks in MPs may cause system bus contention, please suggest two ways to mitigate it.",
+  "question_id": "d8e28def-51f9-4f18-b828-1e458ebf90f2",
+  "question_type": "short_answer",
+  "reference_answer": "(1) Read before TSL: The thread reads the lock variable normally (which can be cached). It only attempts TSL if the lock appears free.\n(2) TSL with back-off: If TSL fails, the thread waits for a defined delay before retrying, reducing continuous bus lock attempts."
+}

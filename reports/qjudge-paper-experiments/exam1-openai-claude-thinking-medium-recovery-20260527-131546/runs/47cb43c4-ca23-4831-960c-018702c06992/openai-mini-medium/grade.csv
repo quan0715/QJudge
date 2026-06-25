@@ -1,0 +1,313 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","1879","S109","running state can go to ready state，如果不是preemptive，這樣一來因為需要io而被趕去block的process就會跟被preempt的process搞混在一起，而有preemptive的話，隨時可以由scheduler從ready state 的process中去挑選","","",""
+"2","2040","S015","A preemptive scheduler could stop the running process, move it to ready queue, and select another process to run.
+A non-preemptive scheduler can't stop a process. When a process use the CPU, it could always hold it until the process is terminated.
+Preemptive scheduling is always useful to prevent a task holding CPU for a long time, block other short and fast process, leading the decreasing of throughput.","","",""
+"3","5462","S054","non-preeptive必須等待thread執行完畢或主動提出i/o interrupt，preeptive 可以把正在執行的thread 拉下來(run to ready),換上優先度更高的thread，例如最低緩衝時間的scheduling，在確保所有工作都能在時間內完成德情況下,屬於preeptive的最低緩衝時間scheduling能避免因處理單一工作而造成其他工作沒來的及趕上deadline.
+ ","","",""
+"4","2489","S117","preemptive根據priority scheduler選擇priority高的process執行，當一個process執行中但有更高priority的process ready，則會換成priority高的process執行，原本的process從running到ready。non-preemptive 會執行當下的process直到結束或需要等待IO，不會強制切換到另一個process。
+當有一個需要的cpu time很長，但是deadline很晚的process A，和一個需要的cpu time很短但deadline很早的process B，如process原本在執行A，preemptive 根據priority可中斷A並執行B，使得兩個process都在ddl前完成，non-preemptive因為要先等待A完成，可能錯過B的deadline。","","",""
+"5","4812","S093","preemptive scheduler跟non-preemptive scheduler會的差別在於當現在在執行的process的priority < 現在enter的process，如果是preemptive的話會將目前的process暫停後去做enter的high priority process;；反之non-preemptive會先將目前的prcess執行完成後再去執行high priority process。
+example: priority值越小，priority越高
+T=0 enter p1 CPU time = 20  priority = 5
+T=1 enter p2 CPU time =1 priority = 1
+此時如果是preemptive scheduler的話waiting time會比較小","","",""
+"6","2485","S012","preemptive scheduler可以在process跑到一半的時候os主動把他從cpu換下來加入ready queue，狀態會是從running -> ready，而non-preemptive scheduler則不會出現running -> ready的情形，只會有running -> block或是running -> terminated。
+在現在的os中，user在邊執行一個自製的program邊移動滑鼠，滑鼠的移動可以即時顯示在螢幕上，program也同時在cpu上面跑，就是因為滑鼠移動打斷了自製program，先讓cpu處理滑鼠移動，再回去處理program，這樣會讓user有更好的os體驗。","","",""
+"7","2822","S108","preemptive: 當 process A 在執行時，有更加符合此排程演算法的 process B 進入 ready 狀態，或是正在執行的 process A 達到特定條件(在RR中執行時間過長等)，此時 process A 會被中斷工作，強制進入 waiting 狀態，並將 CPU 交給其他工作使用。
+non-preemptive: process 一旦開始執行，就會執行直到其工作結束或是其自願放棄  CPU。
+例子: 若是有一個 process A 為 cpu-bound 執行時間為 500ms，其在剛開始執行工作時，另外有 process B, C, D 為I/O-bound 執行時間為 20ms 進入 ready 狀態，此時 preemptive scheduling (例如最短剩餘時間演算法)會中斷 process A 的工作，將 CPU 交給 process B, C, D 使用。
+此例子的優點為: responsiveness提高了，user 比較不會在輸入指令後等待過久，而 CPU-bound 的工作則可以慢慢做。","","",""
+"8","2492","S099","Preemptive: 可以強制把一個正在執行中的 process 的 CPU 資源釋放掉。
+Non-preemptive: 只要 process 拿到 CPU 資源，就一定會執行完。
+若某個執行中 process 的執行時間過長，但已有許多週期較短的 process 已是 ready 狀態，則此時將 CPU 資源釋放給多個週期較短的 CPU 資源可以降低 average waiting time。","","",""
+"9","4593","S070","1.preemptive scheduler可能會讓一個在執行的thread(process)先暫停去做其他thread任務，non-preemptive scheduler不會
+2.一個新來的任務要在短時間做完，而當前的任務截止時間還很久，scheduler可以先將當前任務暫停，去做緊急的任務。","","",""
+"10","2770","S080","a preemptive scheduler can let a ""running"" process go back to ""ready"" involuntarily, while non-preemptive只會在執行的process自己結束後才能換下一個，不能強制暫停或換下一個。
+example: when there is a process that need to run one minute, but there is another process like click the mouse that only take fewer time. In non-preemptive scheduler, if we start the previous first, we have to wait for one minute and then we can finally let the mouse move. But if it is a preemptive schedular, even we start from the longer process, we can still have faster response on the mouse click than a preemptive schedular.","","",""
+"11","3772","S003","The difference is that the preemptive scheduler can make a running process be preempted, by higher priority or when times up.
+When a process need faster responds, it can have high priority and get the responds as soon as possible.
+while in the non-preemptive, it may be block by a process that takes lots of CPU time, and increase its waiting time.
+
+","","",""
+"12","2309","S035","q1: a preemptive scheudler can preempt a executing process then execute another process, while a non-preempt scheudler will execute a process until it is terminated or block.
+q2:  when there is a process run for a long time(may be CPU burst and have a long work), then it will block other process with a short time work. If the system let other process work, the whole efficiency will be better, which is beneficial when use preemptive scheduling.","","",""
+"13","2682","S037","在preemptive scheduler，cpu scheduler會制定preemptive的規則，避免一個process長期占據cpu資源。
+而在non-preemptive cpu，只要一個process開始running，cpu就無法中斷他，等到process運行完。
+當所有的cpu資源都被佔滿的時候，有一個有高responsive的任務到達，此時preemptive scheduler就可以讓出一部分cpu資源，來運行，而non-preemptive scheduler就不行，從而增加repsonse time.","","",""
+"14","2022","S096","Preemptive scheduler can move the process in the execution from running state back to queue even if the process didn't call system call or interrupt occurred. This can be beneficial if the process takes too much time to run, without preempting the process it could possibly run forever which would stall all the other processes.","","",""
+"15","2756","S013","1. for preemptive scheduler, CPU can directly change the running process into another process since some interrupt happened; while for non-preemptive scheduler, CPU cannot change the running process into another process until the running process is blocked.
+2. when the process which CPU is occupied by is over the time slice, the task for the another process is near the deadline, then it changes to the process near the deadline first.","","",""
+"16","2363","S040","In preemptive scheduler, OS can force a process go to ready state, even it don't use IO or any system call. But non-preemptive scheduler can't.
+For example, some processes like demon server, it always runs. If we use preemptive scheduler, we can make sure other process can also be run. Prevent cpu only run demon processes.","","",""
+"17","1938","S124","A preemptive scheduler is able to interrupt a process's interruption to execute another process instead (for example if a process of higher priority enters the queue), meanwhile a non-preemptive scheduler needs to execute a process that it started executing to its very end before executing another, no matter its priority. ","","",""
+"18","2168","S121","- Preemptive scheduler can choose to  turn a running process to ready process and make the cpu compute a new ready process.
+- Non-preemptive scheduler order the cpu to compute a process until this process is completed or blocked by I/O ressources for instance.
+
+* AV = arrival time
+Example : PA : 7 unit burst -  0 AV / PB : 3 unit burst - 2 AV / PC : 1 unit burst - 3AV
+SJF - average waiting time : (0 + 7 + 8)  / 3 = 15/3 = 5
+SRTF - average waiting time : ( 4+1+0) / 3 = 5/3
+
+with 5/3 < 5 => preemptive scheduling is beneficial
+
+
+","","",""
+"19","6746","S068","preemptive 之下可以讓後來到得較高優先權 process 享有資源使用權，且會先打斷原先執行的低優先權 process。這樣的好處是有一些比較緊急或是重要的 process 可以被及時處理。non-preemptive 則是先到先執行，可能會讓一些緊急的 task 無法如期完成。
+
+例如車子行駛時如果有警急情況 preemptive 可以中斷其他任務優先給煞車系統執行，non-preemptive 則無法。","","",""
+"20","2076","S102","preemptive scheduler可以在執行的過程中中斷，並切換成其他process
+non-preemptive scheduler會把當下執行的process完整執行完，才會切換到下一個process
+
+當有process陷入無限迴圈時，preemptive scheduler可以強行中斷，讓其他process可以執行","","",""
+"21","2214","S034","Preemptive scheduler can let running process change by saving the old process's state and storing the new one's.
+
+if the old process run definitely, the new one never execute. Therefore, the preemptive scheduler can avoid this scenario.","","",""
+"22","2769","S084","1. preemptive scheduler是當目前的task B符合搶占規則時(如優先權較高或中斷)，scheduler會停下目前正在執行的task A (Running to Ready)，然後執行task B，而non-preemtive scheduler則沒辦法搶占。
+2. 在RTOS中，中斷是很重要的信息，假如我有個timer定時會觸發中斷，且目前在執行一個耗時耗CPU資源很高的程式，而preemptive scheduling可以保證我不會錯過這個timer的中斷，non-preemtive scheduling卻沒辦法。","","",""
+"23","2633","S079","preemptive scheduler is the person that can't stop the process even when this process is executing, however a non-preemptive scheduler can only wait for the process to volunteerly finished its execution.  When we try to preempt a process from running state to ready state, we will definitely need a preemptive scheduler to finish this job.","","",""
+"24","5805","S122","preemptive: 可以獨自進行
+
+non-preemptive:需要按照順序","","",""
+"25","2128","S086","When a process is executing, the preemptive scheduler can stop the process and move it to ready state, while non-preemptive schedular can't move the process to ready state.","","",""
+"26","2400","S052","A preemptive scheduler can stop 一個還沒執行完的process, and start executing another process, while non-preemptive scheduler will let a process execute to completion when the scheduler picks the process and start running it. 
+如果執行process過程中來了一個執行時間只需很少的process，就可以preempt現在執行的process改執行新的process，這樣可以避免執行時間短的process的waiting time過長，可以減少系統的平均waiting time。","","",""
+"27","2422","S033","preemptive scheduler是當process或thread在CPU執行時可以讓其他process或thread搶佔CPU執行，反之nonpreemptive scheduler就是一個process或thread一旦執行就必須執行到底。
+preemptive scheduler可以在process A執行時，遇到需要緊急處理的process B讓他搶占使用，解決緊急或優先要處理的問題。","","",""
+"28","2161","S123","A preemptive scheduler can change the state of a process from running to ready.","","",""
+"29","2149","S027","preemption就是指可以搶佔工作區，但non-preemptive是要等目前的結束才能執行下一個。
+例子：non-preemption會導致priority高的會反而被卡住","","",""
+"30","6338","S081","the difference between the ","","",""
+"31","2459","S008","The difference between a preemptive scheduler and a non-preemptive scheduler is that preemptive scheduler while make a process from running to ready state when a higher priority need to be execute. Non-preemptive scheduler only change the current running process whether the process exits or the process is block (perhaps from some I/O devices).
+
+For realtime os, when a more urgent task A arrived, perhaps it has pretty short hard deadline, and the process running now is just a simple, not important process B which can be run later, it is more beneficial for the OS to switch the process from B to A, rather than waiting for B to finish first.","","",""
+"32","2725","S078","Preemptive scheduler can stop the process when it is running, but non-preemptive scheduler can't.
+If a long-time process is running, preemptive scheduling is benefical. ","","",""
+"33","2242","S087","preemptive scheduler跟non-preemptive scheduler主要的差別在preemptive scheduler可能會在一個process還沒執行完成就中斷他，並執行其他process。
+假設有p1須執行30秒，p2執行3秒，p3執行1秒，且到達順序是p1-p2-p3，如果是non-preemptive scheduler，p2,p3都必須等到p1執行完成，也就是30秒之後才能執行，等待時間太長，而preemptive scheduler可以先讓p2,p3執行，再來完成比較花時間的p1，效率較高。","","",""
+"34","2189","S022","Processes in running stage can be preempted and return to ready stage if they are scheduled by a preemptive scheduler, while using a non-preemptive scheduler, the processes in running stage will not be stopped until it is blocked or terminated.
+
+For an example scenario where preemptive scheduling is beneficial, if a process with long cpu-burst is currently utilizing the cpu while some short cpu-burst processes are waiting, using a preemptive scheduler can preempt the currently running process, and let those short cpu-burst processes run first in order to get a shorter average waiting time.","","",""
+"35","3872","S110","once a process run in non-preemptive scheduler  it won't be moved to ready  state.
+there are a 90% CPU task and a 90% I/O task, preemptive scheduler can do the CPU task while waiting the I/O task completed, but if non-preemptive scheduler do the CPU task first, other task must wait until it finish","","",""
+"36","2421","S082","preemptive scheduler can make the process be implemented in time. And it is quite important in Real Time system. For a common example, we may want the keyboard and mouse can work when some process is running.","","",""
+"37","3057","S105","preemptive scheduler 表示當較高 priority 的 process 進入 ready state 時，作業系統可以中斷當前執行的 process ，並改為執行較高 priority 的 process。
+
+假設 process 1 (P1), process 2 (P2), process 3 (P3) 執行所需時間分別為 100ms, 2ms, 3ms，且 P1 在時間序列 t=0ms 進入 ready state，P2, P3 在 t=1ms 時進入 ready state，
+若採取 Shortest Job First (non-preemptive scheduler)，則平均等待時間為 (0+99+101)/3 ms；
+若採取 Shortest Remaining Time First (preemptive scheduler)，則平均等待時間為 (5+0+2)/3 ms。
+由此例可知 preemptive scheduler 有較低的 response time。","","",""
+"38","2106","S111","Preemptive指的就是當一個process在執行時，其他process可以使其終止，並由執行此process。non-preemptive就是不可以被終止。Preemptive的優勢在於當一個process在等待其他流程時，另一個process可以先執行，以提升效率。","","",""
+"39","2178","S085","搶佔式可以使程式狀態從running變blocked，避免單一程式持續運作不釋放，而其他進程、執行緒飢餓","","",""
+"40","2291","S004","preemptive scheduler:可以搶奪其他process的資源(即使對方不是自願放棄)
+non-preemptive scheduler:除非process自願放棄resource，否則不能被搶走
+當有一個job非常緊急的時候，需要優先執行，preemptive scheduler就能讓他馬上取得可完成工作之資源去完成工作","","",""
+"41","1652","S011","兩者的區別是preemptive scheduler會有插隊的情形發生。如果在一些需要即時反應的情況下preemptive會比較有優勢。","","",""
+"42","1694","S046","preemptive 是強制的 scheduler，例如可以從 running 跳回去 ready，這點non-preemptive就做不到。
+non-preemtive 是沒有強制的 scheduler。
+","","",""
+"43","1703","S005","The preemptive  scheduler can preempt the process that is running  and execute process which scheduler want, non-preemptive scheduler only can wait until the process finished then execute next process.
+
+Non-preemptive Shortest Job First's  average waiting time  will be longer than preemptive Shortest Remain Time First.","","",""
+"44","4910","S061","preemptive can change the state from running  to waiting, but non-preemptive cant.
+
+if you have deadline,  you must be use preemptive.","","",""
+"45","4307","S014","preemptive:可打斷 context switch，可執行較快或優先權較高的process，降低全部平均等待執行的時間。
+non-preemptive:不可打斷","","",""
+"46","1984","S028","差別在於preemptive scheduler是可以自己中斷一個process，如從running state變為ready state就是一個 preemptive的動作","","",""
+"47","2129","S107","preemptive scheduler can make a process from running state back to ready state by context switch, while non-preemptive can't.
+It is beneficial when having lots of different priorities process, we can make it a more efficient resource allocation.","","",""
+"48","2222","S126","搶佔式可以隨時打斷，非搶佔式就不行一定要執行完這個thread或process
+像遇到優先權高的搶佔式就可以即時打斷先做優先權高的，但非搶佔式就只能把現在的做完才能換下一個","","",""
+"49","2293","S017","preemptive顧名思義就是能把正在運行的process趕下來回到ready區域，讓更重要的程式先跑，non-preemptive就不行這樣做，只能老實等正在跑的程式跑完才能換下一個。
+
+當成是有一個重要的緊急程式要運行時(跟電腦crash有關)，preemptive能緊急切換現行程式來趕快處理重大緊急問題，non-preemptive則只能傻傻地等現行程式結束，到那時電腦都掛了。
+或著是有程式不小心卡住了，preemptive就能夠把卡住的程式趕下來換別人上去，增加cpu使用率","","",""
+"50","1896","S115","Preemptive scheduling is where a new program cuts the line due to scheduling, while putting the original program in standby. Non preemptive is the opposite where a program runs from start to end after scheduling. Preemptive is useful when the response time is important for a certain process, such as RTOS.","","",""
+"51","1930","S089","preemptive能夠將正在running的prcoess回到ready，non prremptive則不行
+在前面提到busy waiting的情況下，preemptive就能跳出loop","","",""
+"52","2312","S009","preemptive scheduler will interrupt the processes that are in executing and non-preemptive scheduler doesn't. preemptive scheduler will save some waiting time so that the average waiting time for all the processes will reduce.","","",""
+"53","4198","S094","preemptive scheduler：會去搶先拿到CPU資源來執行
+non-preemptive scheduler：按照規則來使用cpu資源
+ex：STRF
+","","",""
+"54","6570","S066","1.preemptive比起non-preemptive多了preemption機制，會優先給priority較高的process執行。
+2.就週期性process而言，週期越短的越優先執行可以有較好的效能，此時就需要preemptive scheduler。","","",""
+"55","5198","S041","preemptive scheduler 會用 context switch 的方式搶佔目前執行的程序，反之則否。
+
+在一些 app 執行中的同時，使用者還是可以使用滑鼠進行操作，是因為在操作滑鼠的時候，會搶佔某些執行中
+的程序，讓人與電腦有互動的同時，還可以執行某些 app 
+","","",""
+"56","2716","S031","preemptive scheduler可以根據Priority即時搶佔資源，若較緊急的情況可以優先取得資源。
+non-preemptive scheduler 則只能FCFS，無法根據優先權做調整。","","",""
+"57","2373","S116","搶占式的scheduler可以在某一個process在running狀態下把現在的跑的狀態先記下來留待之後執行，並將其改回ready狀態，並改為運行其他process。非搶占式的scheduler則無論如何會等待一個process跑完才會讓下一個接著去跑。
+
+若遇到單一一個較不重要，但需要大量時間運行的process，會導致後面所有明明很快就跑完或比較重要的process卡住，進而讓整體運行效率跟時間都變差。而搶占式的scheduler則可以提供更彈性，更能視情況調整的排程。","","",""
+"58","2609","S059","preemptive scheduler: 當一個process正在執行中，若是突然有一個更高優先權的工作到達，cpu將會把目前工作停止讓資源先讓高優先權的process使用。
+
+non-preemptive scheduler: 當一個process 正在執行中，除非他任務結束或進入等待，否則即使有更高優先權的process到達，也不會被搶占資源。
+
+EDF is beneficial because it can help some tasks whose deadline is earlier to finish.","","",""
+"59","4841","S064","preemptive: 會去搶占較低優先權。
+non-preemptive: 則不會
+STRF","","",""
+"60","2179","S101","preemptive可以在process running的時候切換到ready，當一個程式占用太久CPU可以輪給其他程式先執行，避免starvation。","","",""
+"61","3029","S103","1. 
+preemptive scheduler會暫停目前的process, 讓下一個process執行
+non-preemptive scheduler會讓目前process執行完才換下一個process
+2. 
+有一個process要執行很久, 後面有執行時間很短的process, preemptive scheduling會讓短的process先執行, 等待時間可以減少很多","","",""
+"62","6581","S104","preemption scheduler 讓一個process完整跑完才會執行下一個process
+non-preemption在一個process跑完之前可能會中斷讓另一個process跑
+
+preemption比較有效率，我們可以根據後來來的任務執行時間去動態安排ＣＰＵ值行的順序，以去降低各個任物的平均等待時間去提高系統效能","","",""
+"63","6576","S023","{
+  ""text"": """"
+}","","",""
+"64","2047","S113","preemptive scheduler 可以讓process state從running到ready透過timer interrupt或不同的priority設定。像是process scheduling中的SJF可以設定preemptive和non-preemptive，preemptive是當有更短的job進來時會強制context switch成更短的job,若忽略掉context switch的時間preemptive的SJF average waiting time通常會比較短。","","",""
+"65","2051","S055","preemptive scheduler可以將process state從執行狀態變成ready,non-preemptive不可以
+preemptive的優勢是例如處理緊急狀況,可以將不那麼緊急的process移出,給緊急的process使用,常見於real time system","","",""
+"66","2229","S119","1.preemptive scheduler :process的排程可以被強制中斷換成別的process 。
+non-preemptive scheduler:process的排程無法被強制中斷，一開始就決定好了。
+
+2.使用SJF page fault會少很多","","",""
+"67","2559","S067","preemptive scheduler是指程式執行到一半因為外部有更高優先級的process要執行,目前的程式只能被迫放棄running 的階段到ready queue等待下次輪到他。
+
+non-preemptive scheduler 則是只要程式在running除非他主動放棄CPU的存取權,否則不會有程式去與他搶奪CPU
+
+EX: Hard-Real time system 要處理很緊急的問題,例如核能溫控等議題,當溫度上升的過於迅速,需要可以直接插隊去進行降溫,否則會造成,很糟糕的後果","","",""
+"68","2679","S076","A non-preemptive scheduler uses scheduling algorithms such as First Come First Serve (FCFS), Shortest Job First (SJF), and Longest Job First in which a process cannot get interrupted.
+
+A non-preemptive scheduler uses scheduling algorithms such as Priority Scheduling and Round Robin. Here, a process can get interrupted move from running state back to ready state. This is beneficial when a high-priority task is requested and should be implemented first. Using an algorithm like Round Robin would allow fairness for process execution. ","","",""
+"69","6371","S074","Preemptive scheduler involves the scheduling of the task till its completion, while Non-preemptive scheduler entails scheduling time in time bound, which means that if the time limit is reached, the process is pre-empted and another one gets a chance.","","",""
+"70","2200","S063","If a process is still running on CPU, preemptive scheduler can stop the running process and change other processes to run, while non-preemptive process let the executing process finish its task.
+If a task has run for a long time and probably never stop, it is better to use preemptive scheduler that other process will have a chance to execute and the throughput may get higher.","","",""
+"71","2831","S090","If there is a process that has higher priority than the process is executing, the preemptive scheduler allows the higher priority process take the CPU from the executing process although it's not finish its time. The non-preemptive scheduler will wait for the executing process finish its time, and then decide the next executed process.
+Example: process A has lower priority, 40 CPU burst time and it is executing, process B has higher priority, 2 CPU burst time.
+If it's the preemptive scheduler, it will let process B execute first, so process B have 0 waiting time.
+But if it's the non-preemptive scheduler, process B will wait for process A finished, and have a longer waiting time. So the preemptive scheduling is beneficial.","","",""
+"72","5364","S100","Preemptive scheduler allows OS to force CPU give control from current process to another process. 
+Non-preemptive scheduler only allows scheduling occurs when the current process is finished.
+Preemptive scheduler can prevent the starvation or dead lock.","","",""
+"73","2342","S114","preemptive scheduler 和non-preemptive scheduler 差異性在於，後到的process 的priority若高於現在正在執行的process，preemptive scheduler會切換CPU執行 priority較高的process，non-preemptive scheduler則不會。
+舉例 ： 若排班採FCFS （non-preemptive）則會有一問題是 convoy effect ， avergae turnaround time以及 average waiting time 很容易因為較前面執行的process 是cpu burst 而提高。但是若採preemptive scheduling 則不會有此問題。因此系統的執行效率若採preemptive 會較好。","","",""
+"74","1756","S038","preemtive is it can be cut line by other process by time limit but non preemtive is not","","",""
+"75","2301","S047","non-preemptive 的 scheduler 會在程式從 ready -> running state 後，就不管他了，除非他又到 blocked state，讓他能一直運行，如果今天有一個 process 他會佔用大量的 CPU 但排程到他了，他就會一直運行，其他 process 就 starvation","","",""
+"76","2119","S044","1. preemptive can interrupt the current process to do another process, but non-preemptive can do this.
+2. when we want to assign the processes with different priority. Then, the preemptive scheduling can do this well.","","",""
+"77","2169","S075","preempitve代表process可以被其他process打斷
+beneficial example: 在輸出影片時如果使用者要進行社群聊天上的打字時，如果資源不足我們可以直接打斷影片的輸出process來先對優先度高的鍵盤輸入做回應","","",""
+"78","2045","S030","Preemptive 的 scheduler 在 processes running 時可以讓高優先級的 process 插隊，先去做高優先級的事情。
+以 inteactive 式的電腦來講 preemptive 的 responsitiveness 會比 non preeemptive 的還要快 其也比較不會受到 convey effect。 因其 刷新 ui 高優先級的 process 可以中斷高負載的後端程式","","",""
+"79","2270","S106","the difference is that preemptive schedular can let process with higher priority to take over the cpu time 
+while non-preemptive can't , which means although there is a urgent process , it has to wait until the current process finishes . 
+
+Example :  Two processes , Cpu is currently working on process A , current time is 0 
+process A: computation time  needs 60 sec ,  deadline 120 sec  , lower priority 
+process B : computation time needs 10 sec , dead line 30 sec ,  higher priority 
+
+if using preemtive,  process B can take over the CPU and execute , which it can finish before deadline . 
+Under same situation , non-preemptive will bring to result that process B can't finish in time 
+
+","","",""
+"80","2475","S019","Preemptive scheduler 可以把在 running state 的程式移到 ready state，搶走CPU控制權，而 non-preemptive 卻無法.
+Beneficial : 可以透過 Preemptive scheculer 設計 priority 或是在 process 暫用過久 CPU 時釋放掉，避免deadlock. ","","",""
+"81","2172","S020","Preemptive scheduler can preempt a process from running to ready state if a process has higher priority.
+Processes in non-preemptive scheduler can only be blocked if it block or finish by itself.
+
+Like in EDF scheduler, a process with earliest deadline can preempt the later deadline process to meet the deadline.","","",""
+"82","3288","S010","Preemptive scheduler can puth the running state process to ready state, while non-preemptive scheduler cannot, it has to wait until the process finish. When a process is running too long, other process may not be  executed, so the scheduler can preempt the process running, and schedule other process to run. ","","",""
+"83","2351","S091","會不會強制中斷目前的process
+避免一個process長時間占用CPU","","",""
+"84","2274","S051","In preemptive, if there has higher priority job, the job that now is running will stop and run the job that has higher priority. In non-preemptive, it will finish the job that now is running.
+
+for example, there are process A arrive at 0(ms) run 30(ms), B arrive at 3 run 5, C arrive at 10 run 7.
+we use shortest job first and shortest release time first.
+for non-preemptive, 0-30 run A, 30-35 run B, 35-42 run C. Waiting time = (0-0)+(30-3)+(35-10) = 52
+for preemptive, 0-3 run A, 3-8 run B, 8-10 run A, 10-17 run C, 17-42 run A. Waiting time = (8-3)+(17-10)=12
+preemptive has shorter waiting time.","","",""
+"85","2162","S039","preemptive scheduler can put a running process to ready state and work on another process
+
+if a process will take long time to finish, it may cause other process starving, with Round Robin it can make sure every process has chance to be run","","",""
+"86","5509","S018","preeptive scheduler在有更符合規則的process進來後會停止當前process換成更好的process執行，non-preemptive scheduler一旦執行一個process直到結束前都不會再更改。
+如果一個process被卡死，non-preemptive沒辦法結束該process但preemptive可以停止。","","",""
+"87","2712","S049","preemptive 讓新進theread可以搶佔當前thread，亦即running便ready 當第一個進來的process要執行超久遠大於之後進來的process的時候，沒preemptive就要等第一個結束才能執行其他，而preemtive能讓後續進來的小process先執行完成，提升效率","","",""
+"88","2425","S053","preemptive的scheduler能在其他process執行時，將他從running變成ready，去執行另外一個程式
+以fifo和rr相比，rr是preemptive的，如果有一個時間極長的程式正在執行，fifo中的其他程式要等他跑完才能做，rr可以讓其他程式先跑，減少waiting time","","",""
+"89","2549","S092","preemptive scheduler means it will interrupt the running process, making it from running state to ready state.
+non-preemptive scheduler means it will not interrupt the running process, once the process is in running state, it will keep running until done.
+
+for some algorithm like SJF(shortest job first), when a new process is added into the ready queue, if the estimated running time is shorter than the process which is in running state, the OS will do context switch and let the new process run, basically is more efficient than FCFS.","","",""
+"90","2081","S125","preemptive可以在有較適合需要進行的thread時插隊正在進行的thread，這樣的作法能夠一直都達到最佳的解，ex在SJF時不需要等到較長的thread進行完就可打斷將較短時間得thread排入，使cpu運行效率最佳。","","",""
+"91","2568","S021","preemptive scheduler is a method use to when some process is running ,use preemptive can let process from running to ready,let other process running. 
+non-preempive scheduler is just let one process finish,other process can running eventually.
+so preemptive scheduler is better when I need some processes run first.","","",""
+"92","1866","S050","non-preemptive scheduler will let the process be done, preemptive scheduler will change the running process. When preemptive scheduling, all the process may be run, so it can prevent process starvation.","","",""
+"93","2016","S036","preemptive scheduler 可以透過preempt將在running的process移動到ready藉此改變執行的順序。
+當一個process執行得太久了就可以透過preemptive讓正在waiting的process先執行。","","",""
+"94","2308","S048","preemptive指的是搶佔式的排程，在有達到條件的新的process進來時，會將原本執行的process換成新進來的process，而non preemptive則是不論有什麼新的process進來，都會將原本的先執行完再做下一個。preemptive的好處是假設現在條件是以緊急程度當作優先執行的順序，那當有一個process需要很久的執行時間，後面新進來的process如果比較緊急的，優先權比現在這個process執行的還要高，那麼就會先中斷現在執行的process去執行新進來的process，讓比較緊急需要處理的process能先被處理到，不會被執行時間較久的卡住","","",""
+"95","6600","S112","The preemptive scheduler means that when a new process enters, if it matches the conditions of the scheduling algorithms, the OS can instantly stop the executing process and switch to the new process. 
+In contrast, a non-preemptive scheduler cannot stop the executing process, and it should be executed until the flow ends. 
+A preemptive scheduling can be beneficial when an emergent process comes in. Also, it's more flexible. Like the shortest remaining job first, it can let every process have an approximate amount of 超過的 time. 
+ 
+","","",""
+"96","2224","S006","preemptive 的 OS scheduler 允許打斷其他 process ， 但另一個不可。
+案例：當今天使用者有周邊設備帶來輸入訊號，像是鍵盤滑鼠時，必須要立刻回覆，這時候就要打斷（高優先級），否則使用者需要等到其他 process 都結束才知道他幹嘛了。","","",""
+"97","2446","S026","1.多執行緒或process,在不同排程下，有不同結果
+2.EDF,讓先來終止時間短的先執行,不會全部沒執行完","","",""
+"98","2790","S032","Preemptive scheduler is a scheduler which is able to switch the context","","",""
+"99","3479","S057","可搶先行程 當有一個優先權較高行程時可以切換執行優先權較高行程；而不可搶先行程則不可切換執行必須執行完行程","","",""
+"100","3080","S002","A non-preemptive scheduler not allows to shutdown a running process to let other processes to get the resource for execution. 
+A preemptive scheduler allows to shutdown a running process to let other processes to get the resource for execution.
+A preemptive scheduling is beneficial, since a non-preemptive scheduler may cause a process with low priority or a never-end process keep occupying the resource. Thus, a preemptive scheduling is more beneficial than a non-preemptive scheduling. ","","",""
+"101","2411","S007","(a) A preemptive scheduler can switch a running process to ready state if the process takes too much time running.
+(b) That way, other process won't starve, wasting too much time waiting until the process finished.","","",""
+"102","2483","S016","程序若在非搶佔排程器上執行,一旦執行就會執行到完畢為止，其他程序必須等待。而搶佔排程器則可以中斷正在執行的程序，取而代之其他的程序。若是使用者有緊急需求較高的程式要執行，搶佔排成器即可有效中斷原執行中程式，進而執行需要立刻處理的程序。","","",""
+"103","3232","S083","搶先排程器：是指在程式執行過程途中，可以被作業系統搶先退出執行。
+非搶先排程器：是指程式一經執行過程中無法讓作業系統強制退出執行，如SJF","","",""
+"104","2055","S088","preemptive shceduler: OS可以直接搶佔正在使用CPU的thread or process，讓狀態從running退到ready，例如Round Robin(RR)
+non-preemptive scheduler: OS無法搶佔thread or process，例如non-preemptive SJF
+如果某個thread占用CPU很久，OS可以直接搶佔thread，讓後面的thread先用，減少average waiting time","","",""
+"105","2584","S058","a preemptive scheduler can move a process from running state to ready state, it is more efficient.
+for example, if a process take all the CPU resource too many time, then the preemptive may be important.","","",""
+"106","2244","S043","non-preemptive scheduler : 依照ready-running - block 順序執行，不會打斷執行 
+例：需要執行的工作中執行時間越少的越先進行(SJF)
+preemptive scheduler :可能從running狀態被退回ready狀態，例：時間到就停止執行、round robin（每個人輪流執行）、剩餘執行時間越少越先執行
+beneficial : 剩餘執行時間越少越先執行的話 較有效率完成更多工作,round robin每人平均等待時間最少","","",""
+"107","3860","S060","non preemptive 會持續工作到這個process結束 
+preemptive 可以對工作中的process進行替換
+如果時間有限，而有個耗時長的process在run，那麽non preemptive可能錯過所有deadline，而preemptive可以完成一些","","",""
+"108","2085","S024","the preemptive scheduler can stop a executing process whenever and turns to execute another process, that means, preemptive scheduler can change the process from running to ready, but a non-preemptive can not do that.
+example:if a preemptive scheduler can change the executing process frequently, the response time will be shorter and faster.","","",""
+"109","2145","S095","preemptive scheduler 可以在執行process的過程中，更換正在執行的process。non-preemptive scheduler 就無法做這個動作。
+ex:目前正在執行一個low priority的process，這時候有一個high priority 的process出現，preemptive scheduler 可以馬上改為執行high priority process，而non-preemptive scheduler只能在執行完low priority process後，才能執行high priority process","","",""
+"110","2324","S077","non-preemptive scheduler will wait for a process end its work and then switch to the other.
+preemptive scheduler will switch to the other one even the former process is executing.
+
+if a process executing while loop, is the scheduler is non-preemptive the whole system will break down due to while loop will never end, but if using preemptive scheduler, scheduler will interrupt current process and switch to another one. ","","",""
+"111","2253","S120","A preemptive scheduler may interrupt a running process since the execution time of the running process reach the limit. While there is a process which needs to execute for a long time but other processes with a shorter execution time need to wait for it. If we use preemptive scheduling, we can interrupt the execution and let other processes with shorter execution time have a chance to run. It is a technique to prevent starvation.","","",""
+"112","2191","S073","preemptive scheduler跟non-preemptive的差別在於一個會搶佔cpu一個不會。
+
+像priority scheduler，剛開始為最高優先權的process在執行，當有一個更高優先權的進來就會發生搶占
+","","",""
+"113","2233","S069","preemptive scheduler在執行過程中process可以被替換，而non-preemptive不能，需要一次將process執行完
+
+example: preemptive scheduler在遇到某些process所需要的執行時間很長的情況下，可以先讓其他需要運行較短的process先執行，不會讓所有的process都在等執行時間較長得process執行完才能執行","","",""
+"114","4697","S072","Preemptive scheuler can that CPU interrupt running process to ready,  and let the process on ready queue to running state, while Non-Preemptive cannot.
+
+Preemptive scheduling is beneficial when a real-time system, for example, the airplane security is the most importance things, so is any aware rasing, CPU must let it Preempt to running. ","","",""
+"115","4515","S042","compare to non-preemptive scheduler, preemptive scheduler allows process translate from running state to ready state.
+當process 1需要運行10ns 而process 2運行只要1ns, 在preemptive schduling下可以先進行process 2再進行process 1, mean delay time只有0.5ns, 但在non-preemptive schduling下只能先進行process 1再進行process 2, mean delay time則有5ns, preemtive schduling效率會比較好","","",""
+"116","2261","S071","non-preemptive是指process一旦開始執行就不會被中途打斷，要等到process執行完畢，下一個process才能執行；preemptive則是若有優先度更高的process要執行，低優先度的process會被打斷並回到ready狀態，在SJF中，preemptive scheduling的表現會優於 non-preemptive scheduling","","",""
+"117","3896","S062","1.preemptive scheduler是指a process在CPU burst執行階段直接被中斷，轉為執行另一個process；non-preemptive scheduler則是會讓process的CPU burst執行完畢後，再執行下一個process。
+2.An example scenario:假設 process A burst time為80ms、arrival time為0ms；process B burst time為5ms、arrival time為2ms，且priority: B>A，若執行preemptive scheduling，可以在第2ms就執行完畢priority較高的process B","","",""
+"118","2300","S045","preemptive scheduler就是在run的時候可以被打斷，但是non-preemptive在run的時候就不能被打斷。像是preemptive如果遇到在run的process要執行很久且ready queue裡已經有execution time比較短的process在排隊時，當在run裡面的process如果要取資料暫時沒用到cpu就可以先退到block讓別人先使用cpu，解省時間","","",""
+"119","5984","S056","Preemptive scheduler is a process with shortest seek time first
+Non-preemptive scheduler is a process with shortest job first","","",""
+"120","2618","S029","搶佔式排程是當一個process執行一段時間還沒做完，OS 排程器會直接打斷正在執行的進程。非搶占式為當一個process還沒做完，會等到他做完再依據演算法執行下一個進程。一個情境為低優先權的process一直在CPU上跑，使得高優先權進程一直無法執行，這時候就需要搶佔式排程來介入。","","",""
+"121","2431","S065","preemptive scheduler會搶佔CPU，把CPU切換給其他process執行，non-preemptive scheduler不會搶佔。
+ex.當一個process佔用CPU太久時，就需要preemptive scheduler來搶佔CPU。","","",""
+"122","3919","S025","Preemptive scheduler can interrupt process in running state and send it back to ready state, while non-preemptive scheduler have to wait until process finish executing in running state.
+In the least slack time first algorithm, the preemptive scheduler ensure that all the process have a relatively fair result, that is, even when the time isn't enough, the preemptive scheduling ensure that all the  processes are late for the deadline for the same amount of time.","","",""
+"123","2112","S098","preemptive scheduler:可插隊，當面對到另一process優先序比他高時，要讓出CPU給此process
+non-preemptive scheduler: 當某process以獲取CPU時必須等到該process讓出CPU其 他process才能使用CPU","","",""

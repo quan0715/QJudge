@@ -32,9 +32,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: oj_grafana
-    # Expose locally for direct access; tunnel handles remote access
+    # Expose on localhost for direct access; Cloudflare Tunnel handles remote access.
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "${GRAFANA_HOST:-127.0.0.1}:${GRAFANA_PORT:-3001}:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
