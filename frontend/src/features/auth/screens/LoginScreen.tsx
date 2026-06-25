@@ -94,7 +94,6 @@ const LoginPage = () => {
     <>
       <div className="auth-form">
         <PendingActionBanner />
-        {/* Legacy order was credential-first; keep this external-first order easy to revert. */}
         {shouldShowProviderRow && (
           <div
             className="auth-oauth-group auth-oauth-group--primary"

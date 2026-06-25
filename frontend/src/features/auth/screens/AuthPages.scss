@@ -24,14 +24,14 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.png");
+  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
   background-repeat: no-repeat;
   background-position: center bottom;
   background-size: cover;
 }
 
 .auth-login-visual-shell[data-auth-theme="dark"] .auth-visual-background {
-  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.png");
+  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
 }
 
 .auth-login-brand {
@@ -72,7 +72,7 @@
   overflow: hidden;
   padding: clamp(8rem, 16vh, 11rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
   background-color: $layer-02;
-  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.png");
+  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
   background-repeat: no-repeat;
   background-position: center center;
   background-size: cover;
@@ -155,6 +155,10 @@
   position: absolute;
   top: $spacing-04;
   right: clamp($spacing-04, 3vw, $spacing-07);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $spacing-02;
   z-index: 3;
 }
 
@@ -294,8 +298,18 @@
   .auth-login-visual-shell[data-auth-screen="login"] .auth-login-card {
     height: auto;
     max-height: calc(100svh - var(--auth-mobile-sheet-offset));
-    padding-block-start: $spacing-06;
-    padding-block-end: max($spacing-06, env(safe-area-inset-bottom));
+    padding-block-start: $spacing-08;
+    padding-block-end: max($spacing-08, env(safe-area-inset-bottom));
+  }
+
+  .auth-login-visual-shell[data-auth-screen="register"] .auth-login-card,
+  .auth-login-visual-shell[data-auth-screen="campus-sso"] .auth-login-card,
+  .auth-login-visual-shell[data-auth-screen="oauth-authorize"] .auth-login-card,
+  .auth-login-visual-shell[data-auth-screen="callback"] .auth-login-card {
+    height: auto;
+    max-height: calc(100svh - var(--auth-mobile-sheet-offset));
+    padding-block-start: $spacing-08;
+    padding-block-end: max($spacing-08, env(safe-area-inset-bottom));
   }
 
   .auth-login-visual-shell[data-auth-screen="login"] .auth-credential-form {
@@ -323,153 +337,16 @@
   }
 }
 
-.auth-split-grid {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.auth-hero-side {
-  display: none;
-  min-height: 100%;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  background-color: #233eac;
-  background-image: linear-gradient(180deg, #4a66dd 0%, #233eac 100%);
-}
-
-/* subtle grid background — evokes a test sheet / digital exam feel */
-.auth-hero-side::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 2.5rem 2.5rem;
-}
-
-/* soft vignette to keep focus on center content */
-.auth-hero-side::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(15, 23, 60, 0.55) 100%);
-}
-
-.auth-hero-logo {
-  position: absolute;
-  top: $spacing-06;
-  left: $spacing-07;
-  z-index: 2;
-}
-
-.auth-hero-logo__brand {
-  .brand-lockup__label {
-    @include type.type-style("heading-03");
-    color: #ffffff;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-  }
-}
-
-@media (min-width: 66rem) {
-  .auth-split-grid {
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  }
-
-  .auth-hero-side {
-    display: block;
-  }
-}
-
-.auth-hero-shell {
-  min-height: 100vh;
-  max-width: min(100%, 36rem);
-  margin-inline: auto;
-  padding: clamp(3rem, 6vh, 5rem) clamp(2rem, 5vw, 4rem);
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-07;
-  text-align: center;
-}
-
-.auth-hero-content {
-  color: #ffffff;
-  max-width: 28rem;
-}
-
-.auth-hero-title,
 .auth-title {
   @include type.type-style("heading-05");
   font-weight: 400;
   margin-bottom: $spacing-02;
 }
 
-.auth-hero-title {
-  color: #ffffff;
-  margin-bottom: $spacing-04;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  letter-spacing: 0.5px;
-}
-
-.auth-hero-subtitle,
 .auth-subtitle {
   @include type.type-style("body-long-02");
   font-weight: 400;
   line-height: 1.6;
-}
-
-.auth-hero-subtitle {
-  color: #ffffff;
-  opacity: 0.8;
-  max-width: 31rem;
-}
-
-@media (max-width: 81.99rem) {
-  .auth-hero-content {
-    max-width: 24rem;
-  }
-
-  .auth-hero-subtitle {
-    max-width: 24rem;
-  }
-}
-
-.auth-form-side {
-  min-height: 100vh;
-  display: flex;
-  align-items: stretch;
-  background-color: $background;
-  position: relative;
-  overflow-y: auto;
-}
-
-.auth-toolbar {
-  position: absolute;
-  top: $spacing-05;
-  right: clamp(1rem, 4vw, 3rem);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: $spacing-02;
-  z-index: 10;
-}
-
-.auth-form-shell {
-  min-height: 100vh;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: clamp(3rem, 8vh, 6rem) clamp(2rem, 5vw, 4rem);
 }
 
 .auth-form-inner {
@@ -615,12 +492,11 @@
   }
 }
 
-/* 學校選擇列表 - 補回並修正跑版 */
 .auth-school-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-05;
-  margin-top: $spacing-07;
+  gap: $spacing-03;
+  margin-top: $spacing-02;
 }
 
 .auth-school-list-item {
@@ -629,27 +505,29 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: $spacing-06;
+  min-height: 5rem;
+  padding: $spacing-05;
   background-color: $layer-01;
   border: 1px solid $border-subtle-01;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0, 0.38, 0.9);
-  border-radius: 4px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 
   &__logo-container {
-    width: 48px;
-    height: 48px;
+    width: 3.5rem;
+    height: 2.5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     flex-shrink: 0;
-    margin-right: $spacing-06;
+    margin-right: $spacing-05;
     overflow: hidden;
   }
 
   &__logo {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 1.5rem;
     object-fit: contain;
   }
 
@@ -657,39 +535,29 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: $spacing-02;
     padding-right: $spacing-05;
+    min-width: 0;
   }
 
   &__title {
-    @include type.type-style("heading-01");
+    @include type.type-style("heading-compact-01");
     color: $text-primary;
     margin: 0;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__desc {
-    @include type.type-style("label-01");
+    @include type.type-style("body-compact-01");
     color: $text-secondary;
     margin: 0;
-    line-height: 1.4;
-    opacity: 0.8;
-  }
-
-  &__arrow {
-    flex-shrink: 0;
-    color: $icon-secondary;
-    transition: transform 0.2s ease;
   }
 
   &:hover {
     background-color: $layer-hover-01;
     border-color: $border-subtle-selected-01;
-    
-    .auth-school-list-item__arrow {
-      transform: translateX(4px);
-      color: $icon-primary;
-    }
   }
 
   &:active {
@@ -700,6 +568,15 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.auth-school-list-status {
+  margin-top: $spacing-05;
 }
 
 .auth-oauth-group {
@@ -902,12 +779,86 @@
   }
 }
 
-@media (max-width: 65.99rem) {
-  .auth-form-shell {
-    padding-top: clamp(4rem, 8vh, 6rem);
-  }
+.auth-consent {
+  gap: $spacing-05;
+}
 
+.auth-consent-summary,
+.auth-loading-step-frame {
+  width: 100%;
+  padding: $spacing-05;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-01;
+}
+
+.auth-consent-kicker {
+  @include type.type-style("label-01");
+  margin: 0 0 $spacing-03;
+  color: $text-secondary;
+}
+
+.auth-consent-client {
+  @include type.type-style("heading-03");
+  margin: 0 0 $spacing-03;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.auth-consent-description,
+.auth-consent-account {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.auth-consent-account {
+  margin-top: $spacing-04;
+  color: $text-primary;
+  word-break: break-word;
+}
+
+.auth-consent-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-03;
+}
+
+.auth-loading-step-frame {
+  min-height: 5rem;
+  display: flex;
+  align-items: center;
+}
+
+.auth-loading-step {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+  width: 100%;
+  color: $text-primary;
+}
+
+.auth-loading-step__icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $icon-primary;
+}
+
+.auth-loading-step__label {
+  @include type.type-style("body-compact-01");
+  color: $text-secondary;
+}
+
+@media (max-width: 65.99rem) {
   .auth-toolbar {
     right: $spacing-05;
+  }
+
+  .auth-consent-actions {
+    grid-template-columns: 1fr;
   }
 }

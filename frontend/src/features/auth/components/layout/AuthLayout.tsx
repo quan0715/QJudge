@@ -51,6 +51,7 @@ const AuthLayout = () => {
     if (path === '/login') return 'login';
     if (path === '/register') return 'register';
     if (path.startsWith('/login/campus-sso')) return 'campus-sso';
+    if (path.startsWith('/oauth/authorize')) return 'oauth-authorize';
     if (path.startsWith('/auth/')) return 'callback';
     if (path === '/onboarding') return 'onboarding';
     return 'auth';
@@ -82,6 +83,14 @@ const AuthLayout = () => {
         title: t("auth.callback.loading"),
         subtitle: '',
         backTo: '/login',
+      };
+    }
+    if (path.startsWith('/oauth/authorize')) {
+      return {
+        title: t("oauth.authorize.title", "MCP OAuth 授權"),
+        subtitle: t("oauth.authorize.description", {
+          clientName: t("oauth.authorize.defaultClient", "外部應用程式"),
+        }),
       };
     }
     if (path === '/onboarding') {
@@ -181,53 +190,6 @@ const AuthLayout = () => {
             </section>
           </section>
         </main>
-
-        {/*
-          Legacy split auth layout kept for quick rollback.
-          It depended on:
-            import AuthHeroComposition from '../AuthHeroComposition';
-
-          <div className="auth-split-grid">
-            <section className="auth-hero-side" aria-hidden="true">
-              <div className="auth-hero-logo">
-                <BrandLockup className="auth-hero-logo__brand" size={24} />
-              </div>
-              <div className="auth-hero-shell">
-                <AuthHeroComposition />
-                <div className="auth-hero-content">
-                  <h1 className="auth-hero-title">{t("auth.login.heroTitle")}</h1>
-                  <p className="auth-hero-subtitle">{t("auth.login.heroSubtitle")}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="auth-form-side">
-              <div className="auth-toolbar">
-                <TextModeSwitcher
-                  value={contentLanguage}
-                  options={langOptions}
-                  onChange={setContentLanguage}
-                  ariaLabel={t("language.title", "語言")}
-                />
-                <IconModeSwitcher
-                  value={themeValue}
-                  options={themeOptions}
-                  onChange={setPreference}
-                  ariaLabel={t("theme.title", "主題")}
-                  tooltipPosition="bottom"
-                />
-              </div>
-
-              <div className="auth-form-shell">
-                <div className="auth-form-inner">
-                  <div className="auth-nav-slot">...</div>
-                  <div className="auth-header-slot">...</div>
-                  <AnimatePresence mode="wait">...</AnimatePresence>
-                </div>
-              </div>
-            </section>
-          </div>
-        */}
       </div>
     </AuthLayoutContext.Provider>
   );

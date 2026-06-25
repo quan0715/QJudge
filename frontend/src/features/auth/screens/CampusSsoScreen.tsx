@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { InlineLoading } from "@carbon/react";
-import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { AuthProviderOption } from "@/core/entities/auth.entity";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
@@ -67,14 +66,13 @@ const CampusSsoScreen = () => {
                   <h3 className="auth-school-list-item__title">{displayName}</h3>
                   {description && <p className="auth-school-list-item__desc">{description}</p>}
                 </div>
-                <ArrowRight size={20} className="auth-school-list-item__arrow" />
               </button>
             );
           })}
         </div>
 
         {loading && (
-          <div style={{ marginTop: '2rem' }}>
+          <div className="auth-school-list-status">
             <InlineLoading description={t("auth.campusSso.redirecting", "正在導向校園驗證頁面...")} />
           </div>
         )}
