@@ -1,0 +1,317 @@
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type";
+@use "@carbon/react/scss/colors" as *;
+
+.auth-split-wrapper {
+  min-height: 100vh;
+  background-color: $background;
+  overflow: hidden;
+}
+
+.auth-login-visual-shell {
+  min-height: 100svh;
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: $background;
+}
+
+.auth-visual-background {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: cover;
+}
+
+.auth-login-brand {
+  position: absolute;
+  top: $spacing-06;
+  left: clamp(1rem, 4vw, 3rem);
+  z-index: 2;
+}
+
+.auth-login-brand__lockup {
+  .brand-lockup__label {
+    color: $gray-100;
+  }
+}
+
+.auth-login-main {
+  min-height: 100svh;
+  position: relative;
+  z-index: 1;
+  display: block;
+  padding: 0;
+}
+
+.auth-login-split {
+  width: 100%;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background-color: $layer-01;
+  border: 0;
+}
+
+.auth-login-visual-panel {
+  min-height: inherit;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: clamp(8rem, 16vh, 11rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
+  background-color: $layer-02;
+  background-image: url("/illustrations/qjudge-exam-hall-carbon-illustration.webp");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  border-inline-end: 1px solid $border-subtle-01;
+}
+
+.auth-login-card {
+  width: 100%;
+  min-height: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(6rem, 12vh, 8rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
+  background-color: $layer-01;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.auth-login-card .auth-form-inner {
+  max-width: 31rem;
+  margin-inline: auto;
+  transform: translateY(clamp(-3rem, -4vh, -1.5rem));
+}
+
+@media (min-width: 66rem) {
+  .auth-login-visual-shell[data-auth-screen="campus-sso"] .auth-form-inner {
+    min-height: clamp(28rem, 42svh, 34rem);
+  }
+}
+
+.auth-login-card .auth-nav-slot {
+  min-height: 1.25rem;
+  margin-bottom: $spacing-02;
+}
+
+.auth-login-card .auth-header-slot {
+  min-height: auto;
+  margin-bottom: $spacing-05;
+}
+
+.auth-login-card .auth-title {
+  @include type.type-style("heading-04");
+  font-weight: 500;
+  margin-bottom: $spacing-03;
+}
+
+.auth-login-card .auth-subtitle {
+  @include type.type-style("body-compact-01");
+}
+
+.auth-login-card .auth-form {
+  gap: $spacing-03;
+}
+
+.auth-login-card .auth-credential-form {
+  gap: $spacing-04;
+}
+
+.auth-login-card .auth-divider {
+  margin: $spacing-04 0;
+
+  span {
+    background: $layer-01;
+  }
+}
+
+.auth-login-card .auth-submit-btn,
+.auth-login-card .auth-oauth-btn {
+  min-height: 40px;
+}
+
+.auth-login-card .auth-oauth-group--primary .auth-oauth-btn {
+  padding-inline: $spacing-03;
+}
+
+.auth-login-card .auth-footer {
+  margin-top: $spacing-05;
+}
+
+.auth-login-visual-shell .auth-toolbar {
+  position: absolute;
+  top: $spacing-04;
+  right: clamp($spacing-04, 3vw, $spacing-07);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: $spacing-02;
+  z-index: 3;
+}
+
+@media (max-width: 65.99rem) {
+  .auth-split-wrapper {
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  .auth-login-visual-shell {
+    --auth-mobile-sheet-offset: clamp(16rem, 43svh, 23rem);
+    --auth-mobile-action-footer-height: 0rem;
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  .auth-login-visual-shell[data-auth-screen="register"] {
+    --auth-mobile-sheet-offset: clamp(12rem, 32svh, 18rem);
+  }
+
+  .auth-visual-background {
+    display: block;
+    inset: 0 0 auto;
+    height: calc(var(--auth-mobile-sheet-offset) + clamp(4rem, 10svh, 6rem));
+    background-position: 56% bottom;
+    background-size: cover;
+  }
+
+  .auth-login-brand {
+    top: $spacing-05;
+    left: $spacing-05;
+  }
+
+  .auth-login-main {
+    box-sizing: border-box;
+    height: 100svh;
+    min-height: 100svh;
+    display: block;
+    overflow: hidden;
+    padding: var(--auth-mobile-sheet-offset) 0 0;
+  }
+
+  .auth-login-split {
+    height: 100%;
+    min-height: 0;
+    display: block;
+    background: transparent;
+    border: 0;
+  }
+
+  .auth-login-visual-panel {
+    display: none;
+  }
+
+  .auth-login-card {
+    height: 100%;
+    position: relative;
+    min-height: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: $spacing-08 clamp($spacing-05, 5vw, $spacing-07) max($spacing-08, env(safe-area-inset-bottom));
+    background-color: $layer-01;
+    background-color: color-mix(in srgb, #{$layer-01} 94%, transparent);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .auth-login-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: clamp(6rem, 16vh, 9rem);
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, #{$layer-01} 56%, transparent) 66%,
+      color-mix(in srgb, #{$layer-01} 92%, transparent) 100%
+    );
+  }
+
+  .auth-login-card .auth-form-inner {
+    max-width: 32rem;
+    transform: none;
+  }
+
+  .auth-login-card .auth-nav-slot {
+    min-height: 0;
+    margin-bottom: 0;
+  }
+
+  .auth-login-card .auth-header-slot {
+    margin-bottom: $spacing-03;
+  }
+
+  .auth-login-card .auth-title {
+    margin-bottom: $spacing-02;
+  }
+
+  .auth-toolbar {
+    gap: $spacing-02;
+    transform: scale(0.9);
+    transform-origin: top right;
+  }
+
+  .auth-login-card .auth-form,
+  .auth-login-card .auth-credential-form {
+    gap: $spacing-04;
+  }
+
+  .auth-login-card .auth-divider {
+    margin: $spacing-04 0;
+  }
+
+  .auth-login-visual-shell[data-auth-screen="login"] .auth-form {
+    gap: $spacing-05;
+  }
+
+  .auth-login-visual-shell[data-auth-screen="login"] .auth-credential-form {
+    gap: $spacing-06;
+  }
+
+  .auth-login-visual-shell[data-auth-screen="login"] .auth-divider {
+    margin: $spacing-05 0;
+  }
+
+  .auth-login-card :where(
+    label[for="email"],
+    label[for="password"],
+    label[for="username"],
+    label[for="confirm-password"]
+  ) {
+    @include type.type-style("label-01");
+    color: $text-secondary;
+    margin-block-end: $spacing-02;
+  }
+
+  .auth-login-card .auth-input-control {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 42rem) {
+  .auth-login-visual-shell {
+    --auth-mobile-action-footer-height: 5rem;
+  }
+
+  .auth-login-card {
+    height: calc(100% - var(--auth-mobile-action-footer-height));
+    scroll-padding-block-end: $spacing-08;
+  }
+}

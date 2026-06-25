@@ -16,6 +16,7 @@ export const guestRoutes = (
     <Route path="/login" element={<LoginScreen />} />
     <Route path="/login/campus-sso" element={<CampusSsoScreen />} />
     <Route path="/register" element={<RegisterScreen />} />
+    <Route path="/register/campus-sso" element={<CampusSsoScreen />} />
     <Route path="/exam-takeover" element={<ExamTakeoverScreen />} />
   </>
 );

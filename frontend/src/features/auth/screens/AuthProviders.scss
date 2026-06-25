@@ -1,0 +1,242 @@
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type";
+@use "@carbon/react/scss/colors" as *;
+
+.auth-school-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-03;
+  margin-top: $spacing-02;
+}
+
+.auth-school-list-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 5rem;
+  padding: $spacing-05;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-01;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+
+  &__logo-container {
+    width: 3.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-shrink: 0;
+    margin-right: $spacing-05;
+    overflow: hidden;
+  }
+
+  &__logo {
+    max-width: 100%;
+    max-height: 1.5rem;
+    object-fit: contain;
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-02;
+    padding-right: $spacing-05;
+    min-width: 0;
+  }
+
+  &__title {
+    @include type.type-style("heading-compact-01");
+    color: $text-primary;
+    margin: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__desc {
+    @include type.type-style("body-compact-01");
+    color: $text-secondary;
+    margin: 0;
+  }
+
+  &:hover {
+    background-color: $layer-hover-01;
+    border-color: $border-subtle-selected-01;
+  }
+
+  &:active {
+    background-color: $layer-selected-01;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $focus;
+    outline-offset: 2px;
+  }
+}
+
+.auth-school-list-status {
+  margin-top: $spacing-05;
+}
+
+.auth-oauth-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-04;
+}
+
+.auth-oauth-group--primary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-03;
+}
+
+.auth-oauth-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  column-gap: $spacing-03;
+  position: relative;
+  min-height: 44px;
+  padding: 0 $spacing-05;
+  background-color: $layer-01;
+  color: $text-primary;
+  border: 1px solid $border-subtle-01;
+  cursor: pointer;
+  transition: all 0.15s;
+  overflow: hidden;
+
+  &__icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    object-fit: contain;
+  }
+
+  &__icon--fallback {
+    @include type.type-style("label-01");
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  &__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid $border-subtle-selected-01;
+    border-top-color: $icon-primary;
+    border-radius: 50%;
+    animation: auth-oauth-spin 0.75s linear infinite;
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    @include type.type-style("label-01");
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    width: 16px;
+    color: $icon-secondary;
+  }
+
+  &:hover {
+    background-color: $layer-hover-01;
+    border-color: $border-subtle-selected-01;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+
+  &[data-loading="true"] {
+    cursor: wait;
+    opacity: 1;
+  }
+
+  &--sso {
+    background-color: $layer-01;
+  }
+
+  &--placeholder {
+    cursor: default;
+    opacity: 0.72;
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      width: min(4.5rem, 60%);
+      height: 0.5rem;
+      margin: 0 auto;
+      background-color: $border-subtle-01;
+    }
+  }
+
+  &:not(.auth-oauth-btn--has-trailing):not(.auth-oauth-btn--placeholder)::after {
+    content: "";
+    flex-shrink: 0;
+    width: 20px;
+  }
+}
+
+@keyframes auth-oauth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-oauth-btn__spinner {
+    animation-duration: 1.4s;
+  }
+}
+
+@media (max-width: 41.99rem) {
+  .auth-oauth-group--primary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $spacing-02;
+  }
+
+  .auth-oauth-group--primary .auth-oauth-btn {
+    min-height: 44px;
+    justify-content: center;
+    column-gap: $spacing-02;
+    padding-inline: $spacing-02;
+  }
+
+  .auth-oauth-group--primary .auth-oauth-btn--sso {
+    grid-column: auto;
+  }
+
+  .auth-oauth-group--primary .auth-oauth-btn__label {
+    flex: 0 1 auto;
+    text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+  }
+
+  .auth-oauth-group--primary .auth-oauth-btn:not(.auth-oauth-btn--placeholder)::after {
+    width: 0;
+  }
+
+}

@@ -1,0 +1,109 @@
+@use "@carbon/react/scss/theme" as *;
+@use "@carbon/react/scss/spacing" as *;
+@use "@carbon/react/scss/type";
+@use "@carbon/react/scss/colors" as *;
+
+.auth-callback {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: clamp(18rem, 40vh, 24rem);
+  gap: $spacing-05;
+  text-align: left;
+
+  &__title {
+    @include type.type-style("heading-04");
+    color: $text-primary;
+  }
+
+  &__desc {
+    @include type.type-style("body-short-01");
+    color: $text-secondary;
+    max-width: 18rem;
+    line-height: 1.5;
+  }
+}
+
+.auth-consent {
+  gap: $spacing-05;
+}
+
+.auth-consent-summary,
+.auth-loading-step-frame {
+  width: 100%;
+  padding: $spacing-05;
+  background-color: $layer-01;
+  border: 1px solid $border-subtle-01;
+}
+
+.auth-consent-kicker {
+  @include type.type-style("label-01");
+  margin: 0 0 $spacing-03;
+  color: $text-secondary;
+}
+
+.auth-consent-client {
+  @include type.type-style("heading-03");
+  margin: 0 0 $spacing-03;
+  color: $text-primary;
+  font-weight: 500;
+}
+
+.auth-consent-description,
+.auth-consent-account {
+  @include type.type-style("body-compact-01");
+  margin: 0;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.auth-consent-account {
+  margin-top: $spacing-04;
+  color: $text-primary;
+  word-break: break-word;
+}
+
+.auth-consent-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-03;
+}
+
+.auth-loading-step-frame {
+  min-height: 5rem;
+  display: flex;
+  align-items: center;
+}
+
+.auth-loading-step {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+  width: 100%;
+  color: $text-primary;
+}
+
+.auth-loading-step__icon {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $icon-primary;
+}
+
+.auth-loading-step__label {
+  @include type.type-style("body-compact-01");
+  color: $text-secondary;
+}
+
+@media (max-width: 65.99rem) {
+  .auth-toolbar {
+    right: $spacing-05;
+  }
+
+  .auth-consent-actions {
+    grid-template-columns: 1fr;
+  }
+}
