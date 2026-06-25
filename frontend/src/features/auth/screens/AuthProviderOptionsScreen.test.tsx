@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AuthLayout from "@/features/auth/components/layout/AuthLayout";
 import CampusSsoScreen from "./CampusSsoScreen";
@@ -78,6 +78,11 @@ function renderLoginWithLayout() {
   );
 }
 
+const CurrentPath = () => {
+  const location = useLocation();
+  return <div data-testid="current-path">{location.pathname}</div>;
+};
+
 describe("auth provider options", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -146,7 +151,7 @@ describe("auth provider options", () => {
     expect(screen.queryByTestId("auth-register-email")).not.toBeInTheDocument();
   });
 
-  it("prioritizes registration providers before email registration when both are enabled", async () => {
+  it("uses a generic campus selector on registration before email registration", async () => {
     mockGetAuthOptions.mockResolvedValue({
       ...authOptions,
       data: {
@@ -155,11 +160,17 @@ describe("auth provider options", () => {
       },
     });
 
-    const { container } = renderWithRouter(<RegisterScreen />);
+    const { container } = renderWithRouter(
+      <>
+        <RegisterScreen />
+        <CurrentPath />
+      </>,
+    );
 
     expect(await screen.findByText("GitHub")).toBeInTheDocument();
     expect(screen.getByText("Google")).toBeInTheDocument();
     expect(screen.getByText("學校認證")).toBeInTheDocument();
+    expect(screen.queryByText("Test University")).not.toBeInTheDocument();
     expect(
       Array.from(
         container.querySelectorAll(".auth-oauth-group--primary .auth-oauth-btn__label"),
@@ -170,6 +181,9 @@ describe("auth provider options", () => {
     const emailForm = screen.getByTestId("auth-register-form");
     expect(providerGroup).not.toBeNull();
     expect(providerGroup!.compareDocumentPosition(emailForm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "學校認證" }));
+    expect(screen.getByTestId("current-path")).toHaveTextContent("/register/campus-sso");
   });
 
   it("renders only campus providers on the campus SSO screen", async () => {

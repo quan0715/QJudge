@@ -15,20 +15,13 @@
   },
   "auth": {
     "callback": {
-      "conflictTitle": "시험 충돌",
-      "connecting": "연결 중...",
       "errorTitle": "로그인 실패",
-      "examConflict": "활성 시험 세션이 감지되었습니다. 인계받기를 선택하십시오.",
       "failed": "로그인에 실패했습니다. 다시 시도하십시오.",
-      "finalTouch": "마지막 확인 중...",
       "loading": "본인 확인 중",
-      "loadingDesc": "학생 정보를 가져오는 중입니다. 잠시 기다려 주십시오...",
       "loadingSubtitle": "당신만을 위한 프로그래밍 무대를 준비 중입니다",
       "loadingTitle": "프로그래밍 평가 플랫폼에 오신 것을 환영합니다",
       "noCode": "인증 코드를 받지 못했습니다.",
-      "pleaseWait": "잠시만 기다려주세요",
       "steps": {
-        "almost": "거의 완료되었습니다. 잠시만 기다려주세요",
         "assembling": "작업 공간을 구성 중입니다...",
         "igniting": "엔진 점화 중...",
         "preparing": "모험을 준비 중입니다...",
@@ -38,18 +31,11 @@
       },
       "takeover": "인계받고 이전 장치 잠금",
       "takeoverExpired": "인수 토큰이 만료되었습니다. 다시 로그인하세요.",
-      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오.",
-      "takingOver": "처리 중...",
-      "verifyingSession": "세션을 동기화하는 중..."
+      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오."
     },
     "campusSso": {
       "backToLogin": "로그인으로 돌아가기",
-      "providers": {
-        "nycu": {
-          "description": "대학교 포털 계정을 사용하여 로그인합니다",
-          "name": "NYCU (국립 양명 교통 대학교)"
-        }
-      },
+      "backToRegister": "계정 만들기로 돌아가기",
       "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
       "subtitle": "로그인할 대학교를 선택하세요",
       "title": "캠퍼스 인증"
@@ -74,28 +60,18 @@
       "email": "이메일 / 사용자 이름",
       "emailPlaceholder": "이메일 또는 사용자 이름",
       "failed": "로그인 실패",
-      "feature1Desc": "실시간 피드백",
-      "feature1Title": "즉각적인 채점",
-      "feature2Desc": "유연한 평가",
-      "feature2Title": "다양한 문제 유형",
-      "feature3Desc": "학습 분석",
-      "feature3Title": "성장 추적",
-      "githubLogin": "GitHub 로 로그인",
-      "googleLogin": "Google 로 로그인",
-      "heroSubtitle": "온라인 테스트를 위한 설계 - 출제부터 시험, 분석까지 한 번에",
-      "heroTitle": "AI 세대를 위한 새로운 시험 경험",
       "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
       "loading": "로그인 중...",
       "noAccount": "계정이 없으신가요?",
       "oauthFailed": "로그인을 시작할 수 없습니다",
-      "or": "또는 다른 방법으로 로그인",
       "password": "비밀번호",
       "passwordPlaceholder": "비밀번호",
       "registerNow": "계정 만들기",
-      "ssoLogin": "SSO 로 로그인",
+      "schoolAuth": "캠퍼스 인증",
       "submit": "로그인",
       "subtitle": "환영합니다, 계정에 로그인하세요",
-      "title": "로그인"
+      "title": "로그인",
+      "emailDivider": "또는 이메일 / 비밀번호로 로그인"
     },
     "logout": {
       "confirmButton": "로그아웃",
@@ -127,7 +103,6 @@
       "passwordMismatch": "비밀번호가 일치하지 않습니다",
       "passwordPlaceholder": "비밀번호 생성",
       "passwordTooShort": "비밀번호는 최소 8 자 이상이어야 합니다.",
-      "submit": "가입하기",
       "subtitle": "플랫폼에 가입하여 코딩 여정을 시작하세요",
       "title": "계정 만들기",
       "username": "사용자 이름",

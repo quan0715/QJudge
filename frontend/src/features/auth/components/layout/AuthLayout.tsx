@@ -50,14 +50,14 @@ const AuthLayout = () => {
     const path = location.pathname;
     if (path === '/login') return 'login';
     if (path === '/register') return 'register';
-    if (path.startsWith('/login/campus-sso')) return 'campus-sso';
+    if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) return 'campus-sso';
     if (path.startsWith('/oauth/authorize')) return 'oauth-authorize';
     if (path.startsWith('/auth/')) return 'callback';
     if (path === '/onboarding') return 'onboarding';
     return 'auth';
   }, [location.pathname]);
 
-  const pathMetadata = useMemo(() => {
+  const pathMetadata = useMemo<AuthMetadata | null>(() => {
     const path = location.pathname;
     if (path === '/login') {
       return {
@@ -71,11 +71,16 @@ const AuthLayout = () => {
         subtitle: t("auth.register.subtitle"),
       };
     }
-    if (path.startsWith('/login/campus-sso')) {
+    if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) {
+      const isRegistrationSso = path.startsWith('/register/campus-sso');
+
       return {
         title: t("auth.campusSso.title"),
         subtitle: t("auth.campusSso.subtitle"),
-        backTo: '/login',
+        backTo: isRegistrationSso ? '/register' : '/login',
+        backLabel: isRegistrationSso
+          ? t("auth.campusSso.backToRegister", "返回建立帳號")
+          : t("auth.campusSso.backToLogin", "返回登入"),
       };
     }
     if (path.startsWith('/auth/')) {
@@ -152,7 +157,7 @@ const AuthLayout = () => {
                   {metadata?.backTo ? (
                     <Link to={metadata.backTo} className="auth-back-link">
                       <ArrowLeft size={16} />
-                      {t("auth.campusSso.backToLogin", "返回登入")}
+                      {metadata.backLabel || t("auth.campusSso.backToLogin", "返回登入")}
                     </Link>
                   ) : (
                     <div className="auth-back-link-placeholder" />

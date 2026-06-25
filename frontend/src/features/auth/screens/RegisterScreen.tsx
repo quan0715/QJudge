@@ -6,7 +6,7 @@ import {
   Button,
   InlineLoading,
 } from "@carbon/react";
-import { ArrowRight } from "@carbon/icons-react";
+import { ArrowRight, Education } from "@carbon/icons-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { AuthProviderOption } from "@/core/entities/auth.entity";
@@ -34,18 +34,13 @@ const RegisterPage = () => {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const registrationProviders = options.providers.filter((provider) => provider.supports_registration);
-  const orderedRegistrationProviders = [
-    ...registrationProviders.filter((provider) => provider.category === "social"),
-    ...registrationProviders.filter((provider) => provider.category === "campus"),
-  ];
+  const socialRegistrationProviders = registrationProviders.filter((provider) => provider.category === "social");
+  const hasCampusRegistrationProviders = registrationProviders.some((provider) => provider.category === "campus");
 
   const getRegistrationProviderLabel = (provider: AuthProviderOption): string => {
-    if (provider.category === "campus") {
-      return t("auth.login.schoolAuth", "學校認證");
-    }
     return provider.display_name || provider.key;
   };
-  const hasRegistrationProviders = orderedRegistrationProviders.length > 0;
+  const hasRegistrationProviders = socialRegistrationProviders.length > 0 || hasCampusRegistrationProviders;
 
   const getFieldError = (field: string): string | undefined =>
     fieldErrors[field]?.join("、");
@@ -119,17 +114,25 @@ const RegisterPage = () => {
         <PendingActionBanner />
         {hasRegistrationProviders && (
           <div className="auth-oauth-group auth-oauth-group--primary">
-            {orderedRegistrationProviders.map((provider) => (
+            {socialRegistrationProviders.map((provider) => (
               <AuthProviderButton
                 key={provider.key}
                 label={getRegistrationProviderLabel(provider)}
-                variant={provider.category === "campus" ? "sso" : "default"}
                 onClick={() => handleProviderRegister(provider)}
                 disabled={loading || (providerLoading !== null && providerLoading !== provider.key)}
                 loading={providerLoading === provider.key}
                 icon={<AuthProviderIcon provider={provider} />}
               />
             ))}
+            {hasCampusRegistrationProviders && (
+              <AuthProviderButton
+                label={t("auth.login.schoolAuth", "學校認證")}
+                variant="sso"
+                onClick={() => navigate(buildAuthLink("/register/campus-sso"))}
+                disabled={loading || providerLoading !== null}
+                icon={<Education size={20} className="auth-oauth-btn__icon" />}
+              />
+            )}
           </div>
         )}
 

@@ -15,20 +15,13 @@
   },
   "auth": {
     "callback": {
-      "conflictTitle": "考試衝突",
-      "connecting": "連線中",
       "errorTitle": "登入失敗",
-      "examConflict": "偵測到進行中的考試，請選擇是否接管。",
       "failed": "登入失敗",
-      "finalTouch": "最後確認中",
       "loading": "驗證身份",
-      "loadingDesc": "取得資訊中",
       "loadingSubtitle": "準備專屬舞台",
       "loadingTitle": "歡迎來到 QJudge",
       "noCode": "未收到授權碼",
-      "pleaseWait": "稍候",
       "steps": {
-        "almost": "就快好了，請稍候",
         "assembling": "正在組裝工作區...",
         "igniting": "引擎點火中，準備出發！",
         "preparing": "準備開啟程式冒險...",
@@ -38,18 +31,11 @@
       },
       "takeover": "接管並恢復考試",
       "takeoverExpired": "接管憑證已過期，請重新登入。",
-      "takeoverFailed": "接管失敗，請重新登入後再試。",
-      "takingOver": "處理中...",
-      "verifyingSession": "同步作業階段中..."
+      "takeoverFailed": "接管失敗，請重新登入後再試。"
     },
     "campusSso": {
       "backToLogin": "返回登入",
-      "providers": {
-        "nycu": {
-          "description": "使用校內 Portal 單一入口帳號進行身份驗證登入",
-          "name": "NYCU 國立陽明交通大學"
-        }
-      },
+      "backToRegister": "返回建立帳號",
       "redirecting": "正在導向校園驗證頁面...",
       "subtitle": "選擇您的學校進行身份驗證登入",
       "title": "校園身份驗證"
@@ -74,28 +60,18 @@
       "email": "Email / Username",
       "emailPlaceholder": "信箱或使用者名稱",
       "failed": "登入失敗",
-      "feature1Desc": "即時反饋",
-      "feature1Title": "秒級批改",
-      "feature2Desc": "靈活評測",
-      "feature2Title": "全能題型",
-      "feature3Desc": "學習分析",
-      "feature3Title": "成長追蹤",
-      "githubLogin": "使用 GitHub 登入",
-      "googleLogin": "使用 Google 登入",
-      "heroSubtitle": "專為線上測驗打造 - 從出題、考試到分析，一站式完成",
-      "heroTitle": "AI 世代的全新考試體驗",
       "invalidCredentials": "帳號或密碼錯誤",
       "loading": "登入中...",
       "noAccount": "還沒有帳號？",
       "oauthFailed": "無法啟動登入流程",
-      "or": "或使用其他方式登入",
       "password": "密碼",
       "passwordPlaceholder": "密碼",
       "registerNow": "建立帳號",
-      "ssoLogin": "校園身份驗證登入",
+      "schoolAuth": "學校認證",
       "submit": "登入",
       "subtitle": "歡迎回來，請登入您的帳號",
-      "title": "登入"
+      "title": "登入",
+      "emailDivider": "或使用帳號密碼登入"
     },
     "logout": {
       "confirmButton": "登出",
@@ -127,7 +103,6 @@
       "passwordMismatch": "密碼不一致",
       "passwordPlaceholder": "建立一個密碼",
       "passwordTooShort": "密碼至少需要 8 個字元",
-      "submit": "註冊",
       "subtitle": "加入 QJudge，開始您的程式之旅",
       "title": "建立帳號",
       "username": "使用者名稱",
