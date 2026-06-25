@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,6 +78,35 @@ function renderLoginWithLayout() {
   );
 }
 
+function renderCampusSsoRoute(initialPath: "/login/campus-sso" | "/register/campus-sso") {
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>
+        <Route
+          path="/login/campus-sso"
+          element={
+            <>
+              <CampusSsoScreen />
+              <CurrentPath />
+            </>
+          }
+        />
+        <Route
+          path="/register/campus-sso"
+          element={
+            <>
+              <CampusSsoScreen />
+              <CurrentPath />
+            </>
+          }
+        />
+        <Route path="/login" element={<CurrentPath />} />
+        <Route path="/register" element={<CurrentPath />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 const CurrentPath = () => {
   const location = useLocation();
   return <div data-testid="current-path">{location.pathname}</div>;
@@ -87,6 +116,7 @@ describe("auth provider options", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetAuthOptions.mockResolvedValue(authOptions);
+    mockGetOAuthUrl.mockResolvedValue("#campus-sso");
   });
 
   it("hides email/password login when disabled and renders dynamic social providers", async () => {
@@ -187,10 +217,39 @@ describe("auth provider options", () => {
   });
 
   it("renders only campus providers on the campus SSO screen", async () => {
-    renderWithRouter(<CampusSsoScreen />);
+    renderCampusSsoRoute("/login/campus-sso");
 
     expect(await screen.findByText("Test University")).toBeInTheDocument();
     expect(screen.queryByText("GitHub")).not.toBeInTheDocument();
+    expect(screen.getByTestId("auth-campus-sso-back")).toHaveTextContent("返回登入");
+    expect(screen.getByTestId("auth-campus-sso-submit")).toBeDisabled();
+    expect(screen.getByTestId("auth-campus-sso-mobile-submit")).toBeDisabled();
+  });
+
+  it("requires selecting a campus provider before verification", async () => {
+    renderCampusSsoRoute("/login/campus-sso");
+
+    const provider = await screen.findByRole("button", { name: /Test University/ });
+    const submit = screen.getByTestId("auth-campus-sso-submit");
+
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(provider);
+    expect(provider).toHaveAttribute("aria-pressed", "true");
+    expect(submit).toBeEnabled();
+
+    fireEvent.click(submit);
+    await waitFor(() => expect(mockGetOAuthUrl).toHaveBeenCalledWith("school-x"));
+  });
+
+  it("returns to the originating registration screen from campus SSO", async () => {
+    renderCampusSsoRoute("/register/campus-sso");
+
+    expect(await screen.findByText("Test University")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-campus-sso-back")).toHaveTextContent("返回建立帳號");
+
+    fireEvent.click(screen.getByTestId("auth-campus-sso-back"));
+    expect(screen.getByTestId("current-path")).toHaveTextContent("/register");
   });
 
   it("filters registration campus providers by registration support", async () => {

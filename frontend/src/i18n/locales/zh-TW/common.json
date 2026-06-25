@@ -38,7 +38,8 @@
       "backToRegister": "返回建立帳號",
       "redirecting": "正在導向校園驗證頁面...",
       "subtitle": "選擇您的學校進行身份驗證登入",
-      "title": "校園身份驗證"
+      "title": "校園身份驗證",
+      "verify": "驗證"
     },
     "providerActions": {
       "loginWith": "使用 {{provider}} 登入",

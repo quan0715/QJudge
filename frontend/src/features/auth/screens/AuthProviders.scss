@@ -75,6 +75,11 @@
     background-color: $layer-selected-01;
   }
 
+  &[data-selected="true"] {
+    background-color: $layer-selected-01;
+    border-color: $focus;
+  }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -88,6 +93,19 @@
 
 .auth-school-list-status {
   margin-top: $spacing-05;
+}
+
+.auth-campus-sso-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-03;
+  margin-top: $spacing-05;
+}
+
+.auth-campus-sso-action-btn {
+  width: 100%;
+  max-width: none;
+  justify-content: space-between;
 }
 
 .auth-oauth-group {

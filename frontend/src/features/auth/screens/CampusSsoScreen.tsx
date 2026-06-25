@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { InlineLoading } from "@carbon/react";
+import { Button, InlineLoading } from "@carbon/react";
+import { ArrowRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { AuthProviderOption } from "@/core/entities/auth.entity";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuthOptions } from "@/features/auth/hooks";
 import { usePendingActions, PendingActionBanner } from "@/features/auth/pending-actions";
 import { getProviderDescription, getProviderDisplayName } from "@/features/auth/utils/authProviderLabels";
+import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 
 const ProviderLogo = ({ provider, alt }: { provider: AuthProviderOption; alt: string }) => {
   if (provider.logo_url) {
@@ -25,15 +27,24 @@ const ProviderLogo = ({ provider, alt }: { provider: AuthProviderOption; alt: st
 const CampusSsoScreen = () => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { options } = useAuthOptions();
   // Auto-syncs query params (e.g. teacher_activation_token) → sessionStorage
-  usePendingActions();
+  const { buildAuthLink } = usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [selectedProviderKey, setSelectedProviderKey] = useState<string | null>(null);
   const isRegistrationSso = location.pathname.startsWith("/register/campus-sso");
+  const backPath = isRegistrationSso ? "/register" : "/login";
+  const backLabel = isRegistrationSso
+    ? t("auth.campusSso.backToRegister", "返回建立帳號")
+    : t("auth.campusSso.backToLogin", "返回登入");
+  const verifyLabel = t("auth.campusSso.verify", "驗證");
   const campusProviders = options.providers.filter(
     (provider) => provider.category === "campus" && (!isRegistrationSso || provider.supports_registration),
   );
+  const selectedProvider = campusProviders.find((provider) => provider.key === selectedProviderKey);
+  const isAuthenticating = loading !== null;
 
   const handleSsoLogin = async (providerId: string) => {
     try {
@@ -47,6 +58,15 @@ const CampusSsoScreen = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate(buildAuthLink(backPath));
+  };
+
+  const handleVerify = () => {
+    if (!selectedProvider || isAuthenticating) return;
+    void handleSsoLogin(selectedProvider.key);
+  };
+
   return (
     <>
       <div className="auth-form">
@@ -55,14 +75,17 @@ const CampusSsoScreen = () => {
           {campusProviders.map((provider) => {
             const displayName = getProviderDisplayName(t, provider);
             const description = getProviderDescription(t, provider);
+            const isSelected = selectedProviderKey === provider.key;
 
             return (
               <button
                 key={provider.key}
                 type="button"
                 className="auth-school-list-item"
-                onClick={() => handleSsoLogin(provider.key)}
-                disabled={loading !== null}
+                aria-pressed={isSelected}
+                data-selected={isSelected ? "true" : undefined}
+                onClick={() => setSelectedProviderKey(provider.key)}
+                disabled={isAuthenticating}
               >
                 <div className="auth-school-list-item__logo-container">
                   <ProviderLogo provider={provider} alt={displayName} />
@@ -83,7 +106,53 @@ const CampusSsoScreen = () => {
         )}
 
         {error && <p className="auth-error">{error}</p>}
+
+        <div className="auth-actions auth-actions--desktop-submit auth-campus-sso-actions">
+          <Button
+            kind="secondary"
+            type="button"
+            className="auth-campus-sso-action-btn"
+            onClick={handleBack}
+            data-testid="auth-campus-sso-back"
+          >
+            {backLabel}
+          </Button>
+          <Button
+            kind="primary"
+            type="button"
+            className="auth-campus-sso-action-btn"
+            disabled={!selectedProvider || isAuthenticating}
+            onClick={handleVerify}
+            renderIcon={ArrowRight}
+            data-testid="auth-campus-sso-submit"
+          >
+            {verifyLabel}
+          </Button>
+        </div>
       </div>
+
+      <MobileActionFooter>
+        <Button
+          kind="secondary"
+          size="2xl"
+          type="button"
+          onClick={handleBack}
+          data-testid="auth-campus-sso-mobile-back"
+        >
+          {backLabel}
+        </Button>
+        <Button
+          kind="primary"
+          size="2xl"
+          type="button"
+          disabled={!selectedProvider || isAuthenticating}
+          onClick={handleVerify}
+          renderIcon={ArrowRight}
+          data-testid="auth-campus-sso-mobile-submit"
+        >
+          {verifyLabel}
+        </Button>
+      </MobileActionFooter>
     </>
   );
 };

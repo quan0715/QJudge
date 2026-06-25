@@ -38,7 +38,8 @@
       "backToRegister": "Back to create account",
       "redirecting": "Redirecting to campus login...",
       "subtitle": "Select your university to login",
-      "title": "Campus Authentication"
+      "title": "Campus Authentication",
+      "verify": "Verify"
     },
     "providerActions": {
       "loginWith": "Login with {{provider}}",
