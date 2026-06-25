@@ -72,15 +72,9 @@ const AuthLayout = () => {
       };
     }
     if (path.startsWith('/login/campus-sso') || path.startsWith('/register/campus-sso')) {
-      const isRegistrationSso = path.startsWith('/register/campus-sso');
-
       return {
         title: t("auth.campusSso.title"),
         subtitle: t("auth.campusSso.subtitle"),
-        backTo: isRegistrationSso ? '/register' : '/login',
-        backLabel: isRegistrationSso
-          ? t("auth.campusSso.backToRegister", "返回建立帳號")
-          : t("auth.campusSso.backToLogin", "返回登入"),
       };
     }
     if (path.startsWith('/auth/')) {

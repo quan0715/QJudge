@@ -38,7 +38,8 @@
       "backToRegister": "계정 만들기로 돌아가기",
       "redirecting": "캠퍼스 로그인 페이지로 이동 중...",
       "subtitle": "로그인할 대학교를 선택하세요",
-      "title": "캠퍼스 인증"
+      "title": "캠퍼스 인증",
+      "verify": "인증"
     },
     "providerActions": {
       "loginWith": "{{provider}} 로 로그인",

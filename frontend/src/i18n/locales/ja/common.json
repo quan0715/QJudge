@@ -38,7 +38,8 @@
       "backToRegister": "アカウント作成に戻る",
       "redirecting": "ログインページにリダイレクト中...",
       "subtitle": "ログインする大学を選択してください",
-      "title": "キャンパス認証"
+      "title": "キャンパス認証",
+      "verify": "認証"
     },
     "providerActions": {
       "loginWith": "{{provider}} でログイン",
