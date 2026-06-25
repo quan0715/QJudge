@@ -192,4 +192,31 @@ describe("auth provider options", () => {
     expect(await screen.findByText("Test University")).toBeInTheDocument();
     expect(screen.queryByText("GitHub")).not.toBeInTheDocument();
   });
+
+  it("filters registration campus providers by registration support", async () => {
+    mockGetAuthOptions.mockResolvedValue({
+      ...authOptions,
+      data: {
+        ...authOptions.data,
+        providers: [
+          ...authOptions.data.providers,
+          {
+            key: "school-login-only",
+            category: "campus",
+            display_name: "Login Only University",
+            supports_registration: false,
+          },
+        ],
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/register/campus-sso"]}>
+        <CampusSsoScreen />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Test University")).toBeInTheDocument();
+    expect(screen.queryByText("Login Only University")).not.toBeInTheDocument();
+  });
 });

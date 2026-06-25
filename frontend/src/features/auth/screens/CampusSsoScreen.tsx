@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { InlineLoading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import type { AuthProviderOption } from "@/core/entities/auth.entity";
 import { getOAuthUrl } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuthOptions } from "@/features/auth/hooks";
@@ -23,12 +24,16 @@ const ProviderLogo = ({ provider, alt }: { provider: AuthProviderOption; alt: st
 
 const CampusSsoScreen = () => {
   const { t } = useTranslation();
+  const location = useLocation();
   const { options } = useAuthOptions();
   // Auto-syncs query params (e.g. teacher_activation_token) → sessionStorage
   usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const campusProviders = options.providers.filter((provider) => provider.category === "campus");
+  const isRegistrationSso = location.pathname.startsWith("/register/campus-sso");
+  const campusProviders = options.providers.filter(
+    (provider) => provider.category === "campus" && (!isRegistrationSso || provider.supports_registration),
+  );
 
   const handleSsoLogin = async (providerId: string) => {
     try {
