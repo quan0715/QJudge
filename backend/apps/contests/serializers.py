@@ -7,6 +7,8 @@ from django.utils import timezone
 from .models import (
     Contest,
     ExamQuestion,
+    ExamQuestionAnswerFormat,
+    ExamQuestionGroup,
     ExamQuestionType,
     ContestParticipant,
     ContestAnnouncement,
@@ -21,9 +23,11 @@ from .models import (
 from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
+from .services.open_answer_document import validate_open_answer_document
 from apps.users.serializers import UserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
+MAX_SUBJECTIVE_ANSWER_TEXT_BYTES = 32 * 1024
 
 
 # ============================================================================
@@ -620,6 +624,7 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
+    group_id = serializers.UUIDField(source='group.id', read_only=True, allow_null=True)
 
     class Meta:
         model = ExamQuestion
@@ -630,7 +635,12 @@ class ExamQuestionStudentSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'score',
+            'score_policy',
+            'score_policy_config',
             'order',
+            'group_id',
+            'order_in_group',
+            'answer_format',
             'question_asset_id',
             'question_version_id',
             'binding_id',
@@ -652,6 +662,8 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
+    group_id = serializers.UUIDField(required=False, allow_null=True)
+    effective_max_score = serializers.SerializerMethodField()
 
     class Meta:
         model = ExamQuestion
@@ -662,9 +674,17 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'prompt',
             'options',
             'correct_answer',
+            'reference_answer_document',
             'explanation',
+            'explanation_document',
             'score',
+            'score_policy',
+            'score_policy_config',
+            'effective_max_score',
             'order',
+            'group_id',
+            'order_in_group',
+            'answer_format',
             'source_bank',
             'source_question_id',
             'source_mode',
@@ -675,6 +695,13 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['contest', 'created_at', 'updated_at']
+
+    def get_effective_max_score(self, obj):
+        """Post-redistribution effective max score for this question."""
+        effective_map = self.context.get('effective_max_scores')
+        if effective_map and obj.id in effective_map:
+            return round(effective_map[obj.id], 2)
+        return float(obj.score)
 
     def get_source_bank(self, obj):
         if not obj.source_bank_id:
@@ -702,10 +729,36 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('score must be greater than 0')
         return value
 
+    def validate_answer_format(self, value):
+        if value not in ExamQuestionAnswerFormat.values:
+            raise serializers.ValidationError('invalid answer_format')
+        return value
+
+    def validate_reference_answer_document(self, value):
+        if value is None:
+            return None
+        return validate_open_answer_document(value)
+
+    def validate_explanation_document(self, value):
+        if value is None:
+            return None
+        return validate_open_answer_document(value)
+
     def validate(self, attrs):
         question_type = attrs.get('question_type') or getattr(self.instance, 'question_type', None)
         options = attrs.get('options')
         correct_answer = attrs.get('correct_answer')
+        group_id = attrs.get('group_id') if 'group_id' in attrs else getattr(self.instance, 'group_id', None)
+        contest = self.context.get('contest') or getattr(self.instance, 'contest', None)
+        answer_format = attrs.get('answer_format') or getattr(
+            self.instance,
+            'answer_format',
+            ExamQuestionAnswerFormat.PLAIN_TEXT,
+        )
+
+        if group_id is not None and contest is not None:
+            if not ExamQuestionGroup.objects.filter(id=group_id, contest=contest).exists():
+                raise serializers.ValidationError({'group_id': 'group must belong to this contest'})
 
         if question_type in {ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_options = options if options is not None else getattr(self.instance, 'options', [])
@@ -719,6 +772,14 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
 
         if question_type in {ExamQuestionType.ESSAY, ExamQuestionType.SHORT_ANSWER} and options is not None and len(options) > 0:
             raise serializers.ValidationError({'options': f'{question_type} question should not define options'})
+
+        if (
+            answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT
+            and question_type not in {ExamQuestionType.ESSAY, ExamQuestionType.SHORT_ANSWER}
+        ):
+            raise serializers.ValidationError({
+                'answer_format': 'open_document is only supported for subjective questions'
+            })
 
         if question_type in {ExamQuestionType.TRUE_FALSE, ExamQuestionType.SINGLE_CHOICE, ExamQuestionType.MULTIPLE_CHOICE}:
             merged_answer = correct_answer if 'correct_answer' in attrs else getattr(self.instance, 'correct_answer', None)
@@ -742,6 +803,31 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'correct_answer': 'true_false expects true/false'})
 
         return attrs
+
+
+class ExamQuestionGroupSerializer(serializers.ModelSerializer):
+    """Serializer for contest-local question groups."""
+
+    total_score = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExamQuestionGroup
+        fields = [
+            'id',
+            'title',
+            'shared_stem_markdown',
+            'order',
+            'total_score',
+        ]
+        read_only_fields = ['id', 'total_score']
+
+    def get_total_score(self, obj):
+        if hasattr(obj, 'total_score_annotated') and obj.total_score_annotated is not None:
+            return obj.total_score_annotated
+        from .models import ExamQuestionScorePolicy
+        return obj.questions.exclude(
+            score_policy=ExamQuestionScorePolicy.EXCLUDED
+        ).aggregate(total=Sum('score'))['total'] or 0
 
 
 # ============================================================================
@@ -976,6 +1062,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     account_role = serializers.CharField(source='user.role', read_only=True)
     auth_provider = serializers.CharField(source='user.auth_provider', read_only=True)
+    score = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
     last_heartbeat_at = serializers.SerializerMethodField()
@@ -1040,20 +1127,32 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             if source in ('screen_share', 'webcam') and source not in sources:
                 sources.append(source)
         return sources
+
+    @staticmethod
+    def _score_to_float(value):
+        return float(value or 0)
+
+    def get_score(self, obj):
+        return self._score_to_float(obj.score)
     
     def get_total_score(self, obj):
-        """計算參賽者的實際總分（從提交記錄中計算，排除測試提交）
+        """計算參賽者的實際總分。
         優先使用 ViewSet 注入的 total_score_annotated 以避免 N+1。
         """
         if hasattr(obj, 'total_score_annotated'):
-            return obj.total_score_annotated or 0
+            return self._score_to_float(obj.total_score_annotated)
 
         # Fallback (Slow path)
+        if obj.contest.contest_type == 'paper_exam':
+            # Paper exam: use persisted score (maintained by ExamScoringService,
+            # respects score_policy: excluded/full_marks/redistribute)
+            return self._score_to_float(obj.score)
+
         from apps.submissions.models import Submission
         from django.db.models import Max
         from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
-        # 取得競賽的所有 coding bindings
+        # Coding contest: best submission score per problem
         bindings = ContestQuestionBinding.objects.filter(
             contest=obj.contest,
             binding_type=QuestionAsset.AssetType.CODING,
@@ -1063,7 +1162,6 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         for binding in bindings:
             if not binding.coding_problem_id:
                 continue
-            # 取得該用戶在此題目的最高分（排除測試提交）
             best_submission = Submission.objects.filter(
                 contest=obj.contest,
                 problem=binding.coding_problem,
@@ -1201,6 +1299,9 @@ class ExamAnswerSubmitSerializer(serializers.Serializer):
     def validate_answer(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError('answer must be a JSON object')
+        text = value.get('text')
+        if isinstance(text, str) and len(text.encode('utf-8')) > MAX_SUBJECTIVE_ANSWER_TEXT_BYTES:
+            raise serializers.ValidationError('answer text exceeds 32 KB')
         return value
 
 

@@ -1,4 +1,12 @@
-import type { User, UserPreferences, ManagedUser, TeacherActivationInvite, TeacherActivationPreview, UserLoginRecord } from "@/core/entities/auth.entity";
+import type {
+  AuthOptions,
+  User,
+  UserPreferences,
+  ManagedUser,
+  TeacherActivationInvite,
+  TeacherActivationPreview,
+  UserLoginRecord,
+} from "@/core/entities/auth.entity";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -22,6 +30,7 @@ export interface AuthSuccessDto {
 }
 
 export type AuthResponseDto = ApiResponse<AuthSuccessDto>;
+export type AuthOptionsResponseDto = ApiResponse<AuthOptions>;
 export type CurrentUserResponseDto = ApiResponse<User>;
 export type PreferencesResponseDto = ApiResponse<UserPreferences>;
 export type UserSearchResponseDto = ApiResponse<ManagedUser[]>;

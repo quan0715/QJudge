@@ -17,7 +17,7 @@ from ..serializers import ContestProblemSerializer
 from ..permissions import can_manage_contest
 from ..services.question_edit_lock import ensure_contest_question_editable
 from .activity import ContestActivityViewSet
-from apps.question_bank.models import ContestQuestionBinding, Question, QuestionAsset
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 
 class ContestProblemViewSet(viewsets.ModelViewSet):
@@ -326,7 +326,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         from apps.contests.services.contest_problem_service import (
             resolve_bank_question_for_import,
-            materialize_problem_from_bank_question,
+            materialize_problem_from_bank_item,
         )
 
         last_order = (
@@ -347,16 +347,16 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 if not question_bank_id or question_id is None:
                     raise DRFValidationError("Each item requires question_bank_id and question_id")
 
-                bank, bank_question = resolve_bank_question_for_import(
+                bank, bank_item = resolve_bank_question_for_import(
                     user=user,
                     question_bank_id=question_bank_id,
                     question_id=question_id,
-                    allowed_question_types={Question.QuestionType.CODING},
+                    allowed_question_types={"coding"},
                     invalid_type_message="Only coding bank questions can be imported here",
                 )
 
-                problem = materialize_problem_from_bank_question(
-                    contest=contest, question=bank_question, user=user, request=request,
+                problem = materialize_problem_from_bank_item(
+                    contest=contest, bank_item=bank_item, user=user, request=request,
                 )
 
                 if not problem.question_asset_id:
@@ -378,7 +378,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                     score=max_score,
                     source_bank_id=bank.uuid,
                     source_bank_name=bank.name,
-                    source_question_id=bank_question.id,
+                    source_question_id=bank_item.id,
                     source_mode="copy",
                     created_by=user,
                 )

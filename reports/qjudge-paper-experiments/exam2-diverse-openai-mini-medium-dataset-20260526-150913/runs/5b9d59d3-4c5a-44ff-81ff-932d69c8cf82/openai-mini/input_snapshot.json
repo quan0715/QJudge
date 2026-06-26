@@ -1,0 +1,830 @@
+{
+  "answer_count": 116,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1)call a poll to check the buffer \n(2)pop-up thread created to handle\n(3)interrupt handler to map and handle\n(4)"
+      },
+      "id": "12787",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the process.\n2. The process periodically polls the pool and check the message. Needs `poll()` and `get_message()` functions.\n3. Use a pop-up thread to handle the incoming message.\n4. Directly handle the message in trap handler after receiving message."
+      },
+      "id": "11769",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, session method (used in AFS)"
+      },
+      "id": "16179",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver\n2. process active messages into interrupt handler\n3. a pop up thread to handle the message\n4. periodically to poll the buffer, check whether any message arrive or not"
+      },
+      "id": "11958",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. 當message has arrived就直接interrupt\n2. 當message has arrived就直接create一個new thread，讓該thread去處理message\n3. 一直花時間去做poll，確認message是否已經抵達\n4. 將message傳送這件事在interrupt handler中處理，以此確認是否收到\n"
+      },
+      "id": "11634",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. signal\n2. interrupt\n3. polling\n4. fork a process to deal with the data"
+      },
+      "id": "11689",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "interrupt: 當訊息抵達時會發出 interrupt 中斷 processor 並且讓 handler 來處理訊息\nmessage buffer: 訊息抵達時會修改某處資料，當 processer 去做詢問時便會知道 message 已經抵達。 \npop up thread: 在訊息抵達時，一個 threads 會被創建來處理此訊息。\nmessage action: 訊息本身自帶要執行的動作，直接在 handler 內執行，此需要 completly trusted environment."
+      },
+      "id": "11628",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. 訊息送達時，系統直接打一個 interrupt 給 receiver。\n2. 接收端定期地去確認 buffer 狀態是否改變。\n3. 訊息送達時，系統動態地建立 pop-up thread 來處理訊息。\n4. 訊息送達時直接在 interrupt handler 裡面處理。"
+      },
+      "id": "11685",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.interupt直接通知 2.polling 不斷去check收到了沒 3.收到message就直接產生新的thread 4.利用interupt handler 直接處理message"
+      },
+      "id": "11803",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt when the message arrived.\n2. the receiver need to poll the status of message buffer, and retrieve the message when the status change. it requires poll( ) and get_message( ).\n3. pop-up thread to cope with the message.\n4. executing the arriving active message in the interrupt handler, this operation can only done in fully trusted environment."
+      },
+      "id": "12325",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "interrupt message\npop-up thread\nmessage in receiver's buffer"
+      },
+      "id": "11243",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver when the message is arrived.\n2. the caller polls to check whether the message is arrived or not.\n3. a pop-up thread is created to handle the comming message.\n4. let the message be handled at interrupt handler (should be in the trusted environment)."
+      },
+      "id": "12091",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. poll\n2. Interrupt handler\n3. pop up thread\n4. application message(need  trust source)"
+      },
+      "id": "12684",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt receiver with a new message\n2. Create a separate thread to notify receive of the message\n3. Receiver should poll for new messages\n4. "
+      },
+      "id": "12230",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupts\n2. Poll\n3. Establish Pop-up thread to notify  the receiver that a message has arrived\n4. Notify active message"
+      },
+      "id": "13692",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "1. receiver process check if message arrive every 1 second (some thing like this)\n2. OS interrupt receiver process to tell it\n3. OS pop up a thread to handle the message\n4. execution the code in received message in interrupt handler of OS"
+      },
+      "id": "12124",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- Interrupt the sender on message reception \n- Use a handler on message reception \n- Create a thread to notify \n- Polling the messages to verify if the sent message's status changed (needs poll() and get_messages())\n "
+      },
+      "id": "11177",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- the receiver is interrupted by the reception\n- The receiver thread polls regularly the flag and the buffer for the reception\n- A pop-up thread is ran when the message is received\n- The reception trigger the Interrupt Handler and execute directly the associated function."
+      },
+      "id": "12255",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "poll, interrupt, "
+      },
+      "id": "14737",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "interrupt\npolling\npop-up thread \nactive message"
+      },
+      "id": "11671",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt\n2. polling\n3. pop-up thread\n4. 直接在interrupt handler做掉"
+      },
+      "id": "11786",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. 用軟體中斷(interrupt)通知訊息到了。\n2. 用poll()及get_message()定期檢查訊息到了沒。\n3. 當訊息到達時用pop-up thread去處理。\n4. 在interrupt handler中處理active message(要在完全信任的環境)。"
+      },
+      "id": "11255",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "1. Upon message arrived, interrupt the receiver\n2. Constant poll the status of the buffer, and tell receiver if the buffer state change\n3. Upon message arrived, use pop-up thread to manage it\n4. Directly execute the message with the process code in interrupt handler"
+      },
+      "id": "11944",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "polling\n回應\n動態式 \n中斷\n"
+      },
+      "id": "12648",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt receiver when the message is arrived"
+      },
+      "id": "11837",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the receiver when a message arrives.\n2. Receiver polls the status of the buffer periodically to determine whether a message comes.\n3. A pop-up thread handles the arriving message.\n4. Process the arriving active message inside the interrupt handler. It can only be done in a trust environment."
+      },
+      "id": "12167",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.在收到訊息時中斷\n2.使用彈出thread處理接受到的訊息\n3.\n4."
+      },
+      "id": "11869",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt\n2. pop-up thread\n3. polling the status of buffer periodically\n4."
+      },
+      "id": "12283",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "interrupt:自己叫receiver\npolling:一直用poll()看，再用get_message()取出\npop up thread:開新的thread處理\nactive message: interrupt handler 直接處理"
+      },
+      "id": "11630",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar\n2. atomic messages\n3. node receives the message\n4."
+      },
+      "id": "14257",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the receiver that a message is arrived.\n2. Use a pop up thread to handle the message arrival.\n3. Let the receiver periodically polls the status of the the message buffer to check whether a message is arrived.\n4. Execute certain code received from the message in the interrupt handler, it can only work in a trusted environment."
+      },
+      "id": "12128",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt\n2.用polling的方式去輪巡查看是否完成"
+      },
+      "id": "13168",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. Check message ID.\n2. Check message sender address.\n3. Check message receiver address.\n4."
+      },
+      "id": "13671",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt receiver \n2. receiver periodly check the buffer if there is message\n3. process the message in interrupt handler"
+      },
+      "id": "12610",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt\n2. poll & retrieve\n3. build a additional thread for the message\n4. tackle the message in the exception section"
+      },
+      "id": "12119",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "12250",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt to alert\n2. polling to check\n3. pop up thread直接處理\n4. 在interrupt handeler中直接處理"
+      },
+      "id": "11373",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "直接中斷\n接收者輪詢訊息傳送狀態\npop-out thread\nactive message"
+      },
+      "id": "11690",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.當訊息抵達時interrupt通知receiver\n2.The caller週期性poll buffer狀態，狀態改變就取出訊息\n3.建立一個pop-up thread來處理抵達的訊息\n4.直接在interrupt handler處理抵達active message"
+      },
+      "id": "11766",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt: 接收到之後中斷\n2. polling: 時刻關注buffer\n3. pop-up thread: 跳新視窗出來\n4. active message: 在中斷程序中去處理"
+      },
+      "id": "11651",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1.polling\n2.check periodically\n3.interrupt\n"
+      },
+      "id": "11331",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "interupt\npolling\nthread"
+      },
+      "id": "11327",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the receiver\n2. Caller polls the buffer periodically\n3. Pop-up thread\n4. Processing the active message in Interrupt handler"
+      },
+      "id": "11754",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.建立pop-up-thread\n2.持續poll buffer狀態，再用get message接收訊息\n3.收到message後就中斷reciever\n4."
+      },
+      "id": "11796",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.Interrupt the receiver when the message arrives\n2.The caller polls continously and retrive the message when the status change, it requires poll() and get_message()\n3.When the message arrive, a pop-up thread is created to handle it.\n4.processing the message inside the interrupt handler, this requires completely trust environment"
+      },
+      "id": "13556",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Poll a buffer until state changes\nInterrupt handler in a trusted environment\nInterrupt the reciever\nCreate a seperate thread to deal with the recieve"
+      },
+      "id": "11100",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver\n2. Polling the statues\n3. pop up thread\n4.arriving active massage"
+      },
+      "id": "11710",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "1. 直接發送中斷程序給receiver\n2. 在中斷程序中執行目前的message\n3. 建立一個新的thread來處理message\n4. 透過檢查buffer狀態"
+      },
+      "id": "12017",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 當message傳到時，中斷傳輸\n2. 創建一個新的thread處理\n3. 持續關注buffer的狀態\n4. "
+      },
+      "id": "12528",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Interrupt:\n用中斷提醒receiver訊息已送達\nPolling cache state:\n每個一段時間定期檢查cache狀態，確認有無訊息送達\nPop-up thread:\n當收到訊息時，系統新增一個process來處理該訊息\nActive message:\n直接執行interrupt handler，執行訊息內的handler code"
+      },
+      "id": "11855",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1. 接收端中斷\n2. 持續poll，直到get_message\n3. 接收到訊息後，彈出執行序pop_up thread\n4. 資源必須在安全的環境操作"
+      },
+      "id": "13905",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.打斷 interrupt\n2.poll and get_message()\n3.pop out threads\n4.在interrupt的時候就直接處理資料 只用在絕對確認安全的sender"
+      },
+      "id": "11669",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt: 當訊號送達是會interrupt receiver 讓他暫時不要再接收新訊號\n2. polling: caller 會一直去檢查message delivering operation 的狀態(polling the state) 如果有訊息就會retrieve(拿走) 所以會需要polling() and get_message()\n3. pop-up threads: 當訊號到達 會隨機出現pop-up threads處理訊號\n4. active message: 當acitve message 到達 會在interrupt handler內直接處理，只適用在completely trusted environment"
+      },
+      "id": "12159",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "passing pointer\n"
+      },
+      "id": "12039",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt: 收到訊息直接中斷接收者原來的工作。\n2. Pop-up thread: 產生新的執行緒來執行接收到的訊息。\n3. Polling: 定期檢查緩衝區有沒有收到新訊息。\n4. Active message: 動態觀察收到的訊息。"
+      },
+      "id": "11823",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt receiver when a message comes\n2. receiver定期去詢問buffer\n3. 用pop-up thread處理\n4. 在handler indicator裡把訊息處理掉"
+      },
+      "id": "11583",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "interrupt : 當訊息抵達時，系統會執行硬體或軟體中斷來通知receiver\npolling : receiver會定期輪詢(polling)訊息緩衝區的狀態\npop-up thread : 當訊息抵達時，系統會自動建立一個執行緒來處理這個訊息\nactive message : 由interrupt handler直接處理訊息，適合操作在可靠度高的系統"
+      },
+      "id": "14109",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt\n2. Polling\n3. Pop-up Thread\n4. Active Message"
+      },
+      "id": "12135",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt\n2.poll\n3.pop-up thread\n4.active message inside interrupt handler(需要很高信任度)"
+      },
+      "id": "11564",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.polling\n2.interrupt\n3.interrupt handler 但僅限極度安全的環境\n4.透過pop up thread 處理"
+      },
+      "id": "11916",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the receiver when the message arrives\n2. The caller polls the status of the message buffer periodically and retrieves the massage when the state change.\n3.On receiving a message, a pop-up thread is created to handle the message.\n4.Process the arriving active message inside the interrupt handler."
+      },
+      "id": "11810",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.receiver在收到message後 ,interrupt\n2.使用active message,但只能用在完全信任的訊息,直接在O.S.執行\n3.當receiver收到後使用pop-up 程式\n4.receiver每隔一段時間就去查看訊息到了沒使用poll "
+      },
+      "id": "11915",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Poll the status of the buffer. It needs poll() and get_message() operations\nCreate a pop up thread for arriving messages\nInterrupt/signal the receiver\nArriving active messages notified in the interrupt handler. This is only possible in a completely trusted environment"
+      },
+      "id": "12433",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. Polling (Bus waiting)\nii. Interrupts\niii. Signals/ Callbacks \niv. Condition variables/Events"
+      },
+      "id": "16143",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "interrupt the execution of receiver\npoll the status of buffer\nuse a pop up thread to handle\nget arrive active message in interrupt handler"
+      },
+      "id": "11984",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt the receiver when the message arrived.\n2. When the message arrives, the pop-up thread is created to handle the message.\n3. The receiver keep polling the status of buffer and retrieve messages when the status changes. It needs poll() and get_message() to support.\n4. Deal with messages in the interrupt handler. It only works on completely trusted environment."
+      },
+      "id": "11822",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt when message arrives\n2. Pop-up thread when message arrives.\n3. Poll the message buffer periodically.\n4. Process the message in interrupt-handler."
+      },
+      "id": "14259",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. pop a thread to handle it \n2. interrupt \n3. CPU polling \n4. 一個專門處理的程式 不斷 listening"
+      },
+      "id": "11377",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.mailbox notify\n2. pop-up notify\n3. sound notify\n4. money notify"
+      },
+      "id": "12732",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Interrupt：有新訊息的時候發一個 SIGNAL 中斷去讓對方收到訊息\nPolling：用輪詢的方式去看到底有沒有新訊息和去讀他\nPop-up thread：用一個 thread 專門來收訊息\nActive Message：直接在 interrupt handler 裡面處理 active message 但這個只能在 trusted 的環境做"
+      },
+      "id": "11898",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver when message is coming\n2. use pop-up thread to handle the arriving message\n3. use the insider interruption handler to cope with it\n4."
+      },
+      "id": "12562",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "directly send message to receiver\nput the message to the cache(mailbox)\nput the reminder to the cache(mailbox) that the receiver can check it."
+      },
+      "id": "11800",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt : 訊息來了透過 Interrupt 通知\n2. polling : 透過 輪詢 的方式看訊息到了嗎?\n3. pop out a thread 來對訊息做處理\n4. 透過 kernel 使用 interrupt handler 來處理"
+      },
+      "id": "11782",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "1. sending interrupt when message arrives \n2.polling periodically to check the status \n3. pop up a thread to handle the arriving message \n4. deal with the arriving message in the interrupt handler  "
+      },
+      "id": "11562",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt : 當 message 抵達時，用 interrupt 通知 receiver 去處理\n2. Polling : Receiver 需要不停去 check message buffer 的 status，當 status 改變時即代表有 message 到了\n3. Pop-up thread : 當 message 到時，就建立一個新的 thread 去處理\n4. Active message : 透過 interrupt handler 去處理"
+      },
+      "id": "11826",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Interrupt the receiver when receives a message.\n(2) The caller polls the status of the message periodically and retrieves the message when a state changes.\n(3) On receiving a message, a pop-up thread is created to handle the message\n(4) Process the arriving active message inside the interrupt handler. It only works in a completely trusted environment."
+      },
+      "id": "11458",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver when the message comes.\n2. poll the buffer periodically.\n3. "
+      },
+      "id": "11763",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "1.Interrupt the receiver when a message arrives.\n2.The caller polls the status of the buffer periodically and retrieves the message when the stage changes.Need poll() and get_message() operations.\n3.On receiving a  message,a pop-up threads is created to handle the message.\n4.process the arriving active message inside the interrupt handler.It only works in a completely trusted environment."
+      },
+      "id": "11801",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "interupte reciver\npolling\npop-up thread\ninterupte handler "
+      },
+      "id": "11549",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "create pop up thread to handle\ninterrupt\n定期poll\n在信任環境下由interrupt handler執行收到的message"
+      },
+      "id": "13321",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "interrupt receiver\npolling 週期性檢查是否有傳遞訊息的資訊\n創建pop-out thread去處理\n將處理程序放入interrupt handler直接處理"
+      },
+      "id": "11743",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt:receiver 產生 interrupt\n2.poll:receiver 會定期檢查buffer poll，若有更新拿出新訊息\n3.pop up thread:彈出新thrad處理\n4.active message:直接在interrupt handler處理"
+      },
+      "id": "11644",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "收到後發出interrupt\n持續polling確認是否收到\n收到後用pop-up-thread處理\n在信賴環境下，直接在interrupt handler中處理"
+      },
+      "id": "11894",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. tell the receiver when the message is arrived\n2. use timer to periodically check"
+      },
+      "id": "11718",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.RARA\n2.RR\n3.RRA\n4.globle ID List\n"
+      },
+      "id": "11528",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "13169",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "1. 直接interrupt \n2. receiver不斷poll詢問是否arrived\n3. pop-up thread通知\n4. interrupt handler直接幫忙解決(在完全安全/相信的環境下)"
+      },
+      "id": "11807",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt:直接中斷reciver的CPU讓他處理。\n2.Poll:不斷發起poll()檢查buffer狀態。\n3.Pop-up:直接給一個新的thread處理。\n4.直接在interrupt handler處理。"
+      },
+      "id": "11888",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. 直接interrupt\n2. 透過不停地polling的情況來看是否有message到\n3. 用pop-up thread直接進行處理\n4. 直接在interrupt handler這邊直接處理（但要確保是完全信任的環境）"
+      },
+      "id": "11899",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "interrupt: 直接打斷正在運行的process\npolling: 會定時去確認是否有訊息傳來\npop-up thread: 產生一個新的thread處理此message　\nactive message: 直接交由interrupt handler處理，但需要在較可信任的裝置上做"
+      },
+      "id": "11874",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. interupt the process\n2. poll the buffer\n3. pop up a new process to handle msg\n4. "
+      },
+      "id": "11679",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1) interrupt \n2) polling\n3) pop\n4) active message"
+      },
+      "id": "12013",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt.\n2. create the pop-up thread.\n3. poll: check the state available or not.\n4. directly process in the interrupt handler."
+      },
+      "id": "14015",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Trigger a system call\n(b) Manage a pop-up thread\n(c) Modify the shared memory to write the task.\n(d) Use additional resources to manage the message (queues)."
+      },
+      "id": "11838",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt Receiver\n2. Send Request\n3. Receiver listen to the sender\n4. "
+      },
+      "id": "15046",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "1.0 : 接收方不管有沒有回覆發送者，都視同訊息已傳達\n2.1 : 發送者只要收到接送方1個回應訊息，就視同訊息已傳達\n3.M-out-of-N:發送者只要收到N個回應訊息(0<N<M)，就視同訊息已送達\n4.M-M : 發送者必須收到全部的回應訊息，才能視同訊息已送達"
+      },
+      "id": "13976",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "interrupt : message到達時去叫receiver\npolling : receiver定期檢查buffer state，state改變代表訊息到了可以拿訊息\npop-up thread : message到達時開新的thread處理\nactive message : 在interrupt handler直接處理message"
+      },
+      "id": "11731",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt\n2.periodicaly polling\n3.pop-up thread\n4.active message"
+      },
+      "id": "12475",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "1.\n2.\n3.\n4.\n"
+      },
+      "id": "11626",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "1.中斷\n2. polling\n3. 跳出一個thread\n4. 中斷中自動處理"
+      },
+      "id": "11591",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "interrupt the receiver when the message arrived\npolls the status of the bus periodically and retrieve the message when the status change\nwhen a message arrived, a pop-up thread is created to handle it\nprocess the arrived active message inside the interrupt handler, it only works on a completely trusted environment"
+      },
+      "id": "11584",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt when a message arrive\n2.poll periodly of the state of buffer, when the state changes, use get message function\n3.when receiving a message , a pop up thread is created to cope with the message\n4. "
+      },
+      "id": "11910",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt receiver\n2. polling the status of the buffer\n3. using pop-up thread to handle\n4. processing the message in interrupt handler."
+      },
+      "id": "11928",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Interrupt:收到reply後interrupt以通知sender\npolling:不斷呼叫poll()確認訊息是否被接收到，有訊息時再get_message()\npop-up threads:收到回覆後建立一個新的thread來處理回覆\nactive message:interrupt handler直接處理回覆訊息，但需要再trusted environment"
+      },
+      "id": "11642",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.直接中斷接收者\n2.透過不斷檢查buffer的狀態，一旦狀態改變，就把訊息取出\n3.建立pop-up thread來處理抵達的訊息\n4.直接在interrupt handler 處理active message\n"
+      },
+      "id": "12040",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.message 一到就interrupt\n2.會一直去poll buffer state看是否有收到message\n3.收到message他會pop up thread讓他去處理那個message\n4.收到active message他會叫interrupt handler去處理，這只用在極度信任的系統\n"
+      },
+      "id": "11814",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt  the receiver when message receive.\n2. Receiver poll，去定期的查看message是否已經送達。\n3. 當messgae送達時，產生pop-up thread, 由其他負責處理message.\n4. 直接讓Interrupt hanlder去處理message，但此需要在可信任環境下使用。 \n"
+      },
+      "id": "12010",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt the receiver when the message has arrived\n2. caller會定期訪問buffer狀態, 如果狀態改變就存取訊息\n3. when message has arrived, 會建立一個pop-up thread來處理訊息\n4. process the arrived active message inside the interrupt handlers"
+      },
+      "id": "11566",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1. Interrupt: 抵達時主動打斷Receiver叫他收\n2. Pop-up Thread: 抵達時生成一個新的Thread，就不影響原本在做的事\n3. Active Message: 抵達時傳給Handler\n4. Polling: Receiver會定期詢問到了沒"
+      },
+      "id": "11979",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. interrupt\n2.send ACK \n3. using message buffer\n4.  set a timer"
+      },
+      "id": "15675",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.inerrupt:發送中斷訊號讓cpu停下手頭工作\n2.poll:定期檢查message傳過去了沒\n3.當message好的時候會自動產生新的thread排隊等處理\n4.直接在interruption handler裡處理，要在信任的環境，因為interruption handler權限高。"
+      },
+      "id": "12056",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "1. Intterupt - the communication system generates an interrrupt when a mesage arrives\n2 Signal - a signal is sent to notify the recceiver process\n3. Pooling - the receiver periodically checks wether a message has arrived\n4. Separrate handler/ callback routine - a đeicated handler or thread processses incoming messages asynchronously"
+      },
+      "id": "12556",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "1. Event-driven Architecture\n2. Caching Redis\n3. Message Queue\n4. Asynchronous, Corontine"
+      },
+      "id": "12346",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt\n2.pop-up thread\n3.active message by interrupt handler\n4.receiver定期檢查buffer state, buffer state改變了就接收message"
+      },
+      "id": "12188",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1.interrupt\n2.用interrupt handler直接處理message\n3.生成pop-up message處理message\n4.caller不斷檢查buffer裝態來得知message是否抵達"
+      },
+      "id": "11934",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "interrupt\ncreate pop-up thread\npolling\nactive message in interrupt handler"
+      },
+      "id": "12190",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 4,
+    "options": [],
+    "prompt": "List four methods to notify a receiver in a non-blocking message passing system that a message has arrived.",
+    "question_id": "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Interrupt the receiver.\n(2) Periodic polling of the buffer status.\n(3) Creating a pop-up thread.\n(4) Processing an active message inside the interrupt handler."
+  },
+  "question_id": "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82"
+}

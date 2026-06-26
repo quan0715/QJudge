@@ -1,0 +1,4 @@
+question_id,question_label,runs,answer_count,total_elapsed_seconds,total_cost_cents,avg_elapsed_seconds,avg_cost_cents
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,4,116,624.498,102,156.1245,25.5
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,4,119,789.312,79,197.328,19.75
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,4,118,891.5799999999999,119,222.89499999999998,29.75

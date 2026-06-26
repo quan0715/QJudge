@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "What is the primary purpose of the 'Translation Lookaside Buffer' (TLB) in a paging system?",
+  "question_id": "cb495b8c-586a-4245-a4c6-a4e19e5abe38",
+  "question_type": "short_answer",
+  "reference_answer": "To speed up logical-to-physical address translation by caching frequently used page table entries, reducing the need for multiple memory accesses per reference."
+}

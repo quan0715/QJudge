@@ -326,7 +326,7 @@ export default function GradingSplitPanelScreen({
           })()}
           <span className={styles.panelHeaderLabel}>Q{answer.questionIndex}</span>
           <Tag type="blue" size="sm">{t(`common:questionType.label.${answer.questionType}`, answer.questionType)}</Tag>
-          <Tag type="teal" size="sm">{answer.maxScore}</Tag>
+          <Tag type="teal" size="sm">{formatScore(answer.maxScore)}</Tag>
         </div>
         <div className={styles.panelHeaderActions}>
           {onToggleFlag && (
@@ -366,10 +366,13 @@ export default function GradingSplitPanelScreen({
 
           <AnswerDisplay
             questionType={answer.questionType}
+            answerFormat={answer.answerFormat}
             answerContent={answer.answerContent}
             options={answer.questionOptions}
             correctAnswer={answer.correctAnswer}
             explanation={answer.questionExplanation}
+            referenceAnswerDocument={answer.referenceAnswerDocument}
+            explanationDocument={answer.questionExplanationDocument}
           />
 
           {readOnly ? (
@@ -393,7 +396,9 @@ export default function GradingSplitPanelScreen({
                     <Tag type="cool-gray" size="sm">{resolvedSubmissionMeta.language}</Tag>
                   ) : null}
                   {typeof resolvedSubmissionMeta.score === "number" ? (
-                    <Tag type="teal" size="sm">{resolvedSubmissionMeta.score}/{maxScore}</Tag>
+                    <Tag type="teal" size="sm">
+                      {formatScore(resolvedSubmissionMeta.score)}/{formatScore(maxScore)}
+                    </Tag>
                   ) : null}
                   {typeof resolvedSubmissionMeta.execTime === "number" ? (
                     <Tag type="warm-gray" size="sm">{resolvedSubmissionMeta.execTime} ms</Tag>

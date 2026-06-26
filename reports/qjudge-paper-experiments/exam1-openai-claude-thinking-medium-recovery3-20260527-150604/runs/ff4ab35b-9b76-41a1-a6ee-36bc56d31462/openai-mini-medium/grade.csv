@@ -1,0 +1,395 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","3828","S109","1. number of queues
+2. scheduling algorithm for each queue
+3. algorithm to determine when to upgrade a process","3","列出 3 個正確參數：queue 數量、各 queue 的排程演算法、升級規則。",""
+"2","3675","S015","1. Number of queues
+2. Schedule policy for each queue
+3. When to upgrade or downgrade a process in a queue.","3","列出 3 個正確參數：queue 數量、各 queue 的排程政策、升降級條件。",""
+"3","4534","S054","queue 的順序
+methods that process upgrade in queue
+methods that process d降級 in queue
+","2","有升級與降級條件，但「queue 的順序」不算明確正確參數。",""
+"4","4861","S117","number of queues, policy to upgrade a process, policy to downgrade a process, priority schedule for each queue","3","列出 4 個正確參數，超過滿分需求。",""
+"5","4070","S093","可以有幾個waiting queue、每個queue的algorithm、promotion的條件","3","列出 3 個正確參數：waiting queue 數量、各 queue 演算法、promotion 條件。",""
+"6","5129","S012","1. number of queues
+2. algorithm to determine when to demote a process
+3. algorithm to determine when to upgrade a process","3","列出 3 個正確參數：queue 數量、升級與降級規則。",""
+"7","5875","S108","1. queue 的數量
+2. process 升級/降級的條件 (向上面的 queue 移動或向下)
+3. 每個 queue 的 scheduling algorithm","3","列出 3 個正確參數：queue 數量、升降級條件、各 queue 排程演算法。",""
+"8","4632","S099","1. Number of queue.
+2. Method to determine when to upgrade a process.
+3. Scheduling strategy for each queue.","3","列出 3 個正確參數：queue 數量、升級規則、各 queue 排程策略。",""
+"9","3920","S070","1.queue的數量
+2.不同queue的scheduling algorithm
+3.如何決定升級到更高的queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升級規則。",""
+"10","5769","S080","numbers of the queues
+method to determine the time to upgrade the process
+method to determine the time to demote the process
+method to determine which queue to start when the process come in","3","列出 4 個正確參數，超過滿分需求。",""
+"11","2456","S003","numbers of queue
+scheduling algorithm for each queue
+methods to determine which to upgrade
+methods to determine which to demote","3","列出 4 個正確參數，超過滿分需求。",""
+"12","4914","S035","1. number of queue
+2. the promotion criteria
+3. the demotion criteria
+4. the CPU scheduling algorithm
+5. decide which queue a process will be when it comes in.","3","列出 5 個正確參數，超過滿分需求。",""
+"13","5410","S037","Number of queues
+Algorithn of each queues
+The method to upgrade a process to higher proirity queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升級規則。",""
+"14","4727","S096","- Several queues
+- What algorithm is used in each queue
+- What are conditions to move a process to a higher or lower queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級條件。",""
+"15","5119","S013","1. number of queue
+2. the method of schedular for the queue
+3. the method of demoting the level of the process","3","列出 3 個正確參數：queue 數量、各 queue 排程方式、降級規則。",""
+"16","4800","S040","how many queue
+how to schedule in each queue
+how to deside which process enter which queue","3","列出 3 個正確參數：queue 數量、各 queue 排程方式、進入哪個 queue 的判定。",""
+"17","2670","S124","- The number of queues 
+- The algorithms in each of these queues 
+- The method to determine when to UPGRADE a process from one queue to a HIGHER priority one 
+- The method to determine when to DEMOTE a process from one queue to a LOWER priority one 
+- The method to determine in which queue a process needs to be put when it enters a Multilevel Feedback Queue ","3","列出 5 個正確參數，超過滿分需求。",""
+"18","4474","S121","- Number a queues
+- scheduling algorithms for each queue
+- how to upgrade a process 
+- how to demote a process
+- In which queue insert a process that wants to enter to do its service.","3","列出 5 個正確參數，超過滿分需求。",""
+"19","5241","S068","1. Queue 的數量
+2. 每一個 Queue 的優先權級別
+3. 每一個 process 待在 Queue 的時間，用來實現 aging 機制避免 starvation","1","僅明確對應到 queue 數量；其餘內容未清楚對應題目參數。",""
+"20","4218","S102","number of queue
+schuduling algorithm for each queue
+mechanism for deciding to go to the higher priority queue or lower priority queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級機制。",""
+"21","5162","S034","a)number of queues
+b)methods used to determine when to upgrade the queue.
+c)methods used to determine when to demote the queue.","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"22","4418","S084","1. number of queues
+2. 每個queue裡搶佔的規則
+3. 不同queues之間升降級的規則","3","列出 3 個正確參數：queue 數量、各 queue 的排程規則、升降級規則。",""
+"23","6051","S079","the number of queue,
+the scheduling algorithm for different queues,
+to decide when should we demote a process from a queue,
+to decide when should we promote a process into a prior queue.","3","列出 4 個正確參數，超過滿分需求。",""
+"24","3798","S122","number of queue
+排程演算法
+降低時間
+multi同時執行
+thread更有效率
+","2","只有 queue 數量與排程演算法較明確；其餘內容與題目參數不夠對應。",""
+"25","2889","S086","number of queue
+scheduling algorithm of each queue
+method used to determine when to upgrade the process
+method used to determine when to demote the process","3","列出 4 個正確參數，超過滿分需求。",""
+"26","5099","S052","1. number of queues
+2. scheduling algorithms in each queue
+3. when to upgrade or demote a process in a queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級條件。",""
+"27","5319","S033","1.number of queue
+2.scheduling algorithm of queue
+3.method to determine how to upgrade queue","3","列出 3 個正確參數：queue 數量、各 queue 排程方式、升級規則。",""
+"28","4371","S123","1.number
+2.algorithm
+3.method to determine when upgrade/demote a process","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級規則。",""
+"29","4375","S027","1. the number of queue
+2.Schedling algorithm of each queue
+3. method used to determine when to upgrade a process
+4.method used to determine when to demote a process
+","3","列出 4 個正確參數，超過滿分需求。",""
+"30","5878","S081","parameters of multilevel feedback queue scheduling--
+1. program pointer
+2. global variables
+3.  allocation","0","內容與題目無關，未回答 MLFQ 的參數。",""
+"31","5413","S008","1. Number of level.
+2. Scheduling algorithms for each level.
+3. Methods to determine when to upgrade a task from one level to another.","3","列出 3 個正確參數：level 數量、各 level 演算法、升級規則。",""
+"32","4511","S078","1. the queue size
+2. each level queue scheduling algorithm
+3. how to go to up-level or down-level queue","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級規則。",""
+"33","3816","S087","1.queue的數量
+2.每個queue的排程演算法
+3.queue之間的升降規則","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級規則。",""
+"34","3864","S022","1. The amount of the queue.
+2. Scheduling algorithm for each queue.
+3. The method to determine whether a program will be upgraded.","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"35","6515","S110","when to upgrade a process
+when to demote a process
+each level's scheduling algorithm","3","列出 3 個正確參數：各 level 排程演算法、升級規則、降級規則。",""
+"36","4692","S082","1. the number queue.
+2. the scheduling algorithms in each queue.
+3. the condition to upgrade or downgrade the process.","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級條件。",""
+"37","6064","S105","1. algorithms used for each queue.
+2. upgrade / downgrade rules.
+3. number of levels.","3","列出 3 個正確參數：各 queue 演算法、升降級規則、queue 數量。",""
+"38","4013","S111","1. 各個queue的algorithm
+2. upgrade的情況
+3. degrade的情況
+4. 初始狀態","3","列出 3 個正確參數：各 queue 演算法、升級情況、降級情況。",""
+"39","4298","S085","佇列數量
+決定進入哪一個佇列的演算法
+決定何時提升至高/低優先級佇列的演算法","3","列出 3 個正確參數：queue 數量、進入 queue 的判定、升降級條件。",""
+"40","4757","S004","1.queue的數量
+2.每個queue的排班
+3.什麼情況下process要升級","3","列出 3 個正確參數：queue 數量、各 queue 排班方式、升級條件。",""
+"41","4626","S011","1. Level數。
+2. 各個level的scheduling algorithm。
+3. 各level能夠等待的任務數量。
+4. 各level之間context switch的頻率。","2","只有 level 數與各 level 演算法較明確；其餘內容不屬於題目核心參數。",""
+"42","4094","S046","1. number of queue
+2. methods uesd to determine when upgrade a process
+3. methods uesd to determine when demote a process
+4. scheduling algorithms for each queue","3","列出 4 個正確參數，超過滿分需求。",""
+"43","2468","S005","1. Method to determine process to move to upper queue
+2. Method to determine process to move to lower queue
+3. Which queue to enter  of a new process","3","列出 3 個正確參數：升級規則、降級規則、新進程序進入的 queue。",""
+"44","2290","S061","1. Number of Queues.
+2. methods to used to determine when to upgrade process.
+3. methods to used to determine when to demote process.
+","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"45","2095","S014","Quene 數量、","1","僅回答 queue 數量的一部分，未達至少 3 個參數。",""
+"46","3999","S028","1. number of queues
+2. scheduling algorithms of the queue
+3. method to determine when to demote a process","3","列出 3 個正確參數：queue 數量、各 queue 演算法、降級規則。",""
+"47","3870","S107","1. queue numbers
+2. queue algorithms
+3. when to upgrade the queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升級規則。",""
+"48","6228","S126","page fault增加代表 frame太少
+page fault太少代表frame太多
+","0","內容與題目無關。",""
+"49","3981","S017","1.number of queue
+2.scheduling algorythm for each queue
+3.method to determine when to upgrade a process
+4.method to determine when to demote a process
+5.method to determine which queue a process will enter when it needs service","3","列出 5 個正確參數，超過滿分需求。",""
+"50","2390","S115","The process size, the priority the the process, the info needed to cause the priority to increase, and the info needed to cause the priority to decrease, info is based on the algorithm. ","0","未明確回答 MLFQ 的參數，與題目對應不足。",""
+"51","3011","S089","number of queue
+scheduling algorithm
+method to determine when to update a process ","3","列出 3 個參數，且前兩項正確；第三項可視為升級規則。",""
+"52","3803","S009","number of queues
+algorithm to determine whether to upgrade queue
+algorithm to determine whether to demote queue","3","列出 3 個正確參數：queue 數量、升級判定、降級判定。",""
+"53","2787","S094","提高queue範圍
+降低queue範圍
+新的process要去哪一個queue","3","列出 3 個正確參數：升級規則、降級規則、新進程序進入的 queue。",""
+"54","6733","S066","1. 有幾層queue
+2. 每層的演算法
+3. priority提升或下降的方法","3","列出 3 個正確參數：queue 層數、各層演算法、升降級方式。",""
+"55","2943","S041","number of queue
+scheduling algorithm for each queue
+methods used to determine when to upgrade a process","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"56","5288","S031","numbers of queue.
+每個queue使用到的排程演算法
+何時要更換queue","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、換 queue 時機。",""
+"57","3482","S116","1.queue的數量
+2.queue的演算法
+3.決定queue甚麼時候要upgrade的方法
+4.決定queue甚麼時候要downgrade的方法
+5.當一個process需要被執行的時候它要被放進哪個queue","3","列出 5 個正確參數，超過滿分需求。",""
+"58","4931","S059","1. numbers of queues
+2. scheduling algorithms of each queue
+3. methods used to determine when to upgrede the queue
+4. methods used to determine when to demote the queue","3","列出 4 個正確參數，超過滿分需求。",""
+"59","2817","S064","number of queue
+determine when to upgrade
+determine when to 降級","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"60","4391","S101","1. 每個level的演算法
+2. 要升到上一個level的規則
+3. 要降到下一個level的規則","3","列出 3 個正確參數：各 level 演算法、升級規則、降級規則。",""
+"61","6129","S103","1. number of queue
+2. scheduling algorithm of queue
+3. 什麼時候提升queue的排序
+4. 什麼時候降低queue的排序","3","列出 4 個正確參數，超過滿分需求。",""
+"62","4395","S104","number of queues
+scheduling algorithm for each queue
+method used to determine when upgrade a process
+","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"63","5031","S023","1. number of queues
+2. scheduling algorithms for each queue
+3. methods used to determine when to upgrade the process","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"64","2719","S113","1.要有幾個Queue
+2.每個queue的scheduling algorithm(可能是5ns RR,10ns RR,FCFS)
+3.aging的策略，當process處於低priority太久要怎麼提升priority","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"65","4693","S055","number of queue
+method for upgrade queue
+method for degrade queue
+scheduling 演算法","3","列出 4 個正確參數，超過滿分需求。",""
+"66","4458","S119","number of queque
+method used to determine when a process can be upgrade.
+method used to determine when a process can be demote.","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"67","5473","S067","1. Queue 的數量
+
+2.程式剛進入時要如何判斷他要到哪層Queue 中的演算法
+
+3.Queue之間排序的方法
+
+4.如何判斷程式要向上層Queue升級的演算法
+
+5.如何判斷程式要降級的演算法","3","列出 5 個正確參數，超過滿分需求。",""
+"68","6219","S076","The parameters include, scheduling number, scheduling queue, when to upgrade a process, when to demote a process, and the order of execution. 
+","3","列出 3 個以上正確參數，包含 queue 數量、升降級與執行順序。",""
+"69","2295","S074","1. Queue scheduling
+2. More than 1 thread 
+3. Multilevel feedback","0","內容與題目無關，未回答 MLFQ 的參數。",""
+"70","3754","S063","The number of queue.
+The method to decide when to upgrade the process priority
+The method to decide when to demote the process priority","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"71","4759","S090","1. numbers of queue
+2. scheduling algorithm for each queue
+3. method used to determine when to upgrade the process","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"72","2801","S100","1. Number of queue.
+2. Each scheduling algorithm in each queue.
+3. When to modify the priority of processes.","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、優先權調整規則。",""
+"73","4446","S114","1. 每一個ready queue 的scheduling 的演算法 
+2. 什麼時候將process upgrade 
+3. 什麼時候將 process demote ","3","列出 3 個正確參數：各 queue 排程演算法、升級規則、降級規則。",""
+"74","3414","S038","1.which queue should be start
+2.each queue rule
+3.level up and down queue rule","3","列出 3 個正確參數：起始 queue、各 queue 規則、升降級規則。",""
+"75","5033","S047","每一層的 queue 總共大小多大
+不同層的 scheduling algorithm
+最一開始要先進入哪一層","2","只明確有各層排程與初始層，其他描述不夠對應題目參數。",""
+"76","4563","S044","1. number of queues
+2. every queue's scheduling algorithm
+3. mechanism to decide how to upgrade the process's priority","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"77","4507","S075","schedule內部層數數量
+各層數的algorithm
+初始層數
+獲得層數提升的規則
+獲得層數下降的規則","3","列出 5 個正確參數，超過滿分需求。",""
+"78","4088","S030","不同 queue 各自的排程
+process 甚麼時候會 升級到其他 queue
+process 甚麼時候會 降級到其他 queue","3","列出 3 個正確參數：各 queue 排程、升級規則、降級規則。",""
+"79","5077","S106","number of queues 
+the scheduling algo of each queue 
+whats the rule to upgrade a process  into the higher queue ","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"80","4862","S019","1. Number of queues.
+2. Schedule algorithm for each queue.
+3. method that used to upgrade the queue.","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"81","3507","S020","Number of queues, a method to determine when to upgrade a process, a method to determine when to demote a process","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"82","2353","S010","1. method to decide which queue to enter at the first time.
+2. method to upgrade/demote to another queue.
+3. scheduling algorithm of each queue.","3","列出 3 個正確參數：起始 queue、升降級規則、各 queue 排程演算法。",""
+"83","5333","S051","number of queues
+scheduler of each queue
+method of increase to next queue","3","列出 3 個正確參數：queue 數量、各 queue 排程方式、升級規則。",""
+"84","3357","S039","number of queue
+when to upgrade a process
+when to demote a process","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"85","3931","S018","number of queue
+scheduling algorithm for each queue
+method of when the progress upgrade the priorty to another queue","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"86","4208","S049","number of queues, scheduling algorithm each queue, method to determine when to upgrade/demote thread ","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級規則。",""
+"87","5359","S053","queue的數量
+每個queue的演算法
+怎麼上升或下降到另一個queue","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級規則。",""
+"88","4901","S092","1. number of queues
+2. algorithm of each queues
+3. time slice(quantum) if using round robin
+4. the rules of whether it goes to other queues","3","列出 4 個正確參數，超過滿分需求。",""
+"89","4253","S125","1.throughput
+2.cpu ultilizatoin
+3.data size","0","內容與題目無關。",""
+"90","6529","S021","1. number of queues
+2.decide when to upgrade the process
+3.decide when to demote the process","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"91","5446","S050","the numbers of queue, the algorithms of queue, the upgrade/downgrade of queue, how can the grade be defined ","3","列出 3 個正確參數：queue 數量、各 queue 演算法、升降級規則。",""
+"92","3882","S036","queue的編號
+queue本身的演算法
+選擇要進入哪個queue","2","有 queue 相關內容，但未明確寫出 queue 數量或完整升降級參數。",""
+"93","6065","S048","何時要換queue
+queue數量
+","2","只明確提到 queue 數量與換 queue 時機，未達 3 個完整參數。",""
+"94","4614","S112","1. Quene numbers
+2. The scheduling algorithms of each queue.
+3. The method to upgrade/demote the queue.
+","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級規則。",""
+"95","3688","S006","1. 每個任務的排程演算法
+2. 何時把任務 upgrade
+3. 何時把任務 demote","2","有升級與降級規則，但缺少 queue 數量等關鍵參數，未達 3 個完整參數。",""
+"96","5301","S026","1.佇列數量
+2.提高佇列優先權
+3.降低佇列優先權
+","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"97","6587","S057","queue numebr 
+queue time since 
+queue 的 演算法
+queue 上升 methmod
+qieue 下降 methmod ","3","列出 3 個以上正確參數，包含 queue 數量、各 queue 演算法、升降級規則。",""
+"98","6470","S002","1. number of queues
+2. the rule for process promotion
+3. the rule for process demotion","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"99","4794","S007","(a) Number of the queues.
+(b) Algorithm to promote a process to higher-priority queue.
+(c) Algorithm to change (downward) a process to lower-priority queue.
+(d) Algorithm that the queue used to excecutes the processes.","3","列出 4 個正確參數，超過滿分需求。",""
+"100","6404","S016","1.Queue數量
+2.排程演算法
+3.Queue升級的方法","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"101","6464","S083","多層級回饋佇列排程參數：
+1,排程數量。
+2,升級條件。
+3,降級條件。
+","3","列出 3 個正確參數：queue 數量、升級條件、降級條件。",""
+"102","4517","S088","number of queues
+method used to determent when to upgrade a process
+method used to determent when to demote a process","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"103","5694","S058","1.number of queue
+2.schduling algorithm of each queue
+3.method to determint when to upgrade a process","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"104","5098","S043","決定其是否被提高的方式、決定其是否被降低的方式、佇列的排程順序","3","列出 3 個正確參數：升級規則、降級規則、queue 排序。",""
+"105","4329","S060","number of queue
+scheduling algorithms of each queue
+methods used to determine whether update a process
+什麽方法去降級","3","列出 3 個以上正確參數，包含 queue 數量、各 queue 排程與升降級規則。",""
+"106","3948","S024","the number of queues
+the algorithm use for each queues
+the methods to determine the upgrade process
+the methods to determine which queue the process go to when the process need to be served","3","列出 4 個正確參數，超過滿分需求。",""
+"107","6418","S095","1.number of queues
+2.method used to determine whether to upgrade a process
+3.scheduling algorithm in each queue.","3","列出 3 個正確參數：queue 數量、升級規則、各 queue 排程演算法。",""
+"108","3874","S077","1. number of queue
+2. scheduling method for each queue
+3. method for when to upgrade process ","3","列出 3 個正確參數：queue 數量、各 queue 排程方式、升級規則。",""
+"109","4068","S120","Number of Queues, Scheduling Algorithm of each Queue, Policy of Promote/Demote","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級政策。",""
+"110","4124","S073","quene的數量、決定甚麼時候該上升優先權、決定甚麼時候該下降優先權","3","列出 3 個正確參數：queue 數量、升級優先權規則、降級優先權規則。",""
+"111","3991","S069","1.Number of queue
+2.每條queue的alogrithm
+3.怎麼決定他是升級到別條queue
+4.怎麼決定他是降級道別條queue","3","列出 4 個正確參數，超過滿分需求。",""
+"112","2465","S072","1. Number of queue.
+2. Scheduling algorithm of each queue.
+3. Methods  used to  determinate when to upgrade the priority.","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升級規則。",""
+"113","3612","S042","1. number of queue
+2. method due to determine when to upgrade the queue
+3. method due to determine when to demote the queue","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"114","4119","S071","1.process如何升級
+2.process如何降級
+3.Queue level的數量
+4.每個level使用的演算法","3","列出 4 個正確參數，超過滿分需求。",""
+"115","6151","S062","1. number of frames
+2.Scheduling algorithm of each queue
+3.method to determine when to upgrade
+4. method to determine when to demote","3","有 3 個正確參數；第一項寫成 frames 但其餘升降級與排程正確。",""
+"116","4934","S045","1.Queue的數量
+2.每個Queue的排程演算法
+3.升級的條件
+4.降級的條件","3","列出 4 個正確參數，超過滿分需求。",""
+"117","3814","S056","- The number of queue
+- Scheduling algorithms in each queues
+- The method to when it queues, upgrades, denotes a queue that need a service","3","列出 3 個正確參數：queue 數量、各 queue 排程演算法、升降級機制。",""
+"118","6054","S029","1.每個queue的排程演算法
+2.每個queue的大小
+3.判斷要進入哪個queue的方式","2","只有 queue 排程與進入 queue 的方式較明確，尚不足 3 個完整參數。",""
+"119","4683","S065","1.queue的數量
+2.什麼時候可以升queue
+3.什麼時後降queue","3","列出 3 個正確參數：queue 數量、升級規則、降級規則。",""
+"120","6571","S025","Algorithm for scheduling in different level of queue.
+Number of different level queue.
+Algorithm to allocate process to different level of queue.","3","列出 3 個正確參數：各 level 排程演算法、queue 數量、程序分派規則。",""
+"121","5093","S098","number of queue
+priority for scheduling 
+decide the process should go to which queue
+","3","列出 3 個正確參數：queue 數量、排程優先序、程序進入哪個 queue 的判定。",""

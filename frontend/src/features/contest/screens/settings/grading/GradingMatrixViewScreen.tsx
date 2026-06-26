@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { formatScore as formatScoreValue } from "@/features/contest/utils/scoreFormat";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
+import { isCountedQuestion, computeStudentDisplayTotal } from "./scorePolicyUtils";
 import styles from "./GradingMatrixView.module.scss";
 
 interface GradingMatrixViewScreenProps {
@@ -39,14 +41,16 @@ export default function GradingMatrixViewScreen({
   const studentTotalScore = useMemo(() => {
     const scoreMap = new Map<string, number>();
     students.forEach((student) => {
-      let total = 0;
-      questionProgress.forEach((question) => {
+      const items = questionProgress.map((question) => {
         const answer = answerLookup.get(`${question.questionId}:${student.studentId}`);
-        if (answer?.score !== null && answer?.score !== undefined) {
-          total += answer.score;
-        }
+        return {
+          maxScore: question.maxScore,
+          effectiveMaxScore: question.effectiveMaxScore,
+          scorePolicy: question.scorePolicy,
+          score: answer?.score ?? null,
+        };
       });
-      scoreMap.set(student.studentId, total);
+      scoreMap.set(student.studentId, computeStudentDisplayTotal(items));
     });
     return scoreMap;
   }, [students, questionProgress, answerLookup]);
@@ -54,6 +58,10 @@ export default function GradingMatrixViewScreen({
   const questionAverageScore = useMemo(() => {
     const scoreMap = new Map<string, number | null>();
     questionProgress.forEach((question) => {
+      if (!isCountedQuestion(question.scorePolicy)) {
+        scoreMap.set(question.questionId, null);
+        return;
+      }
       let sum = 0;
       let gradedCount = 0;
       students.forEach((student) => {
@@ -79,7 +87,7 @@ export default function GradingMatrixViewScreen({
 
   const formatScore = (value: number | null) => {
     if (value === null) return "-";
-    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+    return formatScoreValue(value);
   };
 
   const matrixSummary = useMemo(() => {
@@ -226,7 +234,7 @@ export default function GradingMatrixViewScreen({
                 ? displayNameCandidate
                 : null;
             const score = studentTotalScore.get(student.studentId) ?? 0;
-            const scoreDisplay = Number.isInteger(score) ? String(score) : score.toFixed(1);
+            const scoreDisplay = formatScoreValue(score);
 
             return (
               <div key={student.studentId} role="row" style={{ display: "contents" }}>
@@ -255,12 +263,12 @@ export default function GradingMatrixViewScreen({
                     : row.score === null
                       ? "pending"
                       : "graded";
-                  const cellValue = cellState === "graded" ? `${row?.score ?? 0}` : "";
+                  const cellValue = cellState === "graded" ? formatScoreValue(row?.score ?? 0) : "";
                   const cellTitle =
                     cellState === "graded"
                       ? t("grading.matrixCellGraded", "已批改：{{score}} / {{max}}", {
-                          score: row?.score ?? 0,
-                          max: row?.maxScore ?? question.maxScore,
+                          score: formatScoreValue(row?.score ?? 0),
+                          max: formatScoreValue(row?.maxScore ?? question.maxScore),
                         })
                       : cellState === "pending"
                         ? t("grading.matrixCellPending", "已作答，待批改")

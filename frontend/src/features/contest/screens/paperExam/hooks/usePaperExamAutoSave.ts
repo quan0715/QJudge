@@ -3,13 +3,18 @@ import {
   submitExamAnswer,
   getExamAnswerDraft,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+  OpenAnswerDocument,
+} from "@/core/entities/contest.entity";
+import { isOpenAnswerDocument } from "@/shared/ui/editor/openAnswerDocument";
 
 const AUTO_SAVE_DELAY = 2000;
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-type ExamAnswerPayload = { selected: unknown } | { text: string };
+type ExamAnswerPayload = { selected: unknown } | { text: string } | { document: OpenAnswerDocument };
 
 const OBJECTIVE_TYPES: ExamQuestionType[] = [
   "true_false",
@@ -17,12 +22,24 @@ const OBJECTIVE_TYPES: ExamQuestionType[] = [
   "multiple_choice",
 ];
 
+function unwrapDraftValue(answer: Record<string, unknown>): unknown {
+  if ("selected" in answer) return answer.selected;
+  if ("text" in answer) return answer.text;
+  if ("document" in answer && isOpenAnswerDocument(answer.document)) return answer.document;
+  return answer;
+}
+
 export function buildExamAnswerPayload(
   value: unknown,
   questionType?: ExamQuestionType,
+  answerFormat?: ExamQuestionAnswerFormat,
 ): ExamAnswerPayload {
   if (questionType && OBJECTIVE_TYPES.includes(questionType)) {
     return { selected: value };
+  }
+
+  if (answerFormat === "open_document" && isOpenAnswerDocument(value)) {
+    return { document: value };
   }
 
   if (typeof value === "string") {
@@ -43,7 +60,13 @@ export function usePaperExamAutoSave({
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }) {
   const pendingSaves = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const inFlightSaveCount = useRef(0);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  const hasPendingWork = useCallback(
+    () => pendingSaves.current.size > 0 || inFlightSaveCount.current > 0,
+    [],
+  );
 
   // Restore any locally-cached drafts so answers survive a page reload caused
   // by a server error.  Only applies when the server hasn't returned saved
@@ -55,7 +78,7 @@ export function usePaperExamAutoSave({
       for (const qId of questionIds) {
         if (prev[qId] === undefined || prev[qId] === null || prev[qId] === "") {
           const draft = getExamAnswerDraft(contestId, qId);
-          if (draft !== null) restored[qId] = draft;
+          if (draft !== null) restored[qId] = unwrapDraftValue(draft);
         }
       }
       return Object.keys(restored).length ? { ...prev, ...restored } : prev;
@@ -63,7 +86,12 @@ export function usePaperExamAutoSave({
   }, [contestId, questionIds, setAnswers]);
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown, questionType?: ExamQuestionType) => {
+    (
+      questionId: string,
+      value: unknown,
+      questionType?: ExamQuestionType,
+      answerFormat?: ExamQuestionAnswerFormat,
+    ) => {
       setAnswers((prev) => ({ ...prev, [questionId]: value }));
 
       if (!contestId) return;
@@ -72,15 +100,22 @@ export function usePaperExamAutoSave({
 
       setSaveStatus("saving");
       const timeout = setTimeout(() => {
-        const answerPayload = buildExamAnswerPayload(value, questionType);
-        submitExamAnswer(contestId, questionId, answerPayload)
-          .then(() => setSaveStatus("saved"))
-          .catch(() => setSaveStatus("error"));
+        const answerPayload = buildExamAnswerPayload(value, questionType, answerFormat);
         pendingSaves.current.delete(questionId);
+        inFlightSaveCount.current += 1;
+        submitExamAnswer(contestId, questionId, answerPayload)
+          .then(() => {
+            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
+            setSaveStatus(hasPendingWork() ? "saving" : "saved");
+          })
+          .catch(() => {
+            inFlightSaveCount.current = Math.max(0, inFlightSaveCount.current - 1);
+            setSaveStatus("error");
+          });
       }, AUTO_SAVE_DELAY);
       pendingSaves.current.set(questionId, timeout);
     },
-    [contestId, setAnswers],
+    [contestId, hasPendingWork, setAnswers],
   );
 
   return { handleAnswerChange, saveStatus };

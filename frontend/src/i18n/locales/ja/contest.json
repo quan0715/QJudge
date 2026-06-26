@@ -430,6 +430,46 @@
       "shortAnswerPlaceholder": "答えを入力してください...",
       "trueOption": "はい (True)"
     },
+    "group": {
+      "sharedStem": "共通問題文",
+      "totalScore": "小計 {{score}} 点"
+    },
+    "mathEditor": {
+      "ariaLabel": "数学解答エディター",
+      "editFormula": "数式を編集",
+      "emptyPreview": "まだ入力されていません",
+      "fields": {
+        "base": "底",
+        "denominator": "分母",
+        "exponent": "指数",
+        "lines": "等式行",
+        "numerator": "分子",
+        "radicand": "根号内",
+        "subscript": "下付き"
+      },
+      "placeholder": "計算過程を入力してください。上のボタンでよく使う数式を挿入できます。",
+      "previewLabel": "プレビュー",
+      "removeFormula": "数式を削除",
+      "textSegmentLabel": "テキスト段落",
+      "toolbar": {
+        "aligned": "複数行の等式",
+        "fraction": "分数",
+        "label": "数学ツールバー",
+        "pi": "円周率",
+        "power": "累乗",
+        "sqrt": "平方根",
+        "subscript": "下付き",
+        "theta": "シータ"
+      }
+    },
+    "markdownEditor": {
+      "ariaLabel": "Markdown 解答エディター",
+      "placeholder": "解答を入力してください。Markdown 形式を使用できます。"
+    },
+    "openAnswer": {
+      "ariaLabel": "自由記述シート",
+      "placeholder": "解法を入力してください。ツールバーまたは / で数式を挿入できます。"
+    },
     "questionTypes": {
       "coding": "プログラミング",
       "essay": "論述式",
@@ -780,6 +820,13 @@
     "addOption": "選択肢を追加",
     "addQuestion": "問題を追加",
     "aiAssistant": "AI アシスタント",
+    "answerFormat": "解答形式",
+    "answerFormats": {
+      "markdown": "Markdown",
+      "markdownMath": "数学解答",
+      "openDocument": "自由記述シート",
+      "plainText": "プレーンテキスト"
+    },
     "answerNotSet": "（未設定）",
     "autoSaveEnabled": "自動保存中",
     "codingPreviewPlaceholder": "未編集",
@@ -796,7 +843,7 @@
     "deleteOption": "選択肢を削除",
     "explanation": "解説",
     "explanationNotSet": "（解説未設定）",
-    "explanationPlaceholder": "解き方、採点ポイント、補足説明を入力（Markdown対応）",
+    "explanationPlaceholder": "完全な解法手順、導出、概念説明を入力。採点用の最終解答だけをここに入れないでください",
     "falseOption": "いいえ (False)",
     "hideQuestionList": "問題一覧を隠す",
     "importFromBank": "問題バンクからインポート",
@@ -827,6 +874,8 @@
     "questionLockedReason": "学生が本試験を開始したため、問題編集はロックされています。",
     "questionNumber": "第{{num}}問",
     "questionUpdated": "問題が更新されました",
+    "gradingReferenceAnswer": "採点用参考解答",
+    "gradingReferencePlaceholder": "採点用の要点または最終結論を入力。完全な導出は解説に入れてください",
     "referenceAnswer": "参考解答",
     "referenceNotSet": "（参考解答未設定）",
     "referencePlaceholder": "参考解答（任意、Markdown対応）",
@@ -837,8 +886,9 @@
     "scoreLabel": "点",
     "scoreUnit": "{{score}} 点",
     "selectQuestionType": "問題タイプを選択",
-    "shortAnswerPlaceholder": "短答の標準解答を入力（数字、キーワードなど）",
+    "shortAnswerPlaceholder": "採点用の要点または最終結論を入力。完全な導出は解説に入れてください",
     "showQuestionList": "問題一覧を表示",
+    "solutionExplanation": "解説（解法過程）",
     "sortUpdateFailed": "並び替えの更新に失敗しました",
     "sourceBankLabel": "問題バンク",
     "sourceInsert": "挿入",
@@ -978,6 +1028,18 @@
     "saveAndNextStudent": "保存して次の学生へ",
     "saved": "保存済み",
     "score": "スコア",
+    "scorePolicy": {
+      "confirmExcluded": "第{{index}}問を採点対象外にしますか？全学生のこの問題の得点は合計に含まれなくなります。",
+      "confirmFullMarks": "第{{index}}問を全員満点にしますか？全学生がこの問題の満点を獲得します。",
+      "confirmNormal": "第{{index}}問を通常採点に戻しますか？",
+      "excluded": "採点対象外",
+      "fullMarks": "全員満点",
+      "menuTitle": "採点ポリシー",
+      "normal": "通常",
+      "setExcluded": "採点対象外にする",
+      "setFullMarks": "全員満点にする",
+      "setNormal": "通常採点に戻す"
+    },
     "searchStudent": "学生を検索",
     "selectAnswerToGrade": "学生の解答を選択して採点を開始",
     "selectQuestion": "問題を選択",

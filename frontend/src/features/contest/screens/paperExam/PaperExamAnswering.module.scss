@@ -87,3 +87,8 @@
 .allItemDimmed   { @include exam.exam-all-item-dimmed; }
 
 .centered        { @include exam.exam-centered; }
+
+.submitQuestionPreview {
+  flex: 1;
+  min-width: 0;
+}

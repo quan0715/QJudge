@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Given a disk with 150 tracks (0-149), head at track 80 moving towards increasing numbers. Requests are in tracks of 20, 45, 10, 120, 130, 5, 90. What is the service order using SCAN and C-SCAN algorithms?",
+  "question_id": "376de8d7-fb33-4f62-be5a-b9044492c283",
+  "question_type": "essay",
+  "reference_answer": "a. SCAN: 90, 120, 130, 45, 20, 10, 5. (Moves to the end, then reverses).\nb. C-SCAN: 90, 120, 130, 5, 10, 20, 45. (Moves to the end, jumps to the start, then continues)."
+}

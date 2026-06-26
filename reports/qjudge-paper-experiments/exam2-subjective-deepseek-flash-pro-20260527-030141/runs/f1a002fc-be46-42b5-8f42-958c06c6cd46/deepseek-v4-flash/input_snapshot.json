@@ -1,0 +1,851 @@
+{
+  "answer_count": 119,
+  "answers": [
+    {
+      "answer": {
+        "text": "(1) each has its own operating system\n(2) master-slave multiprocessor\n(3) symmetric multiprocessor"
+      },
+      "id": "12129",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU owns its OS.\n2. 1 OS image with master-slave architecture (MS-MP)\n3. 1 OS image with symmetric CPUs (SMP)"
+      },
+      "id": "12570",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, 各自為政\n2, Master-Slave architecture \n3, symmetric architecture "
+      },
+      "id": "15574",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "1. every processor has its own OS.\n2. MS-OS: a master processor to manage slaves, and scheduling processes\n3. SMP: only one copy of OS, every processor use the same OS code."
+      },
+      "id": "13302",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own operating system\n2. Master-slave multiprocessor\n3. SMP multiprocessor"
+      },
+      "id": "12125",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. each core has a its own OS\n2. slave-master multiprocessor\n3. symmertric multiprocessor"
+      },
+      "id": "12516",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "1. 每個處理器有自己的 OS,\n2. Master-Slave OS: 一個主要的處理器控制所有資源與工作分配給其處理器,\n3. Symmetric OS: 所有處理器平等"
+      },
+      "id": "12568",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. 所有 Processor 都有獨立的 Operating System\n2. Master-slave Multiprocessor System\n3. Symmetric Multiprocessor System"
+      },
+      "id": "12399",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.每個CPU都有一個自己OS\n2.master-slave: master 管理 OS\n3.SMP: OS分成各個CR給所有CPU用"
+      },
+      "id": "12453",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "each has it own cpu\nmaster-slave multiprocessor\nsymmetric multiprocessor"
+      },
+      "id": "13488",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "symmetric MP\neach cpu have its own OS\nmaster-slave MP"
+      },
+      "id": "11534",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own operating system\n2. Master-Slave multiprocessor\n3. Symmetric multiprocessor"
+      },
+      "id": "13090",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. Each cpu has own os: each cpu has own resource and not share it with others.\n2. MS-MP: One master cpu for kernel and multiple slave cpu for user process. Slave cpu can share process.\n3. Symmetric MP: Only one kernel code in the whole system, every cpu can access the kernel code but need mutex to handle the kernel structure."
+      },
+      "id": "14056",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS\n2. Master-slave hierarchy. Master CPU assigns tasks for other CPUs\n3. Symmetric approach. All CPU's acting independently on the same OS. They should coordinate on how to schedule tasks among them"
+      },
+      "id": "12797",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "1.CPU has its own OS\n2. MS-MP\n3. SMP"
+      },
+      "id": "12616",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "1. each processor has it's own OS\n2. Master-Slave: a master processor run the OS code and other processor as some resource\n3. SMP: all processor can run OS code if needed"
+      },
+      "id": "13280",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- Each CPU has its own OS \n- Master-Slave MP\n- Symmetric MP "
+      },
+      "id": "11409",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Each cpu has it own OS\n- Master-Slave Multiprocessors (MS-MP)\n- Symmetric Multiprocessors (SMP)"
+      },
+      "id": "13519",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "共享記憶體、共用匯流排、相同作業系統"
+      },
+      "id": "16201",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "each has it's own os\nmaster-slave MP\nsymmetric MP"
+      },
+      "id": "12391",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. CPU各有自己的OS。\n2. MS-MP\n3. SMP"
+      },
+      "id": "12664",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. 每個CPU都有自己的OS\n2. Master-slave MP (MS-MP)\n3. Symmetric MP (SMP)"
+      },
+      "id": "11646",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "every process has their operating system\nMS-MP (master slave multiprocessor)\nSMP (symmetric multiprocessor)"
+      },
+      "id": "12939",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "每個 都有自己的os\nsymmetric multiprocessor\nmaster slaver multiprocessor"
+      },
+      "id": "12011",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has it's own operating system\n2. Master-Slave multiprocessor\n3. Symmetric multiprocessor"
+      },
+      "id": "12594",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS.\n2. Master-slave multiprocessor.\n3. Symmetric multiprocessor."
+      },
+      "id": "13499",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.每個process有自己的CPU\n2.Master-Slave architecture\n3."
+      },
+      "id": "12654",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS\n2. MS-MP\n3. SMP"
+      },
+      "id": "13405",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "separate os per cpu\nmaster slave MP(MS-MP)\nsymmetric MP(SMP)"
+      },
+      "id": "12289",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "1. each cpu has its own os\n2. master slave multiprocessor MS-MP\n2. symmetric multiprocessor SMP"
+      },
+      "id": "11610",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS.\n2. Master-Slave Mulitprocessor (MS-MP).\n3. Symmetric Multiprocessor (SMP)."
+      },
+      "id": "13147",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "Symmetric Multiprocessor\nMaster-salve Multiprocessor\nsame-os Multiprocessor"
+      },
+      "id": "13672",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Each cpu has its own os\nMaster-slave Multiprocessor\nSymmetric Multiprocessor"
+      },
+      "id": "12821",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. Every cpu has its own OS.\n2. Master-slave architecture.\n3. Symmetric architecture."
+      },
+      "id": "12550",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "each CPU has it's own OS\nmaster and slave multiprocessor\nsymmetric multiprocessor"
+      },
+      "id": "13311",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. every processor has their own OS.\n2. Master-slave MP: one master processor have access to the OS, and the other processors tackle the user program.\n3. Symmetric MP: every processors have access to the unique OS."
+      },
+      "id": "13145",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. Master-Slave\n2. Symmetric\n3. "
+      },
+      "id": "13056",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. 每個人processor都有自己的OS\n2. master-slave\n3. SMP"
+      },
+      "id": "11735",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "各自擁有自己的OS\nMS-SP: 僅一處理器負責OS相關程式碼\nSMP: 處理器皆可運行OS相關程式"
+      },
+      "id": "12445",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.每個CPU都有自己的OS\n2.master-slave multiprocessors\n3.symmetric multiprocessors"
+      },
+      "id": "12606",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPUs has its own OS\n2. MS-MP (Master-Slave Multiprocessor)\n3. SMP (Symmetric Multiprocessor)"
+      },
+      "id": "12278",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. CPU + Bus + cache\n2. Master-Slave Multiprocessor\n3. Symmetric Multiiprocessor"
+      },
+      "id": "11599",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "每個CPU都有自己的OS\nMS-MP\nSMP"
+      },
+      "id": "11547",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU Has Its Own Operating System\n2. Master-Slave Multiprocessor\n3. Symmetric Multiprocessor"
+      },
+      "id": "15335",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.每個cpu都有自己的os\n2.主從式:有一個master cpu跟其他的隨從cpu\n3.SMP"
+      },
+      "id": "13052",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.Each CPU has its own operating system\n2.Master-slave MP\n3.Symmetric MP"
+      },
+      "id": "15392",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "A OS per processor\nMaster-Slave Multiprocessor\nSyymetric Multiprocessor"
+      },
+      "id": "11648",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "1. each CPU has it's own operating system\n2. MS(master-slave)-MP\n3. S(symmetric)MP"
+      },
+      "id": "12222",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Multiprocessor has its own operating system\nMaster-Slave multiprocessor\nSymmetric multiprocessor"
+      },
+      "id": "13013",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. 每個CPU都有自己的OS系統\n2. Master-Slave Multiprocessor\n3. Symmetric Multiprocessor"
+      },
+      "id": "13164",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 每個CPU有自己的系統\n2. MS-MP 主從式系統\n3. SMP 對稱式系統"
+      },
+      "id": "14285",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "每個CPU有自己的作業系統\nMS-MP\nSMP"
+      },
+      "id": "12439",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "1. 每個CPU有自己的作業系統\n2. 主從式多處理器(MS-MP)\n3. 對稱式多處理器(SMP)"
+      },
+      "id": "15439",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "每一個CPU都有自己的OS\nMASTER-SLAVES mp\nsymmetric mp"
+      },
+      "id": "12322",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own operating system\n2. Master-Slave Multiprocessors\n3. Symmetric Multiprocessors"
+      },
+      "id": "13206",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "每個CPU都有各自的OS\nMS-MP\nSMP"
+      },
+      "id": "13184",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. Multiple processors and multiple OS\n2. Master-Slave Multiprocessor\n3. Symmetric Multiprocessor"
+      },
+      "id": "13178",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. each CPU has its own OS\n2. master-slave system\n3. symmetric system"
+      },
+      "id": "12491",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "each CPU has its operating system\nmaster- slave multiprocessor\nsymmetric multiprocessor"
+      },
+      "id": "12952",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own operating system\n2. Master-Slave Multiprocessors(MS-MP)\n3. Symmetric Multiprocessors(SMP)"
+      },
+      "id": "13185",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.Each node has its OS\n2.MS-MP\n3.SMP"
+      },
+      "id": "12303",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.each processor has its own OS\n2.Client-Slave OS system\n3.SMP"
+      },
+      "id": "12602",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Each CPU has its own OS\n2.Master-Slave MP\n3.Symmetric MP"
+      },
+      "id": "15360",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1.each processor has it own O.S.\n2.Symmetric multiprocessor\n3.Master-Slave multiprocessor"
+      },
+      "id": "12805",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own CPU: It's simple, but may cause duplicate states\n2. Master-Slave Multiprocesser: It's simple, but may be bottlenecked by the Master processor.\n2. Symmetric Multiprocesser: It's flexible and scalable, but requires fine-grained locking"
+      },
+      "id": "13438",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "i. Each CPU has its own operating system.\nii. Master-slave multiprocessor\niii. Symmetric multiprocessor"
+      },
+      "id": "11589",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Every CPU has its own operation system\nMS-MP\nSMP\n"
+      },
+      "id": "13161",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Each processors has its own OS.\n2. Master-Slave multiprocessor\n3. Symmetric multiprocessor"
+      },
+      "id": "12833",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS.\n2. Master-slave\n3. SMP"
+      },
+      "id": "13011",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS\n2. Master-slave \n3. SMP "
+      },
+      "id": "11831",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1. all processorhave own os\n2. 1 main processor othe rprocessors are sleeve\n3. all processor have same level\n"
+      },
+      "id": "13307",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Multiprocessor Operating是有多處理器的OS會有多種架構，例如說可能會有多個 socket 可以置放 CPU 在不同的 socket 放不同的 CPU 可以避免單點故障，如果像是 chip level 的 multi proceessor 那就有可能因為 chip 內部的錯誤導致整顆 CPU 壞掉，不同socket 可以豁免，或者是像說 multiprocessor 裡面會用到許多平行化的概念 thread process 都會可以讓程式同時進行，blocking 會有在等資源的時候進入 wait 去等 context switching 之後才會進到真正能執行的狀態、non blocking 會持續輪詢資源狀態這種也是種architectural approaches 第三種就是在架構的時候會遇到 OS mod 的裡面有不同的 mod 可以多元模組在開發時會更加結構化"
+      },
+      "id": "15691",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. each cpu has its own os\n2. master-slave architecture multiprocessor\n3. symmetric architecture multiprocessor"
+      },
+      "id": "14142",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "all processor has its own OS.\nMaster-Slave MOS\nsymmetric MOS\n"
+      },
+      "id": "12653",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "1. 每個 cpu 都一個 OS : 各自處理各自的 system call\n2. master-slave 架構 : 一個 master 處理 kernel 其餘跑在 user space\n3. SMP : 一個 OS 跑在多個 CPU 上，要謹慎處理 lock 部分"
+      },
+      "id": "12420",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "1. each processor has its own OS \n2. symmetric Multiprocessor  \n3. master slave multi processor "
+      },
+      "id": "12242",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. 所有 CPU 都有自己的 OS\n2. Master-Slave multiprocessor\n3. Symmetric multiprocessor"
+      },
+      "id": "12637",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Each CPU has its own operating system.\n(2) Master-Slave multiprocessor\n(3) Symmetric multiprocessor"
+      },
+      "id": "12131",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "each cpu has its own os.\nSMP\nmaster slave"
+      },
+      "id": "13595",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "Host + local ID\nHost(原始) + local ID + Host(現在)\n詳細記載"
+      },
+      "id": "12910",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "each CPU has its own OS\nmaster-salve multiprocessor\nsymmetric multiprocessor"
+      },
+      "id": "12332",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "每個CPU有自己的OS\nSMP\nmaster/slave"
+      },
+      "id": "12801",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "每個CPU都有自己的OS\nMaster-Slave multiprocessor\nSymmetric multiprocessor"
+      },
+      "id": "12540",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.each cpu has its own Os\n2.master-slave MP\n3.symmetric MP"
+      },
+      "id": "12212",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "每個cpu有自己的os\nmaster-slave multiprocessor\nsymetric multiprocessor"
+      },
+      "id": "12739",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. each CPU has its own OS\n2. master-slave multiprocessor (MS-MP)\n3. symmetric multiprocessor (SMP)"
+      },
+      "id": "12863",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.each have it own OS\n2.MS-MP\n3.SMP"
+      },
+      "id": "12007",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "each CPU has it own OS. MS-MP one CPU is used for OS,other CPUs are used for User applications .SMP use the same CPU"
+      },
+      "id": "11449",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "one CPU one operating system\n主從式 master-slave\n對稱symmetric"
+      },
+      "id": "12599",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1.each CPU has its own OS\n2.master-slave MP\n3.symmetric MP"
+      },
+      "id": "12642",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. 單一CPU單一OS\n2. Master-Slave的MP\n3. symmetric MP"
+      },
+      "id": "12419",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. 所有processor共用一個OS\n2. Master-Slave: master負責分配資源，Slave只負責執行\n3. 每個processor有自己的OS，叫做SMP"
+      },
+      "id": "12593",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. os for each cpu\n2. master and slave \n3. symmetric"
+      },
+      "id": "12402",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "多 process , point to point 傳輸資料\n可以共享資源\n複製資料彼此互不影響\n"
+      },
+      "id": "12802",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. each CPU has their own OS.\n2. Master-Slave Multiprocessor \n3. Symmetric Multiprocessor "
+      },
+      "id": "14845",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Master-Slave, UMA, NUMA"
+      },
+      "id": "15261",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own operating system\n2. Master-slave architecture\n3. Symmetric Multiprocessors"
+      },
+      "id": "13149",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "1.每個CPU都有自己的作業系統\n2.主從多處理器\n3.對稱多處理器"
+      },
+      "id": "16169",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "1.每個CPU各自有各自的作業系統。\n2.主從式多處理器(Master-Slave MP)，由一個Master CPU控制系統，其餘Slave CPU執行任務。\n3.對稱式多處理器(SMP)所有CPU平等，共同執行同一作業系統並共亨資源。"
+      },
+      "id": "15697",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "hostname+local ID\nhostname(original)+local ID+hostname(current)\nglobal name server"
+      },
+      "id": "16060",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.every CPU have it own operating system.\n2.master-slave multiprocessor\n3.symmetric multiprocessor"
+      },
+      "id": "13733",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "each CPU has its own OS\nSMP\nMS-MP"
+      },
+      "id": "12272",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "1.各有各的os\n2.主從式處理器\n3.對稱式處理器"
+      },
+      "id": "11960",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "each CPU has its own operating system\nmaster slave multiprocessor\nsymmetric multiprocessor"
+      },
+      "id": "12378",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.parallel \n2.cascade"
+      },
+      "id": "15369",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. each processor has its own operating system.\n2. master and slave architectural \n3. symmetric multiprocessor architectural. "
+      },
+      "id": "12856",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Each-CPU-OS: 每個CPU有自己的OS，但資源也因此不共享。\nMaster-Slave: 有一個CPU運行Master OS，其他CPU都要聽命於Master OS，但Master可能成為Performance bottleneck\nSMP: 所有CPU共用一個OS，但當多個CPU同時進入kernel mode時可能會有race condition，需謹慎處理並設計良好lock。"
+      },
+      "id": "12374",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "1.每個CPU都有自己的OS\n2.主從式(MS)processor\n3.對稱式(SMP)processor"
+      },
+      "id": "13175",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.Each one have own OS\n2.master-slave MP\n3.symmetric MP\n"
+      },
+      "id": "12782",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has it own OS.\n2. Master-Slave multiprocessor.(MS-MP).\n3. Symmetric multiprocessor.(SMP)."
+      },
+      "id": "13004",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. each CPU has its own operating system\n2. master-slave multiprocessor (MS-MP)\n3. symmetric multiprocessor (SMP)"
+      },
+      "id": "12314",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.每個OS都有自己的CPU\n2.Master-Slave MP\n2.Symmetric MP"
+      },
+      "id": "12860",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. Each CPU has its own OS\n2. Master-Slave Multiprocessor (MS-MP)\n3. Symmetric Multiprocessor (SMP)"
+      },
+      "id": "12397",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.每一個CPU都有自己獨立的OS\n2.master-slave MP\n3.SMP"
+      },
+      "id": "12855",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "1 Each CPU has its own OS\n2 Master-slave MP\n3 Symmetric multiprocessor"
+      },
+      "id": "13448",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "1. Shared memory\n2. Caching\n3. Event-driven Architecture"
+      },
+      "id": "13622",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "1.每個cpu 都有自己的OS\n2.master-slave: master cpu run OS , slave cpu run processes\n3.只有一個OS，但是每個cpu都可以執行這個OS的function"
+      },
+      "id": "13977",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1. 每個CPU有自己的OS\n2. Master-Slave MP\n3. symmetric MP"
+      },
+      "id": "12627",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "SMP\nEach CPU has its own OS\n"
+      },
+      "id": "15550",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "What are the three basic architectural approaches for Multiprocessor Operating Systems?",
+    "question_id": "f1a002fc-be46-42b5-8f42-958c06c6cd46",
+    "question_type": "short_answer",
+    "reference_answer": "(1) Each CPU has its own Operating System.\n(2) Master-Slave Multiprocessors.\n(3) Symmetric Multiprocessors (SMP)."
+  },
+  "question_id": "f1a002fc-be46-42b5-8f42-958c06c6cd46"
+}

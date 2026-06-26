@@ -1,0 +1,865 @@
+{
+  "answer_count": 121,
+  "answers": [
+    {
+      "answer": {
+        "text": "1. number of queues\n2. scheduling algorithm for each queue\n3. algorithm to determine when to upgrade a process"
+      },
+      "id": "3828",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. Number of queues\n2. Schedule policy for each queue\n3. When to upgrade or downgrade a process in a queue."
+      },
+      "id": "3675",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "queue 的順序\nmethods that process upgrade in queue\nmethods that process d降級 in queue\n"
+      },
+      "id": "4534",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "number of queues, policy to upgrade a process, policy to downgrade a process, priority schedule for each queue"
+      },
+      "id": "4861",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "可以有幾個waiting queue、每個queue的algorithm、promotion的條件"
+      },
+      "id": "4070",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. algorithm to determine when to demote a process\n3. algorithm to determine when to upgrade a process"
+      },
+      "id": "5129",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "1. queue 的數量\n2. process 升級/降級的條件 (向上面的 queue 移動或向下)\n3. 每個 queue 的 scheduling algorithm"
+      },
+      "id": "5875",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Number of queue.\n2. Method to determine when to upgrade a process.\n3. Scheduling strategy for each queue."
+      },
+      "id": "4632",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.queue的數量\n2.不同queue的scheduling algorithm\n3.如何決定升級到更高的queue"
+      },
+      "id": "3920",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "numbers of the queues\nmethod to determine the time to upgrade the process\nmethod to determine the time to demote the process\nmethod to determine which queue to start when the process come in"
+      },
+      "id": "5769",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "numbers of queue\nscheduling algorithm for each queue\nmethods to determine which to upgrade\nmethods to determine which to demote"
+      },
+      "id": "2456",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. the promotion criteria\n3. the demotion criteria\n4. the CPU scheduling algorithm\n5. decide which queue a process will be when it comes in."
+      },
+      "id": "4914",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Number of queues\nAlgorithn of each queues\nThe method to upgrade a process to higher proirity queue"
+      },
+      "id": "5410",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "- Several queues\n- What algorithm is used in each queue\n- What are conditions to move a process to a higher or lower queue"
+      },
+      "id": "4727",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. the method of schedular for the queue\n3. the method of demoting the level of the process"
+      },
+      "id": "5119",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "how many queue\nhow to schedule in each queue\nhow to deside which process enter which queue"
+      },
+      "id": "4800",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "- The number of queues \n- The algorithms in each of these queues \n- The method to determine when to UPGRADE a process from one queue to a HIGHER priority one \n- The method to determine when to DEMOTE a process from one queue to a LOWER priority one \n- The method to determine in which queue a process needs to be put when it enters a Multilevel Feedback Queue "
+      },
+      "id": "2670",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Number a queues\n- scheduling algorithms for each queue\n- how to upgrade a process \n- how to demote a process\n- In which queue insert a process that wants to enter to do its service."
+      },
+      "id": "4474",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. Queue 的數量\n2. 每一個 Queue 的優先權級別\n3. 每一個 process 待在 Queue 的時間，用來實現 aging 機制避免 starvation"
+      },
+      "id": "5241",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nschuduling algorithm for each queue\nmechanism for deciding to go to the higher priority queue or lower priority queue"
+      },
+      "id": "4218",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "a)number of queues\nb)methods used to determine when to upgrade the queue.\nc)methods used to determine when to demote the queue."
+      },
+      "id": "5162",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. 每個queue裡搶佔的規則\n3. 不同queues之間升降級的規則"
+      },
+      "id": "4418",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "the number of queue,\nthe scheduling algorithm for different queues,\nto decide when should we demote a process from a queue,\nto decide when should we promote a process into a prior queue."
+      },
+      "id": "6051",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "number of queue\n排程演算法\n降低時間\nmulti同時執行\nthread更有效率\n"
+      },
+      "id": "3798",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nscheduling algorithm of each queue\nmethod used to determine when to upgrade the process\nmethod used to determine when to demote the process"
+      },
+      "id": "2889",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. scheduling algorithms in each queue\n3. when to upgrade or demote a process in a queue"
+      },
+      "id": "5099",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "1.number of queue\n2.scheduling algorithm of queue\n3.method to determine how to upgrade queue"
+      },
+      "id": "5319",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1.number\n2.algorithm\n3.method to determine when upgrade/demote a process"
+      },
+      "id": "4371",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "1. the number of queue\n2.Schedling algorithm of each queue\n3. method used to determine when to upgrade a process\n4.method used to determine when to demote a process\n"
+      },
+      "id": "4375",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "parameters of multilevel feedback queue scheduling--\n1. program pointer\n2. global variables\n3.  allocation"
+      },
+      "id": "5878",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. Number of level.\n2. Scheduling algorithms for each level.\n3. Methods to determine when to upgrade a task from one level to another."
+      },
+      "id": "5413",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "1. the queue size\n2. each level queue scheduling algorithm\n3. how to go to up-level or down-level queue"
+      },
+      "id": "4511",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "1.queue的數量\n2.每個queue的排程演算法\n3.queue之間的升降規則"
+      },
+      "id": "3816",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "1. The amount of the queue.\n2. Scheduling algorithm for each queue.\n3. The method to determine whether a program will be upgraded."
+      },
+      "id": "3864",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "when to upgrade a process\nwhen to demote a process\neach level's scheduling algorithm"
+      },
+      "id": "6515",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. the number queue.\n2. the scheduling algorithms in each queue.\n3. the condition to upgrade or downgrade the process."
+      },
+      "id": "4692",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "1. algorithms used for each queue.\n2. upgrade / downgrade rules.\n3. number of levels."
+      },
+      "id": "6064",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. 各個queue的algorithm\n2. upgrade的情況\n3. degrade的情況\n4. 初始狀態"
+      },
+      "id": "4013",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "佇列數量\n決定進入哪一個佇列的演算法\n決定何時提升至高/低優先級佇列的演算法"
+      },
+      "id": "4298",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.queue的數量\n2.每個queue的排班\n3.什麼情況下process要升級"
+      },
+      "id": "4757",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "1. Level數。\n2. 各個level的scheduling algorithm。\n3. 各level能夠等待的任務數量。\n4. 各level之間context switch的頻率。"
+      },
+      "id": "4626",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. methods uesd to determine when upgrade a process\n3. methods uesd to determine when demote a process\n4. scheduling algorithms for each queue"
+      },
+      "id": "4094",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1. Method to determine process to move to upper queue\n2. Method to determine process to move to lower queue\n3. Which queue to enter  of a new process"
+      },
+      "id": "2468",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "1. Number of Queues.\n2. methods to used to determine when to upgrade process.\n3. methods to used to determine when to demote process.\n"
+      },
+      "id": "2290",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "Quene 數量、"
+      },
+      "id": "2095",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. scheduling algorithms of the queue\n3. method to determine when to demote a process"
+      },
+      "id": "3999",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "1. queue numbers\n2. queue algorithms\n3. when to upgrade the queue"
+      },
+      "id": "3870",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "page fault增加代表 frame太少\npage fault太少代表frame太多\n"
+      },
+      "id": "6228",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.number of queue\n2.scheduling algorythm for each queue\n3.method to determine when to upgrade a process\n4.method to determine when to demote a process\n5.method to determine which queue a process will enter when it needs service"
+      },
+      "id": "3981",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "The process size, the priority the the process, the info needed to cause the priority to increase, and the info needed to cause the priority to decrease, info is based on the algorithm. "
+      },
+      "id": "2390",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nscheduling algorithm\nmethod to determine when to update a process "
+      },
+      "id": "3011",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "number of queues\nalgorithm to determine whether to upgrade queue\nalgorithm to determine whether to demote queue"
+      },
+      "id": "3803",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "提高queue範圍\n降低queue範圍\n新的process要去哪一個queue"
+      },
+      "id": "2787",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 有幾層queue\n2. 每層的演算法\n3. priority提升或下降的方法"
+      },
+      "id": "6733",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nscheduling algorithm for each queue\nmethods used to determine when to upgrade a process"
+      },
+      "id": "2943",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "numbers of queue.\n每個queue使用到的排程演算法\n何時要更換queue"
+      },
+      "id": "5288",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.queue的數量\n2.queue的演算法\n3.決定queue甚麼時候要upgrade的方法\n4.決定queue甚麼時候要downgrade的方法\n5.當一個process需要被執行的時候它要被放進哪個queue"
+      },
+      "id": "3482",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "1. numbers of queues\n2. scheduling algorithms of each queue\n3. methods used to determine when to upgrede the queue\n4. methods used to determine when to demote the queue"
+      },
+      "id": "4931",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "number of queue\ndetermine when to upgrade\ndetermine when to 降級"
+      },
+      "id": "2817",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "1. 每個level的演算法\n2. 要升到上一個level的規則\n3. 要降到下一個level的規則"
+      },
+      "id": "4391",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. scheduling algorithm of queue\n3. 什麼時候提升queue的排序\n4. 什麼時候降低queue的排序"
+      },
+      "id": "6129",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "number of queues\nscheduling algorithm for each queue\nmethod used to determine when upgrade a process\n"
+      },
+      "id": "4395",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. scheduling algorithms for each queue\n3. methods used to determine when to upgrade the process"
+      },
+      "id": "5031",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "1.要有幾個Queue\n2.每個queue的scheduling algorithm(可能是5ns RR,10ns RR,FCFS)\n3.aging的策略，當process處於低priority太久要怎麼提升priority"
+      },
+      "id": "2719",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nmethod for upgrade queue\nmethod for degrade queue\nscheduling 演算法"
+      },
+      "id": "4693",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "number of queque\nmethod used to determine when a process can be upgrade.\nmethod used to determine when a process can be demote."
+      },
+      "id": "4458",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "1. Queue 的數量\n\n2.程式剛進入時要如何判斷他要到哪層Queue 中的演算法\n\n3.Queue之間排序的方法\n\n4.如何判斷程式要向上層Queue升級的演算法\n\n5.如何判斷程式要降級的演算法"
+      },
+      "id": "5473",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "The parameters include, scheduling number, scheduling queue, when to upgrade a process, when to demote a process, and the order of execution. \n"
+      },
+      "id": "6219",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "1. Queue scheduling\n2. More than 1 thread \n3. Multilevel feedback"
+      },
+      "id": "2295",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "The number of queue.\nThe method to decide when to upgrade the process priority\nThe method to decide when to demote the process priority"
+      },
+      "id": "3754",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. numbers of queue\n2. scheduling algorithm for each queue\n3. method used to determine when to upgrade the process"
+      },
+      "id": "4759",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Number of queue.\n2. Each scheduling algorithm in each queue.\n3. When to modify the priority of processes."
+      },
+      "id": "2801",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. 每一個ready queue 的scheduling 的演算法 \n2. 什麼時候將process upgrade \n3. 什麼時候將 process demote "
+      },
+      "id": "4446",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.which queue should be start\n2.each queue rule\n3.level up and down queue rule"
+      },
+      "id": "3414",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "每一層的 queue 總共大小多大\n不同層的 scheduling algorithm\n最一開始要先進入哪一層"
+      },
+      "id": "5033",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. every queue's scheduling algorithm\n3. mechanism to decide how to upgrade the process's priority"
+      },
+      "id": "4563",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "schedule內部層數數量\n各層數的algorithm\n初始層數\n獲得層數提升的規則\n獲得層數下降的規則"
+      },
+      "id": "4507",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "不同 queue 各自的排程\nprocess 甚麼時候會 升級到其他 queue\nprocess 甚麼時候會 降級到其他 queue"
+      },
+      "id": "4088",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "number of queues \nthe scheduling algo of each queue \nwhats the rule to upgrade a process  into the higher queue "
+      },
+      "id": "5077",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "1. Number of queues.\n2. Schedule algorithm for each queue.\n3. method that used to upgrade the queue."
+      },
+      "id": "4862",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Number of queues, a method to determine when to upgrade a process, a method to determine when to demote a process"
+      },
+      "id": "3507",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "1. method to decide which queue to enter at the first time.\n2. method to upgrade/demote to another queue.\n3. scheduling algorithm of each queue."
+      },
+      "id": "2353",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "number of queues\nscheduler of each queue\nmethod of increase to next queue"
+      },
+      "id": "5333",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nwhen to upgrade a process\nwhen to demote a process"
+      },
+      "id": "3357",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nscheduling algorithm for each queue\nmethod of when the progress upgrade the priorty to another queue"
+      },
+      "id": "3931",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "number of queues, scheduling algorithm each queue, method to determine when to upgrade/demote thread "
+      },
+      "id": "4208",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "queue的數量\n每個queue的演算法\n怎麼上升或下降到另一個queue"
+      },
+      "id": "5359",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. algorithm of each queues\n3. time slice(quantum) if using round robin\n4. the rules of whether it goes to other queues"
+      },
+      "id": "4901",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.throughput\n2.cpu ultilizatoin\n3.data size"
+      },
+      "id": "4253",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2.decide when to upgrade the process\n3.decide when to demote the process"
+      },
+      "id": "6529",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "the numbers of queue, the algorithms of queue, the upgrade/downgrade of queue, how can the grade be defined "
+      },
+      "id": "5446",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "queue的編號\nqueue本身的演算法\n選擇要進入哪個queue"
+      },
+      "id": "3882",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "何時要換queue\nqueue數量\n"
+      },
+      "id": "6065",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. Quene numbers\n2. The scheduling algorithms of each queue.\n3. The method to upgrade/demote the queue.\n"
+      },
+      "id": "4614",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. 每個任務的排程演算法\n2. 何時把任務 upgrade\n3. 何時把任務 demote"
+      },
+      "id": "3688",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1.佇列數量\n2.提高佇列優先權\n3.降低佇列優先權\n"
+      },
+      "id": "5301",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "queue numebr \nqueue time since \nqueue 的 演算法\nqueue 上升 methmod\nqieue 下降 methmod "
+      },
+      "id": "6587",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "1. number of queues\n2. the rule for process promotion\n3. the rule for process demotion"
+      },
+      "id": "6470",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Number of the queues.\n(b) Algorithm to promote a process to higher-priority queue.\n(c) Algorithm to change (downward) a process to lower-priority queue.\n(d) Algorithm that the queue used to excecutes the processes."
+      },
+      "id": "4794",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1.Queue數量\n2.排程演算法\n3.Queue升級的方法"
+      },
+      "id": "6404",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "多層級回饋佇列排程參數：\n1,排程數量。\n2,升級條件。\n3,降級條件。\n"
+      },
+      "id": "6464",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "number of queues\nmethod used to determent when to upgrade a process\nmethod used to determent when to demote a process"
+      },
+      "id": "4517",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "1.number of queue\n2.schduling algorithm of each queue\n3.method to determint when to upgrade a process"
+      },
+      "id": "5694",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "決定其是否被提高的方式、決定其是否被降低的方式、佇列的排程順序"
+      },
+      "id": "5098",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "number of queue\nscheduling algorithms of each queue\nmethods used to determine whether update a process\n什麽方法去降級"
+      },
+      "id": "4329",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "the number of queues\nthe algorithm use for each queues\nthe methods to determine the upgrade process\nthe methods to determine which queue the process go to when the process need to be served"
+      },
+      "id": "3948",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1.number of queues\n2.method used to determine whether to upgrade a process\n3.scheduling algorithm in each queue."
+      },
+      "id": "6418",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. scheduling method for each queue\n3. method for when to upgrade process "
+      },
+      "id": "3874",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Number of Queues, Scheduling Algorithm of each Queue, Policy of Promote/Demote"
+      },
+      "id": "4068",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "quene的數量、決定甚麼時候該上升優先權、決定甚麼時候該下降優先權"
+      },
+      "id": "4124",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.Number of queue\n2.每條queue的alogrithm\n3.怎麼決定他是升級到別條queue\n4.怎麼決定他是降級道別條queue"
+      },
+      "id": "3991",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. Number of queue.\n2. Scheduling algorithm of each queue.\n3. Methods  used to  determinate when to upgrade the priority."
+      },
+      "id": "2465",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1. number of queue\n2. method due to determine when to upgrade the queue\n3. method due to determine when to demote the queue"
+      },
+      "id": "3612",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "1.process如何升級\n2.process如何降級\n3.Queue level的數量\n4.每個level使用的演算法"
+      },
+      "id": "4119",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1. number of frames\n2.Scheduling algorithm of each queue\n3.method to determine when to upgrade\n4. method to determine when to demote"
+      },
+      "id": "6151",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.Queue的數量\n2.每個Queue的排程演算法\n3.升級的條件\n4.降級的條件"
+      },
+      "id": "4934",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "- The number of queue\n- Scheduling algorithms in each queues\n- The method to when it queues, upgrades, denotes a queue that need a service"
+      },
+      "id": "3814",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "1.每個queue的排程演算法\n2.每個queue的大小\n3.判斷要進入哪個queue的方式"
+      },
+      "id": "6054",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1.queue的數量\n2.什麼時候可以升queue\n3.什麼時後降queue"
+      },
+      "id": "4683",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Algorithm for scheduling in different level of queue.\nNumber of different level queue.\nAlgorithm to allocate process to different level of queue."
+      },
+      "id": "6571",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "number of queue\npriority for scheduling \ndecide the process should go to which queue\n"
+      },
+      "id": "5093",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "What are the parameters of Multilevel Feedback Queue Scheduling? (List at least three)",
+    "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462",
+    "question_type": "essay",
+    "reference_answer": "a. number of queues\nb. scheduling algorithms for each queue\nc. methods used to determine when to upgrade a process\nd. methods used to determine when to demote a process\ne. methods used to determine which queue a process will enter when that process needs service"
+  },
+  "question_id": "ff4ab35b-9b76-41a1-a6ee-36bc56d31462"
+}

@@ -84,7 +84,7 @@ def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
         "account_role": getattr(participant.user, "role", "student"),
         "auth_provider": getattr(participant.user, "auth_provider", "email"),
         "email": getattr(participant.user, "email", ""),
-        "score": participant.score,
+        "score": float(participant.score or 0),
         "rank": participant.rank,
         "joined_at": participant.joined_at.isoformat() if participant.joined_at else None,
         "started_at": participant.started_at.isoformat() if participant.started_at else None,
@@ -144,6 +144,8 @@ def _serialize_timeline(contest: Contest, participant: ContestParticipant) -> li
 
 
 def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) -> tuple[dict[str, Any], dict[str, Any]]:
+    from .exam_scoring import ExamScoringService, ExamQuestionScorePolicy
+
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by("order", "id")
     )
@@ -152,24 +154,44 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
         for answer in ExamAnswer.objects.filter(participant=participant).select_related("question", "graded_by")
     }
 
-    max_score = sum(float(question.score) for question in questions)
-    total_score = 0.0
-    graded_count = 0
-    correct_count = 0
+    scoring = ExamScoringService(contest)
+    breakdown = scoring.get_participant_breakdown(participant, answers)
+    effective_max = scoring.get_effective_max_scores()
+    items_by_question_id = {item["question_id"]: item for item in breakdown.items}
+    max_score = breakdown.max_total_score
+    total_score = breakdown.total_score
+    graded_count = breakdown.graded_count
+    correct_count = breakdown.correct_count
+
     overview_rows: list[dict[str, Any]] = []
     details: list[dict[str, Any]] = []
 
     for index, question in enumerate(questions, start=1):
         answer = answers.get(question.id)
-        status = _question_status(question, answer)
-        question_score = float(question.score)
-        earned_score = float(answer.score) if answer and answer.score is not None else None
+        policy = question.score_policy
+        item = items_by_question_id.get(question.id)
 
-        if earned_score is not None:
-            total_score += earned_score
-            graded_count += 1
-            if earned_score >= question_score:
-                correct_count += 1
+        # Determine displayed score based on policy
+        if policy == ExamQuestionScorePolicy.EXCLUDED:
+            earned_score = None
+            question_score = float(scoring._round_score(question.score))
+            status = {"code": "excluded", "label": "不計分", "color": "gray"}
+        elif policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+            earned_score = None
+            question_score = None
+            status = {"code": "redistribute", "label": "配分重分配", "color": "blue"}
+        elif policy == ExamQuestionScorePolicy.FULL_MARKS:
+            question_score = float(scoring._round_score(question.score))
+            earned_score = question_score
+            status = {"code": "full_marks", "label": "送分", "color": "green"}
+        else:
+            status = _question_status(question, answer)
+            question_score = float(scoring._round_score(effective_max.get(question.id, question.score)))
+            earned_score = (
+                float(scoring._round_score(item["score"]))
+                if item and item.get("score") is not None
+                else None
+            )
 
         overview_rows.append(
             {
@@ -179,6 +201,7 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
                 "status": status,
                 "score": earned_score,
                 "max_score": question_score,
+                "score_policy": policy,
             }
         )
 
@@ -203,13 +226,14 @@ def _build_paper_exam_report(contest: Contest, participant: ContestParticipant) 
                 "graded_at": answer.graded_at.isoformat() if answer and answer.graded_at else None,
                 "is_correct": answer.is_correct if answer else None,
                 "status": status,
+                "score_policy": policy,
             }
         )
 
     correct_rate = round((correct_count / graded_count) * 100, 1) if graded_count else 0.0
     overview = {
-        "total_score": round(total_score, 2),
-        "max_score": round(max_score, 2),
+        "total_score": float(scoring._round_score(total_score)),
+        "max_score": float(scoring._round_score(max_score)),
         "correct_rate": correct_rate,
         "graded_count": graded_count,
         "total_questions": len(questions),

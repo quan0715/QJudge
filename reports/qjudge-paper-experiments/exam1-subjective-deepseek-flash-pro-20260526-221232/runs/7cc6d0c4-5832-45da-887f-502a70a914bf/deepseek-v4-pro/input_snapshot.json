@@ -1,0 +1,683 @@
+{
+  "answer_count": 95,
+  "answers": [
+    {
+      "answer": {
+        "text": "circular wait, hold and wait"
+      },
+      "id": "4560",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "1. The resource is non-preemptive\n2. busy waiting\n3. 2 or more processes hold at least 1 resource\n4. 2 or more processes need resources held by others to execute"
+      },
+      "id": "2899",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "no one enter the critical section\nmore than one process want to access critical section\ncritical section has lock\nno one get the key of lock"
+      },
+      "id": "6147",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion, hold and wait, no preemption, circular waiting"
+      },
+      "id": "3110",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion\n2. hold and wait\n3. no preemtion\n4. circular wait"
+      },
+      "id": "3866",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Hold and wait,\nCirtular waiting,\nmultiple shared resources,\nmutual exclution."
+      },
+      "id": "4566",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Multiple process running\n2.  "
+      },
+      "id": "6369",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "1.A等B釋放資源 2.B等A釋放資源 3."
+      },
+      "id": "6729",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "1. 競爭相同資源：兩個或以上的process需要同一個資源，並且他們不能同時進入\n2. 手上拿著其他process需要的資源\n3. no preemption:無法搶其他process的資源\n4. circular wait：所有process手上有的資源與等待的資源形成一個circle"
+      },
+      "id": "4424",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "more than one process\nmultiple resources\nboth waiting for the each locks"
+      },
+      "id": "4689",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1.  the system has two or more threads(processes)\n2.  two or more threads(processes) hold the lock or resource simulataneously\n3.  when a thread(process) hold the lock, but want to get another lock or resource hold by others\n4. both or more threads(processes) don't release their lock and can't get the resource hold by others(other threads(processes) also wait the lock hold by this thread), then no one can't finish the task and release the lock."
+      },
+      "id": "3562",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "1. more than one lock\n2. two process access the same critical section\n3. two process run concurrntly\n4. two process get the lock in different order(Process A get x lock first then get y lock, Process B get y lock first and get x lock.)"
+      },
+      "id": "6126",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "- No resource preemption\n- No mutual exclusion - processes can take resource that other processes may use\n- Circular wait (each process waits for a resource the other process holds)"
+      },
+      "id": "6223",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "mutex, circular waiting, hold and wait, no preemption"
+      },
+      "id": "4383",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "3189",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "1. circular waiting\n2. no preemptive\n3. hold and wait\n4. "
+      },
+      "id": "6534",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "1)thread/process多個同時執行\n2)thread/process共享相同資源"
+      },
+      "id": "6447",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. priority inversion\n2. priority scheduling\n3. busy waiting\n4. without priority inheritance"
+      },
+      "id": "6634",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "semaphore<=0: somebody's waiting in the ready queue"
+      },
+      "id": "6744",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "排程時間\n處理時間\n匯入時間\n條件"
+      },
+      "id": "6617",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Mutual Exclusion\nHold and Wait\nNo preemption\nCircular wait"
+      },
+      "id": "5361",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "four necessary conditions-\n1. override the operating system\n2. kernel mode\n3.  resource override\n4. overload of the physical memory"
+      },
+      "id": "5994",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "1. All the process are waiting for some resources.\n2. "
+      },
+      "id": "5841",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "no"
+      },
+      "id": "6196",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion\n2.hold and wait\n3.non-preemptive\n4.circular waiting"
+      },
+      "id": "3368",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion, hold and wait, no preemption, circular waiting."
+      },
+      "id": "2974",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\nhold and wait\nno preemption\ncircular wait"
+      },
+      "id": "5889",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "RC?"
+      },
+      "id": "4475",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "非搶佔：程式不因搶佔而中斷、釋放鎖\n持有等待：不在持有鎖的同時等待其他資源\n互斥：資源不可同時與多程式共享\n循環等待：等待鏈成為圈"
+      },
+      "id": "3530",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion\n2.hold and wait\n3.no preemption\n4.circular wait\n"
+      },
+      "id": "3471",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Ｒｅａｄｙ、Ｒｕｎｎｉｎｇ、Ｂｌｏｃｋｅｄ、Ｚｏｍｂｉｅ\n"
+      },
+      "id": "6474",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "1.many process want to access the shared source at the same time\n2.cause race condition\n3.the priority is the same\n4.nobody get the lock"
+      },
+      "id": "6466",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "mutex ,progress, bounded waiting , hold and wait."
+      },
+      "id": "3621",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\nhold and wait\nno preemption\ncircular wait"
+      },
+      "id": "3753",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "process must require all resources at once"
+      },
+      "id": "6114",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\nhold and wait\ncircular wait\nno preemption"
+      },
+      "id": "6048",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "1.有process在cpu busy waiting\n2.os沒有辦法打斷/取代正在cpu運行的process\n3.\n4."
+      },
+      "id": "6173",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "If this is AI checked give me points."
+      },
+      "id": "6148",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "."
+      },
+      "id": "2587",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "busy waiting occur\nprocess throughput too long\na process never get execution "
+      },
+      "id": "6168",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "program counter\nCPU register\nPCB\nTCB"
+      },
+      "id": "5742",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "進入critical section後，lock沒有被安全釋放，其他行程也沒辦法再請求資源，就會造成deadlock"
+      },
+      "id": "6745",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.CS中同時有兩個程式在運行\n2.系統無法繼續執行下一個程式\n3."
+      },
+      "id": "6312",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "4148",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "1. one process occupy the CPU\n2. all other processes keep waiting and starvation\n3. OS scheduling"
+      },
+      "id": "5977",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion\n2. priority高低不同\n3. 存取相同資源\n4."
+      },
+      "id": "4906",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "同步時間\n鑰匙"
+      },
+      "id": "6584",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "1.有多個thread都在進入CS\n2.lock的釋放條件可能和其他process有衝突\n3.CS有重疊部分\n4.整個CS是atomic一定要連續完成"
+      },
+      "id": "4349",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "1.要進入同樣的迴圈\n2.有lock\n3.有priority 的不同\n4."
+      },
+      "id": "6424",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "No preemption, mutual exclusion, switching to kernel mode, "
+      },
+      "id": "6605",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "1. Accessing shared resources simultaneously\n2.  Hold and Wait\n3. Circular wait\n4. No preemption"
+      },
+      "id": "4714",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Multiple process access the critical section simultaneously.\nThe data that multiple processes access is in the same status, and they modify the data, but the result is depends on only the last process save it.\n\n\n"
+      },
+      "id": "4764",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion\n2. hold & wait\n3. circular waiting\n4. no preemption"
+      },
+      "id": "4196",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "No preemption.\nHold and wait.\nMutual exclusion.\nCircular wait."
+      },
+      "id": "3967",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion \n2. Hold and wait\n3. circular wait \n4. no preemption"
+      },
+      "id": "3596",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "1.no preemption\n2.hold and wait\n3.muture exclusion\n4.circular wait"
+      },
+      "id": "2346",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "process 之間要互相拿著有 dependency 的 lock\n要剛好 schedule 到兩個 process 符合上述情況\nkernel 剛好沒有 detect 到 lock 主動介入\n拿資源的時候沒有一次拿完，互相交互的拿"
+      },
+      "id": "3905",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusion\n2. 資源被互相佔用\n3. circular waiting\n4. "
+      },
+      "id": "3559",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "有兩(多)個process要同個資源\n該資源不能被兩(多)個process同時運行\n這些process對於該資源沒有優先度順序\n這些process同時需要這個資源"
+      },
+      "id": "3445",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "hold and wait\nmutual exclusion\ncircular waiting\n no preemption"
+      },
+      "id": "2846",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "hold and wait \nmutual exclution \nlimited resource\natomicity "
+      },
+      "id": "5915",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "hold and wait, mutual exclusion, non-preemptive, circular waiting"
+      },
+      "id": "3718",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion, hold and wait, circular waiting, no preemption"
+      },
+      "id": "2829",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "1.Circular wait\n2.No preemption\n3.Mutual exclusion"
+      },
+      "id": "4603",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "hold and wait\ncircular wait\nmutual exclusion\nno preemption"
+      },
+      "id": "4666",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "Mutual exclusion\nHold and wait\nNO preemptive\nCircular wait"
+      },
+      "id": "4604",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "holding resource each other needed and keep waiting for each other to release it while not release the resource hold by itself"
+      },
+      "id": "6136",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion\nhold and wait\nno preemption\ncircular wait"
+      },
+      "id": "5662",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.parent fork 產生 child\n2.parent在child執行完前就先結束"
+      },
+      "id": "5839",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusion 需要相同資源的不能同時執行\nhold and wait 等要的資源都拿到才執行\nno preemption 不能把正在執行的中斷\ncircular wait 有要使用的資源和持有的資源形成圓圈\n"
+      },
+      "id": "4505",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "mutual\npriority\nspinlock"
+      },
+      "id": "3780",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "2885",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "CPU utiliazation\nthroughput \nstack\nwaiting time"
+      },
+      "id": "6613",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "non-preemptive, 1CPU/core, without wait, mutual exclusion"
+      },
+      "id": "4115",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "1. no preemption\n2. mutual exclusion\n3. circular wait\n"
+      },
+      "id": "3569",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "6743",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "mutual exclusive, hold and wait, no preempt"
+      },
+      "id": "5149",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "1.trap\n2.system call\n3.例外\n"
+      },
+      "id": "4417",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "當系統不斷持續輪詢一個特定條件，而這個特定條件無法解開或執行完成，造成不斷輪詢，造\n成系統資源記憶體被耗盡，稱作 deadlock 死結"
+      },
+      "id": "6140",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "never-end loop\nunlimited loop range\nprocess with lock and low priority can not get CPU for execution\nnever-end process occupy CPU"
+      },
+      "id": "6623",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Two or more threads or processes access the same critical sections at the same time.\n(b) Two or more threads request the same lock while the lock won't be released.\n(c) The order of the execution by the threads is incorrect.\n(d) One thread stucks in the critical section or doesn't release the lock back."
+      },
+      "id": "6049",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1.cpu被長期占用\n2.當高優先權的程式因為執行程式所需的資源被低優先權的程式持有，導致無法成功執行，也會發生deadlock。\n3.\n4."
+      },
+      "id": "6732",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "deadlock is two threads that each is waiting something(for example: a variable) from an other, so both of them can not continue. "
+      },
+      "id": "4396",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "1.共享記憶體\n2.same priority\n3.namespace"
+      },
+      "id": "6443",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "No preemption\ncircular wait \nmutal exclusion\nhold and wait"
+      },
+      "id": "6432",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "priority scheduling\nlock(resource) limited\ncondition branch for high priority process\nlimited number of process can be executed simultaneously"
+      },
+      "id": "5502",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "1. mutual exclusive\n2. \n3. wait and hold\n4. "
+      },
+      "id": "3427",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion\n2.hold and wait\n3.no preemption \n4.curcular wait"
+      },
+      "id": "6079",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "1. use shared data at a time.\n2. priority inversion is occur.\n3. CPU run the \n4. "
+      },
+      "id": "6297",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "1.mutual exclusion\n2.no preemption\n3.hold and wait\n4.circular wait\n\n"
+      },
+      "id": "5011",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "1.Mutual exclusion\n2.No preemption\n3.Hold and wait\n4.Circular wait"
+      },
+      "id": "6350",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "1.process佔用太久cpu但卻是在搬運資料則會導致cpu空轉浪費cpu\n2.critical section沒處理好也會造成阻塞不能動\n3.\n4."
+      },
+      "id": "3768",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "4032",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "1.存在一個CS\n2.lock內的process無法執行來釋出key\n3.\n4."
+      },
+      "id": "6272",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "hold&wait\nmutual exclusion\npreemptive\ncircular wait\n"
+      },
+      "id": "3741",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 4,
+    "options": [],
+    "prompt": "List the four necessary conditions that must hold simultaneously for a system-wide deadlock to occur.",
+    "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf",
+    "question_type": "essay",
+    "reference_answer": "Mutual Exclusion; Hold and Wait; No Preemption; Circular Wait."
+  },
+  "question_id": "7cc6d0c4-5832-45da-887f-502a70a914bf"
+}

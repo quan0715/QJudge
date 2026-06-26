@@ -36,9 +36,11 @@ class MCPToolProvider:
         *,
         server_url: str,
         authorization_header: str | None = None,
+        tool_policy: dict[str, Any] | None = None,
     ) -> None:
         self._server_url = server_url
         self._authorization_header = authorization_header
+        self._tool_policy = tool_policy or {}
         self._stack: AsyncExitStack | None = None
         self._session: ClientSession | None = None
 
@@ -101,6 +103,15 @@ class MCPToolProvider:
         args_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
 
         async def _invoke(**kwargs: Any) -> Any:
+            policy_error = self._policy_error(tool_def.name, kwargs or {})
+            if policy_error is not None:
+                logger.warning(
+                    "mcp_tool %s blocked by tool policy args=%s detail=%s",
+                    tool_def.name,
+                    _preview_for_log(kwargs),
+                    policy_error["detail"],
+                )
+                return policy_error
             try:
                 result = await self._call_tool(tool_def.name, kwargs or None)
             except Exception as exc:
@@ -135,6 +146,29 @@ class MCPToolProvider:
             args_schema=args_schema,
             coroutine=_invoke,
         )
+
+    def _policy_error(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        tool_policy = self._tool_policy.get(tool_name)
+        if not isinstance(tool_policy, dict):
+            return None
+        denied_actions = tool_policy.get("deny_actions")
+        if not isinstance(denied_actions, list):
+            return None
+        action = arguments.get("action")
+        if isinstance(action, str) and action in set(denied_actions):
+            return {
+                "is_error": True,
+                "error_code": "TOOL_ACTION_DENIED",
+                "detail": (
+                    f"{tool_name} action `{action}` is blocked by the current "
+                    "run policy."
+                ),
+            }
+        return None
 
     async def _call_tool(
         self,

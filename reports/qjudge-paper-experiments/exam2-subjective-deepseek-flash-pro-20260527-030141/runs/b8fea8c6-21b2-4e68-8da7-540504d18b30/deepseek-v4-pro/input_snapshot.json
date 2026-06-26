@@ -1,0 +1,823 @@
+{
+  "answer_count": 115,
+  "answers": [
+    {
+      "answer": {
+        "text": "他會降低cache miss: 因為不用到處去要data, data 直接就在附近\n會降低TLB miss: 各個cpu有各自獨立的TLB\n但不會影響page fault: 這些cpu通常都共享同個 ram ，而page 就在裡面，所以不影響"
+      },
+      "id": "13010",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling may reduce the miss rate of cache and TLB. It is likely that the instructions or data of the last some tasks are still in the cache and TLB. With affinity scheduling, we can reuse these datas and prevent the cold start miss.\nHowever, page faults can't be prevented by affinity scheduling. Page fault means the needed page isn't in the main memory, so whatever CPU the task uses, page fault always happens."
+      },
+      "id": "11335",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "good for  page faults\nno influence for  TLB misses\nbad for cache misses\n"
+      },
+      "id": "16173",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "cache misses降低，因為affinity scheduling優先執行佔據cache較多的work\nTLB misses降低，affinity scheduling assign right process to right cpu, 需要的data大部分已在CPU\npage faults不會降低，因為在SMP裡，data不是存在共用的memory就是存在更下一階的儲存裝置"
+      },
+      "id": "11355",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "1. 可以降低cache misses\n2. 可以降低TLB misses\n3. 對於page fault沒有影響"
+      },
+      "id": "11268",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "a process data may has some cache data in the core it just switched from, if we run the process on the core it just switched from, it can use data in the cache. If run the process in other core, it could generate cache misses, tlb miss, and page fault"
+      },
+      "id": "11159",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "cache misses and TLB misses will be reduced, since it allows threads to run on the processor it previously run.\npage fault will not be redueced, since pages should be stored in secondary storage, unrelated of where does the thread run."
+      },
+      "id": "11173",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. TLB 是在 CPU 內的硬體，affinity scheduling 可以降低 cache misses 和 TLB mises\n2. Page fault 發生的原因是因為資料不在主記憶體，需要去 disk 找，且在 MP System 中每個 processes 共用主記憶體，affinity scheduling 不影響 page faults。"
+      },
+      "id": "11250",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 可以減少cache misses and TLB misses，因為他是讓threads能盡量回到上一個cpu，可以重複利用之前cache留下來的data跟TLB，但不影響page faults，因為memory是所有cpu共享的。\n"
+      },
+      "id": "11325",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling may impact cache misses, TLB misses, but won't impact page fault.\nwhen a thread is executing, the cache may store data and information related to the thread, thus if the processor change to execute other thread which is nothing to do with the previous thread, the cache and TLB in the same cpu may miss more, that's why need the affinity scheduling. but the paging is shared by the same RAM, so it has nothing to do with the affinity scheduling."
+      },
+      "id": "11343",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "improve cache misses, TLB misses, but nothing with page faults"
+      },
+      "id": "11039",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. affinity scheduling reduce cache misses because the thread/processor is executed on the right processor which preserve the cache data, executing on it again can use the cache data, which reduce the cache miss.\n2. affinity scheduling reduce TLB misses, because the thread/processor executed on the right processor also can use the data in TLB. which reduce the TLB misses.\n3. affinity scheduling doesn't influence page fault rate, because the page is either in shared physical RAM or backing storage."
+      },
+      "id": "11405",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "First, it may decrease cache misses because the process has affinity to the cpu which create the process. It may be the same in TLB misses, the process may be flush when it is not running. Last, the page fault may be no big difference in UMA but can be better in NUMA system, UMA system share a large shared memory. NUMA which each cpu has own memory takes advantage of affinity.  "
+      },
+      "id": "11717",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. Affinity scheduling executes thread on the same cpu, where it was executed before. That means that it affects TLB misses and local cache (specific cpu dedicated cache) misses, because these are located in the  cpu.\n2. However it doesn't affect page faults, because all cpu's use the same RAM. Memory either is located on the physical frame or not, it doesn't depend on the CPU. The same goes for global cache (cache that is available for all cpus) misses, since they are not dependent on specific CPU."
+      },
+      "id": "11588",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling has the purpose of that \"the CPU used\", so it can reduce the caches missed and TLB misses; While page fault can be reduced by the physically shared RAM or storage. Thus, it cannot reduce the page fault."
+      },
+      "id": "14402",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "cache misses: affinity reduce cache misses since a process always run on the same processor during it's life, the cache will stay in the cache.\nTLB misses: same as cache\npage fault: affinity don't affect page fault, since page is save in main memory and disk, not really affected by affinity in this question"
+      },
+      "id": "11472",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling has an impact on how tasks are attributed to CPUs, therefore, it impacts what is related to being in a specific CPU (ie cache misses and TLB misses)\nSince page faults is global to all CPUs in a MP system, affinity scheduling doesn't change anything"
+      },
+      "id": "12246",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- Affinity scheduling impact cache and TLB misses because it encourage a process to run several time on the same processors so cache and TLB is reused as much as possible.\n- Affinity scheduling does not impact page fault because as all the processor share the same memory, if a page fault occurs, it occurs from every cpu. "
+      },
+      "id": "11495",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "Cache miss: 會下降\nTLB miss: 會下降\nPage faults: 沒有影響"
+      },
+      "id": "13738",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "他會優先分配給之前已經有cache過的cpu，所以可以減少cache misses，因此也可以減少TLB misses，但page fault不會減少。"
+      },
+      "id": "11271",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. cache misses\n會減少，因為affinity scheduling會把相關的thread分給同一個CPU。\n2. TLB misses\n會減少，因為schedule給對的CPU對的thread，因此TLB資訊會一直存在，如果這群thread相關的話。\n3. page faults\n不會減少，因為page存在RAM中，跟用哪一個CPU執行無關。"
+      },
+      "id": "14867",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling透過two-level scheduling，透過將任務分配給特定的CPU，提高CPU與process間的親和性(affinity)，不會有今天在CPU1跑，隔天在CPU2跑導致cache浪費的問題，借此降低cache misses，同理CPU的TLB也會塞滿跟此process相關的資訊，因此TLB misses也會下降，而page fault與此無關，故不會有影響。"
+      },
+      "id": "11010",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "cache misses, TLB misses都會下降，但是page faults不變\naffinity scheduling會傾向在執行過這個process的CPU上繼續執行，因此cache miss rate會上升，同樣我們也可以知道因為TLB儲存在CPU中，所以TLB miss也下降．\n而因為page fault和memory RAM有關，是已經既定好的，如果這個process在同樣的CPU執行並不會減少這個fault"
+      },
+      "id": "11274",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "cache misses: \nTLB misses:\npage faults:"
+      },
+      "id": "15233",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "1. Affinity scheduling can reduce cache misses by running thread on CPU where its data may still be cached.\n2. Affinity scheduling can well reduce TLB miss since TLB entries are kept in each CPU\n3. Affinity scheduling has no effect on page fault, since in a MP, the page is either in the physically shared RAM for all CPU or in the backing storage\n"
+      },
+      "id": "11304",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling 讓process在過去跑過的CPU上執行，因為process在該CPU上跑過，該CPU的cache會有比較多和此process相關的資訊，因此可減少cache misses。同樣地，因為該CPU的TLB也會有較多此process相關的entries，所以也能減少TLB misses。但不能減少page faults，因為pages是physically存在shared RAM上，而不是和CPU綁在一起，因此affinity scheduling 並不影響page faults。 "
+      },
+      "id": "11485",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling可以減少cache misses跟TLB misses，因為她會將正確的thead放到對的CPU。\n但不會對page faults造成影響，因為page會儲存在physical address memory或是backing storage"
+      },
+      "id": "11285",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. It reduces TLB misses.\n2. It reduces TLB misses, since these are kept inside each CPU.\n3. It has no effect on page fault, since a page in MP is either in RAM or in disk."
+      },
+      "id": "11609",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Yes,it may cause TLB miss because TLB is CPU-local\nNo,Page fault depend on whether the page is in RAM,not on the CPU"
+      },
+      "id": "11270",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling is the scheduling done for right specific threads. Page faults doesnt has an effect in the affinity scheduling "
+      },
+      "id": "12355",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Since affinity scheduling is trying to assign a thread to a CPU the last time it ran on, it can reduce cache misses and TLB misses because the cache and TLB are reside in its on CPU. However, since all the processors in the MP share the entire physical RAM, it may not impact the page faults."
+      },
+      "id": "11554",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling會盡量讓程序待在同個cpu或是之前執行過的cpu，可以減少cache miss,TLB miss，但是在multiprocessor system可能會共享記憶體，所以不會減少page fault"
+      },
+      "id": "13357",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "cache misses decrease\nTLB misses decrease\nno impact on page faults"
+      },
+      "id": "12241",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling will allocate the \"similar\" process, which need similar data, to the same processor. And effectively reduce the cache misses and TLB misses. However it may make no effect on the page faults."
+      },
+      "id": "11385",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling reduces cache misses as the process keep running on the same processor."
+      },
+      "id": "15278",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "Affinity可以解決TLB miss，因為TLB存於CPU當中。然而其不能解決page fault的問題，因為page存於共享RAM或是後倍儲存設備中。"
+      },
+      "id": "11140",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "親和性調度將正確的任務交給正確的處理器，可以避免cache misses與TLB misses(各自獨立儲存)；但共用主記憶體，無法減少page faults"
+      },
+      "id": "11220",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "\naffinity scheduling可能會降低TLB misses，因為它會讓threads盡量回到自己的CPU執行，TLB存在CPU裡\n不會降低page faults，因為page存在RAM or backing storage，跟thread在哪個CPU執行無關\n不會降低cache misses"
+      },
+      "id": "11289",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling will reduce caches misses and TLB misses, but has no effect to page faults."
+      },
+      "id": "11282",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "TLB miss maybe better due to using same CPU.\nPage faults no impact."
+      },
+      "id": "11071",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "可以： cache misses, TLB misse\n不可以：page faults"
+      },
+      "id": "15808",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling puts the right thread into the right cpu. It may reduce TLB misses because TLB misses are in each CPU. But it has no effect on page faults because pages are either in physical shared RAM or disk."
+      },
+      "id": "11326",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.cache miss會改善\n2.TLB misses不一定\n3.page faults 不會改善"
+      },
+      "id": "11487",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "Affubuty scheduling主要是想讓thread一直在同一個processor上工作，這樣cache內的東西通常都會是這個thread用過和需要的，所以當然能降低cache misses和TLB misses\n但是對page faults沒有幫助，因為multiprocessor system是全體processor共用shared momory，你需要的資料只會在shared memory或是back up storage裡，有沒有affinity scheduling都不影響page faults"
+      },
+      "id": "12861",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling decrease cache misses by attributing a thread to the processor it previously ran in, so for TLB misses it will have a similar effect since TLB are also store in processor layer.\nIt does not contribute to decrease in page faults because there are stored in memory."
+      },
+      "id": "12447",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Reduce Cache misses/TLB misses\ndon't have impact on page faults"
+      },
+      "id": "11406",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling does not affect page faults because it only affect on physical memory\n"
+      },
+      "id": "11348",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. affinity會讓thread盡量回到原本的CPU，因為原本的CPU剛執行完，可能會有該thread需要的資料，所以可以減少cache miss跟可能可以減少TLB miss\n2. 不會減少page faults，因為affinity不會影響到page"
+      },
+      "id": "11532",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling能將類似的process交給特定幾個CPU去做，這樣就會有較多需要的cache。因此cache misses和TLB misses的機率都會下降。而Page Faults不會，因為不管給哪個處理器處理，所有處理器看到的memory是相同的。"
+      },
+      "id": "11957",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling 會改善 cache misses 和 TLB misses，但不會改善 page fault。\nCPU 可能還會留存之前執行過的 process 的 cache 和 TLB，所以可以改善。\n但因為 page 是在 RAM 裡跟 process 在哪個 CPU 上跑無關，所以 page fault 無法改善。"
+      },
+      "id": "13171",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "親和性排程因為會讓同一個行程在同一個CPU上執行，可以減少快取未命中的情況。TLB是在CPU上的，所以也可以減少TLB misses。但page faults 是在RAM上或是後端，所以較沒關係。"
+      },
+      "id": "13084",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "關聯性排程會把同一個process的資料給同一個processor處理 能避免不同的processor在處理時要一直讀快取或跟別的CPU一直改來改去 因此能大幅減少cache misses跟TLB MISS 但因為page只有有或沒有 沒有就去對應的記憶體拿 跟排在哪個processor或CPU無關 因此關聯性排程不會減少page faults"
+      },
+      "id": "11134",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling is that threads are put into the right CPU, then reducing cache misses and TLB misses. Since when data is in the right CPU, which makes caching and TLB finding more successful.\nHowever, it has no affect in page faults. Each data might in different CPU, but in the same page.所以系統會誤認為它們是共享資源.當我們反覆修改這些資料時會產生page反覆傳遞(ping-pong),這樣不僅浪費網路傳輸也浪費同步消費."
+      },
+      "id": "11606",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "affinity會讓process盡量回到原CPU，因原本的CPU剛執行完，可能會有該process需要的資料，可以減少cache misses, TLB misses，但不會減少page fault"
+      },
+      "id": "11617",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "可減少 cache misses, TLB misses。但不可減少 page fault，因為 page 為共享的，cache, TLB 存於每個 CPU 中。"
+      },
+      "id": "11350",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "減少cache misses跟TLB misses，因為cache跟TLB是在CPU裡的\n但不減少page fault，因為page fault在RAM或硬碟裡"
+      },
+      "id": "11183",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "會減少TLB miss，因為TLB存在CPU中，將執行緒固定在同一CPU執行可以重複使用已有的TLB\n不會減少page fault，因為page fault 發生在資料不在RAM時，但multiprocessor系統中的RAM是共享的，所以資料是否在RAM中跟執行緒要在哪個CPU執行是無關的"
+      },
+      "id": "15132",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling(親和性排程)盡量將 Thread 分配給上次執行它 CPU ，這樣可以大幅減少 Cache Misses ，也能減少 TLB Misses(因 TLB 是各 CPU 私有的)，但不能減少 Page Faults ，因為 Page 存在共享的實體記憶體中。"
+      },
+      "id": "11357",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "使用affinity scheduling會安排process/thread到之前處理過的processor上，因為processor的快取和TLB有之前保有的資訊，所以可以減少cache misses和TLB misses,但因為MP是共用記憶體，page fault是發生在page不在記憶體裡面，因此affinity scheduling無法維護page fault。"
+      },
+      "id": "11157",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "皆可以改善cache和TLB misses\n但page fault並不改善 因為每個processor會共用一個memory \nscheduling 並不會影像disk和memory之間的搬移"
+      },
+      "id": "11283",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling does not impact page faults.\nAffinity scheduling reduce TLB misses."
+      },
+      "id": "11260",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling因為將相同的thread 交給同一個processor去運算,運算的資料會存在同個processor所以會降低TLB misses的機率\npage fault則是因為MP共用同個RAM,所以跟哪個processor去運算沒有關係當這個page不再memory裡就會發生。"
+      },
+      "id": "11436",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling has to do with putting the right thread with the right CPU. \nIt reduced TLB misses because TLB contents are CPU-local (present in each CPU).\nIt does not reduce page faults because physical memory and backing storage is on the machine-level. \n"
+      },
+      "id": "11954",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Is a strategy of attempting to keep process running  on the same CPU.\nOn Cache misses, by keeping the process on the same core the processor can reuse the data already in local L1 or L2.\n\nUnder TLB misses, the tlanslation stores virtual to physcial address "
+      },
+      "id": "16151",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Affinity can decrease cache misses and TLB missing, but cannot affect page faults."
+      },
+      "id": "11533",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling put the right thread on the right CPU, it will reduce cache misses and TLB misses because cache and TLB is inside each CPU. However, it cannot reduce page faults because pages are stored in memory or backing store whether the thread is on which CPU."
+      },
+      "id": "11478",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. It will reduces the cache misses and TLB misses because the same resource remain in the same CPU. \n2. It will not affect the page faults.\n"
+      },
+      "id": "13075",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 會降低cache miss 以及 TLB miss 但是對於 page fault 不一定會有影響"
+      },
+      "id": "11135",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "yes:TLB misses,cache misses\nno:page faults"
+      },
+      "id": "12462",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 會把同一個 thread 盡量都安排到同一顆 CPU 上，可以讓 cache 和 TLB 的 miss rate 變更低，因為在同一顆 CPU 執行，所以快取的東西都很近似，page fault 是 memory 的資料不在 memory 裡面，在硬碟裡，要把硬碟的資料換進 memory 裡面這就跟 affinity scheduling 沒啥關聯"
+      },
+      "id": "11347",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. reduce cache misses since affinity can assign the cpu to do the last time thread it do \n2. reduce TLB misses \n3. affinity has no effect on page faults.  the page is on physical memory or backing store and this has nothing to do with affinity scheduling"
+      },
+      "id": "11947",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "cache misses: decrease\nTLB misses: decrease\npage faults: no impact. It's impacted by physical memory size."
+      },
+      "id": "11172",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "好的 AFFINITY SCHEDULING 可以讓 THREAD 較容易在固定的 cpu 上跑，讓要使用的 CACHE 資料留在 固定的 CPU 上 使  CACHE MISS 和 TLB MISSES 的機率顯著降低。 PAGE FAULT 指的是 MEMORY 和 STORAGE DEVICE 之間的 HIT RATE 不受 因此不受 affinity SCHEDULING 影響。"
+      },
+      "id": "11256",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "allocating the same thread into same cpu , the tlb misses can be reduced while page faults depends on whether the data is in the memory or disk , therefore it doesn't help reducing page fault but only helps TLB misses . "
+      },
+      "id": "11193",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Affinity : 同一個 process 在同一個 CPU 上執行，由於 CPU 會有自己的 cache or TLB，因此可能會有先前的 data or information 可以降低 cache misses or TLB misses\n但是由於在 multiprocessor system 中 memory 是 shared 的，所以無論換不換 CPU 都不會影響 page 在不在 memory 中，因此 page faults 不受影響"
+      },
+      "id": "11245",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Affinity scheduling has to do with putting the right thread to the right CPU. Doing so might well reduce TLB misses since these are kept in each CPU.\n(2) It has no effect on page faults, since a page is either in the shared RAM of all CPUs or in the backing storage."
+      },
+      "id": "11079",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling reduce both cache miss and TLB miss, while page faults remains the same."
+      },
+      "id": "11364",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "減少cache misses跟TLB misses，因為affinity scheduling會讓同一程式盡量在同一CPU執行\n對page fault不影響，page fault是記憶體的問題，跟使用哪個CPU無關\n"
+      },
+      "id": "11381",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling can make process run on same CPU, thus it can avoid TLB misses.\nHowever, page faults are on RAM, it can't avoid page faults. "
+      },
+      "id": "11143",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "會讓對的thread執行在對的CPU上，cache misses與TLB misses可能會減少，因為都在CPU中。\n但page faults不受影響，因為page在RAM或是backed storage，與CPU無關。"
+      },
+      "id": "11293",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.affinity schedulling會分配thread給合適cpu，每個cpu有自己的tlb cache理所當然會減少tlb miss，但因為multiprocessor 雖不共用cache但共用memory，所以不會改善page fault"
+      },
+      "id": "11208",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling把常用所需的放在一起，可以減少cache miss和TLB miss，但是對page fault沒有影響，因為page fault受你能存入的數量影響，而非位置"
+      },
+      "id": "11397",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "It can lower the cache misses and TLB misses since using the same CPU.\nHowever it can not lower the occurance of page faults since pages are stored in memory."
+      },
+      "id": "11269",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "他讓procedure只能在同一個processor進行這樣要用的cache TLB就不會因為在不同processor 而找不到"
+      },
+      "id": "11091",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "it can impact cache miss because TLB is in right CPU it can't impact page fault because it "
+      },
+      "id": "10909",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling是影響在同一個CPU上的miss TLB也是如此(在同一個CPU上暫存虛擬位址轉實際位址的資料) page 是在RAM上不是單一CPU\n所以affinity scheduling 會改善TLB misses不會改善page faults"
+      },
+      "id": "11311",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling的核心就是讓他回到原本使用的CPU做處理，那回到先前的CPU就會存有之前處理過的資料，進而降低TLB misses。\npage fault不影響，因為CPU的記憶體是在RAM跟他無關。\n"
+      },
+      "id": "11318",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "affinity表示會使用相同的process，這樣先前用過的cache就仍然會還在，可以使用，因此在TLB misses會降低 cache的misses，而在page faults則不會降低cache的misses"
+      },
+      "id": "11147",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 會減少 cache misses，因為若減少換CPU的次數，就不用重複更新cache\naffinity scheduling 會減少 TLB misses，因為TLB是每個CPU自己的cache，減少換CPU可以減少miss\naffinity scheduling 不影響page faults，因為page faults是跟記憶體真實位置有關"
+      },
+      "id": "11441",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "the affinity shceduling tend to schedule the right thread to the right cpu, which previous cached the infomation needed\n1. cache misses, affinity helps\n2. TLB misses, affinity helps\n3. page fault, no impact, page fault is occur in ram "
+      },
+      "id": "11215",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "TLB 會 misses\npage fault 不會"
+      },
+      "id": "11513",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling can reduce TLB miss because same threads in the same CPU.\naffinity scheduling can not reduce page faults because pages are in RAM."
+      },
+      "id": "13634",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling likes to schedule the same CPU that lastly used. Therefore, the resources are more possibly to be found in the same CPU, trigger fewer cache misses, and trigger fewer TLB misses.\n\nHowever, The page faults are not effected because it is a shared resources not owned by a single CPU."
+      },
+      "id": "11301",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling是關於將正確的執行緒放在正確的CPU上，因為這些TLB都被保存在每個CPU內部，這樣做很可能會減少TLB的失誤。另一方面，他對頁面錯誤沒有影響，因為在MP中，頁面要麼是所有CPU的實體共享RAM中，要麼是在備份儲存中。"
+      },
+      "id": "12974",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "親和性排程讓process盡量在晍一CPU上執行，因此可以降低TLB misses。因為該CPU的TLB仍保留該process的地址轉換資訊，但它無法降低page faults是由資料是否存在於主記憶體決定，與是否在同一CPU執行無關。"
+      },
+      "id": "16202",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling會把合適的thread放到合適的CPU，TLB存在CPU內所以會減少TLB misses\npage存在CPU共用的RAM中或backing storage，所以不會影響page faults"
+      },
+      "id": "11294",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling reduce the cache misses and TLB misses , but do not impact the page faults."
+      },
+      "id": "11815",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "可減少TLB misses ：因TLB在CPU內 可增加TLB的成功率\npage fault不變：不影響page fault "
+      },
+      "id": "11239",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "yes，affinity scheduling會跑在同一個cpu上，可以減少tlb misses\nno，與page faults無關"
+      },
+      "id": "11309",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling reduce the cache misses and TLB misses since they are inside each CPU, but it doesn't affect page faults because in MP,the page is either in the shared RAM of each CPU or backing storage."
+      },
+      "id": "11212",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "會減少tlb misses 因為 affinity scheduling 就是把process分配到對應的cache 因此也會減少buffer misses\n不會減少 page faults 因為page faults 跟實體的記憶體ram 相關 "
+      },
+      "id": "11337",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "affinity can decrease cache miss rate.\naffinity can decrease TLB miss.\naffinity is not relative to page faults."
+      },
+      "id": "11519",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "減少cache miss, TLB miss，但不影響page fault。\naffinity scheduling本質上是將thread排到上次執行的CPU上，因此cache, TLB資料可能還在且有效。但page fault本身是RAM的安排問題，physically shared的問題無法被此排程改善。"
+      },
+      "id": "11201",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 是將thread分配給它常常用的CPU去執行，如此一來，這個CPU的cache可能留著它的資料，這樣的做法可以降低cache misses，也可以降低TLB misses，因為每個CPU都保有自己的TLB，而affinity scheduling 則不會影響page faults ，因為這跟thread被放在哪個CPU上執行沒關係。"
+      },
+      "id": "11433",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.他會降低TLB miss因為他是透過將相關的procees指派給同一個CPU所以她的cache可以發會功效教部會發生TLB miss\n2.他不會降低page faults因為如果page 不在RAM裡面他不管換到哪個cpu都依樣會page faults"
+      },
+      "id": "11384",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Reduce cache misses, Reduce TLB misses. 因為process會選擇在上次跑過的CPU跑，因此欲使用的資料很可能已經儲存在該CPU 的Cache以及TLB中。\nUnchange page faults, 因為page falut為disk和Virtual Memory層級，Multiprocessor中的各個CPU還是共用page空間的，因此不影響。"
+      },
+      "id": "11514",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "因為affinity scheduling會讓right thread put in right CPU，所以可以降低cache misses和TLB misses\npage fault則不受影響，因為page通常放在RAM或back storage中"
+      },
+      "id": "11209",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "Affinity Scheduling的目的是讓Thread盡量回到上一個執行它的CPU，這時CPU 的Cache很大機率還有該Thread的紀錄，因此可有效減少cache misses跟TLB misses；但若是資料不在RAM裡面，不管換到哪個CPU都還是會產生page fault，因此Affinity Scheduling不能減少page fault"
+      },
+      "id": "11515",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling 會讓cache misses和TLB misses減少；但page fault不會影響，因為page都是共享的，無論是使用哪個CPU結果都會一樣"
+      },
+      "id": "11354",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "TLB是CPU個別的私有空間所以affinity scheduling能reduce TLB miss\npage fault是在main memory沒看到就去硬體找，是在共享記憶體裡，所以affinity scheduling 不能reduce page fault "
+      },
+      "id": "11352",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling reduces cache misses and may reduce TLB misses by keeping a thread on the same CPU. However, it does not reduce page faults"
+      },
+      "id": "12203",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Affinity scheduling may lose or delete data from cache and reduce bandwidth speed transforming data from TLB misses"
+      },
+      "id": "12656",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling 會降低TLB跟cache miss ，但是不會降低page fault，因為page gault是發生在實體記憶體，不是發生在CPU"
+      },
+      "id": "11300",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "affinity scheduling可以確保同一件process都交給同一個CPU處理，可以減少cache miss，進而減少TLB miss，但無法減少page faults，因為RAM內若沒有需要的page即使使用相同CPU也會有page fault。"
+      },
+      "id": "11321",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "affinity 有效減少cache miss 與TLB miss的發生，因為某個thread習慣在同個CPU上執行所以該CPU會有之前的紀錄；而與page fault較無關聯，因為physical memory為CPUs共享，physical memory沒有該page的資料需要到back storage去找與affinity無關"
+      },
+      "id": "11598",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "How does affinity scheduling impact cache misses, TLB misses, and page faults in a multiprocessor system?",
+    "question_id": "b8fea8c6-21b2-4e68-8da7-540504d18b30",
+    "question_type": "short_answer",
+    "reference_answer": "It reduces cache and TLB misses by keeping a thread on the same CPU, utilizing existing cached data and TLB entries. It has no effect on page faults, as physical RAM is shared among all CPUs."
+  },
+  "question_id": "b8fea8c6-21b2-4e68-8da7-540504d18b30"
+}

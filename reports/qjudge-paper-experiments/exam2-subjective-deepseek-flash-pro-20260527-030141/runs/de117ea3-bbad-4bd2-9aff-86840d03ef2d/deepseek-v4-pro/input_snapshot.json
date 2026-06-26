@@ -1,0 +1,830 @@
+{
+  "answer_count": 116,
+  "answers": [
+    {
+      "answer": {
+        "text": "access transparency : 不論本地還是遠端 access 的方式都會是相同的\nlocation transparency :不需要知道資源在地實際位置\nreplication transparency : 複製資源不會產生問題"
+      },
+      "id": "12877",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Access transparency: The resource can be accessed by the same operation from local or remote. ex URL\nLocation transparency: The resource can be accessed by user without knowing the location of the resource. ex. Cloud drives\nReplication transparency: Allow the system to improve the traffic by using multiple resource instances, and the user won't need to know the replicas."
+      },
+      "id": "11543",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, Access Transparency：no matter who to access\n2, Location Transparency：no matter send to where\n3, Replication Transparency：no matter whether or not has replication"
+      },
+      "id": "16120",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "access transparency: access local or remote resources by using same operations\nlocation transparency: use resouces without knowing the actual location of resouces\nreplication transparency: use multiple instances of resources without knowing replicas of applicaitons/programs"
+      },
+      "id": "11652",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "access transparency: 要獲取本地端的資源跟獲取非本地端的資源所要做的步驟相同\nlocation transparency: 不需要知道檔案的確切位置在哪裡，也能夠存取檔案\nreplication transparency: 系統會在使用者不知情的情況下去對資源做備份，以避免出現資源喪失所造成的error"
+      },
+      "id": "11366",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "access transparency: a user can access local resource and remote in the same way\nlocal transparency: a user can access a resource without knowing the location of the resource\nreplication transparency: the system can improve the preformance by replication witt interfere the user processes and correctness, and don't need to change the algorithm to manage the resources "
+      },
+      "id": "11330",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Access Trandparency: 存取任何的檔案資料，\"方式\"應該都相同，不會讓使用者知道差別。\nLocation Transparency: 無論存取本地或遠端不同位置的資料，都不會讓使用者知道差別。\nReplication Transparency: 系統自己為了效能考量等等，重複的資源不會讓使用者知道，共用資源 share memory 等等也不會讓使用者知道正在共用。"
+      },
+      "id": "11345",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency: 使用者可以使用「相同的方式」去 access local 和 remote 的資料。\n2. Location Transparency: 使用者不必知道資料真實的位置就可以取得該資料。\n3. Replication Transparency: 系統會複製多份資料於不同機器用於提高 Performance，且使用者不會意識到資料複製的存在。"
+      },
+      "id": "11419",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "access transparency:對於本地跟遠端的存取可以用相同的操作存取\nlocation transparency:存取某個資源並不用知道他的實體在哪裡\nreplication transparency:允許資源有多個複製來提升效率或是備份，process不需要知道複製的存在"
+      },
+      "id": "11542",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "access transparency: it means the local or remote information resources can be accessed in the identical operation.\nlocation transparency: it means the resources can be accessed without knowing it actual location.\nreplication transparency: it means multiple instances of the same resources can be used to increase performance and reliability."
+      },
+      "id": "11905",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Access: can access local and remote with same methods\nLocation: can access without knowing actual location\nReplication: can access with replications from different server"
+      },
+      "id": "11084",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : accessing the local or remote resource should be identical operation to the user or application.\nLocation Transparency : the user don't have to know where the location of the resource is.\nReplication Transparency : the system may let the resource or data have some copies, but the user or application do not have to know the existence of these copies.  "
+      },
+      "id": "11830",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: local and remote client can access the resource in identity operations\nLocation Transparency: System no need to know the client's real location.\nReplication Transparency: System can replicate the resource to duplicate replicas without the application acknowledge."
+      },
+      "id": "12311",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "access transparency - all server support the same operation, so all of them can be accessed in the same way. \n\nlocation transparency - request can be handled regardless of the physical location of the server.\n\nreplication transparency - copies of the resource are created and distributed, it doesn't matter which resource is used to handle the request"
+      },
+      "id": "11967",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "Access: User doesn't know that they access locally or remotely\nLocation: User doesn't know where the data is located\nReplication: User doesn't know that the using data is also replicated in other host."
+      },
+      "id": "14051",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "Assess: user can asses resource on local and remote use the same way\nLocation: user don't need to know where the resource really at\nReplication: user don't feel difference if the data has multiple copy in system, just shows one data"
+      },
+      "id": "11840",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Acces transparency : ability to access remote and local ressources with the sames operations\nLocation transparency : ability to access a ressource without knowing where its located\nReplication transparency : ability to access a ressources that has been replicated without knowing about the fact that it has multiple copies "
+      },
+      "id": "11104",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Access transparency : the machine use the same primitive to access a remote date or a local data.\nLocation transparency : the machine does not have to know where a data is stored to access it.\nReplication transparency : the machines can make abstraction of the fact that the data can be replicated on different sites."
+      },
+      "id": "11857",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "Access: 本地端與伺服器端的資料讀取操作一樣\nLocation: 存取資料不需要知道實際位置\nReplication: 系統中可能有維持多份副本以提升效能，但是使用者或是應用程式不會察覺"
+      },
+      "id": "13867",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "access transparancy是在remote和本地端都可以使用相同的指令\nlocation transparency是使用者不需要知道系統實際所在的位置\nreplication transparency是系統多複製很多份資料，但使用者不會知道"
+      },
+      "id": "11428",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency:對取得local或remote資訊的操作是相同的。\n2.Location Transparency:取得資訊時不需知道它的確切地址。\n3.Replication Transparency:複製多次以提高performance，且不會被copies影響。"
+      },
+      "id": "11413",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "Access transparency : 用一樣的操作方式就可以存取檔案。\nLocation transparency : 不用知道檔案實際位置也可以存取。\nReplication transparency : 主機複製檔案不會讓application端知道(隱藏細節)。"
+      },
+      "id": "11038",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "access: 對於不同的user我都可以用相同的方式取得message ex: same URL\nlocation: user不需要知道這個resource的actual physical location仍可以取得資訊 ex: access file from cloud\nreplication: user不知道這個resource還會有多少個來幫助減少latency的副本存在ex:CDN"
+      },
+      "id": "11623",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency:會允許他存取\nLocation Transparency:要開始之前會先知道他的位置\nReplication Transparency:每個都是執行一樣的動作"
+      },
+      "id": "12836",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Access transparency: 不管是local還是remote resources都可以用相同的operation 去access。\nLocation transparency: Resources實際放置的地點並不影響使用者的使用。\nReplication transparency: 為了提高performance而產生resources的副本並不影響使用者的使用。"
+      },
+      "id": "11818",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "access transparency是指存取資料的方式都一致\nlocation transparency 是指讀取資料不需要知道location\nreplication transparency是指多的process可以同時執行"
+      },
+      "id": "11555",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. Access transparency enables local and remote resources to be accessed by using identical operations.\n2. Location transparency enables resources to be accessed without knowing their location.\n3. Replication transparency enables resources to be used to improve performance without interference with each other."
+      },
+      "id": "11842",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Access:本地/遠端用法一樣\nlocation:不用知道資源在哪裡也可以用\nreplication:有副本但使用者不知道"
+      },
+      "id": "11434",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency is when you can access the system without any direct access\nLocation transparency is when you can know where the system is without knowing the exact location\nReplication Transparency is when you can create multiple copies even if its on the same page"
+      },
+      "id": "12427",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: The remote or local access for a client will use the same identical operation.\nLocation Transparency: The user or application can access a file without the knowledge of its location.\nReplication Transparency: The replication of the data, resources is transparent to the users or application, the users or applications can get the resources without the knowledge of the replication existence."
+      },
+      "id": "11839",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency:用相同操作存取本地或遠端資源\nLocation Transparency:使用者不需要知道資料的位置\nReplication Transparency:多份複本對使用者透明"
+      },
+      "id": "13256",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "access transparency: process access local or remote resource with the same operation\nlocation transparency: do not need to know the location of the resource while accessing\nreplication transparency: same resource can have many of replications"
+      },
+      "id": "12361",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency: every node have the same way to access the system.\n2. Location Transparency: nodes have access to the system without knowing the location.\n3. Replication Transparency: multiple nodes can have access to the system concurrently without knowing the replication operation behind the system."
+      },
+      "id": "11761",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "- Access transparency: Users can access system resources without knowing the underlying system architecture.\n- Location transparency: Users can access system resources without knowing the location of the hardware/software.\n- Replication transparency: Users can benefit from replicated software/hardware instances without the knowledge of replication."
+      },
+      "id": "11612",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency指的是使用者可以使用相同的操作去access同個資源。\n2. Location Transparency指的是使用者在使用資源時可以不需要知道他實際的位置。\n3. Replication Transparency指的是系統會複製多份，讓使用者就近使用且不自知。"
+      },
+      "id": "11148",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "存取通透性: 對本地及遠端使用相同的操作進行存取\n位置通透性: 使用者無需知道遠端的實際位置\n複製通透性: 可以複製多個副本，使用者無需知情，也不影響使用者操作"
+      },
+      "id": "11408",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "access transparency:讓local和remote端資源可以用相同的操作方式存取\nlocation transparency:存取資源時不需知道他的實際位置\nreplication transparency:使用多個副本提升系統的可靠性和效能，使用者和應用程式不需要知道副本的存在"
+      },
+      "id": "11473",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 執行透明化。\nLocation Transparency: 不需要知道actual location也可以執行。\nReplication Transparency: 可以透過多個shared resource的實例，來增加效能。"
+      },
+      "id": "11358",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : User can access the remote server work as the local server with the same identical operations.\n\nLocation Transparency:  User can use the service without knowing the real location of server.\n\nReplication Transparency: User won't feel the replica of the service."
+      },
+      "id": "11124",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Access:使用者用法一樣\nLocation:使用者不用知道真實的位置\nReplication:使用者不知道複製很多份"
+      },
+      "id": "11163",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: access remote or local resources with identical operation. \nLocation Transparency: access resources without knowing their actual locations. \nReplication Transparency:  "
+      },
+      "id": "11518",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": " Access Transparency,所有的存取方式都是一揚的\n Location Transparency, 看不到實際的位置\nReplication Transparency，使用者不會發現在複製"
+      },
+      "id": "11569",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "Access transparency : 當一個程序想要access local or remote resources時，他只需要使用identical operation，他不會看出存取local 或 remote資料的差別，都只需要用一樣的操作就能access資源\n \nLocation transparency : 當一個程序要去存取資源時，他不需要知道該資源的actual location就能存取\n\nReplication transparency : distributed system為了效能允許資源有replicas存在，且user 和 applications能夠正常運行且不會意識到有這些replicas存在"
+      },
+      "id": "13126",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: The same files should be accessible via the same operations across systems\nLocation Transparency: Data should be available without knowing the location where the data is stored\nReplication: Users should be able to replicate the files without disturbing the system."
+      },
+      "id": "12585",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Access : Remote/Local端 can access with identical operation\nLocation : User可以accesss without knowing the location of server\nReplication : 可以有multiple copy而不被知曉 "
+      },
+      "id": "11525",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Access transparency is the process can access resources with identical operation\nLocation transparency is resources can be accessed without knowing their location\nReplication Transparency is resources can be replicated with some replicas"
+      },
+      "id": "11443",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency：本地與遠端的資料存取方式一樣\n2. Location Transparency：不需要知道資料的實際位置\n3. Replication Transparency：使用者不需要知道有多少份複製品\n"
+      },
+      "id": "11776",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency: 使用者可以自由存取檔案\n2. Location Transparency: 使用者不需要知道檔案存取的位置\n3. Replication Transparency: 使用者不需要知道檔案有被備份"
+      },
+      "id": "12139",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Access:\n存取本地資源和遠端資源的操作方式相同\nLocation:\n使用者不會知道資源存在什麼地方\nReplication:\n系統資源可能有多個Copy，但使用者不知道也不必知道"
+      },
+      "id": "11535",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : 可以用相同操作存取在不同的位置上的資源(例如 URL)。\nLocation Transparency : 不用知道實際資源存放在哪裡也可以使用到資源(例如 雲端硬碟)。\nReplication Transparency : 複製副本時，其他部分不會知道副本的存在。"
+      },
+      "id": "13336",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "1.存取透明度是指讓使用者不管是遠端還是本地都有一樣訪問檔案的方式\n2.地點透明度是指使用者可以在不知道檔案存在哪裡的情況下訪問檔案\n3.複製透明度是指可以在使用者不知道的情況下複製同個檔案 便於server維護或轉移\n"
+      },
+      "id": "11361",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 不管在本地或遠端操作 都是用一樣的方程式存取\nLocation Transparency: 資料可能會改變位址 但使用者不會知道\nRepication Transparency: 資料可能會有很多副本 但使用者不會知道"
+      },
+      "id": "12014",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency：本地與遠端的資料存取方式相同\nLocation Transparency：存取資料時不需知道目標的實體位址\nReplication Transparency：使用者不須知道有多少副本"
+      },
+      "id": "11770",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 使用者可用同個操作存取本地和遠端資料。\nLocation Transparency: 使用者不用知道資源的實際位置。\nReplication Transparency: 資源可能有多筆副本來提升可靠度，而使用者不須知道使用的版本。"
+      },
+      "id": "11558",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. access : 本地端跟遠端可以用相同的存取方式存取資源\n2. location : 不需要知道資源的位置也可以存取\n3. replication : 系統複製多份資料，但使用者並不知情"
+      },
+      "id": "11368",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "access transparency : 無論資源在本地還是遠端，使用者存取的方式都相同\nlocation transparency : 使用者存取資源時不需要知道資源實際的物理位置\nreplication transparency : 系統為了提升效能或可靠度會存放多個副本，但使用者不會感受到副本的存在"
+      },
+      "id": "14748",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Transparency(透明性)的設計目標是讓使用者感覺不到系統是分散的，包含\nAccess Transparency: 存取方式一致\nLocation Transparency: 不知實體位置\nReplication Transparency: 隱藏資源複本"
+      },
+      "id": "11656",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "access transparency:使用者不用去分辨是local操作還是remote操作。\nlocation transparency:使用者不需要知道機器的實際所在位置。\nreplication transparency:機器為了提升performace和可靠度會有很多複本在各個機器上，使用者不會知道是否在用複本和複本的存在。"
+      },
+      "id": "11339",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "access:access 程式時並不需要知道是在local還是remote\nlocation:使用者並不知道存取的檔案位置是在remote還是local\nreplication:使用者並不知道你存取的檔案是正本還是複製品 "
+      },
+      "id": "11548",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.Access transparency enable local and remote information resources to be accessed using identical operation.\n2.Location transparency enable resources to be accessed without knowing their actual location.\n3.Replication transparency:讓使用者無法察覺使用的網頁會者伺服器已經被複製 "
+      },
+      "id": "11421",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency:不論是local 或是remote的 data用起來都要是一樣的方法,不會因為local remote而改變\nLocation Transparency:不需要知道server 實際位置在哪裡,就能使用他的資源\nReplication Transparency:server因為效能等目的複製多個資料在各個server,使用者不會感受到不同"
+      },
+      "id": "11624",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency enables local and remote information resources to be accessed with identical operations.\nLocation Transparency enables resources to be accessed without knowing the actual locations.\nReplication Transparency enables multiple instances of resources (multiple copies) to be accessed to improve reliability and performance without the user needed to know."
+      },
+      "id": "12033",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Acess Transparency: same ops for local or remote.\n\nLocation transparency: no need to know where resource is.\n\nReplication Transparency: shared resource use without interference."
+      },
+      "id": "16162",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: the same operations can be used to access either local or remote resource.\nLocation Transparency: the resource can be used without knowing it is in local or remote.\nReplication Transparency: the instances can be use for reliability or performance without knowing they are  replicas from users or applications.  "
+      },
+      "id": "11605",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency: Allow to use same operation to access local and remote resources.\n2. Location Transparency: Allow to access resources without knowing its actual location.\n3. Replication Transparency: Allow replicate the resources from other system without knowing its transfer details."
+      },
+      "id": "11657",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "1. Access transparency : we don't have to know how we get the data we need. \n2. Location transparency : we won't know the real location of the data we need.\n3. Replication transparency :  there are many replication in distributed system, and we won't know which replication we get."
+      },
+      "id": "14950",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency :  不論在remote 或者本地端對於資源的存取方式皆一樣\n2. Location Transparency :  user 不必知道實際資源位於哪裡\n3. Replication Transparency : 資源具有額外的副本，但是使用者於使用上並不知情。ex : CDN "
+      },
+      "id": "11241",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : user didn't know how to access data in backend\n Location Transparency:user didn't know where the location data save\n Replication Transparency :user didn't need to know the data have the data have spare copy"
+      },
+      "id": "12522",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency：存取的時候不會有感覺存取 remote 跟 local 的方式有多少差異\nLocation Transparency：存取的時候不用知道真正資料的位置在哪邊\nReplication Transparency：存取的時候不會知道有多少資料副本，只會感知到一份資料，可以用資料多副本去確保資料有冗餘"
+      },
+      "id": "11526",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. access: the local or remote resources can be accessed with identical operations\n2. location: the user doesn't need to know the actual location of resources\n3. replication: the resources can be replicated in many machines to improve reliability. "
+      },
+      "id": "12197",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "access transparency: you don't need to know whether you have the access to execute the program.\nlocation transparency: you don't need to know where the progress actually runs.\nreplication transparency: you don't need to set the replication to the progress; the distributed systems made it automatically."
+      },
+      "id": "11336",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : 讓使用者可以不用關心 檔案目前狀態， 像一般電腦上的檔案存取就可\nLocation Transparency : 讓使用者 不用關心 目前具體的檔案位置，像一般電腦上的檔案存取就可\nReplication Transparency : 讓使用者 不用關心 是否有副本存在，當 一個 一般電腦上的檔案存取就可"
+      },
+      "id": "11602",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : Using identical commands (instructions) is enough for the user to access their required data . \nLocation Transparency : Users don't need to know where the location (path ) of the data currently are stored . \nReplication Transparency : there might be several copies of the data , but users don't need to know about the replicas . "
+      },
+      "id": "11349",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency : Remote and local 要有相同的存取方式\nLocation Transparency : 在存取 file 時，使用者不必知道真實位置在哪裡\nReplication Transparency : 在系統上可能有多份 copies，但使用者不用知道這件事情"
+      },
+      "id": "11538",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) Access Transparency enables the local and remote information resource to be accessed with identical operations.\n(2) Location Transparency enables the resources to be accessed without knowing their actual location.\n(3) Replication Transparency enables multiple instances of resources to be used to increase the reliability and performance without any replicas by users or applications"
+      },
+      "id": "11217",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Access transparency: the local and remote resource can be access through same operation.\nLocation transparency: can access the resource without the knowing of where the resource actually is.\nReplication transparency: have multiple copies of a resource incase of failures, while you can access the resource without knowing it."
+      },
+      "id": "11442",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency:在本地存取跟遠端存取操作一樣\nLocation Transparency:存取時，不用知道實際位置\nReplication Transparency:複製不影響使用者使用"
+      },
+      "id": "11521",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "access transparency: it won't let users know which computer they access.\nlocation transparency: it will let users use the nearest computer.\nreplication transparency: users' data will have a lot of copies on different computers."
+      },
+      "id": "11267",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "access transparency: 不管是local或remote resource都能用一樣的operation去access\nlocation transparency: 不用知道實際location也能access resource\nreplication transparency: 不須知道是否存在其他replication"
+      },
+      "id": "13513",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency:可以用相同的操作存取本地或遠端的資源\nLocation Transparency:在不知道實際位址的情況下也能存取資源\nReplication Transparency:透過multiple instance resource增加reliability與效能，且使用者不知道這些複製資源"
+      },
+      "id": "11426",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "1.access:local,remote resource可以被相同的操作來存取\n2.location:用戶存取資源不用知道資源實際位置\n3.replication:system為了可靠性，效率可能會複製多份資源，但用戶不會知道，操作不受影響"
+      },
+      "id": "11389",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "Access transparency 遠端和本地存取一致\nlocation transparency 存取不需要知道行程位置\nreplication transparency 可以在不知道的情況下建立副本以方便存取使用"
+      },
+      "id": "11629",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "access transparency: it will doing identical operations\nlocation transparency: user dont have to know where the resource is located\nreplication transparency: user dont know that the resource is replicated"
+      },
+      "id": "11387",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.Access Transparency:能取用修改遠端的的資料\n2.Location Transparency:修改本地資料\n3.Replication Transparency:將遠段資料複製後進修改並傳回給大家"
+      },
+      "id": "11252",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency means遠端本地共用資源\nLocation Transparency means 不需地址資訊\nReplication Transparency means "
+      },
+      "id": "13354",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "access:使用者不會知道電腦去哪個地方存取資料\nlocation:使用者不知道資料存在哪個位置\nreplication:電腦會偷偷複製好幾份資料但使用者不知道"
+      },
+      "id": "11625",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "Access transparency:使用相同的方法存取本地端以及遠端的資料。\nLocation transparency:看名字不知道實體位址在哪。\nReplication transparency:可以隨意地複製系統的資料。"
+      },
+      "id": "11568",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. Accrss Transparency : 存取的透明性，不論在本地端或遠端都能存取相同的內容，例：URL\n2. Location Transparency : 位置的透明性，不用管內容的位置，例：Google drive\n3. Replication Transparency : 有副本的備用，同時有好幾份備用的replication存在，例：Fb proxy"
+      },
+      "id": "11261",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 不論是遠或近的資源，對使用者來說存取方式不受影響\nLocation Transparency: 資料可能放在很多地方，對使用者來說不受影響，使用者也不會知道真實存放地點\nReplication Transparency: 系統可能有很多副本，使用者不需要知道 "
+      },
+      "id": "11616",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. access, you can access the ds by url\n2. location, you can locate the ds\n3. replication, replication in ds won't interfer others process"
+      },
+      "id": "11466",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "Access Transparecy : 遠端傳送資料\nLocation Transparency : 本地端傳送資料\nReplication Transparency : 重複傳送資料"
+      },
+      "id": "11698",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: the access method is same in both remote and local end.\nLocation Transparency: do not need to know the location while accessing.\nReplication Transparency: users don't need to know there are many replicas ."
+      },
+      "id": "13753",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: Users are easy to read and write the data like they use in their local machine.\nLocation Transparency: Users can access data without knowing where the data is.\nReplication Transparency: Servers can replicate data to avoid fatal errors, but users won'd observe it. They are not effected."
+      },
+      "id": "11613",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. Access Transparency: both local and remote information can be accessed using identical operation.\n2. location Transparency: enables resources to be accessed without actually knowing the actual location.\n3. Replication Transparency: Enables data to be replicated without the knowledge of data being replicated."
+      },
+      "id": "11498",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "存取透明度:讓本地與遠端資源都能以相同的操作存取。\n位置透明度:讓資源在不知道實際位置的情況下被存取。\n複製透明度:允許多個資源被複製使用，以提升可靠性和性能，而使用者或應用程式不知情副本存在。"
+      },
+      "id": "13060",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "存取透明度：讓使用者能以相同的操作方式來存取本地或遠遠端的訊息資源。\n位置透明度：讓使用者無需佑道資源的實際位置即可存取它們。\n複製透明度：允許使用者多個資源副本來提昇系統的可靠性與效能，而使用者或應用程式無需佑道這些副本的存在。"
+      },
+      "id": "12276",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "access transparency : 本地、遠端用相同方法存取資源\nlocation transparency : 存取資源時user不用知道資源的actual location\nreplication transparency : "
+      },
+      "id": "11484",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "access transparency : no matter access resource from local side or the remote side , it use the identical operation.\nlocation transparency : access resource do not need to know the actual location of it.\nreplication transparency : replication to multiple nodes do not need to be known."
+      },
+      "id": "11941",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "Access transparency 所有程序共享相同流程\nLocation transparency   不需知道其物理位置\nReplication transparency  可複製其共享記憶"
+      },
+      "id": "11393",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "access：使用相同操作存取資料\nlocation：不用知道物理位置\nreplication： 解決瓶頸問題"
+      },
+      "id": "11386",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "access transparency: the local and remote source can be accessed with identical operation.\nlocation transparency: the resource can be accessed without knowing the exact locate\nreplication transparency: the resource is accessed and for efficiency, user will not knowing whether the resource they used is replicate or not."
+      },
+      "id": "11341",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "access transparency : 可以用固定的語法叫到不同位置的資料（不管資料在哪裡）\nlocation transparency: 可以在不知道資料的確切位置下 透過系統的協助取得資料\nreplication transparency: 系統可以保證每一個複製的資料都有想同的內容"
+      },
+      "id": "11560",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "access transparency enables local or remote resources can be accessed by the same operation.\nlocation transparency enables accessing the resources without knowing the actual location.\nreplication transparency enables multiple processes access the same resources without affecting each other."
+      },
+      "id": "11633",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "Access：不論本地雲端，使用者存取介面皆相同。\nLocation：使用者無從得知使用之硬體資源所在位置。\nReplication：使用者不會知道副本數量有多少"
+      },
+      "id": "11416",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "Access transparency:指本地和遠端的資料資源都以相同的方式存取\nlocation transparency:在存取資料時不用知道它實際的位置\n"
+      },
+      "id": "11767",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "Access transparency:他不管在remote or local 他都會用相同的operation做操作\nLocation transparency:系統再用檔案的時候不用知道檔案確切的位置在哪裡\nReplication transparency:他有很多個副本讓他用來提升效能或是避免錯誤但使用著部會查覺到有很多個副本"
+      },
+      "id": "11561",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 不管是存取本地端或是遠端的資料，對使用者或應用程式來說，操作完全相同。 \nLocation Transparency:對使用者和應用程式來說，不需要知道欲存取資料實際的物理儲存位置。\nReplication Transparency: 可以Replica多份data，讓使用者與應用程式不會受到物理位置侷限，因而延遲傳送效率，但使用者和應用程式本身不會知道系統的Replication行為。"
+      },
+      "id": "11760",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "access transparency: local and remote information resource可以被相同process進行存取\nlocation transparency: local和remote resource不用知道實際位置也能被進行訪問\nreplication transparency: local 和remote resource同樣都可以被複製"
+      },
+      "id": "11328",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 連接到Local 跟Remote的資料是一樣的\nLocation Transparency: 使用者不用知道現在使用的系統位址在哪\nReplication Transparency: 建立多個副本增加可靠度，正在使用的副本故障可以馬上切到另一個，使用者不會有感覺"
+      },
+      "id": "11716",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: 使用相同的operations存取無論是在本地或遠端的資料\nLocation Transparency:存取資料時，不需要知道資料的真實位址\nReplication Transparency:為了備份等需求，通常會在不只一個地方建立副本，但使用者使用時不會感覺有任何異狀"
+      },
+      "id": "11464",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "Access :不管是在本地端還是遠端存取資料用的方法都一樣\nlocation:不用知道存取的資料實際位置在哪\nReplication:複製多個一樣功能讓使用者用距離他比較近的那個，使用者在用時能順暢進行不會因為太多人導致很卡，且都認為自己和別人都在用同一個"
+      },
+      "id": "11593",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Access transparency allows identical access to local and remote resources\nLocation transparency hides the actual location of resources\nReplication transparency hides the existence of multiple replicas from users"
+      },
+      "id": "12263",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency is used to access directly into internet with high bandwidth \nLocation Transparency is used to transfer data in internal location with high bandwidth \nReplication Transparency is used to transfer data from master node to replica node in case of disaster recovery"
+      },
+      "id": "12463",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "Access Transparency: server跟clinet都可以用相同方式access\nLocation Transparency: server跟clinet都不用知道對方的位置在哪\nReplication Transparency: server跟clinet都可以複製檔案到本地"
+      },
+      "id": "11486",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "access transparency:允許user使用相同操作來存取local和remote資源\nlocation transparency:允許不需要知道彼此位置也可以存取資源\nreplication transparency:允許複製資源來增加系統穩定性"
+      },
+      "id": "11582",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Access transparency：can access with same operation\nLocation transparency：don't nned to know actual location\nReplication transparency："
+      },
+      "id": "11927",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "Define Access Transparency, Location Transparency, and Replication Transparency in distributed systems.",
+    "question_id": "de117ea3-bbad-4bd2-9aff-86840d03ef2d",
+    "question_type": "short_answer",
+    "reference_answer": "Access Transparency: Local and remote resources are accessed via identical operations.\nLocation Transparency: Resources are accessed without knowing their physical location.\nReplication Transparency: Multiple resource instances are utilized for reliability without the user's knowledge."
+  },
+  "question_id": "de117ea3-bbad-4bd2-9aff-86840d03ef2d"
+}

@@ -1,0 +1,319 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","14537","S109","(1) server is down after receiving a request (2)client is down after sending a request (3)request message is lost","2","缺少 LostResp（回應遺失）；client down 非三者之一",""
+"2","10956","S015","1. Passing pointer as parameters. It happens when passing a complicated structure.
+2. Passing the unbounded numbers of parameters, such as `printf()` function in C.
+3. Passing global variable as parameters.","0","離題，回答的是參數傳遞機制（pointer、unbounded array），非訊息交換例外",""
+"3","13780","S054","1, LostReq 
+2, LostResp
+3, SurCrash (before receiving request)","3","",""
+"4","10910","S117","1. lost of request
+2. lost of response
+3. unsussesful execution of request","3","",""
+"5","13478","S093","1. LostResp: lost response message
+2. LostReq: lost request message
+3. SerCrash: server crashes","3","",""
+"6","10866","S012","1. server is lost
+2. request message is lost
+3. reply message is lost","3","",""
+"7","15063","S108","Server Crash, 
+Reciever Lost, 
+Sender Lost","3","",""
+"8","10902","S099","1. Request message is lost.
+2. Reply message is lost.
+3. Server crash.","3","",""
+"9","10861","S070","1.request lost 2. response lost 3.server crash after received request","3","",""
+"10","10855","S003","request message lost
+response message lost
+Server Crash","3","",""
+"11","10858","S035","1. the request message is lost
+2. the reply message is lost
+3. the server crashed during the execution of the request message (after receiving the request) ","3","",""
+"12","11031","S037","request lost, reply lost, server crash after receiving request","3","",""
+"13","10922","S097","1. Request lost 2. Response lost 3. Client/Server crash","3","",""
+"14","15221","S013","1. LostReq
+2. LostResp
+3. SrvCrash","3","",""
+"15","11006","S040","1. request from client to server loss
+2. response from server to client loss
+3. server crash before send response","3","",""
+"16","10991","S124","- Server not found 
+- Lost reply 
+- Lost request ","2","缺少 SerCrash（伺服器當機）",""
+"17","11082","S121","- LosReq : the resquest is lost
+- LosRes : The response is lost 
+- SerCrash : the server has crashed. He has been able to issue the request.","3","",""
+"18","10874","S068","lostReq, LostResp, SerCrush","3","",""
+"19","10853","S102","message lost of request
+message lost of respond
+server crashed ","3","",""
+"20","14600","S034","1. LostReq: lost a request.
+2. LostResp: lost a response.
+3. SerCrach: unsuccessful execution with a request.  ","3","",""
+"21","10891","S084","1. ReqLost
+2. RespLost
+3. SerCrash","3","",""
+"22","16176","S079","在message exchange中，我們必須要讓client 和server看不出來這個message其實是在從遠端搜集資料，所以必須要維持以下三個條件：
+Transparency
+scalability 
+fault tolerance","0","離題，回答的是分散式系統設計目標（transparency/scalability/fault tolerance），非訊息交換例外",""
+"23","14039","S122","lostreq
+lostresp
+sercrash
+","3","",""
+"24","10854","S052","1. Request is lost.
+2. Reply is lost.
+3. Server crashes. ","3","",""
+"25","10906","S033","訊息Lost、
+server crash","2","僅提到訊息遺失與伺服器當機，缺少 LostResp（回應遺失）的明確區分",""
+"26","10863","S027","lost request 
+lost reply  
+server crashes ","3","",""
+"27","15279","S081","1. redundant concurrency
+","0","離題，未回答三個訊息交換例外",""
+"28","10923","S008","1. LostReq: Client request is lost.
+2. LostResp: Server respond is lost.
+3. SerCrash: Exceptions happens while executing the request. ","3","",""
+"29","14208","S078","respond fail
+receive fail
+server crash","2","respond fail 與 receive fail 描述模糊，無法明確對應 LostReq 與 LostResp",""
+"30","10862","S087","LostReq:失去request的訊息
+LostResp:失去response的消息
+SerCrush:系統因錯誤而無法順利執行","3","",""
+"31","12398","S022","1. Server lost.
+2. ","1","僅提到 Server lost，缺少 LostReq 與 LostResp",""
+"32","11603","S110","request lost
+respond lost
+server crash after receiving the request","3","",""
+"33","10878","S082","LostReq, LostResp, SerCrash","3","",""
+"34","10873","S105","1. request lost
+2. response lost
+3. server crash after receiving request","3","",""
+"35","10857","S111","1. lost of request
+2. lost of reply
+3. server crash","3","",""
+"36","10913","S085","LostReq: 遺失request
+LostResp: 遺失response
+SerCrash: server接收request後crash","3","",""
+"37","10984","S004","LostReq:Lost of request message
+LostResp:Lost of response message
+SerCrash:沒有成功執行","3","",""
+"38","15491","S046","1. LostReq
+2. LostResp
+3. SerCrash","3","",""
+"39","13153","S005","1.request lost
+2.response lost
+3.server crashed","3","",""
+"40","15041","S014","RARA
+RRA
+RR","0","無法辨識為有效答案",""
+"41","10889","S107","1. LostReq
+2. LostResp
+3. SerCrash","3","",""
+"42","12294","S017","LostRequest request傳送中途遺失
+LostReply  reply傳送中途遺失
+Servercrash server要處理request時崩潰，無法成功處理request","3","",""
+"43","11235","S115","Lost response
+Lost reply
+System crash","2","Lost response 與 Lost reply 皆指向 LostResp，缺少 LostReq（請求遺失）",""
+"44","11095","S089","lost of request
+lost of response
+unsuccessful execution of request","3","",""
+"45","10919","S041","1. passing pointer
+2. passing unbounded array
+3. using global variable as parameter","0","離題，回答的是參數傳遞機制（pointer、unbounded array），非訊息交換例外",""
+"46","12601","S031","1.LostReq   請求遺失
+2.LostResp   回應遺失
+3.SerCrash   server crash","3","",""
+"47","10917","S116","request lost, response lost, server crash","3","",""
+"48","10881","S059","1. LostReq: lost of the request
+2. LostResp: lost of the response
+3. SerCrash: unsuccessful execution of the request","3","",""
+"49","10920","S101","1. Lost request
+2. Lost response
+3. Server crashes","3","",""
+"50","10914","S103","1. LostReq
+2. LostResp
+3. SerCrash","3","",""
+"51","16043","S104","LostReq : 用戶端請求遺失
+LostResp : 伺服器回傳訊息遺失
+SerCrash : 伺服器當機","3","",""
+"52","16130","S023","1. 不能傳遞 pointer (記憶體位址不同)
+2. 長度未知的陣列
+3. 數量不定的參數(如 printf)","0","離題，回答的是 RPC 參數傳遞限制（pointer/陣列/不定參數），非訊息交換例外",""
+"53","10850","S113","1.lostrequest
+2.lostresponse
+3.servercrash","3","",""
+"54","10897","S055","1.傳送pointer對於另一端看不懂 畢竟記憶體不一樣
+2.unbounded array
+3.unbounded parameters","0","離題，回答的是參數傳遞機制，非訊息交換例外",""
+"55","12796","S119","1.lost request message
+2.lost response message
+3.the server crashes","3","",""
+"56","10907","S067","1.lost response
+2.lost request
+3.server crash","3","",""
+"57","16141","S076","LostReq: The request is lost
+LostResp: The response is lost
+SerCrash; Cannot execute the request","3","",""
+"58","13237","S074","i. Message loss
+ii. Process/Node failure
+ii. Time out/Performance failure","2","Message loss 未區分請求與回應遺失；Time out 非三者之一",""
+"59","15298","S063","Servers are waiting for request passively.
+Clients are sending requests actively to server.
+If server receive the request, it will send a response","0","描述的是正常運作流程，未指出任何例外情況",""
+"60","11382","S090","1. LostReq: The request messages is lost.
+2. LostResp: The response messages is lost.
+3. SerCrash: Unsuccessful execution of the request message.","3","",""
+"61","12347","S100","1. Request lost
+2. Response lost
+3. Server crashes
+","3","",""
+"62","10869","S114","1. LostReq : Lost Request
+2. LostRep : Lost Responce
+3.SerCrash : Server Crash","3","",""
+"63","10890","S038","1.client crash after receive the reply
+2.server crash after receive request
+3.request lost by connection","2","缺少 LostResp（回應遺失）；client crash 非三者之一",""
+"64","10945","S047","SerCrash：server 有錯誤 crash 了
+LostReq：丟出去給 server 的請求丟失了
+LostResp：回應的資料丟失了","3","",""
+"65","11251","S044","1. LostReq: lose the request
+2. LostResp: lose the response
+3. SerCrash: unsuccessful request execution","3","",""
+"66","10870","S075","pointer 
+global variables
+unbounded array","0","離題，回答的是參數傳遞限制（pointer/global variable/unbounded array），非訊息交換例外",""
+"67","10868","S030","1. LostReq : 要求送出卻沒送到
+2. LostRev : 結果返還卻沒收到
+3. Server Crash : 伺服器掛了導致不能回訊息","3","",""
+"68","10912","S106","lost request 
+lost response 
+server crash ","3","",""
+"69","16000","S019","Lostreq : lost request message
+Lostresp : lost response message
+SerCrash : server 收到 request 後沒有順利執行","3","",""
+"70","14227","S020","(1) LostReq: Lost of request message
+(2) LostResp: Lost of response message
+(3) SerCrash: Unsuccessful execution of the request","3","",""
+"71","11012","S010","request lost
+reply lost
+server crash ","3","",""
+"72","10900","S091","1.lostReq:要求訊息遺失
+2.lostResp:回應訊息遺失
+3.SerCrash:request未成功執行","3","",""
+"73","10867","S051","request lost
+respounce lost
+server crash","3","",""
+"74","14093","S039","request lost
+response lost
+server crash","3","",""
+"75","10888","S018","lost request
+lost responce
+接收request後server crash","3","",""
+"76","10939","S049","1.LostREQ
+2.LostResp
+3.SerCrash","3","",""
+"77","10918","S053","loss response
+loss request
+server crash","3","",""
+"78","10871","S092","lost request
+lost response
+server crash","3","",""
+"79","10894","S125","1.lostReq
+2.lostRecieve
+3.sever crashed","2","lostRecieve 無法明確對應 LostResp（回應遺失）",""
+"80","13198","S021",".","0","未作答",""
+"81","15807","S050","LostReq
+LostResp
+SerCrash","3","",""
+"82","14187","S036","lostreq
+lostresp
+server crash","3","",""
+"83","10893","S048","1. LostResp
+2. LostReq
+3. SerCrash","3","",""
+"84","14832","S112","LostReq: Request傳到一半消失不見
+LostResp: Response傳到一半消失不見
+SerCrash: server還沒傳出response時(做到一半)壞掉","3","",""
+"85","10899","S006","1. response lost 
+2. request lost
+3. client crashed
+4. server crashed
+5. can't locate server","3","",""
+"86","10995","S057","Client-Server mode , 當訊息交換時 : 
+1) 能資源共享
+2) 正常傳送資料 , 不影響
+3) 各個 Client 互不影響操作與執行","0","離題，回答的是 client-server 模式優點（資源共享/正常傳送），非訊息交換例外",""
+"87","13282","S002","LostReq
+LostResp
+SerCrash","3","",""
+"88","10943","S007","Request Fatal Error: Error triggered from requests
+Response Fatal Error: Error triggered from response
+Service Error: Errors from systems or connections","3","",""
+"89","11945","S118","1. Request lost
+2. Response Lost
+3. Server Crash","3","",""
+"90","12477","S016","1.LostReq:遺失請求訊息
+2.遺失回覆:回覆訊息遺失
+3.SerCrash:請求執行失敗","3","",""
+"91","11068","S083","LostReq：請求訊息遺失。
+LostResp：回應訊息遺失。
+SerCrash：請求執行失敗。","3","",""
+"92","10872","S088","LostReq : lost of reqest message
+LostResp : lost of response message
+SerCrash : 無法執行request","3","",""
+"93","16105","S058","request, reply","0","僅列出 request 與 reply，未說明任何例外情況",""
+"94","16082","S043","LostReq :Lost the request of message
+LostResp :Lost the response of message
+SerCrash:unseccesful execution of the request
+","3","",""
+"95","10852","S060","lost reqs, lost responses, server crash","3","",""
+"96","10856","S024","LostReq: the request message is lost
+LostResp: the response message is lost
+SerCrash: unsucessful of execution the request","3","",""
+"97","10880","S095","1.lost of request message
+2.lost of reply message
+3.server crash after receieving request","3","",""
+"98","11011","S077","1. request lost
+2. response lost
+3. server crash","3","",""
+"99","14527","S120","記憶體address不共享
+pointer無法傳遞或傳遞後無法解讀
+array之類的大小未知的資料結構難以傳遞","0","離題，回答的是記憶體不共享與參數傳遞問題，非訊息交換例外",""
+"100","10987","S069","1.lost request
+2.lost response
+3.Sercrash","3","",""
+"101","10860","S072","LostReq: Lost the Request
+LostResp: Lost the Response
+SerCrash: Unsucessful execute of request","3","",""
+"102","10851","S042","1. LostReq: lost of request message
+2. LostResp: lost of response message
+3. SerCrash: unsuccessful execution of request","3","",""
+"103","10993","S071","1. Lost Request
+2. Lost Response
+3. Server Crash","3","",""
+"104","10999","S062","1. ReqLost: request lost
+2. RespLost: response lost
+3. SerCrash: server crash","3","",""
+"105","10876","S045","1.LostReq:client發送requst但server沒收到
+2.LostRes:server收到request並發送response但client沒收到
+3.Servercrash:server在接受到request之後當機","3","",""
+"106","11403","S056","The three fundamental exeptions are 
+1. Request message is lost.
+The client sends a request, but the request message dose not reac thhe server
+2. Reply message is lost
+The server processes the request and sends a reply, but the reply mesage dose not reach the client
+3. Server crashes
+The server fails befor or after processing the client request, so the client cannot know the exact state of the request","3","",""
+"107","11049","S128","1. Master-Slave Communication
+2. Event-driven architecture
+3. Pub/sub event","0","離題，回答的是通訊架構模式（Master-Slave/Event-driven/Pub-sub），非訊息交換例外",""
+"108","10916","S029","1.clinet沒傳出去
+2. server沒收到
+3. clinet跟server都沒有傳收成功message","1","僅 server 沒收到接近 LostReq；其餘描述未對應三者",""
+"109","13524","S065","1. lost request 
+2. lost response
+3. server down","3","",""
+"110","11000","S098","lost of request
+lost of response
+server crash","3","",""

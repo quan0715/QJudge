@@ -13,6 +13,7 @@ import {
 } from "@carbon/react";
 
 import { Link } from "react-router-dom";
+import { formatScore } from "@/shared/utils/scoreFormat";
 
 export interface ProblemInfo {
   id: string;
@@ -177,7 +178,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 AC
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {`${stats.score || problemScore || 0} ${t("scoreboard.status.pts")}`}
+                {`${formatScore(stats.score || problemScore || 0)} ${t("scoreboard.status.pts")}`}
               </div>
             </>
           )}
@@ -190,7 +191,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                   color: statusColor,
                 }}
               >
-                {stats.score && stats.score > 0 ? `${stats.score}` : "WA"}
+                {stats.score && stats.score > 0 ? formatScore(stats.score) : "WA"}
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
                 {stats.score && stats.score > 0
@@ -236,7 +237,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
     if (cell.info.header === t("scoreboard.table.totalScore")) {
       return (
         <div style={{ fontWeight: "bold", textAlign: "left", width: "60px" }}>
-          {cell.value}
+          {formatScore(cell.value)}
         </div>
       );
     }

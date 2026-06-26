@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
-from oauth2_provider.models import Application
+from oauth2_provider.models import Application, Grant
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -121,6 +121,23 @@ class ApproveAuthorizationTest(TestCase):
         data = response.json()
         self.assertIn("redirect_uri", data)
         self.assertIn("code=", data["redirect_uri"])
+
+    def test_approve_accepts_qjudge_paper_scope(self):
+        response = self.api_client.post(
+            "/api/oauth/approve/",
+            data={
+                "client_id": "test-client-id-2",
+                "redirect_uri": "http://localhost:3000/callback",
+                "response_type": "code",
+                "code_challenge": self.challenge,
+                "code_challenge_method": "S256",
+                "scope": "qjudge.paper",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        grant = Grant.objects.get(application=self.app, user=self.user)
+        self.assertEqual(grant.scope, "qjudge.paper")
 
     def test_approve_requires_authentication(self):
         # Use default client (not authenticated)

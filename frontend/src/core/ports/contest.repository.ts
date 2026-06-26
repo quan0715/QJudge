@@ -198,7 +198,6 @@ export interface ContestUpdatePayload {
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
-  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;

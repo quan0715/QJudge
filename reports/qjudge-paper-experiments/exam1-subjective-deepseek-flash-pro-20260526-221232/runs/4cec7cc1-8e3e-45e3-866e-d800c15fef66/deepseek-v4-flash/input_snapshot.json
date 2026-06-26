@@ -1,0 +1,879 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "thread: 是process 中與執行流程相關的一部份\nprocess: program in execution\nprogram: a file of static data and code"
+      },
+      "id": "2650",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "A thread is like an execute flow of a process.\nA process is a program image that is loaded into memory.\nA program is a file stored on a secondary storage. It could be loaded into memory by loader.\n\nA process is a loaded program, and a thread is a execute flow created by a process."
+      },
+      "id": "2723",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "program:儲存在memory的一組code and data.\nprocess:執行中的program.\nthread:parts of process, 為執行flow的概念."
+      },
+      "id": "6069",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "thread is part of process, related to excution flow.\nprocess is program in running.\nprogram is a file containig code and static data."
+      },
+      "id": "3829",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "process: 一段有code sectiom跟data section的程式\nprogram: 正在執行中的process\nthread: prcess實際會分配給CPU去做執行的東西"
+      },
+      "id": "2968",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "a program is a executable file stays in storage\na process is a running program on cpu after it is brought into memory\nthead把process拆成小份在cpu平行的跑，一個process可以有很多threads\n\na program stays in storage device, after it is brought into memory and runs on cpu, it becomes a process. a process can have multiple threads inside it, concurrently run on cpu."
+      },
+      "id": "3527",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Program 是可以執行的檔案，靜態。\nProcess 是正在執行的工作，需要占用資源來完成，有自己的 process ID 等等資料並且由 OS 管理。\nThreads 則是執行相同工作，但能在不同的 cpu core 上面達到平行化的效率。\n\nprocess 就是跑起來的 program，\nthreads 就像 process 裡面的多個引擎，執行相同的 program 但是能分開執行任務"
+      },
+      "id": "4445",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "program: file with executable code and static data.\nprocess: program in execution.\nthread: process 內部的執行單位，也是 CPU Scheduling 的最小單位"
+      },
+      "id": "3251",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "program是一個包含code and static data的檔案\nprocess是執行的program\nthread是process workflow的一部份"
+      },
+      "id": "2686",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "Thread: thread can be thought as the part of process.\nProgram: program is a file with data and code.\nProcess: process is a program in execution."
+      },
+      "id": "4201",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "the thread is a part of process\na program is a file containing code and datas, etc\na process is program in operation"
+      },
+      "id": "3096",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "thread : it can be viewed as an execution flow in the part of process\nprocess : the program that is in execution.\nprogram : a file that contain code and static data"
+      },
+      "id": "3415",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Thread: The unit of execution flow, create under process.\nProcess: program in execution\nProgram: text with static data"
+      },
+      "id": "4327",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "program - file with the code\nprocess - program in execution (a program loaded to memory that is executed on the cpu)\nthread - execution entities of a process. Program can have several threads but at lease one, threads can share some of the process's resource"
+      },
+      "id": "3516",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "thread: lightweighting and build fast. Shared in the same process\nprocess: a execution state in a program\nprogram: consist of codes and static data"
+      },
+      "id": "4144",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "thread is a part of process, the minimum unit OS can schedule\nprocess is when a program loaded into memory and running\nprogram is what we write"
+      },
+      "id": "3942",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "A thread is the execution flow of a process \nA process is a program in execution \nA program is a file containing code and data"
+      },
+      "id": "2271",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "- thread is a part of a process that can be assimilated to a execution flow.\n- process is a program in execution \n- a program is a file which contains the code and the global data."
+      },
+      "id": "2863",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "process 代表正在執行的 program\n\nprogram 是一個檔案，裡面包涵 code, static data\n\nthread 可以視為 process 在 execution flow 裡面產生的 subroutine，同一個 process 裡面的 threads 會共享一些資訊，且這些 threads 的創建與記憶體開銷相較於 process 會比較小。"
+      },
+      "id": "6588",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "program 是儲存的程式碼或data\nprocess是執行program的過程\nprocess可以被切成多個threads"
+      },
+      "id": "2930",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "thread can be thought as the part of process that is related to execution flow.\nprogram is a file contains of code and static data.\nprocess is a program in execution."
+      },
+      "id": "4302",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "1. thread : 是process的一部分，是execution flow的一個單位。\n    process : 是正在執行的程式。\n    program : 是靜態的程式碼(text)及靜態資料(data)。\n2. process是正在執行(Running)的program，而process裡面會有thread，thread可以在process裡獨立分工。"
+      },
+      "id": "3736",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "Thread: is a part of process, we can think of it as the actual executing unit in the CPU\nProgram: executable code\nProcess: when we put a program into execution, we then call it a process"
+      },
+      "id": "4712",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "program: code\nprocess:在程式中進行的DATA\nthread:最小的資訊流"
+      },
+      "id": "2501",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "program is the file contains code and static data.\nprocess is program in execution.\nthread can be thought of the part of process."
+      },
+      "id": "3906",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Thread is a part of a process that is related to execution flow.\nProcess is a program in execution.\nProgram is a file with code and static data.\n(他們的關係如以上文字所述)"
+      },
+      "id": "3805",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "thread:a part of process in execution flow\nprocess:a program which is in execution\nprogram:a code which have data or file."
+      },
+      "id": "3873",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Thread: the part of a process that is related to the execution flow.\nProcess: a program in execution.\nProgram: a file contains static data and code."
+      },
+      "id": "3611",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Thread:Threads is a small unit execution in a process. A process can have one or more threads\nProgram: Program is a file contains code and static data.\nProcess: Process is a program in execution"
+      },
+      "id": "3264",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "A thread is a process that helps in the execution flow\nThe process is the execution of the program\nA program is a file that has information and static code\nThese are related to each other as they help in the execution of the function in the operating systems."
+      },
+      "id": "1980",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "A program is a file with code and data.\nA process is a program in execution.\nA thread is part of the process that is in the execution flow."
+      },
+      "id": "3296",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "process: The program in the memory.\nprogram: The process that are not execute.\nthread: The least unit to execute, a process can split to one or many"
+      },
+      "id": "3704",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "program:存放在磁碟的程式或靜態資料\nprocess:正在執行中的程式，有自己的address space\nthread:process底下的執行單位，共享部分process的記憶體"
+      },
+      "id": "3299",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Thread: And be viewed as a part of a process, and saw as an execution flow.\nProgram: A file with its own code and initialization.\nProcess: A program that is currently executing."
+      },
+      "id": "2838",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "thread: part of a process, can be created by user and run code parallism\nprocess: a program being executing, has text data, stack, and heap\nprogram: a file contain code"
+      },
+      "id": "5232",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Thread: can be regarded as a part of process, tackle a part function of process.\nProgram: a file with solid code and data.\nProcess: when a program start running and organized by CPU, it becomes a process."
+      },
+      "id": "3430",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "program 是可執行的檔案，process 是執行中的指令。\n一個 process 當中包含一個或多個 threads，thread 是使用 CPU 執行的最小單位。"
+      },
+      "id": "4816",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "program是由data及code所組成。而正在執行的program稱為process，一個process又可以切成多個thread。"
+      },
+      "id": "2749",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "program:程式碼與資料\nprocess:運行中的program\nthread: 程式運行時與執行流相關的部分"
+      },
+      "id": "2765",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "program:passive entity，有code section和static data。\nprocess:program in execution。\nthread:process的execution flow，thread間共享memory space和other resources，不共享program counter、cpu register、stack。"
+      },
+      "id": "3200",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "thread: 一個輕量化的執行緒。\nprocess: 一個獨立的程序。\nprogram: 能被執行的檔案。\nprocess裡面可能會有多個threads，program被cpu load之後會執行process。可能會有多個process在執行同一個program。"
+      },
+      "id": "2811",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "thread is a part of process which is related to execution flow.\nprogram is a file of code and data.\nprocess is program ｉｎ　execution."
+      },
+      "id": "2962",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Program is a file of code and data.\nProcess is a execution of program.\nThread is a part of process."
+      },
+      "id": "2013",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "Thread is regard as the process.\nProcess is program in execution.\nProgram is a file that contained code .\n"
+      },
+      "id": "3421",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "thread:process的流程\nprocess:動態執行的program\nprogram:靜態程式碼"
+      },
+      "id": "2541",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "thread: 與process中的execution flow相關\nproces: 正在被execute的program\nprogram: 儲存static data and code"
+      },
+      "id": "2830",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "thread can be seen as small part of process.\nprogram is combination of codes and datas.\nprocess is a executed program."
+      },
+      "id": "2739",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "program是包含程式碼以及靜態資料，process是執行中的program，thread則是process執行中的一部份執行緒"
+      },
+      "id": "3135",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "program是一個檔案，裡面記錄著code和各種變數、資料\n\nprocess就是一個運行中的program\n\nthread可以看程式process的一部分，把process看成一間公司，thread就是裡面的員工，多個員工都可以共享公司裡的一些公共資源(memory)"
+      },
+      "id": "5368",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "The program includes the data and code, while a proccess is the execution of it, threads are a subdivision of a process where they themselves are executions related to the process."
+      },
+      "id": "2150",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Program : 一個包含code和static data\nprocess : 一個正在運行的program\nthread : 部分跟execution flow有關的process"
+      },
+      "id": "2518",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "thread is a part of process in the execution flow\nprogram is a file that have data \nprocess is program in execution"
+      },
+      "id": "3913",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "thread：執行序，process的執行流程\nprocess：程序，正在執行的程式\nprogram：用來儲存程式與靜態資料"
+      },
+      "id": "3600",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "program儲存code和data\n同process內的thread會共享code, memory, data等資訊\nthread執行program"
+      },
+      "id": "6638",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "program: 在硬碟中的靜態資料\nprocess: 執行中的 program\nthread: process 中的執行流"
+      },
+      "id": "2371",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "thread:在行程中跟執行流有關部分\nprogram:包含程式碼和靜態資料\nprocess:在執行中的program"
+      },
+      "id": "4017",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "progaram指的是文字的程式碼和靜態的資料\nprocess指的是運行中的program\nthread則是process在execution workflow裡分出來的一部分"
+      },
+      "id": "5158",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "thread: process的一種執行基本單位\n\nprogram:存放在disk中的程式碼或檔案\n\nprocess: 執行中的program\n\nprogram 執行中就會變process 其中process內部真正執行一條條指令的是thread\n"
+      },
+      "id": "4025",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "thread: process中與execution flow有關的部分\nprocess: 執行中的program\nprogram: 含有一些data及file的程式"
+      },
+      "id": "2319",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Thread: part of process\nProcess: program in execution\nProgram: context of what user want to do"
+      },
+      "id": "2848",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "thread : process execution flow裡的最小單位\nprocess : a program in execution\nprogram : a file store code and static data"
+      },
+      "id": "4595",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "1.threads can be thought of as part of a process that is related to the execution flow.\n2.program is the file that contains of code and static data.\n3.process is program in execution."
+      },
+      "id": "6174",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "thread: the part of process that is related to execution flow\nprocess: a program in execution\nprogram: a file contains code and static data"
+      },
+      "id": "3526",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "thread是CPU的執行flow，一個process可能含有單個或多個threads，同個process的thread會共享data,code,file等資源\nprogram是一個檔案含有code和靜態變數\nprocess是執行中的program"
+      },
+      "id": "3721",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "program是存在disk的binary code, 其被載入memory叫做process, thread則是執行的最小單位,其可以組成一個process,或本身即是一個process"
+      },
+      "id": "3662",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "thread : a thread can be thought of as a part of process that is related to execution flow.\nprogram: a program is a file that contains of code and static data.\nprocess: process is a program in execution."
+      },
+      "id": "3121",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "thread:process的一小部分\n\nprocess:執行中的program\n\nprogram:一個檔案由code data組成,也就是程式"
+      },
+      "id": "3916",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Program: A program is a file that contains static code or data saved on a drive.\nProcess: This is a program in execution with its own local address and resources.\nThread: This is the smallest unit of execution withing a process. They share memory but maintain their own stack, program counter, and registers. "
+      },
+      "id": "4547",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Program contains a code segment and instructions for execution.\n\nProcess is a program in execution.\n\nThread is part of the process in execution."
+      },
+      "id": "4610",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Thread: A part of process that is related to the execution flow\nProgram: A file with static data and code\nProcess: A running program"
+      },
+      "id": "3014",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Threads: can be thought as part of process related to the execution flow.\nProcess: program in execute.\nProgram: A file contains of code and static data."
+      },
+      "id": "3856",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "Thread shares some resources with each other, like code text and global variables.\nProgram is a file in disk.\nProcess is a program in memory and can have many threads in one process. "
+      },
+      "id": "3934",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "process 為 program 放入memory 後稱之 ， 並且在memory 內，一個process 可以有多個thread . 並且同一個process內的thread 某些資源會共享。"
+      },
+      "id": "3487",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "program is a file that can create process when it start\nprocess is a running program can have 1 or more threads\nthread is a light size process "
+      },
+      "id": "2146",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "Program 可能會有很多個 process 組成，每個 process 可能會有很多個 thread\nprogram 類似一個大的程式，裡面有很多子程序，每個 process 之間會是獨立的，擁有自己的 memory space，thread 之前會 share 一些 memory，溝通比 process 之間 IPC 方便"
+      },
+      "id": "3197",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "thread: can be thought as part of process which is a execution flow\nprocess: program in execution\nprogram: file containing code and data"
+      },
+      "id": "3488",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "program是一個可以運作process的data，類似code檔案\nprocess是program的execution\nthread是process的一部分，可以共用process的部分資源下分開運行"
+      },
+      "id": "3003",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "thread : 輕量的 process ，透過 thread 間 共享資源 來達到更有效率更能利用 multiprocessor\nprocess : 為 program 實際 跑其來的實體，可以被調度 執行 和等待\nprogram : 由 data 和 code 組成的靜態實體\n\nthread 可以組成 process\nprogram 動起來是  process"
+      },
+      "id": "2738",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "thread : can be considered as part of the process  during the real execution flow \nprocess : a program that is currently executing \nprogram :is a file of code and static program "
+      },
+      "id": "3983",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Thread : part of process. 執行部份 execution flow \nProgram : a file that contains code and static data.\nProcess : a program in execution."
+      },
+      "id": "3659",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "thread: Faster to create than a process and share some resources\nprocess: a program in execution\nprogram: a file contains of code and static data"
+      },
+      "id": "2728",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Program is a file storing the code, text and static data..\nProcess is a program in execution.\nThread is a lightweight process, with less overhead when created."
+      },
+      "id": "4145",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "thread:執行緒，不同執行緒可以共用code\nprocess:執行中的program\nprogram:程式\nprocess為執行中的program,program可以透過thread執行變為process"
+      },
+      "id": "2803",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "program is the code that we write.\nwhen we execute the program that will be process, thus one program can have multiple process.\none process can have multiple thread, thread will share code, heap..., but not share stack, threadID...."
+      },
+      "id": "4462",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "program is some stored code and data, a program being loaded and run is a process, and process can create one or many threads to do the job"
+      },
+      "id": "4364",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "thread is the part of process that is executing flow.\nprocess is the executing program.\nprogram is the text of code store in memory."
+      },
+      "id": "2996",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "program: a file with data and code\nprocess: program in execution\nthread: the part of process related to execution flow"
+      },
+      "id": "3423",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "program:靜態的資料程式檔案\nprocess:正在運作的program\nthread:在process中相關的execution flow"
+      },
+      "id": "4184",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "program: binary in the disk\nprocess: an executing program in the memory\nthread: light weight process, a process may have multiple threads"
+      },
+      "id": "3606",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "program:code and static data\nprocess:program in execution\nthread: execution flow of a process"
+      },
+      "id": "2557",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "thread is a part of process\nprocess is a program which is excuting\nprogram is a file which is filled of code and static data"
+      },
+      "id": "6342",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "program: a file with code and static data\nprocess: a executing program\nthread: a part of a process which is in executed flow"
+      },
+      "id": "2835",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "program是指運行的程式碼以及static data\nprocess是指在program中運行的一個行程\nthread是指運行在process中的一個動態"
+      },
+      "id": "2891",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "thread : process的一部分，最小的執行單位\nprocess : 正在execution的程式\nprogram：一般程式以及靜態的資料"
+      },
+      "id": "3176",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "program: contains the static data and code. \nprocess: program in execution. \nthreads: a part of the process related to the execution flow.\n"
+      },
+      "id": "6362",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "program, 寫好的code\nprocess 執行的 program\nthread, process 下實際執行任務的組成"
+      },
+      "id": "2959",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "thread :最小執行單位\nprocess:執行程序\nprogram:未執行程式,EX靜態函式庫"
+      },
+      "id": "3746",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "1. Program is the instructions written in code\n2. Process is a running program\n3. Thread is sequence of instructions within the process"
+      },
+      "id": "2565",
+      "participant_username": "S032"
+    },
+    {
+      "answer": {
+        "text": "Thread 執行緒 : 在CPU 系統環境下，可以同時多個執行程序 或 單一個執行程序。 \nProcess 行程 : 在 CPU 下系統環境下，單一個執行程序。\nProgram 程式 : 包成個軟體執行檔 exe ，作業系統下的可執行的應用程式。\n"
+      },
+      "id": "5944",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "program: a file contains code and static data\nprocess: a program during execution\nthread: a part of process"
+      },
+      "id": "6154",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "A program comprises code and static data.\nA process is a running programming managed by CPU.\nThreads belongs to a process. They have their own local variables but the global data is shared in the same process."
+      },
+      "id": "6295",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "program:包含code和靜態資料的檔案\nthread:process裡跟執行相關的動作\nprocess:包含program與thread的一連串流程"
+      },
+      "id": "4919",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "所謂執行緒(thread)：是指porcess的執行流程基本單位。\n所謂行程(process)：是指執行中的程序。\n所謂程式(program)：是指還沒執行的程式或資料檔案。"
+      },
+      "id": "5176",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "thread: process中execution flow的部分\nprocess: 正在執行中的program\nprogram: 包含code、static data的file"
+      },
+      "id": "3016",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "program: a file that include code and static data.\nprocess: a program in execution.\nthread: part of process that related to the execution flow."
+      },
+      "id": "3902",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "program involved code and solid data\nprocess is program in execute.\nthread can imagine as  a part of process."
+      },
+      "id": "3770",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "thread can thought like a part of process and related to executing flow\nprogram: a file contains code and static data\nprocsee: a program in execution"
+      },
+      "id": "2773",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "program is the file with text and static data\nprocess is the program that is executing\nthread is a part of process that follows the execute flow"
+      },
+      "id": "2721",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "a thread is a part of a process.\na  process is a program in execution.\na program is a file contain code and data."
+      },
+      "id": "6245",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "thread can occurs during the execution flow of the process  \nprocess is controlled by operating system\nthe process is the program which is executing.\n"
+      },
+      "id": "3181",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "A program is a file with static data and code.\nA process is a program in execution.\nA thread is part of a process which is related to the execution flow."
+      },
+      "id": "2877",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "thread:執行流程中的一部分\nprocess:執行中的program\nprogram:裡面包含程式碼及static data"
+      },
+      "id": "5030",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "thread:他是process中的最小執行單位，是一個excution flow\nprocess:正在執行中的program\nprogram :他是一個file，包含code和static data"
+      },
+      "id": "2955",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Thread: It can be thought of as the part of a process, and threads can be run in parallel .\nProcess: It is a program execute in memory and CPU. \nProgram: It is a file contain the code and static variable. "
+      },
+      "id": "3454",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "program: the file that contain code and ralated data.\nprocess: program in execution.\nthread: part of process that is in execution flow."
+      },
+      "id": "2860",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "program是存在硬碟的靜態程式，process是正在執行的動態程式，thread是CPU處理資料的最小單位，一個process可以等於一個或多個thread，thread更為輕便"
+      },
+      "id": "3126",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Thread: a part of process，和process共用shared memory，但有自己的Threads ID\nProgram: a set of code or data，存放在disk中\nProcess: A program in execution，在memory中執行\n"
+      },
+      "id": "4631",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "thread:是process的一部份，和execution flow 有關\nprogram:是一個file，包含code和static data\nprocess:program 在run的時候就是process"
+      },
+      "id": "3540",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Thread is a part of process that run in a execution flow.\nProcess is a program in execution\nProgram is a file that contains code and static data"
+      },
+      "id": "2788",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "program:放在硬碟的程式和靜態資料\nprocess: 正在被執行的program\nthread: 與執行進程有關的東西"
+      },
+      "id": "3844",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "thread：process的一部分，是他的execution flow。\nprocess：執行中的program。\nprogram：包含code和static data。"
+      },
+      "id": "3545",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Thread is a workflow that contain data, context, and other features.\nProcess is a program in execution.\nProgram is a context that contain information like variable, code."
+      },
+      "id": "5928",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "一個process可以有很多threads去完成不同的任務\nprocess是執行中的program\nprogram - code"
+      },
+      "id": "3475",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 3,
+    "options": [],
+    "prompt": "Briefly describe the concepts of \"thread,\" \"process,\" and \"program.\" How do they relate?",
+    "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66",
+    "question_type": "essay",
+    "reference_answer": "a. A program is a static file containing code.\nb. A process is an active execution instance of that program.\nc. A thread is a unit of execution within a process. A process can contain multiple threads that share the same resources."
+  },
+  "question_id": "4cec7cc1-8e3e-45e3-866e-d800c15fef66"
+}

@@ -1,0 +1,294 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","2832","S109","progress, bounded waiting, mutual exclusive","3","",""
+"2","3030","S015","1. mutual exclusive: at most 1 process could be in critical section at a given time.
+2. progress: When a process isn't in critical section, it must execute.
+3. finite waiting: the time a process waits for entering should be finite.","2","Progress 描述不完全正確（不在 CS 不等於必須執行）",""
+"3","4209","S117","no preemption: 原子操作，cs中的操作一次執行完不能被打斷
+mutual excution: 一次只有一個process可以進入cs
+hold and wait: 等待正在cs裡的process結束cs部分，才能access","1","寫到 deadlock 條件 no preemption / hold and wait，非 CS 三大需求",""
+"4","3185","S093","mutual exclusion, bounded waiting, progress","3","",""
+"5","3951","S012","1. 有限等待
+2. 有progress
+3. 同時間只有一個process能進入CS","3","",""
+"6","4785","S108","bounded waiting: 等待的 process 等待的時間必須為有限的
+mutual exclution: 不可以同時有兩個 process 進入 critical section
+離開 critical section 的 process 不能再有 lock 的控制權","2","缺少 Progress",""
+"7","6550","S099","1. 
+2. 
+3.","0","無實際作答內容",""
+"8","5963","S070","1.lock
+2.progress
+3.unlock","1","僅 progress 為正確需求，lock/unlock 非三需求",""
+"9","4653","S080","must not considered the amount of process, it should be suitable of all kinds of resource compete.
+","0","答非所問",""
+"10","5789","S003","The whole section should be done in once.","0","答非所問",""
+"11","3686","S035","1. mutual exclusion : no two or more thread can be in the critical section simultaneously.
+2. progress :  when no thread in the critical section, the next thread want to enter the critical section should be decided in finite time.
+3. bounded waiting : no one should wait the resource or lock forever","3","",""
+"12","4542","S037","mutual exclusion, progress, atomic","2","atomic 非 CS 三大需求之一",""
+"13","6335","S096","- obtaining/releasing a resource should be an atomic operation, i.e. there can't be a race condition during resource obtaining/releasing
+- only threads/processes holding the resource can enter the critical section, other processes should busy wait or sleep
+- resource releasing order must be in the reverse order of resource obtaining order","0","講 lock/atomic/resource order，非 CS 三大需求",""
+"14","4553","S013","Lock, wait, and no one can always stay inside Critical Section.","0","Lock, wait 等非標準三需求",""
+"15","4242","S040","mutual exclusive: only one process/thread can in critical section at the same time
+progress: no process outside critical section can avoid other outside process enter critical section
+: os should deside which process to enter critical section in limit time","2","缺少 Bounded Waiting",""
+"16","3962","S124","No process outside the CS can be blocking to a process inside it
+If a CS is free, a process that wants to access it needs to be able to do so in a finite time 
+There can only be one process executing a CS at one time ","2","缺少 Bounded Waiting",""
+"17","3273","S121","- Mutual exlclusion : only one thread is allowed to be in the critical section
+- Progress
+- Waiting bounded : a thread which is waiting to enter in the critical section should not be waiting forever","3","",""
+"18","6516","S068","1. 同一時間只能夠有一個或是有限個 process 進入 critical section
+2. 如果沒有任何 process 在 critical section 裡面，則需要在有限時間裡面決定哪一個 process 要進入 critical section
+3. 假設有 n 個 process 同時發出需要進入 critical section 的請求，則任一個 process 最長所需等待的 process 數量都不可以超過 n-1。","3","",""
+"19","5355","S102","要能確保一次只能有一個在執行
+限制時間內至少要有一個能進入執行
+要能保證他有完整執行並儲存好結果","2","缺少 Bounded Waiting",""
+"20","6250","S034","1)使用號誌
+2)一次只讓一個thread/process進到critical section裡
+3)critical section外面沒有thread/process在一直等，只有當critical section裡的做完，才讓下一個進去","2","缺 Bounded Waiting 明確名稱與描述",""
+"21","4086","S084","1. Mutual exclusion : 一次只能有一個人進入。
+2. Progress : 不想進入的話也不能阻擋別人進入。
+3. Bounded waiting : 有排隊等待的人都一定進的去。","3","",""
+"22","5034","S079","mutual exclusion: there should not be two processes entering CS at the same time
+progress: the process running outside CS has no rights to block other process to go into CS; if there is no process in CS then the next process should decide whether to enter it in finite time
+bounded waiting: a process should not wait forever to enter CS","3","",""
+"23","6632","S122","排程時間 處理時間 檢查時間 條件判斷","0","答非所問，非 CS 三大需求",""
+"24","4151","S052","1. Mutual exclusion(互斥): 不能有兩個以上的thread同時在critical section
+2. Progression : 一個thread離開critical section，在有限時間內要趕快讓下一個thread進去critical section
+3. Bounded waiting : 每一個thread都不能永遠進不到critical section(不能無限等待)","3","",""
+"25","4232","S033","1.不能同時有多個process在critical section處理
+2.高priority的process需要優先解決
+3.","1","僅 Mutual Exclusion 正確",""
+"26","5920","S123","1.mutual exclusive
+2.","1","僅列出 mutual exclusive，缺少二、三項",""
+"27","3534","S027","Critical Section 就是一次只有一個process可以進入執行,wait,block,p,v","1","僅提及 Mutual Exclusion 概念",""
+"28","3733","S081","the three requirements for critical section problem
+1.  
+2.
+3.","0","無實際作答內容",""
+"29","4291","S008","1. Mutual Exclusive.
+2. No process will wait forever.
+3. ","2","缺少第三個需求",""
+"30","6150","S078","mutual exclusion
+can preemption
+
+","1","can preemption 非 CS 標準需求",""
+"31","3383","S087","1.mutual exclusion:只能有一個thread進入critical section
+2.progress:thread不能防止其他thread進入critical section
+3.bounded waiting:每個要進入的thread等待的時間是有限的","3","",""
+"32","2997","S022","Mutual exclusion, progress, bounded waiting.","3","",""
+"33","6002","S110","mutual exclusive, only one access to the critical section at the same time
+have to choose the next process in the waiting queue to get the lock in finite time
+process waiting the lock can't be starvation
+","3","",""
+"34","6146","S082","1. 每一個process 都能執行到
+2. 沒有process 需要無限等待
+3. processes 不會同時出現在critical section","2","缺少 Progress",""
+"35","5231","S105","1. A thread outside the critical section must not block the other threads.
+2. Only one thread at a time can enter the critical section.
+3. ","2","缺少第三個需求",""
+"36","3438","S111","Progress -> 在CS外的process不能阻止其他process進入CS.
+Mutual exclusion -> 同時只能有一個process在CS.
+Bounded waiting -> 不能有process無止境的在外等待進入CS.","3","",""
+"37","3677","S085","不在CS內者不影響其他程式進入CS
+限定時間內決定進入CS者
+有限等待","2","缺少 Mutual Exclusion",""
+"38","3510","S004","1.mutual exculsion
+2.progress
+3.bounded wait","3","",""
+"39","6556","S046","１．
+２．
+３．","0","無實際作答內容",""
+"40","4890","S005","1. For any numbers of process all can work.
+2. Only one thread access the shared memory in the same time
+3. Will not cause deadlock
+","1","僅 Mutual Exclusion 正確",""
+"41","6251","S061","starvation
+priority inversion
+deadline","0","starvation/priority inversion/deadline 非 CS 三大需求",""
+"42","6487","S014","preemptive
+","0","preemptive 非 CS 需求",""
+"43","2944","S107","1.mutual exclusion
+2.bounded waiting time
+3.fairness","2","fairness 應為 Progress",""
+"44","3428","S126","1.互斥:不能有兩格以上的process or thread
+2.cs如果是空的，要在有限時間把process or thread丟進去
+3.不能有thread永遠都進不去cs","3","",""
+"45","5089","S017","1.同一時間只能有一個人進入critical section
+2.進入critical section後不能一直完成不了執行(busy waiting和priority inversion)
+3.離開critical section時要能夠正常把資源釋放出去","1","僅 Mutual Exclusion 正確",""
+"46","2238","S115","There must be a key. 
+When there is no key the critical section cannot be accessed.
+The key must be free when a critical section is completed.","0","講 lock/key 機制，非三大需求",""
+"47","2641","S089",".","0","無實際作答內容",""
+"48","5201","S009","every process has get into critical section at least one time,
+no busy waiting occur, ","1","僅部分提及 Bounded Waiting 概念",""
+"49","6647","S066","1. use the lock
+2. 硬體上做出區隔","0","答非所問",""
+"50","5817","S041","1.偵測high priority process是否太久沒被執行
+2.交換high priority 跟 low priority process 的 priority
+3.處理完後復原原本的 priority","0","priority inversion 非 CS 三大需求",""
+"51","6736","S031","Peterson's Solution  is a software-based solution","0","Peterson's Solution 為解法而非需求",""
+"52","6003","S116","1.每一個程式最後都會被執行
+2.執行後的結果都相同
+3.不會出現有兩個程式同時在CS中運行的情況","2","缺少 Progress",""
+"53","4223","S059","1. TLB
+2. page
+3. frame","0","TLB/page/frame 為記憶體管理，非 CS 需求",""
+"54","3636","S101","1. 當一個process執行時，其他process waiting
+2. 被共享的資料，一次只開放一個process存取
+","1","僅 Mutual Exclusion 概念正確",""
+"55","4982","S103","1. 拿到lock就不能被preempt
+2.
+3.","0","無有效內容",""
+"56","5900","S104","鎖在誰身上
+鎖釋放了沒
+下一個拿鎖的是誰","0","鎖管理問題，非三大需求",""
+"57","6739","S023","Peterson's solution","0","Peterson's Solution 為解法而非需求",""
+"58","3879","S113","mutual exclusion:一次只能一個thread進入CS
+progress:進入CS的thread不能阻止其他thread進入CS
+bounded waiting:每個thread不能永無止盡的等待進入CS","2","Progress 描述不精確（進入CS者不應阻止他人？）",""
+"59","3893","S055","其CPU scheduling 演算法需要是preemptive 
+有LOCK機制
+有aging機制","0","preemptive/lock/aging 非 CS 三大需求",""
+"60","6426","S119","1.一個critical section裡面只能有一個process
+2.沒有要進去的process不能阻擋要進去critical section 裡面的process
+3.從發出request要進去critical section到真正進去critical section要有一個bound time時間限制","3","",""
+"61","4244","S067","Mutual exclusion:同時只能有一個程式進到C.S.裡面
+
+progress: 1.沒有要進到C.S.裡的程式不能阻止其他程式進去 2. 如果C.S.裡面沒有程式必須在有限的時間內決定誰可以進去
+
+bounded-time:想進去C.S.裡的程式要在有限的時間內進去,不能無限等待","3","",""
+"62","5311","S076","- Priority Inheritance: Increasing the priority of processes or threads in the critical section to maximum priority until the lock is released.
+
+- Only one process or thread can enter the critical section at any given time.
+ ","1","僅 Mutual Exclusion 正確",""
+"63","4778","S074","1. Must acquire the lock
+2. The existing process must release the lock.","0","lock/release lock 非三大需求",""
+"64","5252","S063","Mutual exclusion
+Priority inheritance
+Hold and wait","1","僅 Mutual Exclusion 正確",""
+"65","5497","S090","1. mutual exclusion: there is at most one process in the critical section at a time.
+2. progress: The process that doesn't want to get in critical section can not affect the decision for choosing the process into critical section.
+3. bounded waiting: If there is N process, each process wait at most N-1 times and it can enter critical section.","3","",""
+"66","5970","S100","1.  Finite wait.
+2. Mutual exclusion
+3. ","2","缺少 Progress",""
+"67","3766","S114","1. mutual exclusion : 一次只能有一個process進入自己的critical section
+2. progress : 若沒有要進入critical section的process 不能妨礙別的process 進入critical section ， 並且決定哪一個process 可以進入critical section 的時間是有限的
+3. Bounded Waiting : process在等待有限的時間內，一定可以進入critical section . ","3","",""
+"68","2365","S038","1.bounding waiting
+2.progress
+3.muture exclution","3","",""
+"69","4582","S047","CS 內不可以同時有兩個 process 進入
+不可以無限等待 必須確保每個 process 都有機會進入 CS
+lock 只能給一個 process 拿著","2","缺少 Progress",""
+"70","3614","S044","1 mutual exclusion
+2 bounded waiting
+3 program","2","program 應為 Progress",""
+"71","3595","S075","software解決: 運用code內演算法解決
+hardware解決:直接在hardware把過程寫死讓他不會有順序問題
+直接單process: 從問題根源避免","0","software/hardware 解法非需求",""
+"72","3246","S030","bounding waithing 有限等待， progressive waiting  輪流進入， mutual 只有一個能進入
+","2","Progress 描述為輪流進入，不精確",""
+"73","6145","S106","atomicity 
+","0","atomicity 非 CS 三大需求",""
+"74","3855","S019","Progress : 不在 critical section 的 process 不能阻礙他人進入 
+Mutual exclusion : 當一個 process 在 critical section, 其他 process 就不能進入
+Bounded waiting : 當一個 process 進入 critical section 就必須執行完畢, 不能一直在 critical section 裡面","2","Bounded Waiting 描述不正確",""
+"75","2847","S020","mutual exclusion, progress, bounded waiting","3","",""
+"76","6406","S010","1. independence to execution order
+2. ","0","答非所問",""
+"77","5020","S091","mutual exclusion
+lock
+semaphore","1","僅 Mutual Exclusion 正確",""
+"78","6057","S051","test and set
+Peterson's solution
+semaphore","0","test and set/Peterson/semaphore 為解法非需求",""
+"79","5820","S039","only one thread can enter critical section at one time","1","僅 Mutual Exclusion",""
+"80","3226","S018","同一時間只有一個process可以進入critical section
+當沒有process在critical section時，不能限制有要求進入critical section的process進入
+有process要求進入critical section，該請求必須在有限時間內完成","3","",""
+"81","3623","S049","atomic instruction , lock","0","atomic instruction/lock 非 CS 三大需求",""
+"82","6421","S053","要求的資源量少於總資源量
+不能申請超過自己上限的資源
+使用完自動歸還資源","0","資源分配條件，非 CS 需求",""
+"83","6290","S092","mutual exclusion: only one process can be in the critical section at the same time.
+bounded: the process in the critical section cannot run forever (it must run in finite time).
+??(i forgot the name): when no one is in the critical section and exist processes that wants to enter the critical section, it should enter.","2","Bounded Waiting 描述不精確",""
+"84","2938","S125","1.互斥性:同個cs不能同時進行兩個thread
+2.不利用cs的thread不能佔用
+3.要在有限時間內決定哪個thread進入cs","2","缺少 Bounded Waiting",""
+"85","6606","S021","thread ID
+CPU utilization
+throughput","0","thread ID/CPU utilization 非 CS 需求",""
+"86","4212","S050","there's a limit number of process can access to the critical section at one time.
+the access of the critical section depends on who comes first.
+the one want to get in must have the key to get in the critical section, and the one get out critical section must return the key.","1","僅 Mutual Exclusion 正確",""
+"87","5207","S036","只能有一個thread運行在CS裡
+不能阻攔外部的thread想進入CS
+保證當CS是空的時選擇進入CS的thread是有限的(避免閒置浪費時間)","2","缺少 Bounded Waiting",""
+"88","3810","S048","1.mutual exclusion :  一次只能有一個process進入critical section
+2.progress : 沒有進入critial section的process不能去妨礙跟決定要進去的process
+3. bounded time : 一定會有有範圍的等待時間","3","",""
+"89","6748","S112","1. Anyone who cannot get the resources should sleep 
+2. Only one process can get the lock, and it should be atomic
+3. The decision to dispatch the lock should be made very quickly. ","1","僅部分 ME/Progress 概念，未正確命名",""
+"90","5063","S006","mutual exclusive, no preempt, hold and wait","1","僅 Mutual Exclusion 正確",""
+"91","4544","S026","1.swap
+2.提高優先權
+3.老化","0","swap/priority/aging 非 CS 需求",""
+"92","3895","S032","1. Two processes don't go into the critical section simultaneously
+2. If the one process is inside the critical section, the others must wait
+3. No one process must wait forever","2","缺少 Progress",""
+"93","6260","S057","Crition Section 
+1) 當一個 process 進入，其他 process 則不可進入
+2) 當一個 process 完成後，才允許其他 process 進入
+3) 一次只能一個 process 在 crition Section。
+","1","三點皆描述 Mutual Exclusion，缺 Progress 與 BW",""
+"94","6698","S002","execute the process with higher priority","0","答非所問",""
+"95","5998","S007","(a) Only one thread or process access the critical section at the same time.
+(b) The execution order by the threads are correct.
+(c) The threads share same semaphors, mutex, or locks.","1","僅 Mutual Exclusion 正確",""
+"96","5739","S016","1.分配的記憶體空間大小必須大於或等於所需
+2.分配的記憶體必須是連續不斷的","0","記憶體分配，非 CS 需求",""
+"97","3289","S088","一次只能一個thread進入CS
+CS沒有thread會自動補上
+每個thread在CS內的時間有限","1","僅 Mutual Exclusion 正確",""
+"98","6700","S043","臨界區間
+its priority,memory,# of CPU ","0","答非所問",""
+"99","6235","S060","priority inversion
+how to release the lock
+how to enter the critical section","0","priority inversion/lock 非三大需求",""
+"100","6479","S024","the priority should be as previous after solve the problem
+the process should be executed follow the order of priority
+the resources should be released after the process executed","0","priority/資源釋放 非三大需求",""
+"101","5267","S077","1. only one process or thread can enter critical section at the same time.
+2. ","1","僅 Mutual Exclusion",""
+"102","2957","S120","Mutual exclusion: There is only one thread in the Critical Section in the meanwhile.
+Progress: If the Critical Section is free now, it must allow one of the threads which want to access.
+Bounded Waiting time: The waiting time of a thread which is waiting for the permission has an upper bound.","3","",""
+"103","5882","S073","Peterson's solution、 semaphore
+","0","Peterson/semaphore 為解法非需求",""
+"104","3370","S069","mutual exclusion:一次只有一個可以在critical section 中執行 
+progress:如果沒有其他process在critical section 中的話不能阻止其他process要進入critical section
+bounded waiting:等待進入critical section的時間是有限的","3","",""
+"105","2998","S072","1. Mutual exclusion: share data cannot be uses by many threads at same time.
+2. Progress: 有人要進去CS, 其他沒有在CS或在等待的人不能決定其是否能進
+3. boundary waiting: 要在有限的時間內進CS，不能無止盡的等待。","3","",""
+"106","3401","S071","mutual exclusive、 progress、 bounded waiting","3","",""
+"107","6429","S062","1.Higher priority should get the lock in prior than lower priority
+2.There is only one process(thread) in the critical section
+3.Use semaphore to run signal() and wait() to solve the busy waiting problem ","1","僅 Mutual Exclusion 正確",""
+"108","3907","S045","1.如果數值的值發生變動還沒寫會去memory就被別人拿去用會造成輸出錯誤
+2.如果改動資料的memory address後面要用這個資料的人可能找不到
+3.","0","答非所問",""
+"109","6082","S065","1.只有一個process能進入CS
+2.不在CS內的process不能阻止其他process進入CS
+3.CS內的process執行完了，下一個process才可以進入CS","2","缺少 Bounded Waiting",""
+"110","6061","S025","a lock, the priority given to processes, the scheduling algorithm ","0","lock/priority/scheduling 非三大需求",""
+"111","3865","S098","progress 
+bounded waiting
+mutual exclusion","3","",""

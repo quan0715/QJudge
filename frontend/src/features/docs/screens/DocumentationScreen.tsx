@@ -268,7 +268,13 @@ const DocumentationScreen: React.FC = () => {
                 {/* Show QuickLinkCards on overview page */}
                 {currentSlug === "overview" && <QuickLinkCards />}
 
-                <MarkdownRenderer enableMath enableHighlight enableCopy allowRawHtml>
+                <MarkdownRenderer
+                  enableMath
+                  enableHighlight
+                  enableCopy
+                  enableMermaid
+                  allowRawHtml
+                >
                   {content}
                 </MarkdownRenderer>
 

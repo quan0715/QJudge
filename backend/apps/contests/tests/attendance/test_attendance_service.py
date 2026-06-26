@@ -55,6 +55,7 @@ class TestCredentialValidation:
     def test_refresh_interval_matches_attendance_credential_lifetime(self) -> None:
         assert svc.ATTENDANCE_REFRESH_SECONDS == 60
         assert svc.ATTENDANCE_TOKEN_MAX_AGE_SECONDS == 60
+        assert svc.ATTENDANCE_TOKEN_GRACE_SECONDS == 30
 
     def test_token_validates_when_cache_payload_matches(self) -> None:
         owner = _make_user("svc_token_owner", role="teacher")
@@ -105,21 +106,63 @@ class TestCredentialValidation:
         )
         assert payload["purpose"] == "check_in"
 
-    def test_new_credential_invalidates_previous_token_and_manual_code(self) -> None:
+    def test_active_credential_is_reused_within_token_lifetime(self) -> None:
         owner = _make_user("svc_refresh_owner", role="teacher")
         contest = _make_contest(owner)
-        first = svc.create_attendance_credential(contest, "check_in")
-        second = svc.create_attendance_credential(contest, "check_in")
+        with mock.patch.object(svc, "_generate_attendance_manual_code", side_effect=["111111", "222222"]):
+            first = svc.create_attendance_credential(contest, "check_in")
+            second = svc.create_attendance_credential(contest, "check_in")
 
-        with pytest.raises(ValueError, match="invalid_attendance_token"):
-            svc.validate_attendance_token(contest, "check_in", first["token"])
-        with pytest.raises(ValueError, match="invalid_attendance_manual_code"):
-            svc.validate_attendance_manual_code(contest, "check_in", first["manual_code"])
+        assert second["token"] == first["token"]
+        assert second["manual_code"] == first["manual_code"]
+        assert second["generation"] == "1"
+
+        payload = svc.validate_attendance_token(contest, "check_in", first["token"])
+        assert payload["manual_code"] == first["manual_code"]
+        payload = svc.validate_attendance_manual_code(contest, "check_in", first["manual_code"])
+        assert payload["token"] == first["token"]
+
+    def test_expired_credential_rotates_and_previous_credential_has_grace_period(self) -> None:
+        owner = _make_user("svc_refresh_grace_owner", role="teacher")
+        contest = _make_contest(owner)
+        base_time = timezone.now()
+
+        with mock.patch.object(svc, "_generate_attendance_manual_code", side_effect=["111111", "222222"]):
+            with mock.patch.object(svc.timezone, "now", return_value=base_time):
+                first = svc.create_attendance_credential(contest, "check_in")
+
+            with mock.patch.object(
+                svc.timezone,
+                "now",
+                return_value=base_time + timedelta(seconds=svc.ATTENDANCE_TOKEN_MAX_AGE_SECONDS + 1),
+            ):
+                second = svc.create_attendance_credential(contest, "check_in")
+
+                grace_payload = svc.validate_attendance_token(contest, "check_in", first["token"])
+                assert grace_payload["manual_code"] == first["manual_code"]
+                grace_payload = svc.validate_attendance_manual_code(contest, "check_in", first["manual_code"])
+                assert grace_payload["token"] == first["token"]
 
         payload = svc.validate_attendance_token(contest, "check_in", second["token"])
         assert payload["manual_code"] == second["manual_code"]
         payload = svc.validate_attendance_manual_code(contest, "check_in", second["manual_code"])
         assert payload["token"] == second["token"]
+        assert second["generation"] == "2"
+
+        with mock.patch.object(
+            svc.timezone,
+            "now",
+            return_value=base_time
+            + timedelta(
+                seconds=svc.ATTENDANCE_TOKEN_MAX_AGE_SECONDS
+                + svc.ATTENDANCE_TOKEN_GRACE_SECONDS
+                + 1
+            ),
+        ):
+            with pytest.raises(ValueError, match="invalid_attendance_token"):
+                svc.validate_attendance_token(contest, "check_in", first["token"])
+            with pytest.raises(ValueError, match="invalid_attendance_manual_code"):
+                svc.validate_attendance_manual_code(contest, "check_in", first["manual_code"])
 
     def test_manual_code_raises_for_wrong_length(self) -> None:
         owner = _make_user("svc_manual_len_owner", role="teacher")

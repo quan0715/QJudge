@@ -23,6 +23,7 @@ import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { pickLatestTodos } from "@/shared/ai/TodoList";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import { AITaskShell } from "@/features/ai-tasks/shell/AITaskShell";
 import type { TaskShellSessionOption, TaskStatus } from "@/features/ai-tasks/shell/types";
 import {
@@ -38,7 +39,7 @@ import {
 } from "./grading/components/GradingModals";
 import styles from "./ContestAiGradingScreen.module.scss";
 
-const EXCLUDED_MODEL_IDS = new Set(["openai-nano", "deepseek-v4"]);
+const EXCLUDED_MODEL_IDS = new Set(["openai-nano"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
 
 function toSingleLineLabel(value: string | undefined): string {
@@ -377,7 +378,7 @@ const ContestAiGradingScreen: React.FC = () => {
       },
       ...scores.map((score) => ({
         id: `score:${score}`,
-        label: t("grading.scoreFilterValue", "建議分數 {{score}}", { score }),
+        label: t("grading.scoreFilterValue", "建議分數 {{score}}", { score: formatScore(score) }),
         score,
       })),
     ];

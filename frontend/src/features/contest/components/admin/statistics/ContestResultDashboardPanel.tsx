@@ -31,6 +31,7 @@ import {
 } from "@/shared/ui/examQuestionTypeVisual";
 import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
@@ -229,7 +230,7 @@ export default function ContestResultDashboardPanel({
       >
         <KpiCard
           label={t("statistics.avgTotalScore", "平均總分")}
-          value={`${dashboard.summary.averageScore.toFixed(1)} / ${dashboard.summary.maxTotalScore}`}
+          value={`${formatScore(dashboard.summary.averageScore)} / ${formatScore(dashboard.summary.maxTotalScore)}`}
           caption={t("statistics.classAverage", "全班平均")}
         />
         <KpiCard
@@ -262,7 +263,7 @@ export default function ContestResultDashboardPanel({
             {t("statistics.scoreDistribution", "總分分布")}
           </h3>
           <span className={styles.chartLegend}>
-            {t("statistics.averageReference", "平均")} {dashboard.summary.averageScore.toFixed(1)} / {dashboard.summary.maxTotalScore} ({Math.round(averageScoreRate)}%)
+            {t("statistics.averageReference", "平均")} {formatScore(dashboard.summary.averageScore)} / {formatScore(dashboard.summary.maxTotalScore)} ({Math.round(averageScoreRate)}%)
           </span>
         </div>
         <div className={styles.chartFrame}>
@@ -437,8 +438,8 @@ const QuestionPreviewCard = memo(function QuestionPreviewCard({
         <div className={styles.previewCardStats}>
           <span>
             {t("statistics.averagePreview", "平均 {{score}} / {{maxScore}}", {
-              score: question.averageScore.toFixed(1),
-              maxScore: question.maxScore,
+              score: formatScore(question.averageScore),
+              maxScore: formatScore(question.maxScore),
             })}
           </span>
           <span>·</span>
@@ -527,7 +528,7 @@ function DrawerContent({
             </div>
             <div className={styles.drawerMeta}>
               <span>
-                {question.averageScore.toFixed(1)} / {question.maxScore}
+                {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
               </span>
               <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
               <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
@@ -557,7 +558,7 @@ function DrawerContent({
             </div>
             <div className={styles.drawerMeta}>
               <span>
-                {question.averageScore.toFixed(1)} / {question.maxScore}
+                {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
               </span>
               <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
               <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
@@ -633,7 +634,7 @@ function DrawerContent({
           </div>
           <div className={styles.drawerMeta}>
             <span>
-              {question.averageScore.toFixed(1)} / {question.maxScore}
+              {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
             </span>
             <span>{t("statistics.answeredCount", "{{count}} 人作答", { count: question.answerCount })}</span>
             <span>{t("statistics.omittedCount", "{{count}} 人未作答", { count: question.missingCount })}</span>
@@ -1290,7 +1291,7 @@ function buildScoreFilterOptions(
 
 function formatScoreLabel(score: number | null): string {
   if (score == null) return "";
-  return Number.isInteger(score) ? String(score) : score.toFixed(1).replace(/\.0$/, "");
+  return formatScore(score);
 }
 
 function formatAnswerContent(

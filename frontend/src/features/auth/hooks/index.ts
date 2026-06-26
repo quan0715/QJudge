@@ -4,3 +4,4 @@ export {
   useUserPreferences,
   type UseUserPreferencesReturn,
 } from "./useUserPreferences";
+export { useAuthOptions } from "./useAuthOptions";

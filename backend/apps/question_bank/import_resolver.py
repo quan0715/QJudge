@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from uuid import UUID
 
 from rest_framework.exceptions import (
@@ -11,8 +12,29 @@ from rest_framework.exceptions import (
 )
 
 from .bank_workflows import is_publicly_accessible_bank
-from .models import Question, QuestionBank, QuestionBankMembership
-from .write_workflows import materialize_bank_question_adapter_for_membership
+from .models import QuestionAsset, QuestionBank, QuestionBankMembership
+
+
+QUESTION_TYPE_CODING = "coding"
+QUESTION_TYPE_EXAM = "exam"
+
+
+@dataclass(frozen=True)
+class BankQuestionImportItem:
+    membership: QuestionBankMembership
+    question_asset: QuestionAsset
+    payload: dict
+    question_type: str
+    title: str
+    prompt: str
+
+    @property
+    def id(self):
+        return self.membership.id
+
+    @property
+    def question_version(self):
+        return self.question_asset.latest_version
 
 
 def _normalize_uuid(value, *, field_name: str) -> str:
@@ -30,9 +52,9 @@ def resolve_bank_question_for_import(
     allowed_question_types: Iterable[str] | None = None,
     invalid_type_message: str = "Question type cannot be imported here",
 ):
-    """Resolve and materialize a bank question for contest import.
+    """Resolve a bank membership for contest import.
 
-    Returns ``(bank, question)`` on success. Raises DRF exceptions on invalid
+    Returns ``(bank, item)`` on success. Raises DRF exceptions on invalid
     identifiers, access denial, missing rows, or disallowed question types.
     """
     normalized_bank_uuid = _normalize_uuid(
@@ -57,24 +79,29 @@ def resolve_bank_question_for_import(
             bank=bank,
             id=normalized_question_uuid,
         )
-        .select_related("question_asset", "question_asset__latest_version", "legacy_question")
+        .select_related("question_asset", "question_asset__latest_version")
         .first()
     )
 
-    question = None
-    if membership:
-        if membership.legacy_question_id:
-            question = membership.legacy_question
-        else:
-            question = materialize_bank_question_adapter_for_membership(
-                membership=membership,
-                actor=user,
-            )
-
-    if not question:
+    if not membership:
         raise NotFound("Question not found in bank")
 
-    if allowed_question_types is not None and question.question_type not in set(allowed_question_types):
+    version = membership.question_asset.latest_version
+    payload = version.payload if version and isinstance(version.payload, dict) else {}
+    question_type = (
+        QUESTION_TYPE_CODING
+        if membership.question_asset.asset_type == QuestionAsset.AssetType.CODING
+        else QUESTION_TYPE_EXAM
+    )
+
+    if allowed_question_types is not None and question_type not in set(allowed_question_types):
         raise DRFValidationError(invalid_type_message)
 
-    return bank, question
+    return bank, BankQuestionImportItem(
+        membership=membership,
+        question_asset=membership.question_asset,
+        payload=payload,
+        question_type=question_type,
+        title=(version.title if version else membership.question_asset.title) or "",
+        prompt=(version.prompt if version else membership.question_asset.prompt) or "",
+    )

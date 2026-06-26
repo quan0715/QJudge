@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { submitExamAnswer } from "@/infrastructure/api/repositories/examAnswers.repository";
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import { buildExamAnswerPayload } from "./usePaperExamAutoSave";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -8,7 +11,14 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 interface UsePaperExamSaveOnLeaveOptions {
   contestId: string | undefined;
   answers: Record<string, unknown>;
-  items: { kind: string; data: { id: string; questionType?: ExamQuestionType } }[];
+  items: {
+    kind: string;
+    data: {
+      id: string;
+      questionType?: ExamQuestionType;
+      answerFormat?: ExamQuestionAnswerFormat;
+    };
+  }[];
 }
 
 export function usePaperExamSaveOnLeave({
@@ -28,12 +38,12 @@ export function usePaperExamSaveOnLeave({
   useEffect(() => { itemsRef.current = items; }, [items]);
   useEffect(() => { contestIdRef.current = contestId; }, [contestId]);
 
-  const getQuestionType = useCallback(
-    (questionId: string): ExamQuestionType | undefined => {
+  const getQuestion = useCallback(
+    (questionId: string) => {
       const item = itemsRef.current.find(
         (it) => it.kind === "question" && it.data.id === questionId,
       );
-      return item?.data.questionType;
+      return item?.data;
     },
     [],
   );
@@ -45,16 +55,18 @@ export function usePaperExamSaveOnLeave({
       const value = answersRef.current[questionId];
       if (value === undefined) return;
 
-      const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
+      const question = getQuestion(questionId);
+      const payload = buildExamAnswerPayload(value, question?.questionType, question?.answerFormat);
       setSaveStatus("saving");
       try {
         await submitExamAnswer(cId, questionId, payload);
         setSaveStatus("saved");
-      } catch {
+      } catch (error) {
         setSaveStatus("error");
+        throw error;
       }
     },
-    [getQuestionType],
+    [getQuestion],
   );
 
   const markDirty = useCallback((questionId: string) => {
@@ -64,8 +76,8 @@ export function usePaperExamSaveOnLeave({
   const saveIfDirty = useCallback(
     async (questionId: string) => {
       if (!dirtySetRef.current.has(questionId)) return;
-      dirtySetRef.current.delete(questionId);
       await saveQuestion(questionId);
+      dirtySetRef.current.delete(questionId);
     },
     [saveQuestion],
   );
@@ -78,9 +90,13 @@ export function usePaperExamSaveOnLeave({
     setSaveStatus("saving");
     try {
       await Promise.all(dirtyIds.map((id) => saveQuestion(id)));
+      for (const id of dirtyIds) {
+        dirtySetRef.current.delete(id);
+      }
       setSaveStatus("saved");
-    } catch {
+    } catch (error) {
       setSaveStatus("error");
+      throw error;
     }
   }, [saveQuestion]);
 
@@ -95,7 +111,8 @@ export function usePaperExamSaveOnLeave({
       for (const questionId of dirtySetRef.current) {
         const value = answersRef.current[questionId];
         if (value === undefined) continue;
-        const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
+        const question = getQuestion(questionId);
+        const payload = buildExamAnswerPayload(value, question?.questionType, question?.answerFormat);
         // Keep endpoint aligned with submitExamAnswer API contract.
         const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
         const body = {
@@ -118,7 +135,8 @@ export function usePaperExamSaveOnLeave({
         for (const questionId of dirtySetRef.current) {
           const value = answersRef.current[questionId];
           if (value === undefined) continue;
-          const payload = buildExamAnswerPayload(value, getQuestionType(questionId));
+          const question = getQuestion(questionId);
+          const payload = buildExamAnswerPayload(value, question?.questionType, question?.answerFormat);
           const url = `/api/v1/contests/${cId}/exam-answers/submit/`;
           const body = {
             question_id: questionId,
@@ -136,7 +154,7 @@ export function usePaperExamSaveOnLeave({
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [getQuestionType]);
+  }, [getQuestion]);
 
   return { markDirty, saveIfDirty, flushAll, saveStatus };
 }

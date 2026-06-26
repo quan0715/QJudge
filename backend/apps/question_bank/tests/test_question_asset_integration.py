@@ -11,7 +11,6 @@ from apps.contests.models import Contest, ExamQuestion
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import (
     ContestQuestionBinding,
-    Question,
     QuestionAsset,
     QuestionBank,
     QuestionBankMembership,
@@ -129,7 +128,7 @@ def test_exam_question_api_dual_writes_asset_and_binding(
     exam_question = ExamQuestion.objects.get(id=resp.data["id"])
     assert exam_question.question_asset_id is not None
     assert exam_question.question_version_id is not None
-    binding = ContestQuestionBinding.objects.get(legacy_exam_question=exam_question)
+    binding = ContestQuestionBinding.objects.get(exam_question=exam_question)
     assert binding.contest_id == contest.id
     assert binding.question_asset_id == exam_question.question_asset_id
     assert binding.question_version_id == exam_question.question_version_id
@@ -200,8 +199,6 @@ def test_question_bank_question_create_builds_asset_and_membership(
     assert resp.status_code == status.HTTP_201_CREATED
 
     membership = QuestionBankMembership.objects.get(id=resp.data["id"])
-    assert membership.legacy_question_id is None
-    assert Question.objects.count() == 0
     assert membership.question_asset_id is not None
     assert membership.question_asset.latest_version_id is not None
     assert membership.question_asset.versions.count() == 1
@@ -222,23 +219,40 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         category=QuestionBank.Category.CODING,
         visibility=QuestionBank.Visibility.PRIVATE,
     )
-    question = Question.objects.create(
-        bank=bank,
-        question_type=Question.QuestionType.CODING,
+    asset, _version = create_question_asset(
+        owner=teacher,
+        asset_type=QuestionAsset.AssetType.CODING,
         title="Patch Me",
         prompt="prompt v1",
-        score=100,
-        created_by=teacher,
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload={
+            "score": 100,
+            "order": 0,
+            "difficulty": "medium",
+            "time_limit": 1000,
+            "memory_limit": 128,
+            "options": [],
+            "correct_answer": None,
+            "metadata": {},
+            "test_cases": [],
+            "language_configs": [],
+            "forbidden_keywords": [],
+            "required_keywords": [],
+        },
+        actor=teacher,
     )
-    from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
-
-    ensure_question_asset_for_bank_question(question=question, actor=teacher)
-    original_version_id = question.question_version_id
-    original_version_count = question.question_asset.versions.count()
+    membership = ensure_question_bank_membership(
+        bank=bank,
+        question_asset=asset,
+        order=0,
+        actor=teacher,
+    )
+    original_version_id = asset.latest_version_id
+    original_version_count = asset.versions.count()
 
     api_client.force_authenticate(user=teacher)
     resp = api_client.patch(
-        f"/api/v1/question-banks/{bank.uuid}/questions/{question.id}/",
+        f"/api/v1/question-banks/{bank.uuid}/questions/{membership.id}/",
         {
             "title": "Patch Me v2",
             "coding_ext": {
@@ -256,15 +270,12 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
     )
 
     assert resp.status_code == status.HTTP_200_OK
-    membership = QuestionBankMembership.objects.get(legacy_question=question)
     membership.question_asset.refresh_from_db()
-    question.refresh_from_db()
-    assert question.question_version_id == original_version_id
     assert membership.question_asset.versions.count() == original_version_count + 1
     assert membership.question_asset.latest_version_id != original_version_id
     assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
     assert membership.question_asset.latest_version.title == "Patch Me v2"
-    assert membership.question_asset_id == question.question_asset_id
+    assert membership.question_asset_id == asset.id
 
 
 @pytest.mark.django_db
@@ -306,15 +317,12 @@ def test_exam_question_ingest_reuses_existing_question_asset(
     )
     assert ingest_resp.status_code == status.HTTP_200_OK
 
-    bank_question = Question.objects.get(
-        bank=target_bank,
-        metadata__legacy_exam_question_id=str(exam_question.id),
-    )
-    assert bank_question.question_asset_id == exam_question.question_asset_id
-    assert QuestionBankMembership.objects.filter(
+    membership = QuestionBankMembership.objects.get(
         bank=target_bank,
         question_asset_id=exam_question.question_asset_id,
-    ).exists()
+    )
+    exam_question.refresh_from_db()
+    assert exam_question.source_question_id == membership.id
 
 
 @pytest.mark.django_db
@@ -414,7 +422,6 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
     assert resp.status_code == status.HTTP_200_OK
     assert resp.data["id"] == str(membership.id)
     assert resp.data["bank_item_id"] == str(membership.id)
-    assert resp.data["adapter_question_id"] is None
     assert resp.data["question_asset_id"] == str(asset.id)
     assert resp.data["title"] == "Canonical Only Item"
 
@@ -466,7 +473,6 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
     assert resp.status_code == status.HTTP_200_OK
     assert resp.data["id"] == str(membership.id)
     assert resp.data["bank_item_id"] == str(membership.id)
-    assert resp.data["adapter_question_id"] is None
 
 
 @pytest.mark.django_db
@@ -531,8 +537,6 @@ def test_question_viewset_can_patch_canonical_only_membership(
 
     assert resp.status_code == status.HTTP_200_OK
     membership.refresh_from_db()
-    assert membership.legacy_question_id is None
-    assert Question.objects.count() == 0
     assert membership.question_asset.latest_version.title == "After Patch"
     assert membership.question_asset.latest_version.payload["forbidden_keywords"] == ["scanf"]
 
@@ -583,3 +587,154 @@ def test_question_viewset_can_delete_canonical_only_membership(
 
     assert resp.status_code == status.HTTP_204_NO_CONTENT
     assert not QuestionBankMembership.objects.filter(id=membership.id).exists()
+
+
+@pytest.mark.django_db
+def test_clone_canonical_membership_reuses_asset_membership(
+    api_client: APIClient,
+    teacher: User,
+):
+    platform_admin = User.objects.create_user(
+        username="clone_asset_admin",
+        email="clone_asset_admin@example.com",
+        password="pass123",
+        role="admin",
+        is_staff=True,
+    )
+    public_bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Public Asset Bank",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+        review_status=QuestionBank.ReviewStatus.APPROVED,
+    )
+    asset, _version = create_question_asset(
+        owner=platform_admin,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title="Clone Asset Only",
+        prompt="prompt",
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload={
+            "score": 100,
+            "order": 0,
+            "difficulty": "easy",
+            "time_limit": 1000,
+            "memory_limit": 128,
+            "options": [],
+            "correct_answer": None,
+            "metadata": {},
+            "description": "asset-only",
+            "input_description": "",
+            "output_description": "",
+            "hint": "",
+            "test_cases": [],
+            "language_configs": [],
+            "forbidden_keywords": [],
+            "required_keywords": [],
+        },
+        actor=platform_admin,
+    )
+    membership = ensure_question_bank_membership(
+        bank=public_bank,
+        question_asset=asset,
+        order=0,
+        actor=platform_admin,
+    )
+    clone_user = User.objects.create_user(
+        username="clone_asset_user",
+        email="clone_asset_user@example.com",
+        password="pass123",
+        role="teacher",
+    )
+
+    api_client.force_authenticate(user=clone_user)
+    resp = api_client.post(
+        f"/api/v1/question-banks/{public_bank.uuid}/questions/{membership.id}/clone-to-my-bank/",
+        {},
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_201_CREATED
+    target_bank = QuestionBank.objects.get(owner=clone_user, category=QuestionBank.Category.CODING)
+    cloned_membership = QuestionBankMembership.objects.get(bank=target_bank)
+    assert cloned_membership.question_asset_id == asset.id
+
+
+@pytest.mark.django_db
+def test_inbox_ingest_problem_creates_asset_membership(
+    api_client: APIClient,
+    teacher: User,
+):
+    target_bank = QuestionBank.objects.create(
+        owner=teacher,
+        name="Coding Inbox Asset Bank",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PRIVATE,
+    )
+    problem = CodingProblem.objects.create(
+        slug="asset-only-inbox-problem",
+        created_by=teacher,
+        time_limit=1000,
+        memory_limit=128,
+    )
+
+    api_client.force_authenticate(user=teacher)
+    resp = api_client.post(
+        "/api/v1/question-banks/inbox/ingest/",
+        {
+            "target_bank_id": str(target_bank.uuid),
+            "items": [{"source_type": "problem", "source_id": str(problem.id)}],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    problem.refresh_from_db()
+    membership = QuestionBankMembership.objects.get(
+        bank=target_bank,
+        question_asset=problem.question_asset,
+    )
+    assert resp.data["question_ids"] == [str(membership.id)]
+
+
+@pytest.mark.django_db
+def test_inbox_ingest_exam_question_creates_asset_membership(
+    api_client: APIClient,
+    teacher: User,
+    contest: Contest,
+):
+    target_bank = QuestionBank.objects.create(
+        owner=teacher,
+        name="Exam Inbox Asset Bank",
+        category=QuestionBank.Category.EXAM,
+        visibility=QuestionBank.Visibility.PRIVATE,
+    )
+    exam_question = ExamQuestion.objects.create(
+        contest=contest,
+        question_type="single_choice",
+        prompt="Asset-only exam ingest",
+        options=["A", "B"],
+        correct_answer=0,
+        score=2,
+        order=0,
+    )
+
+    api_client.force_authenticate(user=teacher)
+    resp = api_client.post(
+        "/api/v1/question-banks/inbox/ingest/",
+        {
+            "target_bank_id": str(target_bank.uuid),
+            "items": [{"source_type": "exam_question", "source_id": str(exam_question.id)}],
+        },
+        format="json",
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    exam_question.refresh_from_db()
+    membership = QuestionBankMembership.objects.get(
+        bank=target_bank,
+        question_asset=exam_question.question_asset,
+    )
+    assert resp.data["question_ids"] == [str(membership.id)]
+    assert exam_question.source_question_id == membership.id

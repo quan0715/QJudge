@@ -1,0 +1,64 @@
+{
+  "classroom_id": null,
+  "cli_version": "0.1.0",
+  "concurrency": 2,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "dataset_dir": "/Users/quan/online_judge/paper/data/raw/qjudge-exams/exam2",
+  "ended_at": "2026-05-26T20:54:25.292631Z",
+  "exam_key": "exam2",
+  "experiment_id": "exam2-subjective-deepseek-flash-pro-recovery-20260527-043216",
+  "model_ids": [
+    "deepseek-v4-pro",
+    "deepseek-v4-flash"
+  ],
+  "official_grades_modified": false,
+  "preset": "exam2-subjective",
+  "question_ids": [
+    "a89c0767-a955-4b8d-927f-d01e3d954cc0",
+    "e74dd4e1-7f62-4da6-b965-e65834bf10fc",
+    "8edb59fe-821f-4597-a8e4-0bb11146517d",
+    "8bd69984-3cd8-48b1-9da3-4c040620959e",
+    "e7ffda48-61f1-4aad-8337-1ba266c0c951"
+  ],
+  "run_count": 9,
+  "run_pairs": [
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "a89c0767-a955-4b8d-927f-d01e3d954cc0"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "e74dd4e1-7f62-4da6-b965-e65834bf10fc"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "e74dd4e1-7f62-4da6-b965-e65834bf10fc"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "8edb59fe-821f-4597-a8e4-0bb11146517d"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "8edb59fe-821f-4597-a8e4-0bb11146517d"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "8bd69984-3cd8-48b1-9da3-4c040620959e"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "8bd69984-3cd8-48b1-9da3-4c040620959e"
+    },
+    {
+      "model_id": "deepseek-v4-flash",
+      "question_id": "e7ffda48-61f1-4aad-8337-1ba266c0c951"
+    },
+    {
+      "model_id": "deepseek-v4-pro",
+      "question_id": "e7ffda48-61f1-4aad-8337-1ba266c0c951"
+    }
+  ],
+  "started_at": "2026-05-26T20:32:16.747341Z",
+  "user_id": null
+}

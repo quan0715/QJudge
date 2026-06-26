@@ -5,6 +5,7 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import {
   ListPanel,
   ListHeader,
@@ -16,6 +17,8 @@ import {
   ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import type { QuestionProgress } from "./gradingTypes";
+import { computeEffectiveMaxTotal } from "./scorePolicyUtils";
+import { ScorePolicyTag } from "./components/ScorePolicyMenu";
 import styles from "./GradingByQuestion.module.scss";
 import mini from "./GradingMini.module.scss";
 
@@ -52,7 +55,13 @@ export default function QuestionSidebarScreen({
     (left, right) => left.questionIndex - right.questionIndex,
   );
   const totalQuestions = questions.length;
-  const totalScore = questions.reduce((sum, question) => sum + (question.maxScore ?? 0), 0);
+  const totalScore = computeEffectiveMaxTotal(
+    questions.map((q) => ({
+      maxScore: q.maxScore,
+      effectiveMaxScore: q.effectiveMaxScore,
+      scorePolicy: q.scorePolicy,
+    })),
+  );
 
   if (collapsed) {
     return (
@@ -116,7 +125,7 @@ export default function QuestionSidebarScreen({
         footer={
           <ListFooter>
             <span>{t("grading.questionsCount", "{{count}} 題", { count: totalQuestions })}</span>
-            <span>{t("grading.totalScore", "總分 {{score}}", { score: totalScore })}</span>
+            <span>{t("grading.totalScore", "總分 {{score}}", { score: formatScore(totalScore) })}</span>
           </ListFooter>
         }
       >
@@ -135,7 +144,19 @@ export default function QuestionSidebarScreen({
                 <TypeIcon size={14} className={styles.sidebarTypeIcon} />
               </ListItemLeading>
               <ListItemContent>
-                <ListItemTitle>Q{q.questionIndex}</ListItemTitle>
+                <ListItemTitle>
+                  Q{q.questionIndex}
+                  {q.scorePolicy && q.scorePolicy !== "normal" && (
+                    <ScorePolicyTag policy={q.scorePolicy} />
+                  )}
+                  {q.scorePolicy !== "excluded" && q.scorePolicy !== "redistribute" && (
+                    <span className={styles.sidebarScoreLabel}>
+                      {q.effectiveMaxScore != null && q.effectiveMaxScore !== q.maxScore
+                        ? `${formatScore(q.maxScore)}→${formatScore(q.effectiveMaxScore)}`
+                        : formatScore(q.maxScore)}
+                    </span>
+                  )}
+                </ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
                 <span

@@ -1,0 +1,90 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.popover {
+  position: absolute;
+  z-index: 4;
+  width: min(34rem, calc(100vw - 2rem));
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  background: var(--cds-layer-01);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--cds-text-primary) 18%, transparent);
+}
+
+.header,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: layout.$spacing-03;
+}
+
+.title {
+  @include type.type-style("heading-compact-01");
+
+  color: var(--cds-text-primary);
+}
+
+.templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: layout.$spacing-02;
+  margin-top: layout.$spacing-03;
+}
+
+.templateButton {
+  @include type.type-style("body-compact-01");
+
+  min-height: 2rem;
+  padding: 0 layout.$spacing-03;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  cursor: pointer;
+}
+
+.templateButton:hover {
+  background: var(--cds-layer-hover-01);
+}
+
+.fieldWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  margin-top: layout.$spacing-03;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  background: var(--cds-background);
+}
+
+.field {
+  width: 100%;
+  font-size: 1.5rem;
+  --selection-background-color: color-mix(in srgb, var(--cds-focus) 30%, transparent);
+}
+
+.field:focus-within {
+  outline: 0;
+}
+
+.loading {
+  @include type.type-style("body-compact-01");
+
+  color: var(--cds-text-secondary);
+}
+
+.hint {
+  @include type.type-style("helper-text-01");
+
+  margin-top: layout.$spacing-03;
+  color: var(--cds-text-secondary);
+}
+
+.actions {
+  justify-content: flex-end;
+  margin-top: layout.$spacing-04;
+}

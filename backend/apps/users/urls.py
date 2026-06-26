@@ -6,6 +6,7 @@ from django.urls import path
 from .views import (
     RegisterView,
     LoginView,
+    AuthOptionsView,
     DevTokenView,
     LogoutView,
     OAuthLoginView,
@@ -31,6 +32,9 @@ from .views import (
 app_name = 'users'
 
 urlpatterns = [
+    # Public login method metadata
+    path('options', AuthOptionsView.as_view(), name='auth-options'),
+
     # Email/Password authentication
     path('email/register', RegisterView.as_view(), name='email-register'),
     path('email/login', LoginView.as_view(), name='email-login'),

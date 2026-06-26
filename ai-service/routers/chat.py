@@ -63,6 +63,7 @@ async def generate_sse_events(
         # thread_id is already session-scoped in the backend contract.
         session_id=request.thread_id,
         run_id=request.run_id,
+        tool_policy=request.tool_policy,
     )
 
     try:

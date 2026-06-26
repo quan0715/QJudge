@@ -1,9 +1,8 @@
 """ExamAnswerViewSet — student answer submission and TA grading."""
+import json
 from decimal import Decimal, ROUND_HALF_UP
-from statistics import median
 
 from django.utils import timezone
-from django.db.models import Sum
 from django.core.cache import cache
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
@@ -17,6 +16,7 @@ from ..models import (
     ExamQuestion,
     ExamAnswer,
     ExamStatus,
+    ExamQuestionAnswerFormat,
     ExamQuestionType,
 )
 from ..serializers import (
@@ -26,9 +26,12 @@ from ..serializers import (
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
 )
+from ..services.score_recalculation import recalculate_participant_score
+from ..services.exam_scoring import ExamScoringService
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
 from ..services.question_edit_lock import maybe_lock_from_exam_answer
+from ..services.open_answer_document import validate_open_answer_document
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
@@ -218,10 +221,21 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        answer = serializer.validated_data['answer']
+        if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
+            document = answer.get('document')
+            validate_open_answer_document(document)
+            serialized = json.dumps(document, ensure_ascii=False)
+            if len(serialized.encode('utf-8')) > 32 * 1024:
+                return Response(
+                    {'answer': ['open answer document exceeds 32 KB']},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         answer_obj, created = ExamAnswer.objects.update_or_create(
             participant=participant,
             question=question,
-            defaults={'answer': serializer.validated_data['answer']}
+            defaults={'answer': answer}
         )
         # 首次建立時記錄題目快照（後續更新答案不覆蓋快照）
         if created:
@@ -383,6 +397,9 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         kind_filter = self._parse_dashboard_kind(request.query_params.get('kind'))
 
+        # Use consolidated scoring service
+        scoring = ExamScoringService(contest)
+
         participants = list(
             self._student_participants_qs(contest).values('id', 'exam_status')
         )
@@ -392,101 +409,60 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             1 for item in participants if item['exam_status'] == ExamStatus.SUBMITTED
         )
 
-        questions = list(
-            ExamQuestion.objects.filter(contest=contest).order_by('order', 'created_at')
-        )
-        max_total_score = sum(question.score for question in questions)
+        questions = scoring.get_questions()
+        max_total_score = scoring.get_max_total_score()
 
         answers = list(
             ExamAnswer.objects.filter(participant_id__in=participant_ids)
-            .select_related('question')
-            .values(
-                'participant_id',
-                'question_id',
-                'score',
-                'is_correct',
-                'graded_at',
-            )
+            .values('participant_id', 'question_id', 'score', 'is_correct', 'graded_at')
         )
 
-        participant_scores = {participant_id: 0 for participant_id in participant_ids}
-        question_stats = {
-            str(question.id): {
-                'answer_count': 0,
-                'graded_count': 0,
-                'score_sum': 0.0,
-                'zero_count': 0,
-                'full_count': 0,
-                'correct_count': 0,
-            }
-            for question in questions
-        }
+        # Compute per-participant totals via service
+        participant_scores_map = scoring.compute_participant_scores(participant_ids, answers)
+        total_scores = list(participant_scores_map.values())
 
-        question_lookup = {str(question.id): question for question in questions}
+        # Compute per-question stats via service
+        question_stats = scoring.get_question_stats(answers)
 
-        for answer in answers:
-            question_id = str(answer['question_id'])
-            question = question_lookup.get(question_id)
-            if question is None:
-                continue
-            stats = question_stats[question_id]
-            stats['answer_count'] += 1
-
-            score = answer['score']
-            if score is not None:
-                numeric_score = float(score)
-                stats['graded_count'] += 1
-                stats['score_sum'] += numeric_score
-                participant_scores[answer['participant_id']] += numeric_score
-                if numeric_score == 0:
-                    stats['zero_count'] += 1
-                if numeric_score >= float(question.score):
-                    stats['full_count'] += 1
-
-            if answer['is_correct'] is True:
-                stats['correct_count'] += 1
-
-        total_scores = list(participant_scores.values())
-        average_score = round(sum(total_scores) / participant_count, 1) if participant_count else 0
-        median_score = round(median(total_scores)) if total_scores else 0
+        # Distribution
+        distribution = scoring.get_score_distribution(total_scores)
 
         question_summaries = []
-        for question in questions:
-            if kind_filter is not None and question.question_type not in kind_filter:
+        for q in questions:
+            if kind_filter is not None and q.question_type not in kind_filter:
                 continue
-            question_id = str(question.id)
-            stats = question_stats[question_id]
-            answer_count = stats['answer_count']
-            graded_count = stats['graded_count']
+            qid_str = str(q.id)
+            stats = question_stats[qid_str]
+            answer_count = stats.answer_count
+            graded_count = stats.graded_count
             missing_count = max(participant_count - answer_count, 0)
-            average_question_score = (
-                round(stats['score_sum'] / graded_count, 1) if graded_count else 0
-            )
-            score_rate = round((average_question_score / question.score) * 100) if question.score else 0
-            zero_rate = round((stats['zero_count'] / graded_count) * 100) if graded_count else 0
-            full_rate = round((stats['full_count'] / graded_count) * 100) if graded_count else 0
+            average_question_score = stats.average_score
+            score_rate = round((average_question_score / q.score) * 100) if q.score else 0
+            zero_rate = round((stats.zero_count / graded_count) * 100) if graded_count else 0
+            full_rate = round((stats.full_count / graded_count) * 100) if graded_count else 0
 
             summary = {
-                'question_id': question_id,
-                'order': question.order,
-                'title': question.prompt,
-                'kind': question.question_type,
-                'max_score': question.score,
+                'question_id': qid_str,
+                'order': q.order,
+                'title': q.prompt,
+                'kind': q.question_type,
+                'max_score': q.score,
+                'score_policy': q.score_policy,
                 'answer_count': answer_count,
                 'missing_count': missing_count,
                 'average_score': average_question_score,
                 'score_rate': score_rate,
                 'zero_rate': zero_rate,
                 'full_rate': full_rate,
-                'status': 'grading' if question.question_type in {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY} and graded_count < answer_count else 'stable',
+                'status': 'grading' if q.question_type in {ExamQuestionType.SHORT_ANSWER, ExamQuestionType.ESSAY} and graded_count < answer_count else 'stable',
             }
 
-            if question.question_type in {
+            if q.question_type in {
                 ExamQuestionType.SINGLE_CHOICE,
                 ExamQuestionType.MULTIPLE_CHOICE,
                 ExamQuestionType.TRUE_FALSE,
             }:
-                correct_rate = round((stats['correct_count'] / answer_count) * 100) if answer_count else 0
+                correct_rate = round((stats.correct_count / answer_count) * 100) if answer_count else 0
                 summary['objective_stats'] = {
                     'correct_rate': correct_rate,
                 }
@@ -512,11 +488,11 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
                 'results_published': contest.results_published,
             },
             'summary': {
-                'average_score': average_score,
-                'median_score': median_score,
-                'max_total_score': max_total_score,
+                'average_score': distribution.average_score,
+                'median_score': distribution.median_score,
+                'max_total_score': distribution.max_total_score,
             },
-            'score_distribution': self._build_score_distribution(total_scores, max_total_score),
+            'score_distribution': distribution.buckets,
             'questions': question_summaries,
         }
         return Response(payload)
@@ -632,13 +608,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Update participant total score
-        total = ExamAnswer.objects.filter(
-            participant=answer_obj.participant,
-            score__isnull=False
-        ).aggregate(total=Sum('score'))['total'] or 0
-        rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        answer_obj.participant.score = int(rounded_total)
-        answer_obj.participant.save(update_fields=['score'])
+        recalculate_participant_score(answer_obj.participant)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
 
@@ -706,12 +676,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         # Recalculate affected participant total scores
         for pid in affected_participants:
             participant = ContestParticipant.objects.get(pk=pid)
-            total = ExamAnswer.objects.filter(
-                participant=participant, score__isnull=False,
-            ).aggregate(total=Sum('score'))['total'] or 0
-            rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-            participant.score = int(rounded_total)
-            participant.save(update_fields=['score'])
+            recalculate_participant_score(participant)
 
         # Invalidate caches
         for qid in affected_question_ids:
@@ -740,12 +705,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Recalculate participant total score
-        total = ExamAnswer.objects.filter(
-            participant=answer_obj.participant,
-            score__isnull=False
-        ).aggregate(total=Sum('score'))['total'] or 0
-        rounded_total = Decimal(total).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        answer_obj.participant.score = int(rounded_total)
-        answer_obj.participant.save(update_fields=['score'])
+        recalculate_participant_score(answer_obj.participant)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)

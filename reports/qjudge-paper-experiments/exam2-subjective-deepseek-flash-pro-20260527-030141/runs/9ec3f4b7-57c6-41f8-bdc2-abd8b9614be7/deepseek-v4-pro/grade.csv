@@ -1,0 +1,479 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12054","S109","(1) request message is lost (2) reply message is lost (3) server crashes after receiving a request (4) client crashes after sending a request ","3","缺少 cannot locate server（第4項為 client crash 非標準四類）",""
+"2","12677","S015","1. LostReq: The request is lost before server receive it.
+2. LostResp: The response is lost before server receive it.
+3. Server crash: The server crashes after receiving request.
+4. Client crash: The client crashes after sending request.","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"3","15299","S054","1, 連不上server
+2, server 沒有收到 request
+3, server crash after receive
+4, client crasf after sent","3","缺少 reply message lost（第4項 client crash 非標準四類）",""
+"4","13482","S117","1. lost of request
+2. lost of response
+3. server crash while processing request
+3. client crash after sending request","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"5","12200","S093","1. response message lost
+2. request message lost
+3. receive server crash
+4. cannot locate the server，可能因為版本不合之類的","4","",""
+"6","12578","S012","1. reply message is lost
+2. request message is lost
+3. crash after request
+4. crach after reply","3","缺少 cannot locate server；crash after reply 語意模糊非標準四類",""
+"7","12668","S108","Server crash,
+Receiver lost,
+Sender lost,
+Sender crash after response,
+Receiver crash after message sent.","1","僅 server crash 一項符合標準四類；其餘表述過於籠統或非標準 RPC failure",""
+"8","12478","S099","1. Cannot locate server
+2. Request message is lost
+3. Reply message is lost
+4. Client crash after sending a message","3","缺少 server crash after receiving request（第4項 client crash 非標準四類）",""
+"9","12539","S070","1.request lost
+2.reply lost
+3.can't find sever
+4.server crash after received request","4","",""
+"10","13576","S080","cannot locate the server: server shutdown or version mismatch.
+lost request
+lost response
+the client crash after it send request","3","缺少 server crash after receiving request（第4項 client crash 非標準四類）",""
+"11","11570","S003","request message lost
+response message lost
+server crash after receiving request 
+client crash before receiving response","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"12","13119","S035","1. can not locate the server
+2. the request message is lost
+3. the reply message is lost
+4. the server crash after receiving the message.","4","",""
+"13","14385","S037","1. Call by pointer: Server do not know the address of client
+2. Global variable: Server cannot access client's global variable
+3. unbounded array: IDL need to know the message length when transmission.
+4. Undecided multiple argument in print","0","回答內容為 RPC 實作限制（pointer, global variable 等），非 RPC 通訊失敗類型",""
+"14","12948","S097","1. Request lost
+2. Response lost
+3. Server crash on receiving the request
+4. Client crash on receiving the response ","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"15","12500","S013","1.Server Crash
+2.LostReq
+3.LostResp
+4.Client crashes after sending request","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"16","13359","S040","1. request loss
+2. response loss
+3. server crash when processing request
+4. client crash after send request","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"17","11435","S124","- Server crash after replying
+- Client crash after requesting
+- Request lost 
+- Reply lost","2","Server crash after replying / Client crash after requesting 非標準四類；缺少 cannot locate server 及 server crash after receiving",""
+"18","13697","S121","- The request is lost
+- The response is lost
+- The server crashed before receiving the request or before sending the response.
+- The client crashed before sending the request.","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"19","14984","S068","1. server crush
+2. client crush
+3. 訊息送出時遺失
+4. 訊息接收超時","2","client crash 及「訊息接收超時」非標準四類 RPC failure；缺少 cannot locate server 及 reply message lost",""
+"20","12465","S102","can not find server
+server crash
+request message lost
+reply message lost","4","",""
+"21","12743","S034","1. response message is lost.
+2. request message is lost.
+3. 找不到server(server down...)
+4. server crashes after receiving a request.","4","",""
+"22","11738","S084","1. Request message is lost
+2. Reply message is lost
+3. Server crashes after receiving a message
+4. Client crashes after sending a message","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"23","12997","S079","cannot locate server
+request is lost 
+reply is lost
+server crashes after request received
+client crashes after request sent","4","",""
+"24","11971","S122","丟失
+沒收到回應
+中斷
+deadlock
+","1","回答過於籠統；僅隱含提及訊息遺失；deadlock 非 RPC 通訊失敗",""
+"25","12678","S086","1. Cannot locate the server
+2. The request message is lost
+3. The reply message is lost
+4. Server crash after receiving the request
+5. Client crash after sending the request","4","",""
+"26","13565","S052","1. Cannot locate server
+2. Request is lost
+3. Reply is lost
+4. Server crashes","4","",""
+"27","12779","S033","1.cannot locate the server 
+2.request lost 
+3.reply lost
+4.server crash when sender sent message","4","",""
+"28","13474","S123","1. lost request
+2. lost response
+3. server crash after receive request
+4. client crash after sending request","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"29","12366","S027","cannot locate server
+lost request
+lost reply
+server crashes","4","",""
+"30","11659","S081","1. failure pointer
+2. failure allocation
+3. spinlocks
+4. Failure of the server","1","回答多為程式概念（pointer, allocation, spinlock）非 RPC 通訊失敗；僅「failure of the server」勉強可視為 server crash",""
+"31","13202","S008","1. Server is not Locatable (e.g. server down).
+2. Send Request is lost.
+3. Respond is lost.
+4. Server crash after receiving request.","4","",""
+"32","11412","S078","receive fail
+respond fail 
+server crash 
+client crash ","3","缺少 cannot locate server（client crash 非標準四類）",""
+"33","12741","S087","1.request的訊息不見
+2.response的訊息不見
+3.server crush","3","僅列出三項，缺少 cannot locate server",""
+"34","11877","S022","1. send pointer
+2. send unbounded arrays
+3. unbounded parameters
+4. using global variables as parameters","0","回答為 RPC 實作限制（pointer, global variable 等），非 RPC 通訊失敗類型",""
+"35","13425","S110","cannot locate the server
+request lost
+respond lost
+server crash after request","4","",""
+"36","13345","S082","1. Lost request
+2. Lost response
+3. server crash before receive the request
+4. client crash before receive the response","2","server crash BEFORE receiving 非標準四類（應為 after receiving）；client crash 非標準四類；缺少 cannot locate server",""
+"37","13140","S105","1. request lost
+2. client crash after sending request
+3. server crash after receiving request
+4. response lost","3","缺少 cannot locate server（client crash 非標準四類）",""
+"38","11817","S111","1. lost of request
+2. lost of reply
+3. server crash after receive
+4. client crash after request","3","缺少 cannot locate server（第4項 client crash 非標準四類）",""
+"39","12563","S085","LostReq: 遺失request
+LostResp: 遺失response
+Server crashes after receiving request
+Client crashes after sending request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"40","12652","S004","1.無法定位server
+2.request message is lost
+3.reply message is lost
+4.server收到request後當機","4","",""
+"41","12384","S046","1. Request message is lost
+2. Reply message is lost
+3. Server crashes after receiving request
+4. Client crashes after sending request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"42","11686","S005","1. request lost
+2. response lost 
+3. Server crashed after receive
+4. Client crashed after request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"43","11594","S014","request message lost
+response message lost
+client crash
+server crash","3","缺少 cannot locate server（client crash 非標準四類）",""
+"44","12418","S107","1. request message is lost
+2. reply message is lost
+3. server crash after receiving the request
+4. client crash after sending the request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"45","13196","S126","1.找不到server
+2.server 故障
+3.reply 發生故障
+4.require 發生故障
+","4","",""
+"46","15471","S017","1.Cannot locate the server (server down, version mismatch, other exception)
+2.Request lost 
+3.Reply lost
+4.Sender crash after sending the request
+5.Server crash after receiving the request","4","",""
+"47","11749","S115","Lost response
+Lost reply
+System crash when recieving Response
+Client crash when recieving Reply","1","僅 Lost response 一項明確符合；Lost reply 與前者重複；其餘 crash 情境非標準 RPC failure",""
+"48","12309","S089","1. can't locate the server
+2. lost request message
+3. lost reply message
+4. client在發送訊息後Crash
+5.Server在接受訊息後Crash","4","",""
+"49","12934","S009","Server do not receive the message
+Client do not send the message
+Server disconnected
+Client disconnected","2","僅「server do not receive」及「server disconnected」勉強對應 request lost 與 server crash；缺少 cannot locate server 及 reply lost",""
+"50","13268","S094","1. 找不到server位置
+2. 要求訊息遺失
+3. 回應訊息遺失
+4. server在收到request後crash","4","",""
+"51","11523","S066","1. LostReq 
+2. LostResp 
+3. ServerCrash","3","僅列出三項，缺少 cannot locate server",""
+"52","12490","S041","Request message lost
+Response message lost
+Server crash after receive request
+Client crash after send message","3","缺少 cannot locate server（client crash 非標準四類）",""
+"53","15537","S031","1.找不到伺服器(e.g.伺服器當機)
+2.請求遺失
+3.回應遺失
+4.server在接收請求後當機","4","",""
+"54","12358","S116","request is lost, reply is lost, server crashes after message send, client crashes after receive message","2","server crashes after message SEND 非標準四類（應為 after receiving）；client crash 非標準四類；缺少 cannot locate server",""
+"55","13253","S059","1. cannot locate server
+2. lost of the request
+3. lost of the response
+5. server crash after receiving the request","4","",""
+"56","11302","S064","request message lost
+reply message lost
+","2","僅列出兩項，缺少 cannot locate server 及 server crash after receiving",""
+"57","13303","S101","1. Request is lost 
+2. Response is lost
+3. Cannot locate the server
+4. Sender crashes after receiving request","3","第4項「Sender crashes after receiving request」語意錯誤非標準四類；缺少 server crash after receiving",""
+"58","12561","S103","1. request message is lost
+2. reply message is lost
+3. sender crashes after receiving a request message
+4. receiver crashes after sending a request message","2","第3-4項 sender/receiver crash 情境混淆；缺少 cannot locate server 及 server crash after receiving",""
+"59","12736","S104","1.cannot locate the server : server down, vesion mismatch, other exception
+2.request message is lost
+3.reply message is lost
+4.server crash after receiving a request","4","",""
+"60","13318","S023","1. LostReq: Lost of request message(請求遺失)
+2. LostResp: Lost of response message(回應遺失)
+3. SerCrash: Unsuccessful execution of request(伺服器當機)
+4. 找不到伺服器","4","",""
+"61","12363","S113","1.找不到server端的位置
+2.LostRequest
+3.LostResponse
+4.Server Crash","4","",""
+"62","12696","S055","1.lost Request
+2.lost response
+3.client crash
+4.server crash","3","缺少 cannot locate server（client crash 非標準四類）",""
+"63","13034","S119","1.Cannot locate the server
+2.Request message lost
+3.Reply message lost
+4.The sender crashes after sending a request","3","缺少 server crash after receiving（第4項 sender crash 非標準四類）",""
+"64","12872","S067","1.lost response
+2.lost request
+3.sender crash after sending request
+4.receiver crash after receive request","3","缺少 cannot locate server（sender crash 非標準四類）",""
+"65","13564","S076","1. The request message is lost
+2. The response message is lost
+3. The server crashes
+4. The client does not send the request","3","缺少 cannot locate server（第4項 client does not send 非 RPC failure）",""
+"66","15876","S074","i. Client cannot locate the server
+ii. Request message is lost 
+iii. Reply message is lost
+iv. Sever crashes during execution","4","",""
+"67","13240","S063","Cannot locate server
+Lost the request message
+Lost the response message
+Server crash after request be sent
+Client crash after  response be sent ","4","",""
+"68","12906","S090","1. Cannot locate the server.
+2. The request message is lost.
+3. The response message is lost.
+4. Server crash after receive the request message.
+5. Client crash after send the request message.","4","",""
+"69","12095","S100","1. The request lost
+2. The response lost
+3. The sender crashes after sending request
+4. The receiver crashes after receiving request.","3","缺少 cannot locate server（sender crash 非標準四類）",""
+"70","11873","S114","1. lost request 
+2. lost reply 
+3.  server crash 
+4.  網路斷線 ","3","缺少 cannot locate server（網路斷線 非標準四類 RPC failure）",""
+"71","13344","S038","1.server crash
+2.cilent crash
+3.transport data loss
+4. transport data error","2","僅 server crash 及 transport data loss 勉強對應；缺少 cannot locate server 及明確區分 request/reply lost",""
+"72","15880","S047","Server fail: 如果 server 遇到什麼問題 crash 了那也沒辦法 call rpc
+RPC exec Fail: 如果打出去的 RPC 在 server 端遇到問題了那他就沒辦法正確執行
+unprocessable content 如果打出去的 RPC 格式不對的話他也沒辦法執行
+missing endpoint 如果打得 RPC 的 funciton. 不存在或call 錯‘ function 的時候那他也沒辦法執行","2","僅 server crash 及 missing endpoint 對應標準四類；其餘非 RPC 通訊失敗",""
+"73","14287","S044","1.request is lost
+2. response is lost
+3. client crashes after the request is transmitted
+4. server crashes after receiving the request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"74","12774","S075","receiver crash when getting message
+sender crash when sending message
+loss in Internet
+cache loss at sender
+","2","僅 server crash 及 loss in Internet 對應標準四類；缺少 cannot locate server 及 reply lost",""
+"75","12510","S030","1. request lost :  送出需求後 遠方沒收到
+2. replied lost : 遠方送出回應後 本地沒收到
+3. service crash  : service 掛了 導致無法送出回應
+4.  client crash : 送出請求後，本地掛掉","3","缺少 cannot locate server（client crash 非標準四類）",""
+"76","12316","S106","1. can't locate the server 
+2. lost of request message 
+3. lost of response message 
+4. server crashed after  receiving the message ","4","",""
+"77","12728","S019","1. cannot locate the server
+2. Response message lost
+3. Reply message lost
+4. Server crashes after receive the response","2","Reply 與 Response lost 概念重複；「server crashes after receive the response」語意錯誤；缺少 request lost",""
+"78","12151","S020","(1) Cannot locate the server
+(2) Request message is lost
+(3) Reply message is lost
+(3) Server crashes after receiving a message","4","",""
+"79","13528","S010","cannot locate server
+request lost
+response lost
+server crash before process the response","4","",""
+"80","13039","S091","找不到伺服器，請求遺失，回應遺失，伺服器當機
+","4","",""
+"81","12426","S051","server crash after receive request
+client crash after send request
+reponse lost
+request lost","3","缺少 cannot locate server（client crash 非標準四類）",""
+"82","12718","S039","request lost
+response lost
+收到request後server crash
+發出request後client crash","3","缺少 cannot locate server（client crash 非標準四類）",""
+"83","12617","S018","lost request
+lost reply
+收到request後server crash
+傳完request後client crash","3","缺少 cannot locate server（client crash 非標準四類）",""
+"84","12279","S049","1. can't locate srever
+2.reply message lost
+3.request message lost
+4.server crash after message request","4","",""
+"85","12798","S053","locate不到server
+loss reply
+loss message(送出的)
+server 收到後crash
+client寄出後crash","4","",""
+"86","12914","S092","LostReq, LostResp, ServerCrash, ClientCrash","3","缺少 cannot locate server（ClientCrash 非標準四類）",""
+"87","12083","S125","1.cannot locate server
+2.request lost
+3.response lost
+4.server crashed after received","4","",""
+"88","11622","S021","Pointer,難以連接複雜.矩陣大小不一.","0","回答內容為 RPC 實作限制（pointer, 矩陣），非 RPC 通訊失敗類型",""
+"89","12731","S050","1. request lost
+2. reply lost
+3. server crash after recieve request
+4. 不知道server location","4","",""
+"90","12748","S036","1.找不到伺服器
+2.請求封包遺失
+3.回復封包遺失
+4.server收到請求時crash","4","",""
+"91","12544","S048","1. server locate 找不到
+2. Request lost
+3. Response lost
+4. Client crash
+5. server 接收到後 crash","4","",""
+"92","12745","S112","1. Cannot locate server: 找不到server的位置
+2. Request Lost: Request傳到一半消失
+3. Reply Lost: reply傳到一半消失
+4. server 在處理request、尚未傳出reply時壞掉 
+5. server 在尚未接收到request時消失","4","",""
+"93","12431","S006","1. passing pointer, meaningless
+2. passing unbound array, runtime error
+3. passing variable numbers of params in pirnt()
+4. using global variables","0","回答為 RPC 實作限制（pointer, unbound array, global variable），非 RPC 通訊失敗類型",""
+"94","12911","S057","1) Can't connect server ( 無法連接伺服器 )
+1) Request lost ( 發送命令請求失敗 )
+2) Reponse lost ( 回應命令失敗 )
+3) Server crash ( 伺服器損畫 )","4","",""
+"95","14900","S002","1. cannot find location
+2. request lost
+3. reply lost
+4. server crash","4","",""
+"96","12626","S007","System Errors: e.g., function mismatch, version mismatch
+Request triggered failure
+Response triggered failure
+Connection problems","3","Connection problems 過於籠統；缺少 server crash after receiving",""
+"97","12927","S118","1. Cannot locate the Server
+2. Request Message is Lost
+3. Reply Message is Lost
+4. Server Crashes after receiving a request","4","",""
+"98","16178","S016","1.LostReq:遺失請求訊息
+2.遺失回覆:回覆訊息遺失
+3.SerCrash:請求執行失敗
+4.無法定位伺服器","4","",""
+"99","15861","S083","1.無法找到伺服器/ 伺服器當機/版本不匹配/其他各種錯誤。
+2.請求訊息遺失。
+3.回覆訊息遺失。
+4.伺服器在收到請求後，在處理後或處理中崩潰。
+5.用戶端發送請求後當機。","4","",""
+"100","12886","S088","request message is lost
+reply message is lost
+server crashes after receiving a request
+clint crashes after sending a request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"101","13888","S058","1.the request message is lost.
+2.the reply message is lost.
+3.client crash.
+4.server crash.","3","缺少 cannot locate server（client crash 非標準四類）",""
+"102","16027","S043","request message is loss
+can't located the server
+version mismatched
+reply message is lost 
+server crashed after receiveing a request
+client crashed after sending a request
+","4","",""
+"103","12015","S060","丟失回應
+丟失請求
+請求後崩潰
+回應後崩潰
+找不到server","4","",""
+"104","12482","S024","can not locate the server
+lost of the request message
+lost of the reply message
+the client crash after send the request
+the server crash after receive the request","4","",""
+"105","12676","S095","1.lost of request message
+2.lost of reply message
+3.sender crash after sending a request
+4.server crash after receiving a request","3","缺少 cannot locate server（sender crash 非標準四類）",""
+"106","12965","S077","1. request lost
+2. reply lost 
+3. server crashes after receiving request
+4. client crashes after sending request ","3","缺少 cannot locate server（client crash 非標準四類）",""
+"107","12557","S120","Client 找不到Server
+Request在途中遺失
+Server收到Request後Crash
+Reply在途中遺失
+Client收到Reply後crash","4","",""
+"108","13267","S073","1.要求訊息遺失
+2.回應訊息遺失
+3.server接收到requset後當機
+4.client發送完request後當機","3","缺少 cannot locate server（client crash 非標準四類）",""
+"109","12845","S069","1.can't locate server
+2.request message lost
+3.reply message lost 
+4.server crash after receive request","4","",""
+"110","13094","S072","1. Lost of Request.
+2. Lost of Response.
+3. Server crash after request.
+4. Client crash after request.","3","缺少 cannot locate server（client crash 非標準四類）",""
+"111","12410","S042","1. cannot locate the server
+2. lost of request message
+3. lost of reply message
+4. server crashes after receives the request","4","",""
+"112","12915","S071","1.cannot locate the Server
+2.Request is Lost
+3.Reply is Lost
+4.Server 在收到請求後Crash
+5.Client在送出請求後Crash ","4","",""
+"113","12451","S062","1. Request message is lost
+2. Reply message is lost
+3.Server crash after receiving a request
+4. Client crash after sending a request","3","缺少 cannot locate server（client crash 非標準四類）",""
+"114","12890","S045","1.client發送的request server沒收到
+2. server回覆的response client沒收到
+3.client 在發送完request之後當機
+4.server在接受到request之後當機","3","缺少 cannot locate server（client crash 非標準四類）",""
+"115","13541","S056","client cannot locate server
+request message lost
+reply mesage lost 
+server crash","4","",""
+"116","13759","S128","Skip
+","0","未作答",""
+"117","14198","S029","1. lost request
+2. lost response
+3. client crash
+4. server crash","3","缺少 cannot locate server（client crash 非標準四類）",""
+"118","12730","S065","1. lost request 
+2. lost response
+3. server在收到request後當機
+4. 定位不到server","4","",""
+"119","12879","S098","request failure
+response failure
+server crash
+client crash ","3","缺少 cannot locate server（client crash 非標準四類）",""

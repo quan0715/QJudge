@@ -15,8 +15,8 @@ from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
-from apps.question_bank.models import Question, QuestionBank, QuestionCodingExt
-from apps.question_bank.question_assets import ensure_question_asset_for_bank_question
+from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
+from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
 
 
@@ -26,6 +26,56 @@ def _create_problem(title: str, owner: User, **kwargs) -> CodingProblem:
         created_by=owner,
         **kwargs,
     )
+
+
+def _create_coding_bank_item(
+    *,
+    bank: QuestionBank,
+    owner: User,
+    title: str,
+    prompt: str = "prompt",
+    score: int = 100,
+    difficulty: str = "easy",
+    test_cases: list[dict] | None = None,
+) -> tuple[QuestionAsset, QuestionBankMembership]:
+    asset, _version = create_question_asset(
+        owner=owner,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title=title,
+        prompt=prompt,
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload={
+            "score": score,
+            "order": 0,
+            "difficulty": difficulty,
+            "time_limit": 1000,
+            "memory_limit": 128,
+            "description": prompt,
+            "input_description": "in",
+            "output_description": "out",
+            "hint": "",
+            "test_cases": test_cases or [
+                {
+                    "input_data": "1",
+                    "output_data": "1",
+                    "is_sample": True,
+                    "weight_percent": 100,
+                    "order": 0,
+                },
+            ],
+            "language_configs": [],
+            "forbidden_keywords": [],
+            "required_keywords": [],
+        },
+        actor=owner,
+    )
+    membership = ensure_question_bank_membership(
+        bank=bank,
+        question_asset=asset,
+        order=0,
+        actor=owner,
+    )
+    return asset, membership
 
 
 @pytest.fixture
@@ -506,36 +556,16 @@ def test_import_from_bank_creates_problem_copy(
         visibility=QuestionBank.Visibility.PUBLIC,
         verified=True,
     )
-    question = Question.objects.create(
+    _asset, membership = _create_coding_bank_item(
         bank=bank,
-        question_type=Question.QuestionType.CODING,
+        owner=platform_admin,
         title="Bank Coding Question",
         prompt="Use source problem",
         score=100,
-        metadata={},
-    )
-    QuestionCodingExt.objects.create(
-        question=question,
-        translations=[
-            {
-                "language": "zh-TW",
-                "title": "Bank Coding Question",
-                "description": "desc",
-                "input_description": "in",
-                "output_description": "out",
-                "hint": "",
-            }
-        ],
         test_cases=[
             {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 100, "order": 0},
         ],
-        language_configs=[],
-        forbidden_keywords=[],
-        required_keywords=[],
     )
-    ensure_question_asset_for_bank_question(question=question, actor=platform_admin)
-    question.refresh_from_db()
-    membership = question.asset_membership
 
     api_client.force_authenticate(user=owner)
 
@@ -556,14 +586,93 @@ def test_import_from_bank_creates_problem_copy(
 
     from apps.question_bank.models import ContestQuestionBinding
     binding = ContestQuestionBinding.objects.get(
-        contest=contest, source_question_id=question.id,
+        contest=contest, source_question_id=membership.id,
     )
     assert binding.coding_problem.question_asset.title == "Bank Coding Question"
     assert binding.score == 45
-    assert binding.source_question_id == question.id
+    assert binding.source_question_id == membership.id
     assert binding.source_mode == "copy"
     assert str(binding.source_bank_id) == str(bank.uuid)
     assert binding.source_bank_name == bank.name
+
+
+@pytest.mark.django_db
+def test_import_from_asset_only_bank_creates_problem_from_membership(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    platform_admin = User.objects.create_user(
+        username="platform_admin_asset_only_bank_import",
+        email="platform_admin_asset_only_bank_import@example.com",
+        password="testpass123",
+        role="admin",
+        is_staff=True,
+    )
+    bank = QuestionBank.objects.create(
+        owner=platform_admin,
+        name="Asset Only Coding Bank",
+        category=QuestionBank.Category.CODING,
+        visibility=QuestionBank.Visibility.PUBLIC,
+        verified=True,
+    )
+    asset, _version = create_question_asset(
+        owner=platform_admin,
+        asset_type=QuestionAsset.AssetType.CODING,
+        title="Asset Only Coding Question",
+        prompt="desc",
+        visibility=QuestionAsset.Visibility.PRIVATE,
+        payload={
+            "score": 100,
+            "order": 0,
+            "difficulty": "easy",
+            "time_limit": 900,
+            "memory_limit": 64,
+            "description": "desc",
+            "input_description": "in",
+            "output_description": "out",
+            "hint": "",
+            "test_cases": [
+                {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 100, "order": 0},
+            ],
+            "language_configs": [],
+            "forbidden_keywords": [],
+            "required_keywords": [],
+        },
+        actor=platform_admin,
+    )
+    membership = ensure_question_bank_membership(
+        bank=bank,
+        question_asset=asset,
+        order=0,
+        actor=platform_admin,
+    )
+
+    api_client.force_authenticate(user=owner)
+    response = api_client.post(
+        f"/api/v1/contests/{contest.id}/problems/import-from-bank/",
+        {
+            "items": [
+                {
+                    "question_bank_id": str(bank.uuid),
+                    "question_id": str(membership.id),
+                    "max_score": 45,
+                },
+            ],
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    binding = ContestQuestionBinding.objects.get(
+        contest=contest,
+        source_question_id=membership.id,
+    )
+    assert binding.coding_problem.question_asset_id == asset.id
+    assert binding.coding_problem.question_asset.title == "Asset Only Coding Question"
+    assert binding.score == 45
+    assert binding.source_mode == "copy"
+    assert binding.source_question_id == membership.id
 
 
 @pytest.mark.django_db
@@ -587,37 +696,18 @@ def test_import_from_bank_materializes_coding_ext(
         visibility=QuestionBank.Visibility.PUBLIC,
         verified=True,
     )
-    question = Question.objects.create(
+    _asset, membership = _create_coding_bank_item(
         bank=bank,
-        question_type=Question.QuestionType.CODING,
+        owner=platform_admin,
         title="Materialized Coding Question",
         prompt="prompt",
         difficulty="easy",
         score=100,
-    )
-    QuestionCodingExt.objects.create(
-        question=question,
-        translations=[
-            {
-                "language": "zh-TW",
-                "title": "Materialized Coding Question",
-                "description": "desc",
-                "input_description": "in",
-                "output_description": "out",
-                "hint": "",
-            }
-        ],
         test_cases=[
             {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 40, "order": 0},
             {"input_data": "2", "output_data": "2", "is_sample": False, "weight_percent": 60, "order": 1},
         ],
-        language_configs=[],
-        forbidden_keywords=[],
-        required_keywords=[],
     )
-    ensure_question_asset_for_bank_question(question=question, actor=platform_admin)
-    question.refresh_from_db()
-    membership = question.asset_membership
 
     api_client.force_authenticate(user=owner)
     response = api_client.post(
@@ -636,7 +726,7 @@ def test_import_from_bank_materializes_coding_ext(
 
     from apps.question_bank.models import ContestQuestionBinding
     binding = ContestQuestionBinding.objects.get(
-        contest=contest, source_question_id=question.id,
+        contest=contest, source_question_id=membership.id,
     )
     assert binding.source_mode == "copy"
     weights = list(
@@ -646,41 +736,34 @@ def test_import_from_bank_materializes_coding_ext(
 
 
 @pytest.mark.django_db
-def test_import_from_bank_rejects_legacy_question_id_fallback(
+def test_import_from_bank_rejects_non_membership_question_id(
     api_client: APIClient,
     owner: User,
     contest: Contest,
 ) -> None:
     platform_admin = User.objects.create_user(
-        username="platform_admin_for_legacy_id_reject",
-        email="platform_admin_for_legacy_id_reject@example.com",
+        username="platform_admin_for_non_membership_id_reject",
+        email="platform_admin_for_non_membership_id_reject@example.com",
         password="testpass123",
         role="admin",
         is_staff=True,
     )
     bank = QuestionBank.objects.create(
         owner=platform_admin,
-        name="Official Coding Bank Legacy Reject",
+        name="Official Coding Bank Non Membership Reject",
         category=QuestionBank.Category.CODING,
         visibility=QuestionBank.Visibility.PUBLIC,
         verified=True,
     )
-    question = Question.objects.create(
+    asset, _membership = _create_coding_bank_item(
         bank=bank,
-        question_type=Question.QuestionType.CODING,
-        title="Legacy ID Reject",
-        prompt="legacy",
+        owner=platform_admin,
+        title="Non Membership ID Reject",
+        prompt="non-membership",
         score=100,
-    )
-    QuestionCodingExt.objects.create(
-        question=question,
-        translations=[{"language": "zh-TW", "title": "Legacy ID Reject"}],
         test_cases=[
             {"input_data": "1", "output_data": "1", "is_sample": True, "weight_percent": 100, "order": 0},
         ],
-        language_configs=[],
-        forbidden_keywords=[],
-        required_keywords=[],
     )
 
     api_client.force_authenticate(user=owner)
@@ -690,7 +773,7 @@ def test_import_from_bank_rejects_legacy_question_id_fallback(
             "items": [
                 {
                     "question_bank_id": str(bank.uuid),
-                    "question_id": str(question.id),
+                    "question_id": str(asset.id),
                 },
             ],
         },

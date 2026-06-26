@@ -69,6 +69,20 @@ export interface User {
   subscription?: UserSubscription;
 }
 
+export interface AuthProviderOption {
+  key: string;
+  type?: "password" | "oauth2" | "oidc";
+  category: "campus" | "social" | "password";
+  display_name: string;
+  display_name_i18n_key?: string;
+  logo_url?: string;
+}
+
+export interface AuthOptions {
+  email_password_enabled: boolean;
+  providers: AuthProviderOption[];
+}
+
 export interface AuthSuccessData {
   access_token: string;
   user: User;

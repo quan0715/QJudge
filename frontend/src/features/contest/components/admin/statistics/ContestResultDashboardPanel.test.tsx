@@ -101,7 +101,7 @@ describe("ContestResultDashboardPanel", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("71.8 / 100")).toBeInTheDocument();
+    expect(screen.getByText("71.80 / 100.00")).toBeInTheDocument();
     expect(screen.getByText("74")).toBeInTheDocument();
     expect(screen.getByText("92%")).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();

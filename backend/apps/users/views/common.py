@@ -35,6 +35,19 @@ def validation_error_response(message: str, details) -> Response:
     )
 
 
+def email_password_disabled_response() -> Response:
+    return Response(
+        {
+            "success": False,
+            "error": {
+                "code": "EMAIL_PASSWORD_DISABLED",
+                "message": "Email/Password 登入已停用，請使用學校 SSO 或其他已啟用的登入方式",
+            },
+        },
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
 def token_cookie_response(
     user,
     tokens: dict,

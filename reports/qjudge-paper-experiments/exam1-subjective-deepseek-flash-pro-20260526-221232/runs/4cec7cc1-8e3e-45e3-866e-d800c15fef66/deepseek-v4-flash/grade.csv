@@ -1,0 +1,387 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","2650","S109","thread: 是process 中與執行流程相關的一部份
+process: program in execution
+program: a file of static data and code","3","",""
+"2","2723","S015","A thread is like an execute flow of a process.
+A process is a program image that is loaded into memory.
+A program is a file stored on a secondary storage. It could be loaded into memory by loader.
+
+A process is a loaded program, and a thread is a execute flow created by a process.","3","",""
+"3","6069","S054","program:儲存在memory的一組code and data.
+process:執行中的program.
+thread:parts of process, 為執行flow的概念.","3","",""
+"4","3829","S117","thread is part of process, related to excution flow.
+process is program in running.
+program is a file containig code and static data.","3","",""
+"5","2968","S093","process: 一段有code sectiom跟data section的程式
+program: 正在執行中的process
+thread: prcess實際會分配給CPU去做執行的東西","1","program 與 process 定義完全混淆（兩者互換）",""
+"6","3527","S012","a program is a executable file stays in storage
+a process is a running program on cpu after it is brought into memory
+thead把process拆成小份在cpu平行的跑，一個process可以有很多threads
+
+a program stays in storage device, after it is brought into memory and runs on cpu, it becomes a process. a process can have multiple threads inside it, concurrently run on cpu.","3","",""
+"7","4445","S108","Program 是可以執行的檔案，靜態。
+Process 是正在執行的工作，需要占用資源來完成，有自己的 process ID 等等資料並且由 OS 管理。
+Threads 則是執行相同工作，但能在不同的 cpu core 上面達到平行化的效率。
+
+process 就是跑起來的 program，
+threads 就像 process 裡面的多個引擎，執行相同的 program 但是能分開執行任務","3","",""
+"8","3251","S099","program: file with executable code and static data.
+process: program in execution.
+thread: process 內部的執行單位，也是 CPU Scheduling 的最小單位","3","",""
+"9","2686","S070","program是一個包含code and static data的檔案
+process是執行的program
+thread是process workflow的一部份","3","",""
+"10","4201","S080","Thread: thread can be thought as the part of process.
+Program: program is a file with data and code.
+Process: process is a program in execution.","3","",""
+"11","3096","S003","the thread is a part of process
+a program is a file containing code and datas, etc
+a process is program in operation","3","",""
+"12","3415","S035","thread : it can be viewed as an execution flow in the part of process
+process : the program that is in execution.
+program : a file that contain code and static data","3","",""
+"13","4327","S037","Thread: The unit of execution flow, create under process.
+Process: program in execution
+Program: text with static data","3","",""
+"14","3516","S096","program - file with the code
+process - program in execution (a program loaded to memory that is executed on the cpu)
+thread - execution entities of a process. Program can have several threads but at lease one, threads can share some of the process's resource","3","",""
+"15","4144","S013","thread: lightweighting and build fast. Shared in the same process
+process: a execution state in a program
+program: consist of codes and static data","2","process 定義不正確（答爲 execution state in a program）",""
+"16","3942","S040","thread is a part of process, the minimum unit OS can schedule
+process is when a program loaded into memory and running
+program is what we write","3","",""
+"17","2271","S124","A thread is the execution flow of a process 
+A process is a program in execution 
+A program is a file containing code and data","3","",""
+"18","2863","S121","- thread is a part of a process that can be assimilated to a execution flow.
+- process is a program in execution 
+- a program is a file which contains the code and the global data.","3","",""
+"19","6588","S068","process 代表正在執行的 program
+
+program 是一個檔案，裡面包涵 code, static data
+
+thread 可以視為 process 在 execution flow 裡面產生的 subroutine，同一個 process 裡面的 threads 會共享一些資訊，且這些 threads 的創建與記憶體開銷相較於 process 會比較小。","3","",""
+"20","2930","S102","program 是儲存的程式碼或data
+process是執行program的過程
+process可以被切成多個threads","3","",""
+"21","4302","S034","thread can be thought as the part of process that is related to execution flow.
+program is a file contains of code and static data.
+process is a program in execution.","3","",""
+"22","3736","S084","1. thread : 是process的一部分，是execution flow的一個單位。
+    process : 是正在執行的程式。
+    program : 是靜態的程式碼(text)及靜態資料(data)。
+2. process是正在執行(Running)的program，而process裡面會有thread，thread可以在process裡獨立分工。","3","",""
+"23","4712","S079","Thread: is a part of process, we can think of it as the actual executing unit in the CPU
+Program: executable code
+Process: when we put a program into execution, we then call it a process","3","",""
+"24","2501","S122","program: code
+process:在程式中進行的DATA
+thread:最小的資訊流","0","三個概念定義皆不正確（program 僅答 code, process/thread 混淆）",""
+"25","3906","S086","program is the file contains code and static data.
+process is program in execution.
+thread can be thought of the part of process.","3","",""
+"26","3805","S052","Thread is a part of a process that is related to execution flow.
+Process is a program in execution.
+Program is a file with code and static data.
+(他們的關係如以上文字所述)","3","",""
+"27","3873","S033","thread:a part of process in execution flow
+process:a program which is in execution
+program:a code which have data or file.","3","",""
+"28","3611","S123","Thread: the part of a process that is related to the execution flow.
+Process: a program in execution.
+Program: a file contains static data and code.","3","",""
+"29","3264","S027","Thread:Threads is a small unit execution in a process. A process can have one or more threads
+Program: Program is a file contains code and static data.
+Process: Process is a program in execution","3","",""
+"30","1980","S081","A thread is a process that helps in the execution flow
+The process is the execution of the program
+A program is a file that has information and static code
+These are related to each other as they help in the execution of the function in the operating systems.","2","thread 定義錯誤（答爲 a process）",""
+"31","3296","S008","A program is a file with code and data.
+A process is a program in execution.
+A thread is part of the process that is in the execution flow.","3","",""
+"32","3704","S078","process: The program in the memory.
+program: The process that are not execute.
+thread: The least unit to execute, a process can split to one or many","2","program 定義不正確（答爲 process that are not execute）",""
+"33","3299","S087","program:存放在磁碟的程式或靜態資料
+process:正在執行中的程式，有自己的address space
+thread:process底下的執行單位，共享部分process的記憶體","3","",""
+"34","2838","S022","Thread: And be viewed as a part of a process, and saw as an execution flow.
+Program: A file with its own code and initialization.
+Process: A program that is currently executing.","3","",""
+"35","5232","S110","thread: part of a process, can be created by user and run code parallism
+process: a program being executing, has text data, stack, and heap
+program: a file contain code","3","",""
+"36","3430","S082","Thread: can be regarded as a part of process, tackle a part function of process.
+Program: a file with solid code and data.
+Process: when a program start running and organized by CPU, it becomes a process.","3","",""
+"37","4816","S105","program 是可執行的檔案，process 是執行中的指令。
+一個 process 當中包含一個或多個 threads，thread 是使用 CPU 執行的最小單位。","3","",""
+"38","2749","S111","program是由data及code所組成。而正在執行的program稱為process，一個process又可以切成多個thread。","3","",""
+"39","2765","S085","program:程式碼與資料
+process:運行中的program
+thread: 程式運行時與執行流相關的部分","3","",""
+"40","3200","S004","program:passive entity，有code section和static data。
+process:program in execution。
+thread:process的execution flow，thread間共享memory space和other resources，不共享program counter、cpu register、stack。","3","",""
+"41","2811","S011","thread: 一個輕量化的執行緒。
+process: 一個獨立的程序。
+program: 能被執行的檔案。
+process裡面可能會有多個threads，program被cpu load之後會執行process。可能會有多個process在執行同一個program。","3","",""
+"42","2962","S046","thread is a part of process which is related to execution flow.
+program is a file of code and data.
+process is program ｉｎ　execution.","3","",""
+"43","2013","S005","Program is a file of code and data.
+Process is a execution of program.
+Thread is a part of process.","3","",""
+"44","3421","S061","Thread is regard as the process.
+Process is program in execution.
+Program is a file that contained code .
+","2","thread 定義錯誤（答爲 process 本身）",""
+"45","2541","S014","thread:process的流程
+process:動態執行的program
+program:靜態程式碼","3","",""
+"46","2830","S028","thread: 與process中的execution flow相關
+proces: 正在被execute的program
+program: 儲存static data and code","3","",""
+"47","2739","S107","thread can be seen as small part of process.
+program is combination of codes and datas.
+process is a executed program.","3","",""
+"48","3135","S126","program是包含程式碼以及靜態資料，process是執行中的program，thread則是process執行中的一部份執行緒","3","",""
+"49","5368","S017","program是一個檔案，裡面記錄著code和各種變數、資料
+
+process就是一個運行中的program
+
+thread可以看程式process的一部分，把process看成一間公司，thread就是裡面的員工，多個員工都可以共享公司裡的一些公共資源(memory)","3","",""
+"50","2150","S115","The program includes the data and code, while a proccess is the execution of it, threads are a subdivision of a process where they themselves are executions related to the process.","3","",""
+"51","2518","S089","Program : 一個包含code和static data
+process : 一個正在運行的program
+thread : 部分跟execution flow有關的process","3","",""
+"52","3913","S009","thread is a part of process in the execution flow
+program is a file that have data 
+process is program in execution","3","",""
+"53","3600","S094","thread：執行序，process的執行流程
+process：程序，正在執行的程式
+program：用來儲存程式與靜態資料","3","",""
+"54","6638","S066","program儲存code和data
+同process內的thread會共享code, memory, data等資訊
+thread執行program","2","process 定義未明確說明",""
+"55","2371","S041","program: 在硬碟中的靜態資料
+process: 執行中的 program
+thread: process 中的執行流","3","",""
+"56","4017","S031","thread:在行程中跟執行流有關部分
+program:包含程式碼和靜態資料
+process:在執行中的program","3","",""
+"57","5158","S116","progaram指的是文字的程式碼和靜態的資料
+process指的是運行中的program
+thread則是process在execution workflow裡分出來的一部分","3","",""
+"58","4025","S059","thread: process的一種執行基本單位
+
+program:存放在disk中的程式碼或檔案
+
+process: 執行中的program
+
+program 執行中就會變process 其中process內部真正執行一條條指令的是thread
+","3","",""
+"59","2319","S064","thread: process中與execution flow有關的部分
+process: 執行中的program
+program: 含有一些data及file的程式","3","",""
+"60","2848","S101","Thread: part of process
+Process: program in execution
+Program: context of what user want to do","2","program 定義過於模糊（答爲 context of what user want to do）",""
+"61","4595","S103","thread : process execution flow裡的最小單位
+process : a program in execution
+program : a file store code and static data","3","",""
+"62","6174","S104","1.threads can be thought of as part of a process that is related to the execution flow.
+2.program is the file that contains of code and static data.
+3.process is program in execution.","3","",""
+"63","3526","S023","thread: the part of process that is related to execution flow
+process: a program in execution
+program: a file contains code and static data","3","",""
+"64","3721","S113","thread是CPU的執行flow，一個process可能含有單個或多個threads，同個process的thread會共享data,code,file等資源
+program是一個檔案含有code和靜態變數
+process是執行中的program","3","",""
+"65","3662","S055","program是存在disk的binary code, 其被載入memory叫做process, thread則是執行的最小單位,其可以組成一個process,或本身即是一個process","2","thread 定義部分錯誤（說 thread 本身即是一個 process）",""
+"66","3121","S119","thread : a thread can be thought of as a part of process that is related to execution flow.
+program: a program is a file that contains of code and static data.
+process: process is a program in execution.","3","",""
+"67","3916","S067","thread:process的一小部分
+
+process:執行中的program
+
+program:一個檔案由code data組成,也就是程式","3","",""
+"68","4547","S076","Program: A program is a file that contains static code or data saved on a drive.
+Process: This is a program in execution with its own local address and resources.
+Thread: This is the smallest unit of execution withing a process. They share memory but maintain their own stack, program counter, and registers. ","3","",""
+"69","4610","S074","Program contains a code segment and instructions for execution.
+
+Process is a program in execution.
+
+Thread is part of the process in execution.","3","",""
+"70","3014","S063","Thread: A part of process that is related to the execution flow
+Program: A file with static data and code
+Process: A running program","3","",""
+"71","3856","S090","Threads: can be thought as part of process related to the execution flow.
+Process: program in execute.
+Program: A file contains of code and static data.","3","",""
+"72","3934","S100","Thread shares some resources with each other, like code text and global variables.
+Program is a file in disk.
+Process is a program in memory and can have many threads in one process. ","3","",""
+"73","3487","S114","process 為 program 放入memory 後稱之 ， 並且在memory 內，一個process 可以有多個thread . 並且同一個process內的thread 某些資源會共享。","2","program 定義未明確說明",""
+"74","2146","S038","program is a file that can create process when it start
+process is a running program can have 1 or more threads
+thread is a light size process ","2","thread 定義錯誤（答爲 light size process）",""
+"75","3197","S047","Program 可能會有很多個 process 組成，每個 process 可能會有很多個 thread
+program 類似一個大的程式，裡面有很多子程序，每個 process 之間會是獨立的，擁有自己的 memory space，thread 之前會 share 一些 memory，溝通比 process 之間 IPC 方便","2","program 定義錯誤（說 program 由多個 process 組成）",""
+"76","3488","S044","thread: can be thought as part of process which is a execution flow
+process: program in execution
+program: file containing code and data","3","",""
+"77","3003","S075","program是一個可以運作process的data，類似code檔案
+process是program的execution
+thread是process的一部分，可以共用process的部分資源下分開運行","3","",""
+"78","2738","S030","thread : 輕量的 process ，透過 thread 間 共享資源 來達到更有效率更能利用 multiprocessor
+process : 為 program 實際 跑其來的實體，可以被調度 執行 和等待
+program : 由 data 和 code 組成的靜態實體
+
+thread 可以組成 process
+program 動起來是  process","3","",""
+"79","3983","S106","thread : can be considered as part of the process  during the real execution flow 
+process : a program that is currently executing 
+program :is a file of code and static program ","3","",""
+"80","3659","S019","Thread : part of process. 執行部份 execution flow 
+Program : a file that contains code and static data.
+Process : a program in execution.","3","",""
+"81","2728","S020","thread: Faster to create than a process and share some resources
+process: a program in execution
+program: a file contains of code and static data","2","thread 定義不完整（僅提特性，未說明其爲 process 內執行單位）",""
+"82","4145","S010","Program is a file storing the code, text and static data..
+Process is a program in execution.
+Thread is a lightweight process, with less overhead when created.","3","",""
+"83","2803","S091","thread:執行緒，不同執行緒可以共用code
+process:執行中的program
+program:程式
+process為執行中的program,program可以透過thread執行變為process","3","",""
+"84","4462","S051","program is the code that we write.
+when we execute the program that will be process, thus one program can have multiple process.
+one process can have multiple thread, thread will share code, heap..., but not share stack, threadID....","3","",""
+"85","4364","S039","program is some stored code and data, a program being loaded and run is a process, and process can create one or many threads to do the job","3","",""
+"86","2996","S018","thread is the part of process that is executing flow.
+process is the executing program.
+program is the text of code store in memory.","3","",""
+"87","3423","S049","program: a file with data and code
+process: program in execution
+thread: the part of process related to execution flow","3","",""
+"88","4184","S053","program:靜態的資料程式檔案
+process:正在運作的program
+thread:在process中相關的execution flow","3","",""
+"89","3606","S092","program: binary in the disk
+process: an executing program in the memory
+thread: light weight process, a process may have multiple threads","3","",""
+"90","2557","S125","program:code and static data
+process:program in execution
+thread: execution flow of a process","3","",""
+"91","6342","S021","thread is a part of process
+process is a program which is excuting
+program is a file which is filled of code and static data","3","",""
+"92","2835","S050","program: a file with code and static data
+process: a executing program
+thread: a part of a process which is in executed flow","3","",""
+"93","2891","S036","program是指運行的程式碼以及static data
+process是指在program中運行的一個行程
+thread是指運行在process中的一個動態","1","program 與 process 定義混淆（program 被描述爲運行中，process 被說在 program 內）",""
+"94","3176","S048","thread : process的一部分，最小的執行單位
+process : 正在execution的程式
+program：一般程式以及靜態的資料","3","",""
+"95","6362","S112","program: contains the static data and code. 
+process: program in execution. 
+threads: a part of the process related to the execution flow.
+","3","",""
+"96","2959","S006","program, 寫好的code
+process 執行的 program
+thread, process 下實際執行任務的組成","3","",""
+"97","3746","S026","thread :最小執行單位
+process:執行程序
+program:未執行程式,EX靜態函式庫","3","",""
+"98","2565","S032","1. Program is the instructions written in code
+2. Process is a running program
+3. Thread is sequence of instructions within the process","3","",""
+"99","5944","S057","Thread 執行緒 : 在CPU 系統環境下，可以同時多個執行程序 或 單一個執行程序。 
+Process 行程 : 在 CPU 下系統環境下，單一個執行程序。
+Program 程式 : 包成個軟體執行檔 exe ，作業系統下的可執行的應用程式。
+","1","thread 定義錯誤（答爲執行程序），process 定義模糊",""
+"100","6154","S002","program: a file contains code and static data
+process: a program during execution
+thread: a part of process","3","",""
+"101","6295","S007","A program comprises code and static data.
+A process is a running programming managed by CPU.
+Threads belongs to a process. They have their own local variables but the global data is shared in the same process.","3","",""
+"102","4919","S016","program:包含code和靜態資料的檔案
+thread:process裡跟執行相關的動作
+process:包含program與thread的一連串流程","2","process 定義不正確（答爲包含 program 與 thread 的流程）",""
+"103","5176","S083","所謂執行緒(thread)：是指porcess的執行流程基本單位。
+所謂行程(process)：是指執行中的程序。
+所謂程式(program)：是指還沒執行的程式或資料檔案。","3","",""
+"104","3016","S088","thread: process中execution flow的部分
+process: 正在執行中的program
+program: 包含code、static data的file","3","",""
+"105","3902","S058","program: a file that include code and static data.
+process: a program in execution.
+thread: part of process that related to the execution flow.","3","",""
+"106","3770","S043","program involved code and solid data
+process is program in execute.
+thread can imagine as  a part of process.","3","",""
+"107","2773","S060","thread can thought like a part of process and related to executing flow
+program: a file contains code and static data
+procsee: a program in execution","3","",""
+"108","2721","S024","program is the file with text and static data
+process is the program that is executing
+thread is a part of process that follows the execute flow","3","",""
+"109","6245","S095","a thread is a part of a process.
+a  process is a program in execution.
+a program is a file contain code and data.","3","",""
+"110","3181","S077","thread can occurs during the execution flow of the process  
+process is controlled by operating system
+the process is the program which is executing.
+","2","program 定義未明確說明",""
+"111","2877","S120","A program is a file with static data and code.
+A process is a program in execution.
+A thread is part of a process which is related to the execution flow.","3","",""
+"112","5030","S073","thread:執行流程中的一部分
+process:執行中的program
+program:裡面包含程式碼及static data","3","",""
+"113","2955","S069","thread:他是process中的最小執行單位，是一個excution flow
+process:正在執行中的program
+program :他是一個file，包含code和static data","3","",""
+"114","3454","S072","Thread: It can be thought of as the part of a process, and threads can be run in parallel .
+Process: It is a program execute in memory and CPU. 
+Program: It is a file contain the code and static variable. ","3","",""
+"115","2860","S042","program: the file that contain code and ralated data.
+process: program in execution.
+thread: part of process that is in execution flow.","3","",""
+"116","3126","S071","program是存在硬碟的靜態程式，process是正在執行的動態程式，thread是CPU處理資料的最小單位，一個process可以等於一個或多個thread，thread更為輕便","3","",""
+"117","4631","S062","Thread: a part of process，和process共用shared memory，但有自己的Threads ID
+Program: a set of code or data，存放在disk中
+Process: A program in execution，在memory中執行
+","3","",""
+"118","3540","S045","thread:是process的一部份，和execution flow 有關
+program:是一個file，包含code和static data
+process:program 在run的時候就是process","3","",""
+"119","2788","S056","Thread is a part of process that run in a execution flow.
+Process is a program in execution
+Program is a file that contains code and static data","3","",""
+"120","3844","S029","program:放在硬碟的程式和靜態資料
+process: 正在被執行的program
+thread: 與執行進程有關的東西","3","",""
+"121","3545","S065","thread：process的一部分，是他的execution flow。
+process：執行中的program。
+program：包含code和static data。","3","",""
+"122","5928","S025","Thread is a workflow that contain data, context, and other features.
+Process is a program in execution.
+Program is a context that contain information like variable, code.","2","thread 定義過於模糊（答爲 workflow that contain data）",""
+"123","3475","S098","一個process可以有很多threads去完成不同的任務
+process是執行中的program
+program - code","3","",""

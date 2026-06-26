@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 
 import type { AttendancePurpose, ContestDetail } from "@/core/entities/contest.entity";
 import { exitFullscreen, isFullscreen, requestFullscreen } from "@/core/usecases/exam";
-import { getAttendanceQrToken, type AttendanceQrToken } from "@/infrastructure/api/repositories/attendance.repository";
+import { getAttendanceQrToken } from "@/infrastructure/api/repositories/attendance.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import type { AttendanceTranslate } from "@/features/contest/screens/attendance/lib/photoRequirements";
 import {
@@ -24,9 +24,13 @@ import {
   formatContestCountdownDuration,
   formatContestMonthDay,
 } from "@/features/contest/utils/contestTimeFormat";
+import {
+  getProjectionTokenRefreshDelayMs,
+  type ProjectionTokenState,
+} from "./lib/projectionTokenRefresh";
 import styles from "./AttendanceProjectionScreen.module.scss";
 
-type TokenState = Partial<Record<AttendancePurpose, AttendanceQrToken>>;
+type TokenState = ProjectionTokenState;
 type ErrorState = Partial<Record<AttendancePurpose, string>>;
 type ProjectionDisplayMode = AttendancePurpose;
 
@@ -129,10 +133,13 @@ function useProjectionTokens(contestId: string | undefined, errorFallback: strin
   }, [refresh]);
 
   useEffect(() => {
-    const refreshSeconds = tokens.check_in?.refreshAfterSeconds || 30;
-    const timer = window.setInterval(() => void refresh(), refreshSeconds * 1000);
-    return () => window.clearInterval(timer);
-  }, [refresh, tokens.check_in?.refreshAfterSeconds]);
+    if (!contestId) return undefined;
+    const timer = window.setTimeout(
+      () => void refresh(),
+      getProjectionTokenRefreshDelayMs(tokens),
+    );
+    return () => window.clearTimeout(timer);
+  }, [contestId, refresh, tokens]);
 
   return { tokens, errors };
 }

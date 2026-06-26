@@ -1,0 +1,844 @@
+{
+  "answer_count": 118,
+  "answers": [
+    {
+      "answer": {
+        "text": "他是反直覺的，增加 frames 卻沒有降低the number of page faults，反而變多了；approximately least recently used、mostly used recently"
+      },
+      "id": "2000",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is the situation happens when FIFO policy is used. When we increase the number of frames, the number of page fault is increasing, which is not intuitive."
+      },
+      "id": "2180",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "it's a counterinstinct 情形 that increase page frame would bring increase page faults."
+      },
+      "id": "5884",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "belady's anomaly指的是載入的page越多，page fault越多。\n該alogorithm會在page fault時替換掉距離上次access時間最久的page。"
+      },
+      "id": "2620",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "當可以用的frame更多時，page fault的次數也更多，FCFS algorithm會有belady's anomaly"
+      },
+      "id": "2378",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly是當給予更多frame空間時，frame switch卻更頻繁發生。\nfirst in first out時會發生，最早加入frame 空間的frame會先被交換出去。"
+      },
+      "id": "2664",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "在增加頁框數目後，page fault 次數不減反增。\n例如 FIFO 就有此種問題。"
+      },
+      "id": "3372",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "增加 number of page frames 導致 page fault 比例增加的情況。\n"
+      },
+      "id": "2542",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "當frame的數量增加 page fault也增加 ，FIFO容易發生"
+      },
+      "id": "2012",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "a belady's anomaly means that more frames won't have fewer page fault.\nFIFO"
+      },
+      "id": "2883",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "when the numbers of frames increase ,the page fault rate was even higher\nFCFS"
+      },
+      "id": "3443",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "q1 : when page number increases, the page fault rate doesn't decrease but increase. This is the allocate frame number n is not the subset of allocate frame number n + 1.\nq2 : FIFO"
+      },
+      "id": "2464",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "Belay' s anomaly是一個很反常的現象，就是當physical frame增加而page fault不僅沒有相應的減少而是增加。此現象往往發生在FCFS replacement algorithm。"
+      },
+      "id": "2819",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is a scenario when giving a process more memory frames results in bigger amount of page faults. This anomaly may happen if FIFO replacement algorithm is used"
+      },
+      "id": "2117",
+      "participant_username": "S096"
+    },
+    {
+      "answer": {
+        "text": "1. increase the pages but increase the page fault\n2.FCFS"
+      },
+      "id": "3105",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "In FIFO replacement algorithm, more pages are given, more page fault happen. This wired thing call Belady's Anomaly."
+      },
+      "id": "2462",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is a counter-intuitive phenomenon where having more available slots to load pages in a page replacement algorithm actually leads to more page faults. Per example, the same sequence of page requests will lead to more page faults if you have 4 slots to load them than if you have 3. It happens in the FIFO algorithm."
+      },
+      "id": "2070",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Belady's anomaly is the curious behavior when allocating more frames to a process induces a increase a page fault.\n\nThe algorithm where the oldest page is replace by the new one, has this anomaly, "
+      },
+      "id": "2257",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "形容 page 數量增加卻讓 page fault 的次數也增加的反直覺現象。FCFS 先到先服務的演算法可能會有此現象。"
+      },
+      "id": "6738",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "FIFO時，給他更多的frames會導致更多的page fault"
+      },
+      "id": "2104",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "A Belady's anomaly is a situation in the OS memory management where increasing the number of pages frame lead to increase of paging faults.\nEDF has this anomaly."
+      },
+      "id": "2580",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "Belady's anomaly通常發生在FCFS(or FIFO)，是當page frame增加時，page fault反而更多。"
+      },
+      "id": "2840",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly happens when we open more frames trying to map more pages but creates more page fault instead. FCFS algorithm"
+      },
+      "id": "2741",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "這是一個反直覺的做法，當page 上升時，會導致其他下降\n"
+      },
+      "id": "1990",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly refers to a counter-intuitive situation that increasing number of page frames result in increasing number of page fault.\nFCFS has this anomaly."
+      },
+      "id": "3411",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is that when there are more frames can be allocated, it results in more page faults. FIFO has this anomaly."
+      },
+      "id": "2507",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly負責處理當page frame數量值增加時所造成的page faults。"
+      },
+      "id": "2538",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly: More page frames may result in more page faults."
+      },
+      "id": "2288",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is a phenomenon in virtual memory management where increase the number of page frames unspectedly causes the number of page fualts to increase instead of decrease.\nPFF replacement has this anomaly."
+      },
+      "id": "2329",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "belady's anomaly allows to properly replace the pages in order of its priority and its size order so the the system can be executed in a shorter time. The replacement algorithm that also has this is ESJ"
+      },
+      "id": "4436",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "The Belady's Anonmaly means sometimes when we increase the page table size, page fault happens more frequently than before. The First Come First Serve has this anomaly."
+      },
+      "id": "2702",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "If increase the frame, page fault rate may be increase.\nFCFI(First come first in) "
+      },
+      "id": "4787",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly是指os分配給一個process的frame越多，反而讓他page fault的次數更高。\nFIFO"
+      },
+      "id": "2305",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "The page fault time increases when increasing the amount of the page frame.\n\nFIFO will have this anomaly."
+      },
+      "id": "2255",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "increasing the page number can be used but the page fault counts also increase\nleast used (choose the victom page which has the longest time from the last time being used)"
+      },
+      "id": "4161",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Sometime when we increase the number of page frame, but the page fault increase as well. That is an anomaly. And usually seen in the FIFO algorithm."
+      },
+      "id": "2480",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "使用 First In First Out algorithm 時，增加 process 的 frames 數量可能會使 page fault 次數上升。"
+      },
+      "id": "3231",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "照理來說page提升時，page fault發生的次數也應該降低。但當使用FCFS的時候，在特定情況下可能會發生fage提升，但page fault次數也增加的情況。"
+      },
+      "id": "2175",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "提升frame數量卻導致page fault增多的反直覺現象，\n例如在LRU時可能發生"
+      },
+      "id": "2215",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "常發生在FIFO，是一個反常現象，給更多的page frames數量，page fault ratio不降反升。"
+      },
+      "id": "2337",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly : increase page frames will results in a increase of page faults.\nGlobal replacement has this anomaly."
+      },
+      "id": "1794",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "More page numbers can cause more page fault.\nIn First In First Out."
+      },
+      "id": "1743",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "increasing the number of page frames that increasing the  number of page faults.\n"
+      },
+      "id": "5004",
+      "participant_username": "S061"
+    },
+    {
+      "answer": {
+        "text": "page fault多，page frame也變多。\npriorty inversion\n"
+      },
+      "id": "3923",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "1. page replacement 中，在提供更多的page frames的情況下，反而會發生\"page fault也增加\"的反直覺情況\n\n2. FIFO has this anomaly\n"
+      },
+      "id": "2091",
+      "participant_username": "S028"
+    },
+    {
+      "answer": {
+        "text": "it's a phenomenon which more page frames may leads to more page faults.\nFIFO algorithm(stack algorithm) has this anomaly."
+      },
+      "id": "2325",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "FIFO會遇到Belady anomaly這個狀況，就是你給的frame越多page fault 也會越多，不會因為資源比較多就降低錯誤"
+      },
+      "id": "2318",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "這是一個反直覺的現象，當page frames數量越多，page fault的數量居然不減反增。\n\n這是FIFO演算法常有的問題，因為此演算法沒有重視各個page的重要性，誰先進來誰就先出去，導致它經常把許多使用頻率高的page丟掉，然後又馬上要找回來，導致page fault數量增多"
+      },
+      "id": "2427",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly happens when the increase in pages actually increases page defaults, this happens in the First come First go algorithm, where we always replace the oldest page."
+      },
+      "id": "2021",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly是指在增加number of frame的情況下，page fault不減反增，我們可能會在FCFS等算法中看到"
+      },
+      "id": "2100",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "SSTF has this anomaly"
+      },
+      "id": "6453",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "FCFS(先到先處理)會發生Belady's Anomaly，此時增加frames反而會增加Page fault。"
+      },
+      "id": "6592",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly 是一個當增加 frame 的數量，但 page fault 反而上升的反常現象，主要發生在 FIFO algorithm"
+      },
+      "id": "1996",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly 是給更多page frame，但反而造成更多分頁錯誤。FCFS has this anomaly。"
+      },
+      "id": "6230",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly指的是當page frame 增加時，出現page fault的次數反而會更多的反直覺現象，會出現在local replacement的演算法裡"
+      },
+      "id": "4324",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "當memory frames 增多反而造成page fault 增加。\n\nESTF"
+      },
+      "id": "2905",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "frame數量增加但page fault不減反增"
+      },
+      "id": "1696",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "增加page frames反而增加page fault，發生在FIFO中。"
+      },
+      "id": "2237",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. 更多個frame會有更多page fault\n2. local replacement"
+      },
+      "id": "3483",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "Belady's anomaly is a counterintuitive situation where increasing the number of page frame results in increasing the number of page fault. \n先進先出的方法就會有這個問題  "
+      },
+      "id": "6506",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "A counterinuitive situation where increasing the number of page frames results in an increase in page faults."
+      },
+      "id": "2239",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "當若使用FIFO的page replacement algorithm時，選用更大的frames number可能反而會提升page fault number"
+      },
+      "id": "2090",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "這個狀況指的是增加memory frames的數量反而導致page fault增加,常見於FIFO演算法"
+      },
+      "id": "2212",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "1.working set>resident set導致頻繁的進行page swapping 。\n\n2.FIFO\n\n"
+      },
+      "id": "2360",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly 是正常情況我給予越多的frame 會得到較少的page fault 但是這個情況發生時,給予更多的frame 卻會導致page fault 變多。\n\nFCFS"
+      },
+      "id": "2779",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is the counterintuitive situation in memory management where the increase in the number of page frames results in the increase in the number of page faults. "
+      },
+      "id": "2737",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is when an increment in the number of page frames causes an increase in the number of page faults.\nUsually, FCFS has this anomaly."
+      },
+      "id": "2929",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Belay' anomaly is a situation that operating system allocating more pages results in higher number of page fault.\nFIFO. The algorithm that replaces the page which is put in the queue earliest. "
+      },
+      "id": "2372",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is the situation that allocate more frames to the process, however let the times of page fault higher. FCFS(FIFO) has this anomaly."
+      },
+      "id": "3065",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "When we increase the frame number, the page fault increases. \nFirst-in first-out  replacement."
+      },
+      "id": "5489",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly 是指分配給process的frame數越多，page fault ratio 不僅沒有降低，反而增加的現象。FIFO 就會有Belady's Anomaly的問題。"
+      },
+      "id": "2426",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "belady'a Anomly may occur at FIFO like 1234512512345 in 3 and 4 pages\n"
+      },
+      "id": "1811",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "(1) 在載入一個 program 後他常用的記憶體就會是某一個區間，直到載入下一個 program\n(2) LRU"
+      },
+      "id": "2397",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. the increase amount of page frames results in the increase amount of page faults, which is counterintuitive.\n2. FCFS"
+      },
+      "id": "2211",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly: 明明有更多資源(blocks)但page fault反而更多\nFIFO algorithm有這現象"
+      },
+      "id": "2264",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly 所指的現象是提供 memory page 更多， 反而造成了更多的 page fault。 很常會發生於 FCFS"
+      },
+      "id": "2107",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "It means that although the allocates page number increased , the Page fault ration did not decrease but increased which means that the page replaced is not optimal  . \nFIFO has this anomaly "
+      },
+      "id": "2381",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "a. Belady's Anomaly: Increasing the amount of page frames results in increasing the amount of page fault.\nb. FCFS"
+      },
+      "id": "2699",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "It occurs when we increase the number of page frames, the number of page faults increases instead of decreasing.\nFCFS has this anomaly."
+      },
+      "id": "2286",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "Belady's anomaly is when increasing the number of pages resulting in higher page fault.\nFIFO has the anomaly."
+      },
+      "id": "3551",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "When there are more frames, there will have more page fault. \nThis anomaly will happen in FCFS(first come first serve)."
+      },
+      "id": "2578",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "the increase of frame cause the number of page fault increase\n\nreplace oldest frame"
+      },
+      "id": "2258",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "when increase the page frame, the number of page faults may be increase.\nfirst come first serve algorithm has this anomaly."
+      },
+      "id": "2039",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "當frame數量變多 page fault也變多 常見於fifo algorithm"
+      },
+      "id": "2786",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "在page數增加的情況下，page fault的次數卻也增加了，系統才將資料移出table又馬上需要造成的問題\nfirst come first serve會發生此問題 "
+      },
+      "id": "2775",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "FCFS\nBelady's anomaly means if we add more frame for memory, it may not be more efficient."
+      },
+      "id": "2640",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "在OS memory 管理中，越多的frames反而會造成越多的page fault，FIFO會造成 。"
+      },
+      "id": "2176",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "belady anomaly is increase of the page frames that will result in increse of the page faults."
+      },
+      "id": "2729",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "belady's anomaly happened when having more page frames but the page fault also increase. "
+      },
+      "id": "1995",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "違反常理的page數量增加page fault增加"
+      },
+      "id": "2101",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "較多的frame數量反而可能導致更多的paging fault。在FIFO的algorithm可能會發生"
+      },
+      "id": "2418",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "1. It means that if we increase the size of fragmentation, it can cause an increase in page faults. \n2. FCFS"
+      },
+      "id": "6597",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "有時候我們把 process 的 page 數量增加，但是 process 實際查找次數還增加了，這就是 Belady's Anomaly。\nreplacement algorithm: First come first serve"
+      },
+      "id": "2361",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "給process更多frame,卻page fault更嚴重,效率更差"
+      },
+      "id": "2642",
+      "participant_username": "S026"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly means that the larger the allocated page frame (memory), the more page faults.\n Local replacement has this anomaly because it can only find the replacement in the allocated frames while page fault happens."
+      },
+      "id": "3694",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "(a) Belady's Anomaly describes an internal fragmentation phenomenon where large page size often left lots entries unused, causing the memory or resource waste.\n(b) One typical replacement algorithm is to always allocate process with small memory requirements to large data blocks."
+      },
+      "id": "2564",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "增加記憶體frames,卻導致Page faults數量增加即為Belady' Anomaly"
+      },
+      "id": "2942",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "所謂貝拉迪異常，是指程式"
+      },
+      "id": "3585",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly: 在memory management中，frames增加page fault反而跟著增加\nFIFO(first-in,first-out)"
+      },
+      "id": "2467",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "when the number of page frame increase leads to the increase of page fault , it is belady's anomaly.\nthe first in first out algorithm has this anomaly"
+      },
+      "id": "2809",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "增加了frame 反而導致page fault增加（正常應該是增加frame數，其page fault會下降）\n\nＦＩＦＯ：先進先出的演算法會導致這種異常 ，增加了frame數卻造成page fault 增加\n"
+      },
+      "id": "2499",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "increase a number of page frame result increase a number of page fault"
+      },
+      "id": "2098",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "when use FIFO algorithm, something strange will happen is that when you increase the memory frame, the page fault will increase."
+      },
+      "id": "2159",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "Belady's anomaly is that there are more page faults, when the size of the page get bigger.\nFirst in first out replacement algorithm has this anomaly."
+      },
+      "id": "2287",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "it occurs when increasing the number of frame, the page fault even increasing accordingly.\n\nFCFS algorithms might have this anomaly."
+      },
+      "id": "2430",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "While using FIFO algorithm, if we increase the number of frames, the page fault might increase, which is not intuitive."
+      },
+      "id": "2326",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly:指當frame增加時，page fault反而增加。\nFIFO"
+      },
+      "id": "5352",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "分配給他更多的page frame 但卻造成更多的page fault, FIFO algorithm has belady's anomaly\n"
+      },
+      "id": "2302",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Belady' s Anomaly 說明了一個反直觀的結果，越多的Frames，其實會造成FCFS的Page Falut次數變多。\nFCFS has this anomaly. \n"
+      },
+      "id": "4426",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly: when page frames increase, page fault increase\nFCS algorithm"
+      },
+      "id": "2154",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly是指給更多frame時反而造成更多的page fault，這在FIFO演算法中會出現此問題"
+      },
+      "id": "2335",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly: use more frames -> more page faults\nFIFO has this anomaly."
+      },
+      "id": "3036",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "正常是越多frame會造成越少page fault，但是卻發生了越多frame越多page fault就是Belady's Anomaly ，常發生在FIFO這個演算法"
+      },
+      "id": "2403",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "Belady's Anomaly is a counterintuitive process that will increase page frames and page faults"
+      },
+      "id": "2196",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "Belady Anomaly是當給定的page frame越多，反而page fault越多，其中FIFO演算法會發生這種異常"
+      },
+      "id": "2740",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "當frame越多的時候，page fault反而更多。\n選擇最早進來的page先page out時可能會造成Belady's Anomaly。"
+      },
+      "id": "2601",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "Usually, the number of page fault should decrease with the number of allocated frame increase. Belady's Anomaly happens when the number of page fault increase with the number of allocated frame increase. FCFS is the algorithm that has this anomaly."
+      },
+      "id": "4294",
+      "participant_username": "S025"
+    },
+    {
+      "answer": {
+        "text": "當分配到的page frame數變多，但發生的page fault次數不減反增\nFIFO"
+      },
+      "id": "2194",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "Explain Belady’s Anomaly in the context of page replacement algorithms. Which replacement algorithm has this anomaly?",
+    "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b",
+    "question_type": "essay",
+    "reference_answer": "a. Belady’s Anomaly occurs when increasing the number of page frames leads to more page faults.\nb. The FIFO replacement has Belady’s Anomaly. It occurs because FIFO doesn't consider access patterns; older pages might be replaced despite future use."
+  },
+  "question_id": "fe59c063-d7d5-4d1a-8d82-90dd1e67c55b"
+}

@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "Compare the number of switches required for a crossbar network versus an Omega network for n CPUs and n memory modules.",
+  "question_id": "df612ec1-2475-4919-9f33-0fc639c9507a",
+  "question_type": "short_answer",
+  "reference_answer": "A Crossbar network requires n^2 switches. An Omega network requires (n/2) log2 n switches."
+}

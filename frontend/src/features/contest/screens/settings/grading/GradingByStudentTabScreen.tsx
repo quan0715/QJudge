@@ -29,6 +29,12 @@ import {
   type GradingAnswerRow,
   type QuestionProgress,
 } from "./gradingTypes";
+import {
+  computeEffectiveMaxTotal,
+  computeStudentDisplayTotal,
+  isCountedQuestion,
+} from "./scorePolicyUtils";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import styles from "./GradingByStudent.module.scss";
 import mini from "./GradingMini.module.scss";
 
@@ -82,11 +88,26 @@ export default function GradingByStudentTabScreen({
   );
 
   const studentSummaries = useMemo<StudentSummary[]>(() => {
+    // Build maxPossible from question list (not answers) to handle missing answers correctly
+    const maxPossible = computeEffectiveMaxTotal(
+      orderedQuestions.map((q) => ({
+        maxScore: q.maxScore,
+        effectiveMaxScore: q.effectiveMaxScore,
+        scorePolicy: q.scorePolicy,
+      })),
+    );
+
     return students.map((s) => {
       const answers = answersByStudent.get(s.studentId) ?? [];
-      const gradedCount = answers.filter((a) => a.score !== null).length;
-      const totalScore = answers.reduce((sum, a) => sum + (a.score ?? 0), 0);
-      const maxPossible = answers.reduce((sum, a) => sum + a.maxScore, 0);
+      const gradedCount = answers.filter((a) => a.score !== null && isCountedQuestion(a.scorePolicy)).length;
+      const totalScore = computeStudentDisplayTotal(
+        answers.map((a) => ({
+          maxScore: a.maxScore,
+          effectiveMaxScore: a.effectiveMaxScore,
+          scorePolicy: a.scorePolicy,
+          score: a.score,
+        })),
+      );
       return {
         studentId: s.studentId,
         username: s.username,
@@ -94,7 +115,7 @@ export default function GradingByStudentTabScreen({
         totalScore,
         maxPossible,
         gradedCount,
-        totalCount: answers.length,
+        totalCount: answers.filter((a) => isCountedQuestion(a.scorePolicy)).length,
       };
     });
   }, [students, answersByStudent]);
@@ -401,7 +422,9 @@ export default function GradingByStudentTabScreen({
                 ) : readOnly ? (
                   <Tag type="cool-gray" size="sm">{a.latestSubmissionStatus || t("grading.answered", "已作答")}</Tag>
                 ) : a.score !== null ? (
-                  <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+                  <Tag type="green" size="sm">
+                    {formatScore(a.score)}/{formatScore(a.maxScore)}
+                  </Tag>
                 ) : (
                   <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
                 )}

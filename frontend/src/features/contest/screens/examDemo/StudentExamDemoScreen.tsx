@@ -14,6 +14,7 @@ import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { ProblemPreview, ProblemHeaderCard } from "@/shared/ui/problem";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import type { ExamItem } from "../../types/exam.types";
@@ -153,7 +154,7 @@ const StudentExamDemoScreen: FC = () => {
               <Tag size="sm" type="green">程式題</Tag>
             </span>
             {item.data.score != null && (
-              <span className={styles.codingScore}>{item.data.score} 分</span>
+              <span className={styles.codingScore}>{formatScore(item.data.score)} 分</span>
             )}
           </div>
 

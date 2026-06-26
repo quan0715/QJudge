@@ -1,0 +1,317 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12701","S109","(1)SI-LB: 在生出一個 process 後是直接由創建他的人去處理，除非他自己也overloaded 才會主動去問誰現在有空
+(2)RI-LB: 會先主動去問誰現在是 underloaded 的，那個人有空就去做這件事
+(3) Receiver-initiated load balancing algorithm performs better under heavy load","2","RI-LB 描述方向錯誤（問誰 underloaded，正確應是 underloaded 節點主動找 overloaded 節點）",""
+"2","11904","S015","RI-LB maintains performance under heavy load.
+In SI-LB, the sender sends the probe to ask for help. This may burden the sender under heavy load.","2","正確指出 RI-LB 較佳但 RI-LB 自身機制說明不足",""
+"3","16061","S054","SI-LB：65 
+RI-LB：66 
+RI-LB  maintains performance under heavy load","1","SI-LB/RI-LB 後數字無意義，僅回答 RI-LB 較佳但無說明",""
+"4","12077","S117","RI-LB maintains performance under heavy load. SI-LB 會將process分配給create他的node, 如果該node overloaded 再將它移植給別的node，在heavy load的情況下會影響performance；RI-LB 在處理完一個process後，如果under loaded 會向別的node移植process來處理。","3","",""
+"5","11775","S093","SI-LB: 當node本身太忙的時候，會去問其他的node是否有空，以此確認其他的node能否協助自己的工作 
+RI-LB: 當node本身太閒的時候，會去問其他的node是否太忙，以此幫具其他的node完成overloaded的工作
+在heavy loads的情況下RI-LB可以維持性能；而SI-LB的性能會很差，因為會一直去問別人有沒有空，但大家都沒空，所以會一直問，降低performance","3","",""
+"6","11756","S012","receiver-initiated. For SI-LB in a heavy load scenario, a core is always asking for help from other core, but otehr coresis still over loaded, so it won't get help from other core and slows down the performance","2","正確指出 RI-LB 較佳但 RI-LB 自身機制說明不足",""
+"7","11975","S108","SI-LB: 當處理器的負載過高 (overloaded) 時，probes others 來將自己的工作丟給負載低的處理器。
+RI-LB: 處理器的負載低 (underloaded) 時，probes others 來詢問其他人的工作是否需要幫忙處理。
+RI-LB maintains under heavy load.","3","",""
+"8","11870","S099","SI-LB: 預設 process 會有建立他的節點來負責執行，當某節點過載時，會去探尋其他節點，若發現該節點是 under loaded，會把 process migrate 到該節點。
+RI-LB: Process 執行結束時，該節點發現自己 under loaded，則會主動去探尋其他節點，若探尋到的節點是 over loaded，則會將該節點上的 process migrate 到自己身上。
+在 heavy load 情境中，RI-LB 可以 maintain performance，因為在 heavy load 情境下使用 SI-LB 只會白費資源（所有節點都很忙）。","3","",""
+"9","11981","S070","SI-LB:cpu繁忙的時候去請求其他cpu幫忙
+RI-LB:cpu空閒的時候去問其他cpu需不需要幫忙
+RI-LB在heavy load表現一樣好，因為heavy load 不容易空閒，就算空閒也能幫忙別人，SI-LB會造成更繁忙","3","",""
+"10","12697","S080","SI-LB: the thread will always assign to the node which created it. when the node is overloaded, it will randomly probe other node for help. if other node is underloaded, it will access the thread, if there is no other node accept it, it will probe until it upper limit N.
+RI-LB: when the node is underloaded, it will probe other node to ask who need help, if any node is overloaded, it will migrate the thread to the underloaded node.
+RI-LB maintain performance under heavy load.","3","",""
+"11","12442","S003","SI-LB is the process is assigned to the node who create it, if he is under overload, he would pass it to the neighbors, calling for help.
+RI-LB is after he finish the task, he will ask for works from neighbors , willing to help others
+
+RI-LB maintains under heavy load.","2","說明正確但較簡略，未充分解釋為何 RI-LB 在 heavy load 表現較佳",""
+"12","12275","S035","Q1 :
+SI-LB : when a node is overloaded, it probes other node for help. If the probed node is under loaded, it accept and get some processes or tasks. Otherwise the overloaded node keep probing until a limit number N.
+RI-LB : when a node is under loaded, it probes other node for work. If the probed node is overloaded, it accept at give some processes or tasks to it. Otherwise the under loaded node keep probing until a limit number N.
+(SI-LB probing for help when overloaded, RI-LB probing for work when under loaded)
+Q2 :
+SI-LB will degraded and perform badly under heavy load.","2","未明確回答哪個在 heavy load 維持效能（僅說 SI-LB 會 degrade）",""
+"13","12842","S037","RI-LB, SI-LB processor asks for help when busy. If the the whole system is under heavy load, processor would keep asking for help. Which would produce performance overhead","2","回答簡略，RI-LB 機制說明不足",""
+"14","12320","S097","1. SI-LB distributes requests between the receivers on sender's side. RI-LB distributes received requests between its nodes (server, cpu)
+2. RI-LN has better performance under heavy load","1","SI-LB/RI-LB 描述模糊且方向不正確",""
+"15","13369","S013","1. SI-LB:
+A process stays in the origin node. If the node is over load, then it probes other nodes which is under load.
+2. RI-LB:
+The node under load probes the nodes over load, and help them to do the process.
+3. RI-LB maintains performance under heavy load","3","",""
+"16","12404","S040","SI-LB: ask for someone help me to do some job
+RI-LB: ask if someone has too many job, I can help
+RI-LB maintains performance under heavy load since everyone has many job want other processor help, will cause many useless network load if use SI-LB.","2","說明正確但較簡略",""
+"17","11228","S124","In SI-LB, when a node is overloaded it asks other nodes if they can take a task off of their shoulders (and if a node is underloaded, it accepts and takes the task from the overloaded node)
+
+In RI-LB, when a node is underloaded, it asks other nodes if they have a task to give them (and if a node is overloaded, it accepts and gives the task to the underloaded node)
+
+RI-LB is the one who is able to maintain performance under heavy load","3","",""
+"18","12390","S121","-SI-LB : when a new process appears on a overloaded computer, it probes the other computer to know if someone is idle. If someone is idle, then the new process is migrated to this computer.
+-RE-LB : when a computer is not overloaded, it probes the others to know whether one is overloaded. If one is overloaded then process is migrated to the computer which has initiated the probing.
+
+RE-LB is the one who maintains performance under heavely-loaded system.","3","",""
+"19","15979","S068","RI-LB 會有比較好的表現。","1","僅說 RI-LB 較好，無任何比較或說明",""
+"20","11806","S102","SI-LB是先分配給create該工作出來的cpu，如果在忙才轉移給其他人
+RI-LB是在空閒下來的時候，才主動去找別人要工作
+在heavy load 情況下，RI-LB可以有比較好的表現。因為如果整個系統都很忙的話，SI-LB會需要找很久才能找到也有空的。","3","",""
+"21","11902","S034","1. SI-LB
+當node的loading重時，會尋求loading輕的node來轉移工作。當heavy load時，因為大家都在尋求其他人來轉移工作，所以performance會下降。
+2.RI-LB
+當node的loading輕時，會找loading重得去幫忙它。當heavy load時，只有loading較輕的node才會去尋求，因此可以保持performance。","3","",""
+"22","11334","S084","1. SI-LB是過忙時，會向其他人求救幫忙，把任務分擔給別人做。
+2. RI-LB是過閒時，會接收其他人的任務幫忙別人。
+3. 在heavy load的系統中RI-LB會maintain performance。","3","",""
+"23","12127","S079","SI-LB: every newly born process is added to the CPU ready list where it was created. When the sender CPU is overload it will probe others for help, this process will end if all CPU are probed or nobody can help.
+
+RI-LB: When a CPU is underloaded or free, it will probe others to migrate some process to themselves.
+
+RI-LB","2","說明正確但未完整回答哪個在 heavy load 維持效能及原因",""
+"24","12470","S122","Sender-Initiated (SI-LB) : node重的去找輕的幫忙分擔工作
+Receiver-Initiated (RI-LB) :node輕的主動去幫重的幫忙分擔工作
+
+Sender-Initiated (SI-LB)","1","比較正確但回答不完整，僅列出 SI-LB 標題無結論",""
+"25","11908","S086","SI-LB: overloaded nodes try to send work away
+RI-LB: underloaded nodes try to pull works from other
+SI-LB doesn't perform well in the heavily loaded situation, RI-LB doesn't degrade performance in the heavily loaded situation.","2","說明正確但較簡略，未充分解釋為何 RI-LB 較佳",""
+"26","12392","S052","SI-LB是overloaded node自己去問其他node可不可以幫它處理沒有時間處理的process，而RI-LB是有空的underloaded node自己去跟其他node要process來做。RI-LB can maintains performance under heavy load。","3","",""
+"27","11991","S033","RI-LB.
+因為RI-LB在高負載時，每個接收端不會有處理完發現自己是低負載的情況，會一直持續運作，不會額外做詢問。","1","僅說明 RI-LB 且無比較 SI-LB",""
+"28","12425","S123","SI-LB: If node is overloaded, it probes other for help. If the probed node is under loaded, it accepts the process. Otherwise, the probing node repeatedly probes for help until limit N.
+RI-LB: If node is under loaded, it probes other for work. If the probed node is overloaded, it migrates the process to the probing node. Otherwise, the probing node repeatedly probes for work until limit N.
+RI-LB can maintain performance in heavily loaded situation.","3","",""
+"29","11778","S027","SI-LB:overloaded sendors send jobs out
+RI-LB:idle recceive ask for job
+SI-LB is bad under heavy load,but RI-LB is better under heavy load","2","說明正確但較簡略",""
+"30","12786","S081","SI-LB the nodes are sent and they are piled on
+RI-LB the nodes are received and are discarded quicker
+sender-initiated load balancing maintains performance under heavy load because it needs to underload","0","回答 SI-LB 在 heavy load 表現較佳，與正確答案相反",""
+"31","12344","S008","Both SI-LB and RI-LB first assign the process to the node it creates it. For SI-LB, if the node is currently overloading, the sender node will probe other nodes to check whether there are available nodes to process. For RI-LB, if the node is under loading (idle) it will send the message to others nodes to search for jobs to do. The RI-LB maintains performance under heavy load. Because SI-LB will create extra overhead when all the nodes are under heavy load.","3","",""
+"32","12942","S022","The buffer storage initiated by sender or receiver.
+
+RI-LB.","1","buffer storage 與負載平衡無關，雖答 RI-LB 但說明錯誤",""
+"33","12807","S110","RI-LB","1","僅寫 RI-LB，無任何說明或比較",""
+"34","12368","S082","Receiver-Initiated, once a processor is available, it will help other processors actively without waiting. ","1","僅說明 RI-LB 無比較 SI-LB，說明不完整",""
+"35","12293","S105","Receiver-Initiated LB.","1","僅寫 Receiver-Initiated LB，無任何說明或比較",""
+"36","11425","S111","RI-LB是在自己有餘裕時才會向其他node尋求工作，因此相較於主動找事情做的SI-LB，RI-LB在heavy loading的情況下表現較好。","2","正確指出 RI-LB 較佳但 SI-LB 描述略偏（SI-LB 是過載時求救，非主動找事做）",""
+"37","11790","S085","SI-LB: 任務通常由發起者處理，繁忙時則尋找下一空閒節點
+RI-LB: 空閒節點主動向繁忙節點分擔任務，或主動獲取新任務
+
+RI-LB不須多次尋找空閒節點，在重載時效率較高","3","",""
+"38","11911","S004","SI-LB:新的process會先被分配給建立他的node，若該node overloaded，則會繼續隨機探測其他node求助，若該node underloaded則會接收請求，否則探測到上限N
+SI-LB在heavy load situation效能不好
+RI-LB:process執行結束時，node會自動檢查自己是否underloaded，若是，則會主動探測其他node要工作，若被探測的node overloaded，會把他的一個process拿走，否則探測到上限N
+RI-LB在heavy load situation不會讓他惡化","3","",""
+"39","11879","S011","Receiver-Initiated. ","1","僅寫 Receiver-Initiated，無任何說明或比較",""
+"40","11785","S046","RI-LB maintains performance under heavy load.","1","僅說 RI-LB maintains performance，無比較或說明機制",""
+"41","11388","S005","Receiver-Inited maintain performance due to the busy node doesn't have overhead to ask other node for help.
+","1","僅簡單說明 RI-LB，無比較 SI-LB",""
+"42","11338","S014","RI-LB maintains performance under heavy load","1","僅寫 RI-LB maintains performance，無說明或比較",""
+"43","11836","S107","Receiver-Initiated (RI-LB) maintains performance under heavy load.
+If the node is under loaded, it randomly probes a node for work. If the probed node is overloaded, it migrates a process to  probing node. Otherwise, the probing node repeatedly probes until the upper limit N.","2","RI-LB 說明詳細但缺少 SI-LB 的比較說明",""
+"44","11997","S126","Sender-Initiated (SI-LB) :會去尋找負擔小的node傳過去
+Receiver-Initiated (RI-LB):會去尋找負擔大的node
+Sender-Initiated (SI-LB) 在heavy load會一直去收尋浪費performance ，Receiver-Initiated (RI-LB)則沒有這個問題","3","",""
+"45","14028","S017","SI-LB是把process直接assign給創造它的node，當一個node overloaded時，由這個過勞的node主動隨機probe其他node來詢問能否分攤process，如果被詢問的node沒有overloaded就能直接接收process來分攤工作量，如果被詢問的node也overloaded就詢問下一個，下一個依舊是overloaded就一直重複N times
+
+RI-LB是反過來，當一個node完成一個process時會檢查自己忙不忙，如果自己under load，那就主動詢問其他node是否太忙需要幫忙，隨機詢問其他node是否overloaded，如果是就跟對方索要process來分攤壓力，詢問到的node沒有overloaded就隨機詢問下一個，如果詢問到的都沒有overloaded就一直詢問其他人直到N times
+
+RI-LB在under heavy load 的情況下能maintain performance","3","",""
+"46","11258","S115","SI-LB: Ask for help when overload
+RI-LB: Ask for help when underload
+RI-LB maintains performance under heavy load, and underperforms in light load","2","說明正確但較簡略",""
+"47","11780","S089","1.SI-LB : New process 會存在生成的Node，如果該node overloaded，則會尋找下個node，直到找到under loaded的node
+2.RI-LB ：under loaded的node會主動尋求work
+3.RI-LB在underloaded會維持performance","2","說明正確但較簡略，且誤寫 underloaded 應為 heavy load",""
+"48","11862","S009","SI-LB is a process is in heavily loaded and it will search others for help, if one is underloaded it will search for another until it reach its limit
+RI-LB is a process is not underloaded and it will search other underloaded process if they need help until it reach its limit
+RI-LB can maintain performance under heavy load","1","RI-LB 描述錯誤（RI-LB 應找 overloaded 非 underloaded）",""
+"49","12258","S094","RI-LB不會讓heavily load situation下降","1","僅簡單說明 RI-LB，無比較 SI-LB",""
+"50","12659","S066","SI-LB: 當發現某個節點工作量過大時，把工作丟給其他節點做
+RI-LB: 當發現某個節點工作量太少時，向其他人接收工作做
+當系統工作壓力大時，SI-LB會持續想把工作給其他節點，造成額外負擔，故RI-LB在高壓環境下表現較佳","3","",""
+"51","11914","S041","SI-LB:當一個node很忙時，它會主動尋找其他較閒的node，把工作交給他
+RI-LB:當一個node很閒時，它會主動尋找其他較忙的node，跟他要工作
+SI-LB在heavy load的情況下表現不佳，RI-LB在heavy load的情況下不會明顯惡化","3","",""
+"52","14280","S031","Receiver-Initiated 在高負載下表現較好，因為是空閒的去找其他需要幫忙的；而Sender-Initiated 是忙碌的去請求其他空閒的幫忙，直到上限N，若在高負載下，大家都很忙，會造成表現不佳。","3","",""
+"53","11811","S116","RI-LB, 因為SI-LB是在負載滿了之後找其他成員幫忙 但heavy load時通常全部成員負載都很滿 因此RI-LB會有比較好的performance","2","正確指出 RI-LB 但說明顯簡略，缺少 SI-LB 機制說明",""
+"54","12454","S059","SI-LB: overloaded node(忙的)會主動請求支援(probing a node)若有underloaded node可以支援的話會拿走忙的node的一些工作.若無就會一直probing直到找到幫手為止
+RI-LB: underloaded node(閒的)會主動送出救援訊號(probing)若有overloaded node太忙的話會分一些工作(thread)給他.若無就會一直probing直到找到工作
+
+RI-LB maintains performance under heavy load.","3","",""
+"55","12393","S064","Receiver-Initiated (RI-LB)","1","僅寫 Receiver-Initiated (RI-LB)，無說明或比較",""
+"56","12260","S101","RI-LB 在高負載時維持效能。因為 RI-LB 在節點完成工作並確認自己 under loaded 時才會 probe for work。而SI-LB 是在產生任務的節點處理任務直到 overloaded 才 probe for help。","3","",""
+"57","11741","S103","SI-LB : 過載的節點會主動去詢問並派工作給別人
+RI-LB : 閒置的節點會主動去詢問並拿工作來做
+RI-LB在heavy load的時候表現比較好","2","說明正確但較簡略，未充分解釋為何 RI-LB 較佳",""
+"58","13684","S104","SI-LB : 當某個節點(sender)過載時，它會主動向其他節點尋求幫忙
+RI-LB : 當某個節點(receiver)空閒時，它會主動向其他節點詢問需不需要幫忙
+在高負載的系統中RI-LB表現會較好，因為大家都很忙，所以很容易就可以找到需要幫忙的人","3","",""
+"59","12229","S023","Sender-Initiated(發送端發起): 當節點過載時，主動尋求閒置節點的幫忙，缺點是當全系統高負載時效能極差，因為找不到節點幫忙還會增加網路通訊負擔。
+Receiver-Initiated(接收端發起): 當節點閒置時，主動向過載的節點索取工作。","2","說明正確但未明確指出哪個在 heavy load 維持效能",""
+"60","11637","S113","Receiver-Initiate比較適合高load。
+Sender-Initiated是先將process assigned到產生他的cpu上，再去問其他是否有空閒的cpu可以幫忙分攤(上限N次)，但在heavy load幾乎大家都很忙，因此這樣一個一個問很難找到人也會增加系統負擔，因此receiver initiated比較適合heavy load。","3","",""
+"61","12005","S055","SI-LB:是當節點過載時 去尋找閒置的節點幫忙工作
+RI-LB:是當節點閒置時 去主動找需要幫忙的節點 承接工作
+因此RI-IB可以在heavy load的情況下保持效能
+因為前者會找不太到人幫忙 反而浪費資源在傳輸 需要幫忙的資訊","3","",""
+"62","12066","S119","SI-LB: if the node is overloaded, it randomly probes a node for help.
+RI-LB: whether the process finishes, the node check whether it is under load. If so, it randomly probes a node for work.
+RI-LB maintains performance under heavy load.","3","",""
+"63","12086","S067","SI-LB:將工作交給提出問題的node,當問題太多就叫附近的node處理
+RI-LB:評估node 的load如果太少,主動去跟附近node要工作
+SI-LB不適合在heavy load下
+RI-LB在heavy load下仍能保持效率","3","",""
+"64","12715","S076","SI-LB: Overloaded nodes try to push work away
+RI-LB: Underloaded nodes try to pull work in
+SI-LB does not perform well under heavy load situations.
+RI-LB does not degrade performance under heavy load situations, so RI-LB is the one that maintains performance under heavy load.","3","",""
+"65","11063","S074","Sender-Initiated Load Balancing is when the processor has too many work and looks for idle processor to give to some of the work.
+
+Receiver_Initiated Load Balancing is when the idle processor initiates or asks for load from a processor with a lot of work than it can handle.
+
+Receiver-Initiated performs well under heavy load.","3","",""
+"66","12112","S063","SILB: the process always assign to the node which creates it. If the node is overload, it will keep probing  another node until the probed node is underload. The overload one gives some task to the probed one.
+RILB: If the node is under load, it will go to find a overload node. Then migrates the process from overload node to itself.
+RILB maintain performance under heavy load.","3","",""
+"67","12087","S090","1. SI-LB: When a node is overloaded, it will find other nodes which is not overloaded, try to give the tasks to them.
+2. RI-LB: When a node is underloaded, it will find other nodes which is overloaded, try to ask the tasks from them.
+3. RI-LB maintains performance under heavy load.","3","",""
+"68","13614","S100","SI-LB: The process is processed at the original node where the process is created. If the node is overloading, it will send a message to neighbor nodes for help and move the process to neighbor node.
+
+RI-LB: The node under-load will send a message to other nodes and ask them to give it some processes to execute.
+
+RI-LB maintains performance under heavy load. ","3","",""
+"69","11440","S114","RI-LB 在heavy load 的情況下 performance 較好 主要原因為 ： RI-LB 是在ＣＰＵ idle 時 自己去做 probing 因此不會浪費太多時間，但是 SI-LB 是自己忙不過來時，主動probing 問其他ＣＰＵ是否可以幫忙，但是有可能會因為每個ＣＰＵ 都在忙 ，因此浪費時間去做大量 probing。 ","3","",""
+"70","12789","S038","RI-LB becauce it let the receiver to found not busy sender","1","RI-LB 說明語意不清（receiver found not busy sender 方向錯誤）",""
+"71","12034","S047","SI-LB：是有點像 push 的方式，當目前的 node 的負載過重的時候，會主動把當前 node 上的負載詢問有沒有其他台可以接手，把負載移過去
+RI-LB：是有點像 pull 的方式，當目前的 node 的負載過輕的時候，會主動問其他台有沒有需要幫忙的，抓他們的負載過來執行
+
+
+
+在 heavy load 的情況下，RI-LB 會比較好，因為每一台大部分都很忙，SI-LB 去問每一台反而會增加負擔而且大部分都問不到，反而是負載輕的主動跳出來說他可以接會比較有效率
+","3","",""
+"72","12808","S044","RI-LB maintains performance under heavy load
+node in SI-LB will check if it's overloaded . if so, it probes to other nodes to seek for help. Then, if system is heavy loaded, every node is requesting for help and the system cannot handle this.
+node in RI-LB will check if it's underloaded. if so, it probes to other nodes to seek for doing their mission. If other node is overloaded, they will migrate the mission to the probed node. This can keep the performance under heavy load","3","",""
+"73","11996","S075","si-lb: when the nodes are busy, they will send to other nodes to find the help
+ri-lb: when the nodes are idle, they will send to other nodes to get the work
+ri-lb performs better under heavy load","2","說明正確但較簡略",""
+"74","11965","S030","兩者都為隨機性演算法
+sender initiated : 當 節點 負擔過重後 會開始找 負擔輕的節點來接手部份工作
+RI-LB : 當自己的工作結束後 會檢查負擔是否過輕，若過輕則會把 工作拉進來。  
+RI-LB 較可以在 heavy load maintaince performance，原因是 當 工作負擔重時 SI - LB 較難找到可以接手自身工作的節點進而降低表現
+","3","",""
+"75","11701","S106","RI-LB , because those who can take more jobs will ask for jobs , while SI-LB randomly askes for idle ones , which is not ideal since most are busy . ","2","說明正確但較簡略",""
+"76","12171","S019","RI-LB maintains performance under heavy load.","1","僅寫 RI-LB maintains performance，無比較或說明",""
+"77","11641","S020","(1) SI-LB: An overloaded node takes initiative to probe other nodes to push out its excessive work, while it has poorly performance in heavily loaded situation.
+(2) RI-LB: An underloaded node takes initiative to probe other nodes to pull in its work.
+(3) SI-LB does not performs well in heavily loaded situation and RI-LB does not degrade performance in heavily loaded situation","3","",""
+"78","11848","S010","SI-LB: when overload, probe other to work, if the poked one is overload, probe another one, until the probed one is underload.
+RI-LB: when underload, probe other for work.
+RI-LB doesn't reduce performance under heavy load.","2","說明正確但較簡略",""
+"79","12307","S091","SI-LB:負載過大的node主動要其他人幫忙
+RI-LB:閒置node主動詢問其他人有沒有要幫忙的
+SI-LB會處於heavy load，因為RI-LB只有閒置的會發出訊號，不影響負載","1","說明不完整，未正確比較兩者",""
+"80","11719","S051","SI-LB is let high utilization computer send jobs to low utilization
+RI-LB is let low utilization computer ask jobs from high utilization
+SI-LB maintains performance under heavy load.","0","回答 SI-LB 在 heavy load 表現較佳，與正確答案相反",""
+"81","13134","S039","SL-LB: node在overloaded時會試著把工作分給其他node
+RI-LB: node在underloaded時會試著像其他node要求工作
+RI-LB在heavy load時仍能維持表現","2","說明正確但較簡略",""
+"82","11884","S018","SI-LB:當node負載過重時會傳遞求救訊息讓其他負載較輕的幫忙處理
+RI-LB:當node負載較輕時會傳遞訊息去幫忙負載較重的node
+heavy load的情況下RI-LB不會降低效能，SI-LB會降低","3","",""
+"83","11834","S049","SILB 由sender在 overload情況下請求其他沒overload的node來處理，RI-LB則是在underload情況下請求其他overload的節點轉移process給他 更適合在heavy load下使用","3","",""
+"84","12046","S053","RI-LB在heavy load的情況下表現較好，閒置的CPU會主動請求工作，SI-LB會因為多人發起尋找閒置CPU導致阻塞","3","",""
+"85","11819","S092","Receiver-Initiated (RI-LB) Load Balancing algorithm can maintain performance under heavy load.
+The idle node will proactively help other nodes .
+If other node is busy, then help.
+If other node is idle (or not busy), then ask others.
+
+In Sender-Initiated (SI-LB) Load Balancing algorithm, a busy node will ask for help.
+When the system is heavy loaded, it will happen that a lot of node ask for help, which may hurt performance.","3","",""
+"86","11614","S125","receiver initiated can maintains performance in heavy load，不會像SI-LB卡在前面message進不來","2","說明正確但較簡略",""
+"87","15056","S021","SI-LB maintains performance under heavy load","0","回答 SI-LB 在 heavy load 表現較佳，與正確答案相反",""
+"88","11998","S050","SI-LB 忙碌的sender節點找閒置的節點接工作
+RI-LB 閒置的receiver節點找忙碌的節點要工作
+RI-LB maintains performance under heavy load","3","",""
+"89","12062","S036","sender initiated:當系統overload的時候，主動請求別人幫忙。
+receiver initiated:當系統underload的時候，主動詢問需不需要幫忙。","1","僅分別說明兩者但未回答哪個在 heavy load 維持效能",""
+"90","11572","S048","在heavy load的情況下，RI-LB有較好的表現，因為SI-BI的原理是會主動去看其他的node在當下有沒有loading，如果比較少loading就會分配自己的loading給其他node，但是在heavy load的情況下，SI-BI會一直去找其他的node，但因為當下所有的node的load都很大，所以會浪費找尋的時間資源","3","",""
+"91","12103","S112","Sender-Initiated (SI-LB): 忙的CPU問其他CPU是否可幫忙
+Receiver-Initiated (RI-LB): 比較閒的CPU主動詢問其他CPU是否要幫忙
+RI-LB在heavy load時比較好，因為SI-LB在heavy load時還要主動一直詢問其他CPU，會讓自己跟其他CPU越問越忙","3","",""
+"92","11755","S006","1. si-lb, sender ask if others can help
+2. ri-lb, receiver ask if others need help
+3. ri-lb, cause under si-lb, when all the process are busy, there is an headover of asking other while no one can help, which is meaningless.","2","說明正確但較簡略",""
+"93","12029","S057"," SI-LB  : 忙的主動發送資料
+RI-LB : 閒的主動接收資料","1","說明過於簡略，無比較或結論",""
+"94","14200","S002","RI-LB maintains performance under heavy load.
+SI-LB asks to help while overloaded. it will get bad performance if keeping asking to help while it's busy.","2","說明正確但較簡略",""
+"95","12084","S007","SI-LB is sender calling for help when busy; RI-LB is Receivers calling to help others when they are free.
+RI-LB has better performance under heavy load.","2","說明正確但較簡略",""
+"96","14683","S016","1.SI-LB:當一個節點發現自己的負載過高，它會主動尋找系統中負載較輕的節點，並將任務發送出去。
+2.RI-LB:當一個節點發現自己的負載過低，它會主動尋找系統中負載較高的節點，並要求對方分配一些任務過來。
+3.接收方發起負載平衡（RI-LB）演算法在高負載下能保持效能","3","",""
+"97","13059","S083","發送端主導負載平衡：是指當某個節點負載過重時，主動將工作(tasks)推送(push)到其他節點，適合系統整體負載較低時使用，因為較容易找到空間節點。而Receiver-Initiated(接收端主導負載平衡)則是當某個節點空閒時，主動向其他節點拉取(pull)工作，適合在系統負載較高使用，因為較容易找到忙碌節點來分擔負載。","3","",""
+"98","11999","S088","SI-LB : 當一個node開新的process時，如果這個node是overloaded，他會尋求其他nodes的幫助，如果有node是under loaded，他就會接手並處理這個process
+RI-LB : 如果一個node是under loaded，他會主動尋找工作，去接手其他overloaded的node的工作
+在heavily load的情況下，RI-LB的表現會比SI-LB更好","3","",""
+"99","12691","S058","SI-LB : an overloaded node randomly ask for help from other node.
+RI-LB : a node which have nothing to do ask other node to get some task.
+RI-LB maintains performance under heavy load.","2","說明正確但較簡略",""
+"100","11654","S043","RI-LB在heavy load環境中有較好的表現
+因SI-LB負擔重的節點會主動找負擔較少的節點幫忙 ，若負擔重整體表現不佳
+而RI-LB負擔輕的節點會主動找任務執行
+","3","",""
+"101","11663","S060","RI-LB, 重負載情況下 si-lb找不到輕負載來轉移工作","2","說明正確但較簡略",""
+"102","11788","S024","SI-LB: the process is always assigned to the node which creates it
+when a node is overloaded, it probes other for help.
+when receive a probe, if a node is under loaded, it receive the new process.
+RI-LB:when a node is under loaded, it probe other for process migration
+when receive a probe, if a node is overloaded, it migrate some process to sender.
+
+SI-LB has worse performance at high loaded situation, RI-LB has no degrade performance on high loaded situation.","3","",""
+"103","12050","S095","si-lb 是節點過載時，會尋找還沒有過載的節點幫忙
+ri-lb 是節點做完自己的工作時，主動去尋找其他需要幫忙的節點
+ri-lb maintains performance under heavy load","3","",""
+"104","12063","S077","SI-LB find the other core to execute his ready threads when the core is overloading.
+RI-LB check if the other core has the work not down when it is free now.
+RI-LB maintains performance under heavy load.","3","",""
+"105","11861","S120","RI-LB maintains performance under heavy load.
+SI-LB：busy CPU去request idle CPU並push工作給後者。若heavy load， 可能會一直互相request。
+RI-LB：idle CPU去request busy CPU分擔工作。若heavy load，至少大家都busy。","3","",""
+"106","12174","S073","SILB工作量大的節點會去尋找其他節點看它是否有空，直到找到有空的節點就把工作分它，或是都找不到但達到搜尋次數上限，在heavy load的情況下，這會增加搜尋及通訊成本
+RILB則是閒下來的節點會主動去尋找工作，比較適合用在havy load 的情況","3","",""
+"107","11995","S069","SILB:他在自己overload的時候會像其他cpu發probe訊號看有沒有較空閒的可以把工作轉移過去
+RILB:當自己的load很輕鬆的時候會像其他cpu發probe訊號，看有沒有多餘的訊號可以讓他做
+當在heavy load 的時候SILB的效能會下降，但RILB的不會
+","3","",""
+"108","12221","S072","SI-LB: creator process的CPU自行處理，但若自行已經超過負載，則向外隨機probe，請求其他core協助，若其他core為under loaded則接受，若不是，則繼續尋求別人幫助，當probe到N次時，不再向外請求。
+RI-LB: 由空閒的core主動去找事情做，詢問別人是否需要幫助。
+RI-LB maintains performance under heavy load. SI-LB則甚至會導致performance，因為大家都很忙，沒其他core可以提供幫助，但還是要花資源去進行probe。","3","",""
+"109","11736","S042","RI-LB, 因為他的運作方式是when process finish, node才會去判斷他是不是在under load狀態，如果是的話，他會去probe for work,不是的話，他會將process migrate到其他probing node. otherwise, the probed node is repeatedly probe for work until the upper limit N","1","僅說明 RI-LB，無比較 SI-LB",""
+"110","12199","S071","SI-LB是指當Node的Loading很重時，Node會使用Probe主動詢問有沒有其他Node可以幫忙分擔
+RI-LB是指當Node的Loading很輕時，Node會使用Probe主動詢問有沒有其他Node需要幫忙
+在heavy load情況下RI-LB可以維持原本的表現不受影響","3","",""
+"111","11901","S062","SI-LB: 若overloaded時，會向其他者尋求協助
+RI-LB: 若underloaded時，會向其他者請求要做工作
+在heavy load下，RI-LB maintain performance","2","說明正確但較簡略",""
+"112","12286","S045","SI-LB:是自己overload時去尋找有沒有node是underload 請求幫忙
+RI-LB:是自己underload時主動去找有沒有node是overload幫他分擔工作
+RI-LB可以在heavy load 的情況下維持performance","3","",""
+"113","12723","S056","SI-LB: overloaded processors send tasks away
+RI-LB: underloaded processors request tasks
+so RI-LB maintains performance better under heavy load","3","",""
+"114","12888","S128","Skip","0","未作答（寫 Skip）",""
+"115","12520","S029","SI-LB: 當cpu overload, 會偵測是否有其他cpu underload,有就把process移過去
+RI-LB: 當cpu underload, 會偵測是否有其他cpu overload,有就把其process拿來執行
+RI-LB maintains performance under heavy load.","3","",""
+"116","12055","S065","SI-LB:在node overloaded時，主動尋找其他node幫忙
+RI-LB:在node閒置時，主動詢問其他node是否需要幫忙
+在高負載下，RI-LB效能較能維持","3","",""
+"117","12264","S098","RI-LB，因為他是空閒的CPU主動去詢問其他CPU是否需要幫忙。而SI-LB是繁忙的CPU去詢問其他CPU能否幫他減輕work。","3","",""

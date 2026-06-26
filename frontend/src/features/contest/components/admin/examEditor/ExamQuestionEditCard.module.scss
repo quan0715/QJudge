@@ -150,6 +150,32 @@
   white-space: pre-wrap;
 }
 
+.optionMarkdownLabel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: layout.$spacing-02;
+  min-width: 0;
+}
+
+.optionLetterPreview {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.optionMarkdownContent {
+  display: inline;
+  min-width: 0;
+
+  p {
+    display: inline;
+    margin: 0;
+  }
+
+  :global(.katex-display) {
+    margin: 0;
+  }
+}
+
 .answerEmpty {
   color: var(--cds-text-placeholder);
   font-style: italic;
@@ -212,6 +238,12 @@
   display: flex;
   align-items: center;
   gap: layout.$spacing-02;
+}
+
+.answerFormatSelector {
+  display: flex;
+  align-items: center;
+  min-width: 10rem;
 }
 
 .scoreNumberInput {

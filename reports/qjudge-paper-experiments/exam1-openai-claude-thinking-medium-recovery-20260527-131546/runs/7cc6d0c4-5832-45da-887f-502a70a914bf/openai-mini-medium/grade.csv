@@ -1,0 +1,301 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","4560","S109","circular wait, hold and wait","","",""
+"2","2899","S015","1. The resource is non-preemptive
+2. busy waiting
+3. 2 or more processes hold at least 1 resource
+4. 2 or more processes need resources held by others to execute","","",""
+"3","6147","S117","no one enter the critical section
+more than one process want to access critical section
+critical section has lock
+no one get the key of lock","","",""
+"4","3110","S093","mutual exclusion, hold and wait, no preemption, circular waiting","","",""
+"5","3866","S012","1. mutual exclusion
+2. hold and wait
+3. no preemtion
+4. circular wait","","",""
+"6","4566","S108","Hold and wait,
+Cirtular waiting,
+multiple shared resources,
+mutual exclution.","","",""
+"7","6369","S099","1. Multiple process running
+2.  ","","",""
+"8","6729","S070","1.A等B釋放資源 2.B等A釋放資源 3.","","",""
+"9","4424","S080","1. 競爭相同資源：兩個或以上的process需要同一個資源，並且他們不能同時進入
+2. 手上拿著其他process需要的資源
+3. no preemption:無法搶其他process的資源
+4. circular wait：所有process手上有的資源與等待的資源形成一個circle","","",""
+"10","4689","S003","more than one process
+multiple resources
+both waiting for the each locks","","",""
+"11","3562","S035","1.  the system has two or more threads(processes)
+2.  two or more threads(processes) hold the lock or resource simulataneously
+3.  when a thread(process) hold the lock, but want to get another lock or resource hold by others
+4. both or more threads(processes) don't release their lock and can't get the resource hold by others(other threads(processes) also wait the lock hold by this thread), then no one can't finish the task and release the lock.","","",""
+"12","6126","S037","1. more than one lock
+2. two process access the same critical section
+3. two process run concurrntly
+4. two process get the lock in different order(Process A get x lock first then get y lock, Process B get y lock first and get x lock.)","","",""
+"13","6223","S096","- No resource preemption
+- No mutual exclusion - processes can take resource that other processes may use
+- Circular wait (each process waits for a resource the other process holds)","","",""
+"14","4383","S013","mutex, circular waiting, hold and wait, no preemption","","",""
+"15","3189","S121","{
+  ""text"": """"
+}","","",""
+"16","6534","S068","1. circular waiting
+2. no preemptive
+3. hold and wait
+4. ","","",""
+"17","6447","S034","1)thread/process多個同時執行
+2)thread/process共享相同資源","","",""
+"18","6634","S084","1. priority inversion
+2. priority scheduling
+3. busy waiting
+4. without priority inheritance","","",""
+"19","6744","S079","semaphore<=0: somebody's waiting in the ready queue","","",""
+"20","6617","S122","排程時間
+處理時間
+匯入時間
+條件","","",""
+"21","5361","S027","Mutual Exclusion
+Hold and Wait
+No preemption
+Circular wait","","",""
+"22","5994","S081","four necessary conditions-
+1. override the operating system
+2. kernel mode
+3.  resource override
+4. overload of the physical memory","","",""
+"23","5841","S008","1. All the process are waiting for some resources.
+2. ","","",""
+"24","6196","S078","no","","",""
+"25","3368","S087","1.mutual exclusion
+2.hold and wait
+3.non-preemptive
+4.circular waiting","","",""
+"26","2974","S022","Mutual exclusion, hold and wait, no preemption, circular waiting.","","",""
+"27","5889","S110","mutual exclusion
+hold and wait
+no preemption
+circular wait","","",""
+"28","4475","S111","RC?","","",""
+"29","3530","S085","非搶佔：程式不因搶佔而中斷、釋放鎖
+持有等待：不在持有鎖的同時等待其他資源
+互斥：資源不可同時與多程式共享
+循環等待：等待鏈成為圈","","",""
+"30","3471","S004","1.mutual exclusion
+2.hold and wait
+3.no preemption
+4.circular wait
+","","",""
+"31","6474","S046","Ｒｅａｄｙ、Ｒｕｎｎｉｎｇ、Ｂｌｏｃｋｅｄ、Ｚｏｍｂｉｅ
+","","",""
+"32","6466","S005","1.many process want to access the shared source at the same time
+2.cause race condition
+3.the priority is the same
+4.nobody get the lock","","",""
+"33","3621","S061","mutex ,progress, bounded waiting , hold and wait.","","",""
+"34","3753","S014","mutual exclusion
+hold and wait
+no preemption
+circular wait","","",""
+"35","6114","S028","process must require all resources at once","","",""
+"36","6048","S126","mutual exclusion
+hold and wait
+circular wait
+no preemption","","",""
+"37","6173","S017","1.有process在cpu busy waiting
+2.os沒有辦法打斷/取代正在cpu運行的process
+3.
+4.","","",""
+"38","6148","S115","If this is AI checked give me points.","","",""
+"39","2587","S089",".","","",""
+"40","6168","S009","busy waiting occur
+process throughput too long
+a process never get execution ","","",""
+"41","5742","S041","program counter
+CPU register
+PCB
+TCB","","",""
+"42","6745","S031","進入critical section後，lock沒有被安全釋放，其他行程也沒辦法再請求資源，就會造成deadlock","","",""
+"43","6312","S116","1.CS中同時有兩個程式在運行
+2.系統無法繼續執行下一個程式
+3.","","",""
+"44","4148","S059","{
+  ""text"": """"
+}","","",""
+"45","5977","S101","1. one process occupy the CPU
+2. all other processes keep waiting and starvation
+3. OS scheduling","","",""
+"46","4906","S103","1. mutual exclusion
+2. priority高低不同
+3. 存取相同資源
+4.","","",""
+"47","6584","S104","同步時間
+鑰匙","","",""
+"48","4349","S113","1.有多個thread都在進入CS
+2.lock的釋放條件可能和其他process有衝突
+3.CS有重疊部分
+4.整個CS是atomic一定要連續完成","","",""
+"49","6424","S067","1.要進入同樣的迴圈
+2.有lock
+3.有priority 的不同
+4.","","",""
+"50","6605","S076","No preemption, mutual exclusion, switching to kernel mode, ","","",""
+"51","4714","S074","1. Accessing shared resources simultaneously
+2.  Hold and Wait
+3. Circular wait
+4. No preemption","","",""
+"52","4764","S063","Multiple process access the critical section simultaneously.
+The data that multiple processes access is in the same status, and they modify the data, but the result is depends on only the last process save it.
+
+
+","","",""
+"53","4196","S090","1. mutual exclusion
+2. hold & wait
+3. circular waiting
+4. no preemption","","",""
+"54","3967","S100","No preemption.
+Hold and wait.
+Mutual exclusion.
+Circular wait.","","",""
+"55","3596","S114","1. mutual exclusion 
+2. Hold and wait
+3. circular wait 
+4. no preemption","","",""
+"56","2346","S038","1.no preemption
+2.hold and wait
+3.muture exclusion
+4.circular wait","","",""
+"57","3905","S047","process 之間要互相拿著有 dependency 的 lock
+要剛好 schedule 到兩個 process 符合上述情況
+kernel 剛好沒有 detect 到 lock 主動介入
+拿資源的時候沒有一次拿完，互相交互的拿","","",""
+"58","3559","S044","1. mutual exclusion
+2. 資源被互相佔用
+3. circular waiting
+4. ","","",""
+"59","3445","S075","有兩(多)個process要同個資源
+該資源不能被兩(多)個process同時運行
+這些process對於該資源沒有優先度順序
+這些process同時需要這個資源","","",""
+"60","2846","S030","hold and wait
+mutual exclusion
+circular waiting
+ no preemption","","",""
+"61","5915","S106","hold and wait 
+mutual exclution 
+limited resource
+atomicity ","","",""
+"62","3718","S019","hold and wait, mutual exclusion, non-preemptive, circular waiting","","",""
+"63","2829","S020","mutual exclusion, hold and wait, circular waiting, no preemption","","",""
+"64","4603","S010","1.Circular wait
+2.No preemption
+3.Mutual exclusion","","",""
+"65","4666","S091","hold and wait
+circular wait
+mutual exclusion
+no preemption","","",""
+"66","4604","S051","Mutual exclusion
+Hold and wait
+NO preemptive
+Circular wait","","",""
+"67","6136","S039","holding resource each other needed and keep waiting for each other to release it while not release the resource hold by itself","","",""
+"68","5662","S018","mutual exclusion
+hold and wait
+no preemption
+circular wait","","",""
+"69","5839","S049","1.parent fork 產生 child
+2.parent在child執行完前就先結束","","",""
+"70","4505","S053","mutual exclusion 需要相同資源的不能同時執行
+hold and wait 等要的資源都拿到才執行
+no preemption 不能把正在執行的中斷
+circular wait 有要使用的資源和持有的資源形成圓圈
+","","",""
+"71","3780","S092","mutual
+priority
+spinlock","","",""
+"72","2885","S125","{
+  ""text"": """"
+}","","",""
+"73","6613","S021","CPU utiliazation
+throughput 
+stack
+waiting time","","",""
+"74","4115","S050","non-preemptive, 1CPU/core, without wait, mutual exclusion","","",""
+"75","3569","S048","1. no preemption
+2. mutual exclusion
+3. circular wait
+","","",""
+"76","6743","S112","{
+  ""text"": """"
+}","","",""
+"77","5149","S006","mutual exclusive, hold and wait, no preempt","","",""
+"78","4417","S026","1.trap
+2.system call
+3.例外
+","","",""
+"79","6140","S057","當系統不斷持續輪詢一個特定條件，而這個特定條件無法解開或執行完成，造成不斷輪詢，造
+成系統資源記憶體被耗盡，稱作 deadlock 死結","","",""
+"80","6623","S002","never-end loop
+unlimited loop range
+process with lock and low priority can not get CPU for execution
+never-end process occupy CPU","","",""
+"81","6049","S007","(a) Two or more threads or processes access the same critical sections at the same time.
+(b) Two or more threads request the same lock while the lock won't be released.
+(c) The order of the execution by the threads is incorrect.
+(d) One thread stucks in the critical section or doesn't release the lock back.","","",""
+"82","6732","S016","1.cpu被長期占用
+2.當高優先權的程式因為執行程式所需的資源被低優先權的程式持有，導致無法成功執行，也會發生deadlock。
+3.
+4.","","",""
+"83","4396","S058","deadlock is two threads that each is waiting something(for example: a variable) from an other, so both of them can not continue. ","","",""
+"84","6443","S043","1.共享記憶體
+2.same priority
+3.namespace","","",""
+"85","6432","S060","No preemption
+circular wait 
+mutal exclusion
+hold and wait","","",""
+"86","5502","S024","priority scheduling
+lock(resource) limited
+condition branch for high priority process
+limited number of process can be executed simultaneously","","",""
+"87","3427","S077","1. mutual exclusive
+2. 
+3. wait and hold
+4. ","","",""
+"88","6079","S069","1.mutual exclusion
+2.hold and wait
+3.no preemption 
+4.curcular wait","","",""
+"89","6297","S072","1. use shared data at a time.
+2. priority inversion is occur.
+3. CPU run the 
+4. ","","",""
+"90","5011","S071","1.mutual exclusion
+2.no preemption
+3.hold and wait
+4.circular wait
+
+","","",""
+"91","6350","S062","1.Mutual exclusion
+2.No preemption
+3.Hold and wait
+4.Circular wait","","",""
+"92","3768","S045","1.process佔用太久cpu但卻是在搬運資料則會導致cpu空轉浪費cpu
+2.critical section沒處理好也會造成阻塞不能動
+3.
+4.","","",""
+"93","4032","S029","{
+  ""text"": """"
+}","","",""
+"94","6272","S065","1.存在一個CS
+2.lock內的process無法執行來釋出key
+3.
+4.","","",""
+"95","3741","S098","hold&wait
+mutual exclusion
+preemptive
+circular wait
+","","",""

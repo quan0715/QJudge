@@ -30,6 +30,7 @@ class PaperExamReportRenderer(BaseRenderer):
         self._questions_cache = None
         self._answers_cache = None
         self._participant_cache = None
+        self._scoring_context_cache = None
 
     def export(self) -> BytesIO:
         """Generate PDF report for the student."""
@@ -52,6 +53,7 @@ class PaperExamReportRenderer(BaseRenderer):
         """Render the full HTML document for PDF conversion."""
         questions = self._get_questions()
         answers_map = self._get_answers_map()
+        scoring_ctx = self._get_scoring_context(answers_map)
 
         context = {
             'language': self.language,
@@ -65,9 +67,9 @@ class PaperExamReportRenderer(BaseRenderer):
             },
             'base_css': self._get_base_css(),
             'report_css': self._get_report_css(),
-            'score_line': self._render_score_line(questions, answers_map) if self.include_grading else '',
-            'overview_table': self._render_overview_table(questions, answers_map),
-            'question_details': self._render_questions(questions, answers_map),
+            'score_line': self._render_score_line(scoring_ctx) if self.include_grading else '',
+            'overview_table': self._render_overview_table(questions, answers_map, scoring_ctx),
+            'question_details': self._render_questions(questions, answers_map, scoring_ctx),
         }
         return render_to_string('exports/paper_exam_report.html', context)
 
@@ -115,6 +117,25 @@ class PaperExamReportRenderer(BaseRenderer):
             )
         return self._participant_cache
 
+    def _get_scoring_context(self, answers_map):
+        """Compute and cache scoring context: breakdown, effective_max, has_redistribute, items_by_qid."""
+        if self._scoring_context_cache is not None:
+            return self._scoring_context_cache
+        from apps.contests.services.exam_scoring import ExamScoringService
+        scoring = ExamScoringService(self.contest)
+        participant = self._get_participant()
+        breakdown = scoring.get_participant_breakdown(participant, answers_map)
+        effective_max = scoring.get_effective_max_scores()
+        has_redistribute = any(q.is_redistribute for q in scoring.get_questions())
+        items_by_qid = {item['question_id']: item for item in breakdown.items}
+        self._scoring_context_cache = {
+            'breakdown': breakdown,
+            'effective_max': effective_max,
+            'has_redistribute': has_redistribute,
+            'items_by_qid': items_by_qid,
+        }
+        return self._scoring_context_cache
+
     def _get_questions(self):
         if self._questions_cache is None:
             from apps.contests.models import ExamQuestion
@@ -136,25 +157,13 @@ class PaperExamReportRenderer(BaseRenderer):
     # Score line — inline within header
     # ----------------------------------------------------------------
 
-    def _render_score_line(self, questions, answers_map) -> str:
+    def _render_score_line(self, scoring_ctx) -> str:
         """Render score as a single line inside the report header."""
-        max_score = sum(q.score for q in questions)
+        breakdown = scoring_ctx['breakdown']
 
-        total_score = 0.0
-        graded_count = 0
-        correct_count = 0
-
-        for q in questions:
-            ans = answers_map.get(q.id)
-            if ans and ans.score is not None:
-                graded_count += 1
-                score_val = float(ans.score)
-                total_score += score_val
-                if score_val >= q.score:
-                    correct_count += 1
-
-        correct_rate = (correct_count / graded_count * 100) if graded_count > 0 else 0
-        score_display = int(total_score) if total_score == int(total_score) else f"{total_score:.1f}"
+        correct_rate = (breakdown.correct_count / breakdown.graded_count * 100) if breakdown.graded_count > 0 else 0
+        score_display = self._fmt_score(breakdown.total_score)
+        max_score = self._fmt_score(breakdown.max_total_score)
 
         score_label = self.get_label('total_score')
         rate_label = self.get_label('correct_rate')
@@ -167,14 +176,23 @@ class PaperExamReportRenderer(BaseRenderer):
             f'</div>'
         )
 
-    def _render_overview_table(self, questions, answers_map) -> str:
+    def _render_overview_table(self, questions, answers_map, scoring_ctx) -> str:
         """Render a compact per-question overview table."""
+        from apps.contests.models import ExamQuestionScorePolicy
         col_q = self.get_label('question_no')
         col_type = self.get_label('type_label', 'Type') # Fallback if missing
         if col_type == 'Type': col_type = '題型' if self.is_chinese else 'Type'
         col_status = self.get_label('status_label')
         col_score = self.get_label('score')
         table_title = self.get_label('question_overview')
+
+        excluded_label = '不計分' if self.is_chinese else 'Excluded'
+        full_marks_label = '送分' if self.is_chinese else 'Full Marks'
+        redistribute_label = '重配分' if self.is_chinese else 'Redistributed'
+
+        effective_max = scoring_ctx.get('effective_max', {})
+        has_redistribute = scoring_ctx.get('has_redistribute', False)
+        items_by_qid = scoring_ctx.get('items_by_qid', {})
 
         rows = []
         for idx, q in enumerate(questions, 1):
@@ -183,15 +201,47 @@ class PaperExamReportRenderer(BaseRenderer):
             is_graded = ans and ans.score is not None
 
             type_label = self.get_label(q.question_type, q.question_type)
+            eff_max = effective_max.get(q.id, q.score)
+
+            # Score policy badge
+            policy_badge = ''
+            if q.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+                policy_badge = f' <span style="color:#da1e28;font-size:0.75em;">({excluded_label})</span>'
+            elif q.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+                policy_badge = f' <span style="color:#198038;font-size:0.75em;">({full_marks_label})</span>'
+            elif q.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+                policy_badge = f' <span style="color:#eb6200;font-size:0.75em;">({redistribute_label})</span>'
 
             if self.include_grading:
-                status = self._get_question_status(q, ans, has_answer, is_graded)
-                if is_graded:
-                    score_val = float(ans.score)
-                    score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
-                    score_display = f'{score_str} / {q.score}'
+                if q.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+                    score_display = (
+                        f'<span style="text-decoration:line-through;color:#6f6f6f;">'
+                        f'- / {self._fmt_score(q.score)}</span>'
+                    )
+                    status = {"icon": "—", "status_class": "status-excluded", "color": "#6f6f6f"}
+                elif q.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+                    score_display = f'<span style="color:#6f6f6f;">— / —</span>'
+                    status = {"icon": "→", "status_class": "status-excluded", "color": "#eb6200"}
+                elif q.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+                    eff_str = self._fmt_score(eff_max)
+                    score_display = f'{eff_str} / {eff_str}'
+                    status = {"icon": "★", "status_class": "status-full-marks", "color": "#198038"}
                 else:
-                    score_display = f'- / {q.score}'
+                    status = self._get_question_status(q, ans, has_answer, is_graded)
+                    item = items_by_qid.get(q.id)
+                    if item and item['score'] is not None:
+                        scaled = item['score']
+                        eff_str = self._fmt_score(eff_max)
+                        raw_val = float(ans.score) if (ans and ans.score is not None) else None
+                        if has_redistribute and raw_val is not None and eff_max != q.score:
+                            raw_str = self._fmt_score(raw_val)
+                            scaled_str = self._fmt_score(scaled)
+                            score_display = f'{raw_str}→{scaled_str} / {eff_str}'
+                        else:
+                            score_str = self._fmt_score(scaled)
+                            score_display = f'{score_str} / {eff_str}'
+                    else:
+                        score_display = f'- / {self._fmt_score(eff_max)}'
                 status_cell = (
                     f'<td class="overview-cell overview-cell-status">'
                     f'<span class="status-text {status["status_class"]}">{status["icon"]}</span></td>'
@@ -208,7 +258,7 @@ class PaperExamReportRenderer(BaseRenderer):
 
             rows.append(
                 f'<tr class="overview-row">'
-                f'<td class="overview-cell overview-cell-q">Q{idx}</td>'
+                f'<td class="overview-cell overview-cell-q">Q{idx}{policy_badge}</td>'
                 f'<td class="overview-cell overview-cell-type">{type_label}</td>'
                 f'{status_cell}'
                 f'</tr>'
@@ -235,46 +285,110 @@ class PaperExamReportRenderer(BaseRenderer):
     # Question rendering
     # ----------------------------------------------------------------
 
-    def _render_questions(self, questions, answers_map) -> str:
+    def _render_questions(self, questions, answers_map, scoring_ctx) -> str:
         """Render per-question detail blocks."""
         section_label = self.get_label('problem_details')
         parts = [f'<div class="section-title">{section_label}</div>']
 
         for idx, q in enumerate(questions, 1):
             ans = answers_map.get(q.id)
-            parts.append(self._render_single_question(idx, q, ans))
+            parts.append(self._render_single_question(idx, q, ans, scoring_ctx))
 
         return '\n'.join(parts)
 
-    def _render_single_question(self, idx, question, answer):
+    def _render_single_question(self, idx, question, answer, scoring_ctx):
         """Render a single question block — continuous flow, no card."""
+        from apps.contests.models import ExamQuestionScorePolicy
         q_type = question.question_type
         type_label = self.get_label(q_type, q_type)
         has_answer = answer and self._has_answer(answer)
         is_graded = answer and answer.score is not None
 
+        effective_max = scoring_ctx.get('effective_max', {})
+        has_redistribute = scoring_ctx.get('has_redistribute', False)
+        items_by_qid = scoring_ctx.get('items_by_qid', {})
+        eff_max = effective_max.get(question.id, question.score)
+
         lines = ['<div class="question-block">']
 
         points_label = self.get_label('points_unit')
+
+        # Build policy annotation for the heading score
+        excluded_label = '不計分' if self.is_chinese else 'Excluded'
+        full_marks_label = '送分' if self.is_chinese else 'Full Marks'
+        redistribute_label = '重配分' if self.is_chinese else 'Redistributed'
+
+        if question.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+            score_annotation = (
+                f'<span class="question-max-score" style="text-decoration:line-through;color:#6f6f6f;">'
+                f'（{self._fmt_score(question.score)}{points_label}）</span>'
+                f' <span style="color:#da1e28;font-size:0.8em;">({excluded_label})</span>'
+            )
+        elif question.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+            score_annotation = (
+                f'<span class="question-max-score" style="color:#eb6200;">'
+                f'（{self._fmt_score(question.score)}{points_label} · {redistribute_label}）</span>'
+            )
+        elif question.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+            eff_str = self._fmt_score(eff_max)
+            score_annotation = (
+                f'<span class="question-max-score" style="color:#198038;">'
+                f'（{eff_str}{points_label} · {full_marks_label}）</span>'
+            )
+        elif has_redistribute and eff_max != question.score:
+            eff_str = self._fmt_score(eff_max)
+            score_annotation = (
+                f'<span class="question-max-score">'
+                f'（{self._fmt_score(question.score)}→{eff_str}{points_label}）</span>'
+            )
+        else:
+            score_annotation = (
+                f'<span class="question-max-score">（{self._fmt_score(question.score)}{points_label}）</span>'
+            )
+
         lines.append('<div class="question-heading">')
         lines.append(
             f'<span class="question-heading-left">'
             f'<span class="question-number">Q{idx}</span>'
             f'<span class="question-type">{type_label}</span>'
-            f'<span class="question-max-score">（{question.score}{points_label}）</span>'
+            f'{score_annotation}'
             f'</span>'
         )
 
         if self.include_grading:
-            status = self._get_question_status(question, answer, has_answer, is_graded)
-            if is_graded:
-                score_val = float(answer.score)
-                score_str = int(score_val) if score_val == int(score_val) else f"{score_val:.1f}"
-                score_display = f'{score_str} / {question.score}'
-                score_color = status['color']
+            if question.score_policy == ExamQuestionScorePolicy.EXCLUDED:
+                score_display = (
+                    f'<span style="text-decoration:line-through;color:#6f6f6f;">'
+                    f'- / {self._fmt_score(question.score)}</span>'
+                )
+                score_color = '#6f6f6f'
+                status = {"icon": "—", "status_class": "status-excluded", "label": excluded_label}
+            elif question.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
+                score_display = f'<span style="color:#eb6200;">— / —</span>'
+                score_color = '#eb6200'
+                status = {"icon": "→", "status_class": "status-excluded", "label": redistribute_label}
+            elif question.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
+                eff_str = self._fmt_score(eff_max)
+                score_display = f'{eff_str} / {eff_str}'
+                score_color = '#198038'
+                status = {"icon": "★", "status_class": "status-full-marks", "label": full_marks_label}
             else:
-                score_display = f'- / {question.score}'
-                score_color = '#8d8d8d'
+                status = self._get_question_status(question, answer, has_answer, is_graded)
+                item = items_by_qid.get(question.id)
+                if item and item['score'] is not None:
+                    scaled = item['score']
+                    eff_str = self._fmt_score(eff_max)
+                    raw_val = float(answer.score) if (answer and answer.score is not None) else None
+                    if has_redistribute and raw_val is not None and eff_max != question.score:
+                        raw_str = self._fmt_score(raw_val)
+                        scaled_str = self._fmt_score(scaled)
+                        score_display = f'{raw_str}→{scaled_str} / {eff_str}'
+                    else:
+                        score_display = f'{self._fmt_score(scaled)} / {eff_str}'
+                else:
+                    score_display = f'- / {self._fmt_score(eff_max)}'
+                score_color = status['color']
+
             lines.append(
                 f'<span class="question-heading-right">'
                 f'<span class="status-text {status["status_class"]}">{status["icon"]} {status["label"]}</span>'
@@ -306,6 +420,11 @@ class PaperExamReportRenderer(BaseRenderer):
 
         lines.append('</div>')
         return '\n'.join(lines)
+
+    @staticmethod
+    def _fmt_score(value) -> str:
+        """Format a numeric score at canonical UI precision."""
+        return f"{float(value):.2f}"
 
     @staticmethod
     def _get_snapshot_value(answer, key, fallback=None):

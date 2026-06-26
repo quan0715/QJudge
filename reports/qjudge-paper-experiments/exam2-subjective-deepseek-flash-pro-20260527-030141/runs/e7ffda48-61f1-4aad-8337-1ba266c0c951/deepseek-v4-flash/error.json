@@ -1,0 +1,5 @@
+{
+  "ended_at": "2026-05-26T20:09:07.373247Z",
+  "error": "Client error '401 Unauthorized' for url 'http://127.0.0.1:8000/api/v1/ai/sessions/new_session/'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401",
+  "error_type": "HTTPStatusError"
+}

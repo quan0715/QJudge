@@ -217,6 +217,65 @@
   font-weight: 400;
 }
 
+/* Mermaid diagrams */
+.markdown-body .mermaid-block {
+  margin: 1rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  background: var(--cds-layer-01);
+}
+
+.markdown-body .mermaid-block svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.markdown-body .mermaid-block--loading {
+  min-height: 12rem;
+  background:
+    linear-gradient(
+      90deg,
+      var(--cds-layer-01),
+      var(--cds-layer-hover-01),
+      var(--cds-layer-01)
+    );
+  background-size: 200% 100%;
+  animation: markdown-mermaid-loading 1.2s ease-in-out infinite;
+}
+
+.markdown-body .mermaid-block--error {
+  border-left: 3px solid var(--cds-support-error);
+  background: var(--cds-notification-error-background, var(--cds-layer-01));
+}
+
+.markdown-body .mermaid-block--error p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body .mermaid-block--error pre {
+  margin: 0;
+}
+
+@keyframes markdown-mermaid-loading {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-body .mermaid-block--loading {
+    animation: none;
+  }
+}
+
 /* Dark theme - Code blocks (fallback for non-highlighted code) */
 /* Use consistent dark background for better readability */
 [data-carbon-theme="g90"] .markdown-body pre,

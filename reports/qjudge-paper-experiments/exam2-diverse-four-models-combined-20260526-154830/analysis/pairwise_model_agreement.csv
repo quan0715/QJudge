@@ -1,0 +1,19 @@
+question_id,question_label,model_a,model_a_label,model_b,model_b_label,n,pairwise_mae,pairwise_exact_rate,pairwise_within_1_rate
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,deepseek-v4-flash,DeepSeek V4 Flash,deepseek-v4-pro,DeepSeek V4 Pro,116,0.04310344827586207,0.9568965517241379,1.0
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini,OpenAI Mini (low),116,0.16379310344827586,0.8448275862068966,0.9913793103448276
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini-medium,OpenAI Mini (medium),116,0.07758620689655173,0.9224137931034483,1.0
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini,OpenAI Mini (low),116,0.13793103448275862,0.8706896551724138,0.9913793103448276
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini-medium,OpenAI Mini (medium),116,0.05172413793103448,0.9482758620689655,1.0
+5b9d59d3-4c5a-44ff-81ff-932d69c8cf82,Q6 List methods,openai-mini,OpenAI Mini (low),openai-mini-medium,OpenAI Mini (medium),116,0.13793103448275862,0.8706896551724138,0.9913793103448276
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,deepseek-v4-flash,DeepSeek V4 Flash,deepseek-v4-pro,DeepSeek V4 Pro,118,0.4915254237288136,0.3050847457627119,0.9915254237288136
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini,OpenAI Mini (low),118,0.3050847457627119,0.7033898305084746,0.9915254237288136
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini-medium,OpenAI Mini (medium),118,0.3050847457627119,0.6949152542372882,1.0
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini,OpenAI Mini (low),118,0.559322033898305,0.288135593220339,0.940677966101695
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini-medium,OpenAI Mini (medium),118,0.576271186440678,0.2796610169491525,0.9322033898305084
+a89c0767-a955-4b8d-927f-d01e3d954cc0,Q14 Explain coherence,openai-mini,OpenAI Mini (low),openai-mini-medium,OpenAI Mini (medium),118,0.15254237288135594,0.8559322033898306,0.9915254237288136
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,deepseek-v4-flash,DeepSeek V4 Flash,deepseek-v4-pro,DeepSeek V4 Pro,119,0.08823529411764706,0.8907563025210085,1.0
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini,OpenAI Mini (low),119,0.21428571428571427,0.7899159663865546,0.9915966386554622
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,deepseek-v4-flash,DeepSeek V4 Flash,openai-mini-medium,OpenAI Mini (medium),119,0.1638655462184874,0.8403361344537815,0.9915966386554622
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini,OpenAI Mini (low),119,0.19327731092436976,0.7983193277310925,0.9831932773109243
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,deepseek-v4-pro,DeepSeek V4 Pro,openai-mini-medium,OpenAI Mini (medium),119,0.11764705882352941,0.8739495798319328,0.9831932773109243
+8bd69984-3cd8-48b1-9da3-4c040620959e,Q17 Adv./Disadv.,openai-mini,OpenAI Mini (low),openai-mini-medium,OpenAI Mini (medium),119,0.16806722689075632,0.8403361344537815,0.9915966386554622

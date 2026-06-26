@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "What is the difference between a preemptive scheduler and a non-preemptive scheduler? Provide an example scenario where preemptive scheduling is beneficial.",
+  "question_id": "47cb43c4-ca23-4831-960c-018702c06992",
+  "question_type": "essay",
+  "reference_answer": "a. Preemptive scheduling can interrupt a running thread before its burst ends to switch to another.\nb. Non-preemptive runs a thread to completion or voluntary yield.\nc. Preemptive is beneficial in time-sharing systems for fair CPU sharing among interactive users, preventing long-running tasks from monopolizing the CPU."
+}

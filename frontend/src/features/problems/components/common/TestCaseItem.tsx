@@ -10,6 +10,7 @@ import {
 } from "@carbon/react";
 import { Edit, TrashCan, Locked } from "@carbon/icons-react";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import type { TestCaseItem as TestCaseItemType, TestCaseMode } from "./TestCaseTypes";
 
 interface TestCaseItemProps {
@@ -77,7 +78,7 @@ const TestCaseItem: React.FC<TestCaseItemProps> = ({
 
             {isProblemMode && (
               <Tag type="cyan" size="sm">
-                {item.score ?? 0} 分
+                {formatScore(item.score ?? 0)} 分
               </Tag>
             )}
 

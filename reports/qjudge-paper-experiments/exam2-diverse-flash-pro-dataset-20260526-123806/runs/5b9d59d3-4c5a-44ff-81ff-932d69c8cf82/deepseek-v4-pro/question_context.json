@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 4,
+  "options": [],
+  "prompt": "List four methods to notify a receiver in a non-blocking message passing system that a message has arrived.",
+  "question_id": "5b9d59d3-4c5a-44ff-81ff-932d69c8cf82",
+  "question_type": "short_answer",
+  "reference_answer": "(1) Interrupt the receiver.\n(2) Periodic polling of the buffer status.\n(3) Creating a pop-up thread.\n(4) Processing an active message inside the interrupt handler."
+}

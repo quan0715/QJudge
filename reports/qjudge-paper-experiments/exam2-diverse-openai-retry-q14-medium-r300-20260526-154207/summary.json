@@ -1,0 +1,42 @@
+{
+  "completed_count": 1,
+  "experiment_id": "exam2-diverse-openai-retry-q14-medium-r300-20260526-154207",
+  "run_count": 1,
+  "runs": [
+    {
+      "answer_count": "118",
+      "blank_score_count": "0",
+      "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+      "cost_cents": "65",
+      "cost_usd": "0.6500",
+      "elapsed_seconds": "202.386",
+      "ended_at": "2026-05-26T07:45:30.176510Z",
+      "exam_key": "exam2",
+      "experiment_id": "exam2-diverse-openai-retry-q14-medium-r300-20260526-154207",
+      "grade_csv_path": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q14-medium-r300-20260526-154207/runs/a89c0767-a955-4b8d-927f-d01e3d954cc0/openai-mini-medium/grade.csv",
+      "input_tokens": "809484",
+      "max_score": "2",
+      "model_id": "openai-mini-medium",
+      "output_tokens": "9540",
+      "preset": "exam2-diverse",
+      "prompt_preview": "Explain the Cache Coherence problem and the basic rules a system must follow when a CPU wants to write a cached word.",
+      "question_id": "a89c0767-a955-4b8d-927f-d01e3d954cc0",
+      "question_order": "14",
+      "question_type": "short_answer",
+      "rubric_path": "",
+      "run_dir": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q14-medium-r300-20260526-154207/runs/a89c0767-a955-4b8d-927f-d01e3d954cc0/openai-mini-medium",
+      "run_id": "df35932f-10b3-42c6-be5f-9e00118ab21a",
+      "run_status": "completed",
+      "scored_count": "118",
+      "session_id": "1c878558-f736-4985-92b3-f66ba7a34e2d",
+      "started_at": "2026-05-26T07:42:07.787456Z",
+      "terminal_event_type": "run_completed"
+    }
+  ],
+  "summary_csv": "reports/qjudge-paper-experiments/exam2-diverse-openai-retry-q14-medium-r300-20260526-154207/summary.csv",
+  "total_cost_cents": 65,
+  "total_cost_usd": 0.65,
+  "total_elapsed_seconds": 202.386,
+  "total_input_tokens": 809484,
+  "total_output_tokens": 9540
+}

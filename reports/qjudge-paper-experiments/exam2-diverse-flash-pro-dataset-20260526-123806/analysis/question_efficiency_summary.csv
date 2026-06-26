@@ -1,0 +1,7 @@
+question_order,question_label,model_id,model_label,answer_count,elapsed_seconds,elapsed_minutes,cost_cents,cost_usd,input_tokens,output_tokens
+6,Q6 List methods,deepseek-v4-flash,DeepSeek V4 Flash,116,160.755,2.67925,10,0.1,678610,18186
+6,Q6 List methods,deepseek-v4-pro,DeepSeek V4 Pro,116,247.666,4.127766666666667,28,0.28,620254,13721
+14,Q14 Explain coherence,deepseek-v4-flash,DeepSeek V4 Flash,118,181.751,3.0291833333333336,9,0.09,592992,23628
+14,Q14 Explain coherence,deepseek-v4-pro,DeepSeek V4 Pro,118,420.265,7.004416666666667,25,0.25,511592,26214
+17,Q17 Adv./Disadv.,deepseek-v4-flash,DeepSeek V4 Flash,119,271.591,4.526516666666667,10,0.1,663452,39628
+17,Q17 Adv./Disadv.,deepseek-v4-pro,DeepSeek V4 Pro,119,294.586,4.909766666666667,20,0.2,411558,18458

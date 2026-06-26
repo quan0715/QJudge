@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 2,
+  "options": [],
+  "prompt": "In a UNIX inode with 12 direct blocks and 1 single indirect block, assuming a block size of 8KB and address size of 4 bytes, calculate the maximum file size.",
+  "question_id": "90fd763a-b0e8-4296-986b-e2b18af93a4a",
+  "question_type": "short_answer",
+  "reference_answer": "Total = 16,480 KB (~16.096 MB). Calculation: Direct = 12 * 8KB = 96KB. Single Indirect = (8KB / 4B) * 8KB = 2048 * 8KB = 16,384KB."
+}

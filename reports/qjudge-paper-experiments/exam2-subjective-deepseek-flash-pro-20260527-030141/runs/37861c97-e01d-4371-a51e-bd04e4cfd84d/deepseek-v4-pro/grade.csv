@@ -1,0 +1,251 @@
+"index","exam_answer_id","username","answer_text","score","reason","synced"
+"1","12515","S109","0-reliable: sender 不期待從 receiver 收到任何反饋
+m-out-of-n-reliable: n個sender and receiver 中會期待有m個反饋，其中1<m<n","2","",""
+"2","12178","S015","0-reliable: The sender expects no response from the receivers.
+M-out-of-N-reliable: The senders expects M responses from total N receivers.","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"3","15958","S054","1, 0-reliable：廣播後不確認接收情況
+2, M-out-of-N-reliable：在N個預計接收者中，確認有M個接收者回傳","2","",""
+"4","12584","S117","0-reliable: no response are expected, ex. time signal generator
+M-out-of-N-reliable: M response are expected from N receivers","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"5","12030","S093","0-reliable: 傳給n個receiver，且預計不會有任何的response
+M-out-of-N-reliable: 傳給N個receiver，預計有M個response，1<M<N","2","",""
+"6","12172","S012","0-reliable: the sender sends the message and doesn't care whether any of the receiver actually receives the message and responce.
+M-out-of-N-reliable: the sender sends the message to N receivers, if less than M receivers responce, the sender re-send the message.","1.5","0-reliable 表達偏口語；M-out-of-N 加入重傳行為超出定義範圍",""
+"7","12207","S108","0-reliable: sender 不需要有回應
+M-out-of-N: 在 multicasting system 之中，有 N 個接收者，而傳輸者期待收到 M 個回復，其中 1<M<N。","2","",""
+"8","12292","S099","1. 0-reliable: 訊息送出後，不期望收到任何回覆訊息
+2. M-out-of-N: 訊息送出後，在有 N 個 receivers 的 group 中，會期望收到其中 M 個回覆（其中 1 <= M <= N）","2","",""
+"9","12196","S070","0-reliable: 不需要收到reply
+M-out-of-N reliabe: 寄給N個至少要收到M個reply 1<M<N","2","",""
+"10","13058","S080","0-reliable: the sender don't expect receivers' response.
+M-out-of-N-reliable: n is the total receivers, 0<M<N, the sender expect M receiver to response","2","",""
+"11","11298","S003","0 is doesn't expecting any response from receivers and M out of N is willing to see M response out of N receivers, 1 < M < N","2","",""
+"12","12641","S035","0-reliable : no response is expected from any of the receivers.
+M-out-of-N-reliable : M responses are expected from the receivers, and the number of receivers is N.
+ (1< M < N)","2","",""
+"13","13366","S037","0-reliable: no need any host in the group to response.
+M-out-of-N-reliable: send message to N hosts and desire M(M<=N) to response","1.5","M-out-of-N-reliable 僅給 M<=N，未明確 1<M<N",""
+"14","12498","S097","1. 0-reliable, sender doesn't confirm that any of the receivers got the message
+2. M-out-of-N-reliable, sender needs to confirm that only M out of N receivers got the message","1.5","M-out-of-N 使用 'only M' 語意偏離原定義",""
+"15","13201","S013","0-reliable: it's expected that getting no response.
+M-out-of-N reliable: it's expected to get M response in N request.","1.5","M-out-of-N-reliable 未明確 receiver-N 關係，且無約束條件",""
+"16","12806","S040","0: no need to get response from any receiver
+M out of N: if this message is send to N receiver, need at least M receiver response that the message has received.","2","",""
+"17","11295","S124","0-reliable : the sender waits for no response from any recipient 
+M-out-of-N-reliable : knowing that we have N recipients, the sender waits for a response from M recipients (1<M<N)","2","",""
+"18","12831","S121","0-reliable : when a request is sent, the sender does not require an acknowledge.
+M-out-of-N-reliable : during multicast broadcast, a message can be sent to M machines and the system requires N machine to acknowledge the process of the request. (1<=N<=M).","1","M-out-of-N-reliable M/N 角色互換（sent to M, requires N ack）",""
+"19","15719","S068","0-reliable: 不需要有對象回覆，例如時間序廣播
+M-out-of-N: 在 M 個對象中有至少 N 回覆就好，常見於 RAID, Erasing code","1","M-out-of-N-reliable M/N 角色互換（M 個對象中 N 回覆）",""
+"20","12061","S102","0-reliable是指預期沒有人傳回來
+M-out-of-n-reliable 是指預期n個人裡面，有m個人傳回來","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"21","12169","S034","1. 0-reliable: sender不期待有來自receiver的response，例如time signal generator。
+2. M-out-of-N-reliable: 在N個receiver中，要收到M個response，且N>M>1。","2","",""
+"22","11400","S084","0-reliable : multicast出去的訊息不需要有人回應。
+M-out-of-N-reliable : N次中要有M個人回應。","1","M-out-of-N-reliable 'N次中' 混淆次數與接收者數",""
+"23","12625","S079","0-reliable: the sender doesn't expect to receive any reliable reply ex: time stamp 因為就算我現在沒有收集到這個資訊，我下一個週期的時間後，這個資訊依然會產生
+M-out of N reliable: 在總共M個request received中，期望獲得N個可靠的回覆，其中N<M ex:RAID","1","M-out-of-N-reliable M/N 角色互換（M request 中 N 回覆）",""
+"24","12185","S122","0-reliable :傳出去但不預期會有回應 如 time signal processor
+M-out-of-N-reliable semantics:傳出去m個 預計會收到n個回應","1","M-out-of-N-reliable M/N 角色互換（傳 m 個收 n 個回應）",""
+"25","12107","S086","The 0-reliable: no response is expected from any of the receiver.
+The M-out-of-N-reliable: The multicast group consist of N receiver and the sender is expected M response from the receiver, where 1<M<N.","2","",""
+"26","12999","S052","0-reliable: No response from receivers is expected.
+M-out-of-N-reliable: If the message is sent to N receivers, M responses are expected.(1<M<N)","2","",""
+"27","12317","S033","0-reliable:任為不會接收到任何訊息
+M-out-of-N-reliable:M個人中接收到N個人的訊息","0","0-reliable 誤為收不到訊息；M-out-of-N M/N 互換",""
+"28","12931","S123","1. 0-reliable: No response is expected from any receivers
+2. M-out-of-N-reliable: M responses are expected from N receivers. (1<M<N)","2","",""
+"29","11972","S027","0-reliable: no reply needed
+M-out-of-N-reliable:M reply from N receiver,where M<N","1.5","M-out-of-N-reliable 僅給 M<N，未明確 1<M<N",""
+"30","11475","S081","0- reliable means the receiver doesn't need to respond back
+M-out-of-N-reliable means atleast M receivers out of N receivers need to respond","2","",""
+"31","12784","S008","0-reliable means the server does not expected any receiver to reply.
+M-out-of-N-reliable means there are N receivers, and the server expected M receivers to reply. (0 <M < N)","2","",""
+"32","12247","S078","0-reliable:no client need to respond
+M-out-of-N-reliable: need N client to respond","1","M-out-of-N-reliable 誤為 N 個 client 回應，非 M out of N",""
+"33","12986","S087","0-reliable:不期待任何receiver的回應
+M-out-of-N-reliable:在N個之中期待M個receiver的回應，0<M<N","2","",""
+"34","12727","S022","0-reliable: A sender will receive no responce from receivers.
+M-out-of-N-reliable: A sender will receive N responces from M receivers.","1","M-out-of-N-reliable M/N 角色互換（M receivers 中 N responses）",""
+"35","12889","S110","0-reliable: expect 0 respond from receiver
+M-out-of-N-reliable: expect M responds from N receivers, 1 <= M <= N","2","",""
+"36","12716","S082","0-reliable: no response is needed
+M-out-of-N-reliable: at least M responses are expected from N systems","2","",""
+"37","12370","S105","0-reliable: The sender expects 0 response from the receivers.
+M-out-of-N-reliable: The sender expects M response from N receivers.","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"38","11575","S111","0-reliable指的是不需要等到任何回應。
+M-out-of-N-reliable指的是在N個裡面需要有M個回覆。","2","",""
+"39","12116","S085","0-reliable: 不預期收到回應
+M-out-of-N reliable: N個接收者，預期收到M個回應，1<M<N","2","",""
+"40","12189","S004","0-reliable:不需要任何接收者回覆 eg.time signal generator
+M-out-of-N-reliable:multicasting群組有N個成員，server期望有M個接收者回覆 eg.RAID","2","",""
+"41","12101","S011","{
+  ""text"": """"
+}","0","未作答（僅剩 JSON 模板殘留）",""
+"42","11942","S046","0-reliable: No response is expected from any of the receivers.
+M-out-of-N-reliable: N receivers and sender expects M response from the receivers.(1<M<N)","2","",""
+"43","11483","S005","0-reliable : no expectation of any response
+M-out-of-N-reliable : expect M response out of N ","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"44","15560","S014","0: no ...
+","0","未完成作答",""
+"45","12175","S107","0-reliable: 0 expected response from receivers
+M-out-of-N-reliable : N receivers in a group, M expected responses from receivers","1.5","M-out-of-N-reliable 未提及 1<M<N 之約束條件",""
+"46","12586","S126","0-reliable 預期不會收到任何recieve
+M-out-of-N-reliable  在M個message中預期會收到N個recieve","1","M-out-of-N-reliable M/N 角色互換（M message 中 N receive）",""
+"47","14657","S017","0-reliable : The sender expected 0 response from the receivers.
+
+M out of N : 假設有N個receivers, sender will expect M responses from N receivers，  1<M<N","2","",""
+"48","11379","S115","0 reliable: for a multicast no response are present(ex: time)
+M out of N reliable: M responses in N callings, where 1<M<N ","2","",""
+"49","11974","S089","0-reliable : expected 0 response
+M-out-of-N-reliable : expected M response from N receiver where M<N","1.5","M-out-of-N-reliable 僅給 M<N，未明確 1<M<N",""
+"50","12081","S009","0-reliable is no message receive
+M-out-of-N is N receiver receive message from M sender","0","兩者皆誤：0-reliable 誤為沒有訊息；M-out-of-N M/N 角色互換",""
+"51","12581","S094","1. 0-reliable：不期待任何receiver回應
+2. M-out-of-N-reliable：N個receiver，至少有M個回應，1<M<N","2","",""
+"52","12980","S066","1. 0-reliable: 訊息不需要有人回復
+2. M-out-of-N-reliable: 有N個接收器，發送者希望可以得到M個回復，其中1<M<N","2","",""
+"53","12045","S041","0-reliable:
+sender不期待任何receiver回傳訊息回來
+M-out-of-N-reliable:
+設有N個receiver，sender期待其中M個回傳訊息(N>M>1)","2","",""
+"54","14898","S031","0-reliable : 沒有預期要收到回應，例如時間發送器
+M-out-of-N-reliable : 在N個中，預期有M個回應，1<M<N
+","2","",""
+"55","12032","S116","0-reliable指的是只期待所有接收者中的其中一個回應
+M-out-of-N指的是期待在N個接收者中有M個回應","1","0-reliable 誤為期待一個回應，與定義相反",""
+"56","12793","S059","0-reliable: No response is expected from any of the recievers.
+M-out-of-N-reliable: Among N receivers, we expect M responses from N recievers.","2","",""
+"57","11099","S064","0-reliable：不預期收到任何回應
+M-out-of-N-reliable：group由N個process組成，預期收到M個回應","2","",""
+"58","12547","S101","0-reliable: 傳送者不期望收到任何接收者的回覆。
+M-out-of-N-reliable: N 個接收者中，傳輸者期望收到 M 個回覆。1<M<N。","2","",""
+"59","12085","S103","0-reliable : sender不需要收到receiver的回覆
+M-out-of-N-reliable : 1>M>N，sender需要收到至少M個receiver的回覆才行","1.5","M-out-of-N-reliable 約束誤寫為 1>M>N（應為 1<M<N）",""
+"60","13368","S104","0-reliable : sender發出訊息後不預期，收到任何receiver的回應
+M-out-of-N-reliable : 在Ｎ個receiver中，sender至少要收到Ｍ個回應才算成功(1<M<N)","2","",""
+"61","12536","S023","當發送多播時可以要求不同程度的回應，如
+0-reliable: 不需要任何人回應
+M-out-of-N-reliable: 需要M個人回應 ","1.5","M-out-of-N-reliable 未明確提及 N 個接收者之概念",""
+"62","11880","S113","0-reliable是sender不需要接收到任何receiver的response。
+M-out-of-N是sender需要收到N個receiver中的M個response。","2","",""
+"63","12238","S055","0-reliable: 發送出去的消息 不指望有人回應
+M out of N:指GROUP有N個members 發送出去的消息指望有M個人回應
+其1<M<N","2","",""
+"64","12412","S119","0-reliable:No response is expected from any receiver.
+M-out-of-N-reliable: The sender expect M responses from the group consisted of N receiver.","2","",""
+"65","12345","S067","0-reliable:預期不會收到回覆,像是time signal generator
+M out of N:在N個receiver中預計會收到M個回復,且M N都大於1,確保有一定數量以上的人看得這個訊息","2","",""
+"66","12977","S076","0-reliable: The sender expects no response/reply from any receiver (e.g. time signal generator/broadcast)
+M-out-of-N-reliable: The sender expects M replies from N receivers, where 1<M<N (e.g. RAID).","2","",""
+"67","11333","S074","0-reliable the system makes no guarantee that the receiver will get the message
+
+M-out-of-N reliable the system guarantees that atleast M spcific member out of total group on N receives the message.","1.5","解釋偏向 delivery guarantee 而非 response semantics，概念可接受但偏離定義",""
+"68","12468","S063","0-reliable: expect no response.
+M-out-of-N-reliable: expect M responses from the N receivers. (1 < M < N)","2","",""
+"69","12353","S090","1. 0-reliable: None of response is expected from any receivers.
+2. M-out-of-N-reliable: In multicast group which has N members, M responses are expected from those members.","2","",""
+"70","13272","S100","0-reliable means that the sender will not expect any ACK from the receivers. 
+M-out-of-N-reliable means that there are N receivers, and the sender expects at least M responses from the receivers. M <= N.","2","",""
+"71","11695","S114","1. 0-reliable : 不預期有任何的回應
+2. M-out-of-N-reliable : 總共mutlicast 給Ｎ個host ，會有Ｍ個回應。（1<=M<=N）","2","",""
+"72","13003","S038","0-reliable :it don't have the require of minimum received reply
+M-out-of-N-reliable: it need m out of n reply to pass the requirement
+","2","",""
+"73","15363","S047","0-reliable就是在這個multicasting systems是沒有能夠受信任可靠的節點，沒有人能收到訊息
+M-out-of-N-reliable是casting的時候在N個節點中有M個節點不太可靠，有機會有人沒有收到發出去的訊息","0","兩者皆嚴重誤解：將 reliable semantics 解釋為節點可靠性而非回應機制",""
+"74","13217","S044","0-reliable: the sender don't expect any response from the receiver
+M out of N reliable: 1 < M < N. There are N receivers and the sender expects M receiver will response sender. ","2","",""
+"75","12262","S075","when sending to the group: 
+0-reliable: no checking on whom receive
+M-out-of-N: will check whether there are M of N receiver that get the message","2","",""
+"76","12218","S030","0 reliable : 不管別人有沒有收到
+M-out-of-N-reliable : N個中至少要有 M 個收到，保證了一定的可靠度","2","",""
+"77","11876","S106","0-reliable means that it doesn't require any receivers response . (ex : timer)
+M-out-of-N-reliable : among N receivers, it has to receive at least M  response . (ex : raid)","2","",""
+"78","12251","S019","0-reliable : Sender 不預期會收到任何 receiver 的 response
+M-out-of-N-reliable : 有 N 個 receiver，Sender 只預期會收到其中 M 個 receiver 的 response","2","",""
+"79","11918","S020","(1) 0-reliable: No response is expected by any of receivers.
+(2) M-out-of-N-reliable: A multicast group consists of N receivers and the sender expect M responses from the receivers, where 1 < M < N","2","",""
+"80","12072","S010","0-reliable: doesn't expect any response from the receivers.
+M-out-of-N-reliable: expect M responses from the group of N receivers.","2","",""
+"81","12639","S091","0-reliable:不期望收到回應
+M-out-of-N-reliable:期望收到N則回應","1","M-out-of-N-reliable 誤為期望 N 則回應，非 M out of N",""
+"82","11976","S051","0-reliable: sender don't care about whether any receiver get message.
+M-out-of-N-reliable: sender will wait M of N receivers get message","2","",""
+"83","12996","S039","0-reliable: expect no response from receiver
+M-out-of-N-reliable: expect M response from N receiver, N>M","2","",""
+"84","12076","S018","0-reliable:傳遞訊息後不期待reciever回應
+M-out-of-N-reliable:傳遞訊息給n個reciever後期望收到m個以上的回應，1<m<n","2","",""
+"85","11935","S049","0-reliable:代表sender預期不會收到任何回應
+m-out-of-n:代表sender預期接收到m個回應來自n個receiver  1<m<n","2","",""
+"86","12280","S053","0-reliable 發送後不要求回覆
+M-out-of-N-reliable 在N台的情況下希望有M台進行回覆","2","",""
+"87","12421","S092","0-reliable means it does not expect any response.
+M-out-of-N-reliable means it expect M responses. (there are total N receivers)","2","",""
+"88","11744","S125","1.0-reliable:no need for response
+2.M out-of N reliable:N個recieve需要有M個response","2","",""
+"89","11236","S021","0-reliable is no responce is expected . M-out-of-N-reliable is N responces is expected ,1<N<M","1","M-out-of-N-reliable M/N 角色互換（N responses, 1<N<M）",""
+"90","12281","S050","0-reliable不需要reciever回復
+M-out-of-N-reliable 傳給N個人中要有個人回復","1.5","M-out-of-N-reliable 未明確 M 之概念（僅說'有個人回復'）",""
+"91","12351","S036","0-reliable:不需要等待回應直接執行下去。
+M-out-of-N-reliable:在N個裡面只要有M個回應就可以繼續執行。 ","2","",""
+"92","12057","S048","1. 0-reliable : 表示不需要接收到任何receiver的回覆
+2. M-out-of-N-reliable : 表示在N個receiver中，需要有M個的回覆","2","",""
+"93","12233","S112","0-reliable: sender不需要收到任何receiver的回應
+M-out-of-N-reliable: 有N個receiver，sender至少要收到M個receiver的回應","2","",""
+"94","12043","S006","1. 0-reliable, don't need to check reply, like a broadcast
+2. M-out-of-N-reliable, 1<m<n, some portion of reposnes is needed.","2","",""
+"95","12225","S057","O-reliable : 完全不回應
+M-out-of-N : 作 N 個回應","1","M-out-of-N-reliable 誤為 N 個回應，非 M out of N",""
+"96","14438","S002","0-reliable: 0 response is expected.
+M-out-of-N-reliable: M responses are expected from a group consist of N (1<M<N).","2","",""
+"97","12228","S007","0-reliable: No response expected once a message is sent.
+M-out-of-N-reliable: Expects M response received. (0 < M (number of responses) < N (number of receivers)).","2","",""
+"98","13187","S118","1. 0-reliable: The sender does not expect any response from the receiver.
+2. M-out-of-N reliable: The sender expects larger than the M/N portion of the receivers to provide responses.","1.5","M-out-of-N-reliable 誤以比例（>M/N portion）解釋，非固定 M 個回應",""
+"99","16158","S016","0-reliable:系統不保證任何接收者能收到訊息。
+M-out-of-N-reliable:在一個擁有N個接收者的群組中，系統保證至少有M個接收者成功收到訊息(0<M<N)","1.5","解釋偏向 delivery guarantee 而非 response semantics",""
+"100","14513","S083","0級可靠性：不期望任何接收方回應，只單純單向發送(如時間廣播)。
+M-out-of-N：共有N個接收暑，只需其中有M個回應即可(1 < M < N)，常用於容錯與冗餘系統(如RAID)。","2","",""
+"101","12356","S088","0-reliable : 不期望收到任何response
+M-out-of-N-reliable : N個receiver期望收到M個response，1<M<N","2","",""
+"102","13028","S058","0-reliable : no reply is expected.
+M-out-of-N-reliable : M reply is expected among N send , where 0<M<N.","2","",""
+"103","11950","S043","0 reliable :傳送者不期待任何訊息回傳
+
+M-out-of-N reliable 在Ｎ個接收者中 傳送者期待會有Ｍ個訊號回傳 1<M<N","2","",""
+"104","11813","S060","0-reliable: 不期望有回應
+M-out-of N-reliable: M中N個回應","1","M-out-of-N-reliable M/N 角色互換（M 中 N 個回應）",""
+"105","12002","S024","0-reliable:after send the request, there are no reply is expected from the receiver, for example:time signal generator
+M-out-of-N reliable: a multicasting systems with N receivers, after there are M reply is expected from the receiver, for example:erasure coding","2","",""
+"106","12259","S095","0-reliable 代表不期待有回應 ex:time signal generator
+M-out of -N reliable:在Ｎ個clients 只期待ｍ個回應（1<M<N) ex:earsure code raid","2","",""
+"107","12114","S077","0-reliable: do not need to wait for an receiver to inform they received the message
+M-out-of-N-reliable: need unless M receiver inform they received the message, 1 < M < N ","2","",""
+"108","12123","S120","0-reliable：不期待收到回應，僅通知
+M-out-of-N reliable：send 通知給N個成員並期待接收者當中至少M個成員回覆。(1\leq M\leq N)","2","",""
+"109","12519","S073","0-reliable:傳送者不期待有任何接收者會回應
+M-out-of-N-reliable:在一個有N個成員的群組內，傳送者傳送訊息給所有群組成員只期待有M個成員回應","2","",""
+"110","12194","S069","1.0-reliable :sender 預期不會有receiver做回應
+2.M-out-of-N-reliable:在multicast系統中預期在N個成員裡面只會有M個成員有回應(1<M<N)","2","",""
+"111","12552","S072","0-reliable: Sender預期收到0個reciver的回覆，如timer signal.
+M-out-of-N-reliable: 在N個recivers中，sender預期收到M個回覆，其中1<M<N.","2","",""
+"112","11989","S042","0-reliable: sender is expected to get no response 
+M-out-of-N response: the multicast group has N receivers, and sender is expected to get M responses from the receivers, where 1<M<N","2","",""
+"113","12414","S071","0-reliable是指Sender發出訊息後預期沒有人回覆
+M-out-of-N-reliable是指Sender發出訊息後，預期N個人中至少有M個人回覆(多數決)","2","",""
+"114","12110","S062","0-reliable: No expect response for all receivers
+M-out-of-N-reliable: Having N receivers, and expecting M responses from those receivers","2","",""
+"115","12460","S045","0-reliable:不用得到回應也沒關係
+M-out-of-N reliable:要得到M個回應，  1<Ｍ<N","1.5","M-out-of-N-reliable 未明確提及 N 為接收者總數",""
+"116","12963","S056","0-reliable means no acknowledgement is required
+M-out-of-N-reliable means the sender expects from at least M out of N receivers","2","",""
+"117","13136","S128","0-reliable is the non-reliable system
+M-out-of-N-reliable semantics is the measurement of M criteria over exceeding N reliable","0.5","0-reliable 過於籠統；M-out-of-N 語意不清無法辨識正確概念",""
+"118","13239","S029","0-reliable: 不期望收到任一個receiver的response
+M-out-of-N-reliable: M個sender, 期望收到其中N個receiver的response","1","M-out-of-N-reliable M/N 角色互換（M senders 中 N receivers）",""
+"119","12267","S065","0-reliable:不需要任何receiver的回應
+M-out-of-N-reliable:總共N個receiver至少需要收到M個回應，其中1<M<N","2","",""
+"120","12524","S098","0-reliable：no one shoild response
+M-out-of-N reliable：M response of N receivers, where 1<M<N","2","",""

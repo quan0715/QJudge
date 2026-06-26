@@ -1,7 +1,12 @@
 import { Tag } from "@carbon/react";
 
-import type { ExamQuestionType } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestionAnswerFormat,
+  ExamQuestionType,
+  OpenAnswerDocument,
+} from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 
 import styles from "./PaperQuestionReportCard.module.scss";
@@ -24,6 +29,7 @@ interface PaperQuestionReportCardProps {
   questionId: string;
   index: number;
   questionType: ExamQuestionType;
+  answerFormat?: ExamQuestionAnswerFormat;
   typeLabel: string;
   prompt: string;
   options: string[];
@@ -38,11 +44,15 @@ interface PaperQuestionReportCardProps {
   feedback?: string | null;
   correctAnswer?: unknown;
   explanation?: string | null;
+  referenceAnswerDocument?: OpenAnswerDocument | null;
+  explanationDocument?: OpenAnswerDocument | null;
+  scorePolicy?: string;
 }
 
 export default function PaperQuestionReportCard({
   index,
   questionType,
+  answerFormat,
   typeLabel,
   prompt,
   options,
@@ -57,17 +67,30 @@ export default function PaperQuestionReportCard({
   feedback,
   correctAnswer,
   explanation,
+  referenceAnswerDocument,
+  explanationDocument,
+  scorePolicy,
 }: PaperQuestionReportCardProps) {
+  const isExcluded = scorePolicy === "excluded";
+  const isFullMarks = scorePolicy === "full_marks";
+  const isRedistribute = scorePolicy === "redistribute";
+  const scoreText = isRedistribute
+    ? "— / —"
+    : `${isExcluded ? "—" : formatScore(score)} / ${formatScore(maxScore)}`;
+
   return (
     <article className={styles.root}>
       <div className={styles.header}>
         <div>
           <div className={styles.title}>
             Q{index} · {typeLabel}
+            {isExcluded && <span className={styles.policyExcluded}> (不計分)</span>}
+            {isFullMarks && <span className={styles.policyFullMarks}> (送分)</span>}
+            {isRedistribute && <span className={styles.policyExcluded}> (配分重分配)</span>}
           </div>
           {showGrading ? (
             <div className={styles.meta}>
-              {score ?? "-"} / {maxScore}
+              {scoreText}
               {gradedByUsername ? ` · ${gradedByUsername}` : ""}
             </div>
           ) : null}
@@ -87,10 +110,13 @@ export default function PaperQuestionReportCard({
         </div>
         <AnswerDisplay
           questionType={questionType}
+          answerFormat={answerFormat}
           answerContent={answer}
           options={options}
           correctAnswer={showGrading ? correctAnswer : undefined}
           explanation={showGrading ? explanation : null}
+          referenceAnswerDocument={showGrading ? referenceAnswerDocument : null}
+          explanationDocument={showGrading ? explanationDocument : null}
           showCorrectness={showGrading}
         />
         {showGrading && feedback?.trim() ? (

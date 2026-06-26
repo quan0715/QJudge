@@ -37,6 +37,7 @@ import type {
   ExamStatusType,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import AdminInsightRail, {
   PriorityEventsInsightCard,
   type InsightCardAction,
@@ -302,7 +303,7 @@ const getGradingProgressMetric = (
     return {
       value: tr("adminOverview.command.metric.scored", "已計分"),
       detail: tr("adminOverview.command.metric.scoreUnit", "{{score}} 分", {
-        score: participant.score ?? 0,
+        score: formatScore(participant.score ?? 0),
       }),
     };
   }
@@ -346,7 +347,7 @@ const getParticipantMetric = (
   }
   return {
     label: tr("adminOverview.command.metric.score", "分數"),
-    value: String(participant.score ?? 0),
+    value: formatScore(participant.score ?? 0),
     detail: tr("adminOverview.command.metric.pointUnit", "分"),
     tone: "neutral",
   };

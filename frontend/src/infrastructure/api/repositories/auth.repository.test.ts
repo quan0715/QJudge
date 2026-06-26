@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getAuthOptions,
   issueTeacherActivationInvite,
   searchUsers,
   updateUserRole,
@@ -82,5 +83,41 @@ describe("auth repository admin endpoints", () => {
     expect(url).toBe("/api/v1/auth/teacher-activations");
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body as string)).toEqual({ email: "teacher@example.com" });
+  });
+
+  it("getAuthOptions calls auth options endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            email_password_enabled: false,
+            providers: [
+              {
+                key: "nycu",
+                type: "oidc",
+                category: "campus",
+                display_name: "NYCU 國立陽明交通大學",
+                display_name_i18n_key: "auth.providers.nycu",
+                logo_url: "/auth-providers/nycu.svg",
+              },
+            ],
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const response = await getAuthOptions();
+
+    expect(response.data.email_password_enabled).toBe(false);
+    expect(response.data.providers[0].key).toBe("nycu");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/auth/options");
+    expect(options.method).toBe("GET");
   });
 });

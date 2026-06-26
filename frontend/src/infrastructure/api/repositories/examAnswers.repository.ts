@@ -1,5 +1,6 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import { fetchEnvelope, type BaseMeta } from "@/infrastructure/api/envelope";
+import type { OpenAnswerDocument } from "@/core/entities/contest.entity";
 
 // ── Types ──
 
@@ -16,6 +17,8 @@ export interface QuestionSnapshotDto {
   options: string[];
   correct_answer: unknown;
   explanation?: string;
+  reference_answer_document?: OpenAnswerDocument | null;
+  explanation_document?: OpenAnswerDocument | null;
   question_type: string;
   score: number;
 }
@@ -50,6 +53,8 @@ export interface QuestionSnapshot {
   options: string[];
   correctAnswer: unknown;
   explanation?: string;
+  referenceAnswerDocument?: OpenAnswerDocument | null;
+  explanationDocument?: OpenAnswerDocument | null;
   questionType: string;
   score: number;
 }
@@ -153,6 +158,8 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
         options: dto.question_snapshot.options ?? [],
         correctAnswer: dto.question_snapshot.correct_answer,
         explanation: dto.question_snapshot.explanation,
+        referenceAnswerDocument: dto.question_snapshot.reference_answer_document ?? null,
+        explanationDocument: dto.question_snapshot.explanation_document ?? null,
         questionType: dto.question_snapshot.question_type,
         score: dto.question_snapshot.score,
       }

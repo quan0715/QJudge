@@ -15,16 +15,18 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.tokens import AccessToken
 
+from ..auth.account_linking import link_qauth_identity
+from ..auth.options import get_auth_options, is_email_password_auth_enabled
+from ..auth.provider_registry import get_oauth_service
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
 from ..services import (
     EmailAuthService,
     JWTService,
-    NYCUOAuthService,
-    get_oauth_service,
 )
 from .common import (
     SchemaAPIView,
     build_conflict_response,
+    email_password_disabled_response,
     record_login,
     token_cookie_response,
     validation_error_response,
@@ -48,6 +50,9 @@ class RegisterView(SchemaAPIView):
     serializer_class = RegisterSerializer
 
     def post(self, request):
+        if not is_email_password_auth_enabled():
+            return email_password_disabled_response()
+
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
             return validation_error_response("註冊資料驗證失敗", serializer.errors)
@@ -85,6 +90,9 @@ class LoginView(SchemaAPIView):
     serializer_class = LoginSerializer
 
     def post(self, request):
+        if not is_email_password_auth_enabled():
+            return email_password_disabled_response()
+
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
             return validation_error_response("登入資料驗證失敗", serializer.errors)
@@ -113,6 +121,16 @@ class LoginView(SchemaAPIView):
         access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
         record_login(user, request, login_method="email", jti=access_jti)
         return token_cookie_response(user, tokens)
+
+
+class AuthOptionsView(SchemaAPIView):
+    """GET /api/v1/auth/options → return public login method metadata."""
+
+    permission_classes = [AllowAny]
+    serializer_class = serializers.Serializer
+
+    def get(self, request):
+        return Response({"success": True, "data": get_auth_options()})
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -196,7 +214,13 @@ class OAuthLoginView(SchemaAPIView):
         service = get_oauth_service(provider)
         if service is None:
             return Response(
-                {"success": False, "error": {"code": "UNKNOWN_PROVIDER", "message": f"Unknown OAuth provider: {provider}"}},
+                {
+                    "success": False,
+                    "error": {
+                        "code": "UNKNOWN_PROVIDER",
+                        "message": f"Unknown OAuth provider: {provider}",
+                    },
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         redirect_uri = f"{settings.FRONTEND_URL}/auth/{provider}/callback"
@@ -217,7 +241,13 @@ class OAuthCallbackView(SchemaAPIView):
         service = get_oauth_service(provider)
         if service is None:
             return Response(
-                {"success": False, "error": {"code": "UNKNOWN_PROVIDER", "message": f"Unknown OAuth provider: {provider}"}},
+                {
+                    "success": False,
+                    "error": {
+                        "code": "UNKNOWN_PROVIDER",
+                        "message": f"Unknown OAuth provider: {provider}",
+                    },
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -230,7 +260,10 @@ class OAuthCallbackView(SchemaAPIView):
                 code=serializer.validated_data["code"],
                 redirect_uri=serializer.validated_data["redirect_uri"],
             )
-            user = service.get_or_create_user(oauth_data)
+            user = link_qauth_identity(
+                service.normalize_identity(oauth_data),
+                service.provider_token_set(oauth_data),
+            )
             conflict_response = build_conflict_response(user, request, provider="oauth")
             if conflict_response is not None:
                 return conflict_response
@@ -257,6 +290,7 @@ __all__ = [
     "SchemaAPIView",
     "RegisterView",
     "LoginView",
+    "AuthOptionsView",
     "DevTokenView",
     "OAuthLoginView",
     "OAuthCallbackView",

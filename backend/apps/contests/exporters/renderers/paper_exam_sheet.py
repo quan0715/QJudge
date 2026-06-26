@@ -55,11 +55,13 @@ class PaperExamSheetRenderer(BaseRenderer):
         return pdf_file
 
     def render_html(self) -> str:
+        from apps.contests.services.exam_scoring import ExamScoringService
         questions = list(
             ExamQuestion.objects.filter(contest=self.contest).order_by("order", "id")
         )
         is_zh = self.is_chinese
-        total_score = sum(q.score for q in questions)
+        scoring = ExamScoringService(self.contest)
+        total_score = self._fmt_score(scoring.get_max_total_score())
 
         question_rows: list[dict] = []
         answer_key_rows: list[dict] = []
@@ -72,7 +74,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                     "number": idx,
                     "question_type": q.question_type,
                     "type_label": self._get_question_type_label(q.question_type),
-                    "score": q.score,
+                    "score": self._fmt_score(q.score),
                     "prompt_html": render_markdown(q.prompt or "", soft_breaks=False),
                     "options": self._get_options(q),
                     "answer_text": answer_text,
@@ -84,7 +86,7 @@ class PaperExamSheetRenderer(BaseRenderer):
                 {
                     "number": idx,
                     "answer_text": self._format_answer_key_text(q, answer_text),
-                    "score": q.score,
+                    "score": self._fmt_score(q.score),
                 }
             )
 
@@ -123,6 +125,10 @@ class PaperExamSheetRenderer(BaseRenderer):
             "sheet_css": self._get_sheet_css(),
         }
         return render_to_string("exports/paper_exam_sheet.html", context)
+
+    @staticmethod
+    def _fmt_score(value) -> str:
+        return f"{float(value):.2f}"
 
     def _get_base_css(self) -> str:
         css = self._read_static_css("exports/report-base.css")

@@ -1,0 +1,858 @@
+{
+  "answer_count": 120,
+  "answers": [
+    {
+      "answer": {
+        "text": "0-reliable: sender 不期待從 receiver 收到任何反饋\nm-out-of-n-reliable: n個sender and receiver 中會期待有m個反饋，其中1<m<n"
+      },
+      "id": "12515",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: The sender expects no response from the receivers.\nM-out-of-N-reliable: The senders expects M responses from total N receivers."
+      },
+      "id": "12178",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "1, 0-reliable：廣播後不確認接收情況\n2, M-out-of-N-reliable：在N個預計接收者中，確認有M個接收者回傳"
+      },
+      "id": "15958",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: no response are expected, ex. time signal generator\nM-out-of-N-reliable: M response are expected from N receivers"
+      },
+      "id": "12584",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 傳給n個receiver，且預計不會有任何的response\nM-out-of-N-reliable: 傳給N個receiver，預計有M個response，1<M<N"
+      },
+      "id": "12030",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: the sender sends the message and doesn't care whether any of the receiver actually receives the message and responce.\nM-out-of-N-reliable: the sender sends the message to N receivers, if less than M receivers responce, the sender re-send the message."
+      },
+      "id": "12172",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: sender 不需要有回應\nM-out-of-N: 在 multicasting system 之中，有 N 個接收者，而傳輸者期待收到 M 個回復，其中 1<M<N。"
+      },
+      "id": "12207",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: 訊息送出後，不期望收到任何回覆訊息\n2. M-out-of-N: 訊息送出後，在有 N 個 receivers 的 group 中，會期望收到其中 M 個回覆（其中 1 <= M <= N）"
+      },
+      "id": "12292",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 不需要收到reply\nM-out-of-N reliabe: 寄給N個至少要收到M個reply 1<M<N"
+      },
+      "id": "12196",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: the sender don't expect receivers' response.\nM-out-of-N-reliable: n is the total receivers, 0<M<N, the sender expect M receiver to response"
+      },
+      "id": "13058",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "0 is doesn't expecting any response from receivers and M out of N is willing to see M response out of N receivers, 1 < M < N"
+      },
+      "id": "11298",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : no response is expected from any of the receivers.\nM-out-of-N-reliable : M responses are expected from the receivers, and the number of receivers is N.\n (1< M < N)"
+      },
+      "id": "12641",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: no need any host in the group to response.\nM-out-of-N-reliable: send message to N hosts and desire M(M<=N) to response"
+      },
+      "id": "13366",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable, sender doesn't confirm that any of the receivers got the message\n2. M-out-of-N-reliable, sender needs to confirm that only M out of N receivers got the message"
+      },
+      "id": "12498",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: it's expected that getting no response.\nM-out-of-N reliable: it's expected to get M response in N request."
+      },
+      "id": "13201",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "0: no need to get response from any receiver\nM out of N: if this message is send to N receiver, need at least M receiver response that the message has received."
+      },
+      "id": "12806",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : the sender waits for no response from any recipient \nM-out-of-N-reliable : knowing that we have N recipients, the sender waits for a response from M recipients (1<M<N)"
+      },
+      "id": "11295",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : when a request is sent, the sender does not require an acknowledge.\nM-out-of-N-reliable : during multicast broadcast, a message can be sent to M machines and the system requires N machine to acknowledge the process of the request. (1<=N<=M)."
+      },
+      "id": "12831",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 不需要有對象回覆，例如時間序廣播\nM-out-of-N: 在 M 個對象中有至少 N 回覆就好，常見於 RAID, Erasing code"
+      },
+      "id": "15719",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "0-reliable是指預期沒有人傳回來\nM-out-of-n-reliable 是指預期n個人裡面，有m個人傳回來"
+      },
+      "id": "12061",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: sender不期待有來自receiver的response，例如time signal generator。\n2. M-out-of-N-reliable: 在N個receiver中，要收到M個response，且N>M>1。"
+      },
+      "id": "12169",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : multicast出去的訊息不需要有人回應。\nM-out-of-N-reliable : N次中要有M個人回應。"
+      },
+      "id": "11400",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: the sender doesn't expect to receive any reliable reply ex: time stamp 因為就算我現在沒有收集到這個資訊，我下一個週期的時間後，這個資訊依然會產生\nM-out of N reliable: 在總共M個request received中，期望獲得N個可靠的回覆，其中N<M ex:RAID"
+      },
+      "id": "12625",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": "0-reliable :傳出去但不預期會有回應 如 time signal processor\nM-out-of-N-reliable semantics:傳出去m個 預計會收到n個回應"
+      },
+      "id": "12185",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "The 0-reliable: no response is expected from any of the receiver.\nThe M-out-of-N-reliable: The multicast group consist of N receiver and the sender is expected M response from the receiver, where 1<M<N."
+      },
+      "id": "12107",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: No response from receivers is expected.\nM-out-of-N-reliable: If the message is sent to N receivers, M responses are expected.(1<M<N)"
+      },
+      "id": "12999",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:任為不會接收到任何訊息\nM-out-of-N-reliable:M個人中接收到N個人的訊息"
+      },
+      "id": "12317",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: No response is expected from any receivers\n2. M-out-of-N-reliable: M responses are expected from N receivers. (1<M<N)"
+      },
+      "id": "12931",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: no reply needed\nM-out-of-N-reliable:M reply from N receiver,where M<N"
+      },
+      "id": "11972",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "0- reliable means the receiver doesn't need to respond back\nM-out-of-N-reliable means atleast M receivers out of N receivers need to respond"
+      },
+      "id": "11475",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "0-reliable means the server does not expected any receiver to reply.\nM-out-of-N-reliable means there are N receivers, and the server expected M receivers to reply. (0 <M < N)"
+      },
+      "id": "12784",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:no client need to respond\nM-out-of-N-reliable: need N client to respond"
+      },
+      "id": "12247",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不期待任何receiver的回應\nM-out-of-N-reliable:在N個之中期待M個receiver的回應，0<M<N"
+      },
+      "id": "12986",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: A sender will receive no responce from receivers.\nM-out-of-N-reliable: A sender will receive N responces from M receivers."
+      },
+      "id": "12727",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: expect 0 respond from receiver\nM-out-of-N-reliable: expect M responds from N receivers, 1 <= M <= N"
+      },
+      "id": "12889",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: no response is needed\nM-out-of-N-reliable: at least M responses are expected from N systems"
+      },
+      "id": "12716",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: The sender expects 0 response from the receivers.\nM-out-of-N-reliable: The sender expects M response from N receivers."
+      },
+      "id": "12370",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "0-reliable指的是不需要等到任何回應。\nM-out-of-N-reliable指的是在N個裡面需要有M個回覆。"
+      },
+      "id": "11575",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 不預期收到回應\nM-out-of-N reliable: N個接收者，預期收到M個回應，1<M<N"
+      },
+      "id": "12116",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不需要任何接收者回覆 eg.time signal generator\nM-out-of-N-reliable:multicasting群組有N個成員，server期望有M個接收者回覆 eg.RAID"
+      },
+      "id": "12189",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "{\n  \"text\": \"\"\n}"
+      },
+      "id": "12101",
+      "participant_username": "S011"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: No response is expected from any of the receivers.\nM-out-of-N-reliable: N receivers and sender expects M response from the receivers.(1<M<N)"
+      },
+      "id": "11942",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : no expectation of any response\nM-out-of-N-reliable : expect M response out of N "
+      },
+      "id": "11483",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "0: no ...\n"
+      },
+      "id": "15560",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 0 expected response from receivers\nM-out-of-N-reliable : N receivers in a group, M expected responses from receivers"
+      },
+      "id": "12175",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "0-reliable 預期不會收到任何recieve\nM-out-of-N-reliable  在M個message中預期會收到N個recieve"
+      },
+      "id": "12586",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : The sender expected 0 response from the receivers.\n\nM out of N : 假設有N個receivers, sender will expect M responses from N receivers，  1<M<N"
+      },
+      "id": "14657",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "0 reliable: for a multicast no response are present(ex: time)\nM out of N reliable: M responses in N callings, where 1<M<N "
+      },
+      "id": "11379",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : expected 0 response\nM-out-of-N-reliable : expected M response from N receiver where M<N"
+      },
+      "id": "11974",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "0-reliable is no message receive\nM-out-of-N is N receiver receive message from M sender"
+      },
+      "id": "12081",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable：不期待任何receiver回應\n2. M-out-of-N-reliable：N個receiver，至少有M個回應，1<M<N"
+      },
+      "id": "12581",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: 訊息不需要有人回復\n2. M-out-of-N-reliable: 有N個接收器，發送者希望可以得到M個回復，其中1<M<N"
+      },
+      "id": "12980",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:\nsender不期待任何receiver回傳訊息回來\nM-out-of-N-reliable:\n設有N個receiver，sender期待其中M個回傳訊息(N>M>1)"
+      },
+      "id": "12045",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : 沒有預期要收到回應，例如時間發送器\nM-out-of-N-reliable : 在N個中，預期有M個回應，1<M<N\n"
+      },
+      "id": "14898",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "0-reliable指的是只期待所有接收者中的其中一個回應\nM-out-of-N指的是期待在N個接收者中有M個回應"
+      },
+      "id": "12032",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: No response is expected from any of the recievers.\nM-out-of-N-reliable: Among N receivers, we expect M responses from N recievers."
+      },
+      "id": "12793",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "0-reliable：不預期收到任何回應\nM-out-of-N-reliable：group由N個process組成，預期收到M個回應"
+      },
+      "id": "11099",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 傳送者不期望收到任何接收者的回覆。\nM-out-of-N-reliable: N 個接收者中，傳輸者期望收到 M 個回覆。1<M<N。"
+      },
+      "id": "12547",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : sender不需要收到receiver的回覆\nM-out-of-N-reliable : 1>M>N，sender需要收到至少M個receiver的回覆才行"
+      },
+      "id": "12085",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : sender發出訊息後不預期，收到任何receiver的回應\nM-out-of-N-reliable : 在Ｎ個receiver中，sender至少要收到Ｍ個回應才算成功(1<M<N)"
+      },
+      "id": "13368",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "當發送多播時可以要求不同程度的回應，如\n0-reliable: 不需要任何人回應\nM-out-of-N-reliable: 需要M個人回應 "
+      },
+      "id": "12536",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "0-reliable是sender不需要接收到任何receiver的response。\nM-out-of-N是sender需要收到N個receiver中的M個response。"
+      },
+      "id": "11880",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 發送出去的消息 不指望有人回應\nM out of N:指GROUP有N個members 發送出去的消息指望有M個人回應\n其1<M<N"
+      },
+      "id": "12238",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:No response is expected from any receiver.\nM-out-of-N-reliable: The sender expect M responses from the group consisted of N receiver."
+      },
+      "id": "12412",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:預期不會收到回覆,像是time signal generator\nM out of N:在N個receiver中預計會收到M個回復,且M N都大於1,確保有一定數量以上的人看得這個訊息"
+      },
+      "id": "12345",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: The sender expects no response/reply from any receiver (e.g. time signal generator/broadcast)\nM-out-of-N-reliable: The sender expects M replies from N receivers, where 1<M<N (e.g. RAID)."
+      },
+      "id": "12977",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "0-reliable the system makes no guarantee that the receiver will get the message\n\nM-out-of-N reliable the system guarantees that atleast M spcific member out of total group on N receives the message."
+      },
+      "id": "11333",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: expect no response.\nM-out-of-N-reliable: expect M responses from the N receivers. (1 < M < N)"
+      },
+      "id": "12468",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: None of response is expected from any receivers.\n2. M-out-of-N-reliable: In multicast group which has N members, M responses are expected from those members."
+      },
+      "id": "12353",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "0-reliable means that the sender will not expect any ACK from the receivers. \nM-out-of-N-reliable means that there are N receivers, and the sender expects at least M responses from the receivers. M <= N."
+      },
+      "id": "13272",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable : 不預期有任何的回應\n2. M-out-of-N-reliable : 總共mutlicast 給Ｎ個host ，會有Ｍ個回應。（1<=M<=N）"
+      },
+      "id": "11695",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "0-reliable :it don't have the require of minimum received reply\nM-out-of-N-reliable: it need m out of n reply to pass the requirement\n"
+      },
+      "id": "13003",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "0-reliable就是在這個multicasting systems是沒有能夠受信任可靠的節點，沒有人能收到訊息\nM-out-of-N-reliable是casting的時候在N個節點中有M個節點不太可靠，有機會有人沒有收到發出去的訊息"
+      },
+      "id": "15363",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: the sender don't expect any response from the receiver\nM out of N reliable: 1 < M < N. There are N receivers and the sender expects M receiver will response sender. "
+      },
+      "id": "13217",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "when sending to the group: \n0-reliable: no checking on whom receive\nM-out-of-N: will check whether there are M of N receiver that get the message"
+      },
+      "id": "12262",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "0 reliable : 不管別人有沒有收到\nM-out-of-N-reliable : N個中至少要有 M 個收到，保證了一定的可靠度"
+      },
+      "id": "12218",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "0-reliable means that it doesn't require any receivers response . (ex : timer)\nM-out-of-N-reliable : among N receivers, it has to receive at least M  response . (ex : raid)"
+      },
+      "id": "11876",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : Sender 不預期會收到任何 receiver 的 response\nM-out-of-N-reliable : 有 N 個 receiver，Sender 只預期會收到其中 M 個 receiver 的 response"
+      },
+      "id": "12251",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "(1) 0-reliable: No response is expected by any of receivers.\n(2) M-out-of-N-reliable: A multicast group consists of N receivers and the sender expect M responses from the receivers, where 1 < M < N"
+      },
+      "id": "11918",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: doesn't expect any response from the receivers.\nM-out-of-N-reliable: expect M responses from the group of N receivers."
+      },
+      "id": "12072",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不期望收到回應\nM-out-of-N-reliable:期望收到N則回應"
+      },
+      "id": "12639",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: sender don't care about whether any receiver get message.\nM-out-of-N-reliable: sender will wait M of N receivers get message"
+      },
+      "id": "11976",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: expect no response from receiver\nM-out-of-N-reliable: expect M response from N receiver, N>M"
+      },
+      "id": "12996",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:傳遞訊息後不期待reciever回應\nM-out-of-N-reliable:傳遞訊息給n個reciever後期望收到m個以上的回應，1<m<n"
+      },
+      "id": "12076",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:代表sender預期不會收到任何回應\nm-out-of-n:代表sender預期接收到m個回應來自n個receiver  1<m<n"
+      },
+      "id": "11935",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "0-reliable 發送後不要求回覆\nM-out-of-N-reliable 在N台的情況下希望有M台進行回覆"
+      },
+      "id": "12280",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "0-reliable means it does not expect any response.\nM-out-of-N-reliable means it expect M responses. (there are total N receivers)"
+      },
+      "id": "12421",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "1.0-reliable:no need for response\n2.M out-of N reliable:N個recieve需要有M個response"
+      },
+      "id": "11744",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "0-reliable is no responce is expected . M-out-of-N-reliable is N responces is expected ,1<N<M"
+      },
+      "id": "11236",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "0-reliable不需要reciever回復\nM-out-of-N-reliable 傳給N個人中要有個人回復"
+      },
+      "id": "12281",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不需要等待回應直接執行下去。\nM-out-of-N-reliable:在N個裡面只要有M個回應就可以繼續執行。 "
+      },
+      "id": "12351",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable : 表示不需要接收到任何receiver的回覆\n2. M-out-of-N-reliable : 表示在N個receiver中，需要有M個的回覆"
+      },
+      "id": "12057",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: sender不需要收到任何receiver的回應\nM-out-of-N-reliable: 有N個receiver，sender至少要收到M個receiver的回應"
+      },
+      "id": "12233",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable, don't need to check reply, like a broadcast\n2. M-out-of-N-reliable, 1<m<n, some portion of reposnes is needed."
+      },
+      "id": "12043",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "O-reliable : 完全不回應\nM-out-of-N : 作 N 個回應"
+      },
+      "id": "12225",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 0 response is expected.\nM-out-of-N-reliable: M responses are expected from a group consist of N (1<M<N)."
+      },
+      "id": "14438",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: No response expected once a message is sent.\nM-out-of-N-reliable: Expects M response received. (0 < M (number of responses) < N (number of receivers))."
+      },
+      "id": "12228",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "1. 0-reliable: The sender does not expect any response from the receiver.\n2. M-out-of-N reliable: The sender expects larger than the M/N portion of the receivers to provide responses."
+      },
+      "id": "13187",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:系統不保證任何接收者能收到訊息。\nM-out-of-N-reliable:在一個擁有N個接收者的群組中，系統保證至少有M個接收者成功收到訊息(0<M<N)"
+      },
+      "id": "16158",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "0級可靠性：不期望任何接收方回應，只單純單向發送(如時間廣播)。\nM-out-of-N：共有N個接收暑，只需其中有M個回應即可(1 < M < N)，常用於容錯與冗餘系統(如RAID)。"
+      },
+      "id": "14513",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : 不期望收到任何response\nM-out-of-N-reliable : N個receiver期望收到M個response，1<M<N"
+      },
+      "id": "12356",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "0-reliable : no reply is expected.\nM-out-of-N-reliable : M reply is expected among N send , where 0<M<N."
+      },
+      "id": "13028",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "0 reliable :傳送者不期待任何訊息回傳\n\nM-out-of-N reliable 在Ｎ個接收者中 傳送者期待會有Ｍ個訊號回傳 1<M<N"
+      },
+      "id": "11950",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 不期望有回應\nM-out-of N-reliable: M中N個回應"
+      },
+      "id": "11813",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:after send the request, there are no reply is expected from the receiver, for example:time signal generator\nM-out-of-N reliable: a multicasting systems with N receivers, after there are M reply is expected from the receiver, for example:erasure coding"
+      },
+      "id": "12002",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "0-reliable 代表不期待有回應 ex:time signal generator\nM-out of -N reliable:在Ｎ個clients 只期待ｍ個回應（1<M<N) ex:earsure code raid"
+      },
+      "id": "12259",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: do not need to wait for an receiver to inform they received the message\nM-out-of-N-reliable: need unless M receiver inform they received the message, 1 < M < N "
+      },
+      "id": "12114",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "0-reliable：不期待收到回應，僅通知\nM-out-of-N reliable：send 通知給N個成員並期待接收者當中至少M個成員回覆。(1\\leq M\\leq N)"
+      },
+      "id": "12123",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:傳送者不期待有任何接收者會回應\nM-out-of-N-reliable:在一個有N個成員的群組內，傳送者傳送訊息給所有群組成員只期待有M個成員回應"
+      },
+      "id": "12519",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "1.0-reliable :sender 預期不會有receiver做回應\n2.M-out-of-N-reliable:在multicast系統中預期在N個成員裡面只會有M個成員有回應(1<M<N)"
+      },
+      "id": "12194",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: Sender預期收到0個reciver的回覆，如timer signal.\nM-out-of-N-reliable: 在N個recivers中，sender預期收到M個回覆，其中1<M<N."
+      },
+      "id": "12552",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: sender is expected to get no response \nM-out-of-N response: the multicast group has N receivers, and sender is expected to get M responses from the receivers, where 1<M<N"
+      },
+      "id": "11989",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "0-reliable是指Sender發出訊息後預期沒有人回覆\nM-out-of-N-reliable是指Sender發出訊息後，預期N個人中至少有M個人回覆(多數決)"
+      },
+      "id": "12414",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: No expect response for all receivers\nM-out-of-N-reliable: Having N receivers, and expecting M responses from those receivers"
+      },
+      "id": "12110",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不用得到回應也沒關係\nM-out-of-N reliable:要得到M個回應，  1<Ｍ<N"
+      },
+      "id": "12460",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "0-reliable means no acknowledgement is required\nM-out-of-N-reliable means the sender expects from at least M out of N receivers"
+      },
+      "id": "12963",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "0-reliable is the non-reliable system\nM-out-of-N-reliable semantics is the measurement of M criteria over exceeding N reliable"
+      },
+      "id": "13136",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "0-reliable: 不期望收到任一個receiver的response\nM-out-of-N-reliable: M個sender, 期望收到其中N個receiver的response"
+      },
+      "id": "13239",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "0-reliable:不需要任何receiver的回應\nM-out-of-N-reliable:總共N個receiver至少需要收到M個回應，其中1<M<N"
+      },
+      "id": "12267",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "0-reliable：no one shoild response\nM-out-of-N reliable：M response of N receivers, where 1<M<N"
+      },
+      "id": "12524",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "In multicasting systems, specify the meaning of 0-reliable and M-out-of-N-reliable semantics.",
+    "question_id": "37861c97-e01d-4371-a51e-bd04e4cfd84d",
+    "question_type": "short_answer",
+    "reference_answer": "0-reliable: The sender expects no response from any receiver.\nM-out-of-N-reliable: The sender expects responses from exactly M receivers out of a group of N."
+  },
+  "question_id": "37861c97-e01d-4371-a51e-bd04e4cfd84d"
+}

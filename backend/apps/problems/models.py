@@ -48,7 +48,7 @@ class CodingProblem(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='legacy_problem_adapters',
+        related_name='coding_problem_adapters',
         verbose_name='對應題目資產',
     )
     question_version = models.ForeignKey(
@@ -56,7 +56,7 @@ class CodingProblem(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='legacy_problem_adapters',
+        related_name='coding_problem_adapters',
         verbose_name='對應題目版本',
     )
     

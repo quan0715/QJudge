@@ -1,0 +1,1853 @@
+{
+  "answer_count": 123,
+  "answers": [
+    {
+      "answer": {
+        "text": "process可以直接讀寫memory，不需要經過CPU，節省CPU time，提升效能"
+      },
+      "created_at": "2026-03-25T11:06:07.885591+08:00",
+      "feedback": "",
+      "graded_at": "2026-04-02T08:29:37.159370+08:00",
+      "graded_by_username": "313551100",
+      "id": 4844,
+      "is_correct": true,
+      "participant_user_id": 189,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-04-02T08:29:37.159421+08:00"
+    },
+    {
+      "answer": {
+        "text": "裝置可以直接從記憶體去存取，不用用到cpu"
+      },
+      "created_at": "2026-03-25T11:03:07.950613+08:00",
+      "feedback": "",
+      "graded_at": "2026-04-02T08:30:18.413280+08:00",
+      "graded_by_username": "313551100",
+      "id": 4617,
+      "is_correct": true,
+      "participant_user_id": 233,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-04-02T08:30:18.413329+08:00"
+    },
+    {
+      "answer": {
+        "text": "直接存取系統的記憶體"
+      },
+      "created_at": "2026-03-25T10:35:21.956420+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-04-02T08:30:59.846406+08:00",
+      "graded_by_username": "313551100",
+      "id": 2875,
+      "is_correct": true,
+      "participant_user_id": 159,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-04-02T08:30:59.846455+08:00"
+    },
+    {
+      "answer": {
+        "text": "裝置可以不用透過ＣＰＵ介入 直接讀取傳輸資料"
+      },
+      "created_at": "2026-03-25T10:28:42.857060+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:51:52.444035+08:00",
+      "graded_by_username": "313551100",
+      "id": 2567,
+      "is_correct": true,
+      "participant_user_id": 93,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:51:52.444083+08:00"
+    },
+    {
+      "answer": {
+        "text": "Device上的資料可以透過DMA controller經由memory bus搬到memory中，CPU只需要負責最一開始的基礎設定，這樣CPU就不用親自去搬device上的資料，可以大幅提升CPU的使用率"
+      },
+      "created_at": "2026-03-25T10:28:18.440421+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:53:04.493267+08:00",
+      "graded_by_username": "313551100",
+      "id": 2551,
+      "is_correct": true,
+      "participant_user_id": 218,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:53:04.493319+08:00"
+    },
+    {
+      "answer": {
+        "text": "不須透過CPU便可直接存取記憶體。"
+      },
+      "created_at": "2026-03-25T10:55:21.395174+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:56:55.273039+08:00",
+      "graded_by_username": "313551100",
+      "id": 4028,
+      "is_correct": true,
+      "participant_user_id": 127,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:56:55.273087+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a technique that can transfer data without involving CPU. Hard device can read or write from main memory without involving CPU."
+      },
+      "created_at": "2026-03-25T10:18:10.332403+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:57:05.987058+08:00",
+      "graded_by_username": "313551100",
+      "id": 1973,
+      "is_correct": true,
+      "participant_user_id": 155,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:57:05.987107+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is the technique that allows I/O devices transfer data directly to or from main memory, reducing CPU overhead and improve transfer efficiency."
+      },
+      "created_at": "2026-03-25T10:31:03.045435+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:57:08.065697+08:00",
+      "graded_by_username": "313551100",
+      "id": 2704,
+      "is_correct": true,
+      "participant_user_id": 185,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:57:08.065743+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA 是可以讓devices 在沒有cpu 介入下大量transfer data, it saves the cpu time"
+      },
+      "created_at": "2026-03-25T10:55:32.746888+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:58:43.761572+08:00",
+      "graded_by_username": "313551100",
+      "id": 4040,
+      "is_correct": true,
+      "participant_user_id": 212,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:43.761619+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA allows devices to directly read or write on the memory without the need of CPU, making it more efficient to communicate with other devices."
+      },
+      "created_at": "2026-03-25T10:20:54.110622+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:58:55.904907+08:00",
+      "graded_by_username": "313551100",
+      "id": 2138,
+      "is_correct": true,
+      "participant_user_id": 98,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:55.904956+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is the technique used by computers transfer data between devices without involing the CPU. DMA allows devices read or write data to or from the main memory. DMA decrease the CPU usage and improve the system performance."
+      },
+      "created_at": "2026-03-25T10:55:36.405394+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:04.845340+08:00",
+      "graded_by_username": "313551100",
+      "id": 4044,
+      "is_correct": true,
+      "participant_user_id": 133,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:04.845389+08:00"
+    },
+    {
+      "answer": {
+        "text": "不需經由CPU可直接訪問memory，可節省CPU的使用時間並提高效率"
+      },
+      "created_at": "2026-03-25T11:10:25.206699+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:09.045438+08:00",
+      "graded_by_username": "313551100",
+      "id": 5160,
+      "is_correct": true,
+      "participant_user_id": 134,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:09.045488+08:00"
+    },
+    {
+      "answer": {
+        "text": "allow devices to access memory directly."
+      },
+      "created_at": "2026-03-25T11:54:57.372280+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:18.992846+08:00",
+      "graded_by_username": "313551100",
+      "id": 6614,
+      "is_correct": true,
+      "participant_user_id": 114,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:18.992895+08:00"
+    },
+    {
+      "answer": {
+        "text": "The device can transfer data with memory directly, and doesn't need CPU to intervene for every bytes/words, which is faster and efficient."
+      },
+      "created_at": "2026-03-25T11:10:31.880882+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:21.055025+08:00",
+      "graded_by_username": "313551100",
+      "id": 5165,
+      "is_correct": true,
+      "participant_user_id": 124,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:21.055073+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct Memory Access is a mechanism that bypasses logical memory access and provides direct access to physical memory to ensure smooth paging and context switching."
+      },
+      "created_at": "2026-03-25T11:22:20.200287+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:45.890865+08:00",
+      "graded_by_username": "313551100",
+      "id": 5979,
+      "is_correct": true,
+      "participant_user_id": 171,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:45.890914+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is the technique that DMA controller is responsible for the data transfer between memory and I/O devices. So the CPU is not require to supervise the data transfer."
+      },
+      "created_at": "2026-03-25T11:10:52.817039+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:03.621328+08:00",
+      "graded_by_username": "313551100",
+      "id": 5191,
+      "is_correct": true,
+      "participant_user_id": 191,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:03.621375+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct Memory Access"
+      },
+      "created_at": "2026-03-25T11:34:25.030612+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:52:25.907872+08:00",
+      "graded_by_username": "313551100",
+      "id": 6337,
+      "is_correct": false,
+      "participant_user_id": 179,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "0.00",
+      "updated_at": "2026-03-30T12:52:25.907922+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a way to directly access memory resources without the CPU help."
+      },
+      "created_at": "2026-03-25T10:45:51.993968+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:10.136130+08:00",
+      "graded_by_username": "313551100",
+      "id": 3433,
+      "is_correct": true,
+      "participant_user_id": 210,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:10.136178+08:00"
+    },
+    {
+      "answer": {
+        "text": "transfer data between device do not involving CPU, it can read or write data directly to or from the main memory, it is more efficient."
+      },
+      "created_at": "2026-03-25T11:22:55.194313+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:32.447672+08:00",
+      "graded_by_username": "313551100",
+      "id": 6004,
+      "is_correct": true,
+      "participant_user_id": 151,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:32.447720+08:00"
+    },
+    {
+      "answer": {
+        "text": "access memory without request to system"
+      },
+      "created_at": "2026-03-25T11:06:07.568063+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:01:14.759554+08:00",
+      "graded_by_username": "313551100",
+      "id": 4843,
+      "is_correct": true,
+      "participant_user_id": 204,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "0.50",
+      "updated_at": "2026-03-30T13:01:14.759601+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a technique that allows hardware devices access system memory directly, without the intervention of the CPU."
+      },
+      "created_at": "2026-03-25T11:01:22.363474+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:57.844515+08:00",
+      "graded_by_username": "313551100",
+      "id": 4482,
+      "is_correct": true,
+      "participant_user_id": 138,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:57.844564+08:00"
+    },
+    {
+      "answer": {
+        "text": "可以不須透過CPU，硬體可以直接與MEMORY進行交換"
+      },
+      "created_at": "2026-03-25T10:56:31.710408+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:01:29.619855+08:00",
+      "graded_by_username": "313551100",
+      "id": 4108,
+      "is_correct": true,
+      "participant_user_id": 229,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:01:29.619905+08:00"
+    },
+    {
+      "answer": {
+        "text": "no"
+      },
+      "created_at": "2026-03-25T11:23:32.822692+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:02:17.647783+08:00",
+      "graded_by_username": "313551100",
+      "id": 6036,
+      "is_correct": false,
+      "participant_user_id": 175,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "0.00",
+      "updated_at": "2026-03-30T13:02:17.647831+08:00"
+    },
+    {
+      "answer": {
+        "text": "Can access memory without telling CPU, can let memory access be more efficient."
+      },
+      "created_at": "2026-03-25T11:17:32.103071+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:02:23.847700+08:00",
+      "graded_by_username": "313551100",
+      "id": 5690,
+      "is_correct": true,
+      "participant_user_id": 143,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:02:23.847748+08:00"
+    },
+    {
+      "answer": {
+        "text": "can directly access the memory without the help from CPU"
+      },
+      "created_at": "2026-03-25T11:16:14.137398+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:02:57.943276+08:00",
+      "graded_by_username": "313551100",
+      "id": 5592,
+      "is_correct": true,
+      "participant_user_id": 142,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:02:57.943327+08:00"
+    },
+    {
+      "answer": {
+        "text": "一些裝置不需要透過 CPU 慢慢 copy memory，CPU 可以呼叫 DMA controller 進行 copy 一段 memory，完成後再通知 CPU，就不用佔用 CPU 資源慢慢地複製"
+      },
+      "created_at": "2026-03-25T11:11:38.892608+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:03:00.627245+08:00",
+      "graded_by_username": "313551100",
+      "id": 5238,
+      "is_correct": true,
+      "participant_user_id": 139,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:03:00.627294+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一項技術在獲取memory時不用通過CPU。"
+      },
+      "created_at": "2026-03-25T11:17:43.967390+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:03:44.449956+08:00",
+      "graded_by_username": "313551100",
+      "id": 5702,
+      "is_correct": true,
+      "participant_user_id": 122,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:03:44.450004+08:00"
+    },
+    {
+      "answer": {
+        "text": "dma can transfer data without intervention of cpus"
+      },
+      "created_at": "2026-03-25T11:06:38.273257+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:03:48.313900+08:00",
+      "graded_by_username": "313551100",
+      "id": 4875,
+      "is_correct": true,
+      "participant_user_id": 135,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:03:48.313949+08:00"
+    },
+    {
+      "answer": {
+        "text": "原本 cpu 從 memory 資料 要不斷輪詢來知道進度進而拖慢 CPU 執行速度，DMA 接手了 CPU  從 memory 中取資料的過程 ，來達到讓 CPU 不需要一直等待 block 和加速整個系統的目的。 "
+      },
+      "created_at": "2026-03-25T11:01:45.939056+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:03:52.959844+08:00",
+      "graded_by_username": "313551100",
+      "id": 4518,
+      "is_correct": true,
+      "participant_user_id": 119,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:03:52.959896+08:00"
+    },
+    {
+      "answer": {
+        "text": "dma allow i/o device directly access memory to read/write data to/from the memory"
+      },
+      "created_at": "2026-03-25T11:01:52.751960+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:02.871969+08:00",
+      "graded_by_username": "313551100",
+      "id": 4525,
+      "is_correct": true,
+      "participant_user_id": 141,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:02.872022+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is when an I/O device has directly access to the memory in order to transfer data to/from it. This helps save a lot of time and CPU utilization as the transmission of data does not need the intervention of the OS to process the communication between the memory and the device. "
+      },
+      "created_at": "2026-03-25T10:34:59.359908+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:04.917382+08:00",
+      "graded_by_username": "313551100",
+      "id": 2866,
+      "is_correct": true,
+      "participant_user_id": 231,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:04.917432+08:00"
+    },
+    {
+      "answer": {
+        "text": "不透過cpu直接運算I/O設備"
+      },
+      "created_at": "2026-03-25T11:18:03.443503+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:37.797410+08:00",
+      "graded_by_username": "313551100",
+      "id": 5722,
+      "is_correct": true,
+      "participant_user_id": 115,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:37.797459+08:00"
+    },
+    {
+      "answer": {
+        "text": "讀取需求極大時，可以和CPU要求直接讀取記憶體的(權限)，這樣可以不用對CPU一直提出請求\n如: 電腦螢幕輸出"
+      },
+      "created_at": "2026-03-25T11:06:52.787340+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:42.206406+08:00",
+      "graded_by_username": "313551100",
+      "id": 4894,
+      "is_correct": true,
+      "participant_user_id": 172,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:42.206456+08:00"
+    },
+    {
+      "answer": {
+        "text": "Device可以直接access OS中的memory。"
+      },
+      "created_at": "2026-03-25T10:57:14.088266+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:51.899270+08:00",
+      "graded_by_username": "313551100",
+      "id": 4156,
+      "is_correct": true,
+      "participant_user_id": 215,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:51.899318+08:00"
+    },
+    {
+      "answer": {
+        "text": "在沒有CPU參與的情況下，裝置可以直接和記憶體傳輸資料"
+      },
+      "created_at": "2026-03-25T10:52:48.689820+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:55.969950+08:00",
+      "graded_by_username": "313551100",
+      "id": 3883,
+      "is_correct": true,
+      "participant_user_id": 170,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:55.969999+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一種資料傳遞的方法，資料傳遞不需要經過CPU，可降低CPU的使用率並提升效能，可大量快速地傳遞資料。"
+      },
+      "created_at": "2026-03-25T11:16:18.257520+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:08.080030+08:00",
+      "graded_by_username": "313551100",
+      "id": 5597,
+      "is_correct": true,
+      "participant_user_id": 120,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:08.080080+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct memory access is a technique that the process (or a device) could access the main memory by it self. Doesn't need to be handled by CPU. It could increase the performance of system in the scenario that frequently accesses memory such as swapping pages."
+      },
+      "created_at": "2026-03-25T10:52:50.762714+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:00.300849+08:00",
+      "graded_by_username": "313551100",
+      "id": 3884,
+      "is_correct": true,
+      "participant_user_id": 103,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:00.300897+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA can access the data directly without CPU utilization "
+      },
+      "created_at": "2026-03-25T10:47:17.019223+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:13.850974+08:00",
+      "graded_by_username": "313551100",
+      "id": 3520,
+      "is_correct": true,
+      "participant_user_id": 97,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:13.851024+08:00"
+    },
+    {
+      "answer": {
+        "text": "device可以直接讀寫記憶體，不須透過CPU，提升CPU利用率"
+      },
+      "created_at": "2026-03-25T11:02:18.737995+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:33.958367+08:00",
+      "graded_by_username": "313551100",
+      "id": 4554,
+      "is_correct": true,
+      "participant_user_id": 183,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:33.958418+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA allows devices to access data directly to/from the main memory without involving the CPU."
+      },
+      "created_at": "2026-03-25T11:02:19.838621+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:36.186746+08:00",
+      "graded_by_username": "313551100",
+      "id": 4556,
+      "is_correct": true,
+      "participant_user_id": 230,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:36.186805+08:00"
+    },
+    {
+      "answer": {
+        "text": "it will not concerning CPU, it only goes straight forward to memory."
+      },
+      "created_at": "2026-03-25T11:12:18.014325+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:46.368427+08:00",
+      "graded_by_username": "313551100",
+      "id": 5292,
+      "is_correct": true,
+      "participant_user_id": 193,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:46.368477+08:00"
+    },
+    {
+      "answer": {
+        "text": "allow device access to system memory directly  ，mamory 中的資料可以直接傳送給device"
+      },
+      "created_at": "2026-03-25T11:02:24.966115+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:48.506096+08:00",
+      "graded_by_username": "313551100",
+      "id": 4564,
+      "is_correct": true,
+      "participant_user_id": 232,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:48.506146+08:00"
+    },
+    {
+      "answer": {
+        "text": "device can directly access system memory without CPU to deal with it"
+      },
+      "created_at": "2026-03-25T10:41:42.084194+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:51.360564+08:00",
+      "graded_by_username": "313551100",
+      "id": 3138,
+      "is_correct": true,
+      "participant_user_id": 130,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:51.360612+08:00"
+    },
+    {
+      "answer": {
+        "text": "不分配記憶體直接存取"
+      },
+      "created_at": "2026-03-25T11:25:22.253644+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:06:15.960081+08:00",
+      "graded_by_username": "313551100",
+      "id": 6107,
+      "is_correct": true,
+      "participant_user_id": 140,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:06:15.960131+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA可以讓各個device與main memory之間可以不需要CPU介入就能transfer data。"
+      },
+      "created_at": "2026-03-25T10:57:46.441853+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:22.546908+08:00",
+      "graded_by_username": "313551100",
+      "id": 4199,
+      "is_correct": true,
+      "participant_user_id": 106,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:22.546957+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct memory access is a technique that allows drives to read and write directly to main memory without the CPU. This allows hard disks to read and write to main memory and high speeds. This improves CPU uiltization."
+      },
+      "created_at": "2026-03-25T11:39:47.242573+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:26.750609+08:00",
+      "graded_by_username": "313551100",
+      "id": 6431,
+      "is_correct": true,
+      "participant_user_id": 173,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:26.750657+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct memory access is a technique that can transfer data between devices without evolving the cpu.\nDMA contoller can access the memory of the cpu independently, and therefore transfer a great amount of data at high speed to reduce cpu usage and improve the performance of cpu."
+      },
+      "created_at": "2026-03-25T11:25:40.631024+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:28.164916+08:00",
+      "graded_by_username": "313551100",
+      "id": 6117,
+      "is_correct": true,
+      "participant_user_id": 177,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:28.164965+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is the technique that allows devices to access from/to the memory without the help of cpu."
+      },
+      "created_at": "2026-03-25T11:18:42.165378+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:32.577392+08:00",
+      "graded_by_username": "313551100",
+      "id": 5778,
+      "is_correct": true,
+      "participant_user_id": 96,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:32.577442+08:00"
+    },
+    {
+      "answer": {
+        "text": "讓CPU不用去處理memory and disk的IO，可以不用在這部分消耗CPU的資源，交由dma controler處理，等到dma controler處理完會通知CPU"
+      },
+      "created_at": "2026-03-25T10:47:53.461401+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:44.638732+08:00",
+      "graded_by_username": "313551100",
+      "id": 3566,
+      "is_correct": true,
+      "participant_user_id": 165,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:44.638789+08:00"
+    },
+    {
+      "answer": {
+        "text": "指不需要透過cpu, 就可以將例如hard device等等的數據傳送到memory, 進而增加CPU真正在工作的時間,而不是浪費在IO"
+      },
+      "created_at": "2026-03-25T11:07:35.208473+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:46.678716+08:00",
+      "graded_by_username": "313551100",
+      "id": 4956,
+      "is_correct": true,
+      "participant_user_id": 148,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:46.678769+08:00"
+    },
+    {
+      "answer": {
+        "text": "一種不用藉由CPU，device直接和OS溝通的技術。"
+      },
+      "created_at": "2026-03-25T12:12:36.992552+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:00.446076+08:00",
+      "graded_by_username": "313551100",
+      "id": 6740,
+      "is_correct": true,
+      "participant_user_id": 161,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:00.446125+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA allow some hardware to read or write data from or to the memory without the need of CPU"
+      },
+      "created_at": "2026-03-25T11:41:19.648145+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:22.468729+08:00",
+      "graded_by_username": "313551100",
+      "id": 6456,
+      "is_correct": true,
+      "participant_user_id": 196,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:22.468786+08:00"
+    },
+    {
+      "answer": {
+        "text": "a technique to transfer data between devices without involving CPU. \n允許各種設備直接訪問memory不需要cpu干預\n可以高速交換資料，從而降低cpu使用率，提升系統性能"
+      },
+      "created_at": "2026-03-25T11:03:04.497026+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:49.249415+08:00",
+      "graded_by_username": "313551100",
+      "id": 4612,
+      "is_correct": true,
+      "participant_user_id": 154,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:49.249464+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a techniqe that allows device to transfer data directly to/from main memory without CPU involvement"
+      },
+      "created_at": "2026-03-25T11:03:05.412958+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:53.579794+08:00",
+      "graded_by_username": "313551100",
+      "id": 4613,
+      "is_correct": true,
+      "participant_user_id": 116,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:53.579842+08:00"
+    },
+    {
+      "answer": {
+        "text": "external devices like network card or usb can transfer data with memory directly without cpu helping. DMA contorller helps transfer data between devices and memory, meanwhile cpu could do other things. DMA controller notifies cpu when data is done transfering."
+      },
+      "created_at": "2026-03-25T11:16:18.277223+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:57:01.036863+08:00",
+      "graded_by_username": "313551100",
+      "id": 5598,
+      "is_correct": true,
+      "participant_user_id": 100,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:57:01.036911+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a technique on computers for data transfer between  I/O device and memory without CPU intervene. Then CPU can run other process when data transfer, so CPU performance will improve."
+      },
+      "created_at": "2026-03-25T10:22:29.152185+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:57:09.793249+08:00",
+      "graded_by_username": "313551100",
+      "id": 2225,
+      "is_correct": true,
+      "participant_user_id": 168,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:57:09.793296+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是不完全經由CPU搬運及操作，直接由硬體進行memory access，可以節省cpu消耗，讓他去運算其他process"
+      },
+      "created_at": "2026-03-25T11:32:42.700043+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:57:13.904424+08:00",
+      "graded_by_username": "313551100",
+      "id": 6305,
+      "is_correct": true,
+      "participant_user_id": 118,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:57:13.904472+08:00"
+    },
+    {
+      "answer": {
+        "text": "It allows devices to access main memory directly and interrupts CPU when DMA finishs its work. It will help  the CPU utilization."
+      },
+      "created_at": "2026-03-25T10:25:01.421708+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:58:09.466311+08:00",
+      "graded_by_username": "313551100",
+      "id": 2359,
+      "is_correct": true,
+      "participant_user_id": 203,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:09.466358+08:00"
+    },
+    {
+      "answer": {
+        "text": "不需要透過stack暫存現在的pointer即可使用memory"
+      },
+      "created_at": "2026-03-25T10:55:24.839728+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T12:58:04.964954+08:00",
+      "graded_by_username": "313551100",
+      "id": 4034,
+      "is_correct": true,
+      "participant_user_id": 192,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:04.965003+08:00"
+    },
+    {
+      "answer": {
+        "text": "直接記憶體存取(DMA)是指IO裝置直接可存取主記憶體傳輸的技術，只須裝置傳輸完成再以中斷通知CPU，CPU過程不須持續參與及處理。"
+      },
+      "created_at": "2026-03-25T11:53:22.292378+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:58:40.394681+08:00",
+      "graded_by_username": "313551100",
+      "id": 6601,
+      "is_correct": true,
+      "participant_user_id": 181,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:40.394729+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA能讓資料的轉輸不用透過CPU，並且能讓外部裝置像是硬碟可以不用透過CPU的幫助直接讀取或是改寫主記憶體。DMA能大幅降低CPU的使用率並減少資料傳輸所需的時間。"
+      },
+      "created_at": "2026-03-25T10:34:27.001479+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:58:57.834882+08:00",
+      "graded_by_username": "313551100",
+      "id": 2850,
+      "is_correct": true,
+      "participant_user_id": 223,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:58:57.834929+08:00"
+    },
+    {
+      "answer": {
+        "text": "裝置直接跟記憶體傳送資料，不用透過CPU，可減少CPU負擔，增加I/O傳輸效率"
+      },
+      "created_at": "2026-03-25T10:25:45.669087+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:00.715729+08:00",
+      "graded_by_username": "313551100",
+      "id": 2405,
+      "is_correct": true,
+      "participant_user_id": 195,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:00.715788+08:00"
+    },
+    {
+      "answer": {
+        "text": "The DMA allow the directly reading and writing for the devices to memory. It allow CPU no need  to help with the data transfer, can save CPU times."
+      },
+      "created_at": "2026-03-25T10:23:44.787341+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:03.193561+08:00",
+      "graded_by_username": "313551100",
+      "id": 2294,
+      "is_correct": true,
+      "participant_user_id": 91,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:03.193610+08:00"
+    },
+    {
+      "answer": {
+        "text": "With DMA devices on a computer can directly access memory without CPU intervention. Without DMA these devices would ask a CPU to receive memory for them (which wastes CPU resources)"
+      },
+      "created_at": "2026-03-25T11:10:32.638335+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:44.032708+08:00",
+      "graded_by_username": "313551100",
+      "id": 5168,
+      "is_correct": true,
+      "participant_user_id": 199,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:44.032765+08:00"
+    },
+    {
+      "answer": {
+        "text": "其他的程式要存取記憶體的內容進行讀寫時，不需要受到CPU的影響，可以直接進行"
+      },
+      "created_at": "2026-03-25T11:16:51.475330+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:52.562615+08:00",
+      "graded_by_username": "313551100",
+      "id": 5636,
+      "is_correct": true,
+      "participant_user_id": 146,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:52.562662+08:00"
+    },
+    {
+      "answer": {
+        "text": "設備直接存取記憶體。設備傳送資料不需要經過 CPU 則直接可以讀寫記憶體，以增加效能。\n如音效卡，網路卡，硬碟。DMA 暫存器獨立於 CPU 記憶體，快速讀寫。"
+      },
+      "created_at": "2026-03-25T11:56:44.757481+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:54.979342+08:00",
+      "graded_by_username": "313551100",
+      "id": 6626,
+      "is_correct": true,
+      "participant_user_id": 150,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:54.979389+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a technique that allows transfer data directly to or from the main memory without CPU intervention, saving CPU time."
+      },
+      "created_at": "2026-03-25T11:15:36.987784+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T12:59:58.116410+08:00",
+      "graded_by_username": "313551100",
+      "id": 5546,
+      "is_correct": true,
+      "participant_user_id": 112,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T12:59:58.116457+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA means that if I/O devices need to communicate/get data from the memory, it can access the memory directly instead of accessing through the OS"
+      },
+      "created_at": "2026-03-25T10:56:02.582522+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:01.893336+08:00",
+      "graded_by_username": "313551100",
+      "id": 4074,
+      "is_correct": true,
+      "participant_user_id": 216,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:01.893384+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是直接記憶體存取，可以讓裝置直接與主記憶體(RAM)傳輸資料,不須經過CPU逐筆介入.\nDMA可以直接讀寫記憶體,可以減少CPU負擔增加使用效率,提升效能."
+      },
+      "created_at": "2026-03-25T11:10:51.062275+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:00.209940+08:00",
+      "graded_by_username": "313551100",
+      "id": 5188,
+      "is_correct": true,
+      "participant_user_id": 153,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:00.209988+08:00"
+    },
+    {
+      "answer": {
+        "text": "直接去對整個記憶題存取，而不透過分頁。"
+      },
+      "created_at": "2026-03-25T11:01:04.316566+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:00:30.258450+08:00",
+      "graded_by_username": "313551100",
+      "id": 4461,
+      "is_correct": true,
+      "participant_user_id": 99,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:00:30.258498+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is that cpu allow device to directly access memory and transfer data from memory to device register(or in reverse direction) let cpu do not need to use cpu resource to transfer data."
+      },
+      "created_at": "2026-03-25T11:11:07.429913+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:33.888835+08:00",
+      "graded_by_username": "313551100",
+      "id": 5206,
+      "is_correct": true,
+      "participant_user_id": 128,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:33.888884+08:00"
+    },
+    {
+      "answer": {
+        "text": "the hardware  used to transfer data between I/O and memory, so data transfer no need to handle by CPU."
+      },
+      "created_at": "2026-03-25T10:56:18.906895+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:00:39.587334+08:00",
+      "graded_by_username": "313551100",
+      "id": 4090,
+      "is_correct": true,
+      "participant_user_id": 174,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:00:39.587383+08:00"
+    },
+    {
+      "answer": {
+        "text": "It didn't require to use virtual memory address "
+      },
+      "created_at": "2026-03-25T10:46:13.197938+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:00:50.236623+08:00",
+      "graded_by_username": "313551100",
+      "id": 3455,
+      "is_correct": false,
+      "participant_user_id": 129,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "0.00",
+      "updated_at": "2026-03-30T13:00:50.236673+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct Memory Access let devices access memory/ data transfer between devices directly without involving CPU. This makes data transfer faster, reduce CPU usage and improve system performance. "
+      },
+      "created_at": "2026-03-25T11:16:10.058933+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:02:14.046824+08:00",
+      "graded_by_username": "313551100",
+      "id": 5585,
+      "is_correct": true,
+      "participant_user_id": 145,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:02:14.046875+08:00"
+    },
+    {
+      "answer": {
+        "text": "computer transfer data between devices, 不經過processors干預，可以節省processor干預的時間，可用來傳大量資料"
+      },
+      "created_at": "2026-03-25T11:11:33.710718+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:02:35.378325+08:00",
+      "graded_by_username": "313551100",
+      "id": 5234,
+      "is_correct": true,
+      "participant_user_id": 224,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:02:35.378373+08:00"
+    },
+    {
+      "answer": {
+        "text": "一種能讓裝置直接存取記憶體，不需要 CPU 介入的技術"
+      },
+      "created_at": "2026-03-25T11:01:48.889593+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:03:57.147032+08:00",
+      "graded_by_username": "313551100",
+      "id": 4523,
+      "is_correct": true,
+      "participant_user_id": 132,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:03:57.147081+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a hardware that helps CPU to access the memory without occupying the resource of CPU.\nIt is because CPU only need to give DMA an instruction, then DMA will access the memory. \nAfter that, DMA will send an interrupt signal to CPU which informs CPU.\nIn the period of time(DMA working), CPU can deal with other tasks."
+      },
+      "created_at": "2026-03-25T11:01:59.522242+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:04:44.679964+08:00",
+      "graded_by_username": "313551100",
+      "id": 4535,
+      "is_correct": true,
+      "participant_user_id": 227,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:04:44.680016+08:00"
+    },
+    {
+      "answer": {
+        "text": "Direct Memory Access is when a device is able to exchange data with the OS without involving the CPU (device tells OS directly about the memory addresses) "
+      },
+      "created_at": "2026-03-25T11:25:31.228238+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:24.278857+08:00",
+      "graded_by_username": "313551100",
+      "id": 6115,
+      "is_correct": true,
+      "participant_user_id": 121,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:24.278906+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is to let devices directly transfer data to memory ,it can reduce the use of CPUs."
+      },
+      "created_at": "2026-03-25T10:53:54.015836+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:06:34.259194+08:00",
+      "graded_by_username": "313551100",
+      "id": 3933,
+      "is_correct": true,
+      "participant_user_id": 205,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:06:34.259244+08:00"
+    },
+    {
+      "answer": {
+        "text": "device能不透過CPU直接access memory，可以減少memory usage和省下使用CPU的時間"
+      },
+      "created_at": "2026-03-25T10:41:27.393515+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:05:16.666366+08:00",
+      "graded_by_username": "313551100",
+      "id": 3125,
+      "is_correct": true,
+      "participant_user_id": 190,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:05:16.666416+08:00"
+    },
+    {
+      "answer": {
+        "text": "The device can access system memory directly.\nThe device can use DMA to transfer data without processing.\n"
+      },
+      "created_at": "2026-03-25T11:07:46.083865+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:07:15.129977+08:00",
+      "graded_by_username": "313551100",
+      "id": 4967,
+      "is_correct": true,
+      "participant_user_id": 226,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:07:15.130025+08:00"
+    },
+    {
+      "answer": {
+        "text": "當 CPU 需要使用 I/O 設備的資料時，CPU 會將所需資料的資訊，寫入 DMA，交由他和 I/O 設備互動以及將資料搬入記憶體。此時資料的移動就不需要 CPU 來管理，他可以做其他事情，而 DMA 在完成之後會發送 interrupt 通知 CPU 資料準備完成。"
+      },
+      "created_at": "2026-03-25T11:26:36.070282+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:20.198213+08:00",
+      "graded_by_username": "313551100",
+      "id": 6144,
+      "is_correct": true,
+      "participant_user_id": 211,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:20.198262+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一個不用透過CPU能讓device 和memory 進行資料交換的方式不用一直浪費CPU去執行搬資料"
+      },
+      "created_at": "2026-03-25T10:58:09.777485+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:18.536946+08:00",
+      "graded_by_username": "313551100",
+      "id": 4230,
+      "is_correct": true,
+      "participant_user_id": 164,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:18.536994+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA 可以不需要透過 OS 就直接與 memory 交流並快速傳輸數據。"
+      },
+      "created_at": "2026-03-25T10:54:17.659271+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU",
+      "graded_at": "2026-03-30T13:07:40.757206+08:00",
+      "graded_by_username": "313551100",
+      "id": 3959,
+      "is_correct": true,
+      "participant_user_id": 94,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:07:40.757255+08:00"
+    },
+    {
+      "answer": {
+        "text": "A technique to transfer data between devices and system memory directly without involving of CPU."
+      },
+      "created_at": "2026-03-25T10:54:17.596901+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:07:25.626040+08:00",
+      "graded_by_username": "313551100",
+      "id": 3958,
+      "is_correct": true,
+      "participant_user_id": 158,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:07:25.626091+08:00"
+    },
+    {
+      "answer": {
+        "text": "transfer the data between devices without involving the CPU"
+      },
+      "created_at": "2026-03-25T11:41:34.581484+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:08:02.670019+08:00",
+      "graded_by_username": "313551100",
+      "id": 6460,
+      "is_correct": true,
+      "participant_user_id": 110,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:08:02.670069+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a technique used by computer to transfer data between without involving CPU. DMA allows device such as hard drives, sound cards ,and network cards to read/write data directly to/from the main memory.Without using CPU, it can reduce CPU usage and improve system performance."
+      },
+      "created_at": "2026-03-25T10:54:33.420243+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:08:31.349832+08:00",
+      "graded_by_username": "313551100",
+      "id": 3976,
+      "is_correct": true,
+      "participant_user_id": 207,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:08:31.349880+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is a directed data transfer, "
+      },
+      "created_at": "2026-03-25T10:54:23.916534+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:08:11.001203+08:00",
+      "graded_by_username": "313551100",
+      "id": 3964,
+      "is_correct": false,
+      "participant_user_id": 149,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "0.00",
+      "updated_at": "2026-03-30T13:08:11.001255+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一個方法讓device在不受CPU介入的情況下，可以直接對memory去做讀/寫，減少CPU time"
+      },
+      "created_at": "2026-03-25T10:58:33.470251+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:08:36.429715+08:00",
+      "graded_by_username": "313551100",
+      "id": 4259,
+      "is_correct": true,
+      "participant_user_id": 117,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:08:36.429775+08:00"
+    },
+    {
+      "answer": {
+        "text": "The Direct Memory Access is a unit that a process can directly access memory without CPU sceduling. It helps reduce the loading and time for CPU to manage the memory for processes."
+      },
+      "created_at": "2026-03-25T10:54:45.081353+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:08:39.348837+08:00",
+      "graded_by_username": "313551100",
+      "id": 3984,
+      "is_correct": true,
+      "participant_user_id": 95,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:08:39.348886+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA allows hardware to access memory without CPU, which decrease the utilization of CPU and save the latency and waiting time of CPU, increase the efficient of the process."
+      },
+      "created_at": "2026-03-25T10:58:38.825862+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:08:41.079703+08:00",
+      "graded_by_username": "313551100",
+      "id": 4266,
+      "is_correct": true,
+      "participant_user_id": 113,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:08:41.079756+08:00"
+    },
+    {
+      "answer": {
+        "text": "由I/O controller搬運資料，是RAM和CPU之間的橋樑"
+      },
+      "created_at": "2026-03-25T11:30:49.996058+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:12:59.483620+08:00",
+      "graded_by_username": "313551100",
+      "id": 6262,
+      "is_correct": true,
+      "participant_user_id": 156,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:12:59.483672+08:00"
+    },
+    {
+      "answer": {
+        "text": "directly access to memory rather than using process"
+      },
+      "created_at": "2026-03-25T11:13:53.058418+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:10:35.486860+08:00",
+      "graded_by_username": "313551100",
+      "id": 5414,
+      "is_correct": true,
+      "participant_user_id": 101,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.00",
+      "updated_at": "2026-03-30T13:10:35.486908+08:00"
+    },
+    {
+      "answer": {
+        "text": "是一種I/O技術，讓device可以在沒有CPU逐筆搬運data的情況下，直接在memory和device之間傳輸資料。CPU的工作是設定DMA參數並啟動DMA，之後DMA controller取得bus完成bulk transfer。完成之後會發送interrupt通知CPU，可以降低CPU在I/O的overhead，適合大量資料傳輸"
+      },
+      "created_at": "2026-03-25T11:00:03.819581+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:03.663536+08:00",
+      "graded_by_username": "313551100",
+      "id": 4377,
+      "is_correct": true,
+      "participant_user_id": 92,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:03.663586+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是可以協助I/O的一種device，當要執行I/O時，CPU可以將所需要的內容告訴DMA，而DMA會負責處裡I/O，雖然可能會跟CPU搶bus，但是用DMA相較polling跟interrupt等方式，會更快速"
+      },
+      "created_at": "2026-03-25T11:13:32.187574+08:00",
+      "feedback": "Direct Memory Access (DMA) is a technique used by computers to transfer data between devices without involving the CPU. DMA allows devices like hard drives, sound cards, and network cards to read or write data directly to or from the main memory, without the need for the CPU to intervene in every transfer, which would waste a significant amount of CPU time. DMA controllers can access the memory independently of the CPU and transfer large amounts of data at high speed, thereby reducing CPU usage and improving system performance.",
+      "graded_at": "2026-03-30T13:09:38.766633+08:00",
+      "graded_by_username": "313551100",
+      "id": 5384,
+      "is_correct": true,
+      "participant_user_id": 194,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "1.50",
+      "updated_at": "2026-03-30T13:09:38.766683+08:00"
+    },
+    {
+      "answer": {
+        "text": "A techique of accessing memory without the control from the cpu."
+      },
+      "created_at": "2026-03-25T11:13:36.669745+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:09:58.389608+08:00",
+      "graded_by_username": "313551100",
+      "id": 5395,
+      "is_correct": true,
+      "participant_user_id": 111,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:09:58.389658+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA 機制可以使 process 在需要存取記憶體時不需要處理器的資源，可以增加整體的吞吐量。然而這樣的機制需要特別的硬體支援。"
+      },
+      "created_at": "2026-03-25T10:59:04.590724+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:10:13.430507+08:00",
+      "graded_by_username": "313551100",
+      "id": 4297,
+      "is_correct": true,
+      "participant_user_id": 163,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:10:13.430558+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA means that certain device such as internet  cards can dirrectly access the memory without involving cpu ,since these devices need to frequently interact with memory , if cpu is involved , it will waste a lot of time  . "
+      },
+      "created_at": "2026-03-25T11:13:43.133556+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:10:15.368292+08:00",
+      "graded_by_username": "313551100",
+      "id": 5401,
+      "is_correct": true,
+      "participant_user_id": 209,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:10:15.368338+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是device存取memory的一種方式，device可以不用經過CPU就能存取memory，好處是省下的CPU資源可以拿去執行其他程式用。"
+      },
+      "created_at": "2026-03-25T11:03:53.053032+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:10:19.645515+08:00",
+      "graded_by_username": "313551100",
+      "id": 4673,
+      "is_correct": true,
+      "participant_user_id": 182,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:10:19.645565+08:00"
+    },
+    {
+      "answer": {
+        "text": "the device can access the system memory bus directly without the help from OS or CPU."
+      },
+      "created_at": "2026-03-25T11:29:17.976324+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:02.278992+08:00",
+      "graded_by_username": "313551100",
+      "id": 6215,
+      "is_correct": true,
+      "participant_user_id": 176,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:02.279041+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA可以讓周邊設備和system直接傳輸資料不需要透過CPU，解放CPU節省時間"
+      },
+      "created_at": "2026-03-25T11:13:10.812104+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:07.917675+08:00",
+      "graded_by_username": "313551100",
+      "id": 5363,
+      "is_correct": true,
+      "participant_user_id": 136,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:07.917724+08:00"
+    },
+    {
+      "answer": {
+        "text": "不用透過CPU，直接傳輸至記憶體"
+      },
+      "created_at": "2026-03-25T11:08:58.704719+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:14.290147+08:00",
+      "graded_by_username": "313551100",
+      "id": 5058,
+      "is_correct": true,
+      "participant_user_id": 102,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:14.290196+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一種資料的傳輸方式，device可以直接將資料傳送到memory中，不需要cpu傳送資料，傳送完成後再發送interrupt告知cpu。"
+      },
+      "created_at": "2026-03-25T11:20:29.381904+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:16.466598+08:00",
+      "graded_by_username": "313551100",
+      "id": 5885,
+      "is_correct": true,
+      "participant_user_id": 188,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:16.466649+08:00"
+    },
+    {
+      "answer": {
+        "text": "硬體設備可以不用透過 CPU 直接存取 System Memory。"
+      },
+      "created_at": "2026-03-25T11:09:04.009827+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:20.399078+08:00",
+      "graded_by_username": "313551100",
+      "id": 5065,
+      "is_correct": true,
+      "participant_user_id": 202,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:20.399128+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is technique used by computer to transfer data between device without involving the CPU."
+      },
+      "created_at": "2026-03-25T11:14:05.175569+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:24.528160+08:00",
+      "graded_by_username": "313551100",
+      "id": 5430,
+      "is_correct": true,
+      "participant_user_id": 123,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:24.528208+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is used to allow network / storage devices to communicate with the memory without the intervention of the CPU. It saves a lot of cpu utilization by using fast bus to write or read data in the memory."
+      },
+      "created_at": "2026-03-25T11:09:08.624487+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:26.365282+08:00",
+      "graded_by_username": "313551100",
+      "id": 5071,
+      "is_correct": true,
+      "participant_user_id": 228,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:26.365332+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA是一種可以讓裝置不須CPU介入就可以在主記憶體間傳輸資料的技術，由於不需要使用CPU,因此讓系統更有效率。"
+      },
+      "created_at": "2026-03-25T11:45:51.443649+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:28.455743+08:00",
+      "graded_by_username": "313551100",
+      "id": 6547,
+      "is_correct": true,
+      "participant_user_id": 104,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:28.455804+08:00"
+    },
+    {
+      "answer": {
+        "text": "他能夠讓devices之間的data transfer不需要透過cpu的幫助，比如能夠讓hard drives、sound cards、network cards直接access memory。讓devices之間不需要cpu介入就能夠高效傳輸資料，減少了cpu usage，大大提升了效率，使cpu能夠花費精力去做更多其他的事情"
+      },
+      "created_at": "2026-03-25T10:49:41.198561+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:30.448516+08:00",
+      "graded_by_username": "313551100",
+      "id": 3698,
+      "is_correct": true,
+      "participant_user_id": 105,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:30.448568+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is used to transfer data between I/O device and memory. By that, CPU doesn't waste time to transfer data."
+      },
+      "created_at": "2026-03-25T10:49:41.624842+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:32.348119+08:00",
+      "graded_by_username": "313551100",
+      "id": 3701,
+      "is_correct": true,
+      "participant_user_id": 109,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:32.348167+08:00"
+    },
+    {
+      "answer": {
+        "text": "Devices transfer data without involving the CPU, which makes less CPU utilization and faster data transfer."
+      },
+      "created_at": "2026-03-25T11:47:13.334525+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:36.678610+08:00",
+      "graded_by_username": "313551100",
+      "id": 6557,
+      "is_correct": true,
+      "participant_user_id": 90,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:36.678661+08:00"
+    },
+    {
+      "answer": {
+        "text": "some device can direct control other device's memory without ask cpu to handle it."
+      },
+      "created_at": "2026-03-25T11:09:29.974413+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:48.115952+08:00",
+      "graded_by_username": "313551100",
+      "id": 5100,
+      "is_correct": true,
+      "participant_user_id": 131,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:48.115999+08:00"
+    },
+    {
+      "answer": {
+        "text": "可以不用透過CPU, 直接讀寫記憶體"
+      },
+      "created_at": "2026-03-25T11:30:35.389508+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:11:50.952150+08:00",
+      "graded_by_username": "313551100",
+      "id": 6256,
+      "is_correct": true,
+      "participant_user_id": 206,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:11:50.952199+08:00"
+    },
+    {
+      "answer": {
+        "text": "一個hardware device用來做 storage device 與 memory 之間的 data 傳輸，以此提高cpu utilization . "
+      },
+      "created_at": "2026-03-25T10:44:23.925458+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:12:46.583060+08:00",
+      "graded_by_username": "313551100",
+      "id": 3336,
+      "is_correct": true,
+      "participant_user_id": 220,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:12:46.583112+08:00"
+    },
+    {
+      "answer": {
+        "text": "其他 bus 上的裝置不透過 CPU 支援，直接存取記憶體。"
+      },
+      "created_at": "2026-03-25T11:30:42.347278+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:12:52.388637+08:00",
+      "graded_by_username": "313551100",
+      "id": 6259,
+      "is_correct": true,
+      "participant_user_id": 208,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:12:52.388685+08:00"
+    },
+    {
+      "answer": {
+        "text": "let devices can access the data to and from main memory independently, without intervent of CPU, it can keep up efficiency of CPU and performance. "
+      },
+      "created_at": "2026-03-25T10:50:11.039258+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:05.974959+08:00",
+      "graded_by_username": "313551100",
+      "id": 3725,
+      "is_correct": true,
+      "participant_user_id": 147,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:05.975007+08:00"
+    },
+    {
+      "answer": {
+        "text": "讓I/O device不需要透過CPU就可以直接與memory傳輸data。"
+      },
+      "created_at": "2026-03-25T11:09:49.385635+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:09.400954+08:00",
+      "graded_by_username": "313551100",
+      "id": 5123,
+      "is_correct": true,
+      "participant_user_id": 160,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:09.401002+08:00"
+    },
+    {
+      "answer": {
+        "text": "用於device寫入data，不須用CPU的介入，常用於大量data傳輸速度快"
+      },
+      "created_at": "2026-03-25T11:14:50.791484+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:15.670648+08:00",
+      "graded_by_username": "313551100",
+      "id": 5485,
+      "is_correct": true,
+      "participant_user_id": 201,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:15.670700+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA 可以在做 I/O 時幫助 translate between logical address and physical address. 並且不需要 CPU 介入"
+      },
+      "created_at": "2026-03-25T11:09:50.966869+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:21.180961+08:00",
+      "graded_by_username": "313551100",
+      "id": 5124,
+      "is_correct": true,
+      "participant_user_id": 108,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:21.181010+08:00"
+    },
+    {
+      "answer": {
+        "text": "it describes the relation between memory and device. DMA means device can access the memory directly. no need to pass processor."
+      },
+      "created_at": "2026-03-25T11:09:51.208868+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:13:56.885839+08:00",
+      "graded_by_username": "313551100",
+      "id": 5125,
+      "is_correct": true,
+      "participant_user_id": 180,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:13:56.885890+08:00"
+    },
+    {
+      "answer": {
+        "text": "是指我可以直接存取Memory不需要透過CPU,例如某程式在執行過程中如果有一個I/O需求,會透過O.S.發出一個interrupt 告訴CPU他要的資料,CPU會直接透過disk 中的general register 將I/O需求完成並送到記憶體中,之後只要發出一個interrupt告訴O.S.他完成了,這樣可以增加CPU的使用率"
+      },
+      "created_at": "2026-03-25T11:21:42.259177+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:14:01.072394+08:00",
+      "graded_by_username": "313551100",
+      "id": 5948,
+      "is_correct": true,
+      "participant_user_id": 162,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:14:01.072441+08:00"
+    },
+    {
+      "answer": {
+        "text": "DMA is when a seperate entity like a drive can directly access the memory without the help of OS, this can decrease CPU load and result in a more efficient system."
+      },
+      "created_at": "2026-03-25T10:29:25.204569+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:14:03.767050+08:00",
+      "graded_by_username": "313551100",
+      "id": 2615,
+      "is_correct": true,
+      "participant_user_id": 222,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:14:03.767100+08:00"
+    },
+    {
+      "answer": {
+        "text": "device可以直接access到memory，不需要CPU介入，可節省CPU資源"
+      },
+      "created_at": "2026-03-25T11:00:22.536316+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:14:06.211166+08:00",
+      "graded_by_username": "313551100",
+      "id": 4405,
+      "is_correct": true,
+      "participant_user_id": 167,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:14:06.211217+08:00"
+    },
+    {
+      "answer": {
+        "text": "the device can access the memory without using CPU"
+      },
+      "created_at": "2026-03-25T11:51:55.773738+08:00",
+      "feedback": "",
+      "graded_at": "2026-03-30T13:14:14.159080+08:00",
+      "graded_by_username": "313551100",
+      "id": 6590,
+      "is_correct": true,
+      "participant_user_id": 213,
+      "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed",
+      "score": "2.00",
+      "updated_at": "2026-03-30T13:14:14.159128+08:00"
+    }
+  ],
+  "classroom_id": "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa",
+  "contest_id": "08545ef3-9b1b-40ac-9afc-a751c36d2c4a",
+  "question_id": "1234b7ba-540f-4a21-8d5c-d0a729a315ed"
+}

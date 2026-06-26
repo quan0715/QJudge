@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 3,
+  "options": [],
+  "prompt": "Explain the difference between 'Internal Fragmentation' and 'External Fragmentation'. Which one is typically associated with the Paging memory management scheme?",
+  "question_id": "f2b4ceed-f4b7-4acf-bc91-903cc746807f",
+  "question_type": "essay",
+  "reference_answer": "a. Internal Fragmentation: Unused memory within an allocated fixed-size block.\nb. External Fragmentation: Total free memory exists but is not contiguous.\nc. Paging is associated with Internal Fragmentation (in the last page)."
+}

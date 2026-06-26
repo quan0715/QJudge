@@ -15,20 +15,13 @@
   },
   "auth": {
     "callback": {
-      "conflictTitle": "試験の競合",
-      "connecting": "接続中...",
       "errorTitle": "ログイン失敗",
-      "examConflict": "進行中の試験セッションが検出されました。引き継ぎを選択してください。",
       "failed": "ログインに失敗しました。もう一度お試しください。",
-      "finalTouch": "最終確認中...",
       "loading": "本人確認中",
-      "loadingDesc": "学生情報を取得しています。しばらくお待ちください...",
       "loadingSubtitle": "あなた専用のプログラミングステージを準備中...",
       "loadingTitle": "プログラミング評価プラットフォームへようこそ",
       "noCode": "認証コードが受信されませんでした。",
-      "pleaseWait": "しばらくお待ちください",
       "steps": {
-        "almost": "もうすぐ完了します。しばらくお待ちください",
         "assembling": "ワークスペースを構築中...",
         "igniting": "エンジン点火中...",
         "preparing": "冒険を準備中...",
@@ -38,48 +31,48 @@
       },
       "takeover": "引き継いで古いデバイスをロックする",
       "takeoverExpired": "引き継ぎトークンが期限切れです。再度ログインしてください。",
-      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。",
-      "takingOver": "処理中...",
-      "verifyingSession": "セッションを同期中..."
+      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。"
     },
     "campusSso": {
       "backToLogin": "ログインに戻る",
-      "providers": {
-        "nycu": {
-          "description": "大学のポータルアカウントを使用してログインします",
-          "name": "NYCU (国立陽明交通大学)"
-        }
-      },
+      "backToRegister": "アカウント作成に戻る",
       "redirecting": "ログインページにリダイレクト中...",
       "subtitle": "ログインする大学を選択してください",
-      "title": "キャンパス認証"
+      "title": "キャンパス認証",
+      "verify": "認証"
+    },
+    "providerActions": {
+      "loginWith": "{{provider}} でログイン",
+      "registerWith": "{{provider}} でアカウント作成"
+    },
+    "providers": {
+      "github": {
+        "displayName": "GitHub"
+      },
+      "google": {
+        "displayName": "Google"
+      },
+      "nycu": {
+        "description": "大学のポータルアカウントを使用してログインします",
+        "displayName": "NYCU (国立陽明交通大学)"
+      }
     },
     "login": {
-      "email": "メールアドレス",
-      "emailPlaceholder": "student@example.com",
+      "email": "メールアドレス / ユーザー名",
+      "emailPlaceholder": "メールアドレスまたはユーザー名",
       "failed": "ログインに失敗しました",
-      "feature1Desc": "リアルタイムなフィードバック",
-      "feature1Title": "秒速の採点",
-      "feature2Desc": "柔軟な評価",
-      "feature2Title": "多彩な問題形式",
-      "feature3Desc": "学習分析",
-      "feature3Title": "成長の追跡",
-      "githubLogin": "GitHub でログイン",
-      "googleLogin": "Google でログイン",
-      "heroSubtitle": "オンラインテスト専用設計 - 出題から試験、分析までワンストップで完結",
-      "heroTitle": "AI 世代の新しい試験体験",
       "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
       "loading": "ログイン中...",
       "noAccount": "アカウントをお持ちでない方は",
       "oauthFailed": "ログインを開始できませんでした",
-      "or": "または、他の方法でログイン",
       "password": "パスワード",
-      "passwordPlaceholder": "パスワードを入力",
-      "registerNow": "新規登録",
-      "ssoLogin": "SSO でログイン",
+      "passwordPlaceholder": "パスワード",
+      "registerNow": "アカウント作成",
+      "schoolAuth": "キャンパス認証",
       "submit": "ログイン",
       "subtitle": "おかえりなさい、アカウントにログインしてください",
-      "title": "ログイン"
+      "title": "ログイン",
+      "emailDivider": "またはメール / パスワードでログイン"
     },
     "logout": {
       "confirmButton": "ログアウト",
@@ -98,6 +91,8 @@
       "confirmPassword": "パスワード確認",
       "confirmPasswordPlaceholder": "パスワードを再入力",
       "email": "メールアドレス",
+      "emailDivider": "またはメールで登録",
+      "emailSubmit": "メール登録",
       "emailPlaceholder": "メールアドレスを入力",
       "failed": "登録に失敗しました",
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",
@@ -109,7 +104,6 @@
       "passwordMismatch": "パスワードが一致しません",
       "passwordPlaceholder": "パスワードを作成",
       "passwordTooShort": "パスワードは少なくとも 8 文字である必要があります。",
-      "submit": "登録",
       "subtitle": "プラットフォームに参加して、プログラミングの旅を始めましょう",
       "title": "アカウント作成",
       "username": "ユーザー名",

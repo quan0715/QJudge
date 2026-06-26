@@ -18,6 +18,8 @@ import layoutStyles from "@/features/contest/components/admin/layout/AdminSplitL
 import QuestionSidebarScreen from "./QuestionSidebarScreen";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import GradingMobileNav from "./GradingMobileNav";
+import ScorePolicyMenu from "./components/ScorePolicyMenu";
+import type { ScorePolicyMenuImpactContext } from "./components/ScorePolicyMenu";
 import {
   GRADING_COLLAPSED_LIST_WIDTH,
   GRADING_PRIMARY_LIST_WIDTH,
@@ -28,6 +30,7 @@ import type {
   QuestionProgress,
   GradingFilter,
 } from "./gradingTypes";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import styles from "./GradingByQuestion.module.scss";
 
 interface GradingByQuestionTabScreenProps {
@@ -54,6 +57,7 @@ interface GradingByQuestionTabScreenProps {
     nonce: number;
   } | null;
   readOnly?: boolean;
+  onRefreshData?: () => void;
 }
 
 export default function GradingByQuestionTabScreen({
@@ -72,6 +76,7 @@ export default function GradingByQuestionTabScreen({
   onSelectedStudentIdChange,
   selectionRequest = null,
   readOnly = false,
+  onRefreshData,
 }: GradingByQuestionTabScreenProps) {
   const { t } = useTranslation("contest");
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
@@ -88,6 +93,28 @@ export default function GradingByQuestionTabScreen({
     );
     return exists ? selectedQuestionId : (questionProgress[0]?.questionId ?? "");
   }, [questionProgress, selectedQuestionId]);
+
+  // Derive answers-by-student map for score impact simulation
+  const answersByStudent = useMemo<Map<string, GradingAnswerRow[]>>(() => {
+    const map = new Map<string, GradingAnswerRow[]>();
+    for (const rows of answersByQuestion.values()) {
+      for (const row of rows) {
+        const list = map.get(row.studentId) ?? [];
+        list.push(row);
+        map.set(row.studentId, list);
+      }
+    }
+    return map;
+  }, [answersByQuestion]);
+
+  const impactContext = useMemo<ScorePolicyMenuImpactContext>(
+    () => ({
+      questions: questionProgress,
+      studentIds: students.map((s) => s.studentId),
+      answersByStudent,
+    }),
+    [questionProgress, students, answersByStudent],
+  );
 
   useEffect(() => {
     if (!selectionRequest?.questionId) {
@@ -277,7 +304,30 @@ export default function GradingByQuestionTabScreen({
 
   const middlePaneContent = (
     <ListPanel
-      header={<ListHeader title={t("grading.answerList", "作答列表")} />}
+      header={
+        <ListHeader
+          title={t("grading.answerList", "作答列表")}
+          action={
+            selectedQuestion && !readOnly ? (
+              <ScorePolicyMenu
+                questionId={selectedQuestion.questionId}
+                questionIndex={selectedQuestion.questionIndex}
+                currentPolicy={selectedQuestion.scorePolicy ?? "normal"}
+                allQuestions={questionProgress.map((q) => ({
+                  id: q.questionId,
+                  order: q.questionIndex - 1,
+                  prompt: q.prompt,
+                  score: q.maxScore,
+                  questionType: q.questionType,
+                  scorePolicy: q.scorePolicy,
+                }))}
+                onPolicyChanged={onRefreshData}
+                impactContext={impactContext}
+              />
+            ) : undefined
+          }
+        />
+      }
       footer={
         <ListFooter>
           {t("grading.answersDisplayCount", "顯示 {{shown}} / {{total}} 位", {
@@ -351,7 +401,7 @@ export default function GradingByQuestionTabScreen({
                     </Tag>
                   ) : a.score !== null ? (
                     <span className={styles.scoreText}>
-                      {a.score}/{a.maxScore}
+                      {formatScore(a.score)}/{formatScore(a.maxScore)}
                     </span>
                   ) : (
                     <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批改")}</Tag>

@@ -1,0 +1,851 @@
+{
+  "answer_count": 119,
+  "answers": [
+    {
+      "answer": {
+        "text": "crossbar :n^2\nomega:(n/2)*log(n)"
+      },
+      "id": "12850",
+      "participant_username": "S109"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network needs n^2 switches.\nOmega network needs (n/2)lg(n) switches."
+      },
+      "id": "11709",
+      "participant_username": "S015"
+    },
+    {
+      "answer": {
+        "text": "crossbar network：n^2\nOmega network：(n˙ln(n))/2"
+      },
+      "id": "16103",
+      "participant_username": "S054"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n * n crosspoints\nomega: (n/2)log2(n)"
+      },
+      "id": "11891",
+      "participant_username": "S117"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nOmega: (n/2)*(logn)其中log的底數是2"
+      },
+      "id": "11579",
+      "participant_username": "S093"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nomega network: (n/2)*log2(n)"
+      },
+      "id": "11592",
+      "participant_username": "S012"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: (n/2)logn"
+      },
+      "id": "11573",
+      "participant_username": "S108"
+    },
+    {
+      "answer": {
+        "text": "Omega: (n / 2) * log_2n\nCrossbar: n ^ 2"
+      },
+      "id": "11581",
+      "participant_username": "S099"
+    },
+    {
+      "answer": {
+        "text": "crossbar network:n^2\nomega network:(n/2)*(log2 n)                                        //以2為底"
+      },
+      "id": "11737",
+      "participant_username": "S070"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nomega network: n/2*log2(n)"
+      },
+      "id": "12147",
+      "participant_username": "S080"
+    },
+    {
+      "answer": {
+        "text": "Omega: n/2 log_2(n)\nCrossbar: n^2"
+      },
+      "id": "11197",
+      "participant_username": "S003"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar network : n^2\n2. Omega network : n/2 * log_2(n)"
+      },
+      "id": "11990",
+      "participant_username": "S035"
+    },
+    {
+      "answer": {
+        "text": "cross bar: n^2\nOmega network: n/2(logn)"
+      },
+      "id": "12597",
+      "participant_username": "S037"
+    },
+    {
+      "answer": {
+        "text": "crossbar - n^2\nOmega - n/2 * log_2 (n)"
+      },
+      "id": "12204",
+      "participant_username": "S097"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n ^ 2\nOmega: (n / 2)*log_2(n)"
+      },
+      "id": "13996",
+      "participant_username": "S013"
+    },
+    {
+      "answer": {
+        "text": "crossbar: N^2\nOmega: (N/2) * log_2(N) (if use 2x2 switch)"
+      },
+      "id": "12000",
+      "participant_username": "S040"
+    },
+    {
+      "answer": {
+        "text": "For omega network, (n/2) * log2(n)\nFor crossbar network, n^2\nTherefore, crossbar networks requires a lot more switches than omega network "
+      },
+      "id": "11162",
+      "participant_username": "S124"
+    },
+    {
+      "answer": {
+        "text": "Crossbar Network : n'2\nOmega network : (n/2)log2(n)"
+      },
+      "id": "12133",
+      "participant_username": "S121"
+    },
+    {
+      "answer": {
+        "text": "Cross bar: n * n\nOmega network: about log(n)"
+      },
+      "id": "14499",
+      "participant_username": "S068"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n平方\nomega: (n/2)*log2(n)  (以2為底)"
+      },
+      "id": "11574",
+      "participant_username": "S102"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2 crosspoints\nOmega network: (n/2)*log2(n) crosspoints\n"
+      },
+      "id": "11662",
+      "participant_username": "S034"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network : n^2 switches。\nOmega network : (n/2)*log2n。"
+      },
+      "id": "11186",
+      "participant_username": "S084"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nOmega: n/2* log_2(n)"
+      },
+      "id": "11825",
+      "participant_username": "S079"
+    },
+    {
+      "answer": {
+        "text": " crossbar network: n^2\nOmega network:(n/2)log2(n)"
+      },
+      "id": "12747",
+      "participant_username": "S122"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network needs n^2 crosspoints, Omega network only need n/2 log2(n) switches."
+      },
+      "id": "11704",
+      "participant_username": "S086"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2 crosspoints\nOmega network: (n/2)*log2(n) switches"
+      },
+      "id": "12098",
+      "participant_username": "S052"
+    },
+    {
+      "answer": {
+        "text": "crossbar network:n^2\nOmega network:(n/2)log2(n)"
+      },
+      "id": "11753",
+      "participant_username": "S033"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2\nOmega network: (n/2)*log2(n)"
+      },
+      "id": "12157",
+      "participant_username": "S123"
+    },
+    {
+      "answer": {
+        "text": "omega network is cheaper\ncrossbar:n^2 crosspoints\nomega:(n/2)*log2(n) 2*2 switches"
+      },
+      "id": "11490",
+      "participant_username": "S027"
+    },
+    {
+      "answer": {
+        "text": "for a crossbar nerwork- n^2\nand for omega network- 2log n"
+      },
+      "id": "11383",
+      "participant_username": "S081"
+    },
+    {
+      "answer": {
+        "text": "cross bar: n^2\nomega: (n/2) log_2 (n)\n\ncross bar > omega"
+      },
+      "id": "12092",
+      "participant_username": "S008"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: n/2 log2n"
+      },
+      "id": "12158",
+      "participant_username": "S078"
+    },
+    {
+      "answer": {
+        "text": "Crossbar:n^2\nOmega:(n/2)log2n"
+      },
+      "id": "13215",
+      "participant_username": "S087"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2\nOmega network: (n/2) * (log2 n)"
+      },
+      "id": "11005",
+      "participant_username": "S022"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nomega: n/2 * log2n"
+      },
+      "id": "12565",
+      "participant_username": "S110"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: n/2 * log_2(n)"
+      },
+      "id": "12028",
+      "participant_username": "S082"
+    },
+    {
+      "answer": {
+        "text": "crossbar: O(n^2)\nOmega: O(log_2 (n) * n/2)"
+      },
+      "id": "12080",
+      "participant_username": "S105"
+    },
+    {
+      "answer": {
+        "text": "Omega : (n/2) * log n\ncrossbar : n ^ 2"
+      },
+      "id": "11299",
+      "participant_username": "S111"
+    },
+    {
+      "answer": {
+        "text": "Omega: (n/2)*log_2(n)\ncrossbar: n^2\n\nomega雖然會發生阻塞但使用較少數量"
+      },
+      "id": "11576",
+      "participant_username": "S085"
+    },
+    {
+      "answer": {
+        "text": "crossbar需要n^2個crosspoints\nOmega network需要n/2logn個switches(logn的底是2)"
+      },
+      "id": "11672",
+      "participant_username": "S004"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2 switches\nOmega network: (n/2)log2n switches"
+      },
+      "id": "11565",
+      "participant_username": "S046"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\n\nOmega network : (n/2) * (log2(n))"
+      },
+      "id": "11262",
+      "participant_username": "S005"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n*n\nOmega:(n/2)log2 n\n"
+      },
+      "id": "11247",
+      "participant_username": "S014"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: (n/2) log2 (n)"
+      },
+      "id": "11684",
+      "participant_username": "S107"
+    },
+    {
+      "answer": {
+        "text": "1.crossbar network  n平方\n2.Omega network  n/2*log2(n) 個switch"
+      },
+      "id": "11700",
+      "participant_username": "S126"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n^2\nomega : n/2*log_2(n)      也就是n/2乘上底數為二的log(n)"
+      },
+      "id": "13470",
+      "participant_username": "S017"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: n/2(log2(n))"
+      },
+      "id": "11047",
+      "participant_username": "S115"
+    },
+    {
+      "answer": {
+        "text": "Crossbar : n*n\nOmega : (n/2) * (log_2 (n))"
+      },
+      "id": "11636",
+      "participant_username": "S089"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network have n^2 switches\nOmega network have (n/2)*log_2(n/2)"
+      },
+      "id": "11730",
+      "participant_username": "S009"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar：n^2\n2. Omega：(n/2)log2(n)"
+      },
+      "id": "11951",
+      "participant_username": "S094"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: (n/2)*log2(n)"
+      },
+      "id": "12324",
+      "participant_username": "S066"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n * n\nOmega: (n/2)log(2)n"
+      },
+      "id": "11726",
+      "participant_username": "S041"
+    },
+    {
+      "answer": {
+        "text": "crossbar network : n^2\nOmega network : n/2 * log_2 n"
+      },
+      "id": "13781",
+      "participant_username": "S031"
+    },
+    {
+      "answer": {
+        "text": "crossbar n^2\nOMEGA n/2*logn(log的下標為2) 2分之n乘上log2乘n"
+      },
+      "id": "11557",
+      "participant_username": "S116"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: n/2*log2(n)"
+      },
+      "id": "12122",
+      "participant_username": "S059"
+    },
+    {
+      "answer": {
+        "text": "crossbar：n^2\nomega：(n/2)log(2)n"
+      },
+      "id": "10979",
+      "participant_username": "S064"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: (n/2)log2(n)"
+      },
+      "id": "11752",
+      "participant_username": "S101"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar : n^2\n2. omega : (n/2)*log2(n)"
+      },
+      "id": "11529",
+      "participant_username": "S103"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n^2 個\nOmega network : (n/2)log2n (以2為底的n)"
+      },
+      "id": "14471",
+      "participant_username": "S104"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network 需要 n^2 個交換節點，Omega network 只需要 n/2 log_2 n 個。\nOmega network 可能發生 Blocking ，但因硬體成本低非常多，所以仍被廣泛使用。"
+      },
+      "id": "11932",
+      "participant_username": "S023"
+    },
+    {
+      "answer": {
+        "text": "Corssbar:n^2\nOmega:(n/2)log(n) <-這個log是以2為底的。"
+      },
+      "id": "11499",
+      "participant_username": "S113"
+    },
+    {
+      "answer": {
+        "text": "crossbar:只需要一個 但複雜度超大的switch\nOmega:需要log(n)層 每層有n/2個2*2的switches"
+      },
+      "id": "11779",
+      "participant_username": "S055"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network:n平方\nOmega network: (n/2)*log下標2(n)"
+      },
+      "id": "11683",
+      "participant_username": "S119"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nOmega: (n / 2) *  log2(n)"
+      },
+      "id": "11849",
+      "participant_username": "S067"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2. The crosspoints needed is n^2, so it's more expensive (non-blocking)\nOmega Network: (n/2)log_2n. The switches needed is (n/2)log_2n, so it's cheaper (blocking)"
+      },
+      "id": "12235",
+      "participant_username": "S076"
+    },
+    {
+      "answer": {
+        "text": "Cross bar requires n switches while omega requires (n/2)log n"
+      },
+      "id": "10948",
+      "participant_username": "S074"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n*n\nOmega: n/2* lg(n)"
+      },
+      "id": "11938",
+      "participant_username": "S063"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: n/2*log2n"
+      },
+      "id": "11795",
+      "participant_username": "S090"
+    },
+    {
+      "answer": {
+        "text": "Crossbar : n*n\nOmega : (n/2) * log_2 (n)"
+      },
+      "id": "14415",
+      "participant_username": "S100"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n*n \nomega network : (n/2) * log(n)"
+      },
+      "id": "11303",
+      "participant_username": "S114"
+    },
+    {
+      "answer": {
+        "text": "crossbar :n^2\n\nOmega network (n/2) log(2,n)"
+      },
+      "id": "12671",
+      "participant_username": "S038"
+    },
+    {
+      "answer": {
+        "text": "crossbar network：n^2\nOmega： n/2 ( log_2_n )"
+      },
+      "id": "11750",
+      "participant_username": "S047"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar: n^2\n2. omega: (n/2)*(log2 n)"
+      },
+      "id": "12494",
+      "participant_username": "S044"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nomega network: (n/2)*log2(n)"
+      },
+      "id": "11722",
+      "participant_username": "S075"
+    },
+    {
+      "answer": {
+        "text": "crossbar  network : O(n^2) \nomega network : 1/2 * n lgn"
+      },
+      "id": "11680",
+      "participant_username": "S030"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n^2 \nOmega : (n/2)logn (以2為底)"
+      },
+      "id": "11491",
+      "participant_username": "S106"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network : n^2\nOmega network n/2(lgn)\n"
+      },
+      "id": "11714",
+      "participant_username": "S019"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: (n/2)log2n"
+      },
+      "id": "11396",
+      "participant_username": "S020"
+    },
+    {
+      "answer": {
+        "text": "for crossbar network: n^2 crossbars.\nfor omega network: (n/2)log2(n)"
+      },
+      "id": "11665",
+      "participant_username": "S010"
+    },
+    {
+      "answer": {
+        "text": "crossbar=o(n平方)\nOmega=n/2log2n(二分之n*log2的n)"
+      },
+      "id": "11660",
+      "participant_username": "S091"
+    },
+    {
+      "answer": {
+        "text": "crossbar will have n^2 switches.\nomega network will have (n/2)*log(n) switches."
+      },
+      "id": "11496",
+      "participant_username": "S051"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nOmega: (n/2)*lgn"
+      },
+      "id": "13459",
+      "participant_username": "S039"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2 crosspoint\nomega:(n/2)*(log n) switch"
+      },
+      "id": "11661",
+      "participant_username": "S018"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2\nOmega:n/2*log_2 n"
+      },
+      "id": "11595",
+      "participant_username": "S049"
+    },
+    {
+      "answer": {
+        "text": "crossbar n*n switches\nomega (n/2) * (log2 n) switches"
+      },
+      "id": "11804",
+      "participant_username": "S053"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: (n/2)log(n)"
+      },
+      "id": "11667",
+      "participant_username": "S092"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2\nomega:(n/2 )*log2(n)"
+      },
+      "id": "11422",
+      "participant_username": "S125"
+    },
+    {
+      "answer": {
+        "text": "crossbar n^2 Omega n/2 log2n"
+      },
+      "id": "11133",
+      "participant_username": "S021"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nomega: n/2*log以2為底n"
+      },
+      "id": "11727",
+      "participant_username": "S050"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n平方\nOmega network:(n/2)*log(2下標)n"
+      },
+      "id": "11742",
+      "participant_username": "S036"
+    },
+    {
+      "answer": {
+        "text": "1. Crossbar : n^2\n2. Omega : (n/2)logn2"
+      },
+      "id": "11494",
+      "participant_username": "S048"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n平方 \nOmega network: 1/n(log2(n))   -->(log底是2的意思!)"
+      },
+      "id": "11762",
+      "participant_username": "S112"
+    },
+    {
+      "answer": {
+        "text": "1. crossbar, n^2\n2. omega, n/2 * log_2 n"
+      },
+      "id": "11627",
+      "participant_username": "S006"
+    },
+    {
+      "answer": {
+        "text": "Crossbar : n2 ( n 平方 )\nOmega : n/2  log n"
+      },
+      "id": "11859",
+      "participant_username": "S057"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: n/2 * log2n"
+      },
+      "id": "13960",
+      "participant_username": "S002"
+    },
+    {
+      "answer": {
+        "text": "Crossbar: n^2\nOmega: n/2 log_2(n)"
+      },
+      "id": "11794",
+      "participant_username": "S007"
+    },
+    {
+      "answer": {
+        "text": "Number of switches in an Omega Network is log2(N) * N/2. while crossbar network requires 2N number of switches."
+      },
+      "id": "12012",
+      "participant_username": "S118"
+    },
+    {
+      "answer": {
+        "text": "crossbar network : N^2\nOmega network : n/2*log_2 n\n"
+      },
+      "id": "13659",
+      "participant_username": "S016"
+    },
+    {
+      "answer": {
+        "text": "Crossbar：N^2\nOmeage：n/2 log 2 n"
+      },
+      "id": "16203",
+      "participant_username": "S083"
+    },
+    {
+      "answer": {
+        "text": "crossbar : n^2\nOmega : (n/2)log2(n)"
+      },
+      "id": "11640",
+      "participant_username": "S088"
+    },
+    {
+      "answer": {
+        "text": "crossbar network : n^2\nomega network : (n/2)log n      (log下標2)\n"
+      },
+      "id": "12334",
+      "participant_username": "S058"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2\nomega:n/2*log_2(n)"
+      },
+      "id": "11545",
+      "participant_username": "S043"
+    },
+    {
+      "answer": {
+        "text": "Omega：n^2\ncrossbar: n/2 ×log n（log use 2 basic）"
+      },
+      "id": "11462",
+      "participant_username": "S060"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n switches\nomega: (n/2)log 2(n)"
+      },
+      "id": "11531",
+      "participant_username": "S024"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n*n\nomega:(n/2)*log2n"
+      },
+      "id": "11833",
+      "participant_username": "S095"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2\nOmega network: (n/2)*log2(n) "
+      },
+      "id": "11864",
+      "participant_username": "S077"
+    },
+    {
+      "answer": {
+        "text": "crossbar: n^2\nOmega network: \\dfrac{n}{2}\\log_2{n}\n明顯的，當n夠大時，crossbar所需成本較高，Omega network所需成本較低。"
+      },
+      "id": "11540",
+      "participant_username": "S120"
+    },
+    {
+      "answer": {
+        "text": "crossbar network:n^2\nomega network:n/2*log2 n"
+      },
+      "id": "11146",
+      "participant_username": "S073"
+    },
+    {
+      "answer": {
+        "text": "crossbar network:n^2\nOmega network:(n/2)log_2(n)"
+      },
+      "id": "11740",
+      "participant_username": "S069"
+    },
+    {
+      "answer": {
+        "text": "Crossbar:n^2 \nOmega: n/2* (logn) (log以2為底)"
+      },
+      "id": "11959",
+      "participant_username": "S072"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: n^2 switches\nomega network: (n/2)*log2(N) switches"
+      },
+      "id": "11479",
+      "participant_username": "S042"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2\nOmega network: n/2*log2n(以2為底的log)"
+      },
+      "id": "11907",
+      "participant_username": "S071"
+    },
+    {
+      "answer": {
+        "text": "Crossbar network: n^2\nOmega network: (n/2) * log_2 (n)"
+      },
+      "id": "11816",
+      "participant_username": "S062"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2\nomega:(n/2)(logn)，以2為底的logn  "
+      },
+      "id": "11881",
+      "participant_username": "S045"
+    },
+    {
+      "answer": {
+        "text": "For n CPUs and n memory modules\nCrossbar network requires n^2 switches (crosspoints)\nOmega network requres (n/2)log2n switches"
+      },
+      "id": "12467",
+      "participant_username": "S056"
+    },
+    {
+      "answer": {
+        "text": "The number of switches of:\n+ crossbar network for n CPUs and n memory is 3\n+ Omega network for n CPUs and n memory is 4"
+      },
+      "id": "12432",
+      "participant_username": "S128"
+    },
+    {
+      "answer": {
+        "text": "crossbar network: non-blocking network, n個cpu都有到n個memory的路徑, O(n^2) crosspoints.\nOmega network: blocking network, n個cpu藉由數個stage到n個memory的路徑,但不是每個cpu都可以到所有的memory, O(nlogn/2) crosspoints."
+      },
+      "id": "11865",
+      "participant_username": "S029"
+    },
+    {
+      "answer": {
+        "text": "crossbar:n^2 個switch\nOmega network:(n/2)log2(n) 個switch"
+      },
+      "id": "11828",
+      "participant_username": "S065"
+    },
+    {
+      "answer": {
+        "text": "crossbar：n^2\nOmega：n/2*log n(base 2)"
+      },
+      "id": "12106",
+      "participant_username": "S098"
+    }
+  ],
+  "blind_grading": true,
+  "classroom_id": null,
+  "contest_id": "10ad193f-5113-456a-808a-4d20e057203d",
+  "question_context": {
+    "explanation": "",
+    "max_score": 2,
+    "options": [],
+    "prompt": "Compare the number of switches required for a crossbar network versus an Omega network for n CPUs and n memory modules.",
+    "question_id": "df612ec1-2475-4919-9f33-0fc639c9507a",
+    "question_type": "short_answer",
+    "reference_answer": "A Crossbar network requires n^2 switches. An Omega network requires (n/2) log2 n switches."
+  },
+  "question_id": "df612ec1-2475-4919-9f33-0fc639c9507a"
+}

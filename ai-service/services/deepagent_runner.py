@@ -424,6 +424,7 @@ class DeepAgentRunner:
             authorization_header=(
                 request_context.user_authorization if request_context else None
             ),
+            tool_policy=request_context.tool_policy if request_context else None,
         ) as tool_provider, httpx.AsyncClient(timeout=10.0) as artifact_client:
             tools = await tool_provider.load_tools()
             tools = list(tools) + _build_session_artifact_tools(

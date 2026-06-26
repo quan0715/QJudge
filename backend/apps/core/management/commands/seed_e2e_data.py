@@ -10,9 +10,9 @@ from apps.users.models import UserProfile
 from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
 from apps.contests.models import Contest, ContestParticipant, ExamQuestion
-from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBankMembership
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
-from apps.question_bank.models import Question, QuestionBank
+from apps.question_bank.models import QuestionBank
 from apps.question_bank.bank_workflows import upsert_exam_question_into_bank, upsert_problem_into_bank
 
 
@@ -564,8 +564,10 @@ int main() {
                 'score': 5,
             },
         )
-        if teacher and not Question.objects.filter(
-            bank=exam_bank, metadata__legacy_exam_question_id=str(eq.id)
+        if teacher and not QuestionBankMembership.objects.filter(
+            bank=exam_bank,
+            question_asset__latest_version__payload__source_type="exam_question",
+            question_asset__latest_version__payload__source_id=str(eq.id),
         ).exists():
             upsert_exam_question_into_bank(eq, bank=exam_bank, created_by=teacher)
             self.stdout.write('  ✓ 題庫題目: exam seed → E2E Exam Bank')

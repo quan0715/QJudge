@@ -1,0 +1,9 @@
+{
+  "explanation": "",
+  "max_score": 4,
+  "options": [],
+  "prompt": "Provide two advantages and two disadvantages of a Master-Slave architecture for multiprocessors.",
+  "question_id": "8bd69984-3cd8-48b1-9da3-4c040620959e",
+  "question_type": "short_answer",
+  "reference_answer": "Pros: (1) Easier to design and manage. (2) Efficient resource allocation by a centralized master.\nCons: (1) Limited scalability (master becomes a bottleneck). (2) Single point of failure."
+}

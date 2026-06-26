@@ -12,6 +12,7 @@ import { Close, Filter } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { getQuestionTypeLabel } from "@/features/contest/constants/examLabels";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import {
   type DashboardMockData,
   type QuestionDetailMock,
@@ -378,7 +379,7 @@ function QuestionStatsCard({
       <h4 className={styles.cardTitle}>{question.title}</h4>
       <div className={styles.statRow}>
         <span>
-          平均 {question.averageScore.toFixed(1)} / {question.maxScore}
+          平均 {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
         </span>
         <span>{question.answerCount} 人作答</span>
         <span>
@@ -458,7 +459,7 @@ function QuestionStatsDrawer({
           <div>
             <span>平均</span>
             <strong>
-              {question.averageScore.toFixed(1)} / {question.maxScore}
+              {formatScore(question.averageScore)} / {formatScore(question.maxScore)}
             </strong>
           </div>
           <div>

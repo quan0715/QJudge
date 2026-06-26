@@ -5,6 +5,7 @@ import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useTranslation } from "react-i18next";
 import { CODING_PROBLEM_DIFFICULTY_TAG } from "./codingProblemDifficultyDisplay";
@@ -154,7 +155,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
               <div className={examStyles.headerRight}>
                 {score != null ? (
                   <span className={examStyles.score}>
-                    {t("examEditor.scoreUnit", { score })}
+                    {t("examEditor.scoreUnit", { score: formatScore(score) })}
                   </span>
                 ) : null}
                 {!frozen && (onDuplicate || onDelete) ? (

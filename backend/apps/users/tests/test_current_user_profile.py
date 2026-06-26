@@ -22,7 +22,7 @@ class CurrentUserProfileUpdateTests(TestCase):
             username="oauth_user",
             email="oauth_user@example.com",
             password="StrongPass123!",
-            auth_provider="nycu-oauth",
+            auth_provider="nycu",
         )
 
     def test_email_user_can_update_username_and_email(self):

@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 from uuid import uuid4
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer,
@@ -121,6 +122,17 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_essay)
         self.assertIsNone(ans.is_correct)
         self.assertIsNone(ans.score)
+
+    def test_submit_subjective_answer_rejects_text_over_32kb(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_essay.id,
+            'answer': {'text': 'x' * (32 * 1024 + 1)},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            ExamAnswer.objects.filter(participant=self.participant, question=self.q_essay).exists()
+        )
 
     def test_upsert_answer(self):
         """Submitting again updates the existing answer."""
@@ -316,7 +328,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 2)
+        self.assertEqual(self.participant.score, Decimal('1.60'))
 
     def test_teacher_grade_after_exam_submitted(self):
         """考生已交卷仍可批改問答題（配合前端 E2E 交卷後批改流程）。"""
