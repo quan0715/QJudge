@@ -9,6 +9,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import {
   ListPanel,
   ListFooter,
@@ -130,7 +131,7 @@ const ParticipantsListPane: React.FC<ParticipantsListPaneProps> = ({
             <span className={styles.gridCardScoreLabel}>
               {t("participants.headers.score", "分數")}
             </span>
-            <span className={styles.gridCardScoreValue}>{participant.score}</span>
+            <span className={styles.gridCardScoreValue}>{formatScore(participant.score)}</span>
           </div>
         </div>
       </ListItemContent>

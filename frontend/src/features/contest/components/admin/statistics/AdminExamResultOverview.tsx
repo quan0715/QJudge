@@ -6,6 +6,7 @@ import { SkeletonPlaceholder, SkeletonText } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import type { DashboardMockData } from "./contestResultDashboard.mock";
 import styles from "./AdminExamResultOverview.module.scss";
 
@@ -141,8 +142,8 @@ export default function AdminExamResultOverview({
           <div className={styles.chartHeader}>
             <span>{t("statistics.scoreDistribution", "分數分布")}</span>
             <strong>
-              {dashboard.summary.averageScore.toFixed(1)} /{" "}
-              {dashboard.summary.maxTotalScore}
+              {formatScore(dashboard.summary.averageScore)} /{" "}
+              {formatScore(dashboard.summary.maxTotalScore)}
             </strong>
           </div>
           <div className={styles.chartFrame}>

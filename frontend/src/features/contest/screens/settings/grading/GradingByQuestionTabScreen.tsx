@@ -30,6 +30,7 @@ import type {
   QuestionProgress,
   GradingFilter,
 } from "./gradingTypes";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import styles from "./GradingByQuestion.module.scss";
 
 interface GradingByQuestionTabScreenProps {
@@ -400,7 +401,7 @@ export default function GradingByQuestionTabScreen({
                     </Tag>
                   ) : a.score !== null ? (
                     <span className={styles.scoreText}>
-                      {a.score}/{a.maxScore}
+                      {formatScore(a.score)}/{formatScore(a.maxScore)}
                     </span>
                   ) : (
                     <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批改")}</Tag>

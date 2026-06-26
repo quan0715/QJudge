@@ -5,6 +5,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { ProblemPreview } from "@/shared/ui/problem";
@@ -142,7 +143,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
             {showSaveStatus && <GlobalSaveStatus status={autoSave.globalStatus} />}
             {score != null ? (
               <span className={examStyles.score}>
-                {t("examEditor.scoreUnit", { score })}
+                {t("examEditor.scoreUnit", { score: formatScore(score) })}
               </span>
             ) : null}
             {onDuplicate ? (

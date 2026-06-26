@@ -17,6 +17,7 @@ import {
   isContestParticipant,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import PaperQuestionOverviewTable from "./PaperQuestionOverviewTable";
 import AnswerDisplay from "./AnswerDisplay";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
@@ -122,7 +123,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
           scorePolicy: question.scorePolicy,
           score:
             resultsPublished && result
-              ? `${result.score ?? 0}`
+              ? formatScore(result.score)
               : t("paperExamProblems.notGraded"),
           feedback:
             resultsPublished && result
@@ -190,10 +191,10 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                 }}
               >
                 <Tag type="green">
-                  {t("paperExamProblems.totalScore", {
-                    score: totalScore,
-                    total: totalMaxScore,
-                  })}
+	                  {t("paperExamProblems.totalScore", {
+	                    score: formatScore(totalScore),
+	                    total: formatScore(totalMaxScore),
+	                  })}
                 </Tag>
               </div>
             )}
@@ -268,7 +269,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                               {t("answering.submit.questionPreview", { index: index + 1 })}
                             </strong>
                             <span>
-                              {result.score ?? 0} / {question.score}
+                              {formatScore(result.score ?? 0)} / {formatScore(question.score)}
                             </span>
                           </div>
                           <div style={{ marginBottom: "1rem" }}>

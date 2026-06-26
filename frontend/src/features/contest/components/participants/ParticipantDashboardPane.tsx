@@ -44,6 +44,7 @@ import type {
   ParticipantDashboardStatus,
 } from "@/core/entities/contest.entity";
 import PaperQuestionOverviewTable from "@/features/contest/components/exam/PaperQuestionOverviewTable";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
@@ -280,11 +281,11 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
       : null;
   const overviewItems =
     dashboard.contestType === "paper_exam"
-      ? [
-          {
-            key: "score",
-            label: t("dashboard.totalScore", "總分"),
-            value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
+	      ? [
+	          {
+	            key: "score",
+	            label: t("dashboard.totalScore", "總分"),
+	            value: `${formatScore(dashboard.overview.totalScore)} / ${formatScore(dashboard.overview.maxScore)}`,
             unit: t("dashboard.pointsUnit", "分"),
             icon: ChartBar,
           },
@@ -311,10 +312,10 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           },
         ]
       : [
-          {
-            key: "score",
-            label: t("dashboard.totalScore", "總分"),
-            value: `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`,
+	          {
+	            key: "score",
+	            label: t("dashboard.totalScore", "總分"),
+	            value: `${formatScore(dashboard.overview.totalScore)} / ${formatScore(dashboard.overview.maxScore)}`,
             unit: t("dashboard.pointsUnit", "分"),
             icon: ChartBar,
           },
@@ -634,9 +635,9 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             `common:questionType.label.${row.questionType}`,
                             questionTypeLabel[row.questionType],
                           ),
-                          maxScore: row.maxScore,
-                          scoreDisplay:
-                            row.score != null ? String(row.score) : "-",
+	                          maxScore: row.maxScore,
+	                          scoreDisplay:
+	                            row.score != null ? formatScore(row.score) : "-",
                           statusLabel: row.status.label,
                           statusTone: toTagType(row.status),
                           scorePolicy: row.scorePolicy,
@@ -703,7 +704,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               <div className={styles.inlineMeta}>
                                 {row.status ? <Tag>{row.status}</Tag> : null}
                                 <span>
-                                  {row.score} / {row.maxScore}
+	                                  {formatScore(row.score)} / {formatScore(row.maxScore)}
                                 </span>
                               </div>
                             </div>
@@ -737,7 +738,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                               <div className={styles.inlineMeta}>
                                 {row.status ? <Tag>{row.status}</Tag> : null}
                                 <span>
-                                  {row.score} / {row.maxScore}
+	                                  {formatScore(row.score)} / {formatScore(row.maxScore)}
                                 </span>
                               </div>
                             </div>
@@ -884,7 +885,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                                     {submission.status}
                                   </Tag>
                                   {submission.score != null ? (
-                                    <span>{submission.score}</span>
+	                                    <span>{formatScore(submission.score)}</span>
                                   ) : null}
                                 </div>
                               </div>

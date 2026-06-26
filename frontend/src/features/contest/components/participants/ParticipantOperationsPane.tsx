@@ -30,6 +30,7 @@ import type {
   ParticipantDashboard,
   ParticipantDashboardDetail,
 } from "@/core/entities/contest.entity";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import { EmptyState } from "@/shared/ui/EmptyState";
 
 import styles from "./ContestParticipantsDashboard.module.scss";
@@ -146,7 +147,7 @@ const ParticipantOperationsPane = ({
         }
       : null;
 
-  const scoreValue = `${dashboard.overview.totalScore} / ${dashboard.overview.maxScore}`;
+  const scoreValue = `${formatScore(dashboard.overview.totalScore)} / ${formatScore(dashboard.overview.maxScore)}`;
   const accuracyValue =
     dashboard.overview.correctRate ?? dashboard.overview.acceptedRate ?? null;
   const gradingProgressValue =

@@ -3,6 +3,7 @@ import { Button, IconButton, Layer, Tag, TextInput } from "@carbon/react";
 import { Add, Close, Draggable, TrashCan } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamPaperBlock } from "@/core/entities/contest.entity";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import styles from "./ExamGroupEditCard.module.scss";
@@ -93,7 +94,7 @@ const ExamGroupEditCard: React.FC<ExamGroupEditCardProps> = ({
               </Tag>
               <Tag type="gray" size="sm">
                 {t("examEditor.scoreShort", {
-                  score,
+                  score: formatScore(score),
                   defaultValue: "{{score}} 分",
                 })}
               </Tag>

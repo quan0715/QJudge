@@ -9,13 +9,13 @@ from ..models import ContestParticipant
 from .exam_scoring import ExamScoringService
 
 
-def recalculate_participant_score(participant: ContestParticipant) -> int:
+def recalculate_participant_score(participant: ContestParticipant) -> float:
     """Recalculate a single participant's total score respecting score policies.
 
     Delegates to ExamScoringService.calculate_participant_score().
     """
     service = ExamScoringService(participant.contest)
-    return int(service.calculate_participant_score(participant))
+    return service.calculate_participant_score(participant)
 
 
 def recalculate_all_scores(contest) -> int:

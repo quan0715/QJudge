@@ -2,6 +2,7 @@
 
 import csv
 from collections import defaultdict
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.http import HttpResponse
 
@@ -17,6 +18,11 @@ from ..exporters import (
 
 class ExportValidationError(Exception):
     """Raised when requested export parameters are invalid."""
+
+
+def _format_score(value) -> str:
+    """Format score values at canonical UI/export precision."""
+    return str(Decimal(str(value or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def parse_scale(value: str | None) -> float:
@@ -159,7 +165,7 @@ def build_paper_exam_results_csv_response(contest):
     # Data rows — collect scores for average calculation
     score_sums = [0.0] * total_questions
     score_counts = [0] * total_questions
-    total_score_sum = 0.0
+    total_score_sum = Decimal('0')
     participant_count = len(students)
 
     for p in students:
@@ -178,14 +184,14 @@ def build_paper_exam_results_csv_response(contest):
             p.user.email,
             status_label,
             f'{graded_count}/{total_questions}',
-            p.score,
-            full_score,
+            _format_score(p.score),
+            _format_score(full_score),
         ]
-        total_score_sum += p.score
+        total_score_sum += Decimal(str(p.score or 0))
         for i, q in enumerate(questions):
             ans = p_answers.get(q.id)
             if ans is not None and ans.score is not None:
-                row.append(ans.score)
+                row.append(_format_score(ans.score))
                 score_sums[i] += float(ans.score)
                 score_counts[i] += 1
             else:
@@ -194,8 +200,8 @@ def build_paper_exam_results_csv_response(contest):
 
     # Average row
     avg_row = ['', '', '', '', '平均']
-    avg_row.append(f'{total_score_sum / participant_count:.2f}' if participant_count else '-')
-    avg_row.append(full_score)
+    avg_row.append(_format_score(total_score_sum / participant_count) if participant_count else '-')
+    avg_row.append(_format_score(full_score))
     for i in range(total_questions):
         if score_counts[i] > 0:
             avg_row.append(f'{score_sums[i] / score_counts[i]:.2f}')

@@ -1062,6 +1062,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
     account_role = serializers.CharField(source='user.role', read_only=True)
     auth_provider = serializers.CharField(source='user.auth_provider', read_only=True)
+    score = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
     last_heartbeat_at = serializers.SerializerMethodField()
@@ -1126,19 +1127,26 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             if source in ('screen_share', 'webcam') and source not in sources:
                 sources.append(source)
         return sources
+
+    @staticmethod
+    def _score_to_float(value):
+        return float(value or 0)
+
+    def get_score(self, obj):
+        return self._score_to_float(obj.score)
     
     def get_total_score(self, obj):
         """計算參賽者的實際總分。
         優先使用 ViewSet 注入的 total_score_annotated 以避免 N+1。
         """
         if hasattr(obj, 'total_score_annotated'):
-            return obj.total_score_annotated or 0
+            return self._score_to_float(obj.total_score_annotated)
 
         # Fallback (Slow path)
         if obj.contest.contest_type == 'paper_exam':
             # Paper exam: use persisted score (maintained by ExamScoringService,
             # respects score_policy: excluded/full_marks/redistribute)
-            return obj.score or 0
+            return self._score_to_float(obj.score)
 
         from apps.submissions.models import Submission
         from django.db.models import Max

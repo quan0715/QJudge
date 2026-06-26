@@ -5,6 +5,7 @@ import {
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import {
   ListPanel,
   ListHeader,
@@ -124,7 +125,7 @@ export default function QuestionSidebarScreen({
         footer={
           <ListFooter>
             <span>{t("grading.questionsCount", "{{count}} 題", { count: totalQuestions })}</span>
-            <span>{t("grading.totalScore", "總分 {{score}}", { score: totalScore })}</span>
+            <span>{t("grading.totalScore", "總分 {{score}}", { score: formatScore(totalScore) })}</span>
           </ListFooter>
         }
       >
@@ -151,8 +152,8 @@ export default function QuestionSidebarScreen({
                   {q.scorePolicy !== "excluded" && q.scorePolicy !== "redistribute" && (
                     <span className={styles.sidebarScoreLabel}>
                       {q.effectiveMaxScore != null && q.effectiveMaxScore !== q.maxScore
-                        ? `${q.maxScore}→${Math.round(q.effectiveMaxScore * 10) / 10}`
-                        : q.maxScore}
+                        ? `${formatScore(q.maxScore)}→${formatScore(q.effectiveMaxScore)}`
+                        : formatScore(q.maxScore)}
                     </span>
                   )}
                 </ListItemTitle>

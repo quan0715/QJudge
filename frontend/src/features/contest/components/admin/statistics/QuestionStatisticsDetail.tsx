@@ -1,6 +1,7 @@
 import { Accordion, AccordionItem, ProgressBar, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import type { QuestionStatistics } from "./useExamStatistics";
 import styles from "./ExamStatisticsPanel.module.scss";
 
@@ -36,7 +37,7 @@ export default function QuestionStatisticsDetail({
       <div className={styles.averageSection}>
         <span className={styles.averageLabel}>{t("statistics.averageScore", "平均分數")}</span>
         <span className={styles.averageValue}>
-          {stat.averageScore.toFixed(1)} / {stat.maxScore}
+          {formatScore(stat.averageScore)} / {formatScore(stat.maxScore)}
         </span>
         <ProgressBar
           label={t("statistics.averageScoreRatio", "平均分數比例")}
@@ -89,7 +90,7 @@ export default function QuestionStatisticsDetail({
                 title={`${entry.studentDisplayName} — ${
                   entry.score !== null
                     ? t("statistics.scoreUnit", "{{score}} 分", {
-                        score: entry.score,
+                        score: formatScore(entry.score),
                       })
                     : t("grading.ungraded", "未批改")
                 }`}
