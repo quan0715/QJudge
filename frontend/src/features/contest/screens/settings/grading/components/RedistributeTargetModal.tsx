@@ -5,6 +5,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { Modal, Checkbox, InlineNotification, Tag, Button } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 
 interface TargetQuestion {
   id: string;
@@ -219,7 +220,7 @@ export default function RedistributeTargetModal({
                 <Checkbox
                   key={q.id}
                   id={`target-${questionIndex}-${q.id}`}
-                  labelText={`第 ${q.order + 1} 題 (${q.score}分) — ${q.prompt?.slice(0, 40) || "..."}`}
+                  labelText={`第 ${q.order + 1} 題 (${formatScore(q.score)}分) — ${q.prompt?.slice(0, 40) || "..."}`}
                   checked={selectedIds.has(q.id)}
                   onChange={(_, { checked }) => handleToggle(q.id, checked)}
                   style={{ marginBottom: "0.25rem" }}

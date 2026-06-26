@@ -12,6 +12,7 @@ import {
   ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
 import { attachReorderPointerSession } from "@/shared/ui/cardListEditor";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import WorkTreeShell from "./WorkTreeShell";
 import treeStyles from "./WorkTree.module.scss";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
@@ -144,7 +145,7 @@ const CodingProblemListPanel: React.FC<CodingProblemListPanelProps> = ({
       footer={(
         <>
           <span>{t("examEditor.questionCount", { count: problems.length })}</span>
-          <span>{t("examEditor.totalScore", { score: totalScore })}</span>
+          <span>{t("examEditor.totalScore", { score: formatScore(totalScore) })}</span>
         </>
       )}
     >

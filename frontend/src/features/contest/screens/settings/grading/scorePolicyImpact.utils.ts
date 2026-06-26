@@ -5,6 +5,7 @@
  * The backend remains the source of truth for persisted scores.
  */
 import type { ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
+import { roundScore } from "@/features/contest/utils/scoreFormat";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
 
 // ── Internal types ─────────────────────────────────────────────────────────
@@ -88,7 +89,7 @@ function totalMax(questions: SimQuestion[], effectiveMax: Map<string, number>): 
     if (q.scorePolicy === "excluded" || q.scorePolicy === "redistribute") continue;
     sum += q.scorePolicy === "full_marks" ? q.maxScore : (effectiveMax.get(q.id) ?? q.maxScore);
   }
-  return sum;
+  return roundScore(sum);
 }
 
 function studentScore(
@@ -126,7 +127,7 @@ function buildDistribution(scores: number[], maxScore: number): ScoreDistributio
 }
 
 function average(scores: number[]): number {
-  return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  return scores.length > 0 ? roundScore(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────
@@ -162,8 +163,8 @@ export function simulateScoreImpact(input: SimulateImpactInput): ScoreImpactResu
   const beforeEff = simulateEffectiveMax(beforeQs);
   const afterEff = simulateEffectiveMax(afterQs);
 
-  const beforeMax = totalMax(beforeQs, beforeEff);
-  const afterMax = totalMax(afterQs, afterEff);
+  const beforeMax = roundScore(totalMax(beforeQs, beforeEff));
+  const afterMax = roundScore(totalMax(afterQs, afterEff));
 
   const beforeScores: number[] = [];
   const afterScores: number[] = [];

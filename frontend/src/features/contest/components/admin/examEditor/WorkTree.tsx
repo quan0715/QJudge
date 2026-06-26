@@ -13,6 +13,7 @@ import {
   ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
 import { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
 import { attachReorderPointerSession } from "@/shared/ui/cardListEditor";
@@ -103,7 +104,7 @@ const TreeItem: React.FC<{
               </Tag>
             )}
             <span className={styles.itemScore}>
-              {t("examEditor.scoreShort", { score: blockScore, defaultValue: "{{score}} 分" })}
+              {t("examEditor.scoreShort", { score: formatScore(blockScore), defaultValue: "{{score}} 分" })}
             </span>
             {block.kind === "question" && block.question.scorePolicy && block.question.scorePolicy !== "normal" && (
               <ScorePolicyTag policy={block.question.scorePolicy} />
@@ -176,7 +177,7 @@ const WorkTree: React.FC<WorkTreeProps> = ({
         <>
           <span>{t("examEditor.questionCount", { count: questions.length })}</span>
           <span>{t("examEditor.blockCount", { count: blocks.length, defaultValue: "{{count}} blocks" })}</span>
-          <span>{t("examEditor.totalScore", { score: totalScore })}</span>
+          <span>{t("examEditor.totalScore", { score: formatScore(totalScore) })}</span>
         </>
       )}
     >

@@ -2,6 +2,7 @@ import React from "react";
 import { Button, Tag } from "@carbon/react";
 import { TrashCan } from "@carbon/icons-react";
 import { DifficultyBadge } from "@/shared/ui/tag";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import "./ContestProblemTable.scss";
 
@@ -45,7 +46,7 @@ const ContestProblemTable: React.FC<ContestProblemTableProps> = ({
             <DifficultyBadge difficulty={problem.difficulty || "medium"} />
           </div>
           <div className="contest-problem-table__col--score">
-            {problem.score ?? "-"}
+            {formatScore(problem.score)}
           </div>
           {onRemove && (
             <div className="contest-problem-table__col--actions">

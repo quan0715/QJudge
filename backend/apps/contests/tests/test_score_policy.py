@@ -429,9 +429,9 @@ class ExamScoringRedistributeTests(TestCase):
         # Q3 gets bonus = 10 * (10/20) = 5 → effective_max=15
         # Q4, Q5 unchanged
         # Student: Q2: 5*(15/10)=7.5, Q3: 0*(15/10)=0, Q4: 10, Q5: 5
-        # Total = 7.5 + 0 + 10 + 5 = 22.5 → rounds to 23
+        # Total = 7.5 + 0 + 10 + 5 = 22.5 → stays at two-decimal precision
         score = svc.calculate_participant_score(self.participant)
-        self.assertEqual(score, 23)
+        self.assertEqual(score, 22.5)
 
     def test_redistribute_multiple_sources(self):
         """Multiple questions redistributing to same targets."""
@@ -505,3 +505,59 @@ class ExamScoringRedistributeTests(TestCase):
         )
         scores = svc.compute_participant_scores([self.participant.id], answers)
         self.assertAlmostEqual(scores[self.participant.id], 25.0, places=1)
+
+    def test_redistribute_participant_score_rounds_to_two_decimal_places(self):
+        """Persisted paper-exam totals keep canonical two-decimal precision."""
+        self.questions[0].score = 1
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {
+            'redistribute_to': [str(self.questions[1].id), str(self.questions[2].id)]
+        }
+        self.questions[0].save()
+
+        self.questions[1].score = 2
+        self.questions[1].save()
+        self.questions[2].score = 1
+        self.questions[2].save()
+
+        ExamAnswer.objects.filter(participant=self.participant).update(score=0, is_correct=False)
+        ExamAnswer.objects.filter(
+            participant=self.participant,
+            question=self.questions[1],
+        ).update(score=1)
+
+        svc = self._service()
+        score = svc.calculate_participant_score(self.participant)
+
+        self.assertEqual(score, 1.33)
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.score, Decimal('1.33'))
+
+    def test_redistribute_bulk_scores_round_to_two_decimal_places(self):
+        """Bulk score calculations use the same two-decimal precision."""
+        self.questions[0].score = 1
+        self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.questions[0].score_policy_config = {
+            'redistribute_to': [str(self.questions[1].id), str(self.questions[2].id)]
+        }
+        self.questions[0].save()
+
+        self.questions[1].score = 2
+        self.questions[1].save()
+        self.questions[2].score = 1
+        self.questions[2].save()
+
+        ExamAnswer.objects.filter(participant=self.participant).update(score=0, is_correct=False)
+        ExamAnswer.objects.filter(
+            participant=self.participant,
+            question=self.questions[1],
+        ).update(score=1)
+
+        svc = self._service()
+        answers = list(
+            ExamAnswer.objects.filter(participant=self.participant)
+            .values('participant_id', 'question_id', 'score')
+        )
+        scores = svc.compute_participant_scores([self.participant.id], answers)
+
+        self.assertEqual(scores[self.participant.id], 1.33)

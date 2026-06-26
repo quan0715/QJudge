@@ -517,7 +517,7 @@ class ContestParticipant(models.Model):
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='registrations')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     
-    score = models.IntegerField(default=0, verbose_name='總分')
+    score = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='總分')
     rank = models.IntegerField(null=True, blank=True, verbose_name='排名')
     
     joined_at = models.DateTimeField(auto_now_add=True, verbose_name='加入時間')

@@ -23,6 +23,7 @@ import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { pickLatestTodos } from "@/shared/ai/TodoList";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import { AITaskShell } from "@/features/ai-tasks/shell/AITaskShell";
 import type { TaskShellSessionOption, TaskStatus } from "@/features/ai-tasks/shell/types";
 import {
@@ -377,7 +378,7 @@ const ContestAiGradingScreen: React.FC = () => {
       },
       ...scores.map((score) => ({
         id: `score:${score}`,
-        label: t("grading.scoreFilterValue", "建議分數 {{score}}", { score }),
+        label: t("grading.scoreFilterValue", "建議分數 {{score}}", { score: formatScore(score) }),
         score,
       })),
     ];

@@ -20,6 +20,7 @@ import {
   createEmptyOpenAnswerDocument,
   isOpenAnswerDocument,
 } from "@/shared/ui/editor";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import ExamQuestionPrompt from "./ExamQuestionPrompt";
 import styles from "./ExamQuestionCard.module.scss";
@@ -311,7 +312,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
             </span>
             <span className={styles.groupStemScore}>
               {t("answering.group.totalScore", {
-                score: group.totalScore,
+                score: formatScore(group.totalScore),
                 defaultValue: "小計 {{score}} 分",
               })}
             </span>
@@ -341,7 +342,7 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
               <span>{t("answering.mark.toggle")}</span>
             </button>
           )}
-          <span className={styles.score}>{question.score} {t("scoreboard.status.pts")}</span>
+          <span className={styles.score}>{formatScore(question.score)} {t("scoreboard.status.pts")}</span>
         </div>
       </div>
 

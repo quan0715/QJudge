@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { formatScore as formatScoreValue } from "@/features/contest/utils/scoreFormat";
 import type { GradingAnswerRow, QuestionProgress } from "./gradingTypes";
 import { isCountedQuestion, computeStudentDisplayTotal } from "./scorePolicyUtils";
 import styles from "./GradingMatrixView.module.scss";
@@ -86,7 +87,7 @@ export default function GradingMatrixViewScreen({
 
   const formatScore = (value: number | null) => {
     if (value === null) return "-";
-    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+    return formatScoreValue(value);
   };
 
   const matrixSummary = useMemo(() => {
@@ -233,7 +234,7 @@ export default function GradingMatrixViewScreen({
                 ? displayNameCandidate
                 : null;
             const score = studentTotalScore.get(student.studentId) ?? 0;
-            const scoreDisplay = Number.isInteger(score) ? String(score) : score.toFixed(1);
+            const scoreDisplay = formatScoreValue(score);
 
             return (
               <div key={student.studentId} role="row" style={{ display: "contents" }}>
@@ -262,12 +263,12 @@ export default function GradingMatrixViewScreen({
                     : row.score === null
                       ? "pending"
                       : "graded";
-                  const cellValue = cellState === "graded" ? `${row?.score ?? 0}` : "";
+                  const cellValue = cellState === "graded" ? formatScoreValue(row?.score ?? 0) : "";
                   const cellTitle =
                     cellState === "graded"
                       ? t("grading.matrixCellGraded", "已批改：{{score}} / {{max}}", {
-                          score: row?.score ?? 0,
-                          max: row?.maxScore ?? question.maxScore,
+                          score: formatScoreValue(row?.score ?? 0),
+                          max: formatScoreValue(row?.maxScore ?? question.maxScore),
                         })
                       : cellState === "pending"
                         ? t("grading.matrixCellPending", "已作答，待批改")

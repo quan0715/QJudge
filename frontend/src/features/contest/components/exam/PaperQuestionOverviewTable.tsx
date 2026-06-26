@@ -11,6 +11,8 @@ import {
 } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
+import { formatScore } from "@/features/contest/utils/scoreFormat";
+
 import styles from "./PaperQuestionOverviewTable.module.scss";
 
 export interface PaperQuestionOverviewRow {
@@ -200,11 +202,11 @@ const PaperQuestionOverviewTable: React.FC<PaperQuestionOverviewTableProps> = ({
                           <TableCell key={cell.id} className={styles.colScore}>
                             {isExcluded || isRedistribute ? (
                               <span className={styles.cellScoreExcluded}>
-                                — / {src?.maxScore ?? "?"}
+                                {isRedistribute ? "— / —" : `— / ${formatScore(src?.maxScore)}`}
                               </span>
                             ) : (
                               <span className={styles.cellScoreValue}>
-                                {String(cell.value || "-")} / {src?.maxScore ?? "?"}
+                                {String(cell.value || "-")} / {formatScore(src?.maxScore)}
                                 {isFullMarks && (
                                   <span className={styles.policyBadgeFullMarks}> ★</span>
                                 )}

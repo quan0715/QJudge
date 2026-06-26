@@ -29,6 +29,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import {
   EXAM_QUESTION_TYPE_ICON as TYPE_ICON,
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
@@ -646,8 +647,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {showScoreField ? (
                   <span className={styles.score}>
                     {question.effectiveMaxScore != null && question.effectiveMaxScore !== question.score
-                      ? `${question.score}→${question.effectiveMaxScore}分`
-                      : t("examEditor.scoreUnit", { score: question.score })}
+                      ? `${formatScore(question.score)}→${formatScore(question.effectiveMaxScore)}分`
+                      : t("examEditor.scoreUnit", { score: formatScore(question.score) })}
                   </span>
                 ) : null}
                 {/* Score policy menu — always available, even when frozen */}

@@ -7,6 +7,7 @@ import {
   ListFooter,
 } from "@/shared/ui/list/ListPanel";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import QuestionStatisticsDetail from "./QuestionStatisticsDetail";
 import { useExamStatistics } from "./useExamStatistics";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -93,7 +94,7 @@ export default function ExamStatisticsPanel() {
                 {q.prompt || `Question ${q.questionIndex}`}
               </span>
               <span className={styles.questionMeta}>
-                Avg {q.averageScore.toFixed(1)}/{q.maxScore}
+                Avg {formatScore(q.averageScore)}/{formatScore(q.maxScore)}
               </span>
             </div>
           </button>

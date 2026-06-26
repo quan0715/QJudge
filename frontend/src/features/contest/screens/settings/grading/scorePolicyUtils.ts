@@ -6,6 +6,7 @@
  * `effectiveMaxScore` to compute displayed totals consistently.
  */
 import type { ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
+import { roundScore } from "@/features/contest/utils/scoreFormat";
 
 interface QuestionScoreInfo {
   maxScore: number;
@@ -46,7 +47,7 @@ export function computeEffectiveMaxTotal(
       total += q.effectiveMaxScore ?? q.maxScore;
     }
   }
-  return total;
+  return roundScore(total);
 }
 
 /**
@@ -80,5 +81,5 @@ export function computeStudentDisplayTotal(
       total += q.score;
     }
   }
-  return total;
+  return roundScore(total);
 }

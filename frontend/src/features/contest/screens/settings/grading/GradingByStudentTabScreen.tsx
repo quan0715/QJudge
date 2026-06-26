@@ -34,6 +34,7 @@ import {
   computeStudentDisplayTotal,
   isCountedQuestion,
 } from "./scorePolicyUtils";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import styles from "./GradingByStudent.module.scss";
 import mini from "./GradingMini.module.scss";
 
@@ -421,7 +422,9 @@ export default function GradingByStudentTabScreen({
                 ) : readOnly ? (
                   <Tag type="cool-gray" size="sm">{a.latestSubmissionStatus || t("grading.answered", "已作答")}</Tag>
                 ) : a.score !== null ? (
-                  <Tag type="green" size="sm">{a.score}/{a.maxScore}</Tag>
+                  <Tag type="green" size="sm">
+                    {formatScore(a.score)}/{formatScore(a.maxScore)}
+                  </Tag>
                 ) : (
                   <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
                 )}
