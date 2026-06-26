@@ -96,7 +96,7 @@ describe("AdminExamResultOverview", () => {
 
     expect(screen.getByLabelText("考試結果總覽")).toBeInTheDocument();
     expect(screen.queryByText("考試總覽")).not.toBeInTheDocument();
-    expect(screen.getByText("71.8 / 100")).toBeInTheDocument();
+    expect(screen.getByText("71.80 / 100.00")).toBeInTheDocument();
     expect(screen.queryByText("74.0")).not.toBeInTheDocument();
     expect(screen.queryByText("92%")).not.toBeInTheDocument();
     expect(screen.queryByText("不及格率")).not.toBeInTheDocument();

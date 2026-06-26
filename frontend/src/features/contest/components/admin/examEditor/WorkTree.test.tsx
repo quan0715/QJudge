@@ -80,7 +80,7 @@ describe("WorkTree", () => {
 
     expect(screen.getByText("尚無題目")).toBeInTheDocument();
     expect(screen.getByText("0 題")).toBeInTheDocument();
-    expect(screen.getByText("總分 0")).toBeInTheDocument();
+    expect(screen.getByText("總分 0.00")).toBeInTheDocument();
     expect(screen.queryByTestId("reorder-group")).not.toBeInTheDocument();
   });
 
@@ -119,6 +119,6 @@ describe("WorkTree", () => {
 
     expect(screen.getByTestId("reorder-group")).toBeInTheDocument();
     expect(screen.getByText("2 題")).toBeInTheDocument();
-    expect(screen.getByText("總分 12")).toBeInTheDocument();
+    expect(screen.getByText("總分 12.00")).toBeInTheDocument();
   });
 });

@@ -390,7 +390,7 @@ describe("AdminOverviewCommandCenter", () => {
 
     const lockedCard = screen.getByRole("button", { name: /王小明/ });
     expect(within(lockedCard).getByText("分數")).toBeInTheDocument();
-    expect(within(lockedCard).getByText("82")).toBeInTheDocument();
+    expect(within(lockedCard).getByText("82.00")).toBeInTheDocument();
     expect(within(lockedCard).queryByText("異常事件")).not.toBeInTheDocument();
     expect(within(lockedCard).getByText("@ming")).toBeInTheDocument();
     expect(within(lockedCard).getByText("在線")).toBeInTheDocument();
