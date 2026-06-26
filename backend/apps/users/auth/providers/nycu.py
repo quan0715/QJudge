@@ -6,7 +6,6 @@ from .profile import extract_avatar_url
 
 class NYCUOAuthService(BaseOAuthService):
     provider_key = "nycu"
-    provider_name = "nycu-oauth"
     authorize_url_setting = "NYCU_OAUTH_AUTHORIZE_URL"
     token_url_setting = "NYCU_OAUTH_TOKEN_URL"
     userinfo_url_setting = "NYCU_OAUTH_USERINFO_URL"

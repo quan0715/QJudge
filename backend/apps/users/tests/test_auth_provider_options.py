@@ -7,16 +7,15 @@ from apps.users.auth.provider_connections import load_provider_connections, reso
 from apps.users.auth.providers.nycu import NYCUOAuthService
 
 
-def test_get_auth_options_returns_public_provider_metadata(settings):
+def test_get_auth_options_returns_registered_provider_metadata(settings):
     settings.AUTH_EMAIL_PASSWORD_ENABLED = False
     settings.AUTH_PROVIDER_OPTIONS = [
         {
             "key": "nycu",
             "type": "oidc",
             "category": "campus",
-            "display_name": "NYCU 國立陽明交通大學",
-            "display_name_i18n_key": "auth.providers.nycu",
-            "logo_url": "/auth-providers/nycu.svg",
+            "display_name": "Should not be used",
+            "logo_url": "/wrong.svg",
             "token_url": "https://id.nycu.edu.tw/o/token/",
             "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET",
         }
@@ -33,8 +32,23 @@ def test_get_auth_options_returns_public_provider_metadata(settings):
                 "category": "campus",
                 "display_name": "NYCU 國立陽明交通大學",
                 "display_name_i18n_key": "auth.providers.nycu",
-                "logo_url": "/auth-providers/nycu.svg",
-            }
+                "logo_url": "/illustrations/nycu-logo.png",
+            },
+            {
+                "key": "github",
+                "type": "oauth2",
+                "category": "social",
+                "display_name": "GitHub",
+                "display_name_i18n_key": "auth.providers.github",
+            },
+            {
+                "key": "google",
+                "type": "oidc",
+                "category": "social",
+                "display_name": "Google",
+                "display_name_i18n_key": "auth.providers.google",
+                "logo_url": "/illustrations/google-icon.svg",
+            },
         ],
     }
 

@@ -6,8 +6,7 @@ from pathlib import Path
 from django.test import SimpleTestCase
 
 from apps.users.auth.contracts import NormalizedQAuthIdentity, ProviderTokenSet
-from apps.users.auth.providers import BaseOAuthService
-from apps.users.auth.providers.github import GitHubOAuthService
+from apps.users.auth.providers import BaseOAuthService, GitHubOAuthService, GoogleOAuthService, NYCUOAuthService
 
 AUTH_DIR = Path(__file__).resolve().parents[1] / "auth"
 
@@ -45,6 +44,15 @@ class AuthModuleBoundaryTests(SimpleTestCase):
 
     def test_base_oauth_service_does_not_link_users_directly(self):
         self.assertFalse(hasattr(BaseOAuthService, "get_or_create_user"))
+
+    def test_provider_services_use_single_provider_key_contract(self):
+        for service in [BaseOAuthService, GitHubOAuthService, GoogleOAuthService, NYCUOAuthService]:
+            self.assertFalse(hasattr(service, "provider_name"))
+
+    def test_provider_registry_does_not_keep_parallel_provider_dict(self):
+        registry = importlib.import_module("apps.users.auth.provider_registry")
+
+        self.assertFalse(hasattr(registry, "OAUTH_PROVIDERS"))
 
     def test_provider_service_normalizes_identity_and_token_set(self):
         oauth_data = {

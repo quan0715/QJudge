@@ -320,7 +320,7 @@ def test_change_password_mismatch(api_client, user_factory):
 @pytest.mark.django_db
 def test_change_password_oauth_user(api_client, user_factory):
     """Test that OAuth users cannot change password."""
-    user = user_factory(auth_provider="nycu-oauth")
+    user = user_factory(auth_provider="nycu")
     api_client.force_authenticate(user=user)
     
     response = api_client.post(

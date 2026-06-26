@@ -17,7 +17,6 @@ class BaseOAuthService(ABC):
     """Abstract base for OAuth provider services."""
 
     provider_key: str = ""
-    provider_name: str = ""
     authorize_url_setting: str = ""
     token_url_setting: str = ""
     userinfo_url_setting: str = ""
@@ -56,12 +55,12 @@ class BaseOAuthService(ABC):
         oauth_avatar_url = user_info.get("avatar_url") or cls._default_avatar_url(user_info)
         logger.info(
             "oauth profile sync provider=%s has_avatar=%s",
-            cls.provider_name,
+            cls.provider_key,
             bool(oauth_avatar_url),
         )
 
         return NormalizedQAuthIdentity(
-            provider_key=cls.provider_name,
+            provider_key=cls.provider_key,
             provider_subject=oauth_id,
             email=user_info.get("email"),
             username=user_info.get("username") or "",
@@ -133,12 +132,8 @@ class BaseOAuthService(ABC):
         ...
 
     @classmethod
-    def _connection_key(cls) -> str:
-        return cls.provider_key or cls.provider_name
-
-    @classmethod
     def _provider_connection(cls):
-        return load_provider_connections().get(cls._connection_key())
+        return load_provider_connections().get(cls.provider_key)
 
     @classmethod
     def _provider_url(cls, connection_attr: str, setting_name: str) -> str:
