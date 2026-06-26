@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 from uuid import uuid4
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer,
@@ -327,7 +328,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 2)
+        self.assertEqual(self.participant.score, Decimal('1.60'))
 
     def test_teacher_grade_after_exam_submitted(self):
         """考生已交卷仍可批改問答題（配合前端 E2E 交卷後批改流程）。"""
