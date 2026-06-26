@@ -6,19 +6,26 @@ import base64
 import json
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
+from apps.users.auth.account_linking import link_qauth_identity
+from apps.users.auth.provider_registry import get_oauth_service
+from apps.users.auth.providers import GitHubOAuthService, GoogleOAuthService, NYCUOAuthService
 from apps.users.models import User, UserProfile
 from apps.users.services import (
     EmailAuthService,
-    GitHubOAuthService,
-    GoogleOAuthService,
     JWTService,
-    NYCUOAuthService,
     get_auth_options,
-    get_oauth_service,
 )
+
+
+def link_oauth_user(service, user_info, access_token=""):
+    oauth_data = {"access_token": access_token, "user_info": user_info}
+    return link_qauth_identity(
+        service.normalize_identity(oauth_data),
+        service.provider_token_set(oauth_data),
+    )
 
 
 class JWTServiceTests(TestCase):
@@ -113,7 +120,7 @@ class EmailAuthServiceTests(TestCase):
         self.assertIsNone(verified)
 
 
-class AuthOptionsTests(TestCase):
+class AuthOptionsTests(SimpleTestCase):
     @patch.dict(
         os.environ,
         {
@@ -121,9 +128,10 @@ class AuthOptionsTests(TestCase):
                 [
                     {
                         "key": "nycu",
+                        "type": "oidc",
                         "category": "campus",
                         "display_name": "NYCU 國立陽明交通大學",
-                        "supports_registration": True,
+                        "display_name_i18n_key": "auth.providers.nycu",
                     }
                 ]
             )
@@ -137,9 +145,10 @@ class AuthOptionsTests(TestCase):
             [
                 {
                     "key": "nycu",
+                    "type": "oidc",
                     "category": "campus",
                     "display_name": "NYCU 國立陽明交通大學",
-                    "supports_registration": True,
+                    "display_name_i18n_key": "auth.providers.nycu",
                 }
             ],
         )
@@ -156,17 +165,19 @@ class AuthOptionsTests(TestCase):
         AUTH_PROVIDER_OPTIONS=[
             {
                 "key": "nycu",
+                "type": "oidc",
                 "category": "campus",
                 "display_name": "NYCU 國立陽明交通大學",
+                "display_name_i18n_key": "auth.providers.nycu",
                 "logo_url": "/auth-providers/nycu.svg",
-                "supports_registration": True,
                 "issuer": "https://id.nycu.edu.tw",
+                "token_url": "https://id.nycu.edu.tw/o/token/",
+                "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET",
             },
             {
                 "key": "missing",
                 "category": "campus",
                 "display_name": "Missing University",
-                "supports_registration": True,
             },
         ],
     )
@@ -179,12 +190,75 @@ class AuthOptionsTests(TestCase):
             [
                 {
                     "key": "nycu",
+                    "type": "oidc",
                     "category": "campus",
                     "display_name": "NYCU 國立陽明交通大學",
+                    "display_name_i18n_key": "auth.providers.nycu",
                     "logo_url": "/auth-providers/nycu.svg",
-                    "supports_registration": True,
                 }
             ],
+        )
+
+    @patch.dict(os.environ, {"NYCU_OAUTH_CLIENT_ID": "client-id", "NYCU_OAUTH_CLIENT_SECRET": "client-secret"})
+    def test_provider_connections_are_loaded_server_side_with_env_credentials(self):
+        from apps.users.auth.provider_connections import load_provider_connections, resolve_provider_credentials
+
+        raw_connections = json.dumps(
+            [
+                {
+                    "key": "nycu",
+                    "type": "oidc",
+                    "issuer_url": "https://id.nycu.edu.tw",
+                    "scope": "openid email profile",
+                    "client_id_env": "NYCU_OAUTH_CLIENT_ID",
+                    "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET",
+                    "claim_mapping": {
+                        "subject": "sub",
+                        "email": "email",
+                        "name": "name",
+                        "avatar_url": "picture",
+                    },
+                }
+            ]
+        )
+
+        connections = load_provider_connections(raw=raw_connections)
+        nycu = connections["nycu"]
+
+        self.assertEqual(nycu.type, "oidc")
+        self.assertEqual(nycu.issuer_url, "https://id.nycu.edu.tw")
+        self.assertEqual(nycu.claim_mapping["email"], "email")
+        self.assertEqual(resolve_provider_credentials(nycu), ("client-id", "client-secret"))
+
+    @override_settings(
+        AUTH_PROVIDER_OPTIONS=[
+            {
+                "key": "github",
+                "type": "oauth2",
+                "category": "social",
+                "display_name": "GitHub",
+                "display_name_i18n_key": "auth.providers.github",
+                "logo_url": "/auth-providers/github.svg",
+                "supports_registration": True,
+                "token_url": "https://github.com/login/oauth/access_token",
+                "client_secret_env": "GITHUB_OAUTH_CLIENT_SECRET",
+            }
+        ]
+    )
+    def test_auth_options_never_exposes_provider_connection_details(self):
+        options = get_auth_options()
+        provider = options["providers"][0]
+
+        self.assertEqual(
+            provider,
+            {
+                "key": "github",
+                "type": "oauth2",
+                "category": "social",
+                "display_name": "GitHub",
+                "display_name_i18n_key": "auth.providers.github",
+                "logo_url": "/auth-providers/github.svg",
+            },
         )
 
 
@@ -242,7 +316,7 @@ class NYCUOAuthServiceTests(TestCase):
         with self.assertRaisesMessage(Exception, "Failed to exchange authorization code"):
             NYCUOAuthService.exchange_code("bad-code", "http://localhost/callback")
 
-    def test_get_or_create_user_updates_existing_oauth_user_without_overwriting_username(self):
+    def test_account_linking_updates_existing_oauth_user_without_overwriting_username(self):
         existing = User.objects.create_user(
             username="legacy-name",
             email="nycu@example.com",
@@ -250,13 +324,12 @@ class NYCUOAuthServiceTests(TestCase):
             auth_provider="nycu-oauth",
             email_verified=False,
         )
-        result = NYCUOAuthService.get_or_create_user(
+        result = link_oauth_user(
+            NYCUOAuthService,
             {
-                "user_info": {
-                    "username": "new-name",
-                    "email": "nycu@example.com",
-                }
-            }
+                "username": "new-name",
+                "email": "nycu@example.com",
+            },
         )
         existing.refresh_from_db()
 
@@ -264,20 +337,19 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertEqual(existing.username, "legacy-name")
         self.assertTrue(existing.email_verified)
 
-    def test_get_or_create_user_creates_new_user_with_unique_username(self):
+    def test_account_linking_creates_new_user_with_unique_username(self):
         User.objects.create_user(
             username="taken-name",
             email="other@example.com",
             password="password123",
             auth_provider="email",
         )
-        user = NYCUOAuthService.get_or_create_user(
+        user = link_oauth_user(
+            NYCUOAuthService,
             {
-                "user_info": {
-                    "username": "taken-name",
-                    "email": "new-nycu@example.com",
-                }
-            }
+                "username": "taken-name",
+                "email": "new-nycu@example.com",
+            },
         )
         self.assertNotEqual(user.username, "taken-name")
         self.assertTrue(user.username.startswith("taken-name"))
@@ -306,23 +378,21 @@ class AccountLinkingTests(TestCase):
             email_verified=False,
         )
 
-        nycu_user = NYCUOAuthService.get_or_create_user(
+        nycu_user = link_oauth_user(
+            NYCUOAuthService,
             {
-                "user_info": {
-                    "username": "nycu-name",
-                    "email": "multi-provider@example.com",
-                    "oauth_id": "nycu-sub-1",
-                }
-            }
+                "username": "nycu-name",
+                "email": "multi-provider@example.com",
+                "oauth_id": "nycu-sub-1",
+            },
         )
-        github_user = GitHubOAuthService.get_or_create_user(
+        github_user = link_oauth_user(
+            GitHubOAuthService,
             {
-                "user_info": {
-                    "username": "gh-name",
-                    "email": "multi-provider@example.com",
-                    "oauth_id": "12345",
-                }
-            }
+                "username": "gh-name",
+                "email": "multi-provider@example.com",
+                "oauth_id": "12345",
+            },
         )
 
         self.assertEqual(nycu_user.id, existing.id)
@@ -349,8 +419,9 @@ class AccountLinkingTests(TestCase):
             auth_provider="email",
             email_verified=False,
         )
-        result = NYCUOAuthService.get_or_create_user(
-            {"user_info": {"username": "nycu-name", "email": "shared@example.com"}}
+        result = link_oauth_user(
+            NYCUOAuthService,
+            {"username": "nycu-name", "email": "shared@example.com"},
         )
         existing.refresh_from_db()
 
@@ -367,8 +438,9 @@ class AccountLinkingTests(TestCase):
             password="password123",
             auth_provider="nycu-oauth",
         )
-        result = GitHubOAuthService.get_or_create_user(
-            {"user_info": {"username": "gh-user", "email": "shared@example.com", "oauth_id": "12345"}}
+        result = link_oauth_user(
+            GitHubOAuthService,
+            {"username": "gh-user", "email": "shared@example.com", "oauth_id": "12345"},
         )
         existing.refresh_from_db()
 
@@ -385,8 +457,9 @@ class AccountLinkingTests(TestCase):
             password="password123",
             auth_provider="github",
         )
-        result = GoogleOAuthService.get_or_create_user(
-            {"user_info": {"username": "Google Name", "email": "shared@example.com", "oauth_id": "google-sub"}}
+        result = link_oauth_user(
+            GoogleOAuthService,
+            {"username": "Google Name", "email": "shared@example.com", "oauth_id": "google-sub"},
         )
         existing.refresh_from_db()
 
@@ -405,15 +478,14 @@ class AccountLinkingTests(TestCase):
         existing.profile.avatar_source = "manual"
         existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
 
-        result = GitHubOAuthService.get_or_create_user(
+        result = link_oauth_user(
+            GitHubOAuthService,
             {
-                "user_info": {
-                    "username": "gh-user",
-                    "email": "avatar-shared@example.com",
-                    "oauth_id": "12345",
-                    "avatar_url": "https://avatars.githubusercontent.com/u/12345",
-                }
-            }
+                "username": "gh-user",
+                "email": "avatar-shared@example.com",
+                "oauth_id": "12345",
+                "avatar_url": "https://avatars.githubusercontent.com/u/12345",
+            },
         )
         self.assertEqual(result.id, existing.id)
         existing.profile.refresh_from_db()
@@ -431,15 +503,14 @@ class AccountLinkingTests(TestCase):
         existing.profile.avatar_source = "oauth"
         existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
 
-        result = GoogleOAuthService.get_or_create_user(
+        result = link_oauth_user(
+            GoogleOAuthService,
             {
-                "user_info": {
-                    "username": "Google User",
-                    "email": "oauth-avatar@example.com",
-                    "oauth_id": "google-sub",
-                    "avatar_url": "https://lh3.googleusercontent.com/new-avatar",
-                }
-            }
+                "username": "Google User",
+                "email": "oauth-avatar@example.com",
+                "oauth_id": "google-sub",
+                "avatar_url": "https://lh3.googleusercontent.com/new-avatar",
+            },
         )
         self.assertEqual(result.id, existing.id)
         existing.profile.refresh_from_db()
@@ -460,15 +531,14 @@ class AccountLinkingTests(TestCase):
         existing.profile.avatar_source = "manual"
         existing.profile.save(update_fields=["avatar_url", "avatar_source", "updated_at"])
 
-        result = GoogleOAuthService.get_or_create_user(
+        result = link_oauth_user(
+            GoogleOAuthService,
             {
-                "user_info": {
-                    "username": "Google User",
-                    "email": "manual-empty@example.com",
-                    "oauth_id": "google-sub-empty",
-                    "avatar_url": "https://lh3.googleusercontent.com/from-oauth",
-                }
-            }
+                "username": "Google User",
+                "email": "manual-empty@example.com",
+                "oauth_id": "google-sub-empty",
+                "avatar_url": "https://lh3.googleusercontent.com/from-oauth",
+            },
         )
         self.assertEqual(result.id, existing.id)
         existing.profile.refresh_from_db()

@@ -7,10 +7,11 @@ from .provider_registry import OAUTH_PROVIDERS
 
 PUBLIC_AUTH_PROVIDER_FIELDS = (
     "key",
+    "type",
     "category",
     "display_name",
+    "display_name_i18n_key",
     "logo_url",
-    "supports_registration",
 )
 
 

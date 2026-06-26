@@ -41,22 +41,25 @@ const authOptions = {
     providers: [
       {
         key: "school-x",
+        type: "oidc",
         category: "campus",
         display_name: "Test University",
+        display_name_i18n_key: "auth.providers.schoolX",
         logo_url: "/auth-providers/test.svg",
-        supports_registration: true,
       },
       {
         key: "github",
+        type: "oauth2",
         category: "social",
         display_name: "GitHub",
-        supports_registration: true,
+        display_name_i18n_key: "auth.providers.github",
       },
       {
         key: "google",
+        type: "oidc",
         category: "social",
         display_name: "Google",
-        supports_registration: true,
+        display_name_i18n_key: "auth.providers.google",
       },
     ],
   },
@@ -252,7 +255,7 @@ describe("auth provider options", () => {
     expect(screen.getByTestId("current-path")).toHaveTextContent("/register");
   });
 
-  it("filters registration campus providers by registration support", async () => {
+  it("shows the same campus providers on registration SSO", async () => {
     mockGetAuthOptions.mockResolvedValue({
       ...authOptions,
       data: {
@@ -260,10 +263,12 @@ describe("auth provider options", () => {
         providers: [
           ...authOptions.data.providers,
           {
-            key: "school-login-only",
+            key: "school-y",
+            type: "oidc",
             category: "campus",
-            display_name: "Login Only University",
-            supports_registration: false,
+            display_name: "Second University",
+            display_name_i18n_key: "auth.providers.school-y",
+            logo_url: "",
           },
         ],
       },
@@ -276,6 +281,6 @@ describe("auth provider options", () => {
     );
 
     expect(await screen.findByText("Test University")).toBeInTheDocument();
-    expect(screen.queryByText("Login Only University")).not.toBeInTheDocument();
+    expect(screen.getByText("Second University")).toBeInTheDocument();
   });
 });

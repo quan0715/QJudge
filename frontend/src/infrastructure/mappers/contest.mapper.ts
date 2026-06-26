@@ -27,10 +27,7 @@ import type {
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
-import {
-  FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
-  mapAnticheatDevicePolicyDto,
-} from "./contest.anticheat.mapper";
+import { mapAnticheatDevicePolicyDto } from "./contest.anticheat.mapper";
 
 export { mapContestAnticheatConfigDto } from "./contest.anticheat.mapper";
 export {
@@ -106,7 +103,10 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
       typeof dto.warning_timeout_seconds === "number"
         ? dto.warning_timeout_seconds
         : 20,
-    screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
+    screenShareRecoveryGraceMs:
+      typeof dto.screen_share_recovery_grace_ms === "number"
+        ? dto.screen_share_recovery_grace_ms
+        : undefined,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
@@ -549,10 +549,6 @@ export function mapContestUpdateRequestToDto(
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
     warning_timeout_seconds: request.warningTimeoutSeconds,
-    screen_share_recovery_grace_ms:
-      request.screenShareRecoveryGraceMs === undefined
-        ? undefined
-        : FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     max_cheat_warnings: request.maxCheatWarnings,

@@ -383,23 +383,26 @@ AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").l
 DEFAULT_AUTH_PROVIDER_OPTIONS = [
     {
         "key": "nycu",
+        "type": "oidc",
         "category": "campus",
         "display_name": "NYCU 國立陽明交通大學",
+        "display_name_i18n_key": "auth.providers.nycu",
         "logo_url": "/illustrations/nycu-logo.png",
-        "supports_registration": True,
     },
     {
         "key": "github",
+        "type": "oauth2",
         "category": "social",
         "display_name": "GitHub",
-        "supports_registration": True,
+        "display_name_i18n_key": "auth.providers.github",
     },
     {
         "key": "google",
+        "type": "oidc",
         "category": "social",
         "display_name": "Google",
+        "display_name_i18n_key": "auth.providers.google",
         "logo_url": "/illustrations/google-icon.svg",
-        "supports_registration": True,
     },
 ]
 
@@ -421,6 +424,7 @@ def _load_auth_provider_options():
 
 
 AUTH_PROVIDER_OPTIONS = _load_auth_provider_options()
+QAUTH_PROVIDER_CONNECTIONS_JSON = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "[]")
 
 # Judge Engine settings
 JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"

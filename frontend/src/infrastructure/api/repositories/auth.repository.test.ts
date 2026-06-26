@@ -95,10 +95,11 @@ describe("auth repository admin endpoints", () => {
             providers: [
               {
                 key: "nycu",
+                type: "oidc",
                 category: "campus",
                 display_name: "NYCU 國立陽明交通大學",
+                display_name_i18n_key: "auth.providers.nycu",
                 logo_url: "/auth-providers/nycu.svg",
-                supports_registration: true,
               },
             ],
           },

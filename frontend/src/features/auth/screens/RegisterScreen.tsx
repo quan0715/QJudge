@@ -33,7 +33,7 @@ const RegisterPage = () => {
   const [providerLoading, setProviderLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const registrationProviders = options.providers.filter((provider) => provider.supports_registration);
+  const registrationProviders = options.providers;
   const socialRegistrationProviders = registrationProviders.filter((provider) => provider.category === "social");
   const hasCampusRegistrationProviders = registrationProviders.some((provider) => provider.category === "campus");
 

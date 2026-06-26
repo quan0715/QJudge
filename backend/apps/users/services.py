@@ -11,15 +11,6 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .auth.options import get_auth_options, is_email_password_auth_enabled
-# Compatibility exports: new code should import OAuth providers from apps.users.auth.
-from .auth.legacy import (
-    BaseOAuthService,
-    GitHubOAuthService,
-    GoogleOAuthService,
-    NYCUOAuthService,
-    OAUTH_PROVIDERS,
-    get_oauth_service,
-)
 from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)
