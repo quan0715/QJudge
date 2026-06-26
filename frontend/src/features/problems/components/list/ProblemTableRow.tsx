@@ -14,6 +14,7 @@ import {
 } from "@carbon/icons-react";
 import { Link } from "react-router-dom";
 import { DifficultyBadge } from "@/shared/ui/tag";
+import { formatScore } from "@/shared/utils/scoreFormat";
 import ProblemTagList from "./ProblemTagList";
 import type { ProblemRowData } from "./ProblemTable";
 
@@ -59,7 +60,7 @@ const ProblemTableRow: React.FC<ProblemTableRowProps> = ({
           <TableCell>
             <ProblemTagList tags={problem.tags} />
           </TableCell>
-          <TableCell>{problem.score}</TableCell>
+          <TableCell>{formatScore(problem.score)}</TableCell>
           {onAction && (
             <TableCell>
               <div style={{ display: "flex", gap: "0.25rem" }}>

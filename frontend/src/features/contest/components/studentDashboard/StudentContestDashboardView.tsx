@@ -53,6 +53,7 @@ import {
   type ExamAnswer,
   type ExamAnswerDetail,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -434,7 +435,7 @@ export default function StudentContestDashboard({
   const scoreDisplay = contest.resultsPublished
     ? progressSummary.totalScore === null
       ? t("studentDashboard.results.published", "成績已發布")
-      : `${progressSummary.totalScore} / ${progressSummary.maxScore}`
+      : `${formatScore(progressSummary.totalScore)} / ${formatScore(progressSummary.maxScore)}`
     : t("studentDashboard.results.unpublished", "尚未發布");
   const afterPhaseValue =
     contest.contestType === "paper_exam" && paperData.loading
@@ -718,7 +719,7 @@ export default function StudentContestDashboard({
                 </div>
                 <div className={styles.recordMeta}>
                   {tr("studentDashboard.records.fullScore", "滿分 {{score}}", {
-                    score: problem.score ?? 0,
+                    score: formatScore(problem.score ?? 0),
                   })}
                 </div>
               </div>
@@ -1160,8 +1161,8 @@ export default function StudentContestDashboard({
                       "studentDashboard.summary.averageScore",
                       "平均 {{average}} / {{max}}",
                       {
-                        average: scoreSummary.summary.average_score.toFixed(1),
-                        max: scoreSummary.summary.max_total_score,
+                        average: formatScore(scoreSummary.summary.average_score),
+                        max: formatScore(scoreSummary.summary.max_total_score),
                       },
                     )
                   : "—"

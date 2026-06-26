@@ -1,5 +1,6 @@
 import type { ExamQuestion, ExamQuestionType } from "@/core/entities/contest.entity";
 import type { ExamAnswerDto } from "@/infrastructure/api/repositories/exam.repository";
+import { roundScore } from "@/features/contest/utils/scoreFormat";
 import type { DashboardMockData, QuestionSummaryMock, QuestionDetailMock } from "./contestResultDashboard.mock";
 
 interface TransformInput {
@@ -65,7 +66,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
       maxScore: examQ.score,
       answerCount,
       missingCount,
-      averageScore: Math.round(qAvg * 10) / 10,
+      averageScore: roundScore(qAvg),
       scoreRate,
       zeroRate,
       fullRate,
@@ -131,7 +132,7 @@ export function transformToDashboardData(input: TransformInput): DashboardMockDa
       resultsPublished: input.resultsPublished,
     },
     summary: {
-      averageScore: Math.round(averageScore * 10) / 10,
+      averageScore: roundScore(averageScore),
       medianScore,
       maxTotalScore,
     },

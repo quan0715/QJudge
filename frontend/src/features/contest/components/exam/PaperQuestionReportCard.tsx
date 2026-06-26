@@ -6,6 +6,7 @@ import type {
   OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 import AnswerDisplay from "@/features/contest/components/exam/AnswerDisplay";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 
 import styles from "./PaperQuestionReportCard.module.scss";
@@ -73,6 +74,10 @@ export default function PaperQuestionReportCard({
   const isExcluded = scorePolicy === "excluded";
   const isFullMarks = scorePolicy === "full_marks";
   const isRedistribute = scorePolicy === "redistribute";
+  const scoreText = isRedistribute
+    ? "— / —"
+    : `${isExcluded ? "—" : formatScore(score)} / ${formatScore(maxScore)}`;
+
   return (
     <article className={styles.root}>
       <div className={styles.header}>
@@ -85,7 +90,7 @@ export default function PaperQuestionReportCard({
           </div>
           {showGrading ? (
             <div className={styles.meta}>
-              {isExcluded || isRedistribute ? "—" : (score ?? "-")} / {maxScore}
+              {scoreText}
               {gradedByUsername ? ` · ${gradedByUsername}` : ""}
             </div>
           ) : null}

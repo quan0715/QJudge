@@ -67,19 +67,7 @@ class EnhancedAuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error']['code'], 'UNKNOWN_PROVIDER')
 
-    @override_settings(
-        AUTH_EMAIL_PASSWORD_ENABLED=False,
-        AUTH_PROVIDER_OPTIONS=[
-            {
-                "key": "nycu",
-                "type": "oidc",
-                "category": "campus",
-                "display_name": "NYCU 國立陽明交通大學",
-                "display_name_i18n_key": "auth.providers.nycu",
-                "logo_url": "/auth-providers/nycu.svg",
-            }
-        ],
-    )
+    @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
     def test_auth_options_returns_login_configuration(self):
         response = self.client.get(self.auth_options_url)
 
@@ -96,8 +84,23 @@ class EnhancedAuthTests(APITestCase):
                         "category": "campus",
                         "display_name": "NYCU 國立陽明交通大學",
                         "display_name_i18n_key": "auth.providers.nycu",
-                        "logo_url": "/auth-providers/nycu.svg",
-                    }
+                        "logo_url": "/illustrations/nycu-logo.png",
+                    },
+                    {
+                        "key": "github",
+                        "type": "oauth2",
+                        "category": "social",
+                        "display_name": "GitHub",
+                        "display_name_i18n_key": "auth.providers.github",
+                    },
+                    {
+                        "key": "google",
+                        "type": "oidc",
+                        "category": "social",
+                        "display_name": "Google",
+                        "display_name_i18n_key": "auth.providers.google",
+                        "logo_url": "/illustrations/google-icon.svg",
+                    },
                 ],
             },
         )

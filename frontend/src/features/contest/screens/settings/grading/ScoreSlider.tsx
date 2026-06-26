@@ -11,7 +11,7 @@ export interface ScoreSliderProps {
 
 /** Format score: integers show as "3", halves as "3.5". */
 const formatScore = (v: number) =>
-  Number.isInteger(v) ? String(v) : v.toFixed(1);
+  v.toFixed(2);
 
 /** Map score ratio (0–1) → fill color using Carbon tokens + color-mix.
  *  0 = gray, 0–25% red→yellow, 25–75% yellow→green, 75–100% green deepens. */

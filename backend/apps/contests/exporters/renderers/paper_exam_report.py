@@ -162,9 +162,8 @@ class PaperExamReportRenderer(BaseRenderer):
         breakdown = scoring_ctx['breakdown']
 
         correct_rate = (breakdown.correct_count / breakdown.graded_count * 100) if breakdown.graded_count > 0 else 0
-        total = breakdown.total_score
-        score_display = int(total) if total == int(total) else f"{total:.1f}"
-        max_score = int(breakdown.max_total_score) if breakdown.max_total_score == int(breakdown.max_total_score) else f"{breakdown.max_total_score:.1f}"
+        score_display = self._fmt_score(breakdown.total_score)
+        max_score = self._fmt_score(breakdown.max_total_score)
 
         score_label = self.get_label('total_score')
         rate_label = self.get_label('correct_rate')
@@ -215,7 +214,10 @@ class PaperExamReportRenderer(BaseRenderer):
 
             if self.include_grading:
                 if q.score_policy == ExamQuestionScorePolicy.EXCLUDED:
-                    score_display = f'<span style="text-decoration:line-through;color:#6f6f6f;">- / {q.score}</span>'
+                    score_display = (
+                        f'<span style="text-decoration:line-through;color:#6f6f6f;">'
+                        f'- / {self._fmt_score(q.score)}</span>'
+                    )
                     status = {"icon": "—", "status_class": "status-excluded", "color": "#6f6f6f"}
                 elif q.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
                     score_display = f'<span style="color:#6f6f6f;">— / —</span>'
@@ -319,13 +321,13 @@ class PaperExamReportRenderer(BaseRenderer):
         if question.score_policy == ExamQuestionScorePolicy.EXCLUDED:
             score_annotation = (
                 f'<span class="question-max-score" style="text-decoration:line-through;color:#6f6f6f;">'
-                f'（{question.score}{points_label}）</span>'
+                f'（{self._fmt_score(question.score)}{points_label}）</span>'
                 f' <span style="color:#da1e28;font-size:0.8em;">({excluded_label})</span>'
             )
         elif question.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
             score_annotation = (
                 f'<span class="question-max-score" style="color:#eb6200;">'
-                f'（{question.score}{points_label} · {redistribute_label}）</span>'
+                f'（{self._fmt_score(question.score)}{points_label} · {redistribute_label}）</span>'
             )
         elif question.score_policy == ExamQuestionScorePolicy.FULL_MARKS:
             eff_str = self._fmt_score(eff_max)
@@ -337,11 +339,11 @@ class PaperExamReportRenderer(BaseRenderer):
             eff_str = self._fmt_score(eff_max)
             score_annotation = (
                 f'<span class="question-max-score">'
-                f'（{question.score}→{eff_str}{points_label}）</span>'
+                f'（{self._fmt_score(question.score)}→{eff_str}{points_label}）</span>'
             )
         else:
             score_annotation = (
-                f'<span class="question-max-score">（{question.score}{points_label}）</span>'
+                f'<span class="question-max-score">（{self._fmt_score(question.score)}{points_label}）</span>'
             )
 
         lines.append('<div class="question-heading">')
@@ -355,7 +357,10 @@ class PaperExamReportRenderer(BaseRenderer):
 
         if self.include_grading:
             if question.score_policy == ExamQuestionScorePolicy.EXCLUDED:
-                score_display = f'<span style="text-decoration:line-through;color:#6f6f6f;">- / {question.score}</span>'
+                score_display = (
+                    f'<span style="text-decoration:line-through;color:#6f6f6f;">'
+                    f'- / {self._fmt_score(question.score)}</span>'
+                )
                 score_color = '#6f6f6f'
                 status = {"icon": "—", "status_class": "status-excluded", "label": excluded_label}
             elif question.score_policy == ExamQuestionScorePolicy.REDISTRIBUTE:
@@ -418,9 +423,8 @@ class PaperExamReportRenderer(BaseRenderer):
 
     @staticmethod
     def _fmt_score(value) -> str:
-        """Format a numeric score: int if whole, one decimal otherwise."""
-        f = float(value)
-        return str(int(f)) if f == int(f) else f"{f:.1f}"
+        """Format a numeric score at canonical UI precision."""
+        return f"{float(value):.2f}"
 
     @staticmethod
     def _get_snapshot_value(answer, key, fallback=None):

@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties, type KeyboardEvent } from "react";
 import { Checkmark } from "@carbon/icons-react";
 import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
+import { formatScore } from "@/features/contest/utils/scoreFormat";
 import type { GradingAnswerRow } from "./gradingTypes";
 import styles from "./GradingCardViewOnly.module.scss";
 
@@ -61,17 +62,17 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
   const hasOriginalScore = row.score != null;
   const hasOriginalFeedback = !!row.feedback?.trim();
 
-  const aiScoreText = aiScore == null ? "-" : `${aiScore}`;
+  const aiScoreText = aiScore == null ? "-" : formatScore(aiScore);
   const scoreDelta =
     aiScore != null && hasOriginalScore && row.score != null ? aiScore - row.score : null;
   const deltaLabel =
     scoreDelta == null
       ? null
       : scoreDelta === 0
-      ? "±0"
+      ? "±0.00"
       : scoreDelta > 0
-      ? `+${scoreDelta}`
-      : `${scoreDelta}`;
+      ? `+${formatScore(scoreDelta)}`
+      : `-${formatScore(Math.abs(scoreDelta))}`;
   const deltaClass =
     scoreDelta == null || scoreDelta === 0
       ? styles.deltaZero
@@ -150,7 +151,7 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
               {t("grading.originalScore", "原評分")}
             </span>
             <span className={styles.originalScore}>
-              {hasOriginalScore ? `${row.score} / ${row.maxScore}` : "-"}
+              {hasOriginalScore ? `${formatScore(row.score)} / ${formatScore(row.maxScore)}` : "-"}
             </span>
             <span className={styles.originalLabel}>
               {t("grading.originalFeedback", "原評語")}
@@ -193,7 +194,7 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
                     ))}
                   </span>
                 )}
-                <span className={styles.aiScoreUnit}> / {row.maxScore}</span>
+                <span className={styles.aiScoreUnit}> / {formatScore(row.maxScore)}</span>
                 {deltaLabel ? (
                   <span className={`${styles.aiScoreDelta} ${deltaClass}`}>{deltaLabel}</span>
                 ) : null}

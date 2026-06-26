@@ -6307,13 +6307,13 @@ components:
     AuthProviderEnum:
       enum:
       - email
-      - nycu-oauth
+      - nycu
       - google
       - github
       type: string
       description: |-
         * `email` - Email/Password
-        * `nycu-oauth` - NYCU OAuth
+        * `nycu` - NYCU OAuth
         * `google` - Google
         * `github` - GitHub
     CategoryEnum:

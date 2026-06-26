@@ -121,44 +121,12 @@ class EmailAuthServiceTests(TestCase):
 
 
 class AuthOptionsTests(SimpleTestCase):
-    @patch.dict(
-        os.environ,
-        {
-            "AUTH_PROVIDER_OPTIONS_JSON": json.dumps(
-                [
-                    {
-                        "key": "nycu",
-                        "type": "oidc",
-                        "category": "campus",
-                        "display_name": "NYCU 國立陽明交通大學",
-                        "display_name_i18n_key": "auth.providers.nycu",
-                    }
-                ]
-            )
-        },
-    )
-    def test_auth_provider_options_can_be_loaded_from_env_json(self):
-        from config.settings.base import _load_auth_provider_options
+    def test_auth_provider_options_are_not_loaded_from_settings_module(self):
+        import config.settings.base as base_settings
 
-        self.assertEqual(
-            _load_auth_provider_options(),
-            [
-                {
-                    "key": "nycu",
-                    "type": "oidc",
-                    "category": "campus",
-                    "display_name": "NYCU 國立陽明交通大學",
-                    "display_name_i18n_key": "auth.providers.nycu",
-                }
-            ],
-        )
-
-    @patch.dict(os.environ, {"AUTH_PROVIDER_OPTIONS_JSON": "{}"})
-    def test_auth_provider_options_env_json_must_be_array(self):
-        from config.settings.base import _load_auth_provider_options
-
-        with self.assertRaises(RuntimeError):
-            _load_auth_provider_options()
+        self.assertFalse(hasattr(base_settings, "AUTH_PROVIDER_OPTIONS"))
+        self.assertFalse(hasattr(base_settings, "DEFAULT_AUTH_PROVIDER_OPTIONS"))
+        self.assertFalse(hasattr(base_settings, "_load_auth_provider_options"))
 
     @override_settings(
         AUTH_EMAIL_PASSWORD_ENABLED=False,
@@ -194,8 +162,23 @@ class AuthOptionsTests(SimpleTestCase):
                     "category": "campus",
                     "display_name": "NYCU 國立陽明交通大學",
                     "display_name_i18n_key": "auth.providers.nycu",
-                    "logo_url": "/auth-providers/nycu.svg",
-                }
+                    "logo_url": "/illustrations/nycu-logo.png",
+                },
+                {
+                    "key": "github",
+                    "type": "oauth2",
+                    "category": "social",
+                    "display_name": "GitHub",
+                    "display_name_i18n_key": "auth.providers.github",
+                },
+                {
+                    "key": "google",
+                    "type": "oidc",
+                    "category": "social",
+                    "display_name": "Google",
+                    "display_name_i18n_key": "auth.providers.google",
+                    "logo_url": "/illustrations/google-icon.svg",
+                },
             ],
         )
 
@@ -230,24 +213,9 @@ class AuthOptionsTests(SimpleTestCase):
         self.assertEqual(nycu.claim_mapping["email"], "email")
         self.assertEqual(resolve_provider_credentials(nycu), ("client-id", "client-secret"))
 
-    @override_settings(
-        AUTH_PROVIDER_OPTIONS=[
-            {
-                "key": "github",
-                "type": "oauth2",
-                "category": "social",
-                "display_name": "GitHub",
-                "display_name_i18n_key": "auth.providers.github",
-                "logo_url": "/auth-providers/github.svg",
-                "supports_registration": True,
-                "token_url": "https://github.com/login/oauth/access_token",
-                "client_secret_env": "GITHUB_OAUTH_CLIENT_SECRET",
-            }
-        ]
-    )
     def test_auth_options_never_exposes_provider_connection_details(self):
         options = get_auth_options()
-        provider = options["providers"][0]
+        provider = next(item for item in options["providers"] if item["key"] == "github")
 
         self.assertEqual(
             provider,
@@ -257,7 +225,6 @@ class AuthOptionsTests(SimpleTestCase):
                 "category": "social",
                 "display_name": "GitHub",
                 "display_name_i18n_key": "auth.providers.github",
-                "logo_url": "/auth-providers/github.svg",
             },
         )
 
@@ -321,7 +288,7 @@ class NYCUOAuthServiceTests(TestCase):
             username="legacy-name",
             email="nycu@example.com",
             password="password123",
-            auth_provider="nycu-oauth",
+            auth_provider="nycu",
             email_verified=False,
         )
         result = link_oauth_user(
@@ -353,7 +320,7 @@ class NYCUOAuthServiceTests(TestCase):
         )
         self.assertNotEqual(user.username, "taken-name")
         self.assertTrue(user.username.startswith("taken-name"))
-        self.assertEqual(user.auth_provider, "nycu-oauth")
+        self.assertEqual(user.auth_provider, "nycu")
         self.assertTrue(user.email_verified)
 
 
@@ -405,7 +372,7 @@ class AccountLinkingTests(TestCase):
                 )
             ),
             {
-                ("nycu-oauth", "nycu-sub-1"),
+                ("nycu", "nycu-sub-1"),
                 ("github", "12345"),
             },
         )
@@ -426,7 +393,7 @@ class AccountLinkingTests(TestCase):
         existing.refresh_from_db()
 
         self.assertEqual(result.id, existing.id)
-        self.assertEqual(existing.auth_provider, "nycu-oauth")
+        self.assertEqual(existing.auth_provider, "nycu")
         self.assertEqual(existing.username, "email-user")
         self.assertTrue(existing.email_verified)
 
@@ -436,7 +403,7 @@ class AccountLinkingTests(TestCase):
             username="nycu-user",
             email="shared@example.com",
             password="password123",
-            auth_provider="nycu-oauth",
+            auth_provider="nycu",
         )
         result = link_oauth_user(
             GitHubOAuthService,

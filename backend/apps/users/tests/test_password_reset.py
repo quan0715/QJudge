@@ -26,7 +26,7 @@ class PasswordResetTests(TestCase):
             username="oauth_reset_user",
             email="oauth_reset_user@example.com",
             password="StrongPass123!",
-            auth_provider="nycu-oauth",
+            auth_provider="nycu",
         )
 
     def test_forgot_password_issues_token_for_email_user(self):

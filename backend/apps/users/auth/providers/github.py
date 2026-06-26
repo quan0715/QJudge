@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class GitHubOAuthService(BaseOAuthService):
     provider_key = "github"
-    provider_name = "github"
     authorize_url_setting = "GITHUB_OAUTH_AUTHORIZE_URL"
     token_url_setting = "GITHUB_OAUTH_TOKEN_URL"
     userinfo_url_setting = "GITHUB_OAUTH_USERINFO_URL"

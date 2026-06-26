@@ -13,7 +13,7 @@ class User(AbstractUser):
     """
     AUTH_PROVIDER_CHOICES = [
         ('email', 'Email/Password'),
-        ('nycu-oauth', 'NYCU OAuth'),
+        ('nycu', 'NYCU OAuth'),
         ('google', 'Google'),
         ('github', 'GitHub'),
     ]
@@ -413,7 +413,7 @@ class UserLoginRecord(models.Model):
     device_id = models.CharField(max_length=128, blank=True, default='')
     ip_address = models.GenericIPAddressField()
     user_agent = models.CharField(max_length=512, blank=True, default='')
-    login_method = models.CharField(max_length=32)  # email, nycu-oauth, google, github, token_refresh
+    login_method = models.CharField(max_length=32)  # email, nycu, google, github, token_refresh
     jti = models.CharField(max_length=256, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     is_current = models.BooleanField(default=False)
@@ -427,4 +427,3 @@ class UserLoginRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username} login at {self.created_at} ({self.login_method})"
-

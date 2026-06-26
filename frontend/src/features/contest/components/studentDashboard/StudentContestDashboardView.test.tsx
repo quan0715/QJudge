@@ -498,7 +498,7 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByText("作答狀態")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /下載成績單/ })).toBeInTheDocument();
     expect(await screen.findByText("成績分布")).toBeInTheDocument();
-    expect(await screen.findByText("平均 75.0 / 100")).toBeInTheDocument();
+    expect(await screen.findByText("平均 75.00 / 100.00")).toBeInTheDocument();
     expect(screen.getByTestId("score-distribution-chart")).toBeInTheDocument();
     expect(getExamDashboardSummary).toHaveBeenCalledWith("contest-1");
   });
@@ -578,7 +578,7 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(await screen.findAllByText("8 / 10")).not.toHaveLength(0);
+    expect(await screen.findAllByText("8.00 / 10.00")).not.toHaveLength(0);
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();

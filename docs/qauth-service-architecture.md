@@ -102,7 +102,7 @@ class NormalizedQAuthIdentity:
 
 | 欄位 | 必要性 | 說明 |
 | --- | --- | --- |
-| `provider_key` | 必要 | provider storage key。上線後不要任意改名，改名需要資料遷移。 |
+| `provider_key` | 必要 | provider 的穩定識別值。上線後不要任意改名，改名需要資料遷移。 |
 | `provider_subject` | 必要 | provider 回傳的穩定 subject，例如 OIDC `sub`。不能用 display name。 |
 | `email` | 強烈建議 | 第一版用同 email 合併到同一個 QJudge `User`。 |
 | `username` | 必要 | 建立新 QJudge `User` projection 時使用。 |
@@ -236,7 +236,7 @@ User linking 完成後，只代表「這個 QAuth identity 對應到哪一個 QJ
 1. 在後端設定 `QAuthProviderConnection`，填入 endpoint、scope、client id env、client secret env。
 2. 在公開 provider option 加入 `key`、`type`、`category`、`display_name`、`display_name_i18n_key`、`logo_url`。
 3. 新增 provider service，沿用 `BaseOAuthService` 的 OAuth transport，只實作 provider-specific profile normalize。
-4. 將 provider route key 加入 registry。
+4. 將 provider key 加入 registry。
 5. 確認 `_parse_user_info()` 或 equivalent normalize output 能產生 `provider_subject`、email、username。
 6. 補 account linking 測試：同 `(provider_key, subject)` 回到同 user；同 email 連到同 user；不同 email 建立新 user。
 7. 補 frontend provider option 測試：login/register/campus 頁都只依 `AuthOptions` contract 顯示 provider。
@@ -250,5 +250,5 @@ User linking 完成後，只代表「這個 QAuth identity 對應到哪一個 QJ
 - `User.auth_provider`、`User.oauth_id`、`User.email_verified` 是相容欄位。
 - `ProviderTokenSet` 不持久化；不要把第三方 access token 或 refresh token 寫進 database snapshot。
 - Public provider option 不包含 secret、endpoint、`institution_key`、`supports_registration`、`email_verified`。
-- Provider storage key 進 production 後不要任意改名；需要改名時以 migration 更新 `ExternalIdentity.provider_key`。
+- Provider key 進 production 後不要任意改名；需要改名時以 migration 更新 `ExternalIdentity.provider_key`。
 - QAuth 可以服務多個 app；每個 app 應維護自己的 user projection 與授權資料。

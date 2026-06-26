@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 class GoogleOAuthService(BaseOAuthService):
     provider_key = "google"
-    provider_name = "google"
     authorize_url_setting = "GOOGLE_OAUTH_AUTHORIZE_URL"
     token_url_setting = "GOOGLE_OAUTH_TOKEN_URL"
     userinfo_url_setting = "GOOGLE_OAUTH_USERINFO_URL"

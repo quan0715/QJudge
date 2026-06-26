@@ -77,7 +77,10 @@ class QuestionStats:
 
     @property
     def average_score(self) -> float:
-        return round(self.score_sum / self.graded_count, 1) if self.graded_count else 0
+        if not self.graded_count:
+            return 0
+        average = Decimal(str(self.score_sum / self.graded_count))
+        return float(average.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 @dataclass
@@ -104,6 +107,13 @@ class ExamScoringService:
     def __init__(self, contest: Contest):
         self.contest = contest
         self._questions_cache: Optional[list] = None
+
+    SCORE_QUANTUM = Decimal("0.01")
+
+    @classmethod
+    def _round_score(cls, value) -> Decimal:
+        """Canonical score precision for persisted and API totals."""
+        return Decimal(str(value)).quantize(cls.SCORE_QUANTUM, rounding=ROUND_HALF_UP)
 
     # ──────────────────────────────────────────────────────────────────
     # Question context (cached per instance)
@@ -133,13 +143,14 @@ class ExamScoringService:
         Excludes EXCLUDED questions. REDISTRIBUTE questions' points are moved to
         their targets, so total achievable remains sum(non-excluded).
         """
-        return sum(
+        total = sum(
             q.score for q in self.get_questions()
             if not q.is_excluded and not q.is_redistribute
         ) + sum(
             q.score for q in self.get_questions()
             if q.is_redistribute
         )
+        return float(self._round_score(total))
 
     def get_full_marks_total(self) -> float:
         """Sum of max scores for FULL_MARKS questions."""
@@ -248,13 +259,17 @@ class ExamScoringService:
             if actual is None:
                 continue
             if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
-                scaled = actual * (effective_max[q.id] / q.score)
-                total += Decimal(str(scaled))
+                scaled = (
+                    Decimal(str(actual))
+                    * Decimal(str(effective_max[q.id]))
+                    / Decimal(str(q.score))
+                )
+                total += scaled
             else:
                 total += Decimal(str(actual))
 
-        rounded = total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        participant.score = int(rounded)
+        rounded = self._round_score(total)
+        participant.score = rounded
         participant.save(update_fields=['score'])
         return float(participant.score)
 
@@ -285,13 +300,17 @@ class ExamScoringService:
                 if actual is None:
                     continue
                 if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
-                    scaled = actual * (effective_max[q.id] / q.score)
-                    total += Decimal(str(scaled))
+                    scaled = (
+                        Decimal(str(actual))
+                        * Decimal(str(effective_max[q.id]))
+                        / Decimal(str(q.score))
+                    )
+                    total += scaled
                 else:
                     total += Decimal(str(actual))
 
-            rounded = total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-            participant.score = int(rounded)
+            rounded = self._round_score(total)
+            participant.score = rounded
             participant.save(update_fields=['score'])
             count += 1
         return count
@@ -318,8 +337,8 @@ class ExamScoringService:
         questions = self.get_questions()
         effective_max = self._compute_effective_max()
         has_redistribute = any(q.is_redistribute for q in questions)
-        max_total = self.get_max_total_score()
-        total_score = 0.0
+        max_total = self._round_score(self.get_max_total_score())
+        total_score = Decimal('0')
         graded_count = 0
         correct_count = 0
         items = []
@@ -333,29 +352,41 @@ class ExamScoringService:
                 continue
             if q.is_full_marks:
                 # Full marks always contributes the original question score, regardless of redistribution
-                total_score += q.score
+                total_score += Decimal(str(q.score))
                 graded_count += 1
                 correct_count += 1
-                items.append({'question_id': q.id, 'score': float(q.score), 'policy': q.score_policy})
+                items.append({
+                    'question_id': q.id,
+                    'score': float(self._round_score(q.score)),
+                    'policy': q.score_policy,
+                })
                 continue
             # normal (possibly receiving redistribution)
             ans = answers_map.get(q.id)
             score_val = None
             if ans and ans.score is not None:
-                actual = float(ans.score)
+                actual = Decimal(str(ans.score))
                 if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
-                    score_val = actual * (effective_max[q.id] / q.score)
+                    score_val = (
+                        actual
+                        * Decimal(str(effective_max[q.id]))
+                        / Decimal(str(q.score))
+                    )
                 else:
                     score_val = actual
                 total_score += score_val
                 graded_count += 1
-                if score_val >= effective_max[q.id]:
+                if score_val >= Decimal(str(effective_max[q.id])):
                     correct_count += 1
-            items.append({'question_id': q.id, 'score': score_val, 'policy': q.score_policy})
+            items.append({
+                'question_id': q.id,
+                'score': float(self._round_score(score_val)) if score_val is not None else None,
+                'policy': q.score_policy,
+            })
 
         return ParticipantScoreBreakdown(
-            total_score=total_score,
-            max_total_score=max_total,
+            total_score=float(self._round_score(total_score)),
+            max_total_score=float(max_total),
             graded_count=graded_count,
             correct_count=correct_count,
             items=items,
@@ -382,7 +413,7 @@ class ExamScoringService:
         question_map = {q.id: q for q in questions}
         full_marks_total = sum(effective_max[q.id] for q in questions if q.is_full_marks)
 
-        scores = {pid: full_marks_total for pid in participant_ids}
+        scores = {pid: Decimal(str(full_marks_total)) for pid in participant_ids}
 
         for answer in answers:
             score = answer.get('score')
@@ -392,12 +423,16 @@ class ExamScoringService:
             q = question_map.get(qid)
             if q is None or q.is_excluded or q.is_redistribute or q.is_full_marks:
                 continue
-            actual = float(score)
+            actual = Decimal(str(score))
             if has_redistribute and q.score > 0 and effective_max[q.id] != q.score:
-                actual = actual * (effective_max[q.id] / q.score)
+                actual = (
+                    actual
+                    * Decimal(str(effective_max[q.id]))
+                    / Decimal(str(q.score))
+                )
             scores[answer['participant_id']] += actual
 
-        return scores
+        return {pid: float(self._round_score(score)) for pid, score in scores.items()}
 
     def get_score_distribution(self, participant_scores: list[float]) -> ScoreDistribution:
         """
@@ -407,8 +442,12 @@ class ExamScoringService:
             participant_scores: list of total scores (floats)
         """
         max_total = self.get_max_total_score()
-        avg = round(sum(participant_scores) / len(participant_scores), 1) if participant_scores else 0
-        med = round(median(participant_scores)) if participant_scores else 0
+        avg = (
+            float(self._round_score(sum(participant_scores) / len(participant_scores)))
+            if participant_scores
+            else 0
+        )
+        med = float(self._round_score(median(participant_scores))) if participant_scores else 0
         buckets = self._build_buckets(participant_scores, max_total)
 
         return ScoreDistribution(

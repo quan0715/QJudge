@@ -66,7 +66,7 @@ export default function ScorePolicyImpactDialog({
     },
   });
 
-  const fmt = (n: number) => n.toFixed(1);
+  const fmt = (n: number) => n.toFixed(2);
 
   return (
     <Modal

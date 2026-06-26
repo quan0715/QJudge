@@ -66,7 +66,7 @@ class QAuthAccountLinkingTests(TestCase):
 
         linked = link_qauth_identity(
             NormalizedQAuthIdentity(
-                provider_key="nycu-oauth",
+                provider_key="nycu",
                 provider_subject="nycu-sub-1",
                 email="student@example.edu",
                 username="nycu-name",
@@ -78,13 +78,13 @@ class QAuthAccountLinkingTests(TestCase):
         existing.refresh_from_db()
         self.assertEqual(linked.id, existing.id)
         self.assertEqual(existing.username, "email-user")
-        self.assertEqual(existing.auth_provider, "nycu-oauth")
+        self.assertEqual(existing.auth_provider, "nycu")
         self.assertEqual(existing.oauth_id, "nycu-sub-1")
         self.assertTrue(existing.email_verified)
         self.assertTrue(
             ExternalIdentity.objects.filter(
                 user=existing,
-                provider_key="nycu-oauth",
+                provider_key="nycu",
                 subject="nycu-sub-1",
             ).exists()
         )
