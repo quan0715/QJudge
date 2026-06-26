@@ -5,8 +5,6 @@ import {
 } from "@/core/entities/contest.entity";
 import type { AnticheatDevicePolicyDto } from "@/infrastructure/api/dto/contest.dto";
 
-export const FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS = 30_000;
-
 const ensureObject = (
   value: unknown,
   path: string,
@@ -272,7 +270,11 @@ export function mapContestAnticheatConfigDto(
         "mouse_leave_cooldown_ms",
         "global_defaults",
       ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
+      screenShareRecoveryGraceMs: ensureNumber(
+        globalDefaults,
+        "screen_share_recovery_grace_ms",
+        "global_defaults",
+      ),
       webcamRecoveryGraceMs: ensureNumber(
         globalDefaults,
         "webcam_recovery_grace_ms",
@@ -325,7 +327,11 @@ export function mapContestAnticheatConfigDto(
         "warning_timeout_seconds",
         "contest_settings",
       ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
+      screenShareRecoveryGraceMs: ensureNumber(
+        contestSettings,
+        "screen_share_recovery_grace_ms",
+        "contest_settings",
+      ),
       anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
         contestSettings["anticheat_device_policy"] as any,
       ),
@@ -386,7 +392,11 @@ export function mapContestAnticheatConfigDto(
         "mouse_leave_cooldown_ms",
         "effective",
       ),
-      screenShareRecoveryGraceMs: FIXED_SCREEN_SHARE_RECOVERY_GRACE_MS,
+      screenShareRecoveryGraceMs: ensureNumber(
+        effective,
+        "screen_share_recovery_grace_ms",
+        "effective",
+      ),
       webcamRecoveryGraceMs: ensureNumber(
         effective,
         "webcam_recovery_grace_ms",

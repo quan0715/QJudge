@@ -705,7 +705,6 @@ export interface ContestUpdateRequest {
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   warningTimeoutSeconds?: number;
-  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   maxCheatWarnings?: number;

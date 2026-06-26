@@ -35,7 +35,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             allow_multiple_joins=True,
             max_cheat_warnings=4,
             contest_type="paper_exam",
-            screen_share_recovery_grace_ms=30_000,
+            screen_share_recovery_grace_ms=45_000,
         )
         ContestParticipant.objects.create(contest=self.contest, user=self.student)
 
@@ -62,6 +62,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("screen_share_recovery_grace_ms", contest_settings)
         self.assertEqual(contest_settings["screen_share_recovery_grace_ms"], 30_000)
         self.assertIn("anticheat_device_policy", contest_settings)
+        self.assertEqual(resp.data["global_defaults"]["screen_share_recovery_grace_ms"], 30_000)
         self.assertEqual(resp.data["effective"]["screen_share_recovery_grace_ms"], 30_000)
 
         device_policy = resp.data["device_policy"]
@@ -104,7 +105,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertIn("effective", resp.data)
 
-    def test_owner_can_update_screen_share_recovery_grace_and_runtime_uses_latest_value(self):
+    def test_owner_update_does_not_change_fixed_screen_share_recovery_grace_runtime(self):
         self.client.force_authenticate(user=self.student)
         first = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
         self.assertEqual(first.status_code, status.HTTP_200_OK)
@@ -124,8 +125,8 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.client.force_authenticate(user=self.student)
         second = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
         self.assertEqual(second.status_code, status.HTTP_200_OK)
-        self.assertEqual(second.data["contest_settings"]["screen_share_recovery_grace_ms"], 45_000)
-        self.assertEqual(second.data["effective"]["screen_share_recovery_grace_ms"], 45_000)
+        self.assertEqual(second.data["contest_settings"]["screen_share_recovery_grace_ms"], 30_000)
+        self.assertEqual(second.data["effective"]["screen_share_recovery_grace_ms"], 30_000)
 
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")

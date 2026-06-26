@@ -76,7 +76,7 @@ describe("contest mapper", () => {
   });
 
   describe("anti-cheat recovery grace mapping", () => {
-    it("keeps contest detail screen share recovery grace fixed at 30 seconds", () => {
+    it("maps contest detail screen share recovery grace from backend payload", () => {
       const result = mapContestDetailDto({
         id: "contest-1",
         name: "Exam",
@@ -91,18 +91,18 @@ describe("contest mapper", () => {
         exam_questions_count: 0,
       });
 
-      expect(result.screenShareRecoveryGraceMs).toBe(30000);
+      expect(result.screenShareRecoveryGraceMs).toBe(45000);
     });
 
-    it("coerces contest update screen share recovery grace to 30 seconds", () => {
+    it("omits contest update screen share recovery grace because backend owns it", () => {
       const dto = mapContestUpdateRequestToDto({
         screenShareRecoveryGraceMs: 45000,
-      });
+      } as any);
 
-      expect(dto.screen_share_recovery_grace_ms).toBe(30000);
+      expect(dto).not.toHaveProperty("screen_share_recovery_grace_ms");
     });
 
-    it("maps anticheat config contest/effective screen share recovery grace", () => {
+    it("maps anticheat config screen share recovery grace from backend payload", () => {
       const result = mapContestAnticheatConfigDto({
         version: 1,
         global_defaults: {
@@ -163,8 +163,9 @@ describe("contest mapper", () => {
         },
       });
 
-      expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(30000);
-      expect(result.effective.screenShareRecoveryGraceMs).toBe(30000);
+      expect(result.globalDefaults.screenShareRecoveryGraceMs).toBe(30000);
+      expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(45000);
+      expect(result.effective.screenShareRecoveryGraceMs).toBe(45000);
     });
   });
 

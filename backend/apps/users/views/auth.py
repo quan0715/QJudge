@@ -15,6 +15,7 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.tokens import AccessToken
 
+from ..auth.account_linking import link_qauth_identity
 from ..auth.options import get_auth_options, is_email_password_auth_enabled
 from ..auth.provider_registry import get_oauth_service
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
@@ -259,7 +260,10 @@ class OAuthCallbackView(SchemaAPIView):
                 code=serializer.validated_data["code"],
                 redirect_uri=serializer.validated_data["redirect_uri"],
             )
-            user = service.get_or_create_user(oauth_data)
+            user = link_qauth_identity(
+                service.normalize_identity(oauth_data),
+                service.provider_token_set(oauth_data),
+            )
             conflict_response = build_conflict_response(user, request, provider="oauth")
             if conflict_response is not None:
                 return conflict_response

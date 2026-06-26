@@ -18,6 +18,8 @@ QJudge 採用微服務化的單體架構，主要由以下模組組成：
 
 開發環境另含 **PgBouncer**（session mode）作為連線池，與 Django `CONN_MAX_AGE` 預設行為一致；細節見 `docker-compose.dev.yml`、`backend/config/settings/base.py` 與 [部署與 Docker Compose 手冊](./deployment.md)。
 
+防作弊模組跨越 Backend、Frontend、Redis、object storage 與 SFU，維護邊界請先看 [防作弊模組架構盤整](./anticheat-architecture.md)。
+
 ---
 
 ## 2. 開發環境設定 (Environment Setup)

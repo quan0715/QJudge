@@ -40,9 +40,7 @@ const CampusSsoScreen = () => {
     ? t("auth.campusSso.backToRegister", "返回建立帳號")
     : t("auth.campusSso.backToLogin", "返回登入");
   const verifyLabel = t("auth.campusSso.verify", "驗證");
-  const campusProviders = options.providers.filter(
-    (provider) => provider.category === "campus" && (!isRegistrationSso || provider.supports_registration),
-  );
+  const campusProviders = options.providers.filter((provider) => provider.category === "campus");
   const selectedProvider = campusProviders.find((provider) => provider.key === selectedProviderKey);
   const isAuthenticating = loading !== null;
 

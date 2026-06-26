@@ -71,10 +71,11 @@ export interface User {
 
 export interface AuthProviderOption {
   key: string;
-  category: "campus" | "social";
+  type?: "password" | "oauth2" | "oidc";
+  category: "campus" | "social" | "password";
   display_name: string;
+  display_name_i18n_key?: string;
   logo_url?: string;
-  supports_registration: boolean;
 }
 
 export interface AuthOptions {

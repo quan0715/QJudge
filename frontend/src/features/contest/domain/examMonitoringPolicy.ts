@@ -18,7 +18,7 @@ export interface ExamMonitoringTimingConfig {
 const DEFAULTS: Readonly<ExamMonitoringTimingConfig> = {
   recoveryGraceMs: 3000,
   mouseLeaveCooldownMs: 3000,
-  screenShareRecoveryGraceMs: 30_000,
+  screenShareRecoveryGraceMs: 3000,
   webcamRecoveryGraceMs: 10_000,
   multiDisplayCheckIntervalMs: 5000,
   multiDisplayReportCooldownMs: 15000,
