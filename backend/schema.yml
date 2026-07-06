@@ -702,38 +702,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthCallback'
           description: ''
-  /api/v1/auth/forgot-password:
+  /api/v1/auth/dev/token:
     post:
-      operationId: v1_auth_forgot_password_create
-      description: |-
-        Request a password reset token.
-
-        POST /api/v1/auth/forgot-password
+      operationId: v1_auth_dev_token_create
+      description: APIView with serializer support for schema generation.
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ForgotPasswordRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ForgotPasswordRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ForgotPasswordRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       - {}
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForgotPassword'
-          description: ''
+          description: No response body
   /api/v1/auth/login/{provider}:
     get:
       operationId: v1_auth_login_retrieve
@@ -893,38 +874,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Register'
-          description: ''
-  /api/v1/auth/reset-password:
-    post:
-      operationId: v1_auth_reset_password_create
-      description: |-
-        Reset password by token.
-
-        POST /api/v1/auth/reset-password
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResetPassword'
           description: ''
   /api/v1/classrooms/:
     get:
@@ -8549,25 +8498,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
-    ForgotPassword:
-      type: object
-      description: Serializer for forgot-password request.
-      properties:
-        email:
-          type: string
-          format: email
-      required:
-      - email
-    ForgotPasswordRequest:
-      type: object
-      description: Serializer for forgot-password request.
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-      required:
-      - email
     KindEnum:
       enum:
       - chat
@@ -9992,35 +9922,6 @@ components:
       - password
       - password_confirm
       - username
-    ResetPassword:
-      type: object
-      description: Serializer for resetting password by token.
-      properties:
-        token:
-          type: string
-          maxLength: 255
-      required:
-      - token
-    ResetPasswordRequest:
-      type: object
-      description: Serializer for resetting password by token.
-      properties:
-        token:
-          type: string
-          minLength: 1
-          maxLength: 255
-        new_password:
-          type: string
-          writeOnly: true
-          minLength: 1
-        new_password_confirm:
-          type: string
-          writeOnly: true
-          minLength: 1
-      required:
-      - new_password
-      - new_password_confirm
-      - token
     ReviewStatusEnum:
       enum:
       - draft

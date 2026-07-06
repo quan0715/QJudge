@@ -126,6 +126,11 @@ class EnhancedAuthTests(APITestCase):
         self.assertFalse(response.data["success"])
         self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
 
+    def test_password_recovery_routes_are_removed(self):
+        for path in ["/api/v1/auth/forgot-password", "/api/v1/auth/reset-password"]:
+            response = self.client.post(path, {}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_login_success(self, mock_get_service):
         """Test successful OAuth login URL generation"""

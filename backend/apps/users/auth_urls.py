@@ -6,14 +6,12 @@ from django.urls import path
 from .views import (
     AuthOptionsView,
     DevTokenView,
-    ForgotPasswordView,
     LoginRecordsView,
     LogoutOtherDevicesView,
     LogoutView,
     OAuthCallbackView,
     ProviderLoginView,
     RegisterView,
-    ResetPasswordView,
     TokenRefreshView,
 )
 
@@ -26,8 +24,6 @@ urlpatterns = [
     path("callback/<str:provider>", OAuthCallbackView.as_view(), name="oauth-callback"),
     path("refresh", TokenRefreshView.as_view(), name="token-refresh"),
     path("logout", LogoutView.as_view(), name="logout"),
-    path("forgot-password", ForgotPasswordView.as_view(), name="forgot-password"),
-    path("reset-password", ResetPasswordView.as_view(), name="reset-password"),
     path("me/login-records", LoginRecordsView.as_view(), name="login-records"),
     path("me/logout-other-devices", LogoutOtherDevicesView.as_view(), name="logout-other-devices"),
 ]

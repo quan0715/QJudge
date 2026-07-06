@@ -63,17 +63,6 @@ class User(AbstractUser):
         blank=True
     )
     
-    # Password reset
-    password_reset_token = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True
-    )
-    password_reset_expires_at = models.DateTimeField(
-        null=True,
-        blank=True
-    )
-    
     # Role and permissions
     role = models.CharField(
         max_length=20,

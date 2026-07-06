@@ -13,11 +13,6 @@ vi.mock("@/infrastructure/api/repositories/user.repository", () => ({
   updateAccountProfile: vi.fn(),
 }));
 
-// Mock the auth service
-vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
-  requestPasswordReset: vi.fn(),
-}));
-
 // Mock the auth context
 vi.mock("@/features/auth/contexts/AuthContext", () => ({
   useAuth: vi.fn(() => ({
@@ -47,9 +42,6 @@ import {
   updatePreferences,
   updateAccountProfile as updateCurrentUserProfile,
 } from "@/infrastructure/api/repositories/user.repository";
-import {
-  requestPasswordReset,
-} from "@/infrastructure/api/repositories/auth.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
@@ -386,33 +378,6 @@ describe("useUserPreferences", () => {
         email: "next@test.com",
       })
     );
-  });
-
-  it("should request password reset for logged-in user", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: {
-        id: 1,
-        username: "test",
-        email: "test@test.com",
-        role: "student",
-      },
-      loading: false,
-      setUser: vi.fn(),
-      checkUser: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    vi.mocked(requestPasswordReset).mockResolvedValue({
-      success: true,
-    });
-
-    const { result } = renderHook(() => useUserPreferences());
-
-    await act(async () => {
-      await result.current.requestPasswordReset();
-    });
-
-    expect(requestPasswordReset).toHaveBeenCalledWith("test@test.com");
   });
 
   it("should handle error when loading preferences fails", async () => {

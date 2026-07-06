@@ -329,43 +329,6 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         return value
 
 
-class ForgotPasswordSerializer(serializers.Serializer):
-    """Serializer for forgot-password request."""
-
-    email = serializers.EmailField(required=True)
-
-
-class ResetPasswordSerializer(serializers.Serializer):
-    """Serializer for resetting password by token."""
-
-    token = serializers.CharField(required=True, max_length=255)
-    new_password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    new_password_confirm = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-
-    def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({
-                'new_password_confirm': '新密碼不一致'
-            })
-
-        try:
-            validate_password(attrs['new_password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                'new_password': list(e.messages)
-            })
-
-        return attrs
-
-
 class UserLoginRecordSerializer(serializers.ModelSerializer):
     """Read-only serializer for login history entries."""
 

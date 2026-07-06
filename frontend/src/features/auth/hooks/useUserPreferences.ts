@@ -3,9 +3,6 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
-  requestPasswordReset as requestPasswordResetApi,
-} from "@/infrastructure/api/repositories/auth.repository";
-import {
   getPreferences as getUserPreferences,
   updatePreferences as updateUserPreferences,
   updateAccountProfile as updateCurrentUserProfile,
@@ -62,9 +59,6 @@ export interface UseUserPreferencesReturn {
   updateAvatar: (url: string) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
   removeAvatar: () => Promise<void>;
-
-  // Password reset
-  requestPasswordReset: () => Promise<void>;
 
   // Account profile
   updateAccountProfile: (data: UpdateAccountProfileRequest) => Promise<void>;
@@ -414,13 +408,6 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     [user, setUser]
   );
 
-  const requestPasswordReset = useCallback(async () => {
-    if (!user?.email) {
-      throw new Error("Email is required for password reset");
-    }
-    await requestPasswordResetApi(user.email);
-  }, [user?.email]);
-
   return {
     preferences,
     loading,
@@ -439,7 +426,6 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     updateAvatar,
     uploadAvatar,
     removeAvatar,
-    requestPasswordReset,
     updateAccountProfile,
     refresh: loadPreferences,
   };

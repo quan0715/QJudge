@@ -1,7 +1,7 @@
 /**
  * Auth Repository Implementation
  *
- * Handles login, registration, password reset, and session lifecycle.
+ * Handles login, registration, provider auth, and session lifecycle.
  */
 
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
@@ -49,13 +49,6 @@ export const getAuthOptions = async (): Promise<AuthOptionsResponseDto> => {
 
 export const logout = async (): Promise<void> => {
   await ensureOk(httpClient.post("/api/v1/auth/logout"), "Logout failed");
-};
-
-export const requestPasswordReset = async (email: string): Promise<void> => {
-  await ensureOk(
-    httpClient.post("/api/v1/auth/forgot-password", { email }),
-    "Failed to request password reset"
-  );
 };
 
 export const logoutOtherDevices = async (): Promise<void> => {
@@ -133,7 +126,6 @@ export const authRepository = {
   register,
   getAuthOptions,
   logout,
-  requestPasswordReset,
   logoutOtherDevices,
   issueTeacherActivationMagicLink,
   inspectMagicLink,

@@ -14,7 +14,6 @@ from .admin import UserSearchView, UserRoleUpdateView
 from .avatar import UserAvatarUploadView
 from .login_records import LoginRecordsView, LogoutOtherDevicesView
 from .magic_link import MagicLinkInspectView, MagicLinkIssueView, MagicLinkRedeemView
-from .password import ForgotPasswordView, ResetPasswordView
 from .preferences import UserPreferencesView
 
 __all__ = [
@@ -34,8 +33,6 @@ __all__ = [
     "MagicLinkRedeemView",
     "UserPreferencesView",
     "UserAvatarUploadView",
-    "ForgotPasswordView",
-    "ResetPasswordView",
     "LoginRecordsView",
     "LogoutOtherDevicesView",
 ]
