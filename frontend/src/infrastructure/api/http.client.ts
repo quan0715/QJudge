@@ -29,6 +29,7 @@ const getCsrfToken = (): string | null => {
 };
 
 const DEVICE_ID_KEY = "qjudge.device_id.v1";
+const AUTH_REFRESH_ENDPOINT = "/api/v1/auth/refresh";
 
 const ensureDeviceId = (): string => {
   if (typeof window === "undefined") return "server";
@@ -52,31 +53,39 @@ const redirectToLogin = () => {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/auth/") ||
-    path.startsWith("/teacher-activation") ||
-    path.startsWith("/classrooms/join")
+    path.startsWith("/magic-links")
   ) {
     return;
   }
   window.location.href = "/login";
 };
 
-const handleUnauthorized = (response: Response): boolean => {
-  if (response.status === 401) {
-    const path = typeof window !== "undefined" ? window.location.pathname : "";
-    const isCriticalPath =
-      path.startsWith("/login") ||
-      path.startsWith("/register") ||
-      path.startsWith("/auth/") ||
-      path.startsWith("/teacher-activation") ||
-      path.startsWith("/classrooms/join");
+const isAuthFlowPath = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return (
+    path.startsWith("/login") ||
+    path.startsWith("/register") ||
+    path.startsWith("/auth/") ||
+    path.startsWith("/magic-links")
+  );
+};
 
-    if (!isCriticalPath) {
-      clearAuthStorage();
-    }
-    redirectToLogin();
-    return true;
+const shouldAttemptTokenRefresh = (endpoint: string): boolean => {
+  if (isAuthFlowPath()) return false;
+  if (endpoint === AUTH_REFRESH_ENDPOINT) return false;
+  if (endpoint.startsWith("/api/v1/auth/login/")) return false;
+  if (endpoint.startsWith("/api/v1/auth/register/")) return false;
+  if (endpoint.startsWith("/api/v1/auth/callback/")) return false;
+  if (endpoint === "/api/v1/auth/logout") return false;
+  return true;
+};
+
+const handleUnauthorized = (): void => {
+  if (!isAuthFlowPath()) {
+    clearAuthStorage();
   }
-  return false;
+  redirectToLogin();
 };
 
 /**
@@ -129,6 +138,53 @@ const getErrorMessage = (data: any, fallback: string): string => {
     return data.error.message;
   }
   return fallback;
+};
+
+const buildHeaders = (init: RequestInit = {}): Headers => {
+  const headers = new Headers(init.headers || {});
+  const method = init.method?.toUpperCase() || "GET";
+
+  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken && !headers.has("X-CSRFToken")) {
+      headers.set("X-CSRFToken", csrfToken);
+    }
+  }
+
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+  if (!headers.has("X-Device-Id")) {
+    headers.set("X-Device-Id", ensureDeviceId());
+  }
+
+  return headers;
+};
+
+const performFetch = (endpoint: string, init: RequestInit = {}) =>
+  fetch(endpoint, {
+    ...init,
+    headers: buildHeaders(init),
+    credentials: "include",
+  });
+
+let refreshPromise: Promise<boolean> | null = null;
+
+const refreshAuthSession = async (): Promise<boolean> => {
+  if (!refreshPromise) {
+    refreshPromise = performFetch(AUTH_REFRESH_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
 };
 
 export const requestJson = async <T>(
@@ -187,34 +243,17 @@ export const ensureOk = async (
  * - The `credentials: 'include'` option ensures cookies are sent with requests
  */
 const customFetch = async (endpoint: string, init: RequestInit = {}) => {
-  const headers = new Headers(init.headers || {});
-  const method = init.method?.toUpperCase() || "GET";
+  let response = await performFetch(endpoint, init);
 
-  // Add CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
-  // This is required when using cookie-based authentication
-  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
-    const csrfToken = getCsrfToken();
-    if (csrfToken && !headers.has("X-CSRFToken")) {
-      headers.set("X-CSRFToken", csrfToken);
+  if (response.status === 401 && shouldAttemptTokenRefresh(endpoint)) {
+    const refreshed = await refreshAuthSession();
+    if (refreshed) {
+      response = await performFetch(endpoint, init);
     }
   }
 
-  // Ensure we accept JSON
-  if (!headers.has("Accept")) {
-    headers.set("Accept", "application/json");
-  }
-  if (!headers.has("X-Device-Id")) {
-    headers.set("X-Device-Id", ensureDeviceId());
-  }
-
-  // Include credentials (cookies) in requests for HttpOnly cookie auth
-  const response = await fetch(endpoint, {
-    ...init,
-    headers,
-    credentials: "include", // Important: Send and receive cookies
-  });
-
-  if (handleUnauthorized(response)) {
+  if (response.status === 401) {
+    handleUnauthorized();
     throw new Error("Unauthorized");
   }
 

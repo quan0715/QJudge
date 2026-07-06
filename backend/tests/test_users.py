@@ -18,7 +18,7 @@ def test_registration_flow(api_client):
     }
 
     response = api_client.post(
-        "/api/v1/auth/email/register",
+        "/api/v1/auth/register/password",
         payload,
         format="json",
     )
@@ -37,8 +37,8 @@ def test_login_flow(api_client, user_factory):
     user = user_factory(password=password)
 
     response = api_client.post(
-        "/api/v1/auth/email/login",
-        {"email": user.email, "password": password},
+        "/api/v1/auth/login/password",
+        {"identifier": user.email, "password": password},
         format="json",
     )
 
@@ -54,8 +54,8 @@ def test_token_refresh_flow(api_client, user_factory):
     password = "RefreshPass123"
     user = user_factory(password=password)
     login_response = api_client.post(
-        "/api/v1/auth/email/login",
-        {"email": user.email, "password": password},
+        "/api/v1/auth/login/password",
+        {"identifier": user.email, "password": password},
         format="json",
     )
     refresh_token = login_response.json()["data"]["refresh_token"]
@@ -76,8 +76,8 @@ def test_logout_blacklists_refresh_token(api_client, user_factory):
     password = "LogoutPass123"
     user = user_factory(password=password)
     login_response = api_client.post(
-        "/api/v1/auth/email/login",
-        {"email": user.email, "password": password},
+        "/api/v1/auth/login/password",
+        {"identifier": user.email, "password": password},
         format="json",
     )
     refresh_token = login_response.json()["data"]["refresh_token"]
@@ -109,8 +109,8 @@ def test_logout_without_refresh_blacklists_all_outstanding(api_client, user_fact
     password = "LogoutPass456"
     user = user_factory(password=password)
     api_client.post(
-        "/api/v1/auth/email/login",
-        {"email": user.email, "password": password},
+        "/api/v1/auth/login/password",
+        {"identifier": user.email, "password": password},
         format="json",
     )
 
@@ -129,7 +129,7 @@ def test_logout_without_refresh_blacklists_all_outstanding(api_client, user_fact
 @pytest.mark.django_db
 def test_superadmin_permission_required(api_client, user_factory):
     # Non-admin should be forbidden (401 for unauthenticated)
-    response = api_client.get("/api/v1/auth/search")
+    response = api_client.get("/api/v1/users/")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     # Admin with correct flags should pass
@@ -142,7 +142,7 @@ def test_superadmin_permission_required(api_client, user_factory):
     )
     api_client.force_authenticate(user=admin)
 
-    response = api_client.get("/api/v1/auth/search")
+    response = api_client.get("/api/v1/users/")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["success"] is True
 
@@ -154,7 +154,7 @@ def test_get_user_preferences(api_client, user_factory):
     user = user_factory(password="TestPass123")
     api_client.force_authenticate(user=user)
     
-    response = api_client.get("/api/v1/auth/me/preferences")
+    response = api_client.get("/api/v1/users/me/preferences")
     
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -174,7 +174,7 @@ def test_update_user_preferences(api_client, user_factory):
     
     # Update preferences
     response = api_client.patch(
-        "/api/v1/auth/me/preferences",
+        "/api/v1/users/me/preferences",
         {
             "preferred_theme": "dark",
             "preferred_language": "en",
@@ -201,7 +201,7 @@ def test_update_preferences_partial(api_client, user_factory):
     
     # Only update theme
     response = api_client.patch(
-        "/api/v1/auth/me/preferences",
+        "/api/v1/users/me/preferences",
         {"preferred_theme": "light"},
         format="json",
     )
@@ -220,7 +220,7 @@ def test_update_preferences_invalid_theme(api_client, user_factory):
     api_client.force_authenticate(user=user)
     
     response = api_client.patch(
-        "/api/v1/auth/me/preferences",
+        "/api/v1/users/me/preferences",
         {"preferred_theme": "invalid"},
         format="json",
     )
@@ -236,7 +236,7 @@ def test_update_preferences_invalid_font_size(api_client, user_factory):
     
     # Font size too small
     response = api_client.patch(
-        "/api/v1/auth/me/preferences",
+        "/api/v1/users/me/preferences",
         {"editor_font_size": 8},
         format="json",
     )
@@ -244,116 +244,15 @@ def test_update_preferences_invalid_font_size(api_client, user_factory):
     
     # Font size too large
     response = api_client.patch(
-        "/api/v1/auth/me/preferences",
+        "/api/v1/users/me/preferences",
         {"editor_font_size": 30},
         format="json",
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-# Change Password Tests
-@pytest.mark.django_db
-def test_change_password_success(api_client, user_factory):
-    """Test successful password change."""
-    old_password = "OldPass123!"
-    new_password = "NewPass456!"
-    user = user_factory(password=old_password)
-    api_client.force_authenticate(user=user)
-    
-    response = api_client.post(
-        "/api/v1/auth/change-password",
-        {
-            "current_password": old_password,
-            "new_password": new_password,
-            "new_password_confirm": new_password,
-        },
-        format="json",
-    )
-    
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["success"] is True
-    
-    # Verify new password works
-    user.refresh_from_db()
-    assert user.check_password(new_password)
-
-
-@pytest.mark.django_db
-def test_change_password_wrong_current(api_client, user_factory):
-    """Test password change with wrong current password."""
-    user = user_factory(password="CorrectPass123!")
-    api_client.force_authenticate(user=user)
-    
-    response = api_client.post(
-        "/api/v1/auth/change-password",
-        {
-            "current_password": "WrongPass123!",
-            "new_password": "NewPass456!",
-            "new_password_confirm": "NewPass456!",
-        },
-        format="json",
-    )
-    
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json()["error"]["code"] == "WRONG_PASSWORD"
-
-
-@pytest.mark.django_db
-def test_change_password_mismatch(api_client, user_factory):
-    """Test password change with mismatched new passwords."""
-    user = user_factory(password="OldPass123!")
-    api_client.force_authenticate(user=user)
-    
-    response = api_client.post(
-        "/api/v1/auth/change-password",
-        {
-            "current_password": "OldPass123!",
-            "new_password": "NewPass456!",
-            "new_password_confirm": "DifferentPass789!",
-        },
-        format="json",
-    )
-    
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-
-@pytest.mark.django_db
-def test_change_password_oauth_user(api_client, user_factory):
-    """Test that OAuth users cannot change password."""
-    user = user_factory(auth_provider="nycu")
-    api_client.force_authenticate(user=user)
-    
-    response = api_client.post(
-        "/api/v1/auth/change-password",
-        {
-            "current_password": "any",
-            "new_password": "NewPass456!",
-            "new_password_confirm": "NewPass456!",
-        },
-        format="json",
-    )
-    
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json()["error"]["code"] == "OAUTH_USER"
-
-
 @pytest.mark.django_db
 def test_preferences_unauthenticated(api_client):
     """Test that unauthenticated users cannot access preferences."""
-    response = api_client.get("/api/v1/auth/me/preferences")
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-@pytest.mark.django_db
-def test_change_password_unauthenticated(api_client):
-    """Test that unauthenticated users cannot change password."""
-    response = api_client.post(
-        "/api/v1/auth/change-password",
-        {
-            "current_password": "any",
-            "new_password": "NewPass456!",
-            "new_password_confirm": "NewPass456!",
-        },
-        format="json",
-    )
+    response = api_client.get("/api/v1/users/me/preferences")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

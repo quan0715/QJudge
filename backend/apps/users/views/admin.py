@@ -17,8 +17,8 @@ class UserSearchView(SchemaAPIView):
     Search users by username or email (admin only).
     If no query provided, returns all users (paginated).
 
-    GET /api/v1/users/search?q=query
-    GET /api/v1/users/search  (list all users)
+    GET /api/v1/users?q=query
+    GET /api/v1/users  (list all users)
     """
     permission_classes = [IsSuperAdmin]
     serializer_class = serializers.Serializer

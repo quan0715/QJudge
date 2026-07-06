@@ -51,7 +51,7 @@ from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.anticheat_storage import build_raw_object_key, build_upload_session_id, generate_put_url, get_s3_client
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .attendance import AttendanceMixin
 from apps.classrooms.permissions import get_user_role_in_classroom
 
@@ -282,7 +282,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         for field, value in serializer.validated_data.items():
             changed_fields.append(field)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             instance,
             self.request.user,
             'update_contest',
@@ -354,7 +354,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         contest.save(update_fields=['status', 'results_published'])
 
         # Log activity
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'other',
@@ -376,7 +376,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         contest.save()
 
         # Log activity
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'other',
@@ -836,7 +836,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             return error_response
         if not created:
             raise DRFValidationError('Already registered')
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'register',
@@ -897,7 +897,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
              participant.save()
 
         # Log activity
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'enter_contest',
@@ -921,7 +921,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 participant.save()
 
                 # Log activity
-                ContestActivityViewSet.log_activity(
+                log_contest_activity(
                     contest,
                     request.user,
                     'other',
@@ -1040,7 +1040,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             )
 
             # Log activity
-            ContestActivityViewSet.log_activity(
+            log_contest_activity(
                 contest,
                 request.user,
                 'other',

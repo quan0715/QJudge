@@ -134,7 +134,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [location.pathname]);
 
   // Route-aware: show classroom workspace panel when on a classroom route
-  const isOnClassroomRoute = Boolean(classroomId) && !location.pathname.startsWith("/classrooms/join");
+  const isOnClassroomRoute = Boolean(classroomId);
   const isChatRoute = location.pathname === "/chat" || location.pathname.startsWith("/chat/");
   const currentSessionId = aiSessionId ?? chatbot?.currentSessionId ?? null;
 

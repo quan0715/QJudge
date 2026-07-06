@@ -1,9 +1,8 @@
 """
-Tests for classroom join via invite link.
+Tests for classroom join via magic link.
 
-The link-based invitation flow reuses the existing POST /api/v1/classrooms/join/
-endpoint. Students receive a URL like /classrooms/join/<invite_code> which the
-frontend translates into a POST { invite_code } call.
+Classroom invitations use the shared magic link lifecycle. The invite code is
+the scoped token and redemption happens through POST /api/v1/magic-links/{token}/redeem.
 
 These tests verify:
 - Student can join with valid code
@@ -80,7 +79,26 @@ def classroom(classroom_owner: User, classroom_admin: User) -> Classroom:
     return room
 
 
-JOIN_URL = "/api/v1/classrooms/join/"
+def inspect_url(token: str) -> str:
+    return f"/api/v1/magic-links/{token}"
+
+
+def redeem_url(token: str) -> str:
+    return f"/api/v1/magic-links/{token}/redeem"
+
+
+@pytest.mark.django_db
+def test_classroom_magic_link_inspect_returns_preview(
+    api_client: APIClient,
+    classroom: Classroom,
+) -> None:
+    response = api_client.get(inspect_url(classroom.invite_code))
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["data"]["purpose"] == "classroom_join"
+    assert response.data["data"]["status"] == "pending"
+    assert response.data["data"]["requires_login"] is True
+    assert response.data["data"]["target"]["id"] == str(classroom.uuid)
+    assert response.data["data"]["target"]["name"] == classroom.name
 
 
 @pytest.mark.django_db
@@ -91,8 +109,8 @@ def test_student_can_join_via_invite_code(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
@@ -109,8 +127,8 @@ def test_join_is_case_insensitive(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code.lower()},
+        redeem_url(classroom.invite_code.lower()),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
@@ -127,15 +145,15 @@ def test_duplicate_join_is_idempotent(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     first = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert first.status_code == status.HTTP_201_CREATED
 
     second = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert second.status_code == status.HTTP_200_OK
@@ -152,8 +170,8 @@ def test_owner_join_returns_200_without_membership(
 ) -> None:
     api_client.force_authenticate(user=classroom_owner)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK
@@ -170,8 +188,8 @@ def test_admin_join_returns_200_without_membership(
 ) -> None:
     api_client.force_authenticate(user=classroom_admin)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK
@@ -191,8 +209,8 @@ def test_disabled_invite_code_returns_403(
 
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -208,8 +226,8 @@ def test_invalid_invite_code_returns_404(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": "ZZZZZZZZ"},
+        redeem_url("ZZZZZZZZ"),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -226,8 +244,8 @@ def test_archived_classroom_code_returns_404(
 
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -239,8 +257,8 @@ def test_unauthenticated_join_returns_401(
     classroom: Classroom,
 ) -> None:
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -282,8 +300,8 @@ def test_join_returns_classroom_detail_with_uuid(
     """Response includes classroom uuid so frontend can redirect."""
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        JOIN_URL,
-        {"invite_code": classroom.invite_code},
+        redeem_url(classroom.invite_code),
+        {},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED

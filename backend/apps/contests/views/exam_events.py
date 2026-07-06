@@ -30,7 +30,7 @@ from ..services.anti_cheat_session import (
 )
 from ..services.exam_submission import finalize_submission, normalize_source_module
 from ..services.evidence_windows import attach_evidence_window_metadata
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .exam_validation_response import validate_exam_operation_for_view
 from apps.core.throttles import ExamEventsThrottle
 
@@ -341,7 +341,7 @@ class ExamEventsMixin:
                         participant.lock_reason = f"System lock (immediate): {event_type}"
                     update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
                     participant.save(update_fields=update_fields)
-                    ContestActivityViewSet.log_activity(
+                    log_contest_activity(
                         contest,
                         actor,
                         'lock_user',
@@ -354,7 +354,7 @@ class ExamEventsMixin:
                     participant.lock_reason = self._environment_pause_reason(event_type)
                     update_fields.extend(['exam_status', 'locked_at', 'lock_reason'])
                 participant.save(update_fields=update_fields)
-                ContestActivityViewSet.log_activity(
+                log_contest_activity(
                     contest,
                     actor,
                     'update_participant',

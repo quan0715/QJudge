@@ -28,10 +28,7 @@
         "ready": "모든 준비가 완료되었습니다!",
         "stats": "전투 통계를 동기화 중입니다...",
         "verifying": "본인 확인 중입니다..."
-      },
-      "takeover": "인계받고 이전 장치 잠금",
-      "takeoverExpired": "인수 토큰이 만료되었습니다. 다시 로그인하세요.",
-      "takeoverFailed": "인계 실패, 시험 감독관에게 문의하십시오."
+      }
     },
     "campusSso": {
       "backToLogin": "로그인으로 돌아가기",
@@ -55,13 +52,16 @@
       "nycu": {
         "description": "대학교 포털 계정을 사용하여 로그인합니다",
         "displayName": "NYCU (국립 양명 교통 대학교)"
+      },
+      "password": {
+        "displayName": "비밀번호 자격 증명"
       }
     },
     "login": {
       "email": "이메일 / 사용자 이름",
       "emailPlaceholder": "이메일 또는 사용자 이름",
       "failed": "로그인 실패",
-      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+      "invalidCredentials": "계정 또는 비밀번호가 올바르지 않습니다",
       "loading": "로그인 중...",
       "noAccount": "계정이 없으신가요?",
       "oauthFailed": "로그인을 시작할 수 없습니다",
@@ -72,7 +72,7 @@
       "submit": "로그인",
       "subtitle": "환영합니다, 계정에 로그인하세요",
       "title": "로그인",
-      "emailDivider": "또는 이메일 / 비밀번호로 로그인"
+      "emailDivider": "또는 비밀번호 자격 증명으로 로그인"
     },
     "logout": {
       "confirmButton": "로그아웃",
@@ -80,19 +80,15 @@
       "confirmTitle": "로그아웃 확인"
     },
     "pendingAction": {
-      "classroomJoinSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교실에 참여합니다.",
-      "classroomJoinTitle": "교실 참여",
-      "examTakeoverSubtitle": "미완료 시험이 감지되었습니다. 이 기기에서 인수하여 재개하세요.",
-      "examTakeoverTitle": "시험 기기 인수",
-      "teacherActivationSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 자동으로 교사 권한이 활성화됩니다.",
-      "teacherActivationTitle": "교사 권한 활성화"
+      "magicLinkSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 초대 작업이 자동으로 처리됩니다.",
+      "magicLinkTitle": "초대 링크"
     },
     "register": {
       "confirmPassword": "비밀번호 확인",
       "confirmPasswordPlaceholder": "비밀번호 재입력",
       "email": "이메일",
-      "emailDivider": "또는 이메일로 가입",
-      "emailSubmit": "이메일 가입",
+      "emailDivider": "또는 비밀번호 자격 증명으로 계정 만들기",
+      "emailSubmit": "계정 만들기",
       "emailPlaceholder": "이메일 입력",
       "failed": "가입 실패",
       "failedRetry": "가입 실패, 나중에 다시 시도하세요",
@@ -108,11 +104,6 @@
       "title": "계정 만들기",
       "username": "사용자 이름",
       "usernamePlaceholder": "사용자 이름 선택"
-    },
-    "takeover": {
-      "stepInvalidate": "다른 기기의 로그인 세션을 정리하는 중...",
-      "stepRedirect": "시험으로 돌아가는 중...",
-      "stepRegister": "시험 연결을 재등록하는 중..."
     }
   },
   "button": {
@@ -186,12 +177,6 @@
       "showMore": "더 보기",
       "title": "내 문제집",
       "viewAll": "전체 보기"
-    },
-    "stats": {
-      "noStats": "통계 데이터를 불러올 수 없습니다",
-      "problems": "문제",
-      "solvedCount": "/ {{total}} 해결됨",
-      "title": "문제 풀이 통계"
     },
     "subtitle": "Online Judge",
     "welcomeBack": "환영합니다, {{name}}님"
@@ -383,9 +368,6 @@
     "avatarEmpty": "아바타 추가",
     "avatarRemove": "아바타 삭제",
     "avatarUpload": "아바타 업로드",
-    "changePassword": "비밀번호 변경",
-    "confirmPassword": "새 비밀번호 확인",
-    "currentPassword": "현재 비밀번호",
     "displayName": "표시 이름",
     "displayNameDescription": "플랫폼에서 표시되는 이름을 설정합니다",
     "displayNameSaveFailed": "업데이트 실패",
@@ -399,18 +381,13 @@
     "languageDescription": "선호하는 표시 언어를 선택하세요",
     "languageSection": "언어",
     "loginMethod": "로그인 방법",
-    "newPassword": "새 비밀번호",
-    "oauthUser": "OAuth 사용자는 비밀번호를 변경할 수 없습니다",
-    "passwordChanged": "비밀번호가 변경되었습니다",
-    "passwordMismatch": "새 비밀번호가 일치하지 않습니다",
     "role": "역할",
     "savingDisplayName": "저장 중...",
     "theme": "테마",
     "themeDescription": "선호하는 인터페이스 테마를 선택하세요",
     "themeSection": "테마",
     "title": "환경설정",
-    "username": "사용자 이름",
-    "wrongPassword": "현재 비밀번호가 올바르지 않습니다"
+    "username": "사용자 이름"
   },
   "profile": {
     "deviceName": "기기 이름",
@@ -693,7 +670,6 @@
     "show": "표시"
   },
   "user": {
-    "changePassword": "비밀번호 변경",
     "preferences": "환경설정",
     "role": {
       "admin": "관리자",

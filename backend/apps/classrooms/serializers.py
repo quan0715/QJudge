@@ -298,10 +298,6 @@ class ClassroomCreateUpdateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class JoinClassroomSerializer(serializers.Serializer):
-    invite_code = serializers.CharField(max_length=8)
-
-
 class AddMembersSerializer(serializers.Serializer):
     usernames = serializers.ListField(
         child=serializers.CharField(max_length=254),

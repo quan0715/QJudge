@@ -97,7 +97,7 @@ class CurrentUserUpdateSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.Serializer):
-    """Serializer for user registration with email/password."""
+    """Serializer for password credential registration."""
     username = serializers.CharField(
         max_length=150,
         required=True,
@@ -160,8 +160,8 @@ class RegisterSerializer(serializers.Serializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    """Serializer for email/password login."""
-    email = serializers.CharField(required=True)
+    """Serializer for password credential login."""
+    identifier = serializers.CharField(required=True)
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -175,18 +175,11 @@ class OAuthCallbackSerializer(serializers.Serializer):
     code = serializers.CharField(required=True)
     redirect_uri = serializers.URLField(required=True)
     device_id = serializers.CharField(required=False, allow_blank=True, max_length=128)
-    conflict_token = serializers.CharField(required=False, allow_blank=True, max_length=256)
 
 
 class TokenRefreshSerializer(serializers.Serializer):
     """Serializer for token refresh."""
-    refresh = serializers.CharField(required=True)
-
-
-class ResolveConflictSerializer(serializers.Serializer):
-    """Serializer for login conflict resolution (device takeover recovery)."""
-    conflict_token = serializers.CharField(required=True, max_length=256)
-    action = serializers.ChoiceField(required=True, choices=["takeover_recovery"])
+    refresh = serializers.CharField(required=False, allow_blank=True)
 
 
 class UserSearchSerializer(serializers.ModelSerializer):
@@ -237,15 +230,28 @@ class UserRoleUpdateSerializer(serializers.Serializer):
         return value
 
 
-class TeacherActivationInviteCreateSerializer(serializers.Serializer):
-    """Serializer for issuing a teacher activation link."""
+class MagicLinkIssueSerializer(serializers.Serializer):
+    """Serializer for issuing a scoped magic link."""
+
+    purpose = serializers.ChoiceField(
+        choices=["teacher_activation", "classroom_join"],
+        default="teacher_activation",
+    )
+    classroom_id = serializers.UUIDField(required=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        purpose = attrs.get("purpose", "teacher_activation")
+        if purpose == "classroom_join" and not attrs.get("classroom_id"):
+            raise serializers.ValidationError({
+                "classroom_id": "classroom_id is required for classroom_join magic links."
+            })
+        return attrs
+
+
+class MagicLinkRedeemSerializer(serializers.Serializer):
+    """Serializer for redeeming a scoped magic link."""
     pass
-
-
-class TeacherActivationConsumeSerializer(serializers.Serializer):
-    """Serializer for consuming a teacher activation link."""
-
-    token = serializers.CharField(required=True, max_length=255)
 
 
 class TeacherActivationInviteSerializer(serializers.ModelSerializer):
@@ -323,42 +329,6 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         return value
 
 
-class ChangePasswordSerializer(serializers.Serializer):
-    """Serializer for changing password."""
-    current_password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    new_password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-    new_password_confirm = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
-
-    def validate(self, attrs):
-        """Validate passwords match and new password strength."""
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({
-                'new_password_confirm': '新密碼不一致'
-            })
-
-        # Validate new password strength
-        try:
-            validate_password(attrs['new_password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({
-                'new_password': list(e.messages)
-            })
-
-        return attrs
-
-
 class ForgotPasswordSerializer(serializers.Serializer):
     """Serializer for forgot-password request."""
 
@@ -411,5 +381,3 @@ class UserLoginRecordSerializer(serializers.ModelSerializer):
             'is_current',
         ]
         read_only_fields = fields
-
-

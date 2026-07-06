@@ -98,19 +98,6 @@
   "archived": "Archived",
   "backToClassrooms": "Back to classrooms",
   "basicInfo": "Basic Information",
-  "bindContest": {
-    "modal": {
-      "noContests": "No available contests",
-      "submit": "Bind",
-      "submitting": "Binding...",
-      "table": {
-        "name": "Contest Name",
-        "status": "Status"
-      },
-      "title": "Bind Contest"
-    }
-  },
-  "bindContestNoPermission": "You don't have permission to bind a contest",
   "classroomDeleteFailed": "Failed to delete classroom",
   "classroomDeleted": "Classroom deleted",
   "classroomList": "Classroom list",
@@ -173,13 +160,6 @@
     "regenerate": "Regenerate"
   },
   "inviteLinkSection": "Invite Link",
-  "joinLink": {
-    "backToDashboard": "Back to Dashboard",
-    "errorTitle": "Unable to Join Classroom",
-    "invalidLink": "Invalid invite link",
-    "joinFailed": "Failed to join classroom",
-    "joining": "Joining classroom..."
-  },
   "latestAnnouncements": "Latest Announcements",
   "loadFailed": "Failed to load classroom",
   "loadFailedHint": "Please try again later",

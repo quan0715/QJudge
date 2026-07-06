@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from ..models import Contest, ContestAnnouncement
 from ..serializers import ContestAnnouncementSerializer
 from ..permissions import can_manage_contest
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 
 
 class ContestAnnouncementViewSet(viewsets.ModelViewSet):
@@ -32,7 +32,7 @@ class ContestAnnouncementViewSet(viewsets.ModelViewSet):
         user = self.request.user
         serializer.save(created_by=user, contest=contest)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             user,
             'announce',

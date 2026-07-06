@@ -14,7 +14,7 @@ User = get_user_model()
 
 
 class UserPreferencesViewTestCase(TestCase):
-    """Test GET/PATCH /api/v1/auth/me/preferences"""
+    """Test GET/PATCH /api/v1/users/me/preferences"""
 
     def setUp(self):
         self.client = APIClient()
@@ -23,7 +23,7 @@ class UserPreferencesViewTestCase(TestCase):
             email="pref@example.com",
             password="testpass123",
         )
-        self.url = "/api/v1/auth/me/preferences"
+        self.url = "/api/v1/users/me/preferences"
 
     # ── GET ────────────────────────────────────────────────────────────
 

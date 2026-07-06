@@ -4,7 +4,6 @@ import { Laptop, Tablet } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useCustomer } from "recur-tw";
 import { ImageEditDialog } from "@/shared/ui/image";
-import { ChangePasswordModal } from "@/features/auth/components/ChangePasswordModal";
 import { Section, ActionRow } from "@/shared/layout/SettingsPanel";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
@@ -142,7 +141,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
     removeAvatar,
   } = useUserPreferences();
 
-  const isEmailUser = !user?.auth_provider || user.auth_provider === "email";
+  const isPasswordUser = !user?.auth_provider || user.auth_provider === "email" || user.auth_provider === "password";
 
   // ── Display name ──
   const [localDisplayName, setLocalDisplayName] = useState(displayName);
@@ -212,9 +211,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
     catch { setAvatarState("error"); }
   };
 
-  // ── Password modal ──
-  const [pwModalOpen, setPwModalOpen] = useState(false);
-
   // ── Subscription ──
   const { tier, status, isPaid, isTrialing, isLoading: subLoading } = useEntitlement();
   const { subscription } = useCustomer();
@@ -278,11 +274,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
       {/* ── Section: Profile ── */}
       <Section
         title={t("profile.personalInfo", "個人資訊")}
-        action={isEmailUser ? (
-          <Button kind="tertiary" size="sm" onClick={() => setPwModalOpen(true)}>
-            {t("preferences.changePassword", "變更密碼")}
-          </Button>
-        ) : undefined}
       >
         <div className="profile-panel__identity">
           <ImageEditDialog
@@ -334,8 +325,10 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
             </Tag>
           </ActionRow>
           <ActionRow label={t("preferences.loginMethod", "登入方式")}>
-            <Tag type={isEmailUser ? "cool-gray" : "blue"} size="sm">
-              {isEmailUser ? "Email" : (user?.auth_provider ?? "").toUpperCase()}
+            <Tag type={isPasswordUser ? "cool-gray" : "blue"} size="sm">
+              {isPasswordUser
+                ? t("auth.providers.password.displayName", "密碼憑證")
+                : (user?.auth_provider ?? "").toUpperCase()}
             </Tag>
           </ActionRow>
         </div>
@@ -451,7 +444,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
         )}
       </Section>}
 
-      <ChangePasswordModal isOpen={pwModalOpen} onClose={() => setPwModalOpen(false)} />
     </>
   );
 };

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { updateMemberRole } from "./classroom.repository";
+import { regenerateCode, updateMemberRole } from "./classroom.repository";
 
 describe("updateMemberRole", () => {
   const fetchMock = vi.fn();
@@ -35,5 +35,38 @@ describe("updateMemberRole", () => {
     expect(JSON.parse(options.body as string)).toEqual({ user_id: userId, role: "ta" });
     const headers = options.headers as Headers;
     expect(headers.get("Content-Type")).toBe("application/json");
+  });
+});
+
+describe("regenerateCode", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts to regenerate_code without legacy toggle payload", async () => {
+    const classroomId = "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa";
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ invite_code: "ABCD1234" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await regenerateCode(classroomId);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe(`/api/v1/classrooms/${classroomId}/regenerate_code/`);
+    expect(options.method).toBe("POST");
+    expect(options.credentials).toBe("include");
+    expect(options.body).toBeUndefined();
   });
 });

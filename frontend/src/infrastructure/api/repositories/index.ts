@@ -8,6 +8,7 @@ export * from "./contest.repository";
 export * from "./attendance.repository";
 export * from "./discussion.repository";
 export * from "./auth.repository";
+export * from "./user.repository";
 export * from "./announcement.repository";
 export * from "./chatbot.repository";
 export * from "./markdown.repository";
@@ -21,11 +22,9 @@ export {
   createClassroom,
   updateClassroom,
   deleteClassroom,
-  joinClassroom,
   addMembers,
   removeMember,
   regenerateCode,
-  bindContest,
   getClassroomContests,
   createClassroomContest,
   getClassroomLabs,
@@ -55,6 +54,7 @@ export { default as submissionRepository } from "./submission.repository";
 export { default as contestRepository } from "./contest.repository";
 export { default as discussionRepository } from "./discussion.repository";
 export { default as authRepository } from "./auth.repository";
+export { default as userRepository } from "./user.repository";
 export { default as announcementRepository } from "./announcement.repository";
 export { default as chatbotRepository } from "./chatbot.repository";
 export { default as questionBankRepository } from "./questionBank.repository";

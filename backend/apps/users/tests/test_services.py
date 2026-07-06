@@ -152,7 +152,7 @@ class AuthOptionsTests(SimpleTestCase):
     def test_get_auth_options_returns_public_known_providers(self):
         options = get_auth_options()
 
-        self.assertFalse(options["email_password_enabled"])
+        self.assertFalse(options["password_enabled"])
         self.assertEqual(
             options["providers"],
             [

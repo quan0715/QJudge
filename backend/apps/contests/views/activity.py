@@ -25,18 +25,3 @@ class ContestActivityViewSet(viewsets.ReadOnlyModelViewSet):
             return ContestActivity.objects.none()
 
         return ContestActivity.objects.filter(contest=contest).order_by('-created_at')
-
-    @staticmethod
-    def log_activity(contest, user, action_type, details=""):
-        """
-        Helper to log a contest activity.
-        """
-        try:
-            ContestActivity.objects.create(
-                contest=contest,
-                user=user,
-                action_type=action_type,
-                details=details
-            )
-        except Exception as e:
-            print(f"Failed to log activity: {e}")

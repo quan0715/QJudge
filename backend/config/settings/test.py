@@ -109,6 +109,7 @@ JUDGE_MAX_MEMORY = 256
 # Docker Judge Settings for Testing
 # 使用環境變數或預設值
 DOCKER_IMAGE_JUDGE = os.getenv('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
+DOCKER_JUDGE_PLATFORM = os.getenv('DOCKER_JUDGE_PLATFORM') or None
 DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv('DOCKER_JUDGE_PIDS_LIMIT', '64'))
 DOCKER_JUDGE_TMPFS_SIZE = os.getenv('DOCKER_JUDGE_TMPFS_SIZE', '100M')
 DOCKER_JUDGE_TIMEOUT = int(os.getenv('DOCKER_JUDGE_TIMEOUT', '60'))

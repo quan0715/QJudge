@@ -88,7 +88,8 @@
       "description": "모든 사용자를 보고 역할 관리 (검색 기능으로 필터링 가능)",
       "loadFailed": "사용자를 불러올 수 없습니다",
       "loginMethods": {
-        "email": "이메일/비밀번호",
+        "email": "비밀번호 자격 증명",
+        "password": "비밀번호 자격 증명",
         "github": "GitHub",
         "google": "Google",
         "sso": "SSO",

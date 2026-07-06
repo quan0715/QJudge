@@ -98,19 +98,6 @@
   "archived": "已封存",
   "backToClassrooms": "返回教室列表",
   "basicInfo": "基本資訊",
-  "bindContest": {
-    "modal": {
-      "noContests": "沒有可綁定的競賽",
-      "submit": "綁定",
-      "submitting": "綁定中...",
-      "table": {
-        "name": "競賽名稱",
-        "status": "狀態"
-      },
-      "title": "綁定競賽"
-    }
-  },
-  "bindContestNoPermission": "你沒有綁定競賽的權限",
   "classroomDeleteFailed": "刪除教室失敗",
   "classroomDeleted": "教室已刪除",
   "classroomList": "教室清單",
@@ -173,13 +160,6 @@
     "regenerate": "重新產生"
   },
   "inviteLinkSection": "邀請連結",
-  "joinLink": {
-    "backToDashboard": "返回首頁",
-    "errorTitle": "無法加入教室",
-    "invalidLink": "無效的邀請連結",
-    "joinFailed": "加入教室失敗",
-    "joining": "正在加入教室..."
-  },
   "latestAnnouncements": "最新公告",
   "loadFailed": "載入教室失敗",
   "loadFailedHint": "請稍後再試",

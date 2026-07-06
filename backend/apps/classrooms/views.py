@@ -33,7 +33,6 @@ from .serializers import (
     ClassroomMemberSerializer,
     ClassroomAnnouncementSerializer,
     ClassroomAnnouncementWriteSerializer,
-    JoinClassroomSerializer,
     AddMembersSerializer,
     RemoveMemberSerializer,
     UpdateMemberRoleSerializer,
@@ -237,40 +236,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         if updated == 0:
             raise NotFound('Member not found.')
         return Response({'detail': 'Member role updated.'})
-
-    # ── Join / Invite Code ───────────────────────────────
-
-    @action(detail=False, methods=['post'], url_path='join')
-    def join(self, request):
-        serializer = JoinClassroomSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        code = serializer.validated_data['invite_code'].upper()
-        try:
-            classroom = Classroom.objects.get(invite_code=code, is_archived=False)
-        except Classroom.DoesNotExist:
-            raise NotFound('Invalid invite code.')
-
-        if not classroom.invite_code_enabled:
-            raise PermissionDenied('Invite code is disabled for this classroom.')
-
-        if classroom.owner_id == request.user.id or classroom.admins.filter(pk=request.user.pk).exists():
-            return Response(
-                ClassroomDetailSerializer(classroom, context={'request': request}).data,
-                status=status.HTTP_200_OK,
-            )
-
-        _, created = ClassroomMember.objects.get_or_create(
-            classroom=classroom, user=request.user,
-            defaults={'role': 'student'},
-        )
-        if created:
-            on_member_joined(classroom, request.user)
-
-        return Response(
-            ClassroomDetailSerializer(classroom, context={'request': request}).data,
-            status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED,
-        )
 
     @action(detail=True, methods=['post'], url_path='regenerate_code',
             permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])

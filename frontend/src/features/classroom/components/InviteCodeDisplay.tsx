@@ -20,7 +20,7 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const inviteLink = `${window.location.origin}/classrooms/join/${code}`;
+  const inviteLink = `${window.location.origin}/magic-links/${code}`;
 
   const handleCopy = async () => {
     try {

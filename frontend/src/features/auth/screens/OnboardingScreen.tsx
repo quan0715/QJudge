@@ -14,7 +14,7 @@ import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContex
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { LanguageSwitch, ThemeSwitch } from "@/shared/ui/config";
-import { updatePreferences } from "@/infrastructure/api/repositories/auth.repository";
+import { updatePreferences } from "@/infrastructure/api/repositories/user.repository";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import type { SupportedLanguage } from "@/i18n";
 

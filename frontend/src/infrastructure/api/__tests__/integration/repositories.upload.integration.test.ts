@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
-import { uploadAvatar } from "@/infrastructure/api/repositories/auth.repository";
+import { uploadAvatar } from "@/infrastructure/api/repositories/user.repository";
 import { uploadClassroomCover } from "@/infrastructure/api/repositories/classroom.repository";
 import { uploadCover as uploadBankCover } from "@/infrastructure/api/repositories/questionBank.repository";
 import {

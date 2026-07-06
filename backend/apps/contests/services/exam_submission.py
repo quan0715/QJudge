@@ -9,10 +9,10 @@ from django.utils import timezone
 
 from apps.contests.models import (
     AssignmentState,
-    ContestActivity,
     ExamStatus,
 )
 
+from .activity_log import log_contest_activity
 from .anti_cheat_session import clear_active_session, clear_exam_allowed_jti
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ def finalize_submission(
     clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
     if activity_user and activity_action_type:
-        ContestActivity.objects.create(
+        log_contest_activity(
             contest=participant.contest,
             user=activity_user,
             action_type=activity_action_type,

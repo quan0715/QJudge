@@ -136,13 +136,13 @@ const RegisterPage = () => {
           </div>
         )}
 
-        {hasRegistrationProviders && options.email_password_enabled && (
+        {hasRegistrationProviders && options.password_enabled && (
           <div className="auth-divider">
-            <span>{t("auth.register.emailDivider", "或使用 Email 註冊")}</span>
+            <span>{t("auth.register.emailDivider", "或使用帳號密碼建立帳號")}</span>
           </div>
         )}
 
-        {options.email_password_enabled && (
+        {options.password_enabled && (
           <Form
             id="auth-register-form"
             onSubmit={handleRegister}
@@ -214,7 +214,7 @@ const RegisterPage = () => {
                   data-testid="auth-register-submit"
                   renderIcon={ArrowRight}
                 >
-                  {t("auth.register.emailSubmit", "Email 註冊")}
+                  {t("auth.register.emailSubmit", "建立帳號")}
                 </Button>
               )}
             </div>
@@ -250,7 +250,7 @@ const RegisterPage = () => {
         >
           {t("auth.register.loginNow")}
         </Button>
-        {options.email_password_enabled && (
+        {options.password_enabled && (
           <Button
             kind="primary"
             size="2xl"
@@ -260,7 +260,7 @@ const RegisterPage = () => {
             renderIcon={ArrowRight}
             data-testid="auth-register-mobile-submit"
           >
-            {t("auth.register.emailSubmit", "Email 註冊")}
+            {t("auth.register.emailSubmit", "建立帳號")}
           </Button>
         )}
       </MobileActionFooter>

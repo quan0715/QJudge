@@ -98,19 +98,6 @@
   "archived": "보관됨",
   "backToClassrooms": "교실 목록으로 돌아가기",
   "basicInfo": "기본 정보",
-  "bindContest": {
-    "modal": {
-      "noContests": "바인딩할 수 있는 콘테스트가 없습니다",
-      "submit": "바인딩",
-      "submitting": "바인딩 중...",
-      "table": {
-        "name": "콘테스트 이름",
-        "status": "상태"
-      },
-      "title": "콘테스트 바인딩"
-    }
-  },
-  "bindContestNoPermission": "콘테스트를 연결할 권한이 없습니다",
   "classroomDeleteFailed": "교실 삭제에 실패했습니다",
   "classroomDeleted": "교실이 삭제되었습니다",
   "classroomList": "교실 목록",
@@ -173,13 +160,6 @@
     "regenerate": "재생성"
   },
   "inviteLinkSection": "초대 링크",
-  "joinLink": {
-    "backToDashboard": "대시보드로",
-    "errorTitle": "교실에 참여할 수 없습니다",
-    "invalidLink": "잘못된 초대 링크",
-    "joinFailed": "교실 참여에 실패했습니다",
-    "joining": "교실에 참여하는 중..."
-  },
   "latestAnnouncements": "최신 공지사항",
   "loadFailed": "교실 불러오기 실패",
   "loadFailedHint": "잠시 후 다시 시도해 주세요",

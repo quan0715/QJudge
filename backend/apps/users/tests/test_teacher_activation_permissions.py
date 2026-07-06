@@ -10,7 +10,6 @@ Covers:
 """
 from datetime import timedelta
 
-from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -43,68 +42,87 @@ class TeacherActivationPermissionTests(APITestCase):
             password="password123",
             role="student",
         )
-        self.issue_url = reverse("users:teacher-activation-issue")
-        self.preview_url = reverse("users:teacher-activation-preview")
-        self.consume_url = reverse("users:teacher-activation-consume")
+        self.issue_url = "/api/v1/magic-links"
+
+    def _inspect_url(self, token: str) -> str:
+        return f"/api/v1/magic-links/{token}"
+
+    def _redeem_url(self, token: str) -> str:
+        return f"/api/v1/magic-links/{token}/redeem"
 
     def _issue_invite(self):
         self.client.force_authenticate(user=self.admin)
-        response = self.client.post(self.issue_url, {}, format="json")
+        response = self.client.post(
+            self.issue_url,
+            {"purpose": "teacher_activation"},
+            format="json",
+        )
         self.client.force_authenticate(user=None)
         return response
+
+    def _token_from_issue_response(self, response) -> str:
+        return response.data["data"]["magic_link_url"].rstrip("/").split("/magic-links/")[1]
 
     # ── Issue permission tests ──────────────────────────────
 
     def test_student_cannot_issue_invite(self):
         self.client.force_authenticate(user=self.student)
-        response = self.client.post(self.issue_url, {}, format="json")
+        response = self.client.post(
+            self.issue_url,
+            {"purpose": "teacher_activation"},
+            format="json",
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_teacher_cannot_issue_invite(self):
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(self.issue_url, {}, format="json")
+        response = self.client.post(
+            self.issue_url,
+            {"purpose": "teacher_activation"},
+            format="json",
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_unauthenticated_cannot_issue_invite(self):
-        response = self.client.post(self.issue_url, {}, format="json")
+        response = self.client.post(
+            self.issue_url,
+            {"purpose": "teacher_activation"},
+            format="json",
+        )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     # ── Preview tests ───────────────────────────────────────
 
-    def test_preview_without_token_returns_400(self):
-        response = self.client.get(self.preview_url)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "TOKEN_REQUIRED")
-
     def test_preview_with_invalid_token_returns_404(self):
-        response = self.client.get(f"{self.preview_url}?token=bogus_token_12345")
+        response = self.client.get("/api/v1/magic-links/bogus_token_12345")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "INVITE_NOT_FOUND")
+        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_NOT_FOUND")
 
     def test_preview_shows_can_consume_when_authenticated(self):
         issue_response = self._issue_invite()
-        token = issue_response.data["data"]["activation_url"].split("token=")[1]
+        token = self._token_from_issue_response(issue_response)
 
         self.client.force_authenticate(user=self.student)
-        response = self.client.get(f"{self.preview_url}?token={token}")
+        response = self.client.get(self._inspect_url(token))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["requires_login"])
         self.assertTrue(response.data["data"]["can_consume"])
+        self.assertTrue(response.data["data"]["can_redeem"])
         self.assertEqual(response.data["data"]["current_user_email"], self.student.email)
 
     # ── Consume edge cases ──────────────────────────────────
 
     def test_unauthenticated_consume_returns_401(self):
         issue_response = self._issue_invite()
-        token = issue_response.data["data"]["activation_url"].split("token=")[1]
+        token = self._token_from_issue_response(issue_response)
 
-        response = self.client.post(self.consume_url, {"token": token}, format="json")
+        response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_expired_invite_cannot_be_consumed(self):
         issue_response = self._issue_invite()
-        token = issue_response.data["data"]["activation_url"].split("token=")[1]
+        token = self._token_from_issue_response(issue_response)
 
         # Force expire the invite
         invite = TeacherActivationInvite.objects.get()
@@ -112,30 +130,25 @@ class TeacherActivationPermissionTests(APITestCase):
         invite.save(update_fields=["expires_at"])
 
         self.client.force_authenticate(user=self.student)
-        response = self.client.post(self.consume_url, {"token": token}, format="json")
+        response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "INVITE_EXPIRED")
+        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_EXPIRED")
 
     def test_consume_with_invalid_token_returns_404(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
-            self.consume_url, {"token": "nonexistent_token"}, format="json"
+            "/api/v1/magic-links/nonexistent_token/redeem", {}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "INVITE_NOT_FOUND")
-
-    def test_consume_without_token_returns_400(self):
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(self.consume_url, {}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_NOT_FOUND")
 
     def test_already_teacher_consuming_invite_stays_teacher(self):
         """If a teacher consumes an invite, they should remain teacher (idempotent)."""
         issue_response = self._issue_invite()
-        token = issue_response.data["data"]["activation_url"].split("token=")[1]
+        token = self._token_from_issue_response(issue_response)
 
         self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(self.consume_url, {"token": token}, format="json")
+        response = self.client.post(self._redeem_url(token), {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.teacher.refresh_from_db()

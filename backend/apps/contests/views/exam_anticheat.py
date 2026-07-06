@@ -1,4 +1,4 @@
-"""ExamAnticheatMixin — anticheat URLs, active sessions, takeover."""
+"""ExamAnticheatMixin — anticheat URLs and active sessions."""
 from datetime import timedelta
 
 from django.utils import timezone
@@ -31,7 +31,7 @@ from ..services.anticheat_storage import (
     generate_put_url,
     get_s3_client,
 )
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
@@ -41,7 +41,7 @@ from ..constants import WEBCAM_CAPTURE_INTERVAL_SECONDS
 
 
 class ExamAnticheatMixin:
-    """Mixin for anticheat URL generation, active sessions, and takeover."""
+    """Mixin for anticheat URL generation and active sessions."""
 
     def _ensure_active_device_session(self, contest, participant, request):
         """Delegate to the shared helper, then refresh the active session."""
@@ -189,7 +189,7 @@ class ExamAnticheatMixin:
         serializer.is_valid(raise_exception=True)
         user_id = serializer.validated_data["user_id"]
         clear_active_session(contest.id, user_id)
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             "update_participant",

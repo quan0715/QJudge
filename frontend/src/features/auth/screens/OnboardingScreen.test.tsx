@@ -39,7 +39,7 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 }));
 
 const mockUpdatePreferences = vi.fn();
-vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
+vi.mock("@/infrastructure/api/repositories/user.repository", () => ({
   updatePreferences: (...args: any[]) => mockUpdatePreferences(...args),
 }));
 

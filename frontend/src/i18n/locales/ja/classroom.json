@@ -98,19 +98,6 @@
   "archived": "アーカイブ済み",
   "backToClassrooms": "教室一覧に戻る",
   "basicInfo": "基本情報",
-  "bindContest": {
-    "modal": {
-      "noContests": "利用可能なコンテストがありません",
-      "submit": "紐付け",
-      "submitting": "紐付け中...",
-      "table": {
-        "name": "コンテスト名",
-        "status": "ステータス"
-      },
-      "title": "コンテストを紐付け"
-    }
-  },
-  "bindContestNoPermission": "コンテストを紐付ける権限がありません",
   "classroomDeleteFailed": "クラスルームの削除に失敗しました",
   "classroomDeleted": "クラスルームを削除しました",
   "classroomList": "クラスルーム一覧",
@@ -173,13 +160,6 @@
     "regenerate": "再生成"
   },
   "inviteLinkSection": "招待リンク",
-  "joinLink": {
-    "backToDashboard": "ダッシュボードへ",
-    "errorTitle": "クラスルームに参加できません",
-    "invalidLink": "無効な招待リンク",
-    "joinFailed": "クラスルームへの参加に失敗しました",
-    "joining": "クラスルームに参加中..."
-  },
   "latestAnnouncements": "最新のお知らせ",
   "loadFailed": "クラスルームの読み込みに失敗しました",
   "loadFailedHint": "しばらくしてからもう一度お試しください",

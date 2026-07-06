@@ -1,11 +1,4 @@
 // Submissions Feature
-// Route: /submissions
-
-// Routes
-export { submissionRoutes } from "./routes";
-
-// Screens
-export { SubmissionsScreen } from "./screens";
 
 // Components
 export {
@@ -15,6 +8,3 @@ export {
   type SubmissionRow,
   type StatusFilterType,
 } from "./components";
-
-// Hooks
-export { SubmissionProvider, useSubmission } from "./hooks";

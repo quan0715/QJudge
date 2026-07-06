@@ -1,4 +1,4 @@
-"""Tests for /api/v1/auth/me/avatar/upload endpoint."""
+"""Tests for /api/v1/users/me/avatar endpoint."""
 
 from io import BytesIO
 from unittest.mock import patch
@@ -29,7 +29,7 @@ class UserAvatarUploadViewTests(TestCase):
             email="avatar@example.com",
             password="testpass123",
         )
-        self.url = "/api/v1/auth/me/avatar/upload"
+        self.url = "/api/v1/users/me/avatar"
 
     def test_upload_avatar_requires_auth(self):
         payload = _make_png_bytes()

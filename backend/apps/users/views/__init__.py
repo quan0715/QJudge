@@ -3,46 +3,37 @@
 from .auth import (
     SchemaAPIView,
     RegisterView,
-    LoginView,
     AuthOptionsView,
     DevTokenView,
-    OAuthLoginView,
+    ProviderLoginView,
     OAuthCallbackView,
 )
-from .token import TokenRefreshView, LogoutView, ResolveConflictView
-from .account import CurrentUserView, UserStatsView
+from .token import TokenRefreshView, LogoutView
+from .account import CurrentUserView
 from .admin import UserSearchView, UserRoleUpdateView
 from .avatar import UserAvatarUploadView
 from .login_records import LoginRecordsView, LogoutOtherDevicesView
-from .password import ChangePasswordView, ForgotPasswordView, ResetPasswordView
+from .magic_link import MagicLinkInspectView, MagicLinkIssueView, MagicLinkRedeemView
+from .password import ForgotPasswordView, ResetPasswordView
 from .preferences import UserPreferencesView
-from .teacher_activation import (
-    TeacherActivationInviteConsumeView,
-    TeacherActivationInviteIssueView,
-    TeacherActivationInvitePreviewView,
-)
 
 __all__ = [
     "SchemaAPIView",
     "RegisterView",
-    "LoginView",
     "AuthOptionsView",
     "DevTokenView",
-    "OAuthLoginView",
+    "ProviderLoginView",
     "OAuthCallbackView",
     "TokenRefreshView",
     "LogoutView",
-    "ResolveConflictView",
     "CurrentUserView",
     "UserSearchView",
     "UserRoleUpdateView",
-    "TeacherActivationInviteIssueView",
-    "TeacherActivationInvitePreviewView",
-    "TeacherActivationInviteConsumeView",
-    "UserStatsView",
+    "MagicLinkIssueView",
+    "MagicLinkInspectView",
+    "MagicLinkRedeemView",
     "UserPreferencesView",
     "UserAvatarUploadView",
-    "ChangePasswordView",
     "ForgotPasswordView",
     "ResetPasswordView",
     "LoginRecordsView",

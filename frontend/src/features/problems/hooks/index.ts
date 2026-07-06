@@ -1,9 +1,5 @@
 // Problem Hooks - Main exports
 
-// List and filter hooks
-export { useProblemList, useInfiniteProblemList, type ProblemListFilters } from "./useProblemList";
-export { useProblemTags } from "./useProblemTags";
-
 // Problem detail hooks
 export { ProblemProvider, useProblem } from "./useProblem";
 export { useProblemDetail } from "./useProblemDetail";

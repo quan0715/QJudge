@@ -1,5 +1,5 @@
 export interface PendingActionConfig {
-  /** Unique key, e.g. "teacher_activation" */
+  /** Unique key, e.g. "magic_link" */
   key: string;
   /** sessionStorage key */
   storageKey: string;
@@ -11,7 +11,7 @@ export interface PendingActionConfig {
   priority: number;
   /**
    * Query param name used to carry value through login↔register links.
-   * null means this action only uses sessionStorage (e.g. classroom join).
+   * null means this action only uses sessionStorage.
    */
   queryParam: string | null;
   /** i18n keys for the info banner shown on login/register screens (null = no banner) */

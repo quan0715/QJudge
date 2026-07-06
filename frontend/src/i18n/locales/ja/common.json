@@ -28,10 +28,7 @@
         "ready": "準備完了！",
         "stats": "実績を同期中...",
         "verifying": "本人確認を行っています..."
-      },
-      "takeover": "引き継いで古いデバイスをロックする",
-      "takeoverExpired": "引き継ぎトークンが期限切れです。再度ログインしてください。",
-      "takeoverFailed": "引き継ぎに失敗しました。試験監督に連絡してください。"
+      }
     },
     "campusSso": {
       "backToLogin": "ログインに戻る",
@@ -55,13 +52,16 @@
       "nycu": {
         "description": "大学のポータルアカウントを使用してログインします",
         "displayName": "NYCU (国立陽明交通大学)"
+      },
+      "password": {
+        "displayName": "パスワード認証"
       }
     },
     "login": {
       "email": "メールアドレス / ユーザー名",
       "emailPlaceholder": "メールアドレスまたはユーザー名",
       "failed": "ログインに失敗しました",
-      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "invalidCredentials": "アカウントまたはパスワードが正しくありません",
       "loading": "ログイン中...",
       "noAccount": "アカウントをお持ちでない方は",
       "oauthFailed": "ログインを開始できませんでした",
@@ -72,7 +72,7 @@
       "submit": "ログイン",
       "subtitle": "おかえりなさい、アカウントにログインしてください",
       "title": "ログイン",
-      "emailDivider": "またはメール / パスワードでログイン"
+      "emailDivider": "またはパスワード認証でログイン"
     },
     "logout": {
       "confirmButton": "ログアウト",
@@ -80,19 +80,15 @@
       "confirmTitle": "ログアウトの確認"
     },
     "pendingAction": {
-      "classroomJoinSubtitle": "まずログインまたは登録してください。完了後、自動的にクラスルームに参加します。",
-      "classroomJoinTitle": "クラスルームに参加",
-      "examTakeoverSubtitle": "未完了の試験が検出されました。このデバイスで引き継いで再開してください。",
-      "examTakeoverTitle": "試験デバイス引き継ぎ",
-      "teacherActivationSubtitle": "まずログインまたは登録してください。完了後、自動的に教師権限が有効になります。",
-      "teacherActivationTitle": "教師権限の有効化"
+      "magicLinkSubtitle": "まずログインまたは登録してください。完了後、招待操作が自動的に実行されます。",
+      "magicLinkTitle": "招待リンク"
     },
     "register": {
       "confirmPassword": "パスワード確認",
       "confirmPasswordPlaceholder": "パスワードを再入力",
       "email": "メールアドレス",
-      "emailDivider": "またはメールで登録",
-      "emailSubmit": "メール登録",
+      "emailDivider": "またはパスワード認証でアカウント作成",
+      "emailSubmit": "アカウント作成",
       "emailPlaceholder": "メールアドレスを入力",
       "failed": "登録に失敗しました",
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",
@@ -108,11 +104,6 @@
       "title": "アカウント作成",
       "username": "ユーザー名",
       "usernamePlaceholder": "ユーザー名を選択"
-    },
-    "takeover": {
-      "stepInvalidate": "他のデバイスのログインセッションをクリア中...",
-      "stepRedirect": "試験に戻ります...",
-      "stepRegister": "試験接続を再登録中..."
     }
   },
   "button": {
@@ -186,12 +177,6 @@
       "showMore": "もっと表示",
       "title": "マイ問題集",
       "viewAll": "すべて表示"
-    },
-    "stats": {
-      "noStats": "統計データを読み込めません",
-      "problems": "問",
-      "solvedCount": "/ {{total}} 解決済み",
-      "title": "解答統計"
     },
     "subtitle": "Online Judge",
     "welcomeBack": "おかえりなさい、{{name}}さん"
@@ -383,9 +368,6 @@
     "avatarEmpty": "アバターを追加",
     "avatarRemove": "アバターを削除",
     "avatarUpload": "アバターをアップロード",
-    "changePassword": "パスワード変更",
-    "confirmPassword": "新しいパスワード (確認)",
-    "currentPassword": "現在のパスワード",
     "displayName": "表示名",
     "displayNameDescription": "プラットフォームで表示される名前を設定します",
     "displayNameSaveFailed": "更新に失敗しました",
@@ -399,18 +381,13 @@
     "languageDescription": "優先する表示言語を選択してください",
     "languageSection": "言語",
     "loginMethod": "ログイン方法",
-    "newPassword": "新しいパスワード",
-    "oauthUser": "OAuth ユーザーはパスワードを変更できません",
-    "passwordChanged": "パスワードが変更されました",
-    "passwordMismatch": "新しいパスワードが一致しません",
     "role": "ロール",
     "savingDisplayName": "保存中...",
     "theme": "テーマ",
     "themeDescription": "優先するインターフェーステーマを選択してください",
     "themeSection": "テーマ",
     "title": "設定",
-    "username": "ユーザー名",
-    "wrongPassword": "現在のパスワードが間違っています"
+    "username": "ユーザー名"
   },
   "profile": {
     "deviceName": "デバイス名",
@@ -693,7 +670,6 @@
     "show": "表示"
   },
   "user": {
-    "changePassword": "パスワード変更",
     "preferences": "設定",
     "role": {
       "admin": "管理者",

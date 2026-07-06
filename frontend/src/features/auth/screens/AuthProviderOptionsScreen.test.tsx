@@ -37,7 +37,7 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 const authOptions = {
   success: true,
   data: {
-    email_password_enabled: false,
+    password_enabled: false,
     providers: [
       {
         key: "school-x",
@@ -162,7 +162,7 @@ describe("auth provider options", () => {
       ...authOptions,
       data: {
         ...authOptions.data,
-        email_password_enabled: true,
+        password_enabled: true,
       },
     });
 
@@ -189,7 +189,7 @@ describe("auth provider options", () => {
       ...authOptions,
       data: {
         ...authOptions.data,
-        email_password_enabled: true,
+        password_enabled: true,
       },
     });
 

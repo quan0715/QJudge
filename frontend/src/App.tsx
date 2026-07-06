@@ -12,7 +12,7 @@ import {
   guestRoutes,
   oauthCallbackRoute,
   onboardingRoute,
-  teacherActivationRoute,
+  magicLinkRoute,
   oauthAuthorizeRoute,
   AuthLayout,
   AuthProvider,
@@ -45,7 +45,7 @@ import { adminRoutes, draftProblemsRoute } from "@/features/admin";
 import { landingRoute } from "@/features/landing";
 import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
 import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
-import { classroomDetailRoute, classroomJoinRoute } from "@/features/classroom";
+import { classroomDetailRoute } from "@/features/classroom";
 import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
 import { lazy, Suspense } from "react";
 
@@ -112,7 +112,7 @@ function App() {
                           </Route>
                           {oauthCallbackRoute}
                           {oauthAuthorizeRoute}
-                          {teacherActivationRoute}
+                          {magicLinkRoute}
                           <Route element={<RequireAuth />}>
                             <Route element={<RequirePendingOnboarding />}>
                               {onboardingRoute}
@@ -132,9 +132,6 @@ function App() {
 
                         {/* Public Checkout Success */}
                         {checkoutSuccessRoute}
-
-                        {/* Classroom Join - public route, handles own auth redirect */}
-                        {classroomJoinRoute}
 
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>

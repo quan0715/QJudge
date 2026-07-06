@@ -9,27 +9,6 @@ import { API_ENDPOINTS, TEST_USERS } from "./data.helper";
 
 export type UserRole = keyof typeof TEST_USERS;
 
-/**
- * 考試進行中若已存在進行中的 session，學生再次 login 會進入 takeover recovery。
- * E2E 測試直接呼叫 resolve-conflict，避免走任何舊的人工 / fallback 流程。
- */
-async function tryRecoverExamLoginBlock(
-  page: Page,
-  blockBody: Record<string, unknown>,
-): Promise<boolean> {
-  const conflictToken =
-    typeof blockBody.conflict_token === "string" ? blockBody.conflict_token : "";
-  if (!conflictToken) return false;
-
-  const resolveResp = await page.request.post("/api/v1/auth/resolve-conflict", {
-    data: {
-      conflict_token: conflictToken,
-      action: "takeover_recovery",
-    },
-  });
-  return resolveResp.ok();
-}
-
 /** Carbon TextInput / PasswordInput forward `data-testid` to the real `<input>`. */
 export async function fillAuthFormInput(page: Page, testId: string, value: string) {
   await page.getByTestId(testId).fill(value);
@@ -322,48 +301,15 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   const user = TEST_USERS[role];
 
   // Make API request to login
-  let response = await page.request.post("/api/v1/auth/email/login", {
+  const response = await page.request.post("/api/v1/auth/login/password", {
     data: {
-      email: user.email,
+      identifier: user.email,
       password: user.password,
     },
   });
-  let data: Record<string, unknown> | null = null;
-
-  if (!response.ok()) {
-    data = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-    const conflictToken =
-      data && typeof data.conflict_token === "string" ? data.conflict_token : "";
-    const conflictCode = data && typeof data.code === "string" ? data.code : "";
-
-    if (
-      response.status() === 409 &&
-      conflictCode === "EXAM_CONFLICT_ACTIVE_SESSION" &&
-      conflictToken
-    ) {
-      response = await page.request.post("/api/v1/auth/resolve-conflict", {
-        data: {
-          conflict_token: conflictToken,
-          action: "takeover_recovery",
-        },
-      });
-      data = null;
-    } else if (response.status() === 403 && conflictCode === "EXAM_TAKEOVER_REQUIRED" && data) {
-      const recovered = await tryRecoverExamLoginBlock(page, data);
-      if (recovered) {
-        response = await page.request.post("/api/v1/auth/email/login", {
-          data: {
-            email: user.email,
-            password: user.password,
-          },
-        });
-        data = null;
-      }
-    }
-  }
 
   expect(response.ok()).toBeTruthy();
-  const payload = data ?? ((await response.json()) as Record<string, unknown>);
+  const payload = (await response.json()) as Record<string, unknown>;
   const dataNode = (payload?.data ?? {}) as Record<string, unknown>;
   const token = dataNode?.access_token as string | undefined;
   const userData = dataNode?.user;

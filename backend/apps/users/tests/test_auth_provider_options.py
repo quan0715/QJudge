@@ -24,7 +24,7 @@ def test_get_auth_options_returns_registered_provider_metadata(settings):
     options = get_auth_options()
 
     assert options == {
-        "email_password_enabled": False,
+        "password_enabled": False,
         "providers": [
             {
                 "key": "nycu",
@@ -50,6 +50,21 @@ def test_get_auth_options_returns_registered_provider_metadata(settings):
                 "logo_url": "/illustrations/google-icon.svg",
             },
         ],
+    }
+
+
+def test_get_auth_options_exposes_password_as_credentials_provider(settings):
+    settings.AUTH_EMAIL_PASSWORD_ENABLED = True
+
+    options = get_auth_options()
+
+    assert options["password_enabled"] is True
+    assert options["providers"][0] == {
+        "key": "password",
+        "type": "credentials",
+        "category": "password",
+        "display_name": "Password credentials",
+        "display_name_i18n_key": "auth.providers.password",
     }
 
 

@@ -1,10 +1,7 @@
 services:
   judge-image-test:
-    profiles: ["judge"]
-    build:
-      context: ./backend/judge
-      dockerfile: Dockerfile.judge
-    image: oj-judge:latest
+    image: ${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
+    platform: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
     container_name: oj_judge_image_test
     command: ["true"]
     restart: "no"
@@ -107,6 +104,8 @@ services:
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=True
       - ALLOWED_HOSTS=*
+      - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
+      - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
     ports:
       - "8002:8000"
     depends_on:
@@ -141,6 +140,8 @@ services:
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=True
       - JUDGE_TMP_DIR=/judge_tmp
+      - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
+      - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
     depends_on:
       postgres-test:
         condition: service_healthy

@@ -23,7 +23,6 @@ replacements = {
     ('chatbot', 'widget.renameModal.submit'): 'button.save',
     
     ('classroom', 'announcement.modal.cancel'): 'button.cancel',
-    ('classroom', 'bindContest.modal.cancel'): 'button.cancel',
 
     # Table headers
     ('contest', 'participants.headers.actions'): 'table.actions',

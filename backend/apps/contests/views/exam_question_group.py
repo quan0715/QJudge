@@ -12,7 +12,7 @@ from ..models import Contest, ExamQuestion, ExamQuestionGroup
 from ..permissions import can_manage_contest
 from ..serializers import ExamQuestionGroupSerializer
 from ..services.question_edit_lock import ensure_contest_question_editable
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 
 
 class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
@@ -52,7 +52,7 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             action='exam_question_group.create',
         )
         serializer.save(contest=contest)
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -68,7 +68,7 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             action='exam_question_group.update',
         )
         serializer.save()
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -84,7 +84,7 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             action='exam_question_group.delete',
         )
         instance.delete()
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -208,7 +208,7 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             if dirty_groups:
                 ExamQuestionGroup.objects.bulk_update(dirty_groups, ['order'])
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',

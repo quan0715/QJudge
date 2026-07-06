@@ -5,78 +5,18 @@ from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ..serializers import (
-    ChangePasswordSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
 )
-from ..auth.options import is_email_password_auth_enabled
+from ..auth.options import is_password_auth_enabled
 from ..services import EmailAuthService
-from .common import SchemaAPIView, email_password_disabled_response
+from .common import SchemaAPIView, password_auth_disabled_response
 
 User = get_user_model()
-
-
-class ChangePasswordView(SchemaAPIView):
-    """
-    Change password for current user.
-
-    POST /api/v1/auth/change-password
-
-    Requires current password verification.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = ChangePasswordSerializer
-
-    def post(self, request):
-        if not is_email_password_auth_enabled():
-            return email_password_disabled_response()
-
-        user = request.user
-
-        # Only email users can change password
-        if user.auth_provider != 'email':
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'OAUTH_USER',
-                    'message': 'OAuth 使用者無法變更密碼，請透過原認證方式管理'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = ChangePasswordSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'VALIDATION_ERROR',
-                    'message': '密碼驗證失敗',
-                    'details': serializer.errors
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Verify current password
-        if not user.check_password(serializer.validated_data['current_password']):
-            return Response({
-                'success': False,
-                'error': {
-                    'code': 'WRONG_PASSWORD',
-                    'message': '目前密碼錯誤'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Set new password
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
-
-        return Response({
-            'success': True,
-            'message': '密碼已成功變更'
-        })
 
 
 @method_decorator(ratelimit(key='ip', rate='10/h', method='POST', block=True), name='post')
@@ -91,8 +31,8 @@ class ForgotPasswordView(SchemaAPIView):
     serializer_class = ForgotPasswordSerializer
 
     def post(self, request):
-        if not is_email_password_auth_enabled():
-            return email_password_disabled_response()
+        if not is_password_auth_enabled():
+            return password_auth_disabled_response()
 
         serializer = ForgotPasswordSerializer(data=request.data)
         if not serializer.is_valid():
@@ -137,8 +77,8 @@ class ResetPasswordView(SchemaAPIView):
     serializer_class = ResetPasswordSerializer
 
     def post(self, request):
-        if not is_email_password_auth_enabled():
-            return email_password_disabled_response()
+        if not is_password_auth_enabled():
+            return password_auth_disabled_response()
 
         serializer = ResetPasswordSerializer(data=request.data)
         if not serializer.is_valid():
@@ -173,4 +113,4 @@ class ResetPasswordView(SchemaAPIView):
         })
 
 
-__all__ = ["ChangePasswordView", "ForgotPasswordView", "ResetPasswordView"]
+__all__ = ["ForgotPasswordView", "ResetPasswordView"]

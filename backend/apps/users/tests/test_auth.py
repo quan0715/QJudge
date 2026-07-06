@@ -10,8 +10,8 @@ User = get_user_model()
 
 class AuthTests(APITestCase):
     def setUp(self):
-        self.register_url = reverse('users:email-register')
-        self.login_url = reverse('users:email-login')
+        self.register_url = reverse('auth:password-register')
+        self.login_url = reverse('auth:provider-login', kwargs={'provider': 'password'})
         
         self.user_data = {
             'username': 'testuser',
@@ -39,7 +39,7 @@ class AuthTests(APITestCase):
         self.client.post(self.register_url, self.user_data)
         
         login_data = {
-            'email': 'test@example.com',
+            'identifier': 'test@example.com',
             'password': 'StrongPassword123!'
         }
         response = self.client.post(self.login_url, login_data)
@@ -63,7 +63,7 @@ class AuthTests(APITestCase):
         response = self.client.post(
             self.login_url,
             {
-                'email': 'onboarded@example.com',
+                'identifier': 'onboarded@example.com',
                 'password': 'StrongPassword123!',
             },
         )
@@ -86,7 +86,7 @@ class AuthTests(APITestCase):
         )
         
         login_data = {
-            'email': 'test@example.com',
+            'identifier': 'test@example.com',
             'password': 'wrongpassword'
         }
         response = self.client.post(self.login_url, login_data)
@@ -99,7 +99,7 @@ class AuthTests(APITestCase):
         self.client.post(self.register_url, self.user_data)
         response = self.client.post(
             self.login_url,
-            {"email": "test@example.com", "password": "StrongPassword123!"},
+            {"identifier": "test@example.com", "password": "StrongPassword123!"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -121,7 +121,7 @@ class AuthTests(APITestCase):
         self.client.post(self.register_url, self.user_data)
         response = self.client.post(
             self.login_url,
-            {"email": "test@example.com", "password": "StrongPassword123!"},
+            {"identifier": "test@example.com", "password": "StrongPassword123!"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 

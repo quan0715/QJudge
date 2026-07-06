@@ -95,7 +95,7 @@ def judge_mocks(mocker: MockerFixture) -> Dict[str, Mock]:
 
 @pytest.fixture(autouse=True)
 def silence_contest_activity(mocker: MockerFixture) -> None:
-    mocker.patch("apps.contests.views.ContestActivityViewSet.log_activity")
+    mocker.patch("apps.submissions.services.log_contest_activity")
 
 
 @pytest.mark.django_db

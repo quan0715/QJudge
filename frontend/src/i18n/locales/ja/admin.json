@@ -88,7 +88,8 @@
       "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
       "loadFailed": "ユーザーを読み込めません",
       "loginMethods": {
-        "email": "メール/パスワード",
+        "email": "パスワード認証",
+        "password": "パスワード認証",
         "github": "GitHub",
         "google": "Google",
         "sso": "SSO",

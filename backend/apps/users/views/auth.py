@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django_ratelimit.decorators import ratelimit
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -16,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 
 from ..auth.account_linking import link_qauth_identity
-from ..auth.options import get_auth_options, is_email_password_auth_enabled
+from ..auth.options import get_auth_options, is_password_auth_enabled
 from ..auth.provider_registry import get_oauth_service
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
 from ..services import (
@@ -25,8 +26,8 @@ from ..services import (
 )
 from .common import (
     SchemaAPIView,
-    build_conflict_response,
-    email_password_disabled_response,
+    build_active_exam_login_block_response,
+    password_auth_disabled_response,
     record_login,
     token_cookie_response,
     validation_error_response,
@@ -50,8 +51,8 @@ class RegisterView(SchemaAPIView):
     serializer_class = RegisterSerializer
 
     def post(self, request):
-        if not is_email_password_auth_enabled():
-            return email_password_disabled_response()
+        if not is_password_auth_enabled():
+            return password_auth_disabled_response()
 
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():
@@ -82,49 +83,42 @@ class RegisterView(SchemaAPIView):
             )
 
 
-@method_decorator(ratelimit(key="ip", rate=_login_ip_rate, method="POST", block=True), name="post")
-@method_decorator(csrf_exempt, name="dispatch")
-@method_decorator(ensure_csrf_cookie, name="dispatch")
-class LoginView(SchemaAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = LoginSerializer
+def _password_provider_login(request):
+    if not is_password_auth_enabled():
+        return password_auth_disabled_response()
 
-    def post(self, request):
-        if not is_email_password_auth_enabled():
-            return email_password_disabled_response()
+    serializer = LoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        return validation_error_response("登入資料驗證失敗", serializer.errors)
 
-        serializer = LoginSerializer(data=request.data)
-        if not serializer.is_valid():
-            return validation_error_response("登入資料驗證失敗", serializer.errors)
-
-        user = EmailAuthService.login(
-            serializer.validated_data["email"],
-            serializer.validated_data["password"],
-        )
-        if not user:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": "AUTH_001",
-                        "message": "Email 或密碼錯誤",
-                    },
+    user = EmailAuthService.login(
+        serializer.validated_data["identifier"],
+        serializer.validated_data["password"],
+    )
+    if not user:
+        return Response(
+            {
+                "success": False,
+                "error": {
+                    "code": "AUTH_001",
+                    "message": "帳號或密碼錯誤",
                 },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            },
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
-        conflict_response = build_conflict_response(user, request, provider="email")
-        if conflict_response is not None:
-            return conflict_response
+    conflict_response = build_active_exam_login_block_response(user, request, provider="password")
+    if conflict_response is not None:
+        return conflict_response
 
-        tokens = JWTService.generate_tokens(user)
-        access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
-        record_login(user, request, login_method="email", jti=access_jti)
-        return token_cookie_response(user, tokens)
+    tokens = JWTService.generate_tokens(user)
+    access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
+    record_login(user, request, login_method="password", jti=access_jti)
+    return token_cookie_response(user, tokens)
 
 
 class AuthOptionsView(SchemaAPIView):
-    """GET /api/v1/auth/options → return public login method metadata."""
+    """GET /api/v1/auth/providers → return public login provider metadata."""
 
     permission_classes = [AllowAny]
     serializer_class = serializers.Serializer
@@ -201,16 +195,32 @@ class DevTokenView(SchemaAPIView):
 
 
 # ---------------------------------------------------------------------------
-# Generic OAuth views (provider-dispatching)
+# Provider login and OAuth callback views
 # ---------------------------------------------------------------------------
 
-class OAuthLoginView(SchemaAPIView):
-    """GET /api/v1/auth/<provider>/login → return authorization URL."""
+@method_decorator(ratelimit(key="ip", rate=_login_ip_rate, method="POST", block=True), name="post")
+@method_decorator(csrf_exempt, name="dispatch")
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class ProviderLoginView(SchemaAPIView):
+    """GET/POST /api/v1/auth/login/<provider> dispatches by provider kind."""
 
     permission_classes = [AllowAny]
     serializer_class = serializers.Serializer
 
+    @extend_schema(request=None)
     def get(self, request, provider: str):
+        if provider == "password":
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "PASSWORD_PROVIDER_REQUIRES_POST",
+                        "message": "password provider login requires POST credentials",
+                    },
+                },
+                status=status.HTTP_405_METHOD_NOT_ALLOWED,
+            )
+
         service = get_oauth_service(provider)
         if service is None:
             return Response(
@@ -218,7 +228,7 @@ class OAuthLoginView(SchemaAPIView):
                     "success": False,
                     "error": {
                         "code": "UNKNOWN_PROVIDER",
-                        "message": f"Unknown OAuth provider: {provider}",
+                        "message": f"Unknown login provider: {provider}",
                     },
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -228,11 +238,40 @@ class OAuthLoginView(SchemaAPIView):
         auth_url = service.get_authorization_url(redirect_uri, state)
         return Response({"success": True, "data": {"authorization_url": auth_url}})
 
+    @extend_schema(request=LoginSerializer)
+    def post(self, request, provider: str):
+        if provider == "password":
+            return _password_provider_login(request)
+
+        service = get_oauth_service(provider)
+        if service is None:
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "UNKNOWN_PROVIDER",
+                        "message": f"Unknown login provider: {provider}",
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "success": False,
+                "error": {
+                    "code": "OAUTH_PROVIDER_REQUIRES_REDIRECT",
+                    "message": "OAuth providers must start with GET /api/v1/auth/login/{provider}",
+                },
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 class OAuthCallbackView(SchemaAPIView):
-    """POST /api/v1/auth/<provider>/callback → exchange code, return JWT."""
+    """POST /api/v1/auth/callback/<provider> → exchange code, return JWT."""
 
     permission_classes = [AllowAny]
     serializer_class = OAuthCallbackSerializer
@@ -264,7 +303,7 @@ class OAuthCallbackView(SchemaAPIView):
                 service.normalize_identity(oauth_data),
                 service.provider_token_set(oauth_data),
             )
-            conflict_response = build_conflict_response(user, request, provider="oauth")
+            conflict_response = build_active_exam_login_block_response(user, request, provider="oauth")
             if conflict_response is not None:
                 return conflict_response
 
@@ -289,9 +328,8 @@ class OAuthCallbackView(SchemaAPIView):
 __all__ = [
     "SchemaAPIView",
     "RegisterView",
-    "LoginView",
+    "ProviderLoginView",
     "AuthOptionsView",
     "DevTokenView",
-    "OAuthLoginView",
     "OAuthCallbackView",
 ]

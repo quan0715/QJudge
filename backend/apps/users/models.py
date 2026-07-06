@@ -12,7 +12,7 @@ class User(AbstractUser):
     Custom user model supporting multiple authentication methods.
     """
     AUTH_PROVIDER_CHOICES = [
-        ('email', 'Email/Password'),
+        ('email', 'Password credentials'),
         ('nycu', 'NYCU OAuth'),
         ('google', 'Google'),
         ('github', 'GitHub'),

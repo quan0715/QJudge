@@ -1,4 +1,4 @@
-"""Tests for /api/v1/auth/me profile updates."""
+"""Tests for /api/v1/users/me profile updates."""
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -11,7 +11,7 @@ User = get_user_model()
 class CurrentUserProfileUpdateTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = "/api/v1/auth/me"
+        self.url = "/api/v1/users/me"
         self.email_user = User.objects.create_user(
             username="email_user",
             email="email_user@example.com",

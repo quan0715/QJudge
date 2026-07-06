@@ -9,6 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.contests.models import AssignmentState, Contest, ContestParticipant
+from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import CodingProblem
 from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
@@ -200,10 +201,8 @@ class SubmissionService:
         if not contest:
             return
         try:
-            from apps.contests.views import ContestActivityViewSet
-
             problem = result.submission.problem
-            ContestActivityViewSet.log_activity(
+            log_contest_activity(
                 contest,
                 user,
                 "submit_code",

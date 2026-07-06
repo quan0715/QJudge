@@ -55,3 +55,24 @@ def test_contest_detail_cache_helper_has_been_removed():
         source = path.read_text(encoding="utf-8")
         assert "services.detail_cache" not in source
         assert "bump_contest_detail_cache_version" not in source
+
+
+def test_contest_activity_writes_go_through_activity_log_service():
+    allowed = {
+        BACKEND_ROOT / "apps/contests/services/activity_log.py",
+    }
+
+    offenders = []
+    for path in (BACKEND_ROOT / "apps").rglob("*.py"):
+        if (
+            "migrations" in path.parts
+            or "tests" in path.parts
+            or path in allowed
+            or path == Path(__file__).resolve()
+        ):
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "ContestActivity.objects.create" in source:
+            offenders.append(path.relative_to(BACKEND_ROOT).as_posix())
+
+    assert offenders == []

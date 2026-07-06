@@ -12,19 +12,18 @@ import { getPendingAction, storePendingAction } from "./storage";
  * 3. Pending actions with priority >= 0 (after onboarding gate)
  * 4. /dashboard (fallback)
  *
- * @param explicitTeacherToken - backwards-compatible: if passed, stored and
- *   treated as the teacher_activation pending action immediately.
+ * @param explicitMagicLinkToken - if passed, stored and treated as the
+ *   magic_link pending action immediately.
  */
 export const getAuthedLandingPath = (
   user: User | null | undefined,
-  explicitTeacherToken?: string | null,
+  explicitMagicLinkToken?: string | null,
 ): string => {
-  // Backwards compat: explicit teacher token takes immediate priority
-  if (explicitTeacherToken?.trim()) {
-    const ta = PENDING_ACTIONS.find((a) => a.key === "teacher_activation");
-    if (ta) {
-      storePendingAction(ta.storageKey, explicitTeacherToken.trim());
-      return ta.getRedirectPath(explicitTeacherToken.trim());
+  if (explicitMagicLinkToken?.trim()) {
+    const magicLink = PENDING_ACTIONS.find((a) => a.key === "magic_link");
+    if (magicLink) {
+      storePendingAction(magicLink.storageKey, explicitMagicLinkToken.trim());
+      return magicLink.getRedirectPath(explicitMagicLinkToken.trim());
     }
   }
 

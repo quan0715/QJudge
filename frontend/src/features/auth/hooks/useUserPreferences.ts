@@ -3,18 +3,18 @@ import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
-  getPreferences as getUserPreferences,
-  updatePreferences as updateUserPreferences,
-  changePassword as changePasswordApi,
-  updateAccountProfile as updateCurrentUserProfile,
-  uploadAvatar as uploadUserAvatarApi,
   requestPasswordReset as requestPasswordResetApi,
 } from "@/infrastructure/api/repositories/auth.repository";
+import {
+  getPreferences as getUserPreferences,
+  updatePreferences as updateUserPreferences,
+  updateAccountProfile as updateCurrentUserProfile,
+  uploadAvatar as uploadUserAvatarApi,
+} from "@/infrastructure/api/repositories/user.repository";
 import type {
   ThemePreference,
   UserPreferences,
   UserProfile,
-  ChangePasswordRequest,
   UpdatePreferencesRequest,
   UpdateAccountProfileRequest,
 } from "@/core/entities/auth.entity";
@@ -63,8 +63,7 @@ export interface UseUserPreferencesReturn {
   uploadAvatar: (file: File) => Promise<string>;
   removeAvatar: () => Promise<void>;
 
-  // Password
-  changePassword: (data: ChangePasswordRequest) => Promise<void>;
+  // Password reset
   requestPasswordReset: () => Promise<void>;
 
   // Account profile
@@ -400,18 +399,6 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     await updateAvatar("");
   }, [updateAvatar]);
 
-  // Change password
-  const changePassword = useCallback(
-    async (data: ChangePasswordRequest) => {
-      if (!user) {
-        throw new Error("Must be logged in to change password");
-      }
-
-      await changePasswordApi(data);
-    },
-    [user]
-  );
-
   const updateAccountProfile = useCallback(
     async (data: UpdateAccountProfileRequest) => {
       if (!user) {
@@ -452,7 +439,6 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
     updateAvatar,
     uploadAvatar,
     removeAvatar,
-    changePassword,
     requestPasswordReset,
     updateAccountProfile,
     refresh: loadPreferences,

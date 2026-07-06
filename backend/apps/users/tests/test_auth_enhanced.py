@@ -10,12 +10,12 @@ User = get_user_model()
 
 class EnhancedAuthTests(APITestCase):
     def setUp(self):
-        self.register_url = reverse('users:email-register')
-        self.login_url = reverse('users:email-login')
-        self.logout_url = reverse('users:logout')
-        self.refresh_url = reverse('users:token-refresh')
-        self.auth_options_url = reverse('users:auth-options')
-        self.dev_token_url = reverse('users:dev-token') if settings.DEBUG else None
+        self.register_url = reverse('auth:password-register')
+        self.login_url = reverse('auth:provider-login', kwargs={'provider': 'password'})
+        self.logout_url = reverse('auth:logout')
+        self.refresh_url = reverse('auth:token-refresh')
+        self.auth_options_url = reverse('auth:auth-providers')
+        self.dev_token_url = reverse('auth:dev-token') if settings.DEBUG else None
         
         self.user_data = {
             'username': 'enhanced_user',
@@ -55,14 +55,14 @@ class EnhancedAuthTests(APITestCase):
 
     def test_oauth_login_unknown_provider(self):
         """Test OAuth login with unknown provider"""
-        url = reverse('users:oauth-login', kwargs={'provider': 'unknown'})
+        url = reverse('auth:provider-login', kwargs={'provider': 'unknown'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error']['code'], 'UNKNOWN_PROVIDER')
 
     def test_oauth_callback_unknown_provider(self):
         """Test OAuth callback with unknown provider"""
-        url = reverse('users:oauth-callback', kwargs={'provider': 'unknown'})
+        url = reverse('auth:oauth-callback', kwargs={'provider': 'unknown'})
         response = self.client.post(url, {'code': 'some_code', 'redirect_uri': 'http://localhost'})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error']['code'], 'UNKNOWN_PROVIDER')
@@ -76,7 +76,7 @@ class EnhancedAuthTests(APITestCase):
         self.assertEqual(
             response.data["data"],
             {
-                "email_password_enabled": False,
+                "password_enabled": False,
                 "providers": [
                     {
                         "key": "nycu",
@@ -106,45 +106,25 @@ class EnhancedAuthTests(APITestCase):
         )
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
-    def test_email_password_register_is_rejected_when_disabled(self):
+    def test_password_register_is_rejected_when_disabled(self):
         response = self.client.post(self.register_url, self.user_data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
+        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
         self.assertFalse(User.objects.filter(email=self.user_data["email"]).exists())
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
-    def test_email_password_login_is_rejected_when_disabled(self):
+    def test_password_login_is_rejected_when_disabled(self):
         response = self.client.post(
             self.login_url,
-            {"email": self.user.email, "password": "password123"},
+            {"identifier": self.user.email, "password": "password123"},
             format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
-
-    @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
-    def test_change_password_is_rejected_when_email_password_disabled(self):
-        self.client.force_authenticate(user=self.user)
-
-        response = self.client.post(
-            reverse("users:change-password"),
-            {
-                "current_password": "password123",
-                "new_password": "NewStrongPassword123!",
-                "new_password_confirm": "NewStrongPassword123!",
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.check_password("password123"))
+        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
 
     @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_login_success(self, mock_get_service):
@@ -152,7 +132,7 @@ class EnhancedAuthTests(APITestCase):
         mock_service = mock_get_service.return_value
         mock_service.get_authorization_url.return_value = "http://oauth.com/auth"
         
-        url = reverse('users:oauth-login', kwargs={'provider': 'github'})
+        url = reverse('auth:provider-login', kwargs={'provider': 'github'})
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -164,7 +144,7 @@ class EnhancedAuthTests(APITestCase):
         mock_service = mock_get_service.return_value
         mock_service.exchange_code.side_effect = Exception("OAuth error")
         
-        url = reverse('users:oauth-callback', kwargs={'provider': 'github'})
+        url = reverse('auth:oauth-callback', kwargs={'provider': 'github'})
         response = self.client.post(url, {'code': 'valid_code', 'redirect_uri': 'http://localhost'})
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -183,7 +163,7 @@ class EnhancedAuthTests(APITestCase):
         """Test DevTokenView with mocked DEBUG=True"""
         mock_settings.DEBUG = True
         # Direct path since reverse might not work if it was excluded from urlpatterns
-        url = '/api/v1/users/dev/token' 
+        url = '/api/v1/auth/dev/token'
         
         response = self.client.post(url, {'role': 'teacher', 'username': 'devteacher'})
         # If it's 404, it means it's not in urlpatterns. We might need to call the view directly.

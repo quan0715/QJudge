@@ -6,11 +6,9 @@ from rest_framework.response import Response
 from ..authentication import set_jwt_cookies
 from ..services import JWTService
 from ..models import UserLoginRecord
-from apps.contests.models import ContestActivity, ExamEvent
-from apps.contests.services.exam_takeover import build_exam_recovery_context
+from apps.contests.models import ExamEvent
+from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anti_cheat_session import (
-    consume_conflict_token,
-    create_conflict_token_payload,
     find_exam_conflict,
     get_device_id,
 )
@@ -35,13 +33,13 @@ def validation_error_response(message: str, details) -> Response:
     )
 
 
-def email_password_disabled_response() -> Response:
+def password_auth_disabled_response() -> Response:
     return Response(
         {
             "success": False,
             "error": {
-                "code": "EMAIL_PASSWORD_DISABLED",
-                "message": "Email/Password 登入已停用，請使用學校 SSO 或其他已啟用的登入方式",
+                "code": "PASSWORD_AUTH_DISABLED",
+                "message": "密碼憑證登入已停用，請使用學校 SSO 或其他已啟用的登入方式",
             },
         },
         status=status.HTTP_403_FORBIDDEN,
@@ -88,26 +86,15 @@ def record_login(user, request, login_method: str, jti: str = "") -> UserLoginRe
     )
 
 
-def build_conflict_response(user, request, provider: str):
-    """Return takeover-required response when the user has an active exam elsewhere.
-
-    Returns 403 plus a short-lived conflict token so the client can request a
-    device takeover recovery flow. The attempt is recorded for the audit trail.
-    """
+def build_active_exam_login_block_response(user, request, provider: str):
+    """Return a policy block when the user has an active exam on another device."""
     device_id = get_device_id(request)
     conflict = find_exam_conflict(user, device_id)
     if not conflict:
         return None
 
     contest = conflict.contest
-    conflict_token, _payload = create_conflict_token_payload(
-        conflict,
-        request,
-        device_id=device_id,
-        provider=provider,
-    )
 
-    # Record the attempt
     ExamEvent.objects.create(
         contest=contest,
         user=user,
@@ -118,7 +105,7 @@ def build_conflict_response(user, request, provider: str):
             "existing_device_id": (conflict.active_session or {}).get("device_id", ""),
         },
     )
-    ContestActivity.objects.create(
+    log_contest_activity(
         contest=contest,
         user=user,
         action_type="concurrent_login_detected",
@@ -131,26 +118,14 @@ def build_conflict_response(user, request, provider: str):
     return Response(
         {
             "success": False,
-            "code": "EXAM_TAKEOVER_REQUIRED",
-            "message": "偵測到你有未完成的考試，可在此裝置接管並恢復。",
-            "conflict_token": conflict_token,
-            "active_exam": build_exam_recovery_context(contest, conflict.participant),
-        },
-        status=status.HTTP_403_FORBIDDEN,
-    )
-
-
-def consume_conflict_payload_or_error(conflict_token: str):
-    payload = consume_conflict_token(conflict_token)
-    if payload:
-        return payload, None
-    return None, Response(
-        {
-            "success": False,
-            "error": {
-                "code": "INVALID_CONFLICT_TOKEN",
-                "message": "Conflict token is invalid or expired.",
+            "code": "ACTIVE_EXAM_SESSION_EXISTS",
+            "message": "偵測到你有進行中的考試，請回到原本的裝置完成考試後再登入。",
+            "active_exam": {
+                "contest_id": str(contest.id),
+                "contest_name": contest.name,
+                "participant_id": conflict.participant.id,
+                "exam_status": conflict.participant.exam_status,
             },
         },
-        status=status.HTTP_400_BAD_REQUEST,
+        status=status.HTTP_409_CONFLICT,
     )

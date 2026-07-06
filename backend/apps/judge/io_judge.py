@@ -98,6 +98,7 @@ class IOJudge(BaseJudge):
         self._language = canon
         self._spec = _LANG_SPECS[canon]
         self.image = settings.DOCKER_IMAGE_JUDGE
+        self.platform = settings.DOCKER_JUDGE_PLATFORM
         self.pids_limit = settings.DOCKER_JUDGE_PIDS_LIMIT
         self.tmpfs_size = settings.DOCKER_JUDGE_TMPFS_SIZE
         self.docker_timeout = settings.DOCKER_JUDGE_TIMEOUT
@@ -215,26 +216,30 @@ class IOJudge(BaseJudge):
                     security_opts.append(f"seccomp={profile}")
 
             start = _time.time()
-            container = self._client.containers.run(
-                self.image,
-                command=["/bin/bash", "-c", command],
-                working_dir="/tmp",
-                network_disabled=True,
-                mem_limit=f"{mem_limit}m",
-                memswap_limit=f"{mem_limit}m",
-                cpu_period=100_000,
-                cpu_quota=100_000,
-                pids_limit=self.pids_limit,
-                cap_drop=[
+            run_kwargs = {
+                "image": self.image,
+                "command": ["/bin/bash", "-c", command],
+                "working_dir": "/tmp",
+                "network_disabled": True,
+                "mem_limit": f"{mem_limit}m",
+                "memswap_limit": f"{mem_limit}m",
+                "cpu_period": 100_000,
+                "cpu_quota": 100_000,
+                "pids_limit": self.pids_limit,
+                "cap_drop": [
                     "NET_ADMIN", "SYS_ADMIN", "SYS_BOOT", "SYS_MODULE",
                     "SYS_RAWIO", "SYS_PTRACE", "SYS_TIME", "MAC_ADMIN",
                     "MAC_OVERRIDE", "NET_RAW", "AUDIT_WRITE", "AUDIT_CONTROL",
                 ],
-                security_opt=security_opts,
-                tmpfs={"/tmp": f"size={self.tmpfs_size},mode=1777,exec"},
-                detach=True,
-                remove=False,
-            )
+                "security_opt": security_opts,
+                "tmpfs": {"/tmp": f"size={self.tmpfs_size},mode=1777,exec"},
+                "detach": True,
+                "remove": False,
+            }
+            if self.platform:
+                run_kwargs["platform"] = self.platform
+
+            container = self._client.containers.run(**run_kwargs)
             result = container.wait(timeout=int(timeout) + 5)
             elapsed_ms = int((_time.time() - start) * 1000)
             output = container.logs().decode("utf-8", errors="ignore")

@@ -3,10 +3,11 @@ import type {
   User,
   UserPreferences,
   ManagedUser,
-  TeacherActivationInvite,
-  TeacherActivationPreview,
+  MagicLinkIssueData,
+  MagicLinkPreview,
   UserLoginRecord,
 } from "@/core/entities/auth.entity";
+import type { ClassroomDetailDto } from "./classroom.dto";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -22,6 +23,7 @@ export interface AuthSuccessDto {
   active_exam?: {
     contest_id: string;
     contest_name: string;
+    participant_id?: number;
     exam_status?: string;
     started_at?: string | null;
     bound_classroom_id?: string | null;
@@ -34,12 +36,17 @@ export type AuthOptionsResponseDto = ApiResponse<AuthOptions>;
 export type CurrentUserResponseDto = ApiResponse<User>;
 export type PreferencesResponseDto = ApiResponse<UserPreferences>;
 export type UserSearchResponseDto = ApiResponse<ManagedUser[]>;
-export type TeacherActivationIssueResponseDto = ApiResponse<TeacherActivationInvite>;
-export type TeacherActivationPreviewResponseDto = ApiResponse<TeacherActivationPreview>;
-export type TeacherActivationConsumeResponseDto = ApiResponse<{
-  user: User;
-  invite: TeacherActivationInvite;
-}>;
+export type MagicLinkIssueResponseDto = ApiResponse<MagicLinkIssueData>;
+export type MagicLinkInspectResponseDto = ApiResponse<MagicLinkPreview>;
+export type MagicLinkRedeemResponseDto =
+  | ApiResponse<{
+      access_token: string;
+      user: User;
+      refresh_token?: string;
+      invite?: MagicLinkIssueData;
+      magic_link?: MagicLinkPreview;
+    }>
+  | ClassroomDetailDto;
 export type LoginRecordsResponseDto = ApiResponse<UserLoginRecord[]>;
 export type UploadAvatarResponseDto = ApiResponse<{
   avatar_url: string;

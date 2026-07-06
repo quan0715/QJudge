@@ -143,7 +143,7 @@ docker compose -f docker-compose.test.yml \
 ### ExamStudentUser（主要場景）
 
 每個虛擬用戶的完整流程：
-1. `POST /api/v1/auth/email/login` → JWT 登入
+1. `POST /api/v1/auth/login/password` → JWT 登入
 2. `POST /contests/{id}/enter/` → 進入考試
 3. `POST /contests/{id}/exam/start/` → 開始考試
 4. **考試循環**（持續到結束）：

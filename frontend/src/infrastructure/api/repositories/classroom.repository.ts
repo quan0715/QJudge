@@ -52,28 +52,9 @@ export const deleteClassroom = async (id: string): Promise<void> => {
   await ensureOk(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
 };
 
-export const joinClassroom = async (inviteCode: string): Promise<ClassroomDetail> => {
-  const data = await requestJson<ClassroomDetailDto>(
-    httpClient.post(`/api/v1/classrooms/join/`, { invite_code: inviteCode }),
-    "Failed to join classroom"
-  );
-  return mapClassroomDetailDto(data);
-};
-
-export const archiveClassroom = async (id: string): Promise<void> => {
-  await ensureOk(httpClient.post(`/api/v1/classrooms/${id}/archive/`), "Failed to archive classroom");
-};
-
-export const toggleInviteCode = async (id: string, enabled: boolean): Promise<{ enabled: boolean; invite_code: string | null }> => {
-  return requestJson<{ enabled: boolean; invite_code: string | null }>(
-    httpClient.post(`/api/v1/classrooms/${id}/toggle_invite_code/`, { enabled }),
-    "Failed to toggle invite code"
-  );
-};
-
 export const regenerateCode = async (id: string): Promise<any> => {
   return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${id}/toggle_invite_code/`, { enabled: true }),
+    httpClient.post(`/api/v1/classrooms/${id}/regenerate_code/`),
     "Failed to regenerate code"
   );
 };
@@ -185,20 +166,6 @@ export const createClassroomContest = async (
   return mapBoundContestDto(responseData);
 };
 
-export const bindContest = async (classroomId: string, contestId: string): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/bind_contest/`, { contest_id: contestId }),
-    "Failed to bind contest"
-  );
-};
-
-export const unbindContest = async (classroomId: string, contestId: string): Promise<void> => {
-  await ensureOk(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/unbind_contest/`, { contest_id: contestId }),
-    "Failed to unbind contest"
-  );
-};
-
 // ============================================================================
 // Repository Export
 // ============================================================================
@@ -209,9 +176,6 @@ export const classroomRepository = {
   createClassroom,
   updateClassroom,
   deleteClassroom,
-  joinClassroom,
-  archiveClassroom,
-  toggleInviteCode,
   regenerateCode,
   addMembers,
   removeMember,
@@ -228,8 +192,6 @@ export const classroomRepository = {
   getClassroomLabSolve,
   getClassroomContests,
   createClassroomContest,
-  bindContest,
-  unbindContest,
 };
 
 export default classroomRepository;

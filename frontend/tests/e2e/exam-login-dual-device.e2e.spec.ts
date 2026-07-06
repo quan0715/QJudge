@@ -122,10 +122,15 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
         password: TEST_USERS.student.password,
       },
     });
-    expect(loginResp.status()).toBe(403);
-    const body = (await loginResp.json()) as { code?: string; success?: boolean };
+    expect(loginResp.status()).toBe(409);
+    const body = (await loginResp.json()) as {
+      code?: string;
+      success?: boolean;
+      conflict_token?: string;
+    };
     expect(body.success).not.toBe(true);
-    expect(body.code).toBe("EXAM_TAKEOVER_REQUIRED");
+    expect(body.code).toBe("ACTIVE_EXAM_SESSION_EXISTS");
+    expect(body.conflict_token).toBeUndefined();
 
     if (studentUserId != null) {
       const token = await teacherPage.evaluate(() => localStorage.getItem("token"));

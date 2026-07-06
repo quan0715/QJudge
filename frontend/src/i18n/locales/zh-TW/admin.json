@@ -88,7 +88,8 @@
       "description": "查看所有使用者並管理角色（可使用搜尋功能過濾）",
       "loadFailed": "無法載入使用者",
       "loginMethods": {
-        "email": "Email/密碼",
+        "email": "密碼憑證",
+        "password": "密碼憑證",
         "github": "GitHub",
         "google": "Google",
         "sso": "SSO",

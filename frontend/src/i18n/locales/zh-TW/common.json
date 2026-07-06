@@ -28,10 +28,7 @@
         "ready": "一切準備就緒！",
         "stats": "正在同步您的戰績...",
         "verifying": "確認是本人無誤（你看起來很棒！）"
-      },
-      "takeover": "接管並恢復考試",
-      "takeoverExpired": "接管憑證已過期，請重新登入。",
-      "takeoverFailed": "接管失敗，請重新登入後再試。"
+      }
     },
     "campusSso": {
       "backToLogin": "返回登入",
@@ -55,6 +52,9 @@
       "nycu": {
         "description": "使用校內 Portal 單一入口帳號進行身份驗證登入",
         "displayName": "NYCU 國立陽明交通大學"
+      },
+      "password": {
+        "displayName": "密碼憑證"
       }
     },
     "login": {
@@ -80,19 +80,15 @@
       "confirmTitle": "確認登出"
     },
     "pendingAction": {
-      "classroomJoinSubtitle": "請先登入或註冊，完成後會自動加入教室。",
-      "classroomJoinTitle": "加入教室",
-      "examTakeoverSubtitle": "偵測到你有未完成的考試，請在此裝置接管並恢復。",
-      "examTakeoverTitle": "考試裝置接管",
-      "teacherActivationSubtitle": "請先登入或註冊，完成後會自動開通教師權限。",
-      "teacherActivationTitle": "教師開通"
+      "magicLinkSubtitle": "請先登入或註冊，完成後會自動完成邀請操作。",
+      "magicLinkTitle": "邀請連結"
     },
     "register": {
       "confirmPassword": "確認密碼",
       "confirmPasswordPlaceholder": "再次輸入密碼",
       "email": "Email",
-      "emailDivider": "或使用 Email 註冊",
-      "emailSubmit": "Email 註冊",
+      "emailDivider": "或使用帳號密碼建立帳號",
+      "emailSubmit": "建立帳號",
       "emailPlaceholder": "輸入您的 Email",
       "failed": "註冊失敗",
       "failedRetry": "註冊失敗，請稍後再試",
@@ -108,11 +104,6 @@
       "title": "建立帳號",
       "username": "使用者名稱",
       "usernamePlaceholder": "選擇一個使用者名稱"
-    },
-    "takeover": {
-      "stepInvalidate": "正在清除其他裝置的登入狀態...",
-      "stepRedirect": "即將返回考試現場...",
-      "stepRegister": "正在重新註冊考試連線..."
     }
   },
   "button": {
@@ -186,12 +177,6 @@
       "showMore": "顯示更多",
       "title": "我的題庫",
       "viewAll": "查看全部"
-    },
-    "stats": {
-      "noStats": "無法載入統計資料",
-      "problems": "題",
-      "solvedCount": "/ {{total}} 已解決",
-      "title": "解題統計"
     },
     "subtitle": "Online Judge",
     "welcomeBack": "歡迎回來，{{name}}"
@@ -383,9 +368,6 @@
     "avatarEmpty": "新增頭像",
     "avatarRemove": "移除頭像",
     "avatarUpload": "上傳頭像",
-    "changePassword": "變更密碼",
-    "confirmPassword": "確認新密碼",
-    "currentPassword": "目前密碼",
     "displayName": "顯示名稱",
     "displayNameDescription": "設定您在平台上顯示的暱稱",
     "displayNameSaveFailed": "更新失敗",
@@ -399,18 +381,13 @@
     "languageDescription": "選擇您偏好的介面語言",
     "languageSection": "語言",
     "loginMethod": "登入方式",
-    "newPassword": "新密碼",
-    "oauthUser": "OAuth 使用者無法變更密碼",
-    "passwordChanged": "密碼已成功變更",
-    "passwordMismatch": "新密碼不一致",
     "role": "角色",
     "savingDisplayName": "儲存中...",
     "theme": "主題",
     "themeDescription": "選擇您偏好的介面主題",
     "themeSection": "主題",
     "title": "偏好設定",
-    "username": "使用者名稱",
-    "wrongPassword": "目前密碼錯誤"
+    "username": "使用者名稱"
   },
   "profile": {
     "deviceName": "裝置名稱",
@@ -693,7 +670,6 @@
     "show": "顯示"
   },
   "user": {
-    "changePassword": "變更密碼",
     "preferences": "偏好設定",
     "role": {
       "admin": "管理員",

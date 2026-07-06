@@ -71,7 +71,7 @@ class PasswordResetTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
+        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
         self.email_user.refresh_from_db()
         self.assertIsNone(self.email_user.password_reset_token)
 
@@ -107,7 +107,7 @@ class PasswordResetTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(response.data["success"])
-        self.assertEqual(response.data["error"]["code"], "EMAIL_PASSWORD_DISABLED")
+        self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
         self.email_user.refresh_from_db()
         self.assertTrue(self.email_user.check_password("StrongPass123!"))
         self.assertEqual(self.email_user.password_reset_token, "valid-token")

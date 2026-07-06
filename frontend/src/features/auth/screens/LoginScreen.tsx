@@ -21,11 +21,8 @@ import { MobileActionFooter } from "@/shared/ui/MobileActionFooter";
 import {
   PendingActionBanner,
   usePendingActions,
-  PENDING_ACTIONS,
-  storePendingAction,
 } from "@/features/auth/pending-actions";
 
-const TAKEOVER_ACTION = PENDING_ACTIONS.find((a) => a.key === "exam_takeover")!;
 const PROVIDER_LOADING_SLOTS = Array.from({ length: 3 }, (_, index) => index);
 
 const LoginPage = () => {
@@ -33,7 +30,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { buildAuthLink } = usePendingActions();
   const { options, loading: authOptionsLoading } = useAuthOptions();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
@@ -48,7 +45,7 @@ const LoginPage = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await login({ email, password });
+      const response = await login({ identifier, password });
       if (response.success) {
         const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
         localStorage.setItem("user", JSON.stringify(safeData.user));
@@ -57,15 +54,6 @@ const LoginPage = () => {
         setError(t("auth.login.failed"));
       }
     } catch (err: any) {
-      const errorCode = err?.response?.data?.code;
-      if (errorCode === "EXAM_TAKEOVER_REQUIRED") {
-        const conflictToken = err.response.data.conflict_token;
-        if (conflictToken) {
-          storePendingAction(TAKEOVER_ACTION.storageKey, conflictToken);
-          window.location.href = TAKEOVER_ACTION.getRedirectPath(conflictToken);
-          return;
-        }
-      }
       if (err.response?.data?.error?.message) {
         setError(err.response.data.error.message);
       } else if (err.response?.data?.message) {
@@ -134,19 +122,19 @@ const LoginPage = () => {
           </div>
         )}
 
-        {!options.email_password_enabled && error && (
+        {!options.password_enabled && error && (
           <p className="auth-error" data-testid="auth-form-error">
             {error}
           </p>
         )}
 
-        {hasExternalLogin && options.email_password_enabled && (
+        {hasExternalLogin && options.password_enabled && (
           <div className="auth-divider">
             <span>{t("auth.login.emailDivider", "或使用帳號密碼登入")}</span>
           </div>
         )}
 
-        {options.email_password_enabled && (
+        {options.password_enabled && (
           <Form
             id="auth-login-form"
             onSubmit={handleLogin}
@@ -159,8 +147,8 @@ const LoginPage = () => {
               data-testid="auth-login-email"
               labelText={t("auth.login.email", "Email / Username")}
               placeholder={t("auth.login.emailPlaceholder", "信箱或使用者名稱")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
             />
 
@@ -222,7 +210,7 @@ const LoginPage = () => {
         >
           {t("auth.login.registerNow", "建立帳號")}
         </Button>
-        {options.email_password_enabled && (
+        {options.password_enabled && (
           <Button
             kind="primary"
             size="2xl"

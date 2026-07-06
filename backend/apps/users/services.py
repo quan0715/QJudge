@@ -10,7 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .auth.options import get_auth_options, is_email_password_auth_enabled
+from .auth.options import get_auth_options
 from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)
@@ -55,12 +55,12 @@ class JWTService:
 
 
 class EmailAuthService:
-    """Service for email/password authentication."""
+    """Service for local password credential authentication."""
     
     @staticmethod
-    def login(email, password):
+    def login(identifier, password):
         """
-        Authenticate user with email and password.
+        Authenticate user with an email or username identifier and password.
         
         Returns:
             User object if authentication successful, None otherwise
@@ -69,7 +69,7 @@ class EmailAuthService:
         try:
             # Check if input is email or username
             user = User.objects.get(
-                Q(email=email) | Q(username=email),
+                Q(email=identifier) | Q(username=identifier),
                 auth_provider='email'
             )
         except User.DoesNotExist:
@@ -156,8 +156,8 @@ class EmailAuthService:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def build_teacher_activation_url(token: str) -> str:
-        return f"{settings.FRONTEND_URL}/teacher-activation?token={token}"
+    def build_magic_link_url(token: str) -> str:
+        return f"{settings.FRONTEND_URL}/magic-links/{token}"
 
     @staticmethod
     def get_teacher_activation_invite_by_token(token: str):
@@ -181,5 +181,5 @@ class EmailAuthService:
             target_user=None,
             expires_at=timezone.now() + TEACHER_ACTIVATION_TTL,
         )
-        activation_url = EmailAuthService.build_teacher_activation_url(token)
+        activation_url = EmailAuthService.build_magic_link_url(token)
         return invite, activation_url

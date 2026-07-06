@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getAuthOptions,
-  issueTeacherActivationInvite,
-  searchUsers,
-  updateUserRole,
+  getOAuthUrl,
+  issueTeacherActivationMagicLink,
+  login,
+  oauthCallback,
+  register,
 } from "./auth.repository";
 
-describe("auth repository admin endpoints", () => {
+describe("auth repository endpoints", () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -23,41 +25,7 @@ describe("auth repository admin endpoints", () => {
     window.localStorage.clear();
   });
 
-  it("searchUsers calls the auth search endpoint with q", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: [] }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-
-    await searchUsers("alice");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/auth/search?q=alice");
-    expect(options.method).toBe("GET");
-    expect(options.credentials).toBe("include");
-  });
-
-  it("updateUserRole calls the auth role endpoint", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ success: true, data: { id: 7, role: "teacher" } }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-
-    await updateUserRole(7, "teacher");
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/auth/7/role");
-    expect(options.method).toBe("PATCH");
-    expect(JSON.parse(options.body as string)).toEqual({ role: "teacher" });
-  });
-
-  it("issueTeacherActivationInvite calls teacher-activations", async () => {
+  it("issueTeacherActivationMagicLink issues a teacher activation magic link", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -76,13 +44,16 @@ describe("auth repository admin endpoints", () => {
       ),
     );
 
-    await issueTeacherActivationInvite("teacher@example.com");
+    await issueTeacherActivationMagicLink("teacher@example.com");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/auth/teacher-activations");
+    expect(url).toBe("/api/v1/magic-links");
     expect(options.method).toBe("POST");
-    expect(JSON.parse(options.body as string)).toEqual({ email: "teacher@example.com" });
+    expect(JSON.parse(options.body as string)).toEqual({
+      purpose: "teacher_activation",
+      email: "teacher@example.com",
+    });
   });
 
   it("getAuthOptions calls auth options endpoint", async () => {
@@ -91,7 +62,7 @@ describe("auth repository admin endpoints", () => {
         JSON.stringify({
           success: true,
           data: {
-            email_password_enabled: false,
+            password_enabled: false,
             providers: [
               {
                 key: "nycu",
@@ -113,11 +84,72 @@ describe("auth repository admin endpoints", () => {
 
     const response = await getAuthOptions();
 
-    expect(response.data.email_password_enabled).toBe(false);
+    expect(response.data.password_enabled).toBe(false);
     expect(response.data.providers[0].key).toBe("nycu");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/auth/options");
+    expect(url).toBe("/api/v1/auth/providers");
     expect(options.method).toBe("GET");
+  });
+
+  it("login uses the password credentials endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await login({ identifier: "alice@example.com", password: "secret" });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/auth/login/password");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body as string)).toEqual({
+      identifier: "alice@example.com",
+      password: "secret",
+    });
+  });
+
+  it("register uses the password credentials endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await register({
+      username: "alice",
+      email: "alice@example.com",
+      password: "secret",
+      password_confirm: "secret",
+    });
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/auth/register/password");
+    expect(options.method).toBe("POST");
+  });
+
+  it("OAuth helpers use provider-oriented login and callback endpoints", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ success: true, data: { authorization_url: "https://provider.example/auth" } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true, data: { access_token: "token", user: { id: 1 } } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    await getOAuthUrl("github", "/contests");
+    await oauthCallback("github", "code-123");
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/login/github?redirect=%2Fcontests");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/auth/callback/github");
   });
 });

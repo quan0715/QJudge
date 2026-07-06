@@ -19,7 +19,7 @@ from apps.question_bank.question_assets import (
     cleanup_orphan_asset_if_needed,
     ensure_contest_binding_for_exam_question,
 )
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
@@ -353,7 +353,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                     'children': children,
                 }
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',
@@ -451,7 +451,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             if dirty_groups:
                 ExamQuestionGroup.objects.bulk_update(dirty_groups, ['order'])
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',
@@ -573,7 +573,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                     'children': list(group.questions.order_by('order_in_group', 'order', 'id')),
                 }
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',
@@ -611,7 +611,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 raise DRFValidationError('paper block not found')
             self._normalize_orders(contest)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',

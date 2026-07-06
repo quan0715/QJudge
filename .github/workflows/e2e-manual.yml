@@ -144,7 +144,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml down -v
 
   e2e-coding:
-    name: "E2E: Coding (Problems & Submissions)"
+    name: "E2E: Coding"
     if: inputs.group == '' || inputs.group == 'coding'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -159,7 +159,7 @@ jobs:
       - name: Run Coding E2E
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/problems.e2e.spec.ts tests/e2e/submission.e2e.spec.ts tests/e2e/tag-management.e2e.spec.ts"
+          SPECS="tests/e2e/tag-management.e2e.spec.ts"
           cmd=(npm run test:e2e -- $SPECS)
           if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
           docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
@@ -196,7 +196,7 @@ jobs:
       - name: Run Settings E2E
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/api-key.e2e.spec.ts tests/e2e/preferences-i18n-theme.e2e.spec.ts"
+          SPECS="tests/e2e/preferences-i18n-theme.e2e.spec.ts"
           cmd=(npm run test:e2e -- $SPECS)
           if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
           docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"

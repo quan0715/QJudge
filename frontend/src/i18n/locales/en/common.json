@@ -28,10 +28,7 @@
         "ready": "All systems ready!",
         "stats": "Syncing your battle stats...",
         "verifying": "Verifying your identity..."
-      },
-      "takeover": "Take over and lock old device",
-      "takeoverExpired": "Takeover token expired. Please log in again.",
-      "takeoverFailed": "Takeover failed, please contact the proctor."
+      }
     },
     "campusSso": {
       "backToLogin": "Back to login",
@@ -55,13 +52,16 @@
       "nycu": {
         "description": "Log in using your university portal account",
         "displayName": "NYCU (National Yang Ming Chiao Tung University)"
+      },
+      "password": {
+        "displayName": "Password credentials"
       }
     },
     "login": {
       "email": "Email / Username",
       "emailPlaceholder": "Email or username",
       "failed": "Login failed",
-      "invalidCredentials": "Invalid email or password",
+      "invalidCredentials": "Invalid account or password",
       "loading": "Logging in...",
       "noAccount": "Don't have an account?",
       "oauthFailed": "Failed to initiate login",
@@ -72,7 +72,7 @@
       "submit": "Login",
       "subtitle": "Welcome back, please login to your account",
       "title": "Login",
-      "emailDivider": "Or login with email or password"
+      "emailDivider": "Or login with password credentials"
     },
     "logout": {
       "confirmButton": "Log Out",
@@ -80,19 +80,15 @@
       "confirmTitle": "Confirm Logout"
     },
     "pendingAction": {
-      "classroomJoinSubtitle": "Please log in or register first. You'll be automatically added to the classroom afterwards.",
-      "classroomJoinTitle": "Join Classroom",
-      "examTakeoverSubtitle": "An unfinished exam was detected. Please take over and resume on this device.",
-      "examTakeoverTitle": "Exam Device Takeover",
-      "teacherActivationSubtitle": "Please log in or register first. Teacher access will be activated automatically afterwards.",
-      "teacherActivationTitle": "Teacher Activation"
+      "magicLinkSubtitle": "Please log in or register first. The invitation action will complete automatically afterwards.",
+      "magicLinkTitle": "Invitation Link"
     },
     "register": {
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter your password",
       "email": "Email",
-      "emailDivider": "Or register with email",
-      "emailSubmit": "Email registration",
+      "emailDivider": "Or create an account with password credentials",
+      "emailSubmit": "Create account",
       "emailPlaceholder": "Enter your email",
       "failed": "Registration failed",
       "failedRetry": "Registration failed, please try again later",
@@ -108,11 +104,6 @@
       "title": "Create Account",
       "username": "Username",
       "usernamePlaceholder": "Choose a username"
-    },
-    "takeover": {
-      "stepInvalidate": "Clearing login sessions on other devices...",
-      "stepRedirect": "Returning to exam...",
-      "stepRegister": "Re-registering exam connection..."
     }
   },
   "button": {
@@ -186,12 +177,6 @@
       "showMore": "Show More",
       "title": "My Question Banks",
       "viewAll": "View All"
-    },
-    "stats": {
-      "noStats": "Unable to load statistics",
-      "problems": "problems",
-      "solvedCount": "/ {{total}} solved",
-      "title": "Problem Statistics"
     },
     "subtitle": "Online Judge",
     "welcomeBack": "Welcome back, {{name}}"
@@ -383,9 +368,6 @@
     "avatarEmpty": "Add Avatar",
     "avatarRemove": "Remove Avatar",
     "avatarUpload": "Upload Avatar",
-    "changePassword": "Change Password",
-    "confirmPassword": "Confirm New Password",
-    "currentPassword": "Current Password",
     "displayName": "Display Name",
     "displayNameDescription": "Set your display name shown on the platform",
     "displayNameSaveFailed": "Update failed",
@@ -399,18 +381,13 @@
     "languageDescription": "Choose your preferred interface language",
     "languageSection": "Language",
     "loginMethod": "Login Method",
-    "newPassword": "New Password",
-    "oauthUser": "OAuth users cannot change password",
-    "passwordChanged": "Password changed successfully",
-    "passwordMismatch": "New passwords do not match",
     "role": "Role",
     "savingDisplayName": "Saving...",
     "theme": "Theme",
     "themeDescription": "Choose your preferred interface theme",
     "themeSection": "Theme",
     "title": "Preferences",
-    "username": "Username",
-    "wrongPassword": "Current password is incorrect"
+    "username": "Username"
   },
   "profile": {
     "deviceName": "Device Name",
@@ -693,7 +670,6 @@
     "show": "Show"
   },
   "user": {
-    "changePassword": "Change Password",
     "preferences": "Preferences",
     "role": {
       "admin": "Admin",

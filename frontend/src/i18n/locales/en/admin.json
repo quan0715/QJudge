@@ -88,7 +88,8 @@
       "description": "View all users and manage roles (use search to filter)",
       "loadFailed": "Failed to load users",
       "loginMethods": {
-        "email": "Email/Password",
+        "email": "Password credentials",
+        "password": "Password credentials",
         "github": "GitHub",
         "google": "Google",
         "sso": "SSO",

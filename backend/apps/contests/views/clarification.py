@@ -14,7 +14,7 @@ from ..serializers import (
     ClarificationReplySerializer,
 )
 from ..permissions import IsContestOwnerOrAdmin, can_manage_contest
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 
 
 class ClarificationViewSet(viewsets.ModelViewSet):
@@ -78,7 +78,7 @@ class ClarificationViewSet(viewsets.ModelViewSet):
         clarification.save()
 
         # Log activity
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             clarification.contest,
             request.user,
             'reply_question',

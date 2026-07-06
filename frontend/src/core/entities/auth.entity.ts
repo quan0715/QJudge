@@ -34,26 +34,47 @@ export interface ManagedUser {
   onboarding_completed_at?: string | null;
 }
 
-export interface TeacherActivationInvite {
-  id: number;
-  email?: string;
-  expires_at: string;
+export type MagicLinkPurpose = "teacher_activation" | "classroom_join";
+export type MagicLinkStatus = "pending" | "consumed" | "expired" | "revoked";
+
+export interface MagicLinkTarget {
+  type: "classroom";
+  id: string;
+  name: string;
+}
+
+export interface MagicLinkPreview {
+  id?: number;
+  purpose: MagicLinkPurpose;
+  status: MagicLinkStatus;
+  requires_login: boolean;
+  current_user_email?: string | null;
+  current_user_role?: string | null;
+  can_redeem: boolean;
+  can_consume?: boolean;
+  expires_at?: string;
   consumed_at?: string | null;
-  created_at: string;
-  status: "pending" | "consumed" | "expired";
+  created_at?: string;
+  target?: MagicLinkTarget;
+}
+
+export interface MagicLinkIssueData {
+  id?: number;
+  purpose: MagicLinkPurpose;
+  email?: string;
+  expires_at?: string;
+  consumed_at?: string | null;
+  created_at?: string;
+  status?: MagicLinkStatus;
+  magic_link_url?: string;
   activation_url?: string;
+  token?: string;
+  target?: MagicLinkTarget;
   existing_user?: {
     id: number;
     username: string;
     role: "student" | "teacher" | "admin";
   } | null;
-}
-
-export interface TeacherActivationPreview extends TeacherActivationInvite {
-  requires_login: boolean;
-  current_user_email?: string | null;
-  current_user_role?: string | null;
-  can_consume: boolean;
 }
 
 export interface User {
@@ -71,7 +92,7 @@ export interface User {
 
 export interface AuthProviderOption {
   key: string;
-  type?: "password" | "oauth2" | "oidc";
+  type?: "credentials" | "oauth2" | "oidc";
   category: "campus" | "social" | "password";
   display_name: string;
   display_name_i18n_key?: string;
@@ -79,7 +100,7 @@ export interface AuthProviderOption {
 }
 
 export interface AuthOptions {
-  email_password_enabled: boolean;
+  password_enabled: boolean;
   providers: AuthProviderOption[];
 }
 
@@ -91,6 +112,7 @@ export interface AuthSuccessData {
   active_exam?: {
     contest_id: string;
     contest_name: string;
+    participant_id?: number;
     exam_status?: string;
     started_at?: string | null;
     bound_classroom_id?: string | null;
@@ -105,7 +127,7 @@ export interface AuthResponse {
 }
 
 export interface LoginCredentials {
-  email?: string;
+  identifier?: string;
   username?: string;
   password?: string;
 }
@@ -115,12 +137,6 @@ export interface RegisterCredentials {
   email: string;
   password?: string;
   password_confirm?: string;
-}
-
-export interface ChangePasswordRequest {
-  current_password: string;
-  new_password: string;
-  new_password_confirm: string;
 }
 
 export interface UpdateAccountProfileRequest {
@@ -154,11 +170,6 @@ export interface PreferencesResponse {
   message?: string;
 }
 
-export interface ChangePasswordResponse {
-  success: boolean;
-  message?: string;
-}
-
 export interface CurrentUserResponse {
   success: boolean;
   data: User;
@@ -171,23 +182,23 @@ export interface UserSearchResponse {
   message?: string;
 }
 
-export interface TeacherActivationIssueResponse {
+export interface MagicLinkIssueResponse {
   success: boolean;
-  data: TeacherActivationInvite;
+  data: MagicLinkIssueData;
   message?: string;
 }
 
-export interface TeacherActivationPreviewResponse {
+export interface MagicLinkInspectResponse {
   success: boolean;
-  data: TeacherActivationPreview;
+  data: MagicLinkPreview;
   message?: string;
 }
 
-export interface TeacherActivationConsumeResponse {
+export interface MagicLinkRedeemResponse {
   success: boolean;
-  data: {
-    user: User;
-    invite: TeacherActivationInvite;
+  data: AuthSuccessData & {
+    invite?: MagicLinkIssueData;
+    magic_link?: MagicLinkPreview;
   };
   message?: string;
 }

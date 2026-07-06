@@ -22,7 +22,7 @@ from .common import SchemaAPIView
 
 
 class UserAvatarUploadView(SchemaAPIView):
-    """Upload current user's avatar and return public URL."""
+    """POST /api/v1/users/me/avatar - upload current user's avatar and return public URL."""
 
     permission_classes = [IsAuthenticated]
     serializer_class = serializers.Serializer

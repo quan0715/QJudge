@@ -16,7 +16,7 @@ from ..models import (
 from ..serializers import ContestProblemSerializer
 from ..permissions import can_manage_contest
 from ..services.question_edit_lock import ensure_contest_question_editable
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
 
@@ -177,7 +177,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         response_data['contest_id'] = contest.id
         response_data['binding_id'] = str(binding.id)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, user, 'update_problem',
             f"Created new problem {problem.id} in contest",
         )
@@ -222,7 +222,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         response_data = serializer.data
         response_data['binding_id'] = str(binding.id)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, user, 'update_problem',
             f"Updated problem {problem.id} in contest",
         )
@@ -259,7 +259,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         from apps.question_bank.question_assets import cleanup_orphan_asset_if_needed
         cleanup_orphan_asset_if_needed(question_asset, coding_problem=coding_problem)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, user, 'update_problem', f"Removed problem {label} from contest",
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -293,7 +293,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         binding.save(update_fields=["score", "updated_at"])
 
         title = str(binding.question_asset.title) if binding.question_asset else str(binding.coding_problem_id or binding.question_asset_id)
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, request.user, 'update_problem', f"Updated problem {title} score to {max_score}",
         )
         return Response({
@@ -386,7 +386,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
                 created_bindings.append(binding)
                 next_order += 1
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, user, "update_problem",
             f"Imported {len(created_bindings)} coding problems from bank",
         )
@@ -442,7 +442,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
             order=next_order, score=max_score, source_mode="copy", created_by=user,
         )
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest, user, "update_problem", f"Duplicated problem {source.id}",
         )
 
@@ -494,5 +494,5 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
             if b.order != i:
                 b.order = i
                 b.save(update_fields=["order", "updated_at"])
-        ContestActivityViewSet.log_activity(contest, user, "update_problem", "Reordered coding problems")
+        log_contest_activity(contest, user, "update_problem", "Reordered coding problems")
         return Response({"status": "reordered"})

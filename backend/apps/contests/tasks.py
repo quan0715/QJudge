@@ -11,10 +11,10 @@ from datetime import datetime as dt, timedelta
 from .models import (
     Contest,
     ContestParticipant,
-    ContestActivity,
     ExamEvent,
     ExamStatus,
 )
+from .services.activity_log import log_contest_activity
 from .services.anti_cheat_session import (
     get_last_heartbeat,
     HEARTBEAT_TIMEOUT_SECONDS,
@@ -78,7 +78,7 @@ def _apply_penalty_from_event(participant: ContestParticipant, event_type: str):
                 else:
                     participant.lock_reason = f"System lock: {event_type}"
                 participant.save(update_fields=update_fields)
-                ContestActivity.objects.create(
+                log_contest_activity(
                     contest=contest,
                     user=participant.user,
                     action_type='lock_user' if event_type in IMMEDIATE_LOCK_EVENT_TYPES else 'update_participant',

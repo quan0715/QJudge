@@ -5,13 +5,16 @@ import {
   __resetUserPreferencesCacheForTests,
 } from "./useUserPreferences";
 
-// Mock the auth service
-vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
+// Mock the user service
+vi.mock("@/infrastructure/api/repositories/user.repository", () => ({
   getPreferences: vi.fn(),
   updatePreferences: vi.fn(),
   uploadAvatar: vi.fn(),
-  changePassword: vi.fn(),
   updateAccountProfile: vi.fn(),
+}));
+
+// Mock the auth service
+vi.mock("@/infrastructure/api/repositories/auth.repository", () => ({
   requestPasswordReset: vi.fn(),
 }));
 
@@ -42,8 +45,9 @@ vi.mock("@/shared/contexts/ContentLanguageContext", () => ({
 import {
   getPreferences,
   updatePreferences,
-  changePassword,
   updateAccountProfile as updateCurrentUserProfile,
+} from "@/infrastructure/api/repositories/user.repository";
+import {
   requestPasswordReset,
 } from "@/infrastructure/api/repositories/auth.repository";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -338,49 +342,6 @@ describe("useUserPreferences", () => {
     });
   });
 
-  it("should change password for logged in user", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: {
-        id: 1,
-        username: "test",
-        email: "test@test.com",
-        role: "student",
-      },
-      loading: false,
-      setUser: vi.fn(),
-      checkUser: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    vi.mocked(getPreferences).mockResolvedValue({
-      success: true,
-      data: mockPreferences,
-    });
-
-    vi.mocked(changePassword).mockResolvedValue({
-      success: true,
-      message: "Password changed",
-    });
-
-    const { result } = renderHook(() => useUserPreferences());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    const passwordData = {
-      current_password: "oldpass",
-      new_password: "newpass123",
-      new_password_confirm: "newpass123",
-    };
-
-    await act(async () => {
-      await result.current.changePassword(passwordData);
-    });
-
-    expect(changePassword).toHaveBeenCalledWith(passwordData);
-  });
-
   it("should update account profile and sync local user cache", async () => {
     const setUser = vi.fn();
     vi.mocked(useAuth).mockReturnValue({
@@ -452,18 +413,6 @@ describe("useUserPreferences", () => {
     });
 
     expect(requestPasswordReset).toHaveBeenCalledWith("test@test.com");
-  });
-
-  it("should throw error when changing password without being logged in", async () => {
-    const { result } = renderHook(() => useUserPreferences());
-
-    await expect(
-      result.current.changePassword({
-        current_password: "old",
-        new_password: "new",
-        new_password_confirm: "new",
-      })
-    ).rejects.toThrow("Must be logged in to change password");
   });
 
   it("should handle error when loading preferences fails", async () => {

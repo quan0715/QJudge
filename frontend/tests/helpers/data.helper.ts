@@ -155,10 +155,9 @@ export const TEST_QUESTION_BANKS = {
  */
 export const API_ENDPOINTS = {
   auth: {
-    login: "/api/v1/auth/email/login",
-    register: "/api/v1/auth/email/register",
+    login: "/api/v1/auth/login/password",
+    register: "/api/v1/auth/register/password",
     me: "/api/v1/auth/me",
-    resolveConflict: "/api/v1/auth/resolve-conflict",
   },
   problems: {
     list: "/api/v1/management/problems/",

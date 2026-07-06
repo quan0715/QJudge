@@ -34,7 +34,7 @@ from ..services.attendance import (
     build_attendance_error_payload,
     normalize_attendance_error_code,
 )
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
@@ -98,7 +98,7 @@ class ExamLifecycleMixin:
             participant.save()
 
             # Log activity
-            ContestActivityViewSet.log_activity(
+            log_contest_activity(
                 contest,
                 request.user,
                 'resume_exam',
@@ -114,7 +114,7 @@ class ExamLifecycleMixin:
             participant.save()
 
             # Log activity
-            ContestActivityViewSet.log_activity(
+            log_contest_activity(
                 contest,
                 request.user,
                 'start_exam',

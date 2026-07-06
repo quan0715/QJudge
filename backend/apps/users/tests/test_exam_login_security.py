@@ -1,4 +1,4 @@
-"""考試期間跨裝置登入改走 takeover recovery 流程。"""
+"""考試期間跨裝置登入直接阻擋，不提供接管流程。"""
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -21,11 +21,10 @@ User = get_user_model()
 
 
 class ExamLoginBlockedByOtherDeviceTests(APITestCase):
-    """已在 A 裝置開考時，B 裝置應進入 takeover recovery。"""
+    """已在 A 裝置開考時，B 裝置登入應被阻擋。"""
 
     def setUp(self):
-        self.login_url = reverse("users:email-login")
-        self.resolve_conflict_url = reverse("users:resolve-conflict")
+        self.login_url = reverse("auth:provider-login", kwargs={"provider": "password"})
         self.teacher = User.objects.create_user(
             username="sec_teacher",
             email="sec_teacher@test.com",
@@ -67,25 +66,25 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
     def tearDown(self):
         clear_active_session(self.contest.id, self.student.id)
 
-    def test_login_from_other_device_returns_takeover_required(self):
+    def test_login_from_other_device_returns_active_exam_block(self):
         resp = self.client.post(
             self.login_url,
-            {"email": "sec_student@test.com", "password": "pass12345"},
+            {"identifier": "sec_student@test.com", "password": "pass12345"},
             format="json",
             HTTP_X_DEVICE_ID="device-exam-room-b",
         )
-        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.status_code, status.HTTP_409_CONFLICT)
         self.assertFalse(resp.data.get("success", True))
-        self.assertEqual(resp.data.get("code"), "EXAM_TAKEOVER_REQUIRED")
-        self.assertTrue(resp.data.get("conflict_token"))
+        self.assertEqual(resp.data.get("code"), "ACTIVE_EXAM_SESSION_EXISTS")
+        self.assertNotIn("conflict_token", resp.data)
         self.assertIn("active_exam", resp.data)
         self.assertEqual(str(resp.data["active_exam"]["contest_id"]), str(self.contest.id))
-        self.assertIn("resume_path", resp.data["active_exam"])
+        self.assertEqual(resp.data["active_exam"]["exam_status"], ExamStatus.IN_PROGRESS)
 
     def test_login_same_device_as_active_session_succeeds(self):
         resp = self.client.post(
             self.login_url,
-            {"email": "sec_student@test.com", "password": "pass12345"},
+            {"identifier": "sec_student@test.com", "password": "pass12345"},
             format="json",
             HTTP_X_DEVICE_ID="device-exam-room-a",
         )
@@ -93,30 +92,15 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
         self.assertTrue(resp.data.get("success", False))
         self.assertIn("access_token", resp.data.get("data", {}))
 
-    def test_resolve_conflict_takeover_pauses_exam_and_invalidates_old_session(self):
+    def test_blocked_login_does_not_pause_exam_or_invalidate_existing_session(self):
         blocked = self.client.post(
             self.login_url,
-            {"email": "sec_student@test.com", "password": "pass12345"},
+            {"identifier": "sec_student@test.com", "password": "pass12345"},
             format="json",
             HTTP_X_DEVICE_ID="device-exam-room-b",
         )
-        self.assertEqual(blocked.status_code, status.HTTP_403_FORBIDDEN)
-
-        conflict_token = blocked.data.get("conflict_token")
-        self.assertTrue(conflict_token)
-
-        resolve = self.client.post(
-            self.resolve_conflict_url,
-            {"conflict_token": conflict_token, "action": "takeover_recovery"},
-            format="json",
-            HTTP_X_DEVICE_ID="device-exam-room-b",
-        )
-        self.assertEqual(resolve.status_code, status.HTTP_200_OK)
-        self.assertTrue(resolve.data.get("success", False))
-        self.assertTrue(resolve.data["data"]["resume_required"])
+        self.assertEqual(blocked.status_code, status.HTTP_409_CONFLICT)
 
         self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
-        self.assertFalse(is_access_token_allowed(self.student.id, self.original_access_jti))
-        new_access_jti = str(AccessToken(resolve.data["data"]["access_token"]).get("jti", ""))
-        self.assertTrue(is_access_token_allowed(self.student.id, new_access_jti))
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertTrue(is_access_token_allowed(self.student.id, self.original_access_jti))

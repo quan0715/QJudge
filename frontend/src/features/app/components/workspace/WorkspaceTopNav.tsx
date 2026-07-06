@@ -32,7 +32,6 @@ import styles from "./WorkspaceTopNav.module.scss";
 type MenuKind = "classroom" | "contest" | "contestMode" | null;
 
 const getClassroomRouteId = (pathname: string): string | null => {
-  if (pathname.startsWith("/classrooms/join")) return null;
   return pathname.match(/^\/classrooms\/([^/]+)/)?.[1] ?? null;
 };
 

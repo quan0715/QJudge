@@ -1,18 +1,17 @@
 // Auth Feature - Main exports
 
 // Routes
-export { guestRoutes, oauthCallbackRoute, onboardingRoute, teacherActivationRoute, oauthAuthorizeRoute } from "./routes";
+export { guestRoutes, oauthCallbackRoute, onboardingRoute, magicLinkRoute, oauthAuthorizeRoute } from "./routes";
 
 // Screens
 export { default as LoginScreen } from "./screens/LoginScreen";
 export { default as RegisterScreen } from "./screens/RegisterScreen";
 export { default as OAuthCallbackScreen } from "./screens/OAuthCallbackScreen";
 export { default as OnboardingScreen } from "./screens/OnboardingScreen";
-export { default as TeacherActivationScreen } from "./screens/TeacherActivationScreen";
+export { default as MagicLinkScreen } from "./screens/MagicLinkScreen";
 
 // Components
 export { default as AuthLayout } from "./components/layout/AuthLayout";
-export { default as ChangePasswordModal } from "./components/ChangePasswordModal";
 export { default as UserSettingsModal } from "./components/UserSettingsModal";
 export { default as UserPreferencesHydrator } from "./components/UserPreferencesHydrator";
 export {

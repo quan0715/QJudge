@@ -7,12 +7,6 @@ import { oauthCallback } from "@/infrastructure/api/repositories/auth.repository
 import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
 import { AuthLoadingSkeleton } from '../components/AuthLoadingSkeleton';
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
-import {
-  PENDING_ACTIONS,
-  storePendingAction,
-} from "@/features/auth/pending-actions";
-
-const TAKEOVER_ACTION = PENDING_ACTIONS.find((a) => a.key === "exam_takeover")!;
 
 type CallbackState = 'loading' | 'error';
 
@@ -77,15 +71,6 @@ const OAuthCallbackPage = () => {
           setState('error');
         }
       } catch (err: any) {
-        const errorCode = err?.response?.data?.code;
-        if (errorCode === "EXAM_TAKEOVER_REQUIRED") {
-          const conflictToken = err.response.data.conflict_token;
-          if (conflictToken) {
-            storePendingAction(TAKEOVER_ACTION.storageKey, conflictToken);
-            window.location.href = TAKEOVER_ACTION.getRedirectPath(conflictToken);
-            return;
-          }
-        }
         console.error(err);
         setError(
           err?.response?.data?.message ||

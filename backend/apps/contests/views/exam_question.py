@@ -35,7 +35,7 @@ from ..services.export_service import (
 )
 from ..services.question_edit_lock import ensure_contest_question_editable
 from ..services.score_recalculation import recalculate_all_scores
-from .activity import ContestActivityViewSet
+from ..services.activity_log import log_contest_activity
 from .exam_validation_response import build_device_conflict_response_for_view
 
 logger = logging.getLogger(__name__)
@@ -237,7 +237,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 actor=self.request.user,
             )
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -279,7 +279,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             if policy_changed or score_changed_for_full_marks:
                 recalculate_all_scores(contest)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -302,7 +302,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         from apps.question_bank.question_assets import cleanup_orphan_asset_if_needed
         cleanup_orphan_asset_if_needed(question_asset)
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             self.request.user,
             'update_problem',
@@ -416,7 +416,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 created_rows.append(exam_question)
                 next_order += 1
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',
@@ -466,7 +466,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                     question.order = idx
                     question.save(update_fields=['order'])
 
-        ContestActivityViewSet.log_activity(
+        log_contest_activity(
             contest,
             request.user,
             'update_problem',

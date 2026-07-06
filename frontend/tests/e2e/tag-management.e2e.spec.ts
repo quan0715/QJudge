@@ -15,9 +15,9 @@ const TAG_API = "/api/v1/management/problems/tags/";
  * This avoids issues with loginViaAPI clearing/resetting page state.
  */
 async function getAdminToken(page: import("@playwright/test").Page) {
-  const res = await page.request.post("/api/v1/auth/email/login", {
+  const res = await page.request.post("/api/v1/auth/login/password", {
     data: {
-      email: TEST_USERS.admin.email,
+      identifier: TEST_USERS.admin.email,
       password: TEST_USERS.admin.password,
     },
   });

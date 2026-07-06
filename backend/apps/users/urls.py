@@ -1,75 +1,21 @@
-"""
-URL configuration for users app.
-"""
-from django.conf import settings
+"""Users resource URL configuration."""
+
 from django.urls import path
+
 from .views import (
-    RegisterView,
-    LoginView,
-    AuthOptionsView,
-    DevTokenView,
-    LogoutView,
-    OAuthLoginView,
-    OAuthCallbackView,
-    TokenRefreshView,
-    ResolveConflictView,
     CurrentUserView,
     UserSearchView,
     UserRoleUpdateView,
-    TeacherActivationInviteIssueView,
-    TeacherActivationInvitePreviewView,
-    TeacherActivationInviteConsumeView,
-    UserStatsView,
     UserPreferencesView,
     UserAvatarUploadView,
-    ChangePasswordView,
-    ForgotPasswordView,
-    ResetPasswordView,
-    LoginRecordsView,
-    LogoutOtherDevicesView,
 )
 
 app_name = 'users'
 
 urlpatterns = [
-    # Public login method metadata
-    path('options', AuthOptionsView.as_view(), name='auth-options'),
-
-    # Email/Password authentication
-    path('email/register', RegisterView.as_view(), name='email-register'),
-    path('email/login', LoginView.as_view(), name='email-login'),
-
-    # Generic OAuth (supports nycu, github, google, etc.)
-    path('<str:provider>/login', OAuthLoginView.as_view(), name='oauth-login'),
-    path('<str:provider>/callback', OAuthCallbackView.as_view(), name='oauth-callback'),
-    
-    # Token management
-    path('refresh', TokenRefreshView.as_view(), name='token-refresh'),
-    path('resolve-conflict', ResolveConflictView.as_view(), name='resolve-conflict'),
-    path('logout', LogoutView.as_view(), name='logout'),
-    
-    # Current user
+    path('', UserSearchView.as_view(), name='user-search'),
     path('me', CurrentUserView.as_view(), name='current-user'),
-    path('me/stats', UserStatsView.as_view(), name='current-user-stats'),
     path('me/preferences', UserPreferencesView.as_view(), name='user-preferences'),
-    path('me/avatar/upload', UserAvatarUploadView.as_view(), name='user-avatar-upload'),
-    
-    # Password management
-    path('change-password', ChangePasswordView.as_view(), name='change-password'),
-    path('forgot-password', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('reset-password', ResetPasswordView.as_view(), name='reset-password'),
-
-    # Login records & device management
-    path('me/login-records', LoginRecordsView.as_view(), name='login-records'),
-    path('me/logout-other-devices', LogoutOtherDevicesView.as_view(), name='logout-other-devices'),
-
-    # User management (admin only)
-    path('search', UserSearchView.as_view(), name='user-search'),
+    path('me/avatar', UserAvatarUploadView.as_view(), name='user-avatar-upload'),
     path('<int:pk>/role', UserRoleUpdateView.as_view(), name='user-role-update'),
-    path('teacher-activations', TeacherActivationInviteIssueView.as_view(), name='teacher-activation-issue'),
-    path('teacher-activations/preview', TeacherActivationInvitePreviewView.as_view(), name='teacher-activation-preview'),
-    path('teacher-activations/consume', TeacherActivationInviteConsumeView.as_view(), name='teacher-activation-consume'),
 ]
-
-if settings.DEBUG:
-    urlpatterns.append(path('dev/token', DevTokenView.as_view(), name='dev-token'))

@@ -14,8 +14,8 @@ class UserPreferencesView(SchemaAPIView):
     """
     Get and update current user preferences.
 
-    GET /api/v1/auth/me/preferences - Get current preferences
-    PATCH /api/v1/auth/me/preferences - Update preferences
+    GET /api/v1/users/me/preferences - Get current preferences
+    PATCH /api/v1/users/me/preferences - Update preferences
     """
     permission_classes = [IsAuthenticated]
     serializer_class = UserPreferencesUpdateSerializer

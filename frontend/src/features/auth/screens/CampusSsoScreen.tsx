@@ -29,7 +29,7 @@ const CampusSsoScreen = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { options } = useAuthOptions();
-  // Auto-syncs query params (e.g. teacher_activation_token) → sessionStorage
+  // Auto-syncs query params (e.g. magic_link_token) → sessionStorage
   const { buildAuthLink } = usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");

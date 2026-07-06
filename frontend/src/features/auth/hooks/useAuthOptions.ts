@@ -3,7 +3,7 @@ import type { AuthOptions } from "@/core/entities/auth.entity";
 import { getAuthOptions } from "@/infrastructure/api/repositories/auth.repository";
 
 const DEFAULT_AUTH_OPTIONS: AuthOptions = {
-  email_password_enabled: true,
+  password_enabled: true,
   providers: [],
 };
 

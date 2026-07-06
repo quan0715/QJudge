@@ -27,10 +27,12 @@ import { PageHeader } from "@/shared/layout/PageHeader";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import styles from "./AdminScreens.module.scss";
 import {
-  issueTeacherActivationInvite,
+  issueTeacherActivationMagicLink,
+} from "@/infrastructure/api/repositories/auth.repository";
+import {
   searchUsers,
   updateUserRole,
-} from "@/infrastructure/api/repositories/auth.repository";
+} from "@/infrastructure/api/repositories/user.repository";
 import type { ManagedUser } from "@/core/entities/auth.entity";
 import { useCopyText } from "@/shared/hooks";
 
@@ -158,7 +160,7 @@ const UserManagementScreen = () => {
     setSuccess("");
 
     try {
-      const response = await issueTeacherActivationInvite("");
+      const response = await issueTeacherActivationMagicLink("");
       setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
       setLatestInviteUrl(response.data.activation_url || "");
       setLatestInviteExpiresAt(response.data.expires_at || null);
@@ -190,6 +192,7 @@ const UserManagementScreen = () => {
     if (!provider) return t("user.management.loginMethods.unknown");
     const labels: Record<string, string> = {
       email: t("user.management.loginMethods.email"),
+      password: t("user.management.loginMethods.password"),
       "nycu-oauth": t("user.management.loginMethods.sso"),
       google: t("user.management.loginMethods.google"),
       github: t("user.management.loginMethods.github"),

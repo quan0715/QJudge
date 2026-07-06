@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from apps.contests.models import (
     AssignmentState,
-    ContestActivity,
     ContestParticipant,
     ExamAnswer,
     ExamEvent,
@@ -15,6 +14,7 @@ from apps.contests.models import (
     ExamStatus,
 )
 
+from .activity_log import log_contest_activity
 from .exam_submission import finalize_submission
 from .anti_cheat_session import (
     clear_active_session,
@@ -44,24 +44,13 @@ def unlock_participant(
     )
 
     if activity_user:
-        ContestActivity.objects.create(
+        log_contest_activity(
             contest=participant.contest,
             user=activity_user,
             action_type="unlock_user",
             details=activity_details,
         )
 
-    return participant
-
-
-def pause_participant_for_takeover_recovery(
-    participant: ContestParticipant,
-) -> ContestParticipant:
-    """Pause an exam attempt so the student can resume on a replacement device."""
-    update_fields = ["exam_status"]
-    participant.exam_status = ExamStatus.PAUSED
-    update_fields.extend(_clear_lock_metadata(participant))
-    participant.save(update_fields=update_fields)
     return participant
 
 
@@ -123,7 +112,7 @@ def admin_update_participant(
             clear_heartbeat(participant.contest_id, participant.user_id)
             clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
-    ContestActivity.objects.create(
+    log_contest_activity(
         contest=participant.contest,
         user=activity_user,
         action_type="update_participant",
@@ -146,7 +135,7 @@ def reopen_participant_exam(
     update_fields.extend(_clear_lock_metadata(participant))
     participant.save(update_fields=update_fields)
 
-    ContestActivity.objects.create(
+    log_contest_activity(
         contest=participant.contest,
         user=activity_user,
         action_type="reopen_exam",
@@ -216,7 +205,7 @@ def reset_participant_exam_record(
             ]
         )
 
-        ContestActivity.objects.create(
+        log_contest_activity(
             contest=participant.contest,
             user=activity_user,
             action_type="reset_exam_record",
