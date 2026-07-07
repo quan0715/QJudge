@@ -974,19 +974,6 @@ class ExamEventCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class AnticheatUrlsQuerySerializer(serializers.Serializer):
-    MODULE_CHOICES = ("screen_share", "webcam")
-    count = serializers.IntegerField(required=False, min_value=1, max_value=300, default=30)
-    upload_session_id = serializers.RegexField(
-        required=False,
-        allow_blank=True,
-        max_length=64,
-        regex=r"^[A-Za-z0-9_-]+$",
-    )
-    start_seq = serializers.IntegerField(required=False, min_value=1, default=1)
-    module = serializers.ChoiceField(required=False, choices=MODULE_CHOICES, default="screen_share")
-
-
 class EvidenceUploadIntentFrameSerializer(serializers.Serializer):
     client_captured_at_ms = serializers.IntegerField(min_value=0)
     seq = serializers.IntegerField(min_value=1)
@@ -1031,10 +1018,6 @@ class EvidenceUploadConfirmSerializer(serializers.Serializer):
         regex=r"^[A-Za-z0-9_-]+$",
     )
     frames = EvidenceUploadConfirmItemSerializer(many=True, allow_empty=False, max_length=30)
-
-
-class ActiveSessionClearSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=True, min_value=1)
 
 
 class ContestActivitySerializer(serializers.ModelSerializer):

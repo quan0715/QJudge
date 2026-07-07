@@ -63,8 +63,13 @@ export const EVENT_PRIORITY: Record<string, number> = {
   exam_submit_initiated: 3,
   force_submit_locked: 3,
   concurrent_login_detected: 3,
+  other_devices_logged_out: 3,
+  end_exam_device_mismatch: 3,
   heartbeat: 3,
   manual_proctor_note: 3,
+  resume_exam: 3,
+  reopen_exam: 3,
+  reset_exam_record: 3,
 };
 
 export const EVENT_CATEGORY: Record<number, string> = {

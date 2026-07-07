@@ -3034,84 +3034,6 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam/active-sessions/:
-    get:
-      operationId: v1_contests_exam_active_sessions_retrieve
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/active-sessions/clear/:
-    post:
-      operationId: v1_contests_exam_active_sessions_clear_create
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/anticheat-urls/:
-    get:
-      operationId: v1_contests_exam_anticheat_urls_retrieve
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
   /api/v1/contests/{contest_pk}/exam/end/:
     post:
       operationId: v1_contests_exam_end_create
@@ -6908,8 +6830,11 @@ components:
           type: string
           format: uuid
         email:
-          type: string
-          format: email
+          oneOf:
+          - type: string
+            format: email
+          - type: string
+            maxLength: 0
     ActionLinkIssueRequest:
       type: object
       description: Serializer for issuing a scoped action link.
@@ -6922,13 +6847,17 @@ components:
           type: string
           format: uuid
         email:
-          type: string
-          format: email
+          oneOf:
+          - type: string
+            format: email
+          - type: string
+            maxLength: 0
     ActionTypeEnum:
       enum:
       - register
       - enter_contest
       - start_exam
+      - resume_exam
       - end_exam
       - auto_submit
       - lock_user
@@ -6939,6 +6868,7 @@ components:
       - update_contest
       - update_problem
       - update_participant
+      - reopen_exam
       - reset_exam_record
       - concurrent_login_detected
       - announce
@@ -6948,6 +6878,7 @@ components:
         * `register` - Register
         * `enter_contest` - Enter Contest
         * `start_exam` - Start Exam
+        * `resume_exam` - Resume Exam
         * `end_exam` - End Exam
         * `auto_submit` - Auto Submit
         * `lock_user` - Lock User
@@ -6958,6 +6889,7 @@ components:
         * `update_contest` - Update Contest
         * `update_problem` - Update Problem
         * `update_participant` - Update Participant
+        * `reopen_exam` - Reopen Exam
         * `reset_exam_record` - Reset Exam Record
         * `concurrent_login_detected` - Concurrent Login Detected
         * `announce` - Announce
@@ -7187,10 +7119,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
       required:
       - name
     ClassroomCreateUpdateRequest:
@@ -7212,10 +7147,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
       required:
       - name
     ClassroomDetail:
@@ -7258,10 +7196,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
         members:
           type: string
           readOnly: true
@@ -7324,10 +7265,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
       required:
       - name
     ClassroomList:
@@ -7364,10 +7308,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
         created_at:
           type: string
           format: date-time
@@ -8387,6 +8334,8 @@ components:
       - exam_entered
       - exam_submit_initiated
       - concurrent_login_detected
+      - other_devices_logged_out
+      - end_exam_device_mismatch
       - heartbeat
       - heartbeat_timeout
       - listener_tampered
@@ -8400,6 +8349,7 @@ components:
       - multi_display_restored
       - display_api_degraded
       - clipboard_action
+      - manual_proctor_note
       - attendance_check_in
       - attendance_check_out
       type: string
@@ -8429,6 +8379,8 @@ components:
         * `exam_entered` - Exam Entered
         * `exam_submit_initiated` - Exam Submit Initiated
         * `concurrent_login_detected` - Concurrent Login Detected
+        * `other_devices_logged_out` - Other Devices Logged Out
+        * `end_exam_device_mismatch` - End Exam Device Mismatch
         * `heartbeat` - Heartbeat
         * `heartbeat_timeout` - Heartbeat Timeout
         * `listener_tampered` - Listener Tampered
@@ -8442,6 +8394,7 @@ components:
         * `multi_display_restored` - Multi Display Restored
         * `display_api_degraded` - Display API Degraded
         * `clipboard_action` - Clipboard Action
+        * `manual_proctor_note` - Manual Proctor Note
         * `attendance_check_in` - Attendance Check-in
         * `attendance_check_out` - Attendance Check-out
     ExamEventCreateRequest:
@@ -9032,10 +8985,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
     PatchedClassroomDetailRequest:
       type: object
       properties:
@@ -9058,10 +9014,13 @@ components:
           title: 圖示
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
           title: 封面圖片 URL
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
     PatchedContestAnnouncementRequest:
       type: object
       description: Serializer for contest announcements.
@@ -9324,9 +9283,12 @@ components:
       description: Serializer for problem detail (full info).
       properties:
         slug:
-          type: string
-          maxLength: 255
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         time_limit:
           type: integer
           maximum: 2147483647
@@ -9391,9 +9353,12 @@ components:
           type: string
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
         visibility:
@@ -9408,8 +9373,11 @@ components:
           title: 標籤名稱
           maxLength: 50
         slug:
-          type: string
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         description:
           type: string
           title: 描述
@@ -9486,9 +9454,12 @@ components:
           type: string
           readOnly: true
         slug:
-          type: string
-          maxLength: 255
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         difficulty:
           type: string
           readOnly: true
@@ -9604,9 +9575,12 @@ components:
       description: Serializer for problem detail (full info).
       properties:
         slug:
-          type: string
-          maxLength: 255
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         time_limit:
           type: integer
           maximum: 2147483647
@@ -9670,9 +9644,12 @@ components:
           type: string
           readOnly: true
         slug:
-          type: string
-          maxLength: 255
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            maxLength: 255
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         difficulty:
           type: string
           readOnly: true
@@ -9782,9 +9759,12 @@ components:
           type: string
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
         visibility:
@@ -9862,9 +9842,12 @@ components:
           type: string
           maxLength: 32
         cover_url:
-          type: string
-          format: uri
-          maxLength: 200
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
         visibility:
@@ -10236,8 +10219,11 @@ components:
           title: 標籤名稱
           maxLength: 50
         slug:
-          type: string
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         description:
           type: string
           title: 描述
@@ -10265,8 +10251,11 @@ components:
           title: 標籤名稱
           maxLength: 50
         slug:
-          type: string
-          pattern: ^[-a-zA-Z0-9_]+$
+          oneOf:
+          - type: string
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
         description:
           type: string
           title: 描述
@@ -10536,11 +10525,14 @@ components:
           title: 顯示名稱
           maxLength: 50
         avatar_url:
-          type: string
-          format: uri
           nullable: true
           title: 頭像 URL
-          maxLength: 500
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
         preferred_language:
           allOf:
           - $ref: '#/components/schemas/UserProfilePreferredLanguageEnum'
@@ -10608,11 +10600,14 @@ components:
           title: 顯示名稱
           maxLength: 50
         avatar_url:
-          type: string
-          format: uri
           nullable: true
           title: 頭像 URL
-          maxLength: 500
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
         preferred_language:
           allOf:
           - $ref: '#/components/schemas/UserProfilePreferredLanguageEnum'

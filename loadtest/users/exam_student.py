@@ -2,15 +2,14 @@
 ExamStudentUser — simulates a full exam lifecycle for one student.
 
 Flow:
-  login → enter → start → (heartbeat + anticheat-urls + object storage PUT + answers + submissions) → end
+  login → enter → start → (heartbeat + answers + submissions) → end
 """
 import random
 import time
 import uuid
 import logging
 
-import requests as raw_requests
-from locust import HttpUser, task, between, events
+from locust import HttpUser, task, between
 from locust.exception import StopUser
 
 from helpers.auth import login_student
@@ -47,11 +46,8 @@ class ExamStudentUser(HttpUser):
         self.contest_problems: list[dict] = []
         self.exam_questions: list[dict] = []
         self.upload_session_id: str = uuid.uuid4().hex
-        self.next_seq: int = 1
         self.exam_started = False
         self._last_heartbeat_at: float = 0.0
-        self._last_anticheat_upload_at: float = 0.0
-        self._anticheat_url_pool: list[dict] = []
 
         # Login
         result = login_student(self.client, self.email, D.STUDENT_PASSWORD)
@@ -219,76 +215,6 @@ class ExamStudentUser(HttpUser):
             },
             name="/api/v1/contests/[id]/exam/events/",
         )
-
-    @task(10)
-    def anticheat_upload(self):
-        """Upload fake screenshot to object storage with presigned-URL pooling."""
-        if not self.exam_started:
-            return
-
-        now = time.time()
-        if now - self._last_anticheat_upload_at < D.ANTICHEAT_UPLOAD_INTERVAL_SECONDS:
-            return
-        self._last_anticheat_upload_at = now
-
-        # Refill presigned URL pool only when low, to avoid excessive backend churn.
-        if len(self._anticheat_url_pool) <= D.ANTICHEAT_URL_LOW_WATERMARK:
-            batch_size = max(1, D.ANTICHEAT_URL_BATCH_SIZE)
-            resp = self.client.get(
-                f"/api/v1/contests/{self.contest_id}/exam/anticheat-urls/",
-                params={
-                    "count": batch_size,
-                    "upload_session_id": self.upload_session_id,
-                    "start_seq": self.next_seq,
-                },
-                name="/api/v1/contests/[id]/exam/anticheat-urls/",
-            )
-            if resp.status_code != 200:
-                return
-
-            payload = resp.json()
-            self.next_seq = payload.get("next_seq", self.next_seq + batch_size)
-            self._anticheat_url_pool.extend(payload.get("items", []))
-
-        if not self._anticheat_url_pool:
-            return
-
-        item = self._anticheat_url_pool.pop(0)
-        put_url = item.get("put_url", "")
-        headers = item.get("required_headers", {})
-        if not headers:
-            headers = {"Content-Type": "image/webp", "x-amz-tagging": "cleanup=true"}
-
-        try:
-            start_ts = time.time()
-            r = raw_requests.put(
-                put_url,
-                data=D.get_fake_frame(),
-                headers=headers,
-                timeout=10,
-            )
-            elapsed_ms = (time.time() - start_ts) * 1000
-
-            # Report to Locust stats
-            events.request.fire(
-                request_type="PUT",
-                name="Object storage PUT screenshot",
-                response_time=elapsed_ms,
-                response_length=0,
-                response=r,
-                context={},
-                exception=None if r.status_code in (200, 201) else Exception(f"Object storage PUT {r.status_code}"),
-            )
-        except Exception as e:
-            events.request.fire(
-                request_type="PUT",
-                name="Object storage PUT screenshot",
-                response_time=0,
-                response_length=0,
-                response=None,
-                context={},
-                exception=e,
-            )
 
     @task(3)
     def save_exam_answer(self):

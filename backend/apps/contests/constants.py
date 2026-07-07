@@ -64,6 +64,8 @@ EVENT_PRIORITY: dict[str, int] = {
     'exam_submit_initiated': 3,
     'force_submit_locked': 3,
     'concurrent_login_detected': 3,
+    'other_devices_logged_out': 3,
+    'end_exam_device_mismatch': 3,
     'heartbeat': 3,
     'manual_proctor_note': 3,
     'attendance_check_in': 3,

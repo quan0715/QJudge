@@ -40,9 +40,6 @@ locust -f locustfile.py \
   --headless --host http://localhost:8002
 
 # 可調整節流參數（預設已安全）
-# export LT_ANTICHEAT_URL_BATCH_SIZE=30
-# export LT_ANTICHEAT_URL_LOW_WATERMARK=8
-# export LT_ANTICHEAT_UPLOAD_INTERVAL_SECONDS=3
 # export LT_HEARTBEAT_INTERVAL_SECONDS=5
 
 # 6. 或用 Web UI 即時觀察

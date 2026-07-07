@@ -18,6 +18,7 @@ import {
   TEST_CONTESTS,
   API_ENDPOINTS,
 } from "../helpers/data.helper";
+import { ensureClientDeviceId } from "../helpers/exam-lifecycle.helper";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,6 +29,12 @@ async function authHeaders(page: Page) {
   const token = await page.evaluate(() => localStorage.getItem("token"));
   expect(token).toBeTruthy();
   return { Authorization: `Bearer ${token}` };
+}
+
+async function authHeadersWithDevice(page: Page) {
+  const headers = await authHeaders(page);
+  const deviceId = await ensureClientDeviceId(page);
+  return { ...headers, "X-Device-Id": deviceId };
 }
 
 async function getContestExamStatus(page: Page, contestId: string): Promise<string | undefined> {
@@ -154,20 +161,6 @@ function contestDashboardRegex(contestId: string): RegExp {
   return new RegExp(`/classrooms/[^/]+/contest/${contestId}(/)?(\\?.*)?$`);
 }
 
-/** Clear active anti-cheat device session for participant (teacher/admin only). */
-async function clearActiveSession(
-  teacherPage: Page,
-  contestId: string,
-  userId: number,
-  teacherHeaders: Record<string, string>
-) {
-  const resp = await teacherPage.request.post(
-    `/api/v1/contests/${contestId}/exam/active-sessions/clear/`,
-    { headers: teacherHeaders, data: { user_id: userId } }
-  );
-  expect(resp.ok()).toBeTruthy();
-}
-
 /**
  * Ensure student is registered and in IN_PROGRESS exam state with
  * violation_count = 0 (clean slate for each test).
@@ -188,7 +181,7 @@ async function ensureStudentReady(
 ): Promise<string> {
   await loginViaAPI(page, role);
   const contestId = await findExamContestId(page);
-  const headers = await authHeaders(page);
+  const headers = await authHeadersWithDevice(page);
   const userId = await getMyUserId(page);
   const teacherHeaders = await authHeaders(teacherPage);
   await ensureContestWindowActive(teacherPage, contestId, teacherHeaders);
@@ -201,9 +194,12 @@ async function ensureStudentReady(
   // Some seeded contests disallow late re-register and return 403 even when the
   // participant already exists; treat it as idempotent in E2E setup.
   expect([200, 201, 400, 403]).toContain(regResp.status());
-  await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
 
   const resetByTeacher = async () => {
+    await teacherPage.request.post(
+      `/api/v1/contests/${contestId}/participants/reset_exam_record/`,
+      { headers: teacherHeaders, data: { user_id: userId } }
+    );
     await teacherPage.request.post(
       `/api/v1/contests/${contestId}/reopen_exam/`,
       { headers: teacherHeaders, data: { user_id: userId } }
@@ -212,7 +208,6 @@ async function ensureStudentReady(
       `/api/v1/contests/${contestId}/unlock_participant/`,
       { headers: teacherHeaders, data: { user_id: userId } }
     );
-    await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
   };
 
   // Normalize to a clean state, then retry start until participant is in progress.
@@ -230,7 +225,6 @@ async function ensureStudentReady(
   }
 
   expect(ready).toBeTruthy();
-  await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
 
   return contestId;
 }
@@ -241,7 +235,7 @@ async function postViolationEvent(
   contestId: string,
   eventType = "tab_hidden"
 ) {
-  const headers = await authHeaders(page);
+  const headers = await authHeadersWithDevice(page);
   return page.request.post(
     API_ENDPOINTS.contests.examEvents(contestId),
     { headers, data: { event_type: eventType } }

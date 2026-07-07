@@ -1,7 +1,6 @@
 """Shared constants and payload builders for load-test scenarios."""
 import os
 import random
-import pathlib
 
 # Contest name created by seed_loadtest_data
 # - Paper exam default: "Load Test Exam"
@@ -15,16 +14,6 @@ NUM_STUDENTS = 200
 STUDENT_PASSWORD = "loadtest123"
 
 
-def _get_int_env(name: str, default: int) -> int:
-    raw = os.getenv(name, "")
-    if not raw:
-        return default
-    try:
-        return int(raw)
-    except Exception:
-        return default
-
-
 def _get_float_env(name: str, default: float) -> float:
     raw = os.getenv(name, "")
     if not raw:
@@ -35,25 +24,7 @@ def _get_float_env(name: str, default: float) -> float:
         return default
 
 
-# Safety knobs (can be overridden via env when running Locust)
-ANTICHEAT_URL_BATCH_SIZE = _get_int_env("LT_ANTICHEAT_URL_BATCH_SIZE", 30)
-ANTICHEAT_URL_LOW_WATERMARK = _get_int_env("LT_ANTICHEAT_URL_LOW_WATERMARK", 8)
-ANTICHEAT_UPLOAD_INTERVAL_SECONDS = _get_float_env("LT_ANTICHEAT_UPLOAD_INTERVAL_SECONDS", 3.0)
 HEARTBEAT_INTERVAL_SECONDS = _get_float_env("LT_HEARTBEAT_INTERVAL_SECONDS", 5.0)
-
-# Path to fake screenshot
-FIXTURES_DIR = pathlib.Path(__file__).resolve().parent.parent / "fixtures"
-FAKE_FRAME_PATH = FIXTURES_DIR / "fake_frame.webp"
-
-# Pre-load fake frame bytes (lazy)
-_fake_frame_bytes: bytes | None = None
-
-
-def get_fake_frame() -> bytes:
-    global _fake_frame_bytes
-    if _fake_frame_bytes is None:
-        _fake_frame_bytes = FAKE_FRAME_PATH.read_bytes()
-    return _fake_frame_bytes
 
 
 def student_email(index: int) -> str:

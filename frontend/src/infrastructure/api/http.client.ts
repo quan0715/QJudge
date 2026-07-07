@@ -104,7 +104,6 @@ const shouldDispatchServerError = (endpoint: string): boolean => {
   // Anti-cheat telemetry endpoints are noisy and transient failures (e.g. 502)
   // should not hard-redirect users away from exam screens.
   if (endpoint.includes("/exam/events/")) return false;
-  if (endpoint.includes("/exam/anticheat-urls/")) return false;
   return true;
 };
 

@@ -110,15 +110,48 @@ assert start.status_code == 200, start.content
 start_data = start.json()
 assert start_data.get("exam_status") == "in_progress", start_data
 
-urls = client.get(f"/api/v1/contests/{contest.id}/exam/anticheat-urls/?count=3", **headers)
-assert urls.status_code == 200, urls.content
-urls_data = urls.json()
-assert urls_data.get("upload_session_id"), urls_data
-assert len(urls_data.get("items", [])) == 3, urls_data
+upload_session_id = f"smoke-session-{ts}"
+event = client.post(
+    f"/api/v1/contests/{contest.id}/exam/events/",
+    {
+        "event_type": "capture_upload_degraded",
+        "metadata": {
+            "phase": "SMOKE",
+            "upload_session_id": upload_session_id,
+        },
+    },
+    format="json",
+    **headers,
+)
+assert event.status_code == 200, event.content
+event_data = event.json()
+event_id = event_data.get("event_id")
+assert event_id, event_data
+
+base_ms = int(timezone.now().timestamp() * 1000)
+intent = client.post(
+    f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+    {
+        "event_id": event_id,
+        "source_module": "screen_share",
+        "evidence_mode": "anchor_window",
+        "upload_session_id": upload_session_id,
+        "frames": [
+            {"client_captured_at_ms": base_ms + seq * 1000, "seq": seq}
+            for seq in range(1, 4)
+        ],
+    },
+    format="json",
+    **headers,
+)
+assert intent.status_code == 201, intent.content
+intent_data = intent.json()
+assert intent_data.get("upload_session_id") == upload_session_id, intent_data
+assert len(intent_data.get("items", [])) == 3, intent_data
 
 end = client.post(
     f"/api/v1/contests/{contest.id}/exam/end/",
-    {"upload_session_id": urls_data["upload_session_id"]},
+    {"upload_session_id": upload_session_id},
     format="json",
     **headers,
 )
@@ -126,7 +159,7 @@ assert end.status_code == 200, end.content
 end_data = end.json()
 assert end_data.get("exam_status") == "submitted", end_data
 
-print("SMOKE_OK", contest.id, urls_data["upload_session_id"])
+print("SMOKE_OK", contest.id, upload_session_id)
 PY
 
 log "Smoke checks passed"

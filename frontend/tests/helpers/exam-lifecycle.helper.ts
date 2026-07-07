@@ -84,20 +84,6 @@ export async function addClassroomStudentMembers(
   expect(resp.ok(), await resp.text().catch(() => "")).toBeTruthy();
 }
 
-async function clearActiveSession(
-  teacherPage: Page,
-  contestId: string,
-  userId: string,
-  teacherHeaders: Record<string, string>,
-): Promise<void> {
-  await teacherPage.request
-    .post(`/api/v1/contests/${contestId}/exam/active-sessions/clear/`, {
-      headers: teacherHeaders,
-      data: { user_id: Number(userId) },
-    })
-    .catch(() => null);
-}
-
 /** 無防弊／紙本測驗：註冊、解鎖後開始作答。 */
 export async function prepareStudentPaperExamInProgress(
   studentPage: Page,
@@ -113,7 +99,12 @@ export async function prepareStudentPaperExamInProgress(
   });
   expect([200, 201, 400, 403]).toContain(regResp.status());
 
-  await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
+  await teacherPage.request
+    .post(`/api/v1/contests/${contestId}/participants/reset_exam_record/`, {
+      headers: teacherHeaders,
+      data: { user_id: Number(userId) },
+    })
+    .catch(() => null);
   await teacherPage.request
     .post(`/api/v1/contests/${contestId}/reopen_exam/`, {
       headers: teacherHeaders,
@@ -126,7 +117,6 @@ export async function prepareStudentPaperExamInProgress(
       data: { user_id: Number(userId) },
     })
     .catch(() => null);
-  await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
 
   let ready = false;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -136,7 +126,6 @@ export async function prepareStudentPaperExamInProgress(
       ready = true;
       break;
     }
-    await clearActiveSession(teacherPage, contestId, userId, teacherHeaders);
     await teacherPage.request
       .post(`/api/v1/contests/${contestId}/unlock_participant/`, {
         headers: teacherHeaders,
