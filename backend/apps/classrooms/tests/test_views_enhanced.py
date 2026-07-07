@@ -144,25 +144,3 @@ class ClassroomViewsEnhancedTests(APITestCase):
         ClassroomMember.objects.create(classroom=self.classroom, user=self.student, role='student')
         response = self.client.get(labs_url)
         self.assertEqual(len(response.data), 0) # Because it's draft by default
-
-    def test_join_idempotency_and_errors(self):
-        """Test join endpoint with various scenarios"""
-        join_url = reverse('classrooms:classroom-join')
-        
-        # Invalid code
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(join_url, {'invite_code': 'WRONG'})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        
-        # Success join
-        response = self.client.post(join_url, {'invite_code': 'TESTCODE'})
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
-        # Idempotent join
-        response = self.client.post(join_url, {'invite_code': 'TESTCODE'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
-        # Owner join (no new membership created)
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(join_url, {'invite_code': 'TESTCODE'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)

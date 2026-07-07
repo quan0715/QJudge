@@ -151,8 +151,15 @@ export const setAuthToken = (token?: string) => {
   globalThis.localStorage.setItem("token", token);
 };
 
-export const loginAndSetToken = async (credentials: LoginCredentials) => {
-  const response = await login(credentials);
+type ApiTestLoginCredentials = LoginCredentials & {
+  email?: string;
+};
+
+export const loginAndSetToken = async (credentials: ApiTestLoginCredentials) => {
+  const response = await login({
+    identifier: credentials.identifier ?? credentials.username ?? credentials.email,
+    password: credentials.password,
+  });
   const token = response?.data?.access_token;
 
   if (!token) {
