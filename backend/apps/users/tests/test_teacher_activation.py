@@ -29,13 +29,13 @@ class TeacherActivationInviteTests(APITestCase):
             password="password123",
             role="student",
         )
-        self.issue_url = "/api/v1/magic-links"
+        self.issue_url = "/api/v1/action-links"
 
     def _inspect_url(self, token: str) -> str:
-        return f"/api/v1/magic-links/{token}"
+        return f"/api/v1/action-links/{token}"
 
     def _redeem_url(self, token: str) -> str:
-        return f"/api/v1/magic-links/{token}/redeem"
+        return f"/api/v1/action-links/{token}/redeem"
 
     def _issue_invite(self):
         self.client.force_authenticate(user=self.admin)
@@ -48,7 +48,7 @@ class TeacherActivationInviteTests(APITestCase):
         return response
 
     def _token_from_issue_response(self, response) -> str:
-        return response.data["data"]["magic_link_url"].rstrip("/").split("/magic-links/")[1]
+        return response.data["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
 
     def test_admin_can_issue_teacher_activation_invite(self):
         response = self._issue_invite()
@@ -56,8 +56,10 @@ class TeacherActivationInviteTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["data"]["email"], "")
         self.assertEqual(response.data["data"]["purpose"], "teacher_activation")
-        self.assertIn("/magic-links/", response.data["data"]["magic_link_url"])
-        self.assertEqual(response.data["data"]["activation_url"], response.data["data"]["magic_link_url"])
+        token = self._token_from_issue_response(response)
+        self.assertTrue(token.startswith("qj_ta_"))
+        self.assertIn("/invite/", response.data["data"]["action_link_url"])
+        self.assertEqual(response.data["data"]["activation_url"], response.data["data"]["action_link_url"])
         self.assertIn("已產生", response.data["message"])
         self.assertEqual(TeacherActivationInvite.objects.count(), 1)
 
@@ -113,4 +115,8 @@ class TeacherActivationInviteTests(APITestCase):
         self.client.force_authenticate(user=self.other_user)
         second_response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(second_response.data["error"]["code"], "MAGIC_LINK_ALREADY_REDEEMED")
+        self.assertEqual(second_response.data["error"]["code"], "ACTION_LINK_ALREADY_REDEEMED")
+
+    def test_legacy_magic_link_route_is_not_registered(self):
+        response = self.client.get("/api/v1/magic-links/qj_ta_legacy")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

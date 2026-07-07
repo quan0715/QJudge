@@ -6,11 +6,15 @@ import pytest
 
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.classrooms.services import (
+    accept_classroom_lab,
+    add_classroom_members,
+    create_classroom_contest,
+    create_classroom_lab,
     generate_invite_code,
     on_member_joined,
     sync_classroom_participants,
 )
-from apps.contests.models import Contest, ContestParticipant
+from apps.contests.models import AssignmentState, Contest, ContestParticipant, ExamStatus
 from apps.users.models import User
 
 
@@ -70,8 +74,11 @@ def test_generate_invite_code_returns_unique_code() -> None:
 def test_generate_invite_code_raises_after_too_many_collisions(mocker) -> None:
     mock_filter = Mock()
     mock_filter.exists.return_value = True
-    mocker.patch("apps.classrooms.services.Classroom.objects.filter", return_value=mock_filter)
-    mocker.patch("apps.classrooms.services.secrets.choice", return_value="A")
+    mocker.patch(
+        "apps.classrooms.services.invite_codes.Classroom.objects.filter",
+        return_value=mock_filter,
+    )
+    mocker.patch("apps.classrooms.services.invite_codes.secrets.choice", return_value="A")
 
     with pytest.raises(RuntimeError, match="Failed to generate unique invite code"):
         generate_invite_code()
@@ -91,8 +98,140 @@ def test_sync_classroom_participants_creates_only_missing_members(
     created_count = sync_classroom_participants(classroom, published_contest)
 
     assert created_count == 1
-    assert ContestParticipant.objects.filter(contest=published_contest, user=student_a).count() == 1
-    assert ContestParticipant.objects.filter(contest=published_contest, user=student_b).count() == 1
+    assert (
+        ContestParticipant.objects.filter(contest=published_contest, user=student_a).count()
+        == 1
+    )
+    assert (
+        ContestParticipant.objects.filter(contest=published_contest, user=student_b).count()
+        == 1
+    )
+
+
+@pytest.mark.django_db
+def test_add_classroom_members_resolves_users_and_skips_reserved_members(
+    classroom: Classroom,
+    owner: User,
+    student_a: User,
+    student_b: User,
+) -> None:
+    classroom.admins.add(student_b)
+
+    result = add_classroom_members(
+        classroom,
+        identifiers=[
+            owner.username,
+            student_a.email,
+            student_b.username,
+            "missing-user",
+        ],
+        role="student",
+    )
+
+    assert result.added == [student_a.username]
+    assert sorted(result.already_exists) == sorted([owner.username, student_b.username])
+    assert result.not_found == ["missing-user"]
+    assert ClassroomMember.objects.filter(
+        classroom=classroom,
+        user=student_a,
+        role="student",
+    ).exists()
+    assert not ClassroomMember.objects.filter(classroom=classroom, user=owner).exists()
+    assert not ClassroomMember.objects.filter(classroom=classroom, user=student_b).exists()
+
+
+@pytest.mark.django_db
+def test_create_classroom_contest_binds_and_registers_members(
+    classroom: Classroom,
+    owner: User,
+    student_a: User,
+) -> None:
+    ClassroomMember.objects.create(classroom=classroom, user=student_a, role="student")
+
+    result = create_classroom_contest(
+        classroom,
+        actor=owner,
+        data={
+            "name": "Midterm",
+            "description": "Paper exam",
+            "contest_type": "paper_exam",
+            "start_time": None,
+            "end_time": None,
+            "visibility": "private",
+            "attendance_check_enabled": True,
+            "cheat_detection_enabled": True,
+            "allow_multiple_joins": False,
+            "results_published": False,
+        },
+    )
+
+    assert result.binding.classroom == classroom
+    assert result.binding.contest.name == "Midterm"
+    assert result.binding.contest.delivery_mode == "exam"
+    assert result.registered_count == 1
+    assert ContestParticipant.objects.filter(
+        contest=result.binding.contest,
+        user=student_a,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_create_classroom_lab_uses_practice_defaults(
+    classroom: Classroom,
+    owner: User,
+    student_a: User,
+) -> None:
+    ClassroomMember.objects.create(classroom=classroom, user=student_a, role="student")
+
+    result = create_classroom_lab(
+        classroom,
+        actor=owner,
+        data={
+            "name": "Lab 1",
+            "description": "",
+            "contest_type": "coding",
+            "start_time": None,
+            "end_time": None,
+            "results_published": False,
+        },
+    )
+
+    participant = ContestParticipant.objects.get(
+        contest=result.binding.contest,
+        user=student_a,
+    )
+    assert result.binding.contest.delivery_mode == "practice"
+    assert result.binding.contest.visibility == "private"
+    assert participant.assignment_state == AssignmentState.UNACCEPTED
+
+
+@pytest.mark.django_db
+def test_accept_classroom_lab_moves_participant_to_accepted(
+    classroom: Classroom,
+    published_contest: Contest,
+    student_a: User,
+) -> None:
+    published_contest.delivery_mode = "practice"
+    published_contest.contest_type = "paper_exam"
+    published_contest.save(update_fields=["delivery_mode", "contest_type"])
+    binding = ClassroomContest.objects.create(
+        classroom=classroom,
+        contest=published_contest,
+    )
+    participant = ContestParticipant.objects.create(
+        contest=published_contest,
+        user=student_a,
+        assignment_state=AssignmentState.UNACCEPTED,
+    )
+
+    accepted = accept_classroom_lab(binding, student_a)
+
+    assert accepted is not None
+    participant.refresh_from_db()
+    assert participant.assignment_state == AssignmentState.ACCEPTED
+    assert participant.accepted_at is not None
+    assert participant.started_at is not None
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
 
 
 @pytest.mark.django_db
@@ -138,5 +277,7 @@ def test_on_member_joined_skips_existing_participants(
     created_count = on_member_joined(classroom, student_c)
 
     assert created_count == 0
-    assert ContestParticipant.objects.filter(contest=published_contest, user=student_c).count() == 1
-
+    assert (
+        ContestParticipant.objects.filter(contest=published_contest, user=student_c).count()
+        == 1
+    )

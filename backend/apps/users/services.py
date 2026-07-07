@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 TEACHER_ACTIVATION_TTL = timedelta(days=7)
+TEACHER_ACTIVATION_TOKEN_PREFIX = "qj_ta_"
+CLASSROOM_JOIN_TOKEN_PREFIX = "qj_cj_"
 
 
 class JWTService:
@@ -122,20 +124,33 @@ class EmailAuthService:
     @staticmethod
     def generate_teacher_activation_token():
         """Generate a one-time token for teacher activation."""
-        return secrets.token_urlsafe(32)
+        return f"{TEACHER_ACTIVATION_TOKEN_PREFIX}{secrets.token_urlsafe(32)}"
 
     @staticmethod
     def hash_teacher_activation_token(token: str) -> str:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def build_magic_link_url(token: str) -> str:
-        return f"{settings.FRONTEND_URL}/magic-links/{token}"
+    def build_action_link_url(token: str) -> str:
+        return f"{settings.FRONTEND_URL}/invite/{token}"
+
+    @staticmethod
+    def classroom_action_token(invite_code: str) -> str:
+        code = (invite_code or "").strip().upper()
+        return f"{CLASSROOM_JOIN_TOKEN_PREFIX}{code}"
+
+    @staticmethod
+    def classroom_invite_code_from_action_token(token: str) -> str | None:
+        token = (token or "").strip()
+        if not token.startswith(CLASSROOM_JOIN_TOKEN_PREFIX):
+            return None
+        code = token[len(CLASSROOM_JOIN_TOKEN_PREFIX):].strip().upper()
+        return code or None
 
     @staticmethod
     def get_teacher_activation_invite_by_token(token: str):
         token = (token or "").strip()
-        if not token:
+        if not token.startswith(TEACHER_ACTIVATION_TOKEN_PREFIX):
             return None
         digest = EmailAuthService.hash_teacher_activation_token(token)
         return TeacherActivationInvite.objects.select_related(
@@ -154,5 +169,5 @@ class EmailAuthService:
             target_user=None,
             expires_at=timezone.now() + TEACHER_ACTIVATION_TTL,
         )
-        activation_url = EmailAuthService.build_magic_link_url(token)
+        activation_url = EmailAuthService.build_action_link_url(token)
         return invite, activation_url

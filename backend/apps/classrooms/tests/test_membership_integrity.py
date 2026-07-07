@@ -136,7 +136,7 @@ def test_join_skips_owner_membership_row(
     api_client.force_authenticate(user=classroom_owner)
 
     response = api_client.post(
-        f"/api/v1/magic-links/{classroom.invite_code}/redeem",
+        f"/api/v1/action-links/qj_cj_{classroom.invite_code}/redeem",
         {},
         format="json",
     )
@@ -154,7 +154,7 @@ def test_join_skips_admin_membership_row(
     api_client.force_authenticate(user=classroom_admin)
 
     response = api_client.post(
-        f"/api/v1/magic-links/{classroom.invite_code}/redeem",
+        f"/api/v1/action-links/qj_cj_{classroom.invite_code}/redeem",
         {},
         format="json",
     )

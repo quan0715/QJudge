@@ -1,14 +1,14 @@
 // Auth Feature - Main exports
 
 // Routes
-export { guestRoutes, oauthCallbackRoute, onboardingRoute, magicLinkRoute, oauthAuthorizeRoute } from "./routes";
+export { guestRoutes, oauthCallbackRoute, onboardingRoute, inviteLinkRoute, oauthAuthorizeRoute } from "./routes";
 
 // Screens
 export { default as LoginScreen } from "./screens/LoginScreen";
 export { default as RegisterScreen } from "./screens/RegisterScreen";
 export { default as OAuthCallbackScreen } from "./screens/OAuthCallbackScreen";
 export { default as OnboardingScreen } from "./screens/OnboardingScreen";
-export { default as MagicLinkScreen } from "./screens/MagicLinkScreen";
+export { default as InviteLinkScreen } from "./screens/InviteLinkScreen";
 
 // Components
 export { default as AuthLayout } from "./components/layout/AuthLayout";

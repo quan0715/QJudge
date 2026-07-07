@@ -42,13 +42,13 @@ class TeacherActivationPermissionTests(APITestCase):
             password="password123",
             role="student",
         )
-        self.issue_url = "/api/v1/magic-links"
+        self.issue_url = "/api/v1/action-links"
 
     def _inspect_url(self, token: str) -> str:
-        return f"/api/v1/magic-links/{token}"
+        return f"/api/v1/action-links/{token}"
 
     def _redeem_url(self, token: str) -> str:
-        return f"/api/v1/magic-links/{token}/redeem"
+        return f"/api/v1/action-links/{token}/redeem"
 
     def _issue_invite(self):
         self.client.force_authenticate(user=self.admin)
@@ -61,7 +61,7 @@ class TeacherActivationPermissionTests(APITestCase):
         return response
 
     def _token_from_issue_response(self, response) -> str:
-        return response.data["data"]["magic_link_url"].rstrip("/").split("/magic-links/")[1]
+        return response.data["data"]["action_link_url"].rstrip("/").split("/invite/")[1]
 
     # ── Issue permission tests ──────────────────────────────
 
@@ -94,9 +94,9 @@ class TeacherActivationPermissionTests(APITestCase):
     # ── Preview tests ───────────────────────────────────────
 
     def test_preview_with_invalid_token_returns_404(self):
-        response = self.client.get("/api/v1/magic-links/bogus_token_12345")
+        response = self.client.get("/api/v1/action-links/qj_ta_bogus_token_12345")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_NOT_FOUND")
+        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_NOT_FOUND")
 
     def test_preview_shows_can_consume_when_authenticated(self):
         issue_response = self._issue_invite()
@@ -132,15 +132,15 @@ class TeacherActivationPermissionTests(APITestCase):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(self._redeem_url(token), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_EXPIRED")
+        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_EXPIRED")
 
     def test_consume_with_invalid_token_returns_404(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
-            "/api/v1/magic-links/nonexistent_token/redeem", {}, format="json"
+            "/api/v1/action-links/qj_ta_nonexistent_token/redeem", {}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"]["code"], "MAGIC_LINK_NOT_FOUND")
+        self.assertEqual(response.data["error"]["code"], "ACTION_LINK_NOT_FOUND")
 
     def test_already_teacher_consuming_invite_stays_teacher(self):
         """If a teacher consumes an invite, they should remain teacher (idempotent)."""

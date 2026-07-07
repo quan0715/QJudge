@@ -12,8 +12,8 @@ from .token import TokenRefreshView, LogoutView
 from .account import CurrentUserView
 from .admin import UserSearchView, UserRoleUpdateView
 from .avatar import UserAvatarUploadView
-from .login_records import LoginRecordsView, LogoutOtherDevicesView
-from .magic_link import MagicLinkInspectView, MagicLinkIssueView, MagicLinkRedeemView
+from .sessions import AuthSessionListView, LogoutOtherSessionsView
+from .action_link import ActionLinkInspectView, ActionLinkIssueView, ActionLinkRedeemView
 from .preferences import UserPreferencesView
 
 __all__ = [
@@ -28,11 +28,11 @@ __all__ = [
     "CurrentUserView",
     "UserSearchView",
     "UserRoleUpdateView",
-    "MagicLinkIssueView",
-    "MagicLinkInspectView",
-    "MagicLinkRedeemView",
+    "ActionLinkIssueView",
+    "ActionLinkInspectView",
+    "ActionLinkRedeemView",
     "UserPreferencesView",
     "UserAvatarUploadView",
-    "LoginRecordsView",
-    "LogoutOtherDevicesView",
+    "AuthSessionListView",
+    "LogoutOtherSessionsView",
 ]

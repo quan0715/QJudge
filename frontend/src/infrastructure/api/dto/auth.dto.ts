@@ -3,8 +3,8 @@ import type {
   User,
   UserPreferences,
   ManagedUser,
-  MagicLinkIssueData,
-  MagicLinkPreview,
+  ActionLinkIssueData,
+  ActionLinkPreview,
   UserLoginRecord,
 } from "@/core/entities/auth.entity";
 import type { ClassroomDetailDto } from "./classroom.dto";
@@ -36,15 +36,15 @@ export type AuthOptionsResponseDto = ApiResponse<AuthOptions>;
 export type CurrentUserResponseDto = ApiResponse<User>;
 export type PreferencesResponseDto = ApiResponse<UserPreferences>;
 export type UserSearchResponseDto = ApiResponse<ManagedUser[]>;
-export type MagicLinkIssueResponseDto = ApiResponse<MagicLinkIssueData>;
-export type MagicLinkInspectResponseDto = ApiResponse<MagicLinkPreview>;
-export type MagicLinkRedeemResponseDto =
+export type ActionLinkIssueResponseDto = ApiResponse<ActionLinkIssueData>;
+export type ActionLinkInspectResponseDto = ApiResponse<ActionLinkPreview>;
+export type ActionLinkRedeemResponseDto =
   | ApiResponse<{
       access_token: string;
       user: User;
       refresh_token?: string;
-      invite?: MagicLinkIssueData;
-      magic_link?: MagicLinkPreview;
+      invite?: ActionLinkIssueData;
+      action_link?: ActionLinkPreview;
     }>
   | ClassroomDetailDto;
 export type LoginRecordsResponseDto = ApiResponse<UserLoginRecord[]>;

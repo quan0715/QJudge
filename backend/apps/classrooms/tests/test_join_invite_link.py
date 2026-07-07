@@ -1,8 +1,9 @@
 """
-Tests for classroom join via magic link.
+Tests for classroom join via action link.
 
-Classroom invitations use the shared magic link lifecycle. The invite code is
-the scoped token and redemption happens through POST /api/v1/magic-links/{token}/redeem.
+Classroom invitations use the shared action link lifecycle. The public action
+token is derived from the invite code and redemption happens through
+POST /api/v1/action-links/{token}/redeem.
 
 These tests verify:
 - Student can join with valid code
@@ -80,19 +81,45 @@ def classroom(classroom_owner: User, classroom_admin: User) -> Classroom:
 
 
 def inspect_url(token: str) -> str:
-    return f"/api/v1/magic-links/{token}"
+    return f"/api/v1/action-links/{token}"
 
 
 def redeem_url(token: str) -> str:
-    return f"/api/v1/magic-links/{token}/redeem"
+    return f"/api/v1/action-links/{token}/redeem"
+
+
+def action_token(classroom: Classroom) -> str:
+    return f"qj_cj_{classroom.invite_code}"
 
 
 @pytest.mark.django_db
-def test_classroom_magic_link_inspect_returns_preview(
+def test_classroom_action_link_issue_returns_prefixed_token(
+    api_client: APIClient,
+    classroom_owner: User,
+    classroom: Classroom,
+) -> None:
+    api_client.force_authenticate(user=classroom_owner)
+    response = api_client.post(
+        "/api/v1/action-links",
+        {"purpose": "classroom_join", "classroom_id": str(classroom.uuid)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["data"]["purpose"] == "classroom_join"
+    assert response.data["data"]["token"] == action_token(classroom)
+    assert response.data["data"]["action_link_url"].endswith(f"/invite/{action_token(classroom)}")
+
+
+@pytest.mark.django_db
+def test_classroom_action_link_inspect_returns_preview(
     api_client: APIClient,
     classroom: Classroom,
 ) -> None:
-    response = api_client.get(inspect_url(classroom.invite_code))
+    token = action_token(classroom)
+    assert token.startswith("qj_cj_")
+
+    response = api_client.get(inspect_url(token))
     assert response.status_code == status.HTTP_200_OK
     assert response.data["data"]["purpose"] == "classroom_join"
     assert response.data["data"]["status"] == "pending"
@@ -109,7 +136,7 @@ def test_student_can_join_via_invite_code(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -127,7 +154,7 @@ def test_join_is_case_insensitive(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url(classroom.invite_code.lower()),
+        redeem_url(action_token(classroom).lower()),
         {},
         format="json",
     )
@@ -145,14 +172,14 @@ def test_duplicate_join_is_idempotent(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     first = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
     assert first.status_code == status.HTTP_201_CREATED
 
     second = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -170,7 +197,7 @@ def test_owner_join_returns_200_without_membership(
 ) -> None:
     api_client.force_authenticate(user=classroom_owner)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -188,7 +215,7 @@ def test_admin_join_returns_200_without_membership(
 ) -> None:
     api_client.force_authenticate(user=classroom_admin)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -209,7 +236,7 @@ def test_disabled_invite_code_returns_403(
 
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -226,7 +253,7 @@ def test_invalid_invite_code_returns_404(
 ) -> None:
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url("ZZZZZZZZ"),
+        redeem_url("qj_cj_ZZZZZZZZ"),
         {},
         format="json",
     )
@@ -244,7 +271,7 @@ def test_archived_classroom_code_returns_404(
 
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -257,7 +284,7 @@ def test_unauthenticated_join_returns_401(
     classroom: Classroom,
 ) -> None:
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
@@ -300,10 +327,35 @@ def test_join_returns_classroom_detail_with_uuid(
     """Response includes classroom uuid so frontend can redirect."""
     api_client.force_authenticate(user=student_user)
     response = api_client.post(
-        redeem_url(classroom.invite_code),
+        redeem_url(action_token(classroom)),
         {},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["uuid"] == str(classroom.uuid)
     assert response.data["name"] == classroom.name
+
+
+@pytest.mark.django_db
+def test_raw_invite_code_is_not_an_action_link_token(
+    api_client: APIClient,
+    student_user: User,
+    classroom: Classroom,
+) -> None:
+    api_client.force_authenticate(user=student_user)
+    response = api_client.post(
+        redeem_url(classroom.invite_code),
+        {},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data["error"]["code"] == "ACTION_LINK_NOT_FOUND"
+
+
+@pytest.mark.django_db
+def test_legacy_magic_link_route_is_not_registered(
+    api_client: APIClient,
+    classroom: Classroom,
+) -> None:
+    response = api_client.get(f"/api/v1/magic-links/{action_token(classroom)}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND

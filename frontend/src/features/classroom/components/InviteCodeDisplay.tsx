@@ -20,7 +20,8 @@ export const InviteCodeDisplay: React.FC<InviteCodeDisplayProps> = ({
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const inviteLink = `${window.location.origin}/magic-links/${code}`;
+  const actionToken = `qj_cj_${code.trim().toUpperCase()}`;
+  const inviteLink = `${window.location.origin}/invite/${encodeURIComponent(actionToken)}`;
 
   const handleCopy = async () => {
     try {

@@ -2,7 +2,6 @@
 Views for classrooms.
 """
 from io import BytesIO
-from uuid import UUID
 
 from PIL import Image, UnidentifiedImageError
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -12,20 +11,17 @@ from rest_framework.exceptions import APIException, NotFound, PermissionDenied, 
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.db import models, transaction
+from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 
 from apps.users.permissions import IsTeacherOrAdmin, IsSuperAdmin
-from apps.contests.models import AssignmentState, Contest, ContestParticipant, ExamStatus
 from apps.core.services import (
     build_markdown_image_object_key,
     store_markdown_image,
     MarkdownImageStorageError,
 )
 
-from .models import Classroom, ClassroomMember, ClassroomContest, ClassroomAnnouncement
+from .models import Classroom, ClassroomContest, ClassroomAnnouncement
 from .serializers import (
     ClassroomListSerializer,
     ClassroomDetailSerializer,
@@ -44,9 +40,19 @@ from .serializers import (
     CreateClassroomContestSerializer,
 )
 from .permissions import IsClassroomOwnerOrAdmin, IsClassroomMember, get_user_role_in_classroom
-from .services import generate_invite_code, sync_classroom_participants, on_member_joined
-
-User = get_user_model()
+from .services import (
+    accept_classroom_lab,
+    add_classroom_members,
+    bind_existing_contest,
+    can_solve_classroom_lab,
+    create_classroom_contest,
+    create_classroom_lab,
+    generate_invite_code,
+    get_bound_lab,
+    remove_classroom_member,
+    unbind_contest,
+    update_classroom_member_role,
+)
 
 
 class ClassroomViewSet(viewsets.ModelViewSet):
@@ -157,52 +163,16 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = AddMembersSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        identifiers = serializer.validated_data['usernames']
-        role = serializer.validated_data['role']
-
-        users_by_key: dict[str, User] = {}
-        for user in User.objects.filter(
-            models.Q(username__in=identifiers)
-            | models.Q(email__in=[value.lower() for value in identifiers if "@" in value])
-        ):
-            users_by_key.setdefault(user.username, user)
-            users_by_key.setdefault(user.email.lower(), user)
-
-        resolved_users: list[User] = []
-        seen_user_ids: set[int] = set()
-        not_found: list[str] = []
-        for raw_identifier in identifiers:
-            lookup_key = raw_identifier.lower() if "@" in raw_identifier else raw_identifier
-            user = users_by_key.get(lookup_key)
-            if user is None:
-                not_found.append(raw_identifier)
-                continue
-            if user.id in seen_user_ids:
-                continue
-            seen_user_ids.add(user.id)
-            resolved_users.append(user)
-
-        added = []
-        already_exists = []
-        reserved_user_ids = set(classroom.admins.values_list('id', flat=True)) | {classroom.owner_id}
-        for user in resolved_users:
-            if user.id in reserved_user_ids:
-                already_exists.append(user.username)
-                continue
-            _, created = ClassroomMember.objects.get_or_create(
-                classroom=classroom, user=user,
-                defaults={'role': role},
-            )
-            if created:
-                added.append(user.username)
-                on_member_joined(classroom, user)
-            else:
-                already_exists.append(user.username)
+        result = add_classroom_members(
+            classroom,
+            identifiers=serializer.validated_data['usernames'],
+            role=serializer.validated_data['role'],
+        )
 
         return Response({
-            'added': added,
-            'already_exists': already_exists,
-            'not_found': not_found,
+            'added': result.added,
+            'already_exists': result.already_exists,
+            'not_found': result.not_found,
         })
 
     @action(detail=True, methods=['post'], url_path='remove_member',
@@ -212,12 +182,12 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = RemoveMemberSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        deleted, _ = ClassroomMember.objects.filter(
+        deleted = remove_classroom_member(
             classroom=classroom,
             user_id=serializer.validated_data['user_id'],
-        ).delete()
+        )
 
-        if deleted == 0:
+        if not deleted:
             raise NotFound('Member not found.')
         return Response({'detail': 'Member removed.'})
 
@@ -228,12 +198,13 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = UpdateMemberRoleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        updated = ClassroomMember.objects.filter(
+        updated = update_classroom_member_role(
             classroom=classroom,
             user_id=serializer.validated_data['user_id'],
-        ).update(role=serializer.validated_data['role'])
+            role=serializer.validated_data['role'],
+        )
 
-        if updated == 0:
+        if not updated:
             raise NotFound('Member not found.')
         return Response({'detail': 'Member role updated.'})
 
@@ -246,14 +217,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         return Response({'invite_code': classroom.invite_code})
 
     def _get_bound_lab(self, classroom, lab_id: str) -> ClassroomContest:
-        try:
-            UUID(str(lab_id))
-        except ValueError:
-            raise ClassroomContest.DoesNotExist
-        return classroom.classroom_contests.select_related('contest').get(
-            contest_id=lab_id,
-            contest__delivery_mode='practice',
-        )
+        return get_bound_lab(classroom, lab_id)
 
     def _is_classroom_manager(self, classroom, user) -> bool:
         role = get_user_role_in_classroom(user, classroom)
@@ -285,25 +249,16 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             serializer = CreateClassroomContestSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
-            with transaction.atomic():
-                contest = Contest.objects.create(
-                    owner=request.user,
-                    name=serializer.validated_data['name'],
-                    description=serializer.validated_data.get('description', ''),
-                    contest_type=serializer.validated_data['contest_type'],
-                    delivery_mode='exam',
-                    start_time=serializer.validated_data.get('start_time'),
-                    end_time=serializer.validated_data.get('end_time'),
-                    visibility=serializer.validated_data.get('visibility', 'public'),
-                    attendance_check_enabled=serializer.validated_data.get('attendance_check_enabled', False),
-                    cheat_detection_enabled=serializer.validated_data.get('cheat_detection_enabled', False),
-                    allow_multiple_joins=serializer.validated_data.get('allow_multiple_joins', False),
-                    results_published=serializer.validated_data.get('results_published', False),
-                )
-                binding = ClassroomContest.objects.create(classroom=classroom, contest=contest)
-                sync_classroom_participants(classroom, contest)
+            result = create_classroom_contest(
+                classroom,
+                actor=request.user,
+                data=serializer.validated_data,
+            )
 
-            payload = BoundContestSerializer(binding, context={'request': request}).data
+            payload = BoundContestSerializer(
+                result.binding,
+                context={'request': request},
+            ).data
             return Response(payload, status=status.HTTP_201_CREATED)
 
         bindings = classroom.classroom_contests.select_related('contest').filter(
@@ -311,7 +266,11 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         )
         if not self._is_classroom_manager(classroom, request.user):
             bindings = bindings.filter(contest__status='published')
-        serializer = BoundContestSerializer(bindings, many=True, context={'request': request})
+        serializer = BoundContestSerializer(
+            bindings,
+            many=True,
+            context={'request': request},
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path='bind_contest',
@@ -321,19 +280,16 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = BindContestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        from apps.contests.models import Contest
-        try:
-            contest = Contest.objects.get(id=serializer.validated_data['contest_id'])
-        except Contest.DoesNotExist:
+        result = bind_existing_contest(
+            classroom,
+            contest_id=serializer.validated_data['contest_id'],
+        )
+        if result is None:
             raise NotFound('Contest not found.')
 
-        _, created = ClassroomContest.objects.get_or_create(
-            classroom=classroom, contest=contest,
-        )
-        if created:
-            count = sync_classroom_participants(classroom, contest)
+        if result.created:
             return Response({
-                'detail': f'Contest bound. {count} participants registered.',
+                'detail': f'Contest bound. {result.registered_count} participants registered.',
             }, status=status.HTTP_201_CREATED)
         return Response({'detail': 'Contest already bound.'})
 
@@ -344,12 +300,12 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         serializer = BindContestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        deleted, _ = ClassroomContest.objects.filter(
-            classroom=classroom,
+        deleted = unbind_contest(
+            classroom,
             contest_id=serializer.validated_data['contest_id'],
-        ).delete()
+        )
 
-        if deleted == 0:
+        if not deleted:
             raise NotFound('Binding not found.')
         return Response({'detail': 'Contest unbound.'})
 
@@ -365,23 +321,16 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             serializer = CreateClassroomLabSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
-            with transaction.atomic():
-                contest = Contest.objects.create(
-                    owner=request.user,
-                    name=serializer.validated_data['name'],
-                    description=serializer.validated_data.get('description', ''),
-                    contest_type=serializer.validated_data['contest_type'],
-                    delivery_mode='practice',
-                    start_time=serializer.validated_data.get('start_time'),
-                    end_time=serializer.validated_data.get('end_time'),
-                    results_published=serializer.validated_data.get('results_published', False),
-                    cheat_detection_enabled=False,
-                    visibility='private',
-                )
-                binding = ClassroomContest.objects.create(classroom=classroom, contest=contest)
-                sync_classroom_participants(classroom, contest)
+            result = create_classroom_lab(
+                classroom,
+                actor=request.user,
+                data=serializer.validated_data,
+            )
 
-            payload = ClassroomLabDetailSerializer(binding, context={'request': request}).data
+            payload = ClassroomLabDetailSerializer(
+                result.binding,
+                context={'request': request},
+            ).data
             return Response(payload, status=status.HTTP_201_CREATED)
 
         bindings = classroom.classroom_contests.select_related('contest').filter(
@@ -389,7 +338,11 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         )
         if not self._is_classroom_manager(classroom, request.user):
             bindings = bindings.filter(contest__status='published')
-        serializer = ClassroomLabSummarySerializer(bindings, many=True, context={'request': request})
+        serializer = ClassroomLabSummarySerializer(
+            bindings,
+            many=True,
+            context={'request': request},
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=['get'], url_path=r'labs/(?P<lab_id>[0-9a-fA-F-]{36})',
@@ -406,27 +359,9 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         classroom = self.get_object()
         binding = self._get_lab_or_403(request, classroom, lab_id)
 
-        participant = binding.contest.registrations.filter(user=request.user).first()
+        participant = accept_classroom_lab(binding, request.user)
         if participant is None:
             raise PermissionDenied('You are not a classroom member.')
-
-        now = timezone.now()
-        update_fields = []
-        if participant.assignment_state == AssignmentState.UNACCEPTED:
-            participant.assignment_state = AssignmentState.ACCEPTED
-            participant.accepted_at = now
-            update_fields.extend(['assignment_state', 'accepted_at'])
-        elif participant.accepted_at is None:
-            participant.accepted_at = now
-            update_fields.append('accepted_at')
-        if participant.started_at is None:
-            participant.started_at = now
-            update_fields.append('started_at')
-        if binding.contest.contest_type == 'paper_exam' and participant.exam_status == ExamStatus.NOT_STARTED:
-            participant.exam_status = ExamStatus.IN_PROGRESS
-            update_fields.append('exam_status')
-        if update_fields:
-            participant.save(update_fields=update_fields)
 
         serializer = ClassroomLabDetailSerializer(binding, context={'request': request})
         return Response(serializer.data)
@@ -437,12 +372,13 @@ class ClassroomViewSet(viewsets.ModelViewSet):
         classroom = self.get_object()
         binding = self._get_lab_or_403(request, classroom, lab_id)
 
-        if not self._is_classroom_manager(classroom, request.user):
-            participant = binding.contest.registrations.filter(user=request.user).first()
-            if participant is None:
-                raise PermissionDenied('You are not a classroom member.')
-            if participant.assignment_state == AssignmentState.UNACCEPTED:
-                raise PermissionDenied('You must accept this lab before solving it.')
+        allowed, message = can_solve_classroom_lab(
+            binding,
+            request.user,
+            is_manager=self._is_classroom_manager(classroom, request.user),
+        )
+        if not allowed:
+            raise PermissionDenied(message)
 
         serializer = ClassroomLabDetailSerializer(binding, context={'request': request})
         return Response(serializer.data)

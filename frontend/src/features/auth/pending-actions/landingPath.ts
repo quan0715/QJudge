@@ -12,18 +12,18 @@ import { getPendingAction, storePendingAction } from "./storage";
  * 3. Pending actions with priority >= 0 (after onboarding gate)
  * 4. /dashboard (fallback)
  *
- * @param explicitMagicLinkToken - if passed, stored and treated as the
- *   magic_link pending action immediately.
+ * @param explicitActionLinkToken - if passed, stored and treated as the
+ *   action_link pending action immediately.
  */
 export const getAuthedLandingPath = (
   user: User | null | undefined,
-  explicitMagicLinkToken?: string | null,
+  explicitActionLinkToken?: string | null,
 ): string => {
-  if (explicitMagicLinkToken?.trim()) {
-    const magicLink = PENDING_ACTIONS.find((a) => a.key === "magic_link");
-    if (magicLink) {
-      storePendingAction(magicLink.storageKey, explicitMagicLinkToken.trim());
-      return magicLink.getRedirectPath(explicitMagicLinkToken.trim());
+  if (explicitActionLinkToken?.trim()) {
+    const actionLink = PENDING_ACTIONS.find((a) => a.key === "action_link");
+    if (actionLink) {
+      storePendingAction(actionLink.storageKey, explicitActionLinkToken.trim());
+      return actionLink.getRedirectPath(explicitActionLinkToken.trim());
     }
   }
 

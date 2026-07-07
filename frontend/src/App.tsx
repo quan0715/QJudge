@@ -12,7 +12,7 @@ import {
   guestRoutes,
   oauthCallbackRoute,
   onboardingRoute,
-  magicLinkRoute,
+  inviteLinkRoute,
   oauthAuthorizeRoute,
   AuthLayout,
   AuthProvider,
@@ -112,7 +112,7 @@ function App() {
                           </Route>
                           {oauthCallbackRoute}
                           {oauthAuthorizeRoute}
-                          {magicLinkRoute}
+                          {inviteLinkRoute}
                           <Route element={<RequireAuth />}>
                             <Route element={<RequirePendingOnboarding />}>
                               {onboardingRoute}

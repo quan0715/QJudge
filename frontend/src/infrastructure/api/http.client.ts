@@ -53,7 +53,7 @@ const redirectToLogin = () => {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/auth/") ||
-    path.startsWith("/magic-links")
+    path.startsWith("/invite")
   ) {
     return;
   }
@@ -67,7 +67,7 @@ const isAuthFlowPath = (): boolean => {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/auth/") ||
-    path.startsWith("/magic-links")
+    path.startsWith("/invite")
   );
 };
 

@@ -43,7 +43,7 @@ export async function getContestExamStatus(page: Page, contestId: string): Promi
 
 export async function getMyUserId(page: Page): Promise<string> {
   const headers = await authHeaders(page);
-  const resp = await page.request.get(API_ENDPOINTS.auth.me, { headers });
+  const resp = await page.request.get(API_ENDPOINTS.users.me, { headers });
   expect(resp.ok()).toBeTruthy();
   const data = await resp.json();
   const id = data?.data?.id ?? data?.id;

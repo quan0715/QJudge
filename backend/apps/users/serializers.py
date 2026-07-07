@@ -230,8 +230,8 @@ class UserRoleUpdateSerializer(serializers.Serializer):
         return value
 
 
-class MagicLinkIssueSerializer(serializers.Serializer):
-    """Serializer for issuing a scoped magic link."""
+class ActionLinkIssueSerializer(serializers.Serializer):
+    """Serializer for issuing a scoped action link."""
 
     purpose = serializers.ChoiceField(
         choices=["teacher_activation", "classroom_join"],
@@ -244,13 +244,18 @@ class MagicLinkIssueSerializer(serializers.Serializer):
         purpose = attrs.get("purpose", "teacher_activation")
         if purpose == "classroom_join" and not attrs.get("classroom_id"):
             raise serializers.ValidationError({
-                "classroom_id": "classroom_id is required for classroom_join magic links."
+                "classroom_id": "classroom_id is required for classroom_join action links."
             })
         return attrs
 
 
-class MagicLinkRedeemSerializer(serializers.Serializer):
-    """Serializer for redeeming a scoped magic link."""
+class ActionLinkRedeemSerializer(serializers.Serializer):
+    """Serializer for redeeming a scoped action link."""
+    pass
+
+
+class ActionLinkInspectSerializer(serializers.Serializer):
+    """Serializer placeholder for inspecting a scoped action link."""
     pass
 
 

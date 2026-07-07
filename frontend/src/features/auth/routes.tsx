@@ -4,7 +4,7 @@ import RegisterScreen from "./screens/RegisterScreen";
 import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
-import MagicLinkScreen from "./screens/MagicLinkScreen";
+import InviteLinkScreen from "./screens/InviteLinkScreen";
 import OAuthAuthorizePage from "./screens/OAuthAuthorizePage";
 
 /**
@@ -31,8 +31,8 @@ export const onboardingRoute = (
   <Route path="/onboarding" element={<OnboardingScreen />} />
 );
 
-export const magicLinkRoute = (
-  <Route path="/magic-links/:token" element={<MagicLinkScreen />} />
+export const inviteLinkRoute = (
+  <Route path="/invite/:token" element={<InviteLinkScreen />} />
 );
 
 export const oauthAuthorizeRoute = (

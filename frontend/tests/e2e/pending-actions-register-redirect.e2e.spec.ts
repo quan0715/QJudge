@@ -15,21 +15,21 @@ test.describe("Registration + pending actions", () => {
     expect(page.url()).not.toContain("/login");
   });
 
-  test("pending magic link survives login→register navigation", async ({ page }) => {
+  test("pending action link survives login→register navigation", async ({ page }) => {
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
 
     await page.evaluate(() => {
-      sessionStorage.setItem("qjudge.magic_link_token", "FAKECODE");
+      sessionStorage.setItem("qjudge.action_link_token", "qj_cj_FAKECODE");
     });
 
     await page.getByTestId("auth-login-nav-register").click();
     await page.waitForURL(/\/register/, { timeout: 10000 });
 
     const token = await page.evaluate(() =>
-      sessionStorage.getItem("qjudge.magic_link_token"),
+      sessionStorage.getItem("qjudge.action_link_token"),
     );
 
-    expect(token).toBe("FAKECODE");
+    expect(token).toBe("qj_cj_FAKECODE");
   });
 });

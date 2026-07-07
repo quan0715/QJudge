@@ -80,8 +80,8 @@
       "confirmTitle": "Confirm Logout"
     },
     "pendingAction": {
-      "magicLinkSubtitle": "Please log in or register first. The invitation action will complete automatically afterwards.",
-      "magicLinkTitle": "Invitation Link"
+      "actionLinkSubtitle": "Please log in or register first. The invitation action will complete automatically afterwards.",
+      "actionLinkTitle": "Invitation Link"
     },
     "register": {
       "confirmPassword": "Confirm Password",

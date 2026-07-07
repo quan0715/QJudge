@@ -27,7 +27,7 @@ import { PageHeader } from "@/shared/layout/PageHeader";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import styles from "./AdminScreens.module.scss";
 import {
-  issueTeacherActivationMagicLink,
+  issueTeacherActivationActionLink,
 } from "@/infrastructure/api/repositories/auth.repository";
 import {
   searchUsers,
@@ -160,9 +160,9 @@ const UserManagementScreen = () => {
     setSuccess("");
 
     try {
-      const response = await issueTeacherActivationMagicLink("");
+      const response = await issueTeacherActivationActionLink("");
       setSuccess(response.message || t("user.management.activationInvite.sent", "已產生教師開通連結"));
-      setLatestInviteUrl(response.data.activation_url || "");
+      setLatestInviteUrl(response.data.activation_url || response.data.action_link_url || "");
       setLatestInviteExpiresAt(response.data.expires_at || null);
       await loadAllUsers();
     } catch (err: any) {

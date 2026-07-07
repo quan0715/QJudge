@@ -15,6 +15,8 @@ class EnhancedAuthTests(APITestCase):
         self.logout_url = reverse('auth:logout')
         self.refresh_url = reverse('auth:token-refresh')
         self.auth_options_url = reverse('auth:auth-providers')
+        self.session_list_url = reverse('auth:session-list')
+        self.session_logout_others_url = reverse('auth:session-logout-others')
         self.dev_token_url = reverse('auth:dev-token') if settings.DEBUG else None
         
         self.user_data = {
@@ -130,6 +132,26 @@ class EnhancedAuthTests(APITestCase):
         for path in ["/api/v1/auth/forgot-password", "/api/v1/auth/reset-password"]:
             response = self.client.post(path, {}, format="json")
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_auth_me_session_routes_are_removed(self):
+        legacy_routes = [
+            ("get", "/api/v1/auth/me/login-records"),
+            ("post", "/api/v1/auth/me/logout-other-devices"),
+        ]
+        for method, path in legacy_routes:
+            response = getattr(self.client, method)(path, {}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_session_routes_are_canonical(self):
+        self.client.force_authenticate(user=self.user)
+
+        list_response = self.client.get(self.session_list_url)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(list_response.data["success"])
+
+        logout_others_response = self.client.post(self.session_logout_others_url)
+        self.assertEqual(logout_others_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(logout_others_response.data["error"]["code"], "NO_JTI")
 
     @patch('apps.users.views.auth.get_oauth_service')
     def test_oauth_login_success(self, mock_get_service):

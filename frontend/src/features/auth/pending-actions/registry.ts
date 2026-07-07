@@ -18,15 +18,15 @@ export const PENDING_ACTIONS: PendingActionConfig[] = [
     getRedirectPath: (url) => url,
   },
   {
-    key: "magic_link",
-    storageKey: "qjudge.magic_link_token",
+    key: "action_link",
+    storageKey: "qjudge.action_link_token",
     priority: -10,
-    queryParam: "magic_link_token",
+    queryParam: "action_link_token",
     banner: {
-      titleKey: "auth.pendingAction.magicLinkTitle",
-      subtitleKey: "auth.pendingAction.magicLinkSubtitle",
+      titleKey: "auth.pendingAction.actionLinkTitle",
+      subtitleKey: "auth.pendingAction.actionLinkSubtitle",
     },
     getRedirectPath: (token) =>
-      `/magic-links/${encodeURIComponent(token)}`,
+      `/invite/${encodeURIComponent(token)}`,
   },
 ];

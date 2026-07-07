@@ -11,8 +11,8 @@ import { useEntitlement } from "@/features/pricing/hooks/useEntitlement";
 import { useToast } from "@/shared/contexts";
 import { createPortalSession } from "@/infrastructure/api/repositories/subscription.repository";
 import {
-  getLoginRecords,
-  logoutOtherDevices,
+  getAuthSessions,
+  logoutOtherSessions,
 } from "@/infrastructure/api/repositories/auth.repository";
 import type { UserLoginRecord } from "@/core/entities/auth.entity";
 import "./ProfilePanel.scss";
@@ -247,7 +247,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
   const fetchRecords = useCallback(async () => {
     setDevLoading(true);
     try {
-      const res = await getLoginRecords();
+      const res = await getAuthSessions();
       setRecords(res.data ?? []);
     } catch { /* silent */ }
     finally { setDevLoading(false); }
@@ -258,7 +258,7 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
   const handleLogoutOther = async () => {
     setLoggingOut(true);
     try {
-      await logoutOtherDevices();
+      await logoutOtherSessions();
       showToast({ kind: "success", title: t("settings.loginRecords.logoutSuccess", "已登出其他裝置") });
       fetchRecords();
     } catch {

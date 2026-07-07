@@ -2,10 +2,10 @@
  * Classroom Join via Pending Actions — E2E spec
  *
  * Covers the full "unauthenticated classroom join" flow:
- *  1. Unauth visit to /magic-links/CODE saves code in sessionStorage then redirects to /login
- *  2. After login, pending action resolves and user is redirected back to /magic-links/CODE
+ *  1. Unauth visit to /invite/qj_cj_CODE saves token in sessionStorage then redirects to /login
+ *  2. After login, pending action resolves and user is redirected back to /invite/qj_cj_CODE
  *     and then auto-joined → lands on /classrooms/[uuid]
- *  3. Pending action banner is visible on login page when magic link token is stored
+ *  3. Pending action banner is visible on login page when action link token is stored
  *
  * Depends on seed: teacher account.
  */
@@ -17,7 +17,7 @@ import {
   getSessionStorageItem,
 } from "../helpers/pending-actions.helper";
 
-const MAGIC_LINK_TOKEN_KEY = "qjudge.magic_link_token";
+const ACTION_LINK_TOKEN_KEY = "qjudge.action_link_token";
 
 test.describe("Classroom join via pending actions", () => {
   let inviteCode: string;
@@ -56,14 +56,16 @@ test.describe("Classroom join via pending actions", () => {
   });
 
   // ── Case 1 ──────────────────────────────────────────────────────────────────
-  test("unauth visit to /magic-links/CODE → login → auto-join", async ({
+  test("unauth visit to /invite/qj_cj_CODE → login → auto-join", async ({
     page,
   }) => {
+    const actionToken = `qj_cj_${inviteCode}`;
+
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
 
     // Visit the join URL without being authenticated
-    await page.goto(`/magic-links/${inviteCode}`, {
+    await page.goto(`/invite/${actionToken}`, {
       waitUntil: "domcontentloaded",
     });
 
@@ -71,16 +73,16 @@ test.describe("Classroom join via pending actions", () => {
     await page.waitForURL(/\/login/, { timeout: 15000 });
     expect(page.url()).toContain("/login");
 
-    // Verify sessionStorage has the magic link token
-    const storedToken = await getSessionStorageItem(page, MAGIC_LINK_TOKEN_KEY);
-    expect(storedToken).toBe(inviteCode);
+    // Verify sessionStorage has the action link token
+    const storedToken = await getSessionStorageItem(page, ACTION_LINK_TOKEN_KEY);
+    expect(storedToken).toBe(actionToken);
 
     // Fill and submit the login form
     await fillAndSubmitLoginForm(page, "student2");
 
-    // Should redirect back to /magic-links/CODE first
+    // Should redirect back to /invite/qj_cj_CODE first
     await page.waitForURL(
-      new RegExp(`/magic-links/${inviteCode}`),
+      new RegExp(`/invite/${actionToken}`),
       { timeout: 20000 },
     );
 
@@ -91,16 +93,18 @@ test.describe("Classroom join via pending actions", () => {
 
     const finalURL = page.url();
     expect(finalURL).not.toContain("/login");
-    expect(finalURL).not.toContain("/magic-links/");
+    expect(finalURL).not.toContain("/invite/");
   });
 
   // ── Case 2 ──────────────────────────────────────────────────────────────────
   test("pending action banner shows on login page", async ({ page }) => {
+    const actionToken = `qj_cj_${inviteCode}`;
+
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
 
     // Visit the join URL without being authenticated
-    await page.goto(`/magic-links/${inviteCode}`, {
+    await page.goto(`/invite/${actionToken}`, {
       waitUntil: "domcontentloaded",
     });
 

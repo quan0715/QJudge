@@ -157,7 +157,9 @@ export const API_ENDPOINTS = {
   auth: {
     login: "/api/v1/auth/login/password",
     register: "/api/v1/auth/register/password",
-    me: "/api/v1/auth/me",
+  },
+  users: {
+    me: "/api/v1/users/me",
   },
   problems: {
     list: "/api/v1/management/problems/",

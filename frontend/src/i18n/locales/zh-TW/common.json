@@ -80,8 +80,8 @@
       "confirmTitle": "確認登出"
     },
     "pendingAction": {
-      "magicLinkSubtitle": "請先登入或註冊，完成後會自動完成邀請操作。",
-      "magicLinkTitle": "邀請連結"
+      "actionLinkSubtitle": "請先登入或註冊，完成後會自動完成邀請操作。",
+      "actionLinkTitle": "邀請連結"
     },
     "register": {
       "confirmPassword": "確認密碼",

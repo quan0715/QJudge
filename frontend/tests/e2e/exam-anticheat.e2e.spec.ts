@@ -115,7 +115,7 @@ async function findExamContestId(page: Page): Promise<string> {
 /** Get current user's ID. */
 async function getMyUserId(page: Page): Promise<number> {
   const headers = await authHeaders(page);
-  const resp = await page.request.get(API_ENDPOINTS.auth.me, { headers });
+  const resp = await page.request.get(API_ENDPOINTS.users.me, { headers });
   expect(resp.ok()).toBeTruthy();
   const data = await resp.json();
   return data?.data?.id ?? data?.id;

@@ -127,6 +127,7 @@ class AuthOptionsView(SchemaAPIView):
         return Response({"success": True, "data": get_auth_options()})
 
 
+@extend_schema(exclude=True)
 @method_decorator(csrf_exempt, name="dispatch")
 class DevTokenView(SchemaAPIView):
     permission_classes = [AllowAny]

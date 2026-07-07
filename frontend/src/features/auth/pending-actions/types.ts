@@ -1,5 +1,5 @@
 export interface PendingActionConfig {
-  /** Unique key, e.g. "magic_link" */
+  /** Unique key, e.g. "action_link" */
   key: string;
   /** sessionStorage key */
   storageKey: string;

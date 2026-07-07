@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getAuthSessions,
   getAuthOptions,
   getOAuthUrl,
-  issueTeacherActivationMagicLink,
+  issueTeacherActivationActionLink,
   login,
+  logoutOtherSessions,
   oauthCallback,
   register,
 } from "./auth.repository";
@@ -25,7 +27,7 @@ describe("auth repository endpoints", () => {
     window.localStorage.clear();
   });
 
-  it("issueTeacherActivationMagicLink issues a teacher activation magic link", async () => {
+  it("issueTeacherActivationActionLink issues a teacher activation action link", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -44,11 +46,11 @@ describe("auth repository endpoints", () => {
       ),
     );
 
-    await issueTeacherActivationMagicLink("teacher@example.com");
+    await issueTeacherActivationActionLink("teacher@example.com");
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/magic-links");
+    expect(url).toBe("/api/v1/action-links");
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body as string)).toEqual({
       purpose: "teacher_activation",
@@ -151,5 +153,29 @@ describe("auth repository endpoints", () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/login/github?redirect=%2Fcontests");
     expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/auth/callback/github");
+  });
+
+  it("session helpers use canonical auth session endpoints", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true, data: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    await getAuthSessions();
+    await logoutOtherSessions();
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/sessions");
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+    expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/auth/sessions/logout-others");
+    expect(fetchMock.mock.calls[1][1].method).toBe("POST");
   });
 });

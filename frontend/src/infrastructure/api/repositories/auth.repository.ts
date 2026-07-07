@@ -12,9 +12,9 @@ import type {
 import type {
   AuthResponseDto,
   AuthOptionsResponseDto,
-  MagicLinkIssueResponseDto,
-  MagicLinkInspectResponseDto,
-  MagicLinkRedeemResponseDto,
+  ActionLinkIssueResponseDto,
+  ActionLinkInspectResponseDto,
+  ActionLinkRedeemResponseDto,
   LoginRecordsResponseDto,
 } from "@/infrastructure/api/dto/auth.dto";
 
@@ -51,38 +51,38 @@ export const logout = async (): Promise<void> => {
   await ensureOk(httpClient.post("/api/v1/auth/logout"), "Logout failed");
 };
 
-export const logoutOtherDevices = async (): Promise<void> => {
-  await ensureOk(httpClient.post("/api/v1/auth/me/logout-other-devices"), "Failed to logout other devices");
+export const logoutOtherSessions = async (): Promise<void> => {
+  await ensureOk(httpClient.post("/api/v1/auth/sessions/logout-others"), "Failed to logout other sessions");
 };
 
 // ============================================================================
-// Magic Links
+// Action Links
 // ============================================================================
 
-export const issueTeacherActivationMagicLink = async (
+export const issueTeacherActivationActionLink = async (
   email: string
-): Promise<MagicLinkIssueResponseDto> => {
-  return requestJson<MagicLinkIssueResponseDto>(
-    httpClient.post("/api/v1/magic-links", { purpose: "teacher_activation", email }),
+): Promise<ActionLinkIssueResponseDto> => {
+  return requestJson<ActionLinkIssueResponseDto>(
+    httpClient.post("/api/v1/action-links", { purpose: "teacher_activation", email }),
     "Failed to issue invite"
   );
 };
 
-export const inspectMagicLink = async (
+export const inspectActionLink = async (
   token: string
-): Promise<MagicLinkInspectResponseDto> => {
-  return requestJson<MagicLinkInspectResponseDto>(
-    httpClient.get(`/api/v1/magic-links/${encodeURIComponent(token)}`),
-    "Failed to inspect magic link"
+): Promise<ActionLinkInspectResponseDto> => {
+  return requestJson<ActionLinkInspectResponseDto>(
+    httpClient.get(`/api/v1/action-links/${encodeURIComponent(token)}`),
+    "Failed to inspect action link"
   );
 };
 
-export const redeemMagicLink = async (
+export const redeemActionLink = async (
   token: string
-): Promise<MagicLinkRedeemResponseDto> => {
-  return requestJson<MagicLinkRedeemResponseDto>(
-    httpClient.post(`/api/v1/magic-links/${encodeURIComponent(token)}/redeem`, {}),
-    "Failed to redeem magic link"
+): Promise<ActionLinkRedeemResponseDto> => {
+  return requestJson<ActionLinkRedeemResponseDto>(
+    httpClient.post(`/api/v1/action-links/${encodeURIComponent(token)}/redeem`, {}),
+    "Failed to redeem action link"
   );
 };
 
@@ -110,10 +110,10 @@ export const oauthCallback = async (provider: string, code: string): Promise<Aut
   );
 };
 
-export const getLoginRecords = async (): Promise<LoginRecordsResponseDto> => {
+export const getAuthSessions = async (): Promise<LoginRecordsResponseDto> => {
   return requestJson<LoginRecordsResponseDto>(
-    httpClient.get("/api/v1/auth/me/login-records"),
-    "Failed to fetch login records"
+    httpClient.get("/api/v1/auth/sessions"),
+    "Failed to fetch auth sessions"
   );
 };
 
@@ -126,13 +126,13 @@ export const authRepository = {
   register,
   getAuthOptions,
   logout,
-  logoutOtherDevices,
-  issueTeacherActivationMagicLink,
-  inspectMagicLink,
-  redeemMagicLink,
+  logoutOtherSessions,
+  issueTeacherActivationActionLink,
+  inspectActionLink,
+  redeemActionLink,
   getOAuthUrl,
   oauthCallback,
-  getLoginRecords,
+  getAuthSessions,
 };
 
 export default authRepository;

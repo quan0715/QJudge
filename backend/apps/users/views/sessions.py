@@ -1,4 +1,4 @@
-"""Login records and device-management views."""
+"""Auth session and device-management views."""
 
 from datetime import timedelta
 
@@ -11,8 +11,8 @@ from ..serializers import UserLoginRecordSerializer
 from .common import SchemaAPIView
 
 
-class LoginRecordsView(SchemaAPIView):
-    """GET /api/v1/auth/me/login-records — list recent login records."""
+class AuthSessionListView(SchemaAPIView):
+    """GET /api/v1/auth/sessions — list recent login sessions."""
     permission_classes = [IsAuthenticated]
     serializer_class = UserLoginRecordSerializer
 
@@ -25,8 +25,8 @@ class LoginRecordsView(SchemaAPIView):
         })
 
 
-class LogoutOtherDevicesView(SchemaAPIView):
-    """POST /api/v1/auth/me/logout-other-devices — blacklist all other tokens."""
+class LogoutOtherSessionsView(SchemaAPIView):
+    """POST /api/v1/auth/sessions/logout-others — blacklist all other sessions."""
     permission_classes = [IsAuthenticated]
     serializer_class = serializers.Serializer
 
@@ -53,4 +53,4 @@ class LogoutOtherDevicesView(SchemaAPIView):
         })
 
 
-__all__ = ["LoginRecordsView", "LogoutOtherDevicesView"]
+__all__ = ["AuthSessionListView", "LogoutOtherSessionsView"]

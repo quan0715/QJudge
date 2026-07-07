@@ -34,19 +34,19 @@ export interface ManagedUser {
   onboarding_completed_at?: string | null;
 }
 
-export type MagicLinkPurpose = "teacher_activation" | "classroom_join";
-export type MagicLinkStatus = "pending" | "consumed" | "expired" | "revoked";
+export type ActionLinkPurpose = "teacher_activation" | "classroom_join";
+export type ActionLinkStatus = "pending" | "consumed" | "expired" | "revoked";
 
-export interface MagicLinkTarget {
+export interface ActionLinkTarget {
   type: "classroom";
   id: string;
   name: string;
 }
 
-export interface MagicLinkPreview {
+export interface ActionLinkPreview {
   id?: number;
-  purpose: MagicLinkPurpose;
-  status: MagicLinkStatus;
+  purpose: ActionLinkPurpose;
+  status: ActionLinkStatus;
   requires_login: boolean;
   current_user_email?: string | null;
   current_user_role?: string | null;
@@ -55,21 +55,21 @@ export interface MagicLinkPreview {
   expires_at?: string;
   consumed_at?: string | null;
   created_at?: string;
-  target?: MagicLinkTarget;
+  target?: ActionLinkTarget;
 }
 
-export interface MagicLinkIssueData {
+export interface ActionLinkIssueData {
   id?: number;
-  purpose: MagicLinkPurpose;
+  purpose: ActionLinkPurpose;
   email?: string;
   expires_at?: string;
   consumed_at?: string | null;
   created_at?: string;
-  status?: MagicLinkStatus;
-  magic_link_url?: string;
+  status?: ActionLinkStatus;
+  action_link_url?: string;
   activation_url?: string;
   token?: string;
-  target?: MagicLinkTarget;
+  target?: ActionLinkTarget;
   existing_user?: {
     id: number;
     username: string;
@@ -172,23 +172,23 @@ export interface UserSearchResponse {
   message?: string;
 }
 
-export interface MagicLinkIssueResponse {
+export interface ActionLinkIssueResponse {
   success: boolean;
-  data: MagicLinkIssueData;
+  data: ActionLinkIssueData;
   message?: string;
 }
 
-export interface MagicLinkInspectResponse {
+export interface ActionLinkInspectResponse {
   success: boolean;
-  data: MagicLinkPreview;
+  data: ActionLinkPreview;
   message?: string;
 }
 
-export interface MagicLinkRedeemResponse {
+export interface ActionLinkRedeemResponse {
   success: boolean;
   data: AuthSuccessData & {
-    invite?: MagicLinkIssueData;
-    magic_link?: MagicLinkPreview;
+    invite?: ActionLinkIssueData;
+    action_link?: ActionLinkPreview;
   };
   message?: string;
 }

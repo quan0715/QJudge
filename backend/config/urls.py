@@ -9,7 +9,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from rest_framework.permissions import IsAdminUser
 from apps.core.views.health import health_check
 from apps.core.views.landing_markdown import LandingMarkdownView
-from apps.users.views import MagicLinkInspectView, MagicLinkIssueView, MagicLinkRedeemView
+from apps.users.views import ActionLinkInspectView, ActionLinkIssueView, ActionLinkRedeemView
 schema_view_kwargs = {}
 if not settings.DEBUG:
     schema_view_kwargs = {"permission_classes": [IsAdminUser]}
@@ -22,9 +22,9 @@ urlpatterns = [
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),  # OAuth 2.1
     path('api/v1/auth/', include(('apps.users.auth_urls', 'auth'), namespace='auth')),
     path('api/v1/users/', include(('apps.users.urls', 'users'), namespace='users')),
-    path('api/v1/magic-links', MagicLinkIssueView.as_view(), name='magic-link-issue'),
-    path('api/v1/magic-links/<str:token>', MagicLinkInspectView.as_view(), name='magic-link-inspect'),
-    path('api/v1/magic-links/<str:token>/redeem', MagicLinkRedeemView.as_view(), name='magic-link-redeem'),
+    path('api/v1/action-links', ActionLinkIssueView.as_view(), name='action-link-issue'),
+    path('api/v1/action-links/<str:token>', ActionLinkInspectView.as_view(), name='action-link-inspect'),
+    path('api/v1/action-links/<str:token>/redeem', ActionLinkRedeemView.as_view(), name='action-link-redeem'),
     path('api/v1/markdown/', include('apps.core.urls')),
     path(
         'api/v1/management/problems/',

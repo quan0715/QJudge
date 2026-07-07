@@ -477,10 +477,10 @@ metadata concerns.
   `account.py` based on permission boundary.
 - [x] Move preferences endpoint to `preferences.py`.
 - [x] Move avatar upload endpoint to `avatar.py`.
-- [x] Move password reset/change endpoints to `password.py`.
-- [x] Move login records/logout-other-devices endpoints to
-  `login_records.py`.
-- [x] Preserve URL imports and schema names.
+- [x] Remove password reset/change endpoints instead of keeping a
+  compatibility module.
+- [x] Move auth session/device-management endpoints to `sessions.py`.
+- [x] Remove legacy auth/user URL fallbacks.
 
 **Acceptance:**
 

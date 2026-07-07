@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, InlineLoading, InlineNotification } from "@carbon/react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { MagicLinkPreview, User } from "@/core/entities/auth.entity";
+import type { ActionLinkPreview, User } from "@/core/entities/auth.entity";
 import type { ClassroomDetailDto } from "@/infrastructure/api/dto/classroom.dto";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContext";
-import { inspectMagicLink, redeemMagicLink } from "@/infrastructure/api/repositories/auth.repository";
+import { inspectActionLink, redeemActionLink } from "@/infrastructure/api/repositories/auth.repository";
 import { mapClassroomDetailDto } from "@/infrastructure/mappers/classroom.mapper";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import { PENDING_ACTIONS, storePendingAction, clearPendingAction } from "@/features/auth/pending-actions";
 
-const MAGIC_LINK_ACTION = PENDING_ACTIONS.find((a) => a.key === "magic_link")!;
+const ACTION_LINK_ACTION = PENDING_ACTIONS.find((a) => a.key === "action_link")!;
 
 const purposeLabel = (purpose?: string) => {
   if (purpose === "teacher_activation") return "教師權限開通";
@@ -38,7 +38,7 @@ const isAuthRedeemResponse = (
   );
 };
 
-const MagicLinkScreen = () => {
+const InviteLinkScreen = () => {
   const navigate = useNavigate();
   const { token: rawToken } = useParams<{ token: string }>();
   const token = (rawToken || "").trim();
@@ -47,7 +47,7 @@ const MagicLinkScreen = () => {
   const [redeeming, setRedeeming] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [preview, setPreview] = useState<MagicLinkPreview | null>(null);
+  const [preview, setPreview] = useState<ActionLinkPreview | null>(null);
   const autoRedeemAttemptedRef = useRef(false);
 
   const metadata = useMemo(() => {
@@ -76,28 +76,28 @@ const MagicLinkScreen = () => {
 
   useEffect(() => {
     if (!token) {
-      clearPendingAction(MAGIC_LINK_ACTION.storageKey);
+      clearPendingAction(ACTION_LINK_ACTION.storageKey);
       setLoading(false);
       setPreview(null);
       return;
     }
-    storePendingAction(MAGIC_LINK_ACTION.storageKey, token);
+    storePendingAction(ACTION_LINK_ACTION.storageKey, token);
 
     let mounted = true;
     const loadPreview = async () => {
       setLoading(true);
       setError("");
       try {
-        const response = await inspectMagicLink(token);
+        const response = await inspectActionLink(token);
         if (!mounted) return;
         setPreview(response.data);
         if (response.data.status !== "pending") {
-          clearPendingAction(MAGIC_LINK_ACTION.storageKey);
+          clearPendingAction(ACTION_LINK_ACTION.storageKey);
         }
       } catch (err: any) {
         if (!mounted) return;
         setPreview(null);
-        clearPendingAction(MAGIC_LINK_ACTION.storageKey);
+        clearPendingAction(ACTION_LINK_ACTION.storageKey);
         setError(
           err?.message ||
             err?.response?.data?.error?.message ||
@@ -116,7 +116,7 @@ const MagicLinkScreen = () => {
 
   useEffect(() => {
     if (!user && token && !loading && preview?.status === "pending") {
-      navigate(`/login?magic_link_token=${encodeURIComponent(token)}`, {
+      navigate(`/login?action_link_token=${encodeURIComponent(token)}`, {
         replace: true,
       });
     }
@@ -127,8 +127,8 @@ const MagicLinkScreen = () => {
     setRedeeming(true);
     setError("");
     try {
-      const response = await redeemMagicLink(token);
-      clearPendingAction(MAGIC_LINK_ACTION.storageKey);
+      const response = await redeemActionLink(token);
+      clearPendingAction(ACTION_LINK_ACTION.storageKey);
 
       if (isAuthRedeemResponse(response)) {
         const nextUser = response.data.user;
@@ -183,7 +183,7 @@ const MagicLinkScreen = () => {
         <InlineNotification
           kind="error"
           title="連結無效"
-          subtitle="缺少 magic link token，請重新開啟完整邀請連結。"
+          subtitle="缺少邀請 token，請重新開啟完整邀請連結。"
           lowContrast
           hideCloseButton
         />
@@ -254,14 +254,14 @@ const MagicLinkScreen = () => {
           <div className="auth-actions auth-actions--stacked">
             <Button
               as={Link}
-              to={`/login?magic_link_token=${encodeURIComponent(token)}`}
+              to={`/login?action_link_token=${encodeURIComponent(token)}`}
               kind="primary"
             >
               前往登入
             </Button>
             <Button
               as={Link}
-              to={`/register?magic_link_token=${encodeURIComponent(token)}`}
+              to={`/register?action_link_token=${encodeURIComponent(token)}`}
               kind="secondary"
             >
               先註冊
@@ -302,4 +302,4 @@ const MagicLinkScreen = () => {
   );
 };
 
-export default MagicLinkScreen;
+export default InviteLinkScreen;

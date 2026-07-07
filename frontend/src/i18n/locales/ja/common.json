@@ -80,8 +80,8 @@
       "confirmTitle": "ログアウトの確認"
     },
     "pendingAction": {
-      "magicLinkSubtitle": "まずログインまたは登録してください。完了後、招待操作が自動的に実行されます。",
-      "magicLinkTitle": "招待リンク"
+      "actionLinkSubtitle": "まずログインまたは登録してください。完了後、招待操作が自動的に実行されます。",
+      "actionLinkTitle": "招待リンク"
     },
     "register": {
       "confirmPassword": "パスワード確認",

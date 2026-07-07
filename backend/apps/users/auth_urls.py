@@ -4,10 +4,10 @@ from django.conf import settings
 from django.urls import path
 
 from .views import (
+    AuthSessionListView,
     AuthOptionsView,
     DevTokenView,
-    LoginRecordsView,
-    LogoutOtherDevicesView,
+    LogoutOtherSessionsView,
     LogoutView,
     OAuthCallbackView,
     ProviderLoginView,
@@ -24,8 +24,8 @@ urlpatterns = [
     path("callback/<str:provider>", OAuthCallbackView.as_view(), name="oauth-callback"),
     path("refresh", TokenRefreshView.as_view(), name="token-refresh"),
     path("logout", LogoutView.as_view(), name="logout"),
-    path("me/login-records", LoginRecordsView.as_view(), name="login-records"),
-    path("me/logout-other-devices", LogoutOtherDevicesView.as_view(), name="logout-other-devices"),
+    path("sessions", AuthSessionListView.as_view(), name="session-list"),
+    path("sessions/logout-others", LogoutOtherSessionsView.as_view(), name="session-logout-others"),
 ]
 
 if settings.DEBUG:

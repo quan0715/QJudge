@@ -167,7 +167,7 @@ The CLI should use the same product APIs as the frontend:
 
 | Step | API |
 | --- | --- |
-| Current user | `GET /api/v1/auth/me` |
+| Current user | `GET /api/v1/users/me` |
 | Classrooms | `GET /api/v1/classrooms/?scope=teaching` |
 | Classroom exams | `GET /api/v1/classrooms/{classroom_id}/contests/` |
 | Subjective questions | `GET /api/v1/contests/{contest_id}/exam-questions/?kind=subjective` |

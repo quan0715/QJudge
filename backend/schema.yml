@@ -35,6 +35,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthApproveResponse'
           description: ''
+  /api/v1/action-links:
+    post:
+      operationId: v1_action_links_create
+      description: Issue a scoped action link for an explicit purpose.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionLinkIssueRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ActionLinkIssueRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ActionLinkIssueRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionLinkIssue'
+          description: ''
+  /api/v1/action-links/{token}:
+    get:
+      operationId: v1_action_links_retrieve
+      description: Inspect an action link without redeeming it.
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/action-links/{token}/redeem:
+    post:
+      operationId: v1_action_links_redeem_create
+      description: Redeem a scoped action link.
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/ai/_internal/artifacts/:
     get:
       operationId: v1_ai__internal_artifacts_retrieve
@@ -702,19 +766,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthCallback'
           description: ''
-  /api/v1/auth/dev/token:
-    post:
-      operationId: v1_auth_dev_token_create
-      description: APIView with serializer support for schema generation.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
   /api/v1/auth/login/{provider}:
     get:
       operationId: v1_auth_login_retrieve
@@ -768,35 +819,6 @@ paths:
     post:
       operationId: v1_auth_logout_create
       description: APIView with serializer support for schema generation.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/auth/me/login-records:
-    get:
-      operationId: v1_auth_me_login_records_retrieve
-      description: GET /api/v1/auth/me/login-records — list recent login records.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserLoginRecord'
-          description: ''
-  /api/v1/auth/me/logout-other-devices:
-    post:
-      operationId: v1_auth_me_logout_other_devices_create
-      description: POST /api/v1/auth/me/logout-other-devices — blacklist all other
-        tokens.
       tags:
       - v1
       security:
@@ -875,6 +897,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/Register'
           description: ''
+  /api/v1/auth/sessions:
+    get:
+      operationId: v1_auth_sessions_retrieve
+      description: GET /api/v1/auth/sessions — list recent login sessions.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLoginRecord'
+          description: ''
+  /api/v1/auth/sessions/logout-others:
+    post:
+      operationId: v1_auth_sessions_logout_others_create
+      description: POST /api/v1/auth/sessions/logout-others — blacklist all other
+        sessions.
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/classrooms/:
     get:
       operationId: v1_classrooms_list
@@ -4995,70 +5046,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/magic-links:
-    post:
-      operationId: v1_magic_links_create
-      description: Issue a scoped magic link for an explicit purpose.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MagicLinkIssueRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/MagicLinkIssueRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/MagicLinkIssueRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MagicLinkIssue'
-          description: ''
-  /api/v1/magic-links/{token}:
-    get:
-      operationId: v1_magic_links_retrieve
-      description: Inspect a magic link without redeeming it.
-      parameters:
-      - in: path
-        name: token
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
-  /api/v1/magic-links/{token}/redeem:
-    post:
-      operationId: v1_magic_links_redeem_create
-      description: Redeem a scoped magic link.
-      parameters:
-      - in: path
-        name: token
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/management/announcements/:
     get:
       operationId: v1_management_announcements_list
@@ -6909,6 +6896,34 @@ components:
         context:
           title: 上下文資料
           description: 存儲額外的會話元數據（如標題、自定義數據等）
+    ActionLinkIssue:
+      type: object
+      description: Serializer for issuing a scoped action link.
+      properties:
+        purpose:
+          allOf:
+          - $ref: '#/components/schemas/PurposeEnum'
+          default: teacher_activation
+        classroom_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+    ActionLinkIssueRequest:
+      type: object
+      description: Serializer for issuing a scoped action link.
+      properties:
+        purpose:
+          allOf:
+          - $ref: '#/components/schemas/PurposeEnum'
+          default: teacher_activation
+        classroom_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
     ActionTypeEnum:
       enum:
       - register
@@ -8593,34 +8608,6 @@ components:
       required:
       - identifier
       - password
-    MagicLinkIssue:
-      type: object
-      description: Serializer for issuing a scoped magic link.
-      properties:
-        purpose:
-          allOf:
-          - $ref: '#/components/schemas/PurposeEnum'
-          default: teacher_activation
-        classroom_id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-    MagicLinkIssueRequest:
-      type: object
-      description: Serializer for issuing a scoped magic link.
-      properties:
-        purpose:
-          allOf:
-          - $ref: '#/components/schemas/PurposeEnum'
-          default: teacher_activation
-        classroom_id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
     MessageTypeEnum:
       enum:
       - text
