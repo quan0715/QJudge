@@ -44,8 +44,7 @@ if DATABASE_URL:
         }
     }
 else:
-    # 回退到個別環境變數
-    # 注意：postgres_test 是 Docker 內部服務名，本地應使用 localhost
+    # 回退到個別環境變數；預設值對齊 docker-compose.test.yml 的 host 映射。
     db_host = _env_first('POSTGRES_HOST', 'DB_HOST', 'DATABASE_HOST', default='localhost')
     # Django test runner 需要直連 PostgreSQL 來建立/刪除 test_* 資料庫；
     # pgbouncer 只代理既有資料庫，不能承接這段流程。
@@ -58,11 +57,11 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _env_first('POSTGRES_DB', 'DB_NAME', 'DATABASE_NAME', default='test_oj'),
-            'USER': _env_first('POSTGRES_USER', 'DB_USER', 'DATABASE_USER', default='test_user'),
-            'PASSWORD': _env_first('POSTGRES_PASSWORD', 'DB_PASSWORD', 'DATABASE_PASSWORD', default='test_password'),
+            'NAME': _env_first('POSTGRES_DB', 'DB_NAME', 'DATABASE_NAME', default='test_oj_e2e'),
+            'USER': _env_first('POSTGRES_USER', 'DB_USER', 'DATABASE_USER', default='oj_user'),
+            'PASSWORD': _env_first('POSTGRES_PASSWORD', 'DB_PASSWORD', 'DATABASE_PASSWORD', default='oj_password'),
             'HOST': db_host,
-            'PORT': _env_first('POSTGRES_PORT', 'DB_PORT', 'DATABASE_PORT', default='5432'),
+            'PORT': _env_first('POSTGRES_PORT', 'DB_PORT', 'DATABASE_PORT', default='5433'),
             'CONN_MAX_AGE': DB_CONN_MAX_AGE,
             'CONN_HEALTH_CHECKS': True,
             'OPTIONS': DB_OPTIONS,

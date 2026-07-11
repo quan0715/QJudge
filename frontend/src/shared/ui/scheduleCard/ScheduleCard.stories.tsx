@@ -20,7 +20,6 @@ const makeContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestStatus: "published",
   contestVisibility: "public",
   contestType: "paper_exam",
-  deliveryMode: "exam",
   contestStartTime: new Date(now + 2 * DAY).toISOString(),
   contestEndTime:   new Date(now + 2 * DAY + 7_200_000).toISOString(),
   contestOwnerUsername: "prof.chen",

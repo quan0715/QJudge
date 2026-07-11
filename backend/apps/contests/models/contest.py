@@ -82,7 +82,6 @@ class Contest(models.Model):
     )
 
     allow_multiple_joins = models.BooleanField(default=False, verbose_name='允許多次加入')
-    max_cheat_warnings = models.IntegerField(default=3)
 
     # Contest type
     CONTEST_TYPE_CHOICES = [
@@ -95,25 +94,6 @@ class Contest(models.Model):
         default='coding',
         verbose_name='比賽類型',
         help_text='coding: 程式題; paper_exam: 紙筆題考試'
-    )
-
-    DELIVERY_MODE_CHOICES = [
-        ('exam', 'Exam'),
-        ('practice', 'Practice'),
-    ]
-    delivery_mode = models.CharField(
-        max_length=12,
-        choices=DELIVERY_MODE_CHOICES,
-        default='exam',
-        db_index=True,
-        verbose_name='交付模式',
-        help_text='exam: 正式考試流程; practice: 教室練習/作業流程',
-    )
-
-    counts_toward_grade = models.BooleanField(
-        default=True,
-        verbose_name='計入正式成績',
-        help_text='True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）',
     )
 
     # Contest-level question edit lock (production safeguard)

@@ -68,7 +68,7 @@ def url_list(classroom_id: str) -> str:
 
 
 def url_create(classroom_id: str) -> str:
-    return f"/api/v1/classrooms/{classroom_id}/announcements/create/"
+    return f"/api/v1/classrooms/{classroom_id}/announcements/"
 
 
 def url_update(classroom_id: str, ann_id: int) -> str:
@@ -76,7 +76,7 @@ def url_update(classroom_id: str, ann_id: int) -> str:
 
 
 def url_delete(classroom_id: str, ann_id: int) -> str:
-    return f"/api/v1/classrooms/{classroom_id}/announcements/{ann_id}/delete/"
+    return f"/api/v1/classrooms/{classroom_id}/announcements/{ann_id}/"
 
 
 # ── List ─────────────────────────────────────────────────

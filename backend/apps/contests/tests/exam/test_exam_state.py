@@ -60,7 +60,7 @@ class ExamStateTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["exam_status"], ExamStatus.SUBMITTED)
         self.assertEqual(response.data["violation_count"], 0)
-        self.assertEqual(response.data["max_cheat_warnings"], self.contest.max_cheat_warnings)
+        self.assertNotIn("max_cheat_warnings", response.data)
         self.assertFalse(response.data["already_submitted"])
         
         p.refresh_from_db()

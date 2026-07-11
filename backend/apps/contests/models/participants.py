@@ -16,12 +16,6 @@ class ExamStatus(models.TextChoices):
     SUBMITTED = 'submitted', '已交卷'
 
 
-class AssignmentState(models.TextChoices):
-    UNACCEPTED = 'unaccepted', '未接受'
-    ACCEPTED = 'accepted', '已接受'
-    SUBMITTED = 'submitted', '已提交'
-
-
 class ContestParticipant(models.Model):
     """
     Participant in a contest (registration record).
@@ -64,25 +58,6 @@ class ContestParticipant(models.Model):
         verbose_name='考試狀態',
         help_text='學生考試狀態：未開始/進行中/暫停/已鎖定/已交卷'
     )
-    assignment_state = models.CharField(
-        max_length=20,
-        choices=AssignmentState.choices,
-        default=AssignmentState.ACCEPTED,
-        db_index=True,
-        verbose_name='作業狀態',
-        help_text='practice 模式使用：未接受/已接受/已提交',
-    )
-    accepted_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='接受時間',
-    )
-    submitted_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='作業提交時間',
-    )
-
     @property
     def has_finished_exam(self):
         return self.exam_status == ExamStatus.SUBMITTED

@@ -162,10 +162,8 @@ erDiagram
     CONTEST {
         uuid id PK
         string contest_type
-        string delivery_mode
         bool cheat_detection_enabled
         json anticheat_device_policy
-        int max_cheat_warnings
         datetime start_time
         datetime end_time
     }

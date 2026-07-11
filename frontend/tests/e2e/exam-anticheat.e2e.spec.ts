@@ -1,10 +1,8 @@
 /**
  * E2E Tests for Exam Anti-Cheat System
  *
- * Tests violation warnings, auto-lock, 15s timeout, admin unlock,
+ * Tests violation warnings, warning timeout, admin unlock,
  * and teacher bypass in exam mode.
- *
- * Depends on seed data: "E2E Exam Mode Contest" (max_cheat_warnings=2).
  */
 
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
@@ -1050,59 +1048,7 @@ test.describe("Exam Anti-Cheat E2E", () => {
     await triggerMouseEnter(page);
   });
 
-  // 2. Accumulated violations lock exam (max_cheat_warnings=2)
-  test("accumulated violations lock exam", async ({ page }) => {
-    test.setTimeout(90_000);
-    const contestId = await ensureStudentReady(page, "student2", teacherPage);
-    const studentUserId = await getMyUserId(page);
-    const monitoringRecoveryGraceMs = await getMonitoringRecoveryGraceMs(page, contestId);
-
-    await gotoExamAnswering(page, contestId);
-    const beforeEvents = await listContestExamEvents(teacherPage, contestId);
-    const firstBaselineEventId = beforeEvents.length > 0 ? Math.max(...beforeEvents.map((event) => event.id)) : 0;
-
-    // First violation
-    await waitForDetectorViolation({
-      page,
-      teacherPage,
-      contestId,
-      studentUserId,
-      baselineEventId: firstBaselineEventId,
-      triggeredEventType: "mouse_leave_triggered",
-      violationEventType: "mouse_leave",
-      graceMs: monitoringRecoveryGraceMs,
-      trigger: () => triggerMouseLeave(page),
-      reset: () => triggerMouseEnter(page),
-    });
-    const firstWarningModal = page.getByTestId("exam-warning-modal");
-    await expect(firstWarningModal).toBeVisible({ timeout: 10000 });
-    await clickVisibleButtonBySpanTestId(page, "exam-warning-confirm-btn");
-    await expect(firstWarningModal).not.toBeVisible({ timeout: 10000 });
-
-    const afterFirstEvents = await listContestExamEvents(teacherPage, contestId);
-    const secondBaselineEventId =
-      afterFirstEvents.length > 0 ? Math.max(...afterFirstEvents.map((event) => event.id)) : 0;
-
-    // Second violation should lock (max_cheat_warnings=2)
-    await waitForDetectorViolation({
-      page,
-      teacherPage,
-      contestId,
-      studentUserId,
-      baselineEventId: secondBaselineEventId,
-      triggeredEventType: "mouse_leave_triggered",
-      violationEventType: "mouse_leave",
-      graceMs: monitoringRecoveryGraceMs,
-      trigger: () => triggerMouseLeave(page),
-      reset: () => triggerMouseEnter(page),
-    });
-
-    // Locked state can appear immediately and take pointer priority over warning modal.
-    await expect(page.getByTestId("exam-lock-overlay")).toBeVisible({ timeout: 15000 });
-    await triggerMouseEnter(page);
-  });
-
-  // 3. Warning timeout auto-locks
+  // 2. Warning timeout auto-locks
   test("warning timeout auto-locks", async ({ page }) => {
     test.setTimeout(120_000);
 
@@ -1143,7 +1089,7 @@ test.describe("Exam Anti-Cheat E2E", () => {
     await triggerMouseEnter(page);
   });
 
-  // 4. Unlock notification after admin unlocks
+  // 3. Unlock notification after admin unlocks
   test("unlock notification after admin unlocks", async ({ page }) => {
     test.setTimeout(120_000);
     const contestId = await ensureStudentReady(page, "student2", teacherPage);
@@ -1209,7 +1155,7 @@ test.describe("Exam Anti-Cheat E2E", () => {
     await expect(lockOverlay).not.toBeVisible({ timeout: 10000 });
   });
 
-  // 5. Teacher bypass — no warning modal
+  // 4. Teacher bypass — no warning modal
   test("teacher bypass no warning", async ({ page }) => {
     test.setTimeout(90_000);
     await loginViaAPI(page, "teacher");

@@ -60,7 +60,6 @@ export function useExamState({
     isActive: false,
     isLocked: false,
     violationCount: 0,
-    maxWarnings: 0,
   });
 
   const [lastApiResponse, setLastApiResponse] = useState<
@@ -72,7 +71,6 @@ export function useExamState({
         exam_status?: ExamStatusType;
         submit_reason?: string;
         violation_count?: number;
-        max_cheat_warnings?: number;
         bypass?: boolean;
       }
     | null
@@ -205,7 +203,6 @@ export function useExamState({
             setExamState((prev) => ({
               ...prev,
               violationCount: response.violation_count ?? prev.violationCount,
-              maxWarnings: response.max_cheat_warnings ?? prev.maxWarnings,
               isLocked:
                 response.exam_status === "locked" || !!response.locked || prev.isLocked,
             }));

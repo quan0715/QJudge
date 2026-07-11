@@ -14,7 +14,7 @@ describe("updateMemberRole", () => {
     vi.unstubAllGlobals();
   });
 
-  it("posts to update_member_role with user_id and role", async () => {
+  it("patches member detail with role", async () => {
     const classroomId = "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa";
     const userId = 54;
 
@@ -29,10 +29,10 @@ describe("updateMemberRole", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe(`/api/v1/classrooms/${classroomId}/update_member_role/`);
-    expect(options.method).toBe("POST");
+    expect(url).toBe(`/api/v1/classrooms/${classroomId}/members/${userId}/`);
+    expect(options.method).toBe("PATCH");
     expect(options.credentials).toBe("include");
-    expect(JSON.parse(options.body as string)).toEqual({ user_id: userId, role: "ta" });
+    expect(JSON.parse(options.body as string)).toEqual({ role: "ta" });
     const headers = options.headers as Headers;
     expect(headers.get("Content-Type")).toBe("application/json");
   });
@@ -50,7 +50,7 @@ describe("regenerateCode", () => {
     vi.unstubAllGlobals();
   });
 
-  it("posts to regenerate_code without legacy toggle payload", async () => {
+  it("posts to invite-code without legacy toggle payload", async () => {
     const classroomId = "924abae8-bf3a-4479-8e38-bfbdfe9ea0fa";
 
     fetchMock.mockResolvedValueOnce(
@@ -64,7 +64,7 @@ describe("regenerateCode", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe(`/api/v1/classrooms/${classroomId}/regenerate_code/`);
+    expect(url).toBe(`/api/v1/classrooms/${classroomId}/invite-code/`);
     expect(options.method).toBe("POST");
     expect(options.credentials).toBe("include");
     expect(options.body).toBeUndefined();

@@ -11,13 +11,12 @@ from .questions import (
     ExamQuestionType,
     SourceMode,
 )
-from .participants import AssignmentState, ContestParticipant, ExamStatus
+from .participants import ContestParticipant, ExamStatus
 from .communications import Clarification, ContestAnnouncement
 from .monitoring import ContestActivity, ExamEvent, ExamEvidenceFrame
 from .answers import ExamAnswer
 
 __all__ = [
-    "AssignmentState",
     "Clarification",
     "Contest",
     "ContestActivity",

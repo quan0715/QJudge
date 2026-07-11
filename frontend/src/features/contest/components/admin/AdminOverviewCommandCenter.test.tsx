@@ -207,7 +207,6 @@ const participants: ContestParticipant[] = [
     score: 82,
     joinedAt: "2026-05-03T09:00:00+08:00",
     examStatus: "locked",
-    assignmentState: "accepted",
     violationCount: 2,
   },
   {
@@ -218,7 +217,6 @@ const participants: ContestParticipant[] = [
     score: 74,
     joinedAt: "2026-05-03T09:00:00+08:00",
     examStatus: "submitted",
-    assignmentState: "submitted",
     violationCount: 0,
   },
 ] as ContestParticipant[];

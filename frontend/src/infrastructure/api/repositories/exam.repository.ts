@@ -28,7 +28,6 @@ export interface ExamEventResponse {
   evidence_mode?: EvidenceMode;
   evidence_anchor_at_ms?: number;
   violation_count?: number;
-  max_cheat_warnings?: number;
   exam_status?: ExamStatusType;
   submit_reason?: string;
   locked?: boolean;

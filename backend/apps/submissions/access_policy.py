@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from django.utils import timezone
 
 from apps.contests.models import (
-    AssignmentState,
     Contest,
     ContestParticipant,
     ExamStatus,
@@ -52,12 +51,6 @@ class SubmissionAccessPolicy:
         except ContestParticipant.DoesNotExist as exc:
             raise SubmissionAccessError("You are not registered for this contest") from exc
 
-        if contest.delivery_mode == "practice":
-            if participant.assignment_state == AssignmentState.UNACCEPTED:
-                raise SubmissionAccessError("You must accept this assignment before submitting.")
-            return False
-
-        # Exam status restrictions only apply in exam mode contests.
         if contest.cheat_detection_enabled:
             if participant.has_finished_exam:
                 raise SubmissionAccessError(

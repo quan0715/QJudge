@@ -16,47 +16,35 @@ import {
   getClassroomContestDashboardPath,
   getClassroomContestSolvePath,
 } from "@/features/contest/domain/contestRoutePolicy";
-import {
-  getClassroomLabDashboardPath,
-  getClassroomLabSolvePath,
-  isClassroomLabRouteContext,
-} from "@/features/classroom/domain/labRoutePolicy";
 import "./ContestProblemScreen.scss";
 
 const ContestProblemScreen = () => {
   const { t } = useTranslation("contest");
-  const { contestId, labId, classroomId, problemId } = useParams<{
+  const { contestId, classroomId, problemId } = useParams<{
     contestId?: string;
-    labId?: string;
     classroomId?: string;
     problemId: string;
   }>();
-  const resolvedContestId = contestId || labId;
-  const labContext = isClassroomLabRouteContext({ classroomId, labId })
-    ? { classroomId, labId }
-    : null;
   const navigate = useNavigate();
   const { user } = useAuth();
   const { contest, scoreboardData, loading: contestLoading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
-  const classroomContestContext =
-    !labContext && classroomId && contestId
-      ? { classroomId, contestId }
-      : null;
-  const fallbackLobbyPath = labContext
-    ? getClassroomLabDashboardPath(labContext.classroomId!, labContext.labId!)
-    : classroomContestContext
-      ? getClassroomContestDashboardPath(
-          classroomContestContext.classroomId!,
-          classroomContestContext.contestId!,
-        )
-      : effectiveClassroomId && resolvedContestId
-        ? getClassroomContestDashboardPath(effectiveClassroomId, resolvedContestId)
-        : "/dashboard";
+  const classroomContestContext = useMemo(
+    () => (classroomId && contestId ? { classroomId, contestId } : null),
+    [classroomId, contestId],
+  );
+  const fallbackLobbyPath = classroomContestContext
+    ? getClassroomContestDashboardPath(
+        classroomContestContext.classroomId!,
+        classroomContestContext.contestId!,
+      )
+    : effectiveClassroomId && contestId
+      ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
+      : "/dashboard";
 
   const hasEnded = !!contest && isContestEnded(contest);
   useContestNavigationGuard(
-    resolvedContestId,
+    contestId,
     contest?.status === "published" && !hasEnded,
   );
 
@@ -82,26 +70,20 @@ const ContestProblemScreen = () => {
   });
 
   useEffect(() => {
-    if (!resolvedContestId || contest?.contestType !== "coding") return;
+    if (!contestId || contest?.contestType !== "coding") return;
     if (problemId) return;
 
     if (problemSelection.selectedProblemId) {
-      const nextPath = labContext
-          ? getClassroomLabSolvePath(
-            labContext.classroomId!,
-            labContext.labId!,
+      const nextPath = classroomContestContext
+        ? getClassroomContestSolvePath(
+            classroomContestContext.classroomId!,
+            classroomContestContext.contestId!,
             problemSelection.selectedProblemId,
           )
-        : classroomContestContext
-          ? getClassroomContestSolvePath(
-              classroomContestContext.classroomId!,
-              classroomContestContext.contestId!,
-              problemSelection.selectedProblemId,
-            )
         : effectiveClassroomId
           ? getClassroomContestSolvePath(
               effectiveClassroomId,
-              resolvedContestId,
+              contestId,
               problemSelection.selectedProblemId,
             )
           : "/dashboard";
@@ -121,12 +103,11 @@ const ContestProblemScreen = () => {
     contest?.contestType,
     contest?.problems,
     fallbackLobbyPath,
-    labContext,
     navigate,
+    contestId,
     problemId,
     problemSelection.selectedProblemId,
     effectiveClassroomId,
-    resolvedContestId,
   ]);
 
   // Check view permissions
@@ -194,7 +175,7 @@ const ContestProblemScreen = () => {
         key={problemSelection.selectedProblemId} // Reset state when problem changes
         problem={problemSelection.selectedProblem}
         problemLabel={problemSelection.selectedProblemLabel}
-        contestId={resolvedContestId}
+        contestId={contestId}
         menuPanel={
           <ProblemMenu
             problems={problemSelection.problems}
@@ -206,7 +187,7 @@ const ContestProblemScreen = () => {
         submissionDisabled={isSubmissionDisabled}
         renderSubmissions={() => (
           <ContestProblemSubmissions
-            contestId={resolvedContestId!}
+            contestId={contestId!}
             codingProblemId={problemSelection.selectedCodingProblemId || ""}
           />
         )}

@@ -29,7 +29,6 @@ const baseContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestStatus: "published",
   contestVisibility: "public",
   contestType: "coding",
-  deliveryMode: "exam",
   contestStartTime: new Date(2026, 5, 16, 10).toISOString(),
   contestEndTime: new Date(2026, 5, 16, 12).toISOString(),
   contestOwnerUsername: "teacher",

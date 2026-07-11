@@ -249,7 +249,6 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
-      maxCheatWarnings: contest.maxCheatWarnings ?? 0,
     });
     if (contest.startTime) {
       const startDate = parseDate(contest.startTime);

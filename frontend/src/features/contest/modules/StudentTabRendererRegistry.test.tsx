@@ -20,7 +20,6 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     cheatDetectionEnabled: true,
     scoreboardVisibleDuringContest: false,
     allowMultipleJoins: false,
-    maxCheatWarnings: 3,
     resultsPublished: false,
     examQuestionsCount: 0,
     permissions: {

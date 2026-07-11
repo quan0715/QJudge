@@ -35,7 +35,6 @@ import {
   classroomContestAttendanceScanRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
-  classroomPracticeRoute,
 } from "@/features/contest";
 import { dashboardRoute } from "@/features/dashboard";
 import { docsRoutes, DocsLayout } from "@/features/docs";
@@ -192,8 +191,6 @@ function App() {
                             {classroomContestAttendanceProjectionRoute}
                             {classroomExamPreviewRoute}
 
-                            {/* Classroom Practice - Classroom-scoped */}
-                            {classroomPracticeRoute}
                           </Route>
                         </Route>
 

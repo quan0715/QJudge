@@ -35,10 +35,7 @@ export function ClassroomContestPreviewModal({
       : new Date(startMs).toISOString(),
     endTime: Number.isNaN(endMs) ? undefined : new Date(endMs).toISOString(),
   });
-  const typeLabel =
-    contest.deliveryMode === "exam"
-      ? t("activitySchedule.previewTypeExam", "考試 / 競賽")
-      : t("activitySchedule.previewTypePractice", "練習");
+  const typeLabel = t("activitySchedule.previewTypeExam", "考試 / 競賽");
 
   return (
     <Modal

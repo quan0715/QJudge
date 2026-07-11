@@ -191,7 +191,6 @@ export interface ContestUpdatePayload {
   endTime?: string;
   status?: ContestStatus;
   resultsPublished?: boolean;
-  countsTowardGrade?: boolean;
   visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
@@ -200,5 +199,4 @@ export interface ContestUpdatePayload {
   warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
-  maxCheatWarnings?: number;
 }

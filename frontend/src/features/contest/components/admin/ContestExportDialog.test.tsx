@@ -33,7 +33,6 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail => 
   cheatDetectionEnabled: false,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
-  maxCheatWarnings: 3,
   resultsPublished: false,
   permissions: {
     canSwitchView: true,

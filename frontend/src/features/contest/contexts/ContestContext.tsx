@@ -56,8 +56,8 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   initialScoreboardData,
   onRefresh,
 }) => {
-  const params = useParams<{ contestId?: string; labId?: string }>();
-  const contestId = propContestId || params.contestId || params.labId;
+  const params = useParams<{ contestId?: string }>();
+  const contestId = propContestId || params.contestId;
 
   // Core state
   const [contest, setContest] = useState<ContestDetail | null>(

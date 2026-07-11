@@ -312,11 +312,6 @@ export function mapContestAnticheatConfigDto(
         "allow_multiple_joins",
         "contest_settings",
       ),
-      maxCheatWarnings: ensureNumber(
-        contestSettings,
-        "max_cheat_warnings",
-        "contest_settings",
-      ),
       contestType:
         ensureString(contestSettings, "contest_type", "contest_settings") ===
         "paper_exam"
@@ -430,11 +425,6 @@ export function mapContestAnticheatConfigDto(
       allowMultipleJoins: ensureBoolean(
         effective,
         "allow_multiple_joins",
-        "effective",
-      ),
-      maxCheatWarnings: ensureNumber(
-        effective,
-        "max_cheat_warnings",
         "effective",
       ),
       contestType:

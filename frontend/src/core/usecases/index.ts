@@ -58,7 +58,6 @@
  * ### Exam
  * - `enterExamUseCase` - Start/resume exam with fullscreen
  * - `leaveExamUseCase` - End exam and exit fullscreen
- * - `recordViolationUseCase` - Record exam violation event
  *
  * ### Solver
  * - `testRunUseCase` - Execute test run (synchronous)

@@ -188,7 +188,6 @@ class Command(BaseCommand):
                 "status": "published",
                 "contest_type": "paper_exam",
                 "cheat_detection_enabled": True,
-                "max_cheat_warnings": 10,
                 "scoreboard_visible_during_contest": True,
             },
         )
@@ -204,7 +203,6 @@ class Command(BaseCommand):
                 "status": "published",
                 "contest_type": "coding",
                 "cheat_detection_enabled": False,
-                "max_cheat_warnings": 10,
                 "scoreboard_visible_during_contest": True,
             },
         )

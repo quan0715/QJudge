@@ -354,35 +354,6 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
 
 
 @pytest.mark.django_db
-def test_practice_assignment_submitted_at_is_only_set_once(judge_mock: Mock) -> None:
-    teacher = UserFactory(role="teacher")
-    student = UserFactory(role="student")
-    contest = ContestFactory(owner=teacher, delivery_mode="practice")
-    problem = ProblemFactory(created_by=teacher)
-    original_submitted_at = timezone.now() - timedelta(days=1)
-    participant = ContestParticipantFactory(
-        contest=contest,
-        user=student,
-        assignment_state="accepted",
-        submitted_at=original_submitted_at,
-    )
-
-    SubmissionService.create_and_dispatch(
-        user=student,
-        data={
-            "problem": problem,
-            "language": "python",
-            "code": "print('ok')",
-            "contest": contest,
-        },
-    )
-
-    participant.refresh_from_db()
-    assert participant.assignment_state == "submitted"
-    assert participant.submitted_at == original_submitted_at
-
-
-@pytest.mark.django_db
 def test_privileged_contest_submission_does_not_lock_question_editing(judge_mock: Mock) -> None:
     owner = UserFactory(role="teacher")
     contest = ContestFactory(owner=owner)

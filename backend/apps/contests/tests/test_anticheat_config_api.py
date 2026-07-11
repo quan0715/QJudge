@@ -33,7 +33,6 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             status="published",
             cheat_detection_enabled=True,
             allow_multiple_joins=True,
-            max_cheat_warnings=4,
             contest_type="paper_exam",
             screen_share_recovery_grace_ms=45_000,
         )
@@ -55,7 +54,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         contest_settings = resp.data["contest_settings"]
         self.assertTrue(contest_settings["cheat_detection_enabled"])
         self.assertTrue(contest_settings["allow_multiple_joins"])
-        self.assertEqual(contest_settings["max_cheat_warnings"], 4)
+        self.assertNotIn("max_cheat_warnings", contest_settings)
         self.assertEqual(contest_settings["contest_type"], "paper_exam")
         self.assertIn("warning_timeout_seconds", contest_settings)
         self.assertEqual(contest_settings["warning_timeout_seconds"], 20)
@@ -86,7 +85,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("incident_screenshot_categories", global_setting_keys)
         self.assertIn("presigned_url_ttl_seconds", global_setting_keys)
         self.assertIn("cheat_detection_enabled", contest_setting_keys)
-        self.assertIn("max_cheat_warnings", contest_setting_keys)
+        self.assertNotIn("max_cheat_warnings", contest_setting_keys)
         self.assertIn("warning_timeout_seconds", contest_setting_keys)
         self.assertIn("screen_share_recovery_grace_ms", contest_setting_keys)
         self.assertIn("anticheat_device_policy", contest_setting_keys)

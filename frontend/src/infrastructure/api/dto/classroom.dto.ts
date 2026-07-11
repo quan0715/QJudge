@@ -32,30 +32,6 @@ export interface ClassroomAnnouncementDto {
   updated_at: string;
 }
 
-export interface ClassroomLabSummaryDto {
-  lab_id: string;
-  name: string;
-  description?: string;
-  status: "draft" | "published" | "archived";
-  visibility: "public" | "private";
-  attendance_check_enabled?: boolean;
-  contest_type: "coding" | "paper_exam";
-  delivery_mode: "practice" | "exam";
-  start_time: string;
-  end_time: string;
-  results_published?: boolean;
-  assignment_state?: string | null;
-  accepted_at?: string | null;
-  submitted_at?: string | null;
-  participant_count?: number;
-  assignment_counts?: {
-    unaccepted: number;
-    accepted: number;
-    submitted: number;
-  };
-  bound_at: string;
-}
-
 export interface BoundContestDto {
   contest_id: string;
   contest_name: string;
@@ -64,7 +40,6 @@ export interface BoundContestDto {
   contest_visibility: "public" | "private";
   attendance_check_enabled?: boolean;
   contest_type: "coding" | "paper_exam";
-  delivery_mode: "practice" | "exam";
   contest_start_time: string;
   contest_end_time: string;
   contest_owner_username: string;
@@ -78,7 +53,6 @@ export interface ClassroomDetailDto extends ClassroomDto {
   invite_code_enabled?: boolean;
   members?: ClassroomMemberDto[];
   contests?: BoundContestDto[];
-  labs?: ClassroomLabSummaryDto[];
   admins?: Array<{ id: number; username: string }>;
   announcements?: ClassroomAnnouncementDto[];
   updated_at: string;

@@ -31,7 +31,6 @@ function useFormState() {
     screenShareRecoveryGraceMs: mockContest.screenShareRecoveryGraceMs,
     scoreboardVisibleDuringContest: mockContest.scoreboardVisibleDuringContest,
     allowMultipleJoins: mockContest.allowMultipleJoins,
-    maxCheatWarnings: mockContest.maxCheatWarnings,
   });
 
   const onChange = (field: string, value: unknown) => {

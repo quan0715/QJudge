@@ -16,7 +16,6 @@ const createProps = (
       anticheatDevicePolicy: contest.anticheatDevicePolicy,
       warningTimeoutSeconds: contest.warningTimeoutSeconds,
       screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs,
-      maxCheatWarnings: contest.maxCheatWarnings,
     },
     getState: () => undefined,
     onRetry: () => {},

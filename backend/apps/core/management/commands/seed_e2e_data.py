@@ -420,7 +420,6 @@ int main() {
                 'status': 'published',
                 'contest_type': 'paper_exam',
                 'cheat_detection_enabled': True,
-                'max_cheat_warnings': 2,
             }
         )
 

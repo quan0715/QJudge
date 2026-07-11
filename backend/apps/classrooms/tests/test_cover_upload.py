@@ -55,10 +55,10 @@ def classroom(owner: User) -> Classroom:
 
 @pytest.mark.django_db
 class TestClassroomCoverUpload:
-    """Tests for POST /api/v1/classrooms/{uuid}/upload_cover/"""
+    """Tests for POST /api/v1/classrooms/{uuid}/cover/"""
 
     def _url(self, classroom: Classroom) -> str:
-        return f"/api/v1/classrooms/{classroom.uuid}/upload_cover/"
+        return f"/api/v1/classrooms/{classroom.uuid}/cover/"
 
     @patch("apps.classrooms.views.store_markdown_image")
     @patch(

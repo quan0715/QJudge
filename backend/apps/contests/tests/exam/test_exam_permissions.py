@@ -40,7 +40,6 @@ class ExamPermissionTests(APITestCase):
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2),
             owner=self.teacher,
-            max_cheat_warnings=3
         )
         
         # Create draft contest

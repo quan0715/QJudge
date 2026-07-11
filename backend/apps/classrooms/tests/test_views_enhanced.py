@@ -3,8 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
-from apps.classrooms.models import Classroom, ClassroomMember, ClassroomContest
-from apps.contests.models import Contest
+from apps.classrooms.models import Classroom, ClassroomMember
 
 User = get_user_model()
 
@@ -13,7 +12,7 @@ class ClassroomViewsEnhancedTests(APITestCase):
         # Clear classrooms to ensure stable counts
         Classroom.objects.all().delete()
         self.admin = User.objects.create_superuser(username='admin', email='admin@test.com', password='password123')
-        # Ensure admin has role 'admin' if required by IsSuperAdmin or similar
+        # Ensure admin has role 'admin' for platform-level permission checks.
         self.admin.role = 'admin'
         self.admin.save()
         
@@ -97,50 +96,3 @@ class ClassroomViewsEnhancedTests(APITestCase):
         response = self.client.post(remove_url, {'user_id': self.student.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(ClassroomMember.objects.filter(classroom=self.classroom, user=self.student).exists())
-
-    def test_bind_unbind_contest_admin_only(self):
-        """Test binding and unbinding contests requires platform admin"""
-        contest = Contest.objects.create(name='Global Contest', owner=self.admin)
-        bind_url = reverse('classrooms:classroom-bind-contest', kwargs={'id': self.classroom.uuid})
-        unbind_url = reverse('classrooms:classroom-unbind-contest', kwargs={'id': self.classroom.uuid})
-        
-        # Teacher (forbidden)
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(bind_url, {'contest_id': str(contest.id)})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
-        # Admin (allowed)
-        self.client.force_authenticate(user=self.admin)
-        response = self.client.post(bind_url, {'contest_id': str(contest.id)})
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(ClassroomContest.objects.filter(classroom=self.classroom, contest=contest).exists())
-        
-        # Unbind
-        response = self.client.post(unbind_url, {'contest_id': str(contest.id)})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(ClassroomContest.objects.filter(classroom=self.classroom, contest=contest).exists())
-
-    def test_labs_facade(self):
-        """Test listing and creating labs within a classroom"""
-        self.client.force_authenticate(user=self.teacher)
-        labs_url = reverse('classrooms:classroom-list-labs', kwargs={'id': self.classroom.uuid})
-        
-        # Create lab (Use 'coding' or 'paper_exam')
-        lab_data = {
-            'name': 'New Lab',
-            'contest_type': 'coding',
-            'start_time': '2026-01-01T00:00:00Z',
-            'end_time': '2026-12-31T23:59:59Z'
-        }
-        response = self.client.post(labs_url, lab_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
-        # List labs
-        response = self.client.get(labs_url)
-        self.assertEqual(len(response.data), 1)
-        
-        # Student access to unpublished lab (should be empty if not manager)
-        self.client.force_authenticate(user=self.student)
-        ClassroomMember.objects.create(classroom=self.classroom, user=self.student, role='student')
-        response = self.client.get(labs_url)
-        self.assertEqual(len(response.data), 0) # Because it's draft by default

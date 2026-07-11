@@ -4,8 +4,6 @@ import type { Difficulty } from "./problem.entity";
 export type ContestStatus = "draft" | "published" | "archived";
 export type ContestVisibility = "public" | "private";
 export type ContestType = "coding" | "paper_exam";
-export type ContestDeliveryMode = "exam" | "practice";
-export type AssignmentState = "unaccepted" | "accepted" | "submitted";
 export type ContestScopeRole =
   | "platform_admin"
   | "owner"
@@ -128,7 +126,6 @@ export interface ContestParticipant {
   joinedAt: string;
   // Primary state field
   examStatus: ExamStatusType;
-  assignmentState?: AssignmentState | null;
   // Legacy fields removed
   lockReason?: string;
   violationCount: number;
@@ -301,8 +298,6 @@ export interface Contest {
   visibility: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
-  deliveryMode?: ContestDeliveryMode;
-  countsTowardGrade?: boolean;
   organizer?: string;
 
   // Results
@@ -331,8 +326,6 @@ export interface ContestDetail extends Contest {
 
   // Contest type
   contestType: ContestType;
-  deliveryMode: ContestDeliveryMode;
-  countsTowardGrade: boolean;
 
   // Cheat detection
   cheatDetectionEnabled: boolean;
@@ -343,7 +336,6 @@ export interface ContestDetail extends Contest {
 
   // Advanced settings
   allowMultipleJoins: boolean;
-  maxCheatWarnings: number;
 
   // Results
   resultsPublished: boolean;
@@ -363,9 +355,6 @@ export interface ContestDetail extends Contest {
   lockReason?: string;
   submitReason?: string;
   examStatus?: ExamStatusType; // Primary state field
-  assignmentState?: AssignmentState | null;
-  acceptedAt?: string | null;
-  submittedAt?: string | null;
 
   // SSoT computed flags from backend
   isExamMonitored: boolean;
@@ -503,7 +492,6 @@ export interface ContestAnticheatEffectiveConfig {
   presignedUrlTtlSeconds: number;
   cheatDetectionEnabled: boolean;
   allowMultipleJoins: boolean;
-  maxCheatWarnings: number;
   contestType: ContestType;
   anticheatDevicePolicy: ContestAnticheatDevicePolicy;
 }
@@ -514,7 +502,6 @@ export interface ContestAnticheatConfig {
     ContestAnticheatEffectiveConfig,
     | "cheatDetectionEnabled"
     | "allowMultipleJoins"
-    | "maxCheatWarnings"
     | "contestType"
     | "anticheatDevicePolicy"
   >;
@@ -522,7 +509,6 @@ export interface ContestAnticheatConfig {
     ContestAnticheatEffectiveConfig,
     | "cheatDetectionEnabled"
     | "allowMultipleJoins"
-    | "maxCheatWarnings"
     | "contestType"
     | "warningTimeoutSeconds"
     | "screenShareRecoveryGraceMs"
@@ -694,7 +680,6 @@ export interface ExamModeState {
   lockReason?: string;
   startTime?: Date;
   violationCount?: number;
-  maxWarnings?: number;
 }
 
 export interface ContestUpdateRequest {
@@ -712,9 +697,7 @@ export interface ContestUpdateRequest {
   warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
-  maxCheatWarnings?: number;
   resultsPublished?: boolean;
-  countsTowardGrade?: boolean;
 }
 
 export type AttendancePurpose = "check_in" | "check_out";

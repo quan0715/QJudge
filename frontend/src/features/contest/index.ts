@@ -10,6 +10,5 @@ export {
   classroomContestAttendanceScanRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
-  classroomPracticeRoute,
 } from "./routes";
 export { default as ContestWorkspaceLayout } from "./components/layout/ContestWorkspaceLayout";

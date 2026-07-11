@@ -272,7 +272,6 @@ class ExamEventsMixin:
         return {
             'exam_status': participant.exam_status,
             'violation_count': participant.violation_count,
-            'max_cheat_warnings': contest.max_cheat_warnings,
             'locked': participant.exam_status == ExamStatus.LOCKED,
             'submit_reason': participant.submit_reason or "",
         }
@@ -477,7 +476,6 @@ class ExamEventsMixin:
             payload = self._build_event_response(participant, contest)
             payload.update(
                 {
-                    'max_cheat_warnings': contest.max_cheat_warnings,
                     'decision': 'dedupe_hit',
                     'dedupe_hit': True,
                     **self._event_response_metadata(existing_event),
@@ -502,7 +500,6 @@ class ExamEventsMixin:
             payload = self._build_event_response(participant, contest)
             payload.update(
                 {
-                    'max_cheat_warnings': contest.max_cheat_warnings,
                     'decision': 'terminal_guard',
                     'dedupe_hit': False,
                     **self._event_response_metadata(event),
@@ -574,7 +571,6 @@ class ExamEventsMixin:
         )
         payload.update(
             {
-                'max_cheat_warnings': contest.max_cheat_warnings,
                 'decision': 'terminal_guard' if terminal_phase_guard else 'accepted',
                 'dedupe_hit': False,
                 **self._event_response_metadata(event),

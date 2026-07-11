@@ -61,7 +61,6 @@ describe("useExamState", () => {
   it("handles violation correctly", async () => {
     const mockResponse = {
       violation_count: 1,
-      max_cheat_warnings: 3,
       bypass: false,
     };
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue(mockResponse);
@@ -88,7 +87,6 @@ describe("useExamState", () => {
   it("uses configured evidence capture modules for violation evidence", async () => {
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
       violation_count: 1,
-      max_cheat_warnings: 3,
       bypass: false,
     });
 
@@ -119,7 +117,6 @@ describe("useExamState", () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValue({
       violation_count: 1,
-      max_cheat_warnings: 3,
       bypass: false,
     });
     const { result } = renderHook(() =>
@@ -137,12 +134,10 @@ describe("useExamState", () => {
     vi.mocked(recordExamEventWithForcedCapture)
       .mockResolvedValueOnce({
         violation_count: 1,
-        max_cheat_warnings: 3,
         bypass: false,
       })
       .mockResolvedValueOnce({
         violation_count: 2,
-        max_cheat_warnings: 3,
         bypass: false,
       });
 
@@ -175,7 +170,6 @@ describe("useExamState", () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         violation_count: 1,
-        max_cheat_warnings: 3,
         bypass: false,
       });
     const { result } = renderHook(() => useExamState(props));
@@ -200,7 +194,6 @@ describe("useExamState", () => {
     useStableFakeClock();
     vi.mocked(recordExamEventWithForcedCapture).mockResolvedValueOnce({
       violation_count: 1,
-      max_cheat_warnings: 3,
       bypass: false,
       locked: false,
     });
@@ -235,7 +228,6 @@ describe("useExamState", () => {
   it("records violations in locked state without opening warning modal", async () => {
     const lockedResponse: ExamEventResponse = {
       violation_count: 4,
-      max_cheat_warnings: 3,
       bypass: false,
       exam_status: "submitted",
     };

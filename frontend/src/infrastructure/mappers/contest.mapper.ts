@@ -72,8 +72,6 @@ export function mapContestDto(dto: ContestDto): Contest {
     visibility: dto.visibility || "public",
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
     attendancePhotoPolicy: dto.attendance_photo_policy || "room",
-    deliveryMode: dto.delivery_mode || "exam",
-    countsTowardGrade: dto.counts_toward_grade ?? true,
 
     hasJoined: !!dto.has_joined,
     isRegistered: !!dto.is_registered,
@@ -93,8 +91,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     boundClassroomId: dto.bound_classroom_id?.toString?.() ?? null,
 
     contestType: dto.contest_type ?? "coding",
-    deliveryMode: dto.delivery_mode ?? "exam",
-    countsTowardGrade: dto.counts_toward_grade ?? true,
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
     anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
       dto.anticheat_device_policy,
@@ -110,7 +106,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
-    maxCheatWarnings: dto.max_cheat_warnings || 0,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
     questionEditLockedAt: dto.question_edit_locked_at ?? null,
@@ -124,9 +119,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     lockReason: dto.lock_reason,
     submitReason: dto.submit_reason,
     examStatus: dto.exam_status,
-    assignmentState: (dto.assignment_state as any) ?? null,
-    acceptedAt: dto.accepted_at ?? null,
-    submittedAt: dto.submitted_at ?? null,
 
     // SSoT computed flags
     isExamMonitored: !!dto.is_exam_monitored,
@@ -551,9 +543,7 @@ export function mapContestUpdateRequestToDto(
     warning_timeout_seconds: request.warningTimeoutSeconds,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
-    max_cheat_warnings: request.maxCheatWarnings,
     results_published: request.resultsPublished,
-    counts_toward_grade: request.countsTowardGrade,
   };
   // Strip undefined keys so PATCH only sends changed fields
   Object.keys(dto).forEach((k) => {

@@ -76,7 +76,6 @@ class ExamAntiCheatTests(APITestCase):
             visibility="public",
             status="published",
             cheat_detection_enabled=True,
-            max_cheat_warnings=3,
         )
         self.contest.admins.add(self.co_owner)
 
@@ -137,9 +136,9 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.lock_reason, "")
 
     # ------------------------------------------------------------------
-    # 2. Reaching max_cheat_warnings does not auto-lock general risk events
+    # 2. Repeated general risk events do not auto-lock the participant
     # ------------------------------------------------------------------
-    def test_violation_threshold_does_not_auto_lock(self):
+    def test_repeated_violations_do_not_auto_lock(self):
         self.client.force_authenticate(user=self.student)
 
         for i in range(3):
@@ -151,10 +150,10 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
         self.assertEqual(self.participant.violation_count, 3)
 
-    def test_paused_violation_at_threshold_does_not_auto_submit(self):
+    def test_paused_violation_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.PAUSED
-        self.participant.violation_count = self.contest.max_cheat_warnings - 1
+        self.participant.violation_count = 2
         self.participant.save()
 
         with self.captureOnCommitCallbacks(execute=True):
@@ -171,13 +170,13 @@ class ExamAntiCheatTests(APITestCase):
 
         self.participant.refresh_from_db()
         self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
-        self.assertEqual(self.participant.violation_count, self.contest.max_cheat_warnings)
+        self.assertEqual(self.participant.violation_count, 3)
         self.assertEqual(self.participant.submit_reason, "")
 
     def test_locked_violation_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.LOCKED
-        self.participant.violation_count = self.contest.max_cheat_warnings
+        self.participant.violation_count = 3
         self.participant.locked_at = timezone.now()
         self.participant.save()
 
@@ -1300,7 +1299,6 @@ class ScreenShareEventTests(APITestCase):
             owner=self.teacher,
             status="published",
             cheat_detection_enabled=True,
-            max_cheat_warnings=3,
         )
         self.participant = ContestParticipant.objects.create(
             contest=self.contest,

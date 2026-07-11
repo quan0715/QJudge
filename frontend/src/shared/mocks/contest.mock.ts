@@ -11,14 +11,12 @@ export const createMockContest = (
   status: "published",
   visibility: "public",
   attendanceCheckEnabled: false,
-  deliveryMode: "exam",
   organizer: "teacher",
   hasJoined: false,
   isRegistered: false,
   currentUserRole: "co_owner",
   participantCount: 30,
   contestType: "paper_exam",
-  countsTowardGrade: false,
   cheatDetectionEnabled: true,
   anticheatDevicePolicy: {
     desktop: {
@@ -54,7 +52,6 @@ export const createMockContest = (
   screenShareRecoveryGraceMs: 30000,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
-  maxCheatWarnings: 3,
   resultsPublished: false,
   examQuestionsCount: 10,
   isExamMonitored: true,

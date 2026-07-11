@@ -6,9 +6,7 @@ from typing import Any, Dict, Optional
 
 from django.db import transaction
 
-from django.utils import timezone
-
-from apps.contests.models import AssignmentState, Contest, ContestParticipant
+from apps.contests.models import Contest
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import CodingProblem
@@ -59,47 +57,8 @@ class SubmissionService:
 
         if result.source_type == "contest" and result.should_judge:
             cls._log_contest_activity(result, user)
-            cls._mark_practice_assignment_submitted(result.submission, user)
-
-        if (
-            result.source_type == "contest"
-            and not result.submission.is_test
-        ):
-            contest_obj = result.submission.contest
-            if contest_obj and not contest_obj.counts_toward_grade:
-                cls.cleanup_practice_submissions(
-                    user=user,
-                    problem=result.submission.problem,
-                    contest=contest_obj,
-                    current_submission=result.submission,
-                )
 
         return result.submission
-
-    @staticmethod
-    def cleanup_practice_submissions(
-        *,
-        user: User,
-        problem: CodingProblem,
-        contest: Contest,
-        current_submission: Submission,
-    ) -> int:
-        """
-        For pure-practice contests (counts_toward_grade=False), delete all
-        previous submissions for the same user+problem+contest, keeping only
-        current_submission. Returns the number of deleted rows.
-        """
-        if contest.counts_toward_grade:
-            return 0
-
-        qs = Submission.objects.filter(
-            user=user,
-            problem=problem,
-            contest=contest,
-            source_type="contest",
-        ).exclude(pk=current_submission.pk)
-        count, _ = qs.delete()
-        return count
 
     # ------------------------------------------------------------------
     # Submission creation (unchanged public contract for backward compat)
@@ -210,21 +169,6 @@ class SubmissionService:
             )
         except Exception:
             logger.debug("Failed to log contest activity", exc_info=True)
-
-    @staticmethod
-    def _mark_practice_assignment_submitted(submission: Submission, user: User) -> None:
-        contest = submission.contest
-        if not contest or contest.delivery_mode != "practice":
-            return
-        ContestParticipant.objects.filter(
-            contest=contest,
-            user=user,
-        ).update(assignment_state=AssignmentState.SUBMITTED)
-        ContestParticipant.objects.filter(
-            contest=contest,
-            user=user,
-            submitted_at__isnull=True,
-        ).update(submitted_at=timezone.now())
 
     @staticmethod
     def _check_keywords(

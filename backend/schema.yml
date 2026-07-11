@@ -1090,9 +1090,30 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/classrooms/{id}/add_members/:
+  /api/v1/classrooms/{id}/announcements/:
+    get:
+      operationId: v1_classrooms_announcements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassroomDetail'
+          description: ''
     post:
-      operationId: v1_classrooms_add_members_create
+      operationId: v1_classrooms_announcements_create
       parameters:
       - in: path
         name: id
@@ -1114,28 +1135,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ClassroomDetailRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/announcements/:
-    get:
-      operationId: v1_classrooms_announcements_retrieve
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -1185,9 +1184,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
-  /api/v1/classrooms/{id}/announcements/{ann_id}/delete/:
     delete:
-      operationId: v1_classrooms_announcements_delete_destroy
+      operationId: v1_classrooms_announcements_destroy
       parameters:
       - in: path
         name: ann_id
@@ -1237,74 +1235,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotifyAnnouncementResponse'
-          description: ''
-  /api/v1/classrooms/{id}/announcements/create/:
-    post:
-      operationId: v1_classrooms_announcements_create_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/bind_contest/:
-    post:
-      operationId: v1_classrooms_bind_contest_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
           description: ''
   /api/v1/classrooms/{id}/contests/:
     get:
@@ -1361,9 +1291,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
-  /api/v1/classrooms/{id}/labs/:
-    get:
-      operationId: v1_classrooms_labs_retrieve
+  /api/v1/classrooms/{id}/cover/:
+    post:
+      operationId: v1_classrooms_cover_create
+      description: Upload a cover image and store in S3, saving URL to cover_url.
       parameters:
       - in: path
         name: id
@@ -1373,6 +1304,15 @@ paths:
         required: true
       tags:
       - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ClassroomDetailRequest'
+        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -1383,8 +1323,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
+  /api/v1/classrooms/{id}/invite-code/:
     post:
-      operationId: v1_classrooms_labs_create
+      operationId: v1_classrooms_invite_code_create
       parameters:
       - in: path
         name: id
@@ -1406,102 +1347,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ClassroomDetailRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/labs/{lab_id}/:
-    get:
-      operationId: v1_classrooms_labs_retrieve_2
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      - in: path
-        name: lab_id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/labs/{lab_id}/accept/:
-    post:
-      operationId: v1_classrooms_labs_accept_create
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      - in: path
-        name: lab_id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/labs/{lab_id}/solve/:
-    get:
-      operationId: v1_classrooms_labs_solve_retrieve
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      - in: path
-        name: lab_id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -1534,9 +1379,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
-  /api/v1/classrooms/{id}/regenerate_code/:
     post:
-      operationId: v1_classrooms_regenerate_code_create
+      operationId: v1_classrooms_members_create
       parameters:
       - in: path
         name: id
@@ -1568,15 +1412,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
-  /api/v1/classrooms/{id}/remove_member/:
-    post:
-      operationId: v1_classrooms_remove_member_create
+  /api/v1/classrooms/{id}/members/{member_user_id}/:
+    patch:
+      operationId: v1_classrooms_members_partial_update
       parameters:
       - in: path
         name: id
         schema:
           type: string
           pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: member_user_id
+        schema:
+          type: string
+          pattern: ^\d+$
         required: true
       tags:
       - v1
@@ -1584,14 +1434,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
+              $ref: '#/components/schemas/PatchedClassroomDetailRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -1602,9 +1451,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ClassroomDetail'
           description: ''
-  /api/v1/classrooms/{id}/unbind_contest/:
-    post:
-      operationId: v1_classrooms_unbind_contest_create
+    delete:
+      operationId: v1_classrooms_members_destroy
       parameters:
       - in: path
         name: id
@@ -1612,96 +1460,20 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F-]{36}$
         required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/update_member_role/:
-    post:
-      operationId: v1_classrooms_update_member_role_create
-      parameters:
       - in: path
-        name: id
+        name: member_user_id
         schema:
           type: string
-          pattern: ^[0-9a-fA-F-]{36}$
+          pattern: ^\d+$
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
-  /api/v1/classrooms/{id}/upload_cover/:
-    post:
-      operationId: v1_classrooms_upload_cover_create
-      description: Upload a cover image and store in S3, saving URL to cover_url.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ClassroomDetailRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClassroomDetail'
-          description: ''
+        '204':
+          description: No response body
   /api/v1/contests/:
     get:
       operationId: v1_contests_list
@@ -7209,9 +6981,6 @@ components:
         contests:
           type: string
           readOnly: true
-        labs:
-          type: string
-          readOnly: true
         admins:
           type: string
           readOnly: true
@@ -7236,7 +7005,6 @@ components:
       - current_user_role
       - id
       - invite_code
-      - labs
       - member_count
       - members
       - name
@@ -7468,19 +7236,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -7507,10 +7262,6 @@ components:
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -7579,19 +7330,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -7618,10 +7356,6 @@ components:
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -7705,19 +7439,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -7784,25 +7505,12 @@ components:
         exam_status:
           type: string
           readOnly: true
-        assignment_state:
-          type: string
-          readOnly: true
-        accepted_at:
-          type: string
-          readOnly: true
-        submitted_at:
-          type: string
-          readOnly: true
         problems:
           type: string
           readOnly: true
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         participant_count:
           type: string
           readOnly: true
@@ -7845,9 +7553,7 @@ components:
           type: string
           readOnly: true
       required:
-      - accepted_at
       - admins
-      - assignment_state
       - attendance_status
       - bound_classroom_id
       - can_submit_exam
@@ -7874,7 +7580,6 @@ components:
       - rule
       - started_at
       - submit_reason
-      - submitted_at
       - updated_at
     ContestDetailRequest:
       type: object
@@ -7938,19 +7643,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -7977,10 +7669,6 @@ components:
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         results_published:
           type: boolean
           title: 成績已公布
@@ -8036,13 +7724,6 @@ components:
 
             * `room` - Room photo
             * `room_and_selfie` - Room and selfie photos
-        delivery_mode:
-          type: string
-          readOnly: true
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         owner_username:
           type: string
           readOnly: true
@@ -8073,7 +7754,6 @@ components:
       required:
       - attendance_status
       - created_at
-      - delivery_mode
       - id
       - is_registered
       - owner_username
@@ -8262,14 +7942,6 @@ components:
       - code
       - language
       - problem
-    DeliveryModeEnum:
-      enum:
-      - exam
-      - practice
-      type: string
-      description: |-
-        * `exam` - Exam
-        * `practice` - Practice
     EvidenceModeEnum:
       enum:
       - anchor_window
@@ -9086,19 +8758,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -9125,10 +8784,6 @@ components:
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         status:
           allOf:
           - $ref: '#/components/schemas/StatusDaeEnum'
@@ -9205,19 +8860,6 @@ components:
 
             * `coding` - Coding Test
             * `paper_exam` - Paper Exam
-        delivery_mode:
-          allOf:
-          - $ref: '#/components/schemas/DeliveryModeEnum'
-          title: 交付模式
-          description: |-
-            exam: 正式考試流程; practice: 教室練習/作業流程
-
-            * `exam` - Exam
-            * `practice` - Practice
-        counts_toward_grade:
-          type: boolean
-          title: 計入正式成績
-          description: 'True: 作業/考試（成績計入成績簿）; False: 純練習（僅保留最新提交、不計分）'
         cheat_detection_enabled:
           type: boolean
           title: 啟用防作弊模式
@@ -9244,10 +8886,6 @@ components:
         allow_multiple_joins:
           type: boolean
           title: 允許多次加入
-        max_cheat_warnings:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         results_published:
           type: boolean
           title: 成績已公布

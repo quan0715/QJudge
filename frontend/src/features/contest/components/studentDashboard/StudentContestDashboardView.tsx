@@ -226,7 +226,6 @@ export default function StudentContestDashboard({
     examStatus !== "not_started" ||
     !!contest.hasStarted ||
     !!contest.startedAt ||
-    !!contest.submittedAt ||
     contest.problems.some((problem) => !!problem.userStatus);
   const shouldLoadPaperData =
     contest.contestType === "paper_exam" &&

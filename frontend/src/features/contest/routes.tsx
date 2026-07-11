@@ -4,7 +4,6 @@ import RuntimeRouteWrapper from "./components/layout/RuntimeRouteWrapper";
 import { ContestProvider } from "./contexts/ContestContext";
 import ContestDashboardScreen from "./screens/ContestDashboardScreen";
 import ContestSolveScreen from "./screens/ContestSolveScreen";
-import ContestPracticeScreen from "./screens/ContestPracticeScreen";
 
 const AdminDashboardScreen = lazy(() => import("./screens/admin/AdminDashboardScreen"));
 const AttendanceProjectionScreen = lazy(() => import("./screens/admin/attendance/AttendanceProjectionScreen"));
@@ -76,20 +75,6 @@ export const classroomExamPreviewRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/exam-preview"
     element={<Suspense fallback={null}><StudentExamDemoScreen /></Suspense>}
-  />
-);
-
-/**
- * Classroom Practice — 獨立全頁面（同 /solve 但不記錄提交）
- */
-export const classroomPracticeRoute = (
-  <Route
-    path="/classrooms/:classroomId/contest/:contestId/practice"
-    element={
-      <ContestProvider>
-        <ContestPracticeScreen />
-      </ContestProvider>
-    }
   />
 );
 

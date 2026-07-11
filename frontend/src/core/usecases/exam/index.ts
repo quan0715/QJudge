@@ -2,4 +2,3 @@
 export * from "./enterExam.usecase";
 export * from "./leaveExam.usecase";
 export * from "./fullscreen.usecase";
-export * from "./recordViolation.usecase";

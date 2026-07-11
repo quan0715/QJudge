@@ -76,12 +76,40 @@ describe("contest mapper", () => {
   });
 
   describe("anti-cheat recovery grace mapping", () => {
+    it("drops retired contest delivery and warning fields", () => {
+      const result = mapContestDetailDto({
+        id: "contest-1",
+        name: "Exam",
+        delivery_mode: "practice",
+        counts_toward_grade: false,
+        max_cheat_warnings: 3,
+        assignment_state: "accepted",
+        accepted_at: "2026-07-11T09:00:00+08:00",
+        submitted_at: "2026-07-11T10:00:00+08:00",
+        permissions: {},
+        problems: [],
+      } as any);
+
+      expect(result).not.toHaveProperty("deliveryMode");
+      expect(result).not.toHaveProperty("countsTowardGrade");
+      expect(result).not.toHaveProperty("maxCheatWarnings");
+      expect(result).not.toHaveProperty("assignmentState");
+      expect(result).not.toHaveProperty("acceptedAt");
+      expect(result).not.toHaveProperty("submittedAt");
+
+      const updateDto = mapContestUpdateRequestToDto({
+        maxCheatWarnings: 3,
+        countsTowardGrade: false,
+      } as any);
+      expect(updateDto).not.toHaveProperty("max_cheat_warnings");
+      expect(updateDto).not.toHaveProperty("counts_toward_grade");
+    });
+
     it("maps contest detail screen share recovery grace from backend payload", () => {
       const result = mapContestDetailDto({
         id: "contest-1",
         name: "Exam",
         contest_type: "paper_exam",
-        delivery_mode: "exam",
         cheat_detection_enabled: true,
         anticheat_device_policy: {},
         warning_timeout_seconds: 20,
@@ -126,7 +154,6 @@ describe("contest mapper", () => {
         contest_settings: {
           cheat_detection_enabled: true,
           allow_multiple_joins: true,
-          max_cheat_warnings: 3,
           contest_type: "paper_exam",
           warning_timeout_seconds: 20,
           screen_share_recovery_grace_ms: 45000,
@@ -151,7 +178,6 @@ describe("contest mapper", () => {
           presigned_url_ttl_seconds: 300,
           cheat_detection_enabled: true,
           allow_multiple_joins: true,
-          max_cheat_warnings: 3,
           contest_type: "paper_exam",
           warning_timeout_seconds: 20,
           anticheat_device_policy: {},

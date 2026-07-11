@@ -302,7 +302,7 @@ def test_regenerate_code_requires_owner_or_admin(
     api_client.force_authenticate(user=student_user)
     ClassroomMember.objects.create(classroom=classroom, user=student_user, role="student")
     response = api_client.post(
-        f"/api/v1/classrooms/{classroom.uuid}/regenerate_code/",
+        f"/api/v1/classrooms/{classroom.uuid}/invite-code/",
         format="json",
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -310,7 +310,7 @@ def test_regenerate_code_requires_owner_or_admin(
     api_client.force_authenticate(user=classroom_owner)
     old_code = classroom.invite_code
     response = api_client.post(
-        f"/api/v1/classrooms/{classroom.uuid}/regenerate_code/",
+        f"/api/v1/classrooms/{classroom.uuid}/invite-code/",
         format="json",
     )
     assert response.status_code == status.HTTP_200_OK

@@ -1,12 +1,19 @@
 import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
-import type { BoundContest, Classroom, ClassroomDetail } from "@/core/entities/classroom.entity";
+import type {
+  BoundContest,
+  Classroom,
+  ClassroomAnnouncement,
+  ClassroomDetail,
+} from "@/core/entities/classroom.entity";
 import {
+  mapClassroomAnnouncementDto,
   mapBoundContestDto,
   mapClassroomDto,
   mapClassroomDetailDto,
 } from "@/infrastructure/mappers/classroom.mapper";
 import type {
   BoundContestDto,
+  ClassroomAnnouncementDto,
   ClassroomDto,
   ClassroomDetailDto,
 } from "@/infrastructure/api/dto/classroom.dto";
@@ -52,30 +59,44 @@ export const deleteClassroom = async (id: string): Promise<void> => {
   await ensureOk(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
 };
 
-export const regenerateCode = async (id: string): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${id}/regenerate_code/`),
+export interface RegenerateInviteCodeResponse {
+  invite_code: string;
+}
+
+export interface AddClassroomMembersResponse {
+  added: string[];
+  already_exists: string[];
+  not_found: string[];
+}
+
+export interface UpdateMemberRoleResponse {
+  detail: string;
+}
+
+export const regenerateCode = async (id: string): Promise<RegenerateInviteCodeResponse> => {
+  return requestJson<RegenerateInviteCodeResponse>(
+    httpClient.post(`/api/v1/classrooms/${id}/invite-code/`),
     "Failed to regenerate code"
   );
 };
 
-export const addMembers = async (id: string, usernames: string[]): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${id}/add_members/`, { usernames }),
+export const addMembers = async (id: string, usernames: string[]): Promise<AddClassroomMembersResponse> => {
+  return requestJson<AddClassroomMembersResponse>(
+    httpClient.post(`/api/v1/classrooms/${id}/members/`, { usernames }),
     "Failed to add members"
   );
 };
 
 export const removeMember = async (classroomId: string, userId: number): Promise<void> => {
   await ensureOk(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/remove_member/`, { user_id: userId }),
+    httpClient.delete(`/api/v1/classrooms/${classroomId}/members/${userId}/`),
     "Failed to remove member"
   );
 };
 
-export const updateMemberRole = async (classroomId: string, userId: number, role: string): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/update_member_role/`, { user_id: userId, role }),
+export const updateMemberRole = async (classroomId: string, userId: number, role: string): Promise<UpdateMemberRoleResponse> => {
+  return requestJson<UpdateMemberRoleResponse>(
+    httpClient.patch(`/api/v1/classrooms/${classroomId}/members/${userId}/`, { role }),
     "Failed to update member role"
   );
 };
@@ -84,7 +105,7 @@ export const uploadClassroomCover = async (id: string, file: File): Promise<stri
   const formData = new FormData();
   formData.append("file", file);
   const data = await requestJson<{ cover_url: string }>(
-    httpClient.request(`/api/v1/classrooms/${id}/upload_cover/`, {
+    httpClient.request(`/api/v1/classrooms/${id}/cover/`, {
       method: "POST",
       body: formData,
     }),
@@ -94,55 +115,40 @@ export const uploadClassroomCover = async (id: string, file: File): Promise<stri
 };
 
 // Announcement operations
-export const getAnnouncements = async (classroomId: string): Promise<any[]> => {
-  return requestJson<any[]>(httpClient.get(`/api/v1/classrooms/${classroomId}/announcements/`));
+export const getAnnouncements = async (classroomId: string): Promise<ClassroomAnnouncement[]> => {
+  const data = await requestJson<ClassroomAnnouncementDto[]>(
+    httpClient.get(`/api/v1/classrooms/${classroomId}/announcements/`)
+  );
+  return data.map(mapClassroomAnnouncementDto);
 };
 
-export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<any> => {
-  return requestJson<any>(
-    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/create/`, data),
+export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<ClassroomAnnouncement> => {
+  const responseData = await requestJson<ClassroomAnnouncementDto>(
+    httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
     "Failed to create announcement"
   );
+  return mapClassroomAnnouncementDto(responseData);
 };
 
-export const updateAnnouncement = async (classroomId: string, announcementId: string, data: { title?: string; content?: string; is_pinned?: boolean }): Promise<any> => {
-  return requestJson<any>(
+export const updateAnnouncement = async (classroomId: string, announcementId: string, data: { title?: string; content?: string; is_pinned?: boolean }): Promise<ClassroomAnnouncement> => {
+  const responseData = await requestJson<ClassroomAnnouncementDto>(
     httpClient.patch(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/`, data),
     "Failed to update announcement"
   );
+  return mapClassroomAnnouncementDto(responseData);
 };
 
 export const deleteAnnouncement = async (classroomId: string, announcementId: string): Promise<void> => {
   await ensureOk(
-    httpClient.delete(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/delete/`),
+    httpClient.delete(`/api/v1/classrooms/${classroomId}/announcements/${announcementId}/`),
     "Failed to delete announcement"
   );
 };
 
-// Lab operations
-export const getClassroomLabs = async (id: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/labs/`));
-};
-
-export const createClassroomLab = async (id: string, data: any): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${id}/labs/`, data));
-};
-
-export const getClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/`));
-};
-
-export const acceptClassroomLab = async (classroomId: string, labId: string): Promise<any> => {
-  return requestJson<any>(httpClient.post(`/api/v1/classrooms/${classroomId}/labs/${labId}/accept/`));
-};
-
-export const getClassroomLabSolve = async (classroomId: string, labId: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${classroomId}/labs/${labId}/solve/`));
-};
-
 // Contest operations
-export const getClassroomContests = async (id: string): Promise<any> => {
-  return requestJson<any>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
+export const getClassroomContests = async (id: string): Promise<BoundContest[]> => {
+  const data = await requestJson<BoundContestDto[]>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
+  return data.map(mapBoundContestDto);
 };
 
 export const createClassroomContest = async (
@@ -185,11 +191,6 @@ export const classroomRepository = {
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
-  getClassroomLabs,
-  createClassroomLab,
-  getClassroomLab,
-  acceptClassroomLab,
-  getClassroomLabSolve,
   getClassroomContests,
   createClassroomContest,
 };

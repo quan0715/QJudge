@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import { useParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { Button } from "@carbon/react";
-import { Add, Close, Menu, View } from "@carbon/icons-react";
+import { Add, Close, Menu } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   ContestDetail,
@@ -89,11 +88,9 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   contest,
 }) => {
   const { t } = useTranslation("contest");
-  const { classroomId } = useParams<{ classroomId?: string }>();
   const { showToast } = useToast();
   const { refreshContest, loading: contestLoading } = useContest();
   const listSave = useToolbarSaveStatus();
-  const effectiveClassroomId = classroomId || contest.boundClassroomId || undefined;
   const { right } = useWorkspace();
   const workspaceChatOpen = right.isOpen;
   /** When AI chat sidebar is open, default both side panels collapsed to save horizontal space. */
@@ -430,37 +427,20 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
               </div>
             )}
             actions={
-              <>
-                {effectiveClassroomId && (
-                  <Button
-                    kind="ghost"
-                    size="md"
-                    hasIconOnly
-                    renderIcon={View}
-                    iconDescription={t("examEditor.preview", "預覽")}
-                    onClick={() =>
-                      window.open(
-                        `/classrooms/${effectiveClassroomId}/contest/${contestId}/practice`,
-                        "_blank",
-                      )
-                    }
-                  />
+              <Button
+                kind="primary"
+                size="md"
+                hasIconOnly
+                data-testid="contest-editor-open-source"
+                renderIcon={sourcePanelOpen ? Close : Add}
+                iconDescription={t(
+                  sourcePanelOpen
+                    ? "examEditor.collapseSourcePanel"
+                    : "examEditor.openSourcePanel",
+                  sourcePanelOpen ? "收起題目來源" : "開啟題目來源"
                 )}
-                <Button
-                  kind="primary"
-                  size="md"
-                  hasIconOnly
-                  data-testid="contest-editor-open-source"
-                  renderIcon={sourcePanelOpen ? Close : Add}
-                  iconDescription={t(
-                    sourcePanelOpen
-                      ? "examEditor.collapseSourcePanel"
-                      : "examEditor.openSourcePanel",
-                    sourcePanelOpen ? "收起題目來源" : "開啟題目來源"
-                  )}
-                  onClick={toggleSourcePanel}
-                />
-              </>
+                onClick={toggleSourcePanel}
+              />
             }
           />
         }

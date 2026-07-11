@@ -6,15 +6,13 @@ import pytest
 
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.classrooms.services import (
-    accept_classroom_lab,
     add_classroom_members,
     create_classroom_contest,
-    create_classroom_lab,
     generate_invite_code,
     on_member_joined,
     sync_classroom_participants,
 )
-from apps.contests.models import AssignmentState, Contest, ContestParticipant, ExamStatus
+from apps.contests.models import Contest, ContestParticipant
 from apps.users.models import User
 
 
@@ -167,71 +165,11 @@ def test_create_classroom_contest_binds_and_registers_members(
 
     assert result.binding.classroom == classroom
     assert result.binding.contest.name == "Midterm"
-    assert result.binding.contest.delivery_mode == "exam"
     assert result.registered_count == 1
     assert ContestParticipant.objects.filter(
         contest=result.binding.contest,
         user=student_a,
     ).exists()
-
-
-@pytest.mark.django_db
-def test_create_classroom_lab_uses_practice_defaults(
-    classroom: Classroom,
-    owner: User,
-    student_a: User,
-) -> None:
-    ClassroomMember.objects.create(classroom=classroom, user=student_a, role="student")
-
-    result = create_classroom_lab(
-        classroom,
-        actor=owner,
-        data={
-            "name": "Lab 1",
-            "description": "",
-            "contest_type": "coding",
-            "start_time": None,
-            "end_time": None,
-            "results_published": False,
-        },
-    )
-
-    participant = ContestParticipant.objects.get(
-        contest=result.binding.contest,
-        user=student_a,
-    )
-    assert result.binding.contest.delivery_mode == "practice"
-    assert result.binding.contest.visibility == "private"
-    assert participant.assignment_state == AssignmentState.UNACCEPTED
-
-
-@pytest.mark.django_db
-def test_accept_classroom_lab_moves_participant_to_accepted(
-    classroom: Classroom,
-    published_contest: Contest,
-    student_a: User,
-) -> None:
-    published_contest.delivery_mode = "practice"
-    published_contest.contest_type = "paper_exam"
-    published_contest.save(update_fields=["delivery_mode", "contest_type"])
-    binding = ClassroomContest.objects.create(
-        classroom=classroom,
-        contest=published_contest,
-    )
-    participant = ContestParticipant.objects.create(
-        contest=published_contest,
-        user=student_a,
-        assignment_state=AssignmentState.UNACCEPTED,
-    )
-
-    accepted = accept_classroom_lab(binding, student_a)
-
-    assert accepted is not None
-    participant.refresh_from_db()
-    assert participant.assignment_state == AssignmentState.ACCEPTED
-    assert participant.accepted_at is not None
-    assert participant.started_at is not None
-    assert participant.exam_status == ExamStatus.IN_PROGRESS
 
 
 @pytest.mark.django_db

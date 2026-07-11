@@ -1,5 +1,3 @@
-import type { ContestDetail } from "./contest.entity";
-
 export type ClassroomScopeRole =
   | "platform_admin"
   | "owner"
@@ -36,7 +34,6 @@ export interface BoundContest {
   contestVisibility: "public" | "private";
   attendanceCheckEnabled?: boolean;
   contestType: "coding" | "paper_exam";
-  deliveryMode: "practice" | "exam";
   contestStartTime: string;
   contestEndTime: string;
   contestOwnerUsername: string;
@@ -57,40 +54,6 @@ export function getBoundContestTimeRange(contest: BoundContest): {
   };
 }
 
-export type ClassroomLabType = "coding" | "paper_exam";
-export type ClassroomLabAssignmentState =
-  | "unaccepted"
-  | "accepted"
-  | "submitted";
-
-export interface ClassroomLabSummary {
-  labId: string;
-  name: string;
-  description: string;
-  status: "draft" | "published" | "archived";
-  visibility: "public" | "private";
-  attendanceCheckEnabled?: boolean;
-  contestType: ClassroomLabType;
-  deliveryMode: "practice" | "exam";
-  startTime: string;
-  endTime: string;
-  resultsPublished: boolean;
-  assignmentState: ClassroomLabAssignmentState | null;
-  acceptedAt?: string | null;
-  submittedAt?: string | null;
-  participantCount: number;
-  assignmentCounts: {
-    unaccepted: number;
-    accepted: number;
-    submitted: number;
-  };
-  boundAt: string;
-}
-
-export interface ClassroomLabDetail extends ClassroomLabSummary {
-  contest: ContestDetail;
-}
-
 export interface ClassroomAnnouncement {
   id: string;
   title: string;
@@ -106,7 +69,6 @@ export interface ClassroomDetail extends Classroom {
   inviteCodeEnabled: boolean;
   members: ClassroomMember[];
   contests: BoundContest[];
-  labs: ClassroomLabSummary[];
   admins: { id: number; username: string }[];
   announcements: ClassroomAnnouncement[];
   updatedAt: string;

@@ -13,7 +13,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from ..access_policy import ContestAccessPolicy
 from ..models import (
-    AssignmentState,
     Contest,
     ContestParticipant,
     ExamEvent,
@@ -195,13 +194,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         participant, created = ContestParticipant.objects.get_or_create(
             contest=contest,
             user=user,
-            defaults={
-                "assignment_state": (
-                    AssignmentState.UNACCEPTED
-                    if contest.delivery_mode == "practice"
-                    else AssignmentState.ACCEPTED
-                ),
-            },
         )
         return participant, created, None
 

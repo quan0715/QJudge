@@ -17,7 +17,6 @@ from .models import (
     ExamEvidenceFrame,
     ContestActivity,
     ExamStatus,
-    AssignmentState,
     ExamAnswer,
 )
 from django.db.models import Sum
@@ -46,7 +45,6 @@ class ContestListSerializer(serializers.ModelSerializer):
     question_edit_locked_at = serializers.DateTimeField(read_only=True)
     question_edit_lock_trigger = serializers.CharField(read_only=True)
     attendance_status = serializers.SerializerMethodField()
-    delivery_mode = serializers.CharField(read_only=True)
     
     class Meta:
         model = Contest
@@ -59,8 +57,6 @@ class ContestListSerializer(serializers.ModelSerializer):
             'visibility',
             'attendance_check_enabled',
             'attendance_photo_policy',
-            'delivery_mode',
-            'counts_toward_grade',
             'owner_username',
             'participant_count',
             'is_registered',
@@ -107,9 +103,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     lock_reason = serializers.SerializerMethodField()
     submit_reason = serializers.SerializerMethodField()
     exam_status = serializers.SerializerMethodField()
-    assignment_state = serializers.SerializerMethodField()
-    accepted_at = serializers.SerializerMethodField()
-    submitted_at = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     admins = serializers.SerializerMethodField()
@@ -143,8 +136,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'attendance_check_enabled',
             'attendance_photo_policy',
             'contest_type',
-            'delivery_mode',
-            'counts_toward_grade',
             'cheat_detection_enabled',
             'anticheat_device_policy',
             'warning_timeout_seconds',
@@ -164,12 +155,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'lock_reason',
             'submit_reason',
             'exam_status',
-            'assignment_state',
-            'accepted_at',
-            'submitted_at',
             'problems',
             'allow_multiple_joins',
-            'max_cheat_warnings',
             'participant_count',
             'admins',
             'is_classroom_bound',
@@ -223,22 +210,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         registration = self._get_current_registration(obj)
         return registration.submit_reason if registration else None
 
-    def get_assignment_state(self, obj):
-        registration = self._get_current_registration(obj)
-        if not registration:
-            return None
-        if obj.delivery_mode != 'practice':
-            return AssignmentState.ACCEPTED
-        return registration.assignment_state
-
-    def get_accepted_at(self, obj):
-        registration = self._get_current_registration(obj)
-        return registration.accepted_at if registration else None
-
-    def get_submitted_at(self, obj):
-        registration = self._get_current_registration(obj)
-        return registration.submitted_at if registration else None
-    
     def get_current_user_role(self, obj):
         """Get user's role in this contest."""
         user = self._get_request_user()
@@ -395,15 +366,12 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'attendance_check_enabled',
             'attendance_photo_policy',
             'contest_type',
-            'delivery_mode',
-            'counts_toward_grade',
             'cheat_detection_enabled',
             'anticheat_device_policy',
             'warning_timeout_seconds',
             'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
-            'max_cheat_warnings',
             'status',
             'results_published',
         ]

@@ -53,7 +53,7 @@ describe("classroom repository integration", () => {
     expect(detail?.description).toBe("Test Description");
   });
 
-  it("adds a member and updates role via update_member_role", async () => {
+  it("adds a member and updates role via member detail", async () => {
     const name = `Role API Test Classroom ${Date.now()}`;
     const created = await createClassroom({ name, description: "Role test" });
     expect(created.id).toBeDefined();

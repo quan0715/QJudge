@@ -4,7 +4,6 @@ import type {
   ContestStatus,
   ContestVisibility,
   ContestType,
-  ContestDeliveryMode,
   ExamStatusType,
   ExamQuestionAnswerFormat,
   ExamQuestionScorePolicy,
@@ -97,8 +96,6 @@ export interface ContestDto {
   visibility?: ContestVisibility;
   attendance_check_enabled?: boolean;
   attendance_photo_policy?: "room" | "room_and_selfie";
-  delivery_mode?: ContestDeliveryMode;
-  counts_toward_grade?: boolean;
   has_joined?: boolean;
   is_registered?: boolean;
   current_user_role?: ContestScopeRole;
@@ -149,7 +146,6 @@ export interface ContestDetailDto extends ContestDto {
   screen_share_recovery_grace_ms?: number;
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
-  max_cheat_warnings?: number;
   results_published?: boolean;
   question_edit_locked?: boolean;
   question_edit_locked_at?: string | null;
@@ -162,9 +158,6 @@ export interface ContestDetailDto extends ContestDto {
   lock_reason?: string;
   submit_reason?: string;
   exam_status?: ExamStatusType;
-  assignment_state?: string | null;
-  accepted_at?: string | null;
-  submitted_at?: string | null;
   is_exam_monitored?: boolean;
   requires_fullscreen?: boolean;
   can_submit_exam?: boolean;

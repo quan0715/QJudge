@@ -3,16 +3,6 @@
 from apps.classrooms.models import Classroom
 
 
-def _assignment_state_for_contest(contest):
-    from apps.contests.models import AssignmentState
-
-    return (
-        AssignmentState.UNACCEPTED
-        if contest.delivery_mode == "practice"
-        else AssignmentState.ACCEPTED
-    )
-
-
 def sync_classroom_participants(classroom: Classroom, contest) -> int:
     """
     When a contest is bound to a classroom, bulk-register classroom members.
@@ -35,7 +25,6 @@ def sync_classroom_participants(classroom: Classroom, contest) -> int:
         ContestParticipant(
             contest=contest,
             user_id=uid,
-            assignment_state=_assignment_state_for_contest(contest),
         )
         for uid in member_user_ids
         if uid not in existing
@@ -72,7 +61,6 @@ def on_member_joined(classroom: Classroom, user) -> int:
                 ContestParticipant(
                     contest=binding.contest,
                     user=user,
-                    assignment_state=_assignment_state_for_contest(binding.contest),
                 )
             )
     if new_participants:

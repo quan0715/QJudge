@@ -6,7 +6,6 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.contests.models import (
-    AssignmentState,
     ContestParticipant,
     ExamAnswer,
     ExamEvent,
@@ -179,7 +178,6 @@ def reset_participant_exam_record(
         event_qs.delete()
 
         participant.exam_status = ExamStatus.NOT_STARTED
-        participant.assignment_state = AssignmentState.ACCEPTED
         participant.score = 0
         participant.rank = None
         participant.started_at = None
@@ -188,11 +186,9 @@ def reset_participant_exam_record(
         participant.lock_reason = ""
         participant.violation_count = 0
         participant.submit_reason = ""
-        participant.submitted_at = None
         participant.save(
             update_fields=[
                 "exam_status",
-                "assignment_state",
                 "score",
                 "rank",
                 "started_at",
@@ -201,7 +197,6 @@ def reset_participant_exam_record(
                 "lock_reason",
                 "violation_count",
                 "submit_reason",
-                "submitted_at",
             ]
         )
 

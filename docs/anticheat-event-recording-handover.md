@@ -1,7 +1,7 @@
 # Anti-cheat 核心事件紀錄系統接手導讀
 
 **Status:** handover draft
-**Last reviewed:** 2026-07-06
+**Last reviewed:** 2026-07-11
 **Audience:** 第一次接手 QJudge 防作弊事件紀錄系統的工程師
 **Related docs:** `docs/anticheat-architecture.md`、`docs/anticheat-model-design.md`
 
@@ -366,6 +366,121 @@ flowchart TD
 
 這個判斷會影響某些事件是否需要 recheck pause。例如 `webcam_stopped` 如果只是 desktop 的 secondary source，不一定等同主監控來源中斷；如果是 tablet 的 primary source，語意就比較嚴重。
 
+### 5.10 前端、後端與 Redis 的完整時序
+
+以下三張圖分別描述一般事件、heartbeat timeout 與證據上傳。圖中的 PostgreSQL 是永久稽核面；Redis 是可過期的即時控制面，不能當成歷史事件來源。
+
+#### 5.10.1 一般監控事件
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as "Browser detector"
+    participant F as "Frontend pipeline"
+    participant A as "Exam event API"
+    participant R as "Redis"
+    participant P as "PostgreSQL"
+    participant C as "Capture handlers"
+
+    D->>F: 發出 triggered / escalated / restored signal
+    F->>F: violationRoutes + orchestrator<br/>phase、priority、前端 dedupe
+    F->>A: POST /exam/events/<br/>event_type、metadata、idempotency key、anchor time
+    A->>A: 權限、participant state、active device、serializer 驗證
+    A->>R: SET heartbeat timestamp
+    A->>R: SETNX event idempotency key
+    alt 同一請求已處理
+        R-->>A: duplicate
+        A->>P: 查既有 ExamEvent（有 token 時）
+        A-->>F: decision=dedupe_hit + 原 event context
+    else 新事件
+        opt penalized event 有 incident family
+            A->>R: SETNX incident-family key
+            R-->>A: new 或 family duplicate
+        end
+        A->>P: transaction: 建立 ExamEvent、evidence window<br/>必要時鎖 ContestParticipant 並更新狀態
+        P-->>A: event_id、participant state、evidence context
+        A-->>F: accepted / terminal_guard response
+        F->>C: event_id 存在時非同步 force capture
+    end
+```
+
+關鍵不變量：
+
+- 前端 dedupe 只減少噪音；後端 Redis idempotency 與 incident-family guard 才是裁決層。
+- `ExamEvent` 與 penalized participant update 在同一個 transaction；Redis key 不屬於該 transaction，故 Redis 只能當 guard，不能證明事件已永久保存。
+- forced capture 必須先取得後端 `event_id` 與 evidence window，之後才上傳影格。capture 失敗不會回滾已建立的事件。
+
+#### 5.10.2 Heartbeat 與 timeout
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant F as "useExamHeartbeat"
+    participant A as "Exam event API"
+    participant R as "Redis"
+    participant B as "Celery Beat / worker"
+    participant P as "PostgreSQL"
+
+    F->>A: 進入 monitored state 後立即 POST heartbeat
+    A->>A: 驗證 active device 與 participant state
+    A->>R: SET exam:heartbeat:{contest}:{user}<br/>ISO timestamp + TTL
+    A-->>F: decision=heartbeat（不建立 ExamEvent）
+    loop 每 15 秒
+        F->>A: POST heartbeat
+        A->>R: 更新 timestamp 與 TTL
+        A-->>F: heartbeat ack
+    end
+
+    loop 每 30 秒
+        B->>P: 查 published、未結束、in_progress participants
+        P-->>B: active participant rows
+        B->>R: GET last heartbeat
+        alt 距最後 heartbeat 超過 60 秒<br/>或 started_at 已超過 60 秒且從未有 heartbeat
+            B->>R: SETNX hb_lock:{participant_id}，TTL 90 秒
+            R-->>B: lock acquired
+            B->>P: 建立 heartbeat_timeout ExamEvent<br/>附 evidence window，更新 participant 為 paused/recheck
+        else 尚未逾時
+            B-->>B: 不處理
+        end
+    end
+```
+
+由於 timeout 是 60 秒、掃描週期是 30 秒，正常情況下偵測延遲約為最後 heartbeat 後 60 至 90 秒。這是刻意避免短暫網路抖動的取捨，不應把 heartbeat interval、timeout 與 worker schedule 當成互不相關的三個設定。
+
+#### 5.10.3 事件證據上傳與監考查閱
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant F as "Frontend evidence pipeline"
+    participant A as "Evidence API"
+    participant P as "PostgreSQL"
+    participant O as "Object storage"
+    participant T as "TA / proctor UI"
+
+    F->>F: 從 screen/webcam ring buffer 選取 event window frames
+    F->>A: POST /evidence/upload-intents/<br/>event_id、cluster、module、mode、frame timestamps
+    A->>P: 驗證 ExamEvent ownership 與 evidence metadata
+    A->>P: transaction: 建立 status=issued manifests
+    A-->>F: evidence_frame_id、object_key、presigned PUT
+    loop 每個 frame
+        F->>O: PUT image/webp bytes
+        O-->>F: upload result
+    end
+    F->>A: POST /evidence/upload-confirm/<br/>frame ids + upload session
+    A->>O: HEAD object，驗證存在、content type、size
+    O-->>A: object facts
+    A->>P: transaction: issued -> uploaded，保存 storage facts
+    A-->>F: confirmed frame ids
+
+    T->>A: GET /exam/screenshots/?user_id=...&event_id=...
+    A->>P: 查 anchor event 與 uploaded manifests
+    A->>O: 產生 presigned GET URLs
+    A-->>T: frame metadata + 短效 GET URLs
+```
+
+這條 pipeline 故意不讓 API server 代理圖片 bytes。可擴充性來自「manifest 與 storage adapter 分離」：新增 S3-compatible provider 時，事件模型和監考查詢契約不需要改；但 `issued` 後未 confirm 的 manifest 必須靠清理與監控處理，否則會形成懸置紀錄。
+
 ---
 
 ## 6. Dedupe 與 idempotency 的差異
@@ -691,7 +806,7 @@ metadata 會包含：
 4. 清 heartbeat。
 5. 清 JTI pin。
 
-`finalize_submission()` 會把 participant 轉成 `submitted`，設定 `left_at`、`submitted_at`、`submit_reason`，並清 active session 與 allowed JTI。
+`finalize_submission()` 會把 participant 轉成 `submitted`，設定 `left_at`、`submit_reason`，並清 active session 與 allowed JTI。提交時間以 `left_at` 表示，不再另外保存一份可與它矛盾的 `submitted_at`。
 
 ---
 

@@ -30,17 +30,16 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const usePaperExamFlow = () => {
-  const { contestId, labId } = useParams<{ contestId?: string; labId?: string }>();
-  const resolvedContestId = contestId || labId;
+  const { contestId } = useParams<{ contestId?: string }>();
   const { contest, refreshContest, loading: contextLoading } = useContest();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const guardContestId = (): string => {
-    if (!resolvedContestId) {
+    if (!contestId) {
       throw new Error("Contest ID is missing");
     }
-    return resolvedContestId;
+    return contestId;
   };
 
   const clearError = () => setError(null);
@@ -142,7 +141,7 @@ export const usePaperExamFlow = () => {
   };
 
   return {
-    contestId: resolvedContestId,
+    contestId,
     contest,
     loading: loading || contextLoading,
     error,

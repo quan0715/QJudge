@@ -3,7 +3,6 @@ import type {
   ClassroomDetail,
   ClassroomMember,
   ClassroomAnnouncement,
-  ClassroomLabSummary,
   BoundContest,
 } from "@/core/entities/classroom.entity";
 import type {
@@ -11,7 +10,6 @@ import type {
   ClassroomDetailDto,
   ClassroomMemberDto,
   ClassroomAnnouncementDto,
-  ClassroomLabSummaryDto,
   BoundContestDto,
 } from "@/infrastructure/api/dto/classroom.dto";
 
@@ -62,34 +60,11 @@ export function mapBoundContestDto(dto: BoundContestDto): BoundContest {
     contestVisibility: dto.contest_visibility,
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
     contestType: dto.contest_type,
-    deliveryMode: dto.delivery_mode,
     contestStartTime: dto.contest_start_time,
     contestEndTime: dto.contest_end_time,
     contestOwnerUsername: dto.contest_owner_username,
     resultsPublished: !!dto.results_published,
     participantCount: dto.participant_count || 0,
-    boundAt: dto.bound_at,
-  };
-}
-
-export function mapClassroomLabSummaryDto(dto: ClassroomLabSummaryDto): ClassroomLabSummary {
-  return {
-    labId: dto.lab_id,
-    name: dto.name,
-    description: dto.description || "",
-    status: dto.status || "draft",
-    visibility: dto.visibility || "public",
-    attendanceCheckEnabled: !!dto.attendance_check_enabled,
-    contestType: dto.contest_type,
-    deliveryMode: dto.delivery_mode,
-    startTime: dto.start_time,
-    endTime: dto.end_time,
-    resultsPublished: !!dto.results_published,
-    assignmentState: dto.assignment_state as any || null,
-    acceptedAt: dto.accepted_at,
-    submittedAt: dto.submitted_at,
-    participantCount: dto.participant_count || 0,
-    assignmentCounts: dto.assignment_counts || { unaccepted: 0, accepted: 0, submitted: 0 },
     boundAt: dto.bound_at,
   };
 }
@@ -102,7 +77,6 @@ export function mapClassroomDetailDto(dto: ClassroomDetailDto): ClassroomDetail 
     inviteCodeEnabled: !!dto.invite_code_enabled,
     members: Array.isArray(dto.members) ? dto.members.map(mapClassroomMemberDto) : [],
     contests: Array.isArray(dto.contests) ? dto.contests.map(mapBoundContestDto) : [],
-    labs: Array.isArray(dto.labs) ? dto.labs.map(mapClassroomLabSummaryDto) : [],
     admins: Array.isArray(dto.admins) ? dto.admins : [],
     announcements: Array.isArray(dto.announcements) ? dto.announcements.map(mapClassroomAnnouncementDto) : [],
     updatedAt: dto.updated_at,

@@ -84,7 +84,6 @@ export const TEST_CONTESTS = {
     description: "考試模式 E2E 測試用",
     cheatDetectionEnabled: true,
     contestType: "paper_exam" as const,
-    maxCheatWarnings: 2,
   },
   /** 草稿程式競賽（種子空列表，供題目編輯 E2E） */
   draftCodingEditor: {

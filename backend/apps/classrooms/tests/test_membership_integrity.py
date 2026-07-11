@@ -66,7 +66,7 @@ def test_add_members_skips_owner_and_admin_membership_rows(
     api_client.force_authenticate(user=classroom_owner)
 
     response = api_client.post(
-        f"/api/v1/classrooms/{classroom.uuid}/add_members/",
+        f"/api/v1/classrooms/{classroom.uuid}/members/",
         {
             "usernames": [
                 classroom_owner.username,
@@ -109,7 +109,7 @@ def test_add_members_accepts_email_and_unicode_or_underscore_usernames(
 
     api_client.force_authenticate(user=classroom_owner)
     response = api_client.post(
-        f"/api/v1/classrooms/{classroom.uuid}/add_members/",
+        f"/api/v1/classrooms/{classroom.uuid}/members/",
         {
             "usernames": [
                 unicode_user.username,

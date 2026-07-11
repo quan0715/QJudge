@@ -167,7 +167,6 @@ class ExamLifecycleMixin:
                 'exam_status': ExamStatus.SUBMITTED,
                 'submit_reason': participant.submit_reason,
                 'violation_count': participant.violation_count,
-                'max_cheat_warnings': contest.max_cheat_warnings,
                 'already_submitted': True,
             })
 
@@ -222,7 +221,6 @@ class ExamLifecycleMixin:
             'exam_status': ExamStatus.SUBMITTED,
             'submit_reason': submit_reason,
             'violation_count': participant.violation_count,
-            'max_cheat_warnings': contest.max_cheat_warnings,
             'already_submitted': False,
         })
 

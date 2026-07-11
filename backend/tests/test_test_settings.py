@@ -69,3 +69,16 @@ def test_test_settings_bypass_pgbouncer_for_database_creation(monkeypatch):
     database = settings_module.DATABASES["default"]
 
     assert database["HOST"] == "postgres"
+
+
+def test_test_settings_default_to_local_test_compose_database(monkeypatch):
+    with patch("os.path.exists", return_value=False):
+        settings_module = load_test_settings(monkeypatch)
+
+    database = settings_module.DATABASES["default"]
+
+    assert database["HOST"] == "localhost"
+    assert database["NAME"] == "test_oj_e2e"
+    assert database["USER"] == "oj_user"
+    assert database["PASSWORD"] == "oj_password"
+    assert database["PORT"] == "5433"

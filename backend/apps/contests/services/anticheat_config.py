@@ -146,7 +146,6 @@ def build_contest_anticheat_config(contest) -> dict:
     contest_settings = {
         "cheat_detection_enabled": bool(contest.cheat_detection_enabled),
         "allow_multiple_joins": bool(contest.allow_multiple_joins),
-        "max_cheat_warnings": int(contest.max_cheat_warnings or 0),
         "contest_type": str(contest.contest_type or "coding"),
         "warning_timeout_seconds": max(1, int(contest.warning_timeout_seconds or 20)),
         "screen_share_recovery_grace_ms": SCREEN_SHARE_RECOVERY_GRACE_MS,
@@ -228,10 +227,6 @@ def build_contest_anticheat_config(contest) -> dict:
             {
                 "key": "allow_multiple_joins",
                 "description": "Allow re-entry after leaving/submitting",
-            },
-            {
-                "key": "max_cheat_warnings",
-                "description": "Violation threshold before lock/escalation",
             },
             {
                 "key": "warning_timeout_seconds",
