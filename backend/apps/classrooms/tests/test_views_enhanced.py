@@ -75,24 +75,29 @@ class ClassroomViewsEnhancedTests(APITestCase):
         """Test adding, removing, and updating member roles"""
         self.client.force_authenticate(user=self.teacher)
         
-        # Add member (Use 'usernames' instead of 'identifiers')
-        add_url = reverse('classrooms:classroom-add-members', kwargs={'id': self.classroom.uuid})
-        response = self.client.post(add_url, {'usernames': [self.student.username], 'role': 'student'})
+        members_url = reverse('classrooms:classroom-members', kwargs={'id': self.classroom.uuid})
+        response = self.client.post(
+            members_url,
+            {'usernames': [self.student.username], 'role': 'student'},
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(ClassroomMember.objects.filter(classroom=self.classroom, user=self.student).exists())
-        
-        # Update role
-        update_role_url = reverse('classrooms:classroom-update-member-role', kwargs={'id': self.classroom.uuid})
-        response = self.client.post(update_role_url, {'user_id': self.student.id, 'role': 'ta'})
+
+        member_url = reverse(
+            'classrooms:classroom-member-detail',
+            kwargs={'id': self.classroom.uuid, 'member_user_id': self.student.id},
+        )
+        response = self.client.patch(member_url, {'role': 'ta'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(ClassroomMember.objects.get(classroom=self.classroom, user=self.student).role, 'ta')
-        
-        # Update role - non-existent member
-        response = self.client.post(update_role_url, {'user_id': 9999, 'role': 'ta'})
+
+        missing_member_url = reverse(
+            'classrooms:classroom-member-detail',
+            kwargs={'id': self.classroom.uuid, 'member_user_id': 9999},
+        )
+        response = self.client.patch(missing_member_url, {'role': 'ta'})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-        # Remove member
-        remove_url = reverse('classrooms:classroom-remove-member', kwargs={'id': self.classroom.uuid})
-        response = self.client.post(remove_url, {'user_id': self.student.id})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.delete(member_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ClassroomMember.objects.filter(classroom=self.classroom, user=self.student).exists())

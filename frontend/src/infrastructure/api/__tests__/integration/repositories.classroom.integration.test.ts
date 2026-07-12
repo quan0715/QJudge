@@ -99,7 +99,7 @@ describe("classroom repository integration", () => {
       expect(ann.id).toBeDefined();
       expect(ann.title).toBe("Test Announcement");
       expect(ann.content).toBe("Hello world");
-      expect(ann.is_pinned).toBe(false);
+      expect(ann.isPinned).toBe(false);
     });
 
     it("updates an announcement", async () => {
