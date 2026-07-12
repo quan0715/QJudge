@@ -1207,35 +1207,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/classrooms/{id}/announcements/{ann_id}/notify/:
-    post:
-      operationId: v1_classrooms_announcements_notify_create
-      description: Send email notification for a specific classroom announcement.
-      parameters:
-      - in: path
-        name: ann_id
-        schema:
-          type: string
-          pattern: ^\d+$
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-          pattern: ^[0-9a-fA-F-]{36}$
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NotifyAnnouncementResponse'
-          description: ''
   /api/v1/classrooms/{id}/contests/:
     get:
       operationId: v1_classrooms_contests_retrieve
@@ -8262,16 +8233,6 @@ components:
       - display_name
       - is_default
       - model_id
-    NotifyAnnouncementResponse:
-      type: object
-      properties:
-        detail:
-          type: string
-        count:
-          type: integer
-      required:
-      - count
-      - detail
     OAuthApproveRequestRequest:
       type: object
       properties:

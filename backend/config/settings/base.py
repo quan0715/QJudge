@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     "apps.ai",  # AI Chat
     "apps.question_bank",
     "apps.subscriptions",
-    "apps.notifications",
     "apps.oauth",
     "drf_spectacular",
 ]

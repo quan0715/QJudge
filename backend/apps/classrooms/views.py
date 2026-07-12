@@ -4,8 +4,8 @@ Views for classrooms.
 from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
-from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import viewsets, permissions, serializers as drf_serializers, status, filters
+from drf_spectacular.utils import extend_schema
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -107,7 +107,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             'member_detail',
             'invite_code',
             'announcement_detail',
-            'notify_announcement',
             'cover',
         }
         member_actions = {
@@ -270,37 +269,6 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             return classroom.announcements.get(pk=ann_id)
         except ClassroomAnnouncement.DoesNotExist:
             raise NotFound('Announcement not found.')
-
-    @extend_schema(
-        request=None,
-        responses={200: inline_serializer(
-            name="NotifyAnnouncementResponse",
-            fields={
-                "detail": drf_serializers.CharField(),
-                "count": drf_serializers.IntegerField(),
-            },
-        )},
-    )
-    @action(detail=True, methods=['post'], url_path=r'announcements/(?P<ann_id>\d+)/notify',
-            permission_classes=[permissions.IsAuthenticated, IsClassroomOwnerOrAdmin])
-    def notify_announcement(self, request, id=None, ann_id=None):
-        """Send email notification for a specific classroom announcement."""
-        classroom = self.get_object()
-        try:
-            announcement = classroom.announcements.select_related('created_by').get(pk=ann_id)
-        except ClassroomAnnouncement.DoesNotExist:
-            raise NotFound('Announcement not found.')
-
-        from apps.notifications.services import NotificationService
-
-        notifications = NotificationService.send_classroom_announcement_email(
-            announcement=announcement,
-            triggered_by=request.user,
-        )
-        return Response({
-            'detail': f'已排入 {len(notifications)} 封通知信寄送佇列。',
-            'count': len(notifications),
-        })
 
     COVER_SUPPORTED_FORMATS = {
         "PNG": ("png", "image/png"),
