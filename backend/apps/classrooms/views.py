@@ -4,7 +4,6 @@ Views for classrooms.
 from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
-from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError

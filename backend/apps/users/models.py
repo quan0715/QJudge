@@ -49,20 +49,6 @@ class User(AbstractUser):
         db_index=True,
         verbose_name='OAuth ID'
     )
-    email_verified = models.BooleanField(
-        default=False,
-        verbose_name='Email 已驗證'
-    )
-    email_verification_token = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True
-    )
-    email_verification_expires_at = models.DateTimeField(
-        null=True,
-        blank=True
-    )
-    
     # Role and permissions
     role = models.CharField(
         max_length=20,

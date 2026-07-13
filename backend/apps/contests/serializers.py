@@ -16,7 +16,6 @@ from .models import (
     ExamEvent,
     ExamEvidenceFrame,
     ContestActivity,
-    ExamStatus,
     ExamAnswer,
 )
 from django.db.models import Sum
@@ -309,7 +308,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
 
         is_privileged = bool(user and can_manage_contest(user, obj))
 
-        from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
+        from apps.question_bank.models import QuestionAsset
 
         def _get_coding_bindings():
             return (

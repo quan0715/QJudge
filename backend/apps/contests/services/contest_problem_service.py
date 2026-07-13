@@ -2,7 +2,10 @@
 
 from apps.problems.models import CodingProblem
 from apps.problems.services import ProblemService
-from apps.question_bank.import_resolver import BankQuestionImportItem, resolve_bank_question_for_import
+from apps.question_bank.import_resolver import (
+    BankQuestionImportItem,
+    resolve_bank_question_for_import,  # noqa: F401 - compatibility re-export
+)
 
 
 def _normalize_test_case_weights(cases):

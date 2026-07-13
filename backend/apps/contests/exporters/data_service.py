@@ -2,9 +2,8 @@
 Data service for contest exporters.
 Provides a clean interface for querying contest data and calculating statistics.
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 
-from django.utils import timezone
 
 from ..models import Contest, ContestParticipant
 from apps.problems.models import CodingProblem

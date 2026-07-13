@@ -60,14 +60,12 @@ class RegisterView(SchemaAPIView):
 
         try:
             user = serializer.save()
-            verification_url = EmailAuthService.send_verification_email(user)
             tokens = JWTService.generate_tokens(user)
             return token_cookie_response(
                 user,
                 tokens,
                 status_code=status.HTTP_201_CREATED,
-                message="註冊成功,請檢查您的Email以驗證帳號",
-                extra_data={"verification_url": verification_url},
+                message="註冊成功",
             )
         except Exception as exc:
             logger.exception("Registration failed: %s", exc)
@@ -169,7 +167,6 @@ class DevTokenView(SchemaAPIView):
                 username=ensure_unique_username(username),
                 email=email,
                 auth_provider="email",
-                email_verified=True,
                 is_active=True,
             )
 

@@ -79,7 +79,6 @@
         "actions": "操作",
         "currentRole": "目前角色",
         "email": "Email",
-        "emailVerified": "Email 驗證",
         "loginMethod": "登入方式",
         "username": "使用者名稱"
       },
@@ -97,7 +96,6 @@
       },
       "minSearchLength": "請輸入至少 2 個字元進行搜尋",
       "noUsersFound": "未找到符合的使用者",
-      "notVerified": "未驗證",
       "searchFailed": "搜尋失敗",
       "searchFailedRetry": "搜尋失敗，請稍後再試",
       "searchLabel": "搜尋使用者（選填）",

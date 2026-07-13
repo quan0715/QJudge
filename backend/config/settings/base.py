@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     "apps.submissions",
     "apps.contests",
     "apps.announcements",
-    "apps.labs",  # migration stub only; runtime lab product now uses contests
     "apps.classrooms",
     "apps.ai",  # AI Chat
     "apps.question_bank",

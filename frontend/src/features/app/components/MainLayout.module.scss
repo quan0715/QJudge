@@ -9,8 +9,7 @@
 }
 
 // ── App body ──
-// Grows to fill space above the MobileBottomNav on mobile,
-// or to full height on desktop (where MobileBottomNav is display:none).
+// Grows to fill the viewport beneath the workspace shell.
 
 .body {
   flex: 1;

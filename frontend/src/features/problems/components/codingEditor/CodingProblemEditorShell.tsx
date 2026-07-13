@@ -3,7 +3,7 @@ import { Button } from "@carbon/react";
 import { Download, View } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
-import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
+import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
 import ProblemEditHeader from "@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader";
 import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/components/ProblemEditSections";

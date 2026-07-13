@@ -2,7 +2,6 @@
 Views for submissions app.
 """
 from rest_framework import viewsets, permissions, filters, status
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Submission

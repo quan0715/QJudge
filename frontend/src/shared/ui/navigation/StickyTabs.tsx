@@ -22,7 +22,7 @@ interface StickyTabsProps {
   maxWidth?: string;
   /**
    * Whether to apply sticky positioning.
-   * Set to false when using ContentPage's stickyHeader prop (which handles sticky externally).
+   * Set to false when a parent container handles sticky positioning.
    * Default: true
    */
   sticky?: boolean;

@@ -11,7 +11,7 @@ import httpx
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP, Context
-from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from mcp.types import ToolAnnotations
 from starlette.routing import Route
 import uvicorn
 
@@ -23,16 +23,7 @@ from config import (
     MCP_PUBLIC_URL,
     OAUTH_ISSUER_URL,
 )
-from exam_preview import (
-    EXAM_PROBLEM_PREVIEW_TEMPLATE_URI,
-    build_exam_problem_preview,
-)
-from widgets import (
-    CLASSROOM_LIST_TEMPLATE_URI,
-    MCP_APP_RESOURCE_MIME_TYPE,
-    read_widget_js,
-    widget_html,
-)
+from exam_preview import build_exam_problem_preview
 
 
 class DjangoTokenVerifier(TokenVerifier):
@@ -668,142 +659,6 @@ def _build_exam_problem_preview(current_question: dict[str, Any], patch: dict[st
     return build_exam_problem_preview(current_question, patch)
 
 
-def _classroom_list_widget_result(classrooms: list[dict[str, Any]]) -> CallToolResult:
-    return CallToolResult(
-        content=[TextContent(type="text", text="正在為您顯示教室列表面板...")],
-        structuredContent={"classrooms": classrooms},
-        _meta={
-            "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
-            "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
-        },
-    )
-
-
-def _exam_problem_preview_widget_result(preview: dict[str, Any]) -> CallToolResult:
-    return CallToolResult(
-        content=[TextContent(type="text", text="已產生 exam problem 預覽，請在面板中確認。")],
-        structuredContent=preview,
-        _meta={
-            "ui": {"resourceUri": EXAM_PROBLEM_PREVIEW_TEMPLATE_URI},
-            "openai/outputTemplate": EXAM_PROBLEM_PREVIEW_TEMPLATE_URI,
-        },
-    )
-
-
-@mcp.resource(
-    CLASSROOM_LIST_TEMPLATE_URI,
-    title="QJudge Classroom List",
-    description="ChatGPT App widget for rendering QJudge classrooms.",
-    mime_type=MCP_APP_RESOURCE_MIME_TYPE,
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows the user's manageable QJudge classrooms.",
-    },
-)
-def serve_classroom_list_widget() -> str:
-    return widget_html(read_widget_js("mcp-classroom-list", base_dir=str(Path(__file__).parent)))
-
-
-@mcp.resource(
-    EXAM_PROBLEM_PREVIEW_TEMPLATE_URI,
-    title="QJudge Exam Problem Preview",
-    description="ChatGPT App widget for previewing a paper exam problem before applying updates.",
-    mime_type=MCP_APP_RESOURCE_MIME_TYPE,
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows the proposed student-facing preview for a QJudge paper exam problem.",
-    },
-)
-def serve_exam_problem_preview_widget() -> str:
-    return widget_html(read_widget_js("mcp-exam-problem-preview", base_dir=str(Path(__file__).parent)))
-
-
-@mcp.tool(
-    title="Render classroom list",
-    description=(
-        "Use this when the user asks to show, display, render, or open a UI for "
-        "QJudge classrooms after fetching classrooms with qjudge_browse."
-    ),
-    annotations=ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=False,
-    ),
-    meta={
-        "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
-        "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Rendering classrooms",
-        "openai/toolInvocation/invoked": "Classrooms rendered",
-    },
-)
-def render_classroom_list(classrooms: list[dict[str, Any]]) -> CallToolResult:
-    """Use this when the user asks to show, render, display, or open a UI for QJudge classrooms.
-
-    Call `qjudge_browse(action="list_classrooms")` first, then pass its `items`
-    array to this tool as `classrooms`. This tool exists only to render the
-    ChatGPT App widget; do not use a Markdown table when the user asks for UI.
-    """
-    return _classroom_list_widget_result(classrooms)
-
-
-@mcp.tool(
-    title="Show QJudge classrooms UI",
-    description=(
-        "Use this when the user asks to list, show, display, render, or open a UI "
-        "for QJudge classrooms. This tool fetches the user's manageable classrooms "
-        "and returns the ChatGPT App classroom widget directly."
-    ),
-    annotations=ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=False,
-    ),
-    meta={
-        "ui": {"resourceUri": CLASSROOM_LIST_TEMPLATE_URI},
-        "openai/outputTemplate": CLASSROOM_LIST_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Loading classrooms",
-        "openai/toolInvocation/invoked": "Classrooms loaded",
-    },
-)
-async def show_qjudge_classrooms_ui(
-    ctx: Context,
-    search: str | None = None,
-) -> Any:
-    """Fetch manageable QJudge classrooms and render them with the classroom widget."""
-    query = {"scope": "manage"}
-    if search:
-        query["search"] = search
-    classrooms_res = await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
-    if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
-        return classrooms_res
-
-    classrooms = _extract_results(classrooms_res)
-    if search and not classrooms:
-        all_classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
-        if isinstance(all_classrooms_res, dict) and all_classrooms_res.get("error"):
-            return all_classrooms_res
-        classrooms = [
-            row for row in _extract_results(all_classrooms_res)
-            if _matches_keyword(row, search, ("name", "description"))
-        ]
-
-    return _classroom_list_widget_result([_compact_classroom(row) for row in classrooms])
-
-
 @mcp.tool(
     title="Preview exam problem",
     description=(
@@ -817,12 +672,6 @@ async def show_qjudge_classrooms_ui(
         idempotentHint=True,
         openWorldHint=False,
     ),
-    meta={
-        "ui": {"resourceUri": EXAM_PROBLEM_PREVIEW_TEMPLATE_URI},
-        "openai/outputTemplate": EXAM_PROBLEM_PREVIEW_TEMPLATE_URI,
-        "openai/toolInvocation/invoking": "Preparing problem preview",
-        "openai/toolInvocation/invoked": "Problem preview ready",
-    },
 )
 async def preview_exam_problem(
     contest_id: str,
@@ -883,7 +732,7 @@ async def preview_exam_problem(
             status=500,
         )
 
-    return _exam_problem_preview_widget_result(_build_exam_problem_preview(current_question, patch))
+    return _build_exam_problem_preview(current_question, patch)
 
 
 @mcp.tool(

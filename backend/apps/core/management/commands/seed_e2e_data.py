@@ -9,7 +9,7 @@ from datetime import timedelta
 from apps.users.models import UserProfile
 from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests.models import Contest, ExamQuestion
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBankMembership
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.question_bank.models import QuestionBank

@@ -2,7 +2,7 @@ import React from "react";
 import { useFormContext, Controller, type ControllerRenderProps, type FieldPath } from "react-hook-form";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
-import { FieldSaveIndicator } from "./FieldSaveIndicator";
+import { FieldSaveIndicator } from "@/shared/ui/autoSave";
 import styles from "./AutoSaveField.module.scss";
 
 /**

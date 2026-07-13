@@ -79,7 +79,6 @@
         "actions": "작업",
         "currentRole": "현재 역할",
         "email": "이메일",
-        "emailVerified": "이메일 인증",
         "loginMethod": "로그인 방법",
         "username": "사용자 이름"
       },
@@ -97,7 +96,6 @@
       },
       "minSearchLength": "검색하려면 최소 2자 이상 입력하세요",
       "noUsersFound": "일치하는 사용자가 없습니다",
-      "notVerified": "미인증",
       "searchFailed": "검색 실패",
       "searchFailedRetry": "검색 실패. 나중에 다시 시도하세요",
       "searchLabel": "사용자 검색 (선택)",

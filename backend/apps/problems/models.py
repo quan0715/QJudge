@@ -8,7 +8,6 @@ time_limit, memory_limit, test_cases, language_configs, and keywords.
 import uuid
 
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from .managers import ProblemQuerySet
 

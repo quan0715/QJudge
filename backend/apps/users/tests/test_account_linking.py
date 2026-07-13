@@ -22,7 +22,6 @@ class QAuthAccountLinkingTests(TestCase):
             email="old@example.edu",
             password="password123",
             auth_provider="email",
-            email_verified=False,
         )
         ExternalIdentity.objects.create(
             user=existing,
@@ -49,7 +48,6 @@ class QAuthAccountLinkingTests(TestCase):
         self.assertEqual(existing.username, "linked-user")
         self.assertEqual(existing.auth_provider, "github")
         self.assertEqual(existing.oauth_id, "github-sub-1")
-        self.assertTrue(existing.email_verified)
         self.assertEqual(identity.user_id, existing.id)
         self.assertEqual(identity.email, "new@example.edu")
         self.assertEqual(identity.profile_snapshot["email"], "new@example.edu")
@@ -61,7 +59,6 @@ class QAuthAccountLinkingTests(TestCase):
             email="student@example.edu",
             password="password123",
             auth_provider="email",
-            email_verified=False,
         )
 
         linked = link_qauth_identity(
@@ -80,7 +77,6 @@ class QAuthAccountLinkingTests(TestCase):
         self.assertEqual(existing.username, "email-user")
         self.assertEqual(existing.auth_provider, "nycu")
         self.assertEqual(existing.oauth_id, "nycu-sub-1")
-        self.assertTrue(existing.email_verified)
         self.assertTrue(
             ExternalIdentity.objects.filter(
                 user=existing,
@@ -115,7 +111,6 @@ class QAuthAccountLinkingTests(TestCase):
         self.assertNotEqual(linked.username, "student")
         self.assertEqual(linked.auth_provider, "google")
         self.assertEqual(linked.oauth_id, "google-sub-1")
-        self.assertTrue(linked.email_verified)
         self.assertTrue(
             ExternalIdentity.objects.filter(
                 user=linked,

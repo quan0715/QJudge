@@ -5,7 +5,7 @@ import logging
 from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
 
-from ..models import AIExecutionLog, AISession
+from ..models import AIExecutionLog
 
 logger = logging.getLogger(__name__)
 

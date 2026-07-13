@@ -9977,10 +9977,6 @@ components:
           - $ref: '#/components/schemas/AuthProviderEnum'
           readOnly: true
           title: 認證方式
-        email_verified:
-          type: boolean
-          readOnly: true
-          title: Email 已驗證
         is_active:
           type: boolean
           title: 有效
@@ -10007,7 +10003,6 @@ components:
       - auth_provider
       - date_joined
       - email
-      - email_verified
       - id
       - last_login_at
       - profile

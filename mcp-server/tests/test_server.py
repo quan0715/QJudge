@@ -854,7 +854,13 @@ def test_build_exam_problem_preview_applies_patch_and_tracks_update_summary():
     }
 
 
-def test_preview_exam_problem_fetches_current_and_returns_preview_widget(monkeypatch):
+def test_widget_resources_and_widget_only_tools_are_removed():
+    assert server.mcp._resource_manager._resources == {}
+    assert "render_classroom_list" not in server.mcp._tool_manager._tools
+    assert "show_qjudge_classrooms_ui" not in server.mcp._tool_manager._tools
+
+
+def test_preview_exam_problem_fetches_current_and_returns_structured_preview(monkeypatch):
     calls = []
 
     async def fake_django_api(method, path, ctx, *, json_body=None, timeout=30.0):
@@ -883,12 +889,10 @@ def test_preview_exam_problem_fetches_current_and_returns_preview_widget(monkeyp
         )
     )
 
-    assert result.structuredContent["kind"] == "exam_problem_preview"
-    assert result.structuredContent["question_id"] == "eq-1"
-    assert result.structuredContent["preview_problem"]["prompt"] == "Explain CAP theorem with an example."
-    assert result.structuredContent["update_summary"]["changed_count"] == 2
-    assert result.meta["ui"]["resourceUri"] == server.EXAM_PROBLEM_PREVIEW_TEMPLATE_URI
-    assert result.meta["openai/outputTemplate"] == server.EXAM_PROBLEM_PREVIEW_TEMPLATE_URI
+    assert result["kind"] == "exam_problem_preview"
+    assert result["question_id"] == "eq-1"
+    assert result["preview_problem"]["prompt"] == "Explain CAP theorem with an example."
+    assert result["update_summary"]["changed_count"] == 2
     assert calls == [
         ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/", None),
         ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/eq-1/", None),
