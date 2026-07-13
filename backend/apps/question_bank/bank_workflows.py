@@ -13,7 +13,7 @@ from django.db.models import Max, Q
 from apps.contests.models import ExamQuestion, ExamQuestionType
 from apps.problems.models import CodingProblem
 
-from .models import QuestionAsset, QuestionBank, QuestionBankMembership
+from .models import QuestionBank, QuestionBankMembership
 from .question_assets import (
     ensure_question_bank_membership,
     sync_exam_question_question_asset,

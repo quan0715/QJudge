@@ -3,7 +3,6 @@ Django management command to create test data for development.
 """
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from django.utils.text import slugify
 from apps.problems.models import CodingProblem, TestCase, LanguageConfig
 from apps.question_bank.question_assets import write_coding_content_to_asset
 
@@ -62,7 +61,7 @@ class Command(BaseCommand):
             
             user, created = User.objects.get_or_create(
                 username=username,
-                defaults={**user_data, 'email_verified': True}
+                defaults=user_data,
             )
             
             if created:

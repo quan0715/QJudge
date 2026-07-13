@@ -10,7 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .auth.options import get_auth_options
+from .auth.options import get_auth_options  # noqa: F401 - compatibility re-export
 from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)
@@ -86,41 +86,6 @@ class EmailAuthService:
         
         return user
     
-    @staticmethod
-    def generate_verification_token():
-        """Generate email verification token."""
-        return secrets.token_urlsafe(32)
-
-    @staticmethod
-    def send_verification_email(user):
-        """Send verification email to user."""
-        token = EmailAuthService.generate_verification_token()
-        user.email_verification_token = token
-        user.email_verification_expires_at = timezone.now() + timedelta(hours=24)
-        user.save()
-        
-        # TODO: Implement actual email sending
-        # For now, just return the token
-        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
-        
-        return verification_url
-    
-    @staticmethod
-    def verify_email(token):
-        """Verify email with token."""
-        try:
-            user = User.objects.get(
-                email_verification_token=token,
-                email_verification_expires_at__gt=timezone.now()
-            )
-            user.email_verified = True
-            user.email_verification_token = None
-            user.email_verification_expires_at = None
-            user.save()
-            return user
-        except User.DoesNotExist:
-            return None
-
     @staticmethod
     def generate_teacher_activation_token():
         """Generate a one-time token for teacher activation."""

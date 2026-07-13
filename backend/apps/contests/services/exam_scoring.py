@@ -15,7 +15,6 @@ from decimal import Decimal, ROUND_HALF_UP
 from statistics import median
 from typing import Optional
 
-from django.db.models import Sum
 
 from ..models import (
     Contest,

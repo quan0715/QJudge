@@ -8,7 +8,6 @@ Usage (from host):
     docker compose -f docker-compose.dev.yml exec backend python manage.py healthcheck
 """
 import sys
-import time
 
 from django.core.management.base import BaseCommand
 from django.conf import settings

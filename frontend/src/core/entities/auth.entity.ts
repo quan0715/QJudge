@@ -27,7 +27,6 @@ export interface ManagedUser {
   email?: string;
   role: "student" | "teacher" | "admin";
   auth_provider?: string;
-  email_verified?: boolean;
   last_login_at?: string | null;
   is_active?: boolean;
   display_name?: string;
@@ -83,7 +82,6 @@ export interface User {
   email?: string;
   role: "student" | "teacher" | "admin" | "guest";
   auth_provider?: string;
-  email_verified?: boolean;
   last_login_at?: string | null;
   is_active?: boolean;
   profile?: UserProfile;

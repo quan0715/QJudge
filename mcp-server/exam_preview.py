@@ -1,10 +1,8 @@
-"""Exam problem preview helpers for QJudge MCP widgets."""
+"""Exam problem preview helpers for QJudge MCP tools."""
 
 import json
 from typing import Any
 
-
-EXAM_PROBLEM_PREVIEW_TEMPLATE_URI = "ui://widget/exam-problem-preview-v1.html"
 
 EXAM_PROBLEM_PREVIEW_FIELDS = (
     ("question_type", "題型"),

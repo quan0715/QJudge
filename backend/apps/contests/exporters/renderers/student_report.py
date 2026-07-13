@@ -4,7 +4,7 @@ Generates PDF reports with scores, charts, and code submissions.
 """
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from django.contrib.staticfiles import finders
 from django.template.loader import render_to_string
@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from .base import BaseRenderer
 from ..dto import SubmissionDTO, ContestProblemDTO
-from ..utils import inline_markdown, highlight_code as _highlight_code, CHART_COLORS
+from ..utils import inline_markdown, highlight_code as _highlight_code
 
 
 class StudentReportRenderer(BaseRenderer):

@@ -17,8 +17,8 @@ export const PageHeaderActionsProvider = ({ children }: { children: ReactNode })
   );
 };
 
-/** Used by GlobalHeader to RENDER injected actions */
+/** Used by WorkspaceTopNav to render injected actions. */
 export const usePageHeaderActionsSlot = () => useContext(PageHeaderActionsReadContext);
 
-/** Used by pages to INJECT actions into GlobalHeader */
+/** Used by pages to inject actions into WorkspaceTopNav. */
 export const usePageHeaderActions = () => useContext(PageHeaderActionsWriteContext);

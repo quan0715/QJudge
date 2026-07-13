@@ -10,7 +10,7 @@ from apps.contests.models import Contest
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import CodingProblem
-from apps.submissions.access_policy import SubmissionAccessError, SubmissionAccessPolicy
+from apps.submissions.access_policy import SubmissionAccessPolicy
 from apps.submissions.models import Submission
 from apps.users.models import User
 

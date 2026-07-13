@@ -15,18 +15,13 @@ from apps.contests.models import (
     ExamQuestionType,
     ExamStatus,
 )
-from apps.contests.services.score_recalculation import (
-    recalculate_all_scores,
-    recalculate_participant_score,
-)
 from apps.contests.services.exam_scoring import ExamScoringService
 
 
 User = get_user_model()
 
 
-class ScoreRecalculationServiceTests(TestCase):
-    """Unit tests for score_recalculation service."""
+class ScorePolicyCalculationTests(TestCase):
 
     def setUp(self):
         self.owner = User.objects.create_user(
@@ -76,6 +71,7 @@ class ScoreRecalculationServiceTests(TestCase):
             user=self.student2,
             exam_status=ExamStatus.SUBMITTED,
         )
+        self.scoring = ExamScoringService(self.contest)
 
         # Student 1: answers all 4 questions, gets Q1 correct, Q2-4 wrong
         for i, q in enumerate(self.questions):
@@ -99,10 +95,10 @@ class ScoreRecalculationServiceTests(TestCase):
 
     def test_normal_policy_sums_all_scores(self):
         """Normal policy: simple sum of all answered questions."""
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         self.assertEqual(score, 10)
 
-        score = recalculate_participant_score(self.p2)
+        score = self.scoring.calculate_participant_score(self.p2)
         self.assertEqual(score, 20)
 
     def test_excluded_removes_question_from_total(self):
@@ -111,10 +107,10 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
 
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         self.assertEqual(score, 0)  # Only had Q1 right, now excluded
 
-        score = recalculate_participant_score(self.p2)
+        score = self.scoring.calculate_participant_score(self.p2)
         self.assertEqual(score, 10)  # Q2 still counts
 
     def test_full_marks_gives_max_to_everyone(self):
@@ -123,11 +119,11 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[1].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[1].save()
 
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         # Q1: 10 (normal, correct), Q2: 10 (full_marks), Q3: 0, Q4: 0
         self.assertEqual(score, 20)
 
-        score = recalculate_participant_score(self.p2)
+        score = self.scoring.calculate_participant_score(self.p2)
         # Q1: 10, Q2: 10 (full_marks), Q3: 0
         self.assertEqual(score, 20)
 
@@ -137,7 +133,7 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[3].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[3].save()
 
-        score = recalculate_participant_score(self.p2)
+        score = self.scoring.calculate_participant_score(self.p2)
         # Q1: 10, Q2: 10, Q3: 0, Q4: 10 (full_marks, no answer needed)
         self.assertEqual(score, 30)
 
@@ -148,7 +144,7 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[1].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[1].save()
 
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         # Q1: excluded, Q2: 10 (full_marks), Q3: 0, Q4: 0
         self.assertEqual(score, 10)
 
@@ -158,7 +154,7 @@ class ScoreRecalculationServiceTests(TestCase):
             q.score_policy = ExamQuestionScorePolicy.EXCLUDED
             q.save()
 
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         self.assertEqual(score, 0)
 
     def test_recalculate_all_scores_updates_everyone(self):
@@ -166,7 +162,7 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[0].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[0].save()
 
-        count = recalculate_all_scores(self.contest)
+        count = self.scoring.recalculate_all()
         self.assertEqual(count, 2)
 
         self.p1.refresh_from_db()
@@ -180,7 +176,7 @@ class ScoreRecalculationServiceTests(TestCase):
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
 
-        recalculate_participant_score(self.p1)
+        self.scoring.calculate_participant_score(self.p1)
 
         answer = ExamAnswer.objects.get(participant=self.p1, question=self.questions[0])
         self.assertEqual(answer.score, 10)  # Original score preserved
@@ -192,7 +188,7 @@ class ScoreRecalculationServiceTests(TestCase):
         answer.score = None
         answer.save()
 
-        score = recalculate_participant_score(self.p1)
+        score = self.scoring.calculate_participant_score(self.p1)
         self.assertEqual(score, 0)
 
 

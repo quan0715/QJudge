@@ -99,27 +99,6 @@ class EmailAuthServiceTests(TestCase):
         self.assertIsNone(inactive_user)
         self.assertIsNone(unknown_user)
 
-    @override_settings(FRONTEND_URL="http://localhost:5173")
-    def test_send_verification_email_and_verify_email_success(self):
-        verification_url = EmailAuthService.send_verification_email(self.active)
-        self.active.refresh_from_db()
-
-        self.assertIn("verify-email?token=", verification_url)
-        self.assertIsNotNone(self.active.email_verification_token)
-        self.assertIsNotNone(self.active.email_verification_expires_at)
-
-        verified = EmailAuthService.verify_email(self.active.email_verification_token)
-        self.assertIsNotNone(verified)
-        self.active.refresh_from_db()
-        self.assertTrue(self.active.email_verified)
-        self.assertIsNone(self.active.email_verification_token)
-        self.assertIsNone(self.active.email_verification_expires_at)
-
-    def test_verify_email_returns_none_for_invalid_token(self):
-        verified = EmailAuthService.verify_email("invalid-token")
-        self.assertIsNone(verified)
-
-
 class AuthOptionsTests(SimpleTestCase):
     def test_auth_provider_options_are_not_loaded_from_settings_module(self):
         import config.settings.base as base_settings
@@ -289,7 +268,6 @@ class NYCUOAuthServiceTests(TestCase):
             email="nycu@example.com",
             password="password123",
             auth_provider="nycu",
-            email_verified=False,
         )
         result = link_oauth_user(
             NYCUOAuthService,
@@ -302,7 +280,6 @@ class NYCUOAuthServiceTests(TestCase):
 
         self.assertEqual(result.id, existing.id)
         self.assertEqual(existing.username, "legacy-name")
-        self.assertTrue(existing.email_verified)
 
     def test_account_linking_creates_new_user_with_unique_username(self):
         User.objects.create_user(
@@ -321,7 +298,6 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertNotEqual(user.username, "taken-name")
         self.assertTrue(user.username.startswith("taken-name"))
         self.assertEqual(user.auth_provider, "nycu")
-        self.assertTrue(user.email_verified)
 
 
 class AccountLinkingTests(TestCase):
@@ -342,7 +318,6 @@ class AccountLinkingTests(TestCase):
             email="multi-provider@example.com",
             password="password123",
             auth_provider="email",
-            email_verified=False,
         )
 
         nycu_user = link_oauth_user(
@@ -384,7 +359,6 @@ class AccountLinkingTests(TestCase):
             email="shared@example.com",
             password="password123",
             auth_provider="email",
-            email_verified=False,
         )
         result = link_oauth_user(
             NYCUOAuthService,
@@ -395,7 +369,6 @@ class AccountLinkingTests(TestCase):
         self.assertEqual(result.id, existing.id)
         self.assertEqual(existing.auth_provider, "nycu")
         self.assertEqual(existing.username, "email-user")
-        self.assertTrue(existing.email_verified)
 
     def test_nycu_user_merged_on_github_login(self):
         """An existing NYCU user logging in via GitHub gets merged."""

@@ -79,7 +79,6 @@
         "actions": "Actions",
         "currentRole": "Current Role",
         "email": "Email",
-        "emailVerified": "Email Verified",
         "loginMethod": "Login Method",
         "username": "Username"
       },
@@ -97,7 +96,6 @@
       },
       "minSearchLength": "Please enter at least 2 characters to search",
       "noUsersFound": "No matching users found",
-      "notVerified": "Not Verified",
       "searchFailed": "Search failed",
       "searchFailedRetry": "Search failed. Please try again later.",
       "searchLabel": "Search users (optional)",

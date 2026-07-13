@@ -9,14 +9,14 @@ from .models import ExternalIdentity, User, UserProfile
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Custom user admin."""
-    list_display = ['username', 'email', 'role', 'auth_provider', 'email_verified', 'is_active']
-    list_filter = ['role', 'auth_provider', 'email_verified', 'is_active']
+    list_display = ['username', 'email', 'role', 'auth_provider', 'is_active']
+    list_filter = ['role', 'auth_provider', 'is_active']
     search_fields = ['username', 'email']
     ordering = ['-date_joined']
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ('OAuth Information', {
-            'fields': ('auth_provider', 'oauth_id', 'email_verified')
+            'fields': ('auth_provider', 'oauth_id')
         }),
         ('Role', {
             'fields': ('role',)
