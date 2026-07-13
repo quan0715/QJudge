@@ -5,9 +5,7 @@ Supports priority queues via apply_async(queue=...):
 - default: Practice submissions
 """
 import logging
-import time
 from celery import shared_task
-from django.utils import timezone
 from .models import Submission, SubmissionResult
 from apps.problems.models import TestCase
 from apps.judge.judge_factory import get_judge
@@ -202,7 +200,7 @@ def judge_submission(submission_id):
         
     except Submission.DoesNotExist:
         return f"Submission {submission_id} not found"
-    except Exception as e:
+    except Exception:
         logger.exception("Error judging submission_id=%s", submission_id)
         if 'submission' in locals():
             submission.status = 'SE'

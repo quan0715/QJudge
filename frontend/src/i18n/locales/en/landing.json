@@ -216,7 +216,7 @@
   "highlights": {
     "docs": "View docs",
     "eyebrow": "Why QJudge",
-    "item1": "Lab mode with progress tracking",
+    "item1": "Practice contests with progress tracking",
     "item2": "Live contests and rankings",
     "item3": "Detailed diff and case comparison",
     "item4": "Discussion threads and announcements",
@@ -323,10 +323,6 @@
         "comingSoon": "Coming Soon",
         "desc": "Collaborative competition",
         "label": "Group Hackathon"
-      },
-      "lab": {
-        "desc": "Pure practice mode. Topic-based problem sets for students to improve at their own pace without pressure.",
-        "label": "Lab Practice"
       },
       "paper": {
         "desc": "Integrated digital testing system",
@@ -528,7 +524,7 @@
     "name3": "Student Chen",
     "quote1": "Realtime feedback helps me spot issues faster than traditional assignments!",
     "quote2": "The diff view makes debugging easier. The interface is intuitive.",
-    "quote3": "Lab mode aligns perfectly with our course flow and discussions.",
+    "quote3": "Practice contests fit naturally into our course flow and discussions.",
     "title": "What students say",
     "title1": "NYCU IM/Fin junior",
     "title2": "NYCU IM/Fin sophomore",

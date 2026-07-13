@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Search,
-  CheckmarkFilled,
   Copy,
 } from "@carbon/icons-react";
 import {
@@ -220,7 +219,6 @@ const UserManagementScreen = () => {
     (user) => !user.onboarding_completed_at
   ).length;
   const teacherCount = users.filter((user) => user.role === "teacher").length;
-  const unverifiedCount = users.filter((user) => !user.email_verified).length;
 
   return (
     <div className={styles.pageWrapper}>
@@ -248,12 +246,6 @@ const UserManagementScreen = () => {
               {t("user.management.summary.pendingOnboarding", "未完成 onboarding")}
             </p>
             <strong className={styles.statValue}>{pendingOnboardingCount}</strong>
-          </Tile>
-          <Tile>
-            <p className={styles.statLabel}>
-              {t("user.management.summary.unverified", "未驗證 Email")}
-            </p>
-            <strong className={styles.statValue}>{unverifiedCount}</strong>
           </Tile>
         </div>
 
@@ -427,9 +419,6 @@ const UserManagementScreen = () => {
                           {t("user.management.columns.loginMethod")}
                         </TableHeader>
                         <TableHeader>
-                          {t("user.management.columns.emailVerified")}
-                        </TableHeader>
-                        <TableHeader>
                           {t("user.management.columns.onboarding", "Onboarding")}
                         </TableHeader>
                         <TableHeader>
@@ -461,20 +450,6 @@ const UserManagementScreen = () => {
                           </TableCell>
                           <TableCell>
                             {getProviderLabel(user.auth_provider)}
-                          </TableCell>
-                          <TableCell>
-                            {user.email_verified ? (
-                              <CheckmarkFilled
-                                size={20}
-                                style={{ color: "var(--cds-support-success)" }}
-                              />
-                            ) : (
-                              <span
-                                style={{ color: "var(--cds-support-error)" }}
-                              >
-                                {t("user.management.notVerified")}
-                              </span>
-                            )}
                           </TableCell>
                           <TableCell>
                             <Tag type={user.onboarding_completed_at ? "green" : "cool-gray"}>

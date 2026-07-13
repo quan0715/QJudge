@@ -16,7 +16,7 @@ import {
 } from "@/features/problems/contexts/ProblemEditContext";
 import { MarkdownEditorProvider } from "@/shared/ui/markdown/markdownEditor";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
-import { GlobalSaveStatus } from "@/features/problems/components/edit/common";
+import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { useProblemDetail } from "@/features/problems/hooks";
 import { useToast } from "@/shared/contexts";
 import {

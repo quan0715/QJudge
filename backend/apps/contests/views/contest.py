@@ -423,7 +423,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         Get all participants for this contest (Teacher view).
         Includes total_score_annotated to avoid N+1 queries.
         """
-        from django.db.models import Max, Sum
+        from django.db.models import Max
         from apps.submissions.models import Submission
 
         contest = self.get_object()

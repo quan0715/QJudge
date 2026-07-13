@@ -35,15 +35,13 @@ def create_user_for_identity(identity: NormalizedQAuthIdentity) -> User:
         username=username,
         email=identity.email or "",
         auth_provider=identity.provider_key,
-        email_verified=True,
         is_active=True,
     )
 
 
 def sync_user_projection(user: User, identity: NormalizedQAuthIdentity) -> User:
-    update_fields = ["auth_provider", "email_verified"]
+    update_fields = ["auth_provider"]
     user.auth_provider = identity.provider_key
-    user.email_verified = True
     if identity.provider_subject:
         user.oauth_id = identity.provider_subject
         update_fields.append("oauth_id")

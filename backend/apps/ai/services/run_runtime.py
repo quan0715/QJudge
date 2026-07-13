@@ -15,7 +15,7 @@ from celery.exceptions import CeleryError
 from django.db import connections, transaction
 from django.utils import timezone
 
-from ..models import AIArtifact, AIChatRun, AIExecutionLog, AIMessage, AISession, AIStreamEvent
+from ..models import AIArtifact, AIChatRun, AIMessage, AISession, AIStreamEvent
 from .stream_proxy import (
     ai_service_base_url,
     build_ai_service_headers,

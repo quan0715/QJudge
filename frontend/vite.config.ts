@@ -86,19 +86,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          'mcp-classroom-list': path.resolve(__dirname, 'src/mcp-widgets/ClassroomListWidget.tsx'),
-          'mcp-exam-problem-preview': path.resolve(__dirname, 'src/mcp-widgets/ExamProblemPreviewWidget.ts'),
         },
         output: {
-          entryFileNames: (assetInfo) => {
-            if (assetInfo.name === 'mcp-classroom-list') {
-              return 'mcp-widgets/mcp-classroom-list.js';
-            }
-            if (assetInfo.name === 'mcp-exam-problem-preview') {
-              return 'mcp-widgets/mcp-exam-problem-preview.js';
-            }
-            return 'assets/[name]-[hash].js';
-          }
+          entryFileNames: 'assets/[name]-[hash].js',
         }
       }
     },

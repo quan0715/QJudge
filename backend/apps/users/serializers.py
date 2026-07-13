@@ -56,7 +56,6 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'role',
             'auth_provider',
-            'email_verified',
             'is_active',
             'date_joined',
             'last_login_at',
@@ -66,7 +65,6 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id',
             'auth_provider',
-            'email_verified',
             'date_joined',
             'last_login_at',
         ]
@@ -207,7 +205,6 @@ class UserSearchSerializer(serializers.ModelSerializer):
             'email',
             'role',
             'auth_provider',
-            'email_verified',
             'last_login_at',
             'is_active',
             'display_name',

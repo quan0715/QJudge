@@ -79,7 +79,6 @@
         "actions": "操作",
         "currentRole": "現在の役割",
         "email": "メールアドレス",
-        "emailVerified": "メール認証",
         "loginMethod": "ログイン方法",
         "username": "ユーザー名"
       },
@@ -97,7 +96,6 @@
       },
       "minSearchLength": "検索には2文字以上入力してください",
       "noUsersFound": "該当するユーザーが見つかりません",
-      "notVerified": "未認証",
       "searchFailed": "検索に失敗しました",
       "searchFailedRetry": "検索に失敗しました。後でもう一度お試しください",
       "searchLabel": "ユーザー検索（任意）",

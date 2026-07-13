@@ -26,7 +26,6 @@ from ..serializers import (
     ExamAnswerSubmitSerializer,
     ExamAnswerGradeSerializer,
 )
-from ..services.score_recalculation import recalculate_participant_score
 from ..services.exam_scoring import ExamScoringService
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
@@ -410,7 +409,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         )
 
         questions = scoring.get_questions()
-        max_total_score = scoring.get_max_total_score()
 
         answers = list(
             ExamAnswer.objects.filter(participant_id__in=participant_ids)
@@ -608,7 +606,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Update participant total score
-        recalculate_participant_score(answer_obj.participant)
+        ExamScoringService(contest).calculate_participant_score(answer_obj.participant)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
 
@@ -676,7 +674,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         # Recalculate affected participant total scores
         for pid in affected_participants:
             participant = ContestParticipant.objects.get(pk=pid)
-            recalculate_participant_score(participant)
+            ExamScoringService(contest).calculate_participant_score(participant)
 
         # Invalidate caches
         for qid in affected_question_ids:
@@ -705,6 +703,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         # Recalculate participant total score
-        recalculate_participant_score(answer_obj.participant)
+        ExamScoringService(contest).calculate_participant_score(answer_obj.participant)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)

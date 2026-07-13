@@ -8,7 +8,7 @@ interface ProblemTabsProps {
   maxWidth?: string;
   /**
    * Top offset for sticky positioning.
-   * Use '0' when inside ContentPage scroll container (contest mode).
+   * Use '0' when the parent is the scroll container.
    * Use '3rem' when using whole page scroll (standalone mode).
    */
   stickyTop?: string;

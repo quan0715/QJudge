@@ -28,6 +28,10 @@ def test_registration_flow(api_client):
     assert data["success"] is True
     assert "access_token" in data["data"]
     assert "refresh_token" in data["data"]
+    assert "verification_url" not in data["data"]
+    assert not hasattr(User, "email_verified")
+    assert not hasattr(User, "email_verification_token")
+    assert not hasattr(User, "email_verification_expires_at")
     assert User.objects.filter(email=payload["email"]).exists()
 
 

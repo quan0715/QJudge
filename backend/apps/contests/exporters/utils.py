@@ -4,7 +4,6 @@ Includes markdown helpers, filename sanitization, and chart generation.
 """
 import markdown
 import re
-from typing import List, Optional
 
 
 def inline_markdown(text: str) -> str:

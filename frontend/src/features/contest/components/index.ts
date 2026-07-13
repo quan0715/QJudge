@@ -1,12 +1,6 @@
-// Layout Components
-export { default as ContestHero } from "./layout/ContestHero";
-export { default as ContestTabs } from "./layout/ContestTabs";
-export { default as ContestExitModal } from "./layout/ContestExitModal";
-
 // Modal Components
 export { AddParticipantModal } from "./modals/AddParticipantModal";
 export { AddUserModal } from "./modals/AddUserModal";
-export { ContestDownloadModal } from "./modals/ContestDownloadModal";
 export { ExamModeMonitorModal } from "./modals/ExamModeMonitorModal";
 
 // Exam Components

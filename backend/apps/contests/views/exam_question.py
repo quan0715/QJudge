@@ -34,7 +34,7 @@ from ..services.export_service import (
     parse_scale,
 )
 from ..services.question_edit_lock import ensure_contest_question_editable
-from ..services.score_recalculation import recalculate_all_scores
+from ..services.exam_scoring import ExamScoringService
 from ..services.activity_log import log_contest_activity
 from .exam_validation_response import build_device_conflict_response_for_view
 
@@ -277,7 +277,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                 and old_score != new_score
             )
             if policy_changed or score_changed_for_full_marks:
-                recalculate_all_scores(contest)
+                ExamScoringService(contest).recalculate_all()
 
         log_contest_activity(
             contest,
