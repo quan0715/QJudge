@@ -24,10 +24,12 @@ migration graph for a new database.
 
 ## Chosen Migration Strategy
 
-Create replacement squashed baseline migrations for `classrooms` and
-`submissions`. Each baseline represents the current model state and declares
-the previous migration range in `replaces`; it must contain no dependency on
-`labs`.
+Create a replacement squashed baseline for `classrooms` and two dependency-safe
+replacement ranges for `submissions`. The submissions history must retain
+`0001_initial` and `0016_submission_contest_question_binding`; squashing either
+edge into the middle range creates a cycle through the historical `problems`,
+`contests`, and `question_bank` dependencies. The replacement ranges are
+`0002` through `0011` and `0012` through `0015`. None may depend on `labs`.
 
 After verification, remove the replaced migration files, `apps.labs`, and the
 `INSTALLED_APPS` entry. Existing databases retain the old migration records;
@@ -38,6 +40,30 @@ replacement baseline and therefore never require Labs.
 The replacement files must be reviewed manually. Automatically generated
 squashes are only a starting point because historical data migrations and
 cross-app dependencies need explicit inspection.
+
+## Verification Record
+
+Verified locally on 2026-07-13:
+
+- Fresh PostgreSQL database: `migrate --noinput` completed with no Labs app;
+  the resulting graph contains the classroom replacement, submissions `0001`,
+  the two submissions replacements, and `0016`.
+- Production snapshot: `scripts/db/refresh_local_from_prod.sh --env dev --yes
+  --skip-build --remote quan338.tailc351c1.ts.net` restored production into the
+  local dev database and completed `migrate`. The snapshot migration plan had
+  no Labs operation.
+- Migration checks: `migrate --plan` reported no pending operation and
+  `makemigrations --check --dry-run` reported no model change.
+- Targeted backend tests: `174 passed, 1 skipped`.
+
+The full backend suite has one unrelated flaky C++ judge integration assertion:
+`CppIntegrationTests.test_time_measured` measures Docker lifecycle time,
+including compilation and container scheduling, against a 2.5-second ceiling.
+Three isolated reruns produced two passes and one 2631ms failure. The Labs
+release does not modify judge code; this remains a separate test-stability
+follow-up. With that test and the three pre-existing Java runtime tests
+deselected, the full backend suite passed: `1198 passed, 2 skipped, 4
+deselected`.
 
 ## Scope
 
