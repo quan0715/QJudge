@@ -30,3 +30,11 @@ export type {
   CopilotSubscribeOptions,
   CopilotSubscription,
 } from "./copilotEvent.types";
+
+export {
+  createCopilotRuntimeState,
+  reduceCopilotEvent,
+} from "./copilotReducer";
+export type { CopilotRuntimeState } from "./copilotReducer";
+
+export { selectActiveRun, selectActiveSession } from "./copilotSelectors";

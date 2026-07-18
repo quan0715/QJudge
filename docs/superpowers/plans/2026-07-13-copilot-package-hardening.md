@@ -29,8 +29,8 @@
 
 - `frontend/src/core/copilot/copilot.types.ts`：session、message parts、run、state 與 error types。
 - `frontend/src/core/copilot/copilotEvent.types.ts`：transport-normalized run events。
-- `frontend/src/core/copilot/copilot.reducer.ts`：純 state transition 與 stream merge。
-- `frontend/src/core/copilot/copilot.selectors.ts`：session/run/message 衍生資料。
+- `frontend/src/core/copilot/copilotReducer.ts`：純 state transition 與 stream merge。
+- `frontend/src/core/copilot/copilotSelectors.ts`：session/run/message 衍生資料。
 - `frontend/src/core/copilot/ports/copilotTransport.port.ts`：後端 I/O contract。
 - `frontend/src/core/copilot/ports/copilotSessionLocation.port.ts`：全域 session ID contract。
 - `frontend/src/core/copilot/ports/copilotStorage.port.ts`：偏好儲存 contract。
@@ -313,11 +313,11 @@ git commit -m "feat(copilot): define public domain types"
 ### Task 4: Extract the pure event reducer
 
 **Files:**
-- Create: `frontend/src/core/copilot/copilot.reducer.ts`
-- Create: `frontend/src/core/copilot/copilot.reducer.test.ts`
-- Create: `frontend/src/core/copilot/copilot.selectors.ts`
-- Create: `frontend/src/core/copilot/copilot.selectors.test.ts`
-- Create: `frontend/src/features/chatbot/hooks/chatbotLegacyMerge.ts`
+- Create: `frontend/src/core/copilot/copilotReducer.ts`
+- Create: `frontend/src/core/copilot/copilotReducer.test.ts`
+- Create: `frontend/src/core/copilot/copilotSelectors.ts`
+- Create: `frontend/src/core/copilot/copilotSelectors.test.ts`
+- Create: `frontend/src/features/chatbot/lib/chatbotLegacyMerge.ts`
 - Modify: `frontend/src/features/chatbot/hooks/useChatbot.ts`
 
 **Interfaces:**
@@ -330,7 +330,7 @@ Reducer tests cover text delta, reasoning delta, tool upsert by `toolCallId`, se
 
 - [ ] **Step 2: Verify red**
 
-Run: `cd frontend && npm test -- --run src/core/copilot/copilot.reducer.test.ts`
+Run: `cd frontend && npm test -- --run src/core/copilot/copilotReducer.test.ts`
 
 Expected: FAIL because reducer exports are missing.
 
@@ -363,7 +363,7 @@ Return the same object for replayed or stale events. Upsert tool parts without c
 
 - [ ] **Step 4: Route legacy merge through a conversion seam**
 
-Keep `applyRunMessageUpdate` exported for compatibility. Move the legacy `ChatMessage`-based `appendSubscriptionDelta`, text/tool/verification merge and `applyRunMessageUpdate` implementation to `features/chatbot/hooks/chatbotLegacyMerge.ts`; `useChatbot.ts` re-exports the helper. `core/copilot` implements separate helpers that consume only `CopilotMessagePart` and `CopilotRunEvent`. Neither `core/copilot` nor `shared/copilot` may import `@/core/types/chatbot.types`.
+Keep `applyRunMessageUpdate` exported for compatibility. Move the legacy `ChatMessage`-based `appendSubscriptionDelta`, text/tool/verification merge and `applyRunMessageUpdate` implementation to `features/chatbot/lib/chatbotLegacyMerge.ts`; `useChatbot.ts` re-exports the helper. The seam lives under `lib`, rather than `hooks`, because it is a pure compatibility helper and must not pretend to be a React hook. `core/copilot` implements separate helpers that consume only `CopilotMessagePart` and `CopilotRunEvent`. Neither `core/copilot` nor `shared/copilot` may import `@/core/types/chatbot.types`.
 
 - [ ] **Step 5: Verify Gate 2**
 
@@ -374,7 +374,7 @@ Expected: PASS for new reducer and all characterization tests.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/src/core/copilot frontend/src/features/chatbot/hooks/chatbotLegacyMerge.ts frontend/src/features/chatbot/hooks/useChatbot.ts
+git add frontend/src/core/copilot frontend/src/features/chatbot/lib/chatbotLegacyMerge.ts frontend/src/features/chatbot/hooks/useChatbot.ts
 git commit -m "refactor(copilot): extract pure stream reducer"
 ```
 

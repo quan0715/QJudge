@@ -7,12 +7,14 @@ import type {
   QuestionRequest,
   NextTurnOption,
   ChatRun,
-  ChatMessage,
-  ToolInfo,
-  VerificationReport,
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
+import { applyRunMessageUpdate } from "../lib/chatbotLegacyMerge";
+
+export { applyRunMessageUpdate } from "../lib/chatbotLegacyMerge";
+export type { StreamedRunState } from "../lib/chatbotLegacyMerge";
+
 interface UseChatbotReturn {
   sessions: ChatSession[];
   currentSessionId: string | null;
@@ -95,169 +97,6 @@ const FALLBACK_MODELS: ModelInfo[] = [
     is_default: false,
   },
 ];
-
-export interface StreamedRunState {
-  content: string;
-  thinking: string;
-}
-
-function appendSubscriptionDelta(previous: string, next: string | undefined) {
-  if (typeof next !== "string") {
-    return { nextStreamValue: previous, delta: undefined };
-  }
-  const delta = next.startsWith(previous) ? next.slice(previous.length) : next;
-  return { nextStreamValue: next, delta };
-}
-
-function mergeStreamedText(existing: string, streamedValue: string, delta?: string) {
-  if (!delta) return existing;
-  if (!existing) return streamedValue;
-  if (streamedValue.startsWith(existing)) return streamedValue;
-  if (existing.startsWith(streamedValue)) return existing;
-  return `${existing}${delta}`;
-}
-
-/**
- * Merge tool executions by `toolCallId`, keeping prior entries in order and
- * letting incoming entries update/append. Each new SSE subscription rebuilds
- * `currentMessage.toolExecutions` from an empty array (e.g., after a HITL
- * approve reopens a fresh stream), so a blind `...messageUpdate` spread would
- * wipe the history. This merge preserves all completed tool calls.
- */
-function mergeToolExecutions(
-  previous: ToolInfo[] | undefined,
-  incoming: ToolInfo[] | undefined,
-): ToolInfo[] | undefined {
-  if (!incoming?.length) return previous;
-  if (!previous?.length) return incoming;
-  const incomingById = new Map<string, ToolInfo>();
-  for (const exec of incoming) {
-    if (exec.toolCallId) incomingById.set(exec.toolCallId, exec);
-  }
-  const merged: ToolInfo[] = [];
-  const usedIds = new Set<string>();
-  for (const exec of previous) {
-    const id = exec.toolCallId;
-    const replacement = id ? incomingById.get(id) : undefined;
-    if (replacement && id) {
-      merged.push(replacement);
-      usedIds.add(id);
-    } else {
-      merged.push(exec);
-    }
-  }
-  for (const exec of incoming) {
-    if (exec.toolCallId && usedIds.has(exec.toolCallId)) continue;
-    merged.push(exec);
-  }
-  return merged;
-}
-
-function mergeVerificationReports(
-  previous: VerificationReport[] | undefined,
-  incoming: VerificationReport[] | undefined,
-): VerificationReport[] | undefined {
-  if (!incoming?.length) return previous;
-  if (!previous?.length) return incoming;
-  const incomingByIter = new Map(incoming.map((r) => [r.iteration, r]));
-  const merged: VerificationReport[] = [];
-  const usedIters = new Set<number>();
-  for (const report of previous) {
-    const replacement = incomingByIter.get(report.iteration);
-    if (replacement) {
-      merged.push(replacement);
-      usedIters.add(report.iteration);
-    } else {
-      merged.push(report);
-    }
-  }
-  for (const report of incoming) {
-    if (usedIters.has(report.iteration)) continue;
-    merged.push(report);
-  }
-  return merged;
-}
-
-function createAssistantDraft(
-  run: ChatRun,
-  messageUpdate: Partial<ChatMessage>,
-): ChatMessage {
-  return {
-    id: String(run.assistantMessageId ?? `run-${run.id}-assistant`),
-    role: "assistant",
-    content: "",
-    timestamp: new Date(),
-    runId: run.id,
-    runStatus: run.status,
-    isThinking: run.status === "queued" || run.status === "running",
-    ...messageUpdate,
-  };
-}
-
-export function applyRunMessageUpdate(
-  session: ChatSession,
-  run: ChatRun,
-  messageUpdate: Partial<ChatMessage>,
-  streamedState: StreamedRunState,
-): ChatSession {
-  const assistantMessageId = String(run.assistantMessageId ?? `run-${run.id}-assistant`);
-  const contentDelta = appendSubscriptionDelta(streamedState.content, messageUpdate.content);
-  streamedState.content = contentDelta.nextStreamValue;
-
-  const nextThinking = messageUpdate.thinkingInfo?.thinking;
-  const thinkingDelta = appendSubscriptionDelta(streamedState.thinking, nextThinking);
-  streamedState.thinking = thinkingDelta.nextStreamValue;
-
-  let didUpdateExistingDraft = false;
-  const messages = session.messages.map((message) => {
-    if (message.role !== "assistant") return message;
-    if (message.id !== assistantMessageId && message.runId !== run.id) return message;
-    didUpdateExistingDraft = true;
-
-    const mergedThinking = messageUpdate.thinkingInfo
-      ? {
-          ...messageUpdate.thinkingInfo,
-          thinking: mergeStreamedText(
-            message.thinkingInfo?.thinking ?? "",
-            streamedState.thinking,
-            thinkingDelta.delta,
-          ),
-        }
-      : message.thinkingInfo;
-
-    return {
-      ...message,
-      ...messageUpdate,
-      content: mergeStreamedText(
-        message.content,
-        streamedState.content,
-        contentDelta.delta,
-      ),
-      thinkingInfo: mergedThinking,
-      toolExecutions: mergeToolExecutions(
-        message.toolExecutions,
-        messageUpdate.toolExecutions,
-      ),
-      verificationReports: mergeVerificationReports(
-        message.verificationReports,
-        messageUpdate.verificationReports,
-      ),
-      runId: message.runId ?? run.id,
-      runStatus: messageUpdate.runStatus ?? run.status,
-      lastEventSeq: messageUpdate.lastEventSeq ?? message.lastEventSeq,
-      todoItems: messageUpdate.todoItems ?? message.todoItems,
-    };
-  });
-
-  if (!didUpdateExistingDraft) {
-    messages.push(createAssistantDraft(run, messageUpdate));
-  }
-
-  return {
-    ...session,
-    messages,
-  };
-}
 
 export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
   const { enabled = true, initialSessionIdHint = null } = options;
