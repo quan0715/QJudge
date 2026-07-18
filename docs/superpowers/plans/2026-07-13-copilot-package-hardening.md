@@ -53,16 +53,16 @@
 - `frontend/src/shared/copilot/testing/memoryCopilotTransport.ts`：deterministic fake transport。
 - `frontend/src/shared/copilot/testing/memoryCopilotSessionLocation.ts`：location fake。
 - `frontend/src/shared/copilot/testing/memoryCopilotStorage.ts`：storage fake。
-- `frontend/src/shared/copilot/translations/DefaultCopilotTranslations.ts`：package 預設英文文案。
+- `frontend/src/shared/copilot/translations/defaultCopilotTranslations.ts`：package 預設英文文案。
 - `frontend/src/shared/copilot/index.ts`：React/UI public candidate entrypoint。
 
 ### QJudge adapters and compatibility
 
 - `frontend/src/infrastructure/copilot/qJudgeCopilotTransport.ts`：現有 repository → transport。
-- `frontend/src/infrastructure/copilot/BrowserCopilotStorage.ts`：localStorage adapter。
-- `frontend/src/infrastructure/copilot/BrowserCopilotSessionLocation.ts`：原生 URLSearchParams/History adapter。
-- `frontend/src/features/chatbot/adapters/ReactRouterCopilotSessionLocation.ts`：search params adapter。
-- `frontend/src/features/chatbot/adapters/QJudgeCopilotTranslations.ts`：i18next adapter。
+- `frontend/src/infrastructure/copilot/browserCopilotStorage.ts`：localStorage adapter。
+- `frontend/src/infrastructure/copilot/browserCopilotSessionLocation.ts`：原生 URLSearchParams/History adapter。
+- `frontend/src/features/chatbot/adapters/reactRouterCopilotSessionLocation.ts`：search params adapter。
+- `frontend/src/features/chatbot/adapters/qJudgeCopilotTranslations.ts`：i18next adapter。
 - `frontend/src/features/chatbot/contexts/ChatbotProvider.tsx`：QJudge composition root／compatibility context。
 - `frontend/src/features/chatbot/hooks/useChatbot.ts`：compatibility facade。
 
@@ -526,15 +526,15 @@ git commit -m "feat(copilot): adapt QJudge chat transport"
 ### Task 8: Implement location, storage and translation adapters
 
 **Files:**
-- Create: `frontend/src/infrastructure/copilot/BrowserCopilotStorage.ts`
-- Create: `frontend/src/infrastructure/copilot/BrowserCopilotStorage.test.ts`
-- Create: `frontend/src/infrastructure/copilot/BrowserCopilotSessionLocation.ts`
-- Create: `frontend/src/infrastructure/copilot/BrowserCopilotSessionLocation.test.ts`
-- Create: `frontend/src/shared/copilot/translations/DefaultCopilotTranslations.ts`
-- Create: `frontend/src/shared/copilot/translations/DefaultCopilotTranslations.test.ts`
-- Create: `frontend/src/features/chatbot/adapters/ReactRouterCopilotSessionLocation.ts`
-- Create: `frontend/src/features/chatbot/adapters/ReactRouterCopilotSessionLocation.test.tsx`
-- Create: `frontend/src/features/chatbot/adapters/QJudgeCopilotTranslations.ts`
+- Create: `frontend/src/infrastructure/copilot/browserCopilotStorage.ts`
+- Create: `frontend/src/infrastructure/copilot/browserCopilotStorage.test.ts`
+- Create: `frontend/src/infrastructure/copilot/browserCopilotSessionLocation.ts`
+- Create: `frontend/src/infrastructure/copilot/browserCopilotSessionLocation.test.ts`
+- Create: `frontend/src/shared/copilot/translations/defaultCopilotTranslations.ts`
+- Create: `frontend/src/shared/copilot/translations/defaultCopilotTranslations.test.ts`
+- Create: `frontend/src/features/chatbot/adapters/reactRouterCopilotSessionLocation.ts`
+- Create: `frontend/src/features/chatbot/adapters/ReactRouterCopilotLocation.test.tsx`
+- Create: `frontend/src/features/chatbot/adapters/qJudgeCopilotTranslations.ts`
 - Modify: `frontend/src/features/chatbot/lib/aiSessionUrl.ts`
 
 **Interfaces:**
@@ -546,7 +546,7 @@ Test localStorage failures are swallowed; native query param set/remove preserve
 
 - [ ] **Step 2: Verify red**
 
-Run: `cd frontend && npm test -- --run src/infrastructure/copilot/BrowserCopilotStorage.test.ts src/infrastructure/copilot/BrowserCopilotSessionLocation.test.ts src/shared/copilot/translations src/features/chatbot/adapters`
+Run: `cd frontend && npm test -- --run src/infrastructure/copilot/browserCopilotStorage.test.ts src/infrastructure/copilot/browserCopilotSessionLocation.test.ts src/shared/copilot/translations src/features/chatbot/adapters`
 
 Expected: FAIL because adapters are missing.
 
@@ -556,7 +556,7 @@ Keep `useAiSessionParam` as a wrapper around the new React Router adapter so exi
 
 - [ ] **Step 4: Verify adapters**
 
-Run: `cd frontend && npm test -- --run src/infrastructure/copilot/BrowserCopilotStorage.test.ts src/infrastructure/copilot/BrowserCopilotSessionLocation.test.ts src/shared/copilot/translations src/features/chatbot/adapters && npm run build`
+Run: `cd frontend && npm test -- --run src/infrastructure/copilot/browserCopilotStorage.test.ts src/infrastructure/copilot/browserCopilotSessionLocation.test.ts src/shared/copilot/translations src/features/chatbot/adapters && npm run build`
 
 Expected: PASS.
 
@@ -886,7 +886,7 @@ git commit -m "refactor(chatbot): adopt shared Copilot shells"
 
 - [ ] **Step 1: Write a failing boundary check**
 
-The script scans `src/core/copilot`, `src/shared/copilot` and the generic `src/infrastructure/copilot/BrowserCopilot*.ts` adapters. Import scanning rejects `@/features`, QJudge repositories, `@/core/types/chatbot.types`, `react-router`, `i18next` and `@carbon`; React is allowed only under `shared/copilot`. A separate full-file content scan rejects `.cds-`, `.bx-` and `!important` in CSS/SCSS/CSS-module files. Exclude `qJudgeCopilotTransport.ts` from the publishable candidate set.
+The script scans `src/core/copilot`, `src/shared/copilot` and the generic `src/infrastructure/copilot/browserCopilot*.ts` adapters. Import scanning rejects `@/features`, QJudge repositories, `@/core/types/chatbot.types`, `react-router`, `i18next` and `@carbon`; React is allowed only under `shared/copilot`. A separate full-file content scan rejects `.cds-`, `.bx-` and `!important` in CSS/SCSS/CSS-module files. Exclude `qJudgeCopilotTransport.ts` from the publishable candidate set.
 
 - [ ] **Step 2: Add npm commands**
 
