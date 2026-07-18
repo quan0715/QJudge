@@ -31,10 +31,10 @@
 - `frontend/src/core/copilot/copilotEvent.types.ts`：transport-normalized run events。
 - `frontend/src/core/copilot/copilotReducer.ts`：純 state transition 與 stream merge。
 - `frontend/src/core/copilot/copilotSelectors.ts`：session/run/message 衍生資料。
-- `frontend/src/core/copilot/ports/copilotTransport.port.ts`：後端 I/O contract。
-- `frontend/src/core/copilot/ports/copilotSessionLocation.port.ts`：全域 session ID contract。
-- `frontend/src/core/copilot/ports/copilotStorage.port.ts`：偏好儲存 contract。
-- `frontend/src/core/copilot/ports/copilotTranslations.port.ts`：UI 文案 contract。
+- `frontend/src/core/copilot/ports/copilotTransport.ts`：後端 I/O contract。
+- `frontend/src/core/copilot/ports/copilotSessionLocation.ts`：全域 session ID contract。
+- `frontend/src/core/copilot/ports/copilotStorage.ts`：偏好儲存 contract。
+- `frontend/src/core/copilot/ports/copilotTranslations.ts`：UI 文案 contract。
 - `frontend/src/core/copilot/index.ts`：唯一 core public candidate entrypoint。
 - `frontend/type-tests/copilot.types.typecheck.ts`：discriminated unions compile-time assertions。
 - `frontend/type-tests/copilot.public-api.typecheck.ts`：public type/value exports compile-time assertions。
@@ -381,11 +381,11 @@ git commit -m "refactor(copilot): extract pure stream reducer"
 ### Task 5: Define ports and reusable contract tests
 
 **Files:**
-- Create: `frontend/src/core/copilot/ports/copilotTransport.port.ts`
-- Create: `frontend/src/core/copilot/ports/copilotSessionLocation.port.ts`
-- Create: `frontend/src/core/copilot/ports/copilotStorage.port.ts`
-- Create: `frontend/src/core/copilot/ports/copilotTranslations.port.ts`
-- Create: `frontend/src/shared/copilot/testing/copilotTransport.contract.ts`
+- Create: `frontend/src/core/copilot/ports/copilotTransport.ts`
+- Create: `frontend/src/core/copilot/ports/copilotSessionLocation.ts`
+- Create: `frontend/src/core/copilot/ports/copilotStorage.ts`
+- Create: `frontend/src/core/copilot/ports/copilotTranslations.ts`
+- Create: `frontend/src/shared/copilot/testing/copilotTransportContract.ts`
 - Modify: `frontend/src/core/copilot/index.ts`
 
 **Interfaces:**
@@ -422,7 +422,7 @@ Expected: PASS; no React or infrastructure imports appear under `core/copilot`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/core/copilot frontend/src/shared/copilot/testing/copilotTransport.contract.ts
+git add frontend/src/core/copilot frontend/src/shared/copilot/testing/copilotTransportContract.ts
 git commit -m "feat(copilot): define external capability ports"
 ```
 

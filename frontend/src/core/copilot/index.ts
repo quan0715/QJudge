@@ -38,3 +38,17 @@ export {
 export type { CopilotRuntimeState } from "./copilotReducer";
 
 export { selectActiveRun, selectActiveSession } from "./copilotSelectors";
+
+export {
+  assertCopilotTransportCapabilities,
+} from "./ports/copilotTransport";
+export type {
+  CopilotTransport,
+  CopilotTransportCapabilities,
+} from "./ports/copilotTransport";
+export type { CopilotSessionLocation } from "./ports/copilotSessionLocation";
+export type { CopilotStorage } from "./ports/copilotStorage";
+export type {
+  CopilotTranslationKey,
+  CopilotTranslations,
+} from "./ports/copilotTranslations";
