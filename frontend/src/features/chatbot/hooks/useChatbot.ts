@@ -561,36 +561,33 @@ export function useChatbot(options: UseChatbotOptions = {}): UseChatbotReturn {
         setError(null);
         await chatbotRepository.deleteSession(sessionId);
 
-        let shouldCreate = false;
-        let fallbackSessionId: string | null = null;
+        const remainingSessions = sessions.filter(
+          (session) => session.id !== sessionId,
+        );
+        const fallbackSessionId =
+          sessionId === currentSessionId
+            ? remainingSessions[0]?.id ?? null
+            : null;
+        const shouldCreate = remainingSessions.length === 0;
 
-        setSessions((prev) => {
-          const filtered = prev.filter((session) => session.id !== sessionId);
-          if (sessionId === currentSessionId) {
-            if (filtered.length > 0) {
-              fallbackSessionId = filtered[0].id;
-            } else {
-              setCurrentSessionId(null);
-              shouldCreate = true;
-            }
-          } else if (filtered.length === 0) {
-            setCurrentSessionId(null);
-            shouldCreate = true;
-          }
-          return filtered;
-        });
+        setSessions((prev) =>
+          prev.filter((session) => session.id !== sessionId),
+        );
 
         // 走 switchSession 而不是 setCurrentSessionId，讓 fallback session 也會 lazy-load
         // messages；否則 sessions list 裡的 messages 永遠是 getSessions() 給的空陣列，
         // 使用者會看到預設 welcome 畫面直到 refresh。
         if (fallbackSessionId) void switchSession(fallbackSessionId);
-        if (shouldCreate) void createSession();
+        if (shouldCreate) {
+          setCurrentSessionId(null);
+          void createSession();
+        }
       } catch (err) {
         console.error("Failed to delete session:", err);
         setError(i18n.t("chatbot:errors.deleteSessionFailed"));
       }
     },
-    [currentSessionId, createSession, setCurrentSessionId, switchSession],
+    [currentSessionId, createSession, sessions, setCurrentSessionId, switchSession],
   );
 
   /**
