@@ -23,6 +23,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "typecheck:copilot": "tsc -p tsconfig.copilot-type-tests.json",
     "test:api": "vitest run --config vitest.config.api.ts",
     "test:api:watch": "vitest --config vitest.config.api.ts",
     "test:e2e": "playwright test -c playwright.config.e2e.ts",

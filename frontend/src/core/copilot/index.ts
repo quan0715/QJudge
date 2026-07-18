@@ -1,0 +1,32 @@
+export type {
+  CopilotActiveSessionState,
+  CopilotApprovalRequest,
+  CopilotAttachmentPart,
+  CopilotCreateSessionInput,
+  CopilotDataPart,
+  CopilotError,
+  CopilotErrorCode,
+  CopilotMessage,
+  CopilotMessagePart,
+  CopilotPendingAttachment,
+  CopilotQuestionRequest,
+  CopilotReasoningPart,
+  CopilotRequestOptions,
+  CopilotRun,
+  CopilotRunState,
+  CopilotRunStatus,
+  CopilotSendInput,
+  CopilotSendResult,
+  CopilotSession,
+  CopilotSessionSummary,
+  CopilotStartRunInput,
+  CopilotTextPart,
+  CopilotToolPart,
+} from "./copilot.types";
+
+export type {
+  CopilotRunEvent,
+  CopilotRunObserver,
+  CopilotSubscribeOptions,
+  CopilotSubscription,
+} from "./copilotEvent.types";
