@@ -1,7 +1,7 @@
 # Copilot 可發布套件前置整理設計
 
 - 日期：2026-07-13
-- 狀態：Draft，待文件審閱
+- 狀態：Approved，待依 implementation plan 執行
 - 現階段交付：整理現有 frontend chatbot 模組，建立可抽離邊界；不建立 npm package、不搬出 repository
 - 長期交付：可發布、可移植到其他 React 產品的 Copilot package，內含 hooks、states、UI 與 ports
 
@@ -283,6 +283,38 @@ QJudge adapter 負責把現有 DTO 與 SSE events 轉成 parts。Renderer regist
 `isLoading`、`isStreaming`、`pendingApproval` 與 `pendingQuestion` 合併成單一狀態。
 
 ```ts
+export interface CopilotRun {
+  id: string;
+  sessionId: string;
+  status: CopilotRunStatus;
+  modelId?: string;
+  lastSequence?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export type CopilotRunStatus =
+  | "queued"
+  | "running"
+  | "awaiting-approval"
+  | "awaiting-answer"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface CopilotApprovalRequest {
+  actions: Array<{
+    name: string;
+    arguments?: Record<string, unknown>;
+  }>;
+  allowedDecisions: Array<"approve" | "reject">;
+}
+
+export interface CopilotQuestionRequest {
+  question: string;
+  input: "text" | "choice";
+  options?: string[];
+}
+
 export type CopilotRunState =
   | { status: "ready"; run: null }
   | { status: "submitted"; run: CopilotRun }
@@ -305,6 +337,8 @@ export type CopilotRunState =
 ```
 
 `submitted` 表示 request 已送出但尚未收到第一個 stream event；`streaming` 表示已開始接收內容。這個區分讓 UI 可以顯示不同 loading state。
+
+Runtime 會保存各 session 的 run 摘要，但 `useCopilotRun()` 只公開目前 active session 的狀態。背景 session 的 run 狀態透過 `CopilotSessionSummary.metadata` 或後續專用 selector 顯示在 history；第一版不公開可任意操作背景 run 的 API。
 
 ### 8.5 Error
 
@@ -340,6 +374,52 @@ export type CopilotErrorCode =
 
 預設 UI 顯示 translation key 對應的安全文案，不直接把 backend error 顯示給使用者。`cause` 供產品 logging 使用。
 
+### 8.6 Command 與 I/O 型別
+
+```ts
+export interface CopilotCreateSessionInput {
+  title?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CopilotSendInput {
+  text: string;
+  attachments?: readonly File[];
+  modelId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CopilotStartRunInput {
+  sessionId: string;
+  text: string;
+  attachments?: readonly CopilotAttachmentPart[];
+  modelId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface CopilotSendResult {
+  accepted: boolean;
+  sessionId: string;
+  runId?: string;
+  error?: CopilotError;
+}
+
+export interface CopilotPendingAttachment {
+  id: string;
+  file: File;
+  status: "pending" | "uploading" | "ready" | "error";
+  error?: CopilotError;
+}
+
+export interface CopilotRequestOptions {
+  signal?: AbortSignal;
+}
+
+export interface CopilotSubscribeOptions extends CopilotRequestOptions {
+  fromSequence?: number;
+}
+```
+
 ## 9. 公開 Hooks
 
 ### 9.1 `useCopilot`
@@ -351,6 +431,7 @@ export interface UseCopilotResult {
   activeSession: CopilotActiveSessionState;
   run: CopilotRunState;
   sessions: readonly CopilotSessionSummary[];
+  capabilities: CopilotTransportCapabilities;
   send(input: CopilotSendInput): Promise<CopilotSendResult>;
   stop(): Promise<void>;
   clearError(): void;
@@ -379,6 +460,7 @@ export interface UseCopilotSessionsResult {
 ```ts
 export interface UseCopilotRunResult {
   state: CopilotRunState;
+  capabilities: CopilotTransportCapabilities;
   stop(): Promise<void>;
   submitApproval(decision: "approve" | "reject"): Promise<void>;
   submitAnswer(answer: string): Promise<void>;
@@ -440,18 +522,21 @@ export interface CopilotTransport {
   deleteSession(id: string): Promise<void>;
 
   startRun(input: CopilotStartRunInput): Promise<CopilotRun>;
-  listActiveRuns(options?: CopilotRequestOptions): Promise<CopilotRun[]>;
+  getActiveRun?(
+    sessionId: string,
+    options?: CopilotRequestOptions,
+  ): Promise<CopilotRun | null>;
   subscribeRun(
     run: CopilotRun,
     observer: CopilotRunObserver,
     options?: CopilotSubscribeOptions,
   ): CopilotSubscription;
-  cancelRun(runId: string): Promise<CopilotRun>;
-  submitApproval(
+  cancelRun?(runId: string): Promise<CopilotRun>;
+  submitApproval?(
     runId: string,
     decision: "approve" | "reject",
   ): Promise<CopilotRun>;
-  submitAnswer(runId: string, answer: string): Promise<CopilotRun>;
+  submitAnswer?(runId: string, answer: string): Promise<CopilotRun>;
 
   uploadAttachment?(
     sessionId: string,
@@ -466,8 +551,54 @@ export interface CopilotTransport {
 ```ts
 export interface CopilotSubscription {
   close(): void;
-  closed: boolean;
+  readonly closed: boolean;
 }
+
+export interface CopilotRunObserver {
+  next(event: CopilotRunEvent): void;
+  error(error: CopilotError): void;
+  complete(): void;
+}
+
+export type CopilotRunEvent =
+  | {
+      type: "text-delta" | "reasoning-delta";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      messageId: string;
+      delta: string;
+    }
+  | {
+      type: "part-upsert";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      messageId: string;
+      part: CopilotMessagePart;
+    }
+  | {
+      type: "awaiting-approval";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      request: CopilotApprovalRequest;
+    }
+  | {
+      type: "awaiting-answer";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      request: CopilotQuestionRequest;
+    }
+  | {
+      type: "run-status";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      status: CopilotRunStatus;
+      error?: CopilotError;
+    };
 ```
 
 ### 10.2 `CopilotTransportCapabilities`
@@ -483,6 +614,8 @@ export interface CopilotTransportCapabilities {
 ```
 
 UI 依 capability 顯示操作，不假設所有後端都支援完整 QJudge 功能。Resume 與 cancel 的相容性由 adapter contract 明確說明；runtime 不把關閉本地 subscription 當成取消後端 run。
+
+`resumableStreams=true` 時，adapter 必須實作 `getActiveRun`，並接受 `fromSequence`。`cancellableRuns`、`approvals`、`questions` 或 `attachments` 為 `true` 時，也必須實作對應的 optional method；contract tests 會檢查 capability 與 methods 一致。不支援該能力的 transport 可以省略 method。
 
 ### 10.3 `CopilotSessionLocation`
 
@@ -518,6 +651,17 @@ Package 可提供 browser localStorage 與 memory adapters。權威 messages/ses
 export interface CopilotTranslations {
   t(key: CopilotTranslationKey, values?: Record<string, unknown>): string;
 }
+
+export type CopilotTranslationKey =
+  | "composer.placeholder"
+  | "composer.send"
+  | "run.stop"
+  | "run.retry"
+  | "session.new"
+  | "session.empty"
+  | "approval.approve"
+  | "approval.reject"
+  | `error.${CopilotErrorCode}`;
 ```
 
 Package 提供預設英文文案；QJudge adapter 接 i18next。Public state 保留 error code，不儲存翻譯後字串。
@@ -566,6 +710,17 @@ export interface CopilotProviderProps {
 - panel open/close 與 size state
 - 可宣告停用 chat panel
 
+```ts
+export interface CopilotWorkspaceShellProps {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  disabled?: boolean;
+  side?: "left" | "right";
+  slots?: CopilotUISlots;
+  className?: string;
+}
+```
+
 ### 12.2 `CopilotFullPageShell`
 
 完整頁面聊天：
@@ -574,6 +729,14 @@ export interface CopilotProviderProps {
 - 可選擇 history drawer 或固定欄
 - 使用全域 session selection
 - 不負責產品 routing
+
+```ts
+export interface CopilotFullPageShellProps {
+  history?: "sidebar" | "drawer" | "hidden";
+  slots?: CopilotUISlots;
+  className?: string;
+}
+```
 
 ### 12.3 `CopilotEmbedShell`
 
@@ -584,12 +747,21 @@ export interface CopilotProviderProps {
 - 使用 container 尺寸決定 responsive mode
 - 可隱藏 history 與 header
 
+```ts
+export interface CopilotEmbedShellProps {
+  showHeader?: boolean;
+  showHistory?: boolean;
+  slots?: CopilotUISlots;
+  className?: string;
+}
+```
+
 ### 12.4 公開 building blocks
 
 - `CopilotHeader`
 - `CopilotHistoryPanel`
 - `CopilotMessageList`
-- `CopilotMessage`
+- `CopilotMessageView`
 - `CopilotComposer`
 - `CopilotApprovalCard`
 - `CopilotQuestionCard`
@@ -600,12 +772,53 @@ export interface CopilotProviderProps {
 ```ts
 export interface CopilotUISlots {
   header?: React.ComponentType<CopilotHeaderProps>;
-  message?: React.ComponentType<CopilotMessageProps>;
+  message?: React.ComponentType<CopilotMessageViewProps>;
   composer?: React.ComponentType<CopilotComposerProps>;
   approval?: React.ComponentType<CopilotApprovalCardProps>;
   question?: React.ComponentType<CopilotQuestionCardProps>;
   emptyState?: React.ComponentType<CopilotEmptyStateProps>;
   errorState?: React.ComponentType<CopilotErrorStateProps>;
+}
+
+export interface CopilotHeaderProps {
+  activeSession: CopilotActiveSessionState;
+  run: CopilotRunState;
+  onNewSession(): void;
+  onToggleHistory?(): void;
+}
+
+export interface CopilotMessageViewProps {
+  message: CopilotMessage;
+}
+
+export interface CopilotMessageListProps {
+  messages?: readonly CopilotMessage[];
+  run?: CopilotRunState;
+  className?: string;
+}
+
+export interface CopilotComposerProps {
+  disabled?: boolean;
+  placeholder?: string;
+}
+
+export interface CopilotApprovalCardProps {
+  request: CopilotApprovalRequest;
+  onSubmit(decision: "approve" | "reject"): void;
+}
+
+export interface CopilotQuestionCardProps {
+  request: CopilotQuestionRequest;
+  onSubmit(answer: string): void;
+}
+
+export interface CopilotEmptyStateProps {
+  onNewSession(): void;
+}
+
+export interface CopilotErrorStateProps {
+  error: CopilotError;
+  onRetry?(): void;
 }
 ```
 
@@ -618,10 +831,11 @@ CSS variables 控制 spacing、color、radius、font 與 panel size。Package cl
 ```text
 Provider mount
   → SessionLocation.get()
-  → transport.listSessions() 與 listActiveRuns()
+  → transport.listSessions()
   → 依 location / storage / initialSession policy 選擇 session
   → transport.getSession(id)
-  → 若有 active run，依 capability 恢復 subscription
+  → resumableStreams=true 時呼叫 getActiveRun(id)
+  → 若有 active run，恢復 subscription
 ```
 
 選擇優先序：
