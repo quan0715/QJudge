@@ -614,12 +614,13 @@ export function CopilotProvider({
       transport,
       translations,
       capabilities: transport.capabilities,
+      sessionLocation,
       sessions,
       listStatus,
       activeSession,
       run,
     }),
-    [activeSession, listStatus, run, sessions, translations, transport],
+    [activeSession, listStatus, run, sessionLocation, sessions, translations, transport],
   );
   const commandsValue = useMemo(
     () => ({ create, select: selectSession, rename, remove, refresh }),

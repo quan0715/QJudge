@@ -7,6 +7,7 @@ import type {
   CopilotSendResult,
   CopilotRunState,
   CopilotSessionSummary,
+  CopilotSessionLocation,
   CopilotTransport,
   CopilotTransportCapabilities,
   CopilotTranslations,
@@ -22,6 +23,7 @@ export interface CopilotStateContextValue {
   transport: CopilotTransport;
   translations: CopilotTranslations;
   capabilities: CopilotTransportCapabilities;
+  sessionLocation?: CopilotSessionLocation;
   sessions: readonly CopilotSessionSummary[];
   listStatus: CopilotSessionListStatus;
   activeSession: CopilotActiveSessionState;
