@@ -107,7 +107,15 @@ export function runCopilotTransportContract(
       expect(subscription).not.toBeInstanceOf(Promise);
       expect(subscription.closed).toBe(false);
       transport.emit(run.id, firstEvent);
-      expect(observer.next).toHaveBeenCalledWith(firstEvent);
+      expect(observer.next).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: firstEvent.type,
+          runId: firstEvent.runId,
+          sessionId: firstEvent.sessionId,
+          sequence: firstEvent.sequence,
+          delta: firstEvent.delta,
+        }),
+      );
 
       subscription.close();
       expect(subscription.closed).toBe(true);

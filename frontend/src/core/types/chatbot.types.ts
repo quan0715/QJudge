@@ -241,6 +241,7 @@ export interface NextTurnOption {
 // ===== Stream Callbacks =====
 export interface StreamCallbacks {
   onMessageUpdate?: (message: Partial<ChatMessage>) => void;
+  onRunStatus?: (status: ChatRunStatus) => void;
   onComplete?: (session: ChatSession) => void;
   onError?: (error: string) => void;
   onVerificationReport?: (report: VerificationReport) => void;

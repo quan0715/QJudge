@@ -58,7 +58,7 @@
 
 ### QJudge adapters and compatibility
 
-- `frontend/src/infrastructure/copilot/QJudgeCopilotTransport.ts`：現有 repository → transport。
+- `frontend/src/infrastructure/copilot/qJudgeCopilotTransport.ts`：現有 repository → transport。
 - `frontend/src/infrastructure/copilot/BrowserCopilotStorage.ts`：localStorage adapter。
 - `frontend/src/infrastructure/copilot/BrowserCopilotSessionLocation.ts`：原生 URLSearchParams/History adapter。
 - `frontend/src/features/chatbot/adapters/ReactRouterCopilotSessionLocation.ts`：search params adapter。
@@ -472,8 +472,8 @@ git commit -m "test(copilot): add deterministic memory adapters"
 ### Task 7: Adapt the QJudge repository to CopilotTransport
 
 **Files:**
-- Create: `frontend/src/infrastructure/copilot/QJudgeCopilotTransport.ts`
-- Create: `frontend/src/infrastructure/copilot/QJudgeCopilotTransport.test.ts`
+- Create: `frontend/src/infrastructure/copilot/qJudgeCopilotTransport.ts`
+- Create: `frontend/src/infrastructure/copilot/qJudgeCopilotTransport.test.ts`
 - Create: `frontend/src/infrastructure/copilot/chatbotCopilotMapper.ts`
 - Modify: `frontend/src/infrastructure/api/repositories/chatbot.repository.ts`
 
@@ -498,7 +498,7 @@ The adapter keeps QJudge-only `object_key`, checksum and size fields outside the
 
 - [ ] **Step 2: Run adapter tests red**
 
-Run: `cd frontend && npm test -- --run src/infrastructure/copilot/QJudgeCopilotTransport.test.ts`
+Run: `cd frontend && npm test -- --run src/infrastructure/copilot/qJudgeCopilotTransport.test.ts`
 
 Expected: FAIL because the adapter does not exist.
 
@@ -886,7 +886,7 @@ git commit -m "refactor(chatbot): adopt shared Copilot shells"
 
 - [ ] **Step 1: Write a failing boundary check**
 
-The script scans `src/core/copilot`, `src/shared/copilot` and the generic `src/infrastructure/copilot/BrowserCopilot*.ts` adapters. Import scanning rejects `@/features`, QJudge repositories, `@/core/types/chatbot.types`, `react-router`, `i18next` and `@carbon`; React is allowed only under `shared/copilot`. A separate full-file content scan rejects `.cds-`, `.bx-` and `!important` in CSS/SCSS/CSS-module files. Exclude `QJudgeCopilotTransport.ts` from the publishable candidate set.
+The script scans `src/core/copilot`, `src/shared/copilot` and the generic `src/infrastructure/copilot/BrowserCopilot*.ts` adapters. Import scanning rejects `@/features`, QJudge repositories, `@/core/types/chatbot.types`, `react-router`, `i18next` and `@carbon`; React is allowed only under `shared/copilot`. A separate full-file content scan rejects `.cds-`, `.bx-` and `!important` in CSS/SCSS/CSS-module files. Exclude `qJudgeCopilotTransport.ts` from the publishable candidate set.
 
 - [ ] **Step 2: Add npm commands**
 

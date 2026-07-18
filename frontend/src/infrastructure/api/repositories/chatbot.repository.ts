@@ -916,6 +916,7 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_completed": {
         console.debug("SSE: run_completed", { runId: event.run_id });
+        callbacks.onRunStatus?.("completed");
         callbacks.onSessionNotice?.(null);
         callbacks.onTodoItemsUpdate?.(null);
         if (event.next_turn_options?.length) {
@@ -938,6 +939,7 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_cancelled": {
         console.debug("SSE: run_cancelled", { runId: event.run_id });
+        callbacks.onRunStatus?.("cancelled");
         callbacks.onSessionNotice?.(null);
         callbacks.onTodoItemsUpdate?.(null);
         this.getSession(resolvedSessionId)
@@ -955,6 +957,7 @@ const chatbotRepository: ChatbotRepository = {
           message: event.message,
         });
         currentMessage.runStatus = "failed";
+        callbacks.onRunStatus?.("failed");
         currentMessage.isThinking = false;
         currentMessage.runError = toRunFailureMessage(event.error_code, event.message);
         callbacks.onMessageUpdate?.({ ...currentMessage });
@@ -971,6 +974,7 @@ const chatbotRepository: ChatbotRepository = {
       case "awaiting_approval": {
         // Run may pause for a long time before run_completed; clear transient notices (e.g. summarization).
         callbacks.onSessionNotice?.(null);
+        callbacks.onRunStatus?.("awaiting_approval");
         if (event.action_requests?.length) {
           callbacks.onAwaitingApproval?.({
             actionRequests: event.action_requests.map((a) => ({
@@ -988,6 +992,7 @@ const chatbotRepository: ChatbotRepository = {
 
       case "awaiting_user_answer": {
         callbacks.onSessionNotice?.(null);
+        callbacks.onRunStatus?.("awaiting_user_answer");
         if (event.question) {
           callbacks.onAwaitingUserAnswer?.({
             question: event.question,
