@@ -50,9 +50,9 @@
 - `frontend/src/shared/copilot/hooks/useCopilotComposer.ts`：draft/model/attachment/send。
 - `frontend/src/shared/copilot/hooks/useCopilotSessionLocation.ts`：location state。
 - `frontend/src/shared/copilot/hooks/useCopilotScroll.ts`：scroll behavior。
-- `frontend/src/shared/copilot/testing/MemoryCopilotTransport.ts`：deterministic fake transport。
-- `frontend/src/shared/copilot/testing/MemoryCopilotSessionLocation.ts`：location fake。
-- `frontend/src/shared/copilot/testing/MemoryCopilotStorage.ts`：storage fake。
+- `frontend/src/shared/copilot/testing/memoryCopilotTransport.ts`：deterministic fake transport。
+- `frontend/src/shared/copilot/testing/memoryCopilotSessionLocation.ts`：location fake。
+- `frontend/src/shared/copilot/testing/memoryCopilotStorage.ts`：storage fake。
 - `frontend/src/shared/copilot/translations/DefaultCopilotTranslations.ts`：package 預設英文文案。
 - `frontend/src/shared/copilot/index.ts`：React/UI public candidate entrypoint。
 
@@ -429,10 +429,10 @@ git commit -m "feat(copilot): define external capability ports"
 ### Task 6: Build deterministic memory adapters
 
 **Files:**
-- Create: `frontend/src/shared/copilot/testing/MemoryCopilotTransport.ts`
-- Create: `frontend/src/shared/copilot/testing/MemoryCopilotSessionLocation.ts`
-- Create: `frontend/src/shared/copilot/testing/MemoryCopilotStorage.ts`
-- Create: `frontend/src/shared/copilot/testing/MemoryCopilotTransport.test.ts`
+- Create: `frontend/src/shared/copilot/testing/memoryCopilotTransport.ts`
+- Create: `frontend/src/shared/copilot/testing/memoryCopilotSessionLocation.ts`
+- Create: `frontend/src/shared/copilot/testing/memoryCopilotStorage.ts`
+- Create: `frontend/src/shared/copilot/testing/memoryCopilotTransport.test.ts`
 - Create: `frontend/src/shared/copilot/testing/index.ts`
 
 **Interfaces:**
@@ -446,7 +446,7 @@ runCopilotTransportContract(() => new MemoryCopilotTransport());
 
 - [ ] **Step 2: Verify red**
 
-Run: `cd frontend && npm test -- --run src/shared/copilot/testing/MemoryCopilotTransport.test.ts`
+Run: `cd frontend && npm test -- --run src/shared/copilot/testing/memoryCopilotTransport.test.ts`
 
 Expected: FAIL because the adapter is missing.
 
