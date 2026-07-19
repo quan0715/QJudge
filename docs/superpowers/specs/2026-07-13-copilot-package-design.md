@@ -1051,6 +1051,21 @@ stop()
 9. Package-candidate source 不 import QJudge Auth、Router、i18next、Carbon 或 infrastructure paths。
 10. QJudge 現有 full page、embed、workspace、HITL、question 與 attachment 流程沒有行為退化。
 
+### 18.1 2026-07-19 readiness evidence
+
+本輪完成的是「先模組化、不抽 package」的候選邊界。已執行並通過：
+
+- `npm run check:copilot-boundary`
+- `npm run typecheck:copilot`
+- `npm run build:copilot-example`
+- `npm test -- --run src/core/copilot src/shared/copilot`
+- QJudge shell integration 與 AI Task auto-bind regression tests
+- architecture compat gate；naming gate 沒有新的 Copilot violation
+
+成功條件現況：2、4、5、6、7、8、9 已符合。1 已把 `useChatbot.ts` 縮成穩定 facade，但產品專屬 models、next-turn、artifact/HITL 相容邏輯仍暫存在 feature adapter。3 尚未完全符合，因 legacy compatibility runtime 在過渡期仍直接呼叫 QJudge repository；新 Provider/runtime 已只透過 `CopilotTransport`。10 已有 shell、run lifecycle、AI Task 與既有 feature regression coverage，但仍需產品 smoke/視覺驗收後才能視為完全符合。
+
+因此目前狀態是 **package candidate boundary ready，尚未 package publishing ready**。實際 extraction 前的剩餘 blocker：移除 `useLegacyChatbotRuntime` 的直接 repository ownership，讓 `ChatbotProvider` 只保留 Copilot hooks → legacy view-model mapper，並完成 full page、workspace、embed、HITL、question、attachment 的瀏覽器 smoke test。
+
 ## 19. 參考設計
 
 - Vercel AI SDK UI Chatbot：`useChat` 聚合 messages、send、status、error，並以 message parts 支援工具與自訂資料。  
