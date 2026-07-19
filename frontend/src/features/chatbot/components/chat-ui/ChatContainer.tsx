@@ -11,6 +11,7 @@ import { ChatTopBar } from "./ChatTopBar";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactPanel } from "../artifact/ArtifactPanel";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import { CopilotEmbedShell } from "@/shared/copilot";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
@@ -68,18 +69,21 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
 
   if (isInitializing) {
     return (
-      <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
+      <CopilotEmbedShell showHeader={false} showHistory={false} className={className}>
+      <div className={`${styles.container} ${styles[mode]}`}>
         <div className={styles.loading}>
           <Loading withOverlay={false} description={t("ui.loading")} />
         </div>
       </div>
+      </CopilotEmbedShell>
     );
   }
 
   const sessionTitle = currentSession?.title || t("ui.newChat");
 
   return (
-    <div className={`${styles.container} ${styles[mode]} ${className ?? ""}`}>
+    <CopilotEmbedShell showHeader={false} showHistory={false} className={className}>
+    <div className={`${styles.container} ${styles[mode]}`}>
       <ChatContainerBody
         mode={mode}
         sessionTitle={sessionTitle}
@@ -107,6 +111,7 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         onClose={onClose}
       />
     </div>
+    </CopilotEmbedShell>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
+import { CopilotWorkspaceShell } from "@/shared/copilot";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
@@ -186,6 +187,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   const portalRoot = getPortalRoot();
 
   return (
+    <CopilotWorkspaceShell disabled className={styles.shell}>
     <div className={styles.shell}>
       {leftEnabled ? (
         <WorkspaceTopNav showSidebarControl={isMobile} />
@@ -295,6 +297,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         portalRoot,
       )}
     </div>
+    </CopilotWorkspaceShell>
   );
 }
 
