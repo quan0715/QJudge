@@ -421,7 +421,7 @@ def test_qjudge_contest_manager_reorder_coding(monkeypatch):
     }
 
 
-def test_verify_token_uses_canonical_auth_me_path(monkeypatch):
+def test_verify_token_uses_canonical_users_me_path(monkeypatch):
     calls = []
     response = FakeResponse(200, payload={"id": "user-1"})
     monkeypatch.setattr(
@@ -435,7 +435,7 @@ def test_verify_token_uses_canonical_auth_me_path(monkeypatch):
     assert token is not None
     assert token.token == "token-123"
     assert calls == [{
-        "url": f"{server.DJANGO_BASE_URL}/api/v1/auth/me",
+        "url": f"{server.DJANGO_BASE_URL}/api/v1/users/me",
         "headers": {
             "Authorization": "Bearer token-123",
             "X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO,

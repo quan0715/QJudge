@@ -31,7 +31,7 @@ DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8002")
 # Skip entire module if backend is unreachable
 def _backend_reachable() -> bool:
     try:
-        r = httpx.get(f"{DJANGO_BASE_URL}/api/v1/auth/me", timeout=3)
+        r = httpx.get(f"{DJANGO_BASE_URL}/api/v1/users/me", timeout=3)
         return r.status_code in (200, 401, 403)
     except (httpx.ConnectError, httpx.TimeoutException):
         return False
