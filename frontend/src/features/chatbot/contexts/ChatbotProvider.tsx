@@ -1,12 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { CopilotProvider } from "@/shared/copilot";
-import { BrowserCopilotStorage } from "@/infrastructure/copilot/browserCopilotStorage";
-import { createQJudgeCopilotTransport } from "@/infrastructure/copilot/qJudgeCopilotTransport";
-import { chatbotRepository } from "@/infrastructure/api/repositories";
-import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
-import { QJudgeCopilotTranslations } from "../adapters/qJudgeCopilotTranslations";
-import { useReactRouterCopilotSessionLocation } from "../adapters/reactRouterCopilotSessionLocation";
 import { useChatbot } from "../hooks/useChatbot";
 import { useAiSessionParam } from "../lib/aiSessionUrl";
 import { ArtifactPanelProvider } from "./ArtifactPanelContext";
@@ -18,28 +11,6 @@ const ChatbotContext = createContext<ChatbotContextValue | null>(null);
 export function ChatbotProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const enabled = !!user;
-  const sessionLocation = useReactRouterCopilotSessionLocation();
-  const transport = useMemo(
-    () => createQJudgeCopilotTransport(chatbotRepository, uploadUserArtifact),
-    [],
-  );
-  const storage = useMemo(() => new BrowserCopilotStorage(), []);
-  const translations = useMemo(() => new QJudgeCopilotTranslations(), []);
-  return (
-    <CopilotProvider
-      transport={transport}
-      sessionLocation={sessionLocation}
-      storage={storage}
-      translations={translations}
-      initialSession="first"
-      enabled={enabled}
-    >
-      <LegacyChatbotProvider enabled={enabled}>{children}</LegacyChatbotProvider>
-    </CopilotProvider>
-  );
-}
-
-function LegacyChatbotProvider({ children, enabled }: { children: ReactNode; enabled: boolean }) {
   const { aiSessionId, setAiSessionId } = useAiSessionParam();
   const chatbot = useChatbot({ enabled, initialSessionIdHint: aiSessionId });
 
