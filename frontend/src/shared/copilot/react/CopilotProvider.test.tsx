@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
+import type { CopilotRun } from "@/core/copilot";
 import {
   MemoryCopilotSessionLocation,
   MemoryCopilotStorage,
@@ -126,6 +127,38 @@ describe("CopilotProvider session lifecycle", () => {
       expect.any(Object),
       expect.objectContaining({ fromSequence: 9 }),
     );
+  });
+
+  it("restores a persisted awaiting-answer request after reload", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const started = await transport.startRun({ sessionId: session.id, text: "Grade it" });
+    const questionRequest = {
+      question: "Which rubric should I use?",
+      input: "text" as const,
+      options: [],
+    };
+    const awaitingRun = {
+      ...started,
+      status: "awaiting-answer" as const,
+      lastSequence: 25,
+      questionRequest,
+    } satisfies CopilotRun & { questionRequest: typeof questionRequest };
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue(awaitingRun);
+    const location = new MemoryCopilotSessionLocation(session.id);
+    const { result } = renderHook(
+      () => ({ sessions: useCopilotSessions(), state: useCopilotStateContext() }),
+      {
+        wrapper: createWrapper({ transport, sessionLocation: location }),
+      },
+    );
+
+    await waitFor(() => expect(result.current.sessions.activeSession.status).toBe("ready"));
+    await waitFor(() => expect(result.current.state.run.status).toBe("awaiting-answer"));
+    expect(result.current.state.run).toMatchObject({
+      status: "awaiting-answer",
+      request: questionRequest,
+    });
   });
 
   it("only commits the latest fast session selection", async () => {

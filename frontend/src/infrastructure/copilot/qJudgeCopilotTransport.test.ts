@@ -217,6 +217,27 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
 runCopilotTransportContract(createQJudgeContractSubject);
 
 describe("chatbotCopilotMapper", () => {
+  it("preserves a persisted question when mapping an awaiting run", () => {
+    expect(
+      mapChatRunToCopilot({
+        ...legacyRun,
+        status: "awaiting_user_answer",
+        questionPayload: {
+          question: "Which rubric should I use?",
+          input_type: "text",
+          options: [],
+        },
+      }),
+    ).toMatchObject({
+      status: "awaiting-answer",
+      questionRequest: {
+        question: "Which rubric should I use?",
+        input: "text",
+        options: [],
+      },
+    });
+  });
+
   it("maps legacy message details to portable message parts", () => {
     const message: ChatMessage = {
       id: "message-1",

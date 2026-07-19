@@ -116,12 +116,21 @@ export function mapChatSessionToCopilotSummary(
 }
 
 export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
+  const question = run.questionPayload?.question;
   return {
     id: run.id,
     sessionId: run.sessionId,
     status: mapChatRunStatusToCopilot(run.status),
     modelId: run.modelId || undefined,
     lastSequence: run.lastEventSeq,
+    questionRequest:
+      typeof question === "string" && question.length > 0
+        ? {
+            question,
+            input: run.questionPayload?.input_type === "choice" ? "choice" : "text",
+            options: run.questionPayload?.options,
+          }
+        : undefined,
   };
 }
 

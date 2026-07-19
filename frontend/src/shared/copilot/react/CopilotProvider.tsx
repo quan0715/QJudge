@@ -74,9 +74,15 @@ function toCopilotError(
 }
 
 function toRunState(run: CopilotRun): CopilotRunState {
-  return run.status === "queued"
-    ? { status: "submitted", run }
-    : { status: "streaming", run };
+  if (run.status === "queued") return { status: "submitted", run };
+  if (run.status === "awaiting-answer" && run.questionRequest) {
+    return {
+      status: "awaiting-answer",
+      run,
+      request: run.questionRequest,
+    };
+  }
+  return { status: "streaming", run };
 }
 
 function summaryFromSession(
@@ -516,13 +522,14 @@ export function CopilotProvider({
           recoverable: false,
         } satisfies CopilotError);
       }
-      await transport.submitAnswer(awaiting.run.id, answer);
+      const resumedRun = await transport.submitAnswer(awaiting.run.id, answer);
       setRunState(sessionId, {
         status: "streaming",
-        run: { ...awaiting.run, status: "running" },
+        run: resumedRun,
       });
+      subscribeToRun(resumedRun);
     },
-    [setRunState, transport],
+    [setRunState, subscribeToRun, transport],
   );
 
   const retry = useCallback(async () => {

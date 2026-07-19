@@ -277,6 +277,27 @@ describe("useChatbot run lifecycle characterization", () => {
     expect(repository.subscribeRunEvents).toHaveBeenCalledOnce();
   });
 
+  it("restores a persisted pending question after reload", async () => {
+    const { result } = await renderActiveRun(
+      makeRun({
+        status: "awaiting_user_answer",
+        lastEventSeq: 25,
+        questionPayload: {
+          question: "Which rubric should I use?",
+          options: [],
+          input_type: "text",
+        },
+      }),
+    );
+
+    expect(result.current.pendingQuestion).toEqual({
+      question: "Which rubric should I use?",
+      options: [],
+      inputType: "text",
+    });
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it("aborts the current subscription on unmount", async () => {
     const { unmount, signals } = await renderActiveRun();
     const subscriptionSignal = signals[0];

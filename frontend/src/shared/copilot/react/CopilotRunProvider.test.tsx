@@ -120,6 +120,40 @@ describe("CopilotProvider run lifecycle", () => {
     expect(result.current.run.state.status).toBe("awaiting-approval");
   });
 
+  it("re-subscribes to a run after submitting an answer", async () => {
+    const transport = new MemoryCopilotTransport();
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Grade it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-answer",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 25,
+        request: {
+          question: "Which rubric should I use?",
+          input: "text",
+        },
+      }),
+    );
+    expect(result.current.run.state.status).toBe("awaiting-answer");
+
+    await act(() => result.current.run.submitAnswer("Use the existing rubric"));
+
+    expect(subscribeRun).toHaveBeenCalledTimes(2);
+    expect(subscribeRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: sent.runId, status: "running" }),
+      expect.any(Object),
+      expect.objectContaining({ fromSequence: 25 }),
+    );
+  });
+
   it("keeps failed attachments and draft for retry", async () => {
     const transport = new MemoryCopilotTransport();
     vi.spyOn(transport, "uploadAttachment").mockRejectedValueOnce(new Error("bad file"));

@@ -464,7 +464,12 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
       activeRuns.find(
         (run) =>
           run.sessionId === currentSessionId &&
-          ["queued", "running", "awaiting_approval"].includes(run.status),
+          [
+            "queued",
+            "running",
+            "awaiting_approval",
+            "awaiting_user_answer",
+          ].includes(run.status),
       ) ?? null
     );
   }, [activeRuns, currentSessionId, enabled]);
@@ -480,7 +485,20 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
     }
 
     setIsStreaming(true);
-    setIsLoading(activeRun.status !== "awaiting_approval");
+    setIsLoading(
+      !["awaiting_approval", "awaiting_user_answer"].includes(activeRun.status),
+    );
+    if (
+      activeRun.status === "awaiting_user_answer" &&
+      activeRun.questionPayload?.question
+    ) {
+      setPendingQuestion({
+        question: activeRun.questionPayload.question,
+        options: activeRun.questionPayload.options,
+        inputType:
+          activeRun.questionPayload.input_type === "choice" ? "choice" : "text",
+      });
+    }
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const streamedState = {
