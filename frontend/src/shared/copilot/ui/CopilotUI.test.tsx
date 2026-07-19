@@ -23,7 +23,7 @@ describe("Copilot UI primitives", () => {
   });
 
   it("renders composer semantics and disabled submit", () => {
-    render(<CopilotProvider transport={new MemoryCopilotTransport()}><CopilotComposer disabled placeholder="Ask" /></CopilotProvider>);
+    render(<CopilotProvider transport={new MemoryCopilotTransport()} enabled={false}><CopilotComposer disabled placeholder="Ask" /></CopilotProvider>);
     expect(screen.getByLabelText("Ask")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });

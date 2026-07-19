@@ -12,7 +12,7 @@ describe("useCopilotSessionLocation", () => {
       wrapper: ({ children }) =>
         createElement(
           CopilotProvider,
-          { transport: new MemoryCopilotTransport(), sessionLocation: location },
+          { transport: new MemoryCopilotTransport(), sessionLocation: location, enabled: false },
           children,
         ),
     });

@@ -10,20 +10,20 @@ describe("Copilot shells", () => {
   it("composes workspace panel chrome and supports disabled mode", () => {
     const transport = new MemoryCopilotTransport();
     const { rerender } = render(
-      <CopilotProvider transport={transport}>
+      <CopilotProvider transport={transport} enabled={false}>
         <CopilotWorkspaceShell defaultOpen side="left"><main>Main</main></CopilotWorkspaceShell>
       </CopilotProvider>,
     );
     expect(screen.getByTestId("copilot-workspace")).toHaveAttribute("data-side", "left");
     expect(screen.getByTestId("copilot-panel")).toBeInTheDocument();
-    rerender(<CopilotProvider transport={transport}><CopilotWorkspaceShell disabled><main>Main</main></CopilotWorkspaceShell></CopilotProvider>);
+    rerender(<CopilotProvider transport={transport} enabled={false}><CopilotWorkspaceShell disabled><main>Main</main></CopilotWorkspaceShell></CopilotProvider>);
     expect(screen.queryByTestId("copilot-panel")).not.toBeInTheDocument();
   });
 
   it("supports full-page history modes and container-safe embed flags", () => {
     const transport = new MemoryCopilotTransport();
     render(
-      <CopilotProvider transport={transport} sessionLocation={new MemoryCopilotSessionLocation()}>
+      <CopilotProvider transport={transport} sessionLocation={new MemoryCopilotSessionLocation()} enabled={false}>
         <CopilotFullPageShell history="sidebar" />
         <CopilotEmbedShell showHeader={false} showHistory={false} />
       </CopilotProvider>,
