@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CopilotProvider } from "../react/CopilotProvider";
@@ -5,6 +6,8 @@ import { MemoryCopilotSessionLocation, MemoryCopilotTransport } from "../testing
 import { CopilotEmbedShell } from "./CopilotEmbedShell";
 import { CopilotFullPageShell } from "./CopilotFullPageShell";
 import { CopilotWorkspaceShell } from "./CopilotWorkspaceShell";
+
+const copilotStyles = readFileSync("src/shared/copilot/ui/copilot.css", "utf8");
 
 describe("Copilot shells", () => {
   it("composes workspace panel chrome and supports disabled mode", () => {
@@ -30,5 +33,12 @@ describe("Copilot shells", () => {
     );
     expect(screen.getByTestId("copilot-full-page")).toHaveAttribute("data-history", "sidebar");
     expect(screen.getByTestId("copilot-embed")).toHaveAttribute("data-container-safe", "true");
+  });
+
+  it("keeps the workspace main area inside the shell height", () => {
+    const workspaceMainRule = copilotStyles.match(/\.copilot-workspace-main\s*\{([^}]*)\}/)?.[1] ?? "";
+
+    expect(workspaceMainRule).toContain("min-height: 0");
+    expect(workspaceMainRule).toContain("overflow: hidden");
   });
 });
