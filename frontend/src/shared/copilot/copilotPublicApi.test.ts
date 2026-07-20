@@ -10,6 +10,7 @@ describe("Copilot public API", () => {
       "useCopilotSessions",
       "useCopilotRun",
       "useCopilotComposer",
+      "useCopilotModels",
       "useCopilotScroll",
       "useCopilotSessionLocation",
       "CopilotWorkspaceShell",
@@ -19,5 +20,6 @@ describe("Copilot public API", () => {
       expect(copilot).toHaveProperty(name);
     }
     expect(copilot).not.toHaveProperty("MemoryCopilotTransport");
+    expect(copilot).not.toHaveProperty("MemoryCopilotModelCatalog");
   });
 });

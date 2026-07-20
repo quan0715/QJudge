@@ -140,6 +140,9 @@ export function CopilotProvider({
   );
   const selectedModelIdRef = useRef(selectedModelId);
   selectedModelIdRef.current = selectedModelId;
+  const modelSelectionRevisionRef = useRef(0);
+  const modelRequestRevisionRef = useRef(0);
+  const modelRequestAbortRef = useRef<AbortController | null>(null);
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
@@ -147,7 +150,7 @@ export function CopilotProvider({
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
   const locationWriteRef = useRef<string | null | undefined>(undefined);
 
-  const selectModel = useCallback(
+  const commitModelSelection = useCallback(
     (id: string | null) => {
       selectedModelIdRef.current = id;
       setSelectedModelId(id);
@@ -157,37 +160,95 @@ export function CopilotProvider({
     [storage],
   );
 
+  const selectModel = useCallback(
+    (id: string | null) => {
+      ++modelSelectionRevisionRef.current;
+      commitModelSelection(id);
+    },
+    [commitModelSelection],
+  );
+
+  const invalidateModelRequest = useCallback(() => {
+    modelRequestAbortRef.current?.abort();
+    modelRequestAbortRef.current = null;
+    ++modelRequestRevisionRef.current;
+  }, []);
+
   const refreshModels = useCallback(async () => {
-    const storedId = storage?.get(LAST_MODEL_KEY) ?? null;
+    invalidateModelRequest();
+    const requestRevision = modelRequestRevisionRef.current;
+    const selectionRevision = modelSelectionRevisionRef.current;
     if (!modelCatalog) {
-      const selectedId = chooseModelId(fallbackModels, storedId);
+      const selectedId = chooseModelId(
+        fallbackModels,
+        storage?.get(LAST_MODEL_KEY) ?? null,
+      );
       setModels(fallbackModels);
-      selectedModelIdRef.current = selectedId;
-      setSelectedModelId(selectedId);
+      commitModelSelection(selectedId);
       setModelError(null);
       setModelStatus("unavailable");
       return;
     }
 
+    const controller = new AbortController();
+    modelRequestAbortRef.current = controller;
     setModelStatus("loading");
     setModelError(null);
     try {
-      const loadedModels = await modelCatalog.list();
-      const selectedId = chooseModelId(loadedModels, storedId);
+      const loadedModels = await modelCatalog.list({ signal: controller.signal });
+      if (
+        controller.signal.aborted ||
+        requestRevision !== modelRequestRevisionRef.current
+      ) {
+        return;
+      }
+      const explicitSelection = selectedModelIdRef.current;
+      const selectedId =
+        selectionRevision !== modelSelectionRevisionRef.current &&
+        explicitSelection !== null &&
+        loadedModels.some((model) => model.id === explicitSelection)
+          ? explicitSelection
+          : chooseModelId(
+              loadedModels,
+              storage?.get(LAST_MODEL_KEY) ?? null,
+            );
       setModels(loadedModels);
-      selectedModelIdRef.current = selectedId;
-      setSelectedModelId(selectedId);
+      commitModelSelection(selectedId);
       setModelStatus("ready");
     } catch (cause) {
+      if (
+        controller.signal.aborted ||
+        requestRevision !== modelRequestRevisionRef.current
+      ) {
+        return;
+      }
       const error = toCopilotError("load-models", cause);
-      const selectedId = chooseModelId(fallbackModels, storedId);
+      const explicitSelection = selectedModelIdRef.current;
+      const selectedId =
+        selectionRevision !== modelSelectionRevisionRef.current &&
+        explicitSelection !== null &&
+        fallbackModels.some((model) => model.id === explicitSelection)
+          ? explicitSelection
+          : chooseModelId(
+              fallbackModels,
+              storage?.get(LAST_MODEL_KEY) ?? null,
+            );
       setModels(fallbackModels);
-      selectedModelIdRef.current = selectedId;
-      setSelectedModelId(selectedId);
+      commitModelSelection(selectedId);
       setModelError({ ...error, operation: "load-models" });
       setModelStatus("error");
+    } finally {
+      if (modelRequestAbortRef.current === controller) {
+        modelRequestAbortRef.current = null;
+      }
     }
-  }, [fallbackModels, modelCatalog, storage]);
+  }, [
+    commitModelSelection,
+    fallbackModels,
+    invalidateModelRequest,
+    modelCatalog,
+    storage,
+  ]);
 
   const setRunState = useCallback((sessionId: string, run: CopilotRunState) => {
     setRuntime((previous) => ({
@@ -635,7 +696,8 @@ export function CopilotProvider({
 
   useEffect(() => {
     void refreshModels();
-  }, [refreshModels]);
+    return invalidateModelRequest;
+  }, [invalidateModelRequest, refreshModels]);
 
   useEffect(() => {
     if (!enabled) return;
