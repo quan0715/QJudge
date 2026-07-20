@@ -55,6 +55,23 @@ describe("ComposerBar attachment state", () => {
     expect(onRemoveAttachment).not.toHaveBeenCalled();
   });
 
+  it("locks every attachment removal while any attachment is uploading", () => {
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[attachment("uploading"), attachment("pending")]}
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("button", {
+        name: /removeAttachment|移除附件/i,
+      }),
+    ).toSatisfy((buttons: HTMLButtonElement[]) =>
+      buttons.every((button) => button.disabled),
+    );
+  });
+
   it("announces upload errors and allows remove or retry send", () => {
     const onRemoveAttachment = vi.fn();
     const onSend = vi.fn().mockResolvedValue(true);

@@ -18,6 +18,14 @@ import { QJudgeCopilotBoundary } from "@/features/chatbot/contexts/QJudgeCopilot
 import { QJudgeChatPanel } from "./QJudgeChatPanel";
 import { qJudgeCopilotSlots } from "./qJudgeCopilotSlots";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((onResolve) => {
+    resolve = onResolve;
+  });
+  return { promise, resolve };
+}
+
 vi.mock(
   "@/infrastructure/api/repositories/artifact.repository",
   async (importOriginal) => ({
@@ -202,6 +210,49 @@ describe("QJudgeChatPanel", () => {
     expect(
       screen.getByRole("button", { name: /send|送出/i }),
     ).toBeDisabled();
+  });
+
+  it("locks the full composer while its captured request is sending", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const uploadResult = deferred<{
+      type: "attachment";
+      id: string;
+      name: string;
+    }>();
+    vi.spyOn(transport, "uploadAttachment").mockReturnValue(uploadResult.promise);
+    const { container } = renderPanel(
+      transport,
+      session.id,
+      <QJudgeChatPanel mode="sidebar" />,
+      new MemoryCopilotModelCatalog([
+        { id: "fast", displayName: "Fast model", isDefault: true },
+      ]),
+    );
+    const input = await screen.findByRole("textbox", { name: /message|輸入/i });
+    fireEvent.change(input, { target: { value: "Grade it" } });
+    const file = new File(["row,value"], "grade.csv", { type: "text/csv" });
+    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
+    fireEvent.change(fileInput!, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
+
+    await waitFor(() => expect(input).toBeDisabled());
+    expect(screen.getByRole("button", { name: /model|模型/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /addAttachment|新增附件/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /removeAttachment|移除附件/i }),
+    ).toBeDisabled();
+
+    await act(async () => {
+      uploadResult.resolve({
+        type: "attachment",
+        id: "attachment-1",
+        name: file.name,
+      });
+    });
+    await waitFor(() => expect(input).toBeEnabled());
   });
 
   it("exports one stable component for every public panel slot", () => {

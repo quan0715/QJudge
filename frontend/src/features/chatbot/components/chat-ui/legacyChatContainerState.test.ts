@@ -5,7 +5,11 @@ import type {
   QuestionRequest,
 } from "@/core/types/chatbot.types";
 
-import { createLegacyChatContainerState } from "./legacyChatContainerState";
+import {
+  clearCapturedLegacyDraft,
+  createLegacyChatContainerState,
+  removeCapturedLegacyAttachments,
+} from "./legacyChatContainerState";
 
 function run(overrides: Partial<ChatRun> = {}): ChatRun {
   return {
@@ -90,5 +94,22 @@ describe("createLegacyChatContainerState", () => {
     expect(loading.approval).toBeNull();
     expect(loading.question).toBeNull();
     expect(loading.suggestions).toEqual([]);
+  });
+});
+
+describe("legacy composer snapshot cleanup", () => {
+  it("preserves draft and attachments added after send capture", () => {
+    expect(clearCapturedLegacyDraft("later draft", "captured draft")).toBe(
+      "later draft",
+    );
+    expect(clearCapturedLegacyDraft("captured draft", "captured draft")).toBe(
+      "",
+    );
+    expect(
+      removeCapturedLegacyAttachments(
+        [{ id: "captured" }, { id: "later" }],
+        new Set(["captured"]),
+      ),
+    ).toEqual([{ id: "later" }]);
   });
 });

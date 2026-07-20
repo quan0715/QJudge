@@ -32,6 +32,20 @@ interface LegacyChatContainerState {
   suggestions: readonly CopilotSuggestion[];
 }
 
+export function clearCapturedLegacyDraft(
+  currentDraft: string,
+  capturedDraft: string,
+): string {
+  return currentDraft === capturedDraft ? "" : currentDraft;
+}
+
+export function removeCapturedLegacyAttachments<T extends { id: string }>(
+  currentAttachments: readonly T[],
+  capturedIds: ReadonlySet<string>,
+): T[] {
+  return currentAttachments.filter((item) => !capturedIds.has(item.id));
+}
+
 const ACTIVE_STATUS_PRIORITY = [
   "awaiting_user_answer",
   "awaiting_approval",

@@ -73,7 +73,9 @@ export function QJudgeCopilotComposer() {
     run.state.status === "awaiting-approval" ||
     run.state.status === "awaiting-answer";
   const disabled =
-    sessions.activeSession.status !== "ready" || isAwaitingHumanInput;
+    sessions.activeSession.status !== "ready" ||
+    isAwaitingHumanInput ||
+    composer.isSending;
 
   return (
     <ComposerBar

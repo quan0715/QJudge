@@ -165,6 +165,7 @@ export function CopilotProvider({
   const [sessionError, setSessionError] = useState<CopilotError | null>(null);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<CopilotPendingAttachment[]>([]);
+  const [isComposerSending, setIsComposerSending] = useState(false);
   const [models, setModels] = useState<readonly CopilotModel[]>(fallbackModels);
   const [modelStatus, setModelStatus] = useState<CopilotModelStatus>(
     modelCatalog ? "idle" : "unavailable",
@@ -1132,21 +1133,30 @@ export function CopilotProvider({
   const canSend =
     activeSession.status === "ready" &&
     (run.status === "ready" || run.status === "error") &&
+    !isComposerSending &&
     (draft.trim().length > 0 || attachments.length > 0);
   const sendComposer = useCallback((): Promise<CopilotSendResult> => {
     if (composerSendInFlightRef.current) {
       return composerSendInFlightRef.current;
     }
 
+    const capturedDraft = draft;
+    const capturedAttachments = attachments;
+    const capturedAttachmentIds = new Set(
+      capturedAttachments.map((item) => item.id),
+    );
     const input = {
-      text: draft,
-      attachments: attachments.map((item) => item.file),
+      text: capturedDraft,
+      attachments: capturedAttachments.map((item) => item.file),
       modelId: selectedModelIdRef.current ?? undefined,
     };
+    setIsComposerSending(true);
     const inFlight = send(input).then((result) => {
       if (result.accepted) {
-        setDraft("");
-        setAttachments([]);
+        setDraft((current) => current === capturedDraft ? "" : current);
+        setAttachments((current) =>
+          current.filter((item) => !capturedAttachmentIds.has(item.id)),
+        );
       }
       return result;
     });
@@ -1154,6 +1164,7 @@ export function CopilotProvider({
     const clearInFlight = () => {
       if (composerSendInFlightRef.current === inFlight) {
         composerSendInFlightRef.current = null;
+        setIsComposerSending(false);
       }
     };
     void inFlight.then(clearInFlight, clearInFlight);
@@ -1164,6 +1175,7 @@ export function CopilotProvider({
       draft,
       attachments,
       canSend,
+      isSending: isComposerSending,
       setDraft,
       addAttachments,
       removeAttachment,
@@ -1175,6 +1187,7 @@ export function CopilotProvider({
       attachments,
       canSend,
       draft,
+      isComposerSending,
       removeAttachment,
       resetComposer,
       sendComposer,

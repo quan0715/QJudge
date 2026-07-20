@@ -56,6 +56,7 @@ export interface CopilotComposerContextValue {
   draft: string;
   attachments: readonly CopilotPendingAttachment[];
   canSend: boolean;
+  isSending: boolean;
   setDraft(value: string): void;
   addAttachments(files: readonly File[]): Promise<void>;
   removeAttachment(id: string): void;

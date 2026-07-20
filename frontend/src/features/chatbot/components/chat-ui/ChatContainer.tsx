@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -18,7 +18,11 @@ import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { CopilotEmbedShell } from "@copilot";
 import type { CopilotPendingAttachment } from "@copilot";
 import { mapChatMessageToCopilot } from "@/infrastructure/copilot/chatbotCopilotMapper";
-import { createLegacyChatContainerState } from "./legacyChatContainerState";
+import {
+  clearCapturedLegacyDraft,
+  createLegacyChatContainerState,
+  removeCapturedLegacyAttachments,
+} from "./legacyChatContainerState";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
@@ -185,6 +189,8 @@ function ChatContainerBody({
   const [composerAttachments, setComposerAttachments] = useState<
     CopilotPendingAttachment[]
   >([]);
+  const [isLegacyComposerSending, setIsLegacyComposerSending] = useState(false);
+  const legacyComposerSendInFlightRef = useRef<Promise<boolean> | null>(null);
 
   // 重要：原本掃描 messages→artifact_* tool call→markToolFinished 的 effect 已搬至
   // `ArtifactPanelProvider`。ChatContainer 只在右側 panel 開著時才 mount，AI Grading
@@ -230,16 +236,40 @@ function ChatContainerBody({
       current.filter((attachment) => attachment.id !== id),
     );
   }, []);
-  const sendLegacyComposer = useCallback(async () => {
-    const didSend = await handleSend(
-      composerDraft,
-      composerAttachments.map((attachment) => attachment.file),
-    );
-    if (didSend) {
-      setComposerDraft("");
-      setComposerAttachments([]);
+  const sendLegacyComposer = useCallback((): Promise<boolean> => {
+    if (legacyComposerSendInFlightRef.current) {
+      return legacyComposerSendInFlightRef.current;
     }
-    return didSend;
+
+    const capturedDraft = composerDraft;
+    const capturedAttachments = composerAttachments;
+    const capturedAttachmentIds = new Set(
+      capturedAttachments.map((attachment) => attachment.id),
+    );
+    setIsLegacyComposerSending(true);
+    const inFlight = handleSend(
+      capturedDraft,
+      capturedAttachments.map((attachment) => attachment.file),
+    ).then((didSend) => {
+      if (didSend) {
+        setComposerDraft((current) =>
+          clearCapturedLegacyDraft(current, capturedDraft),
+        );
+        setComposerAttachments((current) =>
+          removeCapturedLegacyAttachments(current, capturedAttachmentIds),
+        );
+      }
+      return didSend;
+    });
+    legacyComposerSendInFlightRef.current = inFlight;
+    const clearInFlight = () => {
+      if (legacyComposerSendInFlightRef.current === inFlight) {
+        legacyComposerSendInFlightRef.current = null;
+        setIsLegacyComposerSending(false);
+      }
+    };
+    void inFlight.then(clearInFlight, clearInFlight);
+    return inFlight;
   }, [composerAttachments, composerDraft, handleSend]);
   const legacyState = useMemo(
     () => createLegacyChatContainerState({
@@ -316,9 +346,10 @@ function ChatContainerBody({
             onAddAttachments={addLegacyAttachments}
             onRemoveAttachment={removeLegacyAttachment}
             onSend={sendLegacyComposer}
-            canSend={!isStreaming}
+            canSend={!isStreaming && !isLegacyComposerSending}
             onStop={stopStreaming}
             isStreaming={isStreaming}
+            disabled={isLegacyComposerSending}
             sessionNotice={sessionNotice}
             models={copilotModels}
             selectedModelId={selectedModelId}

@@ -8,12 +8,14 @@ import type {
   CopilotSessionSummary,
 } from "@/core/copilot";
 import {
+  MemoryCopilotModelCatalog,
   MemoryCopilotSessionLocation,
   MemoryCopilotStorage,
   MemoryCopilotTransport,
 } from "../testing";
 import { useCopilotSessions } from "../hooks/useCopilotSessions";
 import { useCopilotComposer } from "../hooks/useCopilotComposer";
+import { useCopilotModels } from "../hooks/useCopilotModels";
 import { useCopilotStateContext } from "./copilotContexts";
 import { CopilotProvider } from "./CopilotProvider";
 
@@ -690,6 +692,7 @@ describe("CopilotProvider composer lifecycle", () => {
       first = result.current.send();
       second = result.current.send();
     });
+    expect(result.current.isSending).toBe(true);
     expect(uploadAttachment).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -705,6 +708,59 @@ describe("CopilotProvider composer lifecycle", () => {
     expect(startRun).toHaveBeenCalledTimes(1);
     expect(result.current.attachments).toEqual([]);
     expect(result.current.draft).toBe("");
+    expect(result.current.isSending).toBe(false);
+  });
+
+  it("preserves draft, attachments, and model changes made after send capture", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const uploadResult = deferred<CopilotAttachmentPart>();
+    vi.spyOn(transport, "uploadAttachment").mockReturnValue(uploadResult.promise);
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), models: useCopilotModels() }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: new MemoryCopilotSessionLocation(session.id),
+          modelCatalog: new MemoryCopilotModelCatalog([
+            { id: "fast", displayName: "Fast", isDefault: true },
+            { id: "deep", displayName: "Deep" },
+          ]),
+        }),
+      },
+    );
+    await waitFor(() => expect(result.current.models.selectedModelId).toBe("fast"));
+    const capturedFile = new File(["captured"], "captured.csv");
+    const laterFile = new File(["later"], "later.csv");
+    act(() => result.current.composer.setDraft("captured draft"));
+    await act(() => result.current.composer.addAttachments([capturedFile]));
+
+    let pending!: ReturnType<typeof result.current.composer.send>;
+    act(() => {
+      pending = result.current.composer.send();
+    });
+    expect(result.current.composer.isSending).toBe(true);
+    await act(async () => {
+      result.current.composer.setDraft("later draft");
+      await result.current.composer.addAttachments([laterFile]);
+      result.current.models.select("deep");
+    });
+
+    await act(async () => {
+      uploadResult.resolve({
+        type: "attachment",
+        id: "uploaded-captured",
+        name: capturedFile.name,
+      });
+      await pending;
+    });
+
+    expect(result.current.composer.isSending).toBe(false);
+    expect(result.current.composer.draft).toBe("later draft");
+    expect(result.current.composer.attachments).toEqual([
+      expect.objectContaining({ file: laterFile, status: "pending" }),
+    ]);
+    expect(result.current.models.selectedModelId).toBe("deep");
   });
 
   it("retries an attachment after an upload error", async () => {
@@ -734,6 +790,7 @@ describe("CopilotProvider composer lifecycle", () => {
       firstResult = await result.current.send();
     });
     expect(firstResult).toMatchObject({ accepted: false });
+    expect(result.current.isSending).toBe(false);
     expect(result.current.attachments[0]).toMatchObject({ status: "error" });
 
     let retryResult;
@@ -744,5 +801,6 @@ describe("CopilotProvider composer lifecycle", () => {
     expect(uploadAttachment).toHaveBeenCalledTimes(2);
     expect(startRun).toHaveBeenCalledTimes(1);
     expect(result.current.attachments).toEqual([]);
+    expect(result.current.isSending).toBe(false);
   });
 });

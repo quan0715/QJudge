@@ -238,7 +238,7 @@ export function ComposerBar({
                   type="button"
                   className={styles.pendingFileRemove}
                   onClick={() => onRemoveAttachment(attachment.id)}
-                  disabled={disabled || isStreaming || attachment.status === "uploading"}
+                  disabled={disabled || isStreaming || hasUploadingAttachment}
                   aria-label={t("ui.removeAttachment", "移除附件")}
                   title={t("ui.removeAttachment", "移除附件")}
                 >
