@@ -193,6 +193,18 @@ export interface CopilotCreateSessionInput {
   metadata?: Record<string, unknown>;
 }
 
+export type CopilotRenameSessionResult =
+  | { ok: true }
+  | { ok: false; error: CopilotError };
+
+export type CopilotRemoveSessionResult =
+  | { ok: true; activeSessionId: string | null }
+  | {
+      ok: false;
+      activeSessionId: string | null;
+      error: CopilotError;
+    };
+
 export interface CopilotSendInput {
   text: string;
   attachments?: readonly File[];

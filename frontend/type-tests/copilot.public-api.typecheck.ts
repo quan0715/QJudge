@@ -5,10 +5,13 @@ import {
   useCopilotModels,
   type CopilotActiveSessionState,
   type CopilotRunState,
+  type CopilotRemoveSessionResult,
+  type CopilotRenameSessionResult,
   type CopilotSendResult,
   type CopilotTransport,
   type CopilotWorkspaceShellProps,
   type UseCopilotModelsResult,
+  type UseCopilotSessionsResult,
 } from "@copilot";
 import {
   MemoryCopilotTransport,
@@ -41,4 +44,13 @@ void [
 ];
 declare const modelRuntime: UseCopilotModelsResult;
 modelRuntime.select(null);
+declare const sessionRuntime: UseCopilotSessionsResult;
+const renameResult: Promise<CopilotRenameSessionResult> = sessionRuntime.rename(
+  "session-1",
+  "Renamed",
+);
+const removeResult: Promise<CopilotRemoveSessionResult> = sessionRuntime.remove(
+  "session-1",
+);
+void [renameResult, removeResult];
 void useCopilotModels;

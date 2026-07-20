@@ -12,6 +12,8 @@ export type {
   CopilotModelStatus,
   CopilotPendingAttachment,
   CopilotQuestionRequest,
+  CopilotRemoveSessionResult,
+  CopilotRenameSessionResult,
   CopilotReasoningPart,
   CopilotRequestOptions,
   CopilotRun,

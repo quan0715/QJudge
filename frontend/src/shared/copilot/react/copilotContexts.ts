@@ -6,6 +6,8 @@ import type {
   CopilotModel,
   CopilotModelStatus,
   CopilotPendingAttachment,
+  CopilotRemoveSessionResult,
+  CopilotRenameSessionResult,
   CopilotSendInput,
   CopilotSendResult,
   CopilotRunState,
@@ -37,8 +39,8 @@ export interface CopilotStateContextValue {
 export interface CopilotSessionCommandsContextValue {
   create(input?: CopilotCreateSessionInput): Promise<string | null>;
   select(id: string): Promise<void>;
-  rename(id: string, title: string): Promise<void>;
-  remove(id: string): Promise<void>;
+  rename(id: string, title: string): Promise<CopilotRenameSessionResult>;
+  remove(id: string): Promise<CopilotRemoveSessionResult>;
   refresh(): Promise<void>;
   clearError(): void;
 }

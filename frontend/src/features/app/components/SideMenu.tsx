@@ -245,26 +245,28 @@ export const SideMenu: React.FC<SideMenuProps> = ({
 
   const handleDeleteSession = useCallback(async (id: string) => {
     try {
-      await removeSession(id);
-      void refreshSessions();
+      const result = await removeSession(id);
+      if (!result.ok) return;
       if (id === currentSessionId) {
-        const remaining = sessions.filter((s) => s.id !== id);
-        const nextId = remaining[0]?.id;
-        if (nextId) goToChatSession(nextId, { replace: true });
+        if (result.activeSessionId) {
+          goToChatSession(result.activeSessionId, { replace: true });
+        } else {
+          navigate("/chat", { replace: true });
+        }
       }
     } catch {
       // silently ignore
     }
-  }, [removeSession, refreshSessions, currentSessionId, sessions, goToChatSession]);
+  }, [removeSession, currentSessionId, goToChatSession, navigate]);
 
   const handleRenameSession = useCallback(async (id: string, title: string) => {
     try {
-      await renameSession(id, title);
-      void refreshSessions();
+      const result = await renameSession(id, title);
+      if (!result.ok) return;
     } catch {
       // silently ignore
     }
-  }, [renameSession, refreshSessions]);
+  }, [renameSession]);
 
   // Classroom panel computed values
   const currentClassroom = useMemo(

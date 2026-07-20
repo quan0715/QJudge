@@ -19,6 +19,8 @@ import {
   type CopilotModelCatalog,
   type CopilotModelStatus,
   type CopilotPendingAttachment,
+  type CopilotRemoveSessionResult,
+  type CopilotRenameSessionResult,
   type CopilotRun,
   type CopilotRunState,
   type CopilotSendInput,
@@ -50,6 +52,8 @@ const LAST_MODEL_KEY = "copilot:last-model-id";
 const EMPTY_MODELS: readonly CopilotModel[] = [];
 const defaultTranslations = new DefaultCopilotTranslations();
 let optimisticSequence = 0;
+const ACTIVE_RUN_ID_KEY = "activeRunId";
+const ACTIVE_RUN_STATUS_KEY = "activeRunStatus";
 
 const chooseModelId = (
   models: readonly CopilotModel[],
@@ -144,6 +148,50 @@ function summaryFromSession(
   return summary;
 }
 
+function isTerminalRun(run: CopilotRun): boolean {
+  return (
+    run.status === "completed" ||
+    run.status === "failed" ||
+    run.status === "cancelled"
+  );
+}
+
+function withActiveRunMetadata(
+  summary: CopilotSessionSummary,
+  run: CopilotRun | null,
+): CopilotSessionSummary {
+  const metadata = { ...summary.metadata };
+  if (run && !isTerminalRun(run)) {
+    metadata[ACTIVE_RUN_ID_KEY] = run.id;
+    metadata[ACTIVE_RUN_STATUS_KEY] = run.status;
+  } else {
+    delete metadata[ACTIVE_RUN_ID_KEY];
+    delete metadata[ACTIVE_RUN_STATUS_KEY];
+  }
+  return {
+    ...summary,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  };
+}
+
+function preserveActiveRunMetadata(
+  summary: CopilotSessionSummary,
+  previous: CopilotSessionSummary | undefined,
+): CopilotSessionSummary {
+  if (!previous?.metadata) return summary;
+  const metadata = { ...summary.metadata };
+  if (ACTIVE_RUN_ID_KEY in previous.metadata) {
+    metadata[ACTIVE_RUN_ID_KEY] = previous.metadata[ACTIVE_RUN_ID_KEY];
+  }
+  if (ACTIVE_RUN_STATUS_KEY in previous.metadata) {
+    metadata[ACTIVE_RUN_STATUS_KEY] = previous.metadata[ACTIVE_RUN_STATUS_KEY];
+  }
+  return {
+    ...summary,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  };
+}
+
 export function CopilotProvider({
   transport,
   sessionLocation,
@@ -184,8 +232,10 @@ export function CopilotProvider({
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
+  const summaryRunBySessionRef = useRef<Record<string, CopilotRun | null>>({});
   const subscriptionRef = useRef<CopilotSubscription | null>(null);
   const subscriptionTokenRef = useRef<object | null>(null);
+  const summarySequenceByRunRef = useRef<Record<string, number>>({});
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const restoreRunRef = useRef<
     ((sessionId: string, revision: number) => Promise<void>) | null
@@ -309,6 +359,36 @@ export function CopilotProvider({
     }));
   }, []);
 
+  const replaceSessions = useCallback((next: CopilotSessionSummary[]) => {
+    const reconciled = next.map((summary) =>
+      Object.prototype.hasOwnProperty.call(
+        summaryRunBySessionRef.current,
+        summary.id,
+      )
+        ? withActiveRunMetadata(
+            summary,
+            summaryRunBySessionRef.current[summary.id],
+          )
+        : summary,
+    );
+    sessionsRef.current = reconciled;
+    setSessions(reconciled);
+  }, []);
+
+  const syncSessionSummaryRun = useCallback(
+    (sessionId: string, run: CopilotRun | null) => {
+      summaryRunBySessionRef.current[sessionId] = run;
+      let changed = false;
+      const next = sessionsRef.current.map((summary) => {
+        if (summary.id !== sessionId) return summary;
+        changed = true;
+        return withActiveRunMetadata(summary, run);
+      });
+      if (changed) replaceSessions(next);
+    },
+    [replaceSessions],
+  );
+
   const clearReconnectTimer = useCallback(() => {
     if (reconnectTimerRef.current === null) return;
     clearTimeout(reconnectTimerRef.current);
@@ -329,6 +409,7 @@ export function CopilotProvider({
       const token = {};
       subscriptionTokenRef.current = token;
       let latestObservedStatus = run.status;
+      let latestObservedRun = run;
       let capturedSubscription: CopilotSubscription | null = null;
       const subscription = transport.subscribeRun(
         run,
@@ -341,12 +422,36 @@ export function CopilotProvider({
             ) {
               return;
             }
+            const lastSummarySequence =
+              summarySequenceByRunRef.current[event.runId] ?? -1;
+            if (event.sequence <= lastSummarySequence) return;
+            summarySequenceByRunRef.current[event.runId] = event.sequence;
             if (event.type === "awaiting-approval") {
               latestObservedStatus = "awaiting-approval";
+              latestObservedRun = {
+                ...latestObservedRun,
+                status: "awaiting-approval",
+                approvalRequest: event.request,
+              };
+              syncSessionSummaryRun(run.sessionId, latestObservedRun);
             } else if (event.type === "awaiting-answer") {
               latestObservedStatus = "awaiting-answer";
+              latestObservedRun = {
+                ...latestObservedRun,
+                status: "awaiting-answer",
+                questionRequest: event.request,
+              };
+              syncSessionSummaryRun(run.sessionId, latestObservedRun);
             } else if (event.type === "run-status") {
               latestObservedStatus = event.status;
+              latestObservedRun = {
+                ...latestObservedRun,
+                status: event.status,
+              };
+              syncSessionSummaryRun(
+                run.sessionId,
+                isTerminalRun(latestObservedRun) ? null : latestObservedRun,
+              );
             }
             setRuntime((previous) => reduceCopilotEvent(previous, event));
           },
@@ -410,13 +515,14 @@ export function CopilotProvider({
         subscription.close();
       }
     },
-    [clearReconnectTimer, closeRunSubscription, setRunState, transport],
+    [
+      clearReconnectTimer,
+      closeRunSubscription,
+      setRunState,
+      syncSessionSummaryRun,
+      transport,
+    ],
   );
-
-  const replaceSessions = useCallback((next: CopilotSessionSummary[]) => {
-    sessionsRef.current = next;
-    setSessions(next);
-  }, []);
 
   const writeLocation = useCallback(
     (id: string | null) => {
@@ -432,6 +538,7 @@ export function CopilotProvider({
     async (sessionId: string, revision: number) => {
       closeRunSubscription();
       if (!transport.capabilities.resumableStreams || !transport.getActiveRun) {
+        syncSessionSummaryRun(sessionId, null);
         setRuntime((previous) => ({
           ...previous,
           runs: {
@@ -445,6 +552,7 @@ export function CopilotProvider({
         const run = await transport.getActiveRun(sessionId);
         if (revision !== revisionRef.current || activeIdRef.current !== sessionId) return;
         if (!run) {
+          syncSessionSummaryRun(sessionId, null);
           setRuntime((previous) => ({
             ...previous,
             runs: {
@@ -461,6 +569,7 @@ export function CopilotProvider({
         );
         const restoredRun =
           lastSequence >= 0 ? { ...run, lastSequence } : run;
+        syncSessionSummaryRun(sessionId, restoredRun);
         setRuntime((previous) => ({
           ...previous,
           runs: { ...previous.runs, [sessionId]: toRunState(restoredRun) },
@@ -481,7 +590,7 @@ export function CopilotProvider({
         }));
       }
     },
-    [closeRunSubscription, subscribeToRun, transport],
+    [closeRunSubscription, subscribeToRun, syncSessionSummaryRun, transport],
   );
   restoreRunRef.current = restoreRun;
 
@@ -602,14 +711,23 @@ export function CopilotProvider({
   }, [invalidateSessionListRequest, replaceSessions, transport]);
 
   const rename = useCallback(
-    async (id: string, title: string) => {
+    async (
+      id: string,
+      title: string,
+    ): Promise<CopilotRenameSessionResult> => {
       try {
         const summary = await transport.renameSession(id, title);
         invalidateSessionListRequest();
         setSessionError(null);
         setListStatus("ready");
+        const previousSummary = sessionsRef.current.find(
+          (item) => item.id === id,
+        );
+        const nextSummary = preserveActiveRunMetadata(summary, previousSummary);
         replaceSessions(
-          sessionsRef.current.map((item) => (item.id === id ? summary : item)),
+          sessionsRef.current.map((item) =>
+            item.id === id ? nextSummary : item,
+          ),
         );
         setRuntime((previous) => {
           const session = previous.sessions[id];
@@ -623,25 +741,34 @@ export function CopilotProvider({
               }
             : previous;
         });
+        return { ok: true };
       } catch (cause) {
-        setSessionError(toSessionError("update-session", cause));
+        const error = toSessionError("update-session", cause);
+        setSessionError(error);
+        return { ok: false, error };
       }
     },
     [invalidateSessionListRequest, replaceSessions, transport],
   );
 
   const remove = useCallback(
-    async (id: string) => {
+    async (id: string): Promise<CopilotRemoveSessionResult> => {
       try {
         await transport.deleteSession(id);
       } catch (cause) {
-        setSessionError(toSessionError("update-session", cause));
-        return;
+        const error = toSessionError("update-session", cause);
+        setSessionError(error);
+        return {
+          ok: false,
+          activeSessionId: activeIdRef.current,
+          error,
+        };
       }
       invalidateSessionListRequest();
       setSessionError(null);
       setListStatus("ready");
       const remaining = sessionsRef.current.filter((item) => item.id !== id);
+      delete summaryRunBySessionRef.current[id];
       replaceSessions(remaining);
       setRuntime((previous) => {
         const nextSessions = { ...previous.sessions };
@@ -650,20 +777,32 @@ export function CopilotProvider({
         delete nextRuns[id];
         return { ...previous, sessions: nextSessions, runs: nextRuns };
       });
-      if (activeIdRef.current !== id) return;
-      if (remaining[0]) await selectSession(remaining[0].id);
-      else {
-        ++revisionRef.current;
-        closeRunSubscription();
-        activeIdRef.current = null;
-        storage?.remove(LAST_SESSION_KEY);
-        writeLocation(null);
-        setRuntime((previous) => ({ ...previous, activeSessionId: null }));
+      if (activeIdRef.current !== id) {
+        return { ok: true, activeSessionId: activeIdRef.current };
       }
+      if (remaining[0]) {
+        await selectSession(remaining[0].id);
+        return { ok: true, activeSessionId: remaining[0].id };
+      }
+
+      ++revisionRef.current;
+      closeRunSubscription();
+      activeIdRef.current = null;
+      storage?.remove(LAST_SESSION_KEY);
+      writeLocation(null);
+      setRuntime((previous) => ({ ...previous, activeSessionId: null }));
+
+      if (initialSession === "first-or-create") {
+        const replacementId = await create();
+        return { ok: true, activeSessionId: replacementId };
+      }
+      return { ok: true, activeSessionId: null };
     },
     [
       invalidateSessionListRequest,
       closeRunSubscription,
+      create,
+      initialSession,
       replaceSessions,
       selectSession,
       storage,
@@ -762,6 +901,7 @@ export function CopilotProvider({
           modelId: input.modelId,
           metadata: input.metadata,
         });
+        syncSessionSummaryRun(sessionId, run);
         const assistantId = `run-${run.id}-assistant`;
         setRuntime((previous) => {
           const session = previous.sessions[sessionId];
@@ -798,7 +938,7 @@ export function CopilotProvider({
         return { accepted: false, sessionId, error };
       }
     },
-    [setRunState, subscribeToRun, transport],
+    [setRunState, subscribeToRun, syncSessionSummaryRun, transport],
   );
 
   const stop = useCallback(async () => {
@@ -808,22 +948,31 @@ export function CopilotProvider({
     const activeRun = !state || state.status === "ready" ? null : state.run;
     setRunState(sessionId, { status: "ready", run: null });
     closeRunSubscription();
-    if (!activeRun || !transport.capabilities.cancellableRuns || !transport.cancelRun) return;
+    if (!activeRun) {
+      syncSessionSummaryRun(sessionId, null);
+      return;
+    }
+    if (!transport.capabilities.cancellableRuns || !transport.cancelRun) {
+      syncSessionSummaryRun(sessionId, null);
+      return;
+    }
     try {
       await transport.cancelRun(activeRun.id);
+      syncSessionSummaryRun(sessionId, null);
       const session = await transport.getSession(sessionId);
       setRuntime((previous) => ({
         ...previous,
         sessions: { ...previous.sessions, [sessionId]: session },
       }));
     } catch (cause) {
+      syncSessionSummaryRun(sessionId, activeRun);
       setRunState(sessionId, {
         status: "error",
         run: activeRun,
         error: toCopilotError("cancel-run", cause),
       });
     }
-  }, [closeRunSubscription, setRunState, transport]);
+  }, [closeRunSubscription, setRunState, syncSessionSummaryRun, transport]);
 
   const submitApproval = useCallback(
     async (decision: "approve" | "reject") => {
@@ -850,6 +999,7 @@ export function CopilotProvider({
         ) {
           return;
         }
+        syncSessionSummaryRun(sessionId, resumedRun);
         setRunState(sessionId, { status: "streaming", run: resumedRun });
         subscribeToRun(resumedRun);
       } catch (cause) {
@@ -865,7 +1015,7 @@ export function CopilotProvider({
         });
       }
     },
-    [setRunState, subscribeToRun, transport],
+    [setRunState, subscribeToRun, syncSessionSummaryRun, transport],
   );
 
   const submitAnswer = useCallback(
@@ -893,6 +1043,7 @@ export function CopilotProvider({
         ) {
           return;
         }
+        syncSessionSummaryRun(sessionId, resumedRun);
         setRunState(sessionId, { status: "streaming", run: resumedRun });
         subscribeToRun(resumedRun);
       } catch (cause) {
@@ -908,7 +1059,7 @@ export function CopilotProvider({
         });
       }
     },
-    [setRunState, subscribeToRun, transport],
+    [setRunState, subscribeToRun, syncSessionSummaryRun, transport],
   );
 
   const retry = useCallback(async () => {

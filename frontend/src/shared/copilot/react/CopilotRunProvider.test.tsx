@@ -83,17 +83,31 @@ describe("CopilotProvider run lifecycle", () => {
       return originalCancel(id);
     });
     const { result } = renderHook(
-      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
       { wrapper: wrapper(transport) },
     );
     act(() => result.current.composer.setDraft("Stop me"));
     await waitFor(() => expect(result.current.composer.canSend).toBe(true));
     await act(() => result.current.composer.send());
 
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunStatus: "queued",
+    });
+
     await act(() => result.current.run.stop());
 
     expect(order.slice(0, 2)).toEqual(["close", "cancel"]);
     expect(result.current.run.state.status).toBe("ready");
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunStatus,
+    ).toBeUndefined();
   });
 
   it("retains an approval request and interaction error when submission fails", async () => {
@@ -133,7 +147,11 @@ describe("CopilotProvider run lifecycle", () => {
     const transport = new MemoryCopilotTransport();
     const subscribeRun = vi.spyOn(transport, "subscribeRun");
     const { result } = renderHook(
-      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
       { wrapper: wrapper(transport) },
     );
     act(() => result.current.composer.setDraft("Change it"));
@@ -148,6 +166,10 @@ describe("CopilotProvider run lifecycle", () => {
         request: { actions: [{ name: "write" }], allowedDecisions: ["approve"] },
       }),
     );
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "awaiting-approval",
+    });
 
     await act(() => result.current.run.submitApproval("approve"));
 
@@ -158,6 +180,158 @@ describe("CopilotProvider run lifecycle", () => {
       expect.objectContaining({ fromSequence: 3 }),
     );
     expect(result.current.run.state.status).toBe("streaming");
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "running",
+    });
+  });
+
+  it("restores active-run metadata into the selected session summary", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Existing" });
+    const run = await transport.startRun({ sessionId: session.id, text: "Resume" });
+
+    const { result } = renderHook(
+      () => ({ run: useCopilotRun(), sessions: useCopilotSessions() }),
+      { wrapper: wrapper(transport, "first") },
+    );
+
+    await waitFor(() => expect(result.current.run.state.status).toBe("submitted"));
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: run.id,
+      activeRunStatus: "queued",
+    });
+  });
+
+  it.each(["completed", "failed", "cancelled"] as const)(
+    "clears %s run metadata without contaminating another session",
+    async (status) => {
+      const transport = new MemoryCopilotTransport();
+      const first = await transport.createSession({ title: "First" });
+      const second = await transport.createSession({ title: "Second" });
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          run: useCopilotRun(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport, "first") },
+      );
+      await waitFor(() => expect(result.current.sessions.activeSession.id).toBe(first.id));
+      act(() => result.current.composer.setDraft("Track metadata"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata,
+      ).toMatchObject({
+        activeRunId: sent.runId,
+        activeRunStatus: "queued",
+      });
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === second.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 1,
+          status: "running",
+        }),
+      );
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata,
+      ).toMatchObject({
+        activeRunId: sent.runId,
+        activeRunStatus: "running",
+      });
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 2,
+          status,
+        }),
+      );
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunStatus,
+      ).toBeUndefined();
+
+      await act(() => result.current.sessions.select(second.id));
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === second.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+    },
+  );
+
+  it("keeps live run metadata authoritative across rename and refresh", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Original" });
+    const originalListSessions = transport.listSessions.bind(transport);
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport, "first") },
+    );
+    await waitFor(() => expect(result.current.sessions.activeSession.id).toBe(session.id));
+    act(() => result.current.composer.setDraft("Keep metadata"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    await act(() => result.current.sessions.rename(session.id, "Renamed"));
+    await act(() => result.current.sessions.refresh());
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "queued",
+    });
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        status: "completed",
+      }),
+    );
+    const [staleSummary] = await originalListSessions();
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        ...staleSummary,
+        metadata: {
+          ...staleSummary.metadata,
+          activeRunId: sent.runId,
+          activeRunStatus: "running",
+        },
+      },
+    ]);
+    await act(() => result.current.sessions.refresh());
+
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunStatus,
+    ).toBeUndefined();
   });
 
   it("re-subscribes to a run after submitting an answer", async () => {

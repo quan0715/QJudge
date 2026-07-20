@@ -134,16 +134,20 @@ describe("CopilotProvider session lifecycle", () => {
   it("keeps session state and exposes an error when rename fails", async () => {
     const transport = new MemoryCopilotTransport();
     const existing = await transport.createSession({ title: "Existing" });
+    const location = new MemoryCopilotSessionLocation(existing.id);
     vi.spyOn(transport, "renameSession").mockRejectedValue(new Error("offline"));
 
     const { result } = renderHook(() => useCopilotSessions(), {
-      wrapper: createWrapper({ transport, initialSession: "first" }),
+      wrapper: createWrapper({ transport, initialSession: "first", sessionLocation: location }),
     });
     await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
 
-    await act(async () => result.current.rename(existing.id, "Changed"));
+    const mutation = await act(async () => result.current.rename(existing.id, "Changed"));
 
+    expect(mutation).toMatchObject({ ok: false });
     expect(result.current.sessions[0]?.title).toBe("Existing");
+    expect(result.current.activeSession.id).toBe(existing.id);
+    expect(location.get()).toBe(existing.id);
     expect(result.current.error?.operation).toBe("update-session");
   });
 
@@ -315,18 +319,21 @@ describe("CopilotProvider session lifecycle", () => {
   it("keeps session state and exposes an error when remove fails", async () => {
     const transport = new MemoryCopilotTransport();
     const existing = await transport.createSession({ title: "Existing" });
+    const location = new MemoryCopilotSessionLocation(existing.id);
     const { result } = renderHook(() => useCopilotSessions(), {
-      wrapper: createWrapper({ transport, initialSession: "first" }),
+      wrapper: createWrapper({ transport, initialSession: "first", sessionLocation: location }),
     });
     await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
     vi.spyOn(transport, "deleteSession").mockRejectedValue(new Error("offline"));
 
-    await act(async () => result.current.remove(existing.id));
+    const mutation = await act(async () => result.current.remove(existing.id));
 
+    expect(mutation).toMatchObject({ ok: false, activeSessionId: existing.id });
     expect(result.current.sessions.map((session) => session.id)).toEqual([
       existing.id,
     ]);
     expect(result.current.activeSession.id).toBe(existing.id);
+    expect(location.get()).toBe(existing.id);
     expect(result.current.error?.operation).toBe("update-session");
   });
 
@@ -635,14 +642,64 @@ describe("CopilotProvider session lifecycle", () => {
     });
     await waitFor(() => expect(result.current.activeSession.status).toBe("ready"));
 
-    await act(() => result.current.rename(first.id, "Renamed"));
+    const renameResult = await act(() => result.current.rename(first.id, "Renamed"));
+    expect(renameResult).toEqual({ ok: true });
     expect(result.current.sessions.find((item) => item.id === first.id)?.title).toBe(
       "Renamed",
     );
-    await act(() => result.current.remove(first.id));
+    const removeResult = await act(() => result.current.remove(first.id));
 
+    expect(removeResult).toEqual({ ok: true, activeSessionId: second.id });
     expect(result.current.sessions.map((item) => item.id)).toEqual([second.id]);
     await waitFor(() => expect(result.current.activeSession.id).toBe(second.id));
+  });
+
+  it("creates and selects a replacement after removing the last active session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Only" });
+    const location = new MemoryCopilotSessionLocation(existing.id);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: location,
+        initialSession: "first-or-create",
+      }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+
+    const mutation = await act(() => result.current.remove(existing.id));
+
+    expect(mutation.ok).toBe(true);
+    expect(mutation.activeSessionId).not.toBeNull();
+    expect(mutation.activeSessionId).not.toBe(existing.id);
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      mutation.activeSessionId,
+    ]);
+    expect(result.current.activeSession.id).toBe(mutation.activeSessionId);
+    expect(location.get()).toBe(mutation.activeSessionId);
+  });
+
+  it("reports replacement creation failure after the last session is deleted", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Only" });
+    const location = new MemoryCopilotSessionLocation(existing.id);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: location,
+        initialSession: "first-or-create",
+      }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    vi.spyOn(transport, "createSession").mockRejectedValueOnce(new Error("offline"));
+
+    const mutation = await act(() => result.current.remove(existing.id));
+
+    expect(mutation).toEqual({ ok: true, activeSessionId: null });
+    expect(result.current.sessions).toEqual([]);
+    expect(result.current.activeSession.status).toBe("empty");
+    expect(location.get()).toBeNull();
+    expect(result.current.error?.operation).toBe("create-session");
   });
 
   it("closes a restored subscription when unmounted", async () => {

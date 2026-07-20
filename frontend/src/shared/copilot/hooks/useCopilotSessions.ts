@@ -2,6 +2,8 @@ import type {
   CopilotActiveSessionState,
   CopilotCreateSessionInput,
   CopilotError,
+  CopilotRemoveSessionResult,
+  CopilotRenameSessionResult,
   CopilotSessionSummary,
 } from "@/core/copilot";
 import {
@@ -17,8 +19,8 @@ export interface UseCopilotSessionsResult {
   activeSession: CopilotActiveSessionState;
   create(input?: CopilotCreateSessionInput): Promise<string | null>;
   select(id: string): Promise<void>;
-  rename(id: string, title: string): Promise<void>;
-  remove(id: string): Promise<void>;
+  rename(id: string, title: string): Promise<CopilotRenameSessionResult>;
+  remove(id: string): Promise<CopilotRemoveSessionResult>;
   refresh(): Promise<void>;
   clearError(): void;
 }

@@ -112,8 +112,11 @@ describe("SideMenu contest admin workspace panels", () => {
     };
     mockCopilotSessions.create.mockResolvedValue(null);
     mockCopilotSessions.select.mockResolvedValue(undefined);
-    mockCopilotSessions.rename.mockResolvedValue(undefined);
-    mockCopilotSessions.remove.mockResolvedValue(undefined);
+    mockCopilotSessions.rename.mockResolvedValue({ ok: true });
+    mockCopilotSessions.remove.mockResolvedValue({
+      ok: true,
+      activeSessionId: null,
+    });
     mockCopilotSessions.refresh.mockResolvedValue(undefined);
     mockGetClassrooms.mockResolvedValue([
       {
@@ -244,6 +247,10 @@ describe("SideMenu contest admin workspace panels", () => {
       data: null,
       error: null,
     };
+    mockCopilotSessions.remove.mockResolvedValue({
+      ok: true,
+      activeSessionId: "session-2",
+    });
 
     render(
       <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
@@ -251,6 +258,9 @@ describe("SideMenu contest admin workspace panels", () => {
         <ChatRouteProbe />
       </MemoryRouter>,
     );
+
+    await waitFor(() => expect(mockCopilotSessions.refresh).toHaveBeenCalled());
+    mockCopilotSessions.refresh.mockClear();
 
     fireEvent.click(await screen.findByText("Other"));
     await waitFor(() => expect(mockCopilotSessions.select).toHaveBeenCalledWith("session-2"));
@@ -265,9 +275,82 @@ describe("SideMenu contest admin workspace panels", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "delete session-1" }));
     await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
-    expect(mockCopilotSessions.refresh).toHaveBeenCalled();
+    expect(mockCopilotSessions.refresh).not.toHaveBeenCalled();
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "?ai_session_id=session-2",
+    );
+  });
+
+  it("preserves navigation and skips refresh when session mutations fail", async () => {
+    const now = new Date();
+    mockCopilotSessions.sessions = [
+      { id: "session-1", title: "Current", createdAt: now, updatedAt: now },
+    ];
+    mockCopilotSessions.activeSession = {
+      status: "ready",
+      id: "session-1",
+      data: null,
+      error: null,
+    };
+    mockCopilotSessions.rename.mockResolvedValue({
+      ok: false,
+      error: { operation: "update-session" },
+    });
+    mockCopilotSessions.remove.mockResolvedValue({
+      ok: false,
+      activeSessionId: "session-1",
+      error: { operation: "update-session" },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
+        <SideMenu variant="panel" />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(mockCopilotSessions.refresh).toHaveBeenCalled());
+    mockCopilotSessions.refresh.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "rename session-1" }));
+    await waitFor(() => expect(mockCopilotSessions.rename).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "delete session-1" }));
+    await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalled());
+
+    expect(mockCopilotSessions.refresh).not.toHaveBeenCalled();
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-1",
+    );
+  });
+
+  it("navigates to the replacement returned after deleting the active session", async () => {
+    const now = new Date();
+    mockCopilotSessions.sessions = [
+      { id: "session-1", title: "Current", createdAt: now, updatedAt: now },
+    ];
+    mockCopilotSessions.activeSession = {
+      status: "ready",
+      id: "session-1",
+      data: null,
+      error: null,
+    };
+    mockCopilotSessions.remove.mockResolvedValue({
+      ok: true,
+      activeSessionId: "session-replacement",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
+        <SideMenu variant="panel" />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "delete session-1" }));
+    await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-replacement",
     );
   });
 });
