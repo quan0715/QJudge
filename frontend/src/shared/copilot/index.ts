@@ -5,6 +5,8 @@ export { useCopilot } from "./hooks/useCopilot";
 export type { UseCopilotResult } from "./hooks/useCopilot";
 export { useCopilotComposer } from "./hooks/useCopilotComposer";
 export type { UseCopilotComposerResult } from "./hooks/useCopilotComposer";
+export { useCopilotModels } from "./hooks/useCopilotModels";
+export type { UseCopilotModelsResult } from "./hooks/useCopilotModels";
 export { useCopilotRun } from "./hooks/useCopilotRun";
 export type { UseCopilotRunResult } from "./hooks/useCopilotRun";
 export { useCopilotSessions } from "./hooks/useCopilotSessions";

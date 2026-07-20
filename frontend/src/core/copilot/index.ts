@@ -8,6 +8,8 @@ export type {
   CopilotErrorCode,
   CopilotMessage,
   CopilotMessagePart,
+  CopilotModel,
+  CopilotModelStatus,
   CopilotPendingAttachment,
   CopilotQuestionRequest,
   CopilotReasoningPart,
@@ -42,6 +44,7 @@ export { selectActiveRun, selectActiveSession } from "./copilotSelectors";
 export {
   assertCopilotTransportCapabilities,
 } from "./ports/copilotTransport";
+export type { CopilotModelCatalog } from "./ports/copilotModelCatalog";
 export type {
   CopilotTransport,
   CopilotTransportCapabilities,

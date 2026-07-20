@@ -6,6 +6,21 @@ export interface CopilotSessionSummary {
   metadata?: Record<string, unknown>;
 }
 
+export interface CopilotModel {
+  id: string;
+  displayName: string;
+  description?: string;
+  isDefault?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export type CopilotModelStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "error"
+  | "unavailable";
+
 export interface CopilotSession extends CopilotSessionSummary {
   messages: CopilotMessage[];
 }
@@ -141,6 +156,7 @@ export type CopilotRunState =
 export interface CopilotError {
   code: CopilotErrorCode;
   operation:
+    | "load-models"
     | "load-sessions"
     | "load-session"
     | "create-session"

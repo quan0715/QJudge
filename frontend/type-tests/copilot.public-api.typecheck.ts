@@ -2,12 +2,13 @@ import {
   CopilotFullPageShell,
   CopilotProvider,
   useCopilot,
+  useCopilotModels,
   type CopilotActiveSessionState,
   type CopilotRunState,
   type CopilotSendResult,
   type CopilotTransport,
   type CopilotWorkspaceShellProps,
-  type UseCopilotComposerResult,
+  type UseCopilotModelsResult,
 } from "@copilot";
 import {
   MemoryCopilotTransport,
@@ -38,5 +39,6 @@ void [
   result,
   workspace,
 ];
-declare const composer: UseCopilotComposerResult;
-composer.setSelectedModel(null);
+declare const modelRuntime: UseCopilotModelsResult;
+modelRuntime.select(null);
+void useCopilotModels;

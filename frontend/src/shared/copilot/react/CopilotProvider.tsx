@@ -15,6 +15,9 @@ import {
   type CopilotAttachmentPart,
   type CopilotError,
   type CopilotMessage,
+  type CopilotModel,
+  type CopilotModelCatalog,
+  type CopilotModelStatus,
   type CopilotPendingAttachment,
   type CopilotRun,
   type CopilotRunState,
@@ -31,6 +34,7 @@ import {
 import { DefaultCopilotTranslations } from "../translations/defaultCopilotTranslations";
 import {
   CopilotComposerContext,
+  CopilotModelContext,
   CopilotRunCommandsContext,
   CopilotSessionCommandsContext,
   CopilotStateContext,
@@ -38,13 +42,27 @@ import {
 } from "./copilotContexts";
 
 const LAST_SESSION_KEY = "copilot:last-session-id";
+const LAST_MODEL_KEY = "copilot:last-model-id";
+const EMPTY_MODELS: readonly CopilotModel[] = [];
 const defaultTranslations = new DefaultCopilotTranslations();
 let optimisticSequence = 0;
+
+const chooseModelId = (
+  models: readonly CopilotModel[],
+  storedId: string | null,
+): string | null => {
+  if (storedId && models.some((model) => model.id === storedId)) {
+    return storedId;
+  }
+  return models.find((model) => model.isDefault)?.id ?? models[0]?.id ?? null;
+};
 
 export interface CopilotProviderProps {
   transport: CopilotTransport;
   sessionLocation?: CopilotSessionLocation;
   storage?: CopilotStorage;
+  modelCatalog?: CopilotModelCatalog;
+  fallbackModels?: readonly CopilotModel[];
   translations?: CopilotTranslations;
   initialSession?: "create" | "first" | "none";
   enabled?: boolean;
@@ -96,6 +114,8 @@ export function CopilotProvider({
   transport,
   sessionLocation,
   storage,
+  modelCatalog,
+  fallbackModels = EMPTY_MODELS,
   translations = defaultTranslations,
   initialSession = "none",
   enabled = true,
@@ -110,13 +130,64 @@ export function CopilotProvider({
   const [activeError, setActiveError] = useState<CopilotError | null>(null);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<CopilotPendingAttachment[]>([]);
-  const [selectedModelId, setSelectedModel] = useState<string | null>(null);
+  const [models, setModels] = useState<readonly CopilotModel[]>(fallbackModels);
+  const [modelStatus, setModelStatus] = useState<CopilotModelStatus>(
+    modelCatalog ? "idle" : "unavailable",
+  );
+  const [modelError, setModelError] = useState<CopilotError | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(() =>
+    chooseModelId(fallbackModels, storage?.get(LAST_MODEL_KEY) ?? null),
+  );
+  const selectedModelIdRef = useRef(selectedModelId);
+  selectedModelIdRef.current = selectedModelId;
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
   const subscriptionRef = useRef<CopilotSubscription | null>(null);
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
   const locationWriteRef = useRef<string | null | undefined>(undefined);
+
+  const selectModel = useCallback(
+    (id: string | null) => {
+      selectedModelIdRef.current = id;
+      setSelectedModelId(id);
+      if (id) storage?.set(LAST_MODEL_KEY, id);
+      else storage?.remove(LAST_MODEL_KEY);
+    },
+    [storage],
+  );
+
+  const refreshModels = useCallback(async () => {
+    const storedId = storage?.get(LAST_MODEL_KEY) ?? null;
+    if (!modelCatalog) {
+      const selectedId = chooseModelId(fallbackModels, storedId);
+      setModels(fallbackModels);
+      selectedModelIdRef.current = selectedId;
+      setSelectedModelId(selectedId);
+      setModelError(null);
+      setModelStatus("unavailable");
+      return;
+    }
+
+    setModelStatus("loading");
+    setModelError(null);
+    try {
+      const loadedModels = await modelCatalog.list();
+      const selectedId = chooseModelId(loadedModels, storedId);
+      setModels(loadedModels);
+      selectedModelIdRef.current = selectedId;
+      setSelectedModelId(selectedId);
+      setModelStatus("ready");
+    } catch (cause) {
+      const error = toCopilotError("load-models", cause);
+      const selectedId = chooseModelId(fallbackModels, storedId);
+      setModels(fallbackModels);
+      selectedModelIdRef.current = selectedId;
+      setSelectedModelId(selectedId);
+      setModelError({ ...error, operation: "load-models" });
+      setModelStatus("error");
+    }
+  }, [fallbackModels, modelCatalog, storage]);
 
   const setRunState = useCallback((sessionId: string, run: CopilotRunState) => {
     setRuntime((previous) => ({
@@ -560,8 +631,11 @@ export function CopilotProvider({
   const resetComposer = useCallback(() => {
     setDraft("");
     setAttachments([]);
-    setSelectedModel(null);
   }, []);
+
+  useEffect(() => {
+    void refreshModels();
+  }, [refreshModels]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -645,22 +719,20 @@ export function CopilotProvider({
     const result = await send({
       text: draft,
       attachments: attachments.map((item) => item.file),
-      modelId: selectedModelId ?? undefined,
+      modelId: selectedModelIdRef.current ?? undefined,
     });
     if (result.accepted) {
       setDraft("");
       setAttachments([]);
     }
     return result;
-  }, [attachments, draft, selectedModelId, send]);
+  }, [attachments, draft, send]);
   const composerValue = useMemo(
     () => ({
       draft,
       attachments,
-      selectedModelId,
       canSend,
       setDraft,
-      setSelectedModel,
       addAttachments,
       removeAttachment,
       send: sendComposer,
@@ -673,8 +745,25 @@ export function CopilotProvider({
       draft,
       removeAttachment,
       resetComposer,
-      selectedModelId,
       sendComposer,
+    ],
+  );
+  const modelValue = useMemo(
+    () => ({
+      models,
+      status: modelStatus,
+      selectedModelId,
+      error: modelError,
+      select: selectModel,
+      refresh: refreshModels,
+    }),
+    [
+      modelError,
+      models,
+      modelStatus,
+      refreshModels,
+      selectModel,
+      selectedModelId,
     ],
   );
 
@@ -682,9 +771,11 @@ export function CopilotProvider({
     <CopilotStateContext.Provider value={stateValue}>
       <CopilotSessionCommandsContext.Provider value={commandsValue}>
         <CopilotRunCommandsContext.Provider value={runCommandsValue}>
-          <CopilotComposerContext.Provider value={composerValue}>
-            {children}
-          </CopilotComposerContext.Provider>
+          <CopilotModelContext.Provider value={modelValue}>
+            <CopilotComposerContext.Provider value={composerValue}>
+              {children}
+            </CopilotComposerContext.Provider>
+          </CopilotModelContext.Provider>
         </CopilotRunCommandsContext.Provider>
       </CopilotSessionCommandsContext.Provider>
     </CopilotStateContext.Provider>

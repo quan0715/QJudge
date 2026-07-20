@@ -2,6 +2,9 @@ import { createContext, useContext } from "react";
 import type {
   CopilotActiveSessionState,
   CopilotCreateSessionInput,
+  CopilotError,
+  CopilotModel,
+  CopilotModelStatus,
   CopilotPendingAttachment,
   CopilotSendInput,
   CopilotSendResult,
@@ -50,14 +53,21 @@ export interface CopilotRunCommandsContextValue {
 export interface CopilotComposerContextValue {
   draft: string;
   attachments: readonly CopilotPendingAttachment[];
-  selectedModelId: string | null;
   canSend: boolean;
   setDraft(value: string): void;
-  setSelectedModel(id: string | null): void;
   addAttachments(files: readonly File[]): Promise<void>;
   removeAttachment(id: string): void;
   send(): Promise<CopilotSendResult>;
   reset(): void;
+}
+
+export interface CopilotModelContextValue {
+  models: readonly CopilotModel[];
+  status: CopilotModelStatus;
+  selectedModelId: string | null;
+  error: CopilotError | null;
+  select(id: string | null): void;
+  refresh(): Promise<void>;
 }
 
 export const CopilotStateContext = createContext<
@@ -71,6 +81,9 @@ export const CopilotRunCommandsContext = createContext<
 >(undefined);
 export const CopilotComposerContext = createContext<
   CopilotComposerContextValue | undefined
+>(undefined);
+export const CopilotModelContext = createContext<
+  CopilotModelContextValue | undefined
 >(undefined);
 
 export function useCopilotStateContext(): CopilotStateContextValue {
@@ -94,5 +107,13 @@ export function useCopilotRunCommandsContext(): CopilotRunCommandsContextValue {
 export function useCopilotComposerContext(): CopilotComposerContextValue {
   const value = useContext(CopilotComposerContext);
   if (!value) throw new Error("Copilot hooks must be used inside CopilotProvider");
+  return value;
+}
+
+export function useCopilotModelContext(): CopilotModelContextValue {
+  const value = useContext(CopilotModelContext);
+  if (!value) {
+    throw new Error("Copilot hooks must be used inside CopilotProvider");
+  }
   return value;
 }
