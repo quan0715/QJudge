@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@copilot-testing": resolve(__dirname, "src/shared/copilot/testing/index.ts"),
+      "@copilot/testing": resolve(__dirname, "src/shared/copilot/testing/index.ts"),
       "@copilot": resolve(__dirname, "src/shared/copilot/index.ts"),
       "@": resolve(__dirname, "src"),
     },

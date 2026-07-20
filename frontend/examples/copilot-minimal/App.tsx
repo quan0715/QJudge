@@ -1,5 +1,5 @@
 import { CopilotFullPageShell, CopilotProvider } from "@copilot";
-import { MemoryCopilotTransport } from "@copilot-testing";
+import { MemoryCopilotTransport } from "@copilot/testing";
 
 const transport = new MemoryCopilotTransport();
 

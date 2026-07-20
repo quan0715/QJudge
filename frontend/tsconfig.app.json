@@ -27,7 +27,9 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@copilot": ["src/shared/copilot/index.ts"],
+      "@copilot/testing": ["src/shared/copilot/testing/index.ts"]
     }
   },
   "include": ["src"],

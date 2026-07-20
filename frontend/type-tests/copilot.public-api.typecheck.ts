@@ -1,6 +1,6 @@
 import {
-  CopilotProvider,
   CopilotFullPageShell,
+  CopilotProvider,
   useCopilot,
   type CopilotActiveSessionState,
   type CopilotRunState,
@@ -8,14 +8,35 @@ import {
   type CopilotTransport,
   type CopilotWorkspaceShellProps,
   type UseCopilotComposerResult,
-} from "@/shared/copilot";
-import { MemoryCopilotTransport, runCopilotTransportContract } from "@/shared/copilot/testing";
+} from "@copilot";
+import {
+  MemoryCopilotTransport,
+  runCopilotTransportContract,
+} from "@copilot/testing";
 
 const transport: CopilotTransport = new MemoryCopilotTransport();
-const active: CopilotActiveSessionState = { status: "empty", id: null, data: null, error: null };
+const active: CopilotActiveSessionState = {
+  status: "empty",
+  id: null,
+  data: null,
+  error: null,
+};
 const run: CopilotRunState = { status: "ready", run: null };
 const result: CopilotSendResult = { accepted: false, sessionId: "" };
-const workspace: CopilotWorkspaceShellProps = { children: null, side: "right" };
-void [CopilotProvider, CopilotFullPageShell, useCopilot, runCopilotTransportContract, transport, active, run, result, workspace];
+const workspace: CopilotWorkspaceShellProps = {
+  children: null,
+  side: "right",
+};
+void [
+  CopilotProvider,
+  CopilotFullPageShell,
+  useCopilot,
+  runCopilotTransportContract,
+  transport,
+  active,
+  run,
+  result,
+  workspace,
+];
 declare const composer: UseCopilotComposerResult;
 composer.setSelectedModel(null);

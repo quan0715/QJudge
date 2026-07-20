@@ -22,6 +22,7 @@ export * from "./ui/CopilotHeader";
 export * from "./ui/CopilotHistoryPanel";
 export * from "./ui/CopilotMessageList";
 export * from "./ui/CopilotMessageView";
+export * from "./ui/CopilotPanel";
 export * from "./ui/CopilotQuestionCard";
 export * from "./ui/CopilotScrollToLatestButton";
 export * from "./ui/CopilotWorkspaceShell";

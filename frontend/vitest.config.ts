@@ -24,6 +24,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@copilot/testing": path.resolve(__dirname, "./src/shared/copilot/testing/index.ts"),
+      "@copilot": path.resolve(__dirname, "./src/shared/copilot/index.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
