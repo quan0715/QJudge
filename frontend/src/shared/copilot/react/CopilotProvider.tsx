@@ -240,7 +240,10 @@ export function CopilotProvider({
   );
   const [modelError, setModelError] = useState<CopilotError | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(() =>
-    chooseModelId(fallbackModels, storage?.get(LAST_MODEL_KEY) ?? null),
+    chooseModelId(
+      fallbackModels,
+      enabled ? (storage?.get(LAST_MODEL_KEY) ?? null) : null,
+    ),
   );
   const selectedModelIdRef = useRef(selectedModelId);
   selectedModelIdRef.current = selectedModelId;
@@ -260,6 +263,9 @@ export function CopilotProvider({
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
   const summaryRunBySessionRef = useRef<Record<string, CopilotRun | null>>({});
+  const summaryTerminalRunIdBySessionRef = useRef<Record<string, string>>({});
+  const summaryRunRevisionBySessionRef = useRef<Record<string, number>>({});
+  const summaryRunRevisionRef = useRef(0);
   const subscriptionRef = useRef<CopilotSubscription | null>(null);
   const subscriptionTokenRef = useRef<object | null>(null);
   const summarySequenceByRunRef = useRef<Record<string, number>>({});
@@ -401,25 +407,65 @@ export function CopilotProvider({
     }));
   }, []);
 
-  const replaceSessions = useCallback((next: CopilotSessionSummary[]) => {
-    const reconciled = next.map((summary) =>
-      Object.prototype.hasOwnProperty.call(
-        summaryRunBySessionRef.current,
-        summary.id,
-      )
-        ? withActiveRunMetadata(
-            summary,
-            summaryRunBySessionRef.current[summary.id],
-          )
-        : summary,
-    );
-    sessionsRef.current = reconciled;
-    setSessions(reconciled);
-  }, []);
+  const replaceSessions = useCallback(
+    (
+      next: CopilotSessionSummary[],
+      requestRunRevisionSnapshot?: Readonly<Record<string, number>>,
+    ) => {
+      if (requestRunRevisionSnapshot) {
+        const nextSummaryById = new Map(
+          next.map((summary) => [summary.id, summary] as const),
+        );
+        for (const sessionId of Object.keys(summaryRunBySessionRef.current)) {
+          const currentRevision =
+            summaryRunRevisionBySessionRef.current[sessionId] ?? 0;
+          const requestRevision = requestRunRevisionSnapshot[sessionId] ?? 0;
+          const hasLiveSubscription =
+            activeIdRef.current === sessionId &&
+            subscriptionRef.current !== null;
+          const listedRunId =
+            nextSummaryById.get(sessionId)?.metadata?.[ACTIVE_RUN_ID_KEY];
+          const blocksStaleTerminalRun =
+            summaryRunBySessionRef.current[sessionId] === null &&
+            typeof listedRunId === "string" &&
+            summaryTerminalRunIdBySessionRef.current[sessionId] === listedRunId;
+          if (
+            currentRevision <= requestRevision &&
+            !hasLiveSubscription &&
+            !blocksStaleTerminalRun
+          ) {
+            delete summaryRunBySessionRef.current[sessionId];
+            delete summaryTerminalRunIdBySessionRef.current[sessionId];
+          }
+        }
+      }
+      const reconciled = next.map((summary) =>
+        Object.prototype.hasOwnProperty.call(
+          summaryRunBySessionRef.current,
+          summary.id,
+        )
+          ? withActiveRunMetadata(
+              summary,
+              summaryRunBySessionRef.current[summary.id],
+            )
+          : summary,
+      );
+      sessionsRef.current = reconciled;
+      setSessions(reconciled);
+    },
+    [],
+  );
 
   const syncSessionSummaryRun = useCallback(
-    (sessionId: string, run: CopilotRun | null) => {
+    (sessionId: string, run: CopilotRun | null, terminalRunId?: string) => {
       summaryRunBySessionRef.current[sessionId] = run;
+      if (run) {
+        delete summaryTerminalRunIdBySessionRef.current[sessionId];
+      } else if (terminalRunId) {
+        summaryTerminalRunIdBySessionRef.current[sessionId] = terminalRunId;
+      }
+      summaryRunRevisionBySessionRef.current[sessionId] =
+        ++summaryRunRevisionRef.current;
       let changed = false;
       const next = sessionsRef.current.map((summary) => {
         if (summary.id !== sessionId) return summary;
@@ -453,6 +499,9 @@ export function CopilotProvider({
     activeIdRef.current = null;
     sessionsRef.current = [];
     summaryRunBySessionRef.current = {};
+    summaryTerminalRunIdBySessionRef.current = {};
+    summaryRunRevisionBySessionRef.current = {};
+    summaryRunRevisionRef.current = 0;
     summarySequenceByRunRef.current = {};
     lastSendRef.current = null;
     composerSendInFlightRef.current = null;
@@ -469,10 +518,8 @@ export function CopilotProvider({
     setModels(fallbackModels);
     setModelStatus(modelCatalog ? "idle" : "unavailable");
     setModelError(null);
-    const fallbackModelId = chooseModelId(
-      fallbackModels,
-      storage?.get(LAST_MODEL_KEY) ?? null,
-    );
+    storage?.remove(LAST_MODEL_KEY);
+    const fallbackModelId = chooseModelId(fallbackModels, null);
     selectedModelIdRef.current = fallbackModelId;
     setSelectedModelId(fallbackModelId);
     storage?.remove(LAST_SESSION_KEY);
@@ -551,6 +598,9 @@ export function CopilotProvider({
               syncSessionSummaryRun(
                 run.sessionId,
                 isTerminalRun(latestObservedRun) ? null : latestObservedRun,
+                isTerminalRun(latestObservedRun)
+                  ? latestObservedRun.id
+                  : undefined,
               );
             }
             setRuntime((previous) => reduceCopilotEvent(previous, event));
@@ -819,6 +869,9 @@ export function CopilotProvider({
     const ownershipEpoch = ownershipEpochRef.current;
     invalidateSessionListRequest();
     const requestRevision = sessionListRequestRevisionRef.current;
+    const runRevisionSnapshot = {
+      ...summaryRunRevisionBySessionRef.current,
+    };
     const controller = new AbortController();
     sessionListRequestAbortRef.current = controller;
     setListStatus("loading");
@@ -832,7 +885,7 @@ export function CopilotProvider({
       ) {
         return;
       }
-      replaceSessions(listed);
+      replaceSessions(listed, runRevisionSnapshot);
       setSessionError(null);
       setListStatus("ready");
     } catch (cause) {
@@ -956,6 +1009,8 @@ export function CopilotProvider({
       setListStatus("ready");
       const remaining = sessionsRef.current.filter((item) => item.id !== id);
       delete summaryRunBySessionRef.current[id];
+      delete summaryTerminalRunIdBySessionRef.current[id];
+      delete summaryRunRevisionBySessionRef.current[id];
       replaceSessions(remaining);
       setRuntime((previous) => {
         const nextSessions = { ...previous.sessions };
@@ -1187,7 +1242,7 @@ export function CopilotProvider({
       return;
     }
     if (!transport.capabilities.cancellableRuns || !transport.cancelRun) {
-      syncSessionSummaryRun(sessionId, null);
+      syncSessionSummaryRun(sessionId, null, activeRun.id);
       return;
     }
     try {
@@ -1198,7 +1253,7 @@ export function CopilotProvider({
       ) {
         return;
       }
-      syncSessionSummaryRun(sessionId, null);
+      syncSessionSummaryRun(sessionId, null, activeRun.id);
       const session = await transport.getSession(sessionId);
       if (
         !enabledRef.current ||
@@ -1382,6 +1437,7 @@ export function CopilotProvider({
     invalidateModelRequest,
     modelCatalog,
     refreshModels,
+    transport,
   ]);
 
   useEffect(() => {
@@ -1392,6 +1448,9 @@ export function CopilotProvider({
     const bootstrapRevision = ++revisionRef.current;
     invalidateSessionListRequest();
     const listRequestRevision = sessionListRequestRevisionRef.current;
+    const runRevisionSnapshot = {
+      ...summaryRunRevisionBySessionRef.current,
+    };
     const controller = new AbortController();
     sessionListRequestAbortRef.current = controller;
     const isListRequestCurrent = () =>
@@ -1415,7 +1474,7 @@ export function CopilotProvider({
         });
         if (!isListRequestCurrent()) return;
         listedLoaded = true;
-        replaceSessions(listed);
+        replaceSessions(listed, runRevisionSnapshot);
         setListStatus("ready");
         if (!isBootstrapSelectionCurrent()) return;
         const located = sessionLocation?.get() ?? null;
@@ -1443,7 +1502,7 @@ export function CopilotProvider({
           return;
         }
         if (!isBootstrapSelectionCurrent()) return;
-        replaceSessions(bootstrap.sessions);
+        replaceSessions(bootstrap.sessions, runRevisionSnapshot);
         setListStatus("ready");
         if (bootstrap.clearLocation) writeLocation(null);
         if (bootstrap.selectedSession) {
@@ -1628,10 +1687,7 @@ export function CopilotProvider({
   );
   const modelValue = useMemo(
     () => {
-      const fallbackModelId = chooseModelId(
-        fallbackModels,
-        storage?.get(LAST_MODEL_KEY) ?? null,
-      );
+      const fallbackModelId = chooseModelId(fallbackModels, null);
       return {
         models: runtimeIsVisible ? models : fallbackModels,
         status: runtimeIsVisible
@@ -1655,7 +1711,6 @@ export function CopilotProvider({
       selectModel,
       selectedModelId,
       runtimeIsVisible,
-      storage,
     ],
   );
 

@@ -422,6 +422,115 @@ describe("CopilotProvider session lifecycle", () => {
     expect(snapshot.current?.state.run.status).toBe("ready");
   });
 
+  it("clears an account model selection when disabled", async () => {
+    const transport = new MemoryCopilotTransport();
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-model-id", "shared-model"],
+    ]);
+    const fallbackModels = [
+      { id: "default-model", displayName: "Default", isDefault: true },
+      { id: "shared-model", displayName: "Shared" },
+    ];
+    const modelCatalog = new MemoryCopilotModelCatalog(fallbackModels);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider
+        transport={transport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("shared-model");
+
+    view.rerender(
+      <CopilotProvider
+        transport={transport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+        enabled={false}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    expect(storage.get("copilot:last-model-id")).toBeNull();
+    expect(snapshot.current?.models.models).toEqual(fallbackModels);
+    expect(snapshot.current?.models.selectedModelId).toBe("default-model");
+  });
+
+  it("does not carry a model selection across a live transport change", async () => {
+    const oldTransport = new MemoryCopilotTransport();
+    const newTransport = new MemoryCopilotTransport();
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-model-id", "shared-model"],
+    ]);
+    const fallbackModels = [
+      { id: "default-model", displayName: "Default", isDefault: true },
+      { id: "shared-model", displayName: "Shared" },
+    ];
+    const modelCatalog = new MemoryCopilotModelCatalog(fallbackModels);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider
+        transport={oldTransport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("shared-model");
+
+    view.rerender(
+      <CopilotProvider
+        transport={newTransport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    expect(storage.get("copilot:last-model-id")).toBeNull();
+    expect(snapshot.current?.models.selectedModelId).toBe("default-model");
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("default-model");
+  });
+
+  it("does not expose a seeded account selection while initially disabled", () => {
+    const transport = new MemoryCopilotTransport();
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-model-id", "shared-model"],
+    ]);
+    const fallbackModels = [
+      { id: "default-model", displayName: "Default", isDefault: true },
+      { id: "shared-model", displayName: "Shared" },
+    ];
+    const modelCatalog = new MemoryCopilotModelCatalog(fallbackModels);
+    const listModels = vi.spyOn(modelCatalog, "list");
+    const { result } = renderHook(() => useCopilotModels(), {
+      wrapper: createWrapper({
+        transport,
+        storage,
+        modelCatalog,
+        fallbackModels,
+        enabled: false,
+      }),
+    });
+
+    expect(listModels).not.toHaveBeenCalled();
+    expect(result.current.models).toEqual(fallbackModels);
+    expect(result.current.selectedModelId).toBe("default-model");
+  });
+
   it("prefers a valid location ID over stored selection", async () => {
     const transport = new MemoryCopilotTransport();
     const stored = await transport.createSession({ title: "Stored" });
@@ -859,6 +968,152 @@ describe("CopilotProvider session lifecycle", () => {
     ]);
     expect(result.current.listStatus).toBe("ready");
     expect(result.current.error).toBeNull();
+  });
+
+  it("accepts a fresh list as authoritative for an inactive session run", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const run = await transport.startRun({
+      sessionId: first.id,
+      text: "Background work",
+    });
+    transport.emit(run.id, {
+      type: "run-status",
+      runId: run.id,
+      sessionId: first.id,
+      sequence: 1,
+      status: "running",
+    });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() =>
+      expect(
+        result.current.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBe(run.id),
+    );
+
+    await act(async () => result.current.select(second.id));
+    transport.emit(run.id, {
+      type: "run-status",
+      runId: run.id,
+      sessionId: first.id,
+      sequence: 2,
+      status: "completed",
+    });
+    await act(async () => result.current.refresh());
+
+    expect(
+      result.current.sessions.find((session) => session.id === first.id)
+        ?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.find((session) => session.id === first.id)
+        ?.metadata?.activeRunStatus,
+    ).toBeUndefined();
+  });
+
+  it("does not let a list started before a local terminal event resurrect a run", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Running" });
+    const run = await transport.startRun({ sessionId: session.id, text: "Work" });
+    transport.emit(run.id, {
+      type: "run-status",
+      runId: run.id,
+      sessionId: session.id,
+      sequence: 1,
+      status: "running",
+    });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() =>
+      expect(result.current.sessions[0]?.metadata?.activeRunId).toBe(run.id),
+    );
+    const staleList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(staleList.promise);
+
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await waitFor(() => expect(result.current.listStatus).toBe("loading"));
+    act(() => {
+      transport.emit(run.id, {
+        type: "run-status",
+        runId: run.id,
+        sessionId: session.id,
+        sequence: 2,
+        status: "completed",
+      });
+    });
+    await act(async () => {
+      staleList.resolve([
+        {
+          id: session.id,
+          title: session.title,
+          createdAt: session.createdAt,
+          updatedAt: session.updatedAt,
+          metadata: {
+            activeRunId: run.id,
+            activeRunStatus: "running",
+          },
+        },
+      ]);
+      await refreshPromise;
+    });
+
+    expect(result.current.sessions[0]?.metadata?.activeRunId).toBeUndefined();
+    expect(result.current.sessions[0]?.metadata?.activeRunStatus).toBeUndefined();
+  });
+
+  it("accepts a new backend run after a previous local run became terminal", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Sequential runs" });
+    const firstRun = await transport.startRun({
+      sessionId: session.id,
+      text: "First work",
+    });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() =>
+      expect(result.current.sessions[0]?.metadata?.activeRunId).toBe(firstRun.id),
+    );
+    act(() => {
+      transport.emit(firstRun.id, {
+        type: "run-status",
+        runId: firstRun.id,
+        sessionId: session.id,
+        sequence: 1,
+        status: "completed",
+      });
+    });
+    const nextRun = await transport.startRun({
+      sessionId: session.id,
+      text: "Second work",
+    });
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        metadata: {
+          activeRunId: nextRun.id,
+          activeRunStatus: nextRun.status,
+        },
+      },
+    ]);
+
+    await act(async () => result.current.refresh());
+
+    expect(result.current.sessions[0]?.metadata).toMatchObject({
+      activeRunId: nextRun.id,
+      activeRunStatus: nextRun.status,
+    });
   });
 
   it("restores an active run from its last sequence", async () => {
