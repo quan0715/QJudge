@@ -18,6 +18,8 @@
     "resumeAfterAnswerFailed": "回答已送出，但恢復串流失敗，請重新整理頁面",
     "resumeAgentFailed": "無法恢復 agent 執行",
     "sendMessageFailed": "無法發送訊息",
+    "sessionForbidden": "無權存取此對話",
+    "sessionNotFound": "對話不存在或已被刪除",
     "submitAnswerFailed": "無法提交回答",
     "unknownError": "未知錯誤"
   },

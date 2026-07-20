@@ -18,6 +18,8 @@
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
     "sendMessageFailed": "Failed to send message",
+    "sessionForbidden": "この会話にアクセスする権限がありません。",
+    "sessionNotFound": "会話が見つからないか、削除されています。",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
   },

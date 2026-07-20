@@ -18,6 +18,8 @@
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
     "sendMessageFailed": "Failed to send message",
+    "sessionForbidden": "You do not have access to this conversation.",
+    "sessionNotFound": "Conversation not found or has been deleted.",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
   },

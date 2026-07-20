@@ -18,6 +18,8 @@
     "resumeAfterAnswerFailed": "Answer sent, but failed to resume stream. Please refresh the page.",
     "resumeAgentFailed": "Failed to resume agent execution",
     "sendMessageFailed": "Failed to send message",
+    "sessionForbidden": "이 대화에 접근할 권한이 없습니다.",
+    "sessionNotFound": "대화를 찾을 수 없거나 삭제되었습니다.",
     "submitAnswerFailed": "Failed to submit answer",
     "unknownError": "Unknown error"
   },
