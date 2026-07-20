@@ -281,10 +281,12 @@ export function createQJudgeCopilotTransport(
           });
         },
         onAwaitingApproval(request) {
+          const approvalRequest = mapChatApprovalToCopilot(request);
+          if (!approvalRequest) return;
           latestStatus = "awaiting_approval";
           emit({
             type: "awaiting-approval",
-            request: mapChatApprovalToCopilot(request),
+            request: approvalRequest,
           });
         },
         onAwaitingUserAnswer(request) {

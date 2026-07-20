@@ -19,6 +19,7 @@ import {
 } from "@/shared/copilot/testing";
 import {
   mapArtifactRecordToCopilotAttachment,
+  mapChatApprovalToCopilot,
   mapChatMessageToCopilot,
   mapChatRunToCopilot,
   mapCopilotRunToChat,
@@ -217,6 +218,26 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
 runCopilotTransportContract(createQJudgeContractSubject);
 
 describe("chatbotCopilotMapper", () => {
+  it("rejects all-invalid actions in shared and persisted approval mapping", () => {
+    const request = {
+      actionRequests: [
+        { name: "   ", args: { ignored: true } },
+        { name: "\t", args: { alsoIgnored: true } },
+      ],
+    };
+
+    expect(mapChatApprovalToCopilot(request)).toBeNull();
+    expect(
+      mapChatRunToCopilot({
+        ...legacyRun,
+        status: "awaiting_approval",
+        approvalPayload: {
+          action_requests: request.actionRequests,
+        },
+      }).approvalRequest,
+    ).toBeUndefined();
+  });
+
   it("preserves a persisted approval when mapping an awaiting run", () => {
     expect(
       mapChatRunToCopilot({
@@ -365,6 +386,39 @@ describe("chatbotCopilotMapper", () => {
 });
 
 describe("createQJudgeCopilotTransport", () => {
+  it("ignores an all-invalid live approval without transitioning the run", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onAwaitingApproval?.({
+            actionRequests: [
+              { name: "   ", args: { ignored: true } },
+              { name: "\t", args: { alsoIgnored: true } },
+            ],
+          });
+          callbacks.onComplete?.(legacySession);
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+
+    expect(events).toMatchObject([
+      { type: "run-status", status: "completed" },
+    ]);
+  });
+
   it.each([
     {
       label: "defaults only when review configuration is absent",

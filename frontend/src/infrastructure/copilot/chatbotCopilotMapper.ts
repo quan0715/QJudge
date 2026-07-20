@@ -119,7 +119,14 @@ export function mapChatSessionToCopilotSummary(
 
 export function mapChatApprovalToCopilot(
   request: ApprovalRequest,
-): CopilotApprovalRequest {
+): CopilotApprovalRequest | null {
+  const actions = request.actionRequests
+    .map((action) => ({
+      name: action.name.trim(),
+      arguments: action.args,
+    }))
+    .filter((action) => action.name.length > 0);
+  if (actions.length === 0) return null;
   const allowedDecisions = request.reviewConfigs
     ?.flatMap((config) => config.allowedDecisions)
     .filter(
@@ -127,12 +134,7 @@ export function mapChatApprovalToCopilot(
         decision === "approve" || decision === "reject",
     );
   return {
-    actions: request.actionRequests
-      .map((action) => ({
-        name: action.name.trim(),
-        arguments: action.args,
-      }))
-      .filter((action) => action.name.length > 0),
+    actions,
     allowedDecisions:
       request.reviewConfigs === undefined
         ? ["approve", "reject"]
@@ -151,9 +153,7 @@ export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
         })),
       })
     : undefined;
-  const approvalRequest = mappedApproval?.actions.length
-    ? mappedApproval
-    : undefined;
+  const approvalRequest = mappedApproval ?? undefined;
   return {
     id: run.id,
     sessionId: run.sessionId,
