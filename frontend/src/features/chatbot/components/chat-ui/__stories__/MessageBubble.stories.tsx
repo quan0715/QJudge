@@ -15,7 +15,7 @@ const meta: Meta<typeof MessageBubble> = {
   parameters: {
     docs: {
       description: {
-        component: "單則訊息泡泡 — 根據 role 區分 user（右對齊）/ assistant（左對齊 + WatsonxAi avatar）。支援 Markdown、Thinking、CoT 步驟。",
+        component: "單則 Copilot 訊息泡泡 — 依公開 parts contract 呈現 Markdown、推理與工具步驟。",
       },
     },
   },

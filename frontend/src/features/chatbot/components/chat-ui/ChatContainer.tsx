@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Loading } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -6,12 +6,20 @@ import { useChatbotContext } from "../../contexts/ChatbotProvider";
 import { useAiSessionParam } from "../../lib/aiSessionUrl";
 import type { ChatMessage, ChatSession, ModelInfo } from "@/core/types/chatbot.types";
 import { MessageList } from "./MessageList";
+import { MessageBubble } from "./MessageBubble";
+import { HITLCard } from "./HITLCard";
+import { QuestionCard } from "./QuestionCard";
+import { NextTurnChips } from "./NextTurnChips";
 import { ComposerBar } from "./ComposerBar";
 import { ChatTopBar } from "./ChatTopBar";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactPanel } from "../artifact/ArtifactPanel";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { CopilotEmbedShell } from "@/shared/copilot";
+import { CopilotEmbedShell } from "@copilot";
+import {
+  mapChatApprovalToCopilot,
+  mapChatMessageToCopilot,
+} from "@/infrastructure/copilot/chatbotCopilotMapper";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
@@ -43,7 +51,6 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     stopStreaming,
     submitApproval,
     submitAnswer,
-    dismissQuestion,
   } = useChatbotContext();
 
   const handleNewChat = useCallback(() => {
@@ -107,7 +114,6 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         stopStreaming={stopStreaming}
         onApproval={handleApproval}
         submitAnswer={submitAnswer}
-        dismissQuestion={dismissQuestion}
         onClose={onClose}
       />
     </div>
@@ -140,7 +146,6 @@ interface ChatContainerBodyProps {
   stopStreaming: () => void;
   onApproval: (decision: "approve" | "reject") => void;
   submitAnswer: UseChatbotReturn["submitAnswer"];
-  dismissQuestion: UseChatbotReturn["dismissQuestion"];
   onClose?: () => void;
 }
 
@@ -167,7 +172,6 @@ function ChatContainerBody({
   stopStreaming,
   onApproval,
   submitAnswer,
-  dismissQuestion,
   onClose,
 }: ChatContainerBodyProps) {
   const { isMobile } = useWorkspace();
@@ -188,22 +192,71 @@ function ChatContainerBody({
     return didSend;
   }, [markToolFinished, sendMessage]);
 
+  // Transitional legacy-shell seam. Public renderers stay package-shaped;
+  // legacy data is normalized only at this legacy container boundary.
+  const copilotMessages = useMemo(
+    () => messages.map(mapChatMessageToCopilot),
+    [messages],
+  );
+  const copilotApproval = useMemo(
+    () => pendingApproval ? mapChatApprovalToCopilot(pendingApproval) : null,
+    [pendingApproval],
+  );
+  const copilotQuestion = useMemo(
+    () => pendingQuestion ? {
+      question: pendingQuestion.question,
+      input: pendingQuestion.inputType === "choice" ? "choice" as const : "text" as const,
+      options: pendingQuestion.options,
+    } : null,
+    [pendingQuestion],
+  );
+  const activeSession = useMemo(() => {
+    if (isSessionLoading) {
+      return {
+        status: "loading" as const,
+        id: currentSessionId ?? "__pending__",
+        data: null,
+        error: null,
+      };
+    }
+    if (!currentSessionId) {
+      return { status: "empty" as const, id: null, data: null, error: null };
+    }
+    const createdAt = copilotMessages[0]?.createdAt ?? new Date(0);
+    const updatedAt = copilotMessages.at(-1)?.createdAt ?? createdAt;
+    return {
+      status: "ready" as const,
+      id: currentSessionId,
+      data: {
+        id: currentSessionId,
+        title: sessionTitle,
+        createdAt,
+        updatedAt,
+        messages: copilotMessages,
+      },
+      error: null,
+    };
+  }, [copilotMessages, currentSessionId, isSessionLoading, sessionTitle]);
+
   const chatMain = (
     <div className={styles.chatBody}>
       <div className={styles.messagesArea}>
         <MessageList
-          messages={messages}
-          currentSessionId={currentSessionId}
-          isLoading={isSessionLoading}
-          pendingApproval={pendingApproval}
-          onApprovalDecision={onApproval}
-          pendingQuestion={pendingQuestion}
-          onQuestionSubmit={submitAnswer}
-          onQuestionDismiss={dismissQuestion}
-          nextTurnOptions={nextTurnOptions}
-          onNextTurnSelect={sendMessage}
-          isStreaming={isStreaming}
+          messages={copilotMessages}
+          activeSessionId={currentSessionId}
+          activeSession={activeSession}
+          run={{ status: "ready", run: null }}
+          messageComponent={MessageBubble}
         />
+        {copilotApproval && (
+          <HITLCard request={copilotApproval} onSubmit={onApproval} />
+        )}
+        {copilotQuestion && (
+          <QuestionCard request={copilotQuestion} onSubmit={submitAnswer} />
+        )}
+        {!isStreaming && !copilotApproval && !copilotQuestion && nextTurnOptions?.length ? (
+          <NextTurnChips options={nextTurnOptions} onSelect={sendMessage} />
+        ) : null}
         <div className={styles.composerFloat}>
           <ComposerBar
             onSend={handleSend}

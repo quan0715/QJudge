@@ -1,36 +1,39 @@
 import { useState, useCallback } from "react";
-import { Button, InlineLoading, TextArea } from "@carbon/react";
+import { Button, InlineLoading, InlineNotification, TextArea } from "@carbon/react";
 import { Help } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { QuestionRequest } from "@/core/types/chatbot.types";
+import type { CopilotQuestionCardProps } from "@copilot";
 import styles from "./QuestionCard.module.scss";
 
-interface QuestionCardProps {
-  request: QuestionRequest;
-  onSubmit: (answer: string) => void;
-  onDismiss?: () => void;
-}
-
-export function QuestionCard({ request, onSubmit, onDismiss }: QuestionCardProps) {
+export function QuestionCard({
+  request,
+  interactionError,
+  onSubmit,
+}: CopilotQuestionCardProps) {
   const { t } = useTranslation("chatbot");
   const [answer, setAnswer] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [submissionErrorBaseline, setSubmissionErrorBaseline] = useState<
+    CopilotQuestionCardProps["interactionError"] | null
+  >(null);
 
-  const isChoice = request.inputType === "choice" && request.options?.length;
+  const isChoice = request.input === "choice" && request.options?.length;
+  const submitting =
+    submissionErrorBaseline !== null &&
+    submissionErrorBaseline === interactionError;
 
   const handleSubmit = useCallback(() => {
     if (!answer.trim()) return;
-    setSubmitting(true);
+    setSubmissionErrorBaseline(interactionError);
     onSubmit(answer.trim());
-  }, [answer, onSubmit]);
+  }, [answer, interactionError, onSubmit]);
 
   const handleChoiceClick = useCallback(
     (option: string) => {
       setAnswer(option);
-      setSubmitting(true);
+      setSubmissionErrorBaseline(interactionError);
       onSubmit(option);
     },
-    [onSubmit],
+    [interactionError, onSubmit],
   );
 
   const handleKeyDown = useCallback(
@@ -91,6 +94,16 @@ export function QuestionCard({ request, onSubmit, onDismiss }: QuestionCardProps
           )}
         </div>
 
+        {interactionError && (
+          <InlineNotification
+            hideCloseButton
+            kind="error"
+            lowContrast
+            role="alert"
+            title={interactionError.message ?? t("ui.interactionError", "無法送出回答，請再試一次")}
+          />
+        )}
+
         {submitting ? (
           <div className={styles.loadingFooter}>
             <InlineLoading description={t("ui.processing")} />
@@ -106,16 +119,6 @@ export function QuestionCard({ request, onSubmit, onDismiss }: QuestionCardProps
             >
               {t("ui.submitAnswer", "送出回答")}
             </Button>
-            {onDismiss && (
-              <Button
-                kind="secondary"
-                size="lg"
-                className={styles.footerBtn}
-                onClick={onDismiss}
-              >
-                {t("ui.skipQuestion", "略過")}
-              </Button>
-            )}
           </div>
         )}
       </div>

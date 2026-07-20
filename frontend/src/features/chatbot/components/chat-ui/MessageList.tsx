@@ -2,44 +2,23 @@ import { useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowDown } from "@carbon/icons-react";
 import { Button, SkeletonText } from "@carbon/react";
-import type { ChatMessage, NextTurnOption } from "@/core/types/chatbot.types";
-import type { ApprovalRequest, QuestionRequest } from "@/core/types/chatbot.types";
-import { useChatScrollToBottom } from "../../hooks/useChatScrollToBottom";
-import { MessageBubble } from "./MessageBubble";
-import { HITLCard } from "./HITLCard";
-import { QuestionCard } from "./QuestionCard";
-import { NextTurnChips } from "./NextTurnChips";
+import {
+  useCopilotScroll,
+  type CopilotMessage,
+  type CopilotMessageListSlotProps,
+} from "@copilot";
 import styles from "./MessageList.module.scss";
-
-interface MessageListProps {
-  messages: ChatMessage[];
-  currentSessionId: string | null;
-  isLoading?: boolean;
-  pendingApproval: ApprovalRequest | null;
-  onApprovalDecision: (decision: "approve" | "reject") => void;
-  pendingQuestion?: QuestionRequest | null;
-  onQuestionSubmit?: (answer: string) => void;
-  onQuestionDismiss?: () => void;
-  nextTurnOptions?: NextTurnOption[] | null;
-  onNextTurnSelect?: (message: string) => void;
-  isStreaming?: boolean;
-}
 
 export function MessageList({
   messages,
-  currentSessionId,
-  isLoading = false,
-  pendingApproval,
-  onApprovalDecision,
-  pendingQuestion,
-  onQuestionSubmit,
-  onQuestionDismiss,
-  nextTurnOptions,
-  onNextTurnSelect,
-  isStreaming,
-}: MessageListProps) {
+  activeSessionId,
+  activeSession,
+  run,
+  messageComponent: MessageComponent,
+}: CopilotMessageListSlotProps) {
   const { t } = useTranslation("chatbot");
   const containerRef = useRef<HTMLDivElement>(null);
+  const isLoading = activeSession.status === "loading";
 
   const displayMessages = useMemo(() => {
     if (messages.length === 0) {
@@ -47,20 +26,24 @@ export function MessageList({
         {
           id: "__welcome__",
           role: "assistant",
-          content: t("ui.welcome"),
-          timestamp: new Date(),
-        } as ChatMessage,
+          parts: [{ type: "text", text: t("ui.welcome") }],
+          createdAt: new Date(),
+        } satisfies CopilotMessage,
       ];
     }
     return messages;
   }, [messages, t]);
 
-  const { scrollToBottom, showScrollButton } = useChatScrollToBottom({
+  const interactionRevision =
+    run.status === "awaiting-approval" || run.status === "awaiting-answer"
+      ? `${run.status}:${run.run.id}`
+      : null;
+  const { scrollToBottom, showScrollButton } = useCopilotScroll({
     containerRef,
     messages,
-    currentSessionId,
-    isLoading,
-    pendingApproval,
+    activeSessionId,
+    loading: isLoading,
+    interactionRevision,
   });
 
   return (
@@ -70,26 +53,9 @@ export function MessageList({
           <MessageListSkeleton />
         ) : (
           displayMessages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageComponent key={msg.id} message={msg} />
           ))
         )}
-
-        {!isLoading && pendingApproval && (
-          <HITLCard request={pendingApproval} onDecision={onApprovalDecision} />
-        )}
-
-        {!isLoading && pendingQuestion && onQuestionSubmit && (
-          <QuestionCard
-            request={pendingQuestion}
-            onSubmit={onQuestionSubmit}
-            onDismiss={onQuestionDismiss}
-          />
-        )}
-
-        {!isLoading && !isStreaming && !pendingApproval && !pendingQuestion &&
-          nextTurnOptions?.length && onNextTurnSelect ? (
-          <NextTurnChips options={nextTurnOptions} onSelect={onNextTurnSelect} />
-        ) : null}
       </div>
 
       {showScrollButton && (

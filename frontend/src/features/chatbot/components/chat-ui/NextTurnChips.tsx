@@ -1,9 +1,9 @@
 import { Button } from "@carbon/react";
-import type { NextTurnOption } from "@/core/types/chatbot.types";
+import type { CopilotSuggestion } from "@copilot";
 import styles from "./NextTurnChips.module.scss";
 
 interface NextTurnChipsProps {
-  options: NextTurnOption[];
+  options: readonly CopilotSuggestion[];
   onSelect: (message: string) => void;
   disabled?: boolean;
 }

@@ -1,14 +1,9 @@
 import { useState } from "react";
-import { Button, InlineLoading, Tag } from "@carbon/react";
+import { Button, InlineLoading, InlineNotification, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
-import type { ApprovalRequest } from "@/core/types/chatbot.types";
+import type { CopilotApprovalCardProps } from "@copilot";
 import { getHITLRenderer } from "./hitlRendererRegistry";
 import styles from "./HITLCard.module.scss";
-
-interface HITLCardProps {
-  request: ApprovalRequest;
-  onDecision: (decision: "approve" | "reject") => void;
-}
 
 // Pretty JSON fallback with basic syntax colouring
 function PrettyJsonFallback({ args }: { args: Record<string, unknown> }) {
@@ -62,16 +57,26 @@ function ActionItem({ name, args }: { name: string; args?: Record<string, unknow
   );
 }
 
-export function HITLCard({ request, onDecision }: HITLCardProps) {
+export function HITLCard({
+  request,
+  interactionError,
+  onSubmit,
+}: CopilotApprovalCardProps) {
   const { t } = useTranslation("chatbot");
-  const [submitting, setSubmitting] = useState(false);
+  const [submissionErrorBaseline, setSubmissionErrorBaseline] = useState<
+    CopilotApprovalCardProps["interactionError"] | null
+  >(null);
 
-  const actions = request.actionRequests;
-  if (!actions?.length) return null;
+  const actions = request.actions;
+  const submitting =
+    submissionErrorBaseline !== null &&
+    submissionErrorBaseline === interactionError;
+
+  if (!actions.length) return null;
 
   const handleDecision = (decision: "approve" | "reject") => {
-    setSubmitting(true);
-    onDecision(decision);
+    setSubmissionErrorBaseline(interactionError);
+    onSubmit(decision);
   };
 
   return (
@@ -89,10 +94,20 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
             <ActionItem
               key={`${action.name}-${idx}`}
               name={action.name}
-              args={action.args}
+              args={action.arguments}
             />
           ))}
         </div>
+
+        {interactionError && (
+          <InlineNotification
+            hideCloseButton
+            kind="error"
+            lowContrast
+            role="alert"
+            title={interactionError.message ?? t("ui.interactionError", "無法送出操作，請再試一次")}
+          />
+        )}
 
         {submitting ? (
           <div className={styles.loadingFooter}>
@@ -100,22 +115,26 @@ export function HITLCard({ request, onDecision }: HITLCardProps) {
           </div>
         ) : (
           <div className={styles.footer}>
-            <Button
-              kind="primary"
-              size="lg"
-              className={styles.footerBtn}
-              onClick={() => handleDecision("approve")}
-            >
-              {t("ui.confirmAction")}
-            </Button>
-            <Button
-              kind="danger"
-              size="lg"
-              className={styles.footerBtn}
-              onClick={() => handleDecision("reject")}
-            >
-              {t("ui.cancelAction")}
-            </Button>
+            {request.allowedDecisions.includes("approve") && (
+              <Button
+                kind="primary"
+                size="lg"
+                className={styles.footerBtn}
+                onClick={() => handleDecision("approve")}
+              >
+                {t("ui.confirmAction")}
+              </Button>
+            )}
+            {request.allowedDecisions.includes("reject") && (
+              <Button
+                kind="danger"
+                size="lg"
+                className={styles.footerBtn}
+                onClick={() => handleDecision("reject")}
+              >
+                {t("ui.cancelAction")}
+              </Button>
+            )}
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ const meta: Meta<typeof HITLCard> = {
     },
   },
   args: {
-    onDecision: () => {},
+    onSubmit: () => {},
   },
   decorators: [
     (Story) => (
@@ -38,7 +38,8 @@ export const NoArgs: Story = {
   name: "無參數",
   args: {
     request: {
-      actionRequests: [{ name: "qjudge_discover", args: {} }],
+      actions: [{ name: "qjudge_discover", arguments: {} }],
+      allowedDecisions: ["approve", "reject"],
     },
   },
 };

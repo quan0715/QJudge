@@ -2,21 +2,17 @@ import { memo, useMemo } from "react";
 import { Accordion, AccordionItem } from "@carbon/react";
 import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { RunTodoItem, ToolInfo } from "@/core/types/chatbot.types";
+import type { CopilotToolPart } from "@copilot";
 import styles from "./ChainOfThought.module.scss";
 
 interface ChainOfThoughtProps {
-  steps: ToolInfo[];
-  // Kept on the type for compatibility with existing callers, but the todo
-  // block has moved to SessionBadges (above the composer). CoT now focuses
-  // on raw tool-call transparency only.
-  todoItems?: RunTodoItem[];
+  steps: readonly CopilotToolPart[];
   isProcessing: boolean;
   currentToolName?: string;
 }
 
 interface StepProps {
-  step: ToolInfo;
+  step: CopilotToolPart;
   index: number;
   inputLabel: string;
   outputLabel: string;
@@ -30,8 +26,8 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
   outputLabel,
   displayToolName,
 }: StepProps) {
-  const isDone = step.result !== undefined || step.isError;
-  const isFailed = step.isError;
+  const isDone = step.state === "output-ready" || step.state === "error";
+  const isFailed = step.state === "error";
   const StatusIcon = isFailed ? Warning : isDone ? Checkmark : InProgress;
   const statusClass = isFailed
     ? styles.failure
@@ -40,23 +36,23 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
       : styles.processing;
 
   const inputJson = useMemo(() => {
-    if (step.inputData === undefined || step.inputData === null) return "";
+    if (step.input === undefined || step.input === null) return "";
     try {
-      return JSON.stringify(step.inputData, null, 2);
+      return JSON.stringify(step.input, null, 2);
     } catch {
-      return String(step.inputData);
+      return String(step.input);
     }
-  }, [step.inputData]);
+  }, [step.input]);
 
   const resultText = useMemo(() => {
-    if (step.result === undefined || step.result === null) return "";
-    if (typeof step.result === "string") return step.result;
+    if (step.output === undefined || step.output === null) return "";
+    if (typeof step.output === "string") return step.output;
     try {
-      return JSON.stringify(step.result, null, 2);
+      return JSON.stringify(step.output, null, 2);
     } catch {
-      return String(step.result);
+      return String(step.output);
     }
-  }, [step.result]);
+  }, [step.output]);
 
   return (
     <AccordionItem
@@ -83,7 +79,10 @@ const ChainOfThoughtStep = memo(function ChainOfThoughtStep({
   );
 });
 
-function formatToolName(toolName: string, t: any) {
+function formatToolName(
+  toolName: string,
+  t: ReturnType<typeof useTranslation>["t"],
+) {
   if (toolName.startsWith("__skill__:")) {
     const skillName = toolName.slice(10);
     return t("ui.useSkill", { skillName, defaultValue: `使用技能 ${skillName}` });
@@ -108,7 +107,7 @@ function ChainOfThoughtComponent({
       <Accordion size="sm" className={styles.accordion}>
         {steps.map((step, i) => (
           <ChainOfThoughtStep
-            key={step.toolCallId || i}
+            key={step.toolCallId}
             step={step}
             index={i}
             inputLabel={inputLabel}
