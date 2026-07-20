@@ -224,6 +224,7 @@ export function CopilotProvider({
 
   const refreshModels = useCallback(async () => {
     invalidateModelRequest();
+    if (!enabled) return;
     const requestRevision = modelRequestRevisionRef.current;
     const selectionRevision = modelSelectionRevisionRef.current;
     if (!modelCatalog) {
@@ -292,6 +293,7 @@ export function CopilotProvider({
     }
   }, [
     commitModelSelection,
+    enabled,
     fallbackModels,
     invalidateModelRequest,
     modelCatalog,
@@ -942,9 +944,20 @@ export function CopilotProvider({
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      invalidateModelRequest();
+      setModelError(null);
+      setModelStatus(modelCatalog ? "idle" : "unavailable");
+      return;
+    }
     void refreshModels();
     return invalidateModelRequest;
-  }, [invalidateModelRequest, refreshModels]);
+  }, [
+    enabled,
+    invalidateModelRequest,
+    modelCatalog,
+    refreshModels,
+  ]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { CopilotModel, CopilotModelCatalog } from "@copilot";
 import type { PropsWithChildren } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MemoryCopilotModelCatalog } from "@copilot/testing";
 import { MemoryCopilotStorage } from "@copilot/testing";
 import { MemoryCopilotTransport } from "@copilot/testing";
@@ -36,6 +36,62 @@ class DeferredCopilotModelCatalog implements CopilotModelCatalog {
 }
 
 describe("useCopilotModels", () => {
+  it("does not load or manually refresh models until enabled", async () => {
+    const catalog = new MemoryCopilotModelCatalog(models);
+    const list = vi.spyOn(catalog, "list");
+    let enabled = false;
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <CopilotProvider
+        enabled={enabled}
+        transport={new MemoryCopilotTransport()}
+        modelCatalog={catalog}
+      >
+        {children}
+      </CopilotProvider>
+    );
+    const { result, rerender } = renderHook(() => useCopilotModels(), {
+      wrapper,
+    });
+
+    await act(async () => result.current.refresh());
+    expect(list).not.toHaveBeenCalled();
+
+    enabled = true;
+    rerender();
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts and ignores an in-flight model load when disabled", async () => {
+    const fallbackModels = [{ id: "fallback", displayName: "Fallback" }];
+    const catalog = new DeferredCopilotModelCatalog();
+    let enabled = true;
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <CopilotProvider
+        enabled={enabled}
+        transport={new MemoryCopilotTransport()}
+        modelCatalog={catalog}
+        fallbackModels={fallbackModels}
+      >
+        {children}
+      </CopilotProvider>
+    );
+    const { result, rerender } = renderHook(() => useCopilotModels(), {
+      wrapper,
+    });
+    await waitFor(() => expect(catalog.signal).toBeDefined());
+
+    enabled = false;
+    rerender();
+    await waitFor(() => expect(catalog.signal?.aborted).toBe(true));
+    await act(async () => catalog.resolve(models));
+
+    expect(result.current.status).toBe("idle");
+    expect(result.current.models).toEqual(fallbackModels);
+    expect(result.current.selectedModelId).toBe("fallback");
+  });
+
   it("restores a valid stored model", async () => {
     const storage = new MemoryCopilotStorage();
     storage.set("copilot:last-model-id", "model-a");
