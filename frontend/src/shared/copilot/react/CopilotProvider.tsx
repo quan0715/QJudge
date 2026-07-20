@@ -413,9 +413,6 @@ export function CopilotProvider({
       requestRunRevisionSnapshot?: Readonly<Record<string, number>>,
     ) => {
       if (requestRunRevisionSnapshot) {
-        const nextSummaryById = new Map(
-          next.map((summary) => [summary.id, summary] as const),
-        );
         for (const sessionId of Object.keys(summaryRunBySessionRef.current)) {
           const currentRevision =
             summaryRunRevisionBySessionRef.current[sessionId] ?? 0;
@@ -423,33 +420,38 @@ export function CopilotProvider({
           const hasLiveSubscription =
             activeIdRef.current === sessionId &&
             subscriptionRef.current !== null;
-          const listedRunId =
-            nextSummaryById.get(sessionId)?.metadata?.[ACTIVE_RUN_ID_KEY];
-          const blocksStaleTerminalRun =
-            summaryRunBySessionRef.current[sessionId] === null &&
-            typeof listedRunId === "string" &&
-            summaryTerminalRunIdBySessionRef.current[sessionId] === listedRunId;
-          if (
-            currentRevision <= requestRevision &&
-            !hasLiveSubscription &&
-            !blocksStaleTerminalRun
-          ) {
+          if (currentRevision <= requestRevision && !hasLiveSubscription) {
             delete summaryRunBySessionRef.current[sessionId];
-            delete summaryTerminalRunIdBySessionRef.current[sessionId];
           }
         }
       }
-      const reconciled = next.map((summary) =>
-        Object.prototype.hasOwnProperty.call(
-          summaryRunBySessionRef.current,
-          summary.id,
-        )
-          ? withActiveRunMetadata(
-              summary,
-              summaryRunBySessionRef.current[summary.id],
-            )
-          : summary,
-      );
+      const reconciled = next.map((summary) => {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            summaryRunBySessionRef.current,
+            summary.id,
+          )
+        ) {
+          return withActiveRunMetadata(
+            summary,
+            summaryRunBySessionRef.current[summary.id],
+          );
+        }
+        const terminalRunId =
+          summaryTerminalRunIdBySessionRef.current[summary.id];
+        const listedRunId = summary.metadata?.[ACTIVE_RUN_ID_KEY];
+        if (terminalRunId && listedRunId === terminalRunId) {
+          return withActiveRunMetadata(summary, null);
+        }
+        if (
+          terminalRunId &&
+          typeof listedRunId === "string" &&
+          listedRunId !== terminalRunId
+        ) {
+          delete summaryTerminalRunIdBySessionRef.current[summary.id];
+        }
+        return summary;
+      });
       sessionsRef.current = reconciled;
       setSessions(reconciled);
     },
@@ -682,6 +684,13 @@ export function CopilotProvider({
     async (sessionId: string, revision: number) => {
       if (!enabledRef.current) return;
       const ownershipEpoch = ownershipEpochRef.current;
+      const summaryRunId = sessionsRef.current.find(
+        (summary) => summary.id === sessionId,
+      )?.metadata?.[ACTIVE_RUN_ID_KEY];
+      const previousRunId =
+        summaryRunBySessionRef.current[sessionId]?.id ??
+        runtimeRef.current.runs[sessionId]?.run?.id ??
+        (typeof summaryRunId === "string" ? summaryRunId : undefined);
       closeRunSubscription();
       if (!transport.capabilities.resumableStreams || !transport.getActiveRun) {
         syncSessionSummaryRun(sessionId, null);
@@ -705,7 +714,7 @@ export function CopilotProvider({
           return;
         }
         if (!run) {
-          syncSessionSummaryRun(sessionId, null);
+          syncSessionSummaryRun(sessionId, null, previousRunId);
           setRuntime((previous) => ({
             ...previous,
             runs: {

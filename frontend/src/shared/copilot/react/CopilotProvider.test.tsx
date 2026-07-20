@@ -1069,6 +1069,88 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.sessions[0]?.metadata?.activeRunStatus).toBeUndefined();
   });
 
+  it("retains a terminal run marker across an authoritative empty list", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Terminal marker" });
+    const run = await transport.startRun({ sessionId: session.id, text: "Work" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() =>
+      expect(result.current.sessions[0]?.metadata?.activeRunId).toBe(run.id),
+    );
+    act(() => {
+      transport.emit(run.id, {
+        type: "run-status",
+        runId: run.id,
+        sessionId: session.id,
+        sequence: 1,
+        status: "completed",
+      });
+    });
+
+    await act(async () => result.current.refresh());
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        metadata: {
+          activeRunId: run.id,
+          activeRunStatus: "running",
+        },
+      },
+    ]);
+    await act(async () => result.current.refresh());
+
+    expect(result.current.sessions[0]?.metadata?.activeRunId).toBeUndefined();
+    expect(result.current.sessions[0]?.metadata?.activeRunStatus).toBeUndefined();
+  });
+
+  it("remembers the previous run when restore reports no active run", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const run = await transport.startRun({ sessionId: first.id, text: "Work" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() =>
+      expect(
+        result.current.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBe(run.id),
+    );
+    await act(async () => result.current.select(second.id));
+    vi.spyOn(transport, "getActiveRun").mockResolvedValueOnce(null);
+    await act(async () => result.current.select(first.id));
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        id: first.id,
+        title: first.title,
+        createdAt: first.createdAt,
+        updatedAt: first.updatedAt,
+        metadata: {
+          activeRunId: run.id,
+          activeRunStatus: "running",
+        },
+      },
+      second,
+    ]);
+
+    await act(async () => result.current.refresh());
+
+    expect(
+      result.current.sessions.find((session) => session.id === first.id)
+        ?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.find((session) => session.id === first.id)
+        ?.metadata?.activeRunStatus,
+    ).toBeUndefined();
+  });
+
   it("accepts a new backend run after a previous local run became terminal", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession({ title: "Sequential runs" });
@@ -1108,6 +1190,26 @@ describe("CopilotProvider session lifecycle", () => {
       },
     ]);
 
+    await act(async () => result.current.refresh());
+
+    expect(result.current.sessions[0]?.metadata).toMatchObject({
+      activeRunId: nextRun.id,
+      activeRunStatus: nextRun.status,
+    });
+
+    await act(async () => result.current.select(session.id));
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        metadata: {
+          activeRunId: firstRun.id,
+          activeRunStatus: "running",
+        },
+      },
+    ]);
     await act(async () => result.current.refresh());
 
     expect(result.current.sessions[0]?.metadata).toMatchObject({
