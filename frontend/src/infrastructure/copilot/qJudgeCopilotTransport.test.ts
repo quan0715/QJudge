@@ -390,6 +390,7 @@ describe("createQJudgeCopilotTransport", () => {
     const repository = createRepository({
       subscribeRunEvents: vi.fn(
         async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("awaiting_approval");
           callbacks.onAwaitingApproval?.({
             actionRequests: [
               { name: "   ", args: { ignored: true } },
@@ -419,6 +420,37 @@ describe("createQJudgeCopilotTransport", () => {
     ]);
   });
 
+  it("does not overwrite prior status with an unvalidated generic approval", async () => {
+    const failedRun = { ...legacyRun, status: "failed" as const };
+    const repository = createRepository({
+      startRun: vi.fn().mockResolvedValue(failedRun),
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("awaiting_approval");
+          callbacks.onAwaitingApproval?.({
+            actionRequests: [{ name: "   ", args: { ignored: true } }],
+          });
+          callbacks.onComplete?.(legacySession);
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+
+    expect(events).toMatchObject([{ type: "run-status", status: "failed" }]);
+  });
+
   it.each([
     {
       label: "defaults only when review configuration is absent",
@@ -436,6 +468,7 @@ describe("createQJudgeCopilotTransport", () => {
     const repository = createRepository({
       subscribeRunEvents: vi.fn(
         async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("awaiting_approval");
           callbacks.onAwaitingApproval?.({
             actionRequests: [
               { name: "  publish  ", args: { id: 1 } },

@@ -228,6 +228,7 @@ export function createQJudgeCopilotTransport(
 
       const callbacks: StreamCallbacks = {
         onRunStatus(status) {
+          if (status === "awaiting_approval") return;
           latestStatus = status;
         },
         onMessageUpdate(update: Partial<ChatMessage>) {
