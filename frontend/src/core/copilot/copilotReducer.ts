@@ -13,6 +13,7 @@ export interface CopilotRuntimeState {
   activeSessionId: string | null;
   runs: Record<string, CopilotRunState>;
   lastSequenceByRun: Record<string, number>;
+  lastResumeSequenceByRun: Record<string, number>;
 }
 
 export function createCopilotRuntimeState(): CopilotRuntimeState {
@@ -21,6 +22,7 @@ export function createCopilotRuntimeState(): CopilotRuntimeState {
     activeSessionId: null,
     runs: {},
     lastSequenceByRun: {},
+    lastResumeSequenceByRun: {},
   };
 }
 
@@ -170,13 +172,19 @@ export function reduceCopilotEvent(
     return state;
   }
 
-  const lastSequence =
-    state.lastSequenceByRun[event.runId] ?? currentRun.lastSequence ?? -1;
+  const lastSequence = state.lastSequenceByRun[event.runId] ?? -1;
   if (event.sequence <= lastSequence) return state;
 
+  const lastResumeSequence =
+    state.lastResumeSequenceByRun[event.runId] ?? currentRun.lastSequence ?? -1;
+  const nextResumeSequence =
+    typeof event.resumeSequence === "number"
+      ? Math.max(lastResumeSequence, event.resumeSequence)
+      : lastResumeSequence;
   const nextRun: CopilotRun = {
     ...currentRun,
-    lastSequence: event.sequence,
+    lastSequence:
+      nextResumeSequence >= 0 ? nextResumeSequence : currentRun.lastSequence,
   };
   let nextSession = session;
   let nextRunState = replaceRun(currentRunState, nextRun);
@@ -258,6 +266,12 @@ export function reduceCopilotEvent(
     lastSequenceByRun: {
       ...state.lastSequenceByRun,
       [event.runId]: event.sequence,
+    },
+    lastResumeSequenceByRun: {
+      ...state.lastResumeSequenceByRun,
+      ...(nextResumeSequence >= 0
+        ? { [event.runId]: nextResumeSequence }
+        : {}),
     },
   };
 }

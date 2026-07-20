@@ -197,7 +197,7 @@ describe("reduceCopilotEvent", () => {
 
     expect(next.runs["session-1"]).toEqual({
       status: "awaiting-approval",
-      run: { ...makeRun(), status: "awaiting-approval", lastSequence: 1 },
+      run: { ...makeRun(), status: "awaiting-approval" },
       request,
     });
   });
@@ -255,7 +255,7 @@ describe("reduceCopilotEvent", () => {
 
     expect(next.runs["session-1"]).toEqual({
       status: "awaiting-answer",
-      run: { ...makeRun(), status: "awaiting-answer", lastSequence: 1 },
+      run: { ...makeRun(), status: "awaiting-answer" },
       request,
     });
   });
@@ -294,6 +294,45 @@ describe("reduceCopilotEvent", () => {
     expect(cleared.runs["session-1"]?.run?.metadata?.notice).toBeUndefined();
   });
 
+  it("orders normalized events independently from their resume sequence", () => {
+    const noticeCleared = reduceCopilotEvent(
+      makeState({
+        status: "streaming",
+        run: makeRun({ metadata: { notice: "Summarizing" } }),
+      }),
+      {
+        type: "run-notice",
+        runId: "run-1",
+        sessionId: "session-1",
+        sequence: 1,
+        resumeSequence: 12,
+        notice: null,
+      },
+    );
+    const awaiting = reduceCopilotEvent(noticeCleared, {
+      type: "awaiting-answer",
+      runId: "run-1",
+      sessionId: "session-1",
+      sequence: 2,
+      resumeSequence: 12,
+      request: { question: "Continue?", input: "text" },
+    });
+    const nextSourceEvent = reduceCopilotEvent(awaiting, {
+      type: "run-status",
+      runId: "run-1",
+      sessionId: "session-1",
+      sequence: 3,
+      resumeSequence: 13,
+      status: "running",
+    });
+
+    expect(awaiting.runs["session-1"]?.status).toBe("awaiting-answer");
+    expect(nextSourceEvent.runs["session-1"]?.status).toBe("streaming");
+    expect(nextSourceEvent.lastSequenceByRun["run-1"]).toBe(3);
+    expect(nextSourceEvent.lastResumeSequenceByRun["run-1"]).toBe(13);
+    expect(nextSourceEvent.runs["session-1"]?.run?.lastSequence).toBe(13);
+  });
+
   it("clears a run notice when the run fails", () => {
     const next = reduceCopilotEvent(
       makeState({
@@ -330,7 +369,7 @@ describe("reduceCopilotEvent", () => {
 
     expect(next.runs["session-1"]).toEqual({
       status: "error",
-      run: { ...makeRun(), status: "failed", lastSequence: 1 },
+      run: { ...makeRun(), status: "failed" },
       error,
     });
   });

@@ -105,6 +105,7 @@ export interface CopilotRun {
   sessionId: string;
   status: CopilotRunStatus;
   modelId?: string;
+  /** Backend/source resume cursor. Normalized event ordering is runtime-owned. */
   lastSequence?: number;
   approvalRequest?: CopilotApprovalRequest;
   questionRequest?: CopilotQuestionRequest;

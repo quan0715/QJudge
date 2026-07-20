@@ -240,16 +240,31 @@ export interface NextTurnOption {
 
 // ===== Stream Callbacks =====
 export interface StreamCallbacks {
-  onMessageUpdate?: (message: Partial<ChatMessage>) => void;
-  onRunStatus?: (status: ChatRunStatus) => void;
-  onComplete?: (session: ChatSession) => void;
-  onError?: (error: string) => void;
-  onVerificationReport?: (report: VerificationReport) => void;
-  onAwaitingApproval?: (request: ApprovalRequest) => void;
-  onAwaitingUserAnswer?: (request: QuestionRequest) => void;
-  onNextTurnOptions?: (options: NextTurnOption[]) => void;
-  onSessionNotice?: (notice: string | null) => void;
-  onTodoItemsUpdate?: (items: RunTodoItem[] | null) => void;
+  onMessageUpdate?: (message: Partial<ChatMessage>, resumeSequence?: number) => void;
+  onRunStatus?: (status: ChatRunStatus, resumeSequence?: number) => void;
+  onComplete?: (session: ChatSession, resumeSequence?: number) => void;
+  onError?: (error: string, resumeSequence?: number) => void;
+  onVerificationReport?: (
+    report: VerificationReport,
+    resumeSequence?: number,
+  ) => void;
+  onAwaitingApproval?: (
+    request: ApprovalRequest,
+    resumeSequence?: number,
+  ) => void;
+  onAwaitingUserAnswer?: (
+    request: QuestionRequest,
+    resumeSequence?: number,
+  ) => void;
+  onNextTurnOptions?: (
+    options: NextTurnOption[],
+    resumeSequence?: number,
+  ) => void;
+  onSessionNotice?: (notice: string | null, resumeSequence?: number) => void;
+  onTodoItemsUpdate?: (
+    items: RunTodoItem[] | null,
+    resumeSequence?: number,
+  ) => void;
 }
 
 // ===== Helper Functions =====

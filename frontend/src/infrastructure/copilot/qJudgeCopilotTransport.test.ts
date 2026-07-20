@@ -135,7 +135,7 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
               callbacks.onMessageUpdate?.({
                 content,
                 lastEventSeq: event.sequence,
-              });
+              }, event.resumeSequence);
             } else if (event.type === "awaiting-approval") {
               callbacks.onAwaitingApproval?.({
                 actionRequests: event.request.actions.map((action) => ({
@@ -148,15 +148,15 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
                     allowedDecisions: event.request.allowedDecisions,
                   },
                 ],
-              });
+              }, event.resumeSequence);
             } else if (event.type === "awaiting-answer") {
               callbacks.onAwaitingUserAnswer?.({
                 question: event.request.question,
                 inputType: event.request.input,
                 options: event.request.options,
-              });
+              }, event.resumeSequence);
             } else if (event.type === "run-status") {
-              callbacks.onComplete?.(legacySession);
+              callbacks.onComplete?.(legacySession, event.resumeSequence);
             }
           },
           error(error) {
@@ -506,14 +506,14 @@ describe("createQJudgeCopilotTransport", () => {
     const repository = createRepository({
       subscribeRunEvents: vi.fn(
         async (_run: ChatRun, callbacks: StreamCallbacks) => {
-          callbacks.onMessageUpdate?.({ content: "Hel", lastEventSeq: 5 });
-          callbacks.onMessageUpdate?.({ content: "Hello", lastEventSeq: 5 });
+          callbacks.onMessageUpdate?.({ content: "Hel", lastEventSeq: 5 }, 5);
+          callbacks.onMessageUpdate?.({ content: "Hello", lastEventSeq: 5 }, 5);
           callbacks.onAwaitingApproval?.({
             actionRequests: [{ name: "publish", args: { id: 1 } }],
             reviewConfigs: [
               { actionName: "publish", allowedDecisions: ["approve", "reject"] },
             ],
-          });
+          }, 5);
         },
       ),
     });
@@ -532,9 +532,21 @@ describe("createQJudgeCopilotTransport", () => {
     await vi.waitFor(() => expect(events).toHaveLength(3));
 
     expect(events).toMatchObject([
-      { type: "text-delta", delta: "Hel", sequence: 5, messageId: "42" },
-      { type: "text-delta", delta: "lo", sequence: 6, messageId: "42" },
-      { type: "awaiting-approval", sequence: 7 },
+      {
+        type: "text-delta",
+        delta: "Hel",
+        sequence: 1,
+        resumeSequence: 5,
+        messageId: "42",
+      },
+      {
+        type: "text-delta",
+        delta: "lo",
+        sequence: 2,
+        resumeSequence: 5,
+        messageId: "42",
+      },
+      { type: "awaiting-approval", sequence: 3, resumeSequence: 5 },
     ]);
   });
 
@@ -543,6 +555,7 @@ describe("createQJudgeCopilotTransport", () => {
     const subscribeRunEvents = vi.fn(
       async (_run: ChatRun, value: StreamCallbacks) => {
         callbacks = value;
+        await new Promise<void>(() => {});
       },
     );
     const repository = createRepository({ subscribeRunEvents });
@@ -564,19 +577,19 @@ describe("createQJudgeCopilotTransport", () => {
     );
     await vi.waitFor(() => expect(callbacks).toBeDefined());
 
-    callbacks?.onSessionNotice?.("Summarizing");
+    callbacks?.onSessionNotice?.("Summarizing", 9);
     callbacks?.onTodoItemsUpdate?.([
       { id: "todo-1", label: "Check", status: "in_progress" },
-    ]);
+    ], 10);
     callbacks?.onNextTurnOptions?.([
       { label: "Continue", message: "continue" },
-    ]);
+    ], 11);
     callbacks?.onVerificationReport?.({
       iteration: 1,
       passed: true,
       issues: [],
       summary: "ok",
-    });
+    }, 12);
 
     expect(subscribeRunEvents).toHaveBeenCalledWith(
       expect.objectContaining({ lastEventSeq: 8 }),
@@ -584,15 +597,90 @@ describe("createQJudgeCopilotTransport", () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(events).toMatchObject([
-      { type: "run-notice", sequence: 9, notice: "Summarizing" },
-      { type: "part-upsert", sequence: 10, part: { type: "data-todo-items" } },
+      {
+        type: "run-notice",
+        sequence: 1,
+        resumeSequence: 9,
+        notice: "Summarizing",
+      },
       {
         type: "part-upsert",
-        sequence: 11,
+        sequence: 2,
+        resumeSequence: 10,
+        part: { type: "data-todo-items" },
+      },
+      {
+        type: "part-upsert",
+        sequence: 3,
+        resumeSequence: 11,
         part: { type: "data-next-turn-options" },
       },
-      { type: "part-upsert", sequence: 12, part: { type: "data-verification" } },
+      {
+        type: "part-upsert",
+        sequence: 4,
+        resumeSequence: 12,
+        part: { type: "data-verification" },
+      },
     ]);
+  });
+
+  it("keeps normalized ordering separate from a shared source cursor", async () => {
+    let callbacks: StreamCallbacks | undefined;
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(async (_run, value) => {
+        callbacks = value;
+        await new Promise<void>(() => {});
+      }),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(callbacks).toBeDefined());
+
+    callbacks?.onSessionNotice?.(null, 21);
+    callbacks?.onAwaitingUserAnswer?.(
+      { question: "Continue?", inputType: "text" },
+      21,
+    );
+    callbacks?.onMessageUpdate?.({ content: "Next" }, 22);
+
+    expect(events).toMatchObject([
+      { type: "run-notice", sequence: 1, resumeSequence: 21 },
+      { type: "awaiting-answer", sequence: 2, resumeSequence: 21 },
+      { type: "text-delta", sequence: 3, resumeSequence: 22 },
+    ]);
+  });
+
+  it("reports a recoverable interruption when the event stream ends without terminal state", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn().mockResolvedValue(undefined),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const error = vi.fn();
+
+    transport.subscribeRun(run, {
+      next: vi.fn(),
+      error,
+      complete: vi.fn(),
+    });
+
+    await vi.waitFor(() => expect(error).toHaveBeenCalledTimes(1));
+    expect(error.mock.calls[0]?.[0]).toMatchObject({
+      operation: "subscribe-run",
+      recoverable: true,
+    });
   });
 
   it("maps upload results to public attachments", async () => {

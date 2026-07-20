@@ -233,18 +233,28 @@ export class MemoryCopilotTransport implements CopilotTransport {
     if (event.runId !== runId || event.sessionId !== run.sessionId) {
       throw memoryError("subscribe-run", "Event identifiers do not match the run");
     }
+    const normalizedEvent = {
+      ...event,
+      resumeSequence: event.resumeSequence ?? event.sequence,
+    } satisfies CopilotRunEvent;
     const nextRun = {
       ...run,
-      status: event.type === "run-status" ? event.status : run.status,
-      lastSequence: event.sequence,
+      status:
+        normalizedEvent.type === "run-status"
+          ? normalizedEvent.status
+          : run.status,
+      lastSequence: normalizedEvent.resumeSequence,
     };
     this.runs.set(runId, nextRun);
 
     const entries = [...(this.observers.get(runId) ?? [])];
     for (const entry of entries) {
-      if (!entry.closed) entry.observer.next(event);
+      if (!entry.closed) entry.observer.next(normalizedEvent);
     }
-    if (event.type === "run-status" && TERMINAL_STATUSES.has(event.status)) {
+    if (
+      normalizedEvent.type === "run-status" &&
+      TERMINAL_STATUSES.has(normalizedEvent.status)
+    ) {
       for (const entry of entries) {
         if (!entry.closed) entry.observer.complete();
         entry.close();

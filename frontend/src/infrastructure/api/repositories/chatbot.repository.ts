@@ -757,15 +757,24 @@ const chatbotRepository: ChatbotRepository = {
     resolvedSessionId: string,
     setResolvedId: (id: string) => void
   ) {
-    if (typeof event.seq === "number") {
-      currentMessage.lastEventSeq = event.seq;
-    }
+    const resumeSequence =
+      typeof event.seq === "number" ? event.seq : undefined;
+    if (resumeSequence !== undefined) currentMessage.lastEventSeq = resumeSequence;
+    const notify = <Value>(
+      callback:
+        | ((value: Value, callbackResumeSequence?: number) => void)
+        | undefined,
+      value: Value,
+    ) => {
+      if (resumeSequence === undefined) callback?.(value);
+      else callback?.(value, resumeSequence);
+    };
     applyRunStatusToCurrentMessage(event, currentMessage);
 
     const todoItems = extractTodoItemsFromEvent(event);
     if (todoItems) {
       currentMessage.todoItems = todoItems;
-      callbacks.onTodoItemsUpdate?.(todoItems);
+      notify(callbacks.onTodoItemsUpdate, todoItems);
     }
 
     switch (event.type) {
@@ -780,12 +789,12 @@ const chatbotRepository: ChatbotRepository = {
         break;
 
       case "summarization_started": {
-        callbacks.onSessionNotice?.("對話過長，截取摘要中");
+        notify(callbacks.onSessionNotice, "對話過長，截取摘要中");
         break;
       }
 
       case "summarization_ended": {
-        callbacks.onSessionNotice?.(null);
+        notify(callbacks.onSessionNotice, null);
         break;
       }
 
@@ -805,13 +814,13 @@ const chatbotRepository: ChatbotRepository = {
           currentMessage.content = commandResult.displayText;
           if (commandResult.todoItems) {
             currentMessage.todoItems = commandResult.todoItems;
-            callbacks.onTodoItemsUpdate?.(commandResult.todoItems);
+            notify(callbacks.onTodoItemsUpdate, commandResult.todoItems);
           }
           const messageUpdate = { ...currentMessage } as Partial<ChatMessage> & {
             rawAgentContent?: string;
           };
           delete messageUpdate.rawAgentContent;
-          callbacks.onMessageUpdate?.(messageUpdate);
+          notify(callbacks.onMessageUpdate, messageUpdate);
         }
         break;
 
@@ -822,7 +831,7 @@ const chatbotRepository: ChatbotRepository = {
             thinking: prevThinking + event.content,
             signature: "",
           };
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
         break;
 
@@ -837,8 +846,8 @@ const chatbotRepository: ChatbotRepository = {
           ...(currentMessage.verificationReports || []),
           report,
         ];
-        callbacks.onVerificationReport?.(report);
-        callbacks.onMessageUpdate?.({ ...currentMessage });
+        notify(callbacks.onVerificationReport, report);
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
         break;
       }
 
@@ -858,7 +867,7 @@ const chatbotRepository: ChatbotRepository = {
           }
 
           currentMessage.toolName = displayToolName;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
         break;
 
@@ -901,7 +910,7 @@ const chatbotRepository: ChatbotRepository = {
           toolInfo,
         ];
         currentMessage.toolName = undefined;
-        callbacks.onMessageUpdate?.({ ...currentMessage });
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
         break;
       }
 
@@ -916,37 +925,42 @@ const chatbotRepository: ChatbotRepository = {
 
       case "run_completed": {
         console.debug("SSE: run_completed", { runId: event.run_id });
-        callbacks.onRunStatus?.("completed");
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        notify(callbacks.onRunStatus, "completed");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         if (event.next_turn_options?.length) {
-          callbacks.onNextTurnOptions?.(
+          notify(
+            callbacks.onNextTurnOptions,
             event.next_turn_options.map((o) => ({
               label: o.label,
               message: o.message,
-            }))
+            })),
           );
         }
         // Fetch fresh session
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_completed:", err);
-            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
         break;
       }
 
       case "run_cancelled": {
         console.debug("SSE: run_cancelled", { runId: event.run_id });
-        callbacks.onRunStatus?.("cancelled");
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        notify(callbacks.onRunStatus, "cancelled");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_cancelled:", err);
-            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
         break;
       }
@@ -957,26 +971,31 @@ const chatbotRepository: ChatbotRepository = {
           message: event.message,
         });
         currentMessage.runStatus = "failed";
-        callbacks.onRunStatus?.("failed");
+        notify(callbacks.onRunStatus, "failed");
         currentMessage.isThinking = false;
         currentMessage.runError = toRunFailureMessage(event.error_code, event.message);
-        callbacks.onMessageUpdate?.({ ...currentMessage });
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_failed:", err);
           });
-        callbacks.onError?.(toRunFailureMessage(event.error_code, event.message));
+        notify(
+          callbacks.onError,
+          toRunFailureMessage(event.error_code, event.message),
+        );
         break;
 
       case "awaiting_approval": {
         // Run may pause for a long time before run_completed; clear transient notices (e.g. summarization).
-        callbacks.onSessionNotice?.(null);
-        callbacks.onRunStatus?.("awaiting_approval");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onRunStatus, "awaiting_approval");
         if (event.action_requests?.length) {
-          callbacks.onAwaitingApproval?.({
+          notify(callbacks.onAwaitingApproval, {
             actionRequests: event.action_requests.map((a) => ({
               name: a.name,
               args: a.args,
@@ -991,10 +1010,10 @@ const chatbotRepository: ChatbotRepository = {
       }
 
       case "awaiting_user_answer": {
-        callbacks.onSessionNotice?.(null);
-        callbacks.onRunStatus?.("awaiting_user_answer");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onRunStatus, "awaiting_user_answer");
         if (event.question) {
-          callbacks.onAwaitingUserAnswer?.({
+          notify(callbacks.onAwaitingUserAnswer, {
             question: event.question,
             options: event.options,
             inputType: (event.input_type as "text" | "choice") ?? "text",

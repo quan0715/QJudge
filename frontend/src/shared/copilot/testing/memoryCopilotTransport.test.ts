@@ -26,7 +26,10 @@ describe("MemoryCopilotTransport", () => {
 
     transport.emit(run.id, completed);
 
-    expect(observer.next).toHaveBeenCalledWith(completed);
+    expect(observer.next).toHaveBeenCalledWith({
+      ...completed,
+      resumeSequence: completed.sequence,
+    });
     expect(observer.complete).toHaveBeenCalledOnce();
     expect(subscription.closed).toBe(true);
     await expect(transport.getActiveRun(session.id)).resolves.toBeNull();

@@ -60,6 +60,7 @@ export function createQJudgeCopilotTransport(
   uploadArtifact: UploadArtifact,
 ): CopilotTransport {
   const legacyRuns = new Map<string, ChatRun>();
+  const normalizedSequenceByRun = new Map<string, number>();
 
   const rememberRun = (run: ChatRun): CopilotRun => {
     legacyRuns.set(run.id, run);
@@ -156,10 +157,12 @@ export function createQJudgeCopilotTransport(
       const controller = new AbortController();
       const externalSignal = options.signal;
       let closed = false;
-      let sequence = options.fromSequence ?? run.lastSequence ?? 0;
+      let sequence = normalizedSequenceByRun.get(run.id) ?? 0;
       let textCursor = "";
       let reasoningCursor = "";
       let latestStatus: ChatRunStatus = mapCopilotRunToChat(run).status;
+      let terminalObserved = false;
+      let terminalResumeSequence: number | undefined;
       const toolFingerprints = new Map<string, string>();
       const verificationIterations = new Set<number>();
       const legacyRun = {
@@ -171,20 +174,22 @@ export function createQJudgeCopilotTransport(
         legacyRun.assistantMessageId ?? `run-${run.id}-assistant`,
       );
 
-      const nextSequence = (hint?: number): number => {
-        sequence = Math.max(sequence + 1, hint ?? 0);
+      const nextSequence = (): number => {
+        sequence += 1;
+        normalizedSequenceByRun.set(run.id, sequence);
         return sequence;
       };
       const emit = (
         event: CopilotRunEventPayload,
-        sequenceHint?: number,
+        resumeSequence?: number,
       ) => {
         if (closed) return;
         observer.next({
           ...event,
           runId: run.id,
           sessionId: run.sessionId,
-          sequence: nextSequence(sequenceHint),
+          sequence: nextSequence(),
+          ...(typeof resumeSequence === "number" ? { resumeSequence } : {}),
         } as CopilotRunEvent);
       };
       const close = () => {
@@ -198,19 +203,19 @@ export function createQJudgeCopilotTransport(
 
       const emitToolUpdates = (
         tools: ToolInfo[] | undefined,
-        sequenceHint?: number,
+        resumeSequence?: number,
       ) => {
         for (const [index, tool] of (tools ?? []).entries()) {
           const part = mapToolInfoToCopilotPart(tool, index);
           const fingerprint = JSON.stringify(part);
           if (toolFingerprints.get(part.toolCallId) === fingerprint) continue;
           toolFingerprints.set(part.toolCallId, fingerprint);
-          emit({ type: "part-upsert", messageId, part }, sequenceHint);
+          emit({ type: "part-upsert", messageId, part }, resumeSequence);
         }
       };
       const emitVerificationUpdates = (
         reports: VerificationReport[] | undefined,
-        sequenceHint?: number,
+        resumeSequence?: number,
       ) => {
         for (const report of reports ?? []) {
           if (verificationIterations.has(report.iteration)) continue;
@@ -221,17 +226,22 @@ export function createQJudgeCopilotTransport(
               messageId,
               part: { type: "data-verification", data: report },
             },
-            sequenceHint,
+            resumeSequence,
           );
         }
       };
 
       const callbacks: StreamCallbacks = {
-        onRunStatus(status) {
+        onRunStatus(status, resumeSequence) {
           if (status === "awaiting_approval") return;
           latestStatus = status;
+          if (["completed", "cancelled", "failed"].includes(status)) {
+            terminalObserved = true;
+            terminalResumeSequence = resumeSequence;
+          }
         },
-        onMessageUpdate(update: Partial<ChatMessage>) {
+        onMessageUpdate(update: Partial<ChatMessage>, resumeSequence) {
+          const sourceSequence = resumeSequence ?? update.lastEventSeq;
           if (update.runStatus) latestStatus = update.runStatus;
           if (typeof update.content === "string") {
             const delta = subscriptionDelta(textCursor, update.content);
@@ -239,7 +249,7 @@ export function createQJudgeCopilotTransport(
             if (delta) {
               emit(
                 { type: "text-delta", messageId, delta },
-                update.lastEventSeq,
+                sourceSequence,
               );
             }
           }
@@ -250,14 +260,14 @@ export function createQJudgeCopilotTransport(
             if (delta) {
               emit(
                 { type: "reasoning-delta", messageId, delta },
-                update.lastEventSeq,
+                sourceSequence,
               );
             }
           }
-          emitToolUpdates(update.toolExecutions, update.lastEventSeq);
+          emitToolUpdates(update.toolExecutions, sourceSequence);
           emitVerificationUpdates(
             update.verificationReports,
-            update.lastEventSeq,
+            sourceSequence,
           );
           if (update.todoItems) {
             emit(
@@ -266,65 +276,74 @@ export function createQJudgeCopilotTransport(
                 messageId,
                 part: { type: "data-todo-items", data: update.todoItems },
               },
-              update.lastEventSeq,
+              sourceSequence,
             );
           }
         },
-        onVerificationReport(report) {
-          emitVerificationUpdates([report]);
+        onVerificationReport(report, resumeSequence) {
+          emitVerificationUpdates([report], resumeSequence);
         },
-        onSessionNotice(notice) {
-          emit({ type: "run-notice", notice });
+        onSessionNotice(notice, resumeSequence) {
+          emit({ type: "run-notice", notice }, resumeSequence);
         },
-        onTodoItemsUpdate(items) {
+        onTodoItemsUpdate(items, resumeSequence) {
           if (!items) return;
           emit({
             type: "part-upsert",
             messageId,
             part: { type: "data-todo-items", data: items },
-          });
+          }, resumeSequence);
         },
-        onAwaitingApproval(request) {
+        onAwaitingApproval(request, resumeSequence) {
           const approvalRequest = mapChatApprovalToCopilot(request);
           if (!approvalRequest) return;
           latestStatus = "awaiting_approval";
           emit({
             type: "awaiting-approval",
             request: approvalRequest,
-          });
+          }, resumeSequence);
         },
-        onAwaitingUserAnswer(request) {
+        onAwaitingUserAnswer(request, resumeSequence) {
           latestStatus = "awaiting_user_answer";
           const normalized: CopilotQuestionRequest = {
             question: request.question,
             input: request.inputType ?? "text",
             options: request.options,
           };
-          emit({ type: "awaiting-answer", request: normalized });
+          emit(
+            { type: "awaiting-answer", request: normalized },
+            resumeSequence,
+          );
         },
-        onNextTurnOptions(nextOptions) {
+        onNextTurnOptions(nextOptions, resumeSequence) {
           emit({
             type: "part-upsert",
             messageId,
             part: { type: "data-next-turn-options", data: nextOptions },
-          });
+          }, resumeSequence);
         },
-        onComplete() {
+        onComplete(_session, resumeSequence) {
           const status = ["completed", "cancelled", "failed"].includes(latestStatus)
             ? mapChatRunStatusToCopilot(latestStatus)
             : "completed";
-          emit({ type: "run-status", status });
+          emit(
+            { type: "run-status", status },
+            resumeSequence ?? terminalResumeSequence,
+          );
           if (!closed) observer.complete();
           close();
         },
-        onError(message) {
+        onError(message, resumeSequence) {
           if (closed) return;
           if (latestStatus === "failed") {
             const error = mapQJudgeError("subscribe-run", message, {
               code: "run-failed",
               recoverable: false,
             });
-            emit({ type: "run-status", status: "failed", error });
+            emit(
+              { type: "run-status", status: "failed", error },
+              resumeSequence ?? terminalResumeSequence,
+            );
             observer.complete();
           } else {
             observer.error(mapQJudgeError("subscribe-run", message));
@@ -335,6 +354,16 @@ export function createQJudgeCopilotTransport(
 
       void repository
         .subscribeRunEvents(legacyRun, callbacks, { signal: controller.signal })
+        .then(() => {
+          if (closed || terminalObserved) return;
+          observer.error(
+            mapQJudgeError(
+              "subscribe-run",
+              new Error("Run event stream ended before a terminal event"),
+            ),
+          );
+          close();
+        })
         .catch((error: unknown) => {
           if (!closed && !isAbortError(error)) {
             observer.error(mapQJudgeError("subscribe-run", error));

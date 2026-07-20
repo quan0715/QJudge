@@ -176,6 +176,7 @@ describe("CopilotProvider run lifecycle", () => {
         runId: sent.runId!,
         sessionId: sent.sessionId,
         sequence: 25,
+        resumeSequence: 7,
         request: {
           question: "Which rubric should I use?",
           input: "text",
@@ -190,7 +191,7 @@ describe("CopilotProvider run lifecycle", () => {
     expect(subscribeRun).toHaveBeenLastCalledWith(
       expect.objectContaining({ id: sent.runId, status: "running" }),
       expect.any(Object),
-      expect.objectContaining({ fromSequence: 25 }),
+      expect.objectContaining({ fromSequence: 7 }),
     );
     expect(result.current.run.state.status).toBe("streaming");
   });
@@ -273,10 +274,15 @@ describe("CopilotProvider run lifecycle", () => {
         runId: run.id,
         sessionId: session.id,
         sequence: 8,
+        resumeSequence: 4,
         status: "running",
       }),
     );
-    getActiveRun.mockResolvedValueOnce({ ...run, status: "running" });
+    getActiveRun.mockResolvedValueOnce({
+      ...run,
+      status: "running",
+      lastSequence: 2,
+    });
     vi.useFakeTimers();
     try {
       act(() =>
@@ -290,9 +296,9 @@ describe("CopilotProvider run lifecycle", () => {
 
       expect(subscribeRun).toHaveBeenCalledTimes(2);
       expect(subscribeRun).toHaveBeenLastCalledWith(
-        expect.objectContaining({ id: run.id, lastSequence: 8 }),
+        expect.objectContaining({ id: run.id, lastSequence: 4 }),
         expect.any(Object),
-        expect.objectContaining({ fromSequence: 8 }),
+        expect.objectContaining({ fromSequence: 4 }),
       );
       expect(result.current.state.status).toBe("streaming");
     } finally {
@@ -309,24 +315,22 @@ describe("CopilotProvider run lifecycle", () => {
       wrapper: wrapper(transport, "first"),
     });
     await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
-    act(() =>
-      transport.emit(run.id, {
-        type: "awaiting-answer",
-        runId: run.id,
-        sessionId: session.id,
-        sequence: 1,
-        request: { question: "Continue?", input: "text" },
-      }),
-    );
     vi.useFakeTimers();
     try {
-      act(() =>
+      act(() => {
+        transport.emit(run.id, {
+          type: "awaiting-answer",
+          runId: run.id,
+          sessionId: session.id,
+          sequence: 1,
+          request: { question: "Continue?", input: "text" },
+        });
         transport.fail(run.id, {
           code: "stream-disconnected",
           operation: "subscribe-run",
           recoverable: true,
-        }),
-      );
+        });
+      });
       await act(() => vi.advanceTimersByTimeAsync(1_000));
 
       expect(subscribeRun).toHaveBeenCalledTimes(1);
@@ -334,6 +338,39 @@ describe("CopilotProvider run lifecycle", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("keeps a failed terminal event authoritative when the stream completes", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Fail"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    const error: CopilotError = {
+      code: "run-failed",
+      operation: "subscribe-run",
+      recoverable: false,
+    };
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        resumeSequence: 9,
+        status: "failed",
+        error,
+      }),
+    );
+
+    expect(result.current.run.state).toMatchObject({
+      status: "error",
+      error,
+    });
   });
 
   it("does not let a reconnect timer subscribe after a session switch", async () => {

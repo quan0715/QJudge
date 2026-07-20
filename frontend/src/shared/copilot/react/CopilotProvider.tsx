@@ -125,6 +125,18 @@ function toRunState(run: CopilotRun): CopilotRunState {
   return { status: "streaming", run };
 }
 
+function retainLatestResumeSequence(
+  resumedRun: CopilotRun,
+  previousRun: CopilotRun,
+): CopilotRun {
+  if (resumedRun.id !== previousRun.id) return resumedRun;
+  const lastSequence = Math.max(
+    resumedRun.lastSequence ?? -1,
+    previousRun.lastSequence ?? -1,
+  );
+  return lastSequence >= 0 ? { ...resumedRun, lastSequence } : resumedRun;
+}
+
 function summaryFromSession(
   session: CopilotRuntimeState["sessions"][string],
 ): CopilotSessionSummary {
@@ -312,6 +324,7 @@ export function CopilotProvider({
       const revision = revisionRef.current;
       const token = {};
       subscriptionTokenRef.current = token;
+      let latestObservedStatus = run.status;
       let capturedSubscription: CopilotSubscription | null = null;
       const subscription = transport.subscribeRun(
         run,
@@ -323,6 +336,13 @@ export function CopilotProvider({
               activeIdRef.current !== run.sessionId
             ) {
               return;
+            }
+            if (event.type === "awaiting-approval") {
+              latestObservedStatus = "awaiting-approval";
+            } else if (event.type === "awaiting-answer") {
+              latestObservedStatus = "awaiting-answer";
+            } else if (event.type === "run-status") {
+              latestObservedStatus = event.status;
             }
             setRuntime((previous) => reduceCopilotEvent(previous, event));
           },
@@ -339,10 +359,9 @@ export function CopilotProvider({
               subscriptionRef.current = null;
             }
             subscriptionTokenRef.current = null;
-            const current = runtimeRef.current.runs[run.sessionId];
             if (
-              current?.status === "awaiting-approval" ||
-              current?.status === "awaiting-answer"
+              latestObservedStatus === "awaiting-approval" ||
+              latestObservedStatus === "awaiting-answer"
             ) {
               return;
             }
@@ -375,7 +394,7 @@ export function CopilotProvider({
               subscriptionRef.current = null;
             }
             clearReconnectTimer();
-            setRunState(run.sessionId, { status: "ready", run: null });
+            capturedSubscription?.close();
           },
         },
         { fromSequence: run.lastSequence },
@@ -431,10 +450,7 @@ export function CopilotProvider({
           }));
           return;
         }
-        const current = runtimeRef.current.runs[sessionId];
-        const currentRun = !current || current.status === "ready" ? null : current.run;
-        const localSequence =
-          currentRun?.id === run.id ? currentRun.lastSequence : undefined;
+        const localSequence = runtimeRef.current.lastResumeSequenceByRun[run.id];
         const lastSequence = Math.max(
           run.lastSequence ?? -1,
           localSequence ?? -1,
@@ -820,7 +836,10 @@ export function CopilotProvider({
             recoverable: false,
           } satisfies CopilotError);
         }
-        const resumedRun = await transport.submitApproval(awaiting.run.id, decision);
+        const resumedRun = retainLatestResumeSequence(
+          await transport.submitApproval(awaiting.run.id, decision),
+          awaiting.run,
+        );
         if (
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId
@@ -860,7 +879,10 @@ export function CopilotProvider({
             recoverable: false,
           } satisfies CopilotError);
         }
-        const resumedRun = await transport.submitAnswer(awaiting.run.id, answer);
+        const resumedRun = retainLatestResumeSequence(
+          await transport.submitAnswer(awaiting.run.id, answer),
+          awaiting.run,
+        );
         if (
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId

@@ -8,6 +8,7 @@ import type {
 } from "./copilot.types";
 
 export interface CopilotSubscribeOptions extends CopilotRequestOptions {
+  /** Backend/source cursor to resume after, not normalized event ordering. */
   fromSequence?: number;
 }
 
@@ -28,6 +29,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       messageId: string;
       delta: string;
     }
@@ -36,6 +38,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       messageId: string;
       part: CopilotMessagePart;
     }
@@ -44,6 +47,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       request: CopilotApprovalRequest;
     }
   | {
@@ -51,6 +55,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       request: CopilotQuestionRequest;
     }
   | {
@@ -58,6 +63,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       notice: string | null;
     }
   | {
@@ -65,6 +71,7 @@ export type CopilotRunEvent =
       runId: string;
       sessionId: string;
       sequence: number;
+      resumeSequence?: number;
       status: CopilotRunStatus;
       error?: CopilotError;
     };

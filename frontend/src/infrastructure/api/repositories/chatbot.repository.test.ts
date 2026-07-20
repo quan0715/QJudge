@@ -3,6 +3,141 @@ import { describe, expect, it, vi } from "vitest";
 import chatbotRepository from "./chatbot.repository";
 
 describe("chatbotRepository stream events", () => {
+  it("propagates the backend sequence through every callback from one source event", () => {
+    const callbacks = {
+      onSessionNotice: vi.fn(),
+      onRunStatus: vi.fn(),
+      onAwaitingApproval: vi.fn(),
+    };
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: Record<string, unknown>,
+        currentMessage: Record<string, unknown>,
+        callbacks: typeof callbacks,
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "awaiting_approval",
+        seq: 31,
+        action_requests: [{ name: "publish", args: { id: 1 } }],
+      },
+      {},
+      callbacks,
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(callbacks.onSessionNotice).toHaveBeenCalledWith(null, 31);
+    expect(callbacks.onRunStatus).toHaveBeenCalledWith("awaiting_approval", 31);
+    expect(callbacks.onAwaitingApproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionRequests: [{ name: "publish", args: { id: 1 } }],
+      }),
+      31,
+    );
+  });
+
+  it("propagates source sequences through data, message, and terminal callbacks", () => {
+    const callbacks = {
+      onTodoItemsUpdate: vi.fn(),
+      onMessageUpdate: vi.fn(),
+      onVerificationReport: vi.fn(),
+      onRunStatus: vi.fn(),
+      onSessionNotice: vi.fn(),
+      onNextTurnOptions: vi.fn(),
+      onComplete: vi.fn(),
+    };
+    const getSession = vi.spyOn(chatbotRepository, "getSession").mockResolvedValue({
+      id: "session-1",
+      title: "Session",
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const repository = chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: Record<string, unknown>,
+        currentMessage: Record<string, unknown>,
+        callbacks: typeof callbacks,
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    };
+    const handle = repository._handleStreamEvent.bind(repository);
+    const currentMessage = {};
+
+    handle(
+      {
+        type: "todo_update",
+        seq: 32,
+        todos: [{ content: "Check", status: "in_progress" }],
+      },
+      currentMessage,
+      callbacks,
+      "session-1",
+      vi.fn(),
+    );
+    handle(
+      { type: "agent_message_delta", seq: 33, content: "Next" },
+      currentMessage,
+      callbacks,
+      "session-1",
+      vi.fn(),
+    );
+    handle(
+      {
+        type: "verification_report",
+        seq: 34,
+        iteration: 1,
+        passed: true,
+        issues: [],
+        summary: "ok",
+      },
+      currentMessage,
+      callbacks,
+      "session-1",
+      vi.fn(),
+    );
+    handle(
+      {
+        type: "run_completed",
+        seq: 35,
+        next_turn_options: [{ label: "Continue", message: "continue" }],
+      },
+      currentMessage,
+      callbacks,
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(callbacks.onTodoItemsUpdate).toHaveBeenCalledWith(
+      [{ id: "0-Check", label: "Check", status: "in_progress" }],
+      32,
+    );
+    expect(callbacks.onMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "Next" }),
+      33,
+    );
+    expect(callbacks.onVerificationReport).toHaveBeenCalledWith(
+      expect.objectContaining({ iteration: 1, passed: true }),
+      34,
+    );
+    expect(callbacks.onMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ verificationReports: [expect.any(Object)] }),
+      34,
+    );
+    expect(callbacks.onRunStatus).toHaveBeenCalledWith("completed", 35);
+    expect(callbacks.onSessionNotice).toHaveBeenCalledWith(null, 35);
+    expect(callbacks.onNextTurnOptions).toHaveBeenCalledWith(
+      [{ label: "Continue", message: "continue" }],
+      35,
+    );
+    getSession.mockRestore();
+  });
+
   it("handles summarization_started without falling through to unknown event logging", () => {
     const onSessionNotice = vi.fn();
     const onTodoItemsUpdate = vi.fn();
