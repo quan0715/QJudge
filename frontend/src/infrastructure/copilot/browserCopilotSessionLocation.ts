@@ -1,4 +1,4 @@
-import type { CopilotSessionLocation } from "@/core/copilot";
+import type { CopilotSessionLocation } from "@copilot";
 
 const DEFAULT_SESSION_PARAM = "ai_session_id";
 

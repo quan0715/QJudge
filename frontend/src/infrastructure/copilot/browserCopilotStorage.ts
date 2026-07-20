@@ -1,4 +1,4 @@
-import type { CopilotStorage } from "@/core/copilot";
+import type { CopilotStorage } from "@copilot";
 
 export class BrowserCopilotStorage implements CopilotStorage {
   private readonly storage: Storage | null;
