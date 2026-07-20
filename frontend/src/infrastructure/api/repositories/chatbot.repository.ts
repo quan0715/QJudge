@@ -120,7 +120,7 @@ interface BackendSession {
   title: string;
   messages: BackendMessage[];
   // 後端 AISessionSerializer 會帶 context（含 task_manifest）。沒 pipe 過來的話，
-  // useChatbot.init 背景 lazy-load 會用沒 context 的 detail 覆寫 sessions list 裡
+  // session detail 背景 lazy-load 會用沒 context 的 detail 覆寫 sessions list 裡
   // 帶 task_manifest 的項目，useTaskSession.findLatestTaskSession 就找不到匹配 →
   // AI Grading auto-bind 永遠失敗。
   context?: Record<string, unknown> | null;

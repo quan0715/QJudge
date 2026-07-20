@@ -25,7 +25,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck:copilot": "tsc -p tsconfig.copilot-type-tests.json",
     "check:copilot-boundary": "node scripts/check-copilot-package-boundary.js",
-    "test:copilot": "vitest run src/core/copilot src/shared/copilot src/infrastructure/copilot src/features/chatbot",
+    "test:copilot": "vitest run src/core/copilot src/shared/copilot src/infrastructure/copilot src/features/chatbot/adapters src/features/chatbot/contexts/QJudgeCopilotProvider.test.tsx src/features/chatbot/components/chat-ui/QJudgeChatPanel.test.tsx",
     "build:copilot-example": "vite build --config vite.config.copilot-example.ts",
     "test:api": "vitest run --config vitest.config.api.ts",
     "test:api:watch": "vitest --config vitest.config.api.ts",
