@@ -29,16 +29,18 @@ export interface CopilotStateContextValue {
   sessionLocation?: CopilotSessionLocation;
   sessions: readonly CopilotSessionSummary[];
   listStatus: CopilotSessionListStatus;
+  sessionError: CopilotError | null;
   activeSession: CopilotActiveSessionState;
   run: CopilotRunState;
 }
 
 export interface CopilotSessionCommandsContextValue {
-  create(input?: CopilotCreateSessionInput): Promise<string>;
+  create(input?: CopilotCreateSessionInput): Promise<string | null>;
   select(id: string): Promise<void>;
   rename(id: string, title: string): Promise<void>;
   remove(id: string): Promise<void>;
   refresh(): Promise<void>;
+  clearError(): void;
 }
 
 export interface CopilotRunCommandsContextValue {

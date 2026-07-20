@@ -100,6 +100,142 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.sessions).toHaveLength(1);
   });
 
+  it("selects the first listed session without creating another one", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const create = vi.spyOn(transport, "createSession");
+
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first-or-create" }),
+    });
+
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("keeps session state and exposes an error when rename fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    vi.spyOn(transport, "renameSession").mockRejectedValue(new Error("offline"));
+
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+
+    await act(async () => result.current.rename(existing.id, "Changed"));
+
+    expect(result.current.sessions[0]?.title).toBe("Existing");
+    expect(result.current.error?.operation).toBe("update-session");
+  });
+
+  it("loads a located session that is absent from the listed sessions", async () => {
+    const transport = new MemoryCopilotTransport();
+    const hidden = await transport.createSession({ title: "Hidden" });
+    vi.spyOn(transport, "listSessions").mockResolvedValue([]);
+    const create = vi.spyOn(transport, "createSession");
+    const location = new MemoryCopilotSessionLocation(hidden.id);
+
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: location,
+        initialSession: "first-or-create",
+      }),
+    });
+
+    await waitFor(() => expect(result.current.activeSession.id).toBe(hidden.id));
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      hidden.id,
+    ]);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("retains a recoverably failing location as the active load error", async () => {
+    const transport = new MemoryCopilotTransport();
+    const location = new MemoryCopilotSessionLocation("session-offline");
+    vi.spyOn(transport, "getSession").mockRejectedValue(
+      Object.assign(new Error("offline"), {
+        code: "transport-error",
+        operation: "load-session",
+        recoverable: true,
+      }),
+    );
+
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, sessionLocation: location }),
+    });
+
+    await waitFor(() => expect(result.current.activeSession.status).toBe("error"));
+    expect(result.current.activeSession.id).toBe("session-offline");
+    expect(location.get()).toBe("session-offline");
+    expect(result.current.error).toBeNull();
+
+    act(() => result.current.clearError());
+    expect(result.current.activeSession.status).toBe("error");
+  });
+
+  it("keeps session state and returns null when create fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    vi.spyOn(transport, "createSession").mockRejectedValue(new Error("offline"));
+
+    let created: string | null = "pending";
+    await act(async () => {
+      created = await result.current.create();
+    });
+
+    expect(created).toBeNull();
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      existing.id,
+    ]);
+    expect(result.current.activeSession.id).toBe(existing.id);
+    expect(result.current.error?.operation).toBe("create-session");
+  });
+
+  it("keeps session state and exposes an error when remove fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    vi.spyOn(transport, "deleteSession").mockRejectedValue(new Error("offline"));
+
+    await act(async () => result.current.remove(existing.id));
+
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      existing.id,
+    ]);
+    expect(result.current.activeSession.id).toBe(existing.id);
+    expect(result.current.error?.operation).toBe("update-session");
+  });
+
+  it("keeps session state and exposes an error when refresh fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    vi.spyOn(transport, "listSessions").mockRejectedValue(new Error("offline"));
+
+    await act(async () => result.current.refresh());
+
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      existing.id,
+    ]);
+    expect(result.current.activeSession.id).toBe(existing.id);
+    expect(result.current.error?.operation).toBe("load-sessions");
+
+    act(() => result.current.clearError());
+    expect(result.current.error).toBeNull();
+  });
+
   it("restores an active run from its last sequence", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();

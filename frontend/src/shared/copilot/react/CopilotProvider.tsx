@@ -40,6 +40,10 @@ import {
   CopilotStateContext,
   type CopilotSessionListStatus,
 } from "./copilotContexts";
+import {
+  resolveCopilotSessionBootstrap,
+  type CopilotInitialSessionStrategy,
+} from "./copilotSessionBootstrap";
 
 const LAST_SESSION_KEY = "copilot:last-session-id";
 const LAST_MODEL_KEY = "copilot:last-model-id";
@@ -64,7 +68,7 @@ export interface CopilotProviderProps {
   modelCatalog?: CopilotModelCatalog;
   fallbackModels?: readonly CopilotModel[];
   translations?: CopilotTranslations;
-  initialSession?: "create" | "first" | "none";
+  initialSession?: CopilotInitialSessionStrategy;
   enabled?: boolean;
   children: ReactNode;
 }
@@ -89,6 +93,17 @@ function toCopilotError(
     recoverable: true,
     cause,
   };
+}
+
+function toSessionError(
+  operation:
+    | "load-sessions"
+    | "load-session"
+    | "create-session"
+    | "update-session",
+  cause: unknown,
+): CopilotError {
+  return { ...toCopilotError(operation, cause), operation };
 }
 
 function toRunState(run: CopilotRun): CopilotRunState {
@@ -128,6 +143,7 @@ export function CopilotProvider({
   const [listStatus, setListStatus] =
     useState<CopilotSessionListStatus>("idle");
   const [activeError, setActiveError] = useState<CopilotError | null>(null);
+  const [sessionError, setSessionError] = useState<CopilotError | null>(null);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<CopilotPendingAttachment[]>([]);
   const [models, setModels] = useState<readonly CopilotModel[]>(fallbackModels);
@@ -379,30 +395,37 @@ export function CopilotProvider({
   );
 
   const create = useCallback(
-    async (input?: CopilotCreateSessionInput): Promise<string> => {
-      const revision = ++revisionRef.current;
-      subscriptionRef.current?.close();
-      const session = await transport.createSession(input);
-      if (revision !== revisionRef.current) return session.id;
-      const summary = summaryFromSession(session);
-      replaceSessions([
-        summary,
-        ...sessionsRef.current.filter((item) => item.id !== session.id),
-      ]);
-      activeIdRef.current = session.id;
-      setActiveError(null);
-      setRuntime((previous) => ({
-        ...previous,
-        activeSessionId: session.id,
-        sessions: { ...previous.sessions, [session.id]: session },
-        runs: {
-          ...previous.runs,
-          [session.id]: { status: "ready", run: null },
-        },
-      }));
-      storage?.set(LAST_SESSION_KEY, session.id);
-      writeLocation(session.id);
-      return session.id;
+    async (input?: CopilotCreateSessionInput): Promise<string | null> => {
+      const startedRevision = revisionRef.current;
+      try {
+        const session = await transport.createSession(input);
+        setSessionError(null);
+        if (startedRevision !== revisionRef.current) return session.id;
+        ++revisionRef.current;
+        subscriptionRef.current?.close();
+        const summary = summaryFromSession(session);
+        replaceSessions([
+          summary,
+          ...sessionsRef.current.filter((item) => item.id !== session.id),
+        ]);
+        activeIdRef.current = session.id;
+        setActiveError(null);
+        setRuntime((previous) => ({
+          ...previous,
+          activeSessionId: session.id,
+          sessions: { ...previous.sessions, [session.id]: session },
+          runs: {
+            ...previous.runs,
+            [session.id]: { status: "ready", run: null },
+          },
+        }));
+        storage?.set(LAST_SESSION_KEY, session.id);
+        writeLocation(session.id);
+        return session.id;
+      } catch (cause) {
+        setSessionError(toSessionError("create-session", cause));
+        return null;
+      }
     },
     [replaceSessions, storage, transport, writeLocation],
   );
@@ -411,37 +434,50 @@ export function CopilotProvider({
     setListStatus("loading");
     try {
       replaceSessions(await transport.listSessions());
+      setSessionError(null);
       setListStatus("ready");
-    } catch {
+    } catch (cause) {
+      setSessionError(toSessionError("load-sessions", cause));
       setListStatus("error");
     }
   }, [replaceSessions, transport]);
 
   const rename = useCallback(
     async (id: string, title: string) => {
-      const summary = await transport.renameSession(id, title);
-      replaceSessions(
-        sessionsRef.current.map((item) => (item.id === id ? summary : item)),
-      );
-      setRuntime((previous) => {
-        const session = previous.sessions[id];
-        return session
-          ? {
-              ...previous,
-              sessions: {
-                ...previous.sessions,
-                [id]: { ...session, title, updatedAt: summary.updatedAt },
-              },
-            }
-          : previous;
-      });
+      try {
+        const summary = await transport.renameSession(id, title);
+        setSessionError(null);
+        replaceSessions(
+          sessionsRef.current.map((item) => (item.id === id ? summary : item)),
+        );
+        setRuntime((previous) => {
+          const session = previous.sessions[id];
+          return session
+            ? {
+                ...previous,
+                sessions: {
+                  ...previous.sessions,
+                  [id]: { ...session, title, updatedAt: summary.updatedAt },
+                },
+              }
+            : previous;
+        });
+      } catch (cause) {
+        setSessionError(toSessionError("update-session", cause));
+      }
     },
     [replaceSessions, transport],
   );
 
   const remove = useCallback(
     async (id: string) => {
-      await transport.deleteSession(id);
+      try {
+        await transport.deleteSession(id);
+      } catch (cause) {
+        setSessionError(toSessionError("update-session", cause));
+        return;
+      }
+      setSessionError(null);
       const remaining = sessionsRef.current.filter((item) => item.id !== id);
       replaceSessions(remaining);
       setRuntime((previous) => {
@@ -674,6 +710,10 @@ export function CopilotProvider({
     if (sessionId) setRunState(sessionId, { status: "ready", run: null });
   }, [setRunState]);
 
+  const clearSessionError = useCallback(() => {
+    setSessionError(null);
+  }, []);
+
   const addAttachments = useCallback(async (files: readonly File[]) => {
     setAttachments((items) => [
       ...items,
@@ -703,25 +743,67 @@ export function CopilotProvider({
     if (!enabled) return;
     let disposed = false;
     setListStatus("loading");
-    void transport
-      .listSessions()
-      .then(async (listed) => {
+    void (async () => {
+      try {
+        const listed = await transport.listSessions();
         if (disposed) return;
         replaceSessions(listed);
-        setListStatus("ready");
-        const validIds = new Set(listed.map((session) => session.id));
         const located = sessionLocation?.get() ?? null;
         const stored = storage?.get(LAST_SESSION_KEY) ?? null;
-        let selected = located && validIds.has(located) ? located : null;
-        if (located && !selected) writeLocation(null);
-        if (!selected && stored && validIds.has(stored)) selected = stored;
-        if (!selected && initialSession === "first") selected = listed[0]?.id ?? null;
-        if (selected) await selectSession(selected, "initial");
-        else if (initialSession === "create") await create();
-      })
-      .catch(() => {
+        let bootstrap;
+        try {
+          bootstrap = await resolveCopilotSessionBootstrap({
+            listed,
+            locatedId: located,
+            storedId: stored,
+            strategy: initialSession,
+            load: (id) => transport.getSession(id),
+          });
+        } catch (cause) {
+          if (disposed) return;
+          ++revisionRef.current;
+          activeIdRef.current = located;
+          subscriptionRef.current?.close();
+          subscriptionRef.current = null;
+          setRuntime((previous) => ({
+            ...previous,
+            activeSessionId: located,
+          }));
+          setActiveError(toSessionError("load-session", cause));
+          setListStatus("ready");
+          return;
+        }
+        if (disposed) return;
+        replaceSessions(bootstrap.sessions);
+        setListStatus("ready");
+        if (bootstrap.clearLocation) writeLocation(null);
+        if (bootstrap.selectedSession) {
+          const session = bootstrap.selectedSession;
+          const revision = ++revisionRef.current;
+          activeIdRef.current = session.id;
+          subscriptionRef.current?.close();
+          subscriptionRef.current = null;
+          setActiveError(null);
+          setRuntime((previous) => ({
+            ...previous,
+            activeSessionId: session.id,
+            sessions: { ...previous.sessions, [session.id]: session },
+            runs: {
+              ...previous.runs,
+              [session.id]: { status: "ready", run: null },
+            },
+          }));
+          storage?.set(LAST_SESSION_KEY, session.id);
+          await restoreRun(session.id, revision);
+        } else if (bootstrap.selectedId) {
+          await selectSession(bootstrap.selectedId, "initial");
+        } else if (bootstrap.create) {
+          await create();
+        }
+      } catch {
         if (!disposed) setListStatus("error");
-      });
+      }
+    })();
     const unsubscribe = sessionLocation?.subscribe((id) => {
       if (locationWriteRef.current === id || id === activeIdRef.current) return;
       if (id) void selectSession(id, "location");
@@ -743,6 +825,7 @@ export function CopilotProvider({
     enabled,
     initialSession,
     replaceSessions,
+    restoreRun,
     selectSession,
     sessionLocation,
     storage,
@@ -760,14 +843,31 @@ export function CopilotProvider({
       sessionLocation,
       sessions,
       listStatus,
+      sessionError,
       activeSession,
       run,
     }),
-    [activeSession, listStatus, run, sessionLocation, sessions, translations, transport],
+    [
+      activeSession,
+      listStatus,
+      run,
+      sessionError,
+      sessionLocation,
+      sessions,
+      translations,
+      transport,
+    ],
   );
   const commandsValue = useMemo(
-    () => ({ create, select: selectSession, rename, remove, refresh }),
-    [create, refresh, remove, rename, selectSession],
+    () => ({
+      create,
+      select: selectSession,
+      rename,
+      remove,
+      refresh,
+      clearError: clearSessionError,
+    }),
+    [clearSessionError, create, refresh, remove, rename, selectSession],
   );
   const runCommandsValue = useMemo(
     () => ({ send, stop, submitApproval, submitAnswer, retry, clearError }),

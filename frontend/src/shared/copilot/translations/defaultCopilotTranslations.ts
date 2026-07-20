@@ -12,6 +12,8 @@ const ENGLISH_TEXT: Record<CopilotTranslationKey, string> = {
   "session.empty": "No conversations yet",
   "approval.approve": "Approve",
   "approval.reject": "Reject",
+  "error.not-found": "The requested conversation could not be found.",
+  "error.forbidden": "You do not have access to this conversation.",
   "error.transport-error": "The AI service is unavailable. Please try again.",
   "error.validation-error": "Check your message and try again.",
   "error.stream-disconnected": "The response was interrupted. Reconnecting may help.",

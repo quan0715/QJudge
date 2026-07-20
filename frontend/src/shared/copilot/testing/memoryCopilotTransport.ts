@@ -54,9 +54,10 @@ function cloneRun(run: CopilotRun): CopilotRun {
 function memoryError(
   operation: CopilotError["operation"],
   message: string,
+  code: CopilotError["code"] = "transport-error",
 ): Error & CopilotError {
   return Object.assign(new Error(message), {
-    code: "transport-error" as const,
+    code,
     operation,
     recoverable: false,
   });
@@ -89,7 +90,9 @@ export class MemoryCopilotTransport implements CopilotTransport {
 
   async getSession(id: string): Promise<CopilotSession> {
     const session = this.sessions.get(id);
-    if (!session) throw memoryError("load-session", `Unknown session: ${id}`);
+    if (!session) {
+      throw memoryError("load-session", `Unknown session: ${id}`, "not-found");
+    }
     return cloneSession(session);
   }
 
@@ -115,7 +118,9 @@ export class MemoryCopilotTransport implements CopilotTransport {
     title: string,
   ): Promise<CopilotSessionSummary> {
     const session = this.sessions.get(id);
-    if (!session) throw memoryError("update-session", `Unknown session: ${id}`);
+    if (!session) {
+      throw memoryError("update-session", `Unknown session: ${id}`, "not-found");
+    }
     const updated = { ...session, title, updatedAt: this.now() };
     this.sessions.set(id, updated);
     return toSummary(updated);
@@ -123,7 +128,7 @@ export class MemoryCopilotTransport implements CopilotTransport {
 
   async deleteSession(id: string): Promise<void> {
     if (!this.sessions.delete(id)) {
-      throw memoryError("update-session", `Unknown session: ${id}`);
+      throw memoryError("update-session", `Unknown session: ${id}`, "not-found");
     }
     for (const [runId, run] of this.runs) {
       if (run.sessionId !== id) continue;

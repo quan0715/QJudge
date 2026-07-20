@@ -11,6 +11,8 @@ const KEYS: CopilotTranslationKey[] = [
   "session.empty",
   "approval.approve",
   "approval.reject",
+  "error.not-found",
+  "error.forbidden",
   "error.transport-error",
   "error.validation-error",
   "error.stream-disconnected",
@@ -24,6 +26,9 @@ const KEYS: CopilotTranslationKey[] = [
 describe("DefaultCopilotTranslations", () => {
   it("provides non-empty English text for every public key", () => {
     const translations = new DefaultCopilotTranslations();
-    for (const key of KEYS) expect(translations.t(key)).not.toBe("");
+    for (const key of KEYS) {
+      expect(translations.t(key)).toEqual(expect.any(String));
+      expect(translations.t(key)).not.toBe("");
+    }
   });
 });

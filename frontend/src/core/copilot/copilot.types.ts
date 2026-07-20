@@ -173,6 +173,8 @@ export interface CopilotError {
 }
 
 export type CopilotErrorCode =
+  | "not-found"
+  | "forbidden"
   | "transport-error"
   | "validation-error"
   | "stream-disconnected"
