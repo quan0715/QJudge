@@ -217,6 +217,34 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
 runCopilotTransportContract(createQJudgeContractSubject);
 
 describe("chatbotCopilotMapper", () => {
+  it("preserves a persisted approval when mapping an awaiting run", () => {
+    expect(
+      mapChatRunToCopilot({
+        ...legacyRun,
+        status: "awaiting_approval",
+        approvalPayload: {
+          action_requests: [
+            { name: "deploy", args: { environment: "staging" } },
+          ],
+          review_configs: [
+            {
+              action_name: "deploy",
+              allowed_decisions: ["approve", "reject", "unsupported"],
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      status: "awaiting-approval",
+      approvalRequest: {
+        actions: [
+          { name: "deploy", arguments: { environment: "staging" } },
+        ],
+        allowedDecisions: ["approve", "reject"],
+      },
+    });
+  });
+
   it("preserves a persisted question when mapping an awaiting run", () => {
     expect(
       mapChatRunToCopilot({

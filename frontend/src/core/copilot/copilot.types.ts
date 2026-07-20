@@ -106,6 +106,7 @@ export interface CopilotRun {
   status: CopilotRunStatus;
   modelId?: string;
   lastSequence?: number;
+  approvalRequest?: CopilotApprovalRequest;
   questionRequest?: CopilotQuestionRequest;
   metadata?: Record<string, unknown>;
 }

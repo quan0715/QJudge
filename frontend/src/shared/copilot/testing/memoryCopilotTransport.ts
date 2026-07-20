@@ -84,11 +84,16 @@ export class MemoryCopilotTransport implements CopilotTransport {
     return new Date(Date.UTC(2020, 0, 1) + this.clockSequence++);
   }
 
-  async listSessions(): Promise<CopilotSessionSummary[]> {
+  async listSessions(
+    _options?: CopilotRequestOptions,
+  ): Promise<CopilotSessionSummary[]> {
     return [...this.sessions.values()].map(toSummary);
   }
 
-  async getSession(id: string): Promise<CopilotSession> {
+  async getSession(
+    id: string,
+    _options?: CopilotRequestOptions,
+  ): Promise<CopilotSession> {
     const session = this.sessions.get(id);
     if (!session) {
       throw memoryError("load-session", `Unknown session: ${id}`, "not-found");

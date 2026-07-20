@@ -108,6 +108,13 @@ function toSessionError(
 
 function toRunState(run: CopilotRun): CopilotRunState {
   if (run.status === "queued") return { status: "submitted", run };
+  if (run.status === "awaiting-approval" && run.approvalRequest) {
+    return {
+      status: "awaiting-approval",
+      run,
+      request: run.approvalRequest,
+    };
+  }
   if (run.status === "awaiting-answer" && run.questionRequest) {
     return {
       status: "awaiting-answer",
@@ -159,6 +166,8 @@ export function CopilotProvider({
   const modelSelectionRevisionRef = useRef(0);
   const modelRequestRevisionRef = useRef(0);
   const modelRequestAbortRef = useRef<AbortController | null>(null);
+  const sessionListRequestRevisionRef = useRef(0);
+  const sessionListRequestAbortRef = useRef<AbortController | null>(null);
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
@@ -188,6 +197,12 @@ export function CopilotProvider({
     modelRequestAbortRef.current?.abort();
     modelRequestAbortRef.current = null;
     ++modelRequestRevisionRef.current;
+  }, []);
+
+  const invalidateSessionListRequest = useCallback(() => {
+    sessionListRequestAbortRef.current?.abort();
+    sessionListRequestAbortRef.current = null;
+    ++sessionListRequestRevisionRef.current;
   }, []);
 
   const refreshModels = useCallback(async () => {
@@ -399,7 +414,9 @@ export function CopilotProvider({
       const startedRevision = revisionRef.current;
       try {
         const session = await transport.createSession(input);
+        invalidateSessionListRequest();
         setSessionError(null);
+        setListStatus("ready");
         if (startedRevision !== revisionRef.current) return session.id;
         ++revisionRef.current;
         subscriptionRef.current?.close();
@@ -427,26 +444,55 @@ export function CopilotProvider({
         return null;
       }
     },
-    [replaceSessions, storage, transport, writeLocation],
+    [
+      invalidateSessionListRequest,
+      replaceSessions,
+      storage,
+      transport,
+      writeLocation,
+    ],
   );
 
   const refresh = useCallback(async () => {
+    invalidateSessionListRequest();
+    const requestRevision = sessionListRequestRevisionRef.current;
+    const controller = new AbortController();
+    sessionListRequestAbortRef.current = controller;
     setListStatus("loading");
     try {
-      replaceSessions(await transport.listSessions());
+      const listed = await transport.listSessions({ signal: controller.signal });
+      if (
+        controller.signal.aborted ||
+        requestRevision !== sessionListRequestRevisionRef.current
+      ) {
+        return;
+      }
+      replaceSessions(listed);
       setSessionError(null);
       setListStatus("ready");
     } catch (cause) {
+      if (
+        controller.signal.aborted ||
+        requestRevision !== sessionListRequestRevisionRef.current
+      ) {
+        return;
+      }
       setSessionError(toSessionError("load-sessions", cause));
       setListStatus("error");
+    } finally {
+      if (sessionListRequestAbortRef.current === controller) {
+        sessionListRequestAbortRef.current = null;
+      }
     }
-  }, [replaceSessions, transport]);
+  }, [invalidateSessionListRequest, replaceSessions, transport]);
 
   const rename = useCallback(
     async (id: string, title: string) => {
       try {
         const summary = await transport.renameSession(id, title);
+        invalidateSessionListRequest();
         setSessionError(null);
+        setListStatus("ready");
         replaceSessions(
           sessionsRef.current.map((item) => (item.id === id ? summary : item)),
         );
@@ -466,7 +512,7 @@ export function CopilotProvider({
         setSessionError(toSessionError("update-session", cause));
       }
     },
-    [replaceSessions, transport],
+    [invalidateSessionListRequest, replaceSessions, transport],
   );
 
   const remove = useCallback(
@@ -477,7 +523,9 @@ export function CopilotProvider({
         setSessionError(toSessionError("update-session", cause));
         return;
       }
+      invalidateSessionListRequest();
       setSessionError(null);
+      setListStatus("ready");
       const remaining = sessionsRef.current.filter((item) => item.id !== id);
       replaceSessions(remaining);
       setRuntime((previous) => {
@@ -497,7 +545,14 @@ export function CopilotProvider({
         setRuntime((previous) => ({ ...previous, activeSessionId: null }));
       }
     },
-    [replaceSessions, selectSession, storage, transport, writeLocation],
+    [
+      invalidateSessionListRequest,
+      replaceSessions,
+      selectSession,
+      storage,
+      transport,
+      writeLocation,
+    ],
   );
 
   const send = useCallback(
@@ -742,11 +797,32 @@ export function CopilotProvider({
   useEffect(() => {
     if (!enabled) return;
     let disposed = false;
+    let listedLoaded = false;
+    const bootstrapRevision = ++revisionRef.current;
+    invalidateSessionListRequest();
+    const listRequestRevision = sessionListRequestRevisionRef.current;
+    const controller = new AbortController();
+    sessionListRequestAbortRef.current = controller;
+    const isBootstrapCurrent = () =>
+      !disposed &&
+      !controller.signal.aborted &&
+      bootstrapRevision === revisionRef.current &&
+      listRequestRevision === sessionListRequestRevisionRef.current;
+    const invalidateBootstrapRequest = () => {
+      controller.abort();
+      if (sessionListRequestAbortRef.current === controller) {
+        sessionListRequestAbortRef.current = null;
+        ++sessionListRequestRevisionRef.current;
+      }
+    };
     setListStatus("loading");
     void (async () => {
       try {
-        const listed = await transport.listSessions();
-        if (disposed) return;
+        const listed = await transport.listSessions({
+          signal: controller.signal,
+        });
+        if (!isBootstrapCurrent()) return;
+        listedLoaded = true;
         replaceSessions(listed);
         const located = sessionLocation?.get() ?? null;
         const stored = storage?.get(LAST_SESSION_KEY) ?? null;
@@ -757,10 +833,10 @@ export function CopilotProvider({
             locatedId: located,
             storedId: stored,
             strategy: initialSession,
-            load: (id) => transport.getSession(id),
+            load: (id) => transport.getSession(id, { signal: controller.signal }),
           });
         } catch (cause) {
-          if (disposed) return;
+          if (!isBootstrapCurrent()) return;
           ++revisionRef.current;
           activeIdRef.current = located;
           subscriptionRef.current?.close();
@@ -773,7 +849,7 @@ export function CopilotProvider({
           setListStatus("ready");
           return;
         }
-        if (disposed) return;
+        if (!isBootstrapCurrent()) return;
         replaceSessions(bootstrap.sessions);
         setListStatus("ready");
         if (bootstrap.clearLocation) writeLocation(null);
@@ -801,11 +877,18 @@ export function CopilotProvider({
           await create();
         }
       } catch {
-        if (!disposed) setListStatus("error");
+        if (isBootstrapCurrent()) setListStatus("error");
+      } finally {
+        if (sessionListRequestAbortRef.current === controller) {
+          sessionListRequestAbortRef.current = null;
+        }
       }
     })();
     const unsubscribe = sessionLocation?.subscribe((id) => {
       if (locationWriteRef.current === id || id === activeIdRef.current) return;
+      invalidateBootstrapRequest();
+      if (listedLoaded) setListStatus("ready");
+      else void refresh();
       if (id) void selectSession(id, "location");
       else {
         ++revisionRef.current;
@@ -815,6 +898,8 @@ export function CopilotProvider({
     });
     return () => {
       disposed = true;
+      controller.abort();
+      invalidateSessionListRequest();
       ++revisionRef.current;
       unsubscribe?.();
       subscriptionRef.current?.close();
@@ -824,7 +909,9 @@ export function CopilotProvider({
     create,
     enabled,
     initialSession,
+    invalidateSessionListRequest,
     replaceSessions,
+    refresh,
     restoreRun,
     selectSession,
     sessionLocation,

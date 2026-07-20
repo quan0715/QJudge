@@ -7,6 +7,7 @@ import type {
 } from "@/core/types/chatbot.types";
 import type {
   CopilotAttachmentPart,
+  CopilotApprovalRequest,
   CopilotError,
   CopilotMessage,
   CopilotMessagePart,
@@ -117,12 +118,31 @@ export function mapChatSessionToCopilotSummary(
 
 export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
   const question = run.questionPayload?.question;
+  const approvalActions = run.approvalPayload?.action_requests
+    ?.filter((action) => typeof action.name === "string" && action.name.length > 0)
+    .map((action) => ({ name: action.name, arguments: action.args }));
+  const allowedApprovalDecisions = run.approvalPayload?.review_configs
+    ?.flatMap((config) => config.allowed_decisions)
+    .filter(
+      (decision): decision is "approve" | "reject" =>
+        decision === "approve" || decision === "reject",
+    );
+  const approvalRequest: CopilotApprovalRequest | undefined =
+    approvalActions?.length
+      ? {
+          actions: approvalActions,
+          allowedDecisions: allowedApprovalDecisions?.length
+            ? [...new Set(allowedApprovalDecisions)]
+            : ["approve", "reject"],
+        }
+      : undefined;
   return {
     id: run.id,
     sessionId: run.sessionId,
     status: mapChatRunStatusToCopilot(run.status),
     modelId: run.modelId || undefined,
     lastSequence: run.lastEventSeq,
+    approvalRequest,
     questionRequest:
       typeof question === "string" && question.length > 0
         ? {

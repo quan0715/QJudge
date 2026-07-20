@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { CopilotRun } from "@/core/copilot";
+import type {
+  CopilotRun,
+  CopilotSession,
+  CopilotSessionSummary,
+} from "@/core/copilot";
 import {
   MemoryCopilotSessionLocation,
   MemoryCopilotStorage,
@@ -10,6 +14,16 @@ import {
 import { useCopilotSessions } from "../hooks/useCopilotSessions";
 import { useCopilotStateContext } from "./copilotContexts";
 import { CopilotProvider } from "./CopilotProvider";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((onResolve, onReject) => {
+    resolve = onResolve;
+    reject = onReject;
+  });
+  return { promise, resolve, reject };
+}
 
 function createWrapper(
   props: Omit<React.ComponentProps<typeof CopilotProvider>, "children">,
@@ -151,6 +165,45 @@ describe("CopilotProvider session lifecycle", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("ignores stale bootstrap completion after an external location change", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const location = new MemoryCopilotSessionLocation(first.id);
+    const firstLoad = deferred<CopilotSession>();
+    const originalGet = transport.getSession.bind(transport);
+    let bootstrapSignal: AbortSignal | undefined;
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockImplementation((id, options) => {
+        if (id !== first.id) return originalGet(id);
+        bootstrapSignal = options?.signal;
+        return firstLoad.promise;
+      });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, sessionLocation: location }),
+    });
+    await waitFor(() =>
+      expect(getSession).toHaveBeenCalledWith(
+        first.id,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+
+    act(() => location.set(second.id));
+    await waitFor(() => expect(result.current.activeSession.id).toBe(second.id));
+    expect(bootstrapSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      firstLoad.resolve(first);
+      await firstLoad.promise;
+    });
+
+    expect(location.get()).toBe(second.id);
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.listStatus).toBe("ready");
+  });
+
   it("retains a recoverably failing location as the active load error", async () => {
     const transport = new MemoryCopilotTransport();
     const location = new MemoryCopilotSessionLocation("session-offline");
@@ -236,6 +289,83 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("does not let a stale refresh overwrite a newly created session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    const staleList = deferred<CopilotSessionSummary[]>();
+    let staleSignal: AbortSignal | undefined;
+    vi.spyOn(transport, "listSessions").mockImplementationOnce((options) => {
+      staleSignal = options?.signal;
+      return staleList.promise;
+    });
+
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await waitFor(() => expect(result.current.listStatus).toBe("loading"));
+    let createdId: string | null = null;
+    await act(async () => {
+      createdId = await result.current.create({ title: "Created" });
+    });
+    expect(staleSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      staleList.resolve([existing]);
+      await refreshPromise;
+    });
+
+    expect(result.current.sessions.map((session) => session.id)).toContain(
+      createdId,
+    );
+    expect(result.current.listStatus).toBe("ready");
+    expect(result.current.error).toBeNull();
+  });
+
+  it("does not let an older refresh failure overwrite a newer success", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(existing.id));
+    const older = deferred<CopilotSessionSummary[]>();
+    const newer = deferred<CopilotSessionSummary[]>();
+    let olderSignal: AbortSignal | undefined;
+    vi.spyOn(transport, "listSessions")
+      .mockImplementationOnce((options) => {
+        olderSignal = options?.signal;
+        return older.promise;
+      })
+      .mockReturnValueOnce(newer.promise);
+
+    let olderRefresh!: Promise<void>;
+    let newerRefresh!: Promise<void>;
+    act(() => {
+      olderRefresh = result.current.refresh();
+      newerRefresh = result.current.refresh();
+    });
+    expect(olderSignal?.aborted).toBe(true);
+    await act(async () => {
+      newer.resolve([existing]);
+      await newerRefresh;
+    });
+    await act(async () => {
+      older.reject(new Error("older offline"));
+      await olderRefresh;
+    });
+
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      existing.id,
+    ]);
+    expect(result.current.listStatus).toBe("ready");
+    expect(result.current.error).toBeNull();
+  });
+
   it("restores an active run from its last sequence", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();
@@ -294,6 +424,47 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.state.run).toMatchObject({
       status: "awaiting-answer",
       request: questionRequest,
+    });
+  });
+
+  it("restores a persisted awaiting-approval request after reload", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const started = await transport.startRun({
+      sessionId: session.id,
+      text: "Deploy it",
+    });
+    const approvalRequest = {
+      actions: [{ name: "deploy", arguments: { environment: "staging" } }],
+      allowedDecisions: ["approve", "reject"] as const,
+    };
+    const awaitingRun = {
+      ...started,
+      status: "awaiting-approval" as const,
+      lastSequence: 26,
+      approvalRequest: {
+        ...approvalRequest,
+        allowedDecisions: [...approvalRequest.allowedDecisions],
+      },
+    } satisfies CopilotRun;
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue(awaitingRun);
+    const location = new MemoryCopilotSessionLocation(session.id);
+    const { result } = renderHook(
+      () => ({ sessions: useCopilotSessions(), state: useCopilotStateContext() }),
+      {
+        wrapper: createWrapper({ transport, sessionLocation: location }),
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.status).toBe("ready"),
+    );
+    await waitFor(() =>
+      expect(result.current.state.run.status).toBe("awaiting-approval"),
+    );
+    expect(result.current.state.run).toMatchObject({
+      status: "awaiting-approval",
+      request: approvalRequest,
     });
   });
 
