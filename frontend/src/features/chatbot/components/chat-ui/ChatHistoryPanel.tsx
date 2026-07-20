@@ -2,12 +2,12 @@ import { useState, useMemo, useCallback } from "react";
 import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { Chat as ChatIcon, Add } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ChatSession } from "@/core/types/chatbot.types";
+import type { CopilotSessionSummary } from "@copilot";
 import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatHistoryPanel.module.scss";
 
 interface ChatHistoryPanelProps {
-  sessions: ChatSession[];
+  sessions: readonly CopilotSessionSummary[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void | Promise<void>;
@@ -20,16 +20,16 @@ interface ChatHistoryPanelProps {
 
 interface HistoryGroup {
   key: "today" | "yesterday" | "lastWeek" | "older";
-  sessions: ChatSession[];
+  sessions: CopilotSessionSummary[];
 }
 
-function groupSessions(sessions: ChatSession[]): HistoryGroup[] {
+function groupSessions(sessions: readonly CopilotSessionSummary[]): HistoryGroup[] {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const yesterdayStart = todayStart - 86_400_000;
   const weekStart = todayStart - 7 * 86_400_000;
 
-  const groups: Record<string, ChatSession[]> = {
+  const groups: Record<string, CopilotSessionSummary[]> = {
     today: [], yesterday: [], lastWeek: [], older: [],
   };
 
@@ -69,7 +69,7 @@ export function ChatHistoryPanel({
     older: t("ui.groupOlder"),
   }), [t]);
 
-  const startRename = useCallback((session: ChatSession) => {
+  const startRename = useCallback((session: CopilotSessionSummary) => {
     setRenamingId(session.id);
     setRenameValue(session.title || "");
   }, []);

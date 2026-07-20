@@ -8,7 +8,6 @@ import { useOptionalArtifactPanel } from "@/features/chatbot/contexts/ArtifactPa
 import { ArtifactInlineCard } from "../artifact/ArtifactInlineCard";
 import {
   TodoList,
-  pickLatestTodos,
   summarizeTodos,
   type TodoListItem,
 } from "@/shared/ai/TodoList";
@@ -16,10 +15,8 @@ import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilot
 
 import styles from "./SessionBadges.module.scss";
 
-type TransitionalTodoMessage = { todoItems?: TodoListItem[] };
-
 interface SessionBadgesProps {
-  messages: readonly CopilotMessage[] | readonly TransitionalTodoMessage[];
+  messages: readonly CopilotMessage[];
   /** When true, render without outer wrapper padding (for inline use inside
    *  the composer toolbar). */
   inline?: boolean;
@@ -27,36 +24,10 @@ interface SessionBadgesProps {
 
 type OpenPanel = "todos" | "artifacts" | null;
 
-function hasCopilotParts(
-  messages: readonly CopilotMessage[] | readonly TransitionalTodoMessage[],
-): messages is readonly CopilotMessage[] {
-  return messages.every(
-    (message) => "parts" in message && Array.isArray(message.parts),
-  );
-}
-
 function selectBadgeTodoItems(
-  messages: readonly CopilotMessage[] | readonly TransitionalTodoMessage[],
+  messages: readonly CopilotMessage[],
 ): readonly TodoListItem[] {
-  return hasCopilotParts(messages)
-    ? selectLatestTodoItems(messages)
-    : pickLatestTodos(messages);
-}
-
-/** Aggregate whether the current session has any todos / artifacts to show.
- *  Exposed so the composer can decide whether to force-expand. */
-export function useSessionBadgeSummary(
-  messages: readonly CopilotMessage[] | readonly TransitionalTodoMessage[],
-): {
-  hasTodos: boolean;
-  hasArtifacts: boolean;
-  hasAny: boolean;
-} {
-  const artifactCtx = useOptionalArtifactPanel();
-  const todos = useMemo(() => selectBadgeTodoItems(messages), [messages]);
-  const hasTodos = todos.length > 0;
-  const hasArtifacts = (artifactCtx?.artifacts.length ?? 0) > 0;
-  return { hasTodos, hasArtifacts, hasAny: hasTodos || hasArtifacts };
+  return selectLatestTodoItems(messages);
 }
 
 export function SessionBadges({ messages, inline = false }: SessionBadgesProps) {

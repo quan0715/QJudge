@@ -3,7 +3,7 @@ import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
-import type { ChatSession } from "@/core/types/chatbot.types";
+import type { CopilotSessionSummary } from "@copilot";
 import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatTopBar.module.scss";
 
@@ -15,7 +15,7 @@ interface ChatTopBarFullProps {
    */
   hideSidebarControl?: boolean;
   title?: string;
-  sessions: ChatSession[];
+  sessions: readonly CopilotSessionSummary[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
@@ -118,7 +118,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
   } = props as ChatTopBarFullProps;
   const displayTitle = title || t("ui.newChat");
 
-  const startRename = (session: ChatSession) => {
+  const startRename = (session: CopilotSessionSummary) => {
     setRenamingId(session.id);
     setRenameValue(session.title || "");
     setDropdownOpen(false);
