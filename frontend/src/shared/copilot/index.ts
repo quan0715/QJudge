@@ -28,4 +28,12 @@ export * from "./ui/CopilotPanel";
 export * from "./ui/CopilotQuestionCard";
 export * from "./ui/CopilotScrollToLatestButton";
 export * from "./ui/CopilotWorkspaceShell";
-export type * from "./ui/copilotUI.types";
+export type {
+  CopilotEmptyStateProps,
+  CopilotErrorStateProps,
+  CopilotHistorySlotProps,
+  CopilotMessageListSlotProps,
+  CopilotSuggestion,
+  CopilotSuggestionsProps,
+  CopilotUISlots,
+} from "./ui/copilotUI.types";
