@@ -1,5 +1,12 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
-import { Add, ArrowUp, Close, Document, InProgress } from "@carbon/icons-react";
+import {
+  Add,
+  ArrowUp,
+  Close,
+  Document,
+  InProgress,
+  Warning,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   CopilotMessage,
@@ -66,11 +73,19 @@ export function ComposerBar({
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const hasUploadingAttachment = attachments.some(
+    (attachment) => attachment.status === "uploading",
+  );
 
   const handleSubmit = useCallback(async () => {
-    if ((!value.trim() && attachments.length === 0) || disabled || isStreaming) return;
+    if (
+      (!value.trim() && attachments.length === 0) ||
+      disabled ||
+      isStreaming ||
+      hasUploadingAttachment
+    ) return;
     await onSend();
-  }, [attachments.length, disabled, isStreaming, onSend, value]);
+  }, [attachments.length, disabled, hasUploadingAttachment, isStreaming, onSend, value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -137,9 +152,10 @@ export function ComposerBar({
     canSend &&
     (value.trim().length > 0 || attachments.length > 0) &&
     !disabled &&
-    !isStreaming;
+    !isStreaming &&
+    !hasUploadingAttachment;
   const hasStatusBlock = Boolean(sessionNotice);
-  const canUpload = !disabled && !isStreaming;
+  const canUpload = !disabled && !isStreaming && !hasUploadingAttachment;
 
   const handlePickFile = useCallback(() => {
     if (!canUpload) return;
@@ -203,10 +219,26 @@ export function ComposerBar({
               <span className={styles.pendingFileTag} key={attachment.id}>
                 <Document size={14} className={styles.pendingFileIcon} />
                 <span className={styles.pendingFileName}>{attachment.file.name}</span>
+                {attachment.status === "uploading" && (
+                  <span className={styles.pendingFileStatus} role="status">
+                    <InProgress size={14} className={styles.spinningIcon} aria-hidden />
+                    <span>{t("ui.attachmentUploading", "上傳中")}</span>
+                  </span>
+                )}
+                {attachment.status === "error" && (
+                  <span className={styles.pendingFileError} role="alert">
+                    <Warning size={14} aria-hidden />
+                    <span>
+                      {attachment.error?.message ??
+                        t("ui.attachmentUploadError", "附件上傳失敗")}
+                    </span>
+                  </span>
+                )}
                 <button
                   type="button"
                   className={styles.pendingFileRemove}
                   onClick={() => onRemoveAttachment(attachment.id)}
+                  disabled={disabled || isStreaming || attachment.status === "uploading"}
                   aria-label={t("ui.removeAttachment", "移除附件")}
                   title={t("ui.removeAttachment", "移除附件")}
                 >

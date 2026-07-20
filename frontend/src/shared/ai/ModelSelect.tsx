@@ -4,8 +4,8 @@ import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { useTranslation } from "react-i18next";
 import styles from "./ModelSelect.module.scss";
 
-function normalizeModelLabel(label: string | undefined): string {
-  return label?.trim() || "gpt-5-nano";
+function normalizeModelLabel(label: string | undefined, fallback: string): string {
+  return label?.trim() || fallback;
 }
 
 export interface ModelSelectClasses {
@@ -58,7 +58,10 @@ export function ModelSelect({
     [models, selectedModelId],
   );
 
-  const isMenuOpen = isOpen && !disabled;
+  const noModelsAvailable = models.length === 0;
+  const triggerDisabled = disabled || noModelsAvailable;
+  const unavailableLabel = t("ui.modelUnavailable", "無可用模型");
+  const isMenuOpen = isOpen && !triggerDisabled;
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -80,14 +83,14 @@ export function ModelSelect({
         type="button"
         className={cx(styles.modelSelectButton, classes?.button)}
         onClick={() => setIsOpen((open) => !open)}
-        disabled={disabled}
+        disabled={triggerDisabled}
         aria-label={t("ui.modelLabel", "選擇模型")}
         aria-haspopup="listbox"
         aria-expanded={isMenuOpen}
       >
         <AiLaunch size={14} className={cx(styles.modelIcon, classes?.icon)} aria-hidden />
         <span className={cx(styles.modelText, classes?.text)}>
-          {normalizeModelLabel(selectedModel?.label)}
+          {normalizeModelLabel(selectedModel?.label, unavailableLabel)}
         </span>
       </button>
       <ChevronDown size={14} className={cx(styles.modelChevron, classes?.chevron)} aria-hidden />
@@ -115,7 +118,7 @@ export function ModelSelect({
                   setIsOpen(false);
                 }}
               >
-                <span>{normalizeModelLabel(model.label)}</span>
+                <span>{normalizeModelLabel(model.label, model.id)}</span>
                 {isActive && <Checkmark size={14} />}
               </button>
             );

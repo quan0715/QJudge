@@ -190,6 +190,7 @@ export function CopilotProvider({
     ((sessionId: string, revision: number) => Promise<void>) | null
   >(null);
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
+  const composerSendInFlightRef = useRef<Promise<CopilotSendResult> | null>(null);
   const locationWriteRef = useRef<string | null | undefined>(undefined);
 
   const commitModelSelection = useCallback(
@@ -1132,17 +1133,31 @@ export function CopilotProvider({
     activeSession.status === "ready" &&
     (run.status === "ready" || run.status === "error") &&
     (draft.trim().length > 0 || attachments.length > 0);
-  const sendComposer = useCallback(async () => {
-    const result = await send({
+  const sendComposer = useCallback((): Promise<CopilotSendResult> => {
+    if (composerSendInFlightRef.current) {
+      return composerSendInFlightRef.current;
+    }
+
+    const input = {
       text: draft,
       attachments: attachments.map((item) => item.file),
       modelId: selectedModelIdRef.current ?? undefined,
+    };
+    const inFlight = send(input).then((result) => {
+      if (result.accepted) {
+        setDraft("");
+        setAttachments([]);
+      }
+      return result;
     });
-    if (result.accepted) {
-      setDraft("");
-      setAttachments([]);
-    }
-    return result;
+    composerSendInFlightRef.current = inFlight;
+    const clearInFlight = () => {
+      if (composerSendInFlightRef.current === inFlight) {
+        composerSendInFlightRef.current = null;
+      }
+    };
+    void inFlight.then(clearInFlight, clearInFlight);
+    return inFlight;
   }, [attachments, draft, send]);
   const composerValue = useMemo(
     () => ({

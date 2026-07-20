@@ -25,20 +25,10 @@ export function QJudgeCopilotHeader(_props: CopilotHeaderProps) {
   const { mode, onClose } = useContext(QJudgeChatPresentationContext);
   const title = sessions.activeSession.data?.title;
 
-  if (mode === "sidebar") {
-    return (
-      <ChatTopBar
-        mode="sidebar"
-        title={title}
-        onNewChat={() => void sessions.create()}
-        onClose={onClose}
-      />
-    );
-  }
-
   return (
     <ChatTopBar
       mode="full"
+      hideSidebarControl={mode === "sidebar"}
       title={title}
       sessions={sessions.sessions}
       currentSessionId={sessions.activeSession.id}
@@ -79,7 +69,11 @@ export function QJudgeCopilotComposer() {
   const sessions = useCopilotSessions();
   const isStreaming =
     run.state.status === "submitted" || run.state.status === "streaming";
-  const disabled = sessions.activeSession.status !== "ready";
+  const isAwaitingHumanInput =
+    run.state.status === "awaiting-approval" ||
+    run.state.status === "awaiting-answer";
+  const disabled =
+    sessions.activeSession.status !== "ready" || isAwaitingHumanInput;
 
   return (
     <ComposerBar

@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type {
+  CopilotAttachmentPart,
   CopilotRun,
   CopilotSession,
   CopilotSessionSummary,
@@ -12,6 +13,7 @@ import {
   MemoryCopilotTransport,
 } from "../testing";
 import { useCopilotSessions } from "../hooks/useCopilotSessions";
+import { useCopilotComposer } from "../hooks/useCopilotComposer";
 import { useCopilotStateContext } from "./copilotContexts";
 import { CopilotProvider } from "./CopilotProvider";
 
@@ -659,5 +661,88 @@ describe("CopilotProvider session lifecycle", () => {
     unmount();
 
     expect(subscription.closed).toBe(true);
+  });
+});
+
+describe("CopilotProvider composer lifecycle", () => {
+  it("shares one in-flight send across rapid duplicate submissions", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const uploadResult = deferred<CopilotAttachmentPart>();
+    const uploadAttachment = vi
+      .spyOn(transport, "uploadAttachment")
+      .mockReturnValue(uploadResult.promise);
+    const startRun = vi.spyOn(transport, "startRun");
+    const { result } = renderHook(() => useCopilotComposer(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: new MemoryCopilotSessionLocation(session.id),
+      }),
+    });
+    await waitFor(() => expect(result.current.canSend).toBe(false));
+    const file = new File(["data"], "grade.csv", { type: "text/csv" });
+    await act(() => result.current.addAttachments([file]));
+    await waitFor(() => expect(result.current.canSend).toBe(true));
+
+    let first!: ReturnType<typeof result.current.send>;
+    let second!: ReturnType<typeof result.current.send>;
+    act(() => {
+      first = result.current.send();
+      second = result.current.send();
+    });
+    expect(uploadAttachment).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      uploadResult.resolve({
+        type: "attachment",
+        id: "attachment-1",
+        name: file.name,
+      });
+      const results = await Promise.all([first, second]);
+      expect(results[0]).toEqual(results[1]);
+    });
+
+    expect(startRun).toHaveBeenCalledTimes(1);
+    expect(result.current.attachments).toEqual([]);
+    expect(result.current.draft).toBe("");
+  });
+
+  it("retries an attachment after an upload error", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const uploadAttachment = vi
+      .spyOn(transport, "uploadAttachment")
+      .mockRejectedValueOnce(new Error("Upload offline"))
+      .mockResolvedValueOnce({
+        type: "attachment",
+        id: "attachment-1",
+        name: "grade.csv",
+      });
+    const startRun = vi.spyOn(transport, "startRun");
+    const { result } = renderHook(() => useCopilotComposer(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: new MemoryCopilotSessionLocation(session.id),
+      }),
+    });
+    const file = new File(["data"], "grade.csv", { type: "text/csv" });
+    await act(() => result.current.addAttachments([file]));
+    await waitFor(() => expect(result.current.canSend).toBe(true));
+
+    let firstResult;
+    await act(async () => {
+      firstResult = await result.current.send();
+    });
+    expect(firstResult).toMatchObject({ accepted: false });
+    expect(result.current.attachments[0]).toMatchObject({ status: "error" });
+
+    let retryResult;
+    await act(async () => {
+      retryResult = await result.current.send();
+    });
+    expect(retryResult).toMatchObject({ accepted: true });
+    expect(uploadAttachment).toHaveBeenCalledTimes(2);
+    expect(startRun).toHaveBeenCalledTimes(1);
+    expect(result.current.attachments).toEqual([]);
   });
 });

@@ -1,10 +1,27 @@
+import { useState, type ComponentProps } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { ComposerBar } from "../ComposerBar";
 
+function StatefulComposerBar(props: ComponentProps<typeof ComposerBar>) {
+  const [value, setValue] = useState(props.value);
+
+  return (
+    <ComposerBar
+      {...props}
+      value={value}
+      onValueChange={(nextValue) => {
+        setValue(nextValue);
+        props.onValueChange(nextValue);
+      }}
+    />
+  );
+}
+
 const meta: Meta<typeof ComposerBar> = {
   title: "features/chatbot/chat-ui/ComposerBar",
   component: ComposerBar,
+  render: (args) => <StatefulComposerBar {...args} />,
   parameters: {
     docs: {
       description: {

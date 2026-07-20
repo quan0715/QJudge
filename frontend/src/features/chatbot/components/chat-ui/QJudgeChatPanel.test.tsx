@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
@@ -44,12 +44,13 @@ const renderPanel = (
   sessionId: string,
   panel: ReactNode,
   modelCatalog = new MemoryCopilotModelCatalog(),
+  location = new MemoryCopilotSessionLocation(sessionId),
 ) =>
   render(
     <QJudgeCopilotBoundary
       enabled
       transport={transport}
-      location={new MemoryCopilotSessionLocation(sessionId)}
+      location={location}
       storage={new MemoryCopilotStorage()}
       translations={new DefaultCopilotTranslations()}
       modelCatalog={modelCatalog}
@@ -92,6 +93,37 @@ describe("QJudgeChatPanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("selects and manages existing sessions from the sidebar header", async () => {
+    const transport = new MemoryCopilotTransport();
+    const earlier = await transport.createSession({ title: "Earlier chat" });
+    const current = await transport.createSession({ title: "Current chat" });
+    const location = new MemoryCopilotSessionLocation(current.id);
+    renderPanel(
+      transport,
+      current.id,
+      <QJudgeChatPanel mode="sidebar" />,
+      new MemoryCopilotModelCatalog(),
+      location,
+    );
+
+    const sessionMenu = await screen.findByRole("button", {
+      name: "Current chat",
+    });
+    fireEvent.click(sessionMenu);
+    fireEvent.click(screen.getByRole("option", { name: /Earlier chat/ }));
+
+    await waitFor(() => expect(location.get()).toBe(earlier.id));
+    fireEvent.click(
+      screen.getByRole("button", { name: /moreOptions|更多|選項/i }),
+    );
+    expect(
+      await screen.findByText(/ui\.rename|rename|重新命名/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/ui\.delete|delete|刪除/i),
+    ).toBeInTheDocument();
+  });
+
   it("controls model selection and pending attachments through Copilot hooks", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();
@@ -125,6 +157,51 @@ describe("QJudgeChatPanel", () => {
       screen.getByRole("button", { name: /removeAttachment|移除附件/i }),
     );
     expect(screen.queryByText("grade.csv")).not.toBeInTheDocument();
+  });
+
+  it("locks general composer controls while an approval is pending", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    renderPanel(
+      transport,
+      session.id,
+      <QJudgeChatPanel mode="sidebar" />,
+      new MemoryCopilotModelCatalog([
+        { id: "fast", displayName: "Fast model", isDefault: true },
+      ]),
+    );
+
+    const input = await screen.findByRole("textbox", { name: /message|輸入/i });
+    fireEvent.change(input, { target: { value: "Change it" } });
+    fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
+    let run = null;
+    await waitFor(async () => {
+      run = await transport.getActiveRun(session.id);
+      expect(run).not.toBeNull();
+    });
+    act(() => {
+      transport.emit(run!.id, {
+        type: "awaiting-approval",
+        runId: run!.id,
+        sessionId: session.id,
+        sequence: 1,
+        request: {
+          actions: [{ name: "write" }],
+          allowedDecisions: ["approve", "reject"],
+        },
+      });
+    });
+
+    await waitFor(() => expect(input).toBeDisabled());
+    expect(
+      screen.getByRole("button", { name: /addAttachment|新增附件/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /model|模型/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /send|送出/i }),
+    ).toBeDisabled();
   });
 
   it("exports one stable component for every public panel slot", () => {

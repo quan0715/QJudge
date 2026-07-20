@@ -185,6 +185,31 @@
   font-weight: 600;
 }
 
+.pendingFileStatus,
+.pendingFileError {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: 400;
+}
+
+.pendingFileStatus {
+  color: var(--cds-text-secondary, #c6c6c6);
+}
+
+.pendingFileError {
+  max-width: 12rem;
+  color: var(--cds-text-error, #ff8389);
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .pendingFileRemove {
   flex: 0 0 auto;
   width: 0;
@@ -217,6 +242,11 @@
     pointer-events: auto;
     outline: 2px solid var(--cds-focus, #0f62fe);
     outline-offset: 1px;
+  }
+
+  &:disabled {
+    color: var(--cds-icon-disabled, #6f6f6f);
+    cursor: not-allowed;
   }
 }
 
