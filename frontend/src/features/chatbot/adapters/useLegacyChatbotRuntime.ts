@@ -65,6 +65,24 @@ export interface UseChatbotOptions {
 const LAST_SESSION_KEY = "chatbot_last_session_id";
 const LAST_MODEL_KEY = "chatbot_last_model_id";
 const DEFAULT_MODEL_ID = "openai-nano";
+const ACTIVE_RUN_STATUS_PRIORITY = [
+  "awaiting_user_answer",
+  "awaiting_approval",
+  "running",
+  "queued",
+] as const;
+
+function selectActiveRun(runs: ChatRun[], sessionId: string): ChatRun | null {
+  for (const status of ACTIVE_RUN_STATUS_PRIORITY) {
+    const run = runs.find(
+      (candidate) =>
+        candidate.sessionId === sessionId && candidate.status === status,
+    );
+    if (run) return run;
+  }
+  return null;
+}
+
 const FALLBACK_MODELS: ModelInfo[] = [
   {
     model_id: "openai-nano",
@@ -179,7 +197,7 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
   const applyActiveRunsToSessions = useCallback(
     (sessionList: ChatSession[], runs: ChatRun[]): ChatSession[] =>
       sessionList.map((session) => {
-        const activeRun = runs.find((run) => run.sessionId === session.id);
+        const activeRun = selectActiveRun(runs, session.id);
         if (!activeRun) return session;
         return {
           ...session,
@@ -460,18 +478,7 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
   // SSE subscription, causing the backend to replay old events from seq 0.
   const activeRun = useMemo(() => {
     if (!enabled || !currentSessionId) return null;
-    return (
-      activeRuns.find(
-        (run) =>
-          run.sessionId === currentSessionId &&
-          [
-            "queued",
-            "running",
-            "awaiting_approval",
-            "awaiting_user_answer",
-          ].includes(run.status),
-      ) ?? null
-    );
+    return selectActiveRun(activeRuns, currentSessionId);
   }, [activeRuns, currentSessionId, enabled]);
 
   useEffect(() => {
@@ -672,6 +679,29 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
       setSessionNotice(null);
 
       try {
+        const awaitingQuestionRun = activeRuns.find(
+          (run) =>
+            run.sessionId === sessionIdForRequest &&
+            run.status === "awaiting_user_answer",
+        );
+
+        // Compatibility safeguard: if the question card is temporarily hidden,
+        // treat plain composer text as the pending answer instead of creating a
+        // second run that can shadow the paused one. Attachments still follow the
+        // normal new-run path so they are never silently discarded.
+        if (awaitingQuestionRun && pendingFiles.length === 0) {
+          const updatedRun = await chatbotRepository.submitRunAnswer(
+            awaitingQuestionRun.id,
+            trimmedContent,
+          );
+          setActiveRuns((prev) =>
+            prev.map((item) => (item.id === updatedRun.id ? updatedRun : item)),
+          );
+          setSubscribeEpoch((n) => n + 1);
+          setPendingQuestion(null);
+          return true;
+        }
+
         for (const file of pendingFiles) {
           await uploadUserArtifact(sessionIdForRequest, file);
         }
@@ -729,7 +759,7 @@ export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseCha
         return false;
       }
     },
-    [currentSessionId, selectedModelIdState, setCurrentSessionId],
+    [activeRuns, currentSessionId, selectedModelIdState, setCurrentSessionId],
   );
 
 

@@ -101,12 +101,14 @@ const models: ModelInfo[] = [
   },
 ];
 
-async function renderActiveRun(run = makeRun()) {
+async function renderActiveRun(runOrRuns: ChatRun | ChatRun[] = makeRun()) {
+  const runs = Array.isArray(runOrRuns) ? runOrRuns : [runOrRuns];
+  const sessionId = runs[0].sessionId;
   let callbacks: StreamCallbacks | undefined;
   const signals: AbortSignal[] = [];
-  repository.getSessions.mockResolvedValue([makeSession(run.sessionId)]);
-  repository.getActiveRuns.mockResolvedValue([run]);
-  repository.getSession.mockResolvedValue(makeSession(run.sessionId));
+  repository.getSessions.mockResolvedValue([makeSession(sessionId)]);
+  repository.getActiveRuns.mockResolvedValue(runs);
+  repository.getSession.mockResolvedValue(makeSession(sessionId));
   repository.subscribeRunEvents.mockImplementation(
     async (_subscribedRun, nextCallbacks, options) => {
       callbacks = nextCallbacks;
@@ -296,6 +298,59 @@ describe("useChatbot run lifecycle characterization", () => {
       inputType: "text",
     });
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it("prefers an awaiting question over a queued run after reload", async () => {
+    const queuedRun = makeRun({ id: "run-queued", status: "queued" });
+    const awaitingRun = makeRun({
+      id: "run-awaiting",
+      status: "awaiting_user_answer",
+      lastEventSeq: 25,
+      questionPayload: {
+        question: "Which rubric should I use?",
+        input_type: "text",
+      },
+    });
+
+    const { result } = await renderActiveRun([queuedRun, awaitingRun]);
+
+    expect(repository.subscribeRunEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "run-awaiting" }),
+      expect.any(Object),
+      expect.any(Object),
+    );
+    expect(result.current.pendingQuestion?.question).toBe(
+      "Which rubric should I use?",
+    );
+  });
+
+  it("routes composer text to the pending question instead of queuing a run", async () => {
+    const awaitingRun = makeRun({
+      id: "run-awaiting",
+      status: "awaiting_user_answer",
+      lastEventSeq: 25,
+      questionPayload: {
+        question: "Which rubric should I use?",
+        input_type: "text",
+      },
+    });
+    const view = await renderActiveRun(awaitingRun);
+    repository.startRun.mockResolvedValue(
+      makeRun({ id: "run-queued", status: "queued" }),
+    );
+    repository.submitRunAnswer.mockResolvedValue(
+      makeRun({ id: "run-awaiting", kind: "resume", lastEventSeq: 25 }),
+    );
+
+    await act(async () => {
+      await view.result.current.sendMessage("Use the existing answer as rubric");
+    });
+
+    expect(repository.submitRunAnswer).toHaveBeenCalledWith(
+      "run-awaiting",
+      "Use the existing answer as rubric",
+    );
+    expect(repository.startRun).not.toHaveBeenCalled();
   });
 
   it("aborts the current subscription on unmount", async () => {
