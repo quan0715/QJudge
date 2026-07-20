@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button, InlineLoading, InlineNotification, Tag } from "@carbon/react";
+import { Button, InlineNotification, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import type { CopilotApprovalCardProps } from "@copilot";
 import { getHITLRenderer } from "./hitlRendererRegistry";
@@ -63,19 +62,12 @@ export function HITLCard({
   onSubmit,
 }: CopilotApprovalCardProps) {
   const { t } = useTranslation("chatbot");
-  const [submissionErrorBaseline, setSubmissionErrorBaseline] = useState<
-    CopilotApprovalCardProps["interactionError"] | null
-  >(null);
 
   const actions = request.actions;
-  const submitting =
-    submissionErrorBaseline !== null &&
-    submissionErrorBaseline === interactionError;
 
   if (!actions.length) return null;
 
   const handleDecision = (decision: "approve" | "reject") => {
-    setSubmissionErrorBaseline(interactionError);
     onSubmit(decision);
   };
 
@@ -109,34 +101,28 @@ export function HITLCard({
           />
         )}
 
-        {submitting ? (
-          <div className={styles.loadingFooter}>
-            <InlineLoading description={t("ui.processing")} />
-          </div>
-        ) : (
-          <div className={styles.footer}>
-            {request.allowedDecisions.includes("approve") && (
-              <Button
-                kind="primary"
-                size="lg"
-                className={styles.footerBtn}
-                onClick={() => handleDecision("approve")}
-              >
-                {t("ui.confirmAction")}
-              </Button>
-            )}
-            {request.allowedDecisions.includes("reject") && (
-              <Button
-                kind="danger"
-                size="lg"
-                className={styles.footerBtn}
-                onClick={() => handleDecision("reject")}
-              >
-                {t("ui.cancelAction")}
-              </Button>
-            )}
-          </div>
-        )}
+        <div className={styles.footer}>
+          {request.allowedDecisions.includes("approve") && (
+            <Button
+              kind="primary"
+              size="lg"
+              className={styles.footerBtn}
+              onClick={() => handleDecision("approve")}
+            >
+              {t("ui.confirmAction")}
+            </Button>
+          )}
+          {request.allowedDecisions.includes("reject") && (
+            <Button
+              kind="danger"
+              size="lg"
+              className={styles.footerBtn}
+              onClick={() => handleDecision("reject")}
+            >
+              {t("ui.cancelAction")}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,9 @@ describe("QuestionCard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(interactionError.message!);
     expect(screen.queryByRole("button", { name: "ui.skipQuestion" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "staging" }));
-    expect(onSubmit).toHaveBeenCalledWith("staging");
+    fireEvent.click(screen.getByRole("button", { name: "staging" }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expect(onSubmit).toHaveBeenNthCalledWith(1, "staging");
+    expect(onSubmit).toHaveBeenNthCalledWith(2, "staging");
   });
 });

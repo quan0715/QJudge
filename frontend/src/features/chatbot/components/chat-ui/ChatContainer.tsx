@@ -16,10 +16,8 @@ import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelConte
 import { ArtifactPanel } from "../artifact/ArtifactPanel";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { CopilotEmbedShell } from "@copilot";
-import {
-  mapChatApprovalToCopilot,
-  mapChatMessageToCopilot,
-} from "@/infrastructure/copilot/chatbotCopilotMapper";
+import { mapChatMessageToCopilot } from "@/infrastructure/copilot/chatbotCopilotMapper";
+import { createLegacyChatContainerState } from "./legacyChatContainerState";
 import styles from "./ChatContainer.module.scss";
 
 interface ChatContainerProps {
@@ -42,6 +40,7 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
     nextTurnOptions,
     sessionNotice,
     availableModels,
+    activeRuns,
     selectedModelId,
     setSelectedModelId,
     createSession,
@@ -102,6 +101,7 @@ export function ChatContainer({ mode, onClose, className }: ChatContainerProps) 
         pendingQuestion={pendingQuestion}
         nextTurnOptions={nextTurnOptions}
         availableModels={availableModels}
+        activeRuns={activeRuns}
         selectedModelId={selectedModelId}
         setSelectedModelId={setSelectedModelId}
         isStreaming={isStreaming}
@@ -134,6 +134,7 @@ interface ChatContainerBodyProps {
   pendingQuestion: UseChatbotReturn["pendingQuestion"];
   nextTurnOptions: UseChatbotReturn["nextTurnOptions"];
   availableModels: ModelInfo[];
+  activeRuns: UseChatbotReturn["activeRuns"];
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
   isStreaming: boolean;
@@ -160,6 +161,7 @@ function ChatContainerBody({
   pendingQuestion,
   nextTurnOptions,
   availableModels,
+  activeRuns,
   selectedModelId,
   setSelectedModelId,
   isStreaming,
@@ -198,17 +200,25 @@ function ChatContainerBody({
     () => messages.map(mapChatMessageToCopilot),
     [messages],
   );
-  const copilotApproval = useMemo(
-    () => pendingApproval ? mapChatApprovalToCopilot(pendingApproval) : null,
-    [pendingApproval],
-  );
-  const copilotQuestion = useMemo(
-    () => pendingQuestion ? {
-      question: pendingQuestion.question,
-      input: pendingQuestion.inputType === "choice" ? "choice" as const : "text" as const,
-      options: pendingQuestion.options,
-    } : null,
-    [pendingQuestion],
+  const legacyState = useMemo(
+    () => createLegacyChatContainerState({
+      currentSessionId,
+      activeRuns,
+      pendingApproval,
+      pendingQuestion,
+      nextTurnOptions,
+      isSessionLoading,
+      isStreaming,
+    }),
+    [
+      activeRuns,
+      currentSessionId,
+      isSessionLoading,
+      isStreaming,
+      nextTurnOptions,
+      pendingApproval,
+      pendingQuestion,
+    ],
   );
   const activeSession = useMemo(() => {
     if (isSessionLoading) {
@@ -245,17 +255,17 @@ function ChatContainerBody({
           messages={copilotMessages}
           activeSessionId={currentSessionId}
           activeSession={activeSession}
-          run={{ status: "ready", run: null }}
+          run={legacyState.run}
           messageComponent={MessageBubble}
         />
-        {copilotApproval && (
-          <HITLCard request={copilotApproval} onSubmit={onApproval} />
+        {legacyState.approval && (
+          <HITLCard request={legacyState.approval} onSubmit={onApproval} />
         )}
-        {copilotQuestion && (
-          <QuestionCard request={copilotQuestion} onSubmit={submitAnswer} />
+        {legacyState.question && (
+          <QuestionCard request={legacyState.question} onSubmit={submitAnswer} />
         )}
-        {!isStreaming && !copilotApproval && !copilotQuestion && nextTurnOptions?.length ? (
-          <NextTurnChips options={nextTurnOptions} onSelect={sendMessage} />
+        {legacyState.suggestions.length > 0 ? (
+          <NextTurnChips options={legacyState.suggestions} onSelect={sendMessage} />
         ) : null}
         <div className={styles.composerFloat}>
           <ComposerBar

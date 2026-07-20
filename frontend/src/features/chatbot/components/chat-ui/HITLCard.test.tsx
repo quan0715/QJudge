@@ -32,6 +32,9 @@ describe("HITLCard", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(retainedError.message!);
     expect(screen.queryByRole("button", { name: /ui.confirmAction/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /ui.cancelAction/ }));
-    expect(onSubmit).toHaveBeenCalledWith("reject");
+    fireEvent.click(screen.getByRole("button", { name: /ui.cancelAction/ }));
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expect(onSubmit).toHaveBeenNthCalledWith(1, "reject");
+    expect(onSubmit).toHaveBeenNthCalledWith(2, "reject");
   });
 });

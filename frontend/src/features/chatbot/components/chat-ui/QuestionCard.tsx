@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Button, InlineLoading, InlineNotification, TextArea } from "@carbon/react";
+import { Button, InlineNotification, TextArea } from "@carbon/react";
 import { Help } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotQuestionCardProps } from "@copilot";
@@ -12,28 +12,20 @@ export function QuestionCard({
 }: CopilotQuestionCardProps) {
   const { t } = useTranslation("chatbot");
   const [answer, setAnswer] = useState("");
-  const [submissionErrorBaseline, setSubmissionErrorBaseline] = useState<
-    CopilotQuestionCardProps["interactionError"] | null
-  >(null);
 
   const isChoice = request.input === "choice" && request.options?.length;
-  const submitting =
-    submissionErrorBaseline !== null &&
-    submissionErrorBaseline === interactionError;
 
   const handleSubmit = useCallback(() => {
     if (!answer.trim()) return;
-    setSubmissionErrorBaseline(interactionError);
     onSubmit(answer.trim());
-  }, [answer, interactionError, onSubmit]);
+  }, [answer, onSubmit]);
 
   const handleChoiceClick = useCallback(
     (option: string) => {
       setAnswer(option);
-      setSubmissionErrorBaseline(interactionError);
       onSubmit(option);
     },
-    [interactionError, onSubmit],
+    [onSubmit],
   );
 
   const handleKeyDown = useCallback(
@@ -67,7 +59,6 @@ export function QuestionCard({
                   kind="tertiary"
                   size="md"
                   className={styles.optionBtn}
-                  disabled={submitting}
                   onClick={() => handleChoiceClick(option)}
                 >
                   {option}
@@ -87,7 +78,6 @@ export function QuestionCard({
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={submitting}
                 rows={2}
               />
             </div>
@@ -104,23 +94,17 @@ export function QuestionCard({
           />
         )}
 
-        {submitting ? (
-          <div className={styles.loadingFooter}>
-            <InlineLoading description={t("ui.processing")} />
-          </div>
-        ) : (
-          <div className={styles.footer}>
-            <Button
-              kind="primary"
-              size="lg"
-              className={styles.footerBtn}
-              onClick={handleSubmit}
-              disabled={!isChoice && !answer.trim()}
-            >
-              {t("ui.submitAnswer", "送出回答")}
-            </Button>
-          </div>
-        )}
+        <div className={styles.footer}>
+          <Button
+            kind="primary"
+            size="lg"
+            className={styles.footerBtn}
+            onClick={handleSubmit}
+            disabled={!isChoice && !answer.trim()}
+          >
+            {t("ui.submitAnswer", "送出回答")}
+          </Button>
+        </div>
       </div>
     </div>
   );
