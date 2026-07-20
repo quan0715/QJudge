@@ -1,5 +1,5 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
+import { useEffect, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   CopilotAttachmentPart,
@@ -37,6 +37,30 @@ function createWrapper(
   };
 }
 
+type ProviderProbeSnapshot = {
+  state: ReturnType<typeof useCopilotStateContext>;
+  sessions: ReturnType<typeof useCopilotSessions>;
+  composer: ReturnType<typeof useCopilotComposer>;
+  models: ReturnType<typeof useCopilotModels>;
+};
+
+function createProviderProbe() {
+  const snapshotRef: { current: ProviderProbeSnapshot | null } = {
+    current: null,
+  };
+  function ProviderProbe() {
+    const state = useCopilotStateContext();
+    const sessions = useCopilotSessions();
+    const composer = useCopilotComposer();
+    const models = useCopilotModels();
+    useEffect(() => {
+      snapshotRef.current = { state, sessions, composer, models };
+    });
+    return null;
+  }
+  return { snapshot: snapshotRef, ProviderProbe };
+}
+
 describe("CopilotProvider session lifecycle", () => {
   it("does not make requests while disabled", () => {
     const transport = new MemoryCopilotTransport();
@@ -48,6 +72,354 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.listStatus).toBe("idle");
     expect(result.current.activeSession.status).toBe("empty");
     expect(listSessions).not.toHaveBeenCalled();
+  });
+
+  it("atomically clears account-owned runtime state when disabled", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Old account" });
+    const location = new MemoryCopilotSessionLocation(session.id);
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-session-id", session.id],
+    ]);
+    const modelCatalog = new MemoryCopilotModelCatalog([
+      { id: "old-model", displayName: "Old model", isDefault: true },
+    ]);
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider
+        transport={transport}
+        sessionLocation={location}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        initialSession="first"
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    act(() => snapshot.current?.composer.setDraft("Old account message"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+    await act(() => snapshot.current!.composer.send());
+    await act(() =>
+      snapshot.current!.composer.addAttachments([
+        new File(["old"], "old-account.txt", { type: "text/plain" }),
+      ]),
+    );
+    act(() => snapshot.current?.composer.setDraft("Old private draft"));
+    vi.spyOn(transport, "renameSession").mockRejectedValueOnce(
+      new Error("old account error"),
+    );
+    await act(() => snapshot.current!.sessions.rename(session.id, "Fail"));
+    expect(snapshot.current?.sessions.activeSession.data?.messages.length).toBeGreaterThan(0);
+    expect(snapshot.current?.state.run.status).not.toBe("ready");
+    expect(snapshot.current?.sessions.error).not.toBeNull();
+    const subscription = subscribeRun.mock.results.at(-1)?.value;
+
+    view.rerender(
+      <CopilotProvider
+        transport={transport}
+        sessionLocation={location}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        initialSession="first"
+        enabled={false}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.listStatus).toBe("idle");
+    expect(snapshot.current?.sessions.error).toBeNull();
+    expect(snapshot.current?.sessions.activeSession).toEqual({
+      status: "empty",
+      id: null,
+      data: null,
+      error: null,
+    });
+    expect(snapshot.current?.state.run).toEqual({ status: "ready", run: null });
+    expect(snapshot.current?.composer).toMatchObject({
+      draft: "",
+      attachments: [],
+      canSend: false,
+      isSending: false,
+    });
+    expect(snapshot.current?.models).toMatchObject({
+      models: [],
+      status: "idle",
+      selectedModelId: null,
+      error: null,
+    });
+    expect(location.get()).toBeNull();
+    expect(storage.get("copilot:last-session-id")).toBeNull();
+    expect(subscription?.closed).toBe(true);
+  });
+
+  it("does not revive a disabled runtime from an old in-flight send", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Old account" });
+    const pendingRun = deferred<CopilotRun>();
+    const startRun = vi
+      .spyOn(transport, "startRun")
+      .mockReturnValueOnce(pendingRun.promise);
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => snapshot.current?.composer.setDraft("Pending old request"));
+    await waitFor(() => expect(snapshot.current?.composer.canSend).toBe(true));
+    let pendingSend!: ReturnType<ProviderProbeSnapshot["composer"]["send"]>;
+    act(() => {
+      pendingSend = snapshot.current!.composer.send();
+    });
+    await waitFor(() => expect(startRun).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <CopilotProvider transport={transport} initialSession="first" enabled={false}>
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    let sendResult;
+    await act(async () => {
+      pendingRun.resolve({
+        id: "old-run",
+        sessionId: session.id,
+        status: "queued",
+      });
+      sendResult = await pendingSend;
+    });
+
+    expect(sendResult).toMatchObject({ accepted: false });
+    expect(subscribeRun).not.toHaveBeenCalled();
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.state.run.status).toBe("ready");
+    expect(snapshot.current?.composer.draft).toBe("");
+  });
+
+  it("ignores old bootstrap and model results after disabling", async () => {
+    const transport = new MemoryCopilotTransport();
+    const oldSession = await transport.createSession({ title: "Old account" });
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    const listSessions = vi
+      .spyOn(transport, "listSessions")
+      .mockReturnValueOnce(pendingList.promise);
+    const modelCatalog = new MemoryCopilotModelCatalog();
+    const pendingModels = deferred<
+      Awaited<ReturnType<typeof modelCatalog.list>>
+    >();
+    const listModels = vi
+      .spyOn(modelCatalog, "list")
+      .mockReturnValueOnce(pendingModels.promise);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider
+        transport={transport}
+        modelCatalog={modelCatalog}
+        initialSession="first"
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listModels).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <CopilotProvider
+        transport={transport}
+        modelCatalog={modelCatalog}
+        initialSession="first"
+        enabled={false}
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await act(async () => {
+      pendingList.resolve([
+        {
+          id: oldSession.id,
+          title: oldSession.title,
+          createdAt: oldSession.createdAt,
+          updatedAt: oldSession.updatedAt,
+        },
+      ]);
+      pendingModels.resolve([
+        { id: "old-model", displayName: "Old model", isDefault: true },
+      ]);
+      await Promise.all([pendingList.promise, pendingModels.promise]);
+    });
+
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.models.models).toEqual([]);
+    expect(snapshot.current?.models.selectedModelId).toBeNull();
+  });
+
+  it("ignores an old session load after disabling", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Old account" });
+    const pendingSession = deferred<CopilotSession>();
+    vi.spyOn(transport, "getSession").mockReturnValueOnce(
+      pendingSession.promise,
+    );
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider transport={transport} initialSession="none">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() => expect(snapshot.current?.sessions.listStatus).toBe("ready"));
+    let selection!: Promise<void>;
+    act(() => {
+      selection = snapshot.current!.sessions.select(session.id);
+    });
+
+    view.rerender(
+      <CopilotProvider transport={transport} initialSession="none" enabled={false}>
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await act(async () => {
+      pendingSession.resolve(session);
+      await selection;
+    });
+
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.state.run.status).toBe("ready");
+  });
+
+  it("does not continue an old attachment send after disabling", async () => {
+    const transport = new MemoryCopilotTransport();
+    await transport.createSession({ title: "Old account" });
+    const pendingUpload = deferred<CopilotAttachmentPart>();
+    const uploadAttachment = vi
+      .spyOn(transport, "uploadAttachment")
+      .mockReturnValueOnce(pendingUpload.promise);
+    const startRun = vi.spyOn(transport, "startRun");
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.status).toBe("ready"),
+    );
+    act(() => snapshot.current?.composer.setDraft("Old upload"));
+    await act(() =>
+      snapshot.current!.composer.addAttachments([
+        new File(["old"], "old.txt", { type: "text/plain" }),
+      ]),
+    );
+    let pendingSend!: ReturnType<ProviderProbeSnapshot["composer"]["send"]>;
+    act(() => {
+      pendingSend = snapshot.current!.composer.send();
+    });
+    await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <CopilotProvider transport={transport} initialSession="first" enabled={false}>
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    let sendResult;
+    await act(async () => {
+      pendingUpload.resolve({
+        type: "attachment",
+        id: "old-upload",
+        name: "old.txt",
+      });
+      sendResult = await pendingSend;
+    });
+
+    expect(sendResult).toMatchObject({ accepted: false });
+    expect(startRun).not.toHaveBeenCalled();
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.composer.attachments).toEqual([]);
+  });
+
+  it("isolates an enabled runtime when the transport identity changes", async () => {
+    const oldTransport = new MemoryCopilotTransport();
+    const oldSession = await oldTransport.createSession({ title: "Old account" });
+    const newTransport = new MemoryCopilotTransport();
+    const newSession = await newTransport.createSession({ title: "New account" });
+    const newListed = await newTransport.listSessions();
+    const pendingNewList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(newTransport, "listSessions").mockReturnValueOnce(
+      pendingNewList.promise,
+    );
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider transport={oldTransport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(oldSession.id),
+    );
+
+    view.rerender(
+      <CopilotProvider transport={newTransport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    await act(async () => {
+      pendingNewList.resolve(newListed);
+      await pendingNewList.promise;
+    });
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(newSession.id),
+    );
+    expect(snapshot.current?.sessions.sessions.map((item) => item.title)).toEqual([
+      "New account",
+    ]);
+  });
+
+  it("does not expose disabled account data when the next bootstrap fails", async () => {
+    const oldTransport = new MemoryCopilotTransport();
+    const oldSession = await oldTransport.createSession({ title: "Old account" });
+    const newTransport = new MemoryCopilotTransport();
+    vi.spyOn(newTransport, "listSessions").mockRejectedValueOnce(
+      new Error("new account offline"),
+    );
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const view = render(
+      <CopilotProvider transport={oldTransport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(oldSession.id),
+    );
+    view.rerender(
+      <CopilotProvider transport={oldTransport} initialSession="first" enabled={false}>
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+    view.rerender(
+      <CopilotProvider transport={newTransport} initialSession="first">
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    await waitFor(() => expect(snapshot.current?.sessions.listStatus).toBe("error"));
+    expect(snapshot.current?.sessions.sessions).toEqual([]);
+    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.state.run.status).toBe("ready");
   });
 
   it("prefers a valid location ID over stored selection", async () => {

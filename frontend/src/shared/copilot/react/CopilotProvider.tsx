@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -50,10 +51,18 @@ import {
 const LAST_SESSION_KEY = "copilot:last-session-id";
 const LAST_MODEL_KEY = "copilot:last-model-id";
 const EMPTY_MODELS: readonly CopilotModel[] = [];
+const EMPTY_SESSION_SUMMARIES: readonly CopilotSessionSummary[] = [];
 const defaultTranslations = new DefaultCopilotTranslations();
 let optimisticSequence = 0;
 const ACTIVE_RUN_ID_KEY = "activeRunId";
 const ACTIVE_RUN_STATUS_KEY = "activeRunStatus";
+const EMPTY_ACTIVE_SESSION = {
+  status: "empty",
+  id: null,
+  data: null,
+  error: null,
+} as const;
+const EMPTY_RUN_STATE = { status: "ready", run: null } as const;
 
 const chooseModelId = (
   models: readonly CopilotModel[],
@@ -108,6 +117,17 @@ function toSessionError(
   cause: unknown,
 ): CopilotError {
   return { ...toCopilotError(operation, cause), operation };
+}
+
+function ownershipChangedError(
+  operation: CopilotError["operation"],
+): CopilotError {
+  return {
+    code: "transport-error",
+    operation,
+    message: "Copilot runtime ownership changed",
+    recoverable: true,
+  };
 }
 
 function toRunState(run: CopilotRun): CopilotRunState {
@@ -229,6 +249,13 @@ export function CopilotProvider({
   const modelRequestAbortRef = useRef<AbortController | null>(null);
   const sessionListRequestRevisionRef = useRef(0);
   const sessionListRequestAbortRef = useRef<AbortController | null>(null);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const ownershipEpochRef = useRef(0);
+  const ownershipRef = useRef<{
+    enabled: boolean;
+    transport: CopilotTransport;
+  } | null>(null);
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
@@ -256,6 +283,7 @@ export function CopilotProvider({
 
   const selectModel = useCallback(
     (id: string | null) => {
+      if (!enabledRef.current) return;
       ++modelSelectionRevisionRef.current;
       commitModelSelection(id);
     },
@@ -276,7 +304,8 @@ export function CopilotProvider({
 
   const refreshModels = useCallback(async () => {
     invalidateModelRequest();
-    if (!enabled) return;
+    if (!enabledRef.current) return;
+    const ownershipEpoch = ownershipEpochRef.current;
     const requestRevision = modelRequestRevisionRef.current;
     const selectionRevision = modelSelectionRevisionRef.current;
     if (!modelCatalog) {
@@ -298,6 +327,8 @@ export function CopilotProvider({
     try {
       const loadedModels = await modelCatalog.list({ signal: controller.signal });
       if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current ||
         controller.signal.aborted ||
         requestRevision !== modelRequestRevisionRef.current
       ) {
@@ -318,6 +349,8 @@ export function CopilotProvider({
       setModelStatus("ready");
     } catch (cause) {
       if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current ||
         controller.signal.aborted ||
         requestRevision !== modelRequestRevisionRef.current
       ) {
@@ -345,12 +378,21 @@ export function CopilotProvider({
     }
   }, [
     commitModelSelection,
-    enabled,
     fallbackModels,
     invalidateModelRequest,
     modelCatalog,
     storage,
   ]);
+
+  const writeLocation = useCallback(
+    (id: string | null) => {
+      if (!sessionLocation) return;
+      locationWriteRef.current = id;
+      sessionLocation.set(id, { replace: true });
+      locationWriteRef.current = undefined;
+    },
+    [sessionLocation],
+  );
 
   const setRunState = useCallback((sessionId: string, run: CopilotRunState) => {
     setRuntime((previous) => ({
@@ -402,10 +444,66 @@ export function CopilotProvider({
     subscriptionRef.current = null;
   }, [clearReconnectTimer]);
 
+  const resetRuntimeOwnership = useCallback(() => {
+    ++ownershipEpochRef.current;
+    ++revisionRef.current;
+    invalidateModelRequest();
+    invalidateSessionListRequest();
+    closeRunSubscription();
+    activeIdRef.current = null;
+    sessionsRef.current = [];
+    summaryRunBySessionRef.current = {};
+    summarySequenceByRunRef.current = {};
+    lastSendRef.current = null;
+    composerSendInFlightRef.current = null;
+    const emptyRuntime = createCopilotRuntimeState();
+    runtimeRef.current = emptyRuntime;
+    setRuntime(emptyRuntime);
+    setSessions([]);
+    setListStatus("idle");
+    setActiveError(null);
+    setSessionError(null);
+    setDraft("");
+    setAttachments([]);
+    setIsComposerSending(false);
+    setModels(fallbackModels);
+    setModelStatus(modelCatalog ? "idle" : "unavailable");
+    setModelError(null);
+    const fallbackModelId = chooseModelId(
+      fallbackModels,
+      storage?.get(LAST_MODEL_KEY) ?? null,
+    );
+    selectedModelIdRef.current = fallbackModelId;
+    setSelectedModelId(fallbackModelId);
+    storage?.remove(LAST_SESSION_KEY);
+    writeLocation(null);
+  }, [
+    closeRunSubscription,
+    fallbackModels,
+    invalidateModelRequest,
+    invalidateSessionListRequest,
+    modelCatalog,
+    storage,
+    writeLocation,
+  ]);
+
+  useLayoutEffect(() => {
+    const previous = ownershipRef.current;
+    const transportChanged =
+      previous !== null && previous.transport !== transport;
+    const mustReset =
+      previous !== null &&
+      ((previous.enabled && !enabled) || (enabled && transportChanged));
+    ownershipRef.current = { enabled, transport };
+    if (mustReset) resetRuntimeOwnership();
+  }, [enabled, resetRuntimeOwnership, transport]);
+
   const subscribeToRun = useCallback(
     (run: CopilotRun) => {
+      if (!enabledRef.current) return;
       closeRunSubscription();
       const revision = revisionRef.current;
+      const ownershipEpoch = ownershipEpochRef.current;
       const token = {};
       subscriptionTokenRef.current = token;
       let latestObservedStatus = run.status;
@@ -417,6 +515,8 @@ export function CopilotProvider({
           next(event) {
             if (
               subscriptionTokenRef.current !== token ||
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
               revision !== revisionRef.current ||
               activeIdRef.current !== run.sessionId
             ) {
@@ -458,6 +558,8 @@ export function CopilotProvider({
           error(error) {
             if (
               subscriptionTokenRef.current !== token ||
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
               revision !== revisionRef.current ||
               activeIdRef.current !== run.sessionId
             ) {
@@ -493,6 +595,8 @@ export function CopilotProvider({
           complete() {
             if (
               subscriptionTokenRef.current !== token ||
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
               revision !== revisionRef.current ||
               activeIdRef.current !== run.sessionId
             ) {
@@ -524,18 +628,10 @@ export function CopilotProvider({
     ],
   );
 
-  const writeLocation = useCallback(
-    (id: string | null) => {
-      if (!sessionLocation) return;
-      locationWriteRef.current = id;
-      sessionLocation.set(id, { replace: true });
-      locationWriteRef.current = undefined;
-    },
-    [sessionLocation],
-  );
-
   const restoreRun = useCallback(
     async (sessionId: string, revision: number) => {
+      if (!enabledRef.current) return;
+      const ownershipEpoch = ownershipEpochRef.current;
       closeRunSubscription();
       if (!transport.capabilities.resumableStreams || !transport.getActiveRun) {
         syncSessionSummaryRun(sessionId, null);
@@ -550,7 +646,14 @@ export function CopilotProvider({
       }
       try {
         const run = await transport.getActiveRun(sessionId);
-        if (revision !== revisionRef.current || activeIdRef.current !== sessionId) return;
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
+          revision !== revisionRef.current ||
+          activeIdRef.current !== sessionId
+        ) {
+          return;
+        }
         if (!run) {
           syncSessionSummaryRun(sessionId, null);
           setRuntime((previous) => ({
@@ -576,7 +679,13 @@ export function CopilotProvider({
         }));
         if (revision === revisionRef.current) subscribeToRun(restoredRun);
       } catch (error) {
-        if (revision !== revisionRef.current) return;
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
+          revision !== revisionRef.current
+        ) {
+          return;
+        }
         setRuntime((previous) => ({
           ...previous,
           runs: {
@@ -596,6 +705,8 @@ export function CopilotProvider({
 
   const selectSession = useCallback(
     async (id: string, source: "ui" | "location" | "initial" = "ui") => {
+      if (!enabledRef.current) return;
+      const ownershipEpoch = ownershipEpochRef.current;
       const revision = ++revisionRef.current;
       activeIdRef.current = id;
       closeRunSubscription();
@@ -610,7 +721,13 @@ export function CopilotProvider({
       if (source !== "location") writeLocation(id);
       try {
         const session = await transport.getSession(id);
-        if (revision !== revisionRef.current) return;
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
+          revision !== revisionRef.current
+        ) {
+          return;
+        }
         setRuntime((previous) => ({
           ...previous,
           activeSessionId: id,
@@ -619,7 +736,13 @@ export function CopilotProvider({
         storage?.set(LAST_SESSION_KEY, id);
         await restoreRun(id, revision);
       } catch (error) {
-        if (revision !== revisionRef.current) return;
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
+          revision !== revisionRef.current
+        ) {
+          return;
+        }
         setActiveError(toCopilotError("load-session", error));
       }
     },
@@ -628,11 +751,19 @@ export function CopilotProvider({
 
   const create = useCallback(
     async (input?: CopilotCreateSessionInput): Promise<string | null> => {
+      if (!enabledRef.current) return null;
+      const ownershipEpoch = ownershipEpochRef.current;
       const startedRevision = revisionRef.current;
       const startedListRequestRevision =
         sessionListRequestRevisionRef.current;
       try {
         const session = await transport.createSession(input);
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return null;
+        }
         if (
           startedListRequestRevision === sessionListRequestRevisionRef.current
         ) {
@@ -663,6 +794,12 @@ export function CopilotProvider({
         writeLocation(session.id);
         return session.id;
       } catch (cause) {
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return null;
+        }
         setSessionError(toSessionError("create-session", cause));
         return null;
       }
@@ -678,6 +815,8 @@ export function CopilotProvider({
   );
 
   const refresh = useCallback(async () => {
+    if (!enabledRef.current) return;
+    const ownershipEpoch = ownershipEpochRef.current;
     invalidateSessionListRequest();
     const requestRevision = sessionListRequestRevisionRef.current;
     const controller = new AbortController();
@@ -686,6 +825,8 @@ export function CopilotProvider({
     try {
       const listed = await transport.listSessions({ signal: controller.signal });
       if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current ||
         controller.signal.aborted ||
         requestRevision !== sessionListRequestRevisionRef.current
       ) {
@@ -696,6 +837,8 @@ export function CopilotProvider({
       setListStatus("ready");
     } catch (cause) {
       if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current ||
         controller.signal.aborted ||
         requestRevision !== sessionListRequestRevisionRef.current
       ) {
@@ -715,8 +858,18 @@ export function CopilotProvider({
       id: string,
       title: string,
     ): Promise<CopilotRenameSessionResult> => {
+      if (!enabledRef.current) {
+        return { ok: false, error: ownershipChangedError("update-session") };
+      }
+      const ownershipEpoch = ownershipEpochRef.current;
       try {
         const summary = await transport.renameSession(id, title);
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return { ok: false, error: ownershipChangedError("update-session") };
+        }
         invalidateSessionListRequest();
         setSessionError(null);
         setListStatus("ready");
@@ -743,6 +896,12 @@ export function CopilotProvider({
         });
         return { ok: true };
       } catch (cause) {
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return { ok: false, error: ownershipChangedError("update-session") };
+        }
         const error = toSessionError("update-session", cause);
         setSessionError(error);
         return { ok: false, error };
@@ -753,9 +912,37 @@ export function CopilotProvider({
 
   const remove = useCallback(
     async (id: string): Promise<CopilotRemoveSessionResult> => {
+      if (!enabledRef.current) {
+        return {
+          ok: false,
+          activeSessionId: null,
+          error: ownershipChangedError("update-session"),
+        };
+      }
+      const ownershipEpoch = ownershipEpochRef.current;
       try {
         await transport.deleteSession(id);
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return {
+            ok: false,
+            activeSessionId: null,
+            error: ownershipChangedError("update-session"),
+          };
+        }
       } catch (cause) {
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return {
+            ok: false,
+            activeSessionId: null,
+            error: ownershipChangedError("update-session"),
+          };
+        }
         const error = toSessionError("update-session", cause);
         setSessionError(error);
         return {
@@ -814,6 +1001,13 @@ export function CopilotProvider({
   const send = useCallback(
     async (input: CopilotSendInput): Promise<CopilotSendResult> => {
       const sessionId = activeIdRef.current ?? "";
+      const ownershipEpoch = ownershipEpochRef.current;
+      const staleResult = (): CopilotSendResult => ({
+        accepted: false,
+        sessionId,
+        error: ownershipChangedError("start-run"),
+      });
+      if (!enabledRef.current) return staleResult();
       const text = input.text.trim();
       const invalid = !sessionId || (!text && !input.attachments?.length);
       if (invalid) {
@@ -830,6 +1024,12 @@ export function CopilotProvider({
 
       const uploaded: CopilotAttachmentPart[] = [];
       for (const file of input.attachments ?? []) {
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return staleResult();
+        }
         if (!transport.capabilities.attachments || !transport.uploadAttachment) {
           const error: CopilotError = {
             code: "unsupported-capability",
@@ -844,13 +1044,26 @@ export function CopilotProvider({
           ),
         );
         try {
-          uploaded.push(await transport.uploadAttachment(sessionId, file));
+          const uploadedPart = await transport.uploadAttachment(sessionId, file);
+          if (
+            !enabledRef.current ||
+            ownershipEpoch !== ownershipEpochRef.current
+          ) {
+            return staleResult();
+          }
+          uploaded.push(uploadedPart);
           setAttachments((items) =>
             items.map((item) =>
               item.file === file ? { ...item, status: "ready", error: undefined } : item,
             ),
           );
         } catch (cause) {
+          if (
+            !enabledRef.current ||
+            ownershipEpoch !== ownershipEpochRef.current
+          ) {
+            return staleResult();
+          }
           const error = toCopilotError("upload-attachment", cause);
           setAttachments((items) =>
             items.map((item) =>
@@ -860,6 +1073,13 @@ export function CopilotProvider({
           lastSendRef.current = { ...input };
           return { accepted: false, sessionId, error };
         }
+      }
+
+      if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current
+      ) {
+        return staleResult();
       }
 
       const optimisticId =
@@ -901,6 +1121,12 @@ export function CopilotProvider({
           modelId: input.modelId,
           metadata: input.metadata,
         });
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return staleResult();
+        }
         syncSessionSummaryRun(sessionId, run);
         const assistantId = `run-${run.id}-assistant`;
         setRuntime((previous) => {
@@ -933,6 +1159,12 @@ export function CopilotProvider({
         subscribeToRun(run);
         return { accepted: true, sessionId, runId: run.id };
       } catch (cause) {
+        if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current
+        ) {
+          return staleResult();
+        }
         const error = toCopilotError("start-run", cause);
         setRunState(sessionId, { status: "error", run: null, error });
         return { accepted: false, sessionId, error };
@@ -942,6 +1174,8 @@ export function CopilotProvider({
   );
 
   const stop = useCallback(async () => {
+    if (!enabledRef.current) return;
+    const ownershipEpoch = ownershipEpochRef.current;
     const sessionId = activeIdRef.current;
     if (!sessionId) return;
     const state = runtimeRef.current.runs[sessionId];
@@ -958,13 +1192,31 @@ export function CopilotProvider({
     }
     try {
       await transport.cancelRun(activeRun.id);
+      if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current
+      ) {
+        return;
+      }
       syncSessionSummaryRun(sessionId, null);
       const session = await transport.getSession(sessionId);
+      if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current
+      ) {
+        return;
+      }
       setRuntime((previous) => ({
         ...previous,
         sessions: { ...previous.sessions, [sessionId]: session },
       }));
     } catch (cause) {
+      if (
+        !enabledRef.current ||
+        ownershipEpoch !== ownershipEpochRef.current
+      ) {
+        return;
+      }
       syncSessionSummaryRun(sessionId, activeRun);
       setRunState(sessionId, {
         status: "error",
@@ -976,6 +1228,8 @@ export function CopilotProvider({
 
   const submitApproval = useCallback(
     async (decision: "approve" | "reject") => {
+      if (!enabledRef.current) return;
+      const ownershipEpoch = ownershipEpochRef.current;
       const sessionId = activeIdRef.current;
       if (!sessionId) return;
       const awaiting = runtimeRef.current.runs[sessionId];
@@ -994,6 +1248,8 @@ export function CopilotProvider({
           awaiting.run,
         );
         if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId
         ) {
@@ -1004,6 +1260,8 @@ export function CopilotProvider({
         subscribeToRun(resumedRun);
       } catch (cause) {
         if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId
         ) {
@@ -1020,6 +1278,8 @@ export function CopilotProvider({
 
   const submitAnswer = useCallback(
     async (answer: string) => {
+      if (!enabledRef.current) return;
+      const ownershipEpoch = ownershipEpochRef.current;
       const sessionId = activeIdRef.current;
       if (!sessionId) return;
       const awaiting = runtimeRef.current.runs[sessionId];
@@ -1038,6 +1298,8 @@ export function CopilotProvider({
           awaiting.run,
         );
         if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId
         ) {
@@ -1048,6 +1310,8 @@ export function CopilotProvider({
         subscribeToRun(resumedRun);
       } catch (cause) {
         if (
+          !enabledRef.current ||
+          ownershipEpoch !== ownershipEpochRef.current ||
           revision !== revisionRef.current ||
           activeIdRef.current !== sessionId
         ) {
@@ -1063,6 +1327,7 @@ export function CopilotProvider({
   );
 
   const retry = useCallback(async () => {
+    if (!enabledRef.current) return;
     const input = lastSendRef.current;
     if (input) await send(input);
   }, [send]);
@@ -1077,6 +1342,7 @@ export function CopilotProvider({
   }, []);
 
   const addAttachments = useCallback(async (files: readonly File[]) => {
+    if (!enabledRef.current) return;
     setAttachments((items) => [
       ...items,
       ...files.map((file) => ({
@@ -1088,7 +1354,13 @@ export function CopilotProvider({
   }, []);
 
   const removeAttachment = useCallback((id: string) => {
+    if (!enabledRef.current) return;
     setAttachments((items) => items.filter((item) => item.id !== id));
+  }, []);
+
+  const setComposerDraft = useCallback((value: string) => {
+    if (!enabledRef.current) return;
+    setDraft(value);
   }, []);
 
   const resetComposer = useCallback(() => {
@@ -1241,17 +1513,23 @@ export function CopilotProvider({
     writeLocation,
   ]);
 
-  const activeSession = selectActiveSession(runtime, activeError);
-  const run = selectActiveRun(runtime);
+  const runtimeIsVisible =
+    enabled &&
+    (ownershipRef.current === null ||
+      ownershipRef.current.transport === transport);
+  const activeSession = runtimeIsVisible
+    ? selectActiveSession(runtime, activeError)
+    : EMPTY_ACTIVE_SESSION;
+  const run = runtimeIsVisible ? selectActiveRun(runtime) : EMPTY_RUN_STATE;
   const stateValue = useMemo(
     () => ({
       transport,
       translations,
       capabilities: transport.capabilities,
       sessionLocation,
-      sessions,
-      listStatus,
-      sessionError,
+      sessions: runtimeIsVisible ? sessions : EMPTY_SESSION_SUMMARIES,
+      listStatus: runtimeIsVisible ? listStatus : "idle",
+      sessionError: runtimeIsVisible ? sessionError : null,
       activeSession,
       run,
     }),
@@ -1259,6 +1537,7 @@ export function CopilotProvider({
       activeSession,
       listStatus,
       run,
+      runtimeIsVisible,
       sessionError,
       sessionLocation,
       sessions,
@@ -1282,6 +1561,7 @@ export function CopilotProvider({
     [clearError, retry, send, stop, submitAnswer, submitApproval],
   );
   const canSend =
+    runtimeIsVisible &&
     activeSession.status === "ready" &&
     (run.status === "ready" || run.status === "error") &&
     !isComposerSending &&
@@ -1323,11 +1603,11 @@ export function CopilotProvider({
   }, [attachments, draft, send]);
   const composerValue = useMemo(
     () => ({
-      draft,
-      attachments,
+      draft: runtimeIsVisible ? draft : "",
+      attachments: runtimeIsVisible ? attachments : [],
       canSend,
-      isSending: isComposerSending,
-      setDraft,
+      isSending: runtimeIsVisible ? isComposerSending : false,
+      setDraft: setComposerDraft,
       addAttachments,
       removeAttachment,
       send: sendComposer,
@@ -1341,25 +1621,41 @@ export function CopilotProvider({
       isComposerSending,
       removeAttachment,
       resetComposer,
+      runtimeIsVisible,
       sendComposer,
+      setComposerDraft,
     ],
   );
   const modelValue = useMemo(
-    () => ({
-      models,
-      status: modelStatus,
-      selectedModelId,
-      error: modelError,
-      select: selectModel,
-      refresh: refreshModels,
-    }),
+    () => {
+      const fallbackModelId = chooseModelId(
+        fallbackModels,
+        storage?.get(LAST_MODEL_KEY) ?? null,
+      );
+      return {
+        models: runtimeIsVisible ? models : fallbackModels,
+        status: runtimeIsVisible
+          ? modelStatus
+          : modelCatalog
+            ? "idle"
+            : "unavailable",
+        selectedModelId: runtimeIsVisible ? selectedModelId : fallbackModelId,
+        error: runtimeIsVisible ? modelError : null,
+        select: selectModel,
+        refresh: refreshModels,
+      };
+    },
     [
+      fallbackModels,
       modelError,
+      modelCatalog,
       models,
       modelStatus,
       refreshModels,
       selectModel,
       selectedModelId,
+      runtimeIsVisible,
+      storage,
     ],
   );
 
