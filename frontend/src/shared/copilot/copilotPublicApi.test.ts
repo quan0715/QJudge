@@ -20,6 +20,8 @@ describe("Copilot public API", () => {
       expect(copilot).toHaveProperty(name);
     }
     expect(copilot).not.toHaveProperty("MemoryCopilotTransport");
+    expect(copilot).not.toHaveProperty("MemoryCopilotSessionLocation");
+    expect(copilot).not.toHaveProperty("MemoryCopilotStorage");
     expect(copilot).not.toHaveProperty("MemoryCopilotModelCatalog");
   });
 });

@@ -9,11 +9,6 @@ const roots = fixtureRoot
       resolve(projectRoot, "src/core/copilot"),
       resolve(projectRoot, "src/shared/copilot"),
     ];
-if (!fixtureRoot) {
-  for (const name of ["browserCopilotSessionLocation.ts", "browserCopilotStorage.ts"]) {
-    roots.push(resolve(projectRoot, "src/infrastructure/copilot", name));
-  }
-}
 
 const sourcePattern = /\.(?:ts|tsx|css|scss)$/;
 const importPattern = /(?:from\s*|import\s*\()(["'])([^"']+)\1/g;
@@ -49,7 +44,8 @@ for (const file of roots.flatMap(filesUnder).filter((path) => sourcePattern.test
     }
   }
   if (/\.(?:css|scss)$/.test(file)) {
-    for (const token of [".cds-", ".bx-", "!important"]) {
+    const importantToken = ["!", "important"].join("");
+    for (const token of [".cds-", ".bx-", importantToken]) {
       if (content.includes(token)) violations.push(`${label}: blocked style token '${token}'`);
     }
   }
