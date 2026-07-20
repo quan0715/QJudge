@@ -6,6 +6,7 @@ import {
   type CopilotApprovalCardProps,
 } from "./CopilotApprovalCard";
 import { CopilotComposer } from "./CopilotComposer";
+import { CopilotMessageList } from "./CopilotMessageList";
 import { CopilotMessageView } from "./CopilotMessageView";
 import { CopilotPanel } from "./CopilotPanel";
 import {
@@ -31,6 +32,12 @@ describe("Copilot UI primitives", () => {
     render(<CopilotMessageView message={message} />);
     expect(screen.getByRole("article")).toHaveAttribute("data-role", "assistant");
     expect(screen.getByText("Hello")).toBeInTheDocument();
+  });
+
+  it("keeps the standalone message list usable with default props", () => {
+    render(<CopilotMessageList />);
+
+    expect(screen.getByRole("log")).toBeEmptyDOMElement();
   });
 
   it("renders composer semantics and disabled submit", () => {
