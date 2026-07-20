@@ -1,4 +1,5 @@
 import type {
+  ApprovalRequest,
   ChatMessage,
   ChatRun,
   ChatRunStatus,
@@ -116,26 +117,43 @@ export function mapChatSessionToCopilotSummary(
   return summary;
 }
 
-export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
-  const question = run.questionPayload?.question;
-  const approvalActions = run.approvalPayload?.action_requests
-    ?.filter((action) => typeof action.name === "string" && action.name.length > 0)
-    .map((action) => ({ name: action.name, arguments: action.args }));
-  const allowedApprovalDecisions = run.approvalPayload?.review_configs
-    ?.flatMap((config) => config.allowed_decisions)
+export function mapChatApprovalToCopilot(
+  request: ApprovalRequest,
+): CopilotApprovalRequest {
+  const allowedDecisions = request.reviewConfigs
+    ?.flatMap((config) => config.allowedDecisions)
     .filter(
       (decision): decision is "approve" | "reject" =>
         decision === "approve" || decision === "reject",
     );
-  const approvalRequest: CopilotApprovalRequest | undefined =
-    approvalActions?.length
-      ? {
-          actions: approvalActions,
-          allowedDecisions: allowedApprovalDecisions?.length
-            ? [...new Set(allowedApprovalDecisions)]
-            : ["approve", "reject"],
-        }
-      : undefined;
+  return {
+    actions: request.actionRequests
+      .map((action) => ({
+        name: action.name.trim(),
+        arguments: action.args,
+      }))
+      .filter((action) => action.name.length > 0),
+    allowedDecisions:
+      request.reviewConfigs === undefined
+        ? ["approve", "reject"]
+        : [...new Set(allowedDecisions)],
+  };
+}
+
+export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
+  const question = run.questionPayload?.question;
+  const mappedApproval = run.approvalPayload?.action_requests
+    ? mapChatApprovalToCopilot({
+        actionRequests: run.approvalPayload.action_requests,
+        reviewConfigs: run.approvalPayload.review_configs?.map((config) => ({
+          actionName: config.action_name,
+          allowedDecisions: config.allowed_decisions,
+        })),
+      })
+    : undefined;
+  const approvalRequest = mappedApproval?.actions.length
+    ? mappedApproval
+    : undefined;
   return {
     id: run.id,
     sessionId: run.sessionId,

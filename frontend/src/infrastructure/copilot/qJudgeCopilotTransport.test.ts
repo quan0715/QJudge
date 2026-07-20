@@ -245,6 +245,42 @@ describe("chatbotCopilotMapper", () => {
     });
   });
 
+  it.each([
+    {
+      label: "defaults only when review configuration is absent",
+      reviewConfigs: undefined,
+      allowedDecisions: ["approve", "reject"],
+    },
+    {
+      label: "keeps explicit unsupported review configuration non-actionable",
+      reviewConfigs: [
+        { action_name: "deploy", allowed_decisions: ["unsupported"] },
+      ],
+      allowedDecisions: [],
+    },
+  ])("$label in persisted approval mapping", ({ reviewConfigs, allowedDecisions }) => {
+    expect(
+      mapChatRunToCopilot({
+        ...legacyRun,
+        status: "awaiting_approval",
+        approvalPayload: {
+          action_requests: [
+            { name: "  deploy  ", args: { environment: "staging" } },
+            { name: "   ", args: { ignored: true } },
+          ],
+          review_configs: reviewConfigs,
+        },
+      }),
+    ).toMatchObject({
+      approvalRequest: {
+        actions: [
+          { name: "deploy", arguments: { environment: "staging" } },
+        ],
+        allowedDecisions,
+      },
+    });
+  });
+
   it("preserves a persisted question when mapping an awaiting run", () => {
     expect(
       mapChatRunToCopilot({
@@ -329,6 +365,56 @@ describe("chatbotCopilotMapper", () => {
 });
 
 describe("createQJudgeCopilotTransport", () => {
+  it.each([
+    {
+      label: "defaults only when review configuration is absent",
+      reviewConfigs: undefined,
+      allowedDecisions: ["approve", "reject"],
+    },
+    {
+      label: "keeps explicit unsupported review configuration non-actionable",
+      reviewConfigs: [
+        { actionName: "publish", allowedDecisions: ["unsupported"] },
+      ],
+      allowedDecisions: [],
+    },
+  ])("$label in live approval events", async ({ reviewConfigs, allowedDecisions }) => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onAwaitingApproval?.({
+            actionRequests: [
+              { name: "  publish  ", args: { id: 1 } },
+              { name: "   ", args: { ignored: true } },
+            ],
+            reviewConfigs,
+          });
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(events).toHaveLength(1));
+
+    expect(events[0]).toMatchObject({
+      type: "awaiting-approval",
+      request: {
+        actions: [{ name: "publish", arguments: { id: 1 } }],
+        allowedDecisions,
+      },
+    });
+  });
+
   it("maps cumulative legacy callbacks to monotonic normalized events", async () => {
     const repository = createRepository({
       subscribeRunEvents: vi.fn(

@@ -165,6 +165,64 @@ describe("CopilotProvider session lifecycle", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it("commits the bootstrap list after UI selection before list completion", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const listed = await transport.listSessions();
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "none" }),
+    });
+
+    await act(async () => result.current.select(second.id));
+    await act(async () => {
+      pendingList.resolve(listed);
+      await pendingList.promise;
+    });
+
+    await waitFor(() => expect(result.current.listStatus).toBe("ready"));
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      first.id,
+      second.id,
+    ]);
+  });
+
+  it("settles the bootstrap list after UI selection during a located load", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const firstLoad = deferred<CopilotSession>();
+    const originalGet = transport.getSession.bind(transport);
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockImplementation((id) =>
+        id === first.id ? firstLoad.promise : originalGet(id),
+      );
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: new MemoryCopilotSessionLocation(first.id),
+      }),
+    });
+    await waitFor(() => expect(getSession).toHaveBeenCalledWith(first.id, expect.any(Object)));
+
+    await act(async () => result.current.select(second.id));
+    await act(async () => {
+      firstLoad.resolve(first);
+      await firstLoad.promise;
+    });
+
+    await waitFor(() => expect(result.current.listStatus).toBe("ready"));
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.sessions.map((session) => session.id)).toEqual([
+      first.id,
+      second.id,
+    ]);
+  });
+
   it("ignores stale bootstrap completion after an external location change", async () => {
     const transport = new MemoryCopilotTransport();
     const first = await transport.createSession({ title: "First" });
@@ -324,6 +382,60 @@ describe("CopilotProvider session lifecycle", () => {
     );
     expect(result.current.listStatus).toBe("ready");
     expect(result.current.error).toBeNull();
+  });
+
+  it("merges a stale create without superseding a newer refresh or selection", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const createResult = deferred<CopilotSession>();
+    const originalCreate = transport.createSession.bind(transport);
+    vi.spyOn(transport, "createSession").mockReturnValueOnce(createResult.promise);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.activeSession.id).toBe(first.id));
+
+    let createPromise!: Promise<string | null>;
+    act(() => {
+      createPromise = result.current.create({ title: "Created" });
+    });
+    await act(async () => result.current.select(second.id));
+
+    const newerList = deferred<CopilotSessionSummary[]>();
+    let newerSignal: AbortSignal | undefined;
+    vi.spyOn(transport, "listSessions").mockImplementationOnce((options) => {
+      newerSignal = options?.signal;
+      return newerList.promise;
+    });
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    const created = await originalCreate({ title: "Created" });
+    await act(async () => {
+      createResult.resolve(created);
+      await createPromise;
+    });
+
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.sessions.map((session) => session.id)).toContain(
+      created.id,
+    );
+    expect(newerSignal?.aborted).toBe(false);
+    expect(result.current.listStatus).toBe("loading");
+
+    const refreshedCreated = { ...created, title: "Created from refresh" };
+    await act(async () => {
+      newerList.resolve([first, second, refreshedCreated]);
+      await refreshPromise;
+    });
+
+    expect(
+      result.current.sessions.find((session) => session.id === created.id)?.title,
+    ).toBe("Created from refresh");
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.listStatus).toBe("ready");
   });
 
   it("does not let an older refresh failure overwrite a newer success", async () => {

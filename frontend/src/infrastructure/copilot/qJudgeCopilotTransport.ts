@@ -8,7 +8,6 @@ import type {
   VerificationReport,
 } from "@/core/types/chatbot.types";
 import type {
-  CopilotApprovalRequest,
   CopilotQuestionRequest,
   CopilotRun,
   CopilotRunEvent,
@@ -22,6 +21,7 @@ import type {
 import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
 import {
   mapArtifactRecordToCopilotAttachment,
+  mapChatApprovalToCopilot,
   mapChatRunStatusToCopilot,
   mapChatRunToCopilot,
   mapChatSessionToCopilot,
@@ -53,18 +53,6 @@ function isAbortError(error: unknown): boolean {
     (error instanceof DOMException && error.name === "AbortError") ||
     (error instanceof Error && error.name === "AbortError")
   );
-}
-
-function allowedDecisions(
-  callbacksRequest: Parameters<NonNullable<StreamCallbacks["onAwaitingApproval"]>>[0],
-): CopilotApprovalRequest["allowedDecisions"] {
-  const values = callbacksRequest.reviewConfigs
-    ?.flatMap((config) => config.allowedDecisions)
-    .filter(
-      (decision): decision is "approve" | "reject" =>
-        decision === "approve" || decision === "reject",
-    );
-  return values?.length ? [...new Set(values)] : ["approve", "reject"];
 }
 
 export function createQJudgeCopilotTransport(
@@ -296,13 +284,7 @@ export function createQJudgeCopilotTransport(
           latestStatus = "awaiting_approval";
           emit({
             type: "awaiting-approval",
-            request: {
-              actions: request.actionRequests.map((action) => ({
-                name: action.name,
-                arguments: action.args,
-              })),
-              allowedDecisions: allowedDecisions(request),
-            },
+            request: mapChatApprovalToCopilot(request),
           });
         },
         onAwaitingUserAnswer(request) {

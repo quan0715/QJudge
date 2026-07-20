@@ -412,19 +412,25 @@ export function CopilotProvider({
   const create = useCallback(
     async (input?: CopilotCreateSessionInput): Promise<string | null> => {
       const startedRevision = revisionRef.current;
+      const startedListRequestRevision =
+        sessionListRequestRevisionRef.current;
       try {
         const session = await transport.createSession(input);
-        invalidateSessionListRequest();
+        if (
+          startedListRequestRevision === sessionListRequestRevisionRef.current
+        ) {
+          invalidateSessionListRequest();
+          setListStatus("ready");
+        }
         setSessionError(null);
-        setListStatus("ready");
-        if (startedRevision !== revisionRef.current) return session.id;
-        ++revisionRef.current;
-        subscriptionRef.current?.close();
         const summary = summaryFromSession(session);
         replaceSessions([
           summary,
           ...sessionsRef.current.filter((item) => item.id !== session.id),
         ]);
+        if (startedRevision !== revisionRef.current) return session.id;
+        ++revisionRef.current;
+        subscriptionRef.current?.close();
         activeIdRef.current = session.id;
         setActiveError(null);
         setRuntime((previous) => ({
@@ -803,11 +809,12 @@ export function CopilotProvider({
     const listRequestRevision = sessionListRequestRevisionRef.current;
     const controller = new AbortController();
     sessionListRequestAbortRef.current = controller;
-    const isBootstrapCurrent = () =>
+    const isListRequestCurrent = () =>
       !disposed &&
       !controller.signal.aborted &&
-      bootstrapRevision === revisionRef.current &&
       listRequestRevision === sessionListRequestRevisionRef.current;
+    const isBootstrapSelectionCurrent = () =>
+      isListRequestCurrent() && bootstrapRevision === revisionRef.current;
     const invalidateBootstrapRequest = () => {
       controller.abort();
       if (sessionListRequestAbortRef.current === controller) {
@@ -821,9 +828,11 @@ export function CopilotProvider({
         const listed = await transport.listSessions({
           signal: controller.signal,
         });
-        if (!isBootstrapCurrent()) return;
+        if (!isListRequestCurrent()) return;
         listedLoaded = true;
         replaceSessions(listed);
+        setListStatus("ready");
+        if (!isBootstrapSelectionCurrent()) return;
         const located = sessionLocation?.get() ?? null;
         const stored = storage?.get(LAST_SESSION_KEY) ?? null;
         let bootstrap;
@@ -836,7 +845,7 @@ export function CopilotProvider({
             load: (id) => transport.getSession(id, { signal: controller.signal }),
           });
         } catch (cause) {
-          if (!isBootstrapCurrent()) return;
+          if (!isBootstrapSelectionCurrent()) return;
           ++revisionRef.current;
           activeIdRef.current = located;
           subscriptionRef.current?.close();
@@ -849,7 +858,7 @@ export function CopilotProvider({
           setListStatus("ready");
           return;
         }
-        if (!isBootstrapCurrent()) return;
+        if (!isBootstrapSelectionCurrent()) return;
         replaceSessions(bootstrap.sessions);
         setListStatus("ready");
         if (bootstrap.clearLocation) writeLocation(null);
@@ -877,7 +886,7 @@ export function CopilotProvider({
           await create();
         }
       } catch {
-        if (isBootstrapCurrent()) setListStatus("error");
+        if (isListRequestCurrent()) setListStatus("error");
       } finally {
         if (sessionListRequestAbortRef.current === controller) {
           sessionListRequestAbortRef.current = null;
