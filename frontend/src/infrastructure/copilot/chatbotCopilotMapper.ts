@@ -78,7 +78,7 @@ export function mapChatMessageToCopilot(message: ChatMessage): CopilotMessage {
     parts.push(mapToolInfoToCopilotPart(tool, index));
   }
   if (message.todoItems) {
-    parts.push({ type: "data-todos", data: message.todoItems });
+    parts.push({ type: "data-todo-items", data: message.todoItems });
   }
   if (message.verificationReports) {
     parts.push({

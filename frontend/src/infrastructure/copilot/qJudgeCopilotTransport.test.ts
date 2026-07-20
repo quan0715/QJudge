@@ -355,7 +355,7 @@ describe("chatbotCopilotMapper", () => {
         input: { query: "x" },
         output: { ok: true },
       },
-      { type: "data-todos", data: message.todoItems },
+      { type: "data-todo-items", data: message.todoItems },
       { type: "data-verification", data: message.verificationReports },
     ]);
   });
@@ -535,6 +535,63 @@ describe("createQJudgeCopilotTransport", () => {
       { type: "text-delta", delta: "Hel", sequence: 5, messageId: "42" },
       { type: "text-delta", delta: "lo", sequence: 6, messageId: "42" },
       { type: "awaiting-approval", sequence: 7 },
+    ]);
+  });
+
+  it("normalizes live data parts and resumes from the requested sequence", async () => {
+    let callbacks: StreamCallbacks | undefined;
+    const subscribeRunEvents = vi.fn(
+      async (_run: ChatRun, value: StreamCallbacks) => {
+        callbacks = value;
+      },
+    );
+    const repository = createRepository({ subscribeRunEvents });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(
+      run,
+      {
+        next: (event) => events.push(event),
+        error: vi.fn(),
+        complete: vi.fn(),
+      },
+      { fromSequence: 8 },
+    );
+    await vi.waitFor(() => expect(callbacks).toBeDefined());
+
+    callbacks?.onSessionNotice?.("Summarizing");
+    callbacks?.onTodoItemsUpdate?.([
+      { id: "todo-1", label: "Check", status: "in_progress" },
+    ]);
+    callbacks?.onNextTurnOptions?.([
+      { label: "Continue", message: "continue" },
+    ]);
+    callbacks?.onVerificationReport?.({
+      iteration: 1,
+      passed: true,
+      issues: [],
+      summary: "ok",
+    });
+
+    expect(subscribeRunEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ lastEventSeq: 8 }),
+      expect.any(Object),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(events).toMatchObject([
+      { type: "run-notice", sequence: 9, notice: "Summarizing" },
+      { type: "part-upsert", sequence: 10, part: { type: "data-todo-items" } },
+      {
+        type: "part-upsert",
+        sequence: 11,
+        part: { type: "data-next-turn-options" },
+      },
+      { type: "part-upsert", sequence: 12, part: { type: "data-verification" } },
     ]);
   });
 

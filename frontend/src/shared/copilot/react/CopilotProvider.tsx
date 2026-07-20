@@ -172,6 +172,11 @@ export function CopilotProvider({
   const activeIdRef = useRef<string | null>(null);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
   const subscriptionRef = useRef<CopilotSubscription | null>(null);
+  const subscriptionTokenRef = useRef<object | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoreRunRef = useRef<
+    ((sessionId: string, revision: number) => Promise<void>) | null
+  >(null);
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
   const locationWriteRef = useRef<string | null | undefined>(undefined);
 
@@ -288,27 +293,101 @@ export function CopilotProvider({
     }));
   }, []);
 
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current === null) return;
+    clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = null;
+  }, []);
+
+  const closeRunSubscription = useCallback(() => {
+    clearReconnectTimer();
+    subscriptionTokenRef.current = null;
+    subscriptionRef.current?.close();
+    subscriptionRef.current = null;
+  }, [clearReconnectTimer]);
+
   const subscribeToRun = useCallback(
     (run: CopilotRun) => {
-      subscriptionRef.current?.close();
+      closeRunSubscription();
+      const revision = revisionRef.current;
+      const token = {};
+      subscriptionTokenRef.current = token;
+      let capturedSubscription: CopilotSubscription | null = null;
       const subscription = transport.subscribeRun(
         run,
         {
           next(event) {
+            if (
+              subscriptionTokenRef.current !== token ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== run.sessionId
+            ) {
+              return;
+            }
             setRuntime((previous) => reduceCopilotEvent(previous, event));
           },
           error(error) {
-            setRunState(run.sessionId, { status: "error", run, error });
+            if (
+              subscriptionTokenRef.current !== token ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== run.sessionId
+            ) {
+              return;
+            }
+            capturedSubscription?.close();
+            if (subscriptionRef.current === capturedSubscription) {
+              subscriptionRef.current = null;
+            }
+            subscriptionTokenRef.current = null;
+            const current = runtimeRef.current.runs[run.sessionId];
+            if (
+              current?.status === "awaiting-approval" ||
+              current?.status === "awaiting-answer"
+            ) {
+              return;
+            }
+            if (!error.recoverable) {
+              setRunState(run.sessionId, { status: "error", run, error });
+              return;
+            }
+            clearReconnectTimer();
+            reconnectTimerRef.current = setTimeout(() => {
+              reconnectTimerRef.current = null;
+              if (
+                revision !== revisionRef.current ||
+                activeIdRef.current !== run.sessionId
+              ) {
+                return;
+              }
+              void restoreRunRef.current?.(run.sessionId, revisionRef.current);
+            }, 1_000);
           },
           complete() {
+            if (
+              subscriptionTokenRef.current !== token ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== run.sessionId
+            ) {
+              return;
+            }
+            subscriptionTokenRef.current = null;
+            if (subscriptionRef.current === capturedSubscription) {
+              subscriptionRef.current = null;
+            }
+            clearReconnectTimer();
             setRunState(run.sessionId, { status: "ready", run: null });
           },
         },
         { fromSequence: run.lastSequence },
       );
-      subscriptionRef.current = subscription;
+      capturedSubscription = subscription;
+      if (subscriptionTokenRef.current === token) {
+        subscriptionRef.current = subscription;
+      } else {
+        subscription.close();
+      }
     },
-    [setRunState, transport],
+    [clearReconnectTimer, closeRunSubscription, setRunState, transport],
   );
 
   const replaceSessions = useCallback((next: CopilotSessionSummary[]) => {
@@ -328,8 +407,7 @@ export function CopilotProvider({
 
   const restoreRun = useCallback(
     async (sessionId: string, revision: number) => {
-      subscriptionRef.current?.close();
-      subscriptionRef.current = null;
+      closeRunSubscription();
       if (!transport.capabilities.resumableStreams || !transport.getActiveRun) {
         setRuntime((previous) => ({
           ...previous,
@@ -353,11 +431,21 @@ export function CopilotProvider({
           }));
           return;
         }
+        const current = runtimeRef.current.runs[sessionId];
+        const currentRun = !current || current.status === "ready" ? null : current.run;
+        const localSequence =
+          currentRun?.id === run.id ? currentRun.lastSequence : undefined;
+        const lastSequence = Math.max(
+          run.lastSequence ?? -1,
+          localSequence ?? -1,
+        );
+        const restoredRun =
+          lastSequence >= 0 ? { ...run, lastSequence } : run;
         setRuntime((previous) => ({
           ...previous,
-          runs: { ...previous.runs, [sessionId]: toRunState(run) },
+          runs: { ...previous.runs, [sessionId]: toRunState(restoredRun) },
         }));
-        if (revision === revisionRef.current) subscribeToRun(run);
+        if (revision === revisionRef.current) subscribeToRun(restoredRun);
       } catch (error) {
         if (revision !== revisionRef.current) return;
         setRuntime((previous) => ({
@@ -373,15 +461,15 @@ export function CopilotProvider({
         }));
       }
     },
-    [subscribeToRun, transport],
+    [closeRunSubscription, subscribeToRun, transport],
   );
+  restoreRunRef.current = restoreRun;
 
   const selectSession = useCallback(
     async (id: string, source: "ui" | "location" | "initial" = "ui") => {
       const revision = ++revisionRef.current;
       activeIdRef.current = id;
-      subscriptionRef.current?.close();
-      subscriptionRef.current = null;
+      closeRunSubscription();
       setActiveError(null);
       setRuntime((previous) => ({
         ...previous,
@@ -406,7 +494,7 @@ export function CopilotProvider({
         setActiveError(toCopilotError("load-session", error));
       }
     },
-    [restoreRun, storage, transport, writeLocation],
+    [closeRunSubscription, restoreRun, storage, transport, writeLocation],
   );
 
   const create = useCallback(
@@ -430,7 +518,7 @@ export function CopilotProvider({
         ]);
         if (startedRevision !== revisionRef.current) return session.id;
         ++revisionRef.current;
-        subscriptionRef.current?.close();
+        closeRunSubscription();
         activeIdRef.current = session.id;
         setActiveError(null);
         setRuntime((previous) => ({
@@ -452,6 +540,7 @@ export function CopilotProvider({
     },
     [
       invalidateSessionListRequest,
+      closeRunSubscription,
       replaceSessions,
       storage,
       transport,
@@ -545,6 +634,7 @@ export function CopilotProvider({
       if (remaining[0]) await selectSession(remaining[0].id);
       else {
         ++revisionRef.current;
+        closeRunSubscription();
         activeIdRef.current = null;
         storage?.remove(LAST_SESSION_KEY);
         writeLocation(null);
@@ -553,6 +643,7 @@ export function CopilotProvider({
     },
     [
       invalidateSessionListRequest,
+      closeRunSubscription,
       replaceSessions,
       selectSession,
       storage,
@@ -696,9 +787,7 @@ export function CopilotProvider({
     const state = runtimeRef.current.runs[sessionId];
     const activeRun = !state || state.status === "ready" ? null : state.run;
     setRunState(sessionId, { status: "ready", run: null });
-    const captured = subscriptionRef.current;
-    subscriptionRef.current = null;
-    captured?.close();
+    closeRunSubscription();
     if (!activeRun || !transport.capabilities.cancellableRuns || !transport.cancelRun) return;
     try {
       await transport.cancelRun(activeRun.id);
@@ -714,7 +803,7 @@ export function CopilotProvider({
         error: toCopilotError("cancel-run", cause),
       });
     }
-  }, [setRunState, transport]);
+  }, [closeRunSubscription, setRunState, transport]);
 
   const submitApproval = useCallback(
     async (decision: "approve" | "reject") => {
@@ -722,20 +811,38 @@ export function CopilotProvider({
       if (!sessionId) return;
       const awaiting = runtimeRef.current.runs[sessionId];
       if (awaiting?.status !== "awaiting-approval") return;
-      if (!transport.capabilities.approvals || !transport.submitApproval) {
-        throw Object.assign(new Error("Approval is not supported"), {
-          code: "unsupported-capability",
-          operation: "submit-approval",
-          recoverable: false,
-        } satisfies CopilotError);
+      const revision = revisionRef.current;
+      try {
+        if (!transport.capabilities.approvals || !transport.submitApproval) {
+          throw Object.assign(new Error("Approval is not supported"), {
+            code: "unsupported-capability",
+            operation: "submit-approval",
+            recoverable: false,
+          } satisfies CopilotError);
+        }
+        const resumedRun = await transport.submitApproval(awaiting.run.id, decision);
+        if (
+          revision !== revisionRef.current ||
+          activeIdRef.current !== sessionId
+        ) {
+          return;
+        }
+        setRunState(sessionId, { status: "streaming", run: resumedRun });
+        subscribeToRun(resumedRun);
+      } catch (cause) {
+        if (
+          revision !== revisionRef.current ||
+          activeIdRef.current !== sessionId
+        ) {
+          return;
+        }
+        setRunState(sessionId, {
+          ...awaiting,
+          interactionError: toCopilotError("submit-approval", cause),
+        });
       }
-      await transport.submitApproval(awaiting.run.id, decision);
-      setRunState(sessionId, {
-        status: "streaming",
-        run: { ...awaiting.run, status: "running" },
-      });
     },
-    [setRunState, transport],
+    [setRunState, subscribeToRun, transport],
   );
 
   const submitAnswer = useCallback(
@@ -744,19 +851,36 @@ export function CopilotProvider({
       if (!sessionId) return;
       const awaiting = runtimeRef.current.runs[sessionId];
       if (awaiting?.status !== "awaiting-answer") return;
-      if (!transport.capabilities.questions || !transport.submitAnswer) {
-        throw Object.assign(new Error("Questions are not supported"), {
-          code: "unsupported-capability",
-          operation: "submit-answer",
-          recoverable: false,
-        } satisfies CopilotError);
+      const revision = revisionRef.current;
+      try {
+        if (!transport.capabilities.questions || !transport.submitAnswer) {
+          throw Object.assign(new Error("Questions are not supported"), {
+            code: "unsupported-capability",
+            operation: "submit-answer",
+            recoverable: false,
+          } satisfies CopilotError);
+        }
+        const resumedRun = await transport.submitAnswer(awaiting.run.id, answer);
+        if (
+          revision !== revisionRef.current ||
+          activeIdRef.current !== sessionId
+        ) {
+          return;
+        }
+        setRunState(sessionId, { status: "streaming", run: resumedRun });
+        subscribeToRun(resumedRun);
+      } catch (cause) {
+        if (
+          revision !== revisionRef.current ||
+          activeIdRef.current !== sessionId
+        ) {
+          return;
+        }
+        setRunState(sessionId, {
+          ...awaiting,
+          interactionError: toCopilotError("submit-answer", cause),
+        });
       }
-      const resumedRun = await transport.submitAnswer(awaiting.run.id, answer);
-      setRunState(sessionId, {
-        status: "streaming",
-        run: resumedRun,
-      });
-      subscribeToRun(resumedRun);
     },
     [setRunState, subscribeToRun, transport],
   );
@@ -802,6 +926,7 @@ export function CopilotProvider({
 
   useEffect(() => {
     if (!enabled) return;
+    const runRevision = revisionRef;
     let disposed = false;
     let listedLoaded = false;
     const bootstrapRevision = ++revisionRef.current;
@@ -848,8 +973,7 @@ export function CopilotProvider({
           if (!isBootstrapSelectionCurrent()) return;
           ++revisionRef.current;
           activeIdRef.current = located;
-          subscriptionRef.current?.close();
-          subscriptionRef.current = null;
+          closeRunSubscription();
           setRuntime((previous) => ({
             ...previous,
             activeSessionId: located,
@@ -866,8 +990,7 @@ export function CopilotProvider({
           const session = bootstrap.selectedSession;
           const revision = ++revisionRef.current;
           activeIdRef.current = session.id;
-          subscriptionRef.current?.close();
-          subscriptionRef.current = null;
+          closeRunSubscription();
           setActiveError(null);
           setRuntime((previous) => ({
             ...previous,
@@ -901,6 +1024,7 @@ export function CopilotProvider({
       if (id) void selectSession(id, "location");
       else {
         ++revisionRef.current;
+        closeRunSubscription();
         activeIdRef.current = null;
         setRuntime((previous) => ({ ...previous, activeSessionId: null }));
       }
@@ -909,13 +1033,13 @@ export function CopilotProvider({
       disposed = true;
       controller.abort();
       invalidateSessionListRequest();
-      ++revisionRef.current;
+      ++runRevision.current;
       unsubscribe?.();
-      subscriptionRef.current?.close();
-      subscriptionRef.current = null;
+      closeRunSubscription();
     };
   }, [
     create,
+    closeRunSubscription,
     enabled,
     initialSession,
     invalidateSessionListRequest,

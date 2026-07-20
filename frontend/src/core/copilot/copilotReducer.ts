@@ -119,6 +119,22 @@ function defaultRunError(): CopilotError {
   };
 }
 
+function withRunNotice(run: CopilotRun, notice: string | null): CopilotRun {
+  if (notice !== null) {
+    return { ...run, metadata: { ...run.metadata, notice } };
+  }
+  if (!run.metadata || !("notice" in run.metadata)) return run;
+  const { notice: _notice, ...metadata } = run.metadata;
+  return {
+    ...run,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+  };
+}
+
+function withoutRunNotice(run: CopilotRun): CopilotRun {
+  return withRunNotice(run, null);
+}
+
 function transitionRunStatus(
   current: CopilotRunState,
   run: CopilotRun,
@@ -211,8 +227,22 @@ export function reduceCopilotEvent(
       };
       break;
     }
+    case "run-notice": {
+      nextRunState = replaceRun(
+        currentRunState,
+        withRunNotice(nextRun, event.notice),
+      );
+      break;
+    }
     case "run-status": {
-      const statusRun = { ...nextRun, status: event.status };
+      const statusRun = {
+        ...(event.status === "completed" ||
+        event.status === "failed" ||
+        event.status === "cancelled"
+          ? withoutRunNotice(nextRun)
+          : nextRun),
+        status: event.status,
+      };
       nextRunState = transitionRunStatus(currentRunState, statusRun, event);
       break;
     }

@@ -264,7 +264,7 @@ export function createQJudgeCopilotTransport(
               {
                 type: "part-upsert",
                 messageId,
-                part: { type: "data-todos", data: update.todoItems },
+                part: { type: "data-todo-items", data: update.todoItems },
               },
               update.lastEventSeq,
             );
@@ -273,12 +273,15 @@ export function createQJudgeCopilotTransport(
         onVerificationReport(report) {
           emitVerificationUpdates([report]);
         },
+        onSessionNotice(notice) {
+          emit({ type: "run-notice", notice });
+        },
         onTodoItemsUpdate(items) {
           if (!items) return;
           emit({
             type: "part-upsert",
             messageId,
-            part: { type: "data-todos", data: items },
+            part: { type: "data-todo-items", data: items },
           });
         },
         onAwaitingApproval(request) {

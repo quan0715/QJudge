@@ -54,6 +54,13 @@ export type CopilotRunEvent =
       request: CopilotQuestionRequest;
     }
   | {
+      type: "run-notice";
+      runId: string;
+      sessionId: string;
+      sequence: number;
+      notice: string | null;
+    }
+  | {
       type: "run-status";
       runId: string;
       sessionId: string;

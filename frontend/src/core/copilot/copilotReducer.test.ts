@@ -272,6 +272,46 @@ describe("reduceCopilotEvent", () => {
     expect(next.runs["session-1"]).toEqual({ status: "ready", run: null });
   });
 
+  it("stores and clears a run notice", () => {
+    const running = reduceCopilotEvent(makeState(), {
+      type: "run-notice",
+      runId: "run-1",
+      sessionId: "session-1",
+      sequence: 1,
+      notice: "Summarizing conversation",
+    });
+    expect(running.runs["session-1"]?.run?.metadata?.notice).toBe(
+      "Summarizing conversation",
+    );
+
+    const cleared = reduceCopilotEvent(running, {
+      type: "run-notice",
+      runId: "run-1",
+      sessionId: "session-1",
+      sequence: 2,
+      notice: null,
+    });
+    expect(cleared.runs["session-1"]?.run?.metadata?.notice).toBeUndefined();
+  });
+
+  it("clears a run notice when the run fails", () => {
+    const next = reduceCopilotEvent(
+      makeState({
+        status: "streaming",
+        run: makeRun({ metadata: { notice: "Summarizing", source: "qjudge" } }),
+      }),
+      {
+        type: "run-status",
+        runId: "run-1",
+        sessionId: "session-1",
+        sequence: 1,
+        status: "failed",
+      },
+    );
+
+    expect(next.runs["session-1"]?.run?.metadata).toEqual({ source: "qjudge" });
+  });
+
   it("exposes a failed run through the error state", () => {
     const error: CopilotError = {
       code: "run-failed",

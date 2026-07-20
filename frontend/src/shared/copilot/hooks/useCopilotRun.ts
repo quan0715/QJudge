@@ -6,6 +6,7 @@ import {
 
 export interface UseCopilotRunResult {
   state: CopilotRunState;
+  notice: string | null;
   capabilities: CopilotTransportCapabilities;
   stop(): Promise<void>;
   submitApproval(decision: "approve" | "reject"): Promise<void>;
@@ -17,5 +18,19 @@ export function useCopilotRun(): UseCopilotRunResult {
   const { run: state, capabilities } = useCopilotStateContext();
   const { stop, submitApproval, submitAnswer, retry } =
     useCopilotRunCommandsContext();
-  return { state, capabilities, stop, submitApproval, submitAnswer, retry };
+  const notice =
+    state.status === "ready" || !state.run
+      ? null
+      : typeof state.run.metadata?.notice === "string"
+        ? state.run.metadata.notice
+        : null;
+  return {
+    state,
+    notice,
+    capabilities,
+    stop,
+    submitApproval,
+    submitAnswer,
+    retry,
+  };
 }
