@@ -12,11 +12,13 @@ import {
   MemoryCopilotStorage,
   MemoryCopilotTransport,
 } from "@copilot/testing";
-import { ArtifactPanelProvider } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { QJudgeCopilotBoundary } from "@/features/chatbot/contexts/QJudgeCopilotProvider";
 
 import { QJudgeChatPanel } from "./QJudgeChatPanel";
 import { qJudgeCopilotSlots } from "./qJudgeCopilotSlots";
+import appSource from "@/App.tsx?raw";
+import chatFullPageSource from "../ChatFullPage.tsx?raw";
+import workspaceShellSource from "../workspace/WorkspaceShell.tsx?raw";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -64,9 +66,7 @@ const renderPanel = (
       modelCatalog={modelCatalog}
       fallbackModels={[]}
     >
-      <ArtifactPanelProvider sessionId={sessionId}>
-        {panel}
-      </ArtifactPanelProvider>
+      {panel}
     </QJudgeCopilotBoundary>,
   );
 
@@ -296,13 +296,24 @@ describe("QJudgeChatPanel", () => {
         modelCatalog={new MemoryCopilotModelCatalog()}
         fallbackModels={[]}
       >
-        <ArtifactPanelProvider sessionId={session.id}>
-          <QJudgeChatPanel mode="sidebar" />
-        </ArtifactPanelProvider>
+        <QJudgeChatPanel mode="sidebar" />
       </QJudgeCopilotBoundary>,
     );
 
     expect(await screen.findByTestId("copilot-embed")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /message|輸入/i })).toBeInTheDocument();
+  });
+
+  it("mounts one production runtime and routes every QJudge chat surface through the panel", () => {
+    expect(appSource).toContain("<QJudgeCopilotProvider>");
+    expect(appSource).not.toContain("ChatbotProvider");
+
+    expect(chatFullPageSource).toContain('<QJudgeChatPanel mode="full"');
+    expect(chatFullPageSource).not.toContain("ChatContainer");
+    expect(chatFullPageSource).not.toContain("CopilotFullPageShell");
+
+    expect(workspaceShellSource.match(/<QJudgeChatPanel mode="sidebar"/g)).toHaveLength(2);
+    expect(workspaceShellSource).not.toContain("ChatContainer");
+    expect(workspaceShellSource).not.toContain("CopilotWorkspaceShell");
   });
 });

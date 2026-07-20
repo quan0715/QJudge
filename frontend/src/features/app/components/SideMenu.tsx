@@ -24,10 +24,7 @@ import { getContest } from "@/infrastructure/api/repositories/contest.repository
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import type { Classroom } from "@/core/entities/classroom.entity";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
-import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
-import { useOptionalChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
-import { chatbotRepository } from "@/infrastructure/api/repositories";
+import { useCopilotSessions } from "@copilot";
 import { ChatHistoryPanel } from "@/features/chatbot/components/chat-ui/ChatHistoryPanel";
 import { useOptionalContest } from "@/features/contest/contexts";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
@@ -94,9 +91,15 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const [fetched, setFetched] = useState(false);
   const [contestForNav, setContestForNav] = useState<ContestDetail | null>(null);
   const [contestFetched, setContestFetched] = useState(false);
-  const { sessions, refreshSessions } = useChatSessionContext();
-  const chatbot = useOptionalChatbotContext();
-  const { aiSessionId, setAiSessionId } = useAiSessionParam();
+  const {
+    sessions,
+    activeSession,
+    create: createSession,
+    select: selectSession,
+    rename: renameSession,
+    remove: removeSession,
+    refresh: refreshSessions,
+  } = useCopilotSessions();
 
   const classroomId = useMemo(() => {
     const match = location.pathname.match(/^\/classrooms\/([^/]+)/);
@@ -136,7 +139,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   // Route-aware: show classroom workspace panel when on a classroom route
   const isOnClassroomRoute = Boolean(classroomId);
   const isChatRoute = location.pathname === "/chat" || location.pathname.startsWith("/chat/");
-  const currentSessionId = aiSessionId ?? chatbot?.currentSessionId ?? null;
+  const currentSessionId = activeSession.id;
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -216,61 +219,52 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const isActive = (prefix: string) => location.pathname.startsWith(prefix);
 
   const goToChatSession = useCallback(
-    (id: string | null, options?: { replace?: boolean }) => {
-      const onChatRoute = location.pathname === "/chat" || location.pathname.startsWith("/chat/");
-      if (onChatRoute) {
-        setAiSessionId(id, { replace: options?.replace ?? false });
-        return;
-      }
-      const search = id ? `?ai_session_id=${encodeURIComponent(id)}` : "";
-      navigate(`/chat${search}`, { replace: options?.replace });
+    (id: string, options?: { replace?: boolean }) => {
+      const search = new URLSearchParams();
+      search.set("ai_session_id", id);
+      navigate(
+        { pathname: "/chat", search: `?${search.toString()}` },
+        { replace: options?.replace ?? false },
+      );
     },
-    [location.pathname, navigate, setAiSessionId],
+    [navigate],
   );
 
   const handleNewChat = useCallback(async () => {
-    const newSessionId = chatbot
-      ? await chatbot.createSession()
-      : (await chatbotRepository.createSession()).id;
+    const newSessionId = await createSession();
+    if (!newSessionId) return;
     onClose?.();
-    goToChatSession(newSessionId ?? null);
-  }, [chatbot, onClose, goToChatSession]);
+    goToChatSession(newSessionId);
+  }, [createSession, onClose, goToChatSession]);
 
   const handleSelectSession = useCallback((id: string) => {
+    void selectSession(id);
     onClose?.();
     goToChatSession(id);
-  }, [onClose, goToChatSession]);
+  }, [selectSession, onClose, goToChatSession]);
 
   const handleDeleteSession = useCallback(async (id: string) => {
     try {
-      if (chatbot) {
-        await chatbot.deleteSession(id);
-      } else {
-        await chatbotRepository.deleteSession(id);
-      }
+      await removeSession(id);
       void refreshSessions();
       if (id === currentSessionId) {
         const remaining = sessions.filter((s) => s.id !== id);
-        const nextId = remaining[0]?.id ?? null;
-        goToChatSession(nextId, { replace: true });
+        const nextId = remaining[0]?.id;
+        if (nextId) goToChatSession(nextId, { replace: true });
       }
     } catch {
       // silently ignore
     }
-  }, [chatbot, currentSessionId, sessions, refreshSessions, goToChatSession]);
+  }, [removeSession, refreshSessions, currentSessionId, sessions, goToChatSession]);
 
   const handleRenameSession = useCallback(async (id: string, title: string) => {
     try {
-      if (chatbot) {
-        await chatbot.renameSession(id, title);
-      } else {
-        await chatbotRepository.renameSession(id, title);
-      }
+      await renameSession(id, title);
       void refreshSessions();
     } catch {
       // silently ignore
     }
-  }, [chatbot, refreshSessions]);
+  }, [renameSession, refreshSessions]);
 
   // Classroom panel computed values
   const currentClassroom = useMemo(

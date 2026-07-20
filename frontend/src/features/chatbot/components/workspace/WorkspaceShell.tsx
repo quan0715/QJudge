@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { CopilotWorkspaceShell } from "@/shared/copilot";
 import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { WorkspaceToolbarSlotProvider } from "@/features/app/contexts/WorkspaceToolbarSlot";
-import { ChatContainer } from "../chat-ui/ChatContainer";
+import { QJudgeChatPanel } from "../chat-ui/QJudgeChatPanel";
 import {
   WorkspaceBackdrop,
   WorkspaceDraggableSheet,
@@ -51,7 +50,7 @@ interface WorkspaceShellProps {
 /**
  * App-wide 3-panel shell：
  *
- * - 桌面：左 AppSidebar + 中（children）+ 右 ChatContainer
+ * - 桌面：左 AppSidebar + 中（children）+ 右 QJudgeChatPanel
  * - 行動：中（children）為主；左以 portal drawer、右以 portal bottom-sheet 呈現
  *
  * Top nav 由 Shell 統一提供；mobile sidebar 入口也在 top nav 內，
@@ -187,7 +186,6 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
   const portalRoot = getPortalRoot();
 
   return (
-    <CopilotWorkspaceShell disabled className={styles.shell}>
     <div className={styles.shell}>
       {leftEnabled ? (
         <WorkspaceTopNav showSidebarControl={isMobile} />
@@ -232,7 +230,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
                 tabIndex={0}
               />
               <div className={styles.panelContent}>
-                <ChatContainer mode="sidebar" onClose={right.close} />
+                <QJudgeChatPanel mode="sidebar" onClose={right.close} />
               </div>
             </>
           )}
@@ -277,7 +275,7 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
               onClose={right.close}
             >
               <div className={styles.mobileRightSheetContent}>
-                <ChatContainer mode="sidebar" onClose={right.close} />
+                <QJudgeChatPanel mode="sidebar" onClose={right.close} />
               </div>
             </WorkspaceDraggableSheet>
           </WorkspaceOverlayRoot>
@@ -297,7 +295,6 @@ export function WorkspaceShell({ children, omitAppSidebar = false }: WorkspaceSh
         portalRoot,
       )}
     </div>
-    </CopilotWorkspaceShell>
   );
 }
 

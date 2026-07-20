@@ -8,6 +8,7 @@ import {
   MemoryCopilotTransport,
 } from "@copilot/testing";
 import { DefaultCopilotTranslations, useCopilotSessions } from "@copilot";
+import { useArtifactPanel } from "./ArtifactPanelContext";
 import {
   QJudgeCopilotBoundary,
   QJudgeCopilotProvider,
@@ -62,6 +63,31 @@ describe("QJudgeCopilotBoundary", () => {
       expect(result.current.activeSession.status).toBe("ready"),
     );
     expect(result.current.sessions).toHaveLength(1);
+  });
+
+  it("composes one Artifact panel owner inside the Copilot runtime", async () => {
+    const transport = new MemoryCopilotTransport();
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QJudgeCopilotBoundary
+        enabled
+        transport={transport}
+        location={new MemoryCopilotSessionLocation()}
+        storage={new MemoryCopilotStorage()}
+        translations={new DefaultCopilotTranslations()}
+        modelCatalog={new MemoryCopilotModelCatalog()}
+        fallbackModels={[]}
+      >
+        {children}
+      </QJudgeCopilotBoundary>
+    );
+
+    const { result } = renderHook(
+      () => ({ sessions: useCopilotSessions(), artifacts: useArtifactPanel() }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.sessions.activeSession.status).toBe("ready"));
+    expect(result.current.artifacts.isOpen).toBe(false);
   });
 });
 

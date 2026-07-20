@@ -17,6 +17,7 @@ import {
 } from "@copilot";
 import { QJudgeCopilotTranslations } from "../adapters/qJudgeCopilotTranslations";
 import { useReactRouterCopilotSessionLocation } from "../adapters/reactRouterCopilotSessionLocation";
+import { ArtifactPanelProvider } from "./ArtifactPanelContext";
 
 export interface QJudgeCopilotBoundaryProps {
   enabled: boolean;
@@ -41,7 +42,7 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
       fallbackModels={props.fallbackModels}
       initialSession="first-or-create"
     >
-      {props.children}
+      <ArtifactPanelProvider>{props.children}</ArtifactPanelProvider>
     </CopilotProvider>
   );
 }

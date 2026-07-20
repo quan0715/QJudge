@@ -1,11 +1,33 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { SideMenu } from "./SideMenu";
 
 const mockGetClassrooms = vi.fn();
 const mockGetQuestionBanks = vi.fn();
 const mockGetContest = vi.fn();
+const mockCopilotSessions = vi.hoisted(() => ({
+  sessions: [] as Array<{
+    id: string;
+    title: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>,
+  activeSession: {
+    status: "empty" as "empty" | "ready",
+    id: null as string | null,
+    data: null,
+    error: null,
+  },
+  listStatus: "ready",
+  error: null,
+  create: vi.fn(),
+  select: vi.fn(),
+  rename: vi.fn(),
+  remove: vi.fn(),
+  refresh: vi.fn(),
+  clearError: vi.fn(),
+}));
 
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
@@ -28,19 +50,39 @@ vi.mock("@/infrastructure/api/repositories/contest.repository", () => ({
   getContest: (...args: unknown[]) => mockGetContest(...args),
 }));
 
-vi.mock("@/features/chatbot/contexts/ChatSessionContext", () => ({
-  useChatSessionContext: () => ({
-    sessions: [],
-    refreshSessions: vi.fn(),
-  }),
+vi.mock("@copilot", () => ({
+  useCopilotSessions: () => mockCopilotSessions,
 }));
 
-vi.mock("@/infrastructure/api/repositories", () => ({
-  chatbotRepository: {
-    createSession: vi.fn(),
-    deleteSession: vi.fn(),
-    renameSession: vi.fn(),
-  },
+vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
+  ChatHistoryPanel: (props: {
+    sessions: Array<{ id: string; title: string }>;
+    onSelectSession(id: string): void;
+    onDeleteSession(id: string): void;
+    onRenameSession(id: string, title: string): void;
+    onNewChat?(): void;
+  }) => (
+    <div>
+      {props.sessions.map((session) => (
+        <div key={session.id}>
+          <button type="button" onClick={() => props.onSelectSession(session.id)}>
+            {session.title}
+          </button>
+          <button
+            type="button"
+            aria-label={`rename ${session.id}`}
+            onClick={() => props.onRenameSession(session.id, "Renamed")}
+          />
+          <button
+            type="button"
+            aria-label={`delete ${session.id}`}
+            onClick={() => props.onDeleteSession(session.id)}
+          />
+        </div>
+      ))}
+      <button type="button" onClick={props.onNewChat}>ui.newChat</button>
+    </div>
+  ),
 }));
 
 function LocationProbe() {
@@ -48,8 +90,31 @@ function LocationProbe() {
   return <div data-testid="location-search">{location.search}</div>;
 }
 
+function ChatRouteProbe() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button type="button" onClick={() => navigate("/dashboard")}>Leave chat</button>
+      <LocationProbe />
+    </>
+  );
+}
+
 describe("SideMenu contest admin workspace panels", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    mockCopilotSessions.sessions = [];
+    mockCopilotSessions.activeSession = {
+      status: "empty",
+      id: null,
+      data: null,
+      error: null,
+    };
+    mockCopilotSessions.create.mockResolvedValue(null);
+    mockCopilotSessions.select.mockResolvedValue(undefined);
+    mockCopilotSessions.rename.mockResolvedValue(undefined);
+    mockCopilotSessions.remove.mockResolvedValue(undefined);
+    mockCopilotSessions.refresh.mockResolvedValue(undefined);
     mockGetClassrooms.mockResolvedValue([
       {
         id: "classroom-1",
@@ -147,5 +212,62 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(screen.queryByText("nav.dashboard")).not.toBeInTheDocument();
     expect(screen.queryByText("nav.classrooms")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("creates a Copilot session and navigates with the explicit QJudge query", async () => {
+    mockCopilotSessions.create.mockResolvedValue("session-new");
+
+    render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <SideMenu variant="panel" />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText("ui.newChat"));
+
+    await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-new",
+    );
+  });
+
+  it("selects, renames and removes sessions only through the Copilot hook", async () => {
+    const now = new Date();
+    mockCopilotSessions.sessions = [
+      { id: "session-1", title: "Current", createdAt: now, updatedAt: now },
+      { id: "session-2", title: "Other", createdAt: now, updatedAt: now },
+    ];
+    mockCopilotSessions.activeSession = {
+      status: "ready",
+      id: "session-1",
+      data: null,
+      error: null,
+    };
+
+    render(
+      <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
+        <SideMenu variant="panel" />
+        <ChatRouteProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText("Other"));
+    await waitFor(() => expect(mockCopilotSessions.select).toHaveBeenCalledWith("session-2"));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-2",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "rename session-1" }));
+    await waitFor(() =>
+      expect(mockCopilotSessions.rename).toHaveBeenCalledWith("session-1", "Renamed"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "delete session-1" }));
+    await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
+    expect(mockCopilotSessions.refresh).toHaveBeenCalled();
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-2",
+    );
   });
 });

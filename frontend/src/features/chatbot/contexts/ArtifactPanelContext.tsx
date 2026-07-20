@@ -21,7 +21,8 @@ import {
   listArtifacts,
   type ArtifactRecord,
 } from "@/infrastructure/api/repositories/artifact.repository";
-import { useOptionalChatbotContext } from "./ChatbotProvider";
+import { useCopilotSessions } from "@copilot";
+import { selectFinishedArtifactToolIds } from "../adapters/qJudgeCopilotMessageData";
 
 interface ArtifactPanelContextValue {
   isOpen: boolean;
@@ -43,7 +44,8 @@ interface ArtifactPanelContextValue {
 const ArtifactPanelContext = createContext<ArtifactPanelContextValue | null>(null);
 
 interface ArtifactPanelProviderProps {
-  sessionId: string | null;
+  /** @deprecated Session ownership lives in CopilotProvider. */
+  sessionId?: string | null;
   children: ReactNode;
 }
 
@@ -58,9 +60,10 @@ function isArtifactToolName(toolName: string): boolean {
 const REFRESH_DEBOUNCE_MS = 250;
 
 export function ArtifactPanelProvider({
-  sessionId,
   children,
 }: ArtifactPanelProviderProps) {
+  const { activeSession } = useCopilotSessions();
+  const sessionId = activeSession.status === "ready" ? activeSession.id : null;
   const [isOpen, setIsOpen] = useState(false);
   const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
@@ -71,24 +74,13 @@ export function ArtifactPanelProvider({
   const refreshSeq = useRef(0);
   // Debounce timer for burst coalescing.
   const refreshTimerRef = useRef<number | null>(null);
-  // In-flight guard: if a fetch is already running, remember that another
-  // refresh was requested and run it once the current one settles.
-  const refreshInFlightRef = useRef(false);
-  const refreshQueuedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (refreshInFlightRef.current) {
-      // Coalesce: whoever finishes the in-flight call will re-run once.
-      refreshQueuedRef.current = true;
-      return;
-    }
-    refreshInFlightRef.current = true;
     const seq = ++refreshSeq.current;
     if (!sessionId) {
       setArtifacts([]);
       setError(null);
       setIsLoading(false);
-      refreshInFlightRef.current = false;
       return;
     }
     setIsLoading(true);
@@ -101,14 +93,8 @@ export function ArtifactPanelProvider({
       if (seq !== refreshSeq.current) return;
       setError(err instanceof Error ? err.message : "Failed to load artifacts");
     } finally {
-      refreshInFlightRef.current = false;
       if (seq === refreshSeq.current) {
         setIsLoading(false);
-      }
-      // Drain any refresh that was requested while this one was running.
-      if (refreshQueuedRef.current) {
-        refreshQueuedRef.current = false;
-        void refresh();
       }
     }
   }, [sessionId]);
@@ -131,7 +117,6 @@ export function ArtifactPanelProvider({
       window.clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = null;
     }
-    refreshQueuedRef.current = false;
     setIsOpen(false);
     setActiveArtifactId(null);
     setArtifacts([]);
@@ -163,25 +148,14 @@ export function ArtifactPanelProvider({
   // the right chat panel is open. Consumers like AI Grading read `artifacts` for
   // progress tracking even when the chat panel is closed — so the refresh trigger
   // must live here, where the provider stays mounted for the whole session.
-  const chatbot = useOptionalChatbotContext();
-  const currentSessionMessages =
-    chatbot?.currentSession?.id === sessionId
-      ? chatbot?.currentSession?.messages
-      : undefined;
   useEffect(() => {
-    if (!currentSessionMessages) return;
-    for (const message of currentSessionMessages) {
-      const execs = message.toolExecutions ?? [];
-      for (const step of execs) {
-        if (!step.toolCallId || !step.toolName) continue;
-        if (!isArtifactToolName(step.toolName)) continue;
-        if (step.result === undefined && !step.isError) continue;
-        if (seenToolCallIds.current.has(step.toolCallId)) continue;
-        seenToolCallIds.current.add(step.toolCallId);
-        scheduleRefresh();
-      }
+    const messages = activeSession.status === "ready" ? activeSession.data.messages : [];
+    for (const toolCallId of selectFinishedArtifactToolIds(messages)) {
+      if (seenToolCallIds.current.has(toolCallId)) continue;
+      seenToolCallIds.current.add(toolCallId);
+      scheduleRefresh();
     }
-  }, [currentSessionMessages, scheduleRefresh]);
+  }, [activeSession, scheduleRefresh]);
 
   const open = useCallback((artifactId?: string) => {
     setIsOpen(true);
