@@ -10,6 +10,7 @@ import type {
 } from "@/core/types/chatbot.types";
 import { chatbotRepository } from "@/infrastructure/api/repositories";
 import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
+import { QJUDGE_FALLBACK_MODELS } from "@/infrastructure/copilot/qJudgeCopilotModelCatalog";
 import { applyRunMessageUpdate } from "../lib/chatbotLegacyMerge";
 
 export { applyRunMessageUpdate } from "../lib/chatbotLegacyMerge";
@@ -83,38 +84,12 @@ function selectActiveRun(runs: ChatRun[], sessionId: string): ChatRun | null {
   return null;
 }
 
-const FALLBACK_MODELS: ModelInfo[] = [
-  {
-    model_id: "openai-nano",
-    display_name: "gpt-5-nano",
-    description: "快速且成本低，適合日常教學互動",
-    is_default: true,
-  },
-  {
-    model_id: "openai-mini",
-    display_name: "gpt-5.4-mini (low)",
-    description: "OpenAI 推理模型，低思考強度，平衡速度與品質",
-    is_default: false,
-  },
-  {
-    model_id: "openai-mini-medium",
-    display_name: "gpt-5.4-mini (medium)",
-    description: "OpenAI 推理模型，中等思考強度，適合複雜批改與推理",
-    is_default: false,
-  },
-  {
-    model_id: "deepseek-v4",
-    display_name: "deepseek-v4",
-    description: "1M context、快速、低成本，適合日常對話與 summarization（非推理模式）",
-    is_default: false,
-  },
-  {
-    model_id: "deepseek-v4-thinking",
-    display_name: "deepseek-v4 (thinking)",
-    description: "1M context、推理模式（reasoning_effort=low），適合複雜批改與測資生成",
-    is_default: false,
-  },
-];
+const FALLBACK_MODELS: ModelInfo[] = QJUDGE_FALLBACK_MODELS.map((model) => ({
+  model_id: model.id,
+  display_name: model.displayName,
+  description: model.description ?? "",
+  is_default: model.isDefault ?? false,
+}));
 
 export function useLegacyChatbotRuntime(options: UseChatbotOptions = {}): UseChatbotReturn {
   const { enabled = true, initialSessionIdHint = null } = options;

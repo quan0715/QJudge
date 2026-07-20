@@ -485,13 +485,23 @@ async function requestJson<T>(
     return response.json();
   } catch (error: unknown) {
     const httpError = error as Error & { response?: Response };
-    if (httpError.response?.status === 401)
-      throw new Error("請先登入以使用 AI 助教功能");
-    if (httpError.response?.status === 403) throw new Error("無權存取此對話");
-    if (httpError.response?.status === 404)
-      throw new Error("對話不存在或已被刪除");
-    if (httpError.response?.status === 426)
-      throw new Error("請更新前端版本以使用 AI 助教功能");
+    const status = httpError.response?.status;
+    const localizedMessage =
+      status === 401
+        ? "請先登入以使用 AI 助教功能"
+        : status === 403
+          ? "無權存取此對話"
+          : status === 404
+            ? "對話不存在或已被刪除"
+            : status === 426
+              ? "請更新前端版本以使用 AI 助教功能"
+              : undefined;
+    if (localizedMessage) {
+      throw Object.assign(new Error(localizedMessage), { status });
+    }
+    if (status !== undefined) {
+      Object.assign(httpError, { status });
+    }
     throw error;
   }
 }

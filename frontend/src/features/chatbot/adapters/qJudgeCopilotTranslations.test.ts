@@ -12,6 +12,12 @@ describe("QJudgeCopilotTranslations", () => {
     expect(translations.t("error.run-failed")).toBe(
       "translated:chatbot:errors.sendMessageFailed",
     );
+    expect(translations.t("error.not-found")).toBe(
+      "translated:chatbot:errors.sessionNotFound",
+    );
+    expect(translations.t("error.forbidden")).toBe(
+      "translated:chatbot:errors.sessionForbidden",
+    );
     expect(translate).toHaveBeenCalledWith(
       "chatbot:ui.send",
       expect.objectContaining({ defaultValue: "Send" }),

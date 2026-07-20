@@ -17,7 +17,7 @@ import type {
   CopilotSubscribeOptions,
   CopilotSubscription,
   CopilotTransport,
-} from "@/core/copilot";
+} from "@copilot";
 import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
 import {
   mapArtifactRecordToCopilotAttachment,
@@ -78,7 +78,25 @@ export function createQJudgeCopilotTransport(
 
     async listSessions(): Promise<CopilotSessionSummary[]> {
       try {
-        return (await repository.getSessions()).map(mapChatSessionToCopilotSummary);
+        const [sessions, runs] = await Promise.all([
+          repository.getSessions(),
+          repository.getActiveRuns(),
+        ]);
+        const runBySession = new Map(runs.map((run) => [run.sessionId, run]));
+        return sessions.map((session) => {
+          const summary = mapChatSessionToCopilotSummary(session);
+          const run = runBySession.get(session.id);
+          return run
+            ? {
+                ...summary,
+                metadata: {
+                  ...summary.metadata,
+                  activeRunId: run.id,
+                  activeRunStatus: mapChatRunStatusToCopilot(run.status),
+                },
+              }
+            : summary;
+        });
       } catch (error) {
         throw mapQJudgeError("load-sessions", error);
       }

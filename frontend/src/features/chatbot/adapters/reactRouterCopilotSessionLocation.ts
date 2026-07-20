@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { CopilotSessionLocation } from "@/core/copilot";
+import type { CopilotSessionLocation } from "@copilot";
 
 type SearchParamsUpdate =
   | URLSearchParams
@@ -68,15 +68,13 @@ export function useReactRouterCopilotSessionLocation(
   paramName: string = DEFAULT_SESSION_PARAM,
 ): CopilotSessionLocation {
   const [searchParams, setSearchParams] = useSearchParams();
-  const locationRef = useRef<ReactRouterCopilotSessionLocation | null>(null);
-  if (!locationRef.current) {
-    locationRef.current = new ReactRouterCopilotSessionLocation(
+  const [location] = useState(
+    () => new ReactRouterCopilotSessionLocation(
       searchParams,
       setSearchParams,
       paramName,
-    );
-  }
-  const location = locationRef.current;
+    ),
+  );
   useEffect(() => {
     location.update(searchParams, setSearchParams);
   }, [location, searchParams, setSearchParams]);

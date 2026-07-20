@@ -10,19 +10,20 @@ import type {
   CopilotError,
   CopilotRunEvent,
   CopilotSession,
-} from "@/core/copilot";
+} from "@copilot";
 import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
 import {
   MemoryCopilotTransport,
   runCopilotTransportContract,
   type CopilotTransportContractSubject,
-} from "@/shared/copilot/testing";
+} from "@copilot/testing";
 import {
   mapArtifactRecordToCopilotAttachment,
   mapChatApprovalToCopilot,
   mapChatMessageToCopilot,
   mapChatRunToCopilot,
   mapCopilotRunToChat,
+  mapQJudgeError,
 } from "./chatbotCopilotMapper";
 import { createQJudgeCopilotTransport } from "./qJudgeCopilotTransport";
 
@@ -218,6 +219,20 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
 runCopilotTransportContract(createQJudgeContractSubject);
 
 describe("chatbotCopilotMapper", () => {
+  it.each([
+    [404, "not-found", false],
+    [403, "forbidden", false],
+    [503, "transport-error", true],
+  ] as const)("maps HTTP %s to %s", (status, code, recoverable) => {
+    const cause = Object.assign(new Error(`HTTP ${status}`), { status });
+
+    expect(mapQJudgeError("load-session", cause)).toMatchObject({
+      code,
+      operation: "load-session",
+      recoverable,
+    });
+  });
+
   it("rejects all-invalid actions in shared and persisted approval mapping", () => {
     const request = {
       actionRequests: [
@@ -386,6 +401,46 @@ describe("chatbotCopilotMapper", () => {
 });
 
 describe("createQJudgeCopilotTransport", () => {
+  it("enriches each session with its own active run without subscribing", async () => {
+    const secondSession: ChatSession = {
+      ...legacySession,
+      id: "session-2",
+      title: "Second",
+    };
+    const secondRun: ChatRun = {
+      ...legacyRun,
+      id: "run-2",
+      sessionId: secondSession.id,
+      status: "awaiting_user_answer",
+    };
+    const subscribeRunEvents = vi.fn().mockResolvedValue(undefined);
+    const repository = createRepository({
+      getSessions: vi.fn().mockResolvedValue([legacySession, secondSession]),
+      getActiveRuns: vi.fn().mockResolvedValue([legacyRun, secondRun]),
+      subscribeRunEvents,
+    });
+
+    const sessions = await createQJudgeCopilotTransport(
+      repository,
+      vi.fn(),
+    ).listSessions();
+
+    expect(sessions).toMatchObject([
+      {
+        id: "session-1",
+        metadata: { activeRunId: "run-1", activeRunStatus: "running" },
+      },
+      {
+        id: "session-2",
+        metadata: {
+          activeRunId: "run-2",
+          activeRunStatus: "awaiting-answer",
+        },
+      },
+    ]);
+    expect(subscribeRunEvents).not.toHaveBeenCalled();
+  });
+
   it("ignores an all-invalid live approval without transitioning the run", async () => {
     const repository = createRepository({
       subscribeRunEvents: vi.fn(

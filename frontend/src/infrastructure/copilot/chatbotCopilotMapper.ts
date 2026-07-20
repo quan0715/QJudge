@@ -17,7 +17,7 @@ import type {
   CopilotSession,
   CopilotSessionSummary,
   CopilotToolPart,
-} from "@/core/copilot";
+} from "@copilot";
 import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
 
 export function mapChatRunStatusToCopilot(
@@ -200,10 +200,20 @@ export function mapQJudgeError(
   overrides: Partial<Pick<CopilotError, "code" | "recoverable">> = {},
 ): Error & CopilotError {
   const message = cause instanceof Error ? cause.message : String(cause);
+  const status =
+    cause && typeof cause === "object" && "status" in cause
+      ? (cause as { status?: unknown }).status
+      : undefined;
+  const classification =
+    status === 404
+      ? { code: "not-found" as const, recoverable: false }
+      : status === 401 || status === 403
+        ? { code: "forbidden" as const, recoverable: false }
+        : { code: "transport-error" as const, recoverable: true };
   return Object.assign(new Error(message), {
-    code: overrides.code ?? "transport-error",
+    code: overrides.code ?? classification.code,
     operation,
-    recoverable: overrides.recoverable ?? true,
+    recoverable: overrides.recoverable ?? classification.recoverable,
     cause,
   });
 }

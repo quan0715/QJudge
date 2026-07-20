@@ -2,8 +2,8 @@ import i18n from "@/i18n";
 import type {
   CopilotTranslationKey,
   CopilotTranslations,
-} from "@/core/copilot";
-import { DefaultCopilotTranslations } from "@/shared/copilot/translations/defaultCopilotTranslations";
+} from "@copilot";
+import { DefaultCopilotTranslations } from "@copilot";
 
 type Translate = (
   key: string,
@@ -26,6 +26,8 @@ const QJUDGE_KEYS: Record<CopilotTranslationKey, string> = {
   "error.unsupported-capability": "chatbot:errors.unknownError",
   "error.run-failed": "chatbot:errors.sendMessageFailed",
   "error.run-timeout": "chatbot:errors.resumeAgentFailed",
+  "error.not-found": "chatbot:errors.sessionNotFound",
+  "error.forbidden": "chatbot:errors.sessionForbidden",
   "error.unknown": "chatbot:errors.unknownError",
 };
 

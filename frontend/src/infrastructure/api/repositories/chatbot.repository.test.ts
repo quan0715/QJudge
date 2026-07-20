@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { httpClient } from "@/infrastructure/api/http.client";
 import chatbotRepository from "./chatbot.repository";
+
+describe("chatbotRepository request errors", () => {
+  it.each([403, 404, 503])("preserves HTTP status %s on request errors", async (status) => {
+    vi.spyOn(httpClient, "get").mockResolvedValueOnce(
+      new Response(null, { status }),
+    );
+
+    await expect(chatbotRepository.getSession("missing")).rejects.toMatchObject({
+      status,
+    });
+  });
+});
 
 describe("chatbotRepository stream events", () => {
   it("propagates the backend sequence through every callback from one source event", () => {
