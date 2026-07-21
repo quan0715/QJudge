@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { CopilotMessage, CopilotRun } from "@/core/copilot";
+import type {
+  CopilotMessage,
+  CopilotRun,
+  CopilotSessionSummary,
+} from "@/core/copilot";
 import {
   CopilotApprovalCard,
   type CopilotApprovalCardProps,
@@ -15,6 +19,7 @@ import {
 } from "./CopilotQuestionCard";
 import type {
   CopilotErrorStateProps,
+  CopilotMessageListSlotProps,
   CopilotSuggestionsProps,
 } from "./copilotUI.types";
 import { CopilotProvider } from "../react/CopilotProvider";
@@ -49,6 +54,32 @@ describe("Copilot UI primitives", () => {
     render(<CopilotMessageList />);
 
     expect(screen.getByRole("log")).toBeEmptyDOMElement();
+  });
+
+  it("renders the loading list before the empty state during bootstrap", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const Empty = vi.fn(() => <div data-testid="empty-slot">Empty</div>);
+    const List = vi.fn(({ activeSession }: CopilotMessageListSlotProps) => (
+      <div data-testid="list-slot">{activeSession.status}</div>
+    ));
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel slots={{ emptyState: Empty, messageList: List }} />
+      </CopilotProvider>,
+    );
+
+    expect(screen.getByTestId("list-slot")).toHaveTextContent("initializing");
+    expect(screen.queryByTestId("empty-slot")).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingList.resolve([]);
+      await pendingList.promise;
+    });
+
+    expect(await screen.findByTestId("empty-slot")).toBeInTheDocument();
   });
 
   it("renders composer semantics and disabled submit", () => {

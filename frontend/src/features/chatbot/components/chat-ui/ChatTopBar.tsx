@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import {
+  IconButton,
+  OverflowMenu,
+  OverflowMenuItem,
+  SkeletonText,
+} from "@carbon/react";
 import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
@@ -14,6 +19,7 @@ interface ChatTopBarFullProps {
    * 隱藏 WorkspaceToolBar 內建的展開/關閉 app sidebar 按鈕。
    */
   hideSidebarControl?: boolean;
+  loading?: boolean;
   title?: string;
   sessions: readonly CopilotSessionSummary[];
   currentSessionId: string | null;
@@ -26,6 +32,7 @@ interface ChatTopBarFullProps {
 
 interface ChatTopBarSidebarProps {
   mode?: "sidebar";
+  loading?: boolean;
   title?: string;
   historyOpen?: boolean;
   onToggleHistory?: () => void;
@@ -108,6 +115,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
   const {
     title,
     hideSidebarControl = false,
+    loading = false,
     sessions,
     currentSessionId,
     onSelectSession,
@@ -132,7 +140,11 @@ export function ChatTopBar(props: ChatTopBarProps) {
     setRenameValue("");
   };
 
-  const titleSlot = (
+  const titleSlot = loading ? (
+    <div className={styles.titleArea} data-testid="chat-title-skeleton">
+      <SkeletonText width="10rem" />
+    </div>
+  ) : (
     <div className={styles.titleArea} ref={dropdownRef}>
         {renamingId === currentSessionId ? (
           <input
@@ -208,7 +220,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
           >
             <Add size={20} />
           </IconButton>
-          {currentSessionId && (
+          {!loading && currentSessionId && (
             <OverflowMenu flipped size="md" align="bottom" iconDescription={t("ui.moreOptions")}>
               <OverflowMenuItem
                 itemText={t("ui.rename")}

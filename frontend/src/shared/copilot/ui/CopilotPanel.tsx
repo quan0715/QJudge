@@ -94,6 +94,9 @@ export function CopilotPanel({
   const suggestions = findLatestSuggestions(messages);
   const showSuggestions =
     run.state.status === "ready" && suggestions.length > 0;
+  const sessionIsLoading =
+    sessions.activeSession.status === "initializing" ||
+    sessions.activeSession.status === "loading";
 
   return (
     <section className="copilot-panel-content">
@@ -116,7 +119,15 @@ export function CopilotPanel({
           />
         )}
         <div className="copilot-conversation">
-          {sessions.activeSession.status === "error" && ErrorState ? (
+          {sessionIsLoading ? (
+            <MessageList
+              messages={messages}
+              activeSessionId={copilot.activeSession.id}
+              activeSession={copilot.activeSession}
+              run={run.state}
+              messageComponent={Message}
+            />
+          ) : sessions.activeSession.status === "error" && ErrorState ? (
             <ErrorState
               error={sessions.activeSession.error}
               onRetry={() => {

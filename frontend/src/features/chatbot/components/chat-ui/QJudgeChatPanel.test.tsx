@@ -71,6 +71,31 @@ const renderPanel = (
   );
 
 describe("QJudgeChatPanel", () => {
+  it("shows message and title skeletons while session bootstrap is pending", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingList = deferred<Awaited<ReturnType<typeof transport.listSessions>>>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const { container } = renderPanel(
+      transport,
+      null,
+      <QJudgeChatPanel mode="sidebar" />,
+    );
+
+    expect(screen.getByTestId("chat-title-skeleton")).toBeInTheDocument();
+    expect(
+      container.querySelector('[class*="skeletonStack"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/welcome|歡迎/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingList.resolve([]);
+      await pendingList.promise;
+    });
+    await waitFor(() =>
+      expect(screen.queryByTestId("chat-title-skeleton")).not.toBeInTheDocument(),
+    );
+  });
+
   it("does not create from the new-task button and creates on first send", async () => {
     const transport = new MemoryCopilotTransport();
     const existing = await transport.createSession({ title: "Existing" });

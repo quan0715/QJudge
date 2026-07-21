@@ -32,6 +32,10 @@ export function QJudgeCopilotHeader({
     <ChatTopBar
       mode="full"
       hideSidebarControl={mode === "sidebar"}
+      loading={
+        activeSession.status === "initializing" ||
+        activeSession.status === "loading"
+      }
       title={title}
       sessions={sessions.sessions}
       currentSessionId={sessions.activeSession.id}

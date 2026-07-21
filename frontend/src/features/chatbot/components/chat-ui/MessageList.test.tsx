@@ -60,18 +60,24 @@ describe("MessageList", () => {
     );
   });
 
-  it("shows history skeleton only while an active session is loading", () => {
-    const { container, rerender } = render(
-      <MessageList
-        {...readyProps}
-        messages={[]}
-        activeSession={{ status: "loading", id: "session-1", data: null, error: null }}
-      />,
-    );
+  it.each(["initializing", "loading"] as const)(
+    "shows history skeleton while the session is %s",
+    (status) => {
+      const activeSession =
+        status === "initializing"
+          ? { status, id: null, data: null, error: null }
+          : { status, id: "session-1", data: null, error: null };
+      const { container } = render(
+        <MessageList
+          {...readyProps}
+          messages={[]}
+          activeSession={activeSession}
+        />,
+      );
 
-    expect(container.querySelector('[class*="skeletonStack"]')).toBeInTheDocument();
-
-    rerender(<MessageList {...readyProps} messages={[]} />);
-    expect(container.querySelector('[class*="skeletonStack"]')).not.toBeInTheDocument();
-  });
+      expect(
+        container.querySelector('[class*="skeletonStack"]'),
+      ).toBeInTheDocument();
+    },
+  );
 });

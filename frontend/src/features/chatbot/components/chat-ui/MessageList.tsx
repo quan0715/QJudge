@@ -18,7 +18,9 @@ export function MessageList({
 }: CopilotMessageListSlotProps) {
   const { t } = useTranslation("chatbot");
   const containerRef = useRef<HTMLDivElement>(null);
-  const isLoading = activeSession.status === "loading";
+  const isLoading =
+    activeSession.status === "initializing" ||
+    activeSession.status === "loading";
 
   const displayMessages = useMemo(() => {
     if (messages.length === 0) {
