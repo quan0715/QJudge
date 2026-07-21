@@ -1,14 +1,14 @@
 import hashlib
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import httpx
 import pytest
-from django.db import IntegrityError, close_old_connections
+from django.db import DatabaseError, IntegrityError, close_old_connections, connection
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -19,6 +19,7 @@ from apps.contests.infrastructure.integrity_controller_client import (
     IntegrityControllerClient,
 )
 from apps.contests.services.integrity_tokens import issue_run_token, verify_run_token
+from apps.contests.services import integrity_runs as integrity_run_service
 from apps.contests.services.integrity_runs import (
     IntegrityLifecycleError,
     InvalidRunTransition,
@@ -129,6 +130,55 @@ def _verified_archive(run=None):
     if run is not None:
         archive.update(run_id=str(run.id), generation=run.archive_generation)
     return archive
+
+
+@contextmanager
+def _fail_nth_transaction_commit(commit_number):
+    original_commit = connection._commit
+    commit_count = 0
+
+    def commit_with_fault():
+        nonlocal commit_count
+        commit_count += 1
+        if commit_count == commit_number:
+            raise DatabaseError("transaction commit leaked raw-body")
+        return original_commit()
+
+    with patch.object(connection, "_commit", side_effect=commit_with_fault):
+        yield lambda: commit_count
+
+
+def _run_stale_error_persistence_race(failing_call, retry_call):
+    error_persistence_entered = threading.Barrier(2)
+    release_stale_error = threading.Event()
+    original_record_error = integrity_run_service._record_lifecycle_error
+
+    def pause_before_error_persistence(*args, **kwargs):
+        error_persistence_entered.wait(timeout=10)
+        assert release_stale_error.wait(timeout=10)
+        return original_record_error(*args, **kwargs)
+
+    def on_fresh_connection(call):
+        close_old_connections()
+        try:
+            return call()
+        finally:
+            close_old_connections()
+
+    with patch.object(
+        integrity_run_service,
+        "_record_lifecycle_error",
+        side_effect=pause_before_error_persistence,
+    ), ThreadPoolExecutor(max_workers=2) as pool:
+        stale_failure = pool.submit(on_fresh_connection, failing_call)
+        error_persistence_entered.wait(timeout=10)
+        successful_retry = pool.submit(on_fresh_connection, retry_call)
+        try:
+            retry_result = successful_retry.result(timeout=10)
+        finally:
+            release_stale_error.set()
+        failure_result = stale_failure.result(timeout=10)
+    return failure_result, retry_result
 
 
 def test_controller_client_uses_file_credential_and_operation_timeout(tmp_path):
@@ -407,33 +457,20 @@ def test_start_response_loss_reconciles_matching_running_container(integrity_run
     assert controller.status.call_count == 2
 
 
-@pytest.mark.django_db
-def test_start_final_db_failure_recovers_from_status_without_new_token(
+@pytest.mark.django_db(transaction=True)
+def test_start_final_commit_failure_recovers_from_status_without_new_token(
     integrity_run,
 ):
     controller = _controller_for_new_start(integrity_run.id)
-    original_save = ExamIntegrityRun.save
-    failed = False
-
-    def fail_running_save(instance, *args, **kwargs):
-        nonlocal failed
-        if (
-            instance.compute_state == ExamIntegrityRun.ComputeState.RUNNING
-            and not failed
-        ):
-            failed = True
-            raise RuntimeError("database failure with raw-body")
-        return original_save(instance, *args, **kwargs)
-
-    with patch.object(
-        ExamIntegrityRun, "save", autospec=True, side_effect=fail_running_save
-    ):
+    with _fail_nth_transaction_commit(2) as commit_count:
         with pytest.raises(IntegrityLifecycleError) as caught:
             start_run(integrity_run.id, controller=controller)
 
     integrity_run.refresh_from_db()
     assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.STARTING
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
     persisted_digest = integrity_run.token_digest
+    persisted_expiry = integrity_run.token_expires_at
     controller.status.return_value = _container_status(
         integrity_run,
         token_digest=persisted_digest,
@@ -443,7 +480,11 @@ def test_start_final_db_failure_recovers_from_status_without_new_token(
 
     assert started.compute_state == ExamIntegrityRun.ComputeState.RUNNING
     assert started.token_digest == persisted_digest
+    assert started.token_expires_at == persisted_expiry
+    assert started.health == ExamIntegrityRun.Health.HEALTHY
+    assert started.last_error == ""
     assert controller.start.call_count == 1
+    assert commit_count() == 2
     assert "raw-body" not in str(caught.value)
     assert caught.value.__cause__ is None
 
@@ -498,6 +539,56 @@ def test_starting_retry_rejects_mismatched_or_unknown_existing_container(
     assert integrity_run.last_error == "controller_start_reconciliation_failed"
     controller.start.assert_not_called()
     assert caught.value.__cause__ is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stale_start_failure_cannot_overwrite_successful_retry(integrity_run):
+    controller = Mock()
+    external_started = threading.Event()
+    failed_reconciliation = False
+    captured_digest = ""
+
+    def status(_run_id):
+        nonlocal failed_reconciliation
+        if not external_started.is_set():
+            return _absent_status(integrity_run.id)
+        if not failed_reconciliation:
+            failed_reconciliation = True
+            raise RuntimeError("older status failure leaked raw-body")
+        return _container_status(
+            integrity_run,
+            state="running",
+            token_digest=captured_digest,
+        )
+
+    def start(_run_id, *, token, image):
+        nonlocal captured_digest
+        captured_digest = hashlib.sha256(token.encode()).hexdigest()
+        external_started.set()
+        raise httpx.ReadTimeout("older start response was lost")
+
+    controller.status.side_effect = status
+    controller.start.side_effect = start
+
+    def failing_call():
+        with pytest.raises(IntegrityLifecycleError) as caught:
+            start_run(integrity_run.id, controller=controller)
+        return caught.value.code
+
+    failure_code, retry_state = _run_stale_error_persistence_race(
+        failing_call,
+        lambda: start_run(integrity_run.id, controller=controller).compute_state,
+    )
+
+    integrity_run.refresh_from_db()
+    assert failure_code == "controller_start_reconciliation_failed"
+    assert retry_state == ExamIntegrityRun.ComputeState.RUNNING
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.RUNNING
+    assert integrity_run.health == ExamIntegrityRun.Health.HEALTHY
+    assert integrity_run.last_error == ""
+    assert integrity_run.token_digest == captured_digest
+    assert controller.start.call_count == 1
+    assert controller.status.call_count == 3
 
 
 @pytest.mark.django_db
@@ -690,8 +781,8 @@ def test_stop_timeout_reconciles_external_success(integrity_run, owner):
     controller.status.assert_called_once_with(integrity_run.id)
 
 
-@pytest.mark.django_db
-def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_repeat(
+@pytest.mark.django_db(transaction=True)
+def test_archive_checkpoint_commit_failure_retries_worker_before_controller(
     integrity_run,
     owner,
 ):
@@ -701,6 +792,7 @@ def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_re
     integrity_run.container_name = "integrity-run-1"
     integrity_run.worker_url = "http://integrity-run-1:8020"
     integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.archive_generation = 7
     integrity_run.save(
         update_fields=[
             "compute_state",
@@ -709,6 +801,77 @@ def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_re
             "container_name",
             "worker_url",
             "worker_image_digest",
+            "archive_generation",
+        ]
+    )
+    worker = Mock()
+    worker.request_stop.return_value = _verified_archive(integrity_run)
+    controller = Mock()
+    controller.stop_container.return_value = {}
+
+    with _fail_nth_transaction_commit(2) as commit_count:
+        with pytest.raises(IntegrityLifecycleError) as caught:
+            stop_run(
+                integrity_run.id,
+                actor=owner,
+                worker=worker,
+                controller=controller,
+            )
+
+    integrity_run.refresh_from_db()
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.STOPPING
+    assert integrity_run.archive_manifest_key == ""
+    assert integrity_run.archive_manifest_sha256 == ""
+    assert integrity_run.archive_generation == 7
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at is None
+    assert worker.request_stop.call_count == 1
+    controller.stop_container.assert_not_called()
+    assert commit_count() == 2
+    assert caught.value.code == "controller_stop_finalization_failed"
+    assert "raw-body" not in str(caught.value)
+
+    stopped = stop_run(
+        integrity_run.id,
+        actor=owner,
+        worker=worker,
+        controller=controller,
+    )
+
+    assert stopped.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert stopped.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert stopped.archive_manifest_key == "integrity/run/manifest.json"
+    assert stopped.archive_manifest_sha256 == "a" * 64
+    assert stopped.archive_generation == 7
+    assert stopped.token_digest == "d" * 64
+    assert stopped.token_revoked_at is not None
+    assert stopped.health == ExamIntegrityRun.Health.HEALTHY
+    assert stopped.last_error == ""
+    assert worker.request_stop.call_count == 2
+    assert controller.stop_container.call_count == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stop_final_commit_failure_retries_from_checkpoint_without_external_repeat(
+    integrity_run,
+    owner,
+):
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.RUNNING
+    integrity_run.token_digest = "d" * 64
+    integrity_run.container_id = "container-1"
+    integrity_run.container_name = "integrity-run-1"
+    integrity_run.worker_url = "http://integrity-run-1:8020"
+    integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.archive_generation = 7
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "token_digest",
+            "container_id",
+            "container_name",
+            "worker_url",
+            "worker_image_digest",
+            "archive_generation",
         ]
     )
     worker = Mock()
@@ -719,22 +882,8 @@ def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_re
         integrity_run,
         state="stopped",
     )
-    original_save = ExamIntegrityRun.save
-    failed = False
 
-    def fail_final_save(instance, *args, **kwargs):
-        nonlocal failed
-        if (
-            instance.compute_state == ExamIntegrityRun.ComputeState.STOPPED
-            and not failed
-        ):
-            failed = True
-            raise RuntimeError("final persist leaked raw-body")
-        return original_save(instance, *args, **kwargs)
-
-    with patch.object(
-        ExamIntegrityRun, "save", autospec=True, side_effect=fail_final_save
-    ):
+    with _fail_nth_transaction_commit(3) as commit_count:
         with pytest.raises(IntegrityLifecycleError) as caught:
             stop_run(
                 integrity_run.id,
@@ -746,6 +895,11 @@ def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_re
     integrity_run.refresh_from_db()
     assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.STOPPING
     assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 7
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at is None
+    assert commit_count() == 3
 
     stopped = stop_run(
         integrity_run.id,
@@ -756,6 +910,13 @@ def test_stop_final_db_failure_retries_from_checkpoint_without_worker_or_stop_re
 
     assert stopped.compute_state == ExamIntegrityRun.ComputeState.STOPPED
     assert stopped.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert stopped.archive_manifest_key == "integrity/run/manifest.json"
+    assert stopped.archive_manifest_sha256 == "a" * 64
+    assert stopped.archive_generation == 7
+    assert stopped.token_digest == "d" * 64
+    assert stopped.token_revoked_at is not None
+    assert stopped.health == ExamIntegrityRun.Health.HEALTHY
+    assert stopped.last_error == ""
     assert worker.request_stop.call_count == 1
     assert controller.stop_container.call_count == 1
     assert controller.status.call_count == 1
@@ -788,7 +949,7 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
     worker.request_stop.return_value = _verified_archive(integrity_run)
     stop_entered = threading.Event()
     release_stop = threading.Event()
-    second_started = threading.Event()
+    second_row_lock_attempted = threading.Event()
     controller = Mock()
 
     def stop_container(_run_id):
@@ -801,14 +962,25 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
     def call_stop(*, second=False):
         close_old_connections()
         try:
-            if second:
-                second_started.set()
-            return stop_run(
-                integrity_run.id,
-                actor=User.objects.get(pk=owner.pk),
-                worker=worker,
-                controller=controller,
-            ).compute_state
+            local_owner = User.objects.get(pk=owner.pk)
+
+            def signal_contested_lock(execute, sql, params, many, context):
+                if 'FROM "exam_integrity_runs"' in sql and "FOR UPDATE" in sql:
+                    second_row_lock_attempted.set()
+                return execute(sql, params, many, context)
+
+            lock_signal = (
+                connection.execute_wrapper(signal_contested_lock)
+                if second
+                else nullcontext()
+            )
+            with lock_signal:
+                return stop_run(
+                    integrity_run.id,
+                    actor=local_owner,
+                    worker=worker,
+                    controller=controller,
+                ).compute_state
         finally:
             close_old_connections()
 
@@ -816,7 +988,7 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
         first = pool.submit(call_stop)
         assert stop_entered.wait(timeout=10)
         second = pool.submit(call_stop, second=True)
-        assert second_started.wait(timeout=10)
+        assert second_row_lock_attempted.wait(timeout=10)
         release_stop.set()
         states = [first.result(timeout=10), second.result(timeout=10)]
 
@@ -826,6 +998,89 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
     ]
     assert worker.request_stop.call_count == 1
     assert controller.stop_container.call_count == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stale_stop_failure_cannot_overwrite_successful_retry(
+    integrity_run,
+    owner,
+):
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.RUNNING
+    integrity_run.token_digest = "d" * 64
+    integrity_run.container_id = "container-1"
+    integrity_run.container_name = "integrity-run-1"
+    integrity_run.worker_url = "http://integrity-run-1:8020"
+    integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.archive_generation = 9
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "token_digest",
+            "container_id",
+            "container_name",
+            "worker_url",
+            "worker_image_digest",
+            "archive_generation",
+        ]
+    )
+    worker = Mock()
+    worker.request_stop.return_value = _verified_archive(integrity_run)
+    controller = Mock()
+    old_status_failed = False
+
+    def stop_container(_run_id):
+        raise httpx.ReadTimeout("older stop response was lost")
+
+    def status(_run_id):
+        nonlocal old_status_failed
+        if not old_status_failed:
+            old_status_failed = True
+            raise RuntimeError("older status failure leaked raw-body")
+        return _container_status(integrity_run, state="stopped")
+
+    controller.stop_container.side_effect = stop_container
+    controller.status.side_effect = status
+
+    def failing_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        with pytest.raises(IntegrityLifecycleError) as caught:
+            stop_run(
+                integrity_run.id,
+                actor=local_owner,
+                worker=worker,
+                controller=controller,
+            )
+        return caught.value.code
+
+    def retry_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        return stop_run(
+            integrity_run.id,
+            actor=local_owner,
+            worker=worker,
+            controller=controller,
+        ).compute_state
+
+    failure_code, retry_state = _run_stale_error_persistence_race(
+        failing_call,
+        retry_call,
+    )
+
+    integrity_run.refresh_from_db()
+    assert failure_code == "controller_stop_reconciliation_failed"
+    assert retry_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.health == ExamIntegrityRun.Health.HEALTHY
+    assert integrity_run.last_error == ""
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 9
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at is not None
+    assert worker.request_stop.call_count == 1
+    assert controller.stop_container.call_count == 1
+    assert controller.status.call_count == 2
 
 
 @pytest.mark.django_db
@@ -866,12 +1121,14 @@ def test_purge_requires_destroyed_archived_and_commits_after_both_purges(
     integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
     integrity_run.archive_manifest_key = "integrity/run/manifest.json"
     integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
     integrity_run.save(
         update_fields=[
             "compute_state",
             "data_state",
             "archive_manifest_key",
             "archive_manifest_sha256",
+            "archive_generation",
         ]
     )
     calls = []
@@ -893,83 +1150,314 @@ def test_purge_requires_destroyed_archived_and_commits_after_both_purges(
     assert purged.purged_at is not None
 
 
-@pytest.mark.django_db
-def test_destroy_external_success_then_db_failure_is_safe_and_retryable(
+@pytest.mark.django_db(transaction=True)
+def test_destroy_external_success_then_commit_failure_is_safe_and_retryable(
     integrity_run,
     owner,
 ):
+    revoked_at = timezone.now()
     integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
     integrity_run.archive_manifest_key = "integrity/run/manifest.json"
     integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
     integrity_run.save(
         update_fields=[
             "data_state",
             "archive_manifest_key",
             "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
         ]
     )
     controller = Mock()
     controller.destroy.return_value = {}
-    original_save = ExamIntegrityRun.save
-    failed = False
 
-    def fail_destroy_save(instance, *args, **kwargs):
-        nonlocal failed
-        if (
-            instance.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
-            and not failed
-        ):
-            failed = True
-            raise RuntimeError("destroy persist raw-body")
-        return original_save(instance, *args, **kwargs)
-
-    with patch.object(
-        ExamIntegrityRun, "save", autospec=True, side_effect=fail_destroy_save
-    ):
+    with _fail_nth_transaction_commit(1) as commit_count:
         with pytest.raises(IntegrityLifecycleError) as caught:
             destroy_run(integrity_run.id, actor=owner, controller=controller)
 
     integrity_run.refresh_from_db()
     assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert integrity_run.destroyed_at is None
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
+    assert integrity_run.last_error == "controller_destroy_indeterminate"
+    assert commit_count() == 1
     destroyed = destroy_run(integrity_run.id, actor=owner, controller=controller)
     assert destroyed.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert destroyed.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert destroyed.archive_manifest_key == "integrity/run/manifest.json"
+    assert destroyed.archive_manifest_sha256 == "a" * 64
+    assert destroyed.archive_generation == 5
+    assert destroyed.token_digest == "d" * 64
+    assert destroyed.token_revoked_at == revoked_at
+    assert destroyed.health == ExamIntegrityRun.Health.HEALTHY
+    assert destroyed.last_error == ""
     assert controller.destroy.call_count == 2
     assert "raw-body" not in str(caught.value)
     assert caught.value.__cause__ is None
 
 
-@pytest.mark.django_db
-def test_purge_external_success_then_db_failure_is_safe_and_retryable(
+@pytest.mark.django_db(transaction=True)
+def test_stale_destroy_failure_cannot_overwrite_successful_retry(
     integrity_run,
     owner,
 ):
+    revoked_at = timezone.now()
+    integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
+    integrity_run.archive_manifest_key = "integrity/run/manifest.json"
+    integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
+    integrity_run.save(
+        update_fields=[
+            "data_state",
+            "archive_manifest_key",
+            "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
+        ]
+    )
+    controller = Mock()
+    controller.destroy.side_effect = [
+        RuntimeError("older destroy failure leaked raw-body"),
+        {},
+    ]
+
+    def failing_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        with pytest.raises(IntegrityLifecycleError) as caught:
+            destroy_run(
+                integrity_run.id,
+                actor=local_owner,
+                controller=controller,
+            )
+        return caught.value.code
+
+    def retry_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        return destroy_run(
+            integrity_run.id,
+            actor=local_owner,
+            controller=controller,
+        ).compute_state
+
+    failure_code, retry_state = _run_stale_error_persistence_race(
+        failing_call,
+        retry_call,
+    )
+
+    integrity_run.refresh_from_db()
+    assert failure_code == "controller_destroy_indeterminate"
+    assert retry_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.health == ExamIntegrityRun.Health.HEALTHY
+    assert integrity_run.last_error == ""
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert controller.destroy.call_count == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_purge_object_failure_preserves_volume_and_retries_safely(
+    integrity_run,
+    owner,
+):
+    revoked_at = timezone.now()
     integrity_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
     integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
     integrity_run.archive_manifest_key = "integrity/run/manifest.json"
     integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
     integrity_run.save(
         update_fields=[
             "compute_state",
             "data_state",
             "archive_manifest_key",
             "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
         ]
     )
-    purger = Mock()
+    purger = Mock(
+        side_effect=[RuntimeError("object purge leaked raw-body"), None],
+    )
     controller = Mock()
-    original_save = ExamIntegrityRun.save
-    failed = False
 
-    def fail_purge_save(instance, *args, **kwargs):
-        nonlocal failed
-        if instance.data_state == ExamIntegrityRun.DataState.PURGED and not failed:
-            failed = True
-            raise RuntimeError("purge persist raw-body")
-        return original_save(instance, *args, **kwargs)
+    with pytest.raises(IntegrityLifecycleError) as caught:
+        purge_run(
+            integrity_run.id,
+            actor=owner,
+            purger=purger,
+            controller=controller,
+        )
 
-    with patch.object(
-        ExamIntegrityRun, "save", autospec=True, side_effect=fail_purge_save
-    ):
+    integrity_run.refresh_from_db()
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert integrity_run.purged_at is None
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
+    assert integrity_run.last_error == "integrity_purge_indeterminate"
+    assert purger.call_count == 1
+    controller.purge_data.assert_not_called()
+
+    purged = purge_run(
+        integrity_run.id,
+        actor=owner,
+        purger=purger,
+        controller=controller,
+    )
+
+    assert purged.data_state == ExamIntegrityRun.DataState.PURGED
+    assert purged.archive_manifest_key == ""
+    assert purged.archive_manifest_sha256 == ""
+    assert purged.archive_generation == 5
+    assert purged.token_digest == "d" * 64
+    assert purged.token_revoked_at == revoked_at
+    assert purged.health == ExamIntegrityRun.Health.HEALTHY
+    assert purged.last_error == ""
+    assert purger.call_count == 2
+    assert controller.purge_data.call_count == 1
+    assert caught.value.code == "integrity_purge_indeterminate"
+    assert "raw-body" not in str(caught.value)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_purge_object_success_then_volume_failure_retries_both_boundaries(
+    integrity_run,
+    owner,
+):
+    revoked_at = timezone.now()
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
+    integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
+    integrity_run.archive_manifest_key = "integrity/run/manifest.json"
+    integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "data_state",
+            "archive_manifest_key",
+            "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
+        ]
+    )
+    calls = []
+    purger = Mock(side_effect=lambda run: calls.append("objects"))
+    controller = Mock()
+    volume_attempt = 0
+
+    def purge_volume(_run_id):
+        nonlocal volume_attempt
+        volume_attempt += 1
+        calls.append("volume")
+        if volume_attempt == 1:
+            raise RuntimeError("volume purge leaked raw-body")
+        return {}
+
+    controller.purge_data.side_effect = purge_volume
+
+    with pytest.raises(IntegrityLifecycleError) as caught:
+        purge_run(
+            integrity_run.id,
+            actor=owner,
+            purger=purger,
+            controller=controller,
+        )
+
+    integrity_run.refresh_from_db()
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert integrity_run.purged_at is None
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
+    assert integrity_run.last_error == "integrity_purge_indeterminate"
+    assert purger.call_count == 1
+    assert controller.purge_data.call_count == 1
+
+    purged = purge_run(
+        integrity_run.id,
+        actor=owner,
+        purger=purger,
+        controller=controller,
+    )
+
+    assert purged.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert purged.data_state == ExamIntegrityRun.DataState.PURGED
+    assert purged.archive_manifest_key == ""
+    assert purged.archive_manifest_sha256 == ""
+    assert purged.archive_generation == 5
+    assert purged.token_digest == "d" * 64
+    assert purged.token_revoked_at == revoked_at
+    assert purged.health == ExamIntegrityRun.Health.HEALTHY
+    assert purged.last_error == ""
+    assert calls == ["objects", "volume", "objects", "volume"]
+    assert purger.call_count == 2
+    assert controller.purge_data.call_count == 2
+    assert caught.value.code == "integrity_purge_indeterminate"
+    assert "raw-body" not in str(caught.value)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_purge_external_success_then_commit_failure_retries_both_boundaries(
+    integrity_run,
+    owner,
+):
+    revoked_at = timezone.now()
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
+    integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
+    integrity_run.archive_manifest_key = "integrity/run/manifest.json"
+    integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "data_state",
+            "archive_manifest_key",
+            "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
+        ]
+    )
+    calls = []
+    purger = Mock(side_effect=lambda run: calls.append("objects"))
+    controller = Mock()
+    controller.purge_data.side_effect = lambda run_id: calls.append("volume") or {}
+
+    with _fail_nth_transaction_commit(1) as commit_count:
         with pytest.raises(IntegrityLifecycleError) as caught:
             purge_run(
                 integrity_run.id,
@@ -979,18 +1467,109 @@ def test_purge_external_success_then_db_failure_is_safe_and_retryable(
             )
 
     integrity_run.refresh_from_db()
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
     assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.archive_manifest_key == "integrity/run/manifest.json"
+    assert integrity_run.archive_manifest_sha256 == "a" * 64
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert integrity_run.purged_at is None
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
+    assert integrity_run.last_error == "integrity_purge_indeterminate"
+    assert commit_count() == 1
     purged = purge_run(
         integrity_run.id,
         actor=owner,
         purger=purger,
         controller=controller,
     )
+    assert purged.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
     assert purged.data_state == ExamIntegrityRun.DataState.PURGED
+    assert purged.archive_manifest_key == ""
+    assert purged.archive_manifest_sha256 == ""
+    assert purged.archive_generation == 5
+    assert purged.token_digest == "d" * 64
+    assert purged.token_revoked_at == revoked_at
+    assert purged.health == ExamIntegrityRun.Health.HEALTHY
+    assert purged.last_error == ""
+    assert calls == ["objects", "volume", "objects", "volume"]
     assert purger.call_count == 2
     assert controller.purge_data.call_count == 2
     assert "raw-body" not in str(caught.value)
     assert caught.value.__cause__ is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_stale_purge_failure_cannot_overwrite_successful_retry(
+    integrity_run,
+    owner,
+):
+    revoked_at = timezone.now()
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
+    integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
+    integrity_run.archive_manifest_key = "integrity/run/manifest.json"
+    integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.archive_generation = 5
+    integrity_run.token_digest = "d" * 64
+    integrity_run.token_revoked_at = revoked_at
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "data_state",
+            "archive_manifest_key",
+            "archive_manifest_sha256",
+            "archive_generation",
+            "token_digest",
+            "token_revoked_at",
+        ]
+    )
+    purger = Mock()
+    controller = Mock()
+    controller.purge_data.side_effect = [
+        RuntimeError("older volume purge failure leaked raw-body"),
+        {},
+    ]
+
+    def failing_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        with pytest.raises(IntegrityLifecycleError) as caught:
+            purge_run(
+                integrity_run.id,
+                actor=local_owner,
+                purger=purger,
+                controller=controller,
+            )
+        return caught.value.code
+
+    def retry_call():
+        local_owner = User.objects.get(pk=owner.pk)
+        return purge_run(
+            integrity_run.id,
+            actor=local_owner,
+            purger=purger,
+            controller=controller,
+        ).data_state
+
+    failure_code, retry_state = _run_stale_error_persistence_race(
+        failing_call,
+        retry_call,
+    )
+
+    integrity_run.refresh_from_db()
+    assert failure_code == "integrity_purge_indeterminate"
+    assert retry_state == ExamIntegrityRun.DataState.PURGED
+    assert integrity_run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.PURGED
+    assert integrity_run.health == ExamIntegrityRun.Health.HEALTHY
+    assert integrity_run.last_error == ""
+    assert integrity_run.archive_manifest_key == ""
+    assert integrity_run.archive_manifest_sha256 == ""
+    assert integrity_run.archive_generation == 5
+    assert integrity_run.token_digest == "d" * 64
+    assert integrity_run.token_revoked_at == revoked_at
+    assert purger.call_count == 2
+    assert controller.purge_data.call_count == 2
 
 
 @pytest.mark.django_db(transaction=True)

@@ -107,6 +107,39 @@ class VerifiedArchiveManifest:
     manifest_sha256: str
 
 
+@dataclass(frozen=True)
+class LifecycleErrorClaim:
+    compute_state: str
+    data_state: str
+    token_digest: str
+    archive_generation: int
+    archive_manifest_key: str
+    archive_manifest_sha256: str
+    container_id: str
+    container_name: str
+    worker_url: str
+    worker_image_digest: str
+
+
+@dataclass
+class LifecycleErrorGuard:
+    claim: LifecycleErrorClaim | None = None
+
+    def observe(self, run: ExamIntegrityRun) -> None:
+        self.claim = LifecycleErrorClaim(
+            compute_state=run.compute_state,
+            data_state=run.data_state,
+            token_digest=run.token_digest,
+            archive_generation=run.archive_generation,
+            archive_manifest_key=run.archive_manifest_key,
+            archive_manifest_sha256=run.archive_manifest_sha256,
+            container_id=run.container_id,
+            container_name=run.container_name,
+            worker_url=run.worker_url,
+            worker_image_digest=run.worker_image_digest,
+        )
+
+
 def _build_controller_client() -> ControllerClient:
     from apps.contests.infrastructure.integrity_controller_client import (
         build_integrity_controller_client,
@@ -184,10 +217,29 @@ def _serialized_run_operation(run_id):
             pass
 
 
-def _record_lifecycle_error(run_id, code: str) -> None:
+def _record_lifecycle_error(
+    run_id,
+    code: str,
+    *,
+    claim: LifecycleErrorClaim | None,
+) -> None:
+    if claim is None:
+        return
     safe_code = code if code in _SAFE_LIFECYCLE_CODES else "lifecycle_operation_failed"
     try:
-        ExamIntegrityRun.objects.filter(pk=run_id).update(
+        ExamIntegrityRun.objects.filter(
+            pk=run_id,
+            compute_state=claim.compute_state,
+            data_state=claim.data_state,
+            token_digest=claim.token_digest,
+            archive_generation=claim.archive_generation,
+            archive_manifest_key=claim.archive_manifest_key,
+            archive_manifest_sha256=claim.archive_manifest_sha256,
+            container_id=claim.container_id,
+            container_name=claim.container_name,
+            worker_url=claim.worker_url,
+            worker_image_digest=claim.worker_image_digest,
+        ).update(
             health=ExamIntegrityRun.Health.UNHEALTHY,
             last_error=safe_code,
         )
@@ -337,9 +389,11 @@ def _finalize_start_result(
     *,
     expected_token_digest: str,
     container: StartedContainer,
+    error_guard: LifecycleErrorGuard,
 ) -> ExamIntegrityRun:
     with transaction.atomic():
         run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
         if (
             run.compute_state != ExamIntegrityRun.ComputeState.STARTING
             or not hmac.compare_digest(run.token_digest, expected_token_digest)
@@ -353,9 +407,11 @@ def _finalize_start_result(
 def _finalize_start_status(
     run_id,
     status: ReconciledControllerStatus,
+    error_guard: LifecycleErrorGuard,
 ) -> ExamIntegrityRun:
     with transaction.atomic():
         run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
         if (
             run.compute_state != ExamIntegrityRun.ComputeState.STARTING
             or status.state != "running"
@@ -378,16 +434,21 @@ def _finalize_start_status(
 def _reconcile_start(
     run_id,
     controller: ControllerClient,
+    error_guard: LifecycleErrorGuard,
 ) -> ExamIntegrityRun:
     status = _read_controller_status(
         controller,
         run_id,
         error_code="controller_start_reconciliation_failed",
     )
-    return _finalize_start_status(run_id, status)
+    return _finalize_start_status(run_id, status, error_guard)
 
 
-def _start_run_serialized(run_id, controller: ControllerClient) -> ExamIntegrityRun:
+def _start_run_serialized(
+    run_id,
+    controller: ControllerClient,
+    error_guard: LifecycleErrorGuard,
+) -> ExamIntegrityRun:
     plaintext_token: str | None = None
     with transaction.atomic():
         run = (
@@ -395,6 +456,7 @@ def _start_run_serialized(run_id, controller: ControllerClient) -> ExamIntegrity
             .select_related("contest")
             .get(pk=run_id)
         )
+        error_guard.observe(run)
         if run.compute_state == ExamIntegrityRun.ComputeState.STOPPED:
             if (
                 run.data_state != ExamIntegrityRun.DataState.OPEN
@@ -450,6 +512,8 @@ def _start_run_serialized(run_id, controller: ControllerClient) -> ExamIntegrity
         expected_token_digest = token.digest
         worker_image = run.worker_image
 
+    error_guard.observe(run)
+
     try:
         result = controller.start(
             run_id,
@@ -458,27 +522,29 @@ def _start_run_serialized(run_id, controller: ControllerClient) -> ExamIntegrity
         )
         container = _parse_started_container(result)
     except Exception:
-        return _reconcile_start(run_id, controller)
+        return _reconcile_start(run_id, controller, error_guard)
     return _finalize_start_result(
         run_id,
         expected_token_digest=expected_token_digest,
         container=container,
+        error_guard=error_guard,
     )
 
 
 def start_run(run_id, *, controller=None) -> ExamIntegrityRun:
     controller = controller or _build_controller_client()
+    error_guard = LifecycleErrorGuard()
     try:
         with _serialized_run_operation(run_id):
-            return _start_run_serialized(run_id, controller)
+            return _start_run_serialized(run_id, controller, error_guard)
     except InvalidRunTransition:
         raise
     except IntegrityLifecycleError as exc:
-        _record_lifecycle_error(run_id, exc.code)
+        _record_lifecycle_error(run_id, exc.code, claim=error_guard.claim)
         raise IntegrityLifecycleError(exc.code) from None
     except Exception:
         code = "controller_start_finalization_failed"
-        _record_lifecycle_error(run_id, code)
+        _record_lifecycle_error(run_id, code, claim=error_guard.claim)
         raise IntegrityLifecycleError(code) from None
 
 
@@ -521,9 +587,13 @@ def _parse_archive_manifest(
         ) from None
 
 
-def _mark_stopping(run_id) -> ExamIntegrityRun:
+def _mark_stopping(
+    run_id,
+    error_guard: LifecycleErrorGuard,
+) -> ExamIntegrityRun:
     with transaction.atomic():
         run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
         if (
             run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
             and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
@@ -544,9 +614,11 @@ def _archive_checkpoint_present(run: ExamIntegrityRun) -> bool:
 def _checkpoint_archive(
     run_id,
     worker: WorkerStopClient | None,
+    error_guard: LifecycleErrorGuard,
 ) -> tuple[ExamIntegrityRun, bool]:
     with transaction.atomic():
         run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
         if (
             run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
             and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
@@ -601,9 +673,11 @@ def _complete_stop(
     actor,
     controller: ControllerClient,
     reconcile_first: bool,
+    error_guard: LifecycleErrorGuard,
 ) -> ExamIntegrityRun:
     with transaction.atomic():
         run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
         if (
             run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
             and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
@@ -662,38 +736,47 @@ def stop_run(
     worker: WorkerStopClient | None = None,
     controller=None,
 ) -> ExamIntegrityRun:
+    error_guard = LifecycleErrorGuard()
     try:
-        marked = _mark_stopping(run_id)
+        marked = _mark_stopping(run_id, error_guard)
         if (
             marked.compute_state == ExamIntegrityRun.ComputeState.STOPPED
             and marked.data_state == ExamIntegrityRun.DataState.ARCHIVED
         ):
             return marked
-        checkpointed, created_checkpoint = _checkpoint_archive(run_id, worker)
+        checkpointed, created_checkpoint = _checkpoint_archive(
+            run_id,
+            worker,
+            error_guard,
+        )
         if checkpointed.compute_state == ExamIntegrityRun.ComputeState.STOPPED:
             return checkpointed
+        error_guard.observe(checkpointed)
         resolved_controller = controller or _build_controller_client()
         return _complete_stop(
             run_id,
             actor=actor,
             controller=resolved_controller,
             reconcile_first=not created_checkpoint,
+            error_guard=error_guard,
         )
     except InvalidRunTransition:
         raise
     except IntegrityLifecycleError as exc:
-        _record_lifecycle_error(run_id, exc.code)
+        _record_lifecycle_error(run_id, exc.code, claim=error_guard.claim)
         raise IntegrityLifecycleError(exc.code) from None
     except Exception:
         code = "controller_stop_finalization_failed"
-        _record_lifecycle_error(run_id, code)
+        _record_lifecycle_error(run_id, code, claim=error_guard.claim)
         raise IntegrityLifecycleError(code) from None
 
 
 def destroy_run(run_id, *, actor, controller=None) -> ExamIntegrityRun:
+    error_guard = LifecycleErrorGuard()
     try:
         with transaction.atomic():
             run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+            error_guard.observe(run)
             if not (
                 run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
                 and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
@@ -709,6 +792,7 @@ def destroy_run(run_id, *, actor, controller=None) -> ExamIntegrityRun:
             run.token_revoked_at = run.token_revoked_at or now
             run.destroyed_by = actor
             run.destroyed_at = now
+            run.health = ExamIntegrityRun.Health.HEALTHY
             run.last_error = ""
             run.save()
             return run
@@ -716,7 +800,7 @@ def destroy_run(run_id, *, actor, controller=None) -> ExamIntegrityRun:
         raise
     except Exception:
         code = "controller_destroy_indeterminate"
-        _record_lifecycle_error(run_id, code)
+        _record_lifecycle_error(run_id, code, claim=error_guard.claim)
         raise IntegrityLifecycleError(code) from None
 
 
@@ -727,9 +811,11 @@ def purge_run(
     purger: PurgeRunData | None = None,
     controller=None,
 ) -> ExamIntegrityRun:
+    error_guard = LifecycleErrorGuard()
     try:
         with transaction.atomic():
             run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+            error_guard.observe(run)
             if not (
                 run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
                 and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
@@ -748,6 +834,7 @@ def purge_run(
             run.archive_manifest_sha256 = ""
             run.purged_by = actor
             run.purged_at = timezone.now()
+            run.health = ExamIntegrityRun.Health.HEALTHY
             run.last_error = ""
             run.save()
             return run
@@ -755,5 +842,5 @@ def purge_run(
         raise
     except Exception:
         code = "integrity_purge_indeterminate"
-        _record_lifecycle_error(run_id, code)
+        _record_lifecycle_error(run_id, code, claim=error_guard.claim)
         raise IntegrityLifecycleError(code) from None
