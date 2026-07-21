@@ -33,6 +33,7 @@
 - New normal event plugins must not change outbox, transport, journal, Controller, lifecycle, archive, or Internal API core.
 - Follow QJudge frontend import direction: `features -> shared/core/infrastructure`, `infrastructure -> core`, `core -> core`.
 - Use the QJudge Compose wrapper for backend/frontend service commands.
+- Do not run or modify Locust/load-test scenarios, Playwright/E2E suites, or automated browser visual acceptance in this execution. Preserve those assets and hand Storybook/live-page visual validation to the user.
 - End every task with focused tests and a small commit.
 
 ## Locked File Structure
@@ -3276,6 +3277,8 @@ bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh
 
 Expected: control guards, translated states, Carbon style gate, and build pass.
 
+Do not treat these automated checks as visual approval. Provide the user with the Storybook states and live proctoring-page route for spacing, hierarchy, wording, confirmation flow, responsive layout, and theme validation.
+
 - [ ] **Step 8: Commit**
 
 ```bash
@@ -3295,7 +3298,7 @@ git commit -m "feat(frontend): add integrity run controls"
 
 ---
 
-### Task 16: Perform the Direct Cutover, Capacity Test, and Final Verification
+### Task 16: Perform the Direct Cutover and Automated Verification
 
 **Files:**
 - Modify: `backend/apps/contests/tasks.py`
@@ -3306,17 +3309,14 @@ git commit -m "feat(frontend): add integrity run controls"
 - Modify: `docker-compose.yml`
 - Modify: `docker-compose.dev.yml`
 - Modify: `docker-compose.test.yml`
-- Modify: `loadtests/anticheat_exam/locustfile.py`
-- Modify: `loadtests/anticheat_exam/README.md`
 - Create: `integrity-service/tests/test_replay.py`
 - Modify: `backend/schema.yml`
 - Modify: `docs/anticheat-architecture.md`
-- Modify: `docs/loadtest.md`
 - Create: `docs/operations/exam-integrity-runbook.md`
 
 **Interfaces:**
 - Consumes: All completed tasks and an environment with no active examinations.
-- Produces: One authoritative Worker path, retired duplicate jobs, 200-client evidence, replay proof, generated API schema, and an operator runbook.
+- Produces: One authoritative Worker path, retired duplicate jobs, replay proof, generated API schema, an operator runbook, and a deferred manual/load acceptance checklist.
 
 - [ ] **Step 1: Add failing cutover assertions**
 
@@ -3405,55 +3405,23 @@ celery -A config worker -l info -Q high_priority --concurrency=2
 
 Apply the same intent in dev/test overrides. Keep the default Celery worker, Beat, code judge image/workers, AI service, and their required Docker access.
 
-- [ ] **Step 5: Update the 200-client Locust scenario**
+- [ ] **Step 5: Preserve deferred load/E2E acceptance criteria**
 
-Replace direct `/exam/events/` heartbeat/event calls with a per-user monotonic sequence and:
+Do not modify or run `loadtests/anticheat_exam` or any Playwright/E2E suite in this execution. Record these deferred criteria in the operator runbook so a later approved validation session can implement or execute them:
 
-```text
-POST /api/v1/contests/{contest_id}/exam/integrity/batches/
-```
-
-Every simulated user sends one batch per five seconds containing a state snapshot and any queued raw signals. Preserve one `batch_id` for retry until the returned `acked_through_seq` covers its records. Add scenarios:
-
-- normal 200-user steady state;
-- 65-second offline accumulation then reconnect;
-- duplicate/lost ACK retry;
-- incident retain manifest with screen and webcam descriptor metadata but small fixture media;
-- Stop/archive after ingest.
-
-Run:
-
-```bash
-locust -f loadtests/anticheat_exam/locustfile.py \
-  --headless -u 200 -r 40 -t 15m \
-  --host http://localhost:8000 \
-  --csv /tmp/qjudge-integrity-200
-```
-
-Pass criteria:
-
-- sustained approximately 40 batch requests/second;
+- 200-user steady state at approximately 40 batch requests/second;
 - batch ACK p95 below 500 ms;
-- zero ACKed sequence loss after Worker restart/replay validation;
-- no PostgreSQL batch/session/command rows;
-- reconnect drains all offline records without timestamp mutation;
-- object storage contains compressed journal segments, not one object per five-second batch;
-- only incident-selected media objects are uploaded.
+- zero ACKed sequence loss across Worker restart/replay;
+- 65-second offline accumulation and timestamp-preserving reconnect;
+- duplicate/lost ACK retry with the same `batch_id`;
+- compressed journal segments rather than one object per batch;
+- incident-selected screen/webcam objects only;
+- scheduled-end auto-submit while Worker remains RUNNING;
+- Stop archive completion, Destroy data retention, and explicit disposable-Run Purge.
 
-- [ ] **Step 6: Verify Stop, Destroy, and Purge operational guards**
+Also provide the user a manual UI checklist covering every `IntegrityRunControlCard` Storybook state and the live proctoring panel. The user, not an automated visual/E2E tool, approves layout and interaction behavior.
 
-Use one disposable Run and record the exact IDs in the test log:
-
-1. Create and Start at least one minute before the test contest begins.
-2. Ingest records and trigger one evidence incident.
-3. Allow scheduled end to auto-submit participants; verify the Worker remains RUNNING.
-4. Stop; verify STOPPING persists until segment and manifest verification completes, then STOPPED+ARCHIVED.
-5. Destroy; verify container/secret volume are removed and run data volume/archive remain.
-6. Purge only after explicit operator action; verify archive objects and retained volume are removed and `data_state=PURGED`.
-
-Do not run Purge against a non-disposable Run.
-
-- [ ] **Step 7: Generate schema and update architecture/operations docs**
+- [ ] **Step 6: Generate schema and update architecture/operations docs**
 
 Run:
 
@@ -3475,7 +3443,7 @@ Copy the generated schema to the tracked `backend/schema.yml` when the test cont
 - why Backend/Worker raw batch PostgreSQL tables do not exist;
 - retired Celery jobs and services that must remain.
 
-- [ ] **Step 8: Run the full Backend and service suites**
+- [ ] **Step 7: Run the full Backend and service suites**
 
 Run:
 
@@ -3490,7 +3458,7 @@ python -m pytest
 
 Expected: no pending migration and all contest/Integrity tests pass.
 
-- [ ] **Step 9: Run Frontend tests, build, and QJudge gates**
+- [ ] **Step 8: Run Frontend tests, build, and QJudge gates**
 
 Run:
 
@@ -3507,7 +3475,7 @@ bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh
 
 Expected: tests/build pass and all three QJudge gates report no new violation.
 
-- [ ] **Step 10: Validate Compose and repository cleanliness**
+- [ ] **Step 9: Validate Compose and repository cleanliness**
 
 Run:
 
@@ -3521,16 +3489,15 @@ git status --short
 
 Expected: every Compose variant renders, no whitespace errors exist, and only intended implementation files are modified.
 
-- [ ] **Step 11: Commit the cutover**
+- [ ] **Step 10: Commit the cutover**
 
 ```bash
 git add backend/apps/contests/tasks.py backend/config/settings/base.py \
   backend/apps/contests/tests/tasks backend/apps/contests/tests/test_exam_anticheat.py \
   backend/schema.yml \
   docker-compose.yml docker-compose.dev.yml docker-compose.test.yml \
-  loadtests/anticheat_exam \
   integrity-service/tests/test_replay.py \
-  docs/anticheat-architecture.md docs/loadtest.md \
+  docs/anticheat-architecture.md \
   docs/operations/exam-integrity-runbook.md
 git commit -m "feat(integrity): cut over exam monitoring authority"
 ```
@@ -3544,6 +3511,6 @@ Because this change crosses more than 20 files, preserve the task-level commits 
 1. Tasks 1–3: PostgreSQL contract, canonical registry, lifecycle, and scoped credentials.
 2. Tasks 4–11: journal/Worker/Controller, Backend gateway/commands/evidence, and Compose boundary.
 3. Tasks 12–15: browser outbox, generic detectors, incident media, and administrator controls.
-4. Task 16: authority cutover, capacity/replay evidence, schema, and operations documentation.
+4. Task 16: authority cutover, deterministic replay evidence, schema, automated gates, and operations/manual-acceptance documentation.
 
-Do not merge a later checkpoint before its dependency checkpoint passes. Each checkpoint targets `dev` under the QJudge branch policy; the final cutover checkpoint must include the full verification output and explain the intentional cross-cutting size.
+Do not merge a later checkpoint before its dependency checkpoint passes. Each checkpoint targets `dev` under the QJudge branch policy; the final cutover checkpoint must include the approved automated verification output, list deferred load/E2E checks, and explain the intentional cross-cutting size.
