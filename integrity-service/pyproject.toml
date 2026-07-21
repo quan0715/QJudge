@@ -5,6 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
   "jsonschema>=4.21,<5.0",
   "pydantic>=2.6,<3.0",
+  "referencing>=0.31,<1.0",
 ]
 
 [project.optional-dependencies]

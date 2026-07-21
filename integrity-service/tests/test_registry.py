@@ -116,3 +116,70 @@ def test_registry_validates_event_payload_against_metadata_schema():
 def test_registry_rejects_unknown_signal():
     with pytest.raises(UnknownSignal, match="unknown"):
         Registry(registry_snapshot()).resolve("unknown")
+
+
+@pytest.mark.parametrize(
+    ("keyword", "reference"),
+    [
+        ("$ref", "https://example.invalid/schema.json"),
+        ("$ref", "file:///tmp/schema.json"),
+        ("$dynamicRef", "https://example.invalid/schema.json#node"),
+    ],
+)
+def test_registry_rejects_nonlocal_references_before_any_retrieval(
+    monkeypatch, keyword, reference
+):
+    snapshot = registry_snapshot()
+    snapshot["definitions"]["fullscreen"]["metadata_schema"] = {
+        keyword: reference
+    }
+    retrievals = []
+
+    def forbidden_urlopen(*args, **kwargs):
+        retrievals.append((args, kwargs))
+        raise AssertionError("registry construction attempted I/O")
+
+    monkeypatch.setattr("urllib.request.urlopen", forbidden_urlopen)
+
+    with pytest.raises(ValueError, match="local fragment"):
+        Registry(snapshot)
+    assert retrievals == []
+
+
+def test_registry_compiles_local_defs_reference_once_and_validates_without_io(monkeypatch):
+    snapshot = registry_snapshot()
+    snapshot["definitions"]["fullscreen"]["metadata_schema"] = {
+        "$defs": {"reason": {"type": "string", "minLength": 1}},
+        "type": "object",
+        "properties": {"reason": {"$ref": "#/$defs/reason"}},
+        "required": ["reason"],
+        "additionalProperties": False,
+    }
+
+    def forbidden_urlopen(*args, **kwargs):
+        raise AssertionError("payload validation attempted I/O")
+
+    monkeypatch.setattr("urllib.request.urlopen", forbidden_urlopen)
+    registry = Registry(snapshot)
+    registry.validate_payload("exit_fullscreen_triggered", {"reason": "local"})
+    with pytest.raises(ValidationError):
+        registry.validate_payload("exit_fullscreen_triggered", {"reason": ""})
+
+
+def test_registry_definition_and_indexes_are_deeply_immutable_and_replay_stable():
+    snapshot = registry_snapshot()
+    registry = Registry(snapshot)
+    definition, phase = registry.resolve("exit_fullscreen_triggered")
+
+    with pytest.raises(TypeError):
+        definition.metadata_schema["required"] = []  # type: ignore[index]
+    with pytest.raises((AttributeError, TypeError)):
+        registry._by_signal["exit_fullscreen_triggered"] = (definition, "restored")
+    assert not hasattr(registry, "by_signal")
+
+    snapshot["definitions"]["fullscreen"]["signals"]["triggered"] = "mutated"
+    snapshot["definitions"]["fullscreen"]["metadata_schema"]["required"] = []
+    replayed, replayed_phase = registry.resolve("exit_fullscreen_triggered")
+    assert (replayed, replayed_phase) == (definition, phase)
+    with pytest.raises(ValidationError):
+        registry.validate_payload("exit_fullscreen_triggered", {})

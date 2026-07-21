@@ -5,21 +5,27 @@ from __future__ import annotations
 from integrity_service.core.commands import (
     EngineContext,
     IntegrityCommand,
+    SubmissionState,
     deterministic_uuid,
     make_command,
 )
 
 
 class DeadlineScheduler:
-    def __init__(self, scheduled_end_ms: int, context: EngineContext):
+    def __init__(
+        self,
+        scheduled_end_ms: int,
+        context: EngineContext,
+        submissions: SubmissionState,
+    ):
         if scheduled_end_ms < 0:
             raise ValueError("scheduled_end_ms must not be negative")
         self.scheduled_end_ms = scheduled_end_ms
         self._context = context
-        self._submitted: set[int] = set()
+        self._submissions = submissions
 
     def mark_submitted(self, participant_id: int) -> None:
-        self._submitted.add(participant_id)
+        self._submissions.mark_submitted(participant_id)
 
     def tick(
         self, now_ms: int, active_participant_ids: set[int]
@@ -27,7 +33,9 @@ class DeadlineScheduler:
         if now_ms < self.scheduled_end_ms:
             return ()
         commands = []
-        for participant_id in sorted(active_participant_ids - self._submitted):
+        for participant_id in sorted(active_participant_ids):
+            if self._submissions.is_submitted(participant_id):
+                continue
             event_id = deterministic_uuid(
                 self._context.run_id,
                 "scheduled-end",
@@ -50,5 +58,5 @@ class DeadlineScheduler:
                     metadata={"scheduled_end_ms": self.scheduled_end_ms},
                 )
             )
-            self._submitted.add(participant_id)
+            self._submissions.mark_submitted(participant_id)
         return tuple(commands)

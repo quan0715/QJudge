@@ -8,9 +8,12 @@ from uuid import UUID
 from integrity_service.core.commands import (
     CommandAction,
     EngineContext,
+    FrozenDict,
     IntegrityCommand,
     ReceivedEvent,
+    SubmissionState,
     deterministic_uuid,
+    freeze_json,
     make_command,
 )
 from integrity_service.core.registry import ParsedDefinition, Registry
@@ -35,28 +38,54 @@ class IncidentResult:
 class _OpenIncident:
     definition: ParsedDefinition
     incident_id: UUID
-    trigger: ReceivedEvent
+    participant_id: int
+    device_id: str
+    trigger_event_id: UUID
+    trigger_client_occurred_at_ms: int
+    trigger_metadata: FrozenDict
     deadline_server_ms: int
     escalated: bool = False
 
 
 class IncidentEngine:
-    def __init__(self, registry: Registry, context: EngineContext):
+    def __init__(
+        self,
+        registry: Registry,
+        context: EngineContext,
+        submissions: SubmissionState,
+    ):
         self._registry = registry
         self._context = context
         self._open: dict[tuple[int, str], _OpenIncident] = {}
-        self._submitted: set[int] = set()
+        self._submissions = submissions
 
     def mark_submitted(self, participant_id: int) -> None:
-        self._submitted.add(participant_id)
+        self._submissions.mark_submitted(participant_id)
 
     def ingest(self, received: ReceivedEvent) -> IncidentResult:
         definition, phase = self._registry.resolve(received.record.event_type)
         self._registry.validate_payload(received.record.event_type, received.record.payload)
         key = (received.participant_id, definition.incident_family)
 
+        # Registry escalated signal IDs are observable browser claims, never timer authority.
+        # A distinct phase keeps their command identity disjoint from canonical escalation.
+        if phase == "escalated":
+            opened = self._open.get(key)
+            return IncidentResult(
+                (
+                    self._event_command(
+                        received,
+                        "external_escalated_audit",
+                        definition,
+                        "audit",
+                        None if opened is None else opened.incident_id,
+                    ),
+                )
+            )
+
         if received.delayed_delivery:
-            return IncidentResult((self._event_command(received, phase, definition, "audit", None),))
+            command = self._event_command(received, phase, definition, "audit", None)
+            return IncidentResult((command,))
 
         if phase == "restored":
             opened = self._open.get(key)
@@ -79,19 +108,6 @@ class IncidentEngine:
             )
             return IncidentResult(tuple(commands))
 
-        if phase == "escalated":
-            return IncidentResult(
-                (
-                    self._event_command(
-                        received,
-                        phase,
-                        definition,
-                        self._eligible_action(received.participant_id, definition.action),
-                        None,
-                    ),
-                )
-            )
-
         opened = self._open.get(key)
         if opened is not None:
             return IncidentResult(
@@ -102,8 +118,9 @@ class IncidentEngine:
                 )
             )
 
-        if received.participant_id in self._submitted:
-            return IncidentResult((self._event_command(received, phase, definition, "audit", None),))
+        if self._submissions.is_submitted(received.participant_id):
+            command = self._event_command(received, phase, definition, "audit", None)
+            return IncidentResult((command,))
 
         lifecycle_signal = bool(definition.escalated or definition.restored)
         incident_id = None
@@ -119,7 +136,11 @@ class IncidentEngine:
             self._open[key] = _OpenIncident(
                 definition=definition,
                 incident_id=incident_id,
-                trigger=received,
+                participant_id=received.participant_id,
+                device_id=received.device_id,
+                trigger_event_id=received.record.event_id,
+                trigger_client_occurred_at_ms=received.record.client_occurred_at_ms,
+                trigger_metadata=self._snapshot_metadata(received.record.payload),
                 deadline_server_ms=received.received_at_server_ms + definition.grace_ms,
             )
             action = "record"
@@ -136,27 +157,26 @@ class IncidentEngine:
         return IncidentResult(tuple(commands))
 
     def _eligible_action(self, participant_id: int, registry_action: str) -> CommandAction:
-        if participant_id in self._submitted:
+        if self._submissions.is_submitted(participant_id):
             return "audit"
         return _REGISTRY_ACTIONS[registry_action]
 
     def _escalate(self, opened: _OpenIncident) -> IntegrityCommand:
         opened.escalated = True
-        trigger = opened.trigger
         return make_command(
             context=self._context,
             kind="record_event",
-            participant_id=trigger.participant_id,
-            device_id=trigger.device_id,
+            participant_id=opened.participant_id,
+            device_id=opened.device_id,
             incident_id=opened.incident_id,
-            event_id=trigger.record.event_id,
+            event_id=opened.trigger_event_id,
             phase="escalated",
             event_type=opened.definition.escalated,
-            action=self._eligible_action(trigger.participant_id, opened.definition.action),
-            client_occurred_at_ms=trigger.record.client_occurred_at_ms,
+            action=self._eligible_action(opened.participant_id, opened.definition.action),
+            client_occurred_at_ms=opened.trigger_client_occurred_at_ms,
             received_at_server_ms=opened.deadline_server_ms,
             evidence=self._evidence(opened.definition),
-            metadata=dict(trigger.record.payload),
+            metadata=opened.trigger_metadata,
         )
 
     def _event_command(
@@ -191,3 +211,9 @@ class IncidentEngine:
             "before_ms": definition.evidence_before_ms,
             "after_ms": definition.evidence_after_ms,
         }
+
+    @staticmethod
+    def _snapshot_metadata(payload: dict[str, object]) -> FrozenDict:
+        frozen = freeze_json(payload, "$.trigger.payload")
+        assert isinstance(frozen, FrozenDict)
+        return frozen

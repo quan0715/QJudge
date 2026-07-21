@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 import json
+import math
+from types import MappingProxyType
 from typing import Literal
 from uuid import UUID, uuid5
 
@@ -20,27 +23,68 @@ CommandKind = Literal[
 CommandAction = Literal["audit", "record", "pause", "lock", "submit"]
 
 
-class FrozenDict(dict[str, object]):
-    """A JSON-serializable dictionary that rejects mutation."""
+class FrozenDict(Mapping[str, object]):
+    """Transitively immutable mapping used for JSON object values."""
 
-    def _immutable(self, *args: object, **kwargs: object) -> None:
-        raise TypeError("command data is immutable")
+    __slots__ = ("_data",)
 
-    __delitem__ = _immutable
-    __ior__ = _immutable
-    __setitem__ = _immutable
-    clear = _immutable
-    pop = _immutable
-    popitem = _immutable
-    setdefault = _immutable
-    update = _immutable
+    def __init__(self, values: dict[str, object]):
+        self._data = MappingProxyType(dict(values))
+
+    def __getitem__(self, key: str) -> object:
+        return self._data[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        return repr(dict(self._data))
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Mapping) and dict(self.items()) == dict(other.items())
 
 
-def _freeze_json(value: object) -> object:
-    if isinstance(value, dict):
-        return FrozenDict({key: _freeze_json(item) for key, item in value.items()})
-    if isinstance(value, list):
-        return tuple(_freeze_json(item) for item in value)
+def freeze_json(value: object, path: str = "$") -> object:
+    """Normalize only JSON-compatible values into immutable containers."""
+
+    value_type = type(value)
+    if value is None or value_type in (str, bool, int):
+        return value
+    if value_type is float:
+        if not math.isfinite(value):
+            raise ValueError(f"{path} must contain only finite JSON numbers")
+        return value
+    if value_type is FrozenDict:
+        return FrozenDict(
+            {
+                key: freeze_json(item, f"{path}.{key}")
+                for key, item in value.items()
+            }
+        )
+    if value_type is dict:
+        frozen: dict[str, object] = {}
+        for key, item in value.items():
+            if type(key) is not str:
+                raise TypeError(f"{path} must contain only string JSON object keys")
+            frozen[key] = freeze_json(item, f"{path}.{key}")
+        return FrozenDict(frozen)
+    if value_type in (list, tuple):
+        return tuple(
+            freeze_json(item, f"{path}[{index}]") for index, item in enumerate(value)
+        )
+    raise TypeError(f"{path} must contain only JSON-compatible values")
+
+
+def json_projection(value: object) -> object:
+    """Return a fresh mutable JSON projection without exposing internal containers."""
+
+    if type(value) is FrozenDict:
+        return {key: json_projection(item) for key, item in value.items()}
+    if type(value) is tuple:
+        return [json_projection(item) for item in value]
     return value
 
 
@@ -49,6 +93,29 @@ class EngineContext:
     """Run-scoped identity required by every deterministic core engine."""
 
     run_id: UUID
+
+    def __post_init__(self) -> None:
+        if type(self.run_id) is not UUID:
+            raise TypeError("run_id must be a UUID")
+        if self.run_id.int == 0:
+            raise ValueError("run_id must be a non-zero UUID")
+
+
+class SubmissionState:
+    """One run-local owner for monotonic participant submission state."""
+
+    __slots__ = ("_submitted",)
+
+    def __init__(self) -> None:
+        self._submitted: set[int] = set()
+
+    def mark_submitted(self, participant_id: int) -> None:
+        if type(participant_id) is not int or participant_id < 1:
+            raise ValueError("participant_id must be a positive integer")
+        self._submitted.add(participant_id)
+
+    def is_submitted(self, participant_id: int) -> bool:
+        return participant_id in self._submitted
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,12 +150,31 @@ class IntegrityCommand:
     client_occurred_at_ms: int
     received_at_server_ms: int
     delayed_delivery: bool
-    evidence: dict[str, object]
-    metadata: dict[str, object]
+    evidence: Mapping[str, object]
+    metadata: Mapping[str, object]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "evidence", _freeze_json(self.evidence))
-        object.__setattr__(self, "metadata", _freeze_json(self.metadata))
+        object.__setattr__(self, "evidence", freeze_json(self.evidence, "$.evidence"))
+        object.__setattr__(self, "metadata", freeze_json(self.metadata, "$.metadata"))
+
+    def to_json(self) -> dict[str, object]:
+        """Project the complete command into canonical JSON-compatible values."""
+
+        return {
+            "command_id": str(self.command_id),
+            "run_id": str(self.run_id),
+            "kind": self.kind,
+            "participant_id": self.participant_id,
+            "device_id": self.device_id,
+            "incident_id": None if self.incident_id is None else str(self.incident_id),
+            "event_type": self.event_type,
+            "action": self.action,
+            "client_occurred_at_ms": self.client_occurred_at_ms,
+            "received_at_server_ms": self.received_at_server_ms,
+            "delayed_delivery": self.delayed_delivery,
+            "evidence": json_projection(self.evidence),
+            "metadata": json_projection(self.metadata),
+        }
 
 
 def deterministic_uuid(run_id: UUID, *parts: object) -> UUID:
@@ -112,8 +198,8 @@ def make_command(
     client_occurred_at_ms: int,
     received_at_server_ms: int,
     delayed_delivery: bool = False,
-    evidence: dict[str, object] | None = None,
-    metadata: dict[str, object] | None = None,
+    evidence: Mapping[str, object] | None = None,
+    metadata: Mapping[str, object] | None = None,
 ) -> IntegrityCommand:
     return IntegrityCommand(
         command_id=deterministic_uuid(
