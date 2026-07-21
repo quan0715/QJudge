@@ -11,6 +11,7 @@ from apps.contests.integrity_serializers import (
 from apps.contests.models import Contest, ExamIntegrityRun
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.integrity_runs import (
+    IntegrityLifecycleError,
     InvalidRunTransition,
     LiveIntegrityRunExists,
     destroy_run,
@@ -44,6 +45,14 @@ class IntegrityRunViewSet(viewsets.ViewSet):
                     "detail": str(exc),
                 },
                 status=status.HTTP_409_CONFLICT,
+            )
+        except IntegrityLifecycleError:
+            return Response(
+                {
+                    "code": "integrity_lifecycle_external_error",
+                    "detail": ("Integrity lifecycle operation could not be confirmed."),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
             )
         return Response(IntegrityRunSerializer(run).data)
 
@@ -85,9 +94,7 @@ class IntegrityRunViewSet(viewsets.ViewSet):
     def stop(self, request, pk=None, contest_pk=None):
         contest = self._managed_contest()
         run = self._run(contest, pk)
-        return self._transition_response(
-            lambda: stop_run(run.id, actor=request.user)
-        )
+        return self._transition_response(lambda: stop_run(run.id, actor=request.user))
 
     @action(detail=True, methods=["post"], url_path="destroy", url_name="destroy")
     def destroy_compute(self, request, pk=None, contest_pk=None):
@@ -101,6 +108,4 @@ class IntegrityRunViewSet(viewsets.ViewSet):
     def purge(self, request, pk=None, contest_pk=None):
         contest = self._managed_contest()
         run = self._run(contest, pk)
-        return self._transition_response(
-            lambda: purge_run(run.id, actor=request.user)
-        )
+        return self._transition_response(lambda: purge_run(run.id, actor=request.user))
