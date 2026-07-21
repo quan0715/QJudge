@@ -1,5 +1,8 @@
 .bubble {
   display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: 0.5rem 1rem;
   max-width: 100%;
 }
@@ -50,9 +53,33 @@
 }
 
 .markdown {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   line-height: var(--cds-body-compact-02-line-height, 1.5);
   color: var(--cds-text-primary, #161616);
+
+  :global(pre),
+  :global(table),
+  :global(.code-block-wrapper),
+  :global(.katex-display) {
+    max-width: 100%;
+  }
+
+  :global(p code),
+  :global(li code) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  :global(img),
+  :global(svg),
+  :global(video) {
+    max-width: 100%;
+    height: auto;
+  }
 
   :global(h1),
   :global(h2),

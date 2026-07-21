@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,6 +20,28 @@ import { qJudgeCopilotSlots } from "./qJudgeCopilotSlots";
 import appSource from "@/App.tsx?raw";
 import chatFullPageSource from "../ChatFullPage.tsx?raw";
 import workspaceShellSource from "../workspace/WorkspaceShell.tsx?raw";
+
+const chatContainerStyles = readFileSync(
+  "src/features/chatbot/components/chat-ui/ChatContainer.module.scss",
+  "utf8",
+);
+const messageListStyles = readFileSync(
+  "src/features/chatbot/components/chat-ui/MessageList.module.scss",
+  "utf8",
+);
+const messageBubbleStyles = readFileSync(
+  "src/features/chatbot/components/chat-ui/MessageBubble.module.scss",
+  "utf8",
+);
+const composerStyles = readFileSync(
+  "src/features/chatbot/components/chat-ui/ComposerBar.module.scss",
+  "utf8",
+);
+
+function scssRule(source: string, selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -71,6 +94,25 @@ const renderPanel = (
   );
 
 describe("QJudgeChatPanel", () => {
+  it("keeps padded chat content inside an embedded panel", () => {
+    const container = scssRule(chatContainerStyles, ".container");
+    const chatOnlyRow = scssRule(chatContainerStyles, ".chatOnlyRow");
+    const wrapper = scssRule(messageListStyles, ".wrapper");
+    const composer = scssRule(composerStyles, ".bar");
+
+    expect(container).toContain("min-width: 0");
+    expect(container).toContain("max-width: 100%");
+    expect(chatOnlyRow).toContain("min-width: 0");
+    expect(chatOnlyRow).toContain("overflow: hidden");
+    expect(wrapper).toContain("min-width: 0");
+    expect(wrapper).toContain("max-width: 100%");
+    expect(messageListStyles).toContain("box-sizing: border-box");
+    expect(messageBubbleStyles).toContain("overflow-wrap: anywhere");
+    expect(messageBubbleStyles).toContain("overflow-x: auto");
+    expect(composer).toContain("min-width: 0");
+    expect(composer).toContain("box-sizing: border-box");
+  });
+
   it("shows message and title skeletons while session bootstrap is pending", async () => {
     const transport = new MemoryCopilotTransport();
     const pendingList = deferred<Awaited<ReturnType<typeof transport.listSessions>>>();

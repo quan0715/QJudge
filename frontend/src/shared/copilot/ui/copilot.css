@@ -11,24 +11,161 @@
   --copilot-panel-width: 24rem;
   --copilot-composer-max-height: 12rem;
 }
-.copilot-root { color: var(--copilot-color-text); background: var(--copilot-color-background); font-family: var(--copilot-font-family); min-height: 0; }
-.copilot-header { display: flex; align-items: center; justify-content: space-between; gap: var(--copilot-space-2); padding: var(--copilot-space-3); }
-.copilot-header h2 { margin: 0; font-size: 1rem; }
-.copilot-messages { list-style: none; margin: 0; padding: var(--copilot-space-3); overflow: auto; flex: 1; }
-.copilot-message { padding: var(--copilot-space-2); border-radius: var(--copilot-radius-1); }
-.copilot-message[data-role="user"] { background: var(--copilot-color-surface); }
-.copilot-composer { display: flex; gap: var(--copilot-space-2); padding: var(--copilot-space-3); }
-.copilot-composer label { flex: 1; }
-.copilot-composer textarea { box-sizing: border-box; width: 100%; max-height: var(--copilot-composer-max-height); resize: vertical; }
-.copilot-history ol { list-style: none; margin: 0; padding: var(--copilot-space-2); }
-.copilot-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.copilot-panel-content, .copilot-conversation { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.copilot-panel-body { display: flex; flex: 1; min-height: 0; }
-.copilot-conversation { flex: 1; }
-.copilot-workspace { display: flex; position: relative; min-height: 0; }
-.copilot-workspace[data-side="left"] { flex-direction: row-reverse; }
-.copilot-workspace-main { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
-.copilot-workspace-panel { width: min(var(--copilot-panel-width), 100%); min-height: 0; }
-.copilot-workspace-toggle { position: absolute; inset-block-end: var(--copilot-space-3); inset-inline-end: var(--copilot-space-3); }
-.copilot-full-page { height: 100%; min-height: 0; }
-.copilot-embed { height: 100%; min-height: 0; container-type: inline-size; }
+
+.copilot-root {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  color: var(--copilot-color-text);
+  background: var(--copilot-color-background);
+  font-family: var(--copilot-font-family);
+}
+
+.copilot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--copilot-space-2);
+  padding: var(--copilot-space-3);
+}
+
+.copilot-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.copilot-messages {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--copilot-space-3);
+  overflow: auto;
+  list-style: none;
+}
+
+.copilot-message {
+  max-width: 100%;
+  padding: var(--copilot-space-2);
+  border-radius: var(--copilot-radius-1);
+}
+
+.copilot-message[data-role="user"] {
+  background: var(--copilot-color-surface);
+}
+
+.copilot-composer {
+  display: flex;
+  gap: var(--copilot-space-2);
+  max-width: 100%;
+  padding: var(--copilot-space-3);
+}
+
+.copilot-composer label {
+  flex: 1;
+  min-width: 0;
+}
+
+.copilot-composer textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: var(--copilot-composer-max-height);
+  resize: vertical;
+}
+
+.copilot-history ol {
+  margin: 0;
+  padding: var(--copilot-space-2);
+  list-style: none;
+}
+
+.copilot-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.copilot-panel-content,
+.copilot-conversation {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.copilot-panel-content {
+  width: 100%;
+}
+
+.copilot-panel-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.copilot-conversation {
+  flex: 1;
+}
+
+.copilot-workspace {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.copilot-workspace[data-side="left"] {
+  flex-direction: row-reverse;
+}
+
+.copilot-workspace-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.copilot-workspace-panel {
+  width: min(var(--copilot-panel-width), 100%);
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.copilot-workspace-toggle {
+  position: absolute;
+  inset-block-end: var(--copilot-space-3);
+  inset-inline-end: var(--copilot-space-3);
+}
+
+.copilot-full-page {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.copilot-embed {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
