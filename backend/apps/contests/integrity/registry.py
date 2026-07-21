@@ -5,9 +5,10 @@ from types import MappingProxyType
 from typing import Literal, TypeAlias
 
 
-REGISTRY_VERSION = "2026-07-21.1"
+REGISTRY_VERSION = "2026-07-21.2"
 
 Emission = Literal["every", "edge", "sample", "state_snapshot"]
+Origin = Literal["browser", "server"]
 JsonScalar: TypeAlias = str | int | float | bool | None
 FrozenJsonValue: TypeAlias = (
     JsonScalar
@@ -20,6 +21,7 @@ FrozenJsonValue: TypeAlias = (
 class EventDefinition:
     id: str
     schema_version: int
+    origin: Origin
     signals: Mapping[str, str]
     emission: Emission
     incident_family: str
@@ -66,10 +68,12 @@ def _definition(
     grace_ms: int = 0,
     sources: tuple[str, ...] = (),
     action: str = "record_event",
+    origin: Origin = "browser",
 ) -> EventDefinition:
     return EventDefinition(
         id=definition_id,
         schema_version=1,
+        origin=origin,
         signals=MappingProxyType({
             "triggered": triggered,
             "escalated": escalated,
@@ -103,7 +107,7 @@ DEFINITIONS = MappingProxyType({
         "connectivity", triggered="connectivity_suspect",
         escalated="heartbeat_timeout", restored="connectivity_restored",
         emission="state_snapshot", family="connectivity", priority=1,
-        grace_ms=45_000, action="pause",
+        grace_ms=45_000, action="pause", origin="server",
     ),
     "fullscreen_integrity": _definition(
         "fullscreen_integrity", triggered="exit_fullscreen_triggered",
@@ -202,6 +206,7 @@ def build_registry_snapshot() -> dict:
             key: {
                 "id": definition.id,
                 "schema_version": definition.schema_version,
+                "origin": definition.origin,
                 "signals": dict(definition.signals),
                 "emission": definition.emission,
                 "incident_family": definition.incident_family,

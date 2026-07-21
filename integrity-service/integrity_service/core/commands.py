@@ -7,10 +7,11 @@ from dataclasses import dataclass
 import json
 import math
 from types import MappingProxyType
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid5
 
-from integrity_service.core.schemas import EventRecord
+if TYPE_CHECKING:
+    from integrity_service.core.records import AdmittedEventRecord
 
 
 CommandKind = Literal[
@@ -26,22 +27,33 @@ CommandAction = Literal["audit", "record", "pause", "lock", "submit"]
 class FrozenDict(Mapping[str, object]):
     """Transitively immutable mapping used for JSON object values."""
 
-    __slots__ = ("_data",)
+    __slots__ = ("__data",)
 
-    def __init__(self, values: dict[str, object]):
-        self._data = MappingProxyType(dict(values))
+    def __init__(self, values: Mapping[object, object], *, _path: str = "$"):
+        frozen: dict[str, object] = {}
+        for key, item in values.items():
+            if type(key) is not str:
+                raise TypeError(f"{_path} must contain only string JSON object keys")
+            frozen[key] = freeze_json(item, f"{_path}.{key}")
+        object.__setattr__(self, "_FrozenDict__data", MappingProxyType(frozen))
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("FrozenDict is immutable")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("FrozenDict is immutable")
 
     def __getitem__(self, key: str) -> object:
-        return self._data[key]
+        return self.__data[key]
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self._data)
+        return iter(self.__data)
 
     def __len__(self) -> int:
-        return len(self._data)
+        return len(self.__data)
 
     def __repr__(self) -> str:
-        return repr(dict(self._data))
+        return repr(dict(self.__data))
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Mapping) and dict(self.items()) == dict(other.items())
@@ -58,19 +70,9 @@ def freeze_json(value: object, path: str = "$") -> object:
             raise ValueError(f"{path} must contain only finite JSON numbers")
         return value
     if value_type is FrozenDict:
-        return FrozenDict(
-            {
-                key: freeze_json(item, f"{path}.{key}")
-                for key, item in value.items()
-            }
-        )
+        return FrozenDict(value, _path=path)
     if value_type is dict:
-        frozen: dict[str, object] = {}
-        for key, item in value.items():
-            if type(key) is not str:
-                raise TypeError(f"{path} must contain only string JSON object keys")
-            frozen[key] = freeze_json(item, f"{path}.{key}")
-        return FrozenDict(frozen)
+        return FrozenDict(value, _path=path)
     if value_type in (list, tuple):
         return tuple(
             freeze_json(item, f"{path}[{index}]") for index, item in enumerate(value)
@@ -124,17 +126,21 @@ class ReceivedEvent:
 
     participant_id: int
     device_id: str
-    record: EventRecord
+    record: AdmittedEventRecord
     received_at_server_ms: int
     delayed_delivery: bool = False
 
     def __post_init__(self) -> None:
+        from integrity_service.core.records import AdmittedEventRecord
+
         if self.participant_id < 1:
             raise ValueError("participant_id must be positive")
         if not self.device_id:
             raise ValueError("device_id must not be empty")
         if self.received_at_server_ms < 0:
             raise ValueError("received_at_server_ms must not be negative")
+        if not isinstance(self.record, AdmittedEventRecord):
+            raise TypeError("record must be an admitted immutable event snapshot")
 
 
 @dataclass(frozen=True, slots=True)

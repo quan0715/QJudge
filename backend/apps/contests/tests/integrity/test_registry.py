@@ -21,6 +21,7 @@ def test_registry_has_every_active_signal_once():
     assert set(signal_ids) == ACTIVE_SIGNAL_IDS
     assert len(signal_ids) == len(set(signal_ids))
     assert snapshot["version"] == REGISTRY_VERSION
+    assert snapshot["version"] == "2026-07-21.2"
 
 
 def test_registry_definitions_are_data_not_core_switches():
@@ -30,6 +31,12 @@ def test_registry_definitions_are_data_not_core_switches():
         "triggered": "exit_fullscreen_triggered",
         "escalated": "exit_fullscreen",
         "restored": "fullscreen_restored",
+    }
+    assert fullscreen["origin"] == "browser"
+    assert snapshot["definitions"]["connectivity"]["origin"] == "server"
+    assert {definition["origin"] for definition in snapshot["definitions"].values()} == {
+        "browser",
+        "server",
     }
     assert fullscreen["emission"] == "edge"
     assert fullscreen["evidence"]["before_ms"] == 10_000

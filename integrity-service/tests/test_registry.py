@@ -8,11 +8,12 @@ from integrity_service.core.registry import Registry, UnknownSignal
 
 def registry_snapshot() -> dict:
     return {
-        "version": "registry-v1",
+        "version": "registry-v2",
         "definitions": {
             "fullscreen": {
                 "id": "fullscreen",
                 "schema_version": 1,
+                "origin": "browser",
                 "signals": {
                     "triggered": "exit_fullscreen_triggered",
                     "escalated": "exit_fullscreen",
@@ -40,6 +41,7 @@ def registry_snapshot() -> dict:
             "connectivity": {
                 "id": "connectivity",
                 "schema_version": 1,
+                "origin": "server",
                 "signals": {
                     "triggered": "connectivity_suspect",
                     "escalated": "heartbeat_timeout",
@@ -71,9 +73,10 @@ def test_registry_resolves_frozen_definition_fields():
 
     definition, phase = registry.resolve("exit_fullscreen")
 
-    assert registry.version == "registry-v1"
+    assert registry.version == "registry-v2"
     assert phase == "escalated"
     assert definition.id == "fullscreen"
+    assert definition.origin == "browser"
     assert definition.evidence_sources == ("screen_share",)
     assert definition.evidence_before_ms == 10_000
     assert definition.evidence_after_ms == 10_000
@@ -94,6 +97,15 @@ def test_registry_rejects_invalid_snapshot_shape():
     del snapshot["definitions"]["fullscreen"]["grace_ms"]
 
     with pytest.raises(ValidationError):
+        Registry(snapshot)
+
+
+def test_registry_requires_explicit_definition_origin_and_fails_closed():
+    snapshot = registry_snapshot()
+    for definition in snapshot["definitions"].values():
+        del definition["origin"]
+
+    with pytest.raises(ValidationError, match="origin"):
         Registry(snapshot)
 
 
@@ -173,9 +185,14 @@ def test_registry_definition_and_indexes_are_deeply_immutable_and_replay_stable(
 
     with pytest.raises(TypeError):
         definition.metadata_schema["required"] = []  # type: ignore[index]
+    with pytest.raises(AttributeError):
+        definition.metadata_schema._data = {"type": "array"}  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        del definition.metadata_schema._data  # type: ignore[attr-defined]
     with pytest.raises((AttributeError, TypeError)):
         registry._by_signal["exit_fullscreen_triggered"] = (definition, "restored")
     assert not hasattr(registry, "by_signal")
+    assert registry._validators[definition.id].validator.schema is not definition.metadata_schema
 
     snapshot["definitions"]["fullscreen"]["signals"]["triggered"] = "mutated"
     snapshot["definitions"]["fullscreen"]["metadata_schema"]["required"] = []
@@ -183,3 +200,4 @@ def test_registry_definition_and_indexes_are_deeply_immutable_and_replay_stable(
     assert (replayed, replayed_phase) == (definition, phase)
     with pytest.raises(ValidationError):
         registry.validate_payload("exit_fullscreen_triggered", {})
+    registry.validate_payload("exit_fullscreen_triggered", {"reason": "replay"})

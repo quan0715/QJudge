@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator
 from referencing import Registry as ReferencingRegistry
 from referencing.exceptions import NoSuchResource
 
-from integrity_service.core.commands import FrozenDict, freeze_json
+from integrity_service.core.commands import FrozenDict, freeze_json, json_projection
 
 
 _PHASES = ("triggered", "escalated", "restored")
@@ -20,6 +20,7 @@ _DEFINITION_SCHEMA = {
     "required": [
         "id",
         "schema_version",
+        "origin",
         "signals",
         "emission",
         "incident_family",
@@ -33,6 +34,7 @@ _DEFINITION_SCHEMA = {
     "properties": {
         "id": {"type": "string", "minLength": 1},
         "schema_version": {"type": "integer", "minimum": 1},
+        "origin": {"enum": ["browser", "server"]},
         "signals": {
             "type": "object",
             "required": list(_PHASES),
@@ -81,6 +83,7 @@ class UnknownSignal(ValueError):
 class ParsedDefinition:
     id: str
     schema_version: int
+    origin: str
     triggered: str
     escalated: str
     restored: str
@@ -144,6 +147,7 @@ def parse_definition(definition_id: str, raw: Mapping[str, object]) -> ParsedDef
     return ParsedDefinition(
         id=str(raw["id"]),
         schema_version=int(raw["schema_version"]),
+        origin=str(raw["origin"]),
         triggered=str(signals["triggered"]),
         escalated=str(signals["escalated"]),
         restored=str(signals["restored"]),
@@ -171,9 +175,11 @@ class Registry:
             raw = definitions[definition_id]
             assert isinstance(raw, Mapping)
             parsed = parse_definition(definition_id, raw)
+            validator_schema = deepcopy(raw["metadata_schema"])
+            assert isinstance(validator_schema, dict)
             validators[parsed.id] = _CompiledValidator(
                 Draft202012Validator(
-                    parsed.metadata_schema, registry=_NO_RETRIEVAL_REGISTRY
+                    validator_schema, registry=_NO_RETRIEVAL_REGISTRY
                 )
             )
             for phase in _PHASES:
@@ -192,6 +198,8 @@ class Registry:
         except KeyError as exc:
             raise UnknownSignal(event_type) from exc
 
-    def validate_payload(self, event_type: str, payload: dict[str, object]) -> None:
+    def validate_payload(self, event_type: str, payload: Mapping[str, object]) -> None:
         definition, _ = self.resolve(event_type)
-        self._validators[definition.id].validate(payload)
+        projected = json_projection(payload)
+        assert isinstance(projected, dict)
+        self._validators[definition.id].validate(projected)

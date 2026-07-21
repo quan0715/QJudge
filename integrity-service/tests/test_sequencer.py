@@ -1,10 +1,20 @@
+from dataclasses import FrozenInstanceError
 from uuid import UUID, uuid4
 
 import pytest
 
-from integrity_service.core.commands import EngineContext, make_command
+from integrity_service.core.commands import (
+    EngineContext,
+    ReceivedEvent,
+    SubmissionState,
+    make_command,
+)
+from integrity_service.core.incidents import IncidentEngine
+from integrity_service.core.registry import Registry
 from integrity_service.core.schemas import EventBatch, EventRecord
 from integrity_service.core.sequencer import SequenceConflict, SessionSequencer
+
+from test_registry import registry_snapshot
 
 
 RUN_ID = UUID("00000000-0000-0000-0000-000000000555")
@@ -23,7 +33,7 @@ def batch(
         run_id=RUN_ID,
         participant_id=101,
         device_id="device-a",
-        registry_version="2026-07-21.1",
+        registry_version="2026-07-21.2",
         first_seq=first_seq,
         last_seq=last_seq,
         records=[
@@ -196,3 +206,69 @@ def test_reused_uuid_that_would_alias_different_command_values_never_reaches_dec
 
     commands_by_id = {emitted.command_id: emitted}
     assert commands_by_id == {emitted.command_id: emitted}
+
+
+def test_accept_returns_deeply_immutable_snapshot_used_by_received_event_decisions():
+    original = batch(
+        1,
+        1,
+        event_types={1: "exit_fullscreen_triggered"},
+    )
+    original.records[0].payload = {"reason": "original", "nested": {"value": 1}}
+    original.records[0].evidence_descriptors = [{"source": "screen_share"}]
+    exact_retry = original.model_copy(deep=True)
+    sequencer = SessionSequencer()
+
+    admitted = sequencer.accept(original).new_records[0]
+    received = ReceivedEvent(
+        participant_id=101,
+        device_id="device-a",
+        record=admitted,
+        received_at_server_ms=1_000,
+    )
+
+    original.records[0].event_id = uuid4()
+    original.records[0].event_type = "fullscreen_restored"
+    original.records[0].client_occurred_at_ms = 999_999
+    original.records[0].payload["reason"] = "mutated"
+    original.records[0].payload["nested"]["value"] = 2
+    original.records[0].evidence_descriptors[0]["source"] = "webcam"
+    with pytest.raises(FrozenInstanceError):
+        admitted.event_type = "fullscreen_restored"  # type: ignore[misc]
+    with pytest.raises(TypeError):
+        admitted.payload["nested"]["value"] = 3  # type: ignore[index]
+
+    snapshot = registry_snapshot()
+    snapshot["definitions"]["fullscreen"]["metadata_schema"]["properties"][
+        "nested"
+    ] = {"type": "object", "additionalProperties": True}
+    command = IncidentEngine(
+        Registry(snapshot),
+        EngineContext(run_id=RUN_ID),
+        SubmissionState(),
+    ).ingest(received).commands[0]
+
+    assert command.event_type == "exit_fullscreen_triggered"
+    assert command.client_occurred_at_ms == 1
+    assert command.metadata == {"reason": "original", "nested": {"value": 1}}
+    assert sequencer.accept(exact_retry).new_records == ()
+    with pytest.raises(SequenceConflict, match="different event_id"):
+        sequencer.accept(original)
+
+
+def test_restore_snapshots_record_before_caller_mutation():
+    restored_batch = batch(1, 1)
+    restored_batch.records[0].payload = {"nested": {"value": "original"}}
+    exact_retry = restored_batch.model_copy(deep=True)
+    restored_record = restored_batch.records[0]
+    sequencer = SessionSequencer()
+
+    sequencer.restore(RUN_ID, 101, "device-a", restored_record)
+    stored = sequencer._records[(RUN_ID, 101, "device-a")][1].record
+    assert stored is not restored_record
+    restored_record.payload["nested"]["value"] = "mutated"
+
+    assert stored.payload == {"nested": {"value": "original"}}
+    assert sequencer.accept(exact_retry).new_records == ()
+    with pytest.raises(SequenceConflict, match="different content"):
+        sequencer.accept(restored_batch)

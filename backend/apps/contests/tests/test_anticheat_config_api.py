@@ -52,6 +52,11 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("frontend_controlled_settings", resp.data)
         self.assertEqual(resp.data["version"], 2)
         self.assertIn("event_registry", resp.data)
+        self.assertEqual(resp.data["event_registry"]["version"], "2026-07-21.2")
+        self.assertEqual(
+            resp.data["event_registry"]["definitions"]["connectivity"]["origin"],
+            "server",
+        )
         self.assertNotIn("integrity_run", resp.data)
         self.assertIn("global", resp.data["frontend_controlled_settings"])
         self.assertIn("contest", resp.data["frontend_controlled_settings"])
@@ -81,8 +86,14 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertNotIn("required", device_policy["tablet"]["sources"]["screen_share"])
         self.assertNotIn("required", device_policy["tablet"]["sources"]["webcam"])
 
-        global_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["global"]}
-        contest_setting_keys = {item["key"] for item in resp.data["frontend_controlled_settings"]["contest"]}
+        global_setting_keys = {
+            item["key"]
+            for item in resp.data["frontend_controlled_settings"]["global"]
+        }
+        contest_setting_keys = {
+            item["key"]
+            for item in resp.data["frontend_controlled_settings"]["contest"]
+        }
         self.assertIn("capture_interval_seconds", global_setting_keys)
         self.assertNotIn("capture_upload_max_retries", resp.data["global_defaults"])
         self.assertNotIn("capture_upload_max_retries", resp.data["effective"])
@@ -147,7 +158,10 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertEqual(snapshot["evidence"]["screen"], {
             "width": 1280, "height": 720, "fps": 5, "bitrate": 800_000,
         })
-        self.assertEqual(snapshot["effective"]["anticheat_device_policy"], snapshot["device_policy"])
+        self.assertEqual(
+            snapshot["effective"]["anticheat_device_policy"],
+            snapshot["device_policy"],
+        )
         json.dumps(snapshot)
 
     def test_contest_participant_can_fetch_anticheat_config_when_classroom_bound(self):

@@ -61,6 +61,8 @@ class ConnectivityMonitor:
         definition, phase = registry.resolve("connectivity_suspect")
         if phase != "triggered":
             raise ValueError("connectivity_suspect must be a triggered registry signal")
+        if definition.origin != "server":
+            raise ValueError("connectivity lifecycle must be server-owned")
         timeout_definition, timeout_phase = registry.resolve("heartbeat_timeout")
         restored_definition, restored_phase = registry.resolve("connectivity_restored")
         if (
@@ -122,6 +124,19 @@ class ConnectivityMonitor:
         if type(now_server_ms) is not int or now_server_ms < 0:
             raise ValueError("now_server_ms must be a non-negative integer")
         return self._advance(now_server_ms)
+
+    def next_transition_server_ms(self) -> int | None:
+        deadlines: list[int] = []
+        for state in self._devices.values():
+            if not state.suspect_sent:
+                deadlines.append(
+                    state.last_received_at_server_ms + self._suspect_after_ms
+                )
+            if not state.timeout_sent:
+                deadlines.append(
+                    state.last_received_at_server_ms + self._disconnected_after_ms
+                )
+        return min(deadlines, default=None)
 
     def _advance(self, now_server_ms: int) -> tuple[IntegrityCommand, ...]:
         due: list[tuple[int, int, int, str, str]] = []

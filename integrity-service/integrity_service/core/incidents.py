@@ -65,6 +65,22 @@ class IncidentEngine:
     def ingest(self, received: ReceivedEvent) -> IncidentResult:
         definition, phase = self._registry.resolve(received.record.event_type)
         self._registry.validate_payload(received.record.event_type, received.record.payload)
+
+        # Server-owned registry lifecycles are observations claimed by an untrusted browser here.
+        # Their distinct identity phase cannot collide with the authoritative server producer.
+        if definition.origin == "server":
+            return IncidentResult(
+                (
+                    self._event_command(
+                        received,
+                        f"external_server_{phase}_audit",
+                        definition,
+                        "audit",
+                        None,
+                    ),
+                )
+            )
+
         key = (received.participant_id, definition.incident_family)
 
         # Registry escalated signal IDs are observable browser claims, never timer authority.
@@ -155,6 +171,14 @@ class IncidentEngine:
             if not opened.escalated and now_server_ms >= opened.deadline_server_ms:
                 commands.append(self._escalate(opened))
         return IncidentResult(tuple(commands))
+
+    def next_deadline_server_ms(self) -> int | None:
+        deadlines = [
+            opened.deadline_server_ms
+            for opened in self._open.values()
+            if not opened.escalated
+        ]
+        return min(deadlines, default=None)
 
     def _eligible_action(self, participant_id: int, registry_action: str) -> CommandAction:
         if self._submissions.is_submitted(participant_id):

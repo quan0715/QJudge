@@ -71,6 +71,58 @@ def test_command_refreezes_prebuilt_mapping_without_retaining_constructor_input(
     assert command.to_json()["evidence"] == {"nested": {"value": "original"}}
 
 
+def test_frozen_dict_is_write_once_and_deeply_snapshots_direct_construction():
+    source = {"nested": {"value": "original"}}
+    frozen = FrozenDict(source)
+
+    source["nested"]["value"] = "mutated"
+    with pytest.raises(AttributeError):
+        frozen._data = {"nested": {"value": "replaced"}}  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        del frozen._data  # type: ignore[attr-defined]
+
+    assert frozen == {"nested": {"value": "original"}}
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {1: "non-string-key"},
+        {"nested": {1: "non-string-key"}},
+        {"bad": object()},
+        {"bad": float("nan")},
+    ],
+)
+def test_frozen_dict_direct_construction_rejects_invalid_json(invalid):
+    with pytest.raises((TypeError, ValueError), match="JSON|finite|string"):
+        FrozenDict(invalid)
+
+
+def test_command_value_cannot_change_through_internal_mapping_slot():
+    command = make_command(
+        context=EngineContext(RUN_ID),
+        kind="record_event",
+        participant_id=101,
+        device_id="device-1",
+        incident_id=None,
+        event_id=EVENT_ID,
+        phase="triggered",
+        event_type="test_event",
+        action="audit",
+        client_occurred_at_ms=1,
+        received_at_server_ms=2,
+        metadata=FrozenDict({"nested": {"value": "original"}}),
+    )
+    before = command.to_json()
+
+    with pytest.raises(AttributeError):
+        command.metadata._data = {"nested": {"value": "mutated"}}  # type: ignore[attr-defined]
+    with pytest.raises(AttributeError):
+        del command.metadata._data  # type: ignore[attr-defined]
+
+    assert command.to_json() == before
+
+
 @pytest.mark.parametrize(
     "invalid",
     [

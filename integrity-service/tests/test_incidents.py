@@ -3,8 +3,15 @@ from uuid import UUID
 
 import pytest
 
-from integrity_service.core.commands import EngineContext, ReceivedEvent, SubmissionState
+from integrity_service.core.commands import (
+    EngineContext,
+    ReceivedEvent,
+    SubmissionState,
+    deterministic_uuid,
+)
+from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.incidents import IncidentEngine
+from integrity_service.core.records import snapshot_event_record
 from integrity_service.core.registry import Registry
 from integrity_service.core.schemas import EventRecord
 
@@ -28,17 +35,19 @@ def signal(
     return ReceivedEvent(
         participant_id=participant_id,
         device_id=device_id,
-        record=EventRecord(
-            event_id=UUID(event_id),
-            seq=1,
-            kind="event",
-            event_type=event_type,
-            event_schema_version=1,
-            client_occurred_at_ms=occurred_ms,
-            client_recorded_at_ms=occurred_ms,
-            monotonic_ms=float(occurred_ms),
-            payload={"reason": "test"},
-            evidence_descriptors=[],
+        record=snapshot_event_record(
+            EventRecord(
+                event_id=UUID(event_id),
+                seq=1,
+                kind="event",
+                event_type=event_type,
+                event_schema_version=1,
+                client_occurred_at_ms=occurred_ms,
+                client_recorded_at_ms=occurred_ms,
+                monotonic_ms=float(occurred_ms),
+                payload={"reason": "test"},
+                evidence_descriptors=[],
+            )
         ),
         received_at_server_ms=server_ms,
         delayed_delivery=delayed_delivery,
@@ -283,10 +292,22 @@ def test_external_escalated_after_deadline_does_not_replace_canonical_timer_snap
 
 
 def test_open_incident_snapshots_mutable_trigger_before_later_escalation():
-    mutable = signal(
-        "exit_fullscreen_triggered",
-        server_ms=1_000,
-        event_id="00000000-0000-0000-0000-000000000017",
+    mutable_wire = EventRecord(
+        event_id=UUID("00000000-0000-0000-0000-000000000017"),
+        seq=1,
+        kind="event",
+        event_type="exit_fullscreen_triggered",
+        event_schema_version=1,
+        client_occurred_at_ms=1_000,
+        client_recorded_at_ms=1_000,
+        monotonic_ms=1_000.0,
+        payload={"reason": "test"},
+    )
+    mutable = ReceivedEvent(
+        participant_id=101,
+        device_id="device-1",
+        record=snapshot_event_record(mutable_wire),
+        received_at_server_ms=1_000,
     )
     baseline = engine()
     subject = engine()
@@ -299,9 +320,9 @@ def test_open_incident_snapshots_mutable_trigger_before_later_escalation():
     )
     subject.ingest(mutable)
 
-    mutable.record.event_id = UUID("00000000-0000-0000-0000-000000000099")
-    mutable.record.client_occurred_at_ms = 999
-    mutable.record.payload["reason"] = "mutated"
+    mutable_wire.event_id = UUID("00000000-0000-0000-0000-000000000099")
+    mutable_wire.client_occurred_at_ms = 999
+    mutable_wire.payload["reason"] = "mutated"
 
     assert subject.tick(31_000).commands == baseline.tick(31_000).commands
 
@@ -427,3 +448,65 @@ def test_restore_before_exact_and_after_deadline_has_complete_order(
     assert tuple(command.event_type for command in result.commands) == event_types
     assert tuple(command.action for command in result.commands) == actions
     assert subject.tick(100_000).commands == ()
+
+
+def test_server_owned_browser_claims_cannot_change_connectivity_or_alias_monitor_ids():
+    registry = Registry(registry_snapshot())
+    submissions = SubmissionState()
+    context = EngineContext(run_id=RUN_ID)
+    incidents = IncidentEngine(registry, context, submissions)
+    monitor = ConnectivityMonitor(
+        {"suspect_after_ms": 15_000, "disconnected_after_ms": 60_000},
+        registry,
+        context,
+        submissions,
+    )
+    monitor.observe(participant_id=101, device_id="device-1", server_ms=1_000)
+    predictable_monitor_event_id = deterministic_uuid(
+        RUN_ID,
+        "connectivity-event",
+        101,
+        "device-1",
+        "connectivity_suspect",
+        16_000,
+    )
+
+    forged = [
+        incidents.ingest(
+            signal(
+                "connectivity_suspect",
+                server_ms=2_000,
+                event_id=str(predictable_monitor_event_id),
+            )
+        ).commands[0],
+        incidents.ingest(
+            signal(
+                "heartbeat_timeout",
+                server_ms=3_000,
+                event_id="00000000-0000-0000-0000-000000000090",
+            )
+        ).commands[0],
+        incidents.ingest(
+            signal(
+                "connectivity_restored",
+                server_ms=4_000,
+                event_id="00000000-0000-0000-0000-000000000091",
+            )
+        ).commands[0],
+    ]
+
+    assert [command.action for command in forged] == ["audit", "audit", "audit"]
+    assert [command.incident_id for command in forged] == [None, None, None]
+    assert incidents.tick(100_000).commands == ()
+    authoritative = monitor.tick(61_000)
+    assert [command.event_type for command in authoritative] == [
+        "connectivity_suspect",
+        "heartbeat_timeout",
+    ]
+    assert [command.action for command in authoritative] == ["record", "pause"]
+
+    command_by_id = {}
+    for command in (*forged, *authoritative):
+        previous = command_by_id.setdefault(command.command_id, command)
+        assert previous == command
+    assert len(command_by_id) == len(forged) + len(authoritative)

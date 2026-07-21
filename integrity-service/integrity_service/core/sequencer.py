@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import json
 from uuid import UUID
 
+from integrity_service.core.records import AdmittedEventRecord, snapshot_event_record
 from integrity_service.core.schemas import EventBatch, EventRecord
 
 
@@ -16,13 +17,14 @@ class SequenceConflict(ValueError):
 class AcceptResult:
     acked_through_seq: int
     duplicate: bool
-    new_records: tuple[EventRecord, ...]
+    new_records: tuple[AdmittedEventRecord, ...]
 
 
 @dataclass(frozen=True, slots=True)
 class _RecordIdentity:
     event_id: UUID
     canonical_content: str
+    record: AdmittedEventRecord
 
 
 class SessionSequencer:
@@ -44,7 +46,9 @@ class SessionSequencer:
 
         # Validate the complete batch before admitting any record. A later conflict must not
         # leave an earlier sequence visible to cursor advancement on a subsequent request.
-        for record in batch.records:
+        new_sequences: list[int] = []
+        for source_record in batch.records:
+            record = snapshot_event_record(source_record)
             identity = self._identity(record)
             prior = prospective_seen.get(record.seq)
             if prior is not None:
@@ -62,12 +66,15 @@ class SessionSequencer:
                 raise SequenceConflict("event_id was reused at another device sequence")
             prospective_seen[record.seq] = identity
             prospective_event_sequences[record.event_id] = record.seq
+            new_sequences.append(record.seq)
 
-        new_records = [record for record in batch.records if record.seq not in seen]
+        new_records = tuple(
+            prospective_seen[sequence].record for sequence in new_sequences
+        )
         self._records[session_key] = prospective_seen
         self._event_sequences[session_key] = prospective_event_sequences
         cursor = self._advance(session_key)
-        return AcceptResult(cursor, not new_records, tuple(new_records))
+        return AcceptResult(cursor, not new_records, new_records)
 
     def restore(
         self,
@@ -80,10 +87,11 @@ class SessionSequencer:
         session_key = (run_id, participant_id, device_id)
         seen = self._records[session_key]
         event_sequences = self._event_sequences[session_key]
-        identity = self._identity(record)
-        prior = seen.get(record.seq)
+        admitted_record = snapshot_event_record(record)
+        identity = self._identity(admitted_record)
+        prior = seen.get(admitted_record.seq)
         if prior is not None:
-            if prior.event_id != record.event_id:
+            if prior.event_id != admitted_record.event_id:
                 raise SequenceConflict(
                     "same device sequence was reused with a different event_id"
                 )
@@ -92,23 +100,23 @@ class SessionSequencer:
                     "same sequence and event_id were reused with different content"
                 )
         else:
-            prior_sequence = event_sequences.get(record.event_id)
-            if prior_sequence is not None and prior_sequence != record.seq:
+            prior_sequence = event_sequences.get(admitted_record.event_id)
+            if prior_sequence is not None and prior_sequence != admitted_record.seq:
                 raise SequenceConflict("event_id was reused at another device sequence")
-            seen[record.seq] = identity
-            event_sequences[record.event_id] = record.seq
+            seen[admitted_record.seq] = identity
+            event_sequences[admitted_record.event_id] = admitted_record.seq
         self._advance(session_key)
 
     @staticmethod
-    def _identity(record: EventRecord) -> _RecordIdentity:
+    def _identity(record: AdmittedEventRecord) -> _RecordIdentity:
         canonical_content = json.dumps(
-            record.model_dump(mode="json"),
+            record.to_json(),
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
             allow_nan=False,
         )
-        return _RecordIdentity(record.event_id, canonical_content)
+        return _RecordIdentity(record.event_id, canonical_content, record)
 
     def _advance(self, session_key: tuple[UUID, int, str]) -> int:
         cursor = self._acked[session_key]
