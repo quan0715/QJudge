@@ -60,7 +60,7 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
     onSelectSession(id: string): void;
     onDeleteSession(id: string): void;
     onRenameSession(id: string, title: string): void;
-    onNewChat?(): void;
+    onNewTask?(): void;
   }) => (
     <div>
       {props.sessions.map((session) => (
@@ -80,7 +80,7 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
           />
         </div>
       ))}
-      <button type="button" onClick={props.onNewChat}>ui.newChat</button>
+      <button type="button" onClick={props.onNewTask}>ui.newTask</button>
     </div>
   ),
 }));
@@ -227,7 +227,7 @@ describe("SideMenu contest admin workspace panels", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(await screen.findByText("ui.newChat"));
+    fireEvent.click(await screen.findByText("ui.newTask"));
 
     await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
     await waitFor(() =>
