@@ -146,7 +146,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
     </div>
   ) : (
     <div className={styles.titleArea} ref={dropdownRef}>
-        {renamingId === currentSessionId ? (
+        {renamingId !== null && renamingId === currentSessionId ? (
           <input
             className={styles.renameInput}
             value={renameValue}

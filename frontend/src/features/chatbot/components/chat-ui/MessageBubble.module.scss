@@ -27,6 +27,11 @@
   max-width: min(95%, 860px);
 }
 
+:global(.copilot-full-page) .ai .content {
+  width: 100%;
+  max-width: 100%;
+}
+
 .copyButton {
   flex-shrink: 0;
 }

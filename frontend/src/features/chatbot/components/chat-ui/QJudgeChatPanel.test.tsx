@@ -45,6 +45,10 @@ const composerStyles = readFileSync(
   "src/features/chatbot/components/chat-ui/ComposerBar.module.scss",
   "utf8",
 );
+const chatFullPageStyles = readFileSync(
+  "src/features/chatbot/components/ChatFullPage.module.scss",
+  "utf8",
+);
 
 function scssRule(source: string, selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -142,6 +146,27 @@ describe("QJudgeChatPanel", () => {
     expect(composer).toContain("box-sizing: border-box");
   });
 
+  it("keeps full-page width and scroll overrides scoped to the full-page shell", () => {
+    const container = scssRule(chatContainerStyles, ".container");
+    const fullPage = scssRule(chatFullPageStyles, ".fullPage");
+
+    expect(container).toContain("min-height: 0");
+    expect(container).toContain("overflow: hidden");
+    expect(fullPage).toContain("min-height: 0");
+    expect(fullPage).toContain("overflow: hidden");
+    expect(messageListStyles).toContain(
+      ":global(.copilot-full-page) .list > *",
+    );
+    expect(messageListStyles).toContain("max-width: 100%");
+    expect(messageBubbleStyles).toContain(
+      ":global(.copilot-full-page) .ai .content",
+    );
+    expect(messageBubbleStyles).toContain("width: 100%");
+    expect(messageBubbleStyles).toContain("max-width: 100%");
+    expect(composerStyles).toContain(":global(.copilot-full-page) .bar");
+    expect(composerStyles).toContain("max-width: 100%");
+  });
+
   it("shows message and title skeletons while session bootstrap is pending", async () => {
     const transport = new MemoryCopilotTransport();
     const pendingList = deferred<Awaited<ReturnType<typeof transport.listSessions>>>();
@@ -173,10 +198,10 @@ describe("QJudgeChatPanel", () => {
     const createSession = vi.spyOn(transport, "createSession");
     const startRun = vi.spyOn(transport, "startRun");
     const location = new MemoryCopilotSessionLocation(existing.id);
-    renderPanel(
+    const { container } = renderPanel(
       transport,
       existing.id,
-      <QJudgeChatPanel mode="sidebar" />,
+      <QJudgeChatPanel mode="full" />,
       new MemoryCopilotModelCatalog(),
       location,
     );
@@ -186,6 +211,10 @@ describe("QJudgeChatPanel", () => {
     );
     expect(createSession).not.toHaveBeenCalled();
     await waitFor(() => expect(location.get()).toBeNull());
+    expect(
+      container.querySelector('input[class*="renameInput"]'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ui.newTask" })).toBeInTheDocument();
 
     const input = screen.getByRole("textbox", { name: /message|輸入/i });
     await waitFor(() => expect(input).toBeEnabled());

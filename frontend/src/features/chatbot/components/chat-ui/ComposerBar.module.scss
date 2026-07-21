@@ -18,6 +18,10 @@
   overflow: visible;
 }
 
+:global(.copilot-full-page) .bar {
+  max-width: 100%;
+}
+
 .statusStack {
   pointer-events: auto;
   display: flex;

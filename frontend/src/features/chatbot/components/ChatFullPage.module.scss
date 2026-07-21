@@ -1,5 +1,8 @@
 // frontend/src/features/chatbot/components/ChatFullPage.module.scss
 .fullPage {
+  flex: 1;
   height: 100%;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }

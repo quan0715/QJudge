@@ -41,6 +41,10 @@
     margin-right: auto;
   }
 
+  :global(.copilot-full-page) .list > * {
+    max-width: 100%;
+  }
+
   // Thin scrollbar
   &::-webkit-scrollbar {
     width: 6px;
