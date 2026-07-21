@@ -30,6 +30,7 @@ Treat the full-page Chat sidebar as the Qopilot workspace, not as a duplicate of
 
 - The `Q` glyph is primary-colored; the rest of `opilot` uses primary text color.
 - Pair the wordmark with a Carbon agent icon.
+- Use the expanded action icon's left edge as the shared alignment axis for the `任務` heading and every session title. The action labels continue after their icons; the task hierarchy does not introduce a second text column.
 - Use Carbon tokens, retain keyboard focus treatment, and do not override Carbon internal classes or use `!important`.
 - This shell applies only when rendering the teacher/admin full-page Chat sidebar; classroom, contest, and other side nav variants are unchanged.
 
