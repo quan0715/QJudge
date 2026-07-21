@@ -20,6 +20,7 @@ from apps.contests.constants import (
     WEBCAM_RECOVERY_GRACE_MS,
 )
 from apps.contests.models import default_anticheat_device_policy
+from apps.contests.integrity.registry import build_registry_snapshot
 
 
 DEVICE_KINDS = ("desktop", "tablet")
@@ -244,7 +245,7 @@ def build_contest_anticheat_config(contest) -> dict:
     }
 
     return {
-        "version": 1,
+        "version": 2,
         "global_defaults": global_defaults,
         "contest_settings": contest_settings,
         "effective": {
@@ -253,4 +254,30 @@ def build_contest_anticheat_config(contest) -> dict:
         },
         "device_policy": device_policy,
         "frontend_controlled_settings": frontend_controlled_settings,
+        "event_registry": build_registry_snapshot(),
+    }
+
+
+def build_integrity_policy_snapshot(contest) -> dict:
+    """Freeze the policy values a browser and worker must share for one run."""
+    config = build_contest_anticheat_config(contest)
+    return {
+        "version": 1,
+        "batch_interval_ms": 5_000,
+        "suspect_after_ms": 15_000,
+        "disconnected_after_ms": 60_000,
+        "evidence": {
+            "chunk_ms": 5_000,
+            "minimum_local_buffer_ms": 60_000,
+            "local_cap_ms": 300_000,
+            "local_cap_bytes_per_source": 100_000_000,
+            "screen": {
+                "width": 1280, "height": 720, "fps": 5, "bitrate": 800_000,
+            },
+            "webcam": {
+                "width": 640, "height": 480, "fps": 10, "bitrate": 350_000,
+            },
+        },
+        "effective": config["effective"],
+        "device_policy": config["device_policy"],
     }

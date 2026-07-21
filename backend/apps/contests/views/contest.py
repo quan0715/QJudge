@@ -16,6 +16,7 @@ from ..models import (
     Contest,
     ContestParticipant,
     ExamEvent,
+    ExamIntegrityRun,
     ExamStatus,
 )
 from ..serializers import (
@@ -315,6 +316,27 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         if payload is None:
             payload = build_contest_anticheat_config(contest)
             cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
+        live_run = (
+            ExamIntegrityRun.objects.filter(contest=contest)
+            .exclude(compute_state=ExamIntegrityRun.ComputeState.DESTROYED)
+            .first()
+        )
+        if live_run is not None:
+            participant = ContestParticipant.objects.filter(
+                contest=contest,
+                user=request.user,
+            ).first()
+            payload = {
+                **payload,
+                "integrity_run": {
+                    "id": str(live_run.id),
+                    "compute_state": live_run.compute_state,
+                    "health": live_run.health,
+                    "participant_id": str(participant.id) if participant else None,
+                    "policy_snapshot": live_run.policy_snapshot,
+                    "registry_snapshot": live_run.registry_snapshot,
+                },
+            }
         return Response(payload)
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestLifecycleOwner])

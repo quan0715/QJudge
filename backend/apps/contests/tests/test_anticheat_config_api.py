@@ -1,12 +1,14 @@
 """Tests for contest anti-cheat runtime config endpoint."""
 from datetime import timedelta
+import json
 
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.classrooms.models import Classroom, ClassroomContest
-from apps.contests.models import Contest, ContestParticipant
+from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
+from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.users.models import User
 
 
@@ -48,6 +50,9 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("effective", resp.data)
         self.assertIn("device_policy", resp.data)
         self.assertIn("frontend_controlled_settings", resp.data)
+        self.assertEqual(resp.data["version"], 2)
+        self.assertIn("event_registry", resp.data)
+        self.assertNotIn("integrity_run", resp.data)
         self.assertIn("global", resp.data["frontend_controlled_settings"])
         self.assertIn("contest", resp.data["frontend_controlled_settings"])
 
@@ -89,6 +94,61 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("warning_timeout_seconds", contest_setting_keys)
         self.assertIn("screen_share_recovery_grace_ms", contest_setting_keys)
         self.assertIn("anticheat_device_policy", contest_setting_keys)
+
+    def test_live_integrity_run_returns_its_frozen_snapshots_for_student(self):
+        participant = ContestParticipant.objects.get(contest=self.contest, user=self.student)
+        policy_snapshot = {"version": 1, "device_policy": {"desktop": {"enabled": False}}}
+        registry_snapshot = {"version": "frozen-registry", "definitions": {}}
+        run = ExamIntegrityRun.objects.create(
+            contest=self.contest,
+            registry_version="frozen-registry",
+            worker_image="registry.example/integrity:1",
+            compute_state=ExamIntegrityRun.ComputeState.RUNNING,
+            health=ExamIntegrityRun.Health.HEALTHY,
+            policy_snapshot=policy_snapshot,
+            registry_snapshot=registry_snapshot,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["integrity_run"], {
+            "id": str(run.id),
+            "compute_state": "running",
+            "health": "healthy",
+            "participant_id": str(participant.id),
+            "policy_snapshot": policy_snapshot,
+            "registry_snapshot": registry_snapshot,
+        })
+
+    def test_destroyed_integrity_run_is_not_exposed(self):
+        ExamIntegrityRun.objects.create(
+            contest=self.contest,
+            registry_version="registry-v1",
+            worker_image="registry.example/integrity:1",
+            compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertNotIn("integrity_run", resp.data)
+
+    def test_integrity_policy_snapshot_is_json_serializable_and_uses_normalized_policy(self):
+        snapshot = build_integrity_policy_snapshot(self.contest)
+
+        self.assertEqual(snapshot["version"], 1)
+        self.assertEqual(snapshot["batch_interval_ms"], 5_000)
+        self.assertEqual(snapshot["suspect_after_ms"], 15_000)
+        self.assertEqual(snapshot["disconnected_after_ms"], 60_000)
+        self.assertEqual(snapshot["evidence"]["chunk_ms"], 5_000)
+        self.assertEqual(snapshot["evidence"]["screen"], {
+            "width": 1280, "height": 720, "fps": 5, "bitrate": 800_000,
+        })
+        self.assertEqual(snapshot["effective"]["anticheat_device_policy"], snapshot["device_policy"])
+        json.dumps(snapshot)
 
     def test_contest_participant_can_fetch_anticheat_config_when_classroom_bound(self):
         classroom = Classroom.objects.create(
