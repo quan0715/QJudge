@@ -80,7 +80,9 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
           />
         </div>
       ))}
-      <button type="button" onClick={props.onNewTask}>ui.newTask</button>
+      {props.onNewTask && (
+        <button type="button" onClick={props.onNewTask}>ui.newTask</button>
+      )}
     </div>
   ),
 }));
@@ -88,6 +90,11 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location-search">{location.search}</div>;
+}
+
+function PathProbe() {
+  const location = useLocation();
+  return <div data-testid="location-path">{location.pathname}</div>;
 }
 
 function ChatRouteProbe() {
@@ -227,7 +234,7 @@ describe("SideMenu contest admin workspace panels", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(await screen.findByText("ui.newTask"));
+    fireEvent.click(await screen.findByRole("button", { name: "新增任務" }));
 
     await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
     await waitFor(() =>
@@ -235,6 +242,37 @@ describe("SideMenu contest admin workspace panels", () => {
         "?ai_session_id=session-new",
       ),
     );
+  });
+
+  it("uses Qopilot workspace actions instead of Home and Chat links", async () => {
+    render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <SideMenu variant="panel" />
+        <PathProbe />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByLabelText("Qopilot")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Chat" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "返回首頁" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("location-path")).toHaveTextContent("/dashboard"),
+    );
+  });
+
+  it("keeps only Back to Home and New Task actions when compact", async () => {
+    render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <SideMenu variant="panel" compact />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByLabelText("Qopilot")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "返回首頁" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新增任務" })).toBeInTheDocument();
+    expect(screen.queryByText("ui.newTask")).not.toBeInTheDocument();
   });
 
   it("selects, renames and removes sessions only through the Copilot hook", async () => {
@@ -351,8 +389,10 @@ describe("SideMenu contest admin workspace panels", () => {
     fireEvent.click(await screen.findByRole("button", { name: "delete session-1" }));
     await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
 
-    expect(screen.getByTestId("location-search")).toHaveTextContent(
-      "?ai_session_id=session-replacement",
+    await waitFor(() =>
+      expect(screen.getByTestId("location-search")).toHaveTextContent(
+        "?ai_session_id=session-replacement",
+      ),
     );
   });
 });
