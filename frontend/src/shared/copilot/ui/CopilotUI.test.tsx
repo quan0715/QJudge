@@ -252,8 +252,10 @@ describe("Copilot UI primitives", () => {
     expect(screen.getByTestId("list-slot")).toBeInTheDocument();
     expect(screen.getByTestId("composer-slot")).toBeInTheDocument();
     expect(History).toHaveBeenCalled();
-    expect(List.mock.calls.at(-1)?.[0]).toEqual(
-      expect.objectContaining({ activeSessionId: session.id }),
+    await waitFor(() =>
+      expect(List.mock.calls.at(-1)?.[0]).toEqual(
+        expect.objectContaining({ activeSessionId: session.id }),
+      ),
     );
   });
 
