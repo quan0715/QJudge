@@ -137,6 +137,19 @@
   font-weight: 600;
 }
 
+.side-menu__link--chat-active {
+  background: var(--cds-button-primary);
+  color: var(--cds-text-on-color);
+
+  &:hover {
+    background: var(--cds-button-primary-hover);
+  }
+
+  svg {
+    color: var(--cds-icon-on-color);
+  }
+}
+
 // ── Classroom list ──
 
 .side-menu__classroom-list {

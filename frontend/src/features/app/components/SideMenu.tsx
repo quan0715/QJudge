@@ -396,7 +396,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                       type="button"
                       title={t("nav.chat", "Chat")}
                       aria-label={t("nav.chat", "Chat")}
-                      className="side-menu__link side-menu__link--active"
+                      className="side-menu__link side-menu__link--active side-menu__link--chat-active"
                       onClick={() => go("/chat")}
                     >
                       <ChatIcon size={16} />
