@@ -40,7 +40,7 @@ const composerStyles = readFileSync(
 
 function scssRule(source: string, selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return source.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  return source.match(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "m"))?.[1] ?? "";
 }
 
 function deferred<T>() {
@@ -98,6 +98,7 @@ describe("QJudgeChatPanel", () => {
     const container = scssRule(chatContainerStyles, ".container");
     const chatOnlyRow = scssRule(chatContainerStyles, ".chatOnlyRow");
     const wrapper = scssRule(messageListStyles, ".wrapper");
+    const skeletonContent = scssRule(messageListStyles, ".skeletonContent");
     const composer = scssRule(composerStyles, ".bar");
 
     expect(container).toContain("min-width: 0");
@@ -107,6 +108,8 @@ describe("QJudgeChatPanel", () => {
     expect(wrapper).toContain("min-width: 0");
     expect(wrapper).toContain("max-width: 100%");
     expect(messageListStyles).toContain("box-sizing: border-box");
+    expect(skeletonContent).toContain("min-width: 0");
+    expect(skeletonContent).not.toContain("min-width: 10rem");
     expect(messageBubbleStyles).toContain("overflow-wrap: anywhere");
     expect(messageBubbleStyles).toContain("overflow-x: auto");
     expect(composer).toContain("min-width: 0");
