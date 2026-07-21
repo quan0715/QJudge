@@ -62,6 +62,12 @@ const EMPTY_ACTIVE_SESSION = {
   data: null,
   error: null,
 } as const;
+const INITIALIZING_ACTIVE_SESSION = {
+  status: "initializing",
+  id: null,
+  data: null,
+  error: null,
+} as const;
 const EMPTY_RUN_STATE = { status: "ready", run: null } as const;
 
 const chooseModelId = (
@@ -1780,9 +1786,16 @@ export function CopilotProvider({
     enabled &&
     (ownershipRef.current === null ||
       ownershipRef.current.transport === transport);
-  const activeSession = runtimeIsVisible
+  const selectedActiveSession = runtimeIsVisible
     ? selectActiveSession(runtime, activeError)
     : EMPTY_ACTIVE_SESSION;
+  const activeSession =
+    runtimeIsVisible &&
+    enabled &&
+    selectedActiveSession.status === "empty" &&
+    (listStatus === "idle" || listStatus === "loading")
+      ? INITIALIZING_ACTIVE_SESSION
+      : selectedActiveSession;
   const run = runtimeIsVisible ? selectActiveRun(runtime) : EMPTY_RUN_STATE;
   const stateValue = useMemo(
     () => ({

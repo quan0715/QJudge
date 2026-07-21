@@ -27,6 +27,12 @@ export interface CopilotSession extends CopilotSessionSummary {
 
 export type CopilotActiveSessionState =
   | {
+      status: "initializing";
+      id: null;
+      data: null;
+      error: null;
+    }
+  | {
       status: "empty";
       id: null;
       data: null;

@@ -16,6 +16,23 @@ const ready: CopilotActiveSessionState = {
 };
 void ready;
 
+const initializing: CopilotActiveSessionState = {
+  status: "initializing",
+  id: null,
+  data: null,
+  error: null,
+};
+void initializing;
+
+// @ts-expect-error initializing cannot carry a persisted session id
+const invalidInitializing: CopilotActiveSessionState = {
+  status: "initializing",
+  id: "session-1",
+  data: null,
+  error: null,
+};
+void invalidInitializing;
+
 // @ts-expect-error ready requires a concrete session
 const invalidReady: CopilotActiveSessionState = {
   status: "ready",

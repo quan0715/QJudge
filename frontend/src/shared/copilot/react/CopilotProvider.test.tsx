@@ -64,6 +64,35 @@ function createProviderProbe() {
 }
 
 describe("CopilotProvider session lifecycle", () => {
+  it("exposes initializing before the first session list resolves", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+
+    expect(result.current.activeSession).toEqual({
+      status: "initializing",
+      id: null,
+      data: null,
+      error: null,
+    });
+
+    await act(async () => {
+      pendingList.resolve([]);
+      await pendingList.promise;
+    });
+
+    await waitFor(() => expect(result.current.listStatus).toBe("ready"));
+    expect(result.current.activeSession).toEqual({
+      status: "empty",
+      id: null,
+      data: null,
+      error: null,
+    });
+  });
+
   it("does not make requests while disabled", () => {
     const transport = new MemoryCopilotTransport();
     const listSessions = vi.spyOn(transport, "listSessions");
@@ -378,7 +407,7 @@ describe("CopilotProvider session lifecycle", () => {
     );
 
     expect(snapshot.current?.sessions.sessions).toEqual([]);
-    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.sessions.activeSession.status).toBe("initializing");
     await act(async () => {
       pendingNewList.resolve(newListed);
       await pendingNewList.promise;
