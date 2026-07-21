@@ -116,7 +116,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
     onDeleteSession,
     onClose,
   } = props as ChatTopBarFullProps;
-  const displayTitle = title || t("ui.newChat");
+  const displayTitle = title || t("ui.newTask");
 
   const startRename = (session: CopilotSessionSummary) => {
     setRenamingId(session.id);
@@ -181,7 +181,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
               >
                 <ChatIcon size={14} className={styles.dropdownItemIcon} />
                 <span className={styles.dropdownItemTitle}>
-                  {s.title || t("ui.newChat")}
+                  {s.title || t("ui.newTask")}
                 </span>
                 <span className={styles.dropdownItemTime}>
                   {formatRelativeTime(s.updatedAt)}
