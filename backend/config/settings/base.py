@@ -416,6 +416,22 @@ AI_SERVICE_INTERNAL_TOKEN = os.getenv(
 # 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
 AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
 
+# Exam integrity lifecycle services. Backend owns database state while the
+# dedicated Controller is the only service allowed to own the Docker socket.
+INTEGRITY_CONTROLLER_URL = os.getenv(
+    "INTEGRITY_CONTROLLER_URL", "http://integrity-controller:8010"
+)
+INTEGRITY_CONTROLLER_TOKEN_FILE = os.getenv(
+    "INTEGRITY_CONTROLLER_TOKEN_FILE", "/run-secrets/controller-token"
+)
+INTEGRITY_WORKER_IMAGE = os.getenv(
+    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:latest"
+)
+INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
+    "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
+    "/run-secrets/integrity-worker-signing-key",
+)
+
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
 #
