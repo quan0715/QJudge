@@ -230,7 +230,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     [navigate],
   );
 
-  const handleNewChat = useCallback(async () => {
+  const handleNewTask = useCallback(async () => {
     const newSessionId = await createSession();
     if (!newSessionId) return;
     onClose?.();
@@ -410,8 +410,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                       onSelectSession={handleSelectSession}
                       onDeleteSession={handleDeleteSession}
                       onRenameSession={handleRenameSession}
-                      showNewChatButton
-                      onNewChat={handleNewChat}
+                      onNewTask={handleNewTask}
                     />
                   </div>
                 </>

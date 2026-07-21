@@ -54,10 +54,9 @@ export function QJudgeCopilotHistory({
       sessions={sessions}
       currentSessionId={activeSession.id}
       onSelectSession={onSelect}
-      onNewChat={onCreate}
+      onNewTask={onCreate}
       onRenameSession={onRename}
       onDeleteSession={onRemove}
-      showNewChatButton
     />
   );
 }
