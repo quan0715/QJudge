@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { ReactNode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -23,6 +23,14 @@ import workspaceShellSource from "../workspace/WorkspaceShell.tsx?raw";
 
 const chatContainerStyles = readFileSync(
   "src/features/chatbot/components/chat-ui/ChatContainer.module.scss",
+  "utf8",
+);
+const artifactContextSource = readFileSync(
+  "src/features/chatbot/contexts/ArtifactPanelContext.tsx",
+  "utf8",
+);
+const qJudgeTransportSource = readFileSync(
+  "src/infrastructure/copilot/qJudgeCopilotTransport.ts",
   "utf8",
 );
 const messageListStyles = readFileSync(
@@ -94,6 +102,24 @@ const renderPanel = (
   );
 
 describe("QJudgeChatPanel", () => {
+  it("contains no retired feature compatibility leftovers", () => {
+    expect(
+      existsSync("src/features/chatbot/hooks/useChatScrollToBottom.ts"),
+    ).toBe(false);
+    expect(artifactContextSource).not.toContain("@deprecated");
+    expect(artifactContextSource).not.toContain("sessionId?:");
+    for (const selector of [
+      ".splitRow",
+      ".chatBody",
+      ".messagesArea",
+      ".composerFloat",
+      ".loading",
+    ]) {
+      expect(chatContainerStyles).not.toContain(selector);
+    }
+    expect(qJudgeTransportSource).not.toContain("legacyRuns");
+  });
+
   it("keeps padded chat content inside an embedded panel", () => {
     const container = scssRule(chatContainerStyles, ".container");
     const chatOnlyRow = scssRule(chatContainerStyles, ".chatOnlyRow");

@@ -61,11 +61,11 @@ export function createQJudgeCopilotTransport(
   repository: ChatbotRepository,
   uploadArtifact: UploadArtifact,
 ): CopilotTransport {
-  const legacyRuns = new Map<string, ChatRun>();
+  const repositoryRuns = new Map<string, ChatRun>();
   const normalizedSequenceByRun = new Map<string, number>();
 
   const rememberRun = (run: ChatRun): CopilotRun => {
-    legacyRuns.set(run.id, run);
+    repositoryRuns.set(run.id, run);
     return mapChatRunToCopilot(run);
   };
 
@@ -188,10 +188,10 @@ export function createQJudgeCopilotTransport(
       const activeToolParts = new Map<string, CopilotToolPart>();
       const verificationIterations = new Set<number>();
       const legacyRun = {
-        ...(legacyRuns.get(run.id) ?? mapCopilotRunToChat(run)),
+        ...(repositoryRuns.get(run.id) ?? mapCopilotRunToChat(run)),
         lastEventSeq: options.fromSequence ?? run.lastSequence ?? 0,
       };
-      legacyRuns.set(run.id, legacyRun);
+      repositoryRuns.set(run.id, legacyRun);
       const messageId = String(
         legacyRun.assistantMessageId ?? `run-${run.id}-assistant`,
       );
