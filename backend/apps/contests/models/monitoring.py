@@ -71,10 +71,25 @@ class ExamEvent(models.Model):
         ('attendance_check_out', 'Attendance Check-out'),
     ]
     event_type = models.CharField(
-        max_length=50,
-        choices=EVENT_TYPE_CHOICES,
+        max_length=64,
         verbose_name='事件類型'
     )
+
+    integrity_run = models.ForeignKey(
+        "contests.ExamIntegrityRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="normalized_events",
+    )
+    integrity_command_id = models.UUIDField(null=True, blank=True, unique=True)
+    incident_id = models.UUIDField(null=True, blank=True, db_index=True)
+    event_definition_version = models.CharField(max_length=64, blank=True, default="")
+    event_schema_version = models.PositiveIntegerField(default=1)
+    client_occurred_at_ms = models.BigIntegerField(null=True, blank=True)
+    server_received_at = models.DateTimeField(null=True, blank=True)
+    worker_processed_at = models.DateTimeField(null=True, blank=True)
+    delayed_delivery = models.BooleanField(default=False)
 
     metadata = models.JSONField(
         null=True,
