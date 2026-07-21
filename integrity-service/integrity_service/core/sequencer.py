@@ -25,12 +25,19 @@ class SessionSequencer:
 
     def accept(self, batch: EventBatch) -> AcceptResult:
         session_key = (batch.participant_id, batch.device_id)
-        seen = self._records[session_key]
-        new_records: list[EventRecord] = []
+        seen = self._records.get(session_key, {})
 
+        # Validate the complete batch before admitting any record. A later conflict must not
+        # leave an earlier sequence visible to cursor advancement on a subsequent request.
         for record in batch.records:
-            if self._add_record(seen, record.seq, record.event_id):
-                new_records.append(record)
+            prior_id = seen.get(record.seq)
+            if prior_id is not None and prior_id != record.event_id:
+                raise SequenceConflict("same device sequence was reused with a different event_id")
+
+        new_records = [record for record in batch.records if record.seq not in seen]
+        committed = self._records[session_key]
+        for record in new_records:
+            committed[record.seq] = record.event_id
         cursor = self._advance(session_key)
         return AcceptResult(cursor, not new_records, tuple(new_records))
 

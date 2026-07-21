@@ -1,16 +1,48 @@
 """Recovery for the append-only integrity journal."""
 
+import errno
+import fcntl
 import hashlib
 import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from integrity_service.core.schemas import EventBatch
 
 
 class JournalCorruption(ValueError):
-    """A non-trailing journal record is malformed or has an invalid digest."""
+    """Journal bytes violate framing, content, or identity invariants."""
+
+
+class JournalLockUnavailable(RuntimeError):
+    """The journal root is already owned by another writer or recovery."""
+
+
+class _RecordParseFailure(Exception):
+    """Typed internal parse failure; callers must decide whether it is recoverable."""
+
+
+class _IncompleteRecord(_RecordParseFailure):
+    """The current record ends before its declared framing is complete."""
+
+
+class _MalformedRecord(_RecordParseFailure):
+    """The current record has complete but non-canonical framing."""
+
+
+class _InvalidPayload(_RecordParseFailure):
+    """The digest is valid but the payload is not a valid EventBatch."""
+
+
+class _DigestMismatch(_RecordParseFailure):
+    """A fully framed record's declared digest does not match its payload."""
+
+    def __init__(self, message: str, record_end: int) -> None:
+        super().__init__(message)
+        self.record_end = record_end
 
 
 @dataclass(frozen=True)
@@ -29,7 +61,26 @@ class RecoveryResult:
         return len(self.records)
 
 
-def recover_journal(path: Path) -> RecoveryResult:
+def recover_journal(path: Path, *, _lock_fd: int | None = None) -> RecoveryResult:
+    """Recover a journal while exclusively owning its root.
+
+    A writer passes its lifetime lock descriptor through ``_lock_fd``. Standalone callers
+    acquire the same non-blocking advisory lock for the entire read/validate/truncate cycle.
+    """
+    if not path.parent.exists():
+        return RecoveryResult((), False)
+
+    owned_lock_fd: int | None = None
+    if _lock_fd is None:
+        owned_lock_fd = _acquire_journal_lock(path)
+    try:
+        return _recover_locked(path)
+    finally:
+        if owned_lock_fd is not None:
+            _release_journal_lock(owned_lock_fd)
+
+
+def _recover_locked(path: Path) -> RecoveryResult:
     if not path.exists():
         return RecoveryResult((), False)
 
@@ -40,10 +91,17 @@ def recover_journal(path: Path) -> RecoveryResult:
     while position < len(content):
         try:
             record, next_position = _decode_at(content, position)
-        except ValueError as error:
-            if _is_trailing_record(content, position):
+        except _IncompleteRecord as error:
+            if _incomplete_record_is_terminal(content, position):
                 _truncate(path, valid_end)
                 return RecoveryResult(tuple(records), True)
+            raise JournalCorruption(str(error)) from error
+        except _DigestMismatch as error:
+            if error.record_end == len(content):
+                _truncate(path, valid_end)
+                return RecoveryResult(tuple(records), True)
+            raise JournalCorruption(str(error)) from error
+        except _RecordParseFailure as error:
             raise JournalCorruption(str(error)) from error
         records.append(record)
         position = next_position
@@ -54,46 +112,81 @@ def recover_journal(path: Path) -> RecoveryResult:
 def _decode_at(content: bytes, position: int) -> tuple[RecoveredRecord, int]:
     header_end = position + 8
     if header_end > len(content):
-        raise ValueError("incomplete journal length header")
+        raise _IncompleteRecord("incomplete journal length header")
     header = content[position:header_end]
-    try:
-        payload_length = int(header, 16)
-    except ValueError as error:
-        raise ValueError("invalid journal length header") from error
-    if content[header_end : header_end + 1] != b" ":
-        raise ValueError("invalid journal length separator")
+    if any(byte not in b"0123456789abcdef" for byte in header):
+        raise _MalformedRecord("invalid journal length header")
+    payload_length = int(header, 16)
+
+    if header_end == len(content):
+        raise _IncompleteRecord("incomplete journal length separator")
+    if content[header_end] != ord(" "):
+        raise _MalformedRecord("invalid journal length separator")
 
     digest_start = header_end + 1
     digest_end = digest_start + 64
     if digest_end > len(content):
-        raise ValueError("incomplete journal digest")
+        raise _IncompleteRecord("incomplete journal digest")
     digest = content[digest_start:digest_end]
-    if len(digest) != 64 or any(byte not in b"0123456789abcdef" for byte in digest):
-        raise ValueError("invalid journal digest")
-    if content[digest_end : digest_end + 1] != b" ":
-        raise ValueError("invalid journal digest separator")
+    if any(byte not in b"0123456789abcdef" for byte in digest):
+        raise _MalformedRecord("invalid journal digest")
+
+    if digest_end == len(content):
+        raise _IncompleteRecord("incomplete journal digest separator")
+    if content[digest_end] != ord(" "):
+        raise _MalformedRecord("invalid journal digest separator")
 
     payload_start = digest_end + 1
     payload_end = payload_start + payload_length
-    if payload_end >= len(content):
-        raise ValueError("incomplete journal payload")
-    if content[payload_end : payload_end + 1] != b"\n":
-        raise ValueError("missing journal record newline")
+    if payload_end > len(content):
+        raise _IncompleteRecord("incomplete journal payload")
+    if payload_end == len(content):
+        raise _IncompleteRecord("incomplete journal record newline")
+    if content[payload_end] != ord("\n"):
+        raise _MalformedRecord("missing journal record newline")
+
+    record_end = payload_end + 1
     payload = content[payload_start:payload_end]
     if hashlib.sha256(payload).hexdigest().encode("ascii") != digest:
-        raise ValueError("journal payload digest mismatch")
+        raise _DigestMismatch("journal payload digest mismatch", record_end)
+
     try:
-        batch = EventBatch.model_validate(json.loads(payload))
-    except (json.JSONDecodeError, ValueError) as error:
-        raise ValueError("invalid journal batch payload") from error
-    return RecoveredRecord(batch, content[position : payload_end + 1]), payload_end + 1
+        decoded = json.loads(payload)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise _InvalidPayload("invalid journal JSON payload") from error
+    try:
+        batch = EventBatch.model_validate(decoded)
+    except ValidationError as error:
+        raise _InvalidPayload("invalid journal batch schema") from error
+    return RecoveredRecord(batch, content[position:record_end]), record_end
 
 
-def _is_trailing_record(content: bytes, position: int) -> bool:
-    """An invalid record is recoverable only when it is the file's final record."""
-    # A newline after the broken record's start means a later complete record may exist.
-    # In that case preserve bytes for investigation rather than discarding evidence.
-    return b"\n" not in content[position:-1]
+def _incomplete_record_is_terminal(content: bytes, position: int) -> bool:
+    """Canonical payloads contain no raw newline, so one indicates later framed data."""
+    return b"\n" not in content[position:]
+
+
+def _lock_path(path: Path) -> Path:
+    return path.with_name(f"{path.name}.lock")
+
+
+def _acquire_journal_lock(path: Path) -> int:
+    lock_fd = os.open(_lock_path(path), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as error:
+        os.close(lock_fd)
+        if error.errno in (errno.EACCES, errno.EAGAIN):
+            raise JournalLockUnavailable(f"journal root is already owned: {path.parent}") from error
+        raise
+    return lock_fd
+
+
+def _release_journal_lock(lock_fd: int) -> None:
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    finally:
+        os.close(lock_fd)
 
 
 def _truncate(path: Path, size: int) -> None:

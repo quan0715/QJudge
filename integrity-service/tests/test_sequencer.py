@@ -51,6 +51,29 @@ def test_sequencer_rejects_same_sequence_with_different_event_id():
         sequencer.accept(batch(1, 1, event_ids={1: uuid4()}))
 
 
+def test_failed_mixed_batch_does_not_admit_earlier_records():
+    existing_event_two = uuid4()
+    sequencer = SessionSequencer()
+    sequencer.accept(batch(2, 2, event_ids={2: existing_event_two}))
+
+    with pytest.raises(SequenceConflict, match="different event_id"):
+        sequencer.accept(
+            batch(
+                1,
+                2,
+                event_ids={
+                    1: uuid4(),
+                    2: uuid4(),
+                },
+            )
+        )
+
+    valid_retry = sequencer.accept(batch(2, 2, event_ids={2: existing_event_two}))
+    assert valid_retry.acked_through_seq == 0
+    assert valid_retry.duplicate is True
+    assert valid_retry.new_records == ()
+
+
 def test_restore_rebuilds_cursor_without_creating_decisions():
     event_one = uuid4()
     event_two = uuid4()
