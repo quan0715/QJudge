@@ -12,6 +12,22 @@ const retainedError: CopilotError = {
 };
 
 describe("HITLCard", () => {
+  it("disables decisions while a submission is pending", () => {
+    render(
+      <HITLCard
+        request={{
+          actions: [{ name: "deploy" }],
+          allowedDecisions: ["approve", "reject"],
+        }}
+        pending
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /ui.confirmAction/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /ui.cancelAction/ })).toBeDisabled();
+  });
+
   it("renders action arguments and only the allowed decisions", () => {
     const request: CopilotApprovalRequest = {
       actions: [{ name: "deploy", arguments: { environment: "staging" } }],

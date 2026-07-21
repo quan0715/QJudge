@@ -29,6 +29,15 @@ function MessageBubbleComponent({ message }: CopilotMessageViewProps) {
   const toolParts = message.parts.filter(
     (part): part is CopilotToolPart => part.type === "tool",
   );
+  const activeToolPart = [...toolParts]
+    .reverse()
+    .find(
+      (part) =>
+        part.state === "input-streaming" || part.state === "input-ready",
+    );
+  const completedToolParts = activeToolPart
+    ? toolParts.filter((part) => part.toolCallId !== activeToolPart.toolCallId)
+    : toolParts;
   const isThinking =
     message.role === "assistant" &&
     message.parts.some(
@@ -65,8 +74,9 @@ function MessageBubbleComponent({ message }: CopilotMessageViewProps) {
         {/* CoT steps */}
         {hasCoT && (
           <ChainOfThought
-            steps={toolParts}
-            isProcessing={false}
+            steps={completedToolParts}
+            isProcessing={activeToolPart !== undefined}
+            currentToolName={activeToolPart?.toolName}
           />
         )}
 

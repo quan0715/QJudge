@@ -5,6 +5,7 @@ import type {
   CopilotQuestionRequest,
   CopilotRequestOptions,
   CopilotRunStatus,
+  CopilotSession,
 } from "./copilot.types";
 
 export interface CopilotSubscribeOptions extends CopilotRequestOptions {
@@ -20,7 +21,7 @@ export interface CopilotSubscription {
 export interface CopilotRunObserver {
   next(event: CopilotRunEvent): void;
   error(error: CopilotError): void;
-  complete(): void;
+  complete(freshSession?: CopilotSession): void;
 }
 
 export type CopilotRunEvent =

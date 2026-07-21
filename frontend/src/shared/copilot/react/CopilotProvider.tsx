@@ -212,6 +212,59 @@ function preserveActiveRunMetadata(
   };
 }
 
+function clearEmptyPendingReasoningForRun(
+  state: CopilotRuntimeState,
+  sessionId: string,
+  runId: string | undefined,
+): CopilotRuntimeState {
+  if (!runId) return state;
+  const session = state.sessions[sessionId];
+  if (!session) return state;
+  let changed = false;
+  const messages = session.messages.map((message) => {
+    if (message.metadata?.runId !== runId) return message;
+    let messageChanged = false;
+    const parts = message.parts.filter((part) => {
+      const isEmptyPendingReasoning =
+        part.type === "reasoning" &&
+        part.state === "streaming" &&
+        part.text.length === 0;
+      if (isEmptyPendingReasoning) {
+        changed = true;
+        messageChanged = true;
+      }
+      return !isEmptyPendingReasoning;
+    });
+    return messageChanged ? { ...message, parts } : message;
+  });
+  if (!changed) return state;
+  return {
+    ...state,
+    sessions: {
+      ...state.sessions,
+      [sessionId]: { ...session, messages },
+    },
+  };
+}
+
+function clearEmptyPendingReasoning(
+  state: CopilotRuntimeState,
+  event: Parameters<typeof reduceCopilotEvent>[1],
+): CopilotRuntimeState {
+  const shouldClear =
+    event.type === "text-delta" ||
+    event.type === "part-upsert" ||
+    event.type === "awaiting-approval" ||
+    event.type === "awaiting-answer" ||
+    (event.type === "run-status" && event.status !== "running");
+  if (!shouldClear) return state;
+  return clearEmptyPendingReasoningForRun(
+    state,
+    event.sessionId,
+    event.runId,
+  );
+}
+
 export function CopilotProvider({
   transport,
   sessionLocation,
@@ -275,6 +328,10 @@ export function CopilotProvider({
   >(null);
   const lastSendRef = useRef<(CopilotSendInput & { optimisticId?: string }) | null>(null);
   const composerSendInFlightRef = useRef<Promise<CopilotSendResult> | null>(null);
+  const interactionSubmissionRef = useRef<{
+    key: string;
+    promise: Promise<void>;
+  } | null>(null);
   const locationWriteRef = useRef<string | null | undefined>(undefined);
 
   const commitModelSelection = useCallback(
@@ -507,6 +564,7 @@ export function CopilotProvider({
     summarySequenceByRunRef.current = {};
     lastSendRef.current = null;
     composerSendInFlightRef.current = null;
+    interactionSubmissionRef.current = null;
     const emptyRuntime = createCopilotRuntimeState();
     runtimeRef.current = emptyRuntime;
     setRuntime(emptyRuntime);
@@ -605,7 +663,12 @@ export function CopilotProvider({
                   : undefined,
               );
             }
-            setRuntime((previous) => reduceCopilotEvent(previous, event));
+            setRuntime((previous) =>
+              clearEmptyPendingReasoning(
+                reduceCopilotEvent(previous, event),
+                event,
+              ),
+            );
           },
           error(error) {
             if (
@@ -629,6 +692,13 @@ export function CopilotProvider({
               return;
             }
             if (!error.recoverable) {
+              setRuntime((previous) =>
+                clearEmptyPendingReasoningForRun(
+                  previous,
+                  run.sessionId,
+                  run.id,
+                ),
+              );
               setRunState(run.sessionId, { status: "error", run, error });
               return;
             }
@@ -644,7 +714,7 @@ export function CopilotProvider({
               void restoreRunRef.current?.(run.sessionId, revisionRef.current);
             }, 1_000);
           },
-          complete() {
+          complete(freshSession) {
             if (
               subscriptionTokenRef.current !== token ||
               !enabledRef.current ||
@@ -660,6 +730,21 @@ export function CopilotProvider({
             }
             clearReconnectTimer();
             capturedSubscription?.close();
+            if (!freshSession || freshSession.id !== run.sessionId) return;
+            replaceSessions(
+              sessionsRef.current.map((summary) =>
+                summary.id === freshSession.id
+                  ? summaryFromSession(freshSession)
+                  : summary,
+              ),
+            );
+            setRuntime((previous) => ({
+              ...previous,
+              sessions: {
+                ...previous.sessions,
+                [freshSession.id]: freshSession,
+              },
+            }));
           },
         },
         { fromSequence: run.lastSequence },
@@ -674,6 +759,7 @@ export function CopilotProvider({
     [
       clearReconnectTimer,
       closeRunSubscription,
+      replaceSessions,
       setRunState,
       syncSessionSummaryRun,
       transport,
@@ -694,13 +780,20 @@ export function CopilotProvider({
       closeRunSubscription();
       if (!transport.capabilities.resumableStreams || !transport.getActiveRun) {
         syncSessionSummaryRun(sessionId, null);
-        setRuntime((previous) => ({
-          ...previous,
-          runs: {
-            ...previous.runs,
-            [sessionId]: { status: "ready", run: null },
-          },
-        }));
+        setRuntime((previous) => {
+          const next = clearEmptyPendingReasoningForRun(
+            previous,
+            sessionId,
+            previousRunId,
+          );
+          return {
+            ...next,
+            runs: {
+              ...next.runs,
+              [sessionId]: { status: "ready", run: null },
+            },
+          };
+        });
         return;
       }
       try {
@@ -715,13 +808,20 @@ export function CopilotProvider({
         }
         if (!run) {
           syncSessionSummaryRun(sessionId, null, previousRunId);
-          setRuntime((previous) => ({
-            ...previous,
-            runs: {
-              ...previous.runs,
-              [sessionId]: { status: "ready", run: null },
-            },
-          }));
+          setRuntime((previous) => {
+            const next = clearEmptyPendingReasoningForRun(
+              previous,
+              sessionId,
+              previousRunId,
+            );
+            return {
+              ...next,
+              runs: {
+                ...next.runs,
+                [sessionId]: { status: "ready", run: null },
+              },
+            };
+          });
           return;
         }
         const localSequence = runtimeRef.current.lastResumeSequenceByRun[run.id];
@@ -745,17 +845,24 @@ export function CopilotProvider({
         ) {
           return;
         }
-        setRuntime((previous) => ({
-          ...previous,
-          runs: {
-            ...previous.runs,
-            [sessionId]: {
-              status: "error",
-              run: null,
-              error: toCopilotError("subscribe-run", error),
+        setRuntime((previous) => {
+          const next = clearEmptyPendingReasoningForRun(
+            previous,
+            sessionId,
+            previousRunId,
+          );
+          return {
+            ...next,
+            runs: {
+              ...next.runs,
+              [sessionId]: {
+                status: "error",
+                run: null,
+                error: toCopilotError("subscribe-run", error),
+              },
             },
-          },
-        }));
+          };
+        });
       }
     },
     [closeRunSubscription, subscribeToRun, syncSessionSummaryRun, transport],
@@ -897,6 +1004,39 @@ export function CopilotProvider({
       replaceSessions(listed, runRevisionSnapshot);
       setSessionError(null);
       setListStatus("ready");
+      if (activeIdRef.current === null) {
+        const bootstrapRevision = revisionRef.current;
+        const bootstrapActiveId = activeIdRef.current;
+        const isBootstrapCurrent = () =>
+          enabledRef.current &&
+          ownershipEpoch === ownershipEpochRef.current &&
+          !controller.signal.aborted &&
+          requestRevision === sessionListRequestRevisionRef.current &&
+          bootstrapRevision === revisionRef.current &&
+          activeIdRef.current === bootstrapActiveId;
+        let bootstrap;
+        try {
+          bootstrap = await resolveCopilotSessionBootstrap({
+            listed,
+            locatedId: sessionLocation?.get() ?? null,
+            storedId: storage?.get(LAST_SESSION_KEY) ?? null,
+            strategy: initialSession,
+            load: (id) =>
+              transport.getSession(id, { signal: controller.signal }),
+          });
+        } catch (cause) {
+          if (!isBootstrapCurrent()) return;
+          throw cause;
+        }
+        if (!isBootstrapCurrent()) return;
+        replaceSessions(bootstrap.sessions, runRevisionSnapshot);
+        if (bootstrap.clearLocation) writeLocation(null);
+        if (bootstrap.selectedId) {
+          await selectSession(bootstrap.selectedId, "initial");
+        } else if (bootstrap.create) {
+          await create();
+        }
+      }
     } catch (cause) {
       if (
         !enabledRef.current ||
@@ -913,7 +1053,17 @@ export function CopilotProvider({
         sessionListRequestAbortRef.current = null;
       }
     }
-  }, [invalidateSessionListRequest, replaceSessions, transport]);
+  }, [
+    create,
+    initialSession,
+    invalidateSessionListRequest,
+    replaceSessions,
+    selectSession,
+    sessionLocation,
+    storage,
+    transport,
+    writeLocation,
+  ]);
 
   const rename = useCallback(
     async (
@@ -1066,6 +1216,12 @@ export function CopilotProvider({
     async (input: CopilotSendInput): Promise<CopilotSendResult> => {
       const sessionId = activeIdRef.current ?? "";
       const ownershipEpoch = ownershipEpochRef.current;
+      const revision = revisionRef.current;
+      const isCurrentSend = () =>
+        enabledRef.current &&
+        ownershipEpoch === ownershipEpochRef.current &&
+        revision === revisionRef.current &&
+        activeIdRef.current === sessionId;
       const staleResult = (): CopilotSendResult => ({
         accepted: false,
         sessionId,
@@ -1088,10 +1244,7 @@ export function CopilotProvider({
 
       const uploaded: CopilotAttachmentPart[] = [];
       for (const file of input.attachments ?? []) {
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current
-        ) {
+        if (!isCurrentSend()) {
           return staleResult();
         }
         if (!transport.capabilities.attachments || !transport.uploadAttachment) {
@@ -1109,10 +1262,7 @@ export function CopilotProvider({
         );
         try {
           const uploadedPart = await transport.uploadAttachment(sessionId, file);
-          if (
-            !enabledRef.current ||
-            ownershipEpoch !== ownershipEpochRef.current
-          ) {
+          if (!isCurrentSend()) {
             return staleResult();
           }
           uploaded.push(uploadedPart);
@@ -1122,10 +1272,7 @@ export function CopilotProvider({
             ),
           );
         } catch (cause) {
-          if (
-            !enabledRef.current ||
-            ownershipEpoch !== ownershipEpochRef.current
-          ) {
+          if (!isCurrentSend()) {
             return staleResult();
           }
           const error = toCopilotError("upload-attachment", cause);
@@ -1139,10 +1286,7 @@ export function CopilotProvider({
         }
       }
 
-      if (
-        !enabledRef.current ||
-        ownershipEpoch !== ownershipEpochRef.current
-      ) {
+      if (!isCurrentSend()) {
         return staleResult();
       }
 
@@ -1185,10 +1329,7 @@ export function CopilotProvider({
           modelId: input.modelId,
           metadata: input.metadata,
         });
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current
-        ) {
+        if (!isCurrentSend()) {
           return staleResult();
         }
         syncSessionSummaryRun(sessionId, run);
@@ -1200,7 +1341,7 @@ export function CopilotProvider({
             id: assistantId,
             role: "assistant",
             createdAt: new Date(),
-            parts: [],
+            parts: [{ type: "reasoning", text: "", state: "streaming" }],
             metadata: { optimistic: true, runId: run.id },
           };
           return {
@@ -1223,10 +1364,7 @@ export function CopilotProvider({
         subscribeToRun(run);
         return { accepted: true, sessionId, runId: run.id };
       } catch (cause) {
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current
-        ) {
+        if (!isCurrentSend()) {
           return staleResult();
         }
         const error = toCopilotError("start-run", cause);
@@ -1244,7 +1382,20 @@ export function CopilotProvider({
     if (!sessionId) return;
     const state = runtimeRef.current.runs[sessionId];
     const activeRun = !state || state.status === "ready" ? null : state.run;
-    setRunState(sessionId, { status: "ready", run: null });
+    setRuntime((previous) => {
+      const next = clearEmptyPendingReasoningForRun(
+        previous,
+        sessionId,
+        activeRun?.id,
+      );
+      return {
+        ...next,
+        runs: {
+          ...next.runs,
+          [sessionId]: { status: "ready", run: null },
+        },
+      };
+    });
     closeRunSubscription();
     if (!activeRun) {
       syncSessionSummaryRun(sessionId, null);
@@ -1291,101 +1442,141 @@ export function CopilotProvider({
   }, [closeRunSubscription, setRunState, syncSessionSummaryRun, transport]);
 
   const submitApproval = useCallback(
-    async (decision: "approve" | "reject") => {
-      if (!enabledRef.current) return;
+    (decision: "approve" | "reject"): Promise<void> => {
+      if (!enabledRef.current) return Promise.resolve();
       const ownershipEpoch = ownershipEpochRef.current;
       const sessionId = activeIdRef.current;
-      if (!sessionId) return;
+      if (!sessionId) return Promise.resolve();
       const awaiting = runtimeRef.current.runs[sessionId];
-      if (awaiting?.status !== "awaiting-approval") return;
-      const revision = revisionRef.current;
-      try {
-        if (!transport.capabilities.approvals || !transport.submitApproval) {
-          throw Object.assign(new Error("Approval is not supported"), {
-            code: "unsupported-capability",
-            operation: "submit-approval",
-            recoverable: false,
-          } satisfies CopilotError);
-        }
-        const resumedRun = retainLatestResumeSequence(
-          await transport.submitApproval(awaiting.run.id, decision),
-          awaiting.run,
-        );
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current ||
-          revision !== revisionRef.current ||
-          activeIdRef.current !== sessionId
-        ) {
-          return;
-        }
-        syncSessionSummaryRun(sessionId, resumedRun);
-        setRunState(sessionId, { status: "streaming", run: resumedRun });
-        subscribeToRun(resumedRun);
-      } catch (cause) {
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current ||
-          revision !== revisionRef.current ||
-          activeIdRef.current !== sessionId
-        ) {
-          return;
-        }
-        setRunState(sessionId, {
-          ...awaiting,
-          interactionError: toCopilotError("submit-approval", cause),
-        });
+      if (awaiting?.status !== "awaiting-approval") return Promise.resolve();
+      const key = `approval:${awaiting.run.id}`;
+      if (interactionSubmissionRef.current?.key === key) {
+        return interactionSubmissionRef.current.promise;
       }
+      const revision = revisionRef.current;
+      setRunState(sessionId, {
+        ...awaiting,
+        interactionError: undefined,
+        interactionPending: true,
+      });
+      const promise = Promise.resolve()
+        .then(async () => {
+          try {
+            if (!transport.capabilities.approvals || !transport.submitApproval) {
+              throw Object.assign(new Error("Approval is not supported"), {
+                code: "unsupported-capability",
+                operation: "submit-approval",
+                recoverable: false,
+              } satisfies CopilotError);
+            }
+            const resumedRun = retainLatestResumeSequence(
+              await transport.submitApproval(awaiting.run.id, decision),
+              awaiting.run,
+            );
+            if (
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== sessionId
+            ) {
+              return;
+            }
+            syncSessionSummaryRun(sessionId, resumedRun);
+            setRunState(sessionId, { status: "streaming", run: resumedRun });
+            subscribeToRun(resumedRun);
+          } catch (cause) {
+            if (
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== sessionId
+            ) {
+              return;
+            }
+            setRunState(sessionId, {
+              ...awaiting,
+              interactionError: toCopilotError("submit-approval", cause),
+              interactionPending: false,
+            });
+          }
+        })
+        .finally(() => {
+          if (interactionSubmissionRef.current?.promise === promise) {
+            interactionSubmissionRef.current = null;
+          }
+        });
+      interactionSubmissionRef.current = { key, promise };
+      return promise;
     },
     [setRunState, subscribeToRun, syncSessionSummaryRun, transport],
   );
 
   const submitAnswer = useCallback(
-    async (answer: string) => {
-      if (!enabledRef.current) return;
+    (answer: string): Promise<void> => {
+      if (!enabledRef.current) return Promise.resolve();
       const ownershipEpoch = ownershipEpochRef.current;
       const sessionId = activeIdRef.current;
-      if (!sessionId) return;
+      if (!sessionId) return Promise.resolve();
       const awaiting = runtimeRef.current.runs[sessionId];
-      if (awaiting?.status !== "awaiting-answer") return;
-      const revision = revisionRef.current;
-      try {
-        if (!transport.capabilities.questions || !transport.submitAnswer) {
-          throw Object.assign(new Error("Questions are not supported"), {
-            code: "unsupported-capability",
-            operation: "submit-answer",
-            recoverable: false,
-          } satisfies CopilotError);
-        }
-        const resumedRun = retainLatestResumeSequence(
-          await transport.submitAnswer(awaiting.run.id, answer),
-          awaiting.run,
-        );
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current ||
-          revision !== revisionRef.current ||
-          activeIdRef.current !== sessionId
-        ) {
-          return;
-        }
-        syncSessionSummaryRun(sessionId, resumedRun);
-        setRunState(sessionId, { status: "streaming", run: resumedRun });
-        subscribeToRun(resumedRun);
-      } catch (cause) {
-        if (
-          !enabledRef.current ||
-          ownershipEpoch !== ownershipEpochRef.current ||
-          revision !== revisionRef.current ||
-          activeIdRef.current !== sessionId
-        ) {
-          return;
-        }
-        setRunState(sessionId, {
-          ...awaiting,
-          interactionError: toCopilotError("submit-answer", cause),
-        });
+      if (awaiting?.status !== "awaiting-answer") return Promise.resolve();
+      const key = `answer:${awaiting.run.id}`;
+      if (interactionSubmissionRef.current?.key === key) {
+        return interactionSubmissionRef.current.promise;
       }
+      const revision = revisionRef.current;
+      setRunState(sessionId, {
+        ...awaiting,
+        interactionError: undefined,
+        interactionPending: true,
+      });
+      const promise = Promise.resolve()
+        .then(async () => {
+          try {
+            if (!transport.capabilities.questions || !transport.submitAnswer) {
+              throw Object.assign(new Error("Questions are not supported"), {
+                code: "unsupported-capability",
+                operation: "submit-answer",
+                recoverable: false,
+              } satisfies CopilotError);
+            }
+            const resumedRun = retainLatestResumeSequence(
+              await transport.submitAnswer(awaiting.run.id, answer),
+              awaiting.run,
+            );
+            if (
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== sessionId
+            ) {
+              return;
+            }
+            syncSessionSummaryRun(sessionId, resumedRun);
+            setRunState(sessionId, { status: "streaming", run: resumedRun });
+            subscribeToRun(resumedRun);
+          } catch (cause) {
+            if (
+              !enabledRef.current ||
+              ownershipEpoch !== ownershipEpochRef.current ||
+              revision !== revisionRef.current ||
+              activeIdRef.current !== sessionId
+            ) {
+              return;
+            }
+            setRunState(sessionId, {
+              ...awaiting,
+              interactionError: toCopilotError("submit-answer", cause),
+              interactionPending: false,
+            });
+          }
+        })
+        .finally(() => {
+          if (interactionSubmissionRef.current?.promise === promise) {
+            interactionSubmissionRef.current = null;
+          }
+        });
+      interactionSubmissionRef.current = { key, promise };
+      return promise;
     },
     [setRunState, subscribeToRun, syncSessionSummaryRun, transport],
   );
@@ -1536,8 +1727,11 @@ export function CopilotProvider({
         } else if (bootstrap.create) {
           await create();
         }
-      } catch {
-        if (isListRequestCurrent()) setListStatus("error");
+      } catch (cause) {
+        if (isListRequestCurrent()) {
+          setSessionError(toSessionError("load-sessions", cause));
+          setListStatus("error");
+        }
       } finally {
         if (sessionListRequestAbortRef.current === controller) {
           sessionListRequestAbortRef.current = null;

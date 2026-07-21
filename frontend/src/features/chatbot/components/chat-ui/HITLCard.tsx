@@ -59,6 +59,7 @@ function ActionItem({ name, args }: { name: string; args?: Record<string, unknow
 export function HITLCard({
   request,
   interactionError,
+  pending = false,
   onSubmit,
 }: CopilotApprovalCardProps) {
   const { t } = useTranslation("chatbot");
@@ -68,6 +69,7 @@ export function HITLCard({
   if (!actions.length) return null;
 
   const handleDecision = (decision: "approve" | "reject") => {
+    if (pending) return;
     onSubmit(decision);
   };
 
@@ -107,6 +109,7 @@ export function HITLCard({
               kind="primary"
               size="lg"
               className={styles.footerBtn}
+              disabled={pending}
               onClick={() => handleDecision("approve")}
             >
               {t("ui.confirmAction")}
@@ -117,6 +120,7 @@ export function HITLCard({
               kind="danger"
               size="lg"
               className={styles.footerBtn}
+              disabled={pending}
               onClick={() => handleDecision("reject")}
             >
               {t("ui.cancelAction")}

@@ -375,6 +375,25 @@ describe("chatbotCopilotMapper", () => {
     ]);
   });
 
+  it("maps a finished tool without output as terminal", () => {
+    const message: ChatMessage = {
+      id: "message-terminal-tool",
+      role: "assistant",
+      content: "",
+      timestamp: new Date("2026-01-01T00:00:00Z"),
+      toolExecutions: [{ toolName: "notify", toolCallId: "tool-no-output" }],
+    };
+
+    expect(mapChatMessageToCopilot(message).parts).toEqual([
+      {
+        type: "tool",
+        toolCallId: "tool-no-output",
+        toolName: "notify",
+        state: "output-ready",
+      },
+    ]);
+  });
+
   it("keeps QJudge artifact metadata outside the public attachment", () => {
     const artifact: ArtifactRecord = {
       id: "artifact-1",
@@ -605,6 +624,182 @@ describe("createQJudgeCopilotTransport", () => {
     ]);
   });
 
+  it("publishes a tool start and finishes the same Copilot tool part", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onToolStarted?.(
+            {
+              toolName: "search",
+              toolCallId: "tool-1",
+              inputData: { query: "x" },
+            },
+            6,
+          );
+          callbacks.onMessageUpdate?.(
+            {
+              toolExecutions: [
+                {
+                  toolName: "search",
+                  toolCallId: "tool-1",
+                  inputData: { query: "x" },
+                },
+              ],
+            },
+            7,
+          );
+          await new Promise<void>(() => {});
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+    await vi.waitFor(() => expect(events).toHaveLength(2));
+
+    expect(events).toMatchObject([
+      {
+        type: "part-upsert",
+        resumeSequence: 6,
+        part: {
+          type: "tool",
+          toolName: "search",
+          state: "input-ready",
+        },
+      },
+      {
+        type: "part-upsert",
+        resumeSequence: 7,
+        part: {
+          type: "tool",
+          toolName: "search",
+          state: "output-ready",
+        },
+      },
+    ]);
+    const toolCallIds = events.map((event) =>
+      event.type === "part-upsert" && event.part.type === "tool"
+        ? event.part.toolCallId
+        : null,
+    );
+    expect(toolCallIds[0]).toEqual(expect.any(String));
+    expect(toolCallIds[1]).toBe(toolCallIds[0]);
+  });
+
+  it("keeps interleaved tool starts paired to their own terminal updates", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onToolStarted?.(
+            {
+              toolName: "search",
+              toolCallId: "tool-a",
+              inputData: { query: "a" },
+            },
+            6,
+          );
+          callbacks.onToolStarted?.(
+            {
+              toolName: "fetch",
+              toolCallId: "tool-b",
+              inputData: { url: "/b" },
+            },
+            7,
+          );
+          callbacks.onMessageUpdate?.(
+            {
+              toolExecutions: [
+                {
+                  toolName: "search",
+                  toolCallId: "tool-a",
+                  result: "A",
+                },
+              ],
+            },
+            8,
+          );
+          callbacks.onMessageUpdate?.(
+            {
+              toolExecutions: [
+                {
+                  toolName: "fetch",
+                  toolCallId: "tool-b",
+                  result: "B",
+                },
+              ],
+            },
+            9,
+          );
+          await new Promise<void>(() => {});
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+
+    transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error: vi.fn(),
+      complete: vi.fn(),
+    });
+
+    await vi.waitFor(() => expect(events).toHaveLength(4));
+
+    expect(events).toMatchObject([
+      {
+        type: "part-upsert",
+        part: {
+          type: "tool",
+          toolCallId: "tool-a",
+          state: "input-ready",
+          input: { query: "a" },
+        },
+      },
+      {
+        type: "part-upsert",
+        part: {
+          type: "tool",
+          toolCallId: "tool-b",
+          state: "input-ready",
+          input: { url: "/b" },
+        },
+      },
+      {
+        type: "part-upsert",
+        part: {
+          type: "tool",
+          toolCallId: "tool-a",
+          state: "output-ready",
+          input: { query: "a" },
+          output: "A",
+        },
+      },
+      {
+        type: "part-upsert",
+        part: {
+          type: "tool",
+          toolCallId: "tool-b",
+          state: "output-ready",
+          input: { url: "/b" },
+          output: "B",
+        },
+      },
+    ]);
+  });
+
   it("normalizes live data parts and resumes from the requested sequence", async () => {
     let callbacks: StreamCallbacks | undefined;
     const subscribeRunEvents = vi.fn(
@@ -783,5 +978,156 @@ describe("createQJudgeCopilotTransport", () => {
       type: "run-status",
       status: "cancelled",
     });
+  });
+
+  it("forwards the canonical terminal session to the public observer", async () => {
+    const canonicalSession: ChatSession = {
+      ...legacySession,
+      title: "Canonical title",
+      updatedAt: new Date("2026-01-01T02:00:00Z"),
+    };
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("completed");
+          callbacks.onComplete?.(canonicalSession);
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const complete = vi.fn();
+
+    transport.subscribeRun(run, {
+      next: vi.fn(),
+      error: vi.fn(),
+      complete,
+    });
+    await vi.waitFor(() => expect(complete).toHaveBeenCalledOnce());
+
+    expect(complete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: canonicalSession.id,
+        title: "Canonical title",
+        updatedAt: canonicalSession.updatedAt,
+      }),
+    );
+  });
+
+  it("preserves the failed run error and canonical terminal session", async () => {
+    const canonicalSession: ChatSession = {
+      ...legacySession,
+      title: "Canonical failed session",
+      updatedAt: new Date("2026-01-01T03:00:00Z"),
+    };
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("failed", 18);
+          callbacks.onMessageUpdate?.(
+            {
+              runStatus: "failed",
+              runError: "Tool execution failed",
+            },
+            18,
+          );
+          await Promise.resolve();
+          callbacks.onComplete?.(canonicalSession, 18);
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+    const error = vi.fn();
+    const complete = vi.fn();
+    const subscription = transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error,
+      complete,
+    });
+
+    await vi.waitFor(() => expect(complete).toHaveBeenCalledOnce());
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "run-status",
+      status: "failed",
+      error: {
+        code: "run-failed",
+        message: "Tool execution failed",
+        recoverable: false,
+      },
+    });
+    expect(complete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: canonicalSession.id,
+        title: canonicalSession.title,
+        updatedAt: canonicalSession.updatedAt,
+      }),
+    );
+    expect(error).not.toHaveBeenCalled();
+    expect(subscription.closed).toBe(true);
+  });
+
+  it("retains the failed run when canonical session synchronization fails", async () => {
+    const repository = createRepository({
+      subscribeRunEvents: vi.fn(
+        async (_run: ChatRun, callbacks: StreamCallbacks) => {
+          callbacks.onRunStatus?.("failed", 19);
+          callbacks.onMessageUpdate?.(
+            {
+              runStatus: "failed",
+              runError: "Tool execution failed",
+            },
+            19,
+          );
+          callbacks.onError?.("對話同步失敗，請重新整理後再試", 19);
+        },
+      ),
+    });
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+    const run = await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Hi",
+    });
+    const events: CopilotRunEvent[] = [];
+    const error = vi.fn();
+    const complete = vi.fn();
+    const subscription = transport.subscribeRun(run, {
+      next: (event) => events.push(event),
+      error,
+      complete,
+    });
+
+    await vi.waitFor(() => expect(complete).toHaveBeenCalledOnce());
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: "run-status",
+      status: "failed",
+      error: {
+        code: "run-failed",
+        message: "Tool execution failed",
+        recoverable: false,
+      },
+    });
+    expect(events[0]).toMatchObject({
+      error: {
+        cause: expect.objectContaining({
+          code: "transport-error",
+          message: "對話同步失敗，請重新整理後再試",
+        }),
+      },
+    });
+    expect(error).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledWith();
+    expect(subscription.closed).toBe(true);
   });
 });

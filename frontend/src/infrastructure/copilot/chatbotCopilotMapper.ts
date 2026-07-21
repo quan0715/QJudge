@@ -42,9 +42,7 @@ export function mapToolInfoToCopilotPart(
 ): CopilotToolPart {
   const state = tool.isError
     ? "error"
-    : tool.result !== undefined
-      ? "output-ready"
-      : "input-ready";
+    : "output-ready";
   return {
     type: "tool",
     toolCallId: tool.toolCallId ?? `legacy-tool-${index}-${tool.toolName}`,

@@ -9,6 +9,16 @@ import { MemoryCopilotTransport } from "../testing";
 import { CopilotProvider } from "./CopilotProvider";
 import type { CopilotInitialSessionStrategy } from "./copilotSessionBootstrap";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((onResolve, onReject) => {
+    resolve = onResolve;
+    reject = onReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function wrapper(
   transport: MemoryCopilotTransport,
   initialSession: CopilotInitialSessionStrategy = "create",
@@ -23,6 +33,209 @@ function wrapper(
 }
 
 describe("CopilotProvider run lifecycle", () => {
+  it("publishes pending reasoning before the first run event", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Think first"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+
+    const sent = await act(() => result.current.composer.send());
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+
+    expect(assistant?.parts).toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it.each(["queued", "cancelled", "failed"] as const)(
+    "clears pending reasoning when the run reports %s",
+    async (status) => {
+      const transport = new MemoryCopilotTransport();
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport) },
+      );
+      act(() => result.current.composer.setDraft("Think first"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 1,
+          status,
+        }),
+      );
+
+      const assistant =
+        result.current.sessions.activeSession.data?.messages.find(
+          (message) => message.metadata?.runId === sent.runId,
+        );
+      expect(assistant?.parts).not.toContainEqual({
+        type: "reasoning",
+        text: "",
+        state: "streaming",
+      });
+    },
+  );
+
+  it("retains pending reasoning across a running status before content", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Still thinking"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        status: "running",
+      }),
+    );
+
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it("clears pending reasoning after a nonrecoverable stream error", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Fail before content"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    act(() =>
+      transport.fail(sent.runId!, {
+        code: "stream-disconnected",
+        operation: "subscribe-run",
+        recoverable: false,
+      }),
+    );
+
+    expect(result.current.run.state.status).toBe("error");
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).not.toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it.each(["missing-run", "unsupported-resume"] as const)(
+    "clears pending reasoning when restore settles as %s",
+    async (scenario) => {
+      const transport = new MemoryCopilotTransport();
+      if (scenario === "missing-run") {
+        vi.spyOn(transport, "getActiveRun").mockResolvedValueOnce(null);
+      } else {
+        Object.assign(transport.capabilities, { resumableStreams: false });
+      }
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          run: useCopilotRun(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport) },
+      );
+      act(() => result.current.composer.setDraft("Restore before content"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      vi.useFakeTimers();
+      try {
+        act(() =>
+          transport.fail(sent.runId!, {
+            code: "stream-disconnected",
+            operation: "subscribe-run",
+            recoverable: true,
+          }),
+        );
+        await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+        expect(result.current.run.state.status).toBe("ready");
+        const assistant =
+          result.current.sessions.activeSession.data?.messages.find(
+            (message) => message.metadata?.runId === sent.runId,
+          );
+        expect(assistant?.parts).not.toContainEqual({
+          type: "reasoning",
+          text: "",
+          state: "streaming",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("clears pending reasoning when stopping an uncancellable run", async () => {
+    const transport = new MemoryCopilotTransport();
+    Object.assign(transport.capabilities, { cancellableRuns: false });
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Stop before content"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    await act(() => result.current.run.stop());
+
+    expect(result.current.run.state.status).toBe("ready");
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).not.toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
   it("moves from submitted through streaming to ready", async () => {
     const transport = new MemoryCopilotTransport();
     const { result } = renderHook(
@@ -141,6 +354,57 @@ describe("CopilotProvider run lifecycle", () => {
       expect(result.current.run.state.request.actions).toEqual([{ name: "write" }]);
       expect(result.current.run.state.interactionError).toBe(failure);
     }
+  });
+
+  it("deduplicates an in-flight approval and permits retry after failure", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Change it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-approval",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: {
+          actions: [{ name: "write" }],
+          allowedDecisions: ["approve"],
+        },
+      }),
+    );
+    const pending = deferred<CopilotRun>();
+    const submitApproval = vi
+      .spyOn(transport, "submitApproval")
+      .mockReturnValue(pending.promise);
+
+    let first!: Promise<void>;
+    let duplicate!: Promise<void>;
+    act(() => {
+      first = result.current.run.submitApproval("approve");
+      duplicate = result.current.run.submitApproval("approve");
+    });
+    expect(result.current.run.state).toMatchObject({
+      status: "awaiting-approval",
+      interactionPending: true,
+    });
+    await act(async () => {
+      pending.reject(new Error("offline"));
+      await Promise.all([first, duplicate]);
+    });
+
+    expect(submitApproval).toHaveBeenCalledTimes(1);
+    submitApproval.mockResolvedValueOnce({
+      id: sent.runId!,
+      sessionId: sent.sessionId,
+      status: "running",
+    });
+    await act(() => result.current.run.submitApproval("approve"));
+    expect(submitApproval).toHaveBeenCalledTimes(2);
   });
 
   it("subscribes to the run returned by submitApproval", async () => {
@@ -397,6 +661,54 @@ describe("CopilotProvider run lifecycle", () => {
       expect(result.current.run.state.request.question).toBe("Continue?");
       expect(result.current.run.state.interactionError?.operation).toBe("submit-answer");
     }
+  });
+
+  it("deduplicates an in-flight answer and permits retry after failure", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Grade it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-answer",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: { question: "Continue?", input: "text" },
+      }),
+    );
+    const pending = deferred<CopilotRun>();
+    const submitAnswer = vi
+      .spyOn(transport, "submitAnswer")
+      .mockReturnValue(pending.promise);
+
+    let first!: Promise<void>;
+    let duplicate!: Promise<void>;
+    act(() => {
+      first = result.current.run.submitAnswer("yes");
+      duplicate = result.current.run.submitAnswer("yes");
+    });
+    expect(result.current.run.state).toMatchObject({
+      status: "awaiting-answer",
+      interactionPending: true,
+    });
+    await act(async () => {
+      pending.reject(new Error("offline"));
+      await Promise.all([first, duplicate]);
+    });
+
+    expect(submitAnswer).toHaveBeenCalledTimes(1);
+    submitAnswer.mockResolvedValueOnce({
+      id: sent.runId!,
+      sessionId: sent.sessionId,
+      status: "running",
+    });
+    await act(() => result.current.run.submitAnswer("yes"));
+    expect(submitAnswer).toHaveBeenCalledTimes(2);
   });
 
   it("exposes and clears the current run notice", async () => {

@@ -119,6 +119,17 @@ export function CopilotPanel({
           {sessions.activeSession.status === "error" && ErrorState ? (
             <ErrorState
               error={sessions.activeSession.error}
+              onRetry={() => {
+                const id = sessions.activeSession.id;
+                if (id) void sessions.select(id);
+                else void sessions.refresh();
+              }}
+            />
+          ) : sessions.error &&
+            sessions.activeSession.status === "empty" &&
+            ErrorState ? (
+            <ErrorState
+              error={sessions.error}
               onRetry={() => void sessions.refresh()}
             />
           ) : messages.length === 0 && Empty ? (
@@ -136,6 +147,7 @@ export function CopilotPanel({
             <Approval
               request={run.state.request}
               interactionError={run.state.interactionError}
+              pending={run.state.interactionPending}
               onSubmit={(decision) => void run.submitApproval(decision)}
             />
           )}
@@ -143,6 +155,7 @@ export function CopilotPanel({
             <Question
               request={run.state.request}
               interactionError={run.state.interactionError}
+              pending={run.state.interactionPending}
               onSubmit={(answer) => void run.submitAnswer(answer)}
             />
           )}

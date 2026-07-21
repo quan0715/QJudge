@@ -13,7 +13,10 @@ import {
   CopilotQuestionCard,
   type CopilotQuestionCardProps,
 } from "./CopilotQuestionCard";
-import type { CopilotSuggestionsProps } from "./copilotUI.types";
+import type {
+  CopilotErrorStateProps,
+  CopilotSuggestionsProps,
+} from "./copilotUI.types";
 import { CopilotProvider } from "../react/CopilotProvider";
 import {
   MemoryCopilotModelCatalog,
@@ -26,6 +29,14 @@ const message: CopilotMessage = {
   createdAt: new Date(),
   parts: [{ type: "text", text: "Hello" }],
 };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((onResolve) => {
+    resolve = onResolve;
+  });
+  return { promise, resolve };
+}
 
 describe("Copilot UI primitives", () => {
   it("renders a semantic message without exposing hidden errors", () => {
@@ -328,6 +339,129 @@ describe("Copilot UI primitives", () => {
     expect(screen.getByRole("button", { name: "A" })).toBeEnabled();
     expect(Question.mock.calls.at(-1)?.[0].interactionError).toEqual(
       expect.objectContaining({ message: "Answer failed" }),
+    );
+  });
+
+  it("disables approval decisions while submission is pending", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const started = await transport.startRun({
+      sessionId: session.id,
+      text: "deploy",
+    });
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue({
+      ...started,
+      status: "awaiting-approval",
+      approvalRequest: {
+        actions: [{ name: "deploy" }],
+        allowedDecisions: ["approve", "reject"],
+      },
+    });
+    const pending = deferred<CopilotRun>();
+    const submitApproval = vi
+      .spyOn(transport, "submitApproval")
+      .mockReturnValue(pending.promise);
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel />
+      </CopilotProvider>,
+    );
+    const approve = await screen.findByRole("button", { name: "Approve" });
+    fireEvent.click(approve);
+
+    await waitFor(() => expect(approve).toBeDisabled());
+    fireEvent.click(approve);
+    expect(submitApproval).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve({ ...started, status: "running" });
+      await pending.promise;
+    });
+  });
+
+  it("disables answer controls while submission is pending", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const started = await transport.startRun({
+      sessionId: session.id,
+      text: "ask",
+    });
+    vi.spyOn(transport, "getActiveRun").mockResolvedValue({
+      ...started,
+      status: "awaiting-answer",
+      questionRequest: {
+        question: "Pick one",
+        input: "choice",
+        options: ["A"],
+      },
+    });
+    const pending = deferred<CopilotRun>();
+    const submitAnswer = vi
+      .spyOn(transport, "submitAnswer")
+      .mockReturnValue(pending.promise);
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel />
+      </CopilotProvider>,
+    );
+    const answer = await screen.findByRole("button", { name: "A" });
+    fireEvent.click(answer);
+
+    await waitFor(() => expect(answer).toBeDisabled());
+    fireEvent.click(answer);
+    expect(submitAnswer).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve({ ...started, status: "running" });
+      await pending.promise;
+    });
+  });
+
+  it("retries the active session load from its error state", async () => {
+    const transport = new MemoryCopilotTransport();
+    await transport.createSession({ title: "Recovered" });
+    const originalGetSession = transport.getSession.bind(transport);
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockRejectedValueOnce(new Error("Session offline"))
+      .mockImplementation(originalGetSession);
+    const ErrorState = ({ error, onRetry }: CopilotErrorStateProps) => (
+      <div>
+        <span role="alert">{error.message}</span>
+        <button type="button" onClick={onRetry}>Retry active</button>
+      </div>
+    );
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel slots={{ errorState: ErrorState }} />
+      </CopilotProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Retry active" }));
+
+    await waitFor(() => expect(getSession).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("renders an initial session list error", async () => {
+    const transport = new MemoryCopilotTransport();
+    vi.spyOn(transport, "listSessions").mockRejectedValueOnce(
+      new Error("Session list offline"),
+    );
+    const ErrorState = ({ error }: CopilotErrorStateProps) => (
+      <span role="alert">{error.message}</span>
+    );
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel slots={{ errorState: ErrorState }} />
+      </CopilotProvider>,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Session list offline",
     );
   });
 });

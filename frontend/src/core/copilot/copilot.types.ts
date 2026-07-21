@@ -144,12 +144,14 @@ export type CopilotRunState =
       run: CopilotRun;
       request: CopilotApprovalRequest;
       interactionError?: CopilotError;
+      interactionPending?: boolean;
     }
   | {
       status: "awaiting-answer";
       run: CopilotRun;
       request: CopilotQuestionRequest;
       interactionError?: CopilotError;
+      interactionPending?: boolean;
     }
   | {
       status: "error";

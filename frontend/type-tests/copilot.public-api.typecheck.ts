@@ -11,6 +11,7 @@ import {
   type CopilotErrorStateProps,
   type CopilotHeaderProps,
   type CopilotHistorySlotProps,
+  type CopilotInitialSessionStrategy,
   type CopilotMessageListSlotProps,
   type CopilotMessageViewProps,
   type CopilotModel,
@@ -47,6 +48,7 @@ const modelStatus: CopilotModelStatus = "ready";
 const modelCatalog: CopilotModelCatalog = new MemoryCopilotModelCatalog([model]);
 const sessionLocation: CopilotSessionLocation = new MemoryCopilotSessionLocation();
 const storage: CopilotStorage = new MemoryCopilotStorage();
+const initialSession: CopilotInitialSessionStrategy = "first-or-create";
 const active: CopilotActiveSessionState = {
   status: "empty",
   id: null,
@@ -71,6 +73,7 @@ void [
   modelCatalog,
   sessionLocation,
   storage,
+  initialSession,
   active,
   run,
   result,

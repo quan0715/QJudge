@@ -29,6 +29,7 @@ describe("MessageBubble", () => {
     expect(screen.getByText("Answer")).toBeInTheDocument();
     expect(screen.getByText("Checking")).toBeInTheDocument();
     expect(screen.getByText(/lookup/)).toBeInTheDocument();
+    expect(screen.queryByText("ui.processing")).not.toBeInTheDocument();
   });
 
   it("derives assistant output only from public message parts", () => {
@@ -68,5 +69,6 @@ describe("MessageBubble", () => {
     render(<MessageBubble message={message} />);
 
     expect(screen.getAllByText(/active_lookup/)).toHaveLength(1);
+    expect(screen.getByText("ui.processing")).toBeInTheDocument();
   });
 });

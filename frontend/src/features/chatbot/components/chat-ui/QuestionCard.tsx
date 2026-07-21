@@ -8,6 +8,7 @@ import styles from "./QuestionCard.module.scss";
 export function QuestionCard({
   request,
   interactionError,
+  pending = false,
   onSubmit,
 }: CopilotQuestionCardProps) {
   const { t } = useTranslation("chatbot");
@@ -16,16 +17,17 @@ export function QuestionCard({
   const isChoice = request.input === "choice" && request.options?.length;
 
   const handleSubmit = useCallback(() => {
-    if (!answer.trim()) return;
+    if (pending || !answer.trim()) return;
     onSubmit(answer.trim());
-  }, [answer, onSubmit]);
+  }, [answer, onSubmit, pending]);
 
   const handleChoiceClick = useCallback(
     (option: string) => {
+      if (pending) return;
       setAnswer(option);
       onSubmit(option);
     },
-    [onSubmit],
+    [onSubmit, pending],
   );
 
   const handleKeyDown = useCallback(
@@ -59,6 +61,7 @@ export function QuestionCard({
                   kind="tertiary"
                   size="md"
                   className={styles.optionBtn}
+                  disabled={pending}
                   onClick={() => handleChoiceClick(option)}
                 >
                   {option}
@@ -76,6 +79,7 @@ export function QuestionCard({
                   "輸入你的回答…",
                 )}
                 value={answer}
+                disabled={pending}
                 onChange={(e) => setAnswer(e.target.value)}
                 onKeyDown={handleKeyDown}
                 rows={2}
@@ -100,7 +104,7 @@ export function QuestionCard({
             size="lg"
             className={styles.footerBtn}
             onClick={handleSubmit}
-            disabled={!isChoice && !answer.trim()}
+            disabled={pending || (!isChoice && !answer.trim())}
           >
             {t("ui.submitAnswer", "送出回答")}
           </Button>

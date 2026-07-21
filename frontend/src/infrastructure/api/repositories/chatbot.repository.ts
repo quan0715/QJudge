@@ -877,6 +877,11 @@ const chatbotRepository: ChatbotRepository = {
           }
 
           currentMessage.toolName = displayToolName;
+          notify(callbacks.onToolStarted, {
+            toolName: displayToolName,
+            ...(event.tool_call_id ? { toolCallId: event.tool_call_id } : {}),
+            ...(event.input_data ? { inputData: event.input_data } : {}),
+          });
           notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
         break;
@@ -975,15 +980,19 @@ const chatbotRepository: ChatbotRepository = {
         break;
       }
 
-      case "run_failed":
+      case "run_failed": {
         console.debug("SSE: run_failed", {
           errorCode: event.error_code,
           message: event.message,
         });
+        const runFailureMessage = toRunFailureMessage(
+          event.error_code,
+          event.message,
+        );
         currentMessage.runStatus = "failed";
         notify(callbacks.onRunStatus, "failed");
         currentMessage.isThinking = false;
-        currentMessage.runError = toRunFailureMessage(event.error_code, event.message);
+        currentMessage.runError = runFailureMessage;
         notify(callbacks.onMessageUpdate, { ...currentMessage });
         notify(callbacks.onSessionNotice, null);
         notify(callbacks.onTodoItemsUpdate, null);
@@ -993,12 +1002,10 @@ const chatbotRepository: ChatbotRepository = {
           )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_failed:", err);
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
-        notify(
-          callbacks.onError,
-          toRunFailureMessage(event.error_code, event.message),
-        );
         break;
+      }
 
       case "awaiting_approval": {
         // Run may pause for a long time before run_completed; clear transient notices (e.g. summarization).

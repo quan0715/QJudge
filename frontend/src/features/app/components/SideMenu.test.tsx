@@ -230,8 +230,10 @@ describe("SideMenu contest admin workspace panels", () => {
     fireEvent.click(await screen.findByText("ui.newChat"));
 
     await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
-    expect(screen.getByTestId("location-search")).toHaveTextContent(
-      "?ai_session_id=session-new",
+    await waitFor(() =>
+      expect(screen.getByTestId("location-search")).toHaveTextContent(
+        "?ai_session_id=session-new",
+      ),
     );
   });
 

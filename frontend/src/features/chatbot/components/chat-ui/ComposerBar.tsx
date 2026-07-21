@@ -65,6 +65,11 @@ export function ComposerBar({
   // session has badges to show. New chats with a single-line draft and no
   // badges stay in the compact pill layout.
   const [isWrapped, setIsWrapped] = useState(false);
+  // Reconcile a cleared controlled value before commit so a following prop
+  // update cannot cancel the reset between renders.
+  if (value.length === 0 && isWrapped) {
+    setIsWrapped(false);
+  }
   const badgeSummary = useSessionBadgeSummary(messages ?? []);
   const isExpanded =
     (value.length > 0 && isWrapped) ||

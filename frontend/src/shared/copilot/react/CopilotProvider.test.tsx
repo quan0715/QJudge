@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   CopilotAttachmentPart,
   CopilotRun,
+  CopilotRunObserver,
   CopilotSession,
   CopilotSessionSummary,
+  CopilotSubscription,
 } from "@/core/copilot";
 import {
   MemoryCopilotModelCatalog,
@@ -839,6 +841,125 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("exposes an initial session list failure", async () => {
+    const transport = new MemoryCopilotTransport();
+    vi.spyOn(transport, "listSessions").mockRejectedValueOnce(
+      new Error("Session list offline"),
+    );
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+
+    await waitFor(() => expect(result.current.listStatus).toBe("error"));
+    expect(result.current.error).toMatchObject({
+      operation: "load-sessions",
+      message: "Session list offline",
+    });
+  });
+
+  it("reruns first-or-create bootstrap after the initial list recovers", async () => {
+    const transport = new MemoryCopilotTransport();
+    vi.spyOn(transport, "listSessions")
+      .mockRejectedValueOnce(new Error("Session list offline"))
+      .mockResolvedValueOnce([]);
+    const createSession = vi.spyOn(transport, "createSession");
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first-or-create" }),
+    });
+    await waitFor(() => expect(result.current.listStatus).toBe("error"));
+
+    await act(() => result.current.refresh());
+
+    await waitFor(() => expect(result.current.activeSession.status).toBe("ready"));
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not let refresh bootstrap overwrite a concurrent UI selection", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const firstLoad = deferred<CopilotSession>();
+    const originalGetSession = transport.getSession.bind(transport);
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockImplementation((id) =>
+        id === first.id ? firstLoad.promise : originalGetSession(id),
+      );
+    vi.spyOn(transport, "listSessions")
+      .mockRejectedValueOnce(new Error("Session list offline"))
+      .mockResolvedValueOnce([first, second]);
+    const location = new MemoryCopilotSessionLocation(first.id);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: location,
+        initialSession: "first",
+      }),
+    });
+    await waitFor(() => expect(result.current.listStatus).toBe("error"));
+
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await waitFor(() =>
+      expect(getSession).toHaveBeenCalledWith(first.id, expect.any(Object)),
+    );
+    await act(() => result.current.select(second.id));
+
+    await act(async () => {
+      firstLoad.resolve(first);
+      await refreshPromise;
+    });
+
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(location.get()).toBe(second.id);
+  });
+
+  it("ignores a stale refresh bootstrap rejection after UI selection", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    const firstLoad = deferred<CopilotSession>();
+    const originalGetSession = transport.getSession.bind(transport);
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockImplementation((id) =>
+        id === first.id ? firstLoad.promise : originalGetSession(id),
+      );
+    vi.spyOn(transport, "listSessions")
+      .mockRejectedValueOnce(new Error("Session list offline"))
+      .mockResolvedValueOnce([first, second]);
+    const location = new MemoryCopilotSessionLocation(first.id);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({
+        transport,
+        sessionLocation: location,
+        initialSession: "first",
+      }),
+    });
+    await waitFor(() => expect(result.current.listStatus).toBe("error"));
+
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await waitFor(() =>
+      expect(getSession).toHaveBeenCalledWith(first.id, expect.any(Object)),
+    );
+    await act(() => result.current.select(second.id));
+
+    await act(async () => {
+      firstLoad.reject(new Error("Stale bootstrap offline"));
+      await refreshPromise;
+    });
+
+    expect(result.current.activeSession.id).toBe(second.id);
+    expect(result.current.listStatus).toBe("ready");
+    expect(result.current.error).toBeNull();
+    expect(location.get()).toBe(second.id);
+  });
+
   it("does not let a stale refresh overwrite a newly created session", async () => {
     const transport = new MemoryCopilotTransport();
     const existing = await transport.createSession({ title: "Existing" });
@@ -1450,9 +1571,191 @@ describe("CopilotProvider session lifecycle", () => {
 
     expect(subscription.closed).toBe(true);
   });
+
+  it.each(["completed", "cancelled", "failed"] as const)(
+    "reconciles the canonical session after a %s run",
+    async (status) => {
+      const transport = new MemoryCopilotTransport();
+      const session = await transport.createSession({ title: "Local title" });
+      let observer!: CopilotRunObserver;
+      let closed = false;
+      vi.spyOn(transport, "subscribeRun").mockImplementation(
+        (_run, nextObserver) => {
+          observer = nextObserver;
+          return {
+            get closed() {
+              return closed;
+            },
+            close() {
+              closed = true;
+            },
+          } satisfies CopilotSubscription;
+        },
+      );
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          sessions: useCopilotSessions(),
+        }),
+        {
+          wrapper: createWrapper({
+            transport,
+            sessionLocation: new MemoryCopilotSessionLocation(session.id),
+          }),
+        },
+      );
+      await waitFor(() =>
+        expect(result.current.sessions.activeSession.id).toBe(session.id),
+      );
+      act(() => result.current.composer.setDraft("Canonicalize me"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+      const freshSession: CopilotSession = {
+        ...session,
+        title: `Canonical ${status}`,
+        updatedAt: new Date("2026-07-21T00:00:00.000Z"),
+        messages: [
+          {
+            id: `canonical-${status}`,
+            role: "assistant",
+            createdAt: new Date("2026-07-21T00:00:00.000Z"),
+            parts: [{ type: "text", text: `Server ${status}` }],
+          },
+        ],
+      };
+
+      act(() => {
+        observer.next({
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 1,
+          status,
+        });
+        observer.complete(freshSession);
+      });
+
+      expect(result.current.sessions.activeSession.data).toEqual(freshSession);
+      expect(result.current.sessions.sessions[0]).toMatchObject({
+        id: session.id,
+        title: `Canonical ${status}`,
+        updatedAt: freshSession.updatedAt,
+      });
+    },
+  );
+
+  it("ignores a canonical completion from a stale session subscription", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    let firstObserver!: CopilotRunObserver;
+    vi.spyOn(transport, "subscribeRun").mockImplementation(
+      (_run, observer) => {
+        firstObserver = observer;
+        let closed = false;
+        return {
+          get closed() {
+            return closed;
+          },
+          close() {
+            closed = true;
+          },
+        } satisfies CopilotSubscription;
+      },
+    );
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: createWrapper({ transport, initialSession: "first" }) },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.id).toBe(first.id),
+    );
+    act(() => result.current.composer.setDraft("First work"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    await act(() => result.current.sessions.select(second.id));
+    const staleSession: CopilotSession = {
+      ...first,
+      title: "Stale canonical title",
+      messages: [],
+    };
+
+    act(() => {
+      firstObserver.next({
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: first.id,
+        sequence: 1,
+        status: "completed",
+      });
+      firstObserver.complete(staleSession);
+    });
+
+    expect(result.current.sessions.activeSession.id).toBe(second.id);
+    expect(result.current.sessions.activeSession.data?.title).toBe("Second");
+    expect(
+      result.current.sessions.sessions.find((item) => item.id === first.id)
+        ?.title,
+    ).toBe("First");
+  });
 });
 
 describe("CopilotProvider composer lifecycle", () => {
+  it("does not let a delayed send replace the selected session subscription", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession({ title: "First" });
+    const second = await transport.createSession({ title: "Second" });
+    await transport.startRun({ sessionId: second.id, text: "Second work" });
+    const releaseFirstRun = deferred<void>();
+    const originalStartRun = transport.startRun.bind(transport);
+    const startRun = vi
+      .spyOn(transport, "startRun")
+      .mockImplementationOnce(async (input) => {
+        await releaseFirstRun.promise;
+        return originalStartRun(input);
+      })
+      .mockImplementation(originalStartRun);
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: createWrapper({ transport, initialSession: "first" }) },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.id).toBe(first.id),
+    );
+    act(() => result.current.composer.setDraft("First work"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+
+    let pendingSend!: ReturnType<typeof result.current.composer.send>;
+    act(() => {
+      pendingSend = result.current.composer.send();
+    });
+    await waitFor(() => expect(startRun).toHaveBeenCalledTimes(1));
+    await act(() => result.current.sessions.select(second.id));
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    const secondSubscription = subscribeRun.mock.results[0].value;
+
+    let sendResult;
+    await act(async () => {
+      releaseFirstRun.resolve();
+      sendResult = await pendingSend;
+    });
+
+    expect(sendResult).toMatchObject({
+      accepted: false,
+      sessionId: first.id,
+    });
+    expect(result.current.sessions.activeSession.id).toBe(second.id);
+    expect(subscribeRun).toHaveBeenCalledTimes(1);
+    expect(secondSubscription.closed).toBe(false);
+  });
+
   it("shares one in-flight send across rapid duplicate submissions", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();

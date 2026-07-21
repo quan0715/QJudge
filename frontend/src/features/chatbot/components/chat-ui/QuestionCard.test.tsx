@@ -5,6 +5,25 @@ import type { CopilotError, CopilotQuestionRequest } from "@copilot";
 import { QuestionCard } from "./QuestionCard";
 
 describe("QuestionCard", () => {
+  it("disables answer choices while a submission is pending", () => {
+    render(
+      <QuestionCard
+        request={{
+          question: "Which environment?",
+          input: "choice",
+          options: ["staging"],
+        }}
+        pending
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "staging" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /ui\.submitAnswer|送出回答/ }),
+    ).toBeDisabled();
+  });
+
   it("uses the public input discriminator and retains submission errors", () => {
     const request: CopilotQuestionRequest = {
       question: "Which environment?",

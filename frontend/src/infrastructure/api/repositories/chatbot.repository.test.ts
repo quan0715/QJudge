@@ -633,18 +633,65 @@ describe("chatbotRepository stream events", () => {
     ]);
   });
 
-  it("maps timeout run_failed to actionable message and updates assistant status", () => {
+  it("forwards tool call identity and input when a tool starts", () => {
+    const onToolStarted = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: Record<string, unknown>,
+        currentMessage: Record<string, unknown>,
+        callbacks: { onToolStarted?: (tool: Record<string, unknown>) => void },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "tool_call_started",
+        seq: 44,
+        tool_name: "search",
+        tool_call_id: "call-search-1",
+        input_data: { query: "copilot" },
+      },
+      {},
+      { onToolStarted },
+      "session-1",
+      vi.fn(),
+    );
+
+    expect(onToolStarted).toHaveBeenCalledWith(
+      {
+        toolName: "search",
+        toolCallId: "call-search-1",
+        inputData: { query: "copilot" },
+      },
+      44,
+    );
+  });
+
+  it("maps timeout run_failed, then completes with the canonical session", async () => {
     const onMessageUpdate = vi.fn();
     const onError = vi.fn();
+    const onComplete = vi.fn();
+    const callbackOrder: string[] = [];
+    let resolveSession!: (session: {
+      id: string;
+      title: string;
+      messages: never[];
+      createdAt: Date;
+      updatedAt: Date;
+    }) => void;
+    const sessionPromise = new Promise<{
+      id: string;
+      title: string;
+      messages: never[];
+      createdAt: Date;
+      updatedAt: Date;
+    }>((resolve) => {
+      resolveSession = resolve;
+    });
     const getSessionSpy = vi
       .spyOn(chatbotRepository, "getSession")
-      .mockResolvedValue({
-        id: "session-1",
-        title: "Test",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any);
+      .mockReturnValue(sessionPromise);
     const currentMessage: Record<string, unknown> = {
       runId: "run-1",
       runStatus: "running",
@@ -656,7 +703,9 @@ describe("chatbotRepository stream events", () => {
         event: { type: string; error_code?: string; message?: string },
         currentMessage: Record<string, unknown>,
         callbacks: {
+          onRunStatus?: (status: string) => void;
           onMessageUpdate?: (message: Record<string, unknown>) => void;
+          onComplete?: (session: Record<string, unknown>) => void;
           onError?: (error: string) => void;
         },
         resolvedSessionId: string,
@@ -669,7 +718,18 @@ describe("chatbotRepository stream events", () => {
         message: "execution timed out",
       },
       currentMessage,
-      { onMessageUpdate, onError },
+      {
+        onRunStatus: () => callbackOrder.push("status"),
+        onMessageUpdate: (message) => {
+          callbackOrder.push("message");
+          onMessageUpdate(message);
+        },
+        onComplete: (session) => {
+          callbackOrder.push("complete");
+          onComplete(session);
+        },
+        onError,
+      },
       "session-1",
       vi.fn(),
     );
@@ -681,12 +741,30 @@ describe("chatbotRepository stream events", () => {
         runError: "任務執行太長，請手動繼續任務",
       }),
     );
-    expect(onError).toHaveBeenCalledWith("任務執行太長，請手動繼續任務");
+    expect(callbackOrder).toEqual(["status", "message"]);
+    expect(onError).not.toHaveBeenCalled();
+
+    const canonicalSession = {
+      id: "session-1",
+      title: "Canonical failed session",
+      messages: [],
+      createdAt: new Date("2026-01-01T00:00:00Z"),
+      updatedAt: new Date("2026-01-01T01:00:00Z"),
+    };
+    resolveSession(canonicalSession);
+    await vi.waitFor(() =>
+      expect(onComplete).toHaveBeenCalledWith(canonicalSession),
+    );
+
+    expect(callbackOrder).toEqual(["status", "message", "complete"]);
+    expect(onError).not.toHaveBeenCalled();
     getSessionSpy.mockRestore();
   });
 
-  it("keeps original run_failed message for non-timeout failures", () => {
+  it("keeps original run_failed message for non-timeout failures", async () => {
+    const onMessageUpdate = vi.fn();
     const onError = vi.fn();
+    const onComplete = vi.fn();
     const getSessionSpy = vi
       .spyOn(chatbotRepository, "getSession")
       .mockResolvedValue({
@@ -695,13 +773,17 @@ describe("chatbotRepository stream events", () => {
         messages: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any);
+      });
 
     (chatbotRepository as unknown as {
       _handleStreamEvent: (
         event: { type: string; error_code?: string; message?: string },
         currentMessage: Record<string, unknown>,
-        callbacks: { onError?: (error: string) => void },
+        callbacks: {
+          onMessageUpdate?: (message: Record<string, unknown>) => void;
+          onComplete?: (session: Record<string, unknown>) => void;
+          onError?: (error: string) => void;
+        },
         resolvedSessionId: string,
         setResolvedId: (id: string) => void,
       ) => void;
@@ -712,12 +794,61 @@ describe("chatbotRepository stream events", () => {
         message: "Tool execution failed",
       },
       {},
-      { onError },
+      { onMessageUpdate, onComplete, onError },
       "session-1",
       vi.fn(),
     );
 
-    expect(onError).toHaveBeenCalledWith("Tool execution failed");
+    expect(onMessageUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ runError: "Tool execution failed" }),
+    );
+    await vi.waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
+    expect(onError).not.toHaveBeenCalled();
+    getSessionSpy.mockRestore();
+  });
+
+  it("reports only canonical session synchronization failures through onError", async () => {
+    const onError = vi.fn();
+    const onComplete = vi.fn();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getSessionSpy = vi
+      .spyOn(chatbotRepository, "getSession")
+      .mockRejectedValue(new Error("session unavailable"));
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: { type: string; error_code?: string; message?: string },
+        currentMessage: Record<string, unknown>,
+        callbacks: {
+          onComplete?: (session: Record<string, unknown>) => void;
+          onError?: (error: string) => void;
+        },
+        resolvedSessionId: string,
+        setResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "run_failed",
+        error_code: "RUN_FAILED",
+        message: "Tool execution failed",
+      },
+      {},
+      { onComplete, onError },
+      "session-1",
+      vi.fn(),
+    );
+
+    await vi.waitFor(() =>
+      expect(onError).toHaveBeenCalledWith(
+        "對話同步失敗，請重新整理後再試",
+      ),
+    );
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to fetch session after run_failed:",
+      expect.any(Error),
+    );
+    warnSpy.mockRestore();
     getSessionSpy.mockRestore();
   });
 });

@@ -1,6 +1,7 @@
 export * from "@/core/copilot";
 export { CopilotProvider } from "./react/CopilotProvider";
 export type { CopilotProviderProps } from "./react/CopilotProvider";
+export type { CopilotInitialSessionStrategy } from "./react/copilotSessionBootstrap";
 export { useCopilot } from "./hooks/useCopilot";
 export type { UseCopilotResult } from "./hooks/useCopilot";
 export { useCopilotComposer } from "./hooks/useCopilotComposer";

@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { CopilotError, CopilotPendingAttachment } from "@copilot";
 
 import { ComposerBar } from "./ComposerBar";
+import styles from "./ComposerBar.module.scss";
 
 const baseProps = {
   value: "Retry upload",
@@ -115,5 +116,69 @@ describe("ComposerBar attachment state", () => {
     expect(
       screen.getByRole("button", { name: /removeAttachment|移除附件/i }),
     ).toBeDisabled();
+  });
+});
+
+describe("ComposerBar layout state", () => {
+  it("returns to compact layout after a multiline draft is cleared", async () => {
+    const renderComposer = (value: string) => (
+      <ComposerBar {...baseProps} value={value} attachments={[]} />
+    );
+    const { rerender } = render(renderComposer("draft"));
+    const textarea = screen.getByRole("textbox");
+    let scrollHeight = 22;
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    const wrapper = textarea.parentElement;
+    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
+
+    scrollHeight = 80;
+    rerender(renderComposer("first\nsecond"));
+    await waitFor(() =>
+      expect(wrapper).toHaveClass(styles.inputWrapperExpanded),
+    );
+
+    scrollHeight = 22;
+    rerender(renderComposer(""));
+    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
+    await act(
+      () =>
+        new Promise<void>((resolve) =>
+          window.requestAnimationFrame(() => resolve()),
+        ),
+    );
+    rerender(renderComposer("single line"));
+
+    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
+    expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
+  });
+
+  it("stays compact when a single-line draft arrives before the clear frame", async () => {
+    const renderComposer = (value: string) => (
+      <ComposerBar {...baseProps} value={value} attachments={[]} />
+    );
+    const { rerender } = render(renderComposer("draft"));
+    const textarea = screen.getByRole("textbox");
+    let scrollHeight = 22;
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    const wrapper = textarea.parentElement;
+
+    scrollHeight = 80;
+    rerender(renderComposer("first\nsecond"));
+    await waitFor(() =>
+      expect(wrapper).toHaveClass(styles.inputWrapperExpanded),
+    );
+
+    scrollHeight = 22;
+    rerender(renderComposer(""));
+    rerender(renderComposer("single line"));
+
+    expect(wrapper).toHaveClass(styles.inputWrapperCompact);
+    expect(wrapper).not.toHaveClass(styles.inputWrapperExpanded);
   });
 });
