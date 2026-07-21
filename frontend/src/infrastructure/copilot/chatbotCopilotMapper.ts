@@ -157,6 +157,10 @@ export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
     sessionId: run.sessionId,
     status: mapChatRunStatusToCopilot(run.status),
     modelId: run.modelId || undefined,
+    assistantMessageId:
+      run.assistantMessageId === undefined
+        ? undefined
+        : String(run.assistantMessageId),
     lastSequence: run.lastEventSeq,
     approvalRequest,
     questionRequest:
@@ -171,6 +175,10 @@ export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
 }
 
 export function mapCopilotRunToChat(run: CopilotRun): ChatRun {
+  const assistantMessageId =
+    run.assistantMessageId === undefined
+      ? undefined
+      : Number(run.assistantMessageId);
   return {
     id: run.id,
     sessionId: run.sessionId,
@@ -178,6 +186,10 @@ export function mapCopilotRunToChat(run: CopilotRun): ChatRun {
     kind: "chat",
     modelId: run.modelId ?? "",
     lastEventSeq: run.lastSequence ?? 0,
+    assistantMessageId:
+      assistantMessageId !== undefined && Number.isSafeInteger(assistantMessageId)
+        ? assistantMessageId
+        : undefined,
   };
 }
 

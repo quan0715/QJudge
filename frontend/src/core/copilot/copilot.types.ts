@@ -105,6 +105,8 @@ export interface CopilotRun {
   sessionId: string;
   status: CopilotRunStatus;
   modelId?: string;
+  /** Assistant message targeted by live run events, when allocated by the transport. */
+  assistantMessageId?: string;
   /** Backend/source resume cursor. Normalized event ordering is runtime-owned. */
   lastSequence?: number;
   approvalRequest?: CopilotApprovalRequest;

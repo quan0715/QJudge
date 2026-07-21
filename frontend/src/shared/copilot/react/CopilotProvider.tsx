@@ -1333,7 +1333,8 @@ export function CopilotProvider({
           return staleResult();
         }
         syncSessionSummaryRun(sessionId, run);
-        const assistantId = `run-${run.id}-assistant`;
+        const assistantId =
+          run.assistantMessageId ?? `run-${run.id}-assistant`;
         setRuntime((previous) => {
           const session = previous.sessions[sessionId];
           if (!session) return previous;

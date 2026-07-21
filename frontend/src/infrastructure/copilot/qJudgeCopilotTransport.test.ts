@@ -219,6 +219,13 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
 runCopilotTransportContract(createQJudgeContractSubject);
 
 describe("chatbotCopilotMapper", () => {
+  it("preserves the backend assistant message identity on a portable run", () => {
+    expect(mapChatRunToCopilot(legacyRun)).toMatchObject({
+      id: legacyRun.id,
+      assistantMessageId: "42",
+    });
+  });
+
   it.each([
     [404, "not-found", false],
     [403, "forbidden", false],

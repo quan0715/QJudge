@@ -1704,6 +1704,72 @@ describe("CopilotProvider session lifecycle", () => {
 });
 
 describe("CopilotProvider composer lifecycle", () => {
+  it("streams deltas into a transport-provided assistant message before completion", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const assistantMessageId = "42";
+    const run: CopilotRun = {
+      id: "run-with-server-message",
+      sessionId: session.id,
+      status: "running" as const,
+      assistantMessageId,
+    };
+    let observer!: CopilotRunObserver;
+    vi.spyOn(transport, "startRun").mockResolvedValue(run);
+    vi.spyOn(transport, "subscribeRun").mockImplementation(
+      (_run, nextObserver) => {
+        observer = nextObserver;
+        let closed = false;
+        return {
+          get closed() {
+            return closed;
+          },
+          close() {
+            closed = true;
+          },
+        } satisfies CopilotSubscription;
+      },
+    );
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: new MemoryCopilotSessionLocation(session.id),
+        }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.id).toBe(session.id),
+    );
+    act(() => result.current.composer.setDraft("Stream this"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    await act(() => result.current.composer.send());
+
+    act(() => {
+      observer.next({
+        type: "text-delta",
+        runId: run.id,
+        sessionId: session.id,
+        sequence: 1,
+        messageId: assistantMessageId,
+        delta: "Hel",
+      });
+    });
+
+    expect(
+      result.current.sessions.activeSession.data?.messages.find(
+        (message) => message.id === assistantMessageId,
+      ),
+    ).toMatchObject({
+      role: "assistant",
+      parts: [{ type: "text", text: "Hel" }],
+    });
+  });
+
   it("does not let a delayed send replace the selected session subscription", async () => {
     const transport = new MemoryCopilotTransport();
     const first = await transport.createSession({ title: "First" });
