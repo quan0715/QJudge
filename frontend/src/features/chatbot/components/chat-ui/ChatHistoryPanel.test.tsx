@@ -41,7 +41,8 @@ describe("ChatHistoryPanel", () => {
       />,
     );
 
-    expect(screen.getByText("ui.tasks")).toBeInTheDocument();
+    expect(screen.getByTestId("chat-history-heading")).toHaveTextContent("ui.tasks");
+    expect(screen.getAllByTestId("chat-history-session-title")).toHaveLength(2);
     const newest = screen.getByText("Newest task").closest('[role="button"]');
     const older = screen.getByText("Older task").closest('[role="button"]');
     expect(newest?.compareDocumentPosition(older!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
