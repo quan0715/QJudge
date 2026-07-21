@@ -1,7 +1,10 @@
 import json
 
+import pytest
+
 from apps.contests.integrity.registry import (
     ACTIVE_SIGNAL_IDS,
+    DEFINITIONS,
     REGISTRY_VERSION,
     build_registry_snapshot,
 )
@@ -32,3 +35,19 @@ def test_registry_definitions_are_data_not_core_switches():
     assert fullscreen["evidence"]["before_ms"] == 10_000
     assert fullscreen["evidence"]["after_ms"] == 10_000
     json.dumps(snapshot)
+
+
+def test_registry_definitions_are_transitively_immutable():
+    snapshot_before_mutation = build_registry_snapshot()
+    definition = DEFINITIONS["fullscreen_integrity"]
+
+    with pytest.raises(TypeError):
+        definition.signals["triggered"] = "other"
+    with pytest.raises(TypeError):
+        definition.evidence["before_ms"] = 0
+    with pytest.raises(AttributeError):
+        definition.evidence["sources"].append("webcam")
+    with pytest.raises(TypeError):
+        definition.metadata_schema["type"] = "array"
+
+    assert build_registry_snapshot() == snapshot_before_mutation

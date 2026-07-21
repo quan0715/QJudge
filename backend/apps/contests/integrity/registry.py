@@ -1,26 +1,57 @@
 """Canonical, data-defined integrity event registry."""
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Literal
+from typing import Literal, TypeAlias
 
 
 REGISTRY_VERSION = "2026-07-21.1"
 
 Emission = Literal["every", "edge", "sample", "state_snapshot"]
+JsonScalar: TypeAlias = str | int | float | bool | None
+FrozenJsonValue: TypeAlias = (
+    JsonScalar
+    | tuple["FrozenJsonValue", ...]
+    | Mapping[str, "FrozenJsonValue"]
+)
 
 
 @dataclass(frozen=True)
 class EventDefinition:
     id: str
     schema_version: int
-    signals: dict[str, str]
+    signals: Mapping[str, str]
     emission: Emission
     incident_family: str
     priority: int
     grace_ms: int
-    evidence: dict
+    evidence: Mapping[str, FrozenJsonValue]
     action: str
-    metadata_schema: dict
+    metadata_schema: Mapping[str, FrozenJsonValue]
+
+
+def _freeze_json(value: object) -> FrozenJsonValue:
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_json(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_json(item) for item in value)
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    raise TypeError(f"Unsupported registry JSON value: {type(value)!r}")
+
+
+def _freeze_json_mapping(value: Mapping[str, object]) -> Mapping[str, FrozenJsonValue]:
+    frozen = _freeze_json(value)
+    assert isinstance(frozen, Mapping)
+    return frozen
+
+
+def _json_snapshot(value: FrozenJsonValue) -> object:
+    if isinstance(value, Mapping):
+        return {key: _json_snapshot(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_json_snapshot(item) for item in value]
+    return value
 
 
 def _definition(
@@ -39,31 +70,31 @@ def _definition(
     return EventDefinition(
         id=definition_id,
         schema_version=1,
-        signals={
+        signals=MappingProxyType({
             "triggered": triggered,
             "escalated": escalated,
             "restored": restored,
-        },
+        }),
         emission=emission,
         incident_family=family,
         priority=priority,
         grace_ms=grace_ms,
-        evidence={
+        evidence=_freeze_json_mapping({
             "mode": "incident_window" if sources else "none",
             "sources": list(sources),
             "before_ms": 10_000 if sources else 0,
             "after_ms": 10_000 if sources else 0,
             "max_segment_ms": 60_000,
-        },
+        }),
         action=action,
-        metadata_schema={
+        metadata_schema=_freeze_json_mapping({
             "type": "object",
             "additionalProperties": True,
-        },
+        }),
     )
 
 
-_DEFINITIONS = {
+DEFINITIONS = MappingProxyType({
     "state_snapshot": _definition(
         "state_snapshot", triggered="state_snapshot",
         emission="state_snapshot", family="connectivity", priority=3,
@@ -154,9 +185,7 @@ _DEFINITIONS = {
         emission="edge", family="device_session", priority=1,
         sources=("screen_share", "webcam"),
     ),
-}
-
-DEFINITIONS = MappingProxyType(_DEFINITIONS)
+})
 ACTIVE_SIGNAL_IDS = frozenset(
     signal
     for definition in DEFINITIONS.values()
@@ -170,7 +199,18 @@ def build_registry_snapshot() -> dict:
     return {
         "version": REGISTRY_VERSION,
         "definitions": {
-            key: asdict(definition)
+            key: {
+                "id": definition.id,
+                "schema_version": definition.schema_version,
+                "signals": dict(definition.signals),
+                "emission": definition.emission,
+                "incident_family": definition.incident_family,
+                "priority": definition.priority,
+                "grace_ms": definition.grace_ms,
+                "evidence": _json_snapshot(definition.evidence),
+                "action": definition.action,
+                "metadata_schema": _json_snapshot(definition.metadata_schema),
+            }
             for key, definition in DEFINITIONS.items()
         },
     }
