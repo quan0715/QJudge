@@ -1769,7 +1769,6 @@ export function CopilotProvider({
         if (!isListRequestCurrent()) return;
         listedLoaded = true;
         replaceSessions(listed, runRevisionSnapshot);
-        setListStatus("ready");
         if (!isBootstrapSelectionCurrent()) return;
         const located = sessionLocation?.get() ?? null;
         const stored = storage?.get(LAST_SESSION_KEY) ?? null;
@@ -1827,6 +1826,9 @@ export function CopilotProvider({
           setListStatus("error");
         }
       } finally {
+        if (listedLoaded && isListRequestCurrent()) {
+          setListStatus("ready");
+        }
         if (sessionListRequestAbortRef.current === controller) {
           sessionListRequestAbortRef.current = null;
         }

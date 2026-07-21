@@ -199,6 +199,50 @@ describe("QJudgeChatPanel", () => {
     );
   });
 
+  it("keeps the skeleton visible while a located session is loading after refresh", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Loaded chat" });
+    const pendingSession = deferred<
+      Awaited<ReturnType<typeof transport.getSession>>
+    >();
+    const originalGetSession = transport.getSession.bind(transport);
+    const getSession = vi
+      .spyOn(transport, "getSession")
+      .mockImplementation((id, options) =>
+        id === session.id
+          ? pendingSession.promise
+          : originalGetSession(id, options),
+      );
+    const location = new MemoryCopilotSessionLocation(session.id);
+    const { container } = renderPanel(
+      transport,
+      session.id,
+      <QJudgeChatPanel mode="full" />,
+      new MemoryCopilotModelCatalog(),
+      location,
+    );
+
+    await waitFor(() =>
+      expect(getSession).toHaveBeenCalledWith(
+        session.id,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+    expect(screen.getByTestId("chat-title-skeleton")).toBeInTheDocument();
+    expect(
+      container.querySelector('[class*="skeletonStack"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/welcome|歡迎/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingSession.resolve(session);
+      await pendingSession.promise;
+    });
+    await waitFor(() =>
+      expect(screen.queryByTestId("chat-title-skeleton")).not.toBeInTheDocument(),
+    );
+  });
+
   it("does not create from the new-task button and creates on first send", async () => {
     const transport = new MemoryCopilotTransport();
     const existing = await transport.createSession({ title: "Existing" });
