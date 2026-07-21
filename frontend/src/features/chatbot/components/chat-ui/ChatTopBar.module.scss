@@ -89,9 +89,8 @@
 .dropdownItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.5rem;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -110,11 +109,6 @@
   &:hover {
     background: var(--cds-layer-selected-hover-01, #d1d1d1);
   }
-}
-
-.dropdownItemIcon {
-  flex-shrink: 0;
-  color: var(--cds-icon-secondary, #525252);
 }
 
 .dropdownItemTitle {

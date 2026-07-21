@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
-import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
+import { Add, Close, ChevronDown, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import type { CopilotSessionSummary } from "@copilot";
@@ -179,7 +179,6 @@ export function ChatTopBar(props: ChatTopBarProps) {
                   setDropdownOpen(false);
                 }}
               >
-                <ChatIcon size={14} className={styles.dropdownItemIcon} />
                 <span className={styles.dropdownItemTitle}>
                   {s.title || t("ui.newTask")}
                 </span>
