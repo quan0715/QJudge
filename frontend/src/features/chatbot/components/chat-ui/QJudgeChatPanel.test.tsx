@@ -149,22 +149,29 @@ describe("QJudgeChatPanel", () => {
   it("keeps full-page width and scroll overrides scoped to the full-page shell", () => {
     const container = scssRule(chatContainerStyles, ".container");
     const fullPage = scssRule(chatFullPageStyles, ".fullPage");
+    const fullPageMessageItems = scssRule(
+      messageListStyles,
+      ":global(.copilot-full-page) .list > *",
+    );
+    const fullPageAssistantContent = scssRule(
+      messageBubbleStyles,
+      ":global(.copilot-full-page) .ai .content",
+    );
+    const fullPageComposer = scssRule(
+      composerStyles,
+      ":global(.copilot-full-page) .bar",
+    );
 
     expect(container).toContain("min-height: 0");
     expect(container).toContain("overflow: hidden");
     expect(fullPage).toContain("min-height: 0");
     expect(fullPage).toContain("overflow: hidden");
-    expect(messageListStyles).toContain(
-      ":global(.copilot-full-page) .list > *",
-    );
-    expect(messageListStyles).toContain("max-width: 100%");
-    expect(messageBubbleStyles).toContain(
-      ":global(.copilot-full-page) .ai .content",
-    );
-    expect(messageBubbleStyles).toContain("width: 100%");
-    expect(messageBubbleStyles).toContain("max-width: 100%");
-    expect(composerStyles).toContain(":global(.copilot-full-page) .bar");
-    expect(composerStyles).toContain("max-width: 100%");
+    expect(messageListStyles).toContain("$chat-content-max-width");
+    expect(messageBubbleStyles).toContain("max-width: min(95%, 860px)");
+    expect(fullPageMessageItems).toContain("max-width: 100%");
+    expect(fullPageAssistantContent).toContain("width: 100%");
+    expect(fullPageAssistantContent).toContain("max-width: 100%");
+    expect(fullPageComposer).toContain("max-width: 100%");
   });
 
   it("shows message and title skeletons while session bootstrap is pending", async () => {
