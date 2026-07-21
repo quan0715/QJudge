@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { relative, resolve, sep } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
+import ts from "typescript";
 
 const projectRoot = process.cwd();
 const sourceRoot = resolve(process.argv[2] ?? resolve(projectRoot, "src"));
 const sourcePattern = /\.(?:ts|tsx)$/;
-const blockedCopilotImports = ["@/core/copilot", "@/shared/copilot"];
-const blockedLegacySymbols = [
+const blockedLegacySymbols = new Set([
   "useLegacyChatbotRuntime",
   "useChatbotContext",
   "useOptionalChatbotContext",
   "useChatSessionContext",
-];
+]);
 const nonProductionDirectories = new Set([
   "__fixtures__",
   "__stories__",
@@ -39,13 +39,12 @@ function filesUnder(directory) {
     });
 }
 
+function isUnder(relativePath, root) {
+  return relativePath === root || relativePath.startsWith(`${root}/`);
+}
+
 function isCandidate(relativePath) {
-  return (
-    relativePath === "core/copilot" ||
-    relativePath.startsWith("core/copilot/") ||
-    relativePath === "shared/copilot" ||
-    relativePath.startsWith("shared/copilot/")
-  );
+  return isUnder(relativePath, "core/copilot") || isUnder(relativePath, "shared/copilot");
 }
 
 function isProduction(relativePath) {
@@ -58,94 +57,166 @@ function isProduction(relativePath) {
   return !markers.some((marker) => nonProductionFileMarkers.has(marker));
 }
 
-function codeOnly(content) {
-  let result = "";
-  let state = "code";
-  for (let index = 0; index < content.length; index += 1) {
-    const char = content[index];
-    const next = content[index + 1];
+function sourceScriptKind(file) {
+  return file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+}
 
-    if (state === "code") {
-      if (char === "/" && next === "/") {
-        result += "  ";
-        index += 1;
-        state = "line-comment";
-      } else if (char === "/" && next === "*") {
-        result += "  ";
-        index += 1;
-        state = "block-comment";
-      } else if (char === "'" || char === '"' || char === "`") {
-        result += " ";
-        state = char;
-      } else {
-        result += char;
-      }
-      continue;
-    }
+function moduleText(expression) {
+  return expression && ts.isStringLiteralLike(expression) ? expression.text : null;
+}
 
-    if (state === "line-comment") {
-      result += char === "\n" ? "\n" : " ";
-      if (char === "\n") state = "code";
-      continue;
-    }
-
-    if (state === "block-comment") {
-      if (char === "*" && next === "/") {
-        result += "  ";
-        index += 1;
-        state = "code";
-      } else {
-        result += char === "\n" ? "\n" : " ";
-      }
-      continue;
-    }
-
-    if (char === "\\") {
-      result += " ";
-      if (next !== undefined) {
-        result += next === "\n" ? "\n" : " ";
-        index += 1;
-      }
-    } else if (char === state) {
-      result += " ";
-      state = "code";
-    } else {
-      result += char === "\n" ? "\n" : " ";
+function importedBindingNames(node) {
+  const names = [];
+  if (ts.isImportEqualsDeclaration(node)) {
+    names.push(node.name.text);
+    return names;
+  }
+  const clause = node.importClause;
+  if (!clause) return names;
+  if (clause.name) names.push(clause.name.text);
+  if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+    names.push(clause.namedBindings.name.text);
+  }
+  if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+    for (const element of clause.namedBindings.elements) {
+      if (element.propertyName) names.push(element.propertyName.text);
+      names.push(element.name.text);
     }
   }
-  return result;
+  return names;
 }
 
-function codePositions(content) {
-  const code = codeOnly(content);
-  return Array.from(code, (character) => character !== " ");
-}
-
-function collectImports(content) {
-  const positions = codePositions(content);
+function analyzeSource(file, content, production) {
+  const sourceFile = ts.createSourceFile(
+    file,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    sourceScriptKind(file),
+  );
   const imports = [];
-  const staticPattern = /\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s*)?["']([^"']+)["']/g;
-  const dynamicPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
-  for (const pattern of [staticPattern, dynamicPattern]) {
-    for (const match of content.matchAll(pattern)) {
-      if (positions[match.index]) {
-        imports.push({ specifier: match[1], statement: match[0] });
+  const legacySymbols = new Set();
+  let usesChatbot = false;
+
+  function collectImport(specifier, node) {
+    if (specifier !== null) imports.push(specifier);
+    if (importedBindingNames(node).includes("useChatbot")) usesChatbot = true;
+  }
+
+  function visit(node) {
+    if (ts.isImportDeclaration(node)) {
+      collectImport(moduleText(node.moduleSpecifier), node);
+    } else if (ts.isExportDeclaration(node)) {
+      const specifier = moduleText(node.moduleSpecifier);
+      if (specifier !== null) imports.push(specifier);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      collectImport(moduleText(node.moduleReference.expression), node);
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
+    ) {
+      const specifier = moduleText(node.arguments[0]);
+      if (specifier !== null) imports.push(specifier);
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
+      const specifier = moduleText(node.argument.literal);
+      if (specifier !== null) imports.push(specifier);
+    }
+
+    if (production && ts.isCallExpression(node)) {
+      const calledName = calledIdentifierName(node.expression);
+      if (calledName === "useChatbot") usesChatbot = true;
+      if (calledName && blockedLegacySymbols.has(calledName)) {
+        legacySymbols.add(calledName);
       }
     }
+
+    if (
+      production &&
+      ts.isIdentifier(node) &&
+      blockedLegacySymbols.has(node.text) &&
+      !isNonReferencePropertyName(node)
+    ) {
+      legacySymbols.add(node.text);
+    }
+
+    ts.forEachChild(node, visit);
   }
-  return imports;
+
+  visit(sourceFile);
+  return { imports, legacySymbols, usesChatbot };
 }
 
-function isRepositoryImport(specifier) {
+function calledIdentifierName(expression) {
+  if (ts.isIdentifier(expression)) return expression.text;
+  if (ts.isPropertyAccessExpression(expression)) return expression.name.text;
+  if (ts.isElementAccessExpression(expression)) return moduleText(expression.argumentExpression);
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isTypeAssertionExpression(expression) ||
+    ts.isNonNullExpression(expression)
+  ) {
+    return calledIdentifierName(expression.expression);
+  }
+  return null;
+}
+
+function isNonReferencePropertyName(identifier) {
+  const parent = identifier.parent;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === identifier) return true;
+  if (ts.isBindingElement(parent) && parent.propertyName === identifier) return true;
   return (
-    /(?:^|\/)repositories(?:\/index)?$/.test(specifier) ||
-    /(?:^|\/)chatbot\.repository(?:$|[/.])/.test(specifier)
+    (ts.isPropertyAssignment(parent) ||
+      ts.isPropertyDeclaration(parent) ||
+      ts.isPropertySignature(parent) ||
+      ts.isMethodDeclaration(parent) ||
+      ts.isMethodSignature(parent) ||
+      ts.isGetAccessorDeclaration(parent) ||
+      ts.isSetAccessorDeclaration(parent)) &&
+    parent.name === identifier
   );
 }
 
-function isCopilotRelated(relativePath, imports) {
-  return relativePath.toLowerCase().includes("copilot") ||
-    imports.some(({ specifier }) => specifier === "@copilot" || specifier.startsWith("@copilot/"));
+function resolvedSourceTarget(file, specifier) {
+  let target;
+  if (specifier.startsWith("@/")) {
+    target = resolve(sourceRoot, specifier.slice(2));
+  } else if (specifier.startsWith("./") || specifier.startsWith("../")) {
+    target = resolve(dirname(file), specifier);
+  } else {
+    return null;
+  }
+  const relativeTarget = toPosix(relative(sourceRoot, target));
+  return relativeTarget.startsWith("../") ? null : relativeTarget;
+}
+
+function isCopilotImplementationImport(file, specifier) {
+  const target = resolvedSourceTarget(file, specifier);
+  return target !== null && isCandidate(target);
+}
+
+function isRepositoryBarrel(specifier) {
+  return /(?:^|\/)repositories(?:\/index)?$/.test(specifier);
+}
+
+function isChatbotRepository(specifier) {
+  return /(?:^|\/)chatbot\.repository(?:$|[/.])/.test(specifier);
+}
+
+function isCopilotRelated(file, relativePath, imports) {
+  return (
+    isUnder(relativePath, "features/chatbot") ||
+    relativePath.toLowerCase().includes("copilot") ||
+    imports.some(
+      (specifier) =>
+        specifier === "@copilot" ||
+        specifier.startsWith("@copilot/") ||
+        isCopilotImplementationImport(file, specifier),
+    )
+  );
 }
 
 function record(relativePath, reason) {
@@ -160,12 +231,13 @@ if (!existsSync(sourceRoot)) {
 const files = filesUnder(sourceRoot).filter((file) => sourcePattern.test(file));
 for (const file of files) {
   const relativePath = toPosix(relative(sourceRoot, file));
-  const content = readFileSync(file, "utf8");
-  const imports = collectImports(content);
   const production = isProduction(relativePath);
+  const analysis = analyzeSource(file, readFileSync(file, "utf8"), production);
+  const copilotRelated = isCopilotRelated(file, relativePath, analysis.imports);
+  const infrastructureCopilot = isUnder(relativePath, "infrastructure/copilot");
 
-  for (const { specifier } of imports) {
-    if (!isCandidate(relativePath) && blockedCopilotImports.some((prefix) => specifier.startsWith(prefix))) {
+  for (const specifier of analysis.imports) {
+    if (!isCandidate(relativePath) && isCopilotImplementationImport(file, specifier)) {
       record(relativePath, `Copilot implementation import '${specifier}'`);
     }
     if (specifier.startsWith("@copilot/") && specifier !== "@copilot/testing") {
@@ -176,26 +248,18 @@ for (const file of files) {
     }
     if (
       production &&
-      isCopilotRelated(relativePath, imports) &&
-      !relativePath.startsWith("infrastructure/copilot/") &&
-      isRepositoryImport(specifier)
+      copilotRelated &&
+      !infrastructureCopilot &&
+      (isRepositoryBarrel(specifier) || isChatbotRepository(specifier))
     ) {
       record(relativePath, `Copilot repository import outside infrastructure/copilot '${specifier}'`);
     }
   }
 
-  if (!production) continue;
-
-  const executableCode = codeOnly(content);
-  for (const identifier of blockedLegacySymbols) {
-    if (new RegExp(`\\b${identifier}\\b`).test(executableCode)) {
-      record(relativePath, `legacy runtime identifier '${identifier}'`);
-    }
+  for (const identifier of analysis.legacySymbols) {
+    record(relativePath, `legacy runtime identifier '${identifier}'`);
   }
-  const importsUseChatbot = imports.some(
-    ({ statement }) => /^\s*import\b/.test(statement) && /\buseChatbot\b/.test(statement),
-  );
-  if (importsUseChatbot || /\buseChatbot\s*\(/.test(executableCode)) {
+  if (analysis.usesChatbot) {
     record(relativePath, "legacy useChatbot import or call");
   }
 }

@@ -52,9 +52,69 @@ describe("Copilot dogfood boundary", () => {
     expect(result.stderr).toContain("Copilot implementation import");
   });
 
-  it("allows candidate internals to import core Copilot implementation paths", () => {
+  it("allows core and shared candidates to import Copilot implementation paths", () => {
     const result = runFixture({
-      "shared/copilot/runtime.ts": 'import type { CopilotRun } from "@/core/copilot";',
+      "core/copilot/runtime.ts": 'import type { CopilotRun } from "./copilot.types";',
+      "shared/copilot/runtime.ts": 'import type { CopilotRun } from "../../core/copilot";',
+    });
+
+    expect(result.status).toBe(0);
+  });
+
+  it.each([
+    "../../shared/copilot",
+    "../../core/copilot",
+    "../../shared/copilot/index",
+    "../../core/copilot/copilot.types",
+  ])("rejects a relative Copilot implementation import %s", (specifier) => {
+    const result = runFixture({
+      "features/chatbot/consumer.ts": `import type { CopilotRun } from "${specifier}";`,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Copilot implementation import");
+  });
+
+  it.each([
+    [
+      "commented static import",
+      'import { CopilotPanel } from /* public facade only */ "@/shared/copilot";',
+    ],
+    [
+      "commented dynamic import",
+      'const copilot = import(/* public facade only */ "@/shared/copilot");',
+    ],
+    [
+      "no-substitution template dynamic import",
+      "const copilot = import(`@/shared/copilot`);",
+    ],
+    [
+      "import equals declaration",
+      'import type Copilot = require("@/shared/copilot");',
+    ],
+  ])("rejects an AST-recognized %s", (_label, source) => {
+    const result = runFixture({ "features/chatbot/consumer.ts": source });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Copilot implementation import");
+  });
+
+  it("rejects a type-level Copilot implementation import", () => {
+    const result = runFixture({
+      "features/chatbot/consumer.ts":
+        'type Run = import("../../shared/copilot").CopilotRun;',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Copilot implementation import");
+  });
+
+  it("ignores complete imports inside comments", () => {
+    const result = runFixture({
+      "features/chatbot/history.ts": [
+        '// import { CopilotPanel } from "@/shared/copilot";',
+        '/* const copilot = import("@/core/copilot"); */',
+      ].join("\n"),
     });
 
     expect(result.status).toBe(0);
@@ -122,6 +182,38 @@ describe("Copilot dogfood boundary", () => {
     expect(result.stderr).toContain("Copilot repository import outside infrastructure/copilot");
   });
 
+  it("treats every features/chatbot production file as Copilot-related", () => {
+    const result = runFixture({
+      "features/chatbot/ChatContainer.tsx": [
+        'import { QJudgeChatPanel } from "./QJudgeChatPanel";',
+        'import { chatbotRepository } from "@/infrastructure/api/repositories";',
+      ].join("\n"),
+      "features/chatbot/QJudgeChatPanel.tsx": "export const QJudgeChatPanel = null;",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Copilot repository import outside infrastructure/copilot");
+  });
+
+  it.each([
+    [
+      "relative Copilot consumer",
+      "features/tools/consumer.ts",
+      'import type { CopilotRun } from "../../shared/copilot";',
+    ],
+    ["Copilot-named path", "features/tools/copilotConsumer.ts", "export const copilotAdapter = true;"],
+  ])("treats a %s as Copilot-related for repository imports", (_label, file, copilotSource) => {
+    const result = runFixture({
+      [file]: [
+        copilotSource,
+        'import { chatbotRepository } from "@/infrastructure/api/repositories";',
+      ].join("\n"),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Copilot repository import outside infrastructure/copilot");
+  });
+
   it("allows Copilot repository imports only in infrastructure/copilot", () => {
     const result = runFixture({
       "infrastructure/copilot/qJudgeCopilotTransport.ts":
@@ -157,6 +249,50 @@ describe("Copilot dogfood boundary", () => {
     expect(result.stderr).toContain("legacy useChatbot import or call");
   });
 
+  it.each([
+    ["optional call", "const runtime = useChatbot?.();"],
+    ["generic call", "const runtime = useChatbot<{ id: string }>();"],
+    ["template-expression call", "const runtime = `${useChatbot()}`;"],
+    ["regex before call", "const pattern = /useChatbot()/; useChatbot();"],
+    ["regex after call", "useChatbot(); const pattern = /useChatbot()/;"],
+    ["property call", "const runtime = api.useChatbot();"],
+  ])("rejects a useChatbot %s", (_label, source) => {
+    const result = runFixture({ "features/chatbot/consumer.ts": source });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("legacy useChatbot import or call");
+  });
+
+  it.each([
+    'import { useCopilot as useChatbot } from "./hooks";',
+    'import { useChatbot as legacyHook } from "./hooks";',
+  ])("rejects a real useChatbot import binding", (source) => {
+    const result = runFixture({ "features/chatbot/consumer.ts": source });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("legacy useChatbot import or call");
+  });
+
+  it("allows useChatbot only in an import comment or module path", () => {
+    const result = runFixture({
+      "features/chatbot/consumer.ts":
+        'import { useCopilot /* useChatbot */ } from "./useChatbot.helpers";',
+    });
+
+    expect(result.status).toBe(0);
+  });
+
+  it("allows useChatbot in a regex or non-called property reference", () => {
+    const result = runFixture({
+      "features/chatbot/history.ts": [
+        "const pattern = /useChatbot()/;",
+        "const reference = api.useChatbot;",
+      ].join("\n"),
+    });
+
+    expect(result.status).toBe(0);
+  });
+
   it("ignores blocked legacy words in comments and strings", () => {
     const result = runFixture({
       "features/chatbot/history.ts": [
@@ -167,6 +303,27 @@ describe("Copilot dogfood boundary", () => {
     });
 
     expect(result.status).toBe(0);
+  });
+
+  it("ignores blocked legacy words in regexes and non-called property paths", () => {
+    const result = runFixture({
+      "features/chatbot/history.ts": [
+        "const pattern = /useChatbotContext()/;",
+        "const reference = api.useOptionalChatbotContext;",
+      ].join("\n"),
+    });
+
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects a blocked legacy import binding", () => {
+    const result = runFixture({
+      "features/chatbot/consumer.ts":
+        'import { useChatSessionContext as legacyContext } from "./legacy";',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("legacy runtime identifier 'useChatSessionContext'");
   });
 
   it("sorts violations before printing them", () => {
