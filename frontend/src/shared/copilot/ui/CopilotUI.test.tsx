@@ -19,6 +19,7 @@ import {
 } from "./CopilotQuestionCard";
 import type {
   CopilotErrorStateProps,
+  CopilotHistorySlotProps,
   CopilotMessageListSlotProps,
   CopilotSuggestionsProps,
 } from "./copilotUI.types";
@@ -80,6 +81,76 @@ describe("Copilot UI primitives", () => {
     });
 
     expect(await screen.findByTestId("empty-slot")).toBeInTheDocument();
+  });
+
+  it("hides cached approval UI while reloading a previously visited session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const awaitingSession = await transport.createSession({ title: "Awaiting" });
+    const otherSession = await transport.createSession({ title: "Other" });
+    const started = await transport.startRun({
+      sessionId: awaitingSession.id,
+      text: "deploy",
+    });
+    const awaiting = {
+      ...started,
+      status: "awaiting-approval" as const,
+      approvalRequest: {
+        actions: [{ name: "deploy" }],
+        allowedDecisions: ["approve", "reject"] as const,
+      },
+    } satisfies CopilotRun;
+    vi.spyOn(transport, "getActiveRun").mockImplementation(async (id) =>
+      id === awaitingSession.id ? awaiting : null,
+    );
+    const originalGetSession = transport.getSession.bind(transport);
+    const pendingReload = deferred<Awaited<ReturnType<typeof originalGetSession>>>();
+    let delayAwaitingReload = false;
+    vi.spyOn(transport, "getSession").mockImplementation(async (id) => {
+      if (id === awaitingSession.id && delayAwaitingReload) {
+        return pendingReload.promise;
+      }
+      return originalGetSession(id);
+    });
+    const History = ({ onSelect }: CopilotHistorySlotProps) => (
+      <>
+        <button type="button" onClick={() => onSelect(awaitingSession.id)}>
+          Select awaiting
+        </button>
+        <button type="button" onClick={() => onSelect(otherSession.id)}>
+          Select other
+        </button>
+      </>
+    );
+    const List = ({ activeSession }: CopilotMessageListSlotProps) => (
+      <div data-testid="list-slot">{activeSession.status}</div>
+    );
+    const Approval = () => <div data-testid="approval-slot" />;
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel
+          showHistory
+          slots={{ history: History, messageList: List, approval: Approval }}
+        />
+      </CopilotProvider>,
+    );
+
+    expect(await screen.findByTestId("approval-slot")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Select other" }));
+    await waitFor(() => expect(screen.getByTestId("list-slot")).toHaveTextContent("ready"));
+    expect(screen.queryByTestId("approval-slot")).not.toBeInTheDocument();
+
+    delayAwaitingReload = true;
+    fireEvent.click(screen.getByRole("button", { name: "Select awaiting" }));
+
+    await waitFor(() => expect(screen.getByTestId("list-slot")).toHaveTextContent("loading"));
+    expect(screen.queryByTestId("approval-slot")).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingReload.resolve(await originalGetSession(awaitingSession.id));
+      await pendingReload.promise;
+    });
+    expect(await screen.findByTestId("approval-slot")).toBeInTheDocument();
   });
 
   it("renders composer semantics and disabled submit", () => {
