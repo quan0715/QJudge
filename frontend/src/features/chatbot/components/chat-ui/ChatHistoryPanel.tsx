@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
-import { Chat as ChatIcon, Add } from "@carbon/icons-react";
+import { Add } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotSessionSummary } from "@copilot";
-import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatHistoryPanel.module.scss";
 
 interface ChatHistoryPanelProps {
@@ -12,38 +11,7 @@ interface ChatHistoryPanelProps {
   onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void | Promise<void>;
   onRenameSession: (id: string, name: string) => void | Promise<void>;
-  onClose?: () => void;
-  /** Show "新增對話" button at bottom */
-  showNewChatButton?: boolean;
-  onNewChat?: () => void | Promise<void>;
-}
-
-interface HistoryGroup {
-  key: "today" | "yesterday" | "lastWeek" | "older";
-  sessions: CopilotSessionSummary[];
-}
-
-function groupSessions(sessions: readonly CopilotSessionSummary[]): HistoryGroup[] {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const yesterdayStart = todayStart - 86_400_000;
-  const weekStart = todayStart - 7 * 86_400_000;
-
-  const groups: Record<string, CopilotSessionSummary[]> = {
-    today: [], yesterday: [], lastWeek: [], older: [],
-  };
-
-  for (const s of sessions) {
-    const ts = s.updatedAt.getTime();
-    if (ts >= todayStart) groups["today"].push(s);
-    else if (ts >= yesterdayStart) groups["yesterday"].push(s);
-    else if (ts >= weekStart) groups["lastWeek"].push(s);
-    else groups["older"].push(s);
-  }
-
-  return Object.entries(groups)
-    .filter(([, list]) => list.length > 0)
-    .map(([key, list]) => ({ key: key as HistoryGroup["key"], sessions: list }));
+  onNewTask?: () => void | Promise<void>;
 }
 
 export function ChatHistoryPanel({
@@ -52,22 +20,16 @@ export function ChatHistoryPanel({
   onSelectSession,
   onDeleteSession,
   onRenameSession,
-  onClose: _onClose,
-  showNewChatButton = false,
-  onNewChat,
+  onNewTask,
 }: ChatHistoryPanelProps) {
   const { t } = useTranslation("chatbot");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  const groups = useMemo(() => groupSessions(sessions), [sessions]);
-
-  const groupLabels = useMemo(() => ({
-    today: t("ui.groupToday"),
-    yesterday: t("ui.groupYesterday"),
-    lastWeek: t("ui.groupLast7Days"),
-    older: t("ui.groupOlder"),
-  }), [t]);
+  const orderedSessions = useMemo(
+    () => [...sessions].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime()),
+    [sessions],
+  );
 
   const startRename = useCallback((session: CopilotSessionSummary) => {
     setRenamingId(session.id);
@@ -84,88 +46,77 @@ export function ChatHistoryPanel({
 
   return (
     <div className={styles.panel}>
+      <div className={styles.header}>
+        {onNewTask && (
+          <button type="button" className={styles.newTaskAction} onClick={onNewTask}>
+            <Add size={16} />
+            <span>{t("ui.newTask")}</span>
+          </button>
+        )}
+        <h2 className={styles.heading}>{t("ui.tasks")}</h2>
+      </div>
+
       <div className={styles.list}>
-        {groups.length === 0 && (
-          <div className={styles.empty}>{t("ui.noHistory")}</div>
+        {orderedSessions.length === 0 && (
+          <div className={styles.empty}>{t("ui.noTasks")}</div>
         )}
 
-        {groups.map((group) => (
-          <div key={group.key} className={styles.group}>
-            <div className={styles.groupLabel}>{groupLabels[group.key]}</div>
-            {group.sessions.map((session) => (
-              <div
-                key={session.id}
-                className={`${styles.item} ${session.id === currentSessionId ? styles.active : ""}`}
-                onClick={() => onSelectSession(session.id)}
-                role="button"
-                tabIndex={0}
+        {orderedSessions.map((session) => (
+          <div
+            key={session.id}
+            className={`${styles.item} ${session.id === currentSessionId ? styles.active : ""}`}
+            onClick={() => onSelectSession(session.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectSession(session.id);
+              }
+            }}
+          >
+            {renamingId === session.id ? (
+              <input
+                className={styles.renameInput}
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={commitRename}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelectSession(session.id);
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") {
+                    setRenamingId(null);
+                    setRenameValue("");
                   }
                 }}
-              >
-                <ChatIcon size={16} className={styles.itemIcon} />
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className={styles.itemName}>
+                {session.title || t("ui.defaultTaskTitle", { id: session.id.slice(0, 8) })}
+              </span>
+            )}
 
-                {renamingId === session.id ? (
-                  <input
-                    className={styles.renameInput}
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={commitRename}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitRename();
-                      if (e.key === "Escape") {
-                        setRenamingId(null);
-                        setRenameValue("");
-                      }
-                    }}
-                    autoFocus
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <>
-                    <span className={styles.itemName}>
-                      {session.title || t("ui.defaultSessionTitle", { id: session.id.slice(0, 8) })}
-                    </span>
-                    <span className={styles.itemTime}>
-                      {formatRelativeTime(session.updatedAt)}
-                    </span>
-                  </>
-                )}
-
-                <OverflowMenu
-                  size="sm"
-                  flipped
-                  className={styles.overflow}
-                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                >
-                  <OverflowMenuItem
-                    itemText={t("ui.rename")}
-                    onClick={() => startRename(session)}
-                  />
-                  <OverflowMenuItem
-                    itemText={t("ui.delete")}
-                    isDelete
-                    hasDivider
-                    onClick={() => onDeleteSession(session.id)}
-                  />
-                </OverflowMenu>
-              </div>
-            ))}
+            <OverflowMenu
+              size="sm"
+              flipped
+              className={styles.overflow}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+              <OverflowMenuItem
+                itemText={t("ui.rename")}
+                onClick={() => startRename(session)}
+              />
+              <OverflowMenuItem
+                itemText={t("ui.delete")}
+                isDelete
+                hasDivider
+                onClick={() => onDeleteSession(session.id)}
+              />
+            </OverflowMenu>
           </div>
         ))}
       </div>
-
-      {showNewChatButton && onNewChat && (
-        <div className={styles.footer}>
-          <button type="button" className={styles.newChatBtn} onClick={onNewChat}>
-            <Add size={16} />
-            <span>{t("ui.newChat")}</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
