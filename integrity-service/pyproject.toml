@@ -3,6 +3,7 @@ name = "qjudge-integrity-service"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+  "jsonschema>=4.21,<5.0",
   "pydantic>=2.6,<3.0",
 ]
 
@@ -11,7 +12,6 @@ worker = [
   "fastapi>=0.109,<1.0",
   "uvicorn[standard]>=0.27,<1.0",
   "httpx>=0.26,<1.0",
-  "jsonschema>=4.21,<5.0",
   "cryptography>=42,<46",
 ]
 controller = [
