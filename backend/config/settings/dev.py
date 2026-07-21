@@ -95,6 +95,12 @@ if os.getenv('FRONTEND_URL'):
 CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
     CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+# Dev may expose the same backend through a public tunnel while the frontend is
+# still exercised directly through Vite. Keep both local Vite origins trusted
+# even when FRONTEND_URL points at the tunnel hostname.
+for _origin in ('http://localhost:5173', 'http://127.0.0.1:5173'):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 # Cloudflare Tunnel dev domains
 for _host in os.getenv('ALLOWED_HOSTS', '').split(','):
     _host = _host.strip()
