@@ -67,7 +67,7 @@ def test_recovery_truncates_partial_trailing_record(tmp_path):
     active_path = writer.active_path
     writer.close()
     with active_path.open("ab") as stream:
-        stream.write(b"00000100 deadbeef partial")
+        stream.write(b"00000100 deadbeef")
     recovered = recover_journal(active_path)
     assert [item.batch.first_seq for item in recovered.records] == [1]
     assert recovered.truncated is True
@@ -152,6 +152,22 @@ def test_recovery_preserves_noncanonical_terminal_length_header(tmp_path, invali
     )
 
 
+@pytest.mark.parametrize("valid_prefix", [b"", encode_record(batch(1, 1))])
+@pytest.mark.parametrize(
+    ("tail", "message"),
+    [
+        (b"G", "invalid journal length header"),
+        (b"00000000 G", "invalid journal digest"),
+    ],
+)
+def test_recovery_preserves_invalid_short_framing_prefixes(
+    tmp_path, valid_prefix, tail, message
+):
+    assert_recovery_preserves_corruption(
+        tmp_path / "active.journal", valid_prefix + tail, message
+    )
+
+
 @pytest.mark.parametrize(
     ("offset", "replacement", "message"),
     [
@@ -186,6 +202,52 @@ def test_recovery_preserves_valid_digest_invalid_terminal_payload(tmp_path, payl
     corrupted = frame(payload)
 
     assert_recovery_preserves_corruption(tmp_path / "active.journal", corrupted, message)
+
+
+def noncanonical_payload(kind: str, original: EventBatch) -> bytes:
+    canonical = encode_record(original).split(b" ", 2)[2][:-1]
+    if kind == "whitespace_unsorted":
+        return json.dumps(
+            original.model_dump(mode="json"), ensure_ascii=False, separators=(", ", ": ")
+        ).encode("utf-8")
+    if kind == "alternate_escape":
+        record = original.records[0].model_copy(update={"payload": {"note": "臺灣"}})
+        escaped = original.model_copy(update={"records": [record]})
+        return json.dumps(
+            escaped.model_dump(mode="json"),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    if kind == "duplicate_key":
+        return canonical.replace(b'"schema_version":1', b'"schema_version":1,"schema_version":1')
+    raise AssertionError(f"unknown noncanonical payload kind: {kind}")
+
+
+@pytest.mark.parametrize(
+    "kind", ["whitespace_unsorted", "alternate_escape", "duplicate_key"]
+)
+def test_recovery_preserves_valid_checksum_noncanonical_payload(tmp_path, kind):
+    original = batch(1, 1)
+    corrupted = frame(noncanonical_payload(kind, original))
+
+    assert_recovery_preserves_corruption(
+        tmp_path / "active.journal", corrupted, "non-canonical journal payload"
+    )
+
+
+def test_canonical_retry_after_rejected_noncanonical_frame_has_no_identity_conflict(tmp_path):
+    original = batch(1, 1)
+    active_path = tmp_path / "active.journal"
+    active_path.write_bytes(frame(noncanonical_payload("whitespace_unsorted", original)))
+
+    with pytest.raises(JournalCorruption, match="non-canonical journal payload"):
+        JournalWriter(tmp_path)
+
+    active_path.write_bytes(encode_record(original))
+    writer = JournalWriter(tmp_path)
+    assert writer.append_batch_once(original) is False
+    writer.close()
 
 
 def test_recovery_truncates_exactly_final_complete_checksum_mismatch(tmp_path):

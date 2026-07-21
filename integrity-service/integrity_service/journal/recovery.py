@@ -11,6 +11,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from integrity_service.core.schemas import EventBatch
+from integrity_service.journal.encoding import encode_record
 
 
 class JournalCorruption(ValueError):
@@ -111,11 +112,12 @@ def _recover_locked(path: Path) -> RecoveryResult:
 
 def _decode_at(content: bytes, position: int) -> tuple[RecoveredRecord, int]:
     header_end = position + 8
-    if header_end > len(content):
-        raise _IncompleteRecord("incomplete journal length header")
-    header = content[position:header_end]
+    available_header_end = min(header_end, len(content))
+    header = content[position:available_header_end]
     if any(byte not in b"0123456789abcdef" for byte in header):
         raise _MalformedRecord("invalid journal length header")
+    if available_header_end < header_end:
+        raise _IncompleteRecord("incomplete journal length header")
     payload_length = int(header, 16)
 
     if header_end == len(content):
@@ -125,11 +127,12 @@ def _decode_at(content: bytes, position: int) -> tuple[RecoveredRecord, int]:
 
     digest_start = header_end + 1
     digest_end = digest_start + 64
-    if digest_end > len(content):
-        raise _IncompleteRecord("incomplete journal digest")
-    digest = content[digest_start:digest_end]
+    available_digest_end = min(digest_end, len(content))
+    digest = content[digest_start:available_digest_end]
     if any(byte not in b"0123456789abcdef" for byte in digest):
         raise _MalformedRecord("invalid journal digest")
+    if available_digest_end < digest_end:
+        raise _IncompleteRecord("incomplete journal digest")
 
     if digest_end == len(content):
         raise _IncompleteRecord("incomplete journal digest separator")
@@ -158,6 +161,8 @@ def _decode_at(content: bytes, position: int) -> tuple[RecoveredRecord, int]:
         batch = EventBatch.model_validate(decoded)
     except ValidationError as error:
         raise _InvalidPayload("invalid journal batch schema") from error
+    if encode_record(batch) != content[position:record_end]:
+        raise _InvalidPayload("non-canonical journal payload")
     return RecoveredRecord(batch, content[position:record_end]), record_end
 
 

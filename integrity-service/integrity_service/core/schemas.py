@@ -73,10 +73,11 @@ class EventBatch(WireModel):
 
     @model_validator(mode="after")
     def validate_range(self) -> "EventBatch":
-        expected = list(range(self.first_seq, self.last_seq + 1))
-        actual = [record.seq for record in self.records]
-        if actual != expected:
+        if self.last_seq - self.first_seq + 1 != len(self.records):
             raise ValueError("records must exactly cover first_seq..last_seq")
+        for offset, record in enumerate(self.records):
+            if record.seq != self.first_seq + offset:
+                raise ValueError("records must exactly cover first_seq..last_seq")
         return self
 
 

@@ -53,6 +53,22 @@ def test_batch_rejects_non_contiguous_records():
         )
 
 
+def test_batch_rejects_extreme_sequence_span_without_materializing_range():
+    with pytest.raises(ValidationError, match="records must exactly cover first_seq..last_seq"):
+        EventBatch(
+            schema_version=1,
+            batch_id=uuid4(),
+            run_id=uuid4(),
+            participant_id=101,
+            device_id="device-a",
+            registry_version="2026-07-21.1",
+            first_seq=1,
+            last_seq=2**1000,
+            records=[record(1)],
+            client_build="frontend-test",
+        )
+
+
 def test_record_and_ack_validate_required_bounds():
     with pytest.raises(ValidationError):
         record(0)

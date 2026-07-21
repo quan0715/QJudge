@@ -1,13 +1,13 @@
 """Durable, idempotent appends to the integrity journal."""
 
 import hashlib
-import json
 import os
 import threading
 from pathlib import Path
 from uuid import UUID
 
 from integrity_service.core.schemas import EventBatch
+from integrity_service.journal.encoding import encode_record
 from integrity_service.journal.recovery import (
     JournalCorruption,
     RecoveredRecord,
@@ -23,25 +23,6 @@ class BatchIdentityConflict(ValueError):
 
 class JournalWriterUnavailable(RuntimeError):
     """The writer cannot accept appends until it is closed and recovered."""
-
-
-def encode_record(batch: EventBatch) -> bytes:
-    payload = json.dumps(
-        batch.model_dump(mode="python", by_alias=True, exclude_none=True),
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-        allow_nan=False,
-        default=_encode_json_scalar,
-    ).encode("utf-8")
-    digest = hashlib.sha256(payload).hexdigest().encode("ascii")
-    return f"{len(payload):08x} ".encode("ascii") + digest + b" " + payload + b"\n"
-
-
-def _encode_json_scalar(value: object) -> str:
-    if isinstance(value, UUID):
-        return str(value)
-    raise TypeError(f"unsupported canonical JSON value: {type(value).__name__}")
 
 
 class JournalWriter:
