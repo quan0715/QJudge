@@ -8,7 +8,8 @@ from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import snapshot_event_record
 from integrity_service.core.registry import Registry
 from integrity_service.core.scheduler import DeadlineScheduler
-from integrity_service.core.schemas import EventRecord
+from integrity_service.core.schemas import EventBatch, EventRecord
+from integrity_service.core.sequencer import SessionSequencer
 from integrity_service.core.timeline import (
     BatchReceiptEntry,
     DecisionTimeline,
@@ -30,6 +31,7 @@ def admitted_record(
     event_type: str,
     event_id: str,
     client_ms: int,
+    payload: dict[str, object] | None = None,
 ):
     return snapshot_event_record(
         EventRecord(
@@ -41,7 +43,7 @@ def admitted_record(
             client_occurred_at_ms=client_ms,
             client_recorded_at_ms=client_ms,
             monotonic_ms=float(client_ms),
-            payload={"reason": "timeline"},
+            payload={"reason": "timeline"} if payload is None else payload,
         )
     )
 
@@ -302,4 +304,211 @@ def test_replaying_identical_baseline_and_entries_returns_identical_command_valu
     assert first == second
     assert [command.to_json() for command in first] == [
         command.to_json() for command in second
+    ]
+
+
+def test_exact_retry_empty_receipt_restores_connectivity_and_replays_stably():
+    baseline = TimelineBaseline(0, 0, (101,), ())
+    original = EventRecord(
+        event_id=UUID("00000000-0000-0000-0000-000000000751"),
+        seq=1,
+        kind="event",
+        event_type="exit_fullscreen_triggered",
+        event_schema_version=1,
+        client_occurred_at_ms=0,
+        client_recorded_at_ms=0,
+        monotonic_ms=0.0,
+        payload={"reason": "timeline"},
+    )
+    batch = EventBatch(
+        schema_version=1,
+        batch_id=UUID("00000000-0000-0000-0000-000000000752"),
+        run_id=RUN_ID,
+        participant_id=101,
+        device_id="device-1",
+        registry_version="registry-v2",
+        first_seq=1,
+        last_seq=1,
+        records=[original],
+        client_build="timeline-test",
+    )
+    sequencer = SessionSequencer()
+    first = sequencer.accept(batch)
+    retry = sequencer.accept(batch)
+    assert retry.new_records == ()
+
+    def run_once():
+        subject = timeline(baseline)
+        commands = list(
+            subject.apply(
+                BatchReceiptEntry(1, 0, batch.batch_id, 101, "device-1"),
+                records=first.new_records,
+            )
+        )
+        commands.extend(subject.advance_to(15_000))
+        commands.extend(
+            subject.apply(
+                BatchReceiptEntry(
+                    2,
+                    15_001,
+                    UUID("00000000-0000-0000-0000-000000000753"),
+                    101,
+                    "device-1",
+                ),
+                records=retry.new_records,
+            )
+        )
+        assert subject._last_timeline_seq == 2
+        return tuple(commands)
+
+    first_run = run_once()
+    second_run = run_once()
+
+    assert [command.event_type for command in first_run] == [
+        "exit_fullscreen_triggered",
+        "connectivity_suspect",
+        "connectivity_restored",
+    ]
+    assert [command.to_json() for command in first_run] == [
+        command.to_json() for command in second_run
+    ]
+
+
+@pytest.mark.parametrize(
+    ("event_type", "payload", "skip_code"),
+    [
+        ("unknown_browser_signal", {"reason": "timeline"}, "unknown_signal"),
+        ("exit_fullscreen_triggered", {}, "invalid_payload"),
+    ],
+)
+def test_receipt_preflight_skips_bad_browser_records_before_any_engine_mutation(
+    event_type, payload, skip_code
+):
+    baseline = TimelineBaseline(0, 0, (101,), ())
+    trigger = admitted_record(
+        seq=1,
+        event_type="exit_fullscreen_triggered",
+        event_id="00000000-0000-0000-0000-000000000761",
+        client_ms=0,
+    )
+    valid = admitted_record(
+        seq=2,
+        event_type="fullscreen_restored",
+        event_id="00000000-0000-0000-0000-000000000764",
+        client_ms=30_000,
+    )
+    bad = admitted_record(
+        seq=3,
+        event_type=event_type,
+        event_id="00000000-0000-0000-0000-000000000762",
+        client_ms=0,
+        payload=payload,
+    )
+    entry = BatchReceiptEntry(
+        2,
+        30_000,
+        UUID("00000000-0000-0000-0000-000000000763"),
+        101,
+        "device-1",
+    )
+    subject = timeline(baseline)
+    subject.apply(
+        BatchReceiptEntry(
+            1,
+            0,
+            UUID("00000000-0000-0000-0000-000000000765"),
+            101,
+            "device-1",
+        ),
+        records=(trigger,),
+    )
+
+    plan = subject.plan_receipt(records=(valid, bad))
+    commands = subject.apply(entry, records=(valid, bad))
+
+    assert plan.accepted_records == (valid,)
+    assert [(item.record, item.code) for item in plan.skipped_records] == [
+        (bad, skip_code)
+    ]
+    assert [command.event_type for command in commands] == [
+        "connectivity_suspect",
+        "exit_fullscreen",
+        "connectivity_restored",
+        "fullscreen_restored",
+    ]
+    assert subject._last_timeline_seq == 2
+
+    fresh = timeline(baseline)
+    fresh.apply(
+        BatchReceiptEntry(
+            1,
+            0,
+            UUID("00000000-0000-0000-0000-000000000765"),
+            101,
+            "device-1",
+        ),
+        records=(trigger,),
+    )
+    fresh_commands = fresh.apply(entry, records=(valid,))
+    assert [command.to_json() for command in commands] == [
+        command.to_json() for command in fresh_commands
+    ]
+
+
+def test_structurally_rejected_receipt_leaves_timeline_and_engines_unchanged():
+    baseline = TimelineBaseline(0, 0, (101,), ())
+    trigger = admitted_record(
+        seq=1,
+        event_type="exit_fullscreen_triggered",
+        event_id="00000000-0000-0000-0000-000000000771",
+        client_ms=0,
+    )
+    restored = admitted_record(
+        seq=2,
+        event_type="fullscreen_restored",
+        event_id="00000000-0000-0000-0000-000000000772",
+        client_ms=30_000,
+    )
+    first_entry = BatchReceiptEntry(
+        1,
+        0,
+        UUID("00000000-0000-0000-0000-000000000773"),
+        101,
+        "device-1",
+    )
+    subject = timeline(baseline)
+    subject.apply(first_entry, records=(trigger,))
+
+    with pytest.raises(TimelineOrderError, match="timeline_seq"):
+        subject.apply(
+            BatchReceiptEntry(
+                3,
+                30_000,
+                UUID("00000000-0000-0000-0000-000000000774"),
+                101,
+                "device-1",
+            ),
+            records=(restored,),
+        )
+
+    assert subject._last_timeline_seq == 1
+    assert subject._clock_server_ms == 0
+    assert subject._incidents.next_deadline_server_ms() == 30_000
+    assert subject._connectivity.next_transition_server_ms() == 15_000
+    assert subject._submissions.is_submitted(101) is False
+
+    retry_entry = BatchReceiptEntry(
+        2,
+        30_000,
+        UUID("00000000-0000-0000-0000-000000000775"),
+        101,
+        "device-1",
+    )
+    retry_commands = subject.apply(retry_entry, records=(restored,))
+
+    fresh = timeline(baseline)
+    fresh.apply(first_entry, records=(trigger,))
+    fresh_commands = fresh.apply(retry_entry, records=(restored,))
+    assert [command.to_json() for command in retry_commands] == [
+        command.to_json() for command in fresh_commands
     ]

@@ -14,6 +14,11 @@ end wins a tie with a timeout, and equal-time receipts follow ``timeline_seq``.
 Replay must construct fresh engines from the persisted baseline, apply every entry in sequence,
 and advance to the same final authoritative server time. No engine may be called outside this
 owner in either live or replay execution.
+
+Unknown browser signal IDs and invalid browser payloads remain durable raw-journal input. A
+receipt plan classifies them into immutable bounded warning dispositions before any engine state
+changes; only known-valid admitted records receive semantic handling, and an empty exact-retry
+receipt remains a connectivity observation.
 """
 
 from __future__ import annotations
@@ -21,6 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, TypeAlias
 from uuid import UUID
+
+from jsonschema import ValidationError
 
 from integrity_service.core.commands import (
     IntegrityCommand,
@@ -30,14 +37,48 @@ from integrity_service.core.commands import (
 from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import AdmittedEventRecord
+from integrity_service.core.registry import UnknownSignal
 from integrity_service.core.scheduler import DeadlineScheduler
 
 
 SubmissionSource = Literal["manual", "backend"]
+SkippedRecordCode = Literal["unknown_signal", "invalid_payload"]
 
 
 class TimelineOrderError(ValueError):
     """A durable entry did not follow the run-local total order."""
+
+
+@dataclass(frozen=True, slots=True)
+class SkippedReceiptRecord:
+    """An immutable browser record deliberately excluded from semantic decisions."""
+
+    record: AdmittedEventRecord
+    code: SkippedRecordCode
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.record, AdmittedEventRecord):
+            raise TypeError("skipped record must be an admitted immutable event snapshot")
+        if self.code not in ("unknown_signal", "invalid_payload"):
+            raise ValueError("skipped record code is not supported")
+
+
+@dataclass(frozen=True, slots=True)
+class ReceiptPlan:
+    """Pure receipt disposition Task 6 can use to journal warnings without blocking ACK."""
+
+    accepted_records: tuple[AdmittedEventRecord, ...]
+    skipped_records: tuple[SkippedReceiptRecord, ...]
+
+    def __post_init__(self) -> None:
+        if type(self.accepted_records) is not tuple or not all(
+            isinstance(record, AdmittedEventRecord) for record in self.accepted_records
+        ):
+            raise TypeError("accepted receipt records must be immutable snapshots")
+        if type(self.skipped_records) is not tuple or not all(
+            isinstance(record, SkippedReceiptRecord) for record in self.skipped_records
+        ):
+            raise TypeError("skipped receipt records must be immutable dispositions")
 
 
 def _validate_server_ms(value: int) -> None:
@@ -184,6 +225,11 @@ class DecisionTimeline:
         delayed_event_ids: frozenset[UUID] = frozenset(),
     ) -> tuple[IntegrityCommand, ...]:
         self._validate_entry(entry, records, delayed_event_ids)
+        receipt_plan = (
+            self.plan_receipt(records=records)
+            if isinstance(entry, BatchReceiptEntry)
+            else None
+        )
         commands = list(self._advance(entry.server_ms))
         if isinstance(entry, SubmissionEntry):
             self._submissions.mark_submitted(entry.participant_id)
@@ -195,7 +241,8 @@ class DecisionTimeline:
                     server_ms=entry.server_ms,
                 )
             )
-            for record in records:
+            assert receipt_plan is not None
+            for record in receipt_plan.accepted_records:
                 commands.extend(
                     self._incidents.ingest(
                         ReceivedEvent(
@@ -211,6 +258,35 @@ class DecisionTimeline:
             commands.extend(self._connectivity.tick(entry.server_ms))
         self._last_timeline_seq = entry.timeline_seq
         return tuple(commands)
+
+    def plan_receipt(
+        self, *, records: tuple[AdmittedEventRecord, ...]
+    ) -> ReceiptPlan:
+        """Classify immutable browser records before any timeline engine is mutated.
+
+        Unknown signal IDs and metadata that fails the current registry contract are normal
+        untrusted browser input. They are retained by Task 6's raw journal and represented here
+        for a bounded warning, but do not receive semantic engine handling or block an ACK.
+        """
+        if type(records) is not tuple or not all(
+            isinstance(record, AdmittedEventRecord) for record in records
+        ):
+            raise TypeError("records must be admitted immutable event snapshots")
+        accepted: list[AdmittedEventRecord] = []
+        skipped: list[SkippedReceiptRecord] = []
+        for record in records:
+            try:
+                self._incidents._registry.resolve(record.event_type)
+                self._incidents._registry.validate_payload(
+                    record.event_type, record.payload
+                )
+            except UnknownSignal:
+                skipped.append(SkippedReceiptRecord(record, "unknown_signal"))
+            except ValidationError:
+                skipped.append(SkippedReceiptRecord(record, "invalid_payload"))
+            else:
+                accepted.append(record)
+        return ReceiptPlan(tuple(accepted), tuple(skipped))
 
     def advance_to(self, server_ms: int) -> tuple[IntegrityCommand, ...]:
         _validate_server_ms(server_ms)
@@ -239,8 +315,6 @@ class DecisionTimeline:
         ):
             raise TypeError("delayed_event_ids must be a frozenset of UUID values")
         if isinstance(entry, BatchReceiptEntry):
-            if not records:
-                raise ValueError("batch receipt must include admitted records")
             sequences = tuple(record.seq for record in records)
             if sequences != tuple(sorted(set(sequences))):
                 raise ValueError("receipt records must be sorted by unique sequence")
