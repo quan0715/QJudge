@@ -136,8 +136,7 @@ function analyzeSource(file, content, production) {
     if (
       production &&
       ts.isIdentifier(node) &&
-      blockedLegacySymbols.has(node.text) &&
-      !isNonReferencePropertyName(node)
+      blockedLegacySymbols.has(node.text)
     ) {
       legacySymbols.add(node.text);
     }
@@ -162,22 +161,6 @@ function calledIdentifierName(expression) {
     return calledIdentifierName(expression.expression);
   }
   return null;
-}
-
-function isNonReferencePropertyName(identifier) {
-  const parent = identifier.parent;
-  if (ts.isPropertyAccessExpression(parent) && parent.name === identifier) return true;
-  if (ts.isBindingElement(parent) && parent.propertyName === identifier) return true;
-  return (
-    (ts.isPropertyAssignment(parent) ||
-      ts.isPropertyDeclaration(parent) ||
-      ts.isPropertySignature(parent) ||
-      ts.isMethodDeclaration(parent) ||
-      ts.isMethodSignature(parent) ||
-      ts.isGetAccessorDeclaration(parent) ||
-      ts.isSetAccessorDeclaration(parent)) &&
-    parent.name === identifier
-  );
 }
 
 function resolvedSourceTarget(file, specifier) {

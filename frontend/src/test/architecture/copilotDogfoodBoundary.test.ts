@@ -305,15 +305,30 @@ describe("Copilot dogfood boundary", () => {
     expect(result.status).toBe(0);
   });
 
-  it("ignores blocked legacy words in regexes and non-called property paths", () => {
+  it("ignores blocked legacy words in regexes", () => {
     const result = runFixture({
-      "features/chatbot/history.ts": [
-        "const pattern = /useChatbotContext()/;",
-        "const reference = api.useOptionalChatbotContext;",
-      ].join("\n"),
+      "features/chatbot/history.ts": "const pattern = /useChatbotContext()/;",
     });
 
     expect(result.status).toBe(0);
+  });
+
+  it.each([
+    [
+      "property access",
+      "const legacyHook = api.useChatbotContext; legacyHook();",
+      "useChatbotContext",
+    ],
+    [
+      "destructuring alias",
+      "const { useChatSessionContext: sessionHook } = api; sessionHook();",
+      "useChatSessionContext",
+    ],
+  ])("rejects a blocked legacy %s", (_label, source, identifier) => {
+    const result = runFixture({ "features/chatbot/consumer.ts": source });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`legacy runtime identifier '${identifier}'`);
   });
 
   it("rejects a blocked legacy import binding", () => {
