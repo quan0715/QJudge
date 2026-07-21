@@ -320,6 +320,7 @@ export function CopilotProvider({
   } | null>(null);
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
+  const newSessionIntentRef = useRef(false);
   const sessionsRef = useRef<CopilotSessionSummary[]>([]);
   const summaryRunBySessionRef = useRef<Record<string, CopilotRun | null>>({});
   const summaryTerminalRunIdBySessionRef = useRef<Record<string, string>>({});
@@ -562,6 +563,7 @@ export function CopilotProvider({
     invalidateSessionListRequest();
     closeRunSubscription();
     activeIdRef.current = null;
+    newSessionIntentRef.current = false;
     sessionsRef.current = [];
     summaryRunBySessionRef.current = {};
     summaryTerminalRunIdBySessionRef.current = {};
@@ -878,6 +880,7 @@ export function CopilotProvider({
   const selectSession = useCallback(
     async (id: string, source: "ui" | "location" | "initial" = "ui") => {
       if (!enabledRef.current) return;
+      newSessionIntentRef.current = false;
       const ownershipEpoch = ownershipEpochRef.current;
       const revision = ++revisionRef.current;
       activeIdRef.current = id;
@@ -920,6 +923,25 @@ export function CopilotProvider({
     },
     [closeRunSubscription, restoreRun, storage, transport, writeLocation],
   );
+
+  const startNew = useCallback(() => {
+    if (!enabledRef.current) return;
+    newSessionIntentRef.current = true;
+    ++revisionRef.current;
+    closeRunSubscription();
+    activeIdRef.current = null;
+    lastSendRef.current = null;
+    setActiveError(null);
+    setSessionError(null);
+    setDraft("");
+    setAttachments([]);
+    storage?.remove(LAST_SESSION_KEY);
+    writeLocation(null);
+    setRuntime((previous) => ({
+      ...previous,
+      activeSessionId: null,
+    }));
+  }, [closeRunSubscription, storage, writeLocation]);
 
   const create = useCallback(
     async (input?: CopilotCreateSessionInput): Promise<string | null> => {
@@ -1010,7 +1032,7 @@ export function CopilotProvider({
       replaceSessions(listed, runRevisionSnapshot);
       setSessionError(null);
       setListStatus("ready");
-      if (activeIdRef.current === null) {
+      if (activeIdRef.current === null && !newSessionIntentRef.current) {
         const bootstrapRevision = revisionRef.current;
         const bootstrapActiveId = activeIdRef.current;
         const isBootstrapCurrent = () =>
@@ -1792,6 +1814,7 @@ export function CopilotProvider({
   const activeSession =
     runtimeIsVisible &&
     enabled &&
+    !newSessionIntentRef.current &&
     selectedActiveSession.status === "empty" &&
     (listStatus === "idle" || listStatus === "loading")
       ? INITIALIZING_ACTIVE_SESSION
@@ -1824,13 +1847,14 @@ export function CopilotProvider({
   const commandsValue = useMemo(
     () => ({
       create,
+      startNew,
       select: selectSession,
       rename,
       remove,
       refresh,
       clearError: clearSessionError,
     }),
-    [clearSessionError, create, refresh, remove, rename, selectSession],
+    [clearSessionError, create, refresh, remove, rename, selectSession, startNew],
   );
   const runCommandsValue = useMemo(
     () => ({ send, stop, submitApproval, submitAnswer, retry, clearError }),

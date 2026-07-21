@@ -105,6 +105,74 @@ describe("CopilotProvider session lifecycle", () => {
     expect(listSessions).not.toHaveBeenCalled();
   });
 
+  it("starts an unsaved new chat without creating a transport session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const createSession = vi.spyOn(transport, "createSession");
+    const location = new MemoryCopilotSessionLocation(existing.id);
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-session-id", existing.id],
+    ]);
+    const { result } = renderHook(
+      () => ({
+        sessions: useCopilotSessions(),
+        composer: useCopilotComposer(),
+      }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: location,
+          storage,
+          initialSession: "first",
+        }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.id).toBe(existing.id),
+    );
+    act(() => result.current.composer.setDraft("discard me"));
+    await act(() =>
+      result.current.composer.addAttachments([
+        new File(["draft"], "draft.txt", { type: "text/plain" }),
+      ]),
+    );
+
+    act(() => result.current.sessions.startNew());
+
+    expect(createSession).not.toHaveBeenCalled();
+    expect(result.current.sessions.activeSession.status).toBe("empty");
+    expect(result.current.sessions.sessions.map((item) => item.id)).toContain(
+      existing.id,
+    );
+    expect(result.current.composer.draft).toBe("");
+    expect(result.current.composer.attachments).toEqual([]);
+    expect(location.get()).toBeNull();
+    expect(storage.get("copilot:last-session-id")).toBeNull();
+
+    await act(() => result.current.sessions.refresh());
+    expect(result.current.sessions.activeSession.status).toBe("empty");
+    expect(result.current.sessions.activeSession.id).toBeNull();
+  });
+
+  it("stops observing the old run without cancelling it when a new chat starts", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    await transport.startRun({ sessionId: session.id, text: "background" });
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const cancelRun = vi.spyOn(transport, "cancelRun");
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    const subscription = subscribeRun.mock.results[0].value;
+
+    act(() => result.current.startNew());
+
+    expect(subscription.closed).toBe(true);
+    expect(cancelRun).not.toHaveBeenCalled();
+    expect(result.current.activeSession.status).toBe("empty");
+  });
+
   it("atomically clears account-owned runtime state when disabled", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession({ title: "Old account" });

@@ -112,6 +112,7 @@ void [
 declare const modelRuntime: UseCopilotModelsResult;
 modelRuntime.select(null);
 declare const sessionRuntime: UseCopilotSessionsResult;
+sessionRuntime.startNew();
 const renameResult: Promise<CopilotRenameSessionResult> = sessionRuntime.rename(
   "session-1",
   "Renamed",
