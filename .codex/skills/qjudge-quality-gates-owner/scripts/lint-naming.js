@@ -184,6 +184,18 @@ function checkFileName(fileName, relPath) {
   }
 
   const posixRel = toPosix(relPath);
+  if (isUnderPath(posixRel, "hooks")) {
+    if (!isCamelCase(baseName)) {
+      recordViolation(relPath, `Not camelCase: ${baseName}`);
+      return;
+    }
+    if (!baseName.startsWith("use")) {
+      recordViolation(relPath, "Hook file must start with use");
+      return;
+    }
+    return;
+  }
+
   const dotRule = dotNotationRules.find((entry) => isUnderPath(posixRel, entry.path));
 
   if (ext === "tsx") {
@@ -207,8 +219,12 @@ function checkFileName(fileName, relPath) {
         recordViolation(relPath, "Section file must end with Section");
         return;
       }
-      if (posixRel.includes("/contexts/") && !baseName.endsWith("Context")) {
-        recordViolation(relPath, "Context file must end with Context");
+      if (
+        posixRel.includes("/contexts/") &&
+        !baseName.endsWith("Context") &&
+        !baseName.endsWith("Provider")
+      ) {
+        recordViolation(relPath, "Context file must end with Context or Provider");
         return;
       }
     }
@@ -225,18 +241,6 @@ function checkFileName(fileName, relPath) {
     }
     if (!isValidDotBase(dotRule, baseName)) {
       recordViolation(relPath, `Invalid base name: ${baseName}`);
-    }
-    return;
-  }
-
-  if (posixRel.includes("/hooks/")) {
-    if (!isCamelCase(baseName)) {
-      recordViolation(relPath, `Not camelCase: ${baseName}`);
-      return;
-    }
-    if (!baseName.startsWith("use")) {
-      recordViolation(relPath, "Hook file must start with use");
-      return;
     }
     return;
   }
