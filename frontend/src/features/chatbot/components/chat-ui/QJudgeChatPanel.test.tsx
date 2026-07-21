@@ -51,7 +51,7 @@ afterAll(() => {
 
 const renderPanel = (
   transport: MemoryCopilotTransport,
-  sessionId: string,
+  sessionId: string | null,
   panel: ReactNode,
   modelCatalog = new MemoryCopilotModelCatalog(),
   location = new MemoryCopilotSessionLocation(sessionId),
@@ -71,6 +71,39 @@ const renderPanel = (
   );
 
 describe("QJudgeChatPanel", () => {
+  it("does not create from the new-task button and creates on first send", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const createSession = vi.spyOn(transport, "createSession");
+    const startRun = vi.spyOn(transport, "startRun");
+    const location = new MemoryCopilotSessionLocation(existing.id);
+    renderPanel(
+      transport,
+      existing.id,
+      <QJudgeChatPanel mode="sidebar" />,
+      new MemoryCopilotModelCatalog(),
+      location,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /addComment|新增/i }),
+    );
+    expect(createSession).not.toHaveBeenCalled();
+    await waitFor(() => expect(location.get()).toBeNull());
+
+    const input = screen.getByRole("textbox", { name: /message|輸入/i });
+    await waitFor(() => expect(input).toBeEnabled());
+    fireEvent.change(input, { target: { value: "First embedded message" } });
+    fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
+
+    await waitFor(() => expect(createSession).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(startRun).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "First embedded message" }),
+      ),
+    );
+  });
+
   it("sends a message through the full-page Copilot panel", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();

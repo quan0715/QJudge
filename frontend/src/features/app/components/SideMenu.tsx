@@ -94,7 +94,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const {
     sessions,
     activeSession,
-    create: createSession,
+    startNew: startNewSession,
     select: selectSession,
     rename: renameSession,
     remove: removeSession,
@@ -230,12 +230,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     [navigate],
   );
 
-  const handleNewTask = useCallback(async () => {
-    const newSessionId = await createSession();
-    if (!newSessionId) return;
+  const handleNewTask = useCallback(() => {
+    startNewSession();
     onClose?.();
-    goToChatSession(newSessionId);
-  }, [createSession, onClose, goToChatSession]);
+    navigate("/chat");
+  }, [navigate, onClose, startNewSession]);
 
   const handleSelectSession = useCallback((id: string) => {
     void selectSession(id);

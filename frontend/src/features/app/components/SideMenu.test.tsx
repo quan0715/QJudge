@@ -22,6 +22,7 @@ const mockCopilotSessions = vi.hoisted(() => ({
   listStatus: "ready",
   error: null,
   create: vi.fn(),
+  startNew: vi.fn(),
   select: vi.fn(),
   rename: vi.fn(),
   remove: vi.fn(),
@@ -110,6 +111,7 @@ describe("SideMenu contest admin workspace panels", () => {
       data: null,
       error: null,
     };
+    mockCopilotSessions.startNew.mockClear();
     mockCopilotSessions.create.mockResolvedValue(null);
     mockCopilotSessions.select.mockResolvedValue(undefined);
     mockCopilotSessions.rename.mockResolvedValue({ ok: true });
@@ -217,11 +219,9 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
-  it("creates a Copilot session and navigates with the explicit QJudge query", async () => {
-    mockCopilotSessions.create.mockResolvedValue("session-new");
-
+  it("starts a local new task and removes the session query", async () => {
     render(
-      <MemoryRouter initialEntries={["/chat"]}>
+      <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
         <SideMenu variant="panel" />
         <LocationProbe />
       </MemoryRouter>,
@@ -229,11 +229,10 @@ describe("SideMenu contest admin workspace panels", () => {
 
     fireEvent.click(await screen.findByText("ui.newTask"));
 
-    await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
+    expect(mockCopilotSessions.startNew).toHaveBeenCalledTimes(1);
+    expect(mockCopilotSessions.create).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(screen.getByTestId("location-search")).toHaveTextContent(
-        "?ai_session_id=session-new",
-      ),
+      expect(screen.getByTestId("location-search")).toHaveTextContent(""),
     );
   });
 

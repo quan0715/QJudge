@@ -101,7 +101,7 @@ export function CopilotPanel({
         <Header
           activeSession={copilot.activeSession}
           run={run.state}
-          onNewSession={() => void sessions.create()}
+          onNewSession={sessions.startNew}
         />
       )}
       <div className="copilot-panel-body">
@@ -110,7 +110,7 @@ export function CopilotPanel({
             sessions={sessions.sessions}
             activeSession={sessions.activeSession}
             onSelect={(id) => void sessions.select(id)}
-            onCreate={() => void sessions.create()}
+            onCreate={sessions.startNew}
             onRename={(id, title) => void sessions.rename(id, title)}
             onRemove={(id) => void sessions.remove(id)}
           />
@@ -133,7 +133,7 @@ export function CopilotPanel({
               onRetry={() => void sessions.refresh()}
             />
           ) : messages.length === 0 && Empty ? (
-            <Empty onNewSession={() => void sessions.create()} />
+            <Empty onNewSession={sessions.startNew} />
           ) : (
             <MessageList
               messages={messages}

@@ -20,10 +20,13 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageList } from "./MessageList";
 import { QJudgeChatPresentationContext } from "./qJudgeChatPresentationContext";
 
-export function QJudgeCopilotHeader(_props: CopilotHeaderProps) {
+export function QJudgeCopilotHeader({
+  activeSession,
+  onNewSession,
+}: CopilotHeaderProps) {
   const sessions = useCopilotSessions();
   const { mode, onClose } = useContext(QJudgeChatPresentationContext);
-  const title = sessions.activeSession.data?.title;
+  const title = activeSession.data?.title;
 
   return (
     <ChatTopBar
@@ -33,7 +36,7 @@ export function QJudgeCopilotHeader(_props: CopilotHeaderProps) {
       sessions={sessions.sessions}
       currentSessionId={sessions.activeSession.id}
       onSelectSession={(id) => void sessions.select(id)}
-      onNewChat={() => void sessions.create()}
+      onNewChat={onNewSession}
       onRenameSession={(id, nextTitle) => void sessions.rename(id, nextTitle)}
       onDeleteSession={(id) => void sessions.remove(id)}
       onClose={onClose}
@@ -71,10 +74,11 @@ export function QJudgeCopilotComposer() {
   const isAwaitingHumanInput =
     run.state.status === "awaiting-approval" ||
     run.state.status === "awaiting-answer";
+  const sessionAcceptsInput =
+    sessions.activeSession.status === "ready" ||
+    sessions.activeSession.status === "empty";
   const disabled =
-    sessions.activeSession.status !== "ready" ||
-    isAwaitingHumanInput ||
-    composer.isSending;
+    !sessionAcceptsInput || isAwaitingHumanInput || composer.isSending;
 
   return (
     <ComposerBar

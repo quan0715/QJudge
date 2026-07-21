@@ -42,8 +42,9 @@ vi.mock("@/infrastructure/copilot/qJudgeCopilotDependencies", async () => {
 });
 
 describe("QJudgeCopilotBoundary", () => {
-  it("creates the first session through the injected Copilot runtime", async () => {
+  it("keeps a new account empty until the first message is sent", async () => {
     const transport = new MemoryCopilotTransport();
+    const createSession = vi.spyOn(transport, "createSession");
     const wrapper = ({ children }: PropsWithChildren) => (
       <QJudgeCopilotBoundary
         enabled
@@ -60,9 +61,10 @@ describe("QJudgeCopilotBoundary", () => {
 
     const { result } = renderHook(() => useCopilotSessions(), { wrapper });
     await waitFor(() =>
-      expect(result.current.activeSession.status).toBe("ready"),
+      expect(result.current.activeSession.status).toBe("empty"),
     );
-    expect(result.current.sessions).toHaveLength(1);
+    expect(result.current.sessions).toHaveLength(0);
+    expect(createSession).not.toHaveBeenCalled();
   });
 
   it("composes one Artifact panel owner inside the Copilot runtime", async () => {
@@ -86,7 +88,10 @@ describe("QJudgeCopilotBoundary", () => {
       { wrapper },
     );
 
-    await waitFor(() => expect(result.current.sessions.activeSession.status).toBe("ready"));
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.status).toBe("empty"),
+    );
+    expect(result.current.sessions.sessions).toHaveLength(0);
     expect(result.current.artifacts.isOpen).toBe(false);
   });
 });
@@ -119,9 +124,9 @@ describe("QJudgeCopilotProvider", () => {
     const { result } = renderHook(() => useCopilotSessions(), { wrapper });
 
     await waitFor(() =>
-      expect(result.current.activeSession.status).toBe("ready"),
+      expect(result.current.activeSession.status).toBe("empty"),
     );
-    expect(result.current.sessions).toHaveLength(1);
+    expect(result.current.sessions).toHaveLength(0);
   });
 
   it("is exported with its dependency-injected boundary", () => {
