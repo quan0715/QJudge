@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import threading
 from unittest.mock import Mock
 from uuid import UUID
 
 from fastapi.testclient import TestClient
+import httpx
 import pytest
 
 from integrity_service.controller.app import create_app
@@ -21,6 +24,7 @@ from integrity_service.controller.settings import ControllerSettings
 
 
 RUN_ID = UUID("11111111-1111-1111-1111-111111111111")
+SECOND_RUN_ID = UUID("22222222-2222-2222-2222-222222222222")
 TOKEN = "controller-secret"
 RUN_TOKEN = "run-secret"
 WORKER_IMAGE = "oj-integrity-worker:latest"
@@ -155,6 +159,144 @@ def test_authentication_uses_constant_time_byte_comparison(
 
     assert response.status_code == 200
     assert compared == [(TOKEN.encode("utf-8"), TOKEN.encode("utf-8"))]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/runs/not-a-uuid/status",
+        "/v1/runs/not-a-uuid/start",
+        "/not-a-controller-route",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+    ],
+)
+def test_authentication_runs_before_all_routing_and_path_validation(client, path):
+    response = client.get(path)
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "request authentication failed"}
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_generated_api_documentation_is_disabled(client, path):
+    response = client.get(path, headers=_headers())
+
+    assert response.status_code == 404
+
+
+def test_authenticated_malformed_uuid_still_uses_normal_path_validation(client):
+    response = client.get("/v1/runs/not-a-uuid/status", headers=_headers())
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_slow_docker_lifecycle_call_does_not_block_other_requests(settings):
+    started = threading.Event()
+    release = threading.Event()
+
+    class BlockingRuntime:
+        def status(self, run_id):
+            if run_id == RUN_ID:
+                started.set()
+                release.wait(timeout=1)
+            return RunStatus(run_id=run_id, exists=False, state="absent")
+
+    application = create_app(runtime=BlockingRuntime(), settings=settings)
+    transport = httpx.ASGITransport(app=application)
+    timer = threading.Timer(0.25, release.set)
+    timer.start()
+    slow_request = None
+    try:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://controller.test",
+        ) as async_client:
+            slow_request = asyncio.create_task(
+                async_client.get(
+                    f"/v1/runs/{RUN_ID}/status",
+                    headers=_headers(),
+                )
+            )
+            assert await asyncio.to_thread(started.wait, 0.5)
+
+            fast_response = await async_client.get(
+                f"/v1/runs/{SECOND_RUN_ID}/status",
+                headers=_headers(),
+            )
+
+            assert fast_response.status_code == 200
+            assert slow_request.done() is False
+            release.set()
+            assert (await slow_request).status_code == 200
+    finally:
+        release.set()
+        timer.cancel()
+        if slow_request is not None and not slow_request.done():
+            await slow_request
+
+
+@pytest.mark.asyncio
+async def test_docker_lifecycle_calls_for_the_same_run_remain_serialized(settings):
+    first_started = threading.Event()
+    release_first = threading.Event()
+
+    class SerialRuntime:
+        def __init__(self):
+            self.call_count = 0
+
+        def status(self, run_id):
+            self.call_count += 1
+            if self.call_count == 1:
+                first_started.set()
+                release_first.wait(timeout=1)
+            return RunStatus(run_id=run_id, exists=False, state="absent")
+
+    runtime = SerialRuntime()
+    application = create_app(runtime=runtime, settings=settings)
+    transport = httpx.ASGITransport(app=application)
+    timer = threading.Timer(0.5, release_first.set)
+    timer.start()
+    first_request = None
+    second_request = None
+    try:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://controller.test",
+        ) as async_client:
+            first_request = asyncio.create_task(
+                async_client.get(
+                    f"/v1/runs/{RUN_ID}/status",
+                    headers=_headers(),
+                )
+            )
+            assert await asyncio.to_thread(first_started.wait, 0.5)
+            second_request = asyncio.create_task(
+                async_client.get(
+                    f"/v1/runs/{RUN_ID}/status",
+                    headers=_headers(),
+                )
+            )
+            await asyncio.sleep(0.05)
+
+            assert runtime.call_count == 1
+            assert second_request.done() is False
+            release_first.set()
+            responses = await asyncio.gather(first_request, second_request)
+            assert [response.status_code for response in responses] == [200, 200]
+            assert runtime.call_count == 2
+    finally:
+        release_first.set()
+        timer.cancel()
+        pending = [
+            request
+            for request in (first_request, second_request)
+            if request is not None and not request.done()
+        ]
+        if pending:
+            await asyncio.gather(*pending)
 
 
 def test_start_accepts_only_run_token_and_worker_image(client, runtime):

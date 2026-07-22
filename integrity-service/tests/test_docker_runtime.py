@@ -28,6 +28,16 @@ WORKER_IMAGE = "oj-integrity-worker:latest"
 IMAGE_DIGEST = "sha256:" + "a" * 64
 RUN_TOKEN = "secret"
 RUN_TOKEN_SHA256 = hashlib.sha256(RUN_TOKEN.encode("utf-8")).hexdigest()
+IMAGE_ENVIRONMENT = ["PATH=/usr/local/bin"]
+
+
+def _environment(run_id: UUID = RUN_ID) -> list[str]:
+    return IMAGE_ENVIRONMENT + [
+        "INTEGRITY_RUN_ID=" + str(run_id),
+        "BACKEND_INTERNAL_URL=http://backend:8000",
+        "RUN_TOKEN_FILE=/run-secrets/token",
+        "RUN_DATA_DIR=/run-data",
+    ]
 
 
 class DockerNotFound(Exception):
@@ -60,18 +70,91 @@ def _container(
     worker.name = name or container_name(RUN_ID)
     worker.status = status
     worker.image.id = IMAGE_DIGEST
+    worker.image.attrs = {"Config": {"Env": IMAGE_ENVIRONMENT}}
+    is_initializer = role == "secret-initializer"
+    if is_initializer:
+        binds = [secret_volume_name(RUN_ID) + ":/run-secrets:rw"]
+        mounts = [
+            {
+                "Type": "volume",
+                "Name": secret_volume_name(RUN_ID),
+                "Destination": "/run-secrets",
+                "Mode": "rw",
+                "RW": True,
+            }
+        ]
+        network_mode = "none"
+        tmpfs = {"/tmp": "rw,noexec,nosuid,size=16m"}
+        memory = 64 * 1024 * 1024
+        nano_cpus = 100_000_000
+        pids_limit = 16
+        restart_policy = {"Name": "no", "MaximumRetryCount": 0}
+        environment = IMAGE_ENVIRONMENT
+    else:
+        binds = [
+            data_volume_name(RUN_ID) + ":/run-data:rw",
+            secret_volume_name(RUN_ID) + ":/run-secrets:ro",
+        ]
+        mounts = [
+            {
+                "Type": "volume",
+                "Name": data_volume_name(RUN_ID),
+                "Destination": "/run-data",
+                "Mode": "rw",
+                "RW": True,
+            },
+            {
+                "Type": "volume",
+                "Name": secret_volume_name(RUN_ID),
+                "Destination": "/run-secrets",
+                "Mode": "ro",
+                "RW": False,
+            },
+        ]
+        network_mode = "qjudge-test-network"
+        tmpfs = {"/tmp": "rw,noexec,nosuid,size=64m"}
+        memory = 512 * 1024 * 1024
+        nano_cpus = 500_000_000
+        pids_limit = 128
+        restart_policy = {"Name": "unless-stopped", "MaximumRetryCount": 0}
+        environment = _environment(run_id)
     worker.attrs = {
         "Config": {
             "Image": image,
+            "Env": environment,
+            "User": "10001:10001",
             "Labels": {
                 "qjudge.integrity.run_id": str(run_id),
                 "qjudge.integrity.role": role,
                 "qjudge.integrity.run_token_sha256": token_digest,
             },
         },
+        "HostConfig": {
+            "NetworkMode": network_mode,
+            "Binds": binds,
+            "ReadonlyRootfs": True,
+            "CapAdd": None,
+            "CapDrop": ["ALL"],
+            "Privileged": False,
+            "SecurityOpt": ["no-new-privileges"],
+            "Tmpfs": tmpfs,
+            "Memory": memory,
+            "NanoCpus": nano_cpus,
+            "PidsLimit": pids_limit,
+            "RestartPolicy": restart_policy,
+        },
+        "Mounts": mounts,
+        "NetworkSettings": {"Networks": {network_mode: {}}},
         "State": {"Status": status},
     }
     return worker
+
+
+def _replace_nested(mapping: dict, path: tuple[str, ...], value: object) -> None:
+    target = mapping
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
 
 
 @pytest.fixture
@@ -323,6 +406,108 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
     docker_client._test_worker.start.assert_called_once_with()
 
 
+@pytest.mark.parametrize(
+    ("path", "unsafe_value"),
+    [
+        (("Config", "Env"), IMAGE_ENVIRONMENT + ["ATTACKER_CONTROLLED=true"]),
+        (("Config", "User"), "0:0"),
+        (("Config", "Labels"), {"qjudge.integrity.role": "secret-initializer"}),
+        (("HostConfig", "NetworkMode"), "bridge"),
+        (("HostConfig", "Binds"), ["victim:/run-secrets:rw"]),
+        (("HostConfig", "ReadonlyRootfs"), False),
+        (("HostConfig", "CapAdd"), ["SYS_ADMIN"]),
+        (("HostConfig", "CapDrop"), []),
+        (("HostConfig", "Privileged"), True),
+        (("HostConfig", "SecurityOpt"), []),
+        (("HostConfig", "Tmpfs"), {"/tmp": "rw,exec,size=16m"}),
+        (("HostConfig", "Memory"), 128 * 1024 * 1024),
+        (("HostConfig", "NanoCpus"), 1_000_000_000),
+        (("HostConfig", "PidsLimit"), 512),
+        (
+            ("HostConfig", "RestartPolicy"),
+            {"Name": "always", "MaximumRetryCount": 0},
+        ),
+        (
+            ("Mounts",),
+            [
+                {
+                    "Type": "bind",
+                    "Name": "",
+                    "Destination": "/run-secrets",
+                    "Mode": "rw",
+                    "RW": True,
+                }
+            ],
+        ),
+        (("NetworkSettings", "Networks"), {"none": {}, "bridge": {}}),
+    ],
+    ids=[
+        "environment",
+        "user",
+        "labels",
+        "network-mode",
+        "binds",
+        "read-only-rootfs",
+        "cap-add",
+        "cap-drop",
+        "privileged",
+        "security-options",
+        "tmpfs",
+        "memory",
+        "cpu",
+        "pids",
+        "restart-policy",
+        "mounts",
+        "network-attachments",
+    ],
+)
+def test_start_rejects_stale_initializer_with_any_policy_mismatch(
+    runtime, docker_client, path, unsafe_value
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    _replace_nested(stale.attrs, path, unsafe_value)
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
+def test_start_rejects_exited_stale_initializer_without_removing_it(
+    runtime, docker_client
+):
+    stale = _container(
+        status="exited",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
 def test_start_rejects_a_mismatched_stale_initializer(runtime, docker_client):
     stale = _container(
         status="created",
@@ -433,6 +618,99 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
         runtime.stop(RUN_ID)
 
     attacker.stop.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("path", "unsafe_value"),
+    [
+        (("Config", "Env"), _environment() + ["ATTACKER_CONTROLLED=true"]),
+        (("Config", "User"), "0:0"),
+        (
+            ("Config", "Labels"),
+            {
+                "qjudge.integrity.run_id": str(RUN_ID),
+                "qjudge.integrity.role": "worker",
+                "qjudge.integrity.run_token_sha256": RUN_TOKEN_SHA256,
+                "attacker-controlled": "true",
+            },
+        ),
+        (("HostConfig", "NetworkMode"), "bridge"),
+        (
+            ("HostConfig", "Binds"),
+            [
+                data_volume_name(RUN_ID) + ":/run-data:rw",
+                secret_volume_name(RUN_ID) + ":/run-secrets:ro",
+                "/:/host:rw",
+            ],
+        ),
+        (("HostConfig", "ReadonlyRootfs"), False),
+        (("HostConfig", "CapAdd"), ["SYS_ADMIN"]),
+        (("HostConfig", "CapDrop"), []),
+        (("HostConfig", "Privileged"), True),
+        (("HostConfig", "SecurityOpt"), []),
+        (("HostConfig", "Tmpfs"), {"/tmp": "rw,exec,size=64m"}),
+        (("HostConfig", "Memory"), 1024 * 1024 * 1024),
+        (("HostConfig", "NanoCpus"), 1_000_000_000),
+        (("HostConfig", "PidsLimit"), 512),
+        (
+            ("HostConfig", "RestartPolicy"),
+            {"Name": "always", "MaximumRetryCount": 0},
+        ),
+        (
+            ("Mounts",),
+            [
+                {
+                    "Type": "bind",
+                    "Name": "",
+                    "Destination": "/host",
+                    "Mode": "rw",
+                    "RW": True,
+                }
+            ],
+        ),
+        (
+            ("NetworkSettings", "Networks"),
+            {"qjudge-test-network": {}, "bridge": {}},
+        ),
+    ],
+    ids=[
+        "environment",
+        "user",
+        "labels",
+        "network-mode",
+        "binds",
+        "read-only-rootfs",
+        "cap-add",
+        "cap-drop",
+        "privileged",
+        "security-options",
+        "tmpfs",
+        "memory",
+        "cpu",
+        "pids",
+        "restart-policy",
+        "mounts",
+        "network-attachments",
+    ],
+)
+def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
+    runtime, docker_client, operation, path, unsafe_value
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    _replace_nested(worker.attrs, path, unsafe_value)
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        if operation == "start":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            getattr(runtime, operation)(RUN_ID)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
 
 
 def test_destroy_requires_stopped_container(runtime, docker_client):

@@ -150,12 +150,7 @@ class DockerRuntime:
         worker = self.client.containers.create(
             image=worker_image,
             name=container_name(run_id),
-            environment={
-                "INTEGRITY_RUN_ID": str(run_id),
-                "BACKEND_INTERNAL_URL": self.settings.backend_internal_url,
-                "RUN_TOKEN_FILE": "/run-secrets/token",
-                "RUN_DATA_DIR": "/run-data",
-            },
+            environment=self._worker_environment(run_id),
             volumes={
                 data_volume.name: {"bind": "/run-data", "mode": "rw"},
                 secret_volume.name: {"bind": "/run-secrets", "mode": "ro"},
@@ -337,9 +332,29 @@ class DockerRuntime:
             or not isinstance(config, dict)
             or config.get("Image") != worker_image
             or labels != expected_labels
-            or self._container_state(initializer) not in {"created", "exited"}
+            or self._container_state(initializer) != "created"
         ):
             raise ContainerConflict("Secret initializer identity conflicts")
+        self._validate_fixed_policy(
+            initializer,
+            expected_network="none",
+            expected_binds=[secret_volume_name(run_id) + ":/run-secrets:rw"],
+            expected_mounts=[
+                (
+                    "volume",
+                    secret_volume_name(run_id),
+                    "/run-secrets",
+                    "rw",
+                    True,
+                )
+            ],
+            expected_tmpfs={"/tmp": "rw,noexec,nosuid,size=16m"},
+            expected_memory=64 * 1024 * 1024,
+            expected_nano_cpus=100_000_000,
+            expected_pids_limit=16,
+            expected_restart_policy={"Name": "no", "MaximumRetryCount": 0},
+        )
+        self._validate_container_environment(initializer, overrides={})
 
     def _remove_volume_if_present(
         self, run_id: UUID, *, kind: Literal["data", "secret"]
@@ -392,12 +407,16 @@ class DockerRuntime:
         if not isinstance(labels, dict):
             raise ContainerConflict("Worker container ownership labels are missing")
         token_digest = labels.get(TOKEN_DIGEST_LABEL)
+        expected_labels = {
+            RUN_ID_LABEL: str(run_id),
+            ROLE_LABEL: "worker",
+            TOKEN_DIGEST_LABEL: token_digest,
+        }
         if (
-            labels.get(RUN_ID_LABEL) != str(run_id)
-            or labels.get(ROLE_LABEL) != "worker"
-            or type(token_digest) is not str
+            type(token_digest) is not str
             or len(token_digest) != 64
             or any(character not in "0123456789abcdef" for character in token_digest)
+            or labels != expected_labels
         ):
             raise ContainerConflict("Worker container ownership labels conflict")
         if (
@@ -405,7 +424,183 @@ class DockerRuntime:
             or config.get("Image") not in self.settings.allowed_worker_images
         ):
             raise ContainerConflict("Worker container identity conflicts")
+        self._validate_fixed_policy(
+            worker,
+            expected_network=self.settings.worker_network,
+            expected_binds=[
+                data_volume_name(run_id) + ":/run-data:rw",
+                secret_volume_name(run_id) + ":/run-secrets:ro",
+            ],
+            expected_mounts=[
+                (
+                    "volume",
+                    data_volume_name(run_id),
+                    "/run-data",
+                    "rw",
+                    True,
+                ),
+                (
+                    "volume",
+                    secret_volume_name(run_id),
+                    "/run-secrets",
+                    "ro",
+                    False,
+                ),
+            ],
+            expected_tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
+            expected_memory=512 * 1024 * 1024,
+            expected_nano_cpus=500_000_000,
+            expected_pids_limit=128,
+            expected_restart_policy={
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0,
+            },
+        )
+        self._validate_container_environment(
+            worker,
+            overrides=self._worker_environment(run_id),
+        )
         return labels
+
+    def _validate_fixed_policy(
+        self,
+        container: object,
+        *,
+        expected_network: str,
+        expected_binds: list[str],
+        expected_mounts: list[tuple[str, str, str, str, bool]],
+        expected_tmpfs: dict[str, str],
+        expected_memory: int,
+        expected_nano_cpus: int,
+        expected_pids_limit: int,
+        expected_restart_policy: dict[str, object],
+    ) -> None:
+        attrs = getattr(container, "attrs", None)
+        config = attrs.get("Config") if isinstance(attrs, dict) else None
+        host_config = attrs.get("HostConfig") if isinstance(attrs, dict) else None
+        network_settings = attrs.get("NetworkSettings") if isinstance(attrs, dict) else None
+        networks = (
+            network_settings.get("Networks")
+            if isinstance(network_settings, dict)
+            else None
+        )
+        if (
+            not isinstance(config, dict)
+            or not isinstance(host_config, dict)
+            or config.get("User") != "10001:10001"
+            or host_config.get("NetworkMode") != expected_network
+            or not self._string_list_matches(
+                host_config.get("Binds"), expected_binds
+            )
+            or host_config.get("ReadonlyRootfs") is not True
+            or not self._no_added_capabilities(host_config.get("CapAdd"))
+            or not self._string_list_matches(host_config.get("CapDrop"), ["ALL"])
+            or host_config.get("Privileged") is not False
+            or not self._no_new_privileges_only(host_config.get("SecurityOpt"))
+            or host_config.get("Tmpfs") != expected_tmpfs
+            or host_config.get("Memory") != expected_memory
+            or host_config.get("NanoCpus") != expected_nano_cpus
+            or host_config.get("PidsLimit") != expected_pids_limit
+            or host_config.get("RestartPolicy") != expected_restart_policy
+            or not isinstance(networks, dict)
+            or set(networks) != {expected_network}
+            or not self._mounts_match(attrs.get("Mounts"), expected_mounts)
+        ):
+            raise ContainerConflict("Container Docker policy conflicts")
+
+    def _validate_container_environment(
+        self,
+        container: object,
+        *,
+        overrides: dict[str, str],
+    ) -> None:
+        attrs = getattr(container, "attrs", None)
+        config = attrs.get("Config") if isinstance(attrs, dict) else None
+        if not isinstance(config, dict):
+            raise ContainerConflict("Container environment is unavailable")
+        actual_environment = config.get("Env")
+        actual = (
+            {} if actual_environment is None else self._environment_map(actual_environment)
+        )
+        image = getattr(container, "image", None)
+        image_attrs = getattr(image, "attrs", None)
+        image_config = image_attrs.get("Config") if isinstance(image_attrs, dict) else None
+        if not isinstance(image_config, dict):
+            raise ContainerConflict("Container image environment is unavailable")
+        image_environment = image_config.get("Env")
+        if image_environment is None:
+            expected: dict[str, str] | None = {}
+        else:
+            expected = self._environment_map(image_environment)
+        if expected is None:
+            raise ContainerConflict("Container image environment is invalid")
+        expected.update(overrides)
+        if actual != expected:
+            raise ContainerConflict("Container environment conflicts")
+
+    def _worker_environment(self, run_id: UUID) -> dict[str, str]:
+        return {
+            "INTEGRITY_RUN_ID": str(run_id),
+            "BACKEND_INTERNAL_URL": self.settings.backend_internal_url,
+            "RUN_TOKEN_FILE": "/run-secrets/token",
+            "RUN_DATA_DIR": "/run-data",
+        }
+
+    @staticmethod
+    def _environment_map(value: object) -> dict[str, str] | None:
+        if not isinstance(value, list):
+            return None
+        result: dict[str, str] = {}
+        for entry in value:
+            if type(entry) is not str or "=" not in entry:
+                return None
+            key, entry_value = entry.split("=", 1)
+            if not key or key in result:
+                return None
+            result[key] = entry_value
+        return result
+
+    @staticmethod
+    def _string_list_matches(actual: object, expected: list[str]) -> bool:
+        return (
+            isinstance(actual, list)
+            and len(actual) == len(expected)
+            and all(type(item) is str for item in actual)
+            and sorted(actual) == sorted(expected)
+        )
+
+    @staticmethod
+    def _no_added_capabilities(value: object) -> bool:
+        return value is None or value == []
+
+    @staticmethod
+    def _no_new_privileges_only(value: object) -> bool:
+        return isinstance(value, list) and value in (
+            ["no-new-privileges"],
+            ["no-new-privileges:true"],
+        )
+
+    @staticmethod
+    def _mounts_match(
+        actual: object,
+        expected: list[tuple[str, str, str, str, bool]],
+    ) -> bool:
+        if not isinstance(actual, list) or len(actual) != len(expected):
+            return False
+        normalized = []
+        for mount in actual:
+            if not isinstance(mount, dict):
+                return False
+            normalized.append(
+                (
+                    mount.get("Type"),
+                    mount.get("Name"),
+                    mount.get("Destination"),
+                    mount.get("Mode"),
+                    mount.get("RW"),
+                )
+            )
+        return sorted(normalized, key=repr) == sorted(expected, key=repr)
 
     def _start_result(self, worker: object, *, token_digest: str) -> StartResult:
         return StartResult(

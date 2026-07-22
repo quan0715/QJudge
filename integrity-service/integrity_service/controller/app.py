@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 from contextlib import asynccontextmanager
 from typing import TypeVar
@@ -9,6 +10,8 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
+from starlette.responses import JSONResponse
 
 from integrity_service.controller.docker_runtime import (
     ControllerConflict,
@@ -51,7 +54,7 @@ def create_app(
             application.state.settings = ControllerSettings.from_environment()
         if runtime is None:
             owned_runtime = DockerRuntime(
-                client=_docker_client_from_environment(),
+                client=await run_in_threadpool(_docker_client_from_environment),
                 settings=application.state.settings,
             )
             application.state.runtime = owned_runtime
@@ -59,13 +62,19 @@ def create_app(
             yield
         finally:
             if owned_runtime is not None:
-                owned_runtime.close()
+                await run_in_threadpool(owned_runtime.close)
 
-    application = FastAPI(lifespan=lifespan)
+    application = FastAPI(
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     if settings is not None:
         application.state.settings = settings
     if runtime is not None:
         application.state.runtime = runtime
+    run_locks: dict[UUID, asyncio.Lock] = {}
 
     def current_settings(request: Request) -> ControllerSettings:
         resolved = getattr(request.app.state, "settings", None)
@@ -97,6 +106,17 @@ def create_app(
         if not provided or not hmac.compare_digest(provided, expected):
             raise HTTPException(status_code=401, detail="request authentication failed")
 
+    @application.middleware("http")
+    async def authenticate_before_routing(request: Request, call_next):
+        try:
+            authenticate(request)
+        except HTTPException as error:
+            return JSONResponse(
+                status_code=error.status_code,
+                content={"detail": error.detail},
+            )
+        return await call_next(request)
+
     async def parse_body(request: Request, schema: type[Schema]) -> Schema:
         try:
             payload = await request.json()
@@ -104,9 +124,11 @@ def create_app(
         except (ValueError, ValidationError) as error:
             raise HTTPException(status_code=422, detail="invalid request") from error
 
-    def execute(operation):
+    async def execute(run_id: UUID, operation):
         try:
-            return operation()
+            lock = run_locks.setdefault(run_id, asyncio.Lock())
+            async with lock:
+                return await run_in_threadpool(operation)
         except ImageNotAllowed as error:
             raise HTTPException(status_code=403, detail="Worker image is not allowed") from error
         except ControllerConflict as error:
@@ -118,9 +140,9 @@ def create_app(
 
     @application.post("/v1/runs/{run_id}/start")
     async def start_run(run_id: UUID, request: Request):
-        authenticate(request)
         payload = await parse_body(request, StartRunRequest)
-        result = execute(
+        result = await execute(
+            run_id,
             lambda: current_runtime(request).start(
                 run_id, payload.run_token, payload.worker_image
             )
@@ -129,29 +151,29 @@ def create_app(
 
     @application.post("/v1/runs/{run_id}/stop")
     async def stop_run(run_id: UUID, request: Request):
-        authenticate(request)
         await parse_body(request, EmptyLifecycleRequest)
-        result = execute(lambda: current_runtime(request).stop(run_id))
+        result = await execute(run_id, lambda: current_runtime(request).stop(run_id))
         return StopRunResponse.model_validate(result).model_dump(mode="json")
 
     @application.post("/v1/runs/{run_id}/destroy")
     async def destroy_run(run_id: UUID, request: Request):
-        authenticate(request)
         await parse_body(request, EmptyLifecycleRequest)
-        result = execute(lambda: current_runtime(request).destroy(run_id))
+        result = await execute(
+            run_id, lambda: current_runtime(request).destroy(run_id)
+        )
         return DestroyRunResponse.model_validate(result).model_dump(mode="json")
 
     @application.post("/v1/runs/{run_id}/purge-data")
     async def purge_run_data(run_id: UUID, request: Request):
-        authenticate(request)
         await parse_body(request, EmptyLifecycleRequest)
-        result = execute(lambda: current_runtime(request).purge_data(run_id))
+        result = await execute(
+            run_id, lambda: current_runtime(request).purge_data(run_id)
+        )
         return PurgeDataResponse.model_validate(result).model_dump(mode="json")
 
     @application.get("/v1/runs/{run_id}/status")
     async def run_status(run_id: UUID, request: Request):
-        authenticate(request)
-        result = execute(lambda: current_runtime(request).status(run_id))
+        result = await execute(run_id, lambda: current_runtime(request).status(run_id))
         return RunStatusResponse.model_validate(result).model_dump(mode="json")
 
     return application
