@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
+import ipaddress
 import io
+import re
 import tarfile
 from dataclasses import dataclass
 from typing import Literal
@@ -16,6 +19,174 @@ RUN_ID_LABEL = "qjudge.integrity.run_id"
 ROLE_LABEL = "qjudge.integrity.role"
 KIND_LABEL = "qjudge.integrity.kind"
 TOKEN_DIGEST_LABEL = "qjudge.integrity.run_token_sha256"
+
+BASE_MASKED_PATHS = [
+    "/proc/acpi",
+    "/proc/asound",
+    "/proc/interrupts",
+    "/proc/kcore",
+    "/proc/keys",
+    "/proc/latency_stats",
+    "/proc/sched_debug",
+    "/proc/scsi",
+    "/proc/timer_list",
+    "/proc/timer_stats",
+    "/sys/devices/system/cpu",
+    "/sys/devices/virtual/powercap",
+    "/sys/firmware",
+]
+READONLY_PATHS = [
+    "/proc/bus",
+    "/proc/fs",
+    "/proc/irq",
+    "/proc/sys",
+    "/proc/sysrq-trigger",
+]
+IMAGE_INHERITED_CONFIG_FIELDS = (
+    "Cmd",
+    "Entrypoint",
+    "ExposedPorts",
+    "Healthcheck",
+    "Shell",
+    "Volumes",
+)
+OPTIONAL_IMAGE_CONFIG_FIELDS = frozenset(
+    {"Entrypoint", "Healthcheck", "Shell", "Volumes"}
+)
+OPTIONAL_HOST_CONFIG = {
+    "Annotations": None,
+    "KernelMemoryTCP": 0,
+    "Mounts": [],
+}
+CALLER_ENDPOINT_FIELDS = frozenset(
+    {"Aliases", "DNSNames", "DriverOpts", "GwPriority", "IPAMConfig", "Links"}
+)
+DAEMON_ENDPOINT_FIELDS = frozenset(
+    {
+        "EndpointID",
+        "Gateway",
+        "GlobalIPv6Address",
+        "GlobalIPv6PrefixLen",
+        "IPAddress",
+        "IPPrefixLen",
+        "IPv6Gateway",
+        "MacAddress",
+        "NetworkID",
+    }
+)
+MAC_ADDRESS_PATTERN = re.compile(r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\Z")
+SAFE_EMPTY_SEQUENCE_FIELDS = frozenset(
+    {
+        "CapAdd",
+        "DeviceCgroupRules",
+        "DeviceRequests",
+        "Devices",
+        "Dns",
+        "DnsOptions",
+        "DnsSearch",
+        "ExtraHosts",
+        "GroupAdd",
+        "Links",
+        "LxcConf",
+        "Ulimits",
+        "VolumesFrom",
+    }
+)
+SAFE_EMPTY_MAPPING_FIELDS = frozenset({"PortBindings", "StorageOpt", "Sysctls"})
+
+
+@dataclass(frozen=True, slots=True)
+class ContainerPolicy:
+    """Single source for container creation and closed-world attestation."""
+
+    name: str
+    image: str
+    environment_overrides: dict[str, str]
+    fixed_config: dict[str, object]
+    host_config: dict[str, object]
+    optional_host_config: dict[str, object]
+    mounts: list[tuple[str, str, str, str, bool]]
+    network: str
+    docker_api_version: tuple[int, int]
+
+    @property
+    def config_fields(self) -> frozenset[str]:
+        return frozenset(
+            {*self.fixed_config, *IMAGE_INHERITED_CONFIG_FIELDS, "Env"}
+        )
+
+    @property
+    def optional_config_fields(self) -> frozenset[str]:
+        fields = {"ArgsEscaped", "MacAddress", "OnBuild"}
+        if self.fixed_config["NetworkDisabled"] is False:
+            fields.add("NetworkDisabled")
+        return frozenset(fields)
+
+    @property
+    def required_config_fields(self) -> frozenset[str]:
+        return self.config_fields - self.optional_config_fields
+
+    @property
+    def required_endpoint_fields(self) -> frozenset[str]:
+        fields = {"Aliases", "DriverOpts", "IPAMConfig", "Links"}
+        if self.docker_api_version >= (1, 44):
+            fields.add("DNSNames")
+        if self.docker_api_version >= (1, 48):
+            fields.add("GwPriority")
+        return frozenset(fields)
+
+    def inspect_config(self, image_config: dict[str, object]) -> dict[str, object]:
+        """Build a canonical inspect fixture from this same policy contract."""
+
+        expected = copy.deepcopy(self.fixed_config)
+        for field in IMAGE_INHERITED_CONFIG_FIELDS:
+            expected[field] = copy.deepcopy(image_config[field])
+        image_environment = image_config["Env"]
+        if image_environment is None:
+            environment: list[str] = []
+        else:
+            environment = list(image_environment)
+        override_keys = set(self.environment_overrides)
+        environment = [
+            entry for entry in environment if entry.split("=", 1)[0] not in override_keys
+        ]
+        environment.extend(
+            key + "=" + value for key, value in self.environment_overrides.items()
+        )
+        expected["Env"] = environment
+        return expected
+
+    def create_kwargs(self) -> dict[str, object]:
+        """Return the low-level Docker create request derived from this policy."""
+
+        network_disabled = self.fixed_config["NetworkDisabled"]
+        networking_config = (
+            None
+            if network_disabled
+            else {"EndpointsConfig": {self.network: None}}
+        )
+        return {
+            "command": None,
+            "detach": True,
+            "domainname": self.fixed_config["Domainname"],
+            "entrypoint": None,
+            "environment": self.environment_overrides or None,
+            "healthcheck": None,
+            "host_config": copy.deepcopy(self.host_config),
+            "hostname": self.fixed_config["Hostname"],
+            "image": self.image,
+            "labels": copy.deepcopy(self.fixed_config["Labels"]),
+            "name": self.name,
+            "network_disabled": network_disabled,
+            "networking_config": networking_config,
+            "stdin_open": False,
+            "stop_signal": self.fixed_config["StopSignal"],
+            "stop_timeout": self.fixed_config["StopTimeout"],
+            "tty": False,
+            "use_config_proxy": False,
+            "user": self.fixed_config["User"],
+            "working_dir": self.fixed_config["WorkingDir"],
+        }
 
 
 class ControllerConflict(RuntimeError):
@@ -95,6 +266,197 @@ def secret_initializer_name(run_id: UUID) -> str:
     return "qjudge-integrity-secret-init-" + str(run_id)
 
 
+def build_container_policy(
+    *,
+    role: Literal["worker", "secret-initializer"],
+    run_id: UUID,
+    image: str,
+    token_digest: str,
+    backend_internal_url: str,
+    worker_network: str,
+    docker_api_version: tuple[int, int] = (1, 48),
+) -> ContainerPolicy:
+    """Build the complete creation and attestation policy for one role."""
+
+    if (
+        not isinstance(docker_api_version, tuple)
+        or len(docker_api_version) != 2
+        or any(type(part) is not int or part < 0 for part in docker_api_version)
+    ):
+        raise ValueError("docker_api_version must be a major/minor integer tuple")
+
+    is_initializer = role == "secret-initializer"
+    if is_initializer:
+        name = secret_initializer_name(run_id)
+        hostname = "integrity-init-" + run_id.hex
+        environment_overrides: dict[str, str] = {}
+        binds = [secret_volume_name(run_id) + ":/run-secrets:rw"]
+        mounts = [
+            (
+                "volume",
+                secret_volume_name(run_id),
+                "/run-secrets",
+                "rw",
+                True,
+            )
+        ]
+        network = "none"
+        tmpfs = {"/tmp": "rw,noexec,nosuid,size=16m"}
+        memory = 64 * 1024 * 1024
+        nano_cpus = 100_000_000
+        pids_limit = 16
+        restart_policy: dict[str, object] = {
+            "Name": "no",
+            "MaximumRetryCount": 0,
+        }
+    else:
+        name = container_name(run_id)
+        hostname = "integrity-worker-" + run_id.hex
+        environment_overrides = {
+            "INTEGRITY_RUN_ID": str(run_id),
+            "BACKEND_INTERNAL_URL": backend_internal_url,
+            "RUN_TOKEN_FILE": "/run-secrets/token",
+            "RUN_DATA_DIR": "/run-data",
+        }
+        binds = [
+            data_volume_name(run_id) + ":/run-data:rw",
+            secret_volume_name(run_id) + ":/run-secrets:ro",
+        ]
+        mounts = [
+            (
+                "volume",
+                data_volume_name(run_id),
+                "/run-data",
+                "rw",
+                True,
+            ),
+            (
+                "volume",
+                secret_volume_name(run_id),
+                "/run-secrets",
+                "ro",
+                False,
+            ),
+        ]
+        network = worker_network
+        tmpfs = {"/tmp": "rw,noexec,nosuid,size=64m"}
+        memory = 512 * 1024 * 1024
+        nano_cpus = 500_000_000
+        pids_limit = 128
+        restart_policy = {
+            "Name": "unless-stopped",
+            "MaximumRetryCount": 0,
+        }
+
+    labels = {
+        RUN_ID_LABEL: str(run_id),
+        ROLE_LABEL: role,
+        TOKEN_DIGEST_LABEL: token_digest,
+    }
+    fixed_config: dict[str, object] = {
+        "AttachStderr": False,
+        "AttachStdin": False,
+        "AttachStdout": False,
+        "ArgsEscaped": False,
+        "Domainname": "",
+        "Hostname": hostname,
+        "Image": image,
+        "Labels": labels,
+        "MacAddress": "",
+        "NetworkDisabled": is_initializer,
+        "OnBuild": None,
+        "OpenStdin": False,
+        "StdinOnce": False,
+        "StopSignal": "SIGTERM",
+        "StopTimeout": 30,
+        "Tty": False,
+        "User": "10001:10001",
+        "WorkingDir": "/app",
+    }
+    host_config: dict[str, object] = {
+        "AutoRemove": False,
+        "Binds": binds,
+        "BlkioDeviceReadBps": [],
+        "BlkioDeviceReadIOps": [],
+        "BlkioDeviceWriteBps": [],
+        "BlkioDeviceWriteIOps": [],
+        "BlkioWeight": 0,
+        "BlkioWeightDevice": [],
+        "CPURealtimePeriod": 0,
+        "CPURealtimeRuntime": 0,
+        "CapAdd": None,
+        "CapDrop": ["ALL"],
+        "Cgroup": "",
+        "CgroupParent": "",
+        "CgroupnsMode": "private",
+        "CpuCount": 0,
+        "CpuPercent": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "ContainerIDFile": "",
+        "ConsoleSize": [0, 0],
+        "DeviceCgroupRules": None,
+        "DeviceRequests": None,
+        "Devices": [],
+        "Dns": [],
+        "DnsOptions": [],
+        "DnsSearch": [],
+        "ExtraHosts": [],
+        "GroupAdd": [],
+        "Init": False,
+        "IOMaximumBandwidth": 0,
+        "IOMaximumIOps": 0,
+        "IpcMode": "private",
+        "Isolation": "",
+        "KernelMemory": 0,
+        "Links": [],
+        "LogConfig": {"Type": "none", "Config": {}},
+        "LxcConf": [],
+        "MaskedPaths": list(BASE_MASKED_PATHS),
+        "Memory": memory,
+        "MemoryReservation": 0,
+        "MemorySwap": memory,
+        "MemorySwappiness": 0,
+        "NanoCpus": nano_cpus,
+        "NetworkMode": network,
+        "OomKillDisable": False,
+        "OomScoreAdj": 0,
+        "PidMode": "",
+        "PidsLimit": pids_limit,
+        "PortBindings": {},
+        "Privileged": False,
+        "PublishAllPorts": False,
+        "ReadonlyPaths": list(READONLY_PATHS),
+        "ReadonlyRootfs": True,
+        "RestartPolicy": restart_policy,
+        "Runtime": "runc",
+        "SecurityOpt": ["no-new-privileges"],
+        "ShmSize": 64 * 1024 * 1024,
+        "StorageOpt": {},
+        "Sysctls": {},
+        "Tmpfs": tmpfs,
+        "UTSMode": "",
+        "Ulimits": [],
+        "UsernsMode": "",
+        "VolumeDriver": "",
+        "VolumesFrom": [],
+    }
+    return ContainerPolicy(
+        name=name,
+        image=image,
+        environment_overrides=environment_overrides,
+        fixed_config=fixed_config,
+        host_config=host_config,
+        optional_host_config=copy.deepcopy(OPTIONAL_HOST_CONFIG),
+        mounts=mounts,
+        network=network,
+        docker_api_version=docker_api_version,
+    )
+
+
 def _is_not_found(error: BaseException) -> bool:
     if getattr(error, "status_code", None) == 404:
         return True
@@ -138,41 +500,29 @@ class DockerRuntime:
             existing.start()
             return self._start_result(existing, token_digest=token_digest)
 
-        data_volume = self._get_or_create_volume(run_id, kind="data")
-        secret_volume = self._get_or_create_volume(run_id, kind="secret")
+        self._get_or_create_volume(run_id, kind="data")
+        self._get_or_create_volume(run_id, kind="secret")
         self._populate_secret_volume(
             run_id=run_id,
             run_token=run_token,
             worker_image=worker_image,
             token_digest=token_digest,
-            secret_volume=secret_volume,
         )
-        worker = self.client.containers.create(
+        worker_policy = self._container_policy(
+            role="worker",
+            run_id=run_id,
             image=worker_image,
-            name=container_name(run_id),
-            environment=self._worker_environment(run_id),
-            volumes={
-                data_volume.name: {"bind": "/run-data", "mode": "rw"},
-                secret_volume.name: {"bind": "/run-secrets", "mode": "ro"},
-            },
-            network=self.settings.worker_network,
-            publish_all_ports=False,
-            user="10001:10001",
-            read_only=True,
-            tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
-            cap_drop=["ALL"],
-            security_opt=["no-new-privileges"],
-            privileged=False,
-            mem_limit="512m",
-            nano_cpus=500_000_000,
-            pids_limit=128,
-            restart_policy={"Name": "unless-stopped"},
-            labels={
-                RUN_ID_LABEL: str(run_id),
-                ROLE_LABEL: "worker",
-                TOKEN_DIGEST_LABEL: token_digest,
-            },
+            token_digest=token_digest,
         )
+        worker = self._create_policy_container(worker_policy)
+        self._validate_container(
+            worker,
+            run_id=run_id,
+            worker_image=worker_image,
+            token_digest=token_digest,
+        )
+        if self._container_state(worker) != "created":
+            raise ContainerConflict("Fresh Worker container is not stopped")
         worker.start()
         return self._start_result(worker, token_digest=token_digest)
 
@@ -270,7 +620,6 @@ class DockerRuntime:
         run_token: str,
         worker_image: str,
         token_digest: str,
-        secret_volume: object,
     ) -> None:
         initializer_name = secret_initializer_name(run_id)
         stale = self._find_named_container(initializer_name)
@@ -282,29 +631,18 @@ class DockerRuntime:
                 token_digest=token_digest,
             )
             stale.remove()
-        initializer = self.client.containers.create(
+        initializer_policy = self._container_policy(
+            role="secret-initializer",
+            run_id=run_id,
             image=worker_image,
-            name=initializer_name,
-            volumes={
-                secret_volume.name: {"bind": "/run-secrets", "mode": "rw"},
-            },
-            network_mode="none",
-            publish_all_ports=False,
-            user="10001:10001",
-            read_only=True,
-            tmpfs={"/tmp": "rw,noexec,nosuid,size=16m"},
-            cap_drop=["ALL"],
-            security_opt=["no-new-privileges"],
-            privileged=False,
-            mem_limit="64m",
-            nano_cpus=100_000_000,
-            pids_limit=16,
-            restart_policy={"Name": "no"},
-            labels={
-                RUN_ID_LABEL: str(run_id),
-                ROLE_LABEL: "secret-initializer",
-                TOKEN_DIGEST_LABEL: token_digest,
-            },
+            token_digest=token_digest,
+        )
+        initializer = self._create_policy_container(initializer_policy)
+        self._validate_secret_initializer(
+            initializer,
+            run_id=run_id,
+            worker_image=worker_image,
+            token_digest=token_digest,
         )
         try:
             archive = self._token_archive(run_token.encode("utf-8"))
@@ -312,6 +650,15 @@ class DockerRuntime:
                 raise OSError("Docker did not populate the Worker credential")
         finally:
             initializer.remove()
+
+    def _create_policy_container(self, policy: ContainerPolicy):
+        response = self.client.api.create_container(**policy.create_kwargs())
+        if not isinstance(response, dict):
+            raise RuntimeError("Docker create response is malformed")
+        container_id = response.get("Id")
+        if type(container_id) is not str or not container_id:
+            raise RuntimeError("Docker create response has no container id")
+        return self.client.containers.get(container_id)
 
     def _validate_secret_initializer(
         self,
@@ -325,38 +672,25 @@ class DockerRuntime:
         config = self._required_mapping(attrs, "Config")
         labels = self._required_mapping(config, "Labels")
         actual_image = self._required_field(config, "Image")
-        expected_labels = {
-            RUN_ID_LABEL: str(run_id),
-            ROLE_LABEL: "secret-initializer",
-            TOKEN_DIGEST_LABEL: token_digest,
-        }
+        policy = self._container_policy(
+            role="secret-initializer",
+            run_id=run_id,
+            image=worker_image,
+            token_digest=token_digest,
+        )
         if (
-            getattr(initializer, "name", None) != secret_initializer_name(run_id)
+            getattr(initializer, "name", None) != policy.name
             or actual_image != worker_image
-            or labels != expected_labels
+            or labels != policy.fixed_config["Labels"]
             or self._container_state(initializer) != "created"
         ):
             raise ContainerConflict("Secret initializer identity conflicts")
+        mountpoints = self._volume_mountpoints(run_id, kinds=("secret",))
         self._validate_fixed_policy(
             initializer,
-            expected_network="none",
-            expected_binds=[secret_volume_name(run_id) + ":/run-secrets:rw"],
-            expected_mounts=[
-                (
-                    "volume",
-                    secret_volume_name(run_id),
-                    "/run-secrets",
-                    "rw",
-                    True,
-                )
-            ],
-            expected_tmpfs={"/tmp": "rw,noexec,nosuid,size=16m"},
-            expected_memory=64 * 1024 * 1024,
-            expected_nano_cpus=100_000_000,
-            expected_pids_limit=16,
-            expected_restart_policy={"Name": "no", "MaximumRetryCount": 0},
+            policy=policy,
+            volume_mountpoints=mountpoints,
         )
-        self._validate_container_environment(initializer, overrides={})
 
     def _remove_volume_if_present(
         self, run_id: UUID, *, kind: Literal["data", "secret"]
@@ -378,14 +712,57 @@ class DockerRuntime:
         return True
 
     @staticmethod
-    def _validate_volume(volume: object, *, run_id: UUID, kind: str) -> None:
+    def _validate_volume(
+        volume: object,
+        *,
+        run_id: UUID,
+        kind: Literal["data", "secret"],
+    ) -> str:
         attrs = getattr(volume, "attrs", None)
-        if not isinstance(attrs, dict) or "Labels" not in attrs:
+        if not isinstance(attrs, dict):
             raise VolumeConflict("Docker volume ownership labels conflict")
-        labels = attrs["Labels"]
+        name = data_volume_name(run_id) if kind == "data" else secret_volume_name(run_id)
         expected = {RUN_ID_LABEL: str(run_id), KIND_LABEL: kind}
-        if labels != expected:
+        required_fields = {"Driver", "Labels", "Mountpoint", "Name", "Options", "Scope"}
+        if not required_fields <= set(attrs):
             raise VolumeConflict("Docker volume ownership labels conflict")
+        options = attrs["Options"]
+        mountpoint = attrs["Mountpoint"]
+        if (
+            getattr(volume, "name", None) != name
+            or attrs["Name"] != name
+            or attrs["Labels"] != expected
+            or attrs["Driver"] != "local"
+            or attrs["Scope"] != "local"
+            or options not in (None, {})
+            or type(mountpoint) is not str
+            or not mountpoint.startswith("/")
+            or not mountpoint.endswith("/volumes/" + name + "/_data")
+        ):
+            raise VolumeConflict("Docker volume policy conflicts")
+        return mountpoint
+
+    def _volume_mountpoints(
+        self,
+        run_id: UUID,
+        *,
+        kinds: tuple[Literal["data", "secret"], ...],
+    ) -> dict[str, str]:
+        mountpoints: dict[str, str] = {}
+        for kind in kinds:
+            name = data_volume_name(run_id) if kind == "data" else secret_volume_name(run_id)
+            try:
+                volume = self.client.volumes.get(name)
+            except Exception as error:
+                if _is_not_found(error):
+                    raise VolumeConflict("Required Docker volume is missing") from error
+                raise
+            mountpoints[name] = self._validate_volume(
+                volume,
+                run_id=run_id,
+                kind=kind,
+            )
+        return mountpoints
 
     def _validate_container(
         self,
@@ -431,41 +808,17 @@ class DockerRuntime:
             not in self.settings.allowed_worker_images
         ):
             raise ContainerConflict("Worker container identity conflicts")
+        policy = self._container_policy(
+            role="worker",
+            run_id=run_id,
+            image=self._required_field(config, "Image"),
+            token_digest=token_digest,
+        )
+        mountpoints = self._volume_mountpoints(run_id, kinds=("data", "secret"))
         self._validate_fixed_policy(
             worker,
-            expected_network=self.settings.worker_network,
-            expected_binds=[
-                data_volume_name(run_id) + ":/run-data:rw",
-                secret_volume_name(run_id) + ":/run-secrets:ro",
-            ],
-            expected_mounts=[
-                (
-                    "volume",
-                    data_volume_name(run_id),
-                    "/run-data",
-                    "rw",
-                    True,
-                ),
-                (
-                    "volume",
-                    secret_volume_name(run_id),
-                    "/run-secrets",
-                    "ro",
-                    False,
-                ),
-            ],
-            expected_tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
-            expected_memory=512 * 1024 * 1024,
-            expected_nano_cpus=500_000_000,
-            expected_pids_limit=128,
-            expected_restart_policy={
-                "Name": "unless-stopped",
-                "MaximumRetryCount": 0,
-            },
-        )
-        self._validate_container_environment(
-            worker,
-            overrides=self._worker_environment(run_id),
+            policy=policy,
+            volume_mountpoints=mountpoints,
         )
         return labels
 
@@ -473,14 +826,8 @@ class DockerRuntime:
         self,
         container: object,
         *,
-        expected_network: str,
-        expected_binds: list[str],
-        expected_mounts: list[tuple[str, str, str, str, bool]],
-        expected_tmpfs: dict[str, str],
-        expected_memory: int,
-        expected_nano_cpus: int,
-        expected_pids_limit: int,
-        expected_restart_policy: dict[str, object],
+        policy: ContainerPolicy,
+        volume_mountpoints: dict[str, str],
     ) -> None:
         attrs = self._inspect_attrs(container)
         config = self._required_mapping(attrs, "Config")
@@ -490,79 +837,177 @@ class DockerRuntime:
         ports = self._required_field(network_settings, "Ports")
         mounts = self._required_field(attrs, "Mounts")
         image_config = self._image_config(container)
+        if not self._config_policy_matches(
+            config,
+            image_config=image_config,
+            policy=policy,
+        ):
+            raise ContainerConflict("Container Docker policy conflicts")
+        allowed_host_fields = set(policy.host_config) | set(policy.optional_host_config)
+        if set(host_config) - allowed_host_fields:
+            raise ContainerConflict("Container Docker policy conflicts")
+        for field, expected in policy.host_config.items():
+            actual = self._required_field(host_config, field)
+            if not self._host_policy_value_matches(field, actual, expected):
+                raise ContainerConflict("Container Docker policy conflicts")
+        for field, expected in policy.optional_host_config.items():
+            if field in host_config and not self._host_policy_value_matches(
+                field, host_config[field], expected
+            ):
+                raise ContainerConflict("Container Docker policy conflicts")
         if (
-            self._required_field(config, "User") != "10001:10001"
-            or not self._image_execution_policy_matches(config, image_config)
-            or self._required_field(host_config, "NetworkMode") != expected_network
-            or not self._string_list_matches(
-                self._required_field(host_config, "Binds"), expected_binds
-            )
-            or self._required_field(host_config, "ReadonlyRootfs") is not True
-            or not self._no_added_capabilities(
-                self._required_field(host_config, "CapAdd")
-            )
-            or not self._string_list_matches(
-                self._required_field(host_config, "CapDrop"), ["ALL"]
-            )
-            or self._required_field(host_config, "Privileged") is not False
-            or not self._no_new_privileges_only(
-                self._required_field(host_config, "SecurityOpt")
-            )
-            or self._required_field(host_config, "Tmpfs") != expected_tmpfs
-            or self._required_field(host_config, "Memory") != expected_memory
-            or self._required_field(host_config, "NanoCpus") != expected_nano_cpus
-            or self._required_field(host_config, "PidsLimit") != expected_pids_limit
-            or self._required_field(host_config, "RestartPolicy")
-            != expected_restart_policy
-            or self._required_field(host_config, "PublishAllPorts") is not False
-            or not self._no_port_bindings(
-                self._required_field(host_config, "PortBindings")
-            )
-            or not self._no_effective_port_mappings(ports)
-            or not self._no_devices(self._required_field(host_config, "Devices"))
-            or not self._no_devices(
-                self._required_field(host_config, "DeviceRequests")
-            )
-            or self._required_field(host_config, "PidMode") != ""
-            or self._required_field(host_config, "IpcMode") != "private"
+            not self._no_effective_port_mappings(ports)
             or not isinstance(networks, dict)
-            or set(networks) != {expected_network}
-            or not all(isinstance(network, dict) for network in networks.values())
-            or not self._mounts_match(mounts, expected_mounts)
+            or set(networks) != {policy.network}
+            or not self._network_endpoint_matches(
+                networks[policy.network],
+                container=container,
+                policy=policy,
+            )
+            or not self._mounts_match(
+                mounts,
+                policy.mounts,
+                volume_mountpoints=volume_mountpoints,
+            )
         ):
             raise ContainerConflict("Container Docker policy conflicts")
 
-    def _validate_container_environment(
+    def _config_policy_matches(
         self,
-        container: object,
+        config: dict[str, object],
         *,
-        overrides: dict[str, str],
-    ) -> None:
-        attrs = self._inspect_attrs(container)
-        config = self._required_mapping(attrs, "Config")
+        image_config: dict[str, object],
+        policy: ContainerPolicy,
+    ) -> bool:
+        optional_config_fields = set(policy.optional_config_fields)
+        for field in IMAGE_INHERITED_CONFIG_FIELDS:
+            if self._image_config_field(image_config, field) is None:
+                optional_config_fields.add(field)
+        required_config_fields = policy.config_fields - optional_config_fields
+        if (
+            not required_config_fields <= set(config)
+            or set(config) - policy.config_fields
+        ):
+            return False
+        for field, expected in policy.fixed_config.items():
+            if field not in config and field in optional_config_fields:
+                continue
+            actual = self._required_field(config, field)
+            if not self._exact_value_matches(actual, expected):
+                return False
+        for field in ("Cmd", "Entrypoint", "Shell"):
+            expected = self._image_config_field(image_config, field)
+            if field not in config and field in optional_config_fields:
+                continue
+            actual = self._required_field(config, field)
+            if (
+                not self._string_list_or_none(actual)
+                or not self._string_list_or_none(expected)
+                or not self._exact_value_matches(actual, expected)
+            ):
+                return False
+        for field in ("ExposedPorts", "Volumes"):
+            expected = self._image_config_field(image_config, field)
+            if field not in config and field in optional_config_fields:
+                continue
+            actual = self._required_field(config, field)
+            if (
+                not self._empty_object_map_or_none(actual)
+                or not self._empty_object_map_or_none(expected)
+                or not self._exact_value_matches(actual, expected)
+            ):
+                return False
+        expected_healthcheck = self._image_config_field(image_config, "Healthcheck")
+        if "Healthcheck" not in config and "Healthcheck" in optional_config_fields:
+            actual_healthcheck = None
+        else:
+            actual_healthcheck = self._required_field(config, "Healthcheck")
+        if (
+            not self._canonical_healthcheck(actual_healthcheck)
+            or not self._canonical_healthcheck(expected_healthcheck)
+            or not self._exact_value_matches(actual_healthcheck, expected_healthcheck)
+        ):
+            return False
         actual_environment = self._required_field(config, "Env")
         actual = (
             {} if actual_environment is None else self._environment_map(actual_environment)
         )
-        image_config = self._image_config(container)
         image_environment = self._required_field(image_config, "Env")
-        if image_environment is None:
-            expected: dict[str, str] | None = {}
-        else:
-            expected = self._environment_map(image_environment)
-        if expected is None:
-            raise ContainerConflict("Container image environment is invalid")
-        expected.update(overrides)
-        if actual != expected:
-            raise ContainerConflict("Container environment conflicts")
+        expected = (
+            {} if image_environment is None else self._environment_map(image_environment)
+        )
+        if actual is None or expected is None:
+            return False
+        expected.update(policy.environment_overrides)
+        return actual == expected
 
-    def _worker_environment(self, run_id: UUID) -> dict[str, str]:
-        return {
-            "INTEGRITY_RUN_ID": str(run_id),
-            "BACKEND_INTERNAL_URL": self.settings.backend_internal_url,
-            "RUN_TOKEN_FILE": "/run-secrets/token",
-            "RUN_DATA_DIR": "/run-data",
-        }
+    @classmethod
+    def _host_policy_value_matches(
+        cls,
+        field: str,
+        actual: object,
+        expected: object,
+    ) -> bool:
+        if field in SAFE_EMPTY_SEQUENCE_FIELDS:
+            return actual is None or actual == []
+        if field in SAFE_EMPTY_MAPPING_FIELDS:
+            return actual is None or actual == {}
+        if field == "Annotations":
+            return actual is None or actual == {}
+        if field == "Mounts":
+            return actual is None or actual == []
+        if field in OPTIONAL_HOST_CONFIG:
+            return cls._exact_value_matches(actual, expected)
+        if field in {"Binds", "CapDrop", "MaskedPaths", "ReadonlyPaths"}:
+            return cls._string_list_matches(actual, expected)
+        if field == "SecurityOpt":
+            return cls._no_new_privileges_only(actual)
+        return cls._exact_value_matches(actual, expected)
+
+    @classmethod
+    def _exact_value_matches(cls, actual: object, expected: object) -> bool:
+        if type(actual) is not type(expected):
+            return False
+        if isinstance(expected, dict):
+            return set(actual) == set(expected) and all(
+                cls._exact_value_matches(actual[key], value)
+                for key, value in expected.items()
+            )
+        if isinstance(expected, list):
+            return len(actual) == len(expected) and all(
+                cls._exact_value_matches(actual_item, expected_item)
+                for actual_item, expected_item in zip(actual, expected, strict=True)
+            )
+        return actual == expected
+
+    def _container_policy(
+        self,
+        *,
+        role: Literal["worker", "secret-initializer"],
+        run_id: UUID,
+        image: str,
+        token_digest: str,
+    ) -> ContainerPolicy:
+        docker_api_version = self._docker_api_version()
+        return build_container_policy(
+            role=role,
+            run_id=run_id,
+            image=image,
+            token_digest=token_digest,
+            backend_internal_url=self.settings.backend_internal_url,
+            worker_network=self.settings.worker_network,
+            docker_api_version=docker_api_version,
+        )
+
+    def _docker_api_version(self) -> tuple[int, int]:
+        api = getattr(self.client, "api", None)
+        version = getattr(api, "_version", None)
+        if type(version) is not str:
+            raise ContainerConflict("Docker API version is unavailable")
+        parts = version.split(".")
+        if len(parts) != 2 or any(not part.isdigit() for part in parts):
+            raise ContainerConflict("Docker API version is malformed")
+        return int(parts[0]), int(parts[1])
 
     @staticmethod
     def _environment_map(value: object) -> dict[str, str] | None:
@@ -579,6 +1024,14 @@ class DockerRuntime:
         return result
 
     @staticmethod
+    def _image_config_field(image_config: dict[str, object], field: str) -> object:
+        if field in image_config:
+            return image_config[field]
+        if field in OPTIONAL_IMAGE_CONFIG_FIELDS:
+            return None
+        raise ContainerConflict("Container image inspect data is incomplete")
+
+    @staticmethod
     def _string_list_matches(actual: object, expected: list[str]) -> bool:
         return (
             isinstance(actual, list)
@@ -586,14 +1039,6 @@ class DockerRuntime:
             and all(type(item) is str for item in actual)
             and sorted(actual) == sorted(expected)
         )
-
-    @staticmethod
-    def _no_added_capabilities(value: object) -> bool:
-        return value is None or value == []
-
-    @staticmethod
-    def _no_port_bindings(value: object) -> bool:
-        return value is None or value == {}
 
     @staticmethod
     def _no_effective_port_mappings(value: object) -> bool:
@@ -607,20 +1052,105 @@ class DockerRuntime:
         )
 
     @staticmethod
-    def _no_devices(value: object) -> bool:
-        return value is None or value == []
-
-    @staticmethod
     def _no_new_privileges_only(value: object) -> bool:
         return isinstance(value, list) and value in (
             ["no-new-privileges"],
             ["no-new-privileges:true"],
         )
 
+    @classmethod
+    def _network_endpoint_matches(
+        cls,
+        endpoint: object,
+        *,
+        container: object,
+        policy: ContainerPolicy,
+    ) -> bool:
+        if not isinstance(endpoint, dict):
+            return False
+        allowed_fields = CALLER_ENDPOINT_FIELDS | DAEMON_ENDPOINT_FIELDS
+        if not policy.required_endpoint_fields <= set(endpoint) or set(
+            endpoint
+        ) - allowed_fields:
+            return False
+        if endpoint["IPAMConfig"] not in (None, {}) or endpoint["DriverOpts"] not in (
+            None,
+            {},
+        ):
+            return False
+        if endpoint["Links"] not in (None, []):
+            return False
+        if "GwPriority" in endpoint and (
+            type(endpoint["GwPriority"]) is not int or endpoint["GwPriority"] != 0
+        ):
+            return False
+
+        container_id = getattr(container, "id", None)
+        safe_dns_names = {policy.name, policy.fixed_config["Hostname"]}
+        if type(container_id) is str and container_id:
+            safe_dns_names.update({container_id, container_id[:12]})
+        for field in ("Aliases", "DNSNames"):
+            if field not in endpoint:
+                continue
+            value = endpoint[field]
+            if value is None:
+                continue
+            if (
+                not isinstance(value, list)
+                or any(type(item) is not str or item not in safe_dns_names for item in value)
+            ):
+                return False
+
+        string_fields = ("EndpointID", "NetworkID")
+        if any(
+            field in endpoint and type(endpoint[field]) is not str
+            for field in string_fields
+        ):
+            return False
+        if "MacAddress" in endpoint:
+            mac_address = endpoint["MacAddress"]
+            if type(mac_address) is not str or (
+                mac_address and MAC_ADDRESS_PATTERN.fullmatch(mac_address) is None
+            ):
+                return False
+        address_fields = (
+            ("Gateway", 4),
+            ("IPAddress", 4),
+            ("IPv6Gateway", 6),
+            ("GlobalIPv6Address", 6),
+        )
+        for field, version in address_fields:
+            if field in endpoint and not cls._ip_address_or_empty(
+                endpoint[field], version=version
+            ):
+                return False
+        prefix_fields = (("IPPrefixLen", 32), ("GlobalIPv6PrefixLen", 128))
+        return all(
+            field not in endpoint
+            or (
+                type(endpoint[field]) is int
+                and 0 <= endpoint[field] <= maximum
+            )
+            for field, maximum in prefix_fields
+        )
+
+    @staticmethod
+    def _ip_address_or_empty(value: object, *, version: int) -> bool:
+        if type(value) is not str:
+            return False
+        if not value:
+            return True
+        try:
+            return ipaddress.ip_address(value).version == version
+        except ValueError:
+            return False
+
     @staticmethod
     def _mounts_match(
         actual: object,
         expected: list[tuple[str, str, str, str, bool]],
+        *,
+        volume_mountpoints: dict[str, str],
     ) -> bool:
         if not isinstance(actual, list) or len(actual) != len(expected):
             return False
@@ -628,39 +1158,53 @@ class DockerRuntime:
         for mount in actual:
             if not isinstance(mount, dict):
                 return False
-            fields = ("Type", "Name", "Destination", "Mode", "RW")
-            if any(field not in mount for field in fields):
+            fields = {
+                "Destination",
+                "Driver",
+                "Mode",
+                "Name",
+                "Propagation",
+                "RW",
+                "Source",
+                "Type",
+            }
+            if set(mount) != fields:
                 return False
-            normalized.append(tuple(mount[field] for field in fields))
-        return sorted(normalized, key=repr) == sorted(expected, key=repr)
-
-    @classmethod
-    def _image_execution_policy_matches(
-        cls,
-        config: dict[str, object],
-        image_config: dict[str, object],
-    ) -> bool:
-        for field in ("Cmd", "Entrypoint"):
-            actual = cls._required_field(config, field)
-            expected = cls._required_field(image_config, field)
+            source = mount["Source"]
+            name = mount["Name"]
             if (
-                not cls._string_list_or_none(actual)
-                or not cls._string_list_or_none(expected)
-                or actual != expected
+                type(source) is not str
+                or type(name) is not str
+                or name not in volume_mountpoints
+                or source != volume_mountpoints[name]
+                or type(mount["Driver"]) is not str
+                or mount["Driver"] != "local"
+                or type(mount["Propagation"]) is not str
+                or mount["Propagation"] != ""
+                or type(mount["RW"]) is not bool
             ):
                 return False
-        actual_healthcheck = cls._required_field(config, "Healthcheck")
-        expected_healthcheck = cls._required_field(image_config, "Healthcheck")
-        return (
-            cls._canonical_healthcheck(actual_healthcheck)
-            and cls._canonical_healthcheck(expected_healthcheck)
-            and actual_healthcheck == expected_healthcheck
-        )
+            normalized.append(
+                tuple(
+                    mount[field]
+                    for field in ("Type", "Name", "Destination", "Mode", "RW")
+                )
+            )
+        return sorted(normalized, key=repr) == sorted(expected, key=repr)
 
     @staticmethod
     def _string_list_or_none(value: object) -> bool:
         return value is None or (
             isinstance(value, list) and all(type(item) is str for item in value)
+        )
+
+    @staticmethod
+    def _empty_object_map_or_none(value: object) -> bool:
+        if value is None:
+            return True
+        return isinstance(value, dict) and all(
+            type(key) is str and bool(key) and item == {}
+            for key, item in value.items()
         )
 
     @staticmethod

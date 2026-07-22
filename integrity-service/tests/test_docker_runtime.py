@@ -14,6 +14,7 @@ from integrity_service.controller.docker_runtime import (
     DockerRuntime,
     ImageNotAllowed,
     VolumeConflict,
+    build_container_policy,
     container_name,
     data_volume_name,
     secret_initializer_name,
@@ -121,6 +122,251 @@ NON_FALSE_PUBLISH_ALL_PORTS = [
     pytest.param([], id="empty-list"),
 ]
 
+# This list is deliberately independent from the production policy builder. If a
+# required attestation key is accidentally removed there, the matrix below must
+# fail instead of silently shrinking with it.
+REQUIRED_CLOSED_WORLD_CONFIG_FIELDS = frozenset(
+    {
+        "AttachStderr",
+        "AttachStdin",
+        "AttachStdout",
+        "ArgsEscaped",
+        "Cmd",
+        "Domainname",
+        "Entrypoint",
+        "Env",
+        "ExposedPorts",
+        "Healthcheck",
+        "Hostname",
+        "Image",
+        "Labels",
+        "MacAddress",
+        "NetworkDisabled",
+        "OnBuild",
+        "OpenStdin",
+        "Shell",
+        "StdinOnce",
+        "StopSignal",
+        "StopTimeout",
+        "Tty",
+        "User",
+        "Volumes",
+        "WorkingDir",
+    }
+)
+OPTIONAL_ENGINE_CONFIG_FIELDS = frozenset({"ArgsEscaped", "MacAddress", "OnBuild"})
+OPTIONAL_IMAGE_CONFIG_FIELDS = frozenset(
+    {"Entrypoint", "Healthcheck", "Shell", "Volumes"}
+)
+REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
+    {
+        "AutoRemove",
+        "Binds",
+        "BlkioDeviceReadBps",
+        "BlkioDeviceReadIOps",
+        "BlkioDeviceWriteBps",
+        "BlkioDeviceWriteIOps",
+        "BlkioWeight",
+        "BlkioWeightDevice",
+        "CPURealtimePeriod",
+        "CPURealtimeRuntime",
+        "CapAdd",
+        "CapDrop",
+        "Cgroup",
+        "CgroupParent",
+        "CgroupnsMode",
+        "CpuCount",
+        "CpuPercent",
+        "CpuPeriod",
+        "CpuQuota",
+        "CpuShares",
+        "CpusetCpus",
+        "CpusetMems",
+        "ContainerIDFile",
+        "ConsoleSize",
+        "DeviceCgroupRules",
+        "DeviceRequests",
+        "Devices",
+        "Dns",
+        "DnsOptions",
+        "DnsSearch",
+        "ExtraHosts",
+        "GroupAdd",
+        "Init",
+        "IOMaximumBandwidth",
+        "IOMaximumIOps",
+        "IpcMode",
+        "Isolation",
+        "KernelMemory",
+        "Links",
+        "LogConfig",
+        "LxcConf",
+        "MaskedPaths",
+        "Memory",
+        "MemoryReservation",
+        "MemorySwap",
+        "MemorySwappiness",
+        "NanoCpus",
+        "NetworkMode",
+        "OomKillDisable",
+        "OomScoreAdj",
+        "PidMode",
+        "PidsLimit",
+        "PortBindings",
+        "Privileged",
+        "PublishAllPorts",
+        "ReadonlyPaths",
+        "ReadonlyRootfs",
+        "RestartPolicy",
+        "Runtime",
+        "SecurityOpt",
+        "ShmSize",
+        "StorageOpt",
+        "Sysctls",
+        "Tmpfs",
+        "UTSMode",
+        "Ulimits",
+        "UsernsMode",
+        "VolumeDriver",
+        "VolumesFrom",
+    }
+)
+REQUIRED_CREATE_KWARGS = frozenset(
+    {
+        "command",
+        "detach",
+        "domainname",
+        "entrypoint",
+        "environment",
+        "healthcheck",
+        "host_config",
+        "hostname",
+        "image",
+        "labels",
+        "name",
+        "network_disabled",
+        "networking_config",
+        "stdin_open",
+        "stop_signal",
+        "stop_timeout",
+        "tty",
+        "use_config_proxy",
+        "user",
+        "working_dir",
+    }
+)
+CLOSED_WORLD_CONFIG_MUTATIONS = {
+    "AttachStderr": True,
+    "AttachStdin": True,
+    "AttachStdout": True,
+    "ArgsEscaped": True,
+    "Cmd": ["sh"],
+    "Domainname": "attacker.invalid",
+    "Entrypoint": ["/attacker-entrypoint"],
+    "Env": ["ATTACKER_CONTROLLED=true"],
+    "ExposedPorts": {"22/tcp": {}},
+    "Healthcheck": {"Test": ["CMD", "true"]},
+    "Hostname": "attacker",
+    "Image": "attacker/image:latest",
+    "Labels": {},
+    "MacAddress": "02:42:ac:11:00:99",
+    "NetworkDisabled": None,
+    "OnBuild": ["RUN id"],
+    "OpenStdin": True,
+    "Shell": ["/bin/sh", "-c"],
+    "StdinOnce": True,
+    "StopSignal": "SIGKILL",
+    "StopTimeout": -1,
+    "Tty": True,
+    "User": "0:0",
+    "Volumes": {"/host": {}},
+    "WorkingDir": "/host",
+}
+CLOSED_WORLD_HOST_CONFIG_MUTATIONS = {
+    "AutoRemove": True,
+    "Binds": ["/:/host:rw"],
+    "BlkioDeviceReadBps": [{"Path": "/dev/sda", "Rate": 1}],
+    "BlkioDeviceReadIOps": [{"Path": "/dev/sda", "Rate": 1}],
+    "BlkioDeviceWriteBps": [{"Path": "/dev/sda", "Rate": 1}],
+    "BlkioDeviceWriteIOps": [{"Path": "/dev/sda", "Rate": 1}],
+    "BlkioWeight": 1000,
+    "BlkioWeightDevice": [{"Path": "/dev/sda", "Weight": 1000}],
+    "CPURealtimePeriod": 100_000,
+    "CPURealtimeRuntime": 95_000,
+    "CapAdd": ["SYS_ADMIN"],
+    "CapDrop": [],
+    "Cgroup": "attacker",
+    "CgroupParent": "/attacker",
+    "CgroupnsMode": "host",
+    "CpuCount": 8,
+    "CpuPercent": 100,
+    "CpuPeriod": 100_000,
+    "CpuQuota": -1,
+    "CpuShares": 1024,
+    "CpusetCpus": "0-7",
+    "CpusetMems": "0",
+    "ContainerIDFile": "/tmp/attacker.cid",
+    "ConsoleSize": [80, 24],
+    "DeviceCgroupRules": ["c 1:3 rwm"],
+    "DeviceRequests": [{"Capabilities": [["gpu"]]}],
+    "Devices": [{"PathOnHost": "/dev/kvm"}],
+    "Dns": ["203.0.113.53"],
+    "DnsOptions": ["use-vc"],
+    "DnsSearch": ["attacker.invalid"],
+    "ExtraHosts": ["backend:203.0.113.1"],
+    "GroupAdd": ["0"],
+    "Init": True,
+    "IOMaximumBandwidth": 1,
+    "IOMaximumIOps": 1,
+    "IpcMode": "host",
+    "Isolation": "hyperv",
+    "KernelMemory": 64 * 1024 * 1024,
+    "Links": ["attacker:backend"],
+    "LogConfig": {"Type": "syslog", "Config": {}},
+    "LxcConf": [{"Key": "lxc.apparmor.profile", "Value": "unconfined"}],
+    "MaskedPaths": [],
+    "Memory": 1024 * 1024 * 1024,
+    "MemoryReservation": 1024 * 1024,
+    "MemorySwap": -1,
+    "MemorySwappiness": 100,
+    "NanoCpus": 1_000_000_000,
+    "NetworkMode": "host",
+    "OomKillDisable": True,
+    "OomScoreAdj": -1000,
+    "PidMode": "host",
+    "PidsLimit": -1,
+    "PortBindings": {"8020/tcp": [{"HostPort": "8020"}]},
+    "Privileged": True,
+    "PublishAllPorts": True,
+    "ReadonlyPaths": [],
+    "ReadonlyRootfs": False,
+    "RestartPolicy": {"Name": "always", "MaximumRetryCount": 0},
+    "Runtime": "nvidia",
+    "SecurityOpt": [],
+    "ShmSize": 1024 * 1024 * 1024,
+    "StorageOpt": {"size": "10G"},
+    "Sysctls": {"net.ipv4.ip_forward": "1"},
+    "Tmpfs": {"/tmp": "rw,exec"},
+    "UTSMode": "host",
+    "Ulimits": [{"Name": "nofile", "Soft": 1_000_000, "Hard": 1_000_000}],
+    "UsernsMode": "host",
+    "VolumeDriver": "attacker",
+    "VolumesFrom": ["attacker:rw"],
+}
+ENDPOINT_POLICY_MUTATIONS = {
+    "IPAMConfig": {"IPv4Address": "172.17.0.99"},
+    "Links": ["attacker:backend"],
+    "Aliases": ["backend"],
+    "DriverOpts": {"com.docker.network.endpoint.sysctls": "net.ipv4.ip_forward=1"},
+    "GwPriority": 1,
+    "DNSNames": ["backend"],
+}
+OPTIONAL_HOST_CONFIG_MUTATIONS = {
+    "Annotations": {"attacker": "true"},
+    "KernelMemoryTCP": 1024,
+    "Mounts": [{"Type": "bind", "Source": "/", "Target": "/host"}],
+}
+
 
 def _environment(run_id: UUID = RUN_ID) -> list[str]:
     return IMAGE_ENVIRONMENT + [
@@ -139,10 +385,15 @@ def _volume(name: str, *, kind: str) -> Mock:
     volume = Mock()
     volume.name = name
     volume.attrs = {
+        "Driver": "local",
         "Labels": {
             "qjudge.integrity.run_id": str(RUN_ID),
             "qjudge.integrity.kind": kind,
-        }
+        },
+        "Mountpoint": f"/var/lib/docker/volumes/{name}/_data",
+        "Name": name,
+        "Options": None,
+        "Scope": "local",
     }
     return volume
 
@@ -161,98 +412,82 @@ def _container(
     worker.name = name or container_name(RUN_ID)
     worker.status = status
     worker.image.id = IMAGE_DIGEST
-    worker.image.attrs = {
-        "Config": {
-            "Env": IMAGE_ENVIRONMENT,
-            "Cmd": IMAGE_COMMAND,
-            "Entrypoint": IMAGE_ENTRYPOINT,
-            "Healthcheck": IMAGE_HEALTHCHECK,
-        }
+    image_config = {
+        "ExposedPorts": {"8020/tcp": {}},
+        "Env": IMAGE_ENVIRONMENT,
+        "Cmd": IMAGE_COMMAND,
+        "Entrypoint": IMAGE_ENTRYPOINT,
+        "Healthcheck": IMAGE_HEALTHCHECK,
+        "Shell": None,
+        "Volumes": None,
     }
-    is_initializer = role == "secret-initializer"
-    if is_initializer:
-        binds = [secret_volume_name(RUN_ID) + ":/run-secrets:rw"]
-        mounts = [
-            {
-                "Type": "volume",
-                "Name": secret_volume_name(RUN_ID),
-                "Destination": "/run-secrets",
-                "Mode": "rw",
-                "RW": True,
-            }
-        ]
-        network_mode = "none"
-        tmpfs = {"/tmp": "rw,noexec,nosuid,size=16m"}
-        memory = 64 * 1024 * 1024
-        nano_cpus = 100_000_000
-        pids_limit = 16
-        restart_policy = {"Name": "no", "MaximumRetryCount": 0}
-        environment = IMAGE_ENVIRONMENT
-    else:
-        binds = [
-            data_volume_name(RUN_ID) + ":/run-data:rw",
-            secret_volume_name(RUN_ID) + ":/run-secrets:ro",
-        ]
-        mounts = [
-            {
-                "Type": "volume",
-                "Name": data_volume_name(RUN_ID),
-                "Destination": "/run-data",
-                "Mode": "rw",
-                "RW": True,
-            },
-            {
-                "Type": "volume",
-                "Name": secret_volume_name(RUN_ID),
-                "Destination": "/run-secrets",
-                "Mode": "ro",
-                "RW": False,
-            },
-        ]
-        network_mode = "qjudge-test-network"
-        tmpfs = {"/tmp": "rw,noexec,nosuid,size=64m"}
-        memory = 512 * 1024 * 1024
-        nano_cpus = 500_000_000
-        pids_limit = 128
-        restart_policy = {"Name": "unless-stopped", "MaximumRetryCount": 0}
-        environment = _environment(run_id)
+    worker.image.attrs = {"Config": image_config}
+    policy = build_container_policy(
+        role=role,
+        run_id=run_id,
+        image=image,
+        token_digest=token_digest,
+        backend_internal_url="http://backend:8000",
+        worker_network="qjudge-test-network",
+    )
+    mounts = [
+        {
+            "Type": mount_type,
+            "Name": mount_name,
+            "Source": f"/var/lib/docker/volumes/{mount_name}/_data",
+            "Destination": destination,
+            "Driver": "local",
+            "Mode": mode,
+            "RW": read_write,
+            "Propagation": "",
+        }
+        for mount_type, mount_name, destination, mode, read_write in policy.mounts
+    ]
+    config = policy.inspect_config(image_config)
+    config.update(
+        {
+            "ArgsEscaped": False,
+            "ExposedPorts": image_config["ExposedPorts"],
+            "MacAddress": "",
+            "OnBuild": None,
+            "Shell": image_config["Shell"],
+            "Volumes": image_config["Volumes"],
+        }
+    )
+    host_config = {
+        **policy.host_config,
+        "Cgroup": "",
+        "ContainerIDFile": "",
+        "ConsoleSize": [0, 0],
+        "IOMaximumBandwidth": 0,
+        "IOMaximumIOps": 0,
+        "Annotations": None,
+        "KernelMemoryTCP": 0,
+        "Mounts": [],
+    }
+    endpoint = {
+        "IPAMConfig": None,
+        "Links": None,
+        "Aliases": None,
+        "DriverOpts": None,
+        "GwPriority": 0,
+        "MacAddress": "" if role == "secret-initializer" else "02:42:ac:11:00:02",
+        "NetworkID": "network-id",
+        "EndpointID": "endpoint-id",
+        "Gateway": "" if role == "secret-initializer" else "172.17.0.1",
+        "IPAddress": "" if role == "secret-initializer" else "172.17.0.2",
+        "IPPrefixLen": 0 if role == "secret-initializer" else 16,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": None,
+    }
     worker.attrs = {
-        "Config": {
-            "Image": image,
-            "Env": environment,
-            "User": "10001:10001",
-            "Cmd": IMAGE_COMMAND,
-            "Entrypoint": IMAGE_ENTRYPOINT,
-            "Healthcheck": IMAGE_HEALTHCHECK,
-            "Labels": {
-                "qjudge.integrity.run_id": str(run_id),
-                "qjudge.integrity.role": role,
-                "qjudge.integrity.run_token_sha256": token_digest,
-            },
-        },
-        "HostConfig": {
-            "NetworkMode": network_mode,
-            "Binds": binds,
-            "PublishAllPorts": False,
-            "ReadonlyRootfs": True,
-            "CapAdd": None,
-            "CapDrop": ["ALL"],
-            "Privileged": False,
-            "SecurityOpt": ["no-new-privileges"],
-            "Tmpfs": tmpfs,
-            "Memory": memory,
-            "NanoCpus": nano_cpus,
-            "PidsLimit": pids_limit,
-            "RestartPolicy": restart_policy,
-            "PortBindings": {},
-            "Devices": [],
-            "DeviceRequests": None,
-            "PidMode": "",
-            "IpcMode": "private",
-        },
+        "Config": config,
+        "HostConfig": host_config,
         "Mounts": mounts,
         "NetworkSettings": {
-            "Networks": {network_mode: {}},
+            "Networks": {policy.network: endpoint},
             "Ports": {"8020/tcp": None},
         },
         "State": {"Status": status},
@@ -274,13 +509,39 @@ def _delete_nested(mapping: dict, path: tuple[str | int, ...]) -> None:
     del target[path[-1]]
 
 
-def _find_only_initializer(initializer: Mock):
+def _make_optional_image_field_required(container: Mock, path: tuple[str | int, ...]) -> None:
+    required_values = {
+        ("Config", "Entrypoint"): ["/worker-entrypoint"],
+        ("Config", "Healthcheck"): {"Test": ["CMD-SHELL", "true"]},
+    }
+    if path not in required_values:
+        return
+    value = required_values[path]
+    container.attrs["Config"][path[-1]] = value
+    container.image.attrs["Config"][path[-1]] = value
+
+
+def _find_only_initializer(initializer: Mock, docker_client: Mock):
     def get_container(name: str):
         if name == secret_initializer_name(RUN_ID):
             return initializer
+        if name == "created-initializer-id":
+            return docker_client._test_initializer
+        if name == "created-worker-id":
+            return docker_client._test_worker
         raise DockerNotFound
 
     return get_container
+
+
+def _exercise_policy_target(runtime, *, target: str, operation: str) -> None:
+    if target == "initializer":
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        return
+    if operation == "start":
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        return
+    getattr(runtime, operation)(RUN_ID)
 
 
 @pytest.fixture
@@ -296,7 +557,6 @@ def settings(tmp_path):
 @pytest.fixture
 def docker_client():
     client = Mock()
-    client.containers.get.side_effect = DockerNotFound
 
     volumes = {
         data_volume_name(RUN_ID): _volume(data_volume_name(RUN_ID), kind="data"),
@@ -314,12 +574,20 @@ def docker_client():
     def create_volume(*, name, labels):
         volume = Mock()
         volume.name = name
-        volume.attrs = {"Labels": labels}
+        volume.attrs = {
+            "Driver": "local",
+            "Labels": labels,
+            "Mountpoint": f"/var/lib/docker/volumes/{name}/_data",
+            "Name": name,
+            "Options": None,
+            "Scope": "local",
+        }
         volumes[name] = volume
         return volume
 
     client.volumes.get.side_effect = get_volume
     client.volumes.create.side_effect = create_volume
+    client.api._version = "1.48"
     client._test_volumes = volumes
     client._test_worker = _container(status="created")
     client._test_initializer = _container(
@@ -327,19 +595,707 @@ def docker_client():
         name=secret_initializer_name(RUN_ID),
         role="secret-initializer",
     )
+    client.api.create_container.side_effect = [
+        {"Id": "created-initializer-id"},
+        {"Id": "created-worker-id"},
+    ]
 
-    def create_container(**kwargs):
-        if kwargs["name"] == secret_initializer_name(RUN_ID):
+    def get_created_container(name: str):
+        if name == "created-initializer-id":
             return client._test_initializer
-        return client._test_worker
+        if name == "created-worker-id":
+            return client._test_worker
+        raise DockerNotFound
 
-    client.containers.create.side_effect = create_container
+    client.containers.get.side_effect = get_created_container
     return client
 
 
 @pytest.fixture
 def runtime(settings, docker_client):
     return DockerRuntime(client=docker_client, settings=settings)
+
+
+def test_closed_world_field_contract_is_exhaustive():
+    assert frozenset(CLOSED_WORLD_CONFIG_MUTATIONS) == REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
+    assert (
+        frozenset(CLOSED_WORLD_HOST_CONFIG_MUTATIONS)
+        == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+    )
+    for role in ("worker", "secret-initializer"):
+        policy = build_container_policy(
+            role=role,
+            run_id=RUN_ID,
+            image=WORKER_IMAGE,
+            token_digest=RUN_TOKEN_SHA256,
+            backend_internal_url="http://backend:8000",
+            worker_network="qjudge-test-network",
+        )
+        assert policy.config_fields == REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
+        assert policy.optional_config_fields == (
+            OPTIONAL_ENGINE_CONFIG_FIELDS
+            | ({"NetworkDisabled"} if role == "worker" else set())
+        )
+        assert frozenset(policy.host_config) == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+
+
+def test_policy_builder_matches_independent_literal_security_baseline():
+    common_host_config = {
+        "AutoRemove": False,
+        "BlkioDeviceReadBps": [],
+        "BlkioDeviceReadIOps": [],
+        "BlkioDeviceWriteBps": [],
+        "BlkioDeviceWriteIOps": [],
+        "BlkioWeight": 0,
+        "BlkioWeightDevice": [],
+        "CPURealtimePeriod": 0,
+        "CPURealtimeRuntime": 0,
+        "CapAdd": None,
+        "CapDrop": ["ALL"],
+        "Cgroup": "",
+        "CgroupParent": "",
+        "CgroupnsMode": "private",
+        "ContainerIDFile": "",
+        "ConsoleSize": [0, 0],
+        "CpuCount": 0,
+        "CpuPercent": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "DeviceCgroupRules": None,
+        "DeviceRequests": None,
+        "Devices": [],
+        "Dns": [],
+        "DnsOptions": [],
+        "DnsSearch": [],
+        "ExtraHosts": [],
+        "GroupAdd": [],
+        "IOMaximumBandwidth": 0,
+        "IOMaximumIOps": 0,
+        "Init": False,
+        "IpcMode": "private",
+        "Isolation": "",
+        "KernelMemory": 0,
+        "Links": [],
+        "LogConfig": {"Type": "none", "Config": {}},
+        "LxcConf": [],
+        "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/system/cpu",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware",
+        ],
+        "MemoryReservation": 0,
+        "MemorySwappiness": 0,
+        "OomKillDisable": False,
+        "OomScoreAdj": 0,
+        "PidMode": "",
+        "PortBindings": {},
+        "Privileged": False,
+        "PublishAllPorts": False,
+        "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger",
+        ],
+        "ReadonlyRootfs": True,
+        "Runtime": "runc",
+        "SecurityOpt": ["no-new-privileges"],
+        "ShmSize": 64 * 1024 * 1024,
+        "StorageOpt": {},
+        "Sysctls": {},
+        "UTSMode": "",
+        "Ulimits": [],
+        "UsernsMode": "",
+        "VolumeDriver": "",
+        "VolumesFrom": [],
+    }
+    roles = {
+        "worker": {
+            "name": container_name(RUN_ID),
+            "hostname": "integrity-worker-" + RUN_ID.hex,
+            "network_disabled": False,
+            "environment": {
+                "INTEGRITY_RUN_ID": str(RUN_ID),
+                "BACKEND_INTERNAL_URL": "http://backend:8000",
+                "RUN_TOKEN_FILE": "/run-secrets/token",
+                "RUN_DATA_DIR": "/run-data",
+            },
+            "host": {
+                "Binds": [
+                    data_volume_name(RUN_ID) + ":/run-data:rw",
+                    secret_volume_name(RUN_ID) + ":/run-secrets:ro",
+                ],
+                "Memory": 512 * 1024 * 1024,
+                "MemorySwap": 512 * 1024 * 1024,
+                "NanoCpus": 500_000_000,
+                "NetworkMode": "qjudge-test-network",
+                "PidsLimit": 128,
+                "RestartPolicy": {
+                    "Name": "unless-stopped",
+                    "MaximumRetryCount": 0,
+                },
+                "Tmpfs": {"/tmp": "rw,noexec,nosuid,size=64m"},
+            },
+        },
+        "secret-initializer": {
+            "name": secret_initializer_name(RUN_ID),
+            "hostname": "integrity-init-" + RUN_ID.hex,
+            "network_disabled": True,
+            "environment": {},
+            "host": {
+                "Binds": [secret_volume_name(RUN_ID) + ":/run-secrets:rw"],
+                "Memory": 64 * 1024 * 1024,
+                "MemorySwap": 64 * 1024 * 1024,
+                "NanoCpus": 100_000_000,
+                "NetworkMode": "none",
+                "PidsLimit": 16,
+                "RestartPolicy": {"Name": "no", "MaximumRetryCount": 0},
+                "Tmpfs": {"/tmp": "rw,noexec,nosuid,size=16m"},
+            },
+        },
+    }
+
+    for role, expected in roles.items():
+        policy = build_container_policy(
+            role=role,
+            run_id=RUN_ID,
+            image=WORKER_IMAGE,
+            token_digest=RUN_TOKEN_SHA256,
+            backend_internal_url="http://backend:8000",
+            worker_network="qjudge-test-network",
+        )
+        assert policy.name == expected["name"]
+        assert policy.environment_overrides == expected["environment"]
+        assert policy.fixed_config == {
+            "AttachStderr": False,
+            "AttachStdin": False,
+            "AttachStdout": False,
+            "ArgsEscaped": False,
+            "Domainname": "",
+            "Hostname": expected["hostname"],
+            "Image": WORKER_IMAGE,
+            "Labels": {
+                "qjudge.integrity.run_id": str(RUN_ID),
+                "qjudge.integrity.role": role,
+                "qjudge.integrity.run_token_sha256": RUN_TOKEN_SHA256,
+            },
+            "MacAddress": "",
+            "NetworkDisabled": expected["network_disabled"],
+            "OnBuild": None,
+            "OpenStdin": False,
+            "StdinOnce": False,
+            "StopSignal": "SIGTERM",
+            "StopTimeout": 30,
+            "Tty": False,
+            "User": "10001:10001",
+            "WorkingDir": "/app",
+        }
+        assert policy.host_config == {**common_host_config, **expected["host"]}
+        assert policy.optional_host_config == {
+            "Annotations": None,
+            "KernelMemoryTCP": 0,
+            "Mounts": [],
+        }
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("section", "field", "unsafe_value"),
+    [
+        pytest.param("Config", field, value, id="config-" + field)
+        for field, value in CLOSED_WORLD_CONFIG_MUTATIONS.items()
+    ]
+    + [
+        pytest.param("HostConfig", field, value, id="host-config-" + field)
+        for field, value in CLOSED_WORLD_HOST_CONFIG_MUTATIONS.items()
+    ],
+)
+def test_every_worker_lifecycle_rejects_every_closed_world_policy_mutation(
+    runtime,
+    docker_client,
+    operation,
+    section,
+    field,
+    unsafe_value,
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    worker.attrs[section][field] = unsafe_value
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target="worker", operation=operation)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("section", "field"),
+    [
+        pytest.param("Config", field, id="config-" + field)
+        for field in REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
+        - OPTIONAL_ENGINE_CONFIG_FIELDS
+        - OPTIONAL_IMAGE_CONFIG_FIELDS
+        - {"NetworkDisabled"}
+    ]
+    + [
+        pytest.param("HostConfig", field, id="host-config-" + field)
+        for field in REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+    ],
+)
+def test_every_worker_lifecycle_rejects_every_missing_closed_world_policy_field(
+    runtime,
+    docker_client,
+    operation,
+    section,
+    field,
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    del worker.attrs[section][field]
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target="worker", operation=operation)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "unsafe_value"),
+    [
+        pytest.param("Config", field, value, id="config-" + field)
+        for field, value in CLOSED_WORLD_CONFIG_MUTATIONS.items()
+    ]
+    + [
+        pytest.param("HostConfig", field, value, id="host-config-" + field)
+        for field, value in CLOSED_WORLD_HOST_CONFIG_MUTATIONS.items()
+    ],
+)
+def test_initializer_cleanup_rejects_every_closed_world_policy_mutation(
+    runtime,
+    docker_client,
+    section,
+    field,
+    unsafe_value,
+):
+    initializer = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    initializer.attrs[section][field] = unsafe_value
+    docker_client.containers.get.side_effect = _find_only_initializer(
+        initializer, docker_client
+    )
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target="initializer", operation="start")
+
+    initializer.remove.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("section", "field"),
+    [
+        pytest.param("Config", field, id="config-" + field)
+        for field in REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
+        - OPTIONAL_ENGINE_CONFIG_FIELDS
+        - OPTIONAL_IMAGE_CONFIG_FIELDS
+    ]
+    + [
+        pytest.param("HostConfig", field, id="host-config-" + field)
+        for field in REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+    ],
+)
+def test_initializer_cleanup_rejects_every_missing_closed_world_policy_field(
+    runtime,
+    docker_client,
+    section,
+    field,
+):
+    initializer = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    del initializer.attrs[section][field]
+    docker_client.containers.get.side_effect = _find_only_initializer(
+        initializer, docker_client
+    )
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target="initializer", operation="start")
+
+    initializer.remove.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("target", "field"),
+    [
+        pytest.param(target, field, id=target + "-" + field)
+        for target in ("worker", "initializer")
+        for field in sorted(
+            OPTIONAL_ENGINE_CONFIG_FIELDS
+            | OPTIONAL_IMAGE_CONFIG_FIELDS
+            | {"NetworkDisabled"}
+        )
+        if target == "worker" or field != "NetworkDisabled"
+    ],
+)
+def test_policy_accepts_only_safe_omitted_config_defaults(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    del inspected.attrs["Config"][field]
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    _exercise_policy_target(runtime, target=target, operation="status")
+
+    if target == "initializer":
+        inspected.remove.assert_called_once_with()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("field", sorted(OPTIONAL_IMAGE_CONFIG_FIELDS))
+def test_policy_accepts_safe_nil_fields_omitted_from_image_and_container_inspect(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    del inspected.attrs["Config"][field]
+    del inspected.image.attrs["Config"][field]
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    _exercise_policy_target(runtime, target=target, operation="status")
+
+    if target == "initializer":
+        inspected.remove.assert_called_once_with()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    ENDPOINT_POLICY_MUTATIONS.items(),
+)
+def test_every_worker_lifecycle_rejects_endpoint_host_redirection(
+    runtime,
+    docker_client,
+    operation,
+    field,
+    unsafe_value,
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    endpoint = worker.attrs["NetworkSettings"]["Networks"]["qjudge-test-network"]
+    endpoint[field] = unsafe_value
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target="worker", operation=operation)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    ENDPOINT_POLICY_MUTATIONS.items(),
+)
+def test_initializer_cleanup_rejects_endpoint_host_redirection(
+    runtime,
+    docker_client,
+    field,
+    unsafe_value,
+):
+    initializer = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    initializer.attrs["NetworkSettings"]["Networks"]["none"][field] = unsafe_value
+    docker_client.containers.get.side_effect = _find_only_initializer(
+        initializer, docker_client
+    )
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    initializer.remove.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("field", ENDPOINT_POLICY_MUTATIONS)
+def test_endpoint_policy_requires_every_caller_controlled_field(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    endpoint = inspected.attrs["NetworkSettings"]["Networks"]
+    del endpoint[next(iter(endpoint))][field]
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target=target, operation="status")
+
+    inspected.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize(
+    ("section", "field", "unsafe_value"),
+    [
+        ("Config", "UnexpectedCallerOption", True),
+        ("HostConfig", "UnexpectedCallerOption", True),
+    ]
+    + [
+        ("HostConfig", field, value)
+        for field, value in OPTIONAL_HOST_CONFIG_MUTATIONS.items()
+    ],
+)
+def test_policy_rejects_unknown_or_nonempty_optional_docker_fields(
+    runtime,
+    docker_client,
+    target,
+    section,
+    field,
+    unsafe_value,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs[section][field] = unsafe_value
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target=target, operation="status")
+
+    inspected.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("field", OPTIONAL_HOST_CONFIG_MUTATIONS)
+def test_policy_accepts_absent_known_engine_optional_fields(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    del inspected.attrs["HostConfig"][field]
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    _exercise_policy_target(runtime, target=target, operation="status")
+
+    if target == "initializer":
+        inspected.remove.assert_called_once_with()
+    else:
+        inspected.remove.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field", "safe_value"),
+    [("Annotations", {}), ("Mounts", None)],
+)
+def test_worker_policy_accepts_semantically_empty_engine_optional_fields(
+    runtime,
+    docker_client,
+    field,
+    safe_value,
+):
+    worker = _container()
+    worker.attrs["HostConfig"][field] = safe_value
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    status = runtime.status(RUN_ID)
+
+    assert status.exists is True
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["CapAdd", "DeviceCgroupRules", "Dns", "DnsOptions", "DnsSearch", "ExtraHosts"],
+)
+def test_worker_policy_accepts_null_as_a_semantically_empty_sequence(
+    runtime,
+    docker_client,
+    field,
+):
+    worker = _container()
+    worker.attrs["HostConfig"][field] = None
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    status = runtime.status(RUN_ID)
+
+    assert status.exists is True
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    [
+        ("RW", 1),
+        ("Propagation", "rshared"),
+        ("Driver", "attacker"),
+        ("Source", "/"),
+    ],
+)
+def test_policy_rejects_malformed_or_unsafe_effective_mount_details(
+    runtime,
+    docker_client,
+    target,
+    field,
+    unsafe_value,
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs["Mounts"][0][field] = unsafe_value
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    with pytest.raises(ContainerConflict):
+        _exercise_policy_target(runtime, target=target, operation="status")
+
+    inspected.remove.assert_not_called()
+
+
+def test_policy_masks_the_complete_cpu_tree_against_thermal_side_channels():
+    policy = build_container_policy(
+        role="worker",
+        run_id=RUN_ID,
+        image=WORKER_IMAGE,
+        token_digest=RUN_TOKEN_SHA256,
+        backend_internal_url="http://backend:8000",
+        worker_network="qjudge-test-network",
+    )
+
+    assert "/sys/devices/system/cpu" in policy.host_config["MaskedPaths"]
+
+
+def test_older_docker_api_may_omit_version_added_safe_endpoint_fields(
+    runtime,
+    docker_client,
+):
+    worker = _container()
+    endpoint = worker.attrs["NetworkSettings"]["Networks"]["qjudge-test-network"]
+    del endpoint["DNSNames"]
+    del endpoint["GwPriority"]
+    docker_client.api._version = "1.43"
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    status = runtime.status(RUN_ID)
+
+    assert status.exists is True
+
+
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    [("DNSNames", ["backend"]), ("GwPriority", 1)],
+)
+def test_older_docker_api_still_rejects_hostile_version_added_endpoint_fields(
+    runtime,
+    docker_client,
+    field,
+    unsafe_value,
+):
+    worker = _container()
+    endpoint = worker.attrs["NetworkSettings"]["Networks"]["qjudge-test-network"]
+    endpoint[field] = unsafe_value
+    docker_client.api._version = "1.43"
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        runtime.status(RUN_ID)
 
 
 def test_controller_settings_read_the_deployment_image_allowlist(monkeypatch, tmp_path):
@@ -368,7 +1324,8 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
         worker_image=WORKER_IMAGE,
     )
 
-    kwargs = docker_client.containers.create.call_args.kwargs
+    kwargs = docker_client.api.create_container.call_args_list[1].kwargs
+    host_config = kwargs["host_config"]
     assert kwargs["image"] == WORKER_IMAGE
     assert kwargs["name"] == container_name(RUN_ID)
     assert kwargs["environment"] == {
@@ -377,22 +1334,25 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
         "RUN_TOKEN_FILE": "/run-secrets/token",
         "RUN_DATA_DIR": "/run-data",
     }
-    assert kwargs["volumes"] == {
-        data_volume_name(RUN_ID): {"bind": "/run-data", "mode": "rw"},
-        secret_volume_name(RUN_ID): {"bind": "/run-secrets", "mode": "ro"},
-    }
-    assert kwargs["privileged"] is False
-    assert kwargs["read_only"] is True
+    assert host_config["Binds"] == [
+        data_volume_name(RUN_ID) + ":/run-data:rw",
+        secret_volume_name(RUN_ID) + ":/run-secrets:ro",
+    ]
+    assert host_config["Privileged"] is False
+    assert host_config["ReadonlyRootfs"] is True
     assert kwargs["user"] == "10001:10001"
-    assert kwargs["tmpfs"] == {"/tmp": "rw,noexec,nosuid,size=64m"}
-    assert kwargs["cap_drop"] == ["ALL"]
-    assert kwargs["security_opt"] == ["no-new-privileges"]
-    assert kwargs["mem_limit"] == "512m"
-    assert kwargs["nano_cpus"] == 500_000_000
-    assert kwargs["pids_limit"] == 128
-    assert kwargs["network"] == "qjudge-test-network"
-    assert kwargs["publish_all_ports"] is False
-    assert kwargs["restart_policy"] == {"Name": "unless-stopped"}
+    assert host_config["Tmpfs"] == {"/tmp": "rw,noexec,nosuid,size=64m"}
+    assert host_config["CapDrop"] == ["ALL"]
+    assert host_config["SecurityOpt"] == ["no-new-privileges"]
+    assert host_config["Memory"] == 512 * 1024 * 1024
+    assert host_config["NanoCpus"] == 500_000_000
+    assert host_config["PidsLimit"] == 128
+    assert host_config["NetworkMode"] == "qjudge-test-network"
+    assert host_config["PublishAllPorts"] is False
+    assert host_config["RestartPolicy"] == {
+        "Name": "unless-stopped",
+        "MaximumRetryCount": 0,
+    }
     assert kwargs["labels"] == {
         "qjudge.integrity.run_id": str(RUN_ID),
         "qjudge.integrity.role": "worker",
@@ -400,6 +1360,55 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
     }
     assert result.worker_url == f"http://{container_name(RUN_ID)}:8020"
     assert result.image_digest == IMAGE_DIGEST
+
+
+def test_start_creates_both_roles_from_the_complete_closed_world_policy(
+    runtime,
+    docker_client,
+):
+    runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    policies = [
+        build_container_policy(
+            role=role,
+            run_id=RUN_ID,
+            image=WORKER_IMAGE,
+            token_digest=RUN_TOKEN_SHA256,
+            backend_internal_url="http://backend:8000",
+            worker_network="qjudge-test-network",
+        )
+        for role in ("secret-initializer", "worker")
+    ]
+    calls = docker_client.api.create_container.call_args_list
+    assert len(calls) == len(policies)
+    for call, policy in zip(calls, policies, strict=True):
+        assert frozenset(call.kwargs) == REQUIRED_CREATE_KWARGS
+        assert call.kwargs == policy.create_kwargs()
+        assert frozenset(call.kwargs["host_config"]) == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+
+
+def test_start_attests_new_initializer_before_writing_the_run_token(
+    runtime,
+    docker_client,
+):
+    initializer = docker_client._test_initializer
+    initializer.attrs["HostConfig"]["Privileged"] = True
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    initializer.put_archive.assert_not_called()
+    docker_client._test_worker.start.assert_not_called()
+
+
+def test_start_attests_new_worker_before_starting_it(runtime, docker_client):
+    worker = docker_client._test_worker
+    worker.attrs["HostConfig"]["Privileged"] = True
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    worker.start.assert_not_called()
 
 
 def test_start_creates_exactly_labelled_data_and_secret_volumes(
@@ -453,31 +1462,16 @@ def test_secret_initializer_is_fixed_networkless_and_mounts_only_secret_rw(
 ):
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
-    initializer_kwargs = docker_client.containers.create.call_args_list[0].kwargs
-    assert initializer_kwargs == {
-        "image": WORKER_IMAGE,
-        "name": secret_initializer_name(RUN_ID),
-        "volumes": {
-            secret_volume_name(RUN_ID): {"bind": "/run-secrets", "mode": "rw"}
-        },
-        "network_mode": "none",
-        "publish_all_ports": False,
-        "user": "10001:10001",
-        "read_only": True,
-        "tmpfs": {"/tmp": "rw,noexec,nosuid,size=16m"},
-        "cap_drop": ["ALL"],
-        "security_opt": ["no-new-privileges"],
-        "privileged": False,
-        "mem_limit": "64m",
-        "nano_cpus": 100_000_000,
-        "pids_limit": 16,
-        "restart_policy": {"Name": "no"},
-        "labels": {
-            "qjudge.integrity.run_id": str(RUN_ID),
-            "qjudge.integrity.role": "secret-initializer",
-            "qjudge.integrity.run_token_sha256": RUN_TOKEN_SHA256,
-        },
-    }
+    initializer_kwargs = docker_client.api.create_container.call_args_list[0].kwargs
+    expected = build_container_policy(
+        role="secret-initializer",
+        run_id=RUN_ID,
+        image=WORKER_IMAGE,
+        token_digest=RUN_TOKEN_SHA256,
+        backend_internal_url="http://backend:8000",
+        worker_network="qjudge-test-network",
+    )
+    assert initializer_kwargs == expected.create_kwargs()
 
 
 def test_secret_initializer_is_removed_before_final_worker_starts(
@@ -506,7 +1500,7 @@ def test_secret_initializer_is_removed_when_archive_population_fails(
 
     initializer.remove.assert_called_once_with()
     assert [
-        call.kwargs["name"] for call in docker_client.containers.create.call_args_list
+        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
     ] == [secret_initializer_name(RUN_ID)]
     docker_client._test_worker.start.assert_not_called()
 
@@ -520,12 +1514,9 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
         role="secret-initializer",
     )
 
-    def get_container(name):
-        if name == secret_initializer_name(RUN_ID):
-            return stale
-        raise DockerNotFound
-
-    docker_client.containers.get.side_effect = get_container
+    docker_client.containers.get.side_effect = _find_only_initializer(
+        stale, docker_client
+    )
 
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
@@ -635,7 +1626,7 @@ def test_start_rejects_stale_initializer_with_any_policy_mismatch(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -671,8 +1662,11 @@ def test_start_rejects_stale_initializer_with_any_policy_mismatch(
         ("Mounts",),
         ("Mounts", 0, "Type"),
         ("Mounts", 0, "Name"),
+        ("Mounts", 0, "Source"),
         ("Mounts", 0, "Destination"),
+        ("Mounts", 0, "Driver"),
         ("Mounts", 0, "Mode"),
+        ("Mounts", 0, "Propagation"),
         ("Mounts", 0, "RW"),
         ("NetworkSettings",),
         ("NetworkSettings", "Networks"),
@@ -689,6 +1683,7 @@ def test_start_rejects_stale_initializer_with_any_missing_inspect_field(
         name=secret_initializer_name(RUN_ID),
         role="secret-initializer",
     )
+    _make_optional_image_field_required(stale, path)
     _delete_nested(stale.attrs, path)
 
     def get_container(name):
@@ -702,7 +1697,7 @@ def test_start_rejects_stale_initializer_with_any_missing_inspect_field(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -723,6 +1718,7 @@ def test_start_rejects_stale_initializer_with_missing_image_inspect_field(
         name=secret_initializer_name(RUN_ID),
         role="secret-initializer",
     )
+    _make_optional_image_field_required(stale, image_path)
     _delete_nested(stale.image.attrs, image_path)
 
     def get_container(name):
@@ -736,7 +1732,7 @@ def test_start_rejects_stale_initializer_with_missing_image_inspect_field(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -770,7 +1766,7 @@ def test_start_rejects_stale_initializer_with_malformed_matching_image_policy(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize("healthcheck", MALFORMED_HEALTHCHECKS)
@@ -796,7 +1792,7 @@ def test_start_rejects_stale_initializer_with_malformed_matching_healthcheck(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize("target", ["worker", "initializer"])
@@ -811,7 +1807,9 @@ def test_shared_fixed_policy_rejects_malformed_or_effective_host_port_mappings(
     )
     inspected.attrs["NetworkSettings"]["Ports"] = ports
     if target == "initializer":
-        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
     else:
         docker_client.containers.get.side_effect = None
         docker_client.containers.get.return_value = inspected
@@ -839,7 +1837,9 @@ def test_shared_fixed_policy_requires_publish_all_ports_exactly_false(
     )
     inspected.attrs["HostConfig"]["PublishAllPorts"] = publish_all_ports
     if target == "initializer":
-        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
     else:
         docker_client.containers.get.side_effect = None
         docker_client.containers.get.return_value = inspected
@@ -875,7 +1875,7 @@ def test_start_rejects_exited_stale_initializer_without_removing_it(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 def test_start_rejects_a_mismatched_stale_initializer(runtime, docker_client):
@@ -896,7 +1896,7 @@ def test_start_rejects_a_mismatched_stale_initializer(runtime, docker_client):
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 def test_start_rejects_non_allowlisted_image(runtime, docker_client):
@@ -904,7 +1904,7 @@ def test_start_rejects_non_allowlisted_image(runtime, docker_client):
         runtime.start(uuid4(), RUN_TOKEN, "attacker/image:latest")
 
     docker_client.containers.get.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -924,7 +1924,7 @@ def test_start_rejects_mismatched_same_name_container(
     with pytest.raises(ContainerConflict):
         runtime.start(RUN_ID, token, WORKER_IMAGE)
 
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
     existing.start.assert_not_called()
 
 
@@ -937,7 +1937,7 @@ def test_start_is_idempotent_for_matching_running_container(runtime, docker_clie
 
     assert result.container_id == "container-id"
     assert result.run_token_sha256 == RUN_TOKEN_SHA256
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
     existing.start.assert_not_called()
 
 
@@ -959,7 +1959,95 @@ def test_start_rejects_a_same_name_volume_with_wrong_labels(runtime, docker_clie
     with pytest.raises(VolumeConflict):
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    [
+        ("Driver", "local-persist"),
+        ("Options", {"type": "none", "device": "/", "o": "bind"}),
+        ("Scope", "global"),
+        ("Mountpoint", "/"),
+    ],
+)
+def test_every_worker_lifecycle_rejects_hostile_volume_provenance(
+    runtime,
+    docker_client,
+    operation,
+    field,
+    unsafe_value,
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    data = docker_client._test_volumes[data_volume_name(RUN_ID)]
+    data.attrs[field] = unsafe_value
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(VolumeConflict):
+        _exercise_policy_target(runtime, target="worker", operation=operation)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    "field",
+    ["Driver", "Labels", "Mountpoint", "Name", "Options", "Scope"],
+)
+def test_every_worker_lifecycle_requires_complete_volume_provenance(
+    runtime,
+    docker_client,
+    operation,
+    field,
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    data = docker_client._test_volumes[data_volume_name(RUN_ID)]
+    del data.attrs[field]
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(VolumeConflict):
+        _exercise_policy_target(runtime, target="worker", operation=operation)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field", "unsafe_value"),
+    [
+        ("Driver", "local-persist"),
+        ("Options", {"type": "none", "device": "/", "o": "bind"}),
+        ("Scope", "global"),
+        ("Mountpoint", "/"),
+    ],
+)
+def test_initializer_cleanup_rejects_hostile_secret_volume_provenance(
+    runtime,
+    docker_client,
+    field,
+    unsafe_value,
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    secret = docker_client._test_volumes[secret_volume_name(RUN_ID)]
+    secret.attrs[field] = unsafe_value
+    docker_client.containers.get.side_effect = _find_only_initializer(
+        stale, docker_client
+    )
+
+    with pytest.raises(VolumeConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
 
 
 def test_stop_uses_fixed_timeout_and_is_idempotent(runtime, docker_client):
@@ -1142,8 +2230,11 @@ def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
         ("Mounts",),
         ("Mounts", 0, "Type"),
         ("Mounts", 0, "Name"),
+        ("Mounts", 0, "Source"),
         ("Mounts", 0, "Destination"),
+        ("Mounts", 0, "Driver"),
         ("Mounts", 0, "Mode"),
+        ("Mounts", 0, "Propagation"),
         ("Mounts", 0, "RW"),
         ("NetworkSettings",),
         ("NetworkSettings", "Networks"),
@@ -1156,6 +2247,7 @@ def test_every_lifecycle_rejects_existing_worker_with_any_missing_inspect_field(
     runtime, docker_client, operation, path
 ):
     worker = _container(status="exited" if operation == "destroy" else "running")
+    _make_optional_image_field_required(worker, path)
     _delete_nested(worker.attrs, path)
     docker_client.containers.get.side_effect = None
     docker_client.containers.get.return_value = worker
@@ -1186,6 +2278,7 @@ def test_every_lifecycle_rejects_worker_with_missing_image_inspect_field(
     runtime, docker_client, operation, image_path
 ):
     worker = _container(status="exited" if operation == "destroy" else "running")
+    _make_optional_image_field_required(worker, image_path)
     _delete_nested(worker.image.attrs, image_path)
     docker_client.containers.get.side_effect = None
     docker_client.containers.get.return_value = worker
@@ -1306,7 +2399,9 @@ def test_shared_fixed_policy_accepts_canonical_healthcheck_forms_and_boundaries(
     inspected.attrs["Config"]["Healthcheck"] = healthcheck
     inspected.image.attrs["Config"]["Healthcheck"] = healthcheck
     if target == "initializer":
-        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
         result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
         inspected.remove.assert_called_once_with()
     else:
@@ -1329,7 +2424,9 @@ def test_shared_fixed_policy_accepts_only_explicitly_unbound_effective_ports(
     )
     inspected.attrs["NetworkSettings"]["Ports"] = ports
     if target == "initializer":
-        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        docker_client.containers.get.side_effect = _find_only_initializer(
+            inspected, docker_client
+        )
         result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
         inspected.remove.assert_called_once_with()
     else:
@@ -1426,7 +2523,7 @@ def test_status_reports_absent_without_creating_any_resource(runtime, docker_cli
     assert result.exists is False
     assert result.state == "absent"
     docker_client.volumes.get.assert_not_called()
-    docker_client.containers.create.assert_not_called()
+    docker_client.api.create_container.assert_not_called()
 
 
 def test_worker_reads_the_controller_fixed_environment(monkeypatch, tmp_path):
