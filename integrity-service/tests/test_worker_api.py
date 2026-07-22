@@ -13,7 +13,10 @@ from uuid import UUID, uuid4
 
 import httpx
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 from fastapi.testclient import TestClient
 import pytest
 
@@ -27,6 +30,7 @@ from integrity_service.worker.backend_client import (
 from integrity_service.worker.runtime import WorkerRuntime
 from integrity_service.worker.settings import WorkerBootstrap
 from integrity_service.journal.archive import ArchiveFatalFailure
+from integrity_service.journal.command_outbox import DurableLogCorruption
 
 from test_registry import registry_snapshot
 
@@ -34,6 +38,7 @@ from test_registry import registry_snapshot
 RUN_ID = UUID("00000000-0000-0000-0000-000000000901")
 NOW_SECONDS = 1_800_000_000
 NOW_MS = NOW_SECONDS * 1_000
+VALID_PUBLIC_KEY_B64 = base64.b64encode(bytes(range(32))).decode("ascii")
 
 
 class FakeBackend:
@@ -316,6 +321,27 @@ def test_backend_failure_retries_the_same_durable_commands_before_new_processing
     assert runtime.timeline_journal.records[-1]["timeline_seq"] == 2
 
 
+def test_new_batch_is_raw_durable_before_old_command_delivery_can_block(tmp_path):
+    _, runtime, backend, _ = make_client(tmp_path)
+    first = EventBatch.model_validate(batch_payload())
+    backend.failures_remaining = 1
+    with pytest.raises(BackendUnavailable):
+        runtime.ingest(first, NOW_MS)
+
+    second = EventBatch.model_validate(batch_payload())
+    second.batch_id = uuid4()
+    second.first_seq = 2
+    second.last_seq = 2
+    second.records[0].event_id = uuid4()
+    second.records[0].seq = 2
+    backend.failures_remaining = 1
+
+    with pytest.raises(BackendUnavailable):
+        runtime.ingest(second, NOW_MS + 1)
+
+    assert runtime.journal.recovered_batches == (first, second)
+
+
 def test_unknown_signal_is_raw_journaled_ackable_and_deterministically_warned(tmp_path):
     client, runtime, backend, private_key = make_client(tmp_path)
     payload = batch_payload(event_type="future_detector_signal", payload={"x": 1})
@@ -444,7 +470,7 @@ def test_timeline_append_failure_is_unhealthy_and_cannot_skip_semantics_on_retry
         runtime.ingest(payload, NOW_MS + 1)
 
 
-def test_backwards_clock_after_admission_poison_requires_fresh_process_replay(tmp_path):
+def test_backwards_receipt_context_fails_fresh_process_closed(tmp_path):
     _, runtime, _, _ = make_client(tmp_path)
     payload = EventBatch.model_validate(batch_payload())
 
@@ -457,25 +483,16 @@ def test_backwards_clock_after_admission_poison_requires_fresh_process_replay(tm
         runtime.ingest(payload, NOW_MS)
     runtime.close()
 
-    recovered_backend = FakeBackend()
-    recovered = WorkerRuntime(
-        bootstrap=runtime.bootstrap,
-        data_root=tmp_path,
-        backend=recovered_backend,
-        clock_ms=lambda: NOW_MS,
-    )
-    ack = recovered.ingest(payload, NOW_MS)
-
-    assert ack.acked_through_seq == 1
-    assert recovered.timeline_journal.records[-1]["records"]
-    assert any(
-        command["kind"] == "record_event"
-        for sent in recovered_backend.command_batches
-        for command in sent
-    )
+    with pytest.raises(DurableLogCorruption, match="conflicts with replay"):
+        WorkerRuntime(
+            bootstrap=runtime.bootstrap,
+            data_root=tmp_path,
+            backend=FakeBackend(),
+            clock_ms=lambda: NOW_MS,
+        )
 
 
-def test_arbitrary_post_admission_failure_poison_requires_fresh_process_replay(
+def test_fresh_process_reconstructs_unmatched_raw_without_browser_retry(
     tmp_path, monkeypatch
 ):
     _, runtime, _, _ = make_client(tmp_path)
@@ -502,7 +519,83 @@ def test_arbitrary_post_admission_failure_poison_requires_fresh_process_replay(
         backend=FakeBackend(),
         clock_ms=lambda: NOW_MS,
     )
-    assert recovered.ingest(payload, NOW_MS).acked_through_seq == 1
+
+    receipt = recovered.timeline_journal.records[-1]
+    assert receipt["kind"] == "batch_receipt"
+    assert receipt["batch_id"] == str(payload.batch_id)
+    assert receipt["records"]
+    assert any(
+        command["kind"] == "record_event"
+        for command in recovered.outbox.pending_commands
+    )
+
+
+def test_fresh_process_fails_closed_when_raw_has_no_receipt_context(tmp_path):
+    _, runtime, _, _ = make_client(tmp_path)
+    payload = EventBatch.model_validate(batch_payload())
+    runtime.journal.append_batch_once(payload)
+    runtime.close()
+
+    with pytest.raises(DurableLogCorruption, match="receipt context"):
+        WorkerRuntime(
+            bootstrap=runtime.bootstrap,
+            data_root=tmp_path,
+            backend=FakeBackend(),
+            clock_ms=lambda: NOW_MS,
+        )
+
+
+def test_post_admission_poison_disables_ingest_tick_and_archive(tmp_path, monkeypatch):
+    _, runtime, backend, _ = make_client(tmp_path)
+    payload = EventBatch.model_validate(batch_payload())
+
+    def fail_outbox(_commands):
+        raise OSError("outbox fsync failed")
+
+    monkeypatch.setattr(runtime.outbox, "append", fail_outbox)
+    with pytest.raises(OSError, match="outbox fsync"):
+        runtime.ingest(payload, NOW_MS)
+
+    timeline_records = runtime.timeline_journal.records
+    assert runtime.healthy is False
+    assert runtime.accepting is False
+    assert runtime.state == "FAILED"
+    runtime.tick(NOW_MS + 10_000)
+    assert runtime.timeline_journal.records == timeline_records
+    with pytest.raises(OSError, match="recovery"):
+        runtime.stop()
+    assert not any(key.endswith("manifest.json") for key in backend.objects)
+
+
+@pytest.mark.asyncio
+async def test_post_admission_poison_stops_an_already_running_scheduler(
+    tmp_path, monkeypatch
+):
+    release = asyncio.Event()
+
+    async def wait_for_tick() -> None:
+        await release.wait()
+
+    _, runtime, _, _ = make_client(tmp_path)
+    runtime._scheduler_wait = wait_for_tick
+    await runtime.start_scheduler()
+    assert runtime._scheduler_task is not None
+    scheduler_task = runtime._scheduler_task
+
+    def fail_outbox(_commands):
+        raise OSError("outbox fsync failed")
+
+    monkeypatch.setattr(runtime.outbox, "append", fail_outbox)
+    with pytest.raises(OSError, match="outbox fsync"):
+        runtime.ingest(EventBatch.model_validate(batch_payload()), NOW_MS)
+    timeline_records = runtime.timeline_journal.records
+
+    release.set()
+    await asyncio.wait_for(scheduler_task, timeout=1)
+
+    assert runtime.timeline_journal.records == timeline_records
+    assert runtime.accepting is False
+    await runtime.stop_scheduler()
 
 
 def test_recovery_replays_exact_receipt_and_resends_pending_commands(tmp_path):
@@ -794,6 +887,28 @@ def test_bootstrap_snapshot_is_transitively_immutable_at_construction():
         frozen.policy_snapshot["nested"]["thresholds"][0] = 7
 
 
+def test_bootstrap_parses_and_retains_ed25519_public_key():
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+
+    frozen = bootstrap(base64.b64encode(public_key).decode("ascii"))
+
+    assert isinstance(frozen.backend_signing_public_key, Ed25519PublicKey)
+    assert frozen.backend_signing_public_key is frozen.backend_signing_public_key
+
+
+@pytest.mark.parametrize(
+    "encoded",
+    ["not-base64", base64.b64encode(b"too-short").decode("ascii")],
+)
+def test_bootstrap_rejects_malformed_ed25519_public_key(encoded):
+    with pytest.raises(ValueError, match="signing public key"):
+        bootstrap(encoded)
+
+
 @pytest.mark.parametrize(
     "participants",
     [
@@ -818,7 +933,7 @@ def test_bootstrap_participant_contract_rejects_malformed_duplicate_or_unknown_s
             "disconnected_after_ms": 60_000,
         },
         "registry_snapshot": registry_snapshot(),
-        "backend_signing_public_key_b64": "key",
+        "backend_signing_public_key_b64": VALID_PUBLIC_KEY_B64,
         "archive_policy": {},
         "generation": 1,
     }
@@ -889,7 +1004,7 @@ def _bootstrap_payload(*, generation: int, previous_manifest=None):
             "disconnected_after_ms": 60_000,
         },
         "registry_snapshot": registry_snapshot(),
-        "backend_signing_public_key_b64": "key",
+        "backend_signing_public_key_b64": VALID_PUBLIC_KEY_B64,
         "archive_policy": {},
         "generation": generation,
         **({} if previous_manifest is None else {"previous_manifest": previous_manifest}),
@@ -955,18 +1070,108 @@ def test_generation_chain_conflicts_fail_bootstrap(previous):
         )
 
 
-def test_capacity_warning_uses_volume_free_space_and_is_restored_on_restart(
+def test_capacity_warning_counts_complete_run_root_and_is_restored_on_restart(
     tmp_path, monkeypatch
 ):
-    fake = SimpleNamespace(f_bavail=1, f_frsize=1)
+    fake = SimpleNamespace(f_bavail=10**9, f_frsize=1)
     monkeypatch.setattr(os, "statvfs", lambda _path: fake)
-    _, runtime, _, _ = make_client(tmp_path)
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    frozen = replace(
+        bootstrap(base64.b64encode(public_key).decode("ascii")),
+        archive_policy={
+            "capacity_warning_bytes": 128,
+            "capacity_reserve_bytes": 0,
+        },
+    )
+    run_root = tmp_path / str(RUN_ID)
+    run_root.mkdir(parents=True)
+    (run_root / "other-writer.bin").write_bytes(b"x" * 256)
+    runtime = WorkerRuntime(
+        bootstrap=frozen,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
 
     assert "journal_capacity_low" in runtime.warning_codes
     runtime.close()
 
     recovered = WorkerRuntime(
         bootstrap=runtime.bootstrap,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+    assert "journal_capacity_low" in recovered.warning_codes
+
+
+def test_capacity_warning_does_not_implicitly_become_free_space_reserve_on_restart(
+    tmp_path, monkeypatch
+):
+    fake = SimpleNamespace(f_bavail=1, f_frsize=1)
+    monkeypatch.setattr(os, "statvfs", lambda _path: fake)
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    frozen = replace(
+        bootstrap(base64.b64encode(public_key).decode("ascii")),
+        archive_policy={
+            "capacity_warning_bytes": 10**9,
+            "capacity_reserve_bytes": 0,
+        },
+    )
+    runtime = WorkerRuntime(
+        bootstrap=frozen,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+
+    assert "journal_capacity_low" not in runtime.warning_codes
+    runtime.close()
+    recovered = WorkerRuntime(
+        bootstrap=frozen,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+    assert "journal_capacity_low" not in recovered.warning_codes
+
+
+def test_explicit_capacity_reserve_is_applied_by_runtime_on_restart(
+    tmp_path, monkeypatch
+):
+    fake = SimpleNamespace(f_bavail=1, f_frsize=1)
+    monkeypatch.setattr(os, "statvfs", lambda _path: fake)
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    frozen = replace(
+        bootstrap(base64.b64encode(public_key).decode("ascii")),
+        archive_policy={
+            "capacity_warning_bytes": 10**9,
+            "capacity_reserve_bytes": 2,
+        },
+    )
+    runtime = WorkerRuntime(
+        bootstrap=frozen,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+
+    assert "journal_capacity_low" in runtime.warning_codes
+    runtime.close()
+    recovered = WorkerRuntime(
+        bootstrap=frozen,
         data_root=tmp_path,
         backend=FakeBackend(),
         clock_ms=lambda: NOW_MS,
@@ -1146,6 +1351,44 @@ def _owned_app_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("QJUDGE_BACKEND_URL", "https://backend.example")
     monkeypatch.setenv("QJUDGE_RUN_TOKEN_PATH", str(token_path))
     monkeypatch.setenv("QJUDGE_RUN_DATA", str(tmp_path / "run-data"))
+
+
+def test_owned_lifespan_rejects_malformed_key_before_runtime_start(
+    tmp_path, monkeypatch
+):
+    import integrity_service.worker.app as app_module
+
+    _owned_app_environment(monkeypatch, tmp_path)
+    runtime_constructed = False
+    backend_closed = False
+
+    class Backend:
+        def __init__(self, **_kwargs):
+            pass
+
+        def fetch_bootstrap(self):
+            payload = _bootstrap_payload(generation=1)
+            payload["backend_signing_public_key_b64"] = "malformed"
+            return payload
+
+        def close(self):
+            nonlocal backend_closed
+            backend_closed = True
+
+    class Runtime:
+        def __init__(self, **_kwargs):
+            nonlocal runtime_constructed
+            runtime_constructed = True
+
+    monkeypatch.setattr(app_module, "BackendClient", Backend)
+    monkeypatch.setattr(app_module, "WorkerRuntime", Runtime)
+
+    with pytest.raises(ValueError, match="signing public key"):
+        with TestClient(app_module.create_app()):
+            pass
+
+    assert runtime_constructed is False
+    assert backend_closed is True
 
 
 @pytest.mark.parametrize("failure", ["fetch", "parse", "runtime", "scheduler_start"])

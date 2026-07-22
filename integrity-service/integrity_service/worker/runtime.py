@@ -128,13 +128,13 @@ class WorkerRuntime:
         max_segment_bytes = self._policy_int(
             archive_policy, "max_segment_bytes", 8 * 1024 * 1024, minimum=1
         )
-        reserve_default = self._policy_int(
+        capacity_warning_bytes = self._policy_int(
             archive_policy, "capacity_warning_bytes", 0, minimum=0
         )
         capacity_reserve_bytes = self._policy_int(
             archive_policy,
             "capacity_reserve_bytes",
-            reserve_default,
+            0,
             minimum=0,
         )
 
@@ -147,6 +147,7 @@ class WorkerRuntime:
                 started_at_ms=bootstrap.server_ms,
                 rotate_after_ms=rotate_after_ms,
                 max_segment_bytes=max_segment_bytes,
+                capacity_warning_bytes=capacity_warning_bytes,
                 capacity_root=run_root,
                 capacity_reserve_bytes=capacity_reserve_bytes,
             )
@@ -261,12 +262,22 @@ class WorkerRuntime:
                 raise WorkerNotAccepting("Worker is not accepting batches")
             if batch.run_id != self.run_id:
                 raise RunMismatch("batch run does not match Worker run")
-            self._drain_pending()
-            admitted = False
+            raw_durable = False
             try:
-                self.journal.append_batch_once(batch)
+                appended = self.journal.append_batch_once(batch)
+                raw_durable = True
+                if appended:
+                    context = BatchReceiptEntry(
+                        timeline_seq=self._timeline_seq + 1,
+                        server_ms=received_at_ms,
+                        batch_id=batch.batch_id,
+                        participant_id=batch.participant_id,
+                        device_id=batch.device_id,
+                    )
+                    self.timeline_journal.append_receipt_context(context)
+                else:
+                    self._drain_pending()
                 accepted = self.sequencer.accept(batch)
-                admitted = True
                 delayed_event_ids = self._delayed_event_ids(
                     accepted.new_records, received_at_ms
                 )
@@ -280,24 +291,16 @@ class WorkerRuntime:
                 self.timeline_journal.append_receipt(
                     entry, accepted.new_records, delayed_event_ids
                 )
-                plan = self.timeline.plan_receipt(records=accepted.new_records)
-                commands = self._warning_commands(
-                    batch, plan, received_at_server_ms=entry.server_ms
-                )
-                commands += self._registry_warning_command(batch, entry.server_ms)
-                commands += self.timeline.apply(
-                    entry,
-                    records=accepted.new_records,
+                self._apply_receipt(
+                    batch=batch,
+                    accepted=accepted,
+                    entry=entry,
                     delayed_event_ids=delayed_event_ids,
                 )
-                self._timeline_seq = entry.timeline_seq
-                self._clock_server_ms = entry.server_ms
-                self._remember_cursor(batch, accepted)
-                if batch.registry_version != self.registry.version:
-                    self._warning_codes.add("registry_version_mismatch")
-                self.outbox.append(commands)
+            except BackendUnavailable:
+                raise
             except BaseException as error:
-                if admitted or isinstance(error, OSError):
+                if raw_durable or isinstance(error, OSError):
                     self._mark_unhealthy("durable_write_failed")
                 raise
             self._drain_pending()
@@ -383,6 +386,8 @@ class WorkerRuntime:
         with self._lock:
             if self._last_scheduler_error is not None:
                 raise SchedulerFailed("scheduler failed; process recovery required")
+            if not self.healthy:
+                raise OSError("Worker fatal state requires process recovery")
             try:
                 self._drain_pending()
                 self.journal.rotate_if_due(self._clock_ms(), force=True)
@@ -400,10 +405,13 @@ class WorkerRuntime:
             return result
 
     async def start_scheduler(self) -> None:
-        if self._last_scheduler_error is not None:
-            raise SchedulerFailed("scheduler failed; process recovery required")
-        if self._scheduler_task is not None and not self._scheduler_task.done():
-            return
+        with self._lock:
+            if self._last_scheduler_error is not None or not self.healthy:
+                raise SchedulerFailed("scheduler failed; process recovery required")
+            if self._state != "RUNNING":
+                raise SchedulerFailed("scheduler is disabled for this runtime")
+            if self._scheduler_task is not None and not self._scheduler_task.done():
+                return
         try:
             with self._lock:
                 self._drain_pending()
@@ -504,7 +512,18 @@ class WorkerRuntime:
         return baseline
 
     def _replay_timeline(self) -> None:
-        batches = {batch.batch_id: batch for batch in self.journal.recovered_batches}
+        recovered_batches = self.journal.recovered_batches
+        batches = {batch.batch_id: batch for batch in recovered_batches}
+        contexts = {
+            UUID(str(context["batch_id"])): context
+            for context in self.timeline_journal.receipt_contexts
+        }
+        for batch_id in contexts:
+            if batch_id not in batches:
+                raise DurableLogCorruption(
+                    "batch receipt context references a missing raw batch"
+                )
+        received_batch_ids: set[UUID] = set()
         for durable in self.timeline_journal.records[1:]:
             kind = durable.get("kind")
             if kind == "batch_receipt":
@@ -531,20 +550,22 @@ class WorkerRuntime:
                     participant_id=int(durable["participant_id"]),
                     device_id=str(durable["device_id"]),
                 )
-                plan = self.timeline.plan_receipt(records=accepted.new_records)
-                commands = self._warning_commands(
-                    batch, plan, received_at_server_ms=entry.server_ms
-                )
-                commands += self._registry_warning_command(batch, entry.server_ms)
-                commands += self.timeline.apply(
-                    entry,
-                    records=accepted.new_records,
+                if batch_id not in received_batch_ids:
+                    context = contexts.get(batch_id)
+                    if context is not None:
+                        expected_context = entry.to_json()
+                        expected_context["kind"] = "batch_receipt_context"
+                        if context != expected_context:
+                            raise DurableLogCorruption(
+                                "batch receipt conflicts with durable context"
+                            )
+                    received_batch_ids.add(batch_id)
+                self._apply_receipt(
+                    batch=batch,
+                    accepted=accepted,
+                    entry=entry,
                     delayed_event_ids=delayed,
                 )
-                self._remember_cursor(batch, accepted)
-                self._timeline_seq = entry.timeline_seq
-                self._clock_server_ms = entry.server_ms
-                self.outbox.append(commands)
             elif kind == "submission":
                 entry = SubmissionEntry(
                     timeline_seq=int(durable["timeline_seq"]),
@@ -561,6 +582,90 @@ class WorkerRuntime:
                 self._clock_server_ms = server_ms
             else:
                 raise DurableLogCorruption("unknown timeline record")
+
+        unmatched = [
+            batch
+            for batch in recovered_batches
+            if batch.batch_id not in received_batch_ids
+        ]
+        if not unmatched:
+            return
+        if len(unmatched) != 1 or unmatched[0] is not recovered_batches[-1]:
+            raise DurableLogCorruption(
+                "raw batches without receipts are not a terminal recovery unit"
+            )
+        batch = unmatched[0]
+        context = contexts.get(batch.batch_id)
+        if context is None:
+            raise DurableLogCorruption(
+                "raw batch has no authoritative durable receipt context"
+            )
+        if not self.timeline_journal.receipt_contexts or context != (
+            self.timeline_journal.receipt_contexts[-1]
+        ):
+            raise DurableLogCorruption(
+                "unmatched raw batch receipt context is not terminal"
+            )
+        entry = BatchReceiptEntry(
+            timeline_seq=int(context["timeline_seq"]),
+            server_ms=int(context["server_ms"]),
+            batch_id=UUID(str(context["batch_id"])),
+            participant_id=int(context["participant_id"]),
+            device_id=str(context["device_id"]),
+        )
+        if (
+            entry.batch_id != batch.batch_id
+            or entry.participant_id != batch.participant_id
+            or entry.device_id != batch.device_id
+            or entry.timeline_seq != self._timeline_seq + 1
+            or entry.server_ms < self._clock_server_ms
+        ):
+            raise DurableLogCorruption(
+                "unmatched raw batch receipt context conflicts with replay"
+            )
+        try:
+            accepted = self.sequencer.accept(batch)
+            delayed = self._delayed_event_ids(
+                accepted.new_records, entry.server_ms
+            )
+            self.timeline_journal.append_receipt(
+                entry, accepted.new_records, delayed
+            )
+            self._apply_receipt(
+                batch=batch,
+                accepted=accepted,
+                entry=entry,
+                delayed_event_ids=delayed,
+            )
+        except (DurableLogCorruption, OSError):
+            raise
+        except BaseException as error:
+            raise DurableLogCorruption(
+                "unmatched raw batch cannot be deterministically replayed"
+            ) from error
+
+    def _apply_receipt(
+        self,
+        *,
+        batch: EventBatch,
+        accepted: AcceptResult,
+        entry: BatchReceiptEntry,
+        delayed_event_ids: frozenset[UUID],
+    ) -> None:
+        plan = self.timeline.plan_receipt(records=accepted.new_records)
+        commands = self._warning_commands(
+            batch, plan, received_at_server_ms=entry.server_ms
+        )
+        commands += self._registry_warning_command(batch, entry.server_ms)
+        commands += self.timeline.apply(
+            entry,
+            records=accepted.new_records,
+            delayed_event_ids=delayed_event_ids,
+        )
+        self._remember_cursor(batch, accepted)
+        self._timeline_seq = entry.timeline_seq
+        self._clock_server_ms = entry.server_ms
+        self.outbox.append(commands)
 
     def _warning_commands(
         self,
@@ -674,15 +779,17 @@ class WorkerRuntime:
         return value
 
     def _mark_unhealthy(self, warning_code: str) -> None:
-        self._healthy = False
-        self._warning_codes.add(warning_code)
+        with self._lock:
+            self._healthy = False
+            self._accepting = False
+            if self._state == "RUNNING":
+                self._state = "FAILED"
+            self._warning_codes.add(warning_code)
 
     def _record_scheduler_failure(self, code: str) -> None:
         with self._lock:
             self._last_scheduler_error = code[:64]
-            self._warning_codes.add(code[:64])
-            self._healthy = False
-            self._accepting = False
+            self._mark_unhealthy(code[:64])
 
     @staticmethod
     def _scheduler_error_code(error: BaseException) -> str:

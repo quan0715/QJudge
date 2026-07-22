@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 from uuid import UUID
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
 from integrity_service.core.commands import FrozenDict, freeze_json
+from integrity_service.worker.auth import load_public_key
 
 
 def _positive_int(value: object, name: str) -> int:
@@ -46,6 +49,9 @@ class WorkerBootstrap:
     archive_policy: Mapping[str, object]
     generation: int = 1
     previous_manifest: Mapping[str, object] | None = None
+    backend_signing_public_key: Ed25519PublicKey = field(
+        init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         if type(self.run_id) is not UUID or self.run_id.int == 0:
@@ -67,6 +73,8 @@ class WorkerBootstrap:
             self.backend_signing_public_key_b64
         ):
             raise ValueError("backend signing public key is required")
+        public_key = load_public_key(self.backend_signing_public_key_b64)
+        object.__setattr__(self, "backend_signing_public_key", public_key)
         if not isinstance(self.archive_policy, Mapping):
             raise TypeError("archive_policy must be an object")
         _positive_int(self.generation, "generation")

@@ -21,7 +21,6 @@ from integrity_service.journal.command_outbox import CommandDeliveryProtocolErro
 from integrity_service.journal.writer import BatchIdentityConflict
 from integrity_service.worker.auth import (
     RequestAuthenticationError,
-    load_public_key,
     verify_backend_request,
 )
 from integrity_service.worker.backend_client import (
@@ -129,9 +128,7 @@ def create_app(
         body = await request.body()
         try:
             verify_backend_request(
-                load_public_key(
-                    resolved.bootstrap.backend_signing_public_key_b64
-                ),
+                resolved.bootstrap.backend_signing_public_key,
                 body=body,
                 timestamp=request.headers.get("X-QJudge-Timestamp", ""),
                 path_run_id=path_run_id,

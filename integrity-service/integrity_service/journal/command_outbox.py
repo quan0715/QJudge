@@ -406,10 +406,15 @@ class TimelineJournal:
 
     def __init__(self, root: Path) -> None:
         self._log = DurableJsonLog(root / "timeline.log")
+        self._receipt_context_log: DurableJsonLog | None = None
         self._lock = threading.RLock()
         self._last_timeline_seq = 0
         self._last_server_ms = 0
         try:
+            self._receipt_context_log = DurableJsonLog(
+                root / "batch-receipt-context.log"
+            )
+            self._receipt_contexts = self._load_receipt_contexts()
             for record in self._log.records:
                 server_ms = record.get("server_ms")
                 if type(server_ms) is not int or server_ms < self._last_server_ms:
@@ -421,12 +426,18 @@ class TimelineJournal:
                         raise DurableLogCorruption("timeline sequence is not gap-free")
                     self._last_timeline_seq = timeline_seq
         except BaseException:
+            if self._receipt_context_log is not None:
+                self._receipt_context_log.close()
             self._log.close()
             raise
 
     @property
     def records(self) -> tuple[dict[str, object], ...]:
         return self._log.records
+
+    @property
+    def receipt_contexts(self) -> tuple[dict[str, object], ...]:
+        return tuple(self._receipt_contexts.values())
 
     def ensure_baseline(self, baseline: TimelineBaseline) -> None:
         with self._lock:
@@ -453,6 +464,22 @@ class TimelineJournal:
             )
             self._append_ordered(projected)
 
+    def append_receipt_context(self, entry: BatchReceiptEntry) -> None:
+        """Persist receipt authority after raw evidence and before any dependency."""
+        with self._lock:
+            projected = entry.to_json()
+            projected["kind"] = "batch_receipt_context"
+            batch_id = str(entry.batch_id)
+            prior = self._receipt_contexts.get(batch_id)
+            if prior is not None:
+                if prior != projected:
+                    raise DurableLogCorruption("batch receipt context conflicts")
+                return
+            if self._receipt_context_log is None:
+                raise OSError("batch receipt context log is closed")
+            self._receipt_context_log.append(projected)
+            self._receipt_contexts[batch_id] = projected
+
     def append_submission(self, entry: SubmissionEntry) -> None:
         with self._lock:
             self._append_ordered(entry.to_json())
@@ -465,7 +492,12 @@ class TimelineJournal:
             self._last_server_ms = server_ms
 
     def close(self) -> None:
-        self._log.close()
+        try:
+            self._log.close()
+        finally:
+            if self._receipt_context_log is not None:
+                self._receipt_context_log.close()
+                self._receipt_context_log = None
 
     @property
     def last_timeline_seq(self) -> int:
@@ -483,3 +515,42 @@ class TimelineJournal:
         self._log.append(projected)
         self._last_timeline_seq = int(projected["timeline_seq"])
         self._last_server_ms = int(projected["server_ms"])
+
+    def _load_receipt_contexts(self) -> dict[str, dict[str, object]]:
+        if self._receipt_context_log is None:
+            raise RuntimeError("batch receipt context log is not initialized")
+        contexts: dict[str, dict[str, object]] = {}
+        expected_keys = {
+            "kind",
+            "timeline_seq",
+            "server_ms",
+            "batch_id",
+            "participant_id",
+            "device_id",
+        }
+        for projected in self._receipt_context_log.records:
+            if set(projected) != expected_keys or projected.get("kind") != (
+                "batch_receipt_context"
+            ):
+                raise DurableLogCorruption("batch receipt context is malformed")
+            try:
+                entry = BatchReceiptEntry(
+                    timeline_seq=projected["timeline_seq"],
+                    server_ms=projected["server_ms"],
+                    batch_id=UUID(str(projected["batch_id"])),
+                    participant_id=projected["participant_id"],
+                    device_id=projected["device_id"],
+                )
+            except (TypeError, ValueError) as error:
+                raise DurableLogCorruption(
+                    "batch receipt context is malformed"
+                ) from error
+            canonical = entry.to_json()
+            canonical["kind"] = "batch_receipt_context"
+            if projected != canonical:
+                raise DurableLogCorruption("batch receipt context is noncanonical")
+            batch_id = str(entry.batch_id)
+            if batch_id in contexts:
+                raise DurableLogCorruption("batch receipt context is duplicated")
+            contexts[batch_id] = projected
+        return contexts
