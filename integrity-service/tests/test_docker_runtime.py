@@ -39,6 +39,87 @@ IMAGE_COMMAND = [
 ]
 IMAGE_ENTRYPOINT = None
 IMAGE_HEALTHCHECK = None
+HEALTHCHECK_DURATION_FIELDS = ("Interval", "Timeout", "StartPeriod", "StartInterval")
+MALFORMED_HEALTHCHECKS = [
+    pytest.param({}, id="empty-healthcheck"),
+    pytest.param({"Test": None}, id="null-test"),
+    pytest.param({"Test": "NONE"}, id="non-list-test"),
+    pytest.param({"Test": []}, id="empty-test"),
+    pytest.param({"Test": ("NONE",)}, id="tuple-test"),
+    pytest.param({"Test": ["UNKNOWN"]}, id="unknown-form"),
+    pytest.param({"Test": ["CMD", "true"]}, id="cmd-form"),
+    pytest.param({"Test": ["NONE", "unexpected"]}, id="none-extra-element"),
+    pytest.param({"Test": ["CMD-SHELL"]}, id="cmd-shell-missing-command"),
+    pytest.param(
+        {"Test": ["CMD-SHELL", "true", "unexpected"]},
+        id="cmd-shell-extra-element",
+    ),
+    pytest.param({"Test": ["CMD-SHELL", 1]}, id="cmd-shell-non-string-command"),
+    pytest.param({"Test": ["CMD-SHELL", ""]}, id="cmd-shell-empty-command"),
+    pytest.param(
+        {"Test": ["CMD-SHELL", "true"], "Unexpected": 0},
+        id="unexpected-field",
+    ),
+    *[
+        pytest.param(
+            {"Test": ["CMD-SHELL", "true"], field: invalid_value},
+            id=f"invalid-{field.lower()}-{value_id}",
+        )
+        for field in HEALTHCHECK_DURATION_FIELDS
+        for value_id, invalid_value in (
+            ("negative", -1),
+            ("positive-sub-ms", 1),
+            ("boundary-sub-ms", 999_999),
+            ("boolean", True),
+            ("float", 1_000_000.0),
+            ("string", "1000000"),
+            ("null", None),
+        )
+    ],
+    *[
+        pytest.param(
+            {"Test": ["CMD-SHELL", "true"], "Retries": invalid_value},
+            id=f"invalid-retries-{value_id}",
+        )
+        for value_id, invalid_value in (
+            ("negative", -1),
+            ("boolean", True),
+            ("float", 0.0),
+            ("string", "0"),
+            ("null", None),
+        )
+    ],
+]
+SAFE_EFFECTIVE_PORTS = [
+    pytest.param({}, id="empty"),
+    pytest.param({"8020/tcp": None}, id="exposed-unbound-null"),
+    pytest.param({"8020/tcp": []}, id="exposed-unbound-empty-list"),
+    pytest.param(
+        {"8020/tcp": None, "8020/udp": []},
+        id="multiple-exposed-unbound",
+    ),
+]
+UNSAFE_EFFECTIVE_PORTS = [
+    pytest.param(None, id="null"),
+    pytest.param([], id="list"),
+    pytest.param("", id="string"),
+    pytest.param({"": None}, id="empty-port-key"),
+    pytest.param({8020: None}, id="non-string-port-key"),
+    pytest.param({"8020/tcp": {}}, id="mapping-object"),
+    pytest.param({"8020/tcp": "32768"}, id="mapping-string"),
+    pytest.param({"8020/tcp": [None]}, id="nonempty-null-binding"),
+    pytest.param(
+        {"8020/tcp": [{"HostIp": "0.0.0.0", "HostPort": "32768"}]},
+        id="nonempty-host-binding",
+    ),
+]
+NON_FALSE_PUBLISH_ALL_PORTS = [
+    pytest.param(True, id="true"),
+    pytest.param(None, id="null"),
+    pytest.param(0, id="integer-zero"),
+    pytest.param("false", id="string-false"),
+    pytest.param([], id="empty-list"),
+]
 
 
 def _environment(run_id: UUID = RUN_ID) -> list[str]:
@@ -152,6 +233,7 @@ def _container(
         "HostConfig": {
             "NetworkMode": network_mode,
             "Binds": binds,
+            "PublishAllPorts": False,
             "ReadonlyRootfs": True,
             "CapAdd": None,
             "CapDrop": ["ALL"],
@@ -169,7 +251,10 @@ def _container(
             "IpcMode": "private",
         },
         "Mounts": mounts,
-        "NetworkSettings": {"Networks": {network_mode: {}}},
+        "NetworkSettings": {
+            "Networks": {network_mode: {}},
+            "Ports": {"8020/tcp": None},
+        },
         "State": {"Status": status},
     }
     return worker
@@ -187,6 +272,15 @@ def _delete_nested(mapping: dict, path: tuple[str | int, ...]) -> None:
     for key in path[:-1]:
         target = target[key]
     del target[path[-1]]
+
+
+def _find_only_initializer(initializer: Mock):
+    def get_container(name: str):
+        if name == secret_initializer_name(RUN_ID):
+            return initializer
+        raise DockerNotFound
+
+    return get_container
 
 
 @pytest.fixture
@@ -297,6 +391,7 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
     assert kwargs["nano_cpus"] == 500_000_000
     assert kwargs["pids_limit"] == 128
     assert kwargs["network"] == "qjudge-test-network"
+    assert kwargs["publish_all_ports"] is False
     assert kwargs["restart_policy"] == {"Name": "unless-stopped"}
     assert kwargs["labels"] == {
         "qjudge.integrity.run_id": str(RUN_ID),
@@ -366,6 +461,7 @@ def test_secret_initializer_is_fixed_networkless_and_mounts_only_secret_rw(
             secret_volume_name(RUN_ID): {"bind": "/run-secrets", "mode": "rw"}
         },
         "network_mode": "none",
+        "publish_all_ports": False,
         "user": "10001:10001",
         "read_only": True,
         "tmpfs": {"/tmp": "rw,noexec,nosuid,size=16m"},
@@ -449,6 +545,7 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
         (("Config", "Labels"), {"qjudge.integrity.role": "secret-initializer"}),
         (("HostConfig", "NetworkMode"), "bridge"),
         (("HostConfig", "Binds"), ["victim:/run-secrets:rw"]),
+        (("HostConfig", "PublishAllPorts"), True),
         (("HostConfig", "ReadonlyRootfs"), False),
         (("HostConfig", "CapAdd"), ["SYS_ADMIN"]),
         (("HostConfig", "CapDrop"), []),
@@ -481,6 +578,10 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
             ],
         ),
         (("NetworkSettings", "Networks"), {"none": {}, "bridge": {}}),
+        (
+            ("NetworkSettings", "Ports"),
+            {"8020/tcp": [{"HostIp": "0.0.0.0", "HostPort": "32768"}]},
+        ),
     ],
     ids=[
         "environment",
@@ -491,6 +592,7 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
         "labels",
         "network-mode",
         "binds",
+        "publish-all-ports",
         "read-only-rootfs",
         "cap-add",
         "cap-drop",
@@ -509,6 +611,7 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
         "malformed-state",
         "mounts",
         "network-attachments",
+        "effective-port-mappings",
     ],
 )
 def test_start_rejects_stale_initializer_with_any_policy_mismatch(
@@ -549,6 +652,7 @@ def test_start_rejects_stale_initializer_with_any_policy_mismatch(
         ("HostConfig",),
         ("HostConfig", "NetworkMode"),
         ("HostConfig", "Binds"),
+        ("HostConfig", "PublishAllPorts"),
         ("HostConfig", "ReadonlyRootfs"),
         ("HostConfig", "CapAdd"),
         ("HostConfig", "CapDrop"),
@@ -572,6 +676,7 @@ def test_start_rejects_stale_initializer_with_any_policy_mismatch(
         ("Mounts", 0, "RW"),
         ("NetworkSettings",),
         ("NetworkSettings", "Networks"),
+        ("NetworkSettings", "Ports"),
         ("State",),
         ("State", "Status"),
     ],
@@ -666,6 +771,88 @@ def test_start_rejects_stale_initializer_with_malformed_matching_image_policy(
 
     stale.remove.assert_not_called()
     docker_client.containers.create.assert_not_called()
+
+
+@pytest.mark.parametrize("healthcheck", MALFORMED_HEALTHCHECKS)
+def test_start_rejects_stale_initializer_with_malformed_matching_healthcheck(
+    runtime, docker_client, healthcheck
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    stale.attrs["Config"]["Healthcheck"] = healthcheck
+    stale.image.attrs["Config"]["Healthcheck"] = healthcheck
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("ports", UNSAFE_EFFECTIVE_PORTS)
+def test_shared_fixed_policy_rejects_malformed_or_effective_host_port_mappings(
+    runtime, docker_client, target, ports
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs["NetworkSettings"]["Ports"] = ports
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    with pytest.raises(ContainerConflict):
+        if target == "initializer":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            runtime.status(RUN_ID)
+
+    inspected.start.assert_not_called()
+    inspected.stop.assert_not_called()
+    inspected.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("publish_all_ports", NON_FALSE_PUBLISH_ALL_PORTS)
+def test_shared_fixed_policy_requires_publish_all_ports_exactly_false(
+    runtime, docker_client, target, publish_all_ports
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs["HostConfig"]["PublishAllPorts"] = publish_all_ports
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+
+    with pytest.raises(ContainerConflict):
+        if target == "initializer":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            runtime.status(RUN_ID)
+
+    inspected.start.assert_not_called()
+    inspected.stop.assert_not_called()
+    inspected.remove.assert_not_called()
 
 
 def test_start_rejects_exited_stale_initializer_without_removing_it(
@@ -830,6 +1017,7 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
                 "/:/host:rw",
             ],
         ),
+        (("HostConfig", "PublishAllPorts"), True),
         (("HostConfig", "ReadonlyRootfs"), False),
         (("HostConfig", "CapAdd"), ["SYS_ADMIN"]),
         (("HostConfig", "CapDrop"), []),
@@ -865,6 +1053,10 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
             ("NetworkSettings", "Networks"),
             {"qjudge-test-network": {}, "bridge": {}},
         ),
+        (
+            ("NetworkSettings", "Ports"),
+            {"8020/tcp": [{"HostIp": "0.0.0.0", "HostPort": "32768"}]},
+        ),
     ],
     ids=[
         "environment",
@@ -875,6 +1067,7 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
         "labels",
         "network-mode",
         "binds",
+        "publish-all-ports",
         "read-only-rootfs",
         "cap-add",
         "cap-drop",
@@ -893,6 +1086,7 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
         "malformed-state",
         "mounts",
         "network-attachments",
+        "effective-port-mappings",
     ],
 )
 def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
@@ -929,6 +1123,7 @@ def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
         ("HostConfig",),
         ("HostConfig", "NetworkMode"),
         ("HostConfig", "Binds"),
+        ("HostConfig", "PublishAllPorts"),
         ("HostConfig", "ReadonlyRootfs"),
         ("HostConfig", "CapAdd"),
         ("HostConfig", "CapDrop"),
@@ -952,6 +1147,7 @@ def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
         ("Mounts", 0, "RW"),
         ("NetworkSettings",),
         ("NetworkSettings", "Networks"),
+        ("NetworkSettings", "Ports"),
         ("State",),
         ("State", "Status"),
     ],
@@ -1033,6 +1229,115 @@ def test_every_lifecycle_rejects_malformed_matching_image_policy(
     worker.start.assert_not_called()
     worker.stop.assert_not_called()
     worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize("healthcheck", MALFORMED_HEALTHCHECKS)
+def test_every_lifecycle_rejects_malformed_matching_healthcheck(
+    runtime, docker_client, operation, healthcheck
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    worker.attrs["Config"]["Healthcheck"] = healthcheck
+    worker.image.attrs["Config"]["Healthcheck"] = healthcheck
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        if operation == "start":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            getattr(runtime, operation)(RUN_ID)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "healthcheck",
+    [
+        pytest.param(None, id="absent"),
+        pytest.param({"Test": ["NONE"]}, id="disabled"),
+        pytest.param({"Test": ["CMD-SHELL", "true"]}, id="cmd-shell"),
+        pytest.param(
+            {
+                "Test": ["CMD-SHELL", "true"],
+                "Interval": 0,
+                "Timeout": 0,
+                "Retries": 0,
+                "StartPeriod": 0,
+                "StartInterval": 0,
+            },
+            id="zero-duration-boundaries",
+        ),
+        pytest.param(
+            {
+                "Test": ["CMD-SHELL", "true"],
+                "Interval": 1_000_000,
+                "Timeout": 1_000_000,
+                "Retries": 1,
+                "StartPeriod": 1_000_000,
+                "StartInterval": 1_000_000,
+            },
+            id="minimum-nonzero-duration-boundaries",
+        ),
+        pytest.param(
+            {
+                "Test": ["CMD-SHELL", "true"],
+                "Interval": 1_000_001,
+                "Timeout": 1_000_001,
+                "Retries": 2,
+                "StartPeriod": 1_000_001,
+                "StartInterval": 1_000_001,
+            },
+            id="above-minimum-durations",
+        ),
+    ],
+)
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+def test_shared_fixed_policy_accepts_canonical_healthcheck_forms_and_boundaries(
+    runtime, docker_client, target, healthcheck
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs["Config"]["Healthcheck"] = healthcheck
+    inspected.image.attrs["Config"]["Healthcheck"] = healthcheck
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        inspected.remove.assert_called_once_with()
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+        result = runtime.status(RUN_ID)
+
+    assert result.state == "running"
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize("ports", SAFE_EFFECTIVE_PORTS)
+def test_shared_fixed_policy_accepts_only_explicitly_unbound_effective_ports(
+    runtime, docker_client, target, ports
+):
+    inspected = _container(
+        status="created" if target == "initializer" else "running",
+        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
+        role="secret-initializer" if target == "initializer" else "worker",
+    )
+    inspected.attrs["NetworkSettings"]["Ports"] = ports
+    if target == "initializer":
+        docker_client.containers.get.side_effect = _find_only_initializer(inspected)
+        result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        inspected.remove.assert_called_once_with()
+    else:
+        docker_client.containers.get.side_effect = None
+        docker_client.containers.get.return_value = inspected
+        result = runtime.status(RUN_ID)
+
+    assert result.state == "running"
 
 
 def test_destroy_requires_stopped_container(runtime, docker_client):

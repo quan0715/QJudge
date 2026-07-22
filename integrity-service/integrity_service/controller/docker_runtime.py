@@ -156,6 +156,7 @@ class DockerRuntime:
                 secret_volume.name: {"bind": "/run-secrets", "mode": "ro"},
             },
             network=self.settings.worker_network,
+            publish_all_ports=False,
             user="10001:10001",
             read_only=True,
             tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
@@ -288,6 +289,7 @@ class DockerRuntime:
                 secret_volume.name: {"bind": "/run-secrets", "mode": "rw"},
             },
             network_mode="none",
+            publish_all_ports=False,
             user="10001:10001",
             read_only=True,
             tmpfs={"/tmp": "rw,noexec,nosuid,size=16m"},
@@ -485,6 +487,7 @@ class DockerRuntime:
         host_config = self._required_mapping(attrs, "HostConfig")
         network_settings = self._required_mapping(attrs, "NetworkSettings")
         networks = self._required_field(network_settings, "Networks")
+        ports = self._required_field(network_settings, "Ports")
         mounts = self._required_field(attrs, "Mounts")
         image_config = self._image_config(container)
         if (
@@ -511,9 +514,11 @@ class DockerRuntime:
             or self._required_field(host_config, "PidsLimit") != expected_pids_limit
             or self._required_field(host_config, "RestartPolicy")
             != expected_restart_policy
+            or self._required_field(host_config, "PublishAllPorts") is not False
             or not self._no_port_bindings(
                 self._required_field(host_config, "PortBindings")
             )
+            or not self._no_effective_port_mappings(ports)
             or not self._no_devices(self._required_field(host_config, "Devices"))
             or not self._no_devices(
                 self._required_field(host_config, "DeviceRequests")
@@ -591,6 +596,17 @@ class DockerRuntime:
         return value is None or value == {}
 
     @staticmethod
+    def _no_effective_port_mappings(value: object) -> bool:
+        if not isinstance(value, dict):
+            return False
+        return all(
+            type(port) is str
+            and bool(port)
+            and (bindings is None or bindings == [])
+            for port, bindings in value.items()
+        )
+
+    @staticmethod
     def _no_devices(value: object) -> bool:
         return value is None or value == []
 
@@ -666,16 +682,29 @@ class DockerRuntime:
         test = value["Test"]
         if (
             not isinstance(test, list)
-            or not test
-            or any(type(item) is not str for item in test)
-            or test[0] not in {"NONE", "CMD", "CMD-SHELL"}
+            or (
+                test != ["NONE"]
+                and not (
+                    len(test) == 2
+                    and test[0] == "CMD-SHELL"
+                    and type(test[1]) is str
+                    and bool(test[1])
+                )
+            )
         ):
             return False
-        return all(
-            type(field_value) is int and field_value >= 0
-            for field, field_value in value.items()
-            if field != "Test"
-        )
+        if "Retries" in value:
+            retries = value["Retries"]
+            if type(retries) is not int or retries < 0:
+                return False
+        duration_fields = ("Interval", "Timeout", "StartPeriod", "StartInterval")
+        for field in duration_fields:
+            if field not in value:
+                continue
+            duration = value[field]
+            if type(duration) is not int or (duration != 0 and duration < 1_000_000):
+                return False
+        return True
 
     @staticmethod
     def _inspect_attrs(container: object) -> dict[str, object]:
