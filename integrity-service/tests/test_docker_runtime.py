@@ -29,6 +29,16 @@ IMAGE_DIGEST = "sha256:" + "a" * 64
 RUN_TOKEN = "secret"
 RUN_TOKEN_SHA256 = hashlib.sha256(RUN_TOKEN.encode("utf-8")).hexdigest()
 IMAGE_ENVIRONMENT = ["PATH=/usr/local/bin"]
+IMAGE_COMMAND = [
+    "uvicorn",
+    "integrity_service.worker.app:app",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "8020",
+]
+IMAGE_ENTRYPOINT = None
+IMAGE_HEALTHCHECK = None
 
 
 def _environment(run_id: UUID = RUN_ID) -> list[str]:
@@ -70,7 +80,14 @@ def _container(
     worker.name = name or container_name(RUN_ID)
     worker.status = status
     worker.image.id = IMAGE_DIGEST
-    worker.image.attrs = {"Config": {"Env": IMAGE_ENVIRONMENT}}
+    worker.image.attrs = {
+        "Config": {
+            "Env": IMAGE_ENVIRONMENT,
+            "Cmd": IMAGE_COMMAND,
+            "Entrypoint": IMAGE_ENTRYPOINT,
+            "Healthcheck": IMAGE_HEALTHCHECK,
+        }
+    }
     is_initializer = role == "secret-initializer"
     if is_initializer:
         binds = [secret_volume_name(RUN_ID) + ":/run-secrets:rw"]
@@ -123,6 +140,9 @@ def _container(
             "Image": image,
             "Env": environment,
             "User": "10001:10001",
+            "Cmd": IMAGE_COMMAND,
+            "Entrypoint": IMAGE_ENTRYPOINT,
+            "Healthcheck": IMAGE_HEALTHCHECK,
             "Labels": {
                 "qjudge.integrity.run_id": str(run_id),
                 "qjudge.integrity.role": role,
@@ -142,6 +162,11 @@ def _container(
             "NanoCpus": nano_cpus,
             "PidsLimit": pids_limit,
             "RestartPolicy": restart_policy,
+            "PortBindings": {},
+            "Devices": [],
+            "DeviceRequests": None,
+            "PidMode": "",
+            "IpcMode": "private",
         },
         "Mounts": mounts,
         "NetworkSettings": {"Networks": {network_mode: {}}},
@@ -150,11 +175,18 @@ def _container(
     return worker
 
 
-def _replace_nested(mapping: dict, path: tuple[str, ...], value: object) -> None:
+def _replace_nested(mapping: dict, path: tuple[str | int, ...], value: object) -> None:
     target = mapping
     for key in path[:-1]:
         target = target[key]
     target[path[-1]] = value
+
+
+def _delete_nested(mapping: dict, path: tuple[str | int, ...]) -> None:
+    target = mapping
+    for key in path[:-1]:
+        target = target[key]
+    del target[path[-1]]
 
 
 @pytest.fixture
@@ -411,6 +443,9 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
     [
         (("Config", "Env"), IMAGE_ENVIRONMENT + ["ATTACKER_CONTROLLED=true"]),
         (("Config", "User"), "0:0"),
+        (("Config", "Cmd"), ["sh"]),
+        (("Config", "Entrypoint"), ["/attacker-entrypoint"]),
+        (("Config", "Healthcheck"), {"Test": ["CMD", "true"]}),
         (("Config", "Labels"), {"qjudge.integrity.role": "secret-initializer"}),
         (("HostConfig", "NetworkMode"), "bridge"),
         (("HostConfig", "Binds"), ["victim:/run-secrets:rw"]),
@@ -427,6 +462,12 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
             ("HostConfig", "RestartPolicy"),
             {"Name": "always", "MaximumRetryCount": 0},
         ),
+        (("HostConfig", "PortBindings"), {"8020/tcp": [{"HostPort": "8020"}]}),
+        (("HostConfig", "Devices"), [{"PathOnHost": "/dev/kvm"}]),
+        (("HostConfig", "DeviceRequests"), [{"Capabilities": [["gpu"]]}]),
+        (("HostConfig", "PidMode"), "host"),
+        (("HostConfig", "IpcMode"), "host"),
+        (("State", "Status"), None),
         (
             ("Mounts",),
             [
@@ -444,6 +485,9 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
     ids=[
         "environment",
         "user",
+        "command",
+        "entrypoint",
+        "healthcheck",
         "labels",
         "network-mode",
         "binds",
@@ -457,6 +501,12 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
         "cpu",
         "pids",
         "restart-policy",
+        "port-bindings",
+        "devices",
+        "device-requests",
+        "pid-mode",
+        "ipc-mode",
+        "malformed-state",
         "mounts",
         "network-attachments",
     ],
@@ -470,6 +520,139 @@ def test_start_rejects_stale_initializer_with_any_policy_mismatch(
         role="secret-initializer",
     )
     _replace_nested(stale.attrs, path, unsafe_value)
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("Config",),
+        ("Config", "Image"),
+        ("Config", "Env"),
+        ("Config", "User"),
+        ("Config", "Cmd"),
+        ("Config", "Entrypoint"),
+        ("Config", "Healthcheck"),
+        ("Config", "Labels"),
+        ("HostConfig",),
+        ("HostConfig", "NetworkMode"),
+        ("HostConfig", "Binds"),
+        ("HostConfig", "ReadonlyRootfs"),
+        ("HostConfig", "CapAdd"),
+        ("HostConfig", "CapDrop"),
+        ("HostConfig", "Privileged"),
+        ("HostConfig", "SecurityOpt"),
+        ("HostConfig", "Tmpfs"),
+        ("HostConfig", "Memory"),
+        ("HostConfig", "NanoCpus"),
+        ("HostConfig", "PidsLimit"),
+        ("HostConfig", "RestartPolicy"),
+        ("HostConfig", "PortBindings"),
+        ("HostConfig", "Devices"),
+        ("HostConfig", "DeviceRequests"),
+        ("HostConfig", "PidMode"),
+        ("HostConfig", "IpcMode"),
+        ("Mounts",),
+        ("Mounts", 0, "Type"),
+        ("Mounts", 0, "Name"),
+        ("Mounts", 0, "Destination"),
+        ("Mounts", 0, "Mode"),
+        ("Mounts", 0, "RW"),
+        ("NetworkSettings",),
+        ("NetworkSettings", "Networks"),
+        ("State",),
+        ("State", "Status"),
+    ],
+)
+def test_start_rejects_stale_initializer_with_any_missing_inspect_field(
+    runtime, docker_client, path
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    _delete_nested(stale.attrs, path)
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "image_path",
+    [
+        ("Config",),
+        ("Config", "Env"),
+        ("Config", "Cmd"),
+        ("Config", "Entrypoint"),
+        ("Config", "Healthcheck"),
+    ],
+)
+def test_start_rejects_stale_initializer_with_missing_image_inspect_field(
+    runtime, docker_client, image_path
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    _delete_nested(stale.image.attrs, image_path)
+
+    def get_container(name):
+        if name == secret_initializer_name(RUN_ID):
+            return stale
+        raise DockerNotFound
+
+    docker_client.containers.get.side_effect = get_container
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    stale.remove.assert_not_called()
+    docker_client.containers.create.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field", "malformed_value"),
+    [
+        ("Env", "PATH=/usr/local/bin"),
+        ("Cmd", "uvicorn"),
+        ("Entrypoint", {"command": "sh"}),
+        ("Healthcheck", {"Test": "CMD true"}),
+    ],
+)
+def test_start_rejects_stale_initializer_with_malformed_matching_image_policy(
+    runtime, docker_client, field, malformed_value
+):
+    stale = _container(
+        status="created",
+        name=secret_initializer_name(RUN_ID),
+        role="secret-initializer",
+    )
+    stale.attrs["Config"][field] = malformed_value
+    stale.image.attrs["Config"][field] = malformed_value
 
     def get_container(name):
         if name == secret_initializer_name(RUN_ID):
@@ -626,6 +809,9 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
     [
         (("Config", "Env"), _environment() + ["ATTACKER_CONTROLLED=true"]),
         (("Config", "User"), "0:0"),
+        (("Config", "Cmd"), ["sh"]),
+        (("Config", "Entrypoint"), ["/attacker-entrypoint"]),
+        (("Config", "Healthcheck"), {"Test": ["CMD", "true"]}),
         (
             ("Config", "Labels"),
             {
@@ -657,6 +843,12 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
             ("HostConfig", "RestartPolicy"),
             {"Name": "always", "MaximumRetryCount": 0},
         ),
+        (("HostConfig", "PortBindings"), {"8020/tcp": [{"HostPort": "8020"}]}),
+        (("HostConfig", "Devices"), [{"PathOnHost": "/dev/kvm"}]),
+        (("HostConfig", "DeviceRequests"), [{"Capabilities": [["gpu"]]}]),
+        (("HostConfig", "PidMode"), "host"),
+        (("HostConfig", "IpcMode"), "host"),
+        (("State", "Status"), None),
         (
             ("Mounts",),
             [
@@ -677,6 +869,9 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
     ids=[
         "environment",
         "user",
+        "command",
+        "entrypoint",
+        "healthcheck",
         "labels",
         "network-mode",
         "binds",
@@ -690,6 +885,12 @@ def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker
         "cpu",
         "pids",
         "restart-policy",
+        "port-bindings",
+        "devices",
+        "device-requests",
+        "pid-mode",
+        "ipc-mode",
+        "malformed-state",
         "mounts",
         "network-attachments",
     ],
@@ -699,6 +900,127 @@ def test_every_lifecycle_rejects_an_existing_worker_with_any_policy_mismatch(
 ):
     worker = _container(status="exited" if operation == "destroy" else "running")
     _replace_nested(worker.attrs, path, unsafe_value)
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        if operation == "start":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            getattr(runtime, operation)(RUN_ID)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("Config",),
+        ("Config", "Image"),
+        ("Config", "Env"),
+        ("Config", "User"),
+        ("Config", "Cmd"),
+        ("Config", "Entrypoint"),
+        ("Config", "Healthcheck"),
+        ("Config", "Labels"),
+        ("HostConfig",),
+        ("HostConfig", "NetworkMode"),
+        ("HostConfig", "Binds"),
+        ("HostConfig", "ReadonlyRootfs"),
+        ("HostConfig", "CapAdd"),
+        ("HostConfig", "CapDrop"),
+        ("HostConfig", "Privileged"),
+        ("HostConfig", "SecurityOpt"),
+        ("HostConfig", "Tmpfs"),
+        ("HostConfig", "Memory"),
+        ("HostConfig", "NanoCpus"),
+        ("HostConfig", "PidsLimit"),
+        ("HostConfig", "RestartPolicy"),
+        ("HostConfig", "PortBindings"),
+        ("HostConfig", "Devices"),
+        ("HostConfig", "DeviceRequests"),
+        ("HostConfig", "PidMode"),
+        ("HostConfig", "IpcMode"),
+        ("Mounts",),
+        ("Mounts", 0, "Type"),
+        ("Mounts", 0, "Name"),
+        ("Mounts", 0, "Destination"),
+        ("Mounts", 0, "Mode"),
+        ("Mounts", 0, "RW"),
+        ("NetworkSettings",),
+        ("NetworkSettings", "Networks"),
+        ("State",),
+        ("State", "Status"),
+    ],
+)
+def test_every_lifecycle_rejects_existing_worker_with_any_missing_inspect_field(
+    runtime, docker_client, operation, path
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    _delete_nested(worker.attrs, path)
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        if operation == "start":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            getattr(runtime, operation)(RUN_ID)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    "image_path",
+    [
+        ("Config",),
+        ("Config", "Env"),
+        ("Config", "Cmd"),
+        ("Config", "Entrypoint"),
+        ("Config", "Healthcheck"),
+    ],
+)
+def test_every_lifecycle_rejects_worker_with_missing_image_inspect_field(
+    runtime, docker_client, operation, image_path
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    _delete_nested(worker.image.attrs, image_path)
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = worker
+
+    with pytest.raises(ContainerConflict):
+        if operation == "start":
+            runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+        else:
+            getattr(runtime, operation)(RUN_ID)
+
+    worker.start.assert_not_called()
+    worker.stop.assert_not_called()
+    worker.remove.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["start", "status", "stop", "destroy"])
+@pytest.mark.parametrize(
+    ("field", "malformed_value"),
+    [
+        ("Env", "PATH=/usr/local/bin"),
+        ("Cmd", "uvicorn"),
+        ("Entrypoint", {"command": "sh"}),
+        ("Healthcheck", {"Test": "CMD true"}),
+    ],
+)
+def test_every_lifecycle_rejects_malformed_matching_image_policy(
+    runtime, docker_client, operation, field, malformed_value
+):
+    worker = _container(status="exited" if operation == "destroy" else "running")
+    worker.attrs["Config"][field] = malformed_value
+    worker.image.attrs["Config"][field] = malformed_value
     docker_client.containers.get.side_effect = None
     docker_client.containers.get.return_value = worker
 

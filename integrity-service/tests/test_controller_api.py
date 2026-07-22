@@ -287,6 +287,7 @@ async def test_docker_lifecycle_calls_for_the_same_run_remain_serialized(setting
             responses = await asyncio.gather(first_request, second_request)
             assert [response.status_code for response in responses] == [200, 200]
             assert runtime.call_count == 2
+            assert application.state.run_locks == {}
     finally:
         release_first.set()
         timer.cancel()
@@ -295,6 +296,111 @@ async def test_docker_lifecycle_calls_for_the_same_run_remain_serialized(setting
             for request in (first_request, second_request)
             if request is not None and not request.done()
         ]
+        if pending:
+            await asyncio.gather(*pending)
+
+
+@pytest.mark.asyncio
+async def test_completed_run_locks_are_evicted_after_many_distinct_runs(settings):
+    class AbsentRuntime:
+        def status(self, run_id):
+            return RunStatus(run_id=run_id, exists=False, state="absent")
+
+    application = create_app(runtime=AbsentRuntime(), settings=settings)
+    transport = httpx.ASGITransport(app=application)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://controller.test",
+    ) as async_client:
+        for value in range(1, 101):
+            run_id = UUID(int=value)
+            response = await async_client.get(
+                f"/v1/runs/{run_id}/status",
+                headers=_headers(),
+            )
+            assert response.status_code == 200
+
+    assert application.state.run_locks == {}
+
+
+@pytest.mark.asyncio
+async def test_lock_eviction_does_not_bypass_an_existing_same_run_waiter(settings):
+    first_started = threading.Event()
+    release_first = threading.Event()
+    second_started = threading.Event()
+    release_second = threading.Event()
+    third_started = threading.Event()
+
+    class QueuedRuntime:
+        def __init__(self):
+            self.call_count = 0
+            self.guard = threading.Lock()
+
+        def status(self, run_id):
+            with self.guard:
+                self.call_count += 1
+                call_number = self.call_count
+            if call_number == 1:
+                first_started.set()
+                release_first.wait(timeout=1)
+            elif call_number == 2:
+                second_started.set()
+                release_second.wait(timeout=1)
+            else:
+                third_started.set()
+            return RunStatus(run_id=run_id, exists=False, state="absent")
+
+    runtime = QueuedRuntime()
+    application = create_app(runtime=runtime, settings=settings)
+    transport = httpx.ASGITransport(app=application)
+    requests = []
+    try:
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://controller.test",
+        ) as async_client:
+            requests.append(
+                asyncio.create_task(
+                    async_client.get(
+                        f"/v1/runs/{RUN_ID}/status",
+                        headers=_headers(),
+                    )
+                )
+            )
+            assert await asyncio.to_thread(first_started.wait, 0.5)
+            requests.append(
+                asyncio.create_task(
+                    async_client.get(
+                        f"/v1/runs/{RUN_ID}/status",
+                        headers=_headers(),
+                    )
+                )
+            )
+            await asyncio.sleep(0.05)
+            release_first.set()
+            assert (await requests[0]).status_code == 200
+            assert await asyncio.to_thread(second_started.wait, 0.5)
+            requests.append(
+                asyncio.create_task(
+                    async_client.get(
+                        f"/v1/runs/{RUN_ID}/status",
+                        headers=_headers(),
+                    )
+                )
+            )
+            await asyncio.sleep(0.05)
+
+            assert third_started.is_set() is False
+            assert runtime.call_count == 2
+            release_second.set()
+            responses = await asyncio.gather(*requests[1:])
+            assert [response.status_code for response in responses] == [200, 200]
+            assert runtime.call_count == 3
+            assert application.state.run_locks == {}
+    finally:
+        release_first.set()
+        release_second.set()
+        pending = [request for request in requests if not request.done()]
         if pending:
             await asyncio.gather(*pending)
 

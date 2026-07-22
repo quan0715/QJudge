@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import TypeVar
 from uuid import UUID
 
@@ -32,6 +33,12 @@ from integrity_service.controller.settings import ControllerSettings
 
 
 Schema = TypeVar("Schema", bound=StrictControllerModel)
+
+
+@dataclass(slots=True)
+class _RunLockEntry:
+    lock: asyncio.Lock
+    users: int = 0
 
 
 def _docker_client_from_environment():
@@ -74,7 +81,8 @@ def create_app(
         application.state.settings = settings
     if runtime is not None:
         application.state.runtime = runtime
-    run_locks: dict[UUID, asyncio.Lock] = {}
+    run_locks: dict[UUID, _RunLockEntry] = {}
+    application.state.run_locks = run_locks
 
     def current_settings(request: Request) -> ControllerSettings:
         resolved = getattr(request.app.state, "settings", None)
@@ -125,9 +133,13 @@ def create_app(
             raise HTTPException(status_code=422, detail="invalid request") from error
 
     async def execute(run_id: UUID, operation):
+        entry = run_locks.get(run_id)
+        if entry is None:
+            entry = _RunLockEntry(lock=asyncio.Lock())
+            run_locks[run_id] = entry
+        entry.users += 1
         try:
-            lock = run_locks.setdefault(run_id, asyncio.Lock())
-            async with lock:
+            async with entry.lock:
                 return await run_in_threadpool(operation)
         except ImageNotAllowed as error:
             raise HTTPException(status_code=403, detail="Worker image is not allowed") from error
@@ -137,6 +149,10 @@ def create_app(
             raise HTTPException(
                 status_code=503, detail="Docker lifecycle unavailable"
             ) from error
+        finally:
+            entry.users -= 1
+            if entry.users == 0 and run_locks.get(run_id) is entry:
+                del run_locks[run_id]
 
     @application.post("/v1/runs/{run_id}/start")
     async def start_run(run_id: UUID, request: Request):

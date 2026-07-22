@@ -319,9 +319,10 @@ class DockerRuntime:
         worker_image: str,
         token_digest: str,
     ) -> None:
-        attrs = getattr(initializer, "attrs", None)
-        config = attrs.get("Config") if isinstance(attrs, dict) else None
-        labels = config.get("Labels") if isinstance(config, dict) else None
+        attrs = self._inspect_attrs(initializer)
+        config = self._required_mapping(attrs, "Config")
+        labels = self._required_mapping(config, "Labels")
+        actual_image = self._required_field(config, "Image")
         expected_labels = {
             RUN_ID_LABEL: str(run_id),
             ROLE_LABEL: "secret-initializer",
@@ -329,8 +330,7 @@ class DockerRuntime:
         }
         if (
             getattr(initializer, "name", None) != secret_initializer_name(run_id)
-            or not isinstance(config, dict)
-            or config.get("Image") != worker_image
+            or actual_image != worker_image
             or labels != expected_labels
             or self._container_state(initializer) != "created"
         ):
@@ -378,7 +378,9 @@ class DockerRuntime:
     @staticmethod
     def _validate_volume(volume: object, *, run_id: UUID, kind: str) -> None:
         attrs = getattr(volume, "attrs", None)
-        labels = attrs.get("Labels") if isinstance(attrs, dict) else None
+        if not isinstance(attrs, dict) or "Labels" not in attrs:
+            raise VolumeConflict("Docker volume ownership labels conflict")
+        labels = attrs["Labels"]
         expected = {RUN_ID_LABEL: str(run_id), KIND_LABEL: kind}
         if labels != expected:
             raise VolumeConflict("Docker volume ownership labels conflict")
@@ -392,21 +394,23 @@ class DockerRuntime:
         token_digest: str,
     ) -> None:
         labels = self._validate_owned_container(worker, run_id)
-        attrs = getattr(worker, "attrs", None)
-        config = attrs.get("Config") if isinstance(attrs, dict) else None
-        actual_image = config.get("Image") if isinstance(config, dict) else None
+        attrs = self._inspect_attrs(worker)
+        config = self._required_mapping(attrs, "Config")
+        actual_image = self._required_field(config, "Image")
         if actual_image != worker_image or labels[TOKEN_DIGEST_LABEL] != token_digest:
             raise ContainerConflict("Worker container identity conflicts")
 
     def _validate_owned_container(
         self, worker: object, run_id: UUID
     ) -> dict[str, str]:
-        attrs = getattr(worker, "attrs", None)
-        config = attrs.get("Config") if isinstance(attrs, dict) else None
-        labels = config.get("Labels") if isinstance(config, dict) else None
+        attrs = self._inspect_attrs(worker)
+        config = self._required_mapping(attrs, "Config")
+        labels = self._required_field(config, "Labels")
         if not isinstance(labels, dict):
             raise ContainerConflict("Worker container ownership labels are missing")
-        token_digest = labels.get(TOKEN_DIGEST_LABEL)
+        if TOKEN_DIGEST_LABEL not in labels:
+            raise ContainerConflict("Worker container ownership labels conflict")
+        token_digest = labels[TOKEN_DIGEST_LABEL]
         expected_labels = {
             RUN_ID_LABEL: str(run_id),
             ROLE_LABEL: "worker",
@@ -421,7 +425,8 @@ class DockerRuntime:
             raise ContainerConflict("Worker container ownership labels conflict")
         if (
             getattr(worker, "name", None) != container_name(run_id)
-            or config.get("Image") not in self.settings.allowed_worker_images
+            or self._required_field(config, "Image")
+            not in self.settings.allowed_worker_images
         ):
             raise ContainerConflict("Worker container identity conflicts")
         self._validate_fixed_policy(
@@ -475,36 +480,50 @@ class DockerRuntime:
         expected_pids_limit: int,
         expected_restart_policy: dict[str, object],
     ) -> None:
-        attrs = getattr(container, "attrs", None)
-        config = attrs.get("Config") if isinstance(attrs, dict) else None
-        host_config = attrs.get("HostConfig") if isinstance(attrs, dict) else None
-        network_settings = attrs.get("NetworkSettings") if isinstance(attrs, dict) else None
-        networks = (
-            network_settings.get("Networks")
-            if isinstance(network_settings, dict)
-            else None
-        )
+        attrs = self._inspect_attrs(container)
+        config = self._required_mapping(attrs, "Config")
+        host_config = self._required_mapping(attrs, "HostConfig")
+        network_settings = self._required_mapping(attrs, "NetworkSettings")
+        networks = self._required_field(network_settings, "Networks")
+        mounts = self._required_field(attrs, "Mounts")
+        image_config = self._image_config(container)
         if (
-            not isinstance(config, dict)
-            or not isinstance(host_config, dict)
-            or config.get("User") != "10001:10001"
-            or host_config.get("NetworkMode") != expected_network
+            self._required_field(config, "User") != "10001:10001"
+            or not self._image_execution_policy_matches(config, image_config)
+            or self._required_field(host_config, "NetworkMode") != expected_network
             or not self._string_list_matches(
-                host_config.get("Binds"), expected_binds
+                self._required_field(host_config, "Binds"), expected_binds
             )
-            or host_config.get("ReadonlyRootfs") is not True
-            or not self._no_added_capabilities(host_config.get("CapAdd"))
-            or not self._string_list_matches(host_config.get("CapDrop"), ["ALL"])
-            or host_config.get("Privileged") is not False
-            or not self._no_new_privileges_only(host_config.get("SecurityOpt"))
-            or host_config.get("Tmpfs") != expected_tmpfs
-            or host_config.get("Memory") != expected_memory
-            or host_config.get("NanoCpus") != expected_nano_cpus
-            or host_config.get("PidsLimit") != expected_pids_limit
-            or host_config.get("RestartPolicy") != expected_restart_policy
+            or self._required_field(host_config, "ReadonlyRootfs") is not True
+            or not self._no_added_capabilities(
+                self._required_field(host_config, "CapAdd")
+            )
+            or not self._string_list_matches(
+                self._required_field(host_config, "CapDrop"), ["ALL"]
+            )
+            or self._required_field(host_config, "Privileged") is not False
+            or not self._no_new_privileges_only(
+                self._required_field(host_config, "SecurityOpt")
+            )
+            or self._required_field(host_config, "Tmpfs") != expected_tmpfs
+            or self._required_field(host_config, "Memory") != expected_memory
+            or self._required_field(host_config, "NanoCpus") != expected_nano_cpus
+            or self._required_field(host_config, "PidsLimit") != expected_pids_limit
+            or self._required_field(host_config, "RestartPolicy")
+            != expected_restart_policy
+            or not self._no_port_bindings(
+                self._required_field(host_config, "PortBindings")
+            )
+            or not self._no_devices(self._required_field(host_config, "Devices"))
+            or not self._no_devices(
+                self._required_field(host_config, "DeviceRequests")
+            )
+            or self._required_field(host_config, "PidMode") != ""
+            or self._required_field(host_config, "IpcMode") != "private"
             or not isinstance(networks, dict)
             or set(networks) != {expected_network}
-            or not self._mounts_match(attrs.get("Mounts"), expected_mounts)
+            or not all(isinstance(network, dict) for network in networks.values())
+            or not self._mounts_match(mounts, expected_mounts)
         ):
             raise ContainerConflict("Container Docker policy conflicts")
 
@@ -514,20 +533,14 @@ class DockerRuntime:
         *,
         overrides: dict[str, str],
     ) -> None:
-        attrs = getattr(container, "attrs", None)
-        config = attrs.get("Config") if isinstance(attrs, dict) else None
-        if not isinstance(config, dict):
-            raise ContainerConflict("Container environment is unavailable")
-        actual_environment = config.get("Env")
+        attrs = self._inspect_attrs(container)
+        config = self._required_mapping(attrs, "Config")
+        actual_environment = self._required_field(config, "Env")
         actual = (
             {} if actual_environment is None else self._environment_map(actual_environment)
         )
-        image = getattr(container, "image", None)
-        image_attrs = getattr(image, "attrs", None)
-        image_config = image_attrs.get("Config") if isinstance(image_attrs, dict) else None
-        if not isinstance(image_config, dict):
-            raise ContainerConflict("Container image environment is unavailable")
-        image_environment = image_config.get("Env")
+        image_config = self._image_config(container)
+        image_environment = self._required_field(image_config, "Env")
         if image_environment is None:
             expected: dict[str, str] | None = {}
         else:
@@ -574,6 +587,14 @@ class DockerRuntime:
         return value is None or value == []
 
     @staticmethod
+    def _no_port_bindings(value: object) -> bool:
+        return value is None or value == {}
+
+    @staticmethod
+    def _no_devices(value: object) -> bool:
+        return value is None or value == []
+
+    @staticmethod
     def _no_new_privileges_only(value: object) -> bool:
         return isinstance(value, list) and value in (
             ["no-new-privileges"],
@@ -591,16 +612,100 @@ class DockerRuntime:
         for mount in actual:
             if not isinstance(mount, dict):
                 return False
-            normalized.append(
-                (
-                    mount.get("Type"),
-                    mount.get("Name"),
-                    mount.get("Destination"),
-                    mount.get("Mode"),
-                    mount.get("RW"),
-                )
-            )
+            fields = ("Type", "Name", "Destination", "Mode", "RW")
+            if any(field not in mount for field in fields):
+                return False
+            normalized.append(tuple(mount[field] for field in fields))
         return sorted(normalized, key=repr) == sorted(expected, key=repr)
+
+    @classmethod
+    def _image_execution_policy_matches(
+        cls,
+        config: dict[str, object],
+        image_config: dict[str, object],
+    ) -> bool:
+        for field in ("Cmd", "Entrypoint"):
+            actual = cls._required_field(config, field)
+            expected = cls._required_field(image_config, field)
+            if (
+                not cls._string_list_or_none(actual)
+                or not cls._string_list_or_none(expected)
+                or actual != expected
+            ):
+                return False
+        actual_healthcheck = cls._required_field(config, "Healthcheck")
+        expected_healthcheck = cls._required_field(image_config, "Healthcheck")
+        return (
+            cls._canonical_healthcheck(actual_healthcheck)
+            and cls._canonical_healthcheck(expected_healthcheck)
+            and actual_healthcheck == expected_healthcheck
+        )
+
+    @staticmethod
+    def _string_list_or_none(value: object) -> bool:
+        return value is None or (
+            isinstance(value, list) and all(type(item) is str for item in value)
+        )
+
+    @staticmethod
+    def _canonical_healthcheck(value: object) -> bool:
+        if value is None:
+            return True
+        if not isinstance(value, dict):
+            return False
+        allowed = {
+            "Test",
+            "Interval",
+            "Timeout",
+            "Retries",
+            "StartPeriod",
+            "StartInterval",
+        }
+        if not value or set(value) - allowed or "Test" not in value:
+            return False
+        test = value["Test"]
+        if (
+            not isinstance(test, list)
+            or not test
+            or any(type(item) is not str for item in test)
+            or test[0] not in {"NONE", "CMD", "CMD-SHELL"}
+        ):
+            return False
+        return all(
+            type(field_value) is int and field_value >= 0
+            for field, field_value in value.items()
+            if field != "Test"
+        )
+
+    @staticmethod
+    def _inspect_attrs(container: object) -> dict[str, object]:
+        attrs = getattr(container, "attrs", None)
+        if not isinstance(attrs, dict):
+            raise ContainerConflict("Container inspect data is unavailable")
+        return attrs
+
+    @staticmethod
+    def _required_field(mapping: dict[str, object], field: str) -> object:
+        if field not in mapping:
+            raise ContainerConflict("Container inspect data is incomplete")
+        return mapping[field]
+
+    @classmethod
+    def _required_mapping(
+        cls, mapping: dict[str, object], field: str
+    ) -> dict[str, object]:
+        value = cls._required_field(mapping, field)
+        if not isinstance(value, dict):
+            raise ContainerConflict("Container inspect data is malformed")
+        return value
+
+    @classmethod
+    def _image_config(cls, container: object) -> dict[str, object]:
+        image = getattr(container, "image", None)
+        image_attrs = getattr(image, "attrs", None)
+        if not isinstance(image_attrs, dict):
+            raise ContainerConflict("Container image inspect data is unavailable")
+        return cls._required_mapping(image_attrs, "Config")
 
     def _start_result(self, worker: object, *, token_digest: str) -> StartResult:
         return StartResult(
@@ -620,11 +725,9 @@ class DockerRuntime:
 
     @staticmethod
     def _container_state(worker: object) -> str:
-        attrs = getattr(worker, "attrs", None)
-        state = attrs.get("State") if isinstance(attrs, dict) else None
-        value = state.get("Status") if isinstance(state, dict) else None
-        if not isinstance(value, str) or not value:
-            value = getattr(worker, "status", None)
+        attrs = DockerRuntime._inspect_attrs(worker)
+        state = DockerRuntime._required_mapping(attrs, "State")
+        value = DockerRuntime._required_field(state, "Status")
         return DockerRuntime._required_string(value, "container state")
 
     @staticmethod
