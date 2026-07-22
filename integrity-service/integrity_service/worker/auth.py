@@ -34,6 +34,7 @@ def verify_backend_request(
     body: bytes,
     timestamp: str,
     path_run_id: UUID,
+    expected_run_id: UUID,
     header_run_id: str,
     signature_b64: str,
     now_seconds: int,
@@ -42,11 +43,20 @@ def verify_backend_request(
         signed_run_id = UUID(header_run_id)
     except (ValueError, AttributeError) as error:
         raise RequestAuthenticationError("invalid request authentication") from error
-    if signed_run_id != path_run_id:
+    if signed_run_id != path_run_id or path_run_id != expected_run_id:
         raise RequestAuthenticationError("invalid request authentication")
-    if not timestamp.isascii() or not timestamp.isdigit():
+    if (
+        not timestamp.isascii()
+        or not timestamp.isdigit()
+        or len(timestamp) > 20
+    ):
         raise RequestAuthenticationError("invalid request authentication")
-    timestamp_seconds = int(timestamp)
+    try:
+        timestamp_seconds = int(timestamp)
+    except ValueError as error:
+        raise RequestAuthenticationError("invalid request authentication") from error
+    if timestamp != str(timestamp_seconds):
+        raise RequestAuthenticationError("invalid request authentication")
     if abs(now_seconds - timestamp_seconds) > 30:
         raise RequestAuthenticationError("stale request authentication")
     try:

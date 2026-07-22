@@ -18,6 +18,10 @@ from integrity_service.core.timeline import (
     SubmissionEntry,
     TimelineBaseline,
 )
+from integrity_service.journal.durability import (
+    ensure_durable_directory,
+    open_durable_file,
+)
 
 
 class DurableLogCorruption(ValueError):
@@ -26,6 +30,10 @@ class DurableLogCorruption(ValueError):
 
 class CommandConflict(ValueError):
     """A deterministic command ID was reused for different command bytes."""
+
+
+class CommandDeliveryProtocolError(ValueError):
+    """A Backend 2xx response did not prove the exact command receipt succeeded."""
 
 
 class CommandBackend(Protocol):
@@ -54,11 +62,13 @@ class DurableJsonLog:
     """Small append-only canonical JSON log with tail-only crash recovery."""
 
     def __init__(self, path: Path) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_durable_directory(path.parent)
         self.path = path
         self._lock = threading.RLock()
         self._records = list(self._recover())
-        self._fd = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600)
+        self._fd = open_durable_file(
+            path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600
+        )
         self._failed = False
 
     @property
@@ -176,6 +186,78 @@ def _command_json(command: object) -> dict[str, object]:
     return projected
 
 
+def _validate_delivery_response(
+    response: object,
+    commands: tuple[dict[str, object], ...],
+) -> dict[str, object]:
+    if not isinstance(response, dict) or set(response) != {
+        "accepted_command_ids",
+        "archive_uploads",
+    }:
+        raise CommandDeliveryProtocolError("command response schema is invalid")
+    accepted = response.get("accepted_command_ids")
+    uploads = response.get("archive_uploads")
+    if not isinstance(accepted, list) or not all(
+        type(command_id) is str for command_id in accepted
+    ):
+        raise CommandDeliveryProtocolError("command response accepted IDs are invalid")
+    if len(accepted) != len(set(accepted)):
+        raise CommandDeliveryProtocolError("command response repeats an accepted ID")
+    expected_ids = tuple(str(command["command_id"]) for command in commands)
+    if len(accepted) != len(expected_ids) or set(accepted) != set(expected_ids):
+        raise CommandDeliveryProtocolError("command response does not accept the receipt")
+    if not isinstance(uploads, list):
+        raise CommandDeliveryProtocolError("command response archive uploads are invalid")
+
+    expected_uploads = {
+        str(command["command_id"]): command
+        for command in commands
+        if command.get("kind") == "create_archive_upload"
+    }
+    seen_uploads: set[str] = set()
+    for upload in uploads:
+        if not isinstance(upload, dict) or set(upload) != {
+            "command_id",
+            "object_key",
+            "upload_url",
+            "checksum_sha256",
+            "checksum_enforced",
+        }:
+            raise CommandDeliveryProtocolError(
+                "command response archive upload schema is invalid"
+            )
+        command_id = upload.get("command_id")
+        if type(command_id) is not str or command_id in seen_uploads:
+            raise CommandDeliveryProtocolError(
+                "command response archive upload ID is invalid"
+            )
+        try:
+            command = expected_uploads[command_id]
+        except KeyError as error:
+            raise CommandDeliveryProtocolError(
+                "command response references an unknown archive upload"
+            ) from error
+        metadata = command.get("metadata")
+        if not isinstance(metadata, dict):
+            raise CommandDeliveryProtocolError("archive command metadata is invalid")
+        if (
+            upload.get("object_key") != metadata.get("object_key")
+            or upload.get("checksum_sha256") != metadata.get("sha256")
+            or upload.get("checksum_enforced") is not True
+            or type(upload.get("upload_url")) is not str
+            or not upload.get("upload_url")
+        ):
+            raise CommandDeliveryProtocolError(
+                "command response checksum enforcement is invalid"
+            )
+        seen_uploads.add(command_id)
+    if seen_uploads != set(expected_uploads):
+        raise CommandDeliveryProtocolError(
+            "command response omits an archive upload result"
+        )
+    return json.loads(_canonical_json(response))
+
+
 class CommandOutbox:
     """Durably deduplicate commands and checkpoint successful Backend delivery."""
 
@@ -186,7 +268,11 @@ class CommandOutbox:
         self._command_bytes: dict[str, bytes] = {}
         self._delivered: set[str] = set()
         self._responses: dict[str, dict[str, object]] = {}
-        self._rebuild()
+        try:
+            self._rebuild()
+        except BaseException:
+            self._log.close()
+            raise
 
     @property
     def pending_commands(self) -> tuple[dict[str, object], ...]:
@@ -239,20 +325,21 @@ class CommandOutbox:
             if not pending:
                 return {}
             response = backend.send_commands(pending)
-            if not isinstance(response, dict):
-                raise TypeError("Backend command response must be an object")
             command_ids = [str(command["command_id"]) for command in pending]
+            validated_response = _validate_delivery_response(response, pending)
             self._log.append(
                 {
                     "kind": "delivered",
                     "command_ids": command_ids,
-                    "response": response,
+                    "response": validated_response,
                 }
             )
             for command_id in command_ids:
                 self._delivered.add(command_id)
-                self._responses[command_id] = json.loads(_canonical_json(response))
-            return response
+                self._responses[command_id] = json.loads(
+                    _canonical_json(validated_response)
+                )
+            return json.loads(_canonical_json(validated_response))
 
     def delivery_response(self, command_id: str) -> dict[str, object] | None:
         with self._lock:
@@ -288,13 +375,28 @@ class CommandOutbox:
                 response = record.get("response")
                 if not isinstance(command_ids, list) or not isinstance(response, dict):
                     raise DurableLogCorruption("delivery checkpoint is malformed")
+                if len(command_ids) != len(set(command_ids)):
+                    raise DurableLogCorruption("delivery checkpoint repeats a command")
+                commands = []
                 for command_id in command_ids:
                     if command_id not in self._commands:
                         raise DurableLogCorruption(
                             "delivery checkpoint references an unknown command"
                         )
+                    if command_id in self._delivered:
+                        raise DurableLogCorruption(
+                            "delivery checkpoint repeats a delivered command"
+                        )
+                    commands.append(self._commands[str(command_id)])
+                try:
+                    validated = _validate_delivery_response(response, tuple(commands))
+                except CommandDeliveryProtocolError as error:
+                    raise DurableLogCorruption(
+                        "delivery checkpoint response is malformed"
+                    ) from error
+                for command_id in command_ids:
                     self._delivered.add(str(command_id))
-                    self._responses[str(command_id)] = response
+                    self._responses[str(command_id)] = validated
             else:
                 raise DurableLogCorruption("unknown command outbox record")
 
@@ -307,16 +409,20 @@ class TimelineJournal:
         self._lock = threading.RLock()
         self._last_timeline_seq = 0
         self._last_server_ms = 0
-        for record in self._log.records:
-            server_ms = record.get("server_ms")
-            if type(server_ms) is not int or server_ms < self._last_server_ms:
-                raise DurableLogCorruption("timeline server time is invalid")
-            self._last_server_ms = server_ms
-            if record.get("kind") in ("batch_receipt", "submission"):
-                timeline_seq = record.get("timeline_seq")
-                if timeline_seq != self._last_timeline_seq + 1:
-                    raise DurableLogCorruption("timeline sequence is not gap-free")
-                self._last_timeline_seq = timeline_seq
+        try:
+            for record in self._log.records:
+                server_ms = record.get("server_ms")
+                if type(server_ms) is not int or server_ms < self._last_server_ms:
+                    raise DurableLogCorruption("timeline server time is invalid")
+                self._last_server_ms = server_ms
+                if record.get("kind") in ("batch_receipt", "submission"):
+                    timeline_seq = record.get("timeline_seq")
+                    if timeline_seq != self._last_timeline_seq + 1:
+                        raise DurableLogCorruption("timeline sequence is not gap-free")
+                    self._last_timeline_seq = timeline_seq
+        except BaseException:
+            self._log.close()
+            raise
 
     @property
     def records(self) -> tuple[dict[str, object], ...]:

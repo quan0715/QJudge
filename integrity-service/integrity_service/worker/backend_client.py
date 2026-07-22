@@ -18,6 +18,10 @@ class BackendProtocolError(RuntimeError):
     """The Backend returned a non-retryable or malformed response."""
 
 
+class BackendDeliveryUncertain(BackendUnavailable):
+    """A transport failed after request application may have begun."""
+
+
 class BackendClient:
     RETRYABLE_STATUSES = frozenset((502, 503, 504))
 
@@ -40,16 +44,23 @@ class BackendClient:
         timeout = httpx.Timeout(
             request_timeout_seconds, connect=connect_timeout_seconds
         )
-        self._client = httpx.Client(
+        client = httpx.Client(
             base_url=base_url.rstrip("/"),
             headers={"Authorization": f"Bearer {token}"},
             timeout=timeout,
             transport=transport,
         )
-        self._upload_client = httpx.Client(
-            timeout=timeout,
-            transport=upload_transport,
-        )
+        try:
+            upload_client = httpx.Client(
+                timeout=timeout,
+                transport=upload_transport,
+            )
+        except BaseException:
+            client.close()
+            raise
+        self._client = client
+        self._upload_client = upload_client
+        self._closed = False
 
     def fetch_bootstrap(self) -> dict[str, object]:
         path = f"/api/v1/internal/integrity/runs/{self._run_id}/bootstrap/"
@@ -90,12 +101,23 @@ class BackendClient:
             )
         except (httpx.ConnectError, httpx.ConnectTimeout) as error:
             raise BackendUnavailable("archive storage is unavailable") from error
+        except httpx.TransportError as error:
+            raise BackendDeliveryUncertain(
+                "archive storage delivery is unavailable"
+            ) from error
         if response.status_code < 200 or response.status_code >= 300:
-            raise BackendUnavailable("archive storage is unavailable")
+            if response.status_code in self.RETRYABLE_STATUSES:
+                raise BackendUnavailable("archive storage is unavailable")
+            raise BackendProtocolError("archive storage rejected the upload")
 
     def close(self) -> None:
-        self._client.close()
-        self._upload_client.close()
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            self._client.close()
+        finally:
+            self._upload_client.close()
 
     def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
         for attempt in range(self._retry_attempts):
@@ -105,6 +127,10 @@ class BackendClient:
                 if attempt + 1 == self._retry_attempts:
                     raise BackendUnavailable("Backend is unavailable") from error
                 continue
+            except httpx.TransportError as error:
+                raise BackendDeliveryUncertain(
+                    "Backend delivery is unavailable"
+                ) from error
             if response.status_code in self.RETRYABLE_STATUSES:
                 if attempt + 1 == self._retry_attempts:
                     raise BackendUnavailable("Backend is unavailable")

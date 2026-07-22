@@ -232,8 +232,15 @@ class DecisionTimeline:
         )
         commands = list(self._advance(entry.server_ms))
         if isinstance(entry, SubmissionEntry):
+            self._active_participant_ids.add(entry.participant_id)
             self._submissions.mark_submitted(entry.participant_id)
         else:
+            was_active = entry.participant_id in self._active_participant_ids
+            self._active_participant_ids.add(entry.participant_id)
+            if self._scheduled_end_advanced and not was_active:
+                commands.extend(
+                    self._scheduler.tick(entry.server_ms, {entry.participant_id})
+                )
             commands.extend(
                 self._connectivity.observe(
                     participant_id=entry.participant_id,

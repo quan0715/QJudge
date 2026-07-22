@@ -8,6 +8,8 @@ import json
 import threading
 import time
 from collections.abc import Awaitable
+from contextlib import ExitStack
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal
 from uuid import UUID
@@ -17,6 +19,7 @@ from integrity_service.core.commands import (
     IntegrityCommand,
     SubmissionState,
     make_command,
+    json_projection,
 )
 from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.incidents import IncidentEngine
@@ -33,16 +36,23 @@ from integrity_service.core.timeline import (
     TimelineBaseline,
 )
 from integrity_service.journal.archive import (
+    ArchiveFatalFailure,
     ArchiveManager,
     ArchiveResult,
+    ArchiveRetryableFailure,
     SegmentedJournal,
 )
 from integrity_service.journal.command_outbox import (
+    CommandDeliveryProtocolError,
     CommandOutbox,
     DurableLogCorruption,
     TimelineJournal,
 )
-from integrity_service.worker.backend_client import BackendUnavailable
+from integrity_service.journal.durability import ensure_durable_directory
+from integrity_service.worker.backend_client import (
+    BackendProtocolError,
+    BackendUnavailable,
+)
 from integrity_service.worker.settings import WorkerBootstrap
 
 
@@ -56,6 +66,19 @@ class WorkerNotAccepting(RuntimeError):
 
 class ArchiveNotConfigured(RuntimeError):
     """The scoped Backend does not support presigned archive upload."""
+
+
+class SchedulerFailed(RuntimeError):
+    """The only scheduler owner terminated and the process must be replaced."""
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerHealth:
+    healthy: bool
+    state: str
+    accepting: bool
+    warning_codes: tuple[str, ...]
+    last_scheduler_error: str | None
 
 
 MAX_WARNING_COMMANDS_PER_RECEIPT = 32
@@ -76,10 +99,10 @@ class WorkerRuntime:
         self.bootstrap = bootstrap
         self.run_id = bootstrap.run_id
         self.backend = backend
-        self._policy_snapshot = json.loads(self._canonical(bootstrap.policy_snapshot))
-        self._registry_snapshot = json.loads(
-            self._canonical(bootstrap.registry_snapshot)
-        )
+        self._policy_snapshot = json_projection(bootstrap.policy_snapshot)
+        self._registry_snapshot = json_projection(bootstrap.registry_snapshot)
+        assert isinstance(self._policy_snapshot, dict)
+        assert isinstance(self._registry_snapshot, dict)
         self._clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
         self._scheduler_wait = scheduler_wait or self._wait_one_second
         self._lock = threading.RLock()
@@ -88,92 +111,147 @@ class WorkerRuntime:
         self._state = "RUNNING"
         self._warning_codes: set[str] = set()
         self._scheduler_task: asyncio.Task[None] | None = None
+        self._last_scheduler_error: str | None = None
         self._final_cursors: dict[str, int] = {}
+        self._closed = False
+
+        delayed = self._policy_snapshot.get("delayed_delivery_after_ms")
+        if delayed is not None and (type(delayed) is not int or delayed < 0):
+            raise ValueError("delayed_delivery_after_ms policy is invalid")
+        self._delayed_delivery_after_ms: int | None = delayed
+
+        archive_policy = json_projection(bootstrap.archive_policy)
+        assert isinstance(archive_policy, dict)
+        rotate_after_ms = self._policy_int(
+            archive_policy, "rotate_after_ms", 60_000, minimum=1
+        )
+        max_segment_bytes = self._policy_int(
+            archive_policy, "max_segment_bytes", 8 * 1024 * 1024, minimum=1
+        )
+        reserve_default = self._policy_int(
+            archive_policy, "capacity_warning_bytes", 0, minimum=0
+        )
+        capacity_reserve_bytes = self._policy_int(
+            archive_policy,
+            "capacity_reserve_bytes",
+            reserve_default,
+            minimum=0,
+        )
 
         run_root = data_root / str(self.run_id)
-        run_root.mkdir(parents=True, exist_ok=True)
-        archive_policy = bootstrap.archive_policy
-        self.journal = SegmentedJournal(
-            run_root / "journal",
-            started_at_ms=bootstrap.server_ms,
-            rotate_after_ms=self._policy_int(
-                archive_policy, "rotate_after_ms", 60_000, minimum=1
-            ),
-            max_segment_bytes=self._policy_int(
-                archive_policy, "max_segment_bytes", 8 * 1024 * 1024, minimum=1
-            ),
-            capacity_warning_bytes=self._policy_int(
-                archive_policy, "capacity_warning_bytes", 0, minimum=0
-            ),
-        )
-        self.timeline_journal = TimelineJournal(run_root / "timeline")
-        self.outbox = CommandOutbox(run_root / "outbox")
+        ensure_durable_directory(run_root)
+        ownership = ExitStack()
+        try:
+            self.journal = SegmentedJournal(
+                run_root / "journal",
+                started_at_ms=bootstrap.server_ms,
+                rotate_after_ms=rotate_after_ms,
+                max_segment_bytes=max_segment_bytes,
+                capacity_root=run_root,
+                capacity_reserve_bytes=capacity_reserve_bytes,
+            )
+            ownership.callback(self.journal.close)
+            self.timeline_journal = TimelineJournal(run_root / "timeline")
+            ownership.callback(self.timeline_journal.close)
+            self.outbox = CommandOutbox(run_root / "outbox")
+            ownership.callback(self.outbox.close)
 
-        baseline = self._load_or_create_baseline(bootstrap)
-        self.registry = Registry(self._registry_snapshot)
-        self.sequencer = SessionSequencer()
-        self.submissions = SubmissionState()
-        context = EngineContext(self.run_id)
-        self.incidents = IncidentEngine(self.registry, context, self.submissions)
-        self.connectivity = ConnectivityMonitor(
-            self._policy_snapshot,
-            self.registry,
-            context,
-            self.submissions,
-        )
-        self.scheduler = DeadlineScheduler(
-            bootstrap.scheduled_end_ms,
-            context,
-            self.submissions,
-        )
-        self.timeline = DecisionTimeline(
-            baseline=baseline,
-            incidents=self.incidents,
-            connectivity=self.connectivity,
-            scheduler=self.scheduler,
-            submissions=self.submissions,
-        )
-        self._timeline_seq = 0
-        self._clock_server_ms = baseline.server_ms
-        self._replay_timeline()
+            baseline = self._load_or_create_baseline(bootstrap)
+            self.registry = Registry(self._registry_snapshot)
+            self.sequencer = SessionSequencer()
+            self.submissions = SubmissionState()
+            context = EngineContext(self.run_id)
+            self.incidents = IncidentEngine(
+                self.registry, context, self.submissions
+            )
+            self.connectivity = ConnectivityMonitor(
+                self._policy_snapshot,
+                self.registry,
+                context,
+                self.submissions,
+            )
+            self.scheduler = DeadlineScheduler(
+                bootstrap.scheduled_end_ms,
+                context,
+                self.submissions,
+            )
+            self.timeline = DecisionTimeline(
+                baseline=baseline,
+                incidents=self.incidents,
+                connectivity=self.connectivity,
+                scheduler=self.scheduler,
+                submissions=self.submissions,
+            )
+            self._timeline_seq = 0
+            self._clock_server_ms = baseline.server_ms
+            self._replay_timeline()
 
-        digest = lambda value: hashlib.sha256(self._canonical(value)).hexdigest()
-        self.archiver = ArchiveManager(
-            root=run_root / "archive",
-            run_id=self.run_id,
-            generation=bootstrap.generation,
-            journal=self.journal,
-            outbox=self.outbox,
-            backend=backend,
-            snapshot_digests={
-                "policy": digest(self._policy_snapshot),
-                "registry": digest(self._registry_snapshot),
-            },
-            frozen_snapshots={
-                "policy": self._policy_snapshot,
-                "registry": self._registry_snapshot,
-            },
-        )
+            digest = lambda value: hashlib.sha256(
+                self._canonical(value)
+            ).hexdigest()
+            self.archiver = ArchiveManager(
+                root=run_root / "archive",
+                run_id=self.run_id,
+                generation=bootstrap.generation,
+                journal=self.journal,
+                outbox=self.outbox,
+                backend=backend,
+                snapshot_digests={
+                    "policy": digest(self._policy_snapshot),
+                    "registry": digest(self._registry_snapshot),
+                },
+                frozen_snapshots={
+                    "policy": self._policy_snapshot,
+                    "registry": self._registry_snapshot,
+                },
+                previous_manifest=bootstrap.previous_manifest,
+            )
+            ownership.callback(self.archiver.close)
+            self.journal.check_capacity()
+        except BaseException:
+            ownership.close()
+            raise
+        ownership.pop_all()
 
     @property
     def accepting(self) -> bool:
-        return self._accepting
+        return self.health_snapshot().accepting
 
     @property
     def healthy(self) -> bool:
-        return self._healthy and self.journal.healthy and self.archiver.healthy
+        return self.health_snapshot().healthy
 
     @property
     def state(self) -> str:
-        return self._state
+        return self.health_snapshot().state
 
     @property
     def warning_codes(self) -> frozenset[str]:
-        return (
-            frozenset(self._warning_codes)
-            | self.journal.warning_codes
-            | self.archiver.warning_codes
-        )
+        return frozenset(self.health_snapshot().warning_codes)
+
+    @property
+    def last_scheduler_error(self) -> str | None:
+        return self.health_snapshot().last_scheduler_error
+
+    def health_snapshot(self) -> WorkerHealth:
+        with self._lock:
+            warnings = (
+                frozenset(self._warning_codes)
+                | self.journal.warning_codes
+                | self.archiver.warning_codes
+            )
+            return WorkerHealth(
+                healthy=(
+                    self._healthy
+                    and self.journal.healthy
+                    and self.archiver.healthy
+                    and self._last_scheduler_error is None
+                ),
+                state=self._state,
+                accepting=self._accepting,
+                warning_codes=tuple(sorted(warnings)),
+                last_scheduler_error=self._last_scheduler_error,
+            )
 
     def ingest(self, batch: EventBatch, received_at_ms: int) -> BatchAck:
         with self._lock:
@@ -184,9 +262,11 @@ class WorkerRuntime:
             if batch.run_id != self.run_id:
                 raise RunMismatch("batch run does not match Worker run")
             self._drain_pending()
+            admitted = False
             try:
                 self.journal.append_batch_once(batch)
                 accepted = self.sequencer.accept(batch)
+                admitted = True
                 delayed_event_ids = self._delayed_event_ids(
                     accepted.new_records, received_at_ms
                 )
@@ -216,14 +296,16 @@ class WorkerRuntime:
                 if batch.registry_version != self.registry.version:
                     self._warning_codes.add("registry_version_mismatch")
                 self.outbox.append(commands)
-            except OSError:
-                self._healthy = False
+            except BaseException as error:
+                if admitted or isinstance(error, OSError):
+                    self._mark_unhealthy("durable_write_failed")
                 raise
             self._drain_pending()
             try:
                 self.archiver.rotate_due(received_at_ms)
-            except OSError:
-                self._healthy = False
+                self.journal.check_capacity()
+            except BaseException:
+                self._mark_unhealthy("archive_durability_failed")
                 raise
             return BatchAck(
                 acked_through_seq=accepted.acked_through_seq,
@@ -237,11 +319,14 @@ class WorkerRuntime:
         participant_id: int,
         source: Literal["manual", "backend"],
         server_ms: int,
-    ) -> None:
+    ) -> int:
         with self._lock:
             if not self.healthy:
                 raise OSError("Worker is unhealthy and requires recovery")
+            if not self._accepting:
+                raise WorkerNotAccepting("Worker is not accepting observations")
             self._drain_pending()
+            appended = False
             try:
                 entry = SubmissionEntry(
                     timeline_seq=self._timeline_seq + 1,
@@ -250,14 +335,17 @@ class WorkerRuntime:
                     source=source,
                 )
                 self.timeline_journal.append_submission(entry)
+                appended = True
                 commands = self.timeline.apply(entry)
                 self._timeline_seq = entry.timeline_seq
                 self._clock_server_ms = entry.server_ms
                 self.outbox.append(commands)
-            except OSError:
-                self._healthy = False
+            except BaseException as error:
+                if appended or isinstance(error, OSError):
+                    self._mark_unhealthy("durable_write_failed")
                 raise
             self._drain_pending()
+            return entry.timeline_seq
 
     def tick(self, now_ms: int | None = None) -> None:
         with self._lock:
@@ -266,22 +354,23 @@ class WorkerRuntime:
             target = self._clock_ms() if now_ms is None else now_ms
             self._drain_pending()
             try:
+                self.journal.check_capacity()
                 self.timeline_journal.append_advance(target)
                 commands = self.timeline.advance_to(target)
                 self._clock_server_ms = target
                 self.outbox.append(commands)
                 self._drain_pending()
                 self.archiver.rotate_due(target)
-            except OSError:
-                self._healthy = False
+                self.journal.check_capacity()
+            except BackendUnavailable:
+                raise
+            except BaseException:
+                self._mark_unhealthy("durable_write_failed")
                 raise
             try:
                 self.archiver.upload_all_sealed()
-            except Exception as error:
-                from integrity_service.journal.archive import ArchiveUploadFailed
-
-                if not isinstance(error, ArchiveUploadFailed):
-                    raise
+            except ArchiveRetryableFailure:
+                pass
 
     def begin_stop(self) -> None:
         with self._lock:
@@ -292,17 +381,27 @@ class WorkerRuntime:
     def stop(self) -> ArchiveResult:
         self.begin_stop()
         with self._lock:
-            self._drain_pending()
-            self.journal.rotate_if_due(self._clock_ms(), force=True)
-            self.archiver.upload_all_sealed()
-            manifest = self.archiver.build_manifest(
-                final_cursors=self._final_cursors
-            )
-            result = self.archiver.upload_and_publish_manifest(manifest)
+            if self._last_scheduler_error is not None:
+                raise SchedulerFailed("scheduler failed; process recovery required")
+            try:
+                self._drain_pending()
+                self.journal.rotate_if_due(self._clock_ms(), force=True)
+                self.archiver.upload_all_sealed()
+                manifest = self.archiver.build_manifest(
+                    final_cursors=self._final_cursors
+                )
+                result = self.archiver.upload_and_publish_manifest(manifest)
+            except (BackendUnavailable, ArchiveRetryableFailure):
+                raise
+            except BaseException:
+                self._mark_unhealthy("archive_durability_failed")
+                raise
             self._state = "ARCHIVED"
             return result
 
     async def start_scheduler(self) -> None:
+        if self._last_scheduler_error is not None:
+            raise SchedulerFailed("scheduler failed; process recovery required")
         if self._scheduler_task is not None and not self._scheduler_task.done():
             return
         try:
@@ -310,6 +409,9 @@ class WorkerRuntime:
                 self._drain_pending()
         except BackendUnavailable:
             pass
+        except BaseException as error:
+            self._record_scheduler_failure(self._scheduler_error_code(error))
+            raise SchedulerFailed("scheduler failed; process recovery required") from error
         self._scheduler_task = asyncio.create_task(
             self._scheduler_loop(), name=f"integrity-scheduler-{self.run_id}"
         )
@@ -324,16 +426,35 @@ class WorkerRuntime:
             await task
         except asyncio.CancelledError:
             pass
+        except SchedulerFailed:
+            raise
+        except BaseException as error:
+            self._record_scheduler_failure("scheduler_failed")
+            raise SchedulerFailed("scheduler failed; process recovery required") from error
 
     async def _scheduler_loop(self) -> None:
         while self._state == "RUNNING":
-            await self._scheduler_wait()
+            try:
+                await self._scheduler_wait()
+            except asyncio.CancelledError:
+                raise
+            except BaseException as error:
+                self._record_scheduler_failure("scheduler_wait_failed")
+                raise SchedulerFailed(
+                    "scheduler failed; process recovery required"
+                ) from error
             try:
                 self.tick()
-            except Exception:
-                # Disk failures are reflected by health. Backend/storage failures remain in
-                # their durable queues and are retried on the next single-owner tick.
+            except asyncio.CancelledError:
+                raise
+            except (BackendUnavailable, ArchiveRetryableFailure):
                 continue
+            except BaseException as error:
+                code = self._scheduler_error_code(error)
+                self._record_scheduler_failure(code)
+                raise SchedulerFailed(
+                    "scheduler failed; process recovery required"
+                ) from error
 
     @staticmethod
     async def _wait_one_second() -> None:
@@ -341,10 +462,15 @@ class WorkerRuntime:
 
     def close(self) -> None:
         with self._lock:
-            self.journal.close()
-            self.timeline_journal.close()
-            self.outbox.close()
-            self.archiver.close()
+            if self._closed:
+                return
+            self._closed = True
+            cleanup = ExitStack()
+            cleanup.callback(self.journal.close)
+            cleanup.callback(self.timeline_journal.close)
+            cleanup.callback(self.outbox.close)
+            cleanup.callback(self.archiver.close)
+            cleanup.close()
 
     def _load_or_create_baseline(
         self, bootstrap: WorkerBootstrap
@@ -497,7 +623,14 @@ class WorkerRuntime:
         )
 
     def _drain_pending(self) -> None:
-        self.outbox.deliver_pending(self.backend)  # type: ignore[arg-type]
+        try:
+            self.outbox.deliver_pending(self.backend)  # type: ignore[arg-type]
+        except (BackendProtocolError, CommandDeliveryProtocolError):
+            self._mark_unhealthy("backend_protocol_error")
+            raise
+        except OSError:
+            self._mark_unhealthy("durable_write_failed")
+            raise
 
     def _remember_cursor(self, batch: EventBatch, accepted: AcceptResult) -> None:
         key = f"{batch.participant_id}/{batch.device_id}"
@@ -511,10 +644,10 @@ class WorkerRuntime:
         threshold = self._policy_snapshot.get(
             "delayed_delivery_after_ms"
         )
+        assert threshold == self._delayed_delivery_after_ms
         if threshold is None:
             return frozenset()
-        if type(threshold) is not int or threshold < 0:
-            raise ValueError("delayed_delivery_after_ms policy is invalid")
+        assert type(threshold) is int
         return frozenset(
             record.event_id
             for record in records
@@ -539,3 +672,28 @@ class WorkerRuntime:
         if type(value) is not int or value < minimum:
             raise ValueError(f"archive policy {key} is invalid")
         return value
+
+    def _mark_unhealthy(self, warning_code: str) -> None:
+        self._healthy = False
+        self._warning_codes.add(warning_code)
+
+    def _record_scheduler_failure(self, code: str) -> None:
+        with self._lock:
+            self._last_scheduler_error = code[:64]
+            self._warning_codes.add(code[:64])
+            self._healthy = False
+            self._accepting = False
+
+    @staticmethod
+    def _scheduler_error_code(error: BaseException) -> str:
+        if isinstance(error, (BackendProtocolError, CommandDeliveryProtocolError)):
+            return "backend_protocol_error"
+        if isinstance(error, (OSError, DurableLogCorruption)):
+            return "durable_write_failed"
+        if isinstance(error, ArchiveFatalFailure):
+            return "archive_durability_failed"
+        if isinstance(error, SchedulerFailed):
+            return "scheduler_failed"
+        if "wait" in str(error).lower():
+            return "scheduler_wait_failed"
+        return "scheduler_failed"

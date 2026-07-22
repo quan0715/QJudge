@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Mapping
 from uuid import UUID
 
+from integrity_service.core.commands import FrozenDict, freeze_json
+
 
 def _positive_int(value: object, name: str) -> int:
     if type(value) is not int or value < 1:
@@ -38,11 +40,12 @@ class WorkerBootstrap:
     scheduled_end_ms: int
     active_participant_ids: tuple[int, ...]
     submitted_participant_ids: tuple[int, ...]
-    policy_snapshot: dict[str, object]
-    registry_snapshot: dict[str, object]
+    policy_snapshot: Mapping[str, object]
+    registry_snapshot: Mapping[str, object]
     backend_signing_public_key_b64: str
-    archive_policy: dict[str, object]
+    archive_policy: Mapping[str, object]
     generation: int = 1
+    previous_manifest: Mapping[str, object] | None = None
 
     def __post_init__(self) -> None:
         if type(self.run_id) is not UUID or self.run_id.int == 0:
@@ -56,17 +59,26 @@ class WorkerBootstrap:
             self.active_participant_ids
         ):
             raise ValueError("submitted participants must belong to the active snapshot")
-        if type(self.policy_snapshot) is not dict:
+        if not isinstance(self.policy_snapshot, Mapping):
             raise TypeError("policy_snapshot must be an object")
-        if type(self.registry_snapshot) is not dict:
+        if not isinstance(self.registry_snapshot, Mapping):
             raise TypeError("registry_snapshot must be an object")
         if type(self.backend_signing_public_key_b64) is not str or not (
             self.backend_signing_public_key_b64
         ):
             raise ValueError("backend signing public key is required")
-        if type(self.archive_policy) is not dict:
+        if not isinstance(self.archive_policy, Mapping):
             raise TypeError("archive_policy must be an object")
         _positive_int(self.generation, "generation")
+        object.__setattr__(
+            self, "policy_snapshot", freeze_json(self.policy_snapshot)
+        )
+        object.__setattr__(
+            self, "registry_snapshot", freeze_json(self.registry_snapshot)
+        )
+        object.__setattr__(self, "archive_policy", freeze_json(self.archive_policy))
+        previous = self._validate_previous_manifest(self.previous_manifest)
+        object.__setattr__(self, "previous_manifest", previous)
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, object]) -> "WorkerBootstrap":
@@ -74,17 +86,29 @@ class WorkerBootstrap:
         if participants is not None:
             if not isinstance(participants, list):
                 raise TypeError("participants must be a list")
-            active = sorted(
-                _positive_int(item["participant_id"], "participant_id")
-                for item in participants
-                if isinstance(item, Mapping) and item.get("status") == "active"
-            )
-            submitted = sorted(
-                _positive_int(item["participant_id"], "participant_id")
-                for item in participants
-                if isinstance(item, Mapping) and item.get("status") == "submitted"
-            )
-            active = sorted(set(active + submitted))
+            active = []
+            submitted = []
+            seen: set[int] = set()
+            for item in participants:
+                if not isinstance(item, Mapping) or set(item) != {
+                    "participant_id",
+                    "status",
+                }:
+                    raise TypeError("participant entries must contain id and status")
+                participant_id = _positive_int(
+                    item["participant_id"], "participant_id"
+                )
+                if participant_id in seen:
+                    raise ValueError("participant entries must be unique")
+                seen.add(participant_id)
+                status = item["status"]
+                if status not in ("active", "submitted"):
+                    raise ValueError("participant status is not supported")
+                active.append(participant_id)
+                if status == "submitted":
+                    submitted.append(participant_id)
+            active.sort()
+            submitted.sort()
         else:
             active = list(
                 _participant_tuple(
@@ -114,7 +138,38 @@ class WorkerBootstrap:
             ),
             archive_policy=dict(payload["archive_policy"]),
             generation=_positive_int(payload.get("generation", 1), "generation"),
+            previous_manifest=payload.get("previous_manifest"),
         )
+
+    def _validate_previous_manifest(
+        self, value: Mapping[str, object] | None
+    ) -> FrozenDict | None:
+        if self.generation == 1:
+            if value is not None:
+                raise ValueError("previous manifest is invalid for generation one")
+            return None
+        if not isinstance(value, Mapping) or set(value) != {
+            "generation",
+            "object_key",
+            "sha256",
+        }:
+            raise ValueError("previous manifest identity is required")
+        prior_generation = value.get("generation")
+        expected_key = (
+            f"runs/{self.run_id}/generation-{self.generation - 1}/manifest.json"
+        )
+        digest = value.get("sha256")
+        if (
+            prior_generation != self.generation - 1
+            or value.get("object_key") != expected_key
+            or type(digest) is not str
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError("previous manifest identity conflicts with generation")
+        frozen = freeze_json(value)
+        assert isinstance(frozen, FrozenDict)
+        return frozen
 
 
 @dataclass(frozen=True, slots=True)

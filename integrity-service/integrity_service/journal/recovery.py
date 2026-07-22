@@ -11,6 +11,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from integrity_service.core.schemas import EventBatch
+from integrity_service.journal.durability import open_durable_file
 from integrity_service.journal.encoding import encode_record
 
 
@@ -79,6 +80,22 @@ def recover_journal(path: Path, *, _lock_fd: int | None = None) -> RecoveryResul
     finally:
         if owned_lock_fd is not None:
             _release_journal_lock(owned_lock_fd)
+
+
+def read_sealed_journal(path: Path) -> RecoveryResult:
+    """Validate immutable sealed bytes without any repairing/truncating behavior."""
+    if not path.exists():
+        raise JournalCorruption("sealed journal is missing")
+    content = path.read_bytes()
+    records: list[RecoveredRecord] = []
+    position = 0
+    while position < len(content):
+        try:
+            record, position = _decode_at(content, position)
+        except _RecordParseFailure as error:
+            raise JournalCorruption(str(error)) from error
+        records.append(record)
+    return RecoveryResult(tuple(records), False)
 
 
 def _recover_locked(path: Path) -> RecoveryResult:
@@ -176,7 +193,9 @@ def _lock_path(path: Path) -> Path:
 
 
 def _acquire_journal_lock(path: Path) -> int:
-    lock_fd = os.open(_lock_path(path), os.O_CREAT | os.O_RDWR, 0o600)
+    lock_fd = open_durable_file(
+        _lock_path(path), os.O_CREAT | os.O_RDWR, 0o600
+    )
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError as error:

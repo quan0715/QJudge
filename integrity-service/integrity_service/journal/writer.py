@@ -7,6 +7,10 @@ from pathlib import Path
 from uuid import UUID
 
 from integrity_service.core.schemas import EventBatch
+from integrity_service.journal.durability import (
+    ensure_durable_directory,
+    open_durable_file,
+)
 from integrity_service.journal.encoding import encode_record
 from integrity_service.journal.recovery import (
     JournalCorruption,
@@ -27,7 +31,7 @@ class JournalWriterUnavailable(RuntimeError):
 
 class JournalWriter:
     def __init__(self, root: Path) -> None:
-        root.mkdir(parents=True, exist_ok=True)
+        ensure_durable_directory(root)
         self.active_path = root / "active.journal"
         self._lock = threading.Lock()
         self._closed = False
@@ -37,7 +41,7 @@ class JournalWriter:
         try:
             recovered = recover_journal(self.active_path, _lock_fd=root_lock_fd)
             batch_digests = _rebuild_batch_index(recovered.records)
-            journal_fd = os.open(
+            journal_fd = open_durable_file(
                 self.active_path,
                 os.O_APPEND | os.O_CREAT | os.O_WRONLY,
                 0o600,
