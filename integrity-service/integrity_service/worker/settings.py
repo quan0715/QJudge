@@ -193,17 +193,27 @@ class WorkerSettings:
     @classmethod
     def from_environment(cls) -> "WorkerSettings":
         try:
-            run_id = UUID(os.environ["QJUDGE_INTEGRITY_RUN_ID"])
-            backend_base_url = os.environ["QJUDGE_BACKEND_URL"]
+            run_id = UUID(
+                os.environ.get("INTEGRITY_RUN_ID")
+                or os.environ["QJUDGE_INTEGRITY_RUN_ID"]
+            )
+            backend_base_url = (
+                os.environ.get("BACKEND_INTERNAL_URL")
+                or os.environ["QJUDGE_BACKEND_URL"]
+            )
         except (KeyError, ValueError) as error:
             raise RuntimeError("required Worker configuration is invalid") from error
         return cls(
             run_id=run_id,
             backend_base_url=backend_base_url.rstrip("/"),
             token_path=Path(
-                os.environ.get("QJUDGE_RUN_TOKEN_PATH", "/run-secrets/token")
+                os.environ.get("RUN_TOKEN_FILE")
+                or os.environ.get("QJUDGE_RUN_TOKEN_PATH", "/run-secrets/token")
             ),
-            data_root=Path(os.environ.get("QJUDGE_RUN_DATA", "/run-data")),
+            data_root=Path(
+                os.environ.get("RUN_DATA_DIR")
+                or os.environ.get("QJUDGE_RUN_DATA", "/run-data")
+            ),
         )
 
     def read_token(self) -> str:
