@@ -619,6 +619,8 @@ def _legacy_event_matches_semantics(
     ):
         return False
     processed_ms = semantics["worker_processed_at_ms"]
+    if semantics["kind"] == "auto_submit" and processed_ms is None:
+        return event.worker_processed_at is not None
     if (
         (event.worker_processed_at is None) != (processed_ms is None)
         or (
