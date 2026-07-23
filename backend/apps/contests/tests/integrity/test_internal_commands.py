@@ -554,6 +554,28 @@ def test_auto_submit_uses_existing_finalizer_once_and_never_stops_run(
 
 
 @pytest.mark.django_db
+def test_new_auto_submit_defaults_omitted_received_timestamp(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    command.pop("received_at_server_ms")
+
+    first = internal_client.post_commands(running_integrity_run, [command])
+    second = internal_client.post_commands(running_integrity_run, [command])
+
+    assert first.status_code == second.status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    assert int(event.server_received_at.timestamp() * 1000) == (
+        command["metadata"]["scheduled_end_ms"]
+    )
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
 def test_auto_submit_replay_rejects_changed_timestamps_metadata_and_device(
     internal_client,
     running_integrity_run,
@@ -589,6 +611,117 @@ def test_auto_submit_replay_rejects_changed_timestamps_metadata_and_device(
             "command_id": command["command_id"],
         }
 
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_legacy_auto_submit_receipt_accepts_exact_explicit_timestamp_retry(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    legacy_metadata = dict(event.metadata)
+    legacy_integrity = dict(legacy_metadata["integrity"])
+    legacy_integrity.pop("command_fingerprint")
+    legacy_metadata["integrity"] = legacy_integrity
+    event.metadata = legacy_metadata
+    event.save(update_fields=["metadata"])
+
+    response = internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "accepted_command_ids": [command["command_id"]],
+        "archive_uploads": [],
+    }
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_legacy_auto_submit_receipt_rejects_removed_explicit_timestamp(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    legacy_metadata = dict(event.metadata)
+    legacy_integrity = dict(legacy_metadata["integrity"])
+    legacy_integrity.pop("command_fingerprint")
+    legacy_metadata["integrity"] = legacy_integrity
+    event.metadata = legacy_metadata
+    event.save(update_fields=["metadata"])
+    replay = dict(command)
+    replay.pop("received_at_server_ms")
+
+    response = internal_client.post_commands(
+        running_integrity_run,
+        [replay],
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "code": "command_id_conflict",
+        "command_id": command["command_id"],
+    }
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_legacy_auto_submit_receipt_rejects_altered_explicit_timestamp(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    legacy_metadata = dict(event.metadata)
+    legacy_integrity = dict(legacy_metadata["integrity"])
+    legacy_integrity.pop("command_fingerprint")
+    legacy_metadata["integrity"] = legacy_integrity
+    event.metadata = legacy_metadata
+    event.save(update_fields=["metadata"])
+
+    response = internal_client.post_commands(
+        running_integrity_run,
+        [
+            {
+                **command,
+                "received_at_server_ms": (
+                    command["received_at_server_ms"] + 1
+                ),
+            }
+        ],
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "code": "command_id_conflict",
+        "command_id": command["command_id"],
+    }
     assert ExamEvent.objects.filter(
         integrity_command_id=command["command_id"],
     ).count() == 1

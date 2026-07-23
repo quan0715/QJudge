@@ -975,6 +975,7 @@ def _auto_submit_command(
     )
     if abs(client_ms - scheduled_end_ms) > 1:
         raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
+    raw_received_ms = command.get("received_at_server_ms")
     received_ms = _nonnegative_int(
         command.get("received_at_server_ms", scheduled_end_ms),
         "invalid_command_timestamp",
@@ -1016,7 +1017,7 @@ def _auto_submit_command(
         "event_type": "scheduled_end",
         "action": "submit",
         "client_occurred_at_ms": client_ms,
-        "received_at_server_ms": received_ms,
+        "received_at_server_ms": raw_received_ms,
         "worker_processed_at_ms": processed_ms,
         "delayed_delivery": False,
         "evidence": evidence,
