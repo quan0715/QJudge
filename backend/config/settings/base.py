@@ -431,6 +431,12 @@ INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
     "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
     "/run-secrets/integrity-worker-signing-key",
 )
+INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")
+)
+INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_READ_TIMEOUT_SECONDS", "5.0")
+)
 
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
