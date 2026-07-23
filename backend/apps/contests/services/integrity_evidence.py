@@ -25,6 +25,7 @@ from apps.contests.services.anticheat_storage import (
     generate_evidence_chunk_put_url,
     get_s3_client,
 )
+from apps.contests.services.anti_cheat_session import get_active_session
 
 
 _SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -44,6 +45,7 @@ _MANIFEST_MAX_BYTES = 10 * 1024 * 1024
 _PURGE_BATCH_SIZE = 500
 _MAX_ARCHIVE_GENERATIONS = 1_000
 _MAX_PURGE_KEYS = 100_000
+_UNRESOLVED_DEVICE_KIND = object()
 
 
 class IntegrityEvidenceRejected(ValueError):
@@ -125,40 +127,67 @@ def _event_definition(
     return None
 
 
-def _source_enabled(
+def _active_session_device_kind(
+    participant: ContestParticipant,
+) -> str | None:
+    active_session = get_active_session(
+        participant.contest_id,
+        participant.user_id,
+    )
+    if (
+        type(active_session) is not dict
+        or type(active_session.get("contest_id")) is not int
+        or active_session["contest_id"] != participant.contest_id
+        or type(active_session.get("participant_id")) is not int
+        or active_session["participant_id"] != participant.id
+        or type(active_session.get("user_id")) is not int
+        or active_session["user_id"] != participant.user_id
+    ):
+        return None
+    device_kind = active_session.get("device_kind")
+    return device_kind if type(device_kind) is str else None
+
+
+def _enabled_sources(
     run: ExamIntegrityRun,
-    event: ExamEvent,
-    source: str,
-) -> bool:
+    authoritative_device_kind: str | None,
+) -> frozenset[str]:
     policy = run.policy_snapshot
     if type(policy) is not dict:
-        return False
+        return frozenset()
     device_policy = policy.get("device_policy")
     if type(device_policy) is not dict:
-        return False
-    metadata = event.metadata if type(event.metadata) is dict else {}
-    device_kind = metadata.get("device_kind")
-    if type(device_kind) is str and device_kind:
-        devices: Iterable[object] = (device_policy.get(device_kind),)
+        return frozenset()
+    if (
+        type(authoritative_device_kind) is str
+        and authoritative_device_kind in device_policy
+    ):
+        devices: Iterable[object] = (
+            device_policy[authoritative_device_kind],
+        )
     else:
         devices = device_policy.values()
+    enabled = set()
     for device in devices:
         if type(device) is not dict or device.get("enabled") is not True:
             continue
         sources = device.get("sources")
-        source_policy = (
-            sources.get(source)
-            if type(sources) is dict
-            else None
-        )
-        if type(source_policy) is dict and source_policy.get("enabled") is True:
-            return True
-    return False
+        if type(sources) is not dict:
+            continue
+        for source in _SOURCE_KINDS:
+            source_policy = sources.get(source)
+            if (
+                type(source_policy) is dict
+                and source_policy.get("enabled") is True
+            ):
+                enabled.add(source)
+    return frozenset(enabled)
 
 
 def _raw_window(
     run: ExamIntegrityRun,
     event: ExamEvent,
+    enabled_sources: frozenset[str],
 ) -> tuple[_RawWindow, ...]:
     if (
         event.incident_id is None
@@ -196,7 +225,7 @@ def _raw_window(
         if (
             type(source) is str
             and source in _SOURCE_KINDS
-            and _source_enabled(run, event, source)
+            and source in enabled_sources
         ):
             resolved.append(
                 _RawWindow(
@@ -215,6 +244,7 @@ def _evidence_retain_windows_for_events(
     run: ExamIntegrityRun,
     events: Iterable[ExamEvent],
     after_ms: int,
+    authoritative_device_kind: str | None,
 ) -> list[EvidenceRetainWindow]:
     if type(after_ms) is not int or after_ms < 0:
         raise ValueError("after_ms must be a nonnegative integer")
@@ -231,9 +261,13 @@ def _evidence_retain_windows_for_events(
         or type(policy.get("device_policy")) is not dict
     ):
         raise IntegrityEvidenceRejected("invalid_frozen_policy")
+    enabled_sources = _enabled_sources(
+        run,
+        authoritative_device_kind,
+    )
     by_source: dict[str, list[_RawWindow]] = {}
     for event in events:
-        for window in _raw_window(run, event):
+        for window in _raw_window(run, event, enabled_sources):
             by_source.setdefault(window.source, []).append(window)
 
     projected: list[tuple[UUID, int, str, int, int, int]] = []
@@ -324,9 +358,20 @@ def evidence_retain_windows(
     run: ExamIntegrityRun,
     participant: ContestParticipant,
     after_ms: int,
+    *,
+    authoritative_device_kind: object = _UNRESOLVED_DEVICE_KIND,
 ) -> list[EvidenceRetainWindow]:
     """Rebuild retain windows from normalized events and the frozen registry."""
 
+    if authoritative_device_kind is _UNRESOLVED_DEVICE_KIND:
+        authoritative_device_kind = _active_session_device_kind(
+            participant,
+        )
+    if (
+        authoritative_device_kind is not None
+        and type(authoritative_device_kind) is not str
+    ):
+        raise TypeError("authoritative_device_kind must be a string or None")
     events = (
         ExamEvent.objects.filter(
             integrity_run=run,
@@ -336,7 +381,12 @@ def evidence_retain_windows(
         )
         .order_by("client_occurred_at_ms", "id")
     )
-    return _evidence_retain_windows_for_events(run, events, after_ms)
+    return _evidence_retain_windows_for_events(
+        run,
+        events,
+        after_ms,
+        authoritative_device_kind,
+    )
 
 
 def _metadata_ids(metadata: object, key: str) -> tuple[object, ...]:
@@ -492,10 +542,25 @@ def _validate_descriptor_chain(
         ).append(descriptor)
     for group in groups.values():
         group.sort(key=lambda item: int(item["chunk_seq"]))
-        if sum(bool(item["is_init_chunk"]) for item in group) > 1:
+        init_chunks = [
+            item for item in group if bool(item["is_init_chunk"])
+        ]
+        if len(init_chunks) > 1:
             raise IntegrityEvidenceRejected(
                 "evidence_chunk_chain_mismatch"
             )
+        if init_chunks:
+            init_seq = int(init_chunks[0]["chunk_seq"])
+            if (
+                init_seq not in {0, 1}
+                or any(
+                    int(item["chunk_seq"]) < init_seq
+                    for item in group
+                )
+            ):
+                raise IntegrityEvidenceRejected(
+                    "evidence_chunk_chain_mismatch"
+                )
         for descriptor in group:
             if (
                 descriptor["is_init_chunk"]
@@ -631,6 +696,7 @@ def _validate_persisted_chain_neighbors(
     participant: ContestParticipant,
     descriptor: dict[str, object],
     submitted_predecessor: dict[str, object] | None,
+    existing_rows: list[ExamEvidenceChunk],
 ) -> None:
     chunk_seq = int(descriptor["chunk_seq"])
     neighbor_sequences = {chunk_seq + 1}
@@ -649,24 +715,27 @@ def _validate_persisted_chain_neighbors(
     previous = neighbors.get(chunk_seq - 1)
     following = neighbors.get(chunk_seq + 1)
     if descriptor["is_init_chunk"]:
-        another_init_exists = (
-            ExamEvidenceChunk.objects.select_for_update()
-            .filter(
-                integrity_run=run,
-                participant=participant,
-                source=descriptor["source"],
-                recording_session_id=descriptor[
-                    "recording_session_id"
-                ],
-                is_init_chunk=True,
+        session_rows = [
+            row
+            for row in existing_rows
+            if (
+                row.source == descriptor["source"]
+                and row.recording_session_id
+                == descriptor["recording_session_id"]
             )
-            .exclude(chunk_seq=descriptor["chunk_seq"])
-            .exists()
+        ]
+        another_init_exists = any(
+            row.is_init_chunk and row.chunk_seq != chunk_seq
+            for row in session_rows
+        )
+        lower_chunk_exists = any(
+            row.chunk_seq < chunk_seq for row in session_rows
         )
         if (
             previous is not None
             or submitted_predecessor is not None
             or another_init_exists
+            or lower_chunk_exists
         ):
             raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
     elif previous is None and submitted_predecessor is None:
@@ -749,6 +818,7 @@ def create_evidence_manifest(
     """Upsert selected physical chunks and return checksum-bound PUT actions."""
 
     _validate_descriptor_chain(descriptors)
+    authoritative_device_kind = _active_session_device_kind(participant)
     inventory = {
         (
             descriptor["source"],
@@ -784,6 +854,7 @@ def create_evidence_manifest(
                 locked_run,
                 participant,
                 after_ms=0,
+                authoritative_device_kind=authoritative_device_kind,
             )
             if window.incident_id == event.incident_id
         ]
@@ -823,6 +894,7 @@ def create_evidence_manifest(
                 participant,
                 descriptor,
                 submitted_predecessor,
+                existing_rows,
             )
         existing_by_identity = {
             _row_identity(row): row for row in existing_rows
@@ -1259,6 +1331,9 @@ def evidence_statuses_for_events(
             run,
             group_events,
             after_ms=0,
+            authoritative_device_kind=_active_session_device_kind(
+                participant,
+            ),
         )
         chunks = chunks_by_group.get((run.id, participant.id), [])
         summary_cache: dict[
@@ -1335,12 +1410,25 @@ def evidence_statuses_for_events(
 
 def _read_body(response: dict[str, object]) -> bytes:
     content_length = response.get("ContentLength")
-    if type(content_length) is int and content_length > _MANIFEST_MAX_BYTES:
-        raise IntegrityEvidenceStorageError("archive manifest is too large")
     body = response.get("Body")
     if body is None or not hasattr(body, "read"):
         raise IntegrityEvidenceStorageError("archive manifest body is invalid")
-    content = body.read(_MANIFEST_MAX_BYTES + 1)
+    try:
+        if (
+            type(content_length) is int
+            and (
+                content_length < 0
+                or content_length > _MANIFEST_MAX_BYTES
+            )
+        ):
+            raise IntegrityEvidenceStorageError(
+                "archive manifest is too large"
+            )
+        content = body.read(_MANIFEST_MAX_BYTES + 1)
+    finally:
+        close = getattr(body, "close", None)
+        if callable(close):
+            close()
     if type(content) is not bytes or len(content) > _MANIFEST_MAX_BYTES:
         raise IntegrityEvidenceStorageError("archive manifest body is invalid")
     return content
@@ -1363,6 +1451,14 @@ def _load_archive_manifest_chain(
     generation = run.archive_generation
     keys: set[str] = set()
     visited = set()
+    loaded_key_count = 0
+    if (
+        type(generation) is not int
+        or not 1 <= generation <= _MAX_ARCHIVE_GENERATIONS
+    ):
+        raise IntegrityEvidenceStorageError(
+            "archive manifest identity is invalid"
+        )
     for _ in range(_MAX_ARCHIVE_GENERATIONS):
         if (
             type(generation) is not int
@@ -1406,8 +1502,16 @@ def _load_archive_manifest_chain(
             raise IntegrityEvidenceStorageError(
                 "archive manifest payload is invalid"
             )
+        segments = payload["segments"]
+        if (
+            len(segments) + 1
+            > _MAX_PURGE_KEYS - loaded_key_count
+        ):
+            raise IntegrityEvidenceStorageError(
+                "integrity purge key set is too large"
+            )
         prefix = _expected_segment_prefix(run.id, generation)
-        for segment in payload["segments"]:
+        for segment in segments:
             object_key = (
                 segment.get("object_key")
                 if type(segment) is dict
@@ -1424,12 +1528,32 @@ def _load_archive_manifest_chain(
                 )
             keys.add(object_key)
         keys.add(key)
+        loaded_key_count += len(segments) + 1
         previous = payload.get("previous_manifest")
-        if previous is None:
+        if "previous_manifest_sha256" not in payload:
+            raise IntegrityEvidenceStorageError(
+                "archive manifest chain is invalid"
+            )
+        previous_digest = payload["previous_manifest_sha256"]
+        if generation == 1:
+            if previous is not None or previous_digest is not None:
+                raise IntegrityEvidenceStorageError(
+                    "archive manifest chain is invalid"
+                )
             return keys
         if (
             type(previous) is not dict
             or set(previous) != {"generation", "object_key", "sha256"}
+            or previous.get("generation") != generation - 1
+            or previous.get("object_key")
+            != _expected_manifest_key(run.id, generation - 1)
+            or type(previous.get("sha256")) is not str
+            or not _SHA256_RE.fullmatch(previous["sha256"])
+            or type(previous_digest) is not str
+            or not hmac.compare_digest(
+                previous_digest,
+                previous["sha256"],
+            )
         ):
             raise IntegrityEvidenceStorageError(
                 "archive manifest chain is invalid"

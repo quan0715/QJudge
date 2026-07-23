@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 from botocore.exceptions import ClientError
+from django.core.cache import cache
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -22,6 +23,8 @@ from apps.contests.models import (
     ExamIntegrityRun,
     ExamStatus,
 )
+from apps.contests.integrity_serializers import EvidenceChunkDescriptorSerializer
+from apps.contests.services.anti_cheat_session import active_session_key
 from apps.contests.services import (
     integrity_evidence as integrity_evidence_service,
 )
@@ -35,6 +38,10 @@ from apps.contests.services.integrity_evidence import (
     purge_integrity_data,
 )
 from apps.users.models import User
+
+
+MAX_EVIDENCE_CHUNK_SEQ = 2_147_483_647
+MAX_EVIDENCE_TIMESTAMP_MS = 9_007_199_254_740_991
 
 
 @pytest.fixture
@@ -66,12 +73,15 @@ def participant(db):
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )
-    return ContestParticipant.objects.create(
+    participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
         exam_status=ExamStatus.IN_PROGRESS,
         started_at=now,
     )
+    cache.delete(active_session_key(contest.id, student.id))
+    yield participant
+    cache.delete(active_session_key(contest.id, student.id))
 
 
 @pytest.fixture
@@ -230,6 +240,23 @@ def post_manifest(api_client, event, chunks):
     )
 
 
+def bind_active_device(participant, device_kind):
+    cache.set(
+        active_session_key(
+            participant.contest_id,
+            participant.user_id,
+        ),
+        {
+            "contest_id": participant.contest_id,
+            "participant_id": participant.id,
+            "user_id": participant.user_id,
+            "device_id": "bound-device",
+            "device_kind": device_kind,
+        },
+        timeout=300,
+    )
+
+
 @pytest.mark.django_db
 def test_manifest_returns_only_chunks_overlapping_incident_window(
     api_client,
@@ -262,6 +289,68 @@ def test_manifest_returns_only_chunks_overlapping_incident_window(
         "Content-Type": "video/webm",
         "x-amz-checksum-sha256": params["ChecksumSHA256"],
     }
+
+
+@pytest.mark.django_db
+def test_spoofed_event_device_kind_cannot_suppress_bound_desktop_source(
+    integrity_run,
+    participant,
+    incident_event,
+):
+    metadata = dict(incident_event.metadata)
+    metadata["device_kind"] = "tablet"
+    incident_event.metadata = metadata
+    incident_event.save(update_fields=["metadata"])
+    bind_active_device(participant, "desktop")
+
+    windows = evidence_retain_windows(
+        integrity_run,
+        participant,
+        after_ms=0,
+    )
+
+    assert [window.sources for window in windows] == [("screen_share",)]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("bound_device_kind", [None, "unknown"])
+def test_missing_or_unknown_device_binding_cannot_suppress_evidence_source(
+    integrity_run,
+    participant,
+    incident_event,
+    bound_device_kind,
+):
+    metadata = dict(incident_event.metadata)
+    metadata["device_kind"] = "tablet"
+    incident_event.metadata = metadata
+    incident_event.save(update_fields=["metadata"])
+    if bound_device_kind is not None:
+        bind_active_device(participant, bound_device_kind)
+
+    windows = evidence_retain_windows(
+        integrity_run,
+        participant,
+        after_ms=0,
+    )
+
+    assert [window.sources for window in windows] == [("screen_share",)]
+
+
+@pytest.mark.django_db
+def test_bound_tablet_policy_ignores_spoofed_desktop_event_metadata(
+    integrity_run,
+    participant,
+    incident_event,
+):
+    bind_active_device(participant, "tablet")
+
+    windows = evidence_retain_windows(
+        integrity_run,
+        participant,
+        after_ms=0,
+    )
+
+    assert windows == []
 
 
 @pytest.mark.django_db
@@ -510,6 +599,166 @@ def test_manifest_allows_idempotent_zero_based_init_chunk(
 
     assert first.status_code == second.status_code == 200
     assert ExamEvidenceChunk.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_manifest_rejects_arbitrary_isolated_init_sequence(
+    api_client,
+    incident_event,
+    participant,
+    object_store,
+):
+    arbitrary_init = descriptor(
+        seq=8,
+        start=1_000_000,
+        end=1_005_000,
+    )
+    arbitrary_init["is_init_chunk"] = True
+    arbitrary_init["previous_sha256"] = ""
+    api_client.force_authenticate(participant.user)
+
+    response = post_manifest(
+        api_client,
+        incident_event,
+        [arbitrary_init],
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "evidence_chunk_chain_mismatch"
+    assert ExamEvidenceChunk.objects.count() == 0
+    object_store.generate_presigned_url.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
+    api_client,
+    incident_event,
+    participant,
+    object_store,
+):
+    api_client.force_authenticate(participant.user)
+    persisted = post_manifest(
+        api_client,
+        incident_event,
+        [
+            descriptor(seq=1, start=970_000, end=975_000),
+            descriptor(seq=2, start=1_000_000, end=1_005_000),
+        ],
+    )
+    assert persisted.status_code == 200
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [2]
+    later_init = descriptor(
+        seq=8,
+        start=1_005_000,
+        end=1_010_000,
+    )
+    later_init["is_init_chunk"] = True
+    later_init["previous_sha256"] = ""
+
+    response = post_manifest(
+        api_client,
+        incident_event,
+        [later_init],
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "evidence_chunk_chain_mismatch"
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [2]
+    assert object_store.generate_presigned_url.call_count == 1
+
+
+@pytest.mark.django_db
+def test_manifest_rejects_init_after_lower_submitted_context_chunk(
+    api_client,
+    incident_event,
+    participant,
+    object_store,
+):
+    lower_context = descriptor(
+        seq=2,
+        start=970_000,
+        end=975_000,
+    )
+    later_init = descriptor(
+        seq=8,
+        start=1_000_000,
+        end=1_005_000,
+    )
+    later_init["is_init_chunk"] = True
+    later_init["previous_sha256"] = ""
+    api_client.force_authenticate(participant.user)
+
+    response = post_manifest(
+        api_client,
+        incident_event,
+        [lower_context, later_init],
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "evidence_chunk_chain_mismatch"
+    assert ExamEvidenceChunk.objects.count() == 0
+    object_store.generate_presigned_url.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("field_name", "oversized_value"),
+    [
+        ("chunk_seq", MAX_EVIDENCE_CHUNK_SEQ + 1),
+        ("start_at_ms", MAX_EVIDENCE_TIMESTAMP_MS + 1),
+        ("end_at_ms", MAX_EVIDENCE_TIMESTAMP_MS + 1),
+    ],
+)
+def test_descriptor_rejects_scalars_outside_model_or_wire_range(
+    field_name,
+    oversized_value,
+):
+    payload = descriptor(
+        seq=1,
+        start=1_000_000,
+        end=1_005_000,
+    )
+    payload[field_name] = oversized_value
+    if field_name == "start_at_ms":
+        payload["end_at_ms"] = oversized_value + 1
+
+    serializer = EvidenceChunkDescriptorSerializer(data=payload)
+
+    assert not serializer.is_valid()
+    assert field_name in serializer.errors
+
+
+def test_descriptor_accepts_exact_model_and_wire_scalar_maxima():
+    sequence_payload = descriptor(
+        seq=1,
+        start=1_000_000,
+        end=1_005_000,
+    )
+    sequence_payload.update(
+        {
+            "chunk_seq": MAX_EVIDENCE_CHUNK_SEQ,
+            "is_init_chunk": False,
+            "previous_sha256": "a" * 64,
+        }
+    )
+    timestamp_payload = descriptor(
+        seq=1,
+        start=MAX_EVIDENCE_TIMESTAMP_MS - 1,
+        end=MAX_EVIDENCE_TIMESTAMP_MS,
+    )
+
+    sequence_serializer = EvidenceChunkDescriptorSerializer(
+        data=sequence_payload,
+    )
+    timestamp_serializer = EvidenceChunkDescriptorSerializer(
+        data=timestamp_payload,
+    )
+
+    assert sequence_serializer.is_valid(), sequence_serializer.errors
+    assert timestamp_serializer.is_valid(), timestamp_serializer.errors
 
 
 @pytest.mark.django_db
@@ -1075,6 +1324,7 @@ def test_purge_uses_only_verified_manifest_and_exact_run_chunk_keys(
             "generation": 1,
             "segments": [{"object_key": segment_key}],
             "previous_manifest": None,
+            "previous_manifest_sha256": None,
         },
         separators=(",", ":"),
         sort_keys=True,
@@ -1158,6 +1408,7 @@ def test_purge_waits_until_every_presigned_upload_lease_expires(
             "generation": 1,
             "segments": [{"object_key": segment_key}],
             "previous_manifest": None,
+            "previous_manifest_sha256": None,
         },
         separators=(",", ":"),
         sort_keys=True,
@@ -1205,3 +1456,215 @@ def test_purge_waits_until_every_presigned_upload_lease_expires(
     assert not ExamEvidenceChunk.objects.filter(
         pk=requested_evidence_chunk.pk,
     ).exists()
+
+
+def archive_manifest(
+    integrity_run,
+    generation,
+    *,
+    previous_manifest,
+    previous_manifest_sha256,
+    segment_count=1,
+):
+    payload = {
+        "schema_version": 1,
+        "run_id": str(integrity_run.id),
+        "generation": generation,
+        "segments": [
+            {
+                "object_key": (
+                    f"runs/{integrity_run.id}/generation-{generation}/"
+                    f"segments/{index:08d}.journal.gz"
+                )
+            }
+            for index in range(1, segment_count + 1)
+        ],
+        "previous_manifest": previous_manifest,
+        "previous_manifest_sha256": previous_manifest_sha256,
+    }
+    content = json.dumps(
+        payload,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    key = (
+        f"runs/{integrity_run.id}/generation-{generation}/manifest.json"
+    )
+    return key, content, hashlib.sha256(content).hexdigest()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    (
+        "generation",
+        "previous_generation",
+        "previous_key_generation",
+        "redundant_digest",
+    ),
+    [
+        (2, None, None, None),
+        (3, 1, 1, "match"),
+        (2, 1, 9, "match"),
+        (2, 1, 1, None),
+        (2, 1, 1, "mismatch"),
+        (1, 1, 1, "match"),
+    ],
+)
+def test_purge_rejects_inexact_archive_manifest_chain_before_delete(
+    integrity_run,
+    object_store,
+    generation,
+    previous_generation,
+    previous_key_generation,
+    redundant_digest,
+):
+    previous_digest = "a" * 64
+    previous_manifest = (
+        None
+        if previous_generation is None
+        else {
+            "generation": previous_generation,
+            "object_key": (
+                f"runs/{integrity_run.id}/"
+                f"generation-{previous_key_generation}/manifest.json"
+            ),
+            "sha256": previous_digest,
+        }
+    )
+    redundant = (
+        previous_digest
+        if redundant_digest == "match"
+        else "b" * 64
+        if redundant_digest == "mismatch"
+        else None
+    )
+    key, content, digest = archive_manifest(
+        integrity_run,
+        generation,
+        previous_manifest=previous_manifest,
+        previous_manifest_sha256=redundant,
+    )
+    integrity_run.archive_generation = generation
+    integrity_run.archive_manifest_key = key
+    integrity_run.archive_manifest_sha256 = digest
+    body = BytesIO(content)
+    object_store.get_object.return_value = {
+        "ContentLength": len(content),
+        "Body": body,
+    }
+
+    with pytest.raises(IntegrityEvidenceStorageError):
+        purge_integrity_data(integrity_run)
+
+    object_store.delete_objects.assert_not_called()
+    assert body.closed
+
+
+@pytest.mark.django_db
+def test_archive_chain_accepts_exact_generation_and_redundant_digest_links(
+    integrity_run,
+    object_store,
+):
+    first_key, first_content, first_digest = archive_manifest(
+        integrity_run,
+        1,
+        previous_manifest=None,
+        previous_manifest_sha256=None,
+    )
+    second_key, second_content, second_digest = archive_manifest(
+        integrity_run,
+        2,
+        previous_manifest={
+            "generation": 1,
+            "object_key": first_key,
+            "sha256": first_digest,
+        },
+        previous_manifest_sha256=first_digest,
+    )
+    integrity_run.archive_generation = 2
+    integrity_run.archive_manifest_key = second_key
+    integrity_run.archive_manifest_sha256 = second_digest
+    bodies = {
+        first_key: BytesIO(first_content),
+        second_key: BytesIO(second_content),
+    }
+    object_store.get_object.side_effect = lambda **kwargs: {
+        "ContentLength": len(
+            first_content
+            if kwargs["Key"] == first_key
+            else second_content
+        ),
+        "Body": bodies[kwargs["Key"]],
+    }
+
+    keys = integrity_evidence_service._load_archive_manifest_chain(
+        object_store,
+        integrity_run,
+    )
+
+    assert first_key in keys
+    assert second_key in keys
+    assert all(body.closed for body in bodies.values())
+
+
+@pytest.mark.django_db
+def test_archive_chain_enforces_generation_budget_before_loading(
+    integrity_run,
+    object_store,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        integrity_evidence_service,
+        "_MAX_ARCHIVE_GENERATIONS",
+        1,
+    )
+    integrity_run.archive_generation = 2
+    integrity_run.archive_manifest_key = (
+        f"runs/{integrity_run.id}/generation-2/manifest.json"
+    )
+    integrity_run.archive_manifest_sha256 = "a" * 64
+
+    with pytest.raises(IntegrityEvidenceStorageError):
+        integrity_evidence_service._load_archive_manifest_chain(
+            object_store,
+            integrity_run,
+        )
+
+    object_store.get_object.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_archive_chain_enforces_cumulative_key_budget_while_loading(
+    integrity_run,
+    object_store,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        integrity_evidence_service,
+        "_MAX_PURGE_KEYS",
+        2,
+    )
+    key, content, digest = archive_manifest(
+        integrity_run,
+        1,
+        previous_manifest=None,
+        previous_manifest_sha256=None,
+        segment_count=2,
+    )
+    integrity_run.archive_generation = 1
+    integrity_run.archive_manifest_key = key
+    integrity_run.archive_manifest_sha256 = digest
+    body = BytesIO(content)
+    object_store.get_object.return_value = {
+        "ContentLength": len(content),
+        "Body": body,
+    }
+
+    with pytest.raises(IntegrityEvidenceStorageError):
+        integrity_evidence_service._load_archive_manifest_chain(
+            object_store,
+            integrity_run,
+        )
+
+    object_store.delete_objects.assert_not_called()
+    assert body.closed

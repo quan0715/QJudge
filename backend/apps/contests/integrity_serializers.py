@@ -16,6 +16,8 @@ _EVENT_TYPE_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
 _SHA256_RE = r"^[0-9a-f]{64}$"
 MAX_EVIDENCE_CHUNKS_PER_MANIFEST = 200
 MAX_EVIDENCE_CHUNK_BYTES = 100_000_000
+MAX_EVIDENCE_CHUNK_SEQ = 2_147_483_647
+MAX_EVIDENCE_TIMESTAMP_MS = 9_007_199_254_740_991
 
 
 def _canonical_json_bytes(value) -> bytes:
@@ -270,10 +272,19 @@ class EvidenceChunkDescriptorSerializer(_StrictSerializer):
         choices=("screen_share", "webcam"),
     )
     recording_session_id = serializers.UUIDField()
-    chunk_seq = serializers.IntegerField(min_value=0)
+    chunk_seq = serializers.IntegerField(
+        min_value=0,
+        max_value=MAX_EVIDENCE_CHUNK_SEQ,
+    )
     is_init_chunk = serializers.BooleanField()
-    start_at_ms = serializers.IntegerField(min_value=0)
-    end_at_ms = serializers.IntegerField(min_value=0)
+    start_at_ms = serializers.IntegerField(
+        min_value=0,
+        max_value=MAX_EVIDENCE_TIMESTAMP_MS,
+    )
+    end_at_ms = serializers.IntegerField(
+        min_value=0,
+        max_value=MAX_EVIDENCE_TIMESTAMP_MS,
+    )
     byte_size = serializers.IntegerField(
         min_value=1,
         max_value=MAX_EVIDENCE_CHUNK_BYTES,
