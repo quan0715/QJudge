@@ -611,19 +611,19 @@ def _legacy_event_matches_semantics(
         return False
     received_ms = semantics["received_at_server_ms"]
     if (
-        received_ms is not None
-        and (
-            event.server_received_at is None
-            or int(event.server_received_at.timestamp() * 1000) != received_ms
+        (event.server_received_at is None) != (received_ms is None)
+        or (
+            event.server_received_at is not None
+            and int(event.server_received_at.timestamp() * 1000) != received_ms
         )
     ):
         return False
     processed_ms = semantics["worker_processed_at_ms"]
     if (
-        processed_ms is not None
-        and (
-            event.worker_processed_at is None
-            or int(event.worker_processed_at.timestamp() * 1000) != processed_ms
+        (event.worker_processed_at is None) != (processed_ms is None)
+        or (
+            event.worker_processed_at is not None
+            and int(event.worker_processed_at.timestamp() * 1000) != processed_ms
         )
     ):
         return False
