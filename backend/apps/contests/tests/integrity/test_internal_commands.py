@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from django.db import OperationalError
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -276,6 +277,81 @@ def test_record_event_replay_rejects_every_changed_command_semantic(
             "command_id": command["command_id"],
         }
 
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_submitted_legacy_receipt_exact_retry_uses_requested_action(
+    internal_client,
+    running_integrity_run,
+    submitted_participant,
+):
+    command = bind_run(
+        record_event_command(submitted_participant),
+        running_integrity_run,
+    )
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    legacy_metadata = dict(event.metadata)
+    legacy_integrity = dict(legacy_metadata["integrity"])
+    assert legacy_integrity["action"] == "audit"
+    assert legacy_integrity["requested_action"] == command["action"]
+    legacy_integrity.pop("command_fingerprint")
+    legacy_metadata["integrity"] = legacy_integrity
+    event.metadata = legacy_metadata
+    event.save(update_fields=["metadata"])
+
+    response = internal_client.post_commands(running_integrity_run, [command])
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "accepted_command_ids": [command["command_id"]],
+        "archive_uploads": [],
+    }
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_submitted_legacy_receipt_changed_replay_remains_conflict(
+    internal_client,
+    running_integrity_run,
+    submitted_participant,
+):
+    command = bind_run(
+        record_event_command(submitted_participant),
+        running_integrity_run,
+    )
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    legacy_metadata = dict(event.metadata)
+    legacy_integrity = dict(legacy_metadata["integrity"])
+    assert legacy_integrity["action"] == "audit"
+    assert legacy_integrity["requested_action"] == command["action"]
+    legacy_integrity.pop("command_fingerprint")
+    legacy_metadata["integrity"] = legacy_integrity
+    event.metadata = legacy_metadata
+    event.save(update_fields=["metadata"])
+
+    response = internal_client.post_commands(
+        running_integrity_run,
+        [{**command, "device_id": "changed-device"}],
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "code": "command_id_conflict",
+        "command_id": command["command_id"],
+    }
     assert ExamEvent.objects.filter(
         integrity_command_id=command["command_id"],
     ).count() == 1
@@ -919,6 +995,42 @@ def test_database_failure_returns_503_for_unchanged_worker_retry(
     )
 
     response = internal_client.post_commands(running_integrity_run, [command])
+
+    assert response.status_code == 503
+    assert response.json() == {"code": "integrity_command_temporarily_unavailable"}
+    assert "database" not in response.content.decode("utf-8").lower()
+
+
+@pytest.mark.django_db
+def test_bootstrap_auth_query_failure_returns_retryable_503(
+    internal_client,
+    running_integrity_run,
+    mocker,
+):
+    mocker.patch(
+        "apps.contests.views.integrity_internal.authenticate_integrity_run",
+        side_effect=OperationalError("database credentials must not leak"),
+    )
+
+    response = internal_client.get_bootstrap(running_integrity_run)
+
+    assert response.status_code == 503
+    assert response.json() == {"code": "integrity_bootstrap_temporarily_unavailable"}
+    assert "database" not in response.content.decode("utf-8").lower()
+
+
+@pytest.mark.django_db
+def test_commands_auth_query_failure_returns_retryable_503(
+    internal_client,
+    running_integrity_run,
+    mocker,
+):
+    mocker.patch(
+        "apps.contests.views.integrity_internal.authenticate_integrity_run",
+        side_effect=OperationalError("database credentials must not leak"),
+    )
+
+    response = internal_client.post_commands(running_integrity_run, [])
 
     assert response.status_code == 503
     assert response.json() == {"code": "integrity_command_temporarily_unavailable"}

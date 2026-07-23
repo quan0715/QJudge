@@ -32,14 +32,26 @@ class _IntegrityRunTokenView(APIView):
         except UnicodeEncodeError:
             return None
 
-    def _authenticate(self, request, run_id: UUID):
+    def _authenticate(
+        self,
+        request,
+        run_id: UUID,
+        *,
+        unavailable_code: str,
+    ):
         token_bytes = self._token_bytes(request)
         if token_bytes is None:
             return None, None, Response(
                 {"code": "invalid_integrity_run_token"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        run, token_digest = authenticate_integrity_run(run_id, token_bytes)
+        try:
+            run, token_digest = authenticate_integrity_run(run_id, token_bytes)
+        except Exception:
+            return None, None, Response(
+                {"code": unavailable_code},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         if run is None:
             return None, None, Response(
                 {"code": "invalid_integrity_run_scope"},
@@ -50,7 +62,11 @@ class _IntegrityRunTokenView(APIView):
 
 class IntegrityBootstrapView(_IntegrityRunTokenView):
     def get(self, request, run_id: UUID):
-        run, _token_digest, error = self._authenticate(request, run_id)
+        run, _token_digest, error = self._authenticate(
+            request,
+            run_id,
+            unavailable_code="integrity_bootstrap_temporarily_unavailable",
+        )
         if error is not None:
             return error
         try:
@@ -70,7 +86,11 @@ class IntegrityBootstrapView(_IntegrityRunTokenView):
 
 class IntegrityCommandsView(_IntegrityRunTokenView):
     def post(self, request, run_id: UUID):
-        _run, token_digest, error = self._authenticate(request, run_id)
+        _run, token_digest, error = self._authenticate(
+            request,
+            run_id,
+            unavailable_code="integrity_command_temporarily_unavailable",
+        )
         if error is not None:
             return error
 

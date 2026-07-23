@@ -592,17 +592,21 @@ def _legacy_event_matches_semantics(
     actual_incident = (
         None if event.incident_id is None else str(event.incident_id)
     )
+    persisted_action = integrity_metadata.get(
+        "requested_action",
+        integrity_metadata.get("action"),
+    )
     if (
         actual_incident != expected_incident
         or event.client_occurred_at_ms != semantics["client_occurred_at_ms"]
         or event.delayed_delivery is not semantics["delayed_delivery"]
-        or integrity_metadata.get("action") != semantics["action"]
+        or persisted_action != semantics["action"]
         or integrity_metadata.get("device_id") != semantics["device_id"]
     ):
         return False
-    if semantics["kind"] == "record_event" and (
-        integrity_metadata.get("evidence") != semantics["evidence"]
-        or integrity_metadata.get("requested_action") != semantics["action"]
+    if (
+        semantics["kind"] == "record_event"
+        and integrity_metadata.get("evidence") != semantics["evidence"]
     ):
         return False
     received_ms = semantics["received_at_server_ms"]
