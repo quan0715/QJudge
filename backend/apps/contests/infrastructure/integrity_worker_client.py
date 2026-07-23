@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import re
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -15,6 +16,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from django.conf import settings
 
 from apps.contests.models import ExamIntegrityRun
+
+
+_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class _HttpClient(Protocol):
@@ -140,6 +144,50 @@ class WorkerBatchAck:
         }
 
 
+@dataclass(frozen=True)
+class WorkerStopResult:
+    archived: bool
+    manifest_key: str
+    manifest_sha256: str
+
+    @classmethod
+    def model_validate(
+        cls,
+        payload,
+        *,
+        expected_manifest_key: str,
+    ) -> "WorkerStopResult":
+        if type(payload) is not dict or set(payload) != {
+            "archived",
+            "manifest_key",
+            "manifest_sha256",
+        }:
+            raise IntegrityWorkerProtocolError("invalid Worker Stop response")
+        archived = payload.get("archived")
+        manifest_key = payload.get("manifest_key")
+        manifest_sha256 = payload.get("manifest_sha256")
+        if (
+            archived is not True
+            or type(manifest_key) is not str
+            or manifest_key != expected_manifest_key
+            or type(manifest_sha256) is not str
+            or not _SHA256_RE.fullmatch(manifest_sha256)
+        ):
+            raise IntegrityWorkerProtocolError("invalid Worker Stop response")
+        return cls(
+            archived=True,
+            manifest_key=manifest_key,
+            manifest_sha256=manifest_sha256,
+        )
+
+    def as_dict(self) -> dict:
+        return {
+            "archived": self.archived,
+            "manifest_key": self.manifest_key,
+            "manifest_sha256": self.manifest_sha256,
+        }
+
+
 def load_integrity_worker_private_key(path: str) -> Ed25519PrivateKey:
     try:
         encoded = Path(path).read_bytes()
@@ -195,11 +243,13 @@ class IntegrityWorkerClient:
     connect_timeout_seconds: float = 1.0
     read_timeout_seconds: float = 5.0
 
-    def post_batch(
+    def _signed_post(
         self,
         run: ExamIntegrityRun,
+        *,
+        path: str,
         body: bytes,
-    ) -> WorkerBatchAck:
+    ) -> httpx.Response:
         timestamp = str(int(time.time()))
         message = (
             str(run.id).encode("ascii")
@@ -213,7 +263,7 @@ class IntegrityWorkerClient:
         ).decode("ascii")
         try:
             response = self.http.post(
-                f"{run.worker_url.rstrip('/')}/v1/runs/{run.id}/batches",
+                f"{run.worker_url.rstrip('/')}{path}",
                 content=body,
                 headers={
                     "Content-Type": "application/json",
@@ -228,21 +278,69 @@ class IntegrityWorkerClient:
             )
         except (httpx.TimeoutException, httpx.ConnectError):
             raise IntegrityWorkerUnavailable("Integrity Worker unavailable") from None
+        return response
 
+    @staticmethod
+    def _validate_status(
+        response: httpx.Response,
+        *,
+        rejection_statuses: frozenset[int],
+    ) -> None:
         if response.status_code in {502, 503, 504}:
             raise IntegrityWorkerUnavailable("Integrity Worker unavailable")
-        if response.status_code in {409, 422}:
+        if response.status_code in rejection_statuses:
             raise IntegrityWorkerRejected(
                 response.status_code,
                 _valid_rejection_payload(response),
             )
         if response.status_code != 200:
             raise IntegrityWorkerProtocolError("unexpected Worker response")
+
+    def post_batch(
+        self,
+        run: ExamIntegrityRun,
+        body: bytes,
+    ) -> WorkerBatchAck:
+        response = self._signed_post(
+            run,
+            path=f"/v1/runs/{run.id}/batches",
+            body=body,
+        )
+        self._validate_status(
+            response,
+            rejection_statuses=frozenset({409, 422}),
+        )
+
         try:
             payload = response.json()
         except (ValueError, TypeError):
             raise IntegrityWorkerProtocolError("invalid Worker ACK") from None
         return WorkerBatchAck.model_validate(payload)
+
+    def request_stop(self, run: ExamIntegrityRun) -> dict:
+        response = self._signed_post(
+            run,
+            path=f"/v1/runs/{run.id}/control/stop",
+            body=b"",
+        )
+        self._validate_status(
+            response,
+            rejection_statuses=frozenset({409, 422, 507}),
+        )
+        try:
+            payload = response.json()
+        except (ValueError, TypeError):
+            raise IntegrityWorkerProtocolError(
+                "invalid Worker Stop response"
+            ) from None
+        generation = max(1, run.archive_generation)
+        expected_manifest_key = (
+            f"runs/{run.id}/generation-{generation}/manifest.json"
+        )
+        return WorkerStopResult.model_validate(
+            payload,
+            expected_manifest_key=expected_manifest_key,
+        ).as_dict()
 
 
 def build_integrity_worker_client() -> IntegrityWorkerClient:

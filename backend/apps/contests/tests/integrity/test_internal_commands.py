@@ -155,6 +155,7 @@ def record_event_command(
     command_id="55555555-5555-5555-5555-555555555555",
     delayed_delivery=False,
     action="pause",
+    event_type="exit_fullscreen",
 ):
     return {
         "command_id": command_id,
@@ -163,7 +164,7 @@ def record_event_command(
         "participant_id": participant.id,
         "device_id": "device-a",
         "incident_id": "66666666-6666-6666-6666-666666666666",
-        "event_type": "exit_fullscreen",
+        "event_type": event_type,
         "action": action,
         "client_occurred_at_ms": 1_785_000_000_000,
         "received_at_server_ms": 1_785_000_001_000,
@@ -230,6 +231,91 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
 
 
 @pytest.mark.django_db
+def test_record_event_replay_rejects_every_changed_command_semantic(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(record_event_command(participant), running_integrity_run)
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+
+    changed_commands = [
+        {**command, "action": "audit"},
+        {
+            **command,
+            "incident_id": "88888888-8888-8888-8888-888888888888",
+        },
+        {
+            **command,
+            "client_occurred_at_ms": command["client_occurred_at_ms"] + 1,
+        },
+        {
+            **command,
+            "received_at_server_ms": command["received_at_server_ms"] + 1,
+        },
+        {
+            **command,
+            "worker_processed_at_ms": command["received_at_server_ms"] + 2,
+        },
+        {**command, "device_id": "device-b"},
+        {**command, "evidence": {**command["evidence"], "before_ms": 9_999}},
+        {**command, "metadata": {"module": "webcam"}},
+    ]
+
+    for changed in changed_commands:
+        response = internal_client.post_commands(
+            running_integrity_run,
+            [changed],
+        )
+        assert response.status_code == 422
+        assert response.json() == {
+            "code": "command_id_conflict",
+            "command_id": command["command_id"],
+        }
+
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("event_type", "action", "expected_violations"),
+    (
+        ("listener_tampered", "pause", 1),
+        ("clipboard_action", "record", 1),
+        ("exit_fullscreen_triggered", "record", 0),
+    ),
+)
+def test_violation_count_distinguishes_direct_actions_from_incident_opening(
+    internal_client,
+    running_integrity_run,
+    participant,
+    event_type,
+    action,
+    expected_violations,
+):
+    command = bind_run(
+        record_event_command(
+            participant,
+            command_id=str(uuid4()),
+            event_type=event_type,
+            action=action,
+        ),
+        running_integrity_run,
+    )
+
+    response = internal_client.post_commands(running_integrity_run, [command])
+
+    assert response.status_code == 200
+    participant.refresh_from_db()
+    assert participant.violation_count == expected_violations
+
+
+@pytest.mark.django_db
 def test_late_or_submitted_event_is_audit_only(
     internal_client,
     running_integrity_run,
@@ -293,6 +379,47 @@ def test_auto_submit_uses_existing_finalizer_once_and_never_stops_run(
 
 
 @pytest.mark.django_db
+def test_auto_submit_replay_rejects_changed_timestamps_metadata_and_device(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    assert internal_client.post_commands(
+        running_integrity_run,
+        [command],
+    ).status_code == 200
+
+    changed_commands = [
+        {
+            **command,
+            "received_at_server_ms": command["received_at_server_ms"] + 1,
+        },
+        {**command, "device_id": "different-scheduler"},
+        {
+            **command,
+            "metadata": {
+                "scheduled_end_ms": command["metadata"]["scheduled_end_ms"] + 1,
+            },
+        },
+    ]
+    for changed in changed_commands:
+        response = internal_client.post_commands(
+            running_integrity_run,
+            [changed],
+        )
+        assert response.status_code == 422
+        assert response.json() == {
+            "code": "command_id_conflict",
+            "command_id": command["command_id"],
+        }
+
+    assert ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).count() == 1
+
+
+@pytest.mark.django_db
 def test_bootstrap_returns_only_frozen_run_scope_with_uuid_contest_id(
     internal_client,
     running_integrity_run,
@@ -332,6 +459,8 @@ def test_bootstrap_returns_only_frozen_run_scope_with_uuid_contest_id(
     assert payload["archive_policy"]["key_prefix"] == (
         f"runs/{running_integrity_run.id}/generation-1/"
     )
+    assert payload["archive_policy"]["capacity_warning_bytes"] == 1_073_741_824
+    assert payload["archive_policy"]["capacity_reserve_bytes"] == 268_435_456
     assert payload["generation"] == 1
     assert payload["previous_manifest"] is None
     expected_public = private_key.public_key().public_bytes(
@@ -344,6 +473,70 @@ def test_bootstrap_returns_only_frozen_run_scope_with_uuid_contest_id(
     ) == expected_public
     assert "token_digest" not in payload
     assert "cheat_detection_enabled" not in payload
+
+
+@pytest.mark.django_db
+def test_bootstrap_propagates_configured_archive_capacity_thresholds(
+    internal_client,
+    running_integrity_run,
+    settings,
+    tmp_path,
+):
+    private_key = Ed25519PrivateKey.generate()
+    private_key_path = tmp_path / "backend-ed25519"
+    private_key_path.write_bytes(
+        private_key.private_bytes(
+            serialization.Encoding.Raw,
+            serialization.PrivateFormat.Raw,
+            serialization.NoEncryption(),
+        )
+    )
+    settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = str(private_key_path)
+    settings.INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = 8_388_608
+    settings.INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = 2_097_152
+
+    response = internal_client.get_bootstrap(running_integrity_run)
+
+    assert response.status_code == 200
+    assert response.json()["archive_policy"][
+        "capacity_warning_bytes"
+    ] == 8_388_608
+    assert response.json()["archive_policy"][
+        "capacity_reserve_bytes"
+    ] == 2_097_152
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "setting_name",
+    (
+        "INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES",
+        "INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES",
+    ),
+)
+def test_bootstrap_rejects_negative_archive_capacity_thresholds(
+    internal_client,
+    running_integrity_run,
+    settings,
+    tmp_path,
+    setting_name,
+):
+    private_key = Ed25519PrivateKey.generate()
+    private_key_path = tmp_path / "backend-ed25519"
+    private_key_path.write_bytes(
+        private_key.private_bytes(
+            serialization.Encoding.Raw,
+            serialization.PrivateFormat.Raw,
+            serialization.NoEncryption(),
+        )
+    )
+    settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = str(private_key_path)
+    setattr(settings, setting_name, -1)
+
+    response = internal_client.get_bootstrap(running_integrity_run)
+
+    assert response.status_code == 409
+    assert response.json() == {"code": "invalid_archive_capacity_policy"}
 
 
 @pytest.mark.django_db

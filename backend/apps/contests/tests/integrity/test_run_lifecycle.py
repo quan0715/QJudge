@@ -655,6 +655,96 @@ def test_stop_can_retry_from_stopping_and_archives_before_stopping_container(
     assert stopped.stopped_at is not None
 
 
+@pytest.mark.django_db(transaction=True)
+def test_stop_releases_run_row_before_worker_manifest_callback(
+    integrity_run,
+    owner,
+):
+    token = "stop-callback-token"
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.RUNNING
+    integrity_run.token_digest = hashlib.sha256(token.encode("ascii")).hexdigest()
+    integrity_run.token_expires_at = timezone.now() + timedelta(hours=1)
+    integrity_run.container_id = "container-1"
+    integrity_run.container_name = "integrity-run-1"
+    integrity_run.worker_url = "http://integrity-run-1:8020"
+    integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "token_digest",
+            "token_expires_at",
+            "container_id",
+            "container_name",
+            "worker_url",
+            "worker_image_digest",
+        ]
+    )
+    manifest_key = f"runs/{integrity_run.id}/generation-1/manifest.json"
+    manifest_sha256 = "a" * 64
+    publish = {
+        "command_id": "99999999-9999-9999-9999-999999999999",
+        "run_id": str(integrity_run.id),
+        "kind": "publish_archive_manifest",
+        "metadata": {
+            "object_key": manifest_key,
+            "sha256": manifest_sha256,
+            "generation": 1,
+            "archived_counts": {"segments": 1},
+        },
+    }
+    callback_pool = ThreadPoolExecutor(max_workers=1)
+
+    def publish_callback():
+        close_old_connections()
+        try:
+            return APIClient().post(
+                f"/api/v1/internal/integrity/runs/{integrity_run.id}/commands/",
+                {"commands": [publish]},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
+        finally:
+            close_old_connections()
+
+    worker = Mock()
+
+    def request_stop(_run):
+        callback = callback_pool.submit(publish_callback)
+        response = callback.result(timeout=5)
+        assert response.status_code == 200
+        assert response.json() == {
+            "accepted_command_ids": [publish["command_id"]],
+            "archive_uploads": [],
+        }
+        return {
+            "archived": True,
+            "manifest_key": manifest_key,
+            "manifest_sha256": manifest_sha256,
+        }
+
+    worker.request_stop.side_effect = request_stop
+    controller = Mock()
+    controller.stop_container.return_value = {}
+
+    try:
+        stopped = stop_run(
+            integrity_run.id,
+            actor=owner,
+            worker=worker,
+            controller=controller,
+        )
+    finally:
+        callback_pool.shutdown(wait=True)
+
+    assert stopped.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert stopped.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert stopped.archive_generation == 1
+    assert stopped.archive_manifest_key == manifest_key
+    assert stopped.archive_manifest_sha256 == manifest_sha256
+    assert worker.request_stop.call_count == 1
+    controller.stop_container.assert_called_once_with(integrity_run.id)
+
+
 @pytest.mark.django_db
 def test_stop_controller_failure_leaves_stopping_and_credentials_for_retry(
     integrity_run,
@@ -949,7 +1039,7 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
     worker.request_stop.return_value = _verified_archive(integrity_run)
     stop_entered = threading.Event()
     release_stop = threading.Event()
-    second_row_lock_attempted = threading.Event()
+    second_operation_started = threading.Event()
     controller = Mock()
 
     def stop_container(_run_id):
@@ -963,24 +1053,14 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
         close_old_connections()
         try:
             local_owner = User.objects.get(pk=owner.pk)
-
-            def signal_contested_lock(execute, sql, params, many, context):
-                if 'FROM "exam_integrity_runs"' in sql and "FOR UPDATE" in sql:
-                    second_row_lock_attempted.set()
-                return execute(sql, params, many, context)
-
-            lock_signal = (
-                connection.execute_wrapper(signal_contested_lock)
-                if second
-                else nullcontext()
-            )
-            with lock_signal:
-                return stop_run(
-                    integrity_run.id,
-                    actor=local_owner,
-                    worker=worker,
-                    controller=controller,
-                ).compute_state
+            if second:
+                second_operation_started.set()
+            return stop_run(
+                integrity_run.id,
+                actor=local_owner,
+                worker=worker,
+                controller=controller,
+            ).compute_state
         finally:
             close_old_connections()
 
@@ -988,7 +1068,8 @@ def test_concurrent_stop_serializes_worker_and_controller_side_effects(
         first = pool.submit(call_stop)
         assert stop_entered.wait(timeout=10)
         second = pool.submit(call_stop, second=True)
-        assert second_row_lock_attempted.wait(timeout=10)
+        assert second_operation_started.wait(timeout=10)
+        assert second.done() is False
         release_stop.set()
         states = [first.result(timeout=10), second.result(timeout=10)]
 

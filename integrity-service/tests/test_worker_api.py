@@ -1025,6 +1025,35 @@ def _bootstrap_payload(*, generation: int, previous_manifest=None):
     }
 
 
+def test_bootstrap_freezes_backend_archive_capacity_thresholds():
+    payload = _bootstrap_payload(generation=1)
+    payload["archive_policy"] = {
+        "capacity_warning_bytes": 1_073_741_824,
+        "capacity_reserve_bytes": 268_435_456,
+    }
+
+    parsed = WorkerBootstrap.from_payload(payload)
+
+    assert parsed.archive_policy["capacity_warning_bytes"] == 1_073_741_824
+    assert parsed.archive_policy["capacity_reserve_bytes"] == 268_435_456
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("capacity_warning_bytes", "capacity_reserve_bytes"),
+)
+def test_bootstrap_rejects_negative_archive_capacity_thresholds(field):
+    payload = _bootstrap_payload(generation=1)
+    payload["archive_policy"] = {
+        "capacity_warning_bytes": 1_073_741_824,
+        "capacity_reserve_bytes": 268_435_456,
+    }
+    payload["archive_policy"][field] = -1
+
+    with pytest.raises(ValueError, match=field):
+        WorkerBootstrap.from_payload(payload)
+
+
 def test_generation_after_one_requires_exact_prior_manifest_identity():
     with pytest.raises(ValueError, match="previous manifest"):
         WorkerBootstrap.from_payload(_bootstrap_payload(generation=2))

@@ -636,12 +636,44 @@ def _checkpoint_archive(
                 run,
             )
             return run, False
-        try:
-            resolved_worker = worker or _build_worker_client()
-            response = resolved_worker.request_stop(run)
-        except Exception:
-            raise IntegrityLifecycleError("worker_archive_failed") from None
-        manifest = _parse_archive_manifest(response, run)
+
+    try:
+        resolved_worker = worker or _build_worker_client()
+        response = resolved_worker.request_stop(run)
+    except Exception:
+        raise IntegrityLifecycleError("worker_archive_failed") from None
+    manifest = _parse_archive_manifest(response, run)
+
+    with transaction.atomic():
+        run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        error_guard.observe(run)
+        if (
+            run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+            and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+        ):
+            return run, True
+        if run.compute_state != ExamIntegrityRun.ComputeState.STOPPING:
+            raise InvalidRunTransition("stop requires running or stopping") from None
+        if _archive_checkpoint_present(run):
+            persisted = _parse_archive_manifest(
+                {
+                    "archived": True,
+                    "manifest_key": run.archive_manifest_key,
+                    "manifest_sha256": run.archive_manifest_sha256,
+                },
+                run,
+            )
+            if (
+                persisted.manifest_key != manifest.manifest_key
+                or not hmac.compare_digest(
+                    persisted.manifest_sha256,
+                    manifest.manifest_sha256,
+                )
+            ):
+                raise InvalidRunTransition(
+                    "stop requires a verified archive manifest"
+                ) from None
+            return run, True
         run.archive_manifest_key = manifest.manifest_key
         run.archive_manifest_sha256 = manifest.manifest_sha256
         run.save(
@@ -738,28 +770,29 @@ def stop_run(
 ) -> ExamIntegrityRun:
     error_guard = LifecycleErrorGuard()
     try:
-        marked = _mark_stopping(run_id, error_guard)
-        if (
-            marked.compute_state == ExamIntegrityRun.ComputeState.STOPPED
-            and marked.data_state == ExamIntegrityRun.DataState.ARCHIVED
-        ):
-            return marked
-        checkpointed, created_checkpoint = _checkpoint_archive(
-            run_id,
-            worker,
-            error_guard,
-        )
-        if checkpointed.compute_state == ExamIntegrityRun.ComputeState.STOPPED:
-            return checkpointed
-        error_guard.observe(checkpointed)
-        resolved_controller = controller or _build_controller_client()
-        return _complete_stop(
-            run_id,
-            actor=actor,
-            controller=resolved_controller,
-            reconcile_first=not created_checkpoint,
-            error_guard=error_guard,
-        )
+        with _serialized_run_operation(run_id):
+            marked = _mark_stopping(run_id, error_guard)
+            if (
+                marked.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+                and marked.data_state == ExamIntegrityRun.DataState.ARCHIVED
+            ):
+                return marked
+            checkpointed, created_checkpoint = _checkpoint_archive(
+                run_id,
+                worker,
+                error_guard,
+            )
+            if checkpointed.compute_state == ExamIntegrityRun.ComputeState.STOPPED:
+                return checkpointed
+            error_guard.observe(checkpointed)
+            resolved_controller = controller or _build_controller_client()
+            return _complete_stop(
+                run_id,
+                actor=actor,
+                controller=resolved_controller,
+                reconcile_first=not created_checkpoint,
+                error_guard=error_guard,
+            )
     except InvalidRunTransition:
         raise
     except IntegrityLifecycleError as exc:

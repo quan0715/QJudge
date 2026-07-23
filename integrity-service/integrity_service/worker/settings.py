@@ -78,6 +78,17 @@ class WorkerBootstrap:
         object.__setattr__(self, "backend_signing_public_key", public_key)
         if not isinstance(self.archive_policy, Mapping):
             raise TypeError("archive_policy must be an object")
+        for field_name in (
+            "capacity_warning_bytes",
+            "capacity_reserve_bytes",
+        ):
+            if field_name not in self.archive_policy:
+                continue
+            value = self.archive_policy[field_name]
+            if type(value) is not int or value < 0:
+                raise ValueError(
+                    f"{field_name} must be a non-negative integer"
+                )
         _positive_int(self.generation, "generation")
         object.__setattr__(
             self, "policy_snapshot", freeze_json(self.policy_snapshot)

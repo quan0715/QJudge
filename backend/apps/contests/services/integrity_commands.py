@@ -54,6 +54,21 @@ _ARCHIVE_CONTENT_TYPES = frozenset(
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}\Z")
 _SEGMENT_SUFFIX_RE = re.compile(r"segments/[0-9]{8}\.journal\.gz\Z")
 _DUMMY_TOKEN_DIGEST = "0" * 64
+_EVIDENCE_PROJECTION_FIELDS = frozenset(
+    {
+        "evidence_cluster_id",
+        "evidence_mode",
+        "evidence_anchor_at_ms",
+        "evidence_anchor_at",
+        "evidence_window_start",
+        "evidence_window_end",
+        "evidence_window_before_seconds",
+        "evidence_window_after_seconds",
+        "evidence_window_max_seconds",
+        "evidence_source_module",
+        "pre_buffer_complete",
+    }
+)
 
 
 class IntegrityCommandRejected(ValueError):
@@ -85,6 +100,8 @@ class RecordIntegrityEvent:
     action: str
     device_id: str
     evidence: dict[str, object]
+    command_fingerprint: str
+    command_semantics: dict[str, object]
 
 
 def authenticate_integrity_run(
@@ -140,6 +157,13 @@ def _archive_bucket() -> str:
     if not bucket:
         raise RuntimeError("integrity archive storage is unavailable")
     return bucket
+
+
+def _archive_capacity_threshold(setting_name: str) -> int:
+    value = getattr(settings, setting_name, None)
+    if type(value) is not int or value < 0:
+        raise IntegrityCommandRejected("invalid_archive_capacity_policy")
+    return value
 
 
 def _current_archive_generation(run: ExamIntegrityRun) -> int:
@@ -212,8 +236,12 @@ def build_integrity_bootstrap(run: ExamIntegrityRun) -> dict[str, object]:
             "key_prefix": key_prefix,
             "rotate_after_ms": 60_000,
             "max_segment_bytes": 8 * 1024 * 1024,
-            "capacity_warning_bytes": 0,
-            "capacity_reserve_bytes": 0,
+            "capacity_warning_bytes": _archive_capacity_threshold(
+                "INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES"
+            ),
+            "capacity_reserve_bytes": _archive_capacity_threshold(
+                "INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES"
+            ),
             "presigned_url_ttl_seconds": (
                 settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
             ),
@@ -295,6 +323,17 @@ def _json_object(value: object, code: str) -> dict[str, object]:
     except (TypeError, ValueError):
         raise IntegrityCommandRejected(code) from None
     return dict(value)
+
+
+def _command_fingerprint(semantics: dict[str, object]) -> str:
+    encoded = json.dumps(
+        semantics,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _strict_string(
@@ -490,6 +529,8 @@ def _existing_command_event(
     run_id: UUID,
     participant_id: int,
     event_type: str,
+    command_fingerprint: str,
+    command_semantics: dict[str, object],
 ) -> ExamEvent | None:
     existing = ExamEvent.objects.filter(integrity_command_id=command_id).first()
     if existing is None:
@@ -501,7 +542,88 @@ def _existing_command_event(
         or existing.event_type != event_type
     ):
         raise IntegrityCommandRejected("command_id_conflict")
+    metadata = existing.metadata
+    integrity_metadata = (
+        metadata.get("integrity")
+        if type(metadata) is dict
+        else None
+    )
+    existing_fingerprint = (
+        integrity_metadata.get("command_fingerprint")
+        if type(integrity_metadata) is dict
+        else None
+    )
+    if type(existing_fingerprint) is str:
+        if hmac.compare_digest(existing_fingerprint, command_fingerprint):
+            return existing
+        raise IntegrityCommandRejected("command_id_conflict")
+    if not _legacy_event_matches_semantics(
+        existing,
+        integrity_metadata,
+        command_semantics,
+    ):
+        raise IntegrityCommandRejected("command_id_conflict")
     return existing
+
+
+def _legacy_event_matches_semantics(
+    event: ExamEvent,
+    integrity_metadata: object,
+    semantics: dict[str, object],
+) -> bool:
+    if type(integrity_metadata) is not dict:
+        return False
+    metadata = event.metadata if type(event.metadata) is dict else {}
+    expected_metadata = semantics["metadata"]
+    if type(expected_metadata) is not dict:
+        return False
+    extra_metadata_keys = (
+        set(metadata)
+        - set(expected_metadata)
+        - {"integrity"}
+        - _EVIDENCE_PROJECTION_FIELDS
+    )
+    if extra_metadata_keys or any(
+        metadata.get(key) != value
+        for key, value in expected_metadata.items()
+    ):
+        return False
+    expected_incident = semantics["incident_id"]
+    actual_incident = (
+        None if event.incident_id is None else str(event.incident_id)
+    )
+    if (
+        actual_incident != expected_incident
+        or event.client_occurred_at_ms != semantics["client_occurred_at_ms"]
+        or event.delayed_delivery is not semantics["delayed_delivery"]
+        or integrity_metadata.get("action") != semantics["action"]
+        or integrity_metadata.get("device_id") != semantics["device_id"]
+    ):
+        return False
+    if semantics["kind"] == "record_event" and (
+        integrity_metadata.get("evidence") != semantics["evidence"]
+        or integrity_metadata.get("requested_action") != semantics["action"]
+    ):
+        return False
+    received_ms = semantics["received_at_server_ms"]
+    if (
+        received_ms is not None
+        and (
+            event.server_received_at is None
+            or int(event.server_received_at.timestamp() * 1000) != received_ms
+        )
+    ):
+        return False
+    processed_ms = semantics["worker_processed_at_ms"]
+    if (
+        processed_ms is not None
+        and (
+            event.worker_processed_at is None
+            or int(event.worker_processed_at.timestamp() * 1000) != processed_ms
+        )
+    ):
+        return False
+    return True
 
 
 def _pause_reason(event_type: str) -> str:
@@ -543,16 +665,26 @@ def _apply_registry_action(
     event_type: str,
     phase: str,
     action: str,
+    definition: dict[str, object],
 ) -> None:
     if action == "audit":
         return
 
     update_fields: list[str] = []
-    is_escalated_violation = (
-        phase == "escalated"
-        and action in {"record", "pause", "lock", "submit"}
+    signals = definition.get("signals")
+    if type(signals) is not dict:
+        raise IntegrityCommandRejected("invalid_frozen_registry")
+    is_incident_opening_record = bool(
+        phase == "triggered"
+        and action == "record"
+        and (signals.get("escalated") or signals.get("restored"))
     )
-    if is_escalated_violation:
+    is_actionable_violation = bool(
+        phase in {"triggered", "escalated"}
+        and action in {"record", "pause", "lock", "submit"}
+        and not is_incident_opening_record
+    )
+    if is_actionable_violation:
         participant.violation_count += 1
         update_fields.append("violation_count")
 
@@ -582,6 +714,8 @@ def _apply_registry_action(
             f"Auto-locked due to {event_type}",
         )
     elif action == "submit":
+        if update_fields:
+            participant.save(update_fields=list(dict.fromkeys(update_fields)))
         finalize_submission(
             participant,
             submit_reason=f"Auto-submitted: {event_type}",
@@ -611,15 +745,6 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     if participant is None:
         raise IntegrityCommandRejected("participant_run_scope_mismatch")
 
-    existing = _existing_command_event(
-        command_id=command.command_id,
-        run_id=run.id,
-        participant_id=participant.id,
-        event_type=command.event_type,
-    )
-    if existing is not None:
-        return existing
-
     definition_id, definition, phase = _definition_for_event(
         run,
         command.event_type,
@@ -638,6 +763,17 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     }:
         raise IntegrityCommandRejected("participant_not_active")
 
+    existing = _existing_command_event(
+        command_id=command.command_id,
+        run_id=run.id,
+        participant_id=participant.id,
+        event_type=command.event_type,
+        command_fingerprint=command.command_fingerprint,
+        command_semantics=command.command_semantics,
+    )
+    if existing is not None:
+        return existing
+
     effective_action = (
         "audit"
         if (
@@ -654,6 +790,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "evidence": command.evidence,
         "phase": phase,
         "requested_action": command.action,
+        "command_fingerprint": command.command_fingerprint,
     }
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -684,6 +821,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
             event_type=command.event_type,
             phase=phase,
             action=effective_action,
+            definition=definition,
         )
     return event
 
@@ -748,6 +886,26 @@ def _record_event_command(
         "invalid_device_id",
         max_length=128,
     )
+    incident_id = _optional_uuid(
+        command.get("incident_id"),
+        "invalid_incident_id",
+    )
+    command_semantics = {
+        "kind": "record_event",
+        "run_id": str(run.id),
+        "participant_id": participant_id,
+        "device_id": device_id,
+        "incident_id": None if incident_id is None else str(incident_id),
+        "event_type": event_type,
+        "action": action,
+        "client_occurred_at_ms": client_ms,
+        "received_at_server_ms": received_ms,
+        "worker_processed_at_ms": processed_ms,
+        "delayed_delivery": delayed_delivery,
+        "evidence": evidence,
+        "metadata": metadata,
+    }
+    command_fingerprint = _command_fingerprint(command_semantics)
     before = ExamEvent.objects.filter(integrity_command_id=command_id).exists()
     record_integrity_event(
         RecordIntegrityEvent(
@@ -755,10 +913,7 @@ def _record_event_command(
             run_id=run.id,
             participant_id=participant_id,
             event_type=event_type,
-            incident_id=_optional_uuid(
-                command.get("incident_id"),
-                "invalid_incident_id",
-            ),
+            incident_id=incident_id,
             client_occurred_at_ms=client_ms,
             server_received_at=server_received_at,
             worker_processed_at=worker_processed_at,
@@ -767,6 +922,8 @@ def _record_event_command(
             action=str(action),
             device_id=device_id,
             evidence=evidence,
+            command_fingerprint=command_fingerprint,
+            command_semantics=command_semantics,
         )
     )
     return CommandOutcome(
@@ -797,15 +954,6 @@ def _auto_submit_command(
         raise IntegrityCommandRejected("invalid_auto_submit_event")
     if command.get("action") not in {None, "submit"}:
         raise IntegrityCommandRejected("invalid_command_action")
-    existing = _existing_command_event(
-        command_id=UUID(command_id),
-        run_id=run.id,
-        participant_id=participant.id,
-        event_type="scheduled_end",
-    )
-    if existing is not None:
-        return CommandOutcome(command_id, "already_applied", {})
-
     metadata = _json_object(command.get("metadata", {}), "invalid_command_metadata")
     if set(metadata) != {"scheduled_end_ms"}:
         raise IntegrityCommandRejected("invalid_auto_submit_metadata")
@@ -817,10 +965,71 @@ def _auto_submit_command(
         scheduled_end_ms - int(run.scheduled_end_at.timestamp() * 1000)
     ) > 1:
         raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
+    client_ms = _nonnegative_int(
+        command.get("client_occurred_at_ms", scheduled_end_ms),
+        "invalid_command_timestamp",
+    )
+    if abs(client_ms - scheduled_end_ms) > 1:
+        raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
     received_ms = _nonnegative_int(
         command.get("received_at_server_ms", scheduled_end_ms),
         "invalid_command_timestamp",
     )
+    processed_ms = command.get("worker_processed_at_ms")
+    worker_processed_at = (
+        timezone.now()
+        if processed_ms is None
+        else _milliseconds_datetime(
+            _nonnegative_int(processed_ms, "invalid_command_timestamp")
+        )
+    )
+    delayed_delivery = command.get("delayed_delivery", False)
+    if delayed_delivery is not False:
+        raise IntegrityCommandRejected("invalid_delayed_delivery")
+    incident_id = _optional_uuid(
+        command.get("incident_id"),
+        "invalid_incident_id",
+    )
+    if incident_id is not None:
+        raise IntegrityCommandRejected("invalid_auto_submit_incident")
+    evidence = _json_object(
+        command.get("evidence", {}),
+        "invalid_event_evidence",
+    )
+    if evidence:
+        raise IntegrityCommandRejected("invalid_auto_submit_evidence")
+    device_id = _strict_string(
+        command.get("device_id", "scheduler"),
+        "invalid_device_id",
+        max_length=128,
+    )
+    command_semantics = {
+        "kind": "auto_submit",
+        "run_id": str(run.id),
+        "participant_id": participant.id,
+        "device_id": device_id,
+        "incident_id": None,
+        "event_type": "scheduled_end",
+        "action": "submit",
+        "client_occurred_at_ms": client_ms,
+        "received_at_server_ms": received_ms,
+        "worker_processed_at_ms": processed_ms,
+        "delayed_delivery": False,
+        "evidence": evidence,
+        "metadata": metadata,
+    }
+    command_fingerprint = _command_fingerprint(command_semantics)
+    existing = _existing_command_event(
+        command_id=UUID(command_id),
+        run_id=run.id,
+        participant_id=participant.id,
+        event_type="scheduled_end",
+        command_fingerprint=command_fingerprint,
+        command_semantics=command_semantics,
+    )
+    if existing is not None:
+        return CommandOutcome(command_id, "already_applied", {})
+
     event = ExamEvent.objects.create(
         contest=run.contest,
         user=participant.user,
@@ -829,15 +1038,16 @@ def _auto_submit_command(
         event_type="scheduled_end",
         event_definition_version=run.registry_version,
         event_schema_version=1,
-        client_occurred_at_ms=scheduled_end_ms,
+        client_occurred_at_ms=client_ms,
         server_received_at=_milliseconds_datetime(received_ms),
-        worker_processed_at=timezone.now(),
+        worker_processed_at=worker_processed_at,
         delayed_delivery=False,
         metadata={
             **metadata,
             "integrity": {
                 "action": "submit",
-                "device_id": command.get("device_id", "scheduler"),
+                "device_id": device_id,
+                "command_fingerprint": command_fingerprint,
             },
         },
     )

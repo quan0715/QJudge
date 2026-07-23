@@ -19,6 +19,12 @@ from apps.contests.models import (
     ExamIntegrityRun,
     ExamStatus,
 )
+from apps.contests.infrastructure.integrity_worker_client import (
+    IntegrityWorkerProtocolError,
+    IntegrityWorkerRejected,
+    IntegrityWorkerUnavailable,
+    build_integrity_worker_client,
+)
 from apps.contests.services.anti_cheat_session import (
     active_session_key,
     heartbeat_key,
@@ -252,6 +258,109 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
+
+
+@pytest.mark.django_db
+def test_worker_stop_signs_exact_empty_body_and_validates_manifest(
+    running_integrity_run,
+    worker_server,
+):
+    manifest = {
+        "archived": True,
+        "manifest_key": (
+            f"runs/{running_integrity_run.id}/generation-1/manifest.json"
+        ),
+        "manifest_sha256": "ab" * 32,
+    }
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/control/stop",
+        response=manifest,
+    )
+
+    result = build_integrity_worker_client().request_stop(running_integrity_run)
+
+    assert result == manifest
+    assert worker_server.verified_signature is True
+    assert worker_server.received_body == b""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {
+            "archived": True,
+            "manifest_key": "manifest.json",
+            "manifest_sha256": "a" * 64,
+            "extra": True,
+        },
+        {
+            "archived": False,
+            "manifest_key": "manifest.json",
+            "manifest_sha256": "a" * 64,
+        },
+        {
+            "archived": True,
+            "manifest_key": " ",
+            "manifest_sha256": "a" * 64,
+        },
+        {
+            "archived": True,
+            "manifest_key": "manifest.json",
+            "manifest_sha256": "not-a-sha256",
+        },
+    ),
+)
+def test_worker_stop_rejects_non_exact_success_envelopes(
+    running_integrity_run,
+    worker_server,
+    payload,
+):
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/control/stop",
+        response=payload,
+    )
+
+    with pytest.raises(IntegrityWorkerProtocolError):
+        build_integrity_worker_client().request_stop(running_integrity_run)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("worker_status", (502, 503, 504))
+def test_worker_stop_maps_retryable_failures_to_unavailable(
+    running_integrity_run,
+    worker_server,
+    worker_status,
+):
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/control/stop",
+        response={"detail": "temporarily unavailable"},
+        status_code=worker_status,
+    )
+
+    with pytest.raises(IntegrityWorkerUnavailable):
+        build_integrity_worker_client().request_stop(running_integrity_run)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("worker_status", (409, 422, 507))
+def test_worker_stop_preserves_valid_worker_rejections(
+    running_integrity_run,
+    worker_server,
+    worker_status,
+):
+    payload = {"detail": "stop rejected"}
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/control/stop",
+        response=payload,
+        status_code=worker_status,
+    )
+
+    with pytest.raises(IntegrityWorkerRejected) as caught:
+        build_integrity_worker_client().request_stop(running_integrity_run)
+
+    assert caught.value.status_code == worker_status
+    assert caught.value.payload == payload
 
 
 @pytest.mark.django_db
