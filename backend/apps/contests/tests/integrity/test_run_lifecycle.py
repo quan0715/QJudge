@@ -1510,6 +1510,52 @@ def test_purge_object_success_then_volume_failure_retries_both_boundaries(
 
 
 @pytest.mark.django_db(transaction=True)
+def test_purge_preserves_durable_object_receipt_across_volume_failure(
+    integrity_run,
+    owner,
+):
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
+    integrity_run.data_state = ExamIntegrityRun.DataState.ARCHIVED
+    integrity_run.archive_generation = 1
+    integrity_run.archive_manifest_key = (
+        f"runs/{integrity_run.id}/generation-1/manifest.json"
+    )
+    integrity_run.archive_manifest_sha256 = "a" * 64
+    integrity_run.save(
+        update_fields=[
+            "compute_state",
+            "data_state",
+            "archive_generation",
+            "archive_manifest_key",
+            "archive_manifest_sha256",
+        ]
+    )
+
+    def persist_object_receipt(run):
+        ExamIntegrityRun.objects.filter(pk=run.pk).update(
+            metrics={"integrity_purge": {"durable": True}},
+        )
+
+    controller = Mock()
+    controller.purge_data.side_effect = RuntimeError("volume unavailable")
+
+    with pytest.raises(IntegrityLifecycleError):
+        purge_run(
+            integrity_run.id,
+            actor=owner,
+            purger=persist_object_receipt,
+            controller=controller,
+        )
+
+    integrity_run.refresh_from_db()
+    assert integrity_run.metrics == {
+        "integrity_purge": {"durable": True},
+    }
+    assert integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    assert integrity_run.archive_manifest_key.endswith("/manifest.json")
+
+
+@pytest.mark.django_db(transaction=True)
 def test_purge_external_success_then_commit_failure_retries_both_boundaries(
     integrity_run,
     owner,

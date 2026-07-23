@@ -1,5 +1,7 @@
 """Signed, validation-only gateway for Browser-to-Worker integrity batches."""
 
+import time
+
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
@@ -21,6 +23,7 @@ from ..integrity_serializers import (
 )
 from ..models import Contest, ContestParticipant, ExamIntegrityRun
 from ..services.anti_cheat_session import get_active_session
+from ..services.integrity_evidence import build_evidence_delivery
 
 
 class ExamIntegrityMixin:
@@ -99,4 +102,19 @@ class ExamIntegrityMixin:
                 {"detail": "Integrity Worker response was invalid."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        return Response(ack.as_dict(), status=status.HTTP_200_OK)
+        delivery = build_evidence_delivery(
+            run,
+            participant,
+            now_ms=int(time.time() * 1000),
+        )
+        return Response(
+            {
+                "acked_through_seq": ack.acked_through_seq,
+                "pending_commands": [
+                    dict(command)
+                    for command in delivery.pending_commands
+                ],
+                "release_evidence_before_ms": delivery.release_before_ms,
+            },
+            status=status.HTTP_200_OK,
+        )

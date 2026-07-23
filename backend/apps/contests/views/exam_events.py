@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from apps.contests.models import Contest, ExamEvent
 from apps.contests.permissions import can_manage_contest
 from apps.contests.serializers import ExamEventSerializer
+from apps.contests.services.integrity_evidence import (
+    evidence_statuses_for_events,
+)
 from apps.core.throttles import ExamEventsThrottle
 
 
@@ -35,9 +38,18 @@ class ExamEventsMixin:
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        events = (
+        events = list(
             ExamEvent.objects.filter(contest_id=contest_pk)
-            .select_related("user")
+            .select_related("user", "integrity_run")
             .order_by("-created_at")
         )
-        return Response(ExamEventSerializer(events, many=True).data)
+        evidence_status_by_event = evidence_statuses_for_events(events)
+        return Response(
+            ExamEventSerializer(
+                events,
+                many=True,
+                context={
+                    "evidence_status_by_event": evidence_status_by_event,
+                },
+            ).data
+        )

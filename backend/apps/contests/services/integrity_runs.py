@@ -846,8 +846,8 @@ def purge_run(
 ) -> ExamIntegrityRun:
     error_guard = LifecycleErrorGuard()
     try:
-        with transaction.atomic():
-            run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+        with _serialized_run_operation(run_id):
+            run = ExamIntegrityRun.objects.get(pk=run_id)
             error_guard.observe(run)
             if not (
                 run.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
@@ -862,15 +862,33 @@ def purge_run(
             resolved_controller = controller or _build_controller_client()
             resolved_controller.purge_data(run.id)
 
-            run.data_state = ExamIntegrityRun.DataState.PURGED
-            run.archive_manifest_key = ""
-            run.archive_manifest_sha256 = ""
-            run.purged_by = actor
-            run.purged_at = timezone.now()
-            run.health = ExamIntegrityRun.Health.HEALTHY
-            run.last_error = ""
-            run.save()
-            return run
+            with transaction.atomic():
+                locked = ExamIntegrityRun.objects.select_for_update().get(
+                    pk=run_id
+                )
+                if not (
+                    locked.compute_state
+                    == ExamIntegrityRun.ComputeState.DESTROYED
+                    and locked.data_state
+                    == ExamIntegrityRun.DataState.ARCHIVED
+                    and locked.archive_generation == run.archive_generation
+                    and locked.archive_manifest_key
+                    == run.archive_manifest_key
+                    and locked.archive_manifest_sha256
+                    == run.archive_manifest_sha256
+                ):
+                    raise InvalidRunTransition(
+                        "purge Run changed before finalization"
+                    ) from None
+                locked.data_state = ExamIntegrityRun.DataState.PURGED
+                locked.archive_manifest_key = ""
+                locked.archive_manifest_sha256 = ""
+                locked.purged_by = actor
+                locked.purged_at = timezone.now()
+                locked.health = ExamIntegrityRun.Health.HEALTHY
+                locked.last_error = ""
+                locked.save()
+                return locked
     except InvalidRunTransition:
         raise
     except Exception:

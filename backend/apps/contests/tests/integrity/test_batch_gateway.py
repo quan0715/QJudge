@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from django.core.cache import cache
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from apps.contests.models import (
     Contest,
@@ -30,6 +31,11 @@ from apps.contests.services.anti_cheat_session import (
     heartbeat_key,
 )
 from apps.users.models import User
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
 
 
 def make_batch(
@@ -218,8 +224,18 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
     running_integrity_run,
     participant,
     worker_server,
+    monkeypatch,
 ):
     api_client.force_authenticate(participant.user)
+    monkeypatch.setattr(
+        "apps.contests.views.exam_integrity.build_evidence_delivery",
+        Mock(
+            return_value=Mock(
+                pending_commands=(),
+                release_before_ms=1_785_000_000_000,
+            )
+        ),
+    )
     worker_server.expect_signed_post(
         f"/v1/runs/{running_integrity_run.id}/batches",
         response={
@@ -258,6 +274,108 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
+
+
+@pytest.mark.django_db
+def test_batch_gateway_enriches_only_after_durable_worker_ack(
+    api_client,
+    running_integrity_run,
+    participant,
+    worker_server,
+    monkeypatch,
+):
+    api_client.force_authenticate(participant.user)
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/batches",
+        response={
+            "acked_through_seq": 1,
+            "pending_commands": [
+                {
+                    "command_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                    "incident_id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                    "event_id": "99",
+                    "sources": ["webcam"],
+                    "start_at_ms": 7_000,
+                    "end_at_ms": 8_000,
+                },
+            ],
+            "release_evidence_before_ms": 7_000,
+        },
+    )
+    projection = Mock(
+        pending_commands=(
+            {
+                "command_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "incident_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                "event_id": "17",
+                "sources": ["screen_share"],
+                "start_at_ms": 1_000,
+                "end_at_ms": 2_000,
+            },
+        ),
+        release_before_ms=900,
+    )
+    build_delivery = Mock(return_value=projection)
+    monkeypatch.setattr(
+        "apps.contests.views.exam_integrity.build_evidence_delivery",
+        build_delivery,
+    )
+
+    response = api_client.post(
+        (
+            f"/api/v1/contests/{running_integrity_run.contest_id}"
+            "/exam/integrity/batches/"
+        ),
+        make_batch(
+            run_id=running_integrity_run.id,
+            participant_id=participant.id,
+        ),
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "acked_through_seq": 1,
+        "pending_commands": list(projection.pending_commands),
+        "release_evidence_before_ms": 900,
+    }
+    build_delivery.assert_called_once()
+    assert build_delivery.call_args.args[:2] == (
+        running_integrity_run,
+        participant,
+    )
+
+
+@pytest.mark.django_db
+def test_batch_gateway_does_not_project_evidence_without_worker_ack(
+    api_client,
+    running_integrity_run,
+    participant,
+    worker_server,
+    monkeypatch,
+):
+    api_client.force_authenticate(participant.user)
+    worker_server.disconnect()
+    build_delivery = Mock()
+    monkeypatch.setattr(
+        "apps.contests.views.exam_integrity.build_evidence_delivery",
+        build_delivery,
+    )
+
+    response = api_client.post(
+        (
+            f"/api/v1/contests/{running_integrity_run.contest_id}"
+            "/exam/integrity/batches/"
+        ),
+        make_batch(
+            run_id=running_integrity_run.id,
+            participant_id=participant.id,
+        ),
+        format="json",
+    )
+
+    assert response.status_code == 503
+    build_delivery.assert_not_called()
 
 
 @pytest.mark.django_db

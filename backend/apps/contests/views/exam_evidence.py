@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.db import transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -11,7 +12,20 @@ from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ..models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
+from ..integrity_serializers import (
+    EvidenceCompleteSerializer,
+    EvidenceManifestSerializer,
+    EvidenceUnavailableSerializer,
+)
+from ..models import (
+    Contest,
+    ContestParticipant,
+    ExamEvidenceChunk,
+    ExamEvent,
+    ExamEvidenceFrame,
+    ExamIntegrityRun,
+    ExamStatus,
+)
 from ..permissions import can_manage_contest
 from ..serializers import EvidenceUploadConfirmSerializer, EvidenceUploadIntentSerializer
 from ..services.anticheat_storage import (
@@ -23,6 +37,13 @@ from ..services.anticheat_storage import (
 )
 from ..services.attendance import ATTENDANCE_EVENT_TYPES
 from ..services.exam_submission import normalize_source_module
+from ..services.integrity_evidence import (
+    IntegrityEvidenceRejected,
+    IntegrityEvidenceStorageError,
+    complete_evidence_chunk,
+    create_evidence_manifest,
+    report_evidence_unavailable,
+)
 from .exam_validation_response import validate_exam_operation_for_view
 
 # Attendance event types that a TA may create on behalf of a student.
@@ -216,6 +237,139 @@ def _validate_evidence_object_head(client, object_key: str):
 
 class ExamEvidenceMixin:
     """Mixin for manifest-backed evidence lookup and upload intent APIs."""
+
+    @staticmethod
+    def _integrity_evidence_participant(request, contest):
+        if not getattr(request.user, "is_student", False):
+            return None
+        return ContestParticipant.objects.filter(
+            contest=contest,
+            user=request.user,
+        ).first()
+
+    @staticmethod
+    def _integrity_evidence_error(error):
+        if isinstance(error, IntegrityEvidenceRejected):
+            return Response(
+                {"code": error.code},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {"code": "evidence_storage_unavailable"},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="integrity/evidence/manifest",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def integrity_evidence_manifest(self, request, contest_pk=None):
+        serializer = EvidenceManifestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        contest = get_object_or_404(Contest, id=contest_pk)
+        participant = self._integrity_evidence_participant(request, contest)
+        if participant is None:
+            return Response(
+                {"detail": "Only contest participants may submit evidence."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        run = get_object_or_404(
+            ExamIntegrityRun.objects.exclude(
+                compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+            ),
+            pk=data["run_id"],
+            contest=contest,
+        )
+        event = (
+            ExamEvent.objects.filter(
+                integrity_run=run,
+                contest=contest,
+                user=participant.user,
+                incident_id=data["incident_id"],
+            )
+            .order_by("id")
+            .first()
+        )
+        if event is None:
+            raise Http404
+        try:
+            uploads = create_evidence_manifest(
+                run,
+                participant,
+                event,
+                list(data["chunks"]),
+            )
+        except (IntegrityEvidenceRejected, IntegrityEvidenceStorageError) as error:
+            return self._integrity_evidence_error(error)
+        return Response({"uploads": uploads}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="integrity/evidence/complete",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def integrity_evidence_complete(self, request, contest_pk=None):
+        serializer = EvidenceCompleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contest = get_object_or_404(Contest, id=contest_pk)
+        participant = self._integrity_evidence_participant(request, contest)
+        if participant is None:
+            return Response(
+                {"detail": "Only contest participants may submit evidence."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        chunk = get_object_or_404(
+            ExamEvidenceChunk,
+            pk=serializer.validated_data["chunk_id"],
+            contest=contest,
+            participant=participant,
+        )
+        try:
+            chunk = complete_evidence_chunk(chunk)
+        except (IntegrityEvidenceRejected, IntegrityEvidenceStorageError) as error:
+            return self._integrity_evidence_error(error)
+        return Response(
+            {"chunk_id": str(chunk.id), "status": chunk.status},
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="integrity/evidence/unavailable",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def integrity_evidence_unavailable(self, request, contest_pk=None):
+        serializer = EvidenceUnavailableSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        contest = get_object_or_404(Contest, id=contest_pk)
+        participant = self._integrity_evidence_participant(request, contest)
+        if participant is None:
+            return Response(
+                {"detail": "Only contest participants may submit evidence."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        chunk = get_object_or_404(
+            ExamEvidenceChunk,
+            pk=serializer.validated_data["chunk_id"],
+            contest=contest,
+            participant=participant,
+        )
+        try:
+            chunk = report_evidence_unavailable(
+                chunk,
+                reason=serializer.validated_data["reason"],
+            )
+        except IntegrityEvidenceRejected as error:
+            return self._integrity_evidence_error(error)
+        return Response(
+            {"chunk_id": str(chunk.id), "status": chunk.status},
+            status=status.HTTP_200_OK,
+        )
 
     def _validate_evidence_participant(self, request, contest: Contest, source_module: str | None = None):
         participant, error_response = validate_exam_operation_for_view(

@@ -13,6 +13,9 @@ from apps.contests.services.integrity_runs import create_run
 MAX_INTEGRITY_BATCH_BYTES = 1024 * 1024
 MAX_INTEGRITY_PAYLOAD_BYTES = 32 * 1024
 _EVENT_TYPE_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
+_SHA256_RE = r"^[0-9a-f]{64}$"
+MAX_EVIDENCE_CHUNKS_PER_MANIFEST = 200
+MAX_EVIDENCE_CHUNK_BYTES = 100_000_000
 
 
 def _canonical_json_bytes(value) -> bytes:
@@ -245,6 +248,113 @@ class ExamIntegrityBatchSerializer(_StrictSerializer):
                 }
             )
         return attrs
+
+
+class EvidenceChunkDescriptorSerializer(_StrictSerializer):
+    strict_scalar_types = {
+        "source": (str,),
+        "recording_session_id": (str,),
+        "chunk_seq": (int,),
+        "is_init_chunk": (bool,),
+        "start_at_ms": (int,),
+        "end_at_ms": (int,),
+        "byte_size": (int,),
+        "codec": (str,),
+        "content_type": (str,),
+        "sha256": (str,),
+        "previous_sha256": (str,),
+        "local_descriptor_id": (str,),
+    }
+
+    source = serializers.ChoiceField(
+        choices=("screen_share", "webcam"),
+    )
+    recording_session_id = serializers.UUIDField()
+    chunk_seq = serializers.IntegerField(min_value=0)
+    is_init_chunk = serializers.BooleanField()
+    start_at_ms = serializers.IntegerField(min_value=0)
+    end_at_ms = serializers.IntegerField(min_value=0)
+    byte_size = serializers.IntegerField(
+        min_value=1,
+        max_value=MAX_EVIDENCE_CHUNK_BYTES,
+    )
+    codec = serializers.CharField(
+        allow_blank=True,
+        max_length=96,
+        trim_whitespace=False,
+    )
+    content_type = serializers.ChoiceField(choices=("video/webm",))
+    sha256 = serializers.RegexField(
+        regex=_SHA256_RE,
+        max_length=64,
+        trim_whitespace=False,
+    )
+    previous_sha256 = serializers.RegexField(
+        regex=rf"^(?:[0-9a-f]{{64}})?$",
+        allow_blank=True,
+        max_length=64,
+        trim_whitespace=False,
+    )
+    local_descriptor_id = serializers.CharField(
+        min_length=1,
+        max_length=128,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        if attrs["end_at_ms"] <= attrs["start_at_ms"]:
+            raise serializers.ValidationError(
+                {"end_at_ms": ["Must be later than start_at_ms."]}
+            )
+        if attrs["is_init_chunk"] and attrs["previous_sha256"]:
+            raise serializers.ValidationError(
+                {
+                    "previous_sha256": [
+                        "Initialization chunks cannot link a previous chunk."
+                    ]
+                }
+            )
+        return attrs
+
+
+class EvidenceManifestSerializer(_StrictSerializer):
+    strict_scalar_types = {
+        "run_id": (str,),
+        "incident_id": (str,),
+    }
+
+    run_id = serializers.UUIDField()
+    incident_id = serializers.UUIDField()
+    chunks = EvidenceChunkDescriptorSerializer(
+        many=True,
+        allow_empty=True,
+        max_length=MAX_EVIDENCE_CHUNKS_PER_MANIFEST,
+    )
+
+    def to_internal_value(self, data):
+        if type(data) is dict and "chunks" in data and type(data["chunks"]) is not list:
+            raise serializers.ValidationError(
+                {"chunks": ["Expected a JSON array."]}
+            )
+        return super().to_internal_value(data)
+
+
+class EvidenceCompleteSerializer(_StrictSerializer):
+    strict_scalar_types = {"chunk_id": (str,)}
+    chunk_id = serializers.UUIDField()
+
+
+class EvidenceUnavailableSerializer(_StrictSerializer):
+    strict_scalar_types = {
+        "chunk_id": (str,),
+        "reason": (str,),
+    }
+    chunk_id = serializers.UUIDField()
+    reason = serializers.CharField(
+        min_length=1,
+        max_length=256,
+        trim_whitespace=True,
+    )
 
 
 class IntegrityRunSerializer(serializers.ModelSerializer):
