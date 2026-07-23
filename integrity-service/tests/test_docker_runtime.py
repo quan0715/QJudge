@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import tarfile
 from unittest.mock import Mock
 from uuid import UUID, uuid4
@@ -122,9 +123,9 @@ NON_FALSE_PUBLISH_ALL_PORTS = [
     pytest.param([], id="empty-list"),
 ]
 
-# This list is deliberately independent from the production policy builder. If a
-# required attestation key is accidentally removed there, the matrix below must
-# fail instead of silently shrinking with it.
+# These lists are deliberately independent from the production policy builder.
+# If an attestation key is accidentally removed or reclassified there, the
+# matrices below must fail instead of silently shrinking with it.
 REQUIRED_CLOSED_WORLD_CONFIG_FIELDS = frozenset(
     {
         "AttachStderr",
@@ -158,7 +159,7 @@ OPTIONAL_ENGINE_CONFIG_FIELDS = frozenset({"ArgsEscaped", "MacAddress", "OnBuild
 OPTIONAL_IMAGE_CONFIG_FIELDS = frozenset(
     {"Entrypoint", "Healthcheck", "Shell", "Volumes"}
 )
-REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
+CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
     {
         "AutoRemove",
         "Binds",
@@ -229,6 +230,86 @@ REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
         "UsernsMode",
         "VolumeDriver",
         "VolumesFrom",
+    }
+)
+REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
+    {
+        "AutoRemove",
+        "Binds",
+        "BlkioDeviceReadBps",
+        "BlkioDeviceReadIOps",
+        "BlkioDeviceWriteBps",
+        "BlkioDeviceWriteIOps",
+        "BlkioWeight",
+        "BlkioWeightDevice",
+        "CPURealtimePeriod",
+        "CPURealtimeRuntime",
+        "CapAdd",
+        "CapDrop",
+        "Cgroup",
+        "CgroupParent",
+        "CgroupnsMode",
+        "CpuCount",
+        "CpuPercent",
+        "CpuPeriod",
+        "CpuQuota",
+        "CpuShares",
+        "CpusetCpus",
+        "CpusetMems",
+        "ContainerIDFile",
+        "ConsoleSize",
+        "DeviceCgroupRules",
+        "DeviceRequests",
+        "Devices",
+        "Dns",
+        "DnsOptions",
+        "DnsSearch",
+        "ExtraHosts",
+        "GroupAdd",
+        "Init",
+        "IOMaximumBandwidth",
+        "IOMaximumIOps",
+        "IpcMode",
+        "Isolation",
+        "Links",
+        "LogConfig",
+        "MaskedPaths",
+        "Memory",
+        "MemoryReservation",
+        "MemorySwap",
+        "MemorySwappiness",
+        "NanoCpus",
+        "NetworkMode",
+        "OomKillDisable",
+        "OomScoreAdj",
+        "PidMode",
+        "PidsLimit",
+        "PortBindings",
+        "Privileged",
+        "PublishAllPorts",
+        "ReadonlyPaths",
+        "ReadonlyRootfs",
+        "RestartPolicy",
+        "Runtime",
+        "SecurityOpt",
+        "ShmSize",
+        "Tmpfs",
+        "UTSMode",
+        "Ulimits",
+        "UsernsMode",
+        "VolumeDriver",
+        "VolumesFrom",
+    }
+)
+OPTIONAL_ENGINE_HOST_CONFIG_FIELDS = frozenset(
+    {
+        "Annotations",
+        "KernelMemory",
+        "KernelMemoryTCP",
+        "LxcConf",
+        "Mounts",
+        "StorageOpt",
+        "Sysctls",
     }
 )
 REQUIRED_CREATE_KWARGS = frozenset(
@@ -377,6 +458,126 @@ def _environment(run_id: UUID = RUN_ID) -> list[str]:
     ]
 
 
+def _independent_host_config(*, role: str, run_id: UUID) -> dict[str, object]:
+    """Model Engine inspect output without consulting the production policy."""
+
+    common: dict[str, object] = {
+        "AutoRemove": False,
+        "BlkioDeviceReadBps": [],
+        "BlkioDeviceReadIOps": [],
+        "BlkioDeviceWriteBps": [],
+        "BlkioDeviceWriteIOps": [],
+        "BlkioWeight": 0,
+        "BlkioWeightDevice": [],
+        "CPURealtimePeriod": 0,
+        "CPURealtimeRuntime": 0,
+        "CapAdd": None,
+        "CapDrop": ["ALL"],
+        "Cgroup": "",
+        "CgroupParent": "",
+        "CgroupnsMode": "private",
+        "ContainerIDFile": "",
+        "ConsoleSize": [0, 0],
+        "CpuCount": 0,
+        "CpuPercent": 0,
+        "CpuPeriod": 0,
+        "CpuQuota": 0,
+        "CpuShares": 0,
+        "CpusetCpus": "",
+        "CpusetMems": "",
+        "DeviceCgroupRules": None,
+        "DeviceRequests": None,
+        "Devices": [],
+        "Dns": [],
+        "DnsOptions": [],
+        "DnsSearch": [],
+        "ExtraHosts": [],
+        "GroupAdd": [],
+        "Init": False,
+        "IOMaximumBandwidth": 0,
+        "IOMaximumIOps": 0,
+        "IpcMode": "private",
+        "Isolation": "",
+        "KernelMemory": 0,
+        "Links": [],
+        "LogConfig": {"Type": "none", "Config": {}},
+        "LxcConf": [],
+        "MaskedPaths": [
+            "/proc/acpi",
+            "/proc/asound",
+            "/proc/interrupts",
+            "/proc/kcore",
+            "/proc/keys",
+            "/proc/latency_stats",
+            "/proc/sched_debug",
+            "/proc/scsi",
+            "/proc/timer_list",
+            "/proc/timer_stats",
+            "/sys/devices/system/cpu",
+            "/sys/devices/virtual/powercap",
+            "/sys/firmware",
+        ],
+        "MemoryReservation": 0,
+        "MemorySwappiness": 0,
+        "OomKillDisable": False,
+        "OomScoreAdj": 0,
+        "PidMode": "",
+        "PortBindings": {},
+        "Privileged": False,
+        "PublishAllPorts": False,
+        "ReadonlyPaths": [
+            "/proc/bus",
+            "/proc/fs",
+            "/proc/irq",
+            "/proc/sys",
+            "/proc/sysrq-trigger",
+        ],
+        "ReadonlyRootfs": True,
+        "Runtime": "runc",
+        "SecurityOpt": ["no-new-privileges"],
+        "ShmSize": 64 * 1024 * 1024,
+        "StorageOpt": {},
+        "Sysctls": {},
+        "UTSMode": "",
+        "Ulimits": [],
+        "UsernsMode": "",
+        "VolumeDriver": "",
+        "VolumesFrom": [],
+        "Annotations": None,
+        "KernelMemoryTCP": 0,
+        "Mounts": [],
+    }
+    if role == "secret-initializer":
+        role_specific = {
+            "Binds": [secret_volume_name(run_id) + ":/run-secrets:rw"],
+            "Memory": 64 * 1024 * 1024,
+            "MemorySwap": 64 * 1024 * 1024,
+            "NanoCpus": 100_000_000,
+            "NetworkMode": "none",
+            "PidsLimit": 16,
+            "RestartPolicy": {"Name": "no", "MaximumRetryCount": 0},
+            "Tmpfs": {"/tmp": "rw,noexec,nosuid,size=16m"},
+        }
+    else:
+        role_specific = {
+            "Binds": [
+                data_volume_name(run_id) + ":/run-data:rw",
+                secret_volume_name(run_id) + ":/run-secrets:ro",
+            ],
+            "Memory": 512 * 1024 * 1024,
+            "MemorySwap": 512 * 1024 * 1024,
+            "NanoCpus": 500_000_000,
+            "NetworkMode": "qjudge-test-network",
+            "PidsLimit": 128,
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0,
+            },
+            "Tmpfs": {"/tmp": "rw,noexec,nosuid,size=64m"},
+        }
+    return {**common, **role_specific}
+
+
 class DockerNotFound(Exception):
     status_code = 404
 
@@ -454,17 +655,7 @@ def _container(
             "Volumes": image_config["Volumes"],
         }
     )
-    host_config = {
-        **policy.host_config,
-        "Cgroup": "",
-        "ContainerIDFile": "",
-        "ConsoleSize": [0, 0],
-        "IOMaximumBandwidth": 0,
-        "IOMaximumIOps": 0,
-        "Annotations": None,
-        "KernelMemoryTCP": 0,
-        "Mounts": [],
-    }
+    host_config = _independent_host_config(role=role, run_id=run_id)
     endpoint = {
         "IPAMConfig": None,
         "Links": None,
@@ -620,7 +811,7 @@ def test_closed_world_field_contract_is_exhaustive():
     assert frozenset(CLOSED_WORLD_CONFIG_MUTATIONS) == REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
     assert (
         frozenset(CLOSED_WORLD_HOST_CONFIG_MUTATIONS)
-        == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+        == CLOSED_WORLD_HOST_CONFIG_FIELDS
     )
     for role in ("worker", "secret-initializer"):
         policy = build_container_policy(
@@ -636,7 +827,11 @@ def test_closed_world_field_contract_is_exhaustive():
             OPTIONAL_ENGINE_CONFIG_FIELDS
             | ({"NetworkDisabled"} if role == "worker" else set())
         )
-        assert frozenset(policy.host_config) == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+        assert frozenset(policy.host_config) == CLOSED_WORLD_HOST_CONFIG_FIELDS
+        assert policy.required_host_config_fields == (
+            REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+        )
+        assert policy.optional_host_config_fields == OPTIONAL_ENGINE_HOST_CONFIG_FIELDS
 
 
 def test_policy_builder_matches_independent_literal_security_baseline():
@@ -1362,6 +1557,20 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
     assert result.image_digest == IMAGE_DIGEST
 
 
+def test_worker_low_level_create_request_serializes_endpoint_settings_object(
+    runtime,
+    docker_client,
+):
+    runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    worker_request = docker_client.api.create_container.call_args_list[1].kwargs
+    serialized_request = json.loads(json.dumps(worker_request))
+
+    assert serialized_request["networking_config"] == {
+        "EndpointsConfig": {"qjudge-test-network": {}}
+    }
+
+
 def test_start_creates_both_roles_from_the_complete_closed_world_policy(
     runtime,
     docker_client,
@@ -1384,7 +1593,7 @@ def test_start_creates_both_roles_from_the_complete_closed_world_policy(
     for call, policy in zip(calls, policies, strict=True):
         assert frozenset(call.kwargs) == REQUIRED_CREATE_KWARGS
         assert call.kwargs == policy.create_kwargs()
-        assert frozenset(call.kwargs["host_config"]) == REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS
+        assert frozenset(call.kwargs["host_config"]) == CLOSED_WORLD_HOST_CONFIG_FIELDS
 
 
 def test_start_attests_new_initializer_before_writing_the_run_token(
@@ -1398,6 +1607,101 @@ def test_start_attests_new_initializer_before_writing_the_run_token(
         runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     initializer.put_archive.assert_not_called()
+    docker_client._test_worker.start.assert_not_called()
+
+
+def test_failed_fresh_initializer_attestation_removes_it_and_retry_can_continue(
+    runtime,
+    docker_client,
+):
+    initializer = docker_client._test_initializer
+    initializer.attrs["HostConfig"]["Privileged"] = True
+    docker_client.api.create_container.side_effect = [
+        {"Id": "created-initializer-id"},
+        {"Id": "created-initializer-id"},
+        {"Id": "created-worker-id"},
+    ]
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    initializer.remove.assert_called_once_with()
+    initializer.put_archive.assert_not_called()
+    assert [
+        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
+    ] == [secret_initializer_name(RUN_ID)]
+    docker_client._test_worker.start.assert_not_called()
+
+    initializer.attrs["HostConfig"]["Privileged"] = False
+    result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    assert result.state == "running"
+    assert initializer.remove.call_count == 2
+    initializer.put_archive.assert_called_once()
+    assert [
+        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
+    ] == [
+        secret_initializer_name(RUN_ID),
+        secret_initializer_name(RUN_ID),
+        container_name(RUN_ID),
+    ]
+    docker_client._test_worker.start.assert_called_once_with()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize(
+    "field",
+    ["KernelMemory", "LxcConf", "StorageOpt", "Sysctls"],
+)
+def test_start_accepts_engine_normalized_fresh_inspect_safe_omissions(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = (
+        docker_client._test_worker
+        if target == "worker"
+        else docker_client._test_initializer
+    )
+    del inspected.attrs["HostConfig"][field]
+
+    result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    assert result.state == "running"
+    docker_client._test_initializer.remove.assert_called_once_with()
+    docker_client._test_worker.start.assert_called_once_with()
+
+
+@pytest.mark.parametrize("target", ["worker", "initializer"])
+@pytest.mark.parametrize(
+    "field",
+    ["KernelMemory", "LxcConf", "StorageOpt", "Sysctls"],
+)
+def test_start_rejects_engine_normalized_fresh_inspect_hostile_present_values(
+    runtime,
+    docker_client,
+    target,
+    field,
+):
+    inspected = (
+        docker_client._test_worker
+        if target == "worker"
+        else docker_client._test_initializer
+    )
+    inspected.attrs["HostConfig"][field] = CLOSED_WORLD_HOST_CONFIG_MUTATIONS[field]
+
+    with pytest.raises(ContainerConflict):
+        runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    inspected.start.assert_not_called()
+    inspected.put_archive.assert_not_called()
+    if target == "initializer":
+        inspected.remove.assert_called_once_with()
+        assert [
+            call.kwargs["name"]
+            for call in docker_client.api.create_container.call_args_list
+        ] == [secret_initializer_name(RUN_ID)]
     docker_client._test_worker.start.assert_not_called()
 
 

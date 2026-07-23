@@ -58,6 +58,9 @@ OPTIONAL_HOST_CONFIG = {
     "KernelMemoryTCP": 0,
     "Mounts": [],
 }
+ENGINE_OMITTABLE_HOST_CONFIG_FIELDS = frozenset(
+    {"KernelMemory", "LxcConf", "StorageOpt", "Sysctls"}
+)
 CALLER_ENDPOINT_FIELDS = frozenset(
     {"Aliases", "DNSNames", "DriverOpts", "GwPriority", "IPAMConfig", "Links"}
 )
@@ -135,6 +138,14 @@ class ContainerPolicy:
             fields.add("GwPriority")
         return frozenset(fields)
 
+    @property
+    def required_host_config_fields(self) -> frozenset[str]:
+        return frozenset(self.host_config) - ENGINE_OMITTABLE_HOST_CONFIG_FIELDS
+
+    @property
+    def optional_host_config_fields(self) -> frozenset[str]:
+        return frozenset(self.optional_host_config) | ENGINE_OMITTABLE_HOST_CONFIG_FIELDS
+
     def inspect_config(self, image_config: dict[str, object]) -> dict[str, object]:
         """Build a canonical inspect fixture from this same policy contract."""
 
@@ -163,7 +174,7 @@ class ContainerPolicy:
         networking_config = (
             None
             if network_disabled
-            else {"EndpointsConfig": {self.network: None}}
+            else {"EndpointsConfig": {self.network: {}}}
         )
         return {
             "command": None,
@@ -638,13 +649,13 @@ class DockerRuntime:
             token_digest=token_digest,
         )
         initializer = self._create_policy_container(initializer_policy)
-        self._validate_secret_initializer(
-            initializer,
-            run_id=run_id,
-            worker_image=worker_image,
-            token_digest=token_digest,
-        )
         try:
+            self._validate_secret_initializer(
+                initializer,
+                run_id=run_id,
+                worker_image=worker_image,
+                token_digest=token_digest,
+            )
             archive = self._token_archive(run_token.encode("utf-8"))
             if initializer.put_archive("/run-secrets", archive) is False:
                 raise OSError("Docker did not populate the Worker credential")
@@ -843,14 +854,23 @@ class DockerRuntime:
             policy=policy,
         ):
             raise ContainerConflict("Container Docker policy conflicts")
-        allowed_host_fields = set(policy.host_config) | set(policy.optional_host_config)
+        allowed_host_fields = (
+            set(policy.required_host_config_fields)
+            | set(policy.optional_host_config_fields)
+        )
         if set(host_config) - allowed_host_fields:
             raise ContainerConflict("Container Docker policy conflicts")
-        for field, expected in policy.host_config.items():
+        for field in policy.required_host_config_fields:
+            expected = policy.host_config[field]
             actual = self._required_field(host_config, field)
             if not self._host_policy_value_matches(field, actual, expected):
                 raise ContainerConflict("Container Docker policy conflicts")
-        for field, expected in policy.optional_host_config.items():
+        for field in policy.optional_host_config_fields:
+            expected = (
+                policy.host_config[field]
+                if field in policy.host_config
+                else policy.optional_host_config[field]
+            )
             if field in host_config and not self._host_policy_value_matches(
                 field, host_config[field], expected
             ):
