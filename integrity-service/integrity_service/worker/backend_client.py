@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from collections.abc import Mapping
 from typing import Any
@@ -92,12 +93,25 @@ class BackendClient:
         )
         return self._response_json(response)
 
-    def upload_presigned(self, url: str, content: bytes, sha256: str) -> None:
+    def upload_presigned(
+        self,
+        url: str,
+        content: bytes,
+        sha256: str,
+        content_type: str,
+    ) -> None:
+        try:
+            checksum = base64.b64encode(bytes.fromhex(sha256)).decode("ascii")
+        except ValueError as error:
+            raise BackendProtocolError("archive checksum is invalid") from error
         try:
             response = self._upload_client.put(
                 url,
                 content=content,
-                headers={"Content-SHA256": sha256},
+                headers={
+                    "Content-Type": content_type,
+                    "x-amz-checksum-sha256": checksum,
+                },
             )
         except (httpx.ConnectError, httpx.ConnectTimeout) as error:
             raise BackendUnavailable("archive storage is unavailable") from error

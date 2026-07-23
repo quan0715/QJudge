@@ -5,6 +5,7 @@ Covers violation counting, auto-lock, warning timeout, force-submit,
 and event logging for all participant roles.
 """
 from datetime import datetime, timedelta
+import unittest
 from unittest.mock import patch
 
 from botocore.exceptions import ClientError
@@ -35,19 +36,15 @@ from apps.contests.services.anti_cheat_session import (
 from apps.contests.services.evidence_windows import attach_evidence_window_metadata
 
 User = get_user_model()
+LEGACY_STUDENT_EVENT_TEST = unittest.skip(
+    "legacy student event POST authority was replaced by integrity commands"
+)
 
 
 class ExamAntiCheatTests(APITestCase):
     """API-level tests for exam anti-cheat event logging and locking."""
 
     def setUp(self):
-        # Disable incident family dedup so penalty tests focus on core logic.
-        patcher = patch(
-            "apps.contests.views.exam_events.is_duplicate_incident_family",
-            return_value=False,
-        )
-        patcher.start()
-        self.addCleanup(patcher.stop)
         self.teacher = User.objects.create_user(
             username="teacher",
             email="teacher@test.com",
@@ -121,6 +118,42 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 1. Fullscreen timeout records a violation without forcing pre-check
     # ------------------------------------------------------------------
+    def test_legacy_student_event_post_requires_integrity_batch(self):
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(
+            self.events_url,
+            {"event_type": "exit_fullscreen"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {"code": "integrity_batch_required"})
+        self.participant.refresh_from_db()
+        self.assertEqual(self.participant.violation_count, 0)
+        self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertFalse(
+            ExamEvent.objects.filter(
+                contest=self.contest,
+                user=self.student,
+            ).exists()
+        )
+
+    def test_manager_event_get_remains_available(self):
+        event = ExamEvent.objects.create(
+            contest=self.contest,
+            user=self.student,
+            event_type="exit_fullscreen",
+            metadata={},
+        )
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(self.events_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], event.id)
+
+    @LEGACY_STUDENT_EVENT_TEST
     def test_exit_fullscreen_records_violation_without_precheck_pause(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "exit_fullscreen"})
@@ -138,6 +171,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 2. Repeated general risk events do not auto-lock the participant
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_repeated_violations_do_not_auto_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -150,6 +184,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
         self.assertEqual(self.participant.violation_count, 3)
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_paused_violation_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.PAUSED
@@ -173,6 +208,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.violation_count, 3)
         self.assertEqual(self.participant.submit_reason, "")
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_locked_violation_does_not_auto_submit(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.LOCKED
@@ -192,6 +228,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 3. warning_timeout is a legacy informational event only
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_warning_timeout_is_logged_without_penalty_or_lock(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "warning_timeout"})
@@ -215,6 +252,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 3b. capture_upload_degraded should be informational only
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_capture_upload_degraded_does_not_increase_violation_or_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -238,6 +276,7 @@ class ExamAntiCheatTests(APITestCase):
             ).exists()
         )
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_clipboard_action_is_logged_without_penalty_or_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -274,6 +313,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(event.metadata["action"], "paste")
         self.assertEqual(event.metadata["content"], "print('hello')")
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_clipboard_action_accepts_metadata_larger_than_legacy_limit(self):
         self.client.force_authenticate(user=self.student)
         content = "x" * 5000
@@ -303,6 +343,7 @@ class ExamAntiCheatTests(APITestCase):
         )
         self.assertEqual(event.metadata["content"], content)
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_non_clipboard_event_rejects_oversized_metadata(self):
         self.client.force_authenticate(user=self.student)
 
@@ -318,6 +359,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("metadata", response.data["error"]["details"])
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_heartbeat_updates_runtime_state_without_db_event(self):
         self.client.force_authenticate(user=self.student)
 
@@ -345,6 +387,7 @@ class ExamAntiCheatTests(APITestCase):
         )
         self.assertIsNotNone(get_last_heartbeat(self.contest.id, self.student.id))
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_heartbeat_is_ignored_after_submission_without_refreshing_runtime_state(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.SUBMITTED
@@ -369,6 +412,7 @@ class ExamAntiCheatTests(APITestCase):
         )
         self.assertIsNone(get_last_heartbeat(self.contest.id, self.student.id))
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_exam_lifecycle_events_accept_forced_capture_metadata(self):
         self.client.force_authenticate(user=self.student)
         payload = {
@@ -409,6 +453,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(event.metadata["device_kind"], "tablet")
         self.assertIn("iPad", event.metadata["user_agent"])
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_exam_entered_preserves_device_classification_metadata(self):
         self.client.force_authenticate(user=self.student)
         payload = {
@@ -443,6 +488,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertTrue(event.metadata["supports_fine_pointer"])
         self.assertEqual(event.metadata["primary_source_module"], "webcam")
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_screen_share_stopped_in_terminating_phase_does_not_lock(self):
         self.client.force_authenticate(user=self.student)
 
@@ -466,6 +512,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.IN_PROGRESS)
         self.assertEqual(self.participant.violation_count, 0)
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_duplicate_event_idempotency_key_counts_once(self):
         self.client.force_authenticate(user=self.student)
         payload = {
@@ -492,6 +539,7 @@ class ExamAntiCheatTests(APITestCase):
             1,
         )
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_restore_event_clears_incident_family_dedupe(self):
         self.client.force_authenticate(user=self.student)
 
@@ -527,6 +575,7 @@ class ExamAntiCheatTests(APITestCase):
             ).order_by("id").last().metadata["incident_family_dup"]
         )
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_submitted_status_event_is_logged_without_escalation(self):
         self.client.force_authenticate(user=self.student)
         self.participant.exam_status = ExamStatus.SUBMITTED
@@ -563,6 +612,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 4. lock_reason is set by server (client lock_reason is ignored)
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_lock_reason_set_by_server(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(
@@ -584,6 +634,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 5. Owner/teacher participant should also be logged (no bypass)
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_owner_participant_event_is_logged(self):
         ContestParticipant.objects.create(
             contest=self.contest,
@@ -611,6 +662,7 @@ class ExamAntiCheatTests(APITestCase):
     # ------------------------------------------------------------------
     # 6. Critical monitoring failures pause for pre-check instead of locking
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_heartbeat_timeout_pauses_for_precheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "heartbeat_timeout"})
@@ -622,6 +674,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
         self.assertIn("pre-check", self.participant.lock_reason)
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_listener_tampered_pauses_for_precheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self.events_url, {"event_type": "listener_tampered"})
@@ -633,6 +686,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertEqual(self.participant.exam_status, ExamStatus.PAUSED)
         self.assertIn("Listener tampered", self.participant.lock_reason)
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_webcam_stopped_uses_exam_entered_tablet_metadata_as_primary(self):
         ExamEvent.objects.create(
             contest=self.contest,
@@ -670,6 +724,7 @@ class ExamAntiCheatTests(APITestCase):
         ).latest("created_at")
         self.assertEqual(event.metadata["module_role"], "primary")
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_webcam_stopped_uses_exam_entered_dual_source_metadata_as_secondary(self):
         ExamEvent.objects.create(
             contest=self.contest,
@@ -876,6 +931,7 @@ class ExamAntiCheatTests(APITestCase):
         self.assertFalse(response.data["storage_error"])
         mock_get_s3_client.assert_not_called()
 
+    @LEGACY_STUDENT_EVENT_TEST
     def test_event_api_returns_manifest_evidence_window(self):
         anchor_ms = 1774106646951
         self.client.force_authenticate(user=self.student)
@@ -1311,6 +1367,7 @@ class ScreenShareEventTests(APITestCase):
     # ------------------------------------------------------------------
     # screen_share_stopped pauses the exam and requires pre-check
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_screen_share_stopped_pauses_for_recheck(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(
@@ -1336,6 +1393,7 @@ class ScreenShareEventTests(APITestCase):
     # ------------------------------------------------------------------
     # screen_share_restored is accepted as a valid event (no penalty)
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_screen_share_restored_is_valid_and_no_penalty(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(
@@ -1360,6 +1418,7 @@ class ScreenShareEventTests(APITestCase):
     # ------------------------------------------------------------------
     # screen_share_stopped on already-submitted exam does not re-lock
     # ------------------------------------------------------------------
+    @LEGACY_STUDENT_EVENT_TEST
     def test_screen_share_stopped_after_submit_no_lock(self):
         self.participant.exam_status = ExamStatus.SUBMITTED
         self.participant.save(update_fields=["exam_status"])

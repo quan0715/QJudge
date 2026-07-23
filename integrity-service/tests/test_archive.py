@@ -57,12 +57,54 @@ class FakeArchiveBackend:
             "archive_uploads": uploads,
         }
 
-    def upload_presigned(self, url: str, content: bytes, sha256: str) -> None:
+    def upload_presigned(
+        self,
+        url: str,
+        content: bytes,
+        sha256: str,
+        content_type: str,
+    ) -> None:
         if self.fail_upload:
             self.fail_upload = False
             raise BackendUnavailable("object storage unavailable")
         assert hashlib.sha256(content).hexdigest() == sha256
         self.objects[url.removeprefix("memory://")] = content
+
+
+def test_backend_client_uploads_r2_base64_sha256_header():
+    import base64
+
+    import httpx
+
+    from integrity_service.worker.backend_client import BackendClient
+
+    requests = []
+
+    def upload_handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200)
+
+    client = BackendClient(
+        base_url="https://backend.example",
+        run_id=RUN_ID,
+        token="run-token",
+        upload_transport=httpx.MockTransport(upload_handler),
+    )
+    digest = "ab" * 32
+
+    client.upload_presigned(
+        "https://r2.example/archive",
+        b"archive",
+        digest,
+        "application/gzip",
+    )
+
+    assert len(requests) == 1
+    assert requests[0].headers["Content-Type"] == "application/gzip"
+    assert requests[0].headers["x-amz-checksum-sha256"] == base64.b64encode(
+        bytes.fromhex(digest)
+    ).decode("ascii")
+    assert "Content-SHA256" not in requests[0].headers
 
 
 def batch(seq: int) -> EventBatch:

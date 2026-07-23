@@ -58,7 +58,13 @@ class ArchiveBackend(Protocol):
         self, commands: tuple[dict[str, object], ...]
     ) -> dict[str, object]: ...
 
-    def upload_presigned(self, url: str, content: bytes, sha256: str) -> None: ...
+    def upload_presigned(
+        self,
+        url: str,
+        content: bytes,
+        sha256: str,
+        content_type: str,
+    ) -> None: ...
 
 
 def _canonical_json(value: object) -> bytes:
@@ -463,7 +469,12 @@ class ArchiveManager:
                 upload_url = self._request_upload(
                     command, str(checkpoint["object_key"])
                 )
-                self.backend.upload_presigned(upload_url, content, digest)
+                self.backend.upload_presigned(
+                    upload_url,
+                    content,
+                    digest,
+                    "application/gzip",
+                )
             except (BackendUnavailable, BackendProtocolError, ValueError) as error:
                 message = (
                     "archive checksum verification failed"
@@ -558,7 +569,10 @@ class ArchiveManager:
         try:
             upload_url = self._request_upload(upload, manifest.object_key)
             self.backend.upload_presigned(
-                upload_url, manifest.content, manifest.sha256
+                upload_url,
+                manifest.content,
+                manifest.sha256,
+                "application/json",
             )
             publish = self._publish_manifest_command(manifest)
             self.outbox.append((publish,))

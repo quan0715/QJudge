@@ -73,7 +73,13 @@ class FakeBackend:
             ],
         }
 
-    def upload_presigned(self, url: str, content: bytes, sha256: str) -> None:
+    def upload_presigned(
+        self,
+        url: str,
+        content: bytes,
+        sha256: str,
+        content_type: str,
+    ) -> None:
         if self.fail_upload:
             self.fail_upload = False
             raise BackendUnavailable("storage unavailable")
@@ -93,7 +99,7 @@ class FixedResponseBackend(FakeBackend):
 def bootstrap(public_key_b64: str) -> WorkerBootstrap:
     return WorkerBootstrap(
         run_id=RUN_ID,
-        contest_id=17,
+        contest_id=UUID("17171717-1717-1717-1717-171717171717"),
         server_ms=NOW_MS,
         scheduled_end_ms=NOW_MS + 10_000,
         active_participant_ids=(101, 202),
@@ -867,7 +873,7 @@ def test_bootstrap_snapshot_is_transitively_immutable_at_construction():
     archive_policy = {"nested": {"reserve": [3, 4]}}
     frozen = WorkerBootstrap(
         run_id=RUN_ID,
-        contest_id=17,
+        contest_id=UUID("17171717-1717-1717-1717-171717171717"),
         server_ms=NOW_MS,
         scheduled_end_ms=NOW_MS + 10_000,
         active_participant_ids=(101,),
@@ -924,7 +930,7 @@ def test_bootstrap_participant_contract_rejects_malformed_duplicate_or_unknown_s
 ):
     payload = {
         "run_id": str(RUN_ID),
-        "contest_id": 17,
+        "contest_id": "17171717-1717-1717-1717-171717171717",
         "server_ms": NOW_MS,
         "scheduled_end_ms": NOW_MS + 10_000,
         "participants": participants,
@@ -939,6 +945,14 @@ def test_bootstrap_participant_contract_rejects_malformed_duplicate_or_unknown_s
     }
 
     with pytest.raises((TypeError, ValueError)):
+        WorkerBootstrap.from_payload(payload)
+
+
+def test_bootstrap_rejects_legacy_integer_contest_identity():
+    payload = _bootstrap_payload(generation=1)
+    payload["contest_id"] = 17
+
+    with pytest.raises(ValueError, match="badly formed hexadecimal UUID"):
         WorkerBootstrap.from_payload(payload)
 
 
@@ -995,7 +1009,7 @@ def test_signed_submission_observation_precedes_equal_time_batch_decision(tmp_pa
 def _bootstrap_payload(*, generation: int, previous_manifest=None):
     return {
         "run_id": str(RUN_ID),
-        "contest_id": 17,
+        "contest_id": "17171717-1717-1717-1717-171717171717",
         "server_ms": NOW_MS,
         "scheduled_end_ms": NOW_MS + 10_000,
         "participants": [{"participant_id": 101, "status": "active"}],

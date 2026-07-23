@@ -105,15 +105,14 @@ class ExamPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn('not published', response.data.get('error', ''))
 
-    def test_log_event_draft_contest_rejected(self):
-        """Event logging should fail when contest is draft."""
+    def test_legacy_event_post_is_gone_for_draft_contest(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
             f'/api/v1/contests/{self.draft_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('not published', response.data.get('error', ''))
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})
 
     def test_end_exam_draft_contest_rejected(self):
         """End exam should fail when contest is draft."""
@@ -143,20 +142,18 @@ class ExamPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('ended', response.data.get('error', ''))
 
-    def test_log_event_after_end_time_rejected(self):
-        """Event logging should fail after contest ends."""
+    def test_legacy_event_post_is_gone_after_end_time(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
             f'/api/v1/contests/{self.ended_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('ended', response.data.get('error', ''))
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})
 
     # ===== Layer 3: Participant Status Tests =====
     
-    def test_log_event_not_started_rejected(self):
-        """Event logging should fail if exam is not_started."""
+    def test_legacy_event_post_is_gone_when_not_started(self):
         self.participant.exam_status = ExamStatus.NOT_STARTED
         self.participant.save()
         
@@ -165,21 +162,19 @@ class ExamPermissionTests(APITestCase):
             f'/api/v1/contests/{self.active_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('not accepted in current state', response.data.get('error', ''))
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})
 
-    def test_log_event_in_progress_allowed(self):
-        """Event logging should succeed when in_progress."""
+    def test_legacy_event_post_is_gone_when_in_progress(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
             f'/api/v1/contests/{self.active_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('violation_count', response.data)
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})
 
-    def test_log_event_paused_allowed(self):
-        """Event logging should be accepted in paused state."""
+    def test_legacy_event_post_is_gone_when_paused(self):
         self.participant.exam_status = ExamStatus.PAUSED
         self.participant.save()
 
@@ -188,8 +183,8 @@ class ExamPermissionTests(APITestCase):
             f'/api/v1/contests/{self.active_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('violation_count', response.data)
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})
 
     def test_start_exam_success_published_contest(self):
         """Exam start should succeed for published contest within time range."""
@@ -207,8 +202,7 @@ class ExamPermissionTests(APITestCase):
 
     # ===== Admin/Teacher Permission Consistency =====
     
-    def test_teacher_draft_contest_not_bypassed(self):
-        """Owners/teachers should not bypass exam event checks."""
+    def test_teacher_legacy_event_post_is_also_gone(self):
         ContestParticipant.objects.create(
             contest=self.draft_contest,
             user=self.teacher,
@@ -221,5 +215,5 @@ class ExamPermissionTests(APITestCase):
             f'/api/v1/contests/{self.draft_contest.id}/exam/events/',
             {'event_type': 'tab_hidden'}
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('not published', response.data.get('error', ''))
+        self.assertEqual(response.status_code, status.HTTP_410_GONE)
+        self.assertEqual(response.data, {'code': 'integrity_batch_required'})

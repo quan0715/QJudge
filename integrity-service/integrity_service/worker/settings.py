@@ -38,7 +38,7 @@ def _participant_tuple(value: object, name: str) -> tuple[int, ...]:
 @dataclass(frozen=True, slots=True)
 class WorkerBootstrap:
     run_id: UUID
-    contest_id: int
+    contest_id: UUID
     server_ms: int
     scheduled_end_ms: int
     active_participant_ids: tuple[int, ...]
@@ -56,7 +56,8 @@ class WorkerBootstrap:
     def __post_init__(self) -> None:
         if type(self.run_id) is not UUID or self.run_id.int == 0:
             raise ValueError("run_id must be a non-zero UUID")
-        _positive_int(self.contest_id, "contest_id")
+        if type(self.contest_id) is not UUID or self.contest_id.int == 0:
+            raise ValueError("contest_id must be a non-zero UUID")
         _server_ms(self.server_ms, "server_ms")
         _server_ms(self.scheduled_end_ms, "scheduled_end_ms")
         _participant_tuple(self.active_participant_ids, "active_participant_ids")
@@ -132,7 +133,7 @@ class WorkerBootstrap:
             )
         return cls(
             run_id=UUID(str(payload["run_id"])),
-            contest_id=_positive_int(payload["contest_id"], "contest_id"),
+            contest_id=UUID(str(payload["contest_id"])),
             server_ms=_server_ms(payload["server_ms"], "server_ms"),
             scheduled_end_ms=_server_ms(
                 payload["scheduled_end_ms"], "scheduled_end_ms"
