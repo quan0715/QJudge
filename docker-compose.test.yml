@@ -106,6 +106,10 @@ services:
       - ALLOWED_HOSTS=*
       - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
       - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+      - INTEGRITY_CONTROLLER_URL=http://integrity-controller:8010
+      - INTEGRITY_CONTROLLER_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
     ports:
       - "8002:8000"
     depends_on:
@@ -117,7 +121,49 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
+    networks:
+      - test-network
+
+  # Tests provide only temporary key files through INTEGRITY_TEST_SECRETS_DIR;
+  # raw Controller tokens and signing keys are never Compose environment values.
+  integrity-controller:
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.controller
+    image: oj-integrity-controller:test
+    container_name: oj_integrity_controller_test
+    restart: unless-stopped
+    environment:
+      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_NETWORK=${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}
+      - BACKEND_INTERNAL_URL=http://backend-test:8000
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
+    group_add:
+      - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    privileged: false
+    networks:
+      - test-network
+
+  integrity-worker-image:
+    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.worker
+    command: ["python", "-c", "print('integrity worker image ready')"]
+    restart: "no"
+    profiles: ["build"]
     networks:
       - test-network
 
@@ -179,6 +225,7 @@ services:
 networks:
   test-network:
     driver: bridge
+    name: ${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}
 
 volumes:
   judge-tmp-test:

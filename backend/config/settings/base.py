@@ -425,7 +425,10 @@ INTEGRITY_CONTROLLER_TOKEN_FILE = os.getenv(
     "INTEGRITY_CONTROLLER_TOKEN_FILE", "/run-secrets/controller-token"
 )
 INTEGRITY_WORKER_IMAGE = os.getenv(
-    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:latest"
+    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:local"
+)
+INTEGRITY_WORKER_NETWORK = os.getenv(
+    "INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"
 )
 INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
     "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
