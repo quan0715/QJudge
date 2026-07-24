@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
-import { useEventEvidenceCapture } from "./anticheat/useEventEvidenceCapture";
 import { createSfuVideoPublisher } from "./anticheat/sfuScreenSharePublisher";
 import {
   getExamCaptureSessionId,
@@ -14,10 +12,6 @@ import {
   consumeRuntimeWebcamHandoff,
   setRuntimeWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
-import {
-  registerForcedCaptureHandler,
-  unregisterForcedCaptureHandler,
-} from "@/features/contest/anticheat/forcedCapture";
 import {
   requestUserMediaVideo,
   supportsUserMediaApi,
@@ -35,11 +29,6 @@ interface Options {
   expectInitialStream?: boolean;
   autoAcquireOnStart?: boolean;
   publishLiveStream?: boolean;
-  intervalMs?: number;
-  forcedCaptureCooldownMs?: number;
-  forcedCaptureP1CooldownMs?: number;
-  reportDegraded?: (isDegraded: boolean) => void;
-  onUploadProgress?: (count: number) => void;
   onWebcamLost?: () => void;
 }
 
@@ -51,11 +40,6 @@ export const useAnticheatWebcamCapture = ({
   expectInitialStream = false,
   autoAcquireOnStart = false,
   publishLiveStream = false,
-  intervalMs = 10_000,
-  forcedCaptureCooldownMs = 1_000,
-  forcedCaptureP1CooldownMs = 15_000,
-  reportDegraded,
-  onUploadProgress,
   onWebcamLost,
 }: Options) => {
   const [uploadSessionId] = useState(() => {
@@ -77,8 +61,6 @@ export const useAnticheatWebcamCapture = ({
   useEffect(() => {
     onWebcamLostRef.current = onWebcamLost;
   }, [onWebcamLost]);
-
-  const { encodeUnderBudget } = useCanvasProcessor();
 
   const ensureSfuPublisher = useCallback(
     (stream: MediaStream) => {
@@ -152,58 +134,7 @@ export const useAnticheatWebcamCapture = ({
     }
   }, [autoAcquireOnStart, acceptOrRejectStream, ensureSfuPublisher, stopStream]);
 
-  const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
-    const stream = await acquireStream();
-    if (!stream) return null;
-    try {
-      const track = stream.getVideoTracks()[0];
-      if (!track) return null;
-      const imageCapture = new (window as any).ImageCapture(track);
-      const bitmap = await imageCapture.grabFrame();
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        bitmap.close();
-        return null;
-      }
-      ctx.drawImage(bitmap, 0, 0);
-      bitmap.close();
-      return await encodeUnderBudget(canvas);
-    } catch {
-      return null;
-    }
-  }, [acquireStream, encodeUnderBudget]);
-
-  const isWebcamUnavailable = useCallback(
-    () => streamWasLiveRef.current && !isStreamHealthy(streamRef.current),
-    [],
-  );
-
-  const {
-    flushPendingUploads,
-    forceCaptureNow,
-    stopEvidenceCapture,
-  } = useEventEvidenceCapture({
-    contestId,
-    module: "webcam",
-    enabled,
-    intervalMs,
-    uploadSessionId,
-    captureFrameBlob,
-    isStreamUnavailable: isWebcamUnavailable,
-    onStreamUnavailable: handleDetectedWebcamLoss,
-    reportDegraded,
-    onUploadProgress,
-    cooldown: {
-      defaultMs: forcedCaptureCooldownMs,
-      p1Ms: forcedCaptureP1CooldownMs,
-    },
-  });
-
   const forceStopCapture = useCallback(() => {
-    stopEvidenceCapture();
     void sfuPublisherRef.current.stop(contestId);
     lastSfuPublisherAttemptAtRef.current = 0;
     stopStream();
@@ -211,15 +142,7 @@ export const useAnticheatWebcamCapture = ({
     setStreamActive(false);
     clearPrecheckWebcamHandoff(true);
     clearRuntimeWebcamHandoff(true);
-  }, [contestId, stopEvidenceCapture, stopStream]);
-
-  useEffect(() => {
-    if (!contestId) return;
-    registerForcedCaptureHandler(contestId, "webcam", forceCaptureNow);
-    return () => {
-      unregisterForcedCaptureHandler(contestId, "webcam", forceCaptureNow);
-    };
-  }, [contestId, forceCaptureNow]);
+  }, [contestId, stopStream]);
 
   useEffect(() => {
     const wasMonitoring = prevMonitorRef.current;
@@ -230,7 +153,7 @@ export const useAnticheatWebcamCapture = ({
   }, [forceStopCapture, monitorStream, preserveStreamOnUnmount]);
 
   useEffect(() => {
-    if (!monitorStream || enabled) return;
+    if (!monitorStream) return;
     const timer = setInterval(() => {
       const alive = isStreamHealthy(streamRef.current);
       if (streamWasLiveRef.current && !alive) {
@@ -283,9 +206,8 @@ export const useAnticheatWebcamCapture = ({
   return {
     uploadSessionId,
     streamActive,
-    flushPendingUploads,
     forceStopCapture,
-    forceCaptureNow,
+    stream: streamRef.current,
   };
 };
 

@@ -1,5 +1,6 @@
 import type {
   ClaimedIntegrityBatch,
+  ExamIntegrityEvidenceDescriptor,
   ExamIntegrityRecord,
   IntegrityPayload,
 } from "@/core/entities/examIntegrity.entity";
@@ -8,6 +9,8 @@ export interface AppendIntegritySignal {
   eventType: string;
   clientOccurredAtMs: number;
   payload: IntegrityPayload;
+  /** Descriptor summaries only; media bytes remain in OPFS. */
+  evidenceDescriptors?: ExamIntegrityEvidenceDescriptor[];
 }
 
 export interface BatchFailure {

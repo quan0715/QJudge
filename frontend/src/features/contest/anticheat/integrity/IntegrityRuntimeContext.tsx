@@ -5,6 +5,10 @@ export interface IntegritySignalEmitter {
   emit(signal: IntegritySignal): Promise<void>;
 }
 
+export interface IntegrityEvidenceController {
+  flushPendingEvidence: () => Promise<void>;
+}
+
 export interface IntegritySignal {
   eventType: string;
   clientOccurredAtMs: number;
@@ -52,3 +56,16 @@ export const IntegrityRuntimeProvider = IntegrityRuntimeContext.Provider;
 
 export const useIntegritySignalEmitter = (): IntegritySignalEmitter =>
   useContext(IntegrityRuntimeContext);
+
+const inactiveEvidenceController: IntegrityEvidenceController = {
+  flushPendingEvidence: async () => undefined,
+};
+
+const IntegrityEvidenceContext = createContext<IntegrityEvidenceController>(
+  inactiveEvidenceController,
+);
+
+export const IntegrityEvidenceProvider = IntegrityEvidenceContext.Provider;
+
+export const useIntegrityEvidenceController = (): IntegrityEvidenceController =>
+  useContext(IntegrityEvidenceContext);

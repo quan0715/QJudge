@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
+import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/OpfsEvidenceStore";
 import {
   contestIntegritySourceFiles,
   createIntegrityRuntime,
@@ -122,6 +123,21 @@ describe("IntegrityRuntime", () => {
       close: vi.fn().mockResolvedValue(undefined),
     } as unknown as IndexedDbIntegrityOutbox;
     const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockReturnValue(open);
+    const evidenceStore = {
+      close: vi.fn().mockResolvedValue(undefined),
+      reconcile: vi.fn().mockResolvedValue(undefined),
+      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
+      markReported: vi.fn().mockResolvedValue(undefined),
+      listDescriptors: vi.fn().mockResolvedValue([]),
+      getBlob: vi.fn(),
+      protect: vi.fn(),
+      releaseProtection: vi.fn(),
+      markRequested: vi.fn(),
+      markVerified: vi.fn(),
+      markUnavailable: vi.fn(),
+      deleteDescriptor: vi.fn(),
+    } as unknown as OpfsEvidenceStore;
+    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceStore);
     const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
     const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
     const { result, unmount } = renderHook(() => useIntegrityRuntime({
@@ -164,6 +180,7 @@ describe("IntegrityRuntime", () => {
     unmount();
     expect(transportStopSpy).toHaveBeenCalledTimes(1);
     openSpy.mockRestore();
+    evidenceOpenSpy.mockRestore();
     transportStartSpy.mockRestore();
     transportStopSpy.mockRestore();
   });
@@ -194,6 +211,8 @@ describe("IntegrityRuntime", () => {
       expect(source.text).not.toMatch(/\brecordExamEvent(?:WithForcedCapture)?\b/);
       expect(source.text).not.toMatch(/\buseForceSubmitArbiter\b/);
       expect(source.text).not.toMatch(/\buseViolationPipeline\b/);
+      expect(source.text).not.toMatch(/\bforceCaptureNow\b/);
+      expect(source.text).not.toMatch(/\buseEventEvidenceCapture\b/);
     }
   });
 });

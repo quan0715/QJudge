@@ -50,6 +50,7 @@ import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenM
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import {
+  IntegrityEvidenceProvider,
   IntegrityRuntimeProvider,
 } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
@@ -172,49 +173,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     anticheatConfig.integrityRun.participantId !== undefined &&
     !!anticheatConfig.integrityRun.policySnapshot &&
     !!anticheatConfig.integrityRun.registrySnapshot;
-  const integrity = useIntegrityRuntime({
-    enabled: integrityRuntimeEnabled,
-    contestId,
-    integrityRun: anticheatConfig?.integrityRun,
-    snapshotProvider: () => ({
-      pageVisible: typeof document === "undefined" || document.visibilityState !== "hidden",
-      online: typeof navigator === "undefined" || navigator.onLine,
-      fullscreen: fullscreenAdapterRef.current.isActive(),
-      screenCapture: captureSnapshotRef.current.screenCapture,
-      webcamCapture: captureSnapshotRef.current.webcamCapture,
-      activeSourceDescriptors: [],
-    }),
-  });
-  const reportDegraded = useCallback(
-    (isDegraded: boolean) => {
-      if (!isDegraded) return;
-      void integrity.emit({
-        eventType: "evidence_buffer_degraded",
-        clientOccurredAtMs: Date.now(),
-        payload: {
-          reason: "Evidence upload failed",
-          module: "screen_share",
-          module_role: screenModuleRole,
-        },
-      });
-    },
-    [integrity, screenModuleRole],
-  );
-  const reportWebcamDegraded = useCallback(
-    (isDegraded: boolean) => {
-      if (!isDegraded) return;
-      void integrity.emit({
-        eventType: "evidence_buffer_degraded",
-        clientOccurredAtMs: Date.now(),
-        payload: {
-          reason: "Webcam evidence upload failed",
-          module: "webcam",
-          module_role: webcamModuleRole,
-        },
-      });
-    },
-    [integrity, webcamModuleRole],
-  );
   const streamMonitorEnabled = effectiveMonitoringEnabled && shouldMonitorActiveExam;
   const screenStreamMonitorEnabled =
     streamMonitorEnabled && monitoringPlan.runtime.monitorScreenShareStream;
@@ -255,10 +213,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       precheckPassed &&
       examStatus === "in_progress" &&
       monitoringPlan.precheck.requireScreenShare,
-    intervalMs:
-      Math.max(1, monitoringPlan.sources.screenShare.captureIntervalSeconds) *
-      1000,
-    reportDegraded,
     onScreenShareLost: () => {
       screenShare.onStreamLost();
     },
@@ -275,9 +229,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       monitoringPlan.precheck.enableWebcam,
     autoAcquireOnStart: false,
     publishLiveStream: webcamStreamMonitorEnabled,
-    intervalMs:
-      Math.max(1, monitoringPlan.sources.webcam.captureIntervalSeconds) * 1000,
-    reportDegraded: reportWebcamDegraded,
     onWebcamLost: () => {
       webcam.onStreamLost();
     },
@@ -294,17 +245,36 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       ? (webcamCapture.streamActive ? "active" : "inactive")
       : "disabled";
   }, [webcamCapture.streamActive, webcamCaptureEnabled]);
+  const evidenceCoordinatorRef = useRef<{ flushPendingUploads: () => Promise<void> } | null>(null);
+  const setEvidenceCoordinator = useCallback((controller: { flushPendingUploads: () => Promise<void> } | null) => {
+    evidenceCoordinatorRef.current = controller;
+  }, []);
+  const integrity = useIntegrityRuntime({
+    enabled: integrityRuntimeEnabled,
+    contestId,
+    integrityRun: anticheatConfig?.integrityRun,
+    snapshotProvider: () => ({
+      pageVisible: typeof document === "undefined" || document.visibilityState !== "hidden",
+      online: typeof navigator === "undefined" || navigator.onLine,
+      fullscreen: fullscreenAdapterRef.current.isActive(),
+      screenCapture: captureSnapshotRef.current.screenCapture,
+      webcamCapture: captureSnapshotRef.current.webcamCapture,
+      activeSourceDescriptors: [],
+    }),
+    evidenceSources: {
+      screen_share: capture.stream,
+      webcam: webcamCapture.stream,
+    },
+    onEvidenceControllerChange: setEvidenceCoordinator,
+  });
   const examCaptureContextValue = useMemo(
     () => ({
       ...capture,
       flushPendingUploads: async () => {
-        await Promise.allSettled([
-          capture.flushPendingUploads(),
-          webcamCapture.flushPendingUploads(),
-        ]);
+        await evidenceCoordinatorRef.current?.flushPendingUploads();
       },
     }),
-    [capture, webcamCapture],
+    [capture],
   );
   const submissionProgress = useExamSubmissionProgress();
 
@@ -873,8 +843,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   return (
     <IntegrityRuntimeProvider value={integrity}>
-      <ExamMonitoringStatusProvider value={monitoringReminder}>
-        <ExamCaptureProvider value={examCaptureContextValue}>
+      <IntegrityEvidenceProvider value={{ flushPendingEvidence: examCaptureContextValue.flushPendingUploads }}>
+        <ExamMonitoringStatusProvider value={monitoringReminder}>
+          <ExamCaptureProvider value={examCaptureContextValue}>
         <div
           ref={containerRef}
           style={{ position: "relative", width: "100%", height: "100%", flex: 1 }}
@@ -918,8 +889,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             onRequestClose={submissionProgress.close}
           />
         </div>
-        </ExamCaptureProvider>
-      </ExamMonitoringStatusProvider>
+          </ExamCaptureProvider>
+        </ExamMonitoringStatusProvider>
+      </IntegrityEvidenceProvider>
     </IntegrityRuntimeProvider>
   );
 };

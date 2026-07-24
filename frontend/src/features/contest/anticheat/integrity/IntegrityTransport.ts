@@ -1,6 +1,7 @@
 import type {
   EvidenceRetainCommand,
   ExamIntegrityBatchAck,
+  ExamIntegrityEvidenceDescriptor,
   ExamIntegrityStateSnapshot,
 } from "@/core/entities/examIntegrity.entity";
 import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
@@ -21,6 +22,11 @@ export interface IntegrityTransportOptions {
   outbox: ExamIntegrityOutbox;
   repository: Pick<ExamIntegrityRepository, "sendBatch">;
   snapshotProvider: () => ExamIntegrityStateSnapshot;
+  evidenceDescriptorsProvider?: () => Promise<ExamIntegrityEvidenceDescriptor[]>;
+  onSnapshotPersisted?: (
+    descriptors: ExamIntegrityEvidenceDescriptor[],
+    sequence: number,
+  ) => void | Promise<void>;
   onPendingCommand?: (command: EvidenceRetainCommand) => void | Promise<void>;
   onReleaseEvidenceBeforeMs?: (releaseBeforeMs: number) => void | Promise<void>;
   onAuthenticationFailure?: (error: Error) => void | Promise<void>;
@@ -105,12 +111,18 @@ export class IntegrityTransport {
     this.tickInFlight = true;
     const generation = this.generation;
     try {
-      const snapshot = this.options.snapshotProvider();
-      await this.options.outbox.append({
+      const providedDescriptors = await this.options.evidenceDescriptorsProvider?.() ?? [];
+      const snapshot = {
+        ...this.options.snapshotProvider(),
+        activeSourceDescriptors: providedDescriptors,
+      };
+      const record = await this.options.outbox.append({
         eventType: "state_snapshot",
         clientOccurredAtMs: this.now(),
         payload: snapshot,
+        evidenceDescriptors: providedDescriptors,
       });
+      await this.options.onSnapshotPersisted?.(providedDescriptors, record.seq);
       if (!this.isActive(generation)) return;
       if (!this.isOnline() || this.now() < this.nextEligibleAtMs) return;
 

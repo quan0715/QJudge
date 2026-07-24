@@ -351,7 +351,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         clientRecordedAtMs: now,
         monotonicMs,
         payload: signal.payload,
-        evidenceDescriptors: [],
+        evidenceDescriptors: signal.evidenceDescriptors ?? [],
         acked: false,
       };
       const payloadBytes = utf8ByteLength(JSON.stringify(stored.payload));
@@ -385,10 +385,14 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
 
   async claimBatch(limit: { maxRecords: number; maxBytes: number }): Promise<ClaimedIntegrityBatch | null> {
     const bounded = boundedLimit(limit);
-    const transaction = this.database.transaction([RECORDS_STORE, META_STORE], "readwrite");
+    const transaction = this.database.transaction(
+      [RECORDS_STORE, META_STORE, EVIDENCE_DESCRIPTORS_STORE],
+      "readwrite",
+    );
     const done = transactionDone(transaction);
     const recordsStore = transaction.objectStore(RECORDS_STORE);
     const metaStore = transaction.objectStore(META_STORE);
+    const descriptorStore = transaction.objectStore(EVIDENCE_DESCRIPTORS_STORE);
     try {
       const meta = await requestResult(
         metaStore.get([this.options.runId, this.options.deviceId]),
@@ -506,10 +510,22 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       ) {
         throw new Error("ACK cursor is outside the claimed integrity batch");
       }
+      const acknowledgedDescriptorIds = new Set<string>();
       for (const record of allRecords) {
         if (record.seq <= seq) {
+          for (const descriptor of record.evidenceDescriptors) {
+            acknowledgedDescriptorIds.add(descriptor.localDescriptorId);
+          }
           recordsStore.delete([runId, deviceId, record.seq]);
         }
+      }
+      for (const localDescriptorId of acknowledgedDescriptorIds) {
+        const descriptor = await requestResult(descriptorStore.get([
+          runId,
+          deviceId,
+          localDescriptorId,
+        ])) as { batchAcked?: boolean } | undefined;
+        if (descriptor) descriptorStore.put({ ...descriptor, batchAcked: true });
       }
       meta.ackedThroughSeq = Math.max(meta.ackedThroughSeq, seq);
       if (seq < lastClaimedSeq) {

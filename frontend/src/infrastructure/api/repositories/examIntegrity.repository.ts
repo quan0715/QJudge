@@ -20,7 +20,7 @@ export interface ExamIntegrityRepository {
     contestId: string,
     request: EvidenceManifestRequest,
   ): Promise<EvidenceManifestResponse>;
-  completeEvidenceUpload(contestId: string, chunkId: string): Promise<void>;
+  completeEvidenceUpload(contestId: string, chunkId: string): Promise<"verified">;
   reportEvidenceUnavailable(contestId: string, report: EvidenceUnavailableReport): Promise<void>;
 }
 
@@ -171,10 +171,14 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
   },
 
   async completeEvidenceUpload(contestId, chunkId) {
-    await ensureOk(
+    const response = await requestJson<{ chunk_id: string; status: string }>(
       httpClient.post(apiPath(contestId, "evidence/complete"), { chunk_id: chunkId }),
       "Failed to complete evidence upload",
     );
+    if (response.chunk_id !== chunkId || response.status !== "verified") {
+      throw new Error("Evidence upload was not verified");
+    }
+    return "verified";
   },
 
   async reportEvidenceUnavailable(contestId, report) {

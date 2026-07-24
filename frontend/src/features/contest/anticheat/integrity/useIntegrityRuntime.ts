@@ -8,9 +8,12 @@ import type {
 } from "@/core/entities/examIntegrity.entity";
 import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
+import { MediaRecorderChunker } from "@/infrastructure/browser/integrity/MediaRecorderChunker";
+import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/OpfsEvidenceStore";
 import { getDeviceId } from "@/infrastructure/api/http.client";
 import { examIntegrityRepository } from "@/infrastructure/api/repositories/examIntegrity.repository";
 import { IntegrityTransport } from "./IntegrityTransport";
+import { EvidenceCoordinator } from "./EvidenceCoordinator";
 import {
   asIntegritySignalDispatch,
   INTEGRITY_SIGNAL_EVENT,
@@ -57,7 +60,59 @@ export interface UseIntegrityRuntimeOptions {
   contestId: string;
   integrityRun?: ContestIntegrityRun;
   snapshotProvider: () => ExamIntegrityStateSnapshot;
+  evidenceSources?: Partial<Record<"screen_share" | "webcam", MediaStream | null>>;
+  onEvidenceControllerChange?: (controller: EvidenceCoordinator | null) => void;
 }
+
+const sourceTargets = (policy: Record<string, unknown> | undefined) => {
+  const evidence = policy?.evidence as Record<string, unknown> | undefined;
+  const source = (name: "screen" | "webcam", fallback: { width: number; height: number; fps: number; bitrate: number }) => {
+    const value = evidence?.[name];
+    if (!value || typeof value !== "object") return fallback;
+    const configured = value as Record<string, unknown>;
+    return {
+      width: typeof configured.width === "number" ? configured.width : fallback.width,
+      height: typeof configured.height === "number" ? configured.height : fallback.height,
+      fps: typeof configured.fps === "number" ? configured.fps : fallback.fps,
+      bitrate: typeof configured.bitrate === "number" ? configured.bitrate : fallback.bitrate,
+    };
+  };
+  return {
+    screen_share: source("screen", { width: 1280, height: 720, fps: 5, bitrate: 800_000 }),
+    webcam: source("webcam", { width: 640, height: 480, fps: 10, bitrate: 350_000 }),
+  };
+};
+
+const evidenceBufferPolicy = (policy: Record<string, unknown> | undefined) => {
+  const evidence = policy?.evidence as Record<string, unknown> | undefined;
+  return {
+    minimumLocalBufferMs: typeof evidence?.minimum_local_buffer_ms === "number"
+      ? evidence.minimum_local_buffer_ms : 60_000,
+    localCapMs: typeof evidence?.local_cap_ms === "number" ? evidence.local_cap_ms : 300_000,
+    localCapBytesPerSource: typeof evidence?.local_cap_bytes_per_source === "number"
+      ? evidence.local_cap_bytes_per_source : 100_000_000,
+  };
+};
+
+// Device classification is browser supplied. Use the frozen policy's enabled
+// union so it can never narrow a source requirement without server attestation.
+const enabledEvidenceSources = (policy: Record<string, unknown> | undefined): Set<"screen_share" | "webcam"> => {
+  const devicePolicy = policy?.device_policy;
+  if (!devicePolicy || typeof devicePolicy !== "object") return new Set();
+  const enabled = new Set<"screen_share" | "webcam">();
+  for (const device of Object.values(devicePolicy as Record<string, unknown>)) {
+    if (!device || typeof device !== "object" || (device as Record<string, unknown>).enabled !== true) continue;
+    const sources = (device as Record<string, unknown>).sources;
+    if (!sources || typeof sources !== "object") continue;
+    for (const source of ["screen_share", "webcam"] as const) {
+      const sourcePolicy = (sources as Record<string, unknown>)[source];
+      if (sourcePolicy && typeof sourcePolicy === "object" && (sourcePolicy as Record<string, unknown>).enabled === true) {
+        enabled.add(source);
+      }
+    }
+  }
+  return enabled;
+};
 
 const inactiveEmitter: IntegritySignalEmitter = {
   emit: async () => undefined,
@@ -137,6 +192,8 @@ export const useIntegrityRuntime = ({
   contestId,
   integrityRun,
   snapshotProvider,
+  evidenceSources,
+  onEvidenceControllerChange,
 }: UseIntegrityRuntimeOptions): IntegritySignalEmitter => {
   const snapshotProviderRef = useRef(snapshotProvider);
 
@@ -175,6 +232,8 @@ export const useIntegrityRuntime = ({
     let disposed = false;
     let runtime: IntegrityRuntime | null = null;
     let outbox: IndexedDbIntegrityOutbox | null = null;
+    let evidenceStore: OpfsEvidenceStore | null = null;
+    const chunkers: MediaRecorderChunker[] = [];
 
     void (async () => {
       try {
@@ -189,11 +248,29 @@ export const useIntegrityRuntime = ({
           await outbox.close();
           return;
         }
+        evidenceStore = await OpfsEvidenceStore.open({ runId, deviceId: getDeviceId() });
+        if (disposed) {
+          await evidenceStore.close();
+          await outbox.close();
+          return;
+        }
+        const coordinator = new EvidenceCoordinator({
+          contestId,
+          runId,
+          store: evidenceStore,
+          repository: examIntegrityRepository,
+        });
+        await coordinator.start();
         const transport = new IntegrityTransport({
           contestId,
           outbox,
           repository: examIntegrityRepository,
           snapshotProvider: () => snapshotProviderRef.current(),
+          evidenceDescriptorsProvider: () => coordinator.pendingDescriptorSummaries(),
+          onSnapshotPersisted: (descriptors, sequence) =>
+            coordinator.markSnapshotPersisted(descriptors, sequence),
+          onPendingCommand: (command) => coordinator.retain(command),
+          onReleaseEvidenceBeforeMs: (releaseBeforeMs) => coordinator.releaseBefore(releaseBeforeMs),
           eventTarget: typeof window === "undefined" ? undefined : window,
         });
         runtime = createIntegrityRuntime({
@@ -202,11 +279,52 @@ export const useIntegrityRuntime = ({
           registry: integrityRun?.registrySnapshot,
         });
         runtime.start();
+        const targets = sourceTargets(integrityRun?.policySnapshot);
+        const bufferPolicy = evidenceBufferPolicy(integrityRun?.policySnapshot);
+        const enabledSources = enabledEvidenceSources(integrityRun?.policySnapshot);
+        const epochId = crypto.randomUUID();
+        for (const source of ["screen_share", "webcam"] as const) {
+          const stream = evidenceSources?.[source];
+          if (!enabledSources.has(source) || !stream) continue;
+          let chunker: MediaRecorderChunker;
+          chunker = new MediaRecorderChunker({
+            source,
+            stream,
+            epochId,
+            store: evidenceStore,
+            target: targets[source],
+            onDegraded: async (reason) => {
+              await runtime?.emit({
+                eventType: "evidence_source_degraded",
+                clientOccurredAtMs: Date.now(),
+                payload: { source, reason },
+              });
+            },
+            onStoredChunk: async () => {
+              if (await coordinator.enforceCapacity(source, bufferPolicy)) return;
+              chunker.stop();
+              await runtime?.emit({
+                eventType: "evidence_buffer_degraded",
+                clientOccurredAtMs: Date.now(),
+                payload: {
+                  source,
+                  reason: "capacity_protected_evidence",
+                  local_cap_bytes: bufferPolicy.localCapBytesPerSource,
+                  local_cap_ms: bufferPolicy.localCapMs,
+                },
+              });
+            },
+          });
+          chunkers.push(chunker);
+          chunker.start();
+        }
+        onEvidenceControllerChange?.(coordinator);
         queuedEmitter.activate(runtime);
       } catch (error) {
         // A missing browser persistence capability leaves monitoring inactive;
         // it must never fall back to the retired direct event API.
         if (!disposed) queuedEmitter.fail(error);
+        if (evidenceStore) void evidenceStore.close();
         if (outbox) void outbox.close();
       }
     })();
@@ -214,10 +332,25 @@ export const useIntegrityRuntime = ({
     return () => {
       disposed = true;
       queuedEmitter.pause();
+      onEvidenceControllerChange?.(null);
+      chunkers.forEach((chunker) => chunker.stop());
       runtime?.stop();
+      if (evidenceStore) void evidenceStore.close();
       if (outbox) void outbox.close();
     };
-  }, [contestId, integrityRun?.registrySnapshot, participantId, queuedEmitter, registryVersion, runId, runtimeEnabled]);
+  }, [
+    contestId,
+    evidenceSources?.screen_share,
+    evidenceSources?.webcam,
+    integrityRun?.policySnapshot,
+    integrityRun?.registrySnapshot,
+    onEvidenceControllerChange,
+    participantId,
+    queuedEmitter,
+    registryVersion,
+    runId,
+    runtimeEnabled,
+  ]);
 
   return runtimeEnabled ? queuedEmitter.emitter : inactiveEmitter;
 };
@@ -238,6 +371,8 @@ const contestIntegrityRawSources = import.meta.glob<string>(
     "../../hooks/useContestExamActions.ts",
     "../../screens/paperExam/usePaperExamFlow.ts",
     "../../screens/paperExam/PaperExamAnsweringScreen.tsx",
+    "../../screens/paperExam/hooks/useAnticheatScreenCapture.ts",
+    "../../screens/paperExam/hooks/useAnticheatWebcamCapture.ts",
     "../../detectors/clipboardDetector.ts",
     "../../detectors/keyboardShortcutDetector.ts",
     "../../detectors/popupGuardDetector.ts",
