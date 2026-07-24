@@ -91,7 +91,10 @@ export class MultiDisplayDetector implements ExamDetector {
     if (Array.isArray(screens) && screens.length > 1) {
       // Fix 1: screenCount > 1 from event is definitive, report immediately
       this.consecutiveDetections = EXAM_MONITORING_DISPLAY_CONFIRM_COUNT;
-      this.reportViolation();
+      if (!this.wasMultiDetected) {
+        this.wasMultiDetected = true;
+        this.reportViolation();
+      }
     } else if (Array.isArray(screens) && screens.length <= 1) {
       this.consecutiveDetections = 0;
       this.checkResolved();
@@ -105,6 +108,7 @@ export class MultiDisplayDetector implements ExamDetector {
     this.onViolation?.({
       detectorId: this.id,
       eventType: "multiple_displays",
+      clientOccurredAtMs: Date.now(),
       message: this.t(
         "exam.multipleDisplaysDetected",
         "Multiple displays detected. Please keep only one physical screen connected.",
@@ -119,6 +123,7 @@ export class MultiDisplayDetector implements ExamDetector {
     this.onViolation?.({
       detectorId: this.id,
       eventType: "display_api_degraded",
+      clientOccurredAtMs: Date.now(),
       message: this.t(
         "exam.displayApiDegraded",
         "Display monitoring API is unavailable. The system may not detect multiple displays.",
@@ -186,10 +191,11 @@ export class MultiDisplayDetector implements ExamDetector {
 
   // Fix 1: require consecutive detections before reporting
   private handleDetection(): void {
+    if (this.wasMultiDetected) return;
     this.consecutiveDetections++;
     if (this.consecutiveDetections >= EXAM_MONITORING_DISPLAY_CONFIRM_COUNT) {
-      this.reportViolation();
       this.wasMultiDetected = true;
+      this.reportViolation();
     }
   }
 

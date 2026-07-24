@@ -93,7 +93,7 @@ def running_integrity_run(contest, owner):
         contest=contest,
         created_by=owner,
         compute_state=ExamIntegrityRun.ComputeState.RUNNING,
-        registry_version="2026-07-21.2",
+        registry_version="2026-07-21.3",
         registry_snapshot=build_registry_snapshot(),
         policy_snapshot={
             "version": 1,
@@ -976,7 +976,7 @@ def test_token_for_another_run_cannot_access_url_run(
         contest=other_contest,
         created_by=owner,
         compute_state=ExamIntegrityRun.ComputeState.RUNNING,
-        registry_version="2026-07-21.2",
+        registry_version="2026-07-21.3",
         registry_snapshot=build_registry_snapshot(),
         policy_snapshot={},
         worker_image="registry.example/integrity:1",

@@ -21,7 +21,7 @@ def test_registry_has_every_active_signal_once():
     assert set(signal_ids) == ACTIVE_SIGNAL_IDS
     assert len(signal_ids) == len(set(signal_ids))
     assert snapshot["version"] == REGISTRY_VERSION
-    assert snapshot["version"] == "2026-07-21.2"
+    assert snapshot["version"] == "2026-07-21.3"
 
 
 def test_registry_definitions_are_data_not_core_switches():
@@ -41,6 +41,16 @@ def test_registry_definitions_are_data_not_core_switches():
     assert fullscreen["emission"] == "edge"
     assert fullscreen["evidence"]["before_ms"] == 10_000
     assert fullscreen["evidence"]["after_ms"] == 10_000
+    assert snapshot["definitions"]["forbidden_action"]["signals"] == {
+        "triggered": "forbidden_action",
+        "escalated": "",
+        "restored": "",
+    }
+    assert snapshot["definitions"]["forbidden_focus"]["signals"] == {
+        "triggered": "forbidden_focus_event",
+        "escalated": "",
+        "restored": "",
+    }
     json.dumps(snapshot)
 
 

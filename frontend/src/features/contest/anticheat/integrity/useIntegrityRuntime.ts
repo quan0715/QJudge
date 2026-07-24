@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type {
   ContestIntegrityRun,
   IntegrityRegistrySnapshot,
@@ -16,6 +16,7 @@ import {
   INTEGRITY_SIGNAL_EVENT,
 } from "./IntegrityRuntimeContext";
 import type { IntegritySignalEmitter } from "./IntegrityRuntimeContext";
+import { assertFrontendSignalsInRegistry } from "./frontendIntegritySignals";
 
 const CLIENT_BUILD = "frontend";
 
@@ -39,13 +40,17 @@ export interface CreateIntegrityRuntimeOptions {
 export const createIntegrityRuntime = ({
   outbox,
   transport,
-}: CreateIntegrityRuntimeOptions): IntegrityRuntime => ({
-  emit: async (signal) => {
-    await outbox.append(signal);
-  },
-  start: () => transport?.start(),
-  stop: () => transport?.stop(),
-});
+  registry,
+}: CreateIntegrityRuntimeOptions): IntegrityRuntime => {
+  if (registry) assertFrontendSignalsInRegistry(registry);
+  return {
+    emit: async (signal) => {
+      await outbox.append(signal);
+    },
+    start: () => transport?.start(),
+    stop: () => transport?.stop(),
+  };
+};
 
 export interface UseIntegrityRuntimeOptions {
   enabled: boolean;
@@ -58,13 +63,81 @@ const inactiveEmitter: IntegritySignalEmitter = {
   emit: async () => undefined,
 };
 
+interface QueuedSignal {
+  signal: Parameters<IntegritySignalEmitter["emit"]>[0];
+  resolve: () => void;
+  reject: (reason: unknown) => void;
+}
+
+export interface QueuedIntegritySignalEmitter {
+  emitter: IntegritySignalEmitter;
+  activate: (runtime: IntegrityRuntime) => void;
+  pause: () => void;
+  fail: (reason: unknown) => void;
+}
+
+/**
+ * Signals may fire from child effects before IndexedDB has opened. Preserve
+ * their source ordering and resolve callers only after the durable append.
+ */
+export const createQueuedIntegritySignalEmitter = (): QueuedIntegritySignalEmitter => {
+  const pending: QueuedSignal[] = [];
+  let runtime: IntegrityRuntime | null = null;
+  let draining = false;
+  let failure: unknown = null;
+
+  const drain = async (): Promise<void> => {
+    if (draining || !runtime) return;
+    draining = true;
+    try {
+      while (runtime && pending.length > 0) {
+        const next = pending.shift()!;
+        try {
+          await runtime.emit(next.signal);
+          next.resolve();
+        } catch (error) {
+          next.reject(error);
+        }
+      }
+    } finally {
+      draining = false;
+      if (runtime && pending.length > 0) void drain();
+    }
+  };
+
+  return {
+    emitter: {
+      emit: (signal) => new Promise<void>((resolve, reject) => {
+        if (failure) {
+          reject(failure);
+          return;
+        }
+        pending.push({ signal, resolve, reject });
+        void drain();
+      }),
+    },
+    activate: (nextRuntime) => {
+      if (failure) return;
+      runtime = nextRuntime;
+      void drain();
+    },
+    pause: () => {
+      runtime = null;
+    },
+    fail: (reason) => {
+      failure = reason;
+      runtime = null;
+      while (pending.length > 0) pending.shift()!.reject(reason);
+    },
+  };
+};
+
 export const useIntegrityRuntime = ({
   enabled,
   contestId,
   integrityRun,
   snapshotProvider,
 }: UseIntegrityRuntimeOptions): IntegritySignalEmitter => {
-  const [emitter, setEmitter] = useState<IntegritySignalEmitter>(inactiveEmitter);
   const snapshotProviderRef = useRef(snapshotProvider);
 
   useEffect(() => {
@@ -74,23 +147,34 @@ export const useIntegrityRuntime = ({
   const runId = integrityRun?.id;
   const participantId = integrityRun?.participantId;
   const registryVersion = integrityRun?.registrySnapshot.version;
+  const runtimeEnabled =
+    enabled &&
+    !!runId &&
+    !!participantId &&
+    !!registryVersion &&
+    Number.isSafeInteger(participantId);
+  const queuedEmitter = useMemo(
+    () => createQueuedIntegritySignalEmitter(),
+    [contestId, enabled, participantId, registryVersion, runId],
+  );
+
+  useLayoutEffect(() => {
+    if (!runtimeEnabled || typeof window === "undefined") return;
+    const signalRelay = (event: Event) => {
+      const detail = asIntegritySignalDispatch(event);
+      if (!detail) return;
+      detail.completion = queuedEmitter.emitter.emit(detail.signal);
+    };
+    window.addEventListener(INTEGRITY_SIGNAL_EVENT, signalRelay);
+    return () => window.removeEventListener(INTEGRITY_SIGNAL_EVENT, signalRelay);
+  }, [queuedEmitter, runtimeEnabled]);
 
   useEffect(() => {
-    if (
-      !enabled ||
-      !runId ||
-      !participantId ||
-      !registryVersion ||
-      !Number.isSafeInteger(participantId)
-    ) {
-      setEmitter(inactiveEmitter);
-      return;
-    }
+    if (!runtimeEnabled || !runId || !participantId || !registryVersion) return;
 
     let disposed = false;
     let runtime: IntegrityRuntime | null = null;
     let outbox: IndexedDbIntegrityOutbox | null = null;
-    let removeSignalRelay: (() => void) | null = null;
 
     void (async () => {
       try {
@@ -118,32 +202,24 @@ export const useIntegrityRuntime = ({
           registry: integrityRun?.registrySnapshot,
         });
         runtime.start();
-        const signalRelay = (event: Event) => {
-          const detail = asIntegritySignalDispatch(event);
-          if (!detail) return;
-          detail.completion = runtime?.emit(detail.signal) ?? Promise.resolve();
-        };
-        window.addEventListener(INTEGRITY_SIGNAL_EVENT, signalRelay);
-        removeSignalRelay = () =>
-          window.removeEventListener(INTEGRITY_SIGNAL_EVENT, signalRelay);
-        setEmitter(runtime!);
-      } catch {
+        queuedEmitter.activate(runtime);
+      } catch (error) {
         // A missing browser persistence capability leaves monitoring inactive;
         // it must never fall back to the retired direct event API.
-        setEmitter(inactiveEmitter);
+        if (!disposed) queuedEmitter.fail(error);
+        if (outbox) void outbox.close();
       }
     })();
 
     return () => {
       disposed = true;
-      removeSignalRelay?.();
+      queuedEmitter.pause();
       runtime?.stop();
       if (outbox) void outbox.close();
-      setEmitter(inactiveEmitter);
     };
-  }, [contestId, enabled, integrityRun?.registrySnapshot, participantId, registryVersion, runId]);
+  }, [contestId, integrityRun?.registrySnapshot, participantId, queuedEmitter, registryVersion, runId, runtimeEnabled]);
 
-  return emitter;
+  return runtimeEnabled ? queuedEmitter.emitter : inactiveEmitter;
 };
 
 type IntegritySourceFile = { path: string; text: string };
@@ -162,6 +238,10 @@ const contestIntegrityRawSources = import.meta.glob<string>(
     "../../hooks/useContestExamActions.ts",
     "../../screens/paperExam/usePaperExamFlow.ts",
     "../../screens/paperExam/PaperExamAnsweringScreen.tsx",
+    "../../detectors/clipboardDetector.ts",
+    "../../detectors/keyboardShortcutDetector.ts",
+    "../../detectors/popupGuardDetector.ts",
+    "./IntegrityTransport.ts",
   ],
   { eager: true, query: "?raw", import: "default" },
 );

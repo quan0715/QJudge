@@ -52,7 +52,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertIn("frontend_controlled_settings", resp.data)
         self.assertEqual(resp.data["version"], 2)
         self.assertIn("event_registry", resp.data)
-        self.assertEqual(resp.data["event_registry"]["version"], "2026-07-21.2")
+        self.assertEqual(resp.data["event_registry"]["version"], "2026-07-21.3")
         self.assertEqual(
             resp.data["event_registry"]["definitions"]["connectivity"]["origin"],
             "server",

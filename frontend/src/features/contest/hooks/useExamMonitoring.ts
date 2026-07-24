@@ -35,7 +35,7 @@ export function useExamMonitoring({
     const handleViolation = (event: ViolationEvent) => {
       void emitterRef.current.emit({
         eventType: event.eventType,
-        clientOccurredAtMs: Date.now(),
+        clientOccurredAtMs: event.clientOccurredAtMs,
         payload: {
           reason: event.message,
           severity: event.severity,

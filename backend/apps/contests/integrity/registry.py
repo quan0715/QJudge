@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Literal, TypeAlias
 
 
-REGISTRY_VERSION = "2026-07-21.2"
+REGISTRY_VERSION = "2026-07-21.3"
 
 Emission = Literal["every", "edge", "sample", "state_snapshot"]
 Origin = Literal["browser", "server"]
@@ -145,6 +145,15 @@ DEFINITIONS = MappingProxyType({
     "clipboard": _definition(
         "clipboard", triggered="clipboard_action", emission="every",
         family="clipboard", priority=2, sources=("screen_share",),
+    ),
+    "forbidden_action": _definition(
+        "forbidden_action", triggered="forbidden_action", emission="every",
+        family="forbidden_action", priority=2, sources=("screen_share",),
+    ),
+    "forbidden_focus": _definition(
+        "forbidden_focus", triggered="forbidden_focus_event", emission="every",
+        family="navigation_integrity", priority=1, grace_ms=30_000,
+        sources=("screen_share",), action="pause",
     ),
     "listener_integrity": _definition(
         "listener_integrity", triggered="listener_tampered", emission="edge",

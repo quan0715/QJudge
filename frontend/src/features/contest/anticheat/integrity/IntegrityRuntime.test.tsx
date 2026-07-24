@@ -1,10 +1,29 @@
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
-import { contestIntegritySourceFiles, createIntegrityRuntime } from "./useIntegrityRuntime";
+import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
+import {
+  contestIntegritySourceFiles,
+  createIntegrityRuntime,
+  createQueuedIntegritySignalEmitter,
+  useIntegrityRuntime,
+} from "./useIntegrityRuntime";
+import { IntegrityTransport } from "./IntegrityTransport";
+import {
+  assertFrontendSignalsInRegistry,
+  FRONTEND_INTEGRITY_SIGNAL_IDS,
+} from "./frontendIntegritySignals";
 
 const createOutboxMock = (): Pick<ExamIntegrityOutbox, "append"> => ({
   append: vi.fn().mockResolvedValue({}),
 });
+
+const frontendRegistryDefinitions = Object.fromEntries(
+  FRONTEND_INTEGRITY_SIGNAL_IDS.map((signal) => [
+    signal,
+    { signals: { triggered: signal, escalated: "", restored: "" } },
+  ]),
+);
 
 describe("IntegrityRuntime", () => {
   it("persists a detector signal before resolving emit", async () => {
@@ -49,6 +68,7 @@ describe("IntegrityRuntime", () => {
       registry: {
         version: "registry-v2",
         definitions: {
+          ...frontendRegistryDefinitions,
           head_pose: {
             signals: {
               triggered: "head_pose_changed",
@@ -70,6 +90,102 @@ describe("IntegrityRuntime", () => {
     expect(outbox.append).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: "head_pose_changed" }),
     );
+  });
+
+  it("queues an exam entry until delayed runtime startup then persists it once", async () => {
+    const outbox = createOutboxMock();
+    const queued = createQueuedIntegritySignalEmitter();
+    const completion = queued.emitter.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs: 2_000,
+      payload: { source: "answering_screen" },
+    });
+
+    expect(outbox.append).not.toHaveBeenCalled();
+    queued.activate(createIntegrityRuntime({ outbox }));
+    await completion;
+
+    expect(outbox.append).toHaveBeenCalledTimes(1);
+    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: "exam_entered",
+      clientOccurredAtMs: 2_000,
+    }));
+  });
+
+  it("persists exactly one exam entry after a delayed IndexedDB open", async () => {
+    let resolveOpen!: (outbox: IndexedDbIntegrityOutbox) => void;
+    const open = new Promise<IndexedDbIntegrityOutbox>((resolve) => {
+      resolveOpen = resolve;
+    });
+    const outbox = {
+      append: vi.fn().mockResolvedValue({}),
+      close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IndexedDbIntegrityOutbox;
+    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockReturnValue(open);
+    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
+    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
+    const { result, unmount } = renderHook(() => useIntegrityRuntime({
+      enabled: true,
+      contestId: "contest-a",
+      integrityRun: {
+        id: "33333333-3333-3333-3333-333333333333",
+        computeState: "running",
+        health: "healthy",
+        participantId: 44,
+        policySnapshot: {},
+        registrySnapshot: {
+          version: "test",
+          definitions: frontendRegistryDefinitions,
+        },
+      },
+      snapshotProvider: () => ({
+        pageVisible: true,
+        online: true,
+        fullscreen: true,
+        screenCapture: "active",
+        webcamCapture: "disabled",
+        activeSourceDescriptors: [],
+      }),
+    }));
+    const completion = result.current.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs: 2_000,
+      payload: { source: "answering_screen" },
+    });
+
+    expect(outbox.append).not.toHaveBeenCalled();
+    await act(async () => {
+      resolveOpen(outbox);
+      await completion;
+    });
+
+    expect(outbox.append).toHaveBeenCalledTimes(1);
+    expect(transportStartSpy).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(transportStopSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+    transportStartSpy.mockRestore();
+    transportStopSpy.mockRestore();
+  });
+
+  it("keeps every literal frontend emission in the declared frozen-registry contract", async () => {
+    const sourceFiles = await contestIntegritySourceFiles();
+    const emittedSignals = new Set<string>();
+    for (const source of sourceFiles) {
+      for (const match of source.text.matchAll(/(?:eventType:\\s*|emit\\(\\s*)["']([A-Za-z][A-Za-z0-9_]*)["']/g)) {
+        emittedSignals.add(match[1]);
+      }
+    }
+    expect([...emittedSignals].sort()).toEqual([...FRONTEND_INTEGRITY_SIGNAL_IDS].sort());
+  });
+
+  it("rejects a frozen registry snapshot that misses a frontend emission", () => {
+    expect(() => assertFrontendSignalsInRegistry({
+      version: "test",
+      definitions: {
+        incomplete: { signals: { triggered: "exam_entered" } },
+      },
+    })).toThrow("forbidden_action");
   });
 
   it("contains no legacy direct event transport imports", async () => {

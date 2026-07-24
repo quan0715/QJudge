@@ -80,6 +80,7 @@ export function useViewportMonitoring({
   const emitterRef = useRef(emitter);
   const isTabletRef = useRef(isTablet);
   const sourceRef = useRef(primarySourceModule);
+  const lastObservedAbnormalRef = useRef<boolean | null>(null);
 
   useEffect(() => { emitterRef.current = emitter; }, [emitter]);
   useEffect(() => { isTabletRef.current = isTablet; }, [isTablet]);
@@ -93,6 +94,7 @@ export function useViewportMonitoring({
   useEffect(() => {
     if (!enabled || examSubmitted) {
       baselineRef.current = null;
+      lastObservedAbnormalRef.current = null;
       setInterrupted(false);
       return;
     }
@@ -107,6 +109,7 @@ export function useViewportMonitoring({
     };
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
+        lastObservedAbnormalRef.current = null;
         setInterrupted(false);
       } else {
         lastVisibilityResumeAt = Date.now();
@@ -155,11 +158,19 @@ export function useViewportMonitoring({
         keyboard_likely: desktopKeyboardLikely,
         is_tablet: isTabletRef.current,
       };
+      const previous = lastObservedAbnormalRef.current;
+      if (previous === abnormal) return;
+      lastObservedAbnormalRef.current = abnormal;
       setInterrupted(abnormal);
-      emit(abnormal ? "viewport_interrupted" : "viewport_restored", payload);
+      if (abnormal) {
+        emit("viewport_interrupted", payload);
+      } else if (previous === true) {
+        emit("viewport_restored", payload);
+      }
     };
     const onOrientationChange = () => {
       resetBaseline();
+      lastObservedAbnormalRef.current = null;
       setInterrupted(false);
     };
     document.addEventListener("visibilitychange", onVisibilityChange);

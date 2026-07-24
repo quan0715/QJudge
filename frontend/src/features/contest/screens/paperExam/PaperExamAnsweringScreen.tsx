@@ -190,6 +190,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const hasLoggedExamEntryRef = useRef(false);
+  const isLoggingExamEntryRef = useRef(false);
 
   const runSubmitWithProgress = useCallback(async () => {
     const success = await submitProgress.run({
@@ -278,22 +279,31 @@ const PaperExamAnsweringScreen: React.FC = () => {
       !contest.cheatDetectionEnabled ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
-      hasLoggedExamEntryRef.current
+      hasLoggedExamEntryRef.current ||
+      isLoggingExamEntryRef.current
     ) {
       return;
     }
 
-    hasLoggedExamEntryRef.current = true;
+    isLoggingExamEntryRef.current = true;
+    const clientOccurredAtMs = Date.now();
     void integrity.emit({
       eventType: "exam_entered",
-      clientOccurredAtMs: Date.now(),
+      clientOccurredAtMs,
       payload: {
         source: "paper_exam:answering_screen",
         ...(anticheatUploadSessionId
           ? { upload_session_id: anticheatUploadSessionId }
           : {}),
       },
-    });
+    }).then(
+      () => {
+        hasLoggedExamEntryRef.current = true;
+      },
+      () => {
+        isLoggingExamEntryRef.current = false;
+      },
+    );
   }, [
     anticheatUploadSessionId,
     contest,

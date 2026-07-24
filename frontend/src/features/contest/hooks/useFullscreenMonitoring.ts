@@ -51,9 +51,11 @@ export function useFullscreenMonitoring({
       window.setTimeout(() => {
         const fullscreen = isFullscreen();
         setInterrupted(!fullscreen);
-        emit(fullscreen ? "fullscreen_restored" : "exit_fullscreen_triggered", {
-          fullscreen,
-        });
+        if (fullscreen) {
+          emit("fullscreen_restored", { fullscreen });
+        } else {
+          emit("exit_fullscreen_triggered", { fullscreen });
+        }
       }, FULLSCREEN_SETTLEMENT_MS);
     };
     const lastVerifyResponseRef = { current: null as string | null };
