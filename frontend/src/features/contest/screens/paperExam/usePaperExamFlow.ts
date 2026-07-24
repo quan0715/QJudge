@@ -18,6 +18,7 @@ import {
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
 import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
@@ -99,7 +100,7 @@ export const usePaperExamFlow = () => {
     setError(null);
     try {
       if (contest?.cheatDetectionEnabled) {
-        await integrity.emit({
+        await emitIntegritySignalBestEffort(integrity, {
           eventType: "exam_submit_initiated",
           clientOccurredAtMs: Date.now(),
           payload: {

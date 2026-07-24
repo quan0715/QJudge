@@ -52,6 +52,7 @@ import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisp
 import {
   IntegrityRuntimeProvider,
 } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
 import { useIntegrityRuntime } from "@/features/contest/anticheat/integrity/useIntegrityRuntime";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
@@ -713,7 +714,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       const success = await submissionProgress.run({
         handlers: {
           recording: async () => {
-            await integrity.emit({
+            await emitIntegritySignalBestEffort(integrity, {
               eventType: "exam_submit_initiated",
               clientOccurredAtMs: Date.now(),
               payload: {

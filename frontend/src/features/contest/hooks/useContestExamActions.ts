@@ -12,6 +12,7 @@ import { joinContestUseCase } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
 import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   clearExamCaptureSessionId,
@@ -153,7 +154,7 @@ export const useContestExamActions = ({
     const success = await submissionProgress.run({
       handlers: {
         recording: async () => {
-          await integrity.emit({
+          await emitIntegritySignalBestEffort(integrity, {
             eventType: "exam_submit_initiated",
             clientOccurredAtMs: Date.now(),
             payload: {
@@ -215,7 +216,7 @@ export const useContestExamActions = ({
         const success = await submissionProgress.run({
           handlers: {
             recording: async () => {
-              await integrity.emit({
+              await emitIntegritySignalBestEffort(integrity, {
                 eventType: "exam_submit_initiated",
                 clientOccurredAtMs: Date.now(),
                 payload: {
