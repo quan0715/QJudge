@@ -233,6 +233,16 @@ def unavailable_url(chunk):
     )
 
 
+def unavailable_projection_payload(event, *, source="screen_share"):
+    return {
+        "run_id": str(event.integrity_run_id),
+        "incident_id": str(event.incident_id),
+        "event_id": event.id,
+        "source": source,
+        "reason": "local evidence was unavailable",
+    }
+
+
 def post_manifest(api_client, event, chunks):
     return api_client.post(
         manifest_url(event),
@@ -1045,6 +1055,197 @@ def test_unavailable_marks_projected_chunk_with_bounded_reason(
         requested_evidence_chunk.metadata["unavailable_reason"]
         == "local OPFS entry was evicted"
     )
+
+
+@pytest.mark.django_db
+def test_unavailable_projection_without_chunk_terminates_retain_and_marks_manager_status(
+    api_client,
+    incident_event,
+    integrity_run,
+    participant,
+):
+    api_client.force_authenticate(participant.user)
+
+    before = build_evidence_delivery(
+        integrity_run,
+        participant,
+        now_ms=1_100_000,
+    )
+    assert len(before.pending_commands) == 1
+
+    response = api_client.post(
+        unavailable_url(incident_event),
+        unavailable_projection_payload(incident_event),
+        format="json",
+    )
+    duplicate = api_client.post(
+        unavailable_url(incident_event),
+        unavailable_projection_payload(incident_event),
+        format="json",
+    )
+
+    assert response.status_code == duplicate.status_code == 200
+    assert response.json() == duplicate.json()
+    assert response.json()["status"] == "unavailable"
+    assert ExamEvidenceChunk.objects.count() == 0
+    assert not build_evidence_delivery(
+        integrity_run,
+        participant,
+        now_ms=1_100_000,
+    ).pending_commands
+
+    api_client.force_authenticate(participant.contest.owner)
+    manager_response = api_client.get(
+        f"/api/v1/contests/{participant.contest_id}/exam/events/"
+    )
+    serialized = next(
+        item
+        for item in manager_response.json()
+        if item["id"] == incident_event.id
+    )
+    assert serialized["evidence_status"] == "unavailable"
+    assert serialized["evidence_sources"] == {
+        "screen_share": {"status": "unavailable", "chunks": 0},
+    }
+
+
+@pytest.mark.django_db
+def test_forged_raw_unavailable_projection_marker_is_ignored(
+    integrity_run,
+    incident_event,
+    participant,
+):
+    metadata = dict(incident_event.metadata)
+    metadata["integrity_evidence_unavailable_markers"] = [
+        {
+            "version": 1,
+            "run_id": str(integrity_run.id),
+            "participant_id": participant.id,
+            "incident_id": str(incident_event.incident_id),
+            "event_id": incident_event.id,
+            "source": "screen_share",
+            "start_at_ms": 995_000,
+            "end_at_ms": 1_015_000,
+            "reason": "forged",
+            "signature": "0" * 64,
+        },
+    ]
+    incident_event.metadata = metadata
+    incident_event.save(update_fields=["metadata"])
+
+    delivery = build_evidence_delivery(
+        integrity_run,
+        participant,
+        now_ms=1_100_000,
+    )
+
+    assert len(delivery.pending_commands) == 1
+
+
+@pytest.mark.django_db
+def test_unavailable_projection_marks_multi_source_manager_status_partial(
+    api_client,
+    integrity_run,
+    participant,
+):
+    event = ExamEvent.objects.create(
+        contest=participant.contest,
+        user=participant.user,
+        integrity_run=integrity_run,
+        integrity_command_id=uuid4(),
+        incident_id=uuid4(),
+        event_type="listener_tampered",
+        event_definition_version=integrity_run.registry_version,
+        event_schema_version=1,
+        client_occurred_at_ms=1_005_000,
+        metadata={
+            "integrity": {"definition_id": "listener_integrity"},
+        },
+    )
+    window = next(
+        item
+        for item in evidence_retain_windows(
+            integrity_run,
+            participant,
+            after_ms=0,
+        )
+        if item.incident_id == event.incident_id
+    )
+    ExamEvidenceChunk.objects.create(
+        integrity_run=integrity_run,
+        contest=participant.contest,
+        participant=participant,
+        exam_event=event,
+        incident_id=event.incident_id,
+        source="screen_share",
+        recording_session_id=uuid4(),
+        chunk_seq=1,
+        is_init_chunk=True,
+        start_at_ms=window.start_at_ms,
+        end_at_ms=window.end_at_ms,
+        object_key="integrity/partial/no-chunk.webm",
+        content_type="video/webm",
+        codec="vp8",
+        byte_size=1024,
+        sha256="a" * 64,
+        status=ExamEvidenceChunk.Status.VERIFIED,
+    )
+    api_client.force_authenticate(participant.user)
+
+    response = api_client.post(
+        unavailable_url(event),
+        unavailable_projection_payload(event, source="webcam"),
+        format="json",
+    )
+
+    assert response.status_code == 200
+    api_client.force_authenticate(participant.contest.owner)
+    manager_response = api_client.get(
+        f"/api/v1/contests/{participant.contest_id}/exam/events/"
+    )
+    serialized = next(
+        item for item in manager_response.json() if item["id"] == event.id
+    )
+    assert serialized["evidence_status"] == "partial"
+    assert serialized["evidence_sources"] == {
+        "screen_share": {"status": "complete", "chunks": 1},
+        "webcam": {"status": "unavailable", "chunks": 0},
+    }
+
+
+@pytest.mark.django_db
+def test_unavailable_projection_rejects_other_participants_incident(
+    api_client,
+    another_participant,
+    incident_event,
+):
+    api_client.force_authenticate(another_participant.user)
+
+    response = api_client.post(
+        unavailable_url(incident_event),
+        unavailable_projection_payload(incident_event),
+        format="json",
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_unavailable_projection_rejects_source_outside_event_window(
+    api_client,
+    incident_event,
+    participant,
+):
+    api_client.force_authenticate(participant.user)
+
+    response = api_client.post(
+        unavailable_url(incident_event),
+        unavailable_projection_payload(incident_event, source="webcam"),
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "evidence_source_disabled"
 
 
 @pytest.mark.django_db

@@ -43,6 +43,7 @@ from ..services.integrity_evidence import (
     complete_evidence_chunk,
     create_evidence_manifest,
     report_evidence_unavailable,
+    report_evidence_unavailable_projection,
 )
 from .exam_validation_response import validate_exam_operation_for_view
 
@@ -353,21 +354,66 @@ class ExamEvidenceMixin:
                 {"detail": "Only contest participants may submit evidence."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        chunk = get_object_or_404(
-            ExamEvidenceChunk,
-            pk=serializer.validated_data["chunk_id"],
+        data = serializer.validated_data
+        if "chunk_id" in data:
+            chunk = get_object_or_404(
+                ExamEvidenceChunk,
+                pk=data["chunk_id"],
+                contest=contest,
+                participant=participant,
+            )
+            try:
+                chunk = report_evidence_unavailable(
+                    chunk,
+                    reason=data["reason"],
+                )
+            except IntegrityEvidenceRejected as error:
+                return self._integrity_evidence_error(error)
+            return Response(
+                {"chunk_id": str(chunk.id), "status": chunk.status},
+                status=status.HTTP_200_OK,
+            )
+
+        run = get_object_or_404(
+            ExamIntegrityRun.objects.exclude(
+                compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+            ),
+            pk=data["run_id"],
             contest=contest,
-            participant=participant,
+        )
+        event = get_object_or_404(
+            ExamEvent,
+            pk=data["event_id"],
+            integrity_run=run,
+            contest=contest,
+            user=participant.user,
+            incident_id=data["incident_id"],
         )
         try:
-            chunk = report_evidence_unavailable(
-                chunk,
-                reason=serializer.validated_data["reason"],
+            markers = report_evidence_unavailable_projection(
+                run,
+                participant,
+                event,
+                source=data["source"],
+                reason=data["reason"],
             )
         except IntegrityEvidenceRejected as error:
             return self._integrity_evidence_error(error)
         return Response(
-            {"chunk_id": str(chunk.id), "status": chunk.status},
+            {
+                "run_id": str(run.id),
+                "incident_id": str(event.incident_id),
+                "event_id": event.id,
+                "source": data["source"],
+                "status": "unavailable",
+                "covered_windows": [
+                    {
+                        "start_at_ms": marker["start_at_ms"],
+                        "end_at_ms": marker["end_at_ms"],
+                    }
+                    for marker in markers
+                ],
+            },
             status=status.HTTP_200_OK,
         )
 

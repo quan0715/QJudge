@@ -44,6 +44,19 @@ _MANIFEST_MAX_BYTES = 10 * 1024 * 1024
 _PURGE_BATCH_SIZE = 500
 _MAX_ARCHIVE_GENERATIONS = 1_000
 _MAX_PURGE_KEYS = 100_000
+_UNAVAILABLE_MARKERS_KEY = "integrity_evidence_unavailable_markers"
+_UNAVAILABLE_MARKER_VERSION = 1
+_UNAVAILABLE_MARKER_FIELDS = (
+    "version",
+    "run_id",
+    "participant_id",
+    "incident_id",
+    "event_id",
+    "source",
+    "start_at_ms",
+    "end_at_ms",
+    "reason",
+)
 
 
 class IntegrityEvidenceRejected(ValueError):
@@ -86,6 +99,80 @@ def _nonnegative_int(value: object) -> int | None:
     if type(value) is not int or value < 0:
         return None
     return value
+
+
+def _unavailable_marker_signature(payload: dict[str, object]) -> str:
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hmac.new(
+        str(settings.SECRET_KEY).encode("utf-8"),
+        canonical,
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _validated_unavailable_marker(value: object) -> dict[str, object] | None:
+    if type(value) is not dict or set(value) != {
+        *_UNAVAILABLE_MARKER_FIELDS,
+        "signature",
+    }:
+        return None
+    payload = {
+        field: value[field]
+        for field in _UNAVAILABLE_MARKER_FIELDS
+    }
+    signature = value["signature"]
+    if (
+        payload["version"] != _UNAVAILABLE_MARKER_VERSION
+        or type(payload["run_id"]) is not str
+        or type(payload["participant_id"]) is not int
+        or payload["participant_id"] < 1
+        or type(payload["incident_id"]) is not str
+        or type(payload["event_id"]) is not int
+        or payload["event_id"] < 1
+        or type(payload["source"]) is not str
+        or payload["source"] not in _SOURCE_KINDS
+        or _nonnegative_int(payload["start_at_ms"]) is None
+        or _nonnegative_int(payload["end_at_ms"]) is None
+        or payload["end_at_ms"] <= payload["start_at_ms"]
+        or type(payload["reason"]) is not str
+        or not 1 <= len(payload["reason"]) <= 256
+        or type(signature) is not str
+        or _SHA256_RE.fullmatch(signature) is None
+    ):
+        return None
+    try:
+        UUID(payload["run_id"])
+        UUID(payload["incident_id"])
+    except ValueError:
+        return None
+    if not hmac.compare_digest(
+        signature,
+        _unavailable_marker_signature(payload),
+    ):
+        return None
+    return payload
+
+
+def _unavailable_markers_from_events(
+    events: Iterable[ExamEvent],
+) -> list[dict[str, object]]:
+    markers: list[dict[str, object]] = []
+    for event in events:
+        metadata = event.metadata if type(event.metadata) is dict else {}
+        raw_markers = metadata.get(_UNAVAILABLE_MARKERS_KEY)
+        if type(raw_markers) is not list:
+            continue
+        for raw_marker in raw_markers:
+            marker = _validated_unavailable_marker(raw_marker)
+            if marker is not None:
+                markers.append(marker)
+    return markers
 
 
 def _event_definition(
@@ -315,6 +402,18 @@ def _evidence_retain_windows_for_events(
     ]
 
 
+def _participant_incident_events(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+):
+    return ExamEvent.objects.filter(
+        integrity_run=run,
+        contest_id=run.contest_id,
+        user_id=participant.user_id,
+        incident_id__isnull=False,
+    ).order_by("client_occurred_at_ms", "id")
+
+
 def evidence_retain_windows(
     run: ExamIntegrityRun,
     participant: ContestParticipant,
@@ -322,18 +421,9 @@ def evidence_retain_windows(
 ) -> list[EvidenceRetainWindow]:
     """Rebuild retain windows from normalized events and the frozen registry."""
 
-    events = (
-        ExamEvent.objects.filter(
-            integrity_run=run,
-            contest_id=run.contest_id,
-            user_id=participant.user_id,
-            incident_id__isnull=False,
-        )
-        .order_by("client_occurred_at_ms", "id")
-    )
     return _evidence_retain_windows_for_events(
         run,
-        events,
+        _participant_incident_events(run, participant),
         after_ms,
     )
 
@@ -361,11 +451,39 @@ def _chunk_matches_window(
     )
 
 
-def _source_has_terminal_coverage(
+def _marker_matches_window(
+    marker: dict[str, object],
+    run: ExamIntegrityRun,
     window: EvidenceRetainWindow,
-    chunks: list[ExamEvidenceChunk],
     source: str,
 ) -> bool:
+    return bool(
+        marker["run_id"] == str(run.id)
+        and marker["incident_id"] == str(window.incident_id)
+        and marker["event_id"] == window.event_id
+        and marker["source"] == source
+        and marker["start_at_ms"] == window.start_at_ms
+        and marker["end_at_ms"] == window.end_at_ms
+    )
+
+
+def _source_has_terminal_coverage(
+    run: ExamIntegrityRun,
+    window: EvidenceRetainWindow,
+    chunks: list[ExamEvidenceChunk],
+    unavailable_markers: Iterable[dict[str, object]],
+    source: str,
+) -> bool:
+    if any(
+        _marker_matches_window(
+            marker,
+            run,
+            window,
+            source,
+        )
+        for marker in unavailable_markers
+    ):
+        return True
     cursor = window.start_at_ms
     intervals = sorted(
         (
@@ -389,11 +507,19 @@ def _source_has_terminal_coverage(
 
 
 def _window_is_complete(
+    run: ExamIntegrityRun,
     window: EvidenceRetainWindow,
     chunks: list[ExamEvidenceChunk],
+    unavailable_markers: Iterable[dict[str, object]],
 ) -> bool:
     return all(
-        _source_has_terminal_coverage(window, chunks, source)
+        _source_has_terminal_coverage(
+            run,
+            window,
+            chunks,
+            unavailable_markers,
+            source,
+        )
         for source in window.sources
     )
 
@@ -433,7 +559,13 @@ def build_evidence_delivery(
 
     if type(now_ms) is not int or now_ms < 0:
         raise ValueError("now_ms must be a nonnegative integer")
-    windows = evidence_retain_windows(run, participant, after_ms=0)
+    events = list(_participant_incident_events(run, participant))
+    windows = _evidence_retain_windows_for_events(
+        run,
+        events,
+        after_ms=0,
+    )
+    unavailable_markers = _unavailable_markers_from_events(events)
     chunks = list(
         ExamEvidenceChunk.objects.filter(
             integrity_run=run,
@@ -443,7 +575,12 @@ def build_evidence_delivery(
     unresolved = [
         window
         for window in windows
-        if not _window_is_complete(window, chunks)
+        if not _window_is_complete(
+            run,
+            window,
+            chunks,
+            unavailable_markers,
+        )
     ]
     policy = run.policy_snapshot if type(run.policy_snapshot) is dict else {}
     evidence_policy = policy.get("evidence")
@@ -1092,6 +1229,139 @@ def report_evidence_unavailable(
         return locked
 
 
+def report_evidence_unavailable_projection(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    event: ExamEvent,
+    *,
+    source: str,
+    reason: str,
+) -> tuple[dict[str, object], ...]:
+    """Record server-signed terminal coverage when no media chunk exists."""
+
+    if type(source) is not str or source not in _SOURCE_KINDS:
+        raise IntegrityEvidenceRejected("evidence_source_disabled")
+    if type(reason) is not str or not 1 <= len(reason) <= 256:
+        raise IntegrityEvidenceRejected("invalid_evidence_unavailable_reason")
+    with transaction.atomic():
+        locked_run = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
+        if (
+            locked_run.compute_state
+            not in {
+                ExamIntegrityRun.ComputeState.RUNNING,
+                ExamIntegrityRun.ComputeState.STOPPING,
+            }
+            or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
+        ):
+            raise IntegrityEvidenceRejected(
+                "evidence_run_not_accepting_uploads"
+            )
+        ContestParticipant.objects.select_for_update().only("pk").get(
+            pk=participant.pk,
+            contest_id=locked_run.contest_id,
+        )
+        locked_event = ExamEvent.objects.select_for_update().filter(
+            pk=event.pk,
+            integrity_run=locked_run,
+            contest_id=locked_run.contest_id,
+            user_id=participant.user_id,
+            incident_id=event.incident_id,
+        ).first()
+        if locked_event is None or locked_event.incident_id is None:
+            raise IntegrityEvidenceRejected("evidence_projection_not_found")
+        events = list(_participant_incident_events(locked_run, participant))
+        windows = [
+            window
+            for window in _evidence_retain_windows_for_events(
+                locked_run,
+                events,
+                after_ms=0,
+            )
+            if (
+                window.incident_id == locked_event.incident_id
+                and window.event_id == locked_event.id
+                and source in window.sources
+            )
+        ]
+        if not windows:
+            raise IntegrityEvidenceRejected("evidence_source_disabled")
+
+        metadata = (
+            dict(locked_event.metadata)
+            if type(locked_event.metadata) is dict
+            else {}
+        )
+        existing = _unavailable_markers_from_events([locked_event])
+        existing_by_window = {
+            (
+                marker["run_id"],
+                marker["participant_id"],
+                marker["incident_id"],
+                marker["event_id"],
+                marker["source"],
+                marker["start_at_ms"],
+                marker["end_at_ms"],
+            ): marker
+            for marker in existing
+        }
+        for window in windows:
+            identity = (
+                str(locked_run.id),
+                participant.id,
+                str(window.incident_id),
+                window.event_id,
+                source,
+                window.start_at_ms,
+                window.end_at_ms,
+            )
+            if identity in existing_by_window:
+                continue
+            payload = {
+                "version": _UNAVAILABLE_MARKER_VERSION,
+                "run_id": str(locked_run.id),
+                "participant_id": participant.id,
+                "incident_id": str(window.incident_id),
+                "event_id": window.event_id,
+                "source": source,
+                "start_at_ms": window.start_at_ms,
+                "end_at_ms": window.end_at_ms,
+                "reason": reason,
+            }
+            existing_by_window[identity] = payload
+
+        stored_markers = []
+        for marker in sorted(
+            existing_by_window.values(),
+            key=lambda item: (
+                str(item["incident_id"]),
+                item["event_id"],
+                item["source"],
+                item["start_at_ms"],
+                item["end_at_ms"],
+            ),
+        ):
+            stored_markers.append(
+                {
+                    **marker,
+                    "signature": _unavailable_marker_signature(marker),
+                }
+            )
+        metadata[_UNAVAILABLE_MARKERS_KEY] = stored_markers
+        locked_event.metadata = metadata
+        locked_event.save(update_fields=["metadata"])
+        return tuple(
+            marker
+            for marker in existing_by_window.values()
+            if (
+                marker["run_id"] == str(locked_run.id)
+                and marker["participant_id"] == participant.id
+                and marker["incident_id"] == str(locked_event.incident_id)
+                and marker["event_id"] == locked_event.id
+                and marker["source"] == source
+            )
+        )
+
+
 def _unavailable_evidence_summary() -> dict[str, object]:
     return {"evidence_status": "unavailable", "evidence_sources": {}}
 
@@ -1113,7 +1383,9 @@ def _evidence_summary_from_loaded(
     run: ExamIntegrityRun,
     incident_windows: list[EvidenceRetainWindow],
     candidates: list[ExamEvidenceChunk],
+    unavailable_markers: Iterable[dict[str, object]] = (),
 ) -> dict[str, object]:
+    markers = list(unavailable_markers)
     required = {
         source
         for window in incident_windows
@@ -1136,21 +1408,53 @@ def _evidence_summary_from_loaded(
             for window in incident_windows
             if source in window.sources
         ]
+        has_unavailable_marker = any(
+            _marker_matches_window(
+                marker,
+                run,
+                window,
+                source,
+            )
+            for marker in markers
+            for window in source_windows
+        )
         fully_covered = all(
-            _source_has_terminal_coverage(window, chunks, source)
+            any(
+                _marker_matches_window(
+                    marker,
+                    run,
+                    window,
+                    source,
+                )
+                for marker in markers
+            )
+            or _source_has_terminal_coverage(
+                run,
+                window,
+                chunks,
+                (),
+                source,
+            )
             for window in source_windows
         )
         if (
             fully_covered
             and statuses == {ExamEvidenceChunk.Status.VERIFIED}
+            and not has_unavailable_marker
         ):
             source_status = "complete"
-        elif not chunks:
-            source_status = "pending"
         elif statuses & {
             ExamEvidenceChunk.Status.REQUESTED,
             ExamEvidenceChunk.Status.UPLOADED,
         }:
+            source_status = "pending"
+        elif fully_covered and has_unavailable_marker:
+            source_status = (
+                "partial"
+                if ExamEvidenceChunk.Status.VERIFIED in statuses
+                else "unavailable"
+            )
+        elif not chunks:
             source_status = "pending"
         elif statuses <= {
             ExamEvidenceChunk.Status.FAILED,
@@ -1199,7 +1503,13 @@ def evidence_status_for_event(event: ExamEvent) -> dict[str, object]:
     )
     if participant is None:
         return _unavailable_evidence_summary()
-    windows = evidence_retain_windows(run, participant, after_ms=0)
+    events = list(_participant_incident_events(run, participant))
+    windows = _evidence_retain_windows_for_events(
+        run,
+        events,
+        after_ms=0,
+    )
+    unavailable_markers = _unavailable_markers_from_events(events)
     chunks = list(
         ExamEvidenceChunk.objects.filter(
             integrity_run=run,
@@ -1218,6 +1528,7 @@ def evidence_status_for_event(event: ExamEvent) -> dict[str, object]:
             for chunk in chunks
             if _chunk_associated_with_event(chunk, event)
         ],
+        unavailable_markers,
     )
 
 
@@ -1299,8 +1610,9 @@ def evidence_statuses_for_events(
             after_ms=0,
         )
         chunks = chunks_by_group.get((run.id, participant.id), [])
+        unavailable_markers = _unavailable_markers_from_events(group_events)
         summary_cache: dict[
-            tuple[UUID, frozenset[UUID]],
+            tuple[object, ...],
             dict[str, object],
         ] = {}
         windows_by_incident: dict[
@@ -1358,13 +1670,34 @@ def evidence_statuses_for_events(
             cache_key = (
                 event.incident_id,
                 frozenset(candidates),
+                tuple(
+                    sorted(
+                        (
+                            marker["event_id"],
+                            marker["source"],
+                            marker["start_at_ms"],
+                            marker["end_at_ms"],
+                            marker["reason"],
+                        )
+                        for marker in unavailable_markers
+                        if marker["incident_id"] == str(event.incident_id)
+                    )
+                ),
             )
             summary = summary_cache.get(cache_key)
             if summary is None:
-                summary = _evidence_summary_from_loaded(
+                summary_args = (
                     run,
                     windows_by_incident.get(event.incident_id, []),
                     list(candidates.values()),
+                )
+                summary = (
+                    _evidence_summary_from_loaded(
+                        *summary_args,
+                        unavailable_markers=unavailable_markers,
+                    )
+                    if unavailable_markers
+                    else _evidence_summary_from_loaded(*summary_args)
                 )
                 summary_cache[cache_key] = summary
             summaries[event.id] = summary

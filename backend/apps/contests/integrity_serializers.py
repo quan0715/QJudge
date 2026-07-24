@@ -358,14 +358,61 @@ class EvidenceCompleteSerializer(_StrictSerializer):
 class EvidenceUnavailableSerializer(_StrictSerializer):
     strict_scalar_types = {
         "chunk_id": (str,),
+        "run_id": (str,),
+        "incident_id": (str,),
+        "event_id": (int,),
+        "source": (str,),
         "reason": (str,),
     }
-    chunk_id = serializers.UUIDField()
+    chunk_id = serializers.UUIDField(required=False)
+    run_id = serializers.UUIDField(required=False)
+    incident_id = serializers.UUIDField(required=False)
+    event_id = serializers.IntegerField(min_value=1, required=False)
+    source = serializers.ChoiceField(
+        choices=("screen_share", "webcam"),
+        required=False,
+    )
     reason = serializers.CharField(
         min_length=1,
         max_length=256,
         trim_whitespace=True,
     )
+
+    def validate(self, attrs):
+        chunk_id = attrs.get("chunk_id")
+        projection_fields = (
+            "run_id",
+            "incident_id",
+            "event_id",
+            "source",
+        )
+        supplied_projection_fields = [
+            field for field in projection_fields if field in attrs
+        ]
+        if chunk_id is not None:
+            if supplied_projection_fields:
+                raise serializers.ValidationError(
+                    {
+                        field: [
+                            "Cannot be combined with chunk_id."
+                        ]
+                        for field in supplied_projection_fields
+                    }
+                )
+            return attrs
+        missing_projection_fields = [
+            field for field in projection_fields if field not in attrs
+        ]
+        if missing_projection_fields:
+            raise serializers.ValidationError(
+                {
+                    field: [
+                        "This field is required when chunk_id is absent."
+                    ]
+                    for field in missing_projection_fields
+                }
+            )
+        return attrs
 
 
 class IntegrityRunSerializer(serializers.ModelSerializer):
