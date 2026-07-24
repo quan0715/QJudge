@@ -22,12 +22,6 @@ from apps.contests.models import (
     ExamEvidenceFrame,
     ExamEvent,
     ExamStatus,
-    ContestActivity,
-)
-from apps.contests.tasks import (
-    force_submit_locked_participant,
-    check_force_submit_locked,
-    FORCE_SUBMIT_LOCKED_SECONDS,
 )
 from apps.contests.services.anti_cheat_session import (
     get_last_heartbeat,
@@ -762,54 +756,6 @@ class ExamAntiCheatTests(APITestCase):
             event_type="webcam_stopped",
         ).latest("created_at")
         self.assertEqual(event.metadata["module_role"], "secondary")
-
-    # ------------------------------------------------------------------
-    # 7. force_submit_locked_participant transitions to SUBMITTED
-    # ------------------------------------------------------------------
-    def test_force_submit_locked_task(self):
-        self.participant.exam_status = ExamStatus.LOCKED
-        self.participant.locked_at = timezone.now() - timedelta(minutes=5)
-        self.participant.lock_reason = "test lock"
-        self.participant.save()
-
-        result = force_submit_locked_participant(self.participant.id)
-
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
-        self.assertIsNotNone(self.participant.left_at)
-
-        # ExamEvent with force_submit_locked should exist
-        self.assertTrue(
-            ExamEvent.objects.filter(
-                contest=self.contest,
-                user=self.student,
-                event_type="force_submit_locked",
-            ).exists()
-        )
-
-        # ContestActivity audit trail
-        self.assertTrue(
-            ContestActivity.objects.filter(
-                contest=self.contest,
-                user=self.student,
-                action_type="auto_submit",
-            ).exists()
-        )
-
-    # ------------------------------------------------------------------
-    # 8. check_force_submit processes eligible participant
-    # ------------------------------------------------------------------
-    def test_check_force_submit_processes_eligible(self):
-        self.participant.exam_status = ExamStatus.LOCKED
-        self.participant.locked_at = timezone.now() - timedelta(minutes=4)
-        self.participant.save()
-
-        # With CELERY_TASK_ALWAYS_EAGER the .delay() inside check_force_submit_locked
-        # runs synchronously, so the participant will be submitted after this call.
-        check_force_submit_locked()
-
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.exam_status, ExamStatus.SUBMITTED)
 
     def test_screenshots_can_presign_manifest_evidence_frames(self):
         ts_ms = 1774106646951

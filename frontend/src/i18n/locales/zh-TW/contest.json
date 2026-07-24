@@ -1585,6 +1585,9 @@
     "title": "題目管理"
   },
   "problems": "題目數",
+  "integrityRun": {
+    "title": "Integrity Worker", "description": "考試事件與 incident 證據的手動生命週期控制。", "noRun": "尚未建立 Run", "create": "建立 Run", "compute": "運算", "health": "健康", "data": "資料", "start": "啟動 Integrity Worker", "stop": "停止並封存", "destroy": "銷毀運算資源", "purge": "清除保留資料", "confirmStart": "確認啟動", "typeContestName": "輸入考試名稱以確認", "destroyHint": "需先完成停止與封存，才能銷毀運算資源。", "lifecycleHelp": "生命週期說明"
+  },
   "proctoringPanel": {
     "backToRoster": "返回列表",
     "emptyDescription": "左側清單可快速切換不同參賽者的監考畫面。",

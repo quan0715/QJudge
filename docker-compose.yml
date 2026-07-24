@@ -252,7 +252,7 @@ services:
     image: oj-backend:prod
     container_name: oj_celery_high
     restart: always
-    command: celery -A config worker -l info -Q high_priority,default --concurrency=2
+    command: celery -A config worker -l info -Q high_priority --concurrency=2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - judge_tmp:/judge_tmp

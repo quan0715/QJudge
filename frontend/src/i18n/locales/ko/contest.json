@@ -1585,6 +1585,9 @@
     "title": "문제 관리"
   },
   "problems": "문제 수",
+  "integrityRun": {
+    "title": "Integrity Worker", "description": "시험 이벤트와 incident 증거의 수동 수명 주기 제어입니다.", "noRun": "Run이 아직 없습니다", "create": "Run 생성", "compute": "컴퓨팅", "health": "상태", "data": "데이터", "start": "Integrity Worker 시작", "stop": "중지 및 아카이브", "destroy": "컴퓨팅 리소스 삭제", "purge": "보존 데이터 삭제", "confirmStart": "시작 확인", "typeContestName": "확인을 위해 시험 이름 입력", "destroyHint": "컴퓨팅 리소스를 삭제하기 전에 중지하고 아카이브해야 합니다.", "lifecycleHelp": "수명 주기 안내"
+  },
   "proctoringPanel": {
     "backToRoster": "목록으로 돌아가기",
     "emptyDescription": "왼쪽 목록에서 다른 참가자의 감독 화면으로 빠르게 전환할 수 있습니다.",

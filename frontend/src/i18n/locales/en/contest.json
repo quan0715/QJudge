@@ -1585,6 +1585,9 @@
     "title": "Problem Management"
   },
   "problems": "Problems",
+  "integrityRun": {
+    "title": "Integrity Worker", "description": "Manual lifecycle controls for exam events and incident evidence.", "noRun": "No Run created", "create": "Create Run", "compute": "Compute", "health": "Health", "data": "Data", "start": "Start Integrity Worker", "stop": "Stop and archive", "destroy": "Destroy compute", "purge": "Purge retained data", "confirmStart": "Confirm start", "typeContestName": "Type the contest name to confirm", "destroyHint": "Stop and archive the Run before destroying compute.", "lifecycleHelp": "Lifecycle help"
+  },
   "proctoringPanel": {
     "backToRoster": "Back to list",
     "emptyDescription": "Use the list on the left to quickly switch between participant monitoring views.",

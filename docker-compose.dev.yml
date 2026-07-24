@@ -230,7 +230,7 @@ services:
     build: *backend_dev_build
     image: oj_backend_dev_img
     container_name: oj_celery_dev
-    command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
+    command: celery -A config.celery worker --loglevel=info -Q celery,default
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -268,7 +268,13 @@ services:
     networks:
       - oj_network_dev
 
-  # Celery Beat (Dev Mode - Scheduler for periodic tasks)
+  celery-high:
+    extends:
+      service: celery
+    container_name: oj_celery_high_dev
+    command: celery -A config.celery worker --loglevel=info -Q high_priority --concurrency=2
+
+  # Celery Beat (Dev Mode - Scheduler for non-exam periodic tasks)
   celery-beat:
     build: *backend_dev_build
     image: oj_backend_dev_img

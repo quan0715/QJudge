@@ -1585,6 +1585,9 @@
     "title": "問題管理"
   },
   "problems": "問題数",
+  "integrityRun": {
+    "title": "Integrity Worker", "description": "試験イベントと incident 証拠の手動ライフサイクル管理。", "noRun": "Run は未作成", "create": "Run を作成", "compute": "計算", "health": "健全性", "data": "データ", "start": "Integrity Worker を開始", "stop": "停止してアーカイブ", "destroy": "計算資源を破棄", "purge": "保持データを消去", "confirmStart": "開始を確認", "typeContestName": "確認のため試験名を入力", "destroyHint": "計算資源を破棄する前に停止とアーカイブが必要です。", "lifecycleHelp": "ライフサイクルの説明"
+  },
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
     "emptyDescription": "左側の一覧から別の参加者の監視画面へすばやく切り替えられます。",

@@ -335,18 +335,6 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 # Celery Beat Schedule (for periodic tasks)
 # Only effective when celery-beat service is running
 CELERY_BEAT_SCHEDULE = {
-    "check-contest-end-every-minute": {
-        "task": "apps.contests.tasks.check_contest_end",
-        "schedule": 60.0,  # Every 60 seconds
-    },
-    "check-force-submit-locked-every-30-seconds": {
-        "task": "apps.contests.tasks.check_force_submit_locked",
-        "schedule": 30.0,  # Every 30 seconds
-    },
-    "check-heartbeat-timeout-every-30-seconds": {
-        "task": "apps.contests.tasks.check_heartbeat_timeout",
-        "schedule": 30.0,
-    },
     "sweep-stale-ai-runs-every-60-seconds": {
         "task": "apps.ai.tasks.sweep_stale_ai_runs",
         "schedule": 60.0,

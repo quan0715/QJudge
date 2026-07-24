@@ -1,0 +1,11 @@
+.card { margin: 1rem; display: grid; gap: 1rem; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.header h2, .header p { margin: 0; }
+.header p, .hint { color: var(--cds-text-secondary); }
+.tags, .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin: 0; }
+.metrics div { min-width: 0; }
+.metrics dt { color: var(--cds-text-secondary); font-size: .75rem; }
+.metrics dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.prep, .error, .hint { margin: 0; }
+.error { color: var(--cds-support-error); }

@@ -116,3 +116,31 @@ export type EvidenceUnavailableReport =
       source: IntegrityEvidenceSource;
       reason: string;
     };
+
+/** Manager-facing projection of one manually owned Integrity Worker run. */
+export interface ExamIntegrityRun {
+  id: string;
+  computeState: "stopped" | "starting" | "running" | "stopping" | "destroyed";
+  health: "healthy" | "unhealthy";
+  dataState: "open" | "archived" | "purged";
+  warnings: string[];
+  metrics: Record<string, unknown>;
+  lastError: string;
+  lastCorrelationId: string;
+  registryVersion: string;
+  workerImage: string;
+  workerImageDigest: string;
+  workerVersion: string;
+  lastWorkerHeartbeatAt: string | null;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
+  startedAt: string | null;
+  stoppedAt: string | null;
+  destroyedAt: string | null;
+  purgedAt: string | null;
+  retentionUntil: string | null;
+  archiveGeneration: number;
+  receivedCounts: Record<string, number>;
+  processedCounts: Record<string, number>;
+  archivedCounts: Record<string, number>;
+}

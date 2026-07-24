@@ -1,204 +1,31 @@
-"""
-Unit tests for contest scheduled tasks.
-"""
-from django.test import TestCase, override_settings
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from datetime import timedelta
-from unittest.mock import patch
+"""Regression tests for the Integrity Worker authority cutover."""
 
-from apps.contests.models import Contest, ContestParticipant, ExamStatus
-
-User = get_user_model()
+from django.conf import settings
 
 
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
-class AutoSubmitTaskTests(TestCase):
-    """Tests for auto-submit functionality when contest ends."""
-    
-    def setUp(self):
-        self.admin = User.objects.create_user(
-            username='admin', email='admin@test.com', password='password', role='admin'
-        )
-        self.student = User.objects.create_user(
-            username='student', email='student@test.com', password='password'
-        )
-        
-    def test_auto_submit_when_contest_ends(self):
-        """When contest ends, IN_PROGRESS participants should be auto-submitted."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Ended Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),  # Ended 5 mins ago
-            status='published', cheat_detection_enabled=True
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.IN_PROGRESS,
-            started_at=timezone.now() - timedelta(hours=1)
-        )
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.SUBMITTED)
-        self.assertIsNotNone(participant.left_at)
-        
-    def test_no_submit_when_contest_not_ended(self):
-        """When contest not ended, participants should NOT be auto-submitted."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Active Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=1),
-            end_time=timezone.now() + timedelta(hours=1),  # Still running
-            status='published', cheat_detection_enabled=True
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.IN_PROGRESS,
-            started_at=timezone.now() - timedelta(minutes=30)
-        )
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.IN_PROGRESS)  # Unchanged
-        
-    def test_skip_already_submitted(self):
-        """Already submitted participants should not be affected."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Ended Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.SUBMITTED,
-            left_at=timezone.now() - timedelta(minutes=10)
-        )
-        original_left_at = participant.left_at
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.SUBMITTED)
-        self.assertEqual(participant.left_at, original_left_at)  # Not changed
-        
-    def test_submit_paused_participants(self):
-        """PAUSED participants should also be submitted when contest ends."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Ended Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.PAUSED
-        )
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.SUBMITTED)
-        
-    def test_submit_locked_participants(self):
-        """LOCKED participants should also be submitted when contest ends."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Ended Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.LOCKED,
-            locked_at=timezone.now() - timedelta(minutes=30)
-        )
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.SUBMITTED)
-        
-    def test_skip_non_exam_mode_contests(self):
-        """Non-exam-mode contests should be skipped."""
-        from apps.contests.tasks import check_contest_end
-        
-        contest = Contest.objects.create(
-            name='Normal Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=False  # Not exam mode
-        )
-        participant = ContestParticipant.objects.create(
-            contest=contest, user=self.student,
-            exam_status=ExamStatus.IN_PROGRESS
-        )
-        
-        check_contest_end()
-        
-        participant.refresh_from_db()
-        self.assertEqual(participant.exam_status, ExamStatus.IN_PROGRESS)  # Unchanged
+def test_contest_periodic_tasks_are_retired():
+    retired = {
+        "apps.contests.tasks.check_contest_end",
+        "apps.contests.tasks.check_force_submit_locked",
+        "apps.contests.tasks.check_heartbeat_timeout",
+    }
+    configured = {
+        item["task"] for item in settings.CELERY_BEAT_SCHEDULE.values()
+    }
 
-    def test_check_contest_end_skips_contests_without_active_participants(self):
-        """Ended contests with no active participants should not enqueue auto-submit task."""
-        from apps.contests.tasks import check_contest_end
+    assert configured.isdisjoint(retired)
+    assert "sweep-stale-ai-runs-every-60-seconds" in settings.CELERY_BEAT_SCHEDULE
 
-        inactive_contest = Contest.objects.create(
-            name='Ended Inactive Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        ContestParticipant.objects.create(
-            contest=inactive_contest, user=self.student,
-            exam_status=ExamStatus.SUBMITTED,
-            left_at=timezone.now() - timedelta(minutes=10)
-        )
 
-        with patch('apps.contests.tasks.auto_submit_participants.delay') as delay_mock:
-            check_contest_end()
-            delay_mock.assert_not_called()
+def test_legacy_contest_task_symbols_are_gone():
+    from apps.contests import tasks
 
-    def test_check_contest_end_enqueues_only_active_contests(self):
-        """Only contests with active participant exam states should be enqueued."""
-        from apps.contests.tasks import check_contest_end
+    retired_symbols = {
+        "check_contest_end",
+        "auto_submit_participants",
+        "check_force_submit_locked",
+        "force_submit_locked_participant",
+        "check_heartbeat_timeout",
+    }
 
-        active_contest = Contest.objects.create(
-            name='Ended Active Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        ContestParticipant.objects.create(
-            contest=active_contest, user=self.student,
-            exam_status=ExamStatus.IN_PROGRESS
-        )
-
-        inactive_contest = Contest.objects.create(
-            name='Ended Inactive Contest', owner=self.admin,
-            start_time=timezone.now() - timedelta(hours=2),
-            end_time=timezone.now() - timedelta(minutes=5),
-            status='published', cheat_detection_enabled=True
-        )
-        ContestParticipant.objects.create(
-            contest=inactive_contest, user=User.objects.create_user(
-                username='student2', email='student2@test.com', password='password'
-            ),
-            exam_status=ExamStatus.SUBMITTED
-        )
-
-        with patch('apps.contests.tasks.auto_submit_participants.delay') as delay_mock:
-            check_contest_end()
-            delay_mock.assert_called_once_with(active_contest.id)
+    assert retired_symbols.isdisjoint(vars(tasks))

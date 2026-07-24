@@ -177,7 +177,7 @@ services:
     build: *backend_test_build
     image: oj_backend_test_img
     container_name: oj_celery_test
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info -Q default
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - POSTGRES_DB=test_oj_e2e
@@ -209,6 +209,12 @@ services:
       - judge-tmp-test:/judge_tmp
     networks:
       - test-network
+
+  celery-high-test:
+    extends:
+      service: celery-test
+    container_name: oj_celery_high_test
+    command: celery -A config worker -l info -Q high_priority --concurrency=2
 
   frontend-test:
     build:

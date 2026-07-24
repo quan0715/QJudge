@@ -1,7 +1,7 @@
 # 防作弊模組架構盤整
 
 **Status:** active
-**Last reviewed:** 2026-07-11
+**Last reviewed:** 2026-07-24
 **Scope:** `backend/apps/contests` 的防作弊模型、service、view、Redis/cache、object storage、SFU，以及 `frontend/src/features/contest` 的考試端與監考端防作弊 runtime。
 
 本文件是維護者用的架構盤點，不是教師或學生操作手冊。操作說明請看 `frontend/public/docs/zh-TW/exam-proctoring.md` 與 `frontend/public/docs/zh-TW/exam-precheck-anticheat.md`。
@@ -18,6 +18,22 @@
 - 證據鏈：事件前後 frame 的 manifest、object storage 上傳、監考端查閱。
 - 即時監看：Cloudflare Realtime SFU broker 與 per-source publisher registry。
 - 裝置完整性：active session、heartbeat、JTI pinning、concurrent login/takeover。
+
+## 0. Integrity Worker authority (current)
+
+每場考試最多一個由管理者手動生命週期管理的 Integrity Worker Run。學生端每五秒將
+durable batch 送進既有 Backend gateway；Backend 只驗證身份、簽章與 schema，再轉交
+Worker。Worker 是 batch liveness、事件判定、incident、排程考試結束自動交卷與 raw
+journal/archive 的唯一權威。Worker 不直接連 PostgreSQL；所有 DB 與 object-storage
+intent 都走 scoped Backend internal API。
+
+原本的 `check_contest_end`、`check_force_submit_locked`、`check_heartbeat_timeout` Celery
+Beat jobs 已退休，不能重新啟用。`celery-beat` 與 AI stale-run sweep 仍保留；它們不承擔
+考試完整性判定。
+
+前端影音 bytes 僅在 OPFS 保留滾動五秒片段。只有 Worker 投影 `retain_evidence` incident
+命令時，對應片段才以 Backend 簽發的 R2 presigned PUT 上傳；raw batch 與整場影音皆不寫
+PostgreSQL。
 
 `Contest.cheat_detection_enabled` 是監控 runtime 的開關，但裝置 session integrity 不能直接等同這個開關。active session、heartbeat、JTI pinning 與 conflict/takeover 屬於考試完整性底層，會影響所有 exam contest 的進入與續考行為。
 
