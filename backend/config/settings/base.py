@@ -335,18 +335,6 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 # Celery Beat Schedule (for periodic tasks)
 # Only effective when celery-beat service is running
 CELERY_BEAT_SCHEDULE = {
-    "check-contest-end-every-minute": {
-        "task": "apps.contests.tasks.check_contest_end",
-        "schedule": 60.0,  # Every 60 seconds
-    },
-    "check-force-submit-locked-every-30-seconds": {
-        "task": "apps.contests.tasks.check_force_submit_locked",
-        "schedule": 30.0,  # Every 30 seconds
-    },
-    "check-heartbeat-timeout-every-30-seconds": {
-        "task": "apps.contests.tasks.check_heartbeat_timeout",
-        "schedule": 30.0,
-    },
     "sweep-stale-ai-runs-every-60-seconds": {
         "task": "apps.ai.tasks.sweep_stale_ai_runs",
         "schedule": 60.0,
@@ -416,6 +404,31 @@ AI_SERVICE_INTERNAL_TOKEN = os.getenv(
 # 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
 AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
 
+# Exam integrity lifecycle services. Backend owns database state while the
+# dedicated Controller is the only service allowed to own the Docker socket.
+INTEGRITY_CONTROLLER_URL = os.getenv(
+    "INTEGRITY_CONTROLLER_URL", "http://integrity-controller:8010"
+)
+INTEGRITY_CONTROLLER_TOKEN_FILE = os.getenv(
+    "INTEGRITY_CONTROLLER_TOKEN_FILE", "/run-secrets/controller-token"
+)
+INTEGRITY_WORKER_IMAGE = os.getenv(
+    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:local"
+)
+INTEGRITY_WORKER_NETWORK = os.getenv(
+    "INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"
+)
+INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
+    "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
+    "/run-secrets/integrity-worker-signing-key",
+)
+INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")
+)
+INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_READ_TIMEOUT_SECONDS", "5.0")
+)
+
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
 #
@@ -452,6 +465,16 @@ MARKDOWN_IMAGE_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
 
 # Per-feature bucket / size settings
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+INTEGRITY_ARCHIVE_BUCKET = os.getenv(
+    "INTEGRITY_ARCHIVE_BUCKET",
+    ANTICHEAT_RAW_BUCKET,
+)
+INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = int(
+    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES", "1073741824")
+)
+INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = int(
+    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES", "268435456")
+)
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )

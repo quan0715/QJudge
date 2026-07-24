@@ -44,6 +44,33 @@ def get_device_id(request) -> str:
     )
 
 
+def classify_active_session_device_kind(user_agent: str) -> str | None:
+    """Classify the server-observed User-Agent for the active exam binding."""
+
+    if type(user_agent) is not str or not user_agent.strip():
+        return None
+    normalized = user_agent.lower()
+    is_ipad = "ipad" in normalized or (
+        "macintosh" in normalized and "mobile" in normalized
+    )
+    is_android_tablet = (
+        "android" in normalized and "mobile" not in normalized
+    )
+    if is_ipad or is_android_tablet:
+        return "tablet"
+    desktop_markers = (
+        "windows nt",
+        "macintosh",
+        "x11",
+        "cros",
+    )
+    if any(marker in normalized for marker in desktop_markers) or (
+        "linux" in normalized and "android" not in normalized
+    ):
+        return "desktop"
+    return None
+
+
 def get_client_ip(request) -> str:
     xff = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
@@ -122,13 +149,15 @@ def get_active_sessions(contest_id: int, user_ids: list[int]) -> dict[int, dict[
 
 
 def set_active_session(contest: Contest, participant: ContestParticipant, request, device_id: str) -> None:
+    user_agent = request.META.get("HTTP_USER_AGENT", "")[:512]
     payload = {
         "contest_id": contest.id,
         "participant_id": participant.id,
         "user_id": participant.user_id,
         "device_id": device_id,
+        "device_kind": classify_active_session_device_kind(user_agent),
         "ip": get_client_ip(request),
-        "ua": request.META.get("HTTP_USER_AGENT", "")[:512],
+        "ua": user_agent,
         "jti": get_token_jti(request),
         "updated_at": timezone.now().isoformat(),
     }

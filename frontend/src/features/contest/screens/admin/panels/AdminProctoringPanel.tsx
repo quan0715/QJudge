@@ -23,6 +23,7 @@ import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSubscriber";
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentDetail from "@/features/contest/components/admin/IncidentDetail";
+import IntegrityRunControlCard from "@/features/contest/components/admin/IntegrityRunControlCard";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
 import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import {
@@ -1259,6 +1260,12 @@ export default function AdminProctoringPanel({
             ) : null}
           </>
         )}
+      />
+
+      <IntegrityRunControlCard
+        contestId={contestId}
+        contestName={contest?.name ?? contestId}
+        contestStartAt={contest?.startTime}
       />
 
       <motion.div

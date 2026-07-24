@@ -56,6 +56,7 @@ export class KeyboardShortcutDetector implements ExamDetector {
     this.onViolation = onViolation;
 
     this.handleKeydown = (e: KeyboardEvent) => {
+      const clientOccurredAtMs = Date.now();
       // 1. Check special modifier combos
       const comboMatch = BLOCKED_COMBOS.some((combo) =>
         matchesCombo(e, combo),
@@ -66,6 +67,7 @@ export class KeyboardShortcutDetector implements ExamDetector {
         this.onViolation?.({
           detectorId: this.id,
           eventType: "forbidden_action",
+          clientOccurredAtMs,
           message: this.t(
             "exam.forbiddenKeyboardShortcut",
             "Keyboard shortcuts are disabled",
@@ -91,6 +93,7 @@ export class KeyboardShortcutDetector implements ExamDetector {
         this.onViolation?.({
           detectorId: this.id,
           eventType: "forbidden_action",
+          clientOccurredAtMs,
           message,
           severity: this.severity,
         });
@@ -104,6 +107,7 @@ export class KeyboardShortcutDetector implements ExamDetector {
         this.onViolation?.({
           detectorId: this.id,
           eventType: "forbidden_action",
+          clientOccurredAtMs,
           message: this.t(
             "exam.forbiddenKeyboardShortcut",
             "Keyboard shortcuts are disabled",
@@ -120,6 +124,7 @@ export class KeyboardShortcutDetector implements ExamDetector {
       this.onViolation?.({
         detectorId: this.id,
         eventType: "forbidden_action",
+        clientOccurredAtMs: Date.now(),
         message: this.t(
           "exam.printBlocked",
           "Printing is disabled during exam",

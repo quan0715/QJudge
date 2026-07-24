@@ -882,6 +882,24 @@ class ExamEventSerializer(serializers.ModelSerializer):
     Serializer for exam events.
     """
     user_username = serializers.CharField(source='user.username', read_only=True)
+    evidence_status = serializers.SerializerMethodField()
+    evidence_sources = serializers.SerializerMethodField()
+
+    def _evidence_summary(self, obj):
+        from apps.contests.services.integrity_evidence import evidence_status_for_event
+
+        lookup = self.context.get("evidence_status_by_event")
+        if type(lookup) is dict and obj.id in lookup:
+            return lookup[obj.id]
+        if not hasattr(obj, "_integrity_evidence_summary"):
+            obj._integrity_evidence_summary = evidence_status_for_event(obj)
+        return obj._integrity_evidence_summary
+
+    def get_evidence_status(self, obj):
+        return self._evidence_summary(obj)["evidence_status"]
+
+    def get_evidence_sources(self, obj):
+        return self._evidence_summary(obj)["evidence_sources"]
     
     class Meta:
         model = ExamEvent
@@ -892,6 +910,8 @@ class ExamEventSerializer(serializers.ModelSerializer):
             'user_username',
             'event_type',
             'metadata',
+            'evidence_status',
+            'evidence_sources',
             'created_at',
         ]
         read_only_fields = ['created_at', 'user_username']

@@ -3,6 +3,7 @@ S3-compatible helper utilities for anti-cheat upload and evidence access.
 """
 from __future__ import annotations
 
+import base64
 import uuid
 from functools import lru_cache
 from typing import Any
@@ -113,6 +114,39 @@ def generate_put_url(
         ExpiresIn=expires_seconds,
     )
     return url
+
+
+def generate_evidence_chunk_put_url(
+    bucket: str,
+    object_key: str,
+    *,
+    content_type: str,
+    byte_size: int,
+    sha256: str,
+    expires_seconds: int = 300,
+    client: Any | None = None,
+) -> tuple[str, str]:
+    """Presign one direct chunk PUT with the standard S3 SHA-256 checksum."""
+
+    checksum = base64.b64encode(bytes.fromhex(sha256)).decode("ascii")
+    if client is None:
+        client = get_s3_client(
+            endpoint_url=(
+                settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or ""
+            ).strip() or None
+        )
+    url = client.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={
+            "Bucket": bucket,
+            "Key": object_key,
+            "ContentType": content_type,
+            "ContentLength": byte_size,
+            "ChecksumSHA256": checksum,
+        },
+        ExpiresIn=expires_seconds,
+    )
+    return url, checksum
 
 
 def generate_get_url(

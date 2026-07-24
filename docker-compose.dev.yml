@@ -132,7 +132,8 @@ services:
     command: python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app
     volumes:
       - ./backend:/app
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
+      - ./secrets/integrity/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
     ports:
       - "8000:8000"
     env_file:
@@ -159,6 +160,10 @@ services:
       - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
       - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
       - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+      - INTEGRITY_CONTROLLER_URL=http://integrity-controller:8010
+      - INTEGRITY_CONTROLLER_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
     depends_on:
       judge-image:
         condition: service_started
@@ -173,12 +178,59 @@ services:
     networks:
       - oj_network_dev
 
+  # The Controller alone receives Docker access. Backend communicates with it
+  # through its internal API and read-only signing/token files.
+  integrity-controller:
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.controller
+    image: oj-integrity-controller:dev
+    container_name: oj_integrity_controller_dev
+    restart: unless-stopped
+    environment:
+      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_NETWORK=${INTEGRITY_WORKER_NETWORK_DEV:-online_judge_oj_network_dev}
+      - BACKEND_INTERNAL_URL=http://backend:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
+    group_add:
+      - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    privileged: false
+    networks:
+      - oj_network_dev
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  integrity-worker-image:
+    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.worker
+    command: ["python", "-c", "print('integrity worker image ready')"]
+    restart: "no"
+    profiles: ["build"]
+    networks:
+      - oj_network_dev
+
   # Celery Worker (Dev Mode)
   celery:
     build: *backend_dev_build
     image: oj_backend_dev_img
     container_name: oj_celery_dev
-    command: celery -A config.celery worker --loglevel=info -Q celery,default,high_priority
+    command: celery -A config.celery worker --loglevel=info -Q celery,default
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -216,7 +268,13 @@ services:
     networks:
       - oj_network_dev
 
-  # Celery Beat (Dev Mode - Scheduler for periodic tasks)
+  celery-high:
+    extends:
+      service: celery
+    container_name: oj_celery_high_dev
+    command: celery -A config.celery worker --loglevel=info -Q high_priority --concurrency=2
+
+  # Celery Beat (Dev Mode - Scheduler for non-exam periodic tasks)
   celery-beat:
     build: *backend_dev_build
     image: oj_backend_dev_img
@@ -318,3 +376,4 @@ volumes:
 networks:
   oj_network_dev:
     driver: bridge
+    name: ${INTEGRITY_WORKER_NETWORK_DEV:-online_judge_oj_network_dev}

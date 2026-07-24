@@ -38,6 +38,7 @@ from ..services.activity_log import log_contest_activity
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
+from .exam_integrity import ExamIntegrityMixin
 from .exam_sfu import ExamSfuMixin
 from .exam_validation_response import validate_exam_operation_for_view
 
@@ -231,6 +232,7 @@ class ExamViewSet(
     ExamAnticheatMixin,
     ExamEvidenceMixin,
     ExamSfuMixin,
+    ExamIntegrityMixin,
     viewsets.GenericViewSet,
 ):
     """Composed ExamViewSet — all actions preserved, URL unchanged."""

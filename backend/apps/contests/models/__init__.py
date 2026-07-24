@@ -14,6 +14,7 @@ from .questions import (
 from .participants import ContestParticipant, ExamStatus
 from .communications import Clarification, ContestAnnouncement
 from .monitoring import ContestActivity, ExamEvent, ExamEvidenceFrame
+from .integrity import ExamEvidenceChunk, ExamIntegrityRun
 from .answers import ExamAnswer
 
 __all__ = [
@@ -25,6 +26,8 @@ __all__ = [
     "ExamAnswer",
     "ExamEvent",
     "ExamEvidenceFrame",
+    "ExamEvidenceChunk",
+    "ExamIntegrityRun",
     "ExamQuestion",
     "ExamQuestionAnswerFormat",
     "ExamQuestionGroup",

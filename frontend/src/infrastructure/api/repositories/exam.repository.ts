@@ -17,33 +17,8 @@ export const isSubmittedExamSessionResponse = (
   response: ExamSessionResponse | null | undefined
 ): boolean => response?.exam_status === "submitted";
 
-export interface ExamEventResponse {
-  status?: string;
-  message?: string;
-  error?: string;
-  event_id?: number | string;
-  evidence_cluster_id?: string;
-  evidence_window_start?: string;
-  evidence_window_end?: string;
-  evidence_mode?: EvidenceMode;
-  evidence_anchor_at_ms?: number;
-  violation_count?: number;
-  exam_status?: ExamStatusType;
-  submit_reason?: string;
-  locked?: boolean;
-  bypass?: boolean;
-}
-
 export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
 export type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
-
-export interface RecordExamEventOptions {
-  reason?: string;
-  metadata?: Record<string, unknown>;
-  source?: string;
-  phase?: string;
-  eventIdempotencyKey?: string;
-}
 
 export interface ExamAnswerDto {
   id: string;
@@ -287,9 +262,6 @@ export const stopRealtimeSfuPublisher = async (
   );
 };
 
-const RETRYABLE_EVENT_STATUSES = new Set([502, 503, 504]);
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
 interface ContestActivityDto {
   id?: string | number;
   user?: string | number;
@@ -318,54 +290,6 @@ export const endExam = async (
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
     "Failed to end exam"
   );
-};
-
-export const recordExamEvent = async (
-  contestId: string,
-  eventType: string,
-  reasonOrOptions?: string | RecordExamEventOptions
-): Promise<ExamEventResponse | null> => {
-  const options: RecordExamEventOptions =
-    typeof reasonOrOptions === "string"
-      ? { reason: reasonOrOptions }
-      : reasonOrOptions || {};
-
-  const metadata = {
-    ...(options.metadata || {}),
-    ...(options.reason ? { reason: options.reason } : {}),
-    ...(options.source ? { source: options.source } : {}),
-    ...(options.phase ? { phase: options.phase } : {}),
-    ...(options.eventIdempotencyKey
-      ? { event_idempotency_key: options.eventIdempotencyKey }
-      : {}),
-  };
-
-  const payload = {
-    event_type: eventType,
-    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-  };
-
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const res = await httpClient.post(
-        `/api/v1/contests/${contestId}/exam/events/`,
-        payload
-      );
-      if (res.ok) {
-        return (await res.json()) as ExamEventResponse;
-      }
-      if (!RETRYABLE_EVENT_STATUSES.has(res.status) || attempt === maxAttempts) {
-        return null;
-      }
-    } catch {
-      if (attempt === maxAttempts) {
-        return null;
-      }
-    }
-    await sleep(150 * attempt);
-  }
-  return null;
 };
 
 export const getExamEvents = async (

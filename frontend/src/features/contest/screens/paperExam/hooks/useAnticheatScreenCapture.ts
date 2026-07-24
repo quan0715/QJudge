@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCanvasProcessor } from "./anticheat/useCanvasProcessor";
-import { useEventEvidenceCapture } from "./anticheat/useEventEvidenceCapture";
 import { createSfuScreenSharePublisher } from "./anticheat/sfuScreenSharePublisher";
-import {
-  registerForcedCaptureHandler,
-  unregisterForcedCaptureHandler,
-} from "@/features/contest/anticheat/forcedCapture";
 import {
   getExamCaptureSessionId,
   setExamCaptureSessionId,
@@ -40,7 +34,7 @@ interface CaptureLifecycleEvent {
 
 interface Options {
   contestId: string;
-  /** Controls local evidence buffering. Persistent uploads happen only on forced capture. */
+  /** Controls use of the policy-enabled MediaRecorder source. */
   enabled?: boolean;
   /** Controls stream lifecycle monitoring. Stream stays alive and loss is detected
    *  as long as this is true, even if `enabled` is false (e.g. on dashboard). */
@@ -48,11 +42,6 @@ interface Options {
   /** Keep screen-share alive across route unmount/remount within monitored flow. */
   preserveStreamOnUnmount?: boolean;
   expectInitialStream?: boolean;
-  intervalMs?: number;
-  forcedCaptureCooldownMs?: number;
-  forcedCaptureP1CooldownMs?: number;
-  reportDegraded?: (isDegraded: boolean) => void;
-  onUploadProgress?: (count: number) => void;
   onScreenShareLost?: () => void;
   onCaptureLifecycleEvent?: (event: CaptureLifecycleEvent) => void;
 }
@@ -63,11 +52,6 @@ export const useAnticheatScreenCapture = ({
   monitorStream = false,
   preserveStreamOnUnmount = false,
   expectInitialStream = false,
-  intervalMs = 5000,
-  forcedCaptureCooldownMs = 1_000,
-  forcedCaptureP1CooldownMs = 15_000,
-  reportDegraded,
-  onUploadProgress,
   onScreenShareLost,
   onCaptureLifecycleEvent,
 }: Options) => {
@@ -101,8 +85,6 @@ export const useAnticheatScreenCapture = ({
     setStreamActive(false);
     onScreenShareLostRef.current?.();
   }, [contestId]);
-
-  const { encodeUnderBudget } = useCanvasProcessor();
 
   const ensureSfuPublisher = useCallback(
     (stream: MediaStream) => {
@@ -178,68 +160,15 @@ export const useAnticheatScreenCapture = ({
     return null;
   }, [ensureSfuPublisher, handleDetectedScreenShareLoss, stopStream]);
 
-  const captureFrameBlob = useCallback(async (): Promise<Blob | null> => {
-    const stream = await acquireStream();
-    if (!stream) return null;
-    try {
-      const track = stream.getVideoTracks()[0];
-      if (!track) return null;
-      const imageCapture = new (window as any).ImageCapture(track);
-      const bitmap = await imageCapture.grabFrame();
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { bitmap.close(); return null; }
-      ctx.drawImage(bitmap, 0, 0);
-      bitmap.close();
-      return await encodeUnderBudget(canvas);
-    } catch {
-      return null;
-    }
-  }, [acquireStream, encodeUnderBudget]);
-
-  const isScreenShareUnavailable = useCallback(
-    () => streamWasLiveRef.current && !isStreamLive(streamRef.current),
-    [],
-  );
-
-  const markEvidenceBufferingStarted = useCallback(() => {
-    hasCaptureSessionRef.current = true;
-  }, []);
-
-  const {
-    flushPendingUploads,
-    forceCaptureNow,
-    stopEvidenceCapture,
-  } = useEventEvidenceCapture({
-    contestId,
-    module: "screen_share",
-    enabled,
-    intervalMs,
-    uploadSessionId,
-    captureFrameBlob,
-    isStreamUnavailable: isScreenShareUnavailable,
-    onStreamUnavailable: handleDetectedScreenShareLoss,
-    reportDegraded,
-    onUploadProgress,
-    onBufferingStarted: markEvidenceBufferingStarted,
-    cooldown: {
-      defaultMs: forcedCaptureCooldownMs,
-      p1Ms: forcedCaptureP1CooldownMs,
-    },
-  });
-
   const forceStopCapture = useCallback(
     (reason: CaptureStopReason = "manual"): CaptureStopResult => {
-      const hadEvidenceCapture = stopEvidenceCapture();
       const hadPrecheckHandoff = !!peekPrecheckScreenShareHandoff();
       const hadRuntimeHandoff = !!peekRuntimeScreenShareHandoff();
       const hadStream = stopStream();
       const hadActiveSession = streamWasLiveRef.current || hasCaptureSessionRef.current;
 
       const status: CaptureStopResult["status"] =
-        hadEvidenceCapture || hadPrecheckHandoff || hadRuntimeHandoff || hadStream || hadActiveSession
+        hadPrecheckHandoff || hadRuntimeHandoff || hadStream || hadActiveSession
           ? "stopped"
           : "already_stopped";
       const result: CaptureStopResult = {
@@ -264,7 +193,7 @@ export const useAnticheatScreenCapture = ({
       });
       return result;
     },
-    [contestId, emitCaptureLifecycleEvent, stopEvidenceCapture, stopStream],
+    [contestId, emitCaptureLifecycleEvent, stopStream],
   );
 
   useEffect(() => {
@@ -273,15 +202,6 @@ export const useAnticheatScreenCapture = ({
       unregisterCaptureStopHandler(contestId, forceStopCapture);
     };
   }, [contestId, forceStopCapture]);
-
-  // Register forced capture handler for use by recordExamEventWithForcedCapture
-  useEffect(() => {
-    if (!contestId) return;
-    registerForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
-    return () => {
-      unregisterForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);
-    };
-  }, [contestId, forceCaptureNow]);
 
   // Stream lifecycle — stop only on true -> false transition.
   // This avoids killing precheck handoff stream during initial mount while
@@ -322,7 +242,7 @@ export const useAnticheatScreenCapture = ({
   // The "ended" event is the primary detection, but this catches edge cases
   // (e.g. browser not firing "ended" reliably).
   useEffect(() => {
-    if (!monitorStream || enabled) return; // skip if capture interval already handles this
+    if (!monitorStream) return;
     const healthCheck = setInterval(() => {
       const alive = isStreamLive(streamRef.current);
       const wasLive = streamWasLiveRef.current;
@@ -361,9 +281,8 @@ export const useAnticheatScreenCapture = ({
 
   return {
     uploadSessionId,
-    flushPendingUploads,
     forceStopCapture,
-    forceCaptureNow,
+    stream: streamRef.current,
     /** Reactive flag — true when screen share stream is alive. */
     streamActive,
   };

@@ -45,6 +45,9 @@ const ensureDeviceId = (): string => {
   return nextId;
 };
 
+/** Shared browser device identity for the HTTP and durable integrity protocols. */
+export const getDeviceId = (): string => ensureDeviceId();
+
 const redirectToLogin = () => {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
@@ -100,19 +103,16 @@ const dispatchServerError = (statusCode: number, message?: string) => {
   );
 };
 
-const shouldDispatchServerError = (endpoint: string): boolean => {
-  // Anti-cheat telemetry endpoints are noisy and transient failures (e.g. 502)
-  // should not hard-redirect users away from exam screens.
-  if (endpoint.includes("/exam/events/")) return false;
+const shouldDispatchServerError = (): boolean => {
   return true;
 };
 
 /**
  * Handle server errors (5xx) - dispatch event for global handling
  */
-const handleServerError = (endpoint: string, response: Response): boolean => {
+const handleServerError = (response: Response): boolean => {
   if (response.status >= 500 && response.status < 600) {
-    if (shouldDispatchServerError(endpoint)) {
+    if (shouldDispatchServerError()) {
       dispatchServerError(response.status, `伺服器錯誤 (${response.status})`);
     }
     return true;
@@ -166,6 +166,15 @@ const performFetch = (endpoint: string, init: RequestInit = {}) =>
     headers: buildHeaders(init),
     credentials: "include",
   });
+
+/**
+ * One-shot request path for protocols whose POST identity must never be
+ * replayed by the generic authentication flow. It deliberately keeps the
+ * shared cookie, CSRF, and device headers, but does not refresh, redirect, or
+ * otherwise issue a second request.
+ */
+const performSingleFetch = (endpoint: string, init: RequestInit = {}) =>
+  performFetch(endpoint, { ...init, redirect: "error" });
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -258,7 +267,7 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
   // Handle server errors (5xx) - dispatch event but don't throw
   // This allows components to still handle the error if needed
-  if (handleServerError(endpoint, response)) {
+  if (handleServerError(response)) {
     // Don't throw - let calling code decide how to handle
   }
 
@@ -267,6 +276,7 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
 export const httpClient = {
   request: customFetch,
+  requestOnce: performSingleFetch,
   get: (url: string, init?: RequestInit) =>
     customFetch(url, { ...init, method: "GET" }),
   post: (url: string, body?: any, init?: RequestInit) =>

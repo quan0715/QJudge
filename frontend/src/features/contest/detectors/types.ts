@@ -12,6 +12,7 @@ export type ViolationSeverity = "info" | "warning" | "violation";
 export interface ViolationEvent {
   detectorId: ExamDetectorId;
   eventType: string;
+  clientOccurredAtMs: number;
   message: string;
   severity: ViolationSeverity;
   metadata?: Record<string, unknown>;

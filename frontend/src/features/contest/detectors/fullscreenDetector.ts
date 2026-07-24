@@ -28,6 +28,7 @@ export class FullscreenDetector implements ExamDetector {
           this.onViolation?.({
             detectorId: this.id,
             eventType: "exit_fullscreen_triggered",
+            clientOccurredAtMs: Date.now(),
             message: "Fullscreen exited",
             severity: "info",
           });
