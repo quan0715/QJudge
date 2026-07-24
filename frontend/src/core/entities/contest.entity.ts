@@ -496,6 +496,20 @@ export interface ContestAnticheatEffectiveConfig {
   anticheatDevicePolicy: ContestAnticheatDevicePolicy;
 }
 
+export interface IntegrityRegistrySnapshot {
+  version: string;
+  definitions: Record<string, unknown>;
+}
+
+export interface ContestIntegrityRun {
+  id: string;
+  computeState: string;
+  health: string;
+  participantId: number | null;
+  policySnapshot: Record<string, unknown>;
+  registrySnapshot: IntegrityRegistrySnapshot;
+}
+
 export interface ContestAnticheatConfig {
   version: number;
   globalDefaults: Omit<
@@ -516,6 +530,8 @@ export interface ContestAnticheatConfig {
   >;
   effective: ContestAnticheatEffectiveConfig;
   devicePolicy: ContestAnticheatDevicePolicy;
+  eventRegistry?: IntegrityRegistrySnapshot;
+  integrityRun?: ContestIntegrityRun;
   frontendControlledSettings: {
     global: AnticheatConfigSettingDescriptor[];
     contest: AnticheatConfigSettingDescriptor[];

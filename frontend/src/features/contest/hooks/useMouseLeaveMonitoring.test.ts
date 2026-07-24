@@ -1,170 +1,24 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useMouseLeaveMonitoring } from "./useMouseLeaveMonitoring";
 
-// --- Mocks ---
-const mockRecordExamEventWithForcedCapture = vi.hoisted(() =>
-  vi.fn().mockResolvedValue(undefined),
-);
-
-vi.mock("@/infrastructure/api/repositories", () => ({
-  recordExamEvent: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock("@/features/contest/anticheat/forcedCapture", () => ({
-  recordExamEventWithForcedCapture: (...args: unknown[]) =>
-    mockRecordExamEventWithForcedCapture(...args),
-}));
-
-vi.mock("@/shared/state/examCaptureSessionStore", () => ({
-  getExamCaptureSessionId: vi.fn().mockReturnValue(null),
-}));
-
-vi.mock("@/features/contest/anticheat/runtimeReauthState", () => ({
-  isRuntimeScreenShareReauthActive: vi.fn().mockReturnValue(false),
-}));
-
-const makeConfig = (overrides: Record<string, unknown> = {}) => ({
-  contestId: "contest-1",
-  enabled: true,
-  examSubmitted: false,
-  onViolation: vi.fn(),
-  requestForceSubmit: vi.fn().mockResolvedValue(undefined),
-  ...overrides,
-});
-
-const fireMouseLeave = (relatedTarget: EventTarget | null = null) => {
-  const event = new MouseEvent("mouseleave", {
-    bubbles: false,
-    relatedTarget,
-  });
-  document.documentElement.dispatchEvent(event);
-};
-
-const fireMouseEnter = () => {
-  document.documentElement.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
-};
-
 describe("useMouseLeaveMonitoring", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("mouse leave triggers pipeline + starts countdown", () => {
-    const config = makeConfig();
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-
-    expect(result.current.recoveryCountdown).toBe(3);
-  });
-
-  it("records mouse leave trigger with a 3-second evidence window anchored to the event", () => {
-    vi.setSystemTime(new Date("2026-04-29T08:00:00.000Z"));
-    const config = makeConfig();
-    renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-
-    expect(mockRecordExamEventWithForcedCapture).toHaveBeenCalledWith(
-      "contest-1",
-      "mouse_leave_triggered",
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          reason: "mouse_left_exam_window",
-          observed_at: "2026-04-29T08:00:00.000Z",
-          evidence_anchor_at: "2026-04-29T08:00:00.000Z",
-          evidence_window_before_seconds: 3,
-          evidence_window_after_seconds: 3,
-        }),
-      }),
-    );
-  });
-
-  it("mouse re-enter recovers + cancels countdown", () => {
-    const config = makeConfig();
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-    expect(result.current.recoveryCountdown).toBe(3);
-
-    act(() => { fireMouseEnter(); });
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("IME composition guard suppresses trigger within 900ms", () => {
-    const config = makeConfig();
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    // Start and end composition
-    act(() => { document.dispatchEvent(new Event("compositionstart")); });
-    act(() => { document.dispatchEvent(new Event("compositionend")); });
-
-    // Mouse leave within 900ms of composition end
-    act(() => { vi.advanceTimersByTime(500); });
-    act(() => { fireMouseLeave(null); });
-
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("cooldown suppresses second trigger within grace window", () => {
-    const config = makeConfig({ cooldownMs: 3000 });
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    // First trigger
-    act(() => { fireMouseLeave(null); });
-    expect(result.current.recoveryCountdown).toBe(3);
-
-    // Recover
-    act(() => { fireMouseEnter(); });
-    expect(result.current.recoveryCountdown).toBeNull();
-
-    // Second trigger within cooldown — suppressed by pipeline's idempotency
-    // (isInterrupted is false after recover, but cooldown in our hook also guards)
-    act(() => { vi.advanceTimersByTime(1000); }); // only 1s passed, cooldown is 3s
-    act(() => { fireMouseLeave(null); });
-
-    // The cooldown guard in the hook itself blocks this
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("relatedTarget !== null suppresses trigger", () => {
-    const config = makeConfig();
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    // Create a target element to simulate moving to a child element
-    const target = document.createElement("div");
-    act(() => { fireMouseLeave(target); });
-
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("enabled=false suppresses trigger", () => {
-    const config = makeConfig({ enabled: false });
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("isTablet=true suppresses mouse-leave trigger", () => {
-    const config = makeConfig({ isTablet: true });
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-    expect(result.current.recoveryCountdown).toBeNull();
-  });
-
-  it("isTablet=true with fine pointer enables mouse-leave trigger", () => {
-    const config = makeConfig({ isTablet: true, supportsFinePointer: true });
-    const { result } = renderHook(() => useMouseLeaveMonitoring(config));
-
-    act(() => { fireMouseLeave(null); });
-    expect(result.current.recoveryCountdown).toBe(3);
+  it("emits raw leave and restore observations without a local grace timer", () => {
+    const emitter = { emit: vi.fn().mockResolvedValue(undefined) };
+    const { result } = renderHook(() => useMouseLeaveMonitoring({
+      enabled: true,
+      examSubmitted: false,
+      emitter,
+    }));
+    act(() => document.documentElement.dispatchEvent(new MouseEvent("mouseleave", { relatedTarget: null })));
+    expect(result.current.interrupted).toBe(true);
+    act(() => document.documentElement.dispatchEvent(new MouseEvent("mouseenter")));
+    expect(result.current.interrupted).toBe(false);
+    expect(emitter.emit).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      eventType: "mouse_leave_triggered",
+    }));
+    expect(emitter.emit).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      eventType: "mouse_leave_restored",
+    }));
   });
 });

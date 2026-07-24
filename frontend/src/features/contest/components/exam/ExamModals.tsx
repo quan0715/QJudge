@@ -64,7 +64,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
 
   return (
     <>
-      {/* Recovery warning (grace window before counting a violation) */}
+      {/* Local sensor warning; the Worker is the only policy authority. */}
       <Modal
         data-testid="exam-recovery-modal"
         open={recoveryCountdown != null}
@@ -91,10 +91,10 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         <div className={styles.recoveryWrapper}>
           <p className={styles.recoveryText}>
             {recoverySource === "multiple_displays"
-              ? t("exam.multiDisplayRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內中斷外接螢幕，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
+              ? t("exam.multiDisplaySensorWarning", "偵測到多螢幕，請回到單一顯示器。")
               : recoverySource === "mouse_leave"
-              ? t("exam.mouseLeaveRecoveryDesc", { seconds: recoveryCountdown ?? 0 })
-              : t("exam.fullscreenRecoveryDesc", { seconds: recoveryCountdown ?? 0 })}
+                ? t("exam.mouseLeaveSensorWarning", "偵測到游標離開考試視窗，請回到考試頁面。")
+                : t("exam.fullscreenSensorWarning", "請回到全螢幕模式繼續作答。")}
           </p>
           <p className={styles.recoveryHint}>{t("exam.stayInExamPage")}</p>
         </div>
@@ -155,7 +155,9 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
             </p>
           )}
           <div className={styles.warningBox}>
-            <p className={styles.warningBoxText}>{t("exam.screenShareTimeoutWarning")}</p>
+            <p className={styles.warningBoxText}>
+              {t("exam.screenShareSensorWarning", "請重新分享螢幕以恢復監考來源。")}
+            </p>
           </div>
         </ModalAlertContent>
       </Modal>
@@ -201,7 +203,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           {webcamModuleRole === "primary" && (
             <div className={styles.warningBox}>
               <p className={styles.warningBoxText}>
-                {t("exam.webcamTimeoutWarning", "若未在時限內恢復 Webcam，系統將自動交卷。")}
+                {t("exam.webcamSensorWarning", "請重新授權 Webcam 以恢復監考來源。")}
               </p>
             </div>
           )}
@@ -253,7 +255,7 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           )}
           <div className={styles.warningBox}>
             <p className={styles.warningBoxText}>
-              {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將記錄一次違規。")}
+              {t("exam.viewportSensorWarning", "請恢復原始視窗大小或關閉分割畫面。")}
             </p>
           </div>
         </ModalAlertContent>

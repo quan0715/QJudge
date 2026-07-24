@@ -11,7 +11,7 @@ import {
 import { joinContestUseCase } from "@/core/usecases/contest";
 import { endExam } from "@/infrastructure/api/repositories";
 import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   clearExamCaptureSessionId,
@@ -37,7 +37,6 @@ import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifec
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import {
   detectAnticheatCapability,
-  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 import {
@@ -73,15 +72,15 @@ export const useContestExamActions = ({
   onError,
 }: UseContestExamActionsParams) => {
   const submissionProgress = useExamSubmissionProgress();
+  const integrity = useIntegritySignalEmitter();
   const resolveMonitoringModules = useCallback((): {
     primarySourceModule: "screen_share" | "webcam";
-    enabledCaptureModules: Array<"screen_share" | "webcam">;
   } => {
     const plan = resolveDeviceMonitoringPlan(
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
     );
-    return resolveEvidenceCaptureStrategy(plan);
+    return { primarySourceModule: plan.primarySourceModule };
   }, [contest?.anticheatDevicePolicy]);
 
   const cleanupExamArtifacts = useCallback((
@@ -149,25 +148,21 @@ export const useContestExamActions = ({
   const handleEndExam = useCallback(async () => {
     if (!contest) return;
     const uploadSessionId = getExamCaptureSessionId(contest.id);
-    const { primarySourceModule: sourceModule, enabledCaptureModules } = resolveMonitoringModules();
+    const { primarySourceModule: sourceModule } = resolveMonitoringModules();
 
     const success = await submissionProgress.run({
       handlers: {
         recording: async () => {
-          await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
-            reason: "Student initiated exam submission from contest dashboard",
-            source: "contest_dashboard:end_exam",
-            forceCaptureReason: "exam_submit_initiated:dashboard_submit",
-            captureOptions: {
-              eventType: "exam_submit_initiated",
-              modules: enabledCaptureModules,
-            },
-            metadata: {
-              upload_session_id: uploadSessionId || undefined,
+          await integrity.emit({
+            eventType: "exam_submit_initiated",
+            clientOccurredAtMs: Date.now(),
+            payload: {
+              source: "contest_dashboard:end_exam",
               module: sourceModule,
               module_role: "primary",
+              ...(uploadSessionId ? { upload_session_id: uploadSessionId } : {}),
             },
-          }).catch(() => null);
+          });
           beginAnticheatTermination(contest.id);
         },
         finalizing: async () => {
@@ -201,6 +196,7 @@ export const useContestExamActions = ({
     onError,
     refreshContest,
     submissionProgress,
+    integrity,
     resolveMonitoringModules,
   ]);
 
@@ -210,7 +206,7 @@ export const useContestExamActions = ({
     try {
       const shouldEndExam = shouldForceEndExamOnExit(contest, hasEnded);
       const uploadSessionId = getExamCaptureSessionId(contest.id);
-      const { primarySourceModule: sourceModule, enabledCaptureModules } = resolveMonitoringModules();
+      const { primarySourceModule: sourceModule } = resolveMonitoringModules();
       let navigateTo = contest.boundClassroomId
         ? getClassroomContestDashboardPath(contest.boundClassroomId, contest.id)
         : "/dashboard";
@@ -219,20 +215,16 @@ export const useContestExamActions = ({
         const success = await submissionProgress.run({
           handlers: {
             recording: async () => {
-              await recordExamEventWithForcedCapture(contest.id, "exam_submit_initiated", {
-                reason: "Exam auto-submitted because student exited the monitored exam flow",
-                source: "contest_dashboard:exit_exam",
-                forceCaptureReason: "exam_submit_initiated:exit_exam",
-                captureOptions: {
-                  eventType: "exam_submit_initiated",
-                  modules: enabledCaptureModules,
-                },
-                metadata: {
-                  upload_session_id: uploadSessionId || undefined,
+              await integrity.emit({
+                eventType: "exam_submit_initiated",
+                clientOccurredAtMs: Date.now(),
+                payload: {
+                  source: "contest_dashboard:exit_exam",
                   module: sourceModule,
                   module_role: "primary",
+                  ...(uploadSessionId ? { upload_session_id: uploadSessionId } : {}),
                 },
-              }).catch(() => null);
+              });
               beginAnticheatTermination(contest.id);
             },
             finalizing: async () => {
@@ -286,6 +278,7 @@ export const useContestExamActions = ({
     navigate,
     onError,
     submissionProgress,
+    integrity,
     resolveMonitoringModules,
   ]);
 

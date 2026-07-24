@@ -1,43 +1,19 @@
-/**
- * useScreenShareMonitoring
- *
- * Screen-share stream monitoring with runtimeReauthState-driven countdown.
- * Uses useViolationPipeline with externalCountdown=true — the pipeline only
- * records triggered/restored events and manages isInterrupted state.
- * Countdown and timeout-triggered force submit remain driven by runtimeReauthState.
- */
-import { useCallback, useEffect, useRef } from "react";
-import { getTimingConfig } from "@/features/contest/domain/examMonitoringPolicy";
-import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
-import {
-  beginRuntimeScreenShareReauth,
-  endRuntimeScreenShareReauth,
-  clearRuntimeScreenShareReauth,
-  useRuntimeScreenShareReauth,
-} from "@/features/contest/anticheat/runtimeReauthState";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
-import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
-import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
-import { useViolationPipeline } from "./useViolationPipeline";
-import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
-import type { ExamEventResponse } from "@/infrastructure/api/repositories/exam.repository";
-
-export interface UseScreenShareMonitoringConfig {
-  contestId: string;
-  enabled: boolean;
-  examSubmitted: boolean;
-  monitoringDisabled: boolean;
-  moduleRole: string;
-  recoveryGraceMs?: number;
-  evidenceCaptureModules?: ForcedCaptureModule[];
-  requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
-  onEnvironmentPaused?: (response: ExamEventResponse | null) => void;
-}
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { IntegrityJsonValue } from "@/core/entities/examIntegrity.entity";
+import type { IntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 
 export interface RuntimeReauthSnapshot {
   active: boolean;
   inProgress: boolean;
-  remainingSeconds: number | null;
+  remainingSeconds: null;
+}
+
+export interface UseScreenShareMonitoringConfig {
+  enabled: boolean;
+  examSubmitted: boolean;
+  monitoringDisabled: boolean;
+  moduleRole: string;
+  emitter: IntegritySignalEmitter;
 }
 
 export interface UseScreenShareMonitoringReturn {
@@ -46,148 +22,60 @@ export interface UseScreenShareMonitoringReturn {
   reauth: RuntimeReauthSnapshot;
 }
 
-const screenShareRoute = VIOLATION_ROUTES_MAP["screen_share"];
-
+/** Sensor state powers the re-share UI; only the Worker determines outcomes. */
 export function useScreenShareMonitoring({
-  contestId,
   enabled,
   examSubmitted,
   monitoringDisabled,
   moduleRole,
-  recoveryGraceMs,
-  evidenceCaptureModules,
-  requestForceSubmit,
-  onEnvironmentPaused,
+  emitter,
 }: UseScreenShareMonitoringConfig): UseScreenShareMonitoringReturn {
-  const runtimeReauth = useRuntimeScreenShareReauth(contestId);
-
-  const hasTriggeredTimeoutRef = useRef(false);
-  const isSubmittingRef = useRef(false);
-
-  const contestIdRef = useRef(contestId);
+  const [interrupted, setInterrupted] = useState(false);
+  const emitterRef = useRef(emitter);
   const moduleRoleRef = useRef(moduleRole);
-  const recoveryGraceMsRef = useRef(recoveryGraceMs);
-  const evidenceCaptureModulesRef = useRef(evidenceCaptureModules);
-  const onEnvironmentPausedRef = useRef(onEnvironmentPaused);
 
   useEffect(() => {
-    contestIdRef.current = contestId;
-  }, [contestId]);
+    emitterRef.current = emitter;
+  }, [emitter]);
   useEffect(() => {
     moduleRoleRef.current = moduleRole;
   }, [moduleRole]);
   useEffect(() => {
-    recoveryGraceMsRef.current = recoveryGraceMs;
-  }, [recoveryGraceMs]);
-  useEffect(() => {
-    evidenceCaptureModulesRef.current = evidenceCaptureModules;
-  }, [evidenceCaptureModules]);
-  useEffect(() => {
-    onEnvironmentPausedRef.current = onEnvironmentPaused;
-  }, [onEnvironmentPaused]);
+    if (examSubmitted || monitoringDisabled) setInterrupted(false);
+  }, [examSubmitted, monitoringDisabled]);
 
-  const pipeline = useViolationPipeline({
-    route: screenShareRoute,
-    contestId,
-    enabled,
-    examSubmitted,
-    recoveryGraceMs,
-    moduleRole,
-    externalCountdown: true,
-    requestForceSubmit,
-    // Suppress default runtimeReauth check — screen_share IS the reauth source
-    isSuppressed: () => false,
-    forceSubmitExtras: {
-      sourceModule: "screen_share",
-      evidenceCaptureModules,
-    },
-  });
-
+  const emit = useCallback((eventType: string, payload: Record<string, IntegrityJsonValue>) => {
+    void emitterRef.current.emit({
+      eventType,
+      clientOccurredAtMs: Date.now(),
+      payload,
+    });
+  }, []);
   const onStreamLost = useCallback(() => {
     if (!enabled || examSubmitted) return;
-    if (runtimeReauth.active) return;
-
-    const recoveryMs = Math.max(
-      1,
-      recoveryGraceMsRef.current ??
-        getTimingConfig().screenShareRecoveryGraceMs,
-    );
-    pipeline.trigger({ reason: "stream_ended" });
-    beginRuntimeScreenShareReauth(contestIdRef.current, recoveryMs);
-  }, [enabled, examSubmitted, runtimeReauth.active, pipeline]);
-
+    setInterrupted(true);
+    emit("screen_share_interrupted", {
+      reason: "stream_ended",
+      module: "screen_share",
+      module_role: moduleRoleRef.current,
+    });
+  }, [emit, enabled, examSubmitted]);
   const onStreamRestored = useCallback(() => {
-    hasTriggeredTimeoutRef.current = false;
-    pipeline.recover("user_reshared");
-    endRuntimeScreenShareReauth(contestIdRef.current);
-  }, [pipeline]);
-
-  // Fire force submit when runtimeReauth countdown reaches zero
-  useEffect(() => {
-    if (!runtimeReauth.inProgress) {
-      hasTriggeredTimeoutRef.current = false;
-      return;
-    }
-    if (
-      runtimeReauth.remainingSeconds === 0 &&
-      !hasTriggeredTimeoutRef.current &&
-      !isSubmittingRef.current
-    ) {
-      hasTriggeredTimeoutRef.current = true;
-      isSubmittingRef.current = true;
-
-      const cid = contestIdRef.current;
-      const role = moduleRoleRef.current;
-
-      void recordExamEventWithForcedCapture(cid, "screen_share_stopped", {
-        reason: "Screen share recovery timeout",
-        source: "exam_mode:screen_share_recovery_timeout",
-        forceCaptureReason: "screen_share_stopped:screen_share_timeout",
-        captureOptions: {
-          eventType: "screen_share_stopped",
-          modules: evidenceCaptureModulesRef.current ?? ["screen_share"],
-        },
-        metadata: {
-          upload_session_id: getExamCaptureSessionId(cid) || undefined,
-          reason: "recovery_timeout",
-          module: "screen_share",
-          module_role: role,
-        },
-      })
-        .then((response) => {
-          onEnvironmentPausedRef.current?.(response);
-        })
-        .catch(() => {
-          pipeline.resetInterruption();
-          onEnvironmentPausedRef.current?.(null);
-        })
-        .finally(() => {
-          isSubmittingRef.current = false;
-          endRuntimeScreenShareReauth(cid, 0);
-        });
-    }
-  }, [pipeline, runtimeReauth.inProgress, runtimeReauth.remainingSeconds]);
-
-  // Clear reauth state when exam ends or monitoring is disabled
-  useEffect(() => {
-    if (examSubmitted || monitoringDisabled) {
-      clearRuntimeScreenShareReauth(contestId);
-    }
-  }, [contestId, examSubmitted, monitoringDisabled]);
-
-  // Do not clear on unmount: the monitored contest surface can remount while
-  // the exam is still active (for example solve <-> dashboard). The recovery
-  // countdown must survive that transition so the next mount keeps prompting
-  // the student to re-share. Terminal cleanup is handled by examSubmitted /
-  // monitoringDisabled and by explicit exam action cleanup.
+    setInterrupted(false);
+    emit("screen_share_restored", {
+      reason: "user_reshared",
+      module: "screen_share",
+      module_role: moduleRoleRef.current,
+    });
+  }, [emit]);
 
   return {
     onStreamLost,
     onStreamRestored,
     reauth: {
-      active: runtimeReauth.active,
-      inProgress: runtimeReauth.inProgress,
-      remainingSeconds: runtimeReauth.remainingSeconds ?? null,
+      active: interrupted,
+      inProgress: interrupted,
+      remainingSeconds: null,
     },
   };
 }

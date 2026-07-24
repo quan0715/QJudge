@@ -274,7 +274,7 @@ export const useAnticheatScreenCapture = ({
     };
   }, [contestId, forceStopCapture]);
 
-  // Register forced capture handler for use by recordExamEventWithForcedCapture
+  // Retained until Task 14 replaces screenshot capture with media chunks.
   useEffect(() => {
     if (!contestId) return;
     registerForcedCaptureHandler(contestId, "screen_share", forceCaptureNow);

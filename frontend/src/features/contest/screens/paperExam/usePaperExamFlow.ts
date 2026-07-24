@@ -17,10 +17,9 @@ import {
   resetAnticheatOrchestrator,
   syncAnticheatPhaseWithExamStatus,
 } from "@/features/contest/anticheat/orchestrator";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
+import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import {
   detectAnticheatCapability,
-  resolveEvidenceCaptureStrategy,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
 
@@ -34,6 +33,7 @@ export const usePaperExamFlow = () => {
   const { contest, refreshContest, loading: contextLoading } = useContest();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const integrity = useIntegritySignalEmitter();
 
   const guardContestId = (): string => {
     if (!contestId) {
@@ -91,8 +91,7 @@ export const usePaperExamFlow = () => {
       detectAnticheatCapability(),
       contest?.anticheatDevicePolicy
     );
-    const { primarySourceModule: sourceModule, enabledCaptureModules } =
-      resolveEvidenceCaptureStrategy(monitoringPlan);
+    const sourceModule = monitoringPlan.primarySourceModule;
     const moduleRole = sourceModule === "screen_share"
       ? monitoringPlan.sources.screenShare.role ?? "primary"
       : monitoringPlan.sources.webcam.role ?? "primary";
@@ -100,20 +99,18 @@ export const usePaperExamFlow = () => {
     setError(null);
     try {
       if (contest?.cheatDetectionEnabled) {
-        await recordExamEventWithForcedCapture(id, "exam_submit_initiated", {
-          reason: "Student submitted paper exam from answering screen",
-          source: "paper_exam:submit",
-          forceCaptureReason: "exam_submit_initiated:paper_exam_submit",
-          captureOptions: {
-            eventType: "exam_submit_initiated",
-            modules: enabledCaptureModules,
-          },
-          metadata: {
-            upload_session_id: uploadSessionId || getExamCaptureSessionId(id) || undefined,
+        await integrity.emit({
+          eventType: "exam_submit_initiated",
+          clientOccurredAtMs: Date.now(),
+          payload: {
+            source: "paper_exam:submit",
             module: sourceModule,
             module_role: moduleRole,
+            ...(uploadSessionId || getExamCaptureSessionId(id)
+              ? { upload_session_id: uploadSessionId || getExamCaptureSessionId(id)! }
+              : {}),
           },
-        }).catch(() => null);
+        });
         beginAnticheatTermination(id);
       }
       const response = await endExam(id, {

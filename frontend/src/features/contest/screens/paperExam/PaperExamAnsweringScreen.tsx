@@ -40,18 +40,12 @@ import {
   getClassroomContestPrecheckPath,
   shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
 import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
-import {
-  buildExamEntryDeviceMetadata,
-  detectAnticheatCapability,
-  resolveEvidenceCaptureStrategy,
-  resolveDeviceMonitoringPlan,
-} from "@/features/contest/domain/anticheatModulePolicy";
+import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import type {
   ExamQuestionAnswerFormat,
   ExamQuestionType,
@@ -91,19 +85,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         : effectiveClassroomId
           ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
           : "";
-  const capability = useMemo(() => detectAnticheatCapability(), []);
-  const monitoringPlan = useMemo(
-    () => resolveDeviceMonitoringPlan(capability, contest?.anticheatDevicePolicy),
-    [capability, contest?.anticheatDevicePolicy]
-  );
-  const examEntryDeviceMetadata = useMemo(
-    () => buildExamEntryDeviceMetadata(capability, monitoringPlan),
-    [capability, monitoringPlan]
-  );
-  const evidenceCaptureStrategy = useMemo(
-    () => resolveEvidenceCaptureStrategy(monitoringPlan),
-    [monitoringPlan]
-  );
+  const integrity = useIntegritySignalEmitter();
   const submitProgress = useExamSubmissionProgress();
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
@@ -302,25 +284,21 @@ const PaperExamAnsweringScreen: React.FC = () => {
     }
 
     hasLoggedExamEntryRef.current = true;
-    void recordExamEventWithForcedCapture(contestId, "exam_entered", {
-      reason: "Student entered paper exam answering screen",
-      source: "paper_exam:answering_screen",
-      forceCaptureReason: "exam_entered:paper_exam_answering",
-      captureOptions: {
-        eventType: "exam_entered",
-        modules: evidenceCaptureStrategy.enabledCaptureModules,
+    void integrity.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs: Date.now(),
+      payload: {
+        source: "paper_exam:answering_screen",
+        ...(anticheatUploadSessionId
+          ? { upload_session_id: anticheatUploadSessionId }
+          : {}),
       },
-      metadata: {
-        upload_session_id: anticheatUploadSessionId || undefined,
-        ...examEntryDeviceMetadata,
-      },
-    }).catch(() => null);
+    });
   }, [
     anticheatUploadSessionId,
     contest,
     contestId,
-    evidenceCaptureStrategy.enabledCaptureModules,
-    examEntryDeviceMetadata,
+    integrity,
     precheckPassed,
   ]);
 

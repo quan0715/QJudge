@@ -2,6 +2,8 @@ import {
   DEFAULT_DEVICE_POLICY,
   type ContestAnticheatConfig,
   type ContestAnticheatDevicePolicy,
+  type ContestIntegrityRun,
+  type IntegrityRegistrySnapshot,
 } from "@/core/entities/contest.entity";
 import type { AnticheatDevicePolicyDto } from "@/infrastructure/api/dto/contest.dto";
 
@@ -74,6 +76,40 @@ const ensureStringArray = (
     );
   }
   return value;
+};
+
+const mapRegistrySnapshot = (
+  value: unknown,
+  path: string,
+): IntegrityRegistrySnapshot => {
+  const registry = ensureObject(value, path);
+  const definitions = ensureObject(registry["definitions"], `${path}.definitions`);
+  return {
+    version: ensureString(registry, "version", path),
+    definitions,
+  };
+};
+
+const mapIntegrityRun = (value: unknown): ContestIntegrityRun => {
+  const run = ensureObject(value, "integrity_run");
+  const participantId = run["participant_id"];
+  if (participantId !== null && participantId !== undefined && !Number.isSafeInteger(Number(participantId))) {
+    throw new Error("Invalid anti-cheat config payload: integrity_run.participant_id must be an integer");
+  }
+  return {
+    id: ensureString(run, "id", "integrity_run"),
+    computeState: ensureString(run, "compute_state", "integrity_run"),
+    health: ensureString(run, "health", "integrity_run"),
+    participantId:
+      participantId === null || participantId === undefined
+        ? null
+        : Number(participantId),
+    policySnapshot: ensureObject(run["policy_snapshot"], "integrity_run.policy_snapshot"),
+    registrySnapshot: mapRegistrySnapshot(
+      run["registry_snapshot"],
+      "integrity_run.registry_snapshot",
+    ),
+  };
 };
 
 export function mapAnticheatDevicePolicyDto(
@@ -211,6 +247,12 @@ export function mapContestAnticheatConfigDto(
   const parsedDevicePolicy = mapAnticheatDevicePolicyDto(
     rawDevicePolicy as any,
   );
+  const eventRegistry = root["event_registry"] === undefined
+    ? undefined
+    : mapRegistrySnapshot(root["event_registry"], "event_registry");
+  const integrityRun = root["integrity_run"] === undefined
+    ? undefined
+    : mapIntegrityRun(root["integrity_run"]);
 
   return {
     version,
@@ -436,6 +478,8 @@ export function mapContestAnticheatConfigDto(
       ),
     },
     devicePolicy: parsedDevicePolicy,
+    eventRegistry,
+    integrityRun,
     frontendControlledSettings: {
       global: rawGlobalSettings.map(mapSetting),
       contest: rawContestSettings.map(mapSetting),

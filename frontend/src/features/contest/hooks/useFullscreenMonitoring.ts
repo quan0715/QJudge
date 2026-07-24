@@ -1,112 +1,79 @@
-/**
- * useFullscreenMonitoring
- *
- * Fullscreen exit detection.
- * Detection logic (fullscreenchange + 100ms settlement) lives here.
- * Timer/countdown/event-recording is delegated to useViolationPipeline.
- */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { IntegrityJsonValue } from "@/core/entities/examIntegrity.entity";
 import { isFullscreen } from "@/core/usecases/exam";
-import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
-import { useViolationPipeline } from "./useViolationPipeline";
-import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
-import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
+import type { IntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;
-const FULLSCREEN_RECOVERY_GRACE_MS = 30_000;
 const VERIFY_INTERVAL_MS = 10_000;
 
 export interface UseFullscreenMonitoringConfig {
-  contestId: string;
   enabled: boolean;
   examSubmitted: boolean;
-  evidenceCaptureModules?: ForcedCaptureModule[];
-  onViolation: (eventType: string, reason: string) => void;
-  requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
+  emitter: IntegritySignalEmitter;
 }
 
 export interface UseFullscreenMonitoringReturn {
-  recoveryCountdown: number | null;
+  interrupted: boolean;
 }
 
-const fullscreenRoute = VIOLATION_ROUTES_MAP["fullscreen"];
-
+/** Browser observation only. The Worker owns fullscreen grace and actions. */
 export function useFullscreenMonitoring({
-  contestId,
   enabled,
   examSubmitted,
-  evidenceCaptureModules,
-  onViolation,
-  requestForceSubmit,
+  emitter,
 }: UseFullscreenMonitoringConfig): UseFullscreenMonitoringReturn {
-  const pipeline = useViolationPipeline({
-    route: fullscreenRoute,
-    contestId,
-    enabled,
-    examSubmitted,
-    recoveryGraceMs: FULLSCREEN_RECOVERY_GRACE_MS,
-    moduleRole: "primary",
-    requestForceSubmit,
-    onViolation,
-    forceSubmitExtras: {
-      sourceModule: "screen_share",
-      evidenceCaptureModules,
-    },
-  });
-
-  const pipelineRef = useRef(pipeline);
-  useEffect(() => {
-    pipelineRef.current = pipeline;
-  }, [pipeline]);
-
-  const lastVerifyResponseRef = useRef<string | null>(null);
+  const [interrupted, setInterrupted] = useState(false);
+  const emitterRef = useRef(emitter);
 
   useEffect(() => {
-    if (!enabled || examSubmitted) return;
+    emitterRef.current = emitter;
+  }, [emitter]);
 
+  useEffect(() => {
+    if (!enabled || examSubmitted) {
+      setInterrupted(false);
+      return;
+    }
+
+    const emit = (eventType: string, payload: Record<string, IntegrityJsonValue> = {}) => {
+      void emitterRef.current.emit({
+        eventType,
+        clientOccurredAtMs: Date.now(),
+        payload,
+      });
+    };
     const handleFullscreenChange = (event: Event) => {
-      // Integrity verification token — not a real fullscreen change
-      const verifyToken = (event as Event & { __examVerify?: string })
-        .__examVerify;
+      const verifyToken = (event as Event & { __examVerify?: string }).__examVerify;
       if (verifyToken) {
         lastVerifyResponseRef.current = verifyToken;
         return;
       }
-
-      // Wait for browser to settle fullscreen state
-      setTimeout(() => {
-        if (isFullscreen()) {
-          pipelineRef.current.recover("fullscreen_restored");
-        } else {
-          pipelineRef.current.trigger();
-        }
+      window.setTimeout(() => {
+        const fullscreen = isFullscreen();
+        setInterrupted(!fullscreen);
+        emit(fullscreen ? "fullscreen_restored" : "exit_fullscreen_triggered", {
+          fullscreen,
+        });
       }, FULLSCREEN_SETTLEMENT_MS);
     };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    // Listener integrity verification (every 10s)
-    const verifyTimer = setInterval(() => {
+    const lastVerifyResponseRef = { current: null as string | null };
+    const verifyTimer = window.setInterval(() => {
       const token = crypto.randomUUID();
-
       lastVerifyResponseRef.current = null;
-      const synthetic = new Event("fullscreenchange");
-      (synthetic as Event & { __examVerify?: string }).__examVerify = token;
+      const synthetic = new Event("fullscreenchange") as Event & { __examVerify?: string };
+      synthetic.__examVerify = token;
       document.dispatchEvent(synthetic);
-
       if (lastVerifyResponseRef.current !== token) {
-        onViolation(
-          "listener_tampered",
-          "Fullscreen listener integrity check failed",
-        );
+        emit("listener_tampered", { listener: "fullscreenchange" });
       }
     }, VERIFY_INTERVAL_MS);
 
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      clearInterval(verifyTimer);
+      window.clearInterval(verifyTimer);
     };
-  }, [enabled, examSubmitted, onViolation]);
+  }, [enabled, examSubmitted]);
 
-  return { recoveryCountdown: pipeline.recoveryCountdown };
+  return { interrupted };
 }
