@@ -197,6 +197,10 @@ services:
       - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
     group_add:
       - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group}"
+    # Docker Desktop commonly exposes a user-owned socket (for example UID 501
+    # on macOS), unlike Linux's root:docker 0660 socket.  Production and test
+    # keep the image's non-root UID; dev explicitly adopts the local owner.
+    user: "${DOCKER_SOCKET_UID:?Set DOCKER_SOCKET_UID to the UID owning the host Docker socket}"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m

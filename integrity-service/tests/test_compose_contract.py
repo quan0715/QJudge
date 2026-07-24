@@ -37,6 +37,7 @@ def compose_config(repo_root: Path, compose_file: str) -> dict[str, Any]:
         "OBJECT_STORAGE_SECRET_KEY": "compose-contract-secret-key",
         "TUNNEL_TOKEN": "compose-contract-tunnel-token",
         "DOCKER_GID": "999",
+        "DOCKER_SOCKET_UID": "501",
         "INTEGRITY_TEST_SECRETS_DIR": "/tmp/qjudge-integrity-compose-contract",
         "INTEGRITY_WORKER_NETWORK": "qjudge-contract-main-network",
         "INTEGRITY_WORKER_NETWORK_DEV": "qjudge-contract-dev-network",
@@ -137,13 +138,13 @@ def _socket_mount_services(services: dict[str, dict[str, Any]]) -> set[str]:
             "docker-compose.dev.yml",
             "backend",
             "oj_network_dev",
-            {"integrity-controller", "celery"},
+            {"integrity-controller", "celery", "celery-high"},
         ),
         (
             "docker-compose.test.yml",
             "backend-test",
             "test-network",
-            {"integrity-controller", "celery-test"},
+            {"integrity-controller", "celery-test", "celery-high-test"},
         ),
     ),
 )
@@ -222,3 +223,12 @@ def test_primary_network_default_matches_backend_setting(repo_root: Path) -> Non
 
     assert '"INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"' in settings
     assert "INTEGRITY_WORKER_NETWORK=online_judge_oj_network" in environment_template
+
+
+def test_dev_controller_runs_as_the_configured_socket_owner(
+    repo_root: Path,
+) -> None:
+    """Docker Desktop's user-owned socket needs its owner UID in dev only."""
+    config = compose_config(repo_root, "docker-compose.dev.yml")
+
+    assert config["services"]["integrity-controller"]["user"] == "501"
