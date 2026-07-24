@@ -581,6 +581,100 @@ def _row_identity(
     )
 
 
+def _decode_context_for_selected_descriptors(
+    selected: list[dict[str, object]],
+    inventory: dict[tuple[str, UUID, int], dict[str, object]],
+    existing_by_identity: dict[tuple[str, UUID, int], ExamEvidenceChunk],
+) -> tuple[list[dict[str, object]], list[ExamEvidenceChunk]]:
+    """Return submitted decode context and already-persisted context rows.
+
+    Each retained media chunk needs a complete, exact predecessor chain back
+    to its recording session init chunk. Submitted context is deliberately
+    promoted into the manifest even when it does not overlap the incident.
+    """
+
+    required_descriptors: dict[
+        tuple[str, UUID, int], dict[str, object]
+    ] = {}
+    existing_context: dict[tuple[str, UUID, int], ExamEvidenceChunk] = {}
+    for selected_descriptor in selected:
+        current_descriptor: dict[str, object] | None = selected_descriptor
+        current_row: ExamEvidenceChunk | None = None
+        while current_descriptor is not None or current_row is not None:
+            if current_descriptor is not None:
+                identity = _descriptor_identity(current_descriptor)
+                persisted = existing_by_identity.get(identity)
+                if persisted is not None and not _descriptor_fields_match(
+                    persisted,
+                    current_descriptor,
+                ):
+                    raise IntegrityEvidenceRejected(
+                        "evidence_chunk_chain_mismatch"
+                        if current_descriptor["is_init_chunk"]
+                        else "evidence_chunk_identity_conflict"
+                    )
+                required_descriptors.setdefault(identity, current_descriptor)
+                chunk_seq = int(current_descriptor["chunk_seq"])
+                is_init_chunk = bool(current_descriptor["is_init_chunk"])
+                previous_sha256 = str(current_descriptor["previous_sha256"])
+            else:
+                assert current_row is not None
+                identity = _row_identity(current_row)
+                existing_context.setdefault(identity, current_row)
+                chunk_seq = current_row.chunk_seq
+                is_init_chunk = current_row.is_init_chunk
+                previous_sha256 = current_row.previous_sha256
+            if is_init_chunk:
+                if chunk_seq not in {0, 1} or previous_sha256:
+                    raise IntegrityEvidenceRejected(
+                        "evidence_chunk_chain_mismatch"
+                    )
+                break
+            if chunk_seq < 1:
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+            predecessor_identity = (
+                identity[0],
+                identity[1],
+                chunk_seq - 1,
+            )
+            submitted_predecessor = inventory.get(predecessor_identity)
+            persisted_predecessor = existing_by_identity.get(
+                predecessor_identity,
+            )
+            if submitted_predecessor is not None:
+                if (
+                    persisted_predecessor is not None
+                    and not _descriptor_fields_match(
+                        persisted_predecessor,
+                        submitted_predecessor,
+                    )
+                ):
+                    raise IntegrityEvidenceRejected(
+                        "evidence_chunk_identity_conflict"
+                    )
+                if previous_sha256 != submitted_predecessor["sha256"]:
+                    raise IntegrityEvidenceRejected(
+                        "evidence_chunk_chain_mismatch"
+                    )
+                current_descriptor = submitted_predecessor
+                current_row = None
+                continue
+            if persisted_predecessor is None:
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+            if previous_sha256 != persisted_predecessor.sha256:
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+            current_descriptor = None
+            current_row = persisted_predecessor
+    return (
+        [
+            descriptor
+            for identity, descriptor in inventory.items()
+            if identity in required_descriptors
+        ],
+        list(existing_context.values()),
+    )
+
+
 def _chunk_associated_with_incident(
     row: ExamEvidenceChunk,
     incident_id: UUID,
@@ -597,6 +691,7 @@ def _enforce_incident_source_budget(
     event: ExamEvent,
     descriptors: list[dict[str, object]],
     existing_rows: list[ExamEvidenceChunk],
+    existing_context_rows: list[ExamEvidenceChunk],
 ) -> None:
     policy = run.policy_snapshot
     evidence = policy.get("evidence") if type(policy) is dict else None
@@ -610,9 +705,9 @@ def _enforce_incident_source_budget(
     existing_by_identity = {
         _row_identity(row): row for row in existing_rows
     }
-    for source in {
-        str(descriptor["source"]) for descriptor in descriptors
-    }:
+    sources = {str(descriptor["source"]) for descriptor in descriptors}
+    sources.update(row.source for row in existing_context_rows)
+    for source in sources:
         bytes_by_identity = {
             _row_identity(row): row.byte_size
             for row in existing_rows
@@ -634,6 +729,9 @@ def _enforce_incident_source_budget(
                 if row is not None
                 else int(descriptor["byte_size"])
             )
+        for row in existing_context_rows:
+            if row.source == source:
+                bytes_by_identity[_row_identity(row)] = row.byte_size
         if sum(bytes_by_identity.values()) > cap_bytes:
             raise IntegrityEvidenceRejected(
                 "evidence_incident_source_limit_exceeded"
@@ -829,11 +927,22 @@ def create_evidence_manifest(
                 participant=participant,
             )
         )
+        existing_by_identity = {
+            _row_identity(row): row for row in existing_rows
+        }
+        selected, existing_context_rows = (
+            _decode_context_for_selected_descriptors(
+                selected,
+                inventory,
+                existing_by_identity,
+            )
+        )
         _enforce_incident_source_budget(
             locked_run,
             event,
             selected,
             existing_rows,
+            existing_context_rows,
         )
         for descriptor in selected:
             submitted_predecessor = inventory.get(
@@ -850,10 +959,9 @@ def create_evidence_manifest(
                 submitted_predecessor,
                 existing_rows,
             )
-        existing_by_identity = {
-            _row_identity(row): row for row in existing_rows
-        }
-        rows: list[ExamEvidenceChunk] = []
+        rows_by_identity: dict[
+            tuple[str, UUID, int], ExamEvidenceChunk
+        ] = {}
         for descriptor in selected:
             lookup = {
                 "integrity_run": locked_run,
@@ -907,7 +1015,32 @@ def create_evidence_manifest(
                 if metadata != row.metadata:
                     row.metadata = metadata
                     row.save(update_fields=["metadata"])
-            rows.append(row)
+            rows_by_identity[_row_identity(row)] = row
+        for row in existing_context_rows:
+            metadata = _merged_association_metadata(
+                row,
+                event,
+                {
+                    "local_descriptor_id": str(
+                        (row.metadata if type(row.metadata) is dict else {}).get(
+                            "local_descriptor_id",
+                            "",
+                        )
+                    )
+                },
+            )
+            if metadata != row.metadata:
+                row.metadata = metadata
+                row.save(update_fields=["metadata"])
+            rows_by_identity[_row_identity(row)] = row
+        rows = sorted(
+            rows_by_identity.values(),
+            key=lambda row: (
+                row.source,
+                str(row.recording_session_id),
+                row.chunk_seq,
+            ),
+        )
         client = get_s3_client(
             endpoint_url=(
                 settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or ""
