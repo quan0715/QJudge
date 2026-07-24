@@ -164,11 +164,18 @@ const wireDescriptor = (descriptor: StoredEvidenceDescriptor): ExamIntegrityEvid
  * IndexedDB contains searchable descriptors and durable upload/retention state.
  */
 export class OpfsEvidenceStore {
+  private readonly database: IDBDatabase;
+  private readonly options: Required<Pick<OpfsEvidenceStoreOptions, "runId" | "deviceId">> &
+    Pick<OpfsEvidenceStoreOptions, "now" | "createId"> & { opfs: OpfsDirectory };
+
   private constructor(
-    private readonly database: IDBDatabase,
-    private readonly options: Required<Pick<OpfsEvidenceStoreOptions, "runId" | "deviceId">> &
+    database: IDBDatabase,
+    options: Required<Pick<OpfsEvidenceStoreOptions, "runId" | "deviceId">> &
       Pick<OpfsEvidenceStoreOptions, "now" | "createId"> & { opfs: OpfsDirectory },
-  ) {}
+  ) {
+    this.database = database;
+    this.options = options;
+  }
 
   static async open(options: OpfsEvidenceStoreOptions): Promise<OpfsEvidenceStore> {
     if (typeof indexedDB === "undefined") throw new Error("IndexedDB is required for integrity evidence");

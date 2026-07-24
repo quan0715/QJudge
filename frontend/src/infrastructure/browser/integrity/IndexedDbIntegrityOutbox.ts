@@ -392,7 +392,6 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
     const done = transactionDone(transaction);
     const recordsStore = transaction.objectStore(RECORDS_STORE);
     const metaStore = transaction.objectStore(META_STORE);
-    const descriptorStore = transaction.objectStore(EVIDENCE_DESCRIPTORS_STORE);
     try {
       const meta = await requestResult(
         metaStore.get([this.options.runId, this.options.deviceId]),
@@ -478,10 +477,14 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
     if (runId !== this.options.runId || deviceId !== this.options.deviceId) {
       throw new Error("ACK identity does not match this integrity outbox");
     }
-    const transaction = this.database.transaction([RECORDS_STORE, META_STORE], "readwrite");
+    const transaction = this.database.transaction(
+      [RECORDS_STORE, META_STORE, EVIDENCE_DESCRIPTORS_STORE],
+      "readwrite",
+    );
     const done = transactionDone(transaction);
     const recordsStore = transaction.objectStore(RECORDS_STORE);
     const metaStore = transaction.objectStore(META_STORE);
+    const descriptorStore = transaction.objectStore(EVIDENCE_DESCRIPTORS_STORE);
     try {
       const meta = await requestResult(
         metaStore.get([this.options.runId, this.options.deviceId]),

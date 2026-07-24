@@ -37,6 +37,30 @@ const numericEventId = (eventId: string): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 && String(parsed) === eventId ? parsed : null;
 };
 
+type CoverageIssue = "local_window_incomplete" | "local_chunk_unavailable";
+
+const localCoverageIssue = (
+  descriptors: StoredEvidenceDescriptor[],
+  startAtMs: number,
+  endAtMs: number,
+): CoverageIssue | null => {
+  const overlapping = descriptors.filter((descriptor) => intersects(descriptor, startAtMs, endAtMs));
+  if (overlapping.some((descriptor) => descriptor.localAvailability !== "available")) {
+    return "local_chunk_unavailable";
+  }
+
+  let coveredThroughMs = startAtMs;
+  for (const descriptor of overlapping
+    .filter((item) => item.localAvailability === "available")
+    .sort((left, right) => left.startAtMs - right.startAtMs || left.endAtMs - right.endAtMs)) {
+    if (descriptor.endAtMs <= coveredThroughMs) continue;
+    if (descriptor.startAtMs > coveredThroughMs) return "local_window_incomplete";
+    coveredThroughMs = descriptor.endAtMs;
+    if (coveredThroughMs >= endAtMs) return null;
+  }
+  return "local_window_incomplete";
+};
+
 /**
  * Feature orchestration for incident-only evidence. It has no detector or
  * policy authority: Worker-projected retain windows are the sole upload trigger.
@@ -44,8 +68,11 @@ const numericEventId = (eventId: string): number | null => {
 export class EvidenceCoordinator {
   private readonly inFlight = new Map<string, Promise<void>>();
   private releaseBeforeMs = 0;
+  private readonly options: EvidenceCoordinatorOptions;
 
-  constructor(private readonly options: EvidenceCoordinatorOptions) {}
+  constructor(options: EvidenceCoordinatorOptions) {
+    this.options = options;
+  }
 
   async start(): Promise<void> {
     await this.options.store.reconcile();
@@ -133,14 +160,21 @@ export class EvidenceCoordinator {
   private async retainOnce(command: EvidenceRetainCommand): Promise<void> {
     const all = await this.options.store.listDescriptors();
     const selectedBySource = new Map<IntegrityEvidenceSource, StoredEvidenceDescriptor[]>();
+    const unavailableSources = new Map<IntegrityEvidenceSource, CoverageIssue>();
     for (const source of command.sources) {
-      const overlapping = all.filter((descriptor) =>
+      const sourceDescriptors = all.filter((descriptor) => descriptor.source === source);
+      const overlapping = sourceDescriptors.filter((descriptor) =>
         descriptor.source === source &&
         descriptor.localAvailability === "available" &&
         intersects(descriptor, command.startAtMs, command.endAtMs),
       );
+      const coverageIssue = localCoverageIssue(
+        sourceDescriptors,
+        command.startAtMs,
+        command.endAtMs,
+      );
+      if (coverageIssue) unavailableSources.set(source, coverageIssue);
       if (overlapping.length === 0) {
-        await this.reportSourceUnavailable(command, source, "source_unavailable");
         continue;
       }
       const withInit = new Map(overlapping.map((descriptor) => [descriptor.localDescriptorId, descriptor]));
@@ -159,7 +193,12 @@ export class EvidenceCoordinator {
     }
 
     const selected = [...selectedBySource.values()].flat();
-    if (selected.length === 0) return;
+    if (selected.length === 0) {
+      await Promise.all([...unavailableSources].map(([source, reason]) =>
+        this.reportSourceUnavailable(command, source, reason),
+      ));
+      return;
+    }
     await this.options.store.protect(command.commandId, selected);
     let commandCompleted = false;
     try {
@@ -218,6 +257,9 @@ export class EvidenceCoordinator {
       if (requiredDescriptorIds.some((localDescriptorId) => !handledDescriptorIds.has(localDescriptorId))) {
         throw new Error("Evidence manifest omitted an intersecting chunk");
       }
+      await Promise.all([...unavailableSources].map(([source, reason]) =>
+        this.reportSourceUnavailable(command, source, reason),
+      ));
       commandCompleted = true;
     } finally {
       // The Backend repeats an incomplete command. Keep protection through a

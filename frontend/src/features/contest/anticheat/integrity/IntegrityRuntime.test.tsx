@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
@@ -136,6 +136,7 @@ describe("IntegrityRuntime", () => {
       markVerified: vi.fn(),
       markUnavailable: vi.fn(),
       deleteDescriptor: vi.fn(),
+      reconcile: vi.fn().mockResolvedValue(undefined),
     } as unknown as OpfsEvidenceStore;
     const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceStore);
     const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
@@ -178,6 +179,74 @@ describe("IntegrityRuntime", () => {
     expect(outbox.append).toHaveBeenCalledTimes(1);
     expect(transportStartSpy).toHaveBeenCalledTimes(1);
     unmount();
+    expect(transportStopSpy).toHaveBeenCalledTimes(1);
+    openSpy.mockRestore();
+    evidenceOpenSpy.mockRestore();
+    transportStartSpy.mockRestore();
+    transportStopSpy.mockRestore();
+  });
+
+  it("durably records a required evidence source with no supplied stream", async () => {
+    const outbox = {
+      append: vi.fn().mockResolvedValue({}),
+      close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IndexedDbIntegrityOutbox;
+    const evidenceStore = {
+      close: vi.fn().mockResolvedValue(undefined),
+      reconcile: vi.fn().mockResolvedValue(undefined),
+      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
+      markReported: vi.fn().mockResolvedValue(undefined),
+      listDescriptors: vi.fn().mockResolvedValue([]),
+      getBlob: vi.fn(),
+      protect: vi.fn(),
+      releaseProtection: vi.fn(),
+      markRequested: vi.fn(),
+      markVerified: vi.fn(),
+      markUnavailable: vi.fn(),
+      deleteDescriptor: vi.fn(),
+    } as unknown as OpfsEvidenceStore;
+    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
+    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceStore);
+    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
+    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
+    const { unmount } = renderHook(() => useIntegrityRuntime({
+      enabled: true,
+      contestId: "contest-a",
+      integrityRun: {
+        id: "33333333-3333-3333-3333-333333333333",
+        computeState: "running",
+        health: "healthy",
+        participantId: 44,
+        policySnapshot: {
+          device_policy: {
+            required_webcam: {
+              enabled: true,
+              sources: { webcam: { enabled: true } },
+            },
+          },
+        },
+        registrySnapshot: {
+          version: "test",
+          definitions: frontendRegistryDefinitions,
+        },
+      },
+      snapshotProvider: () => ({
+        pageVisible: true,
+        online: true,
+        fullscreen: true,
+        screenCapture: "disabled",
+        webcamCapture: "unavailable",
+        activeSourceDescriptors: [],
+      }),
+    }));
+
+    await waitFor(() => expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: "evidence_source_degraded",
+      payload: { source: "webcam", reason: "stream_unavailable" },
+    })));
+
+    unmount();
+    expect(transportStartSpy).toHaveBeenCalledTimes(1);
     expect(transportStopSpy).toHaveBeenCalledTimes(1);
     openSpy.mockRestore();
     evidenceOpenSpy.mockRestore();

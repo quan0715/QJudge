@@ -285,7 +285,23 @@ export const useIntegrityRuntime = ({
         const epochId = crypto.randomUUID();
         for (const source of ["screen_share", "webcam"] as const) {
           const stream = evidenceSources?.[source];
-          if (!enabledSources.has(source) || !stream) continue;
+          if (!enabledSources.has(source)) continue;
+          if (!stream) {
+            await runtime.emit({
+              eventType: "evidence_source_degraded",
+              clientOccurredAtMs: Date.now(),
+              payload: { source, reason: "stream_unavailable" },
+            });
+            continue;
+          }
+          if (!stream.active || stream.getVideoTracks().length === 0) {
+            await runtime.emit({
+              eventType: "evidence_source_degraded",
+              clientOccurredAtMs: Date.now(),
+              payload: { source, reason: "stream_ended" },
+            });
+            continue;
+          }
           let chunker: MediaRecorderChunker;
           chunker = new MediaRecorderChunker({
             source,

@@ -125,7 +125,8 @@ export class MediaRecorderChunker {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    if (this.recorder?.state !== "inactive") this.recorder.stop();
+    const recorder = this.recorder;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
   }
 
   private get segmentDurationMs(): number {
@@ -133,8 +134,9 @@ export class MediaRecorderChunker {
   }
 
   private rotate(): void {
-    if (!this.started || this.recorder?.state === "inactive") return;
-    this.recorder.stop();
+    const recorder = this.recorder;
+    if (!this.started || !recorder || recorder.state === "inactive") return;
+    recorder.stop();
   }
 
   private startRecorder(): void {

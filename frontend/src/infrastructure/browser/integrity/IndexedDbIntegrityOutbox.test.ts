@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ExamIntegrityEvidenceDescriptor } from "@/core/entities/examIntegrity.entity";
 
 import {
   IndexedDbIntegrityOutbox,
@@ -37,6 +38,79 @@ const baseSignal = (eventType: string, clientOccurredAtMs: number) => ({
   clientOccurredAtMs,
   payload: { eventType },
 });
+
+const transactionDone = (transaction: IDBTransaction): Promise<void> =>
+  new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+
+const openDatabase = (databaseName: string): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open(databaseName);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+const requestResult = <T>(request: IDBRequest<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+const evidenceDescriptor = (): ExamIntegrityEvidenceDescriptor => ({
+  source: "screen_share",
+  recordingSessionId: "55555555-5555-4555-8555-555555555555",
+  chunkSeq: 1,
+  isInitChunk: true,
+  startAtMs: 1_000,
+  endAtMs: 6_000,
+  byteSize: 1_024,
+  codec: "video/webm;codecs=vp8",
+  contentType: "video/webm",
+  sha256: "a".repeat(64),
+  previousSha256: "",
+  localDescriptorId: "44444444-4444-4444-8444-444444444444",
+});
+
+const storeDescriptor = async (
+  databaseName: string,
+  descriptor: ExamIntegrityEvidenceDescriptor,
+): Promise<void> => {
+  const database = await openDatabase(databaseName);
+  try {
+    const transaction = database.transaction("evidenceDescriptors", "readwrite");
+    transaction.objectStore("evidenceDescriptors").put({
+      ...descriptor,
+      runId: RUN_ID,
+      deviceId: DEVICE_ID,
+      batchAcked: false,
+    });
+    await transactionDone(transaction);
+  } finally {
+    database.close();
+  }
+};
+
+const readStoredDescriptor = async (
+  databaseName: string,
+  localDescriptorId: string,
+): Promise<{ batchAcked?: boolean } | undefined> => {
+  const database = await openDatabase(databaseName);
+  try {
+    const transaction = database.transaction("evidenceDescriptors", "readonly");
+    const descriptor = await requestResult(transaction.objectStore("evidenceDescriptors").get([
+      RUN_ID,
+      DEVICE_ID,
+      localDescriptorId,
+    ])) as { batchAcked?: boolean } | undefined;
+    await transactionDone(transaction);
+    return descriptor;
+  } finally {
+    database.close();
+  }
+};
 
 const seededOutbox = async (count: number) => {
   const outbox = await openTestOutbox();
@@ -135,6 +209,26 @@ describe("IndexedDbIntegrityOutbox", () => {
     expect((await outbox.listPending()).map((item) => item.seq)).toEqual(
       Array.from({ length: 8 }, (_, index) => index + 43),
     );
+    await outbox.close();
+  });
+
+  it("ACKs a descriptor-bearing snapshot and marks its local descriptor durable", async () => {
+    const outbox = await openTestOutbox();
+    const databaseName = [...databaseNames][0]!;
+    const descriptor = evidenceDescriptor();
+    await storeDescriptor(databaseName, descriptor);
+    await outbox.append({
+      ...baseSignal("state_snapshot", 1_000),
+      evidenceDescriptors: [descriptor],
+    });
+
+    const batch = await outbox.claimBatch({ maxRecords: 200, maxBytes: 1_048_576 });
+    await outbox.ackThrough(RUN_ID, DEVICE_ID, batch!.lastSeq);
+
+    expect(await outbox.listPending()).toEqual([]);
+    expect(await readStoredDescriptor(databaseName, descriptor.localDescriptorId)).toMatchObject({
+      batchAcked: true,
+    });
     await outbox.close();
   });
 
