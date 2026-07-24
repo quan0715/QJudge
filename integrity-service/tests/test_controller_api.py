@@ -85,6 +85,15 @@ def _headers(token: str = TOKEN) -> dict[str, str]:
     return {"Authorization": "Bearer " + token}
 
 
+def test_health_is_public_only_for_its_get_route(client, runtime):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert client.post("/health").status_code == 401
+    assert runtime.mock_calls == []
+
+
 @pytest.mark.parametrize(
     "headers",
     [
@@ -94,7 +103,7 @@ def _headers(token: str = TOKEN) -> dict[str, str]:
         {"Authorization": "Bearer "},
     ],
 )
-def test_every_controller_endpoint_requires_bearer_authentication(
+def test_every_lifecycle_endpoint_requires_bearer_authentication(
     client, runtime, headers
 ):
     calls = [

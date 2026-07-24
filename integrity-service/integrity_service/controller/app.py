@@ -116,6 +116,8 @@ def create_app(
 
     @application.middleware("http")
     async def authenticate_before_routing(request: Request, call_next):
+        if request.method == "GET" and request.url.path == "/health":
+            return await call_next(request)
         try:
             authenticate(request)
         except HTTPException as error:
@@ -124,6 +126,10 @@ def create_app(
                 content={"detail": error.detail},
             )
         return await call_next(request)
+
+    @application.get("/health")
+    async def health():
+        return {"status": "ok"}
 
     async def parse_body(request: Request, schema: type[Schema]) -> Schema:
         try:

@@ -46,6 +46,8 @@ def compose_config(repo_root: Path, compose_file: str) -> dict[str, Any]:
         [
             "docker",
             "compose",
+            "--profile",
+            "build",
             "--env-file",
             str(repo_root / ".env.example"),
             "-f",
@@ -111,19 +113,46 @@ def _volume_is_read_only(volume: Any) -> bool:
     return str(volume).endswith(":ro")
 
 
+def _socket_mount_services(services: dict[str, dict[str, Any]]) -> set[str]:
+    return {
+        service_name
+        for service_name, service in services.items()
+        if any(
+            _volume_target(volume) == "/var/run/docker.sock"
+            for volume in service.get("volumes", [])
+        )
+    }
+
+
 @pytest.mark.parametrize(
-    ("compose_file", "backend_service", "network"),
-    [
-        ("docker-compose.yml", "backend", "oj_network"),
-        ("docker-compose.dev.yml", "backend", "oj_network_dev"),
-        ("docker-compose.test.yml", "backend-test", "test-network"),
-    ],
+    ("compose_file", "backend_service", "network", "socket_services"),
+    (
+        (
+            "docker-compose.yml",
+            "backend",
+            "oj_network",
+            {"integrity-controller", "celery-high", "celery"},
+        ),
+        (
+            "docker-compose.dev.yml",
+            "backend",
+            "oj_network_dev",
+            {"integrity-controller", "celery"},
+        ),
+        (
+            "docker-compose.test.yml",
+            "backend-test",
+            "test-network",
+            {"integrity-controller", "celery-test"},
+        ),
+    ),
 )
 def test_integrity_compose_contract(
     repo_root: Path,
     compose_file: str,
     backend_service: str,
     network: str,
+    socket_services: set[str],
 ) -> None:
     config = compose_config(repo_root, compose_file)
     services = config["services"]
@@ -142,6 +171,7 @@ def test_integrity_compose_contract(
     assert controller["group_add"] == ["999"]
     assert controller.get("profiles", []) == []
     assert "build" in compose_profiles(repo_root, compose_file)
+    assert _socket_mount_services(services) == socket_services
 
     assert any(
         _volume_target(volume) == "/var/run/docker.sock"
@@ -165,6 +195,16 @@ def test_integrity_compose_contract(
 
     assert controller_environment["INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE"] == (
         "/run-secrets/controller-token"
+    )
+    controller_token_volumes = [
+        volume
+        for volume in controller_volumes
+        if _volume_target(volume) == "/run-secrets/controller-token"
+    ]
+    assert controller_token_volumes
+    assert all(_volume_is_read_only(volume) for volume in controller_token_volumes)
+    assert "http://localhost:8010/health" in json.dumps(
+        controller["healthcheck"]["test"]
     )
     assert controller_environment["INTEGRITY_WORKER_NETWORK"] == config["networks"][network]["name"]
     assert backend_environment["INTEGRITY_CONTROLLER_URL"] == "http://integrity-controller:8010"
