@@ -10,6 +10,7 @@ import pytest
 from botocore.exceptions import ClientError
 from django.core.cache import cache
 from django.db import connection
+from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -24,7 +25,11 @@ from apps.contests.models import (
     ExamStatus,
 )
 from apps.contests.integrity_serializers import EvidenceChunkDescriptorSerializer
-from apps.contests.services.anti_cheat_session import active_session_key
+from apps.contests.services.anti_cheat_session import (
+    active_session_key,
+    get_active_session,
+    set_active_session,
+)
 from apps.contests.services import (
     integrity_evidence as integrity_evidence_service,
 )
@@ -337,12 +342,33 @@ def test_missing_or_unknown_device_binding_cannot_suppress_evidence_source(
 
 
 @pytest.mark.django_db
-def test_bound_tablet_policy_ignores_spoofed_desktop_event_metadata(
+def test_spoofed_tablet_user_agent_cannot_narrow_frozen_source_union(
     integrity_run,
     participant,
     incident_event,
 ):
-    bind_active_device(participant, "tablet")
+    metadata = dict(incident_event.metadata)
+    metadata["device_kind"] = "tablet"
+    incident_event.metadata = metadata
+    incident_event.save(update_fields=["metadata"])
+    spoofed_user_agent = (
+        "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
+        "AppleWebKit/605.1.15 Mobile/15E148"
+    )
+    request = RequestFactory().post(
+        "/exam/start",
+        HTTP_USER_AGENT=spoofed_user_agent,
+    )
+    set_active_session(
+        participant.contest,
+        participant,
+        request,
+        "spoofed-tablet-device",
+    )
+    assert get_active_session(
+        participant.contest_id,
+        participant.user_id,
+    )["ua"] == spoofed_user_agent
 
     windows = evidence_retain_windows(
         integrity_run,
@@ -350,7 +376,7 @@ def test_bound_tablet_policy_ignores_spoofed_desktop_event_metadata(
         after_ms=0,
     )
 
-    assert windows == []
+    assert [window.sources for window in windows] == [("screen_share",)]
 
 
 @pytest.mark.django_db
@@ -668,6 +694,50 @@ def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
     assert list(
         ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
     ) == [2]
+    assert object_store.generate_presigned_url.call_count == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("init_seq", [0, 1])
+def test_manifest_rejects_new_init_after_higher_persisted_non_init_chunk(
+    api_client,
+    incident_event,
+    participant,
+    object_store,
+    init_seq,
+):
+    api_client.force_authenticate(participant.user)
+    persisted = post_manifest(
+        api_client,
+        incident_event,
+        [
+            descriptor(seq=2, start=970_000, end=975_000),
+            descriptor(seq=3, start=1_000_000, end=1_005_000),
+        ],
+    )
+    assert persisted.status_code == 200
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [3]
+    new_init = descriptor(
+        seq=init_seq,
+        start=1_005_000,
+        end=1_010_000,
+    )
+    new_init["is_init_chunk"] = True
+    new_init["previous_sha256"] = ""
+
+    response = post_manifest(
+        api_client,
+        incident_event,
+        [new_init],
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "evidence_chunk_chain_mismatch"
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [3]
     assert object_store.generate_presigned_url.call_count == 1
 
 
@@ -1547,6 +1617,42 @@ def test_purge_rejects_inexact_archive_manifest_chain_before_delete(
     integrity_run.archive_generation = generation
     integrity_run.archive_manifest_key = key
     integrity_run.archive_manifest_sha256 = digest
+    body = BytesIO(content)
+    object_store.get_object.return_value = {
+        "ContentLength": len(content),
+        "Body": body,
+    }
+
+    with pytest.raises(IntegrityEvidenceStorageError):
+        purge_integrity_data(integrity_run)
+
+    object_store.delete_objects.assert_not_called()
+    assert body.closed
+
+
+@pytest.mark.django_db
+def test_generation_one_manifest_requires_explicit_previous_manifest_field(
+    integrity_run,
+    object_store,
+):
+    key, content, _ = archive_manifest(
+        integrity_run,
+        1,
+        previous_manifest=None,
+        previous_manifest_sha256=None,
+    )
+    payload = json.loads(content)
+    payload.pop("previous_manifest")
+    content = json.dumps(
+        payload,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    integrity_run.archive_generation = 1
+    integrity_run.archive_manifest_key = key
+    integrity_run.archive_manifest_sha256 = hashlib.sha256(
+        content,
+    ).hexdigest()
     body = BytesIO(content)
     object_store.get_object.return_value = {
         "ContentLength": len(content),
