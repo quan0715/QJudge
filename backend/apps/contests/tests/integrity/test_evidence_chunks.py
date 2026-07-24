@@ -263,7 +263,7 @@ def bind_active_device(participant, device_kind):
 
 
 @pytest.mark.django_db
-def test_manifest_retains_out_of_window_init_and_dependency_for_decodable_chain(
+def test_manifest_uploads_only_chunks_overlapping_incident_window(
     api_client,
     incident_event,
     participant,
@@ -276,18 +276,19 @@ def test_manifest_retains_out_of_window_init_and_dependency_for_decodable_chain(
         incident_event,
         [
             descriptor(seq=1, start=960_000, end=965_000),
-            descriptor(seq=2, start=970_000, end=975_000),
-            descriptor(seq=3, start=1_000_000, end=1_005_000),
+            descriptor(seq=2, start=995_000, end=1_000_000),
+            descriptor(seq=3, start=1_015_000, end=1_020_000),
+            descriptor(seq=4, start=1_030_000, end=1_035_000),
         ],
     )
 
     assert response.status_code == 200
-    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [1, 2, 3]
-    assert ExamEvidenceChunk.objects.count() == 3
+    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [2, 3]
+    assert ExamEvidenceChunk.objects.count() == 2
     params = object_store.generate_presigned_url.call_args_list[0].kwargs["Params"]
-    assert params["ContentLength"] == 1025
+    assert params["ContentLength"] == 1026
     assert params["ChecksumSHA256"] == base64.b64encode(
-        bytes.fromhex(_digest(1))
+        bytes.fromhex(_digest(2))
     ).decode("ascii")
     assert response.json()["uploads"][0]["required_headers"] == {
         "Content-Type": "video/webm",
@@ -468,7 +469,7 @@ def test_manifest_enforces_unique_incident_source_byte_budget_across_requests(
 
 
 @pytest.mark.django_db
-def test_manifest_counts_out_of_window_decode_context_against_source_budget(
+def test_manifest_counts_only_retained_evidence_against_source_budget(
     api_client,
     incident_event,
     participant,
@@ -477,7 +478,7 @@ def test_manifest_counts_out_of_window_decode_context_against_source_budget(
 ):
     policy = dict(integrity_run.policy_snapshot)
     evidence = dict(policy["evidence"])
-    evidence["local_cap_bytes_per_source"] = 3_077
+    evidence["local_cap_bytes_per_source"] = 1_027
     policy["evidence"] = evidence
     integrity_run.policy_snapshot = policy
     integrity_run.save(update_fields=["policy_snapshot"])
@@ -493,13 +494,12 @@ def test_manifest_counts_out_of_window_decode_context_against_source_budget(
         ],
     )
 
-    assert response.status_code == 400
-    assert (
-        response.json()["code"]
-        == "evidence_incident_source_limit_exceeded"
-    )
-    assert ExamEvidenceChunk.objects.count() == 0
-    object_store.generate_presigned_url.assert_not_called()
+    assert response.status_code == 200
+    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [3]
+    assert object_store.generate_presigned_url.call_count == 1
 
 
 @pytest.mark.django_db
@@ -523,7 +523,7 @@ def test_manifest_does_not_expose_another_participants_incident(
 
 
 @pytest.mark.django_db
-def test_manifest_rejects_chunk_chain_mismatch(
+def test_manifest_rejects_mismatched_supplied_immediate_predecessor(
     api_client,
     incident_event,
     participant,
@@ -535,9 +535,9 @@ def test_manifest_rejects_chunk_chain_mismatch(
         api_client,
         incident_event,
         [
-            descriptor(seq=1, start=995_000, end=1_000_000),
+            descriptor(seq=2, start=970_000, end=975_000),
             descriptor(
-                seq=2,
+                seq=3,
                 start=1_000_000,
                 end=1_005_000,
                 previous_sha256="f" * 64,
@@ -585,7 +585,43 @@ def test_manifest_rejects_mismatch_with_persisted_chain_neighbor(
 
 
 @pytest.mark.django_db
-def test_manifest_rejects_isolated_or_gapped_non_init_chunk(
+def test_manifest_allows_standalone_segment_after_unavailable_predecessor(
+    api_client,
+    incident_event,
+    participant,
+    object_store,
+):
+    api_client.force_authenticate(participant.user)
+    incident_event.client_occurred_at_ms = 975_000
+    incident_event.save(update_fields=["client_occurred_at_ms"])
+    first = post_manifest(
+        api_client,
+        incident_event,
+        [descriptor(seq=2, start=970_000, end=975_000)],
+    )
+    assert first.status_code == 200
+    predecessor = ExamEvidenceChunk.objects.get(chunk_seq=2)
+    predecessor.status = ExamEvidenceChunk.Status.UNAVAILABLE
+    predecessor.save(update_fields=["status"])
+
+    incident_event.client_occurred_at_ms = 1_005_000
+    incident_event.save(update_fields=["client_occurred_at_ms"])
+    response = post_manifest(
+        api_client,
+        incident_event,
+        [descriptor(seq=3, start=1_000_000, end=1_005_000)],
+    )
+
+    assert response.status_code == 200
+    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [2, 3]
+    assert object_store.generate_presigned_url.call_count == 2
+
+
+@pytest.mark.django_db
+def test_manifest_allows_standalone_non_init_chunks_without_predecessors(
     api_client,
     incident_event,
     participant,
@@ -598,27 +634,23 @@ def test_manifest_rejects_isolated_or_gapped_non_init_chunk(
         incident_event,
         [descriptor(seq=2, start=1_000_000, end=1_005_000)],
     )
-    assert isolated.status_code == 400
-    assert isolated.json()["code"] == "evidence_chunk_chain_mismatch"
+    assert isolated.status_code == 200
+    assert [item["chunk_seq"] for item in isolated.json()["uploads"]] == [2]
 
-    initial = post_manifest(
-        api_client,
-        incident_event,
-        [descriptor(seq=1, start=995_000, end=1_000_000)],
-    )
-    assert initial.status_code == 200
     gapped = post_manifest(
         api_client,
         incident_event,
-        [descriptor(seq=3, start=1_005_000, end=1_010_000)],
+        [descriptor(seq=4, start=1_005_000, end=1_010_000)],
     )
-    assert gapped.status_code == 400
-    assert gapped.json()["code"] == "evidence_chunk_chain_mismatch"
-    assert ExamEvidenceChunk.objects.count() == 1
+    assert gapped.status_code == 200
+    assert [item["chunk_seq"] for item in gapped.json()["uploads"]] == [4]
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [2, 4]
 
 
 @pytest.mark.django_db
-def test_manifest_rejects_selected_chunk_with_incomplete_submitted_chain(
+def test_manifest_does_not_retain_unselected_submitted_predecessor(
     api_client,
     incident_event,
     participant,
@@ -635,10 +667,12 @@ def test_manifest_rejects_selected_chunk_with_incomplete_submitted_chain(
         ],
     )
 
-    assert response.status_code == 400
-    assert response.json()["code"] == "evidence_chunk_chain_mismatch"
-    assert ExamEvidenceChunk.objects.count() == 0
-    object_store.generate_presigned_url.assert_not_called()
+    assert response.status_code == 200
+    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
+    assert list(
+        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
+    ) == [3]
+    assert object_store.generate_presigned_url.call_count == 1
 
 
 @pytest.mark.django_db
@@ -707,7 +741,7 @@ def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
     assert persisted.status_code == 200
     assert list(
         ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [1, 2]
+    ) == [2]
     later_init = descriptor(
         seq=8,
         start=1_005_000,
@@ -726,8 +760,8 @@ def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
     assert response.json()["code"] == "evidence_chunk_chain_mismatch"
     assert list(
         ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [1, 2]
-    assert object_store.generate_presigned_url.call_count == 2
+    ) == [2]
+    assert object_store.generate_presigned_url.call_count == 1
 
 
 @pytest.mark.django_db
@@ -752,7 +786,7 @@ def test_manifest_rejects_new_init_after_higher_persisted_non_init_chunk(
     assert persisted.status_code == 200
     assert list(
         ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [1, 2, 3]
+    ) == [3]
     new_init = descriptor(
         seq=init_seq,
         start=1_005_000,
@@ -771,8 +805,8 @@ def test_manifest_rejects_new_init_after_higher_persisted_non_init_chunk(
     assert response.json()["code"] == "evidence_chunk_chain_mismatch"
     assert list(
         ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [1, 2, 3]
-    assert object_store.generate_presigned_url.call_count == 3
+    ) == [3]
+    assert object_store.generate_presigned_url.call_count == 1
 
 
 @pytest.mark.django_db
