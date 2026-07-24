@@ -167,6 +167,15 @@ const performFetch = (endpoint: string, init: RequestInit = {}) =>
     credentials: "include",
   });
 
+/**
+ * One-shot request path for protocols whose POST identity must never be
+ * replayed by the generic authentication flow. It deliberately keeps the
+ * shared cookie, CSRF, and device headers, but does not refresh, redirect, or
+ * otherwise issue a second request.
+ */
+const performSingleFetch = (endpoint: string, init: RequestInit = {}) =>
+  performFetch(endpoint, { ...init, redirect: "error" });
+
 let refreshPromise: Promise<boolean> | null = null;
 
 const refreshAuthSession = async (): Promise<boolean> => {
@@ -267,6 +276,7 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
 export const httpClient = {
   request: customFetch,
+  requestOnce: performSingleFetch,
   get: (url: string, init?: RequestInit) =>
     customFetch(url, { ...init, method: "GET" }),
   post: (url: string, body?: any, init?: RequestInit) =>

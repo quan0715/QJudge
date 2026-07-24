@@ -10,7 +10,7 @@ import type {
   ExamIntegrityOutbox,
 } from "@/core/ports/examIntegrity.port";
 
-import { IntegrityTransport } from "./IntegrityTransport";
+import { IntegrityTransport, type IntegrityTransportOptions } from "./IntegrityTransport";
 
 const RUN_ID = "33333333-3333-3333-3333-333333333333";
 const DEVICE_ID = "device-a";
@@ -18,6 +18,7 @@ const DEVICE_ID = "device-a";
 class MemoryOutbox implements ExamIntegrityOutbox {
   private nextSeq = 1;
   private batchId: string | null = null;
+  private claimedRecords: ExamIntegrityRecord[] | null = null;
   private readonly records: ExamIntegrityRecord[] = [];
   readonly appendedRecords: ExamIntegrityRecord[] = [];
 
@@ -42,6 +43,7 @@ class MemoryOutbox implements ExamIntegrityOutbox {
   async claimBatch(): Promise<ClaimedIntegrityBatch | null> {
     if (this.records.length === 0) return null;
     this.batchId ??= "22222222-2222-2222-2222-222222222222";
+    this.claimedRecords ??= [...this.records];
     return {
       schemaVersion: 1,
       batchId: this.batchId,
@@ -49,16 +51,19 @@ class MemoryOutbox implements ExamIntegrityOutbox {
       participantId: 44,
       deviceId: DEVICE_ID,
       registryVersion: "2026-07-21.1",
-      firstSeq: this.records[0].seq,
-      lastSeq: this.records[this.records.length - 1].seq,
-      records: [...this.records],
+      firstSeq: this.claimedRecords[0].seq,
+      lastSeq: this.claimedRecords[this.claimedRecords.length - 1].seq,
+      records: [...this.claimedRecords],
       clientBuild: "frontend-test",
     };
   }
 
   async ackThrough(_runId: string, _deviceId: string, seq: number): Promise<void> {
     while (this.records[0]?.seq <= seq) this.records.shift();
-    if (this.records.length === 0) this.batchId = null;
+    if (this.claimedRecords && seq >= this.claimedRecords[this.claimedRecords.length - 1].seq) {
+      this.batchId = null;
+      this.claimedRecords = null;
+    }
   }
 
   async failBatch(_batchId: string, _failure: BatchFailure): Promise<void> {}
@@ -88,7 +93,7 @@ describe("IntegrityTransport", () => {
     vi.restoreAllMocks();
   });
 
-  const createTransport = () =>
+  const createTransport = (overrides: Partial<IntegrityTransportOptions> = {}) =>
     new IntegrityTransport({
       contestId: "contest-a",
       outbox,
@@ -105,6 +110,7 @@ describe("IntegrityTransport", () => {
       random: () => 0,
       isOnline: () => online,
       eventTarget: window,
+      ...overrides,
     });
 
   it("records exactly one state snapshot for each started transport tick", async () => {
@@ -211,5 +217,81 @@ describe("IntegrityTransport", () => {
 
     expect(sendBatch).toHaveBeenCalledTimes(2);
     transport.stop();
+  });
+
+  it("stops immediately on a typed authentication failure", async () => {
+    const authenticationFailure = vi.fn();
+    sendBatch.mockRejectedValue(Object.assign(new Error("expired"), { status: 401 }));
+    const transport = createTransport({ onAuthenticationFailure: authenticationFailure });
+
+    transport.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(authenticationFailure).toHaveBeenCalledTimes(1);
+    expect(sendBatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts a hung request, releases the tick, and retries the same leased batch", async () => {
+    let requestSignal: AbortSignal | undefined;
+    sendBatch
+      .mockImplementationOnce((_contestId: string, _batch: ClaimedIntegrityBatch, signal?: AbortSignal) => {
+        requestSignal = signal;
+        return new Promise(() => undefined);
+      })
+      .mockResolvedValueOnce({
+        ackedThroughSeq: 1,
+        pendingCommands: [],
+        releaseEvidenceBeforeMs: 0,
+      });
+    const transport = createTransport({ requestTimeoutMs: 1_000 });
+
+    transport.start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(requestSignal?.aborted).toBe(true);
+
+    now += 5_000;
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(sendBatch).toHaveBeenCalledTimes(2);
+    expect(sendBatch.mock.calls[1][1]).toEqual(sendBatch.mock.calls[0][1]);
+    transport.stop();
+  });
+
+  it("flushes a prior failed batch immediately when the browser comes online", async () => {
+    sendBatch
+      .mockRejectedValueOnce(Object.assign(new Error("offline"), { status: 503 }))
+      .mockResolvedValueOnce({
+        ackedThroughSeq: 1,
+        pendingCommands: [],
+        releaseEvidenceBeforeMs: 0,
+      });
+    const transport = createTransport();
+
+    transport.start();
+    await vi.advanceTimersByTimeAsync(0);
+    window.dispatchEvent(new Event("online"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sendBatch).toHaveBeenCalledTimes(2);
+    expect(sendBatch.mock.calls[1][1]).toEqual(sendBatch.mock.calls[0][1]);
+    transport.stop();
+  });
+
+  it("does not send after stop when a pending outbox claim resolves", async () => {
+    let resolveClaim: ((batch: ClaimedIntegrityBatch | null) => void) | undefined;
+    const pendingClaim = new Promise<ClaimedIntegrityBatch | null>((resolve) => {
+      resolveClaim = resolve;
+    });
+    const originalClaim = outbox.claimBatch.bind(outbox);
+    vi.spyOn(outbox, "claimBatch").mockReturnValue(pendingClaim);
+    const transport = createTransport();
+
+    transport.start();
+    await vi.advanceTimersByTimeAsync(0);
+    transport.stop();
+    resolveClaim?.(await originalClaim());
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sendBatch).not.toHaveBeenCalled();
   });
 });

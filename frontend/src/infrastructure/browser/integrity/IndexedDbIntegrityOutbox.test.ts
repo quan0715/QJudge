@@ -14,8 +14,8 @@ let now = 1_000;
 
 const databaseNames = new Set<string>();
 
-const openTestOutbox = async () => {
-  const databaseName = `qjudge-integrity-test-${sequence++}`;
+const openTestOutbox = async (overrides: Partial<IndexedDbIntegrityOutboxOptions> = {}) => {
+  const databaseName = overrides.databaseName ?? `qjudge-integrity-test-${sequence++}`;
   databaseNames.add(databaseName);
   const options: IndexedDbIntegrityOutboxOptions = {
     runId: RUN_ID,
@@ -27,6 +27,7 @@ const openTestOutbox = async () => {
     now: () => now,
     monotonicNow: () => now / 10,
     createId: () => `00000000-0000-4000-8000-${String(sequence++).padStart(12, "0")}`,
+    ...overrides,
   };
   return IndexedDbIntegrityOutbox.open(options);
 };
@@ -85,7 +86,7 @@ describe("IndexedDbIntegrityOutbox", () => {
     await reopened.close();
   });
 
-  it("reuses one batch id until ack and deletes only covered records", async () => {
+  it("reuses an exact batch until a partial ACK, then gives the released tail a new ID", async () => {
     const outbox = await seededOutbox(5);
     const firstClaim = await outbox.claimBatch({ maxRecords: 3, maxBytes: 1_048_576 });
     const retryClaim = await outbox.claimBatch({ maxRecords: 3, maxBytes: 1_048_576 });
@@ -95,7 +96,34 @@ describe("IndexedDbIntegrityOutbox", () => {
 
     await outbox.ackThrough(RUN_ID, DEVICE_ID, 2);
     expect((await outbox.listPending()).map((item) => item.seq)).toEqual([3, 4, 5]);
+    const tailClaim = await outbox.claimBatch({ maxRecords: 3, maxBytes: 1_048_576 });
+    expect(tailClaim?.batchId).not.toBe(firstClaim?.batchId);
+    expect(tailClaim?.records.map((item) => item.seq)).toEqual([3, 4, 5]);
     await outbox.close();
+  });
+
+  it("reopens an inflight batch with its immutable original headers", async () => {
+    const outbox = await seededOutbox(1);
+    const original = await outbox.claimBatch({ maxRecords: 200, maxBytes: 1_048_576 });
+    const databaseName = [...databaseNames].at(-1)!;
+    await outbox.close();
+
+    const reopened = await openTestOutbox({
+      databaseName,
+      participantId: 999,
+      registryVersion: "2026-08-01.1",
+      clientBuild: "frontend-next",
+    });
+    const retried = await reopened.claimBatch({ maxRecords: 1, maxBytes: 1 });
+
+    expect(retried).toMatchObject({
+      batchId: original?.batchId,
+      participantId: 44,
+      registryVersion: "2026-07-21.1",
+      clientBuild: "frontend-test",
+    });
+    expect(retried?.records).toEqual(original?.records);
+    await reopened.close();
   });
 
   it("deletes only records through the acknowledged cursor", async () => {
@@ -129,6 +157,43 @@ describe("IndexedDbIntegrityOutbox", () => {
 
     expect((await outbox.listPending()).map((item) => item.seq)).toEqual([1]);
     expect(await outbox.claimBatch({ maxRecords: 200, maxBytes: 1_048_576 })).toBeNull();
+    await outbox.close();
+  });
+
+  it("caps a caller's record limit at the protocol maximum of 200", async () => {
+    const outbox = await seededOutbox(201);
+
+    const batch = await outbox.claimBatch({ maxRecords: 201, maxBytes: 1_048_576 });
+
+    expect(batch?.records).toHaveLength(200);
+    expect(batch?.lastSeq).toBe(200);
+    await outbox.close();
+  });
+
+  it("rejects an oversized payload before it is admitted to durable storage", async () => {
+    const outbox = await openTestOutbox();
+
+    await expect(outbox.append({
+      eventType: "clipboard_action",
+      clientOccurredAtMs: 1_000,
+      payload: { contents: "x".repeat(32 * 1024) },
+    })).rejects.toThrow("32 KiB");
+
+    expect(await outbox.listPending()).toEqual([]);
+    await outbox.close();
+  });
+
+  it("does not mutate durable state for malformed, stale, or out-of-range ACK cursors", async () => {
+    const outbox = await seededOutbox(3);
+    const claimed = await outbox.claimBatch({ maxRecords: 3, maxBytes: 1_048_576 });
+
+    for (const invalidCursor of [0, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 4]) {
+      await expect(outbox.ackThrough(RUN_ID, DEVICE_ID, invalidCursor)).rejects.toThrow();
+      expect((await outbox.listPending()).map((item) => item.seq)).toEqual([1, 2, 3]);
+    }
+    expect((await outbox.claimBatch({ maxRecords: 3, maxBytes: 1_048_576 }))?.batchId).toBe(
+      claimed?.batchId,
+    );
     await outbox.close();
   });
 });

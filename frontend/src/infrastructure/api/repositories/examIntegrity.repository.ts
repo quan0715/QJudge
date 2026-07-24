@@ -11,7 +11,11 @@ import type {
 import { ensureOk, httpClient, requestJson } from "@/infrastructure/api/http.client";
 
 export interface ExamIntegrityRepository {
-  sendBatch(contestId: string, batch: ExamIntegrityBatch): Promise<ExamIntegrityBatchAck>;
+  sendBatch(
+    contestId: string,
+    batch: ExamIntegrityBatch,
+    signal?: AbortSignal,
+  ): Promise<ExamIntegrityBatchAck>;
   requestEvidenceUploads(
     contestId: string,
     request: EvidenceManifestRequest,
@@ -77,15 +81,29 @@ const mapCommand = (command: {
   endAtMs: command.end_at_ms,
 });
 
-const mapAck = (ack: {
+interface WireBatchAck {
   acked_through_seq: number;
   pending_commands: Array<Parameters<typeof mapCommand>[0]>;
   release_evidence_before_ms: number;
-}): ExamIntegrityBatchAck => ({
-  ackedThroughSeq: ack.acked_through_seq,
-  pendingCommands: ack.pending_commands.map(mapCommand),
-  releaseEvidenceBeforeMs: ack.release_evidence_before_ms,
-});
+}
+
+const mapAck = (ack: WireBatchAck, batch: ExamIntegrityBatch): ExamIntegrityBatchAck => {
+  if (
+    !Number.isSafeInteger(ack.acked_through_seq)
+    || ack.acked_through_seq < batch.firstSeq
+    || ack.acked_through_seq > batch.lastSeq
+    || !Array.isArray(ack.pending_commands)
+    || !Number.isSafeInteger(ack.release_evidence_before_ms)
+    || ack.release_evidence_before_ms < 0
+  ) {
+    throw new Error("Invalid integrity batch acknowledgement");
+  }
+  return {
+    ackedThroughSeq: ack.acked_through_seq,
+    pendingCommands: ack.pending_commands.map(mapCommand),
+    releaseEvidenceBeforeMs: ack.release_evidence_before_ms,
+  };
+};
 
 const apiPath = (contestId: string, path: string): string =>
   `/api/v1/contests/${encodeURIComponent(contestId)}/exam/integrity/${path}/`;
@@ -113,16 +131,21 @@ const mapManifestResponse = (response: {
 });
 
 export const examIntegrityRepository: ExamIntegrityRepository = {
-  async sendBatch(contestId, batch) {
+  async sendBatch(contestId, batch, signal) {
     const response = await requestJson<{
       acked_through_seq: number;
       pending_commands: Array<Parameters<typeof mapCommand>[0]>;
       release_evidence_before_ms: number;
     }>(
-      httpClient.post(apiPath(contestId, "batches"), mapBatch(batch)),
+      httpClient.requestOnce(apiPath(contestId, "batches"), {
+        method: "POST",
+        body: JSON.stringify(mapBatch(batch)),
+        headers: { "Content-Type": "application/json" },
+        signal,
+      }),
       "Failed to send integrity batch",
     );
-    return mapAck(response);
+    return mapAck(response, batch);
   },
 
   async requestEvidenceUploads(contestId, request) {

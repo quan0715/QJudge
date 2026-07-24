@@ -13,6 +13,11 @@ const DATABASE_VERSION = 1;
 const RECORDS_STORE = "records";
 const META_STORE = "meta";
 const EVIDENCE_DESCRIPTORS_STORE = "evidenceDescriptors";
+const MAX_BATCH_RECORDS = 200;
+const MAX_BATCH_BYTES = 1_048_576;
+const MAX_PAYLOAD_BYTES = 32 * 1024;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const BATCH_ID_SIZE_PROBE = "00000000-0000-4000-8000-000000000000";
 
 interface StoredRecord extends ExamIntegrityRecord {
   runId: string;
@@ -30,7 +35,21 @@ interface StoredMeta {
   deviceId: string;
   nextSeq: number;
   ackedThroughSeq: number;
+  /**
+   * Immutable canonical headers for a leased batch. These must survive a
+   * reload because changing a build or registry version under the same batch
+   * ID would be rejected by the Worker as an identity conflict.
+   */
+  inflightBatch?: StoredBatchHeaders;
+  /** Legacy v1 shape. It is released before a new claim rather than rebuilt. */
   inflightBatchId?: string;
+}
+
+interface StoredBatchHeaders {
+  batchId: string;
+  participantId: number;
+  registryVersion: string;
+  clientBuild: string;
 }
 
 export interface IndexedDbIntegrityOutboxOptions {
@@ -152,14 +171,106 @@ const toWireRecord = (record: StoredRecord) => ({
 const sortBySeq = (records: StoredRecord[]): StoredRecord[] =>
   records.sort((left, right) => left.seq - right.seq);
 
-const validLimit = (limit: { maxRecords: number; maxBytes: number }): void => {
-  if (!Number.isInteger(limit.maxRecords) || limit.maxRecords < 1) {
+const boundedLimit = (limit: { maxRecords: number; maxBytes: number }): {
+  maxRecords: number;
+  maxBytes: number;
+} => {
+  if (!Number.isSafeInteger(limit.maxRecords) || limit.maxRecords < 1) {
     throw new Error("maxRecords must be a positive integer");
   }
-  if (!Number.isInteger(limit.maxBytes) || limit.maxBytes < 1) {
+  if (!Number.isSafeInteger(limit.maxBytes) || limit.maxBytes < 1) {
     throw new Error("maxBytes must be a positive integer");
   }
+  return {
+    maxRecords: Math.min(limit.maxRecords, MAX_BATCH_RECORDS),
+    maxBytes: Math.min(limit.maxBytes, MAX_BATCH_BYTES),
+  };
 };
+
+function assertSafeInteger(value: unknown, field: string): asserts value is number {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${field} must be a safe integer`);
+  }
+}
+
+function assertFiniteNonNegative(value: unknown, field: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${field} must be a finite non-negative number`);
+  }
+}
+
+const assertJsonValue = (value: unknown, seen = new WeakSet<object>()): void => {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("Integrity payload must contain finite JSON numbers");
+    return;
+  }
+  if (Array.isArray(value)) {
+    if (seen.has(value)) throw new Error("Integrity payload must not contain cycles");
+    seen.add(value);
+    for (let index = 0; index < value.length; index += 1) {
+      if (!(index in value)) throw new Error("Integrity payload must not contain sparse arrays");
+      assertJsonValue(value[index], seen);
+    }
+    seen.delete(value);
+    return;
+  }
+  if (typeof value === "object" && value !== null) {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error("Integrity payload must contain plain JSON objects");
+    }
+    if (seen.has(value)) throw new Error("Integrity payload must not contain cycles");
+    seen.add(value);
+    for (const [key, item] of Object.entries(value)) {
+      if (typeof key !== "string") throw new Error("Integrity payload keys must be strings");
+      assertJsonValue(item, seen);
+    }
+    seen.delete(value);
+    return;
+  }
+  throw new Error("Integrity payload must contain JSON-compatible values");
+};
+
+const assertUuid = (value: string, field: string): void => {
+  if (!UUID_PATTERN.test(value)) throw new Error(`${field} must be a UUID`);
+};
+
+const batchWirePayload = (
+  headers: StoredBatchHeaders,
+  runId: string,
+  deviceId: string,
+  records: StoredRecord[],
+) => ({
+  schema_version: 1,
+  batch_id: headers.batchId,
+  run_id: runId,
+  participant_id: headers.participantId,
+  device_id: deviceId,
+  registry_version: headers.registryVersion,
+  first_seq: records[0].seq,
+  last_seq: records[records.length - 1].seq,
+  records: records.map(toWireRecord),
+  client_build: headers.clientBuild,
+});
+
+const toClaimedBatch = (
+  headers: StoredBatchHeaders,
+  runId: string,
+  deviceId: string,
+  records: StoredRecord[],
+): ClaimedIntegrityBatch => ({
+  schemaVersion: 1,
+  batchId: headers.batchId,
+  runId,
+  participantId: headers.participantId,
+  deviceId,
+  registryVersion: headers.registryVersion,
+  firstSeq: records[0].seq,
+  lastSeq: records[records.length - 1].seq,
+  records: records.map(toRecord),
+  clientBuild: headers.clientBuild,
+});
 
 /**
  * Browser persistence adapter for the write-before-send integrity protocol.
@@ -214,21 +325,53 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         ackedThroughSeq: 0,
       };
       const now = this.options.now!();
+      assertSafeInteger(signal.clientOccurredAtMs, "clientOccurredAtMs");
+      if (signal.clientOccurredAtMs < 0) {
+        throw new Error("clientOccurredAtMs must be non-negative");
+      }
+      if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(signal.eventType)) {
+        throw new Error("eventType must be a 1–64 character identifier");
+      }
+      assertSafeInteger(now, "clientRecordedAtMs");
+      if (now < 0) throw new Error("clientRecordedAtMs must be non-negative");
+      const monotonicMs = this.options.monotonicNow!();
+      assertFiniteNonNegative(monotonicMs, "monotonicMs");
+      assertJsonValue(signal.payload);
+      const eventId = this.options.createId!();
+      assertUuid(eventId, "eventId");
       const stored: StoredRecord = {
         runId: this.options.runId,
         deviceId: this.options.deviceId,
-        eventId: this.options.createId!(),
+        eventId,
         seq: meta.nextSeq,
         kind: signal.eventType === "state_snapshot" ? "state_snapshot" : "event",
         eventType: signal.eventType,
         eventSchemaVersion: 1,
         clientOccurredAtMs: signal.clientOccurredAtMs,
         clientRecordedAtMs: now,
-        monotonicMs: this.options.monotonicNow!(),
+        monotonicMs,
         payload: signal.payload,
         evidenceDescriptors: [],
         acked: false,
       };
+      const payloadBytes = utf8ByteLength(JSON.stringify(stored.payload));
+      if (payloadBytes > MAX_PAYLOAD_BYTES) {
+        throw new Error("Integrity payload exceeds the 32 KiB protocol limit");
+      }
+      const probeHeaders: StoredBatchHeaders = {
+        batchId: BATCH_ID_SIZE_PROBE,
+        participantId: this.options.participantId,
+        registryVersion: this.options.registryVersion,
+        clientBuild: this.options.clientBuild,
+      };
+      if (utf8ByteLength(JSON.stringify(batchWirePayload(
+        probeHeaders,
+        this.options.runId,
+        this.options.deviceId,
+        [stored],
+      ))) > MAX_BATCH_BYTES) {
+        throw new Error("Integrity record exceeds the 1 MiB batch protocol limit");
+      }
       meta.nextSeq += 1;
       records.add(stored);
       metaStore.put(meta);
@@ -241,7 +384,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
   }
 
   async claimBatch(limit: { maxRecords: number; maxBytes: number }): Promise<ClaimedIntegrityBatch | null> {
-    validLimit(limit);
+    const bounded = boundedLimit(limit);
     const transaction = this.database.transaction([RECORDS_STORE, META_STORE], "readwrite");
     const done = transactionDone(transaction);
     const recordsStore = transaction.objectStore(RECORDS_STORE);
@@ -258,12 +401,27 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         (await requestResult(recordsStore.getAll(recordRange(this.options.runId, this.options.deviceId)))) as StoredRecord[],
       );
       let selected: StoredRecord[];
-      if (meta.inflightBatchId) {
+      let headers: StoredBatchHeaders | undefined = meta.inflightBatch;
+      if (meta.inflightBatchId && !headers) {
+        // A pre-header v1 lease cannot be reconstructed safely after a reload:
+        // release it and create a fresh identity instead of mutating bytes under
+        // the old batch ID.
+        for (const record of allRecords) {
+          if (record.batchId === meta.inflightBatchId) {
+            delete record.batchId;
+            recordsStore.put(record);
+          }
+        }
+        delete meta.inflightBatchId;
+        metaStore.put(meta);
+      }
+      if (headers) {
+        const inflightHeaders = headers;
         selected = allRecords.filter(
-          (record) => record.batchId === meta.inflightBatchId && !record.acked && !record.blocked,
+          (record) => record.batchId === inflightHeaders.batchId && !record.acked && !record.blocked,
         );
         if (selected.length === 0) {
-          delete meta.inflightBatchId;
+          delete meta.inflightBatch;
           metaStore.put(meta);
           await done;
           return null;
@@ -272,23 +430,24 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         selected = [];
         let expectedSeq = meta.ackedThroughSeq + 1;
         const candidateBatchId = this.options.createId!();
+        assertUuid(candidateBatchId, "batchId");
+        headers = {
+          batchId: candidateBatchId,
+          participantId: this.options.participantId,
+          registryVersion: this.options.registryVersion,
+          clientBuild: this.options.clientBuild,
+        };
         for (const record of allRecords) {
           if (record.acked || record.blocked || record.seq !== expectedSeq) break;
-          if (selected.length >= limit.maxRecords) break;
+          if (selected.length >= bounded.maxRecords) break;
           const candidateRecords = [...selected, record];
-          const nextSize = utf8ByteLength(JSON.stringify({
-            schema_version: 1,
-            batch_id: candidateBatchId,
-            run_id: this.options.runId,
-            participant_id: this.options.participantId,
-            device_id: this.options.deviceId,
-            registry_version: this.options.registryVersion,
-            first_seq: candidateRecords[0].seq,
-            last_seq: candidateRecords[candidateRecords.length - 1].seq,
-            records: candidateRecords.map(toWireRecord),
-            client_build: this.options.clientBuild,
-          }));
-          if (nextSize > limit.maxBytes) break;
+          const nextSize = utf8ByteLength(JSON.stringify(batchWirePayload(
+            headers,
+            this.options.runId,
+            this.options.deviceId,
+            candidateRecords,
+          )));
+          if (nextSize > bounded.maxBytes) break;
           selected = candidateRecords;
           expectedSeq += 1;
         }
@@ -296,27 +455,15 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
           await done;
           return null;
         }
-        meta.inflightBatchId = candidateBatchId;
+        meta.inflightBatch = headers;
         for (const record of selected) {
-          record.batchId = meta.inflightBatchId;
+          record.batchId = headers.batchId;
           recordsStore.put(record);
         }
         metaStore.put(meta);
       }
       await done;
-      const records = selected.map(toRecord);
-      return {
-        schemaVersion: 1,
-        batchId: meta.inflightBatchId!,
-        runId: this.options.runId,
-        participantId: this.options.participantId,
-        deviceId: this.options.deviceId,
-        registryVersion: this.options.registryVersion,
-        firstSeq: records[0].seq,
-        lastSeq: records[records.length - 1].seq,
-        records,
-        clientBuild: this.options.clientBuild,
-      };
+      return toClaimedBatch(headers!, this.options.runId, this.options.deviceId, selected);
     } catch (error) {
       transaction.abort();
       throw error;
@@ -335,18 +482,29 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       const meta = await requestResult(
         metaStore.get([this.options.runId, this.options.deviceId]),
       ) as StoredMeta | undefined;
-      if (!meta?.inflightBatchId) {
+      const headers = meta?.inflightBatch;
+      if (!meta || !headers) {
         throw new Error("ACK received without a claimed integrity batch");
+      }
+      if (!Number.isSafeInteger(seq)) {
+        throw new Error("ACK cursor must be a safe integer");
       }
       const allRecords = sortBySeq(
         (await requestResult(recordsStore.getAll(recordRange(runId, deviceId))) as StoredRecord[]),
       );
       const claimed = allRecords.filter(
-        (record) => record.batchId === meta.inflightBatchId && !record.acked && !record.blocked,
+        (record) => record.batchId === headers.batchId && !record.acked && !record.blocked,
       );
+      const firstClaimedSeq = claimed[0]?.seq;
       const lastClaimedSeq = claimed[claimed.length - 1]?.seq;
-      if (lastClaimedSeq === undefined || seq > lastClaimedSeq) {
-        throw new Error("ACK cursor exceeds the claimed integrity batch");
+      if (
+        firstClaimedSeq === undefined
+        || lastClaimedSeq === undefined
+        || seq <= meta.ackedThroughSeq
+        || seq < firstClaimedSeq
+        || seq > lastClaimedSeq
+      ) {
+        throw new Error("ACK cursor is outside the claimed integrity batch");
       }
       for (const record of allRecords) {
         if (record.seq <= seq) {
@@ -354,7 +512,17 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         }
       }
       meta.ackedThroughSeq = Math.max(meta.ackedThroughSeq, seq);
-      if (seq >= lastClaimedSeq) delete meta.inflightBatchId;
+      if (seq < lastClaimedSeq) {
+        // A partial acknowledgement changes the canonical range. The tail must
+        // receive a fresh ID; only a no-ACK retry may reuse a batch identity.
+        for (const record of claimed) {
+          if (record.seq > seq) {
+            delete record.batchId;
+            recordsStore.put(record);
+          }
+        }
+      }
+      delete meta.inflightBatch;
       metaStore.put(meta);
       await done;
     } catch (error) {
@@ -372,7 +540,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       const meta = await requestResult(
         metaStore.get([this.options.runId, this.options.deviceId]),
       ) as StoredMeta | undefined;
-      if (!meta || meta.inflightBatchId !== batchId || failure.kind === "transient") {
+      if (!meta || meta.inflightBatch?.batchId !== batchId || failure.kind === "transient") {
         await done;
         return;
       }
@@ -385,7 +553,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
           recordsStore.put(record);
         }
       }
-      delete meta.inflightBatchId;
+      delete meta.inflightBatch;
       metaStore.put(meta);
       await done;
     } catch (error) {

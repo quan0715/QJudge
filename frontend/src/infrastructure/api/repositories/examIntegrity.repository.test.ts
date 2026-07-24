@@ -90,5 +90,65 @@ describe("examIntegrityRepository", () => {
       ],
       client_build: "frontend-test",
     });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: "include",
+      redirect: "error",
+    });
+    const headers = new Headers(fetchMock.mock.calls[0][1].headers);
+    expect(headers.get("X-CSRFToken")).toBe("test-csrf-token");
+    expect(headers.get("X-Device-Id")).toBeTruthy();
+  });
+
+  it("preserves a one-shot typed 401 without an auth refresh or replay", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: "expired" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(examIntegrityRepository.sendBatch("contest-a", batch)).rejects.toMatchObject({
+      status: 401,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/v1/contests/contest-a/exam/integrity/batches/",
+    );
+  });
+
+  it("passes cancellation through the one-shot batch request", async () => {
+    const controller = new AbortController();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          acked_through_seq: 8,
+          pending_commands: [],
+          release_evidence_before_ms: 0,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await examIntegrityRepository.sendBatch("contest-a", batch, controller.signal);
+
+    expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
+  });
+
+  it("rejects a malformed ACK cursor before it reaches the durable outbox", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          acked_through_seq: 8.5,
+          pending_commands: [],
+          release_evidence_before_ms: 0,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(examIntegrityRepository.sendBatch("contest-a", batch)).rejects.toThrow(
+      "Invalid integrity batch acknowledgement",
+    );
   });
 });
