@@ -131,17 +131,6 @@ class Contest(models.Model):
         verbose_name='防作弊裝置策略',
         help_text='依裝置定義 sources/detectors 的監考策略'
     )
-    warning_timeout_seconds = models.PositiveIntegerField(
-        default=20,
-        verbose_name='警告框冷卻秒數',
-        help_text='警告框顯示後，需等待幾秒才可手動關閉'
-    )
-    screen_share_recovery_grace_ms = models.PositiveIntegerField(
-        default=30_000,
-        verbose_name='螢幕共享恢復寬限時間 (毫秒)',
-        help_text='螢幕共享中斷後，允許學生重新分享的寬限時間'
-    )
-
     # Scoreboard settings
     scoreboard_visible_during_contest = models.BooleanField(
         default=False,

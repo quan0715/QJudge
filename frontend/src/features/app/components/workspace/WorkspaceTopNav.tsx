@@ -370,19 +370,9 @@ function RuntimeNavExtras() {
           className={`${styles.runtimeMonitoringMini} ${monitoringToneClass}`}
           onClick={() => setMonitoringOpen(true)}
           aria-label={monitoringLabel}
-          title={[
-            monitoringLabel,
-            monitoringReminder?.countdownSeconds != null
-              ? `${monitoringReminder.countdownSeconds}s`
-              : null,
-          ].filter(Boolean).join(" ")}
+          title={monitoringLabel}
         >
           <MonitoringIcon size={20} />
-          {monitoringReminder?.countdownSeconds != null ? (
-            <span className={styles.runtimeMonitoringCountdown}>
-              {monitoringReminder.countdownSeconds}s
-            </span>
-          ) : null}
         </button>
       ) : null}
       <div className={styles.runtimeTimer}>

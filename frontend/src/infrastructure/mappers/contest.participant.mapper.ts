@@ -37,7 +37,7 @@ export function mapContestParticipantDto(
       dto.connection_status === "live" || dto.connection_status === "online"
         ? dto.connection_status
         : "offline",
-    lastHeartbeatAt: dto.last_heartbeat_at ?? null,
+    lastCheckpointAt: dto.last_checkpoint_at ?? null,
     liveMonitoringOnline: !!dto.live_monitoring_online,
     liveMonitoringSources: Array.isArray(dto.live_monitoring_sources)
       ? dto.live_monitoring_sources.filter(
@@ -178,7 +178,7 @@ const mapCodingTrendPointDto = (dto: any): ParticipantCodingTrendPoint => ({
   problemTitle: dto?.problem_title,
 });
 
-const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
+export const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   incidentKey: dto?.incident_key || "",
   eventId: dto?.event_id != null ? String(dto.event_id) : "",
   eventType: dto?.event_type || "",
@@ -188,7 +188,7 @@ const mapEventFeedItemDto = (dto: EventFeedItemDto): EventFeedItem => ({
   firstAt: dto?.first_at || "",
   lastAt: dto?.last_at || "",
   count: Number(dto?.count ?? 1),
-  evidenceCount: Number(dto?.evidence_count ?? 0),
+  hasEvidence: dto?.has_evidence === true,
   summary: dto?.summary || "",
   source: (dto?.source === "exam_event" ? "exam_event" : "activity") as any,
   userName: dto?.user_name || "",

@@ -1,0 +1,80 @@
+.section {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.heading,
+.sliceHeading,
+.playerHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.heading h5 {
+  margin: 0;
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+}
+
+.anchor,
+.sliceHeading span,
+.playerHeading span,
+.empty {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.slice {
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--cds-border-interactive);
+}
+
+.sliceHeading {
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sliceHeading strong {
+  color: var(--cds-text-primary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+}
+
+.players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: 0.75rem;
+}
+
+.player {
+  min-width: 0;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
+}
+
+.playerHeading {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.player video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--cds-background-inverse);
+  object-fit: contain;
+}
+
+.empty {
+  display: block;
+  margin: 0.75rem 0 0;
+}

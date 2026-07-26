@@ -11,6 +11,7 @@ import type {
   ContestParticipant,
   ContestProblemSummary,
   ExamEvent,
+  EventFeedItem,
   Clarification,
   ContestAnnouncement,
   ExamQuestion,
@@ -109,7 +110,7 @@ export interface IExamRepository {
   getExamEvents(
     contestId: string,
     params?: { user_id?: string }
-  ): Promise<ExamEvent[]>;
+  ): Promise<{ events: ExamEvent[]; eventFeed: EventFeedItem[] }>;
   unlockParticipant(contestId: string, participantId: string): Promise<void>;
   lockParticipant(
     contestId: string,
@@ -196,7 +197,6 @@ export interface ContestUpdatePayload {
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
-  warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
 }

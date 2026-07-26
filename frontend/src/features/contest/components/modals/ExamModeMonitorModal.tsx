@@ -59,9 +59,7 @@ export const ExamModeMonitorModal = ({
             {t("monitor.rulesTitle")}
           </p>
           <UnorderedList>
-            <ListItem>{t("monitor.noTabSwitch")}</ListItem>
             <ListItem>{t("monitor.noExitFullscreen")}</ListItem>
-            <ListItem>{t("monitor.noWindowBlur")}</ListItem>
           </UnorderedList>
         </div>
 

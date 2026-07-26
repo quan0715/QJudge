@@ -1069,7 +1069,7 @@ export default function StudentContestDashboard({
                       )}
                       subtitle={t(
                         "studentDashboard.monitoring.subtitle",
-                        "進入作答後會啟用全螢幕、分頁切換與裝置監控。",
+                        "進入作答後會啟用全螢幕、裝置與證據來源監控。",
                       )}
                     />
                   ) : null}

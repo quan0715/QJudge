@@ -43,7 +43,6 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   attendancePhotoPolicy: "attendancePhotoPolicy",
   cheatDetectionEnabled: "cheatDetectionEnabled",
   anticheatDevicePolicy: "anticheatDevicePolicy",
-  warningTimeoutSeconds: "warningTimeoutSeconds",
   scoreboardVisibleDuringContest: "scoreboardVisibleDuringContest",
   allowMultipleJoins: "allowMultipleJoins",
 };

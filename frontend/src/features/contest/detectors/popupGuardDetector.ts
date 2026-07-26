@@ -29,6 +29,7 @@ export class PopupGuardDetector implements ExamDetector {
       this.onViolation?.({
         detectorId: this.id,
         eventType: "forbidden_action",
+        clientOccurredAtMs: Date.now(),
         message: this.t("exam.popupBlocked", "Popup windows are blocked"),
         severity: this.severity,
       });
@@ -43,6 +44,7 @@ export class PopupGuardDetector implements ExamDetector {
         this.onViolation?.({
           detectorId: this.id,
           eventType: "forbidden_action",
+          clientOccurredAtMs: Date.now(),
           message: this.t(
             "exam.pipBlocked",
             "Picture-in-Picture is blocked",
@@ -64,6 +66,7 @@ export class PopupGuardDetector implements ExamDetector {
       this.onViolation?.({
         detectorId: this.id,
         eventType: "forbidden_action",
+        clientOccurredAtMs: Date.now(),
         message: this.t("exam.pipBlocked", "Picture-in-Picture is blocked"),
         severity: this.severity,
       });

@@ -211,6 +211,71 @@
   border-top: 1px solid var(--cds-border-subtle);
 }
 
+.side-menu__qopilot-shell {
+  flex-shrink: 0;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.side-menu__qopilot-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 1rem 0.5rem;
+}
+
+.side-menu__qopilot-agent-icon,
+.side-menu__qopilot-mark {
+  color: var(--cds-icon-interactive);
+}
+
+.side-menu__qopilot-wordmark {
+  color: var(--cds-text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.side-menu__qopilot-mark {
+  font-weight: 700;
+}
+
+.side-menu__qopilot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0 0.5rem;
+}
+
+.side-menu__qopilot-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.5rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--cds-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  text-align: left;
+
+  &:hover {
+    background: var(--cds-layer-hover);
+    color: var(--cds-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
 .side-menu__bottom {
   margin-top: auto;
   padding: 0.375rem 0;
@@ -290,6 +355,32 @@
   }
 
   .side-menu__chat-panel {
+    display: none;
+  }
+
+  .side-menu__qopilot-shell {
+    width: 100%;
+    padding: 0.5rem 0;
+  }
+
+  .side-menu__qopilot-header {
+    display: none;
+  }
+
+  .side-menu__qopilot-actions {
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+  }
+
+  .side-menu__qopilot-action {
+    justify-content: center;
+    width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+  }
+
+  .side-menu__qopilot-action span {
     display: none;
   }
 }

@@ -31,6 +31,10 @@ urlpatterns = [
         include(('apps.problems.urls', 'problems'), namespace='management-problems'),
     ),
     path('api/v1/submissions/', include('apps.submissions.urls')),
+    path(
+        'api/v1/internal/integrity/',
+        include('apps.contests.integrity_internal_urls'),
+    ),
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),

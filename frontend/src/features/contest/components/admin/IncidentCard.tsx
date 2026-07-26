@@ -8,27 +8,18 @@ import {
   getEventTypeIcon,
   getEventTypeLabel,
 } from "@/features/contest/constants/eventTaxonomy";
-import { shouldFetchIncidentScreenshots } from "@/features/contest/components/admin/incidentEvidence";
 import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import IncidentDetail from "./IncidentDetail";
 import styles from "./IncidentCard.module.scss";
 
 interface IncidentCardProps {
   incident: EventFeedItem;
-  screenshotWindowBeforeMs?: number;
-  screenshotWindowAfterMs?: number;
-  screenshotPreviewLimit?: number;
-  screenshotCategories?: string[];
   initialExpanded?: boolean;
   collapsible?: boolean;
 }
 
 export default function IncidentCard({
   incident,
-  screenshotWindowBeforeMs = 20_000,
-  screenshotWindowAfterMs = 20_000,
-  screenshotPreviewLimit = 10,
-  screenshotCategories = ["critical", "violation"],
   initialExpanded = false,
   collapsible = true,
 }: IncidentCardProps) {
@@ -50,19 +41,14 @@ export default function IncidentCard({
   const lastTime = formatContestClockTime(incident.lastAt, undefined, {
     includeSeconds: true,
   });
-  const timeRange = incident.count > 1 ? `${firstTime} — ${lastTime}` : firstTime;
-  const suspiciousCategories = useMemo(
-    () => new Set(screenshotCategories.map((value) => value.toLowerCase())),
-    [screenshotCategories],
-  );
-  const shouldShowEvidence =
-    shouldFetchIncidentScreenshots(incident) &&
-    (incident.evidenceCount > 0 ||
-      suspiciousCategories.has(String(incident.category || "").toLowerCase()));
+  const timeRange = incident.firstAt !== incident.lastAt
+    ? `${firstTime} — ${lastTime}`
+    : firstTime;
+  const shouldShowEvidence = incident.source === "exam_event" && !!incident.eventId;
   const hasDetail = !!(
     incident.summary ||
     shouldShowEvidence ||
-    incident.count > 1 ||
+    incident.firstAt !== incident.lastAt ||
     incident.penalized
   );
   const canToggle = collapsible && hasDetail;
@@ -104,11 +90,9 @@ export default function IncidentCard({
                 ×{incident.count}
               </Tag>
             ) : null}
-            {incident.evidenceCount > 0 ? (
+            {incident.hasEvidence ? (
               <Tag type="teal" size="sm">
-                {t("logs.evidenceCount", "{{count}} 截圖", {
-                  count: incident.evidenceCount,
-                })}
+                {t("logs.evidenceAvailable", "有證據")}
               </Tag>
             ) : null}
           </div>
@@ -126,11 +110,6 @@ export default function IncidentCard({
           <IncidentDetail
             incident={incident}
             contestId={contestId}
-            userId={incident.userId}
-            evidenceLayout="grid"
-            screenshotWindowBeforeMs={screenshotWindowBeforeMs}
-            screenshotWindowAfterMs={screenshotWindowAfterMs}
-            screenshotPreviewLimit={screenshotPreviewLimit}
           />
         </div>
       ) : null}

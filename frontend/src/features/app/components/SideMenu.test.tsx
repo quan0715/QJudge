@@ -350,8 +350,10 @@ describe("SideMenu contest admin workspace panels", () => {
     fireEvent.click(await screen.findByRole("button", { name: "delete session-1" }));
     await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
 
-    expect(screen.getByTestId("location-search")).toHaveTextContent(
-      "?ai_session_id=session-replacement",
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId("location-search")).toHaveTextContent(
+        "?ai_session_id=session-replacement",
+      );
+    });
   });
 });

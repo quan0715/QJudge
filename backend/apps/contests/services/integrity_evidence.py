@@ -1,0 +1,1893 @@
+"""Incident-only evidence projection, direct upload, and exact-key purge."""
+from __future__ import annotations
+
+import base64
+import hashlib
+import hmac
+import json
+import re
+from dataclasses import dataclass
+from typing import Iterable
+from uuid import UUID, NAMESPACE_URL, uuid5
+
+from botocore.exceptions import BotoCoreError, ClientError
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+
+from apps.contests.models import (
+    ContestParticipant,
+    ExamEvidenceChunk,
+    ExamEvent,
+    ExamIntegrityRun,
+)
+from apps.contests.services.anticheat_storage import (
+    generate_evidence_chunk_put_url,
+    get_s3_client,
+)
+from apps.contests.services.integrity_event_projection import event_phase
+
+
+_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+_SOURCE_KINDS = frozenset(
+    {
+        ExamEvidenceChunk.Source.SCREEN,
+        ExamEvidenceChunk.Source.WEBCAM,
+    }
+)
+_TERMINAL_CHUNK_STATUSES = frozenset(
+    {
+        ExamEvidenceChunk.Status.VERIFIED,
+        ExamEvidenceChunk.Status.UNAVAILABLE,
+    }
+)
+_MANIFEST_MAX_BYTES = 10 * 1024 * 1024
+_PURGE_BATCH_SIZE = 500
+_MAX_ARCHIVE_GENERATIONS = 1_000
+_MAX_PURGE_KEYS = 100_000
+_UNAVAILABLE_MARKERS_KEY = "integrity_evidence_unavailable_markers"
+_UNAVAILABLE_MARKER_VERSION = 1
+_UNAVAILABLE_MARKER_FIELDS = (
+    "version",
+    "run_id",
+    "participant_id",
+    "incident_id",
+    "event_id",
+    "source",
+    "start_at_ms",
+    "end_at_ms",
+    "reason",
+)
+
+
+class IntegrityEvidenceRejected(ValueError):
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+class IntegrityEvidenceStorageError(RuntimeError):
+    pass
+
+
+@dataclass(frozen=True)
+class EvidenceRetainWindow:
+    incident_id: UUID
+    event_id: int
+    sources: tuple[str, ...]
+    start_at_ms: int
+    end_at_ms: int
+    max_segment_ms: int
+
+
+@dataclass(frozen=True)
+class EvidenceDelivery:
+    pending_commands: tuple[dict[str, object], ...]
+    release_before_ms: int
+
+
+@dataclass(frozen=True)
+class _RawWindow:
+    incident_id: UUID
+    event_id: int
+    source: str
+    start_at_ms: int
+    end_at_ms: int
+    max_segment_ms: int
+
+
+def _nonnegative_int(value: object) -> int | None:
+    if type(value) is not int or value < 0:
+        return None
+    return value
+
+
+def _unavailable_marker_signature(payload: dict[str, object]) -> str:
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hmac.new(
+        str(settings.SECRET_KEY).encode("utf-8"),
+        canonical,
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _validated_unavailable_marker(value: object) -> dict[str, object] | None:
+    if type(value) is not dict or set(value) != {
+        *_UNAVAILABLE_MARKER_FIELDS,
+        "signature",
+    }:
+        return None
+    payload = {field: value[field] for field in _UNAVAILABLE_MARKER_FIELDS}
+    signature = value["signature"]
+    if (
+        payload["version"] != _UNAVAILABLE_MARKER_VERSION
+        or type(payload["run_id"]) is not str
+        or type(payload["participant_id"]) is not int
+        or payload["participant_id"] < 1
+        or type(payload["incident_id"]) is not str
+        or type(payload["event_id"]) is not int
+        or payload["event_id"] < 1
+        or type(payload["source"]) is not str
+        or payload["source"] not in _SOURCE_KINDS
+        or _nonnegative_int(payload["start_at_ms"]) is None
+        or _nonnegative_int(payload["end_at_ms"]) is None
+        or payload["end_at_ms"] <= payload["start_at_ms"]
+        or type(payload["reason"]) is not str
+        or not 1 <= len(payload["reason"]) <= 256
+        or type(signature) is not str
+        or _SHA256_RE.fullmatch(signature) is None
+    ):
+        return None
+    try:
+        UUID(payload["run_id"])
+        UUID(payload["incident_id"])
+    except ValueError:
+        return None
+    if not hmac.compare_digest(
+        signature,
+        _unavailable_marker_signature(payload),
+    ):
+        return None
+    return payload
+
+
+def _unavailable_markers_from_events(
+    events: Iterable[ExamEvent],
+) -> list[dict[str, object]]:
+    markers: list[dict[str, object]] = []
+    for event in events:
+        metadata = event.metadata if type(event.metadata) is dict else {}
+        raw_markers = metadata.get(_UNAVAILABLE_MARKERS_KEY)
+        if type(raw_markers) is not list:
+            continue
+        for raw_marker in raw_markers:
+            marker = _validated_unavailable_marker(raw_marker)
+            if marker is not None:
+                markers.append(marker)
+    return markers
+
+
+def _event_definition(
+    run: ExamIntegrityRun,
+    event: ExamEvent,
+) -> dict[str, object] | None:
+    snapshot = run.registry_snapshot
+    if (
+        type(snapshot) is not dict
+        or snapshot.get("version") != run.registry_version
+        or type(snapshot.get("definitions")) is not dict
+    ):
+        return None
+    definitions = snapshot["definitions"]
+    metadata = event.metadata if type(event.metadata) is dict else {}
+    integrity = metadata.get("integrity")
+    definition_id = integrity.get("definition_id") if type(integrity) is dict else None
+    if type(definition_id) is str:
+        definition = definitions.get(definition_id)
+        if type(definition) is dict:
+            return definition
+    for definition in definitions.values():
+        if type(definition) is not dict:
+            continue
+        signals = definition.get("signals")
+        if type(signals) is dict and event.event_type in {
+            value for value in signals.values() if type(value) is str
+        }:
+            return definition
+    return None
+
+
+def _enabled_sources(run: ExamIntegrityRun) -> frozenset[str]:
+    policy = run.policy_snapshot
+    if type(policy) is not dict:
+        return frozenset()
+    device_policy = policy.get("device_policy")
+    if type(device_policy) is not dict:
+        return frozenset()
+    enabled = set()
+    for device in device_policy.values():
+        if type(device) is not dict or device.get("enabled") is not True:
+            continue
+        sources = device.get("sources")
+        if type(sources) is not dict:
+            continue
+        for source in _SOURCE_KINDS:
+            source_policy = sources.get(source)
+            if type(source_policy) is dict and source_policy.get("enabled") is True:
+                enabled.add(source)
+    return frozenset(enabled)
+
+
+def _raw_window(
+    run: ExamIntegrityRun,
+    event: ExamEvent,
+    enabled_sources: frozenset[str],
+) -> tuple[_RawWindow, ...]:
+    if (
+        event.incident_id is None
+        or event.client_occurred_at_ms is None
+        or event.integrity_run_id != run.id
+    ):
+        return ()
+    definition = _event_definition(run, event)
+    if definition is None:
+        return ()
+    signals = definition.get("signals")
+    if (
+        type(signals) is dict
+        and bool(signals.get("escalated") or signals.get("restored"))
+        and event_phase(event) != "escalated"
+    ):
+        return ()
+    evidence = definition.get("evidence")
+    if type(evidence) is not dict or evidence.get("mode") != "incident_window":
+        return ()
+    before_ms = _nonnegative_int(evidence.get("before_ms"))
+    after_ms = _nonnegative_int(evidence.get("after_ms"))
+    max_segment_ms = _nonnegative_int(evidence.get("max_segment_ms"))
+    if (
+        before_ms is None
+        or after_ms is None
+        or max_segment_ms is None
+        or max_segment_ms < 1
+    ):
+        return ()
+    anchor_ms = _nonnegative_int(event.client_occurred_at_ms)
+    if anchor_ms is None:
+        return ()
+    start_at_ms = max(0, anchor_ms - before_ms)
+    end_at_ms = anchor_ms + after_ms
+    if end_at_ms <= start_at_ms:
+        return ()
+    return tuple(
+        _RawWindow(
+            incident_id=event.incident_id,
+            event_id=event.id,
+            source=source,
+            start_at_ms=start_at_ms,
+            end_at_ms=end_at_ms,
+            max_segment_ms=max_segment_ms,
+        )
+        for source in sorted(enabled_sources)
+    )
+
+
+def _evidence_retain_windows_for_events(
+    run: ExamIntegrityRun,
+    events: Iterable[ExamEvent],
+    after_ms: int,
+) -> list[EvidenceRetainWindow]:
+    if type(after_ms) is not int or after_ms < 0:
+        raise ValueError("after_ms must be a nonnegative integer")
+    registry = run.registry_snapshot
+    if (
+        type(registry) is not dict
+        or registry.get("version") != run.registry_version
+        or type(registry.get("definitions")) is not dict
+    ):
+        raise IntegrityEvidenceRejected("invalid_frozen_registry")
+    policy = run.policy_snapshot
+    if type(policy) is not dict or type(policy.get("device_policy")) is not dict:
+        raise IntegrityEvidenceRejected("invalid_frozen_policy")
+    enabled_sources = _enabled_sources(run)
+    by_source: dict[str, list[_RawWindow]] = {}
+    for event in events:
+        for window in _raw_window(run, event, enabled_sources):
+            by_source.setdefault(window.source, []).append(window)
+
+    projected: list[tuple[UUID, int, str, int, int, int]] = []
+    for source, source_windows in sorted(by_source.items()):
+        source_windows.sort(
+            key=lambda item: (
+                item.start_at_ms,
+                item.end_at_ms,
+                str(item.incident_id),
+                item.event_id,
+            )
+        )
+        components: list[tuple[int, int, int, list[_RawWindow]]] = []
+        for window in source_windows:
+            if not components or window.start_at_ms > components[-1][1]:
+                components.append(
+                    (
+                        window.start_at_ms,
+                        window.end_at_ms,
+                        min(window.max_segment_ms, 60_000),
+                        [window],
+                    )
+                )
+                continue
+            start, end, max_segment, associations = components[-1]
+            components[-1] = (
+                start,
+                max(end, window.end_at_ms),
+                min(max_segment, window.max_segment_ms, 60_000),
+                [*associations, window],
+            )
+
+        for start, end, max_segment, associations in components:
+            segment_start = start
+            while segment_start < end:
+                segment_end = min(end, segment_start + max_segment)
+                if segment_end > after_ms:
+                    for association in associations:
+                        projected.append(
+                            (
+                                association.incident_id,
+                                association.event_id,
+                                source,
+                                segment_start,
+                                segment_end,
+                                max_segment,
+                            )
+                        )
+                segment_start = segment_end
+
+    combined: dict[
+        tuple[UUID, int, int, int, int],
+        set[str],
+    ] = {}
+    for incident_id, event_id, source, start, end, max_segment in projected:
+        combined.setdefault(
+            (incident_id, event_id, start, end, max_segment),
+            set(),
+        ).add(source)
+    return [
+        EvidenceRetainWindow(
+            incident_id=incident_id,
+            event_id=event_id,
+            sources=tuple(sorted(sources)),
+            start_at_ms=start,
+            end_at_ms=end,
+            max_segment_ms=max_segment,
+        )
+        for (
+            incident_id,
+            event_id,
+            start,
+            end,
+            max_segment,
+        ), sources in sorted(
+            combined.items(),
+            key=lambda item: (
+                item[0][2],
+                item[0][3],
+                str(item[0][0]),
+                item[0][1],
+            ),
+        )
+    ]
+
+
+def _participant_incident_events(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+):
+    return ExamEvent.objects.filter(
+        integrity_run=run,
+        contest_id=run.contest_id,
+        user_id=participant.user_id,
+        incident_id__isnull=False,
+    ).order_by("client_occurred_at_ms", "id")
+
+
+def evidence_retain_windows(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    after_ms: int,
+) -> list[EvidenceRetainWindow]:
+    """Rebuild retain windows from normalized events and the frozen registry."""
+
+    return _evidence_retain_windows_for_events(
+        run,
+        _participant_incident_events(run, participant),
+        after_ms,
+    )
+
+
+def _metadata_ids(metadata: object, key: str) -> tuple[object, ...]:
+    if type(metadata) is not dict:
+        return ()
+    values = metadata.get(key)
+    return tuple(values) if type(values) is list else ()
+
+
+def _chunk_matches_window(
+    chunk: ExamEvidenceChunk,
+    window: EvidenceRetainWindow,
+) -> bool:
+    incident_ids = _metadata_ids(chunk.metadata, "incident_ids")
+    return bool(
+        chunk.source in window.sources
+        and chunk.end_at_ms >= window.start_at_ms
+        and chunk.start_at_ms <= window.end_at_ms
+        and (
+            chunk.incident_id == window.incident_id
+            or str(window.incident_id) in incident_ids
+        )
+    )
+
+
+def _marker_matches_window(
+    marker: dict[str, object],
+    run: ExamIntegrityRun,
+    window: EvidenceRetainWindow,
+    source: str,
+) -> bool:
+    return bool(
+        marker["run_id"] == str(run.id)
+        and marker["incident_id"] == str(window.incident_id)
+        and marker["event_id"] == window.event_id
+        and marker["source"] == source
+        and marker["start_at_ms"] == window.start_at_ms
+        and marker["end_at_ms"] == window.end_at_ms
+    )
+
+
+def _source_has_terminal_coverage(
+    run: ExamIntegrityRun,
+    window: EvidenceRetainWindow,
+    chunks: list[ExamEvidenceChunk],
+    unavailable_markers: Iterable[dict[str, object]],
+    source: str,
+) -> bool:
+    if any(
+        _marker_matches_window(
+            marker,
+            run,
+            window,
+            source,
+        )
+        for marker in unavailable_markers
+    ):
+        return True
+    return any(
+        chunk.source == source
+        and chunk.status in _TERMINAL_CHUNK_STATUSES
+        and _chunk_matches_window(chunk, window)
+        for chunk in chunks
+    )
+
+
+def _retain_command(
+    run: ExamIntegrityRun,
+    window: EvidenceRetainWindow,
+) -> dict[str, object]:
+    identity = ":".join(
+        (
+            str(run.id),
+            str(window.incident_id),
+            str(window.event_id),
+            ",".join(window.sources),
+            str(window.start_at_ms),
+            str(window.end_at_ms),
+        )
+    )
+    return {
+        "command_id": str(uuid5(NAMESPACE_URL, f"qjudge:retain-evidence:{identity}")),
+        "incident_id": str(window.incident_id),
+        "event_id": str(window.event_id),
+        "sources": list(window.sources),
+        "start_at_ms": window.start_at_ms,
+        "end_at_ms": window.end_at_ms,
+    }
+
+
+def build_evidence_delivery(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    now_ms: int,
+) -> EvidenceDelivery:
+    """Return the replay-safe pending retain projection and release watermark."""
+
+    if type(now_ms) is not int or now_ms < 0:
+        raise ValueError("now_ms must be a nonnegative integer")
+    events = list(_participant_incident_events(run, participant))
+    windows = _evidence_retain_windows_for_events(
+        run,
+        events,
+        after_ms=0,
+    )
+    unavailable_markers = _unavailable_markers_from_events(events)
+    chunks = list(
+        ExamEvidenceChunk.objects.filter(
+            integrity_run=run,
+            participant=participant,
+        )
+    )
+    unresolved = []
+    for window in windows:
+        unresolved_sources = tuple(
+            source
+            for source in window.sources
+            if not _source_has_terminal_coverage(
+                run,
+                window,
+                chunks,
+                unavailable_markers,
+                source,
+            )
+        )
+        if unresolved_sources:
+            unresolved.append(
+                EvidenceRetainWindow(
+                    incident_id=window.incident_id,
+                    event_id=window.event_id,
+                    sources=unresolved_sources,
+                    start_at_ms=window.start_at_ms,
+                    end_at_ms=window.end_at_ms,
+                    max_segment_ms=window.max_segment_ms,
+                )
+            )
+    policy = run.policy_snapshot if type(run.policy_snapshot) is dict else {}
+    evidence_policy = policy.get("evidence")
+    minimum_buffer_ms = (
+        _nonnegative_int(evidence_policy.get("minimum_local_buffer_ms"))
+        if type(evidence_policy) is dict
+        else None
+    )
+    if minimum_buffer_ms is None:
+        minimum_buffer_ms = 60_000
+    release_before_ms = max(0, now_ms - minimum_buffer_ms)
+    if unresolved:
+        release_before_ms = min(
+            release_before_ms,
+            min(window.start_at_ms for window in unresolved),
+        )
+    return EvidenceDelivery(
+        pending_commands=tuple(_retain_command(run, window) for window in unresolved),
+        release_before_ms=release_before_ms,
+    )
+
+
+def _validate_descriptor_chain(
+    descriptors: list[dict[str, object]],
+) -> None:
+    groups: dict[tuple[str, UUID], list[dict[str, object]]] = {}
+    identities = set()
+    for descriptor in descriptors:
+        identity = (
+            descriptor["source"],
+            descriptor["recording_session_id"],
+            descriptor["chunk_seq"],
+        )
+        if identity in identities:
+            raise IntegrityEvidenceRejected("duplicate_evidence_chunk")
+        identities.add(identity)
+        groups.setdefault(
+            (
+                str(descriptor["source"]),
+                descriptor["recording_session_id"],
+            ),
+            [],
+        ).append(descriptor)
+    for group in groups.values():
+        group.sort(key=lambda item: int(item["chunk_seq"]))
+        init_chunks = [item for item in group if bool(item["is_init_chunk"])]
+        if len(init_chunks) > 1:
+            raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+        if init_chunks:
+            init_seq = int(init_chunks[0]["chunk_seq"])
+            if init_seq not in {0, 1} or any(
+                int(item["chunk_seq"]) < init_seq for item in group
+            ):
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+        for descriptor in group:
+            if (descriptor["is_init_chunk"] and descriptor["previous_sha256"]) or (
+                not descriptor["is_init_chunk"] and not descriptor["previous_sha256"]
+            ):
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+        for previous, current in zip(group, group[1:]):
+            if int(current["chunk_seq"]) != int(previous["chunk_seq"]) + 1:
+                continue
+            if current["previous_sha256"] != previous["sha256"]:
+                raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+
+
+def _descriptor_overlaps(
+    descriptor: dict[str, object],
+    windows: list[EvidenceRetainWindow],
+) -> bool:
+    return any(
+        descriptor["source"] in window.sources
+        and int(descriptor["end_at_ms"]) >= window.start_at_ms
+        and int(descriptor["start_at_ms"]) <= window.end_at_ms
+        for window in windows
+    )
+
+
+def _descriptor_fields_match(
+    row: ExamEvidenceChunk,
+    descriptor: dict[str, object],
+) -> bool:
+    metadata = row.metadata if type(row.metadata) is dict else {}
+    return bool(
+        row.is_init_chunk is descriptor["is_init_chunk"]
+        and row.start_at_ms == descriptor["start_at_ms"]
+        and row.end_at_ms == descriptor["end_at_ms"]
+        and row.content_type == descriptor["content_type"]
+        and row.codec == descriptor["codec"]
+        and row.byte_size == descriptor["byte_size"]
+        and row.sha256 == descriptor["sha256"]
+        and row.previous_sha256 == descriptor["previous_sha256"]
+        and metadata.get("local_descriptor_id") == descriptor["local_descriptor_id"]
+    )
+
+
+def _descriptor_identity(
+    descriptor: dict[str, object],
+) -> tuple[str, UUID, int]:
+    return (
+        str(descriptor["source"]),
+        descriptor["recording_session_id"],
+        int(descriptor["chunk_seq"]),
+    )
+
+
+def _row_identity(
+    row: ExamEvidenceChunk,
+) -> tuple[str, UUID, int]:
+    return (
+        row.source,
+        row.recording_session_id,
+        row.chunk_seq,
+    )
+
+
+def _chunk_associated_with_incident(
+    row: ExamEvidenceChunk,
+    incident_id: UUID,
+) -> bool:
+    return bool(
+        row.incident_id == incident_id
+        or str(incident_id) in _metadata_ids(row.metadata, "incident_ids")
+    )
+
+
+def _enforce_incident_source_budget(
+    run: ExamIntegrityRun,
+    event: ExamEvent,
+    descriptors: list[dict[str, object]],
+    existing_rows: list[ExamEvidenceChunk],
+) -> None:
+    policy = run.policy_snapshot
+    evidence = policy.get("evidence") if type(policy) is dict else None
+    cap_bytes = (
+        _nonnegative_int(evidence.get("local_cap_bytes_per_source"))
+        if type(evidence) is dict
+        else None
+    )
+    if cap_bytes is None or cap_bytes < 1:
+        raise IntegrityEvidenceRejected("invalid_frozen_policy")
+    existing_by_identity = {_row_identity(row): row for row in existing_rows}
+    for source in {str(descriptor["source"]) for descriptor in descriptors}:
+        bytes_by_identity = {
+            _row_identity(row): row.byte_size
+            for row in existing_rows
+            if (
+                row.source == source
+                and _chunk_associated_with_incident(
+                    row,
+                    event.incident_id,
+                )
+            )
+        }
+        for descriptor in descriptors:
+            if descriptor["source"] != source:
+                continue
+            identity = _descriptor_identity(descriptor)
+            row = existing_by_identity.get(identity)
+            bytes_by_identity[identity] = (
+                row.byte_size if row is not None else int(descriptor["byte_size"])
+            )
+        if sum(bytes_by_identity.values()) > cap_bytes:
+            raise IntegrityEvidenceRejected("evidence_incident_source_limit_exceeded")
+
+
+def _validate_persisted_chain_neighbors(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    descriptor: dict[str, object],
+    submitted_predecessor: dict[str, object] | None,
+    existing_rows: list[ExamEvidenceChunk],
+) -> None:
+    chunk_seq = int(descriptor["chunk_seq"])
+    neighbor_sequences = {chunk_seq + 1}
+    if chunk_seq > 0:
+        neighbor_sequences.add(chunk_seq - 1)
+    neighbors = {
+        row.chunk_seq: row
+        for row in ExamEvidenceChunk.objects.select_for_update().filter(
+            integrity_run=run,
+            participant=participant,
+            source=descriptor["source"],
+            recording_session_id=descriptor["recording_session_id"],
+            chunk_seq__in=neighbor_sequences,
+        )
+    }
+    previous = neighbors.get(chunk_seq - 1)
+    following = neighbors.get(chunk_seq + 1)
+    if (
+        submitted_predecessor is not None
+        and previous is not None
+        and not _descriptor_fields_match(previous, submitted_predecessor)
+    ):
+        raise IntegrityEvidenceRejected("evidence_chunk_identity_conflict")
+    if descriptor["is_init_chunk"]:
+        session_rows = [
+            row
+            for row in existing_rows
+            if (
+                row.source == descriptor["source"]
+                and row.recording_session_id == descriptor["recording_session_id"]
+            )
+        ]
+        another_init_exists = any(
+            row.is_init_chunk and row.chunk_seq != chunk_seq for row in session_rows
+        )
+        matching_init = next(
+            (
+                row
+                for row in session_rows
+                if row.chunk_seq == chunk_seq
+                and row.is_init_chunk
+                and _descriptor_fields_match(row, descriptor)
+            ),
+            None,
+        )
+        if (
+            previous is not None
+            or submitted_predecessor is not None
+            or another_init_exists
+            or (session_rows and matching_init is None)
+        ):
+            raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+    if (
+        submitted_predecessor is not None
+        and descriptor["previous_sha256"] != submitted_predecessor["sha256"]
+    ):
+        raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+    if previous is not None and descriptor["previous_sha256"] != previous.sha256:
+        raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+    if following is not None and following.previous_sha256 != descriptor["sha256"]:
+        raise IntegrityEvidenceRejected("evidence_chunk_chain_mismatch")
+
+
+def _merged_association_metadata(
+    row: ExamEvidenceChunk | None,
+    event: ExamEvent,
+    descriptor: dict[str, object],
+) -> dict[str, object]:
+    metadata = (
+        dict(row.metadata) if row is not None and type(row.metadata) is dict else {}
+    )
+    primary_incident = row.incident_id if row is not None else event.incident_id
+    primary_event_id = row.exam_event_id if row is not None else event.id
+    incident_ids = [
+        str(value)
+        for value in _metadata_ids(metadata, "incident_ids")
+        if type(value) is str
+    ]
+    event_ids = [
+        value for value in _metadata_ids(metadata, "event_ids") if type(value) is int
+    ]
+    for value in (str(primary_incident), str(event.incident_id)):
+        if value not in incident_ids:
+            incident_ids.append(value)
+    for value in (primary_event_id, event.id):
+        if value not in event_ids:
+            event_ids.append(value)
+    metadata.update(
+        {
+            "incident_ids": incident_ids,
+            "event_ids": event_ids,
+            "local_descriptor_id": descriptor["local_descriptor_id"],
+        }
+    )
+    return metadata
+
+
+def _chunk_object_key(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    event: ExamEvent,
+    descriptor: dict[str, object],
+) -> str:
+    return (
+        f"integrity/{run.contest_id}/{run.id}/{participant.id}/"
+        f"{event.incident_id}/{descriptor['source']}/"
+        f"{descriptor['recording_session_id']}/{descriptor['chunk_seq']}.webm"
+    )
+
+
+def create_evidence_manifest(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    event: ExamEvent,
+    descriptors: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    """Upsert selected physical chunks and return checksum-bound PUT actions."""
+
+    _validate_descriptor_chain(descriptors)
+    inventory = {
+        (
+            descriptor["source"],
+            descriptor["recording_session_id"],
+            descriptor["chunk_seq"],
+        ): descriptor
+        for descriptor in descriptors
+    }
+    with transaction.atomic():
+        locked_run = (
+            ExamIntegrityRun.objects.select_for_update()
+            .select_related("contest")
+            .get(pk=run.pk)
+        )
+        if (
+            locked_run.compute_state
+            not in {
+                ExamIntegrityRun.ComputeState.RUNNING,
+                ExamIntegrityRun.ComputeState.STOPPING,
+            }
+            or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
+        ):
+            raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")
+        ContestParticipant.objects.select_for_update().only("pk").get(
+            pk=participant.pk,
+            contest_id=locked_run.contest_id,
+        )
+        windows = [
+            window
+            for window in evidence_retain_windows(
+                locked_run,
+                participant,
+                after_ms=0,
+            )
+            if window.incident_id == event.incident_id
+        ]
+        required_sources = {source for window in windows for source in window.sources}
+        for descriptor in descriptors:
+            if descriptor["source"] not in required_sources:
+                raise IntegrityEvidenceRejected("evidence_source_disabled")
+        selected = [
+            descriptor
+            for descriptor in descriptors
+            if _descriptor_overlaps(descriptor, windows)
+        ]
+        existing_rows = list(
+            ExamEvidenceChunk.objects.select_for_update().filter(
+                integrity_run=locked_run,
+                participant=participant,
+            )
+        )
+        _enforce_incident_source_budget(
+            locked_run,
+            event,
+            selected,
+            existing_rows,
+        )
+        # Five-second MediaRecorder chunks are independently decodable. Their
+        # hash links verify any immediate neighbor that is available, but do
+        # not promote unrelated recording history into incident evidence.
+        for descriptor in selected:
+            submitted_predecessor = inventory.get(
+                (
+                    descriptor["source"],
+                    descriptor["recording_session_id"],
+                    int(descriptor["chunk_seq"]) - 1,
+                )
+            )
+            _validate_persisted_chain_neighbors(
+                locked_run,
+                participant,
+                descriptor,
+                submitted_predecessor,
+                existing_rows,
+            )
+        existing_by_identity = {_row_identity(row): row for row in existing_rows}
+        rows: list[ExamEvidenceChunk] = []
+        for descriptor in selected:
+            lookup = {
+                "integrity_run": locked_run,
+                "participant": participant,
+                "source": descriptor["source"],
+                "recording_session_id": descriptor["recording_session_id"],
+                "chunk_seq": descriptor["chunk_seq"],
+            }
+            row = existing_by_identity.get(_descriptor_identity(descriptor))
+            if row is not None and not _descriptor_fields_match(
+                row,
+                descriptor,
+            ):
+                raise IntegrityEvidenceRejected("evidence_chunk_identity_conflict")
+            if row is None:
+                row = ExamEvidenceChunk.objects.create(
+                    **lookup,
+                    contest=locked_run.contest,
+                    exam_event=event,
+                    incident_id=event.incident_id,
+                    is_init_chunk=descriptor["is_init_chunk"],
+                    start_at_ms=descriptor["start_at_ms"],
+                    end_at_ms=descriptor["end_at_ms"],
+                    object_key=_chunk_object_key(
+                        locked_run,
+                        participant,
+                        event,
+                        descriptor,
+                    ),
+                    content_type=descriptor["content_type"],
+                    codec=descriptor["codec"],
+                    byte_size=descriptor["byte_size"],
+                    sha256=descriptor["sha256"],
+                    previous_sha256=descriptor["previous_sha256"],
+                    metadata=_merged_association_metadata(
+                        None,
+                        event,
+                        descriptor,
+                    ),
+                )
+            else:
+                metadata = _merged_association_metadata(
+                    row,
+                    event,
+                    descriptor,
+                )
+                if metadata != row.metadata:
+                    row.metadata = metadata
+                    row.save(update_fields=["metadata"])
+            rows.append(row)
+        rows.sort(
+            key=lambda row: (
+                row.source,
+                str(row.recording_session_id),
+                row.chunk_seq,
+            ),
+        )
+        client = get_s3_client(
+            endpoint_url=(settings.OBJECT_STORAGE_PUBLIC_ENDPOINT_URL or "").strip()
+            or None
+        )
+        upload_ttl_seconds = settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS
+        if type(upload_ttl_seconds) is not int or upload_ttl_seconds < 1:
+            raise IntegrityEvidenceStorageError("evidence upload signing failed")
+        uploads = []
+        for row in rows:
+            if row.status in _TERMINAL_CHUNK_STATUSES:
+                put_url = None
+                required_headers: dict[str, str] = {}
+            else:
+                try:
+                    put_url, checksum = generate_evidence_chunk_put_url(
+                        settings.ANTICHEAT_RAW_BUCKET,
+                        row.object_key,
+                        content_type=row.content_type,
+                        byte_size=row.byte_size,
+                        sha256=row.sha256,
+                        expires_seconds=upload_ttl_seconds,
+                        client=client,
+                    )
+                except (BotoCoreError, ClientError, ValueError):
+                    raise IntegrityEvidenceStorageError(
+                        "evidence upload signing failed"
+                    ) from None
+                metadata = dict(row.metadata) if type(row.metadata) is dict else {}
+                metadata["upload_url_expires_at_ms"] = (
+                    int(timezone.now().timestamp() * 1000) + upload_ttl_seconds * 1000
+                )
+                row.metadata = metadata
+                row.save(update_fields=["metadata"])
+                required_headers = {
+                    "Content-Type": row.content_type,
+                    "x-amz-checksum-sha256": checksum,
+                }
+            uploads.append(
+                {
+                    "chunk_id": str(row.id),
+                    "chunk_seq": row.chunk_seq,
+                    "source": row.source,
+                    "object_key": row.object_key,
+                    "status": row.status,
+                    "put_url": put_url,
+                    "required_headers": required_headers,
+                }
+            )
+        return uploads
+
+
+def _storage_error_code(error: ClientError) -> str:
+    response = getattr(error, "response", {})
+    detail = response.get("Error") if type(response) is dict else None
+    return str(detail.get("Code") or "") if type(detail) is dict else ""
+
+
+def complete_evidence_chunk(
+    chunk: ExamEvidenceChunk,
+) -> ExamEvidenceChunk:
+    if chunk.status == ExamEvidenceChunk.Status.VERIFIED:
+        return chunk
+    client = get_s3_client()
+    try:
+        head = client.head_object(
+            Bucket=settings.ANTICHEAT_RAW_BUCKET,
+            Key=chunk.object_key,
+            ChecksumMode="ENABLED",
+        )
+    except ClientError as error:
+        if _storage_error_code(error) in {
+            "404",
+            "NoSuchKey",
+            "NotFound",
+            "NoSuchBucket",
+        }:
+            raise IntegrityEvidenceRejected("evidence_object_not_found") from None
+        raise IntegrityEvidenceStorageError(
+            "evidence storage validation failed"
+        ) from None
+    except BotoCoreError:
+        raise IntegrityEvidenceStorageError(
+            "evidence storage validation failed"
+        ) from None
+
+    expected_checksum = base64.b64encode(bytes.fromhex(chunk.sha256)).decode("ascii")
+    length_matches = (
+        type(head.get("ContentLength")) is int
+        and head["ContentLength"] == chunk.byte_size
+    )
+    checksum = head.get("ChecksumSHA256")
+    checksum_matches = type(checksum) is str and hmac.compare_digest(
+        checksum, expected_checksum
+    )
+    now = timezone.now()
+    mismatch = not length_matches or not checksum_matches
+    with transaction.atomic():
+        locked = ExamEvidenceChunk.objects.select_for_update().get(pk=chunk.pk)
+        if locked.status == ExamEvidenceChunk.Status.VERIFIED:
+            return locked
+        if mismatch:
+            locked.status = ExamEvidenceChunk.Status.FAILED
+            locked.save(update_fields=["status"])
+        else:
+            locked.status = ExamEvidenceChunk.Status.VERIFIED
+            locked.uploaded_at = now
+            locked.verified_at = now
+            metadata = dict(locked.metadata) if type(locked.metadata) is dict else {}
+            metadata["storage_head"] = {
+                "byte_size": locked.byte_size,
+                "checksum_sha256": expected_checksum,
+            }
+            locked.metadata = metadata
+            locked.save(
+                update_fields=[
+                    "status",
+                    "uploaded_at",
+                    "verified_at",
+                    "metadata",
+                ]
+            )
+    if mismatch:
+        raise IntegrityEvidenceRejected("evidence_checksum_mismatch")
+    return locked
+
+
+def report_evidence_unavailable(
+    chunk: ExamEvidenceChunk,
+    *,
+    reason: str,
+) -> ExamEvidenceChunk:
+    with transaction.atomic():
+        locked = ExamEvidenceChunk.objects.select_for_update().get(pk=chunk.pk)
+        if locked.status == ExamEvidenceChunk.Status.VERIFIED:
+            raise IntegrityEvidenceRejected("verified_evidence_cannot_be_unavailable")
+        metadata = dict(locked.metadata) if type(locked.metadata) is dict else {}
+        metadata["unavailable_reason"] = reason
+        metadata["unavailable_reported_at"] = timezone.now().isoformat()
+        locked.status = ExamEvidenceChunk.Status.UNAVAILABLE
+        locked.metadata = metadata
+        locked.save(update_fields=["status", "metadata"])
+        return locked
+
+
+def report_evidence_unavailable_projection(
+    run: ExamIntegrityRun,
+    participant: ContestParticipant,
+    event: ExamEvent,
+    *,
+    source: str,
+    reason: str,
+) -> tuple[dict[str, object], ...]:
+    """Record server-signed terminal coverage when no media chunk exists."""
+
+    if type(source) is not str or source not in _SOURCE_KINDS:
+        raise IntegrityEvidenceRejected("evidence_source_disabled")
+    if type(reason) is not str or not 1 <= len(reason) <= 256:
+        raise IntegrityEvidenceRejected("invalid_evidence_unavailable_reason")
+    with transaction.atomic():
+        locked_run = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
+        if (
+            locked_run.compute_state
+            not in {
+                ExamIntegrityRun.ComputeState.RUNNING,
+                ExamIntegrityRun.ComputeState.STOPPING,
+            }
+            or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
+        ):
+            raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")
+        ContestParticipant.objects.select_for_update().only("pk").get(
+            pk=participant.pk,
+            contest_id=locked_run.contest_id,
+        )
+        locked_event = (
+            ExamEvent.objects.select_for_update()
+            .filter(
+                pk=event.pk,
+                integrity_run=locked_run,
+                contest_id=locked_run.contest_id,
+                user_id=participant.user_id,
+                incident_id=event.incident_id,
+            )
+            .first()
+        )
+        if locked_event is None or locked_event.incident_id is None:
+            raise IntegrityEvidenceRejected("evidence_projection_not_found")
+        events = list(_participant_incident_events(locked_run, participant))
+        windows = [
+            window
+            for window in _evidence_retain_windows_for_events(
+                locked_run,
+                events,
+                after_ms=0,
+            )
+            if (
+                window.incident_id == locked_event.incident_id
+                and window.event_id == locked_event.id
+                and source in window.sources
+            )
+        ]
+        if not windows:
+            raise IntegrityEvidenceRejected("evidence_source_disabled")
+
+        metadata = (
+            dict(locked_event.metadata) if type(locked_event.metadata) is dict else {}
+        )
+        existing = _unavailable_markers_from_events([locked_event])
+        existing_by_window = {
+            (
+                marker["run_id"],
+                marker["participant_id"],
+                marker["incident_id"],
+                marker["event_id"],
+                marker["source"],
+                marker["start_at_ms"],
+                marker["end_at_ms"],
+            ): marker
+            for marker in existing
+        }
+        for window in windows:
+            identity = (
+                str(locked_run.id),
+                participant.id,
+                str(window.incident_id),
+                window.event_id,
+                source,
+                window.start_at_ms,
+                window.end_at_ms,
+            )
+            if identity in existing_by_window:
+                continue
+            payload = {
+                "version": _UNAVAILABLE_MARKER_VERSION,
+                "run_id": str(locked_run.id),
+                "participant_id": participant.id,
+                "incident_id": str(window.incident_id),
+                "event_id": window.event_id,
+                "source": source,
+                "start_at_ms": window.start_at_ms,
+                "end_at_ms": window.end_at_ms,
+                "reason": reason,
+            }
+            existing_by_window[identity] = payload
+
+        stored_markers = []
+        for marker in sorted(
+            existing_by_window.values(),
+            key=lambda item: (
+                str(item["incident_id"]),
+                item["event_id"],
+                item["source"],
+                item["start_at_ms"],
+                item["end_at_ms"],
+            ),
+        ):
+            stored_markers.append(
+                {
+                    **marker,
+                    "signature": _unavailable_marker_signature(marker),
+                }
+            )
+        metadata[_UNAVAILABLE_MARKERS_KEY] = stored_markers
+        locked_event.metadata = metadata
+        locked_event.save(update_fields=["metadata"])
+        return tuple(
+            marker
+            for marker in existing_by_window.values()
+            if (
+                marker["run_id"] == str(locked_run.id)
+                and marker["participant_id"] == participant.id
+                and marker["incident_id"] == str(locked_event.incident_id)
+                and marker["event_id"] == locked_event.id
+                and marker["source"] == source
+            )
+        )
+
+
+def _unavailable_evidence_summary() -> dict[str, object]:
+    return {"evidence_status": "unavailable", "evidence_sources": {}}
+
+
+def _chunk_associated_with_event(
+    chunk: ExamEvidenceChunk,
+    event: ExamEvent,
+) -> bool:
+    return bool(
+        chunk.exam_event_id == event.id
+        or chunk.incident_id == event.incident_id
+        or event.id in _metadata_ids(chunk.metadata, "event_ids")
+        or str(event.incident_id) in _metadata_ids(chunk.metadata, "incident_ids")
+    )
+
+
+def evidence_chunks_for_event(event: ExamEvent) -> list[ExamEvidenceChunk]:
+    """Return the same event-associated chunks used by evidence summaries."""
+
+    if event.integrity_run_id is None or event.incident_id is None:
+        return []
+    participant = (
+        ContestParticipant.objects.filter(
+            contest_id=event.contest_id,
+            user_id=event.user_id,
+        )
+        .only("id")
+        .first()
+    )
+    if participant is None:
+        return []
+    run = event.integrity_run
+    windows = _evidence_retain_windows_for_events(run, [event], after_ms=0)
+    chunks = ExamEvidenceChunk.objects.filter(
+        integrity_run_id=event.integrity_run_id,
+        participant=participant,
+    )
+    return sorted(
+        (
+            chunk
+            for chunk in chunks
+            if _chunk_associated_with_event(chunk, event)
+            and any(_chunk_matches_window(chunk, window) for window in windows)
+        ),
+        key=lambda chunk: (
+            chunk.source,
+            chunk.start_at_ms,
+            chunk.chunk_seq,
+        ),
+    )
+
+
+def _evidence_summary_from_loaded(
+    run: ExamIntegrityRun,
+    incident_windows: list[EvidenceRetainWindow],
+    candidates: list[ExamEvidenceChunk],
+    unavailable_markers: Iterable[dict[str, object]] = (),
+) -> dict[str, object]:
+    markers = list(unavailable_markers)
+    required = {source for window in incident_windows for source in window.sources}
+    if run.data_state == ExamIntegrityRun.DataState.PURGED:
+        return {
+            "evidence_status": "unavailable",
+            "evidence_sources": {
+                source: {"status": "unavailable", "chunks": 0}
+                for source in sorted(required)
+            },
+        }
+    source_summary = {}
+    for source in sorted(required):
+        chunks = [chunk for chunk in candidates if chunk.source == source]
+        statuses = {chunk.status for chunk in chunks}
+        verified_count = sum(
+            chunk.status == ExamEvidenceChunk.Status.VERIFIED for chunk in chunks
+        )
+        source_windows = [
+            window for window in incident_windows if source in window.sources
+        ]
+        has_unavailable_marker = any(
+            _marker_matches_window(
+                marker,
+                run,
+                window,
+                source,
+            )
+            for marker in markers
+            for window in source_windows
+        )
+        if verified_count:
+            source_status = "available"
+        elif statuses & {
+            ExamEvidenceChunk.Status.REQUESTED,
+            ExamEvidenceChunk.Status.UPLOADED,
+        }:
+            source_status = "pending"
+        elif has_unavailable_marker or (
+            statuses
+            and statuses
+            <= {
+                ExamEvidenceChunk.Status.FAILED,
+                ExamEvidenceChunk.Status.UNAVAILABLE,
+            }
+        ):
+            source_status = "unavailable"
+        else:
+            source_status = "pending"
+        source_summary[source] = {
+            "status": source_status,
+            "chunks": verified_count,
+        }
+    statuses = {item["status"] for item in source_summary.values()}
+    if not statuses:
+        overall = "unavailable"
+    elif "available" in statuses:
+        overall = "available"
+    elif "pending" in statuses:
+        overall = "pending"
+    else:
+        overall = "unavailable"
+    return {
+        "evidence_status": overall,
+        "evidence_sources": source_summary,
+    }
+
+
+def evidence_status_for_event(event: ExamEvent) -> dict[str, object]:
+    if event.integrity_run_id is None or event.incident_id is None:
+        return _unavailable_evidence_summary()
+    try:
+        run = event.integrity_run
+    except ExamIntegrityRun.DoesNotExist:
+        return _unavailable_evidence_summary()
+    participant = (
+        ContestParticipant.objects.filter(
+            contest_id=event.contest_id,
+            user_id=event.user_id,
+        )
+        .only("id", "user_id")
+        .first()
+    )
+    if participant is None:
+        return _unavailable_evidence_summary()
+    events = list(_participant_incident_events(run, participant))
+    windows = _evidence_retain_windows_for_events(
+        run,
+        events,
+        after_ms=0,
+    )
+    unavailable_markers = _unavailable_markers_from_events(events)
+    chunks = list(
+        ExamEvidenceChunk.objects.filter(
+            integrity_run=run,
+            participant=participant,
+        )
+    )
+    return _evidence_summary_from_loaded(
+        run,
+        [window for window in windows if window.incident_id == event.incident_id],
+        [chunk for chunk in chunks if _chunk_associated_with_event(chunk, event)],
+        unavailable_markers,
+    )
+
+
+def evidence_statuses_for_events(
+    events: Iterable[ExamEvent],
+) -> dict[int, dict[str, object]]:
+    """Build event evidence summaries with two shared queries."""
+
+    event_list = list(events)
+    summaries = {event.id: _unavailable_evidence_summary() for event in event_list}
+    groups: dict[
+        tuple[UUID, int, int],
+        tuple[ExamIntegrityRun, list[ExamEvent]],
+    ] = {}
+    for event in event_list:
+        if event.integrity_run_id is None or event.incident_id is None:
+            continue
+        try:
+            run = event.integrity_run
+        except ExamIntegrityRun.DoesNotExist:
+            continue
+        key = (run.id, event.contest_id, event.user_id)
+        if key not in groups:
+            groups[key] = (run, [])
+        groups[key][1].append(event)
+    if not groups:
+        return summaries
+
+    contest_ids = {key[1] for key in groups}
+    user_ids = {key[2] for key in groups}
+    participants = list(
+        ContestParticipant.objects.filter(
+            contest_id__in=contest_ids,
+            user_id__in=user_ids,
+        ).only("id", "contest_id", "user_id")
+    )
+    participants_by_identity = {
+        (participant.contest_id, participant.user_id): participant
+        for participant in participants
+    }
+    active_groups = {
+        key: (run, group_events, participant)
+        for key, (run, group_events) in groups.items()
+        if (participant := participants_by_identity.get((key[1], key[2]))) is not None
+    }
+    if not active_groups:
+        return summaries
+
+    chunks_by_group: dict[
+        tuple[UUID, int],
+        list[ExamEvidenceChunk],
+    ] = {}
+    participant_ids = {participant.id for _, _, participant in active_groups.values()}
+    run_ids = {key[0] for key in active_groups}
+    for chunk in ExamEvidenceChunk.objects.filter(
+        integrity_run_id__in=run_ids,
+        participant_id__in=participant_ids,
+    ):
+        chunks_by_group.setdefault(
+            (chunk.integrity_run_id, chunk.participant_id),
+            [],
+        ).append(chunk)
+
+    for key, (run, group_events, participant) in active_groups.items():
+        windows = _evidence_retain_windows_for_events(
+            run,
+            group_events,
+            after_ms=0,
+        )
+        chunks = chunks_by_group.get((run.id, participant.id), [])
+        unavailable_markers = _unavailable_markers_from_events(group_events)
+        summary_cache: dict[
+            tuple[object, ...],
+            dict[str, object],
+        ] = {}
+        windows_by_incident: dict[
+            UUID,
+            list[EvidenceRetainWindow],
+        ] = {}
+        for window in windows:
+            windows_by_incident.setdefault(
+                window.incident_id,
+                [],
+            ).append(window)
+        chunks_by_incident: dict[
+            str,
+            dict[UUID, ExamEvidenceChunk],
+        ] = {}
+        chunks_by_event: dict[
+            int,
+            dict[UUID, ExamEvidenceChunk],
+        ] = {}
+        for chunk in chunks:
+            incident_ids = {
+                str(chunk.incident_id),
+                *(
+                    value
+                    for value in _metadata_ids(
+                        chunk.metadata,
+                        "incident_ids",
+                    )
+                    if type(value) is str
+                ),
+            }
+            event_ids = {
+                chunk.exam_event_id,
+                *(
+                    value
+                    for value in _metadata_ids(
+                        chunk.metadata,
+                        "event_ids",
+                    )
+                    if type(value) is int
+                ),
+            }
+            for incident_id in incident_ids:
+                chunks_by_incident.setdefault(
+                    incident_id,
+                    {},
+                )[chunk.id] = chunk
+            for event_id in event_ids:
+                chunks_by_event.setdefault(event_id, {})[chunk.id] = chunk
+        for event in group_events:
+            incident_windows = windows_by_incident.get(event.incident_id, [])
+            candidates = dict(chunks_by_incident.get(str(event.incident_id), {}))
+            candidates.update(chunks_by_event.get(event.id, {}))
+            candidates = {
+                chunk_id: chunk
+                for chunk_id, chunk in candidates.items()
+                if any(
+                    _chunk_matches_window(chunk, window) for window in incident_windows
+                )
+            }
+            cache_key = (
+                event.incident_id,
+                frozenset(candidates),
+                tuple(
+                    sorted(
+                        (
+                            marker["event_id"],
+                            marker["source"],
+                            marker["start_at_ms"],
+                            marker["end_at_ms"],
+                            marker["reason"],
+                        )
+                        for marker in unavailable_markers
+                        if marker["incident_id"] == str(event.incident_id)
+                    )
+                ),
+            )
+            summary = summary_cache.get(cache_key)
+            if summary is None:
+                summary_args = (
+                    run,
+                    incident_windows,
+                    list(candidates.values()),
+                )
+                summary = (
+                    _evidence_summary_from_loaded(
+                        *summary_args,
+                        unavailable_markers=unavailable_markers,
+                    )
+                    if unavailable_markers
+                    else _evidence_summary_from_loaded(*summary_args)
+                )
+                summary_cache[cache_key] = summary
+            summaries[event.id] = summary
+    return summaries
+
+
+def _read_body(response: dict[str, object]) -> bytes:
+    content_length = response.get("ContentLength")
+    body = response.get("Body")
+    if body is None or not hasattr(body, "read"):
+        raise IntegrityEvidenceStorageError("archive manifest body is invalid")
+    try:
+        if type(content_length) is int and (
+            content_length < 0 or content_length > _MANIFEST_MAX_BYTES
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest is too large")
+        content = body.read(_MANIFEST_MAX_BYTES + 1)
+    finally:
+        close = getattr(body, "close", None)
+        if callable(close):
+            close()
+    if type(content) is not bytes or len(content) > _MANIFEST_MAX_BYTES:
+        raise IntegrityEvidenceStorageError("archive manifest body is invalid")
+    return content
+
+
+def _expected_manifest_key(run_id: UUID, generation: int) -> str:
+    return f"runs/{run_id}/generation-{generation}/manifest.json"
+
+
+def _expected_segment_prefix(run_id: UUID, generation: int) -> str:
+    return f"runs/{run_id}/generation-{generation}/segments/"
+
+
+def _load_archive_manifest_chain(
+    client,
+    run: ExamIntegrityRun,
+) -> set[str]:
+    key = run.archive_manifest_key
+    digest = run.archive_manifest_sha256
+    generation = run.archive_generation
+    keys: set[str] = set()
+    visited = set()
+    loaded_key_count = 0
+    if type(generation) is not int or not 1 <= generation <= _MAX_ARCHIVE_GENERATIONS:
+        raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+    for _ in range(_MAX_ARCHIVE_GENERATIONS):
+        if (
+            type(generation) is not int
+            or generation < 1
+            or key != _expected_manifest_key(run.id, generation)
+            or type(digest) is not str
+            or not _SHA256_RE.fullmatch(digest)
+            or key in visited
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest identity is invalid")
+        visited.add(key)
+        try:
+            response = client.get_object(
+                Bucket=settings.INTEGRITY_ARCHIVE_BUCKET,
+                Key=key,
+            )
+        except (BotoCoreError, ClientError):
+            raise IntegrityEvidenceStorageError(
+                "archive manifest could not be read"
+            ) from None
+        content = _read_body(response)
+        if not hmac.compare_digest(hashlib.sha256(content).hexdigest(), digest):
+            raise IntegrityEvidenceStorageError("archive manifest checksum is invalid")
+        try:
+            payload = json.loads(content)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise IntegrityEvidenceStorageError(
+                "archive manifest payload is invalid"
+            ) from None
+        if (
+            type(payload) is not dict
+            or payload.get("schema_version") != 1
+            or payload.get("run_id") != str(run.id)
+            or payload.get("generation") != generation
+            or type(payload.get("segments")) is not list
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest payload is invalid")
+        segments = payload["segments"]
+        if len(segments) + 1 > _MAX_PURGE_KEYS - loaded_key_count:
+            raise IntegrityEvidenceStorageError("integrity purge key set is too large")
+        prefix = _expected_segment_prefix(run.id, generation)
+        for segment in segments:
+            object_key = segment.get("object_key") if type(segment) is dict else None
+            suffix = (
+                object_key[len(prefix) :]
+                if type(object_key) is str and object_key.startswith(prefix)
+                else ""
+            )
+            if not re.fullmatch(r"[0-9]{8}\.journal\.gz", suffix):
+                raise IntegrityEvidenceStorageError(
+                    "archive segment identity is invalid"
+                )
+            keys.add(object_key)
+        keys.add(key)
+        loaded_key_count += len(segments) + 1
+        if (
+            "previous_manifest" not in payload
+            or "previous_manifest_sha256" not in payload
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest chain is invalid")
+        previous = payload["previous_manifest"]
+        previous_digest = payload["previous_manifest_sha256"]
+        if generation == 1:
+            if previous is not None or previous_digest is not None:
+                raise IntegrityEvidenceStorageError("archive manifest chain is invalid")
+            return keys
+        if (
+            type(previous) is not dict
+            or set(previous) != {"generation", "object_key", "sha256"}
+            or previous.get("generation") != generation - 1
+            or previous.get("object_key")
+            != _expected_manifest_key(run.id, generation - 1)
+            or type(previous.get("sha256")) is not str
+            or not _SHA256_RE.fullmatch(previous["sha256"])
+            or type(previous_digest) is not str
+            or not hmac.compare_digest(
+                previous_digest,
+                previous["sha256"],
+            )
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest chain is invalid")
+        generation = previous.get("generation")
+        key = previous.get("object_key")
+        digest = previous.get("sha256")
+    raise IntegrityEvidenceStorageError("archive manifest chain is too long")
+
+
+def _delete_exact_keys(client, bucket: str, keys: list[str]) -> None:
+    for offset in range(0, len(keys), _PURGE_BATCH_SIZE):
+        batch = keys[offset : offset + _PURGE_BATCH_SIZE]
+        try:
+            response = client.delete_objects(
+                Bucket=bucket,
+                Delete={
+                    "Objects": [{"Key": key} for key in batch],
+                    "Quiet": True,
+                },
+            )
+        except (BotoCoreError, ClientError):
+            raise IntegrityEvidenceStorageError(
+                "integrity object deletion failed"
+            ) from None
+        if type(response) is dict and response.get("Errors"):
+            raise IntegrityEvidenceStorageError("integrity object deletion failed")
+
+
+def _verify_exact_keys_absent(
+    client,
+    bucket: str,
+    keys: list[str],
+) -> None:
+    for key in keys:
+        try:
+            client.head_object(
+                Bucket=bucket,
+                Key=key,
+            )
+        except ClientError as error:
+            if _storage_error_code(error) in {
+                "404",
+                "NoSuchKey",
+                "NotFound",
+                "NoSuchBucket",
+            }:
+                continue
+            raise IntegrityEvidenceStorageError(
+                "integrity object purge verification failed"
+            ) from None
+        except BotoCoreError:
+            raise IntegrityEvidenceStorageError(
+                "integrity object purge verification failed"
+            ) from None
+        raise IntegrityEvidenceStorageError("integrity object remains after purge")
+
+
+def _purge_receipt_keys(
+    run: ExamIntegrityRun,
+) -> tuple[list[str], list[str]] | None:
+    metrics = run.metrics
+    receipt = metrics.get("integrity_purge") if type(metrics) is dict else None
+    if type(receipt) is not dict:
+        return None
+    archive_keys = receipt.get("archive_object_keys")
+    evidence_keys = receipt.get("evidence_object_keys")
+    canonical_objects = {
+        "archive": archive_keys,
+        "evidence": evidence_keys,
+    }
+    if (
+        receipt.get("manifest_key") != run.archive_manifest_key
+        or receipt.get("manifest_sha256") != run.archive_manifest_sha256
+        or type(archive_keys) is not list
+        or type(evidence_keys) is not list
+        or not 1 <= len(archive_keys) + len(evidence_keys) <= _MAX_PURGE_KEYS
+        or any(
+            type(key) is not str or not key for key in [*archive_keys, *evidence_keys]
+        )
+        or len(set(archive_keys)) != len(archive_keys)
+        or len(set(evidence_keys)) != len(evidence_keys)
+    ):
+        raise IntegrityEvidenceStorageError("integrity purge receipt is invalid")
+    expected_digest = hashlib.sha256(
+        json.dumps(
+            canonical_objects,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    if not hmac.compare_digest(
+        str(receipt.get("object_keys_sha256") or ""),
+        expected_digest,
+    ):
+        raise IntegrityEvidenceStorageError("integrity purge receipt is invalid")
+    return archive_keys, evidence_keys
+
+
+def _persist_purge_receipt(
+    run: ExamIntegrityRun,
+    archive_keys: list[str],
+) -> list[str]:
+    with transaction.atomic():
+        locked = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
+        if (
+            locked.compute_state != ExamIntegrityRun.ComputeState.DESTROYED
+            or locked.data_state != ExamIntegrityRun.DataState.ARCHIVED
+            or locked.archive_manifest_key != run.archive_manifest_key
+            or locked.archive_manifest_sha256 != run.archive_manifest_sha256
+        ):
+            raise IntegrityEvidenceStorageError("archive manifest changed during purge")
+        evidence_rows = list(
+            ExamEvidenceChunk.objects.filter(integrity_run=locked).only(
+                "object_key",
+                "metadata",
+            )
+        )
+        now_ms = int(timezone.now().timestamp() * 1000)
+        for evidence_row in evidence_rows:
+            metadata = (
+                evidence_row.metadata if type(evidence_row.metadata) is dict else {}
+            )
+            expires_at_ms = metadata.get("upload_url_expires_at_ms")
+            if expires_at_ms is None:
+                continue
+            if type(expires_at_ms) is not int or expires_at_ms < 0:
+                raise IntegrityEvidenceStorageError("evidence upload lease is invalid")
+            if expires_at_ms > now_ms:
+                raise IntegrityEvidenceStorageError(
+                    "evidence upload lease is still active"
+                )
+        evidence_keys = sorted(
+            {
+                evidence_row.object_key
+                for evidence_row in evidence_rows
+                if evidence_row.object_key
+            }
+        )
+        if len(archive_keys) + len(evidence_keys) > _MAX_PURGE_KEYS:
+            raise IntegrityEvidenceStorageError("integrity purge key set is too large")
+        metrics = dict(locked.metrics) if type(locked.metrics) is dict else {}
+        metrics["integrity_purge"] = {
+            "manifest_key": run.archive_manifest_key,
+            "manifest_sha256": run.archive_manifest_sha256,
+            "archive_object_keys": archive_keys,
+            "evidence_object_keys": evidence_keys,
+            "object_keys_sha256": hashlib.sha256(
+                json.dumps(
+                    {
+                        "archive": archive_keys,
+                        "evidence": evidence_keys,
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest(),
+        }
+        locked.metrics = metrics
+        locked.save(update_fields=["metrics"])
+        run.metrics = metrics
+        return evidence_keys
+
+
+def purge_integrity_data(run: ExamIntegrityRun) -> None:
+    """Delete only verified manifest keys and exact chunk keys for one Run."""
+
+    client = get_s3_client()
+    receipt = _purge_receipt_keys(run)
+    if receipt is None:
+        archive_keys = sorted(_load_archive_manifest_chain(client, run))
+        evidence_keys = _persist_purge_receipt(run, archive_keys)
+    else:
+        archive_keys, evidence_keys = receipt
+    _delete_exact_keys(
+        client,
+        settings.INTEGRITY_ARCHIVE_BUCKET,
+        archive_keys,
+    )
+    _delete_exact_keys(
+        client,
+        settings.ANTICHEAT_RAW_BUCKET,
+        evidence_keys,
+    )
+    _verify_exact_keys_absent(
+        client,
+        settings.INTEGRITY_ARCHIVE_BUCKET,
+        archive_keys,
+    )
+    _verify_exact_keys_absent(
+        client,
+        settings.ANTICHEAT_RAW_BUCKET,
+        evidence_keys,
+    )
+    with transaction.atomic():
+        ExamEvidenceChunk.objects.filter(integrity_run=run).delete()

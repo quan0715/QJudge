@@ -1,151 +1,60 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useViewportMonitoring } from "./useViewportMonitoring";
 
-const triggerMock = vi.fn();
-const recoverMock = vi.fn();
-const resetInterruptionMock = vi.fn();
-
-vi.mock("./useViolationPipeline", () => ({
-  useViolationPipeline: () => ({
-    trigger: triggerMock,
-    recover: recoverMock,
-    resetInterruption: resetInterruptionMock,
-    recoveryCountdown: null,
-    isInterrupted: false,
-  }),
-}));
-
-let resizeListeners: Array<() => void> = [];
-const viewportState = {
-  width: 1024,
-  height: 768,
-  scale: 1,
-  offsetTop: 0,
-};
-
-const installVisualViewportMock = () => {
-  resizeListeners = [];
-  const visualViewport = {
-    get width() {
-      return viewportState.width;
-    },
-    get height() {
-      return viewportState.height;
-    },
-    get scale() {
-      return viewportState.scale;
-    },
-    get offsetTop() {
-      return viewportState.offsetTop;
-    },
-    addEventListener: vi.fn((event: string, cb: () => void) => {
-      if (event === "resize") resizeListeners.push(cb);
-    }),
-    removeEventListener: vi.fn((event: string, cb: () => void) => {
-      if (event !== "resize") return;
-      resizeListeners = resizeListeners.filter((fn) => fn !== cb);
-    }),
+describe("useViewportMonitoring", () => {
+  const dimensions = (width: number, height: number) => {
+    Object.defineProperty(window, "innerWidth", { value: width, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: height, configurable: true });
+    Object.defineProperty(window.screen, "width", { value: 1_000, configurable: true });
+    Object.defineProperty(window.screen, "height", { value: 1_000, configurable: true });
   };
 
-  Object.defineProperty(window, "visualViewport", {
-    configurable: true,
-    writable: true,
-    value: visualViewport,
+  beforeEach(() => dimensions(1_000, 1_000));
+  afterEach(() => vi.restoreAllMocks());
+
+  it("starts browser geometry sampling without a local recovery countdown", () => {
+    const emitter = { emit: vi.fn().mockResolvedValue(undefined) };
+    const { result } = renderHook(() => useViewportMonitoring({
+      enabled: true,
+      examSubmitted: false,
+      isTablet: false,
+      primarySourceModule: "screen_share",
+      emitter,
+    }));
+    expect(typeof result.current.interrupted).toBe("boolean");
   });
 
-  Object.defineProperty(window, "innerWidth", {
-    configurable: true,
-    writable: true,
-    value: viewportState.width,
-  });
-  Object.defineProperty(window, "innerHeight", {
-    configurable: true,
-    writable: true,
-    value: viewportState.height,
-  });
+  it("emits only abnormal and recovery viewport transitions", () => {
+    const emitter = { emit: vi.fn().mockResolvedValue(undefined) };
+    const { unmount } = renderHook(() => useViewportMonitoring({
+      enabled: true,
+      examSubmitted: false,
+      isTablet: false,
+      primarySourceModule: "screen_share",
+      emitter,
+    }));
 
-  Object.defineProperty(window, "screen", {
-    configurable: true,
-    writable: true,
-    value: {
-      width: 1024,
-      height: 768,
-    },
-  });
-};
-
-describe("useViewportMonitoring", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-    viewportState.width = 1024;
-    viewportState.height = 768;
-    viewportState.scale = 1;
-    viewportState.offsetTop = 0;
-    installVisualViewportMock();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("does not trigger split-view violation for tablet keyboard resize", () => {
-    // Simulate a text input being focused (keyboard is open because student is typing)
-    const input = document.createElement("textarea");
-    document.body.appendChild(input);
-    input.focus();
-
-    renderHook(() =>
-      useViewportMonitoring({
-        contestId: "contest-1",
-        enabled: true,
-        examSubmitted: false,
-        recoveryGraceMs: 3000,
-        isTablet: true,
-        primarySourceModule: "webcam",
-        requestForceSubmit: vi.fn(),
-        onViolation: vi.fn(),
-      }),
-    );
+    expect(emitter.emit).not.toHaveBeenCalled();
+    act(() => {
+      dimensions(500, 500);
+      window.dispatchEvent(new Event("resize"));
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(emitter.emit).toHaveBeenCalledTimes(1);
+    expect(emitter.emit).toHaveBeenLastCalledWith(expect.objectContaining({
+      eventType: "viewport_interrupted",
+    }));
 
     act(() => {
-      viewportState.height = 520; // keyboard opened — takes ~32% of screen
-      viewportState.width = 1024; // width unchanged
-      resizeListeners.forEach((listener) => listener());
-      vi.advanceTimersByTime(1100);
+      dimensions(1_000, 1_000);
+      window.dispatchEvent(new Event("resize"));
+      window.dispatchEvent(new Event("resize"));
     });
-
-    expect(triggerMock).not.toHaveBeenCalled();
-
-    input.blur();
-    document.body.removeChild(input);
-  });
-
-  it("triggers split-view violation when tablet width is reduced", () => {
-    renderHook(() =>
-      useViewportMonitoring({
-        contestId: "contest-1",
-        enabled: true,
-        examSubmitted: false,
-        recoveryGraceMs: 3000,
-        isTablet: true,
-        primarySourceModule: "webcam",
-        requestForceSubmit: vi.fn(),
-        onViolation: vi.fn(),
-      }),
-    );
-
-    act(() => {
-      viewportState.width = 700; // split view style narrow viewport
-      viewportState.height = 768;
-      // getViewportSnapshot reads window.innerWidth/innerHeight
-      Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 700 });
-      Object.defineProperty(window, "innerHeight", { configurable: true, writable: true, value: 768 });
-      resizeListeners.forEach((listener) => listener());
-      vi.advanceTimersByTime(1100);
-    });
-
-    expect(triggerMock).toHaveBeenCalled();
+    expect(emitter.emit).toHaveBeenCalledTimes(2);
+    expect(emitter.emit).toHaveBeenLastCalledWith(expect.objectContaining({
+      eventType: "viewport_restored",
+    }));
+    unmount();
   });
 });

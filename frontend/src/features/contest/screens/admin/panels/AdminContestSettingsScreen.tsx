@@ -246,7 +246,6 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       attendancePhotoPolicy: contest.attendancePhotoPolicy ?? "room",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
       anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
-      warningTimeoutSeconds: contest.warningTimeoutSeconds ?? 20,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
     });

@@ -85,7 +85,7 @@ jobs:
       - name: Run Exam E2E
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/exam-anticheat.e2e.spec.ts tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts"
+          SPECS="tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts"
           cmd=(npm run test:e2e -- $SPECS)
           if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
           docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"

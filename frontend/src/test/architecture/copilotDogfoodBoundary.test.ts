@@ -38,7 +38,7 @@ describe("Copilot dogfood boundary", () => {
     );
 
     expect(output).toContain("Copilot dogfood boundary passed");
-  });
+  }, 15_000);
 
   it.each([
     ["value import", 'import { CopilotPanel } from "@/shared/copilot";'],

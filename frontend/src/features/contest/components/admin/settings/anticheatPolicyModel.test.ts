@@ -11,7 +11,7 @@ import {
 const defaultPolicy = () => createMockContest().anticheatDevicePolicy;
 
 describe("anticheatPolicyModel", () => {
-  it("maps legacy device policy into access and evidence views", () => {
+  it("maps the device policy into access and evidence views", () => {
     const policy = defaultPolicy();
 
     expect(getAccessPolicyView(policy)).toEqual({
@@ -80,7 +80,7 @@ describe("anticheatPolicyModel", () => {
             ...defaultPolicy().desktop,
             sources: {
               ...defaultPolicy().desktop.sources,
-              webcam: { enabled: true, captureIntervalSeconds: 10 },
+              webcam: { enabled: true },
             },
           },
         },
@@ -103,8 +103,8 @@ describe("anticheatPolicyModel", () => {
           desktop: {
             enabled: true,
             sources: {
-              screenShare: { enabled: false, captureIntervalSeconds: 5 },
-              webcam: { enabled: true, captureIntervalSeconds: 10 },
+              screenShare: { enabled: false },
+              webcam: { enabled: true },
             },
             detectors: {
               pwaMode: false,
@@ -117,8 +117,8 @@ describe("anticheatPolicyModel", () => {
           tablet: {
             enabled: true,
             sources: {
-              screenShare: { enabled: true, captureIntervalSeconds: 5 },
-              webcam: { enabled: false, captureIntervalSeconds: 10 },
+              screenShare: { enabled: true },
+              webcam: { enabled: false },
             },
             detectors: {
               pwaMode: true,

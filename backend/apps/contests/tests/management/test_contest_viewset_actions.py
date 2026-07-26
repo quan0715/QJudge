@@ -150,7 +150,7 @@ def test_partial_update_logs_activity(
     ).exists()
 
 @pytest.mark.django_db
-def test_retrieve_auto_submits_when_contest_ended(
+def test_retrieve_does_not_submit_when_contest_ended(
     api_client: APIClient,
     contest: Contest,
     student: User,
@@ -169,8 +169,8 @@ def test_retrieve_auto_submits_when_contest_ended(
 
     assert response.status_code == status.HTTP_200_OK
     participant.refresh_from_db()
-    assert participant.exam_status == ExamStatus.SUBMITTED
-    assert participant.left_at is not None
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
+    assert participant.left_at is None
 
 
 @pytest.mark.django_db
@@ -1434,7 +1434,7 @@ def test_remove_participant_allowed_without_evidence(
 
 
 @pytest.mark.django_db
-def test_overview_metrics_uses_heartbeat_as_primary_online_count(
+def test_overview_metrics_uses_checkpoint_as_primary_online_count(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -1447,11 +1447,11 @@ def test_overview_metrics_uses_heartbeat_as_primary_online_count(
         exam_status=ExamStatus.IN_PROGRESS,
     )
 
-    recent_heartbeat = (timezone.now() - timedelta(seconds=20)).isoformat()
+    recent_checkpoint = (timezone.now() - timedelta(seconds=20)).isoformat()
     monkeypatch.setattr(
         contest_view_module,
-        "get_last_heartbeat",
-        lambda contest_id, user_id: recent_heartbeat if user_id == student.id else None,
+        "get_last_checkpoint",
+        lambda contest_id, user_id: recent_checkpoint if user_id == student.id else None,
     )
     monkeypatch.setattr(
         contest_view_module,
@@ -1470,7 +1470,7 @@ def test_overview_metrics_uses_heartbeat_as_primary_online_count(
 
 
 @pytest.mark.django_db
-def test_overview_metrics_allows_active_session_without_recent_heartbeat(
+def test_overview_metrics_allows_active_session_without_recent_checkpoint(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -1483,11 +1483,11 @@ def test_overview_metrics_allows_active_session_without_recent_heartbeat(
         exam_status=ExamStatus.PAUSED,
     )
 
-    stale_heartbeat = (timezone.now() - timedelta(minutes=5)).isoformat()
+    stale_checkpoint = (timezone.now() - timedelta(minutes=5)).isoformat()
     monkeypatch.setattr(
         contest_view_module,
-        "get_last_heartbeat",
-        lambda contest_id, user_id: stale_heartbeat if user_id == student.id else None,
+        "get_last_checkpoint",
+        lambda contest_id, user_id: stale_checkpoint if user_id == student.id else None,
     )
     monkeypatch.setattr(
         contest_view_module,
@@ -1510,7 +1510,7 @@ def test_overview_metrics_handles_exam_status_and_time_progress_boundaries(
     contest: Contest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(contest_view_module, "get_last_heartbeat", lambda *args, **kwargs: None)
+    monkeypatch.setattr(contest_view_module, "get_last_checkpoint", lambda *args, **kwargs: None)
     monkeypatch.setattr(contest_view_module, "get_active_session", lambda *args, **kwargs: None)
 
     api_client.force_authenticate(user=owner)

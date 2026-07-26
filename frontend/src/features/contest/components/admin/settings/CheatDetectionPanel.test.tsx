@@ -14,8 +14,6 @@ const createProps = (
     form: {
       cheatDetectionEnabled: contest.cheatDetectionEnabled,
       anticheatDevicePolicy: contest.anticheatDevicePolicy,
-      warningTimeoutSeconds: contest.warningTimeoutSeconds,
-      screenShareRecoveryGraceMs: contest.screenShareRecoveryGraceMs,
     },
     getState: () => undefined,
     onRetry: () => {},
@@ -37,7 +35,7 @@ describe("CheatDetectionPanel", () => {
     expect(screen.queryByText("螢幕分享恢復時限")).not.toBeInTheDocument();
   });
 
-  it("writes evidence toggles back to the legacy anticheat device policy", () => {
+  it("writes evidence toggles back to the anti-cheat device policy", () => {
     const onChange = vi.fn();
     render(<CheatDetectionPanel {...createProps({ onChange })} />);
 

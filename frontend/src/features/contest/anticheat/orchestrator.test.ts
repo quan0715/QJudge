@@ -1,106 +1,26 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   beginAnticheatTermination,
-  decideAnticheatSignal,
   getAnticheatPhase,
   markAnticheatTerminal,
   resetAnticheatOrchestrator,
-  setAnticheatPhase,
   syncAnticheatPhaseWithExamStatus,
 } from "./orchestrator";
 
-const CONTEST_ID = "10";
+const CONTEST_ID = "contest-10";
 
-describe("anticheat orchestrator", () => {
-  beforeEach(() => {
-    resetAnticheatOrchestrator(CONTEST_ID);
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-07T00:00:00Z"));
-  });
+describe("anticheat phase store", () => {
+  afterEach(() => resetAnticheatOrchestrator(CONTEST_ID));
 
-  afterEach(() => {
-    vi.useRealTimers();
-    resetAnticheatOrchestrator(CONTEST_ID);
-  });
-
-  it("maps exam status to phases", () => {
+  it("keeps all monitored exam states active", () => {
     expect(syncAnticheatPhaseWithExamStatus(CONTEST_ID, "in_progress")).toBe("ACTIVE");
-    expect(syncAnticheatPhaseWithExamStatus(CONTEST_ID, "paused")).toBe("DEGRADED");
-    expect(syncAnticheatPhaseWithExamStatus(CONTEST_ID, "submitted")).toBe("TERMINAL");
+    expect(syncAnticheatPhaseWithExamStatus(CONTEST_ID, "paused")).toBe("ACTIVE");
+    expect(syncAnticheatPhaseWithExamStatus(CONTEST_ID, "locked")).toBe("ACTIVE");
   });
 
-  it("blocks escalating events in terminal phases", () => {
+  it("moves through termination into terminal", () => {
     beginAnticheatTermination(CONTEST_ID);
-    const d = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "screen_share_stopped",
-      source: "stream",
-      severity: "violation",
-    });
-
-    expect(d.accepted).toBe(false);
-    expect(d.decision).toBe("terminal_guard");
-  });
-
-  it("deduplicates same signal in short window", () => {
-    setAnticheatPhase(CONTEST_ID, "ACTIVE");
-
-    const d1 = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "window_blur",
-      source: "detector:focus",
-      severity: "violation",
-    });
-    const d2 = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "window_blur",
-      source: "detector:focus",
-      severity: "violation",
-    });
-
-    expect(d1.accepted).toBe(true);
-    expect(d2.accepted).toBe(false);
-    expect(d2.decision).toBe("dedupe_hit");
-  });
-
-  it("suppresses lower-priority events in arbitration window", () => {
-    setAnticheatPhase(CONTEST_ID, "ACTIVE");
-
-    const first = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "screen_share_stopped",
-      source: "stream",
-      severity: "violation",
-    });
-    const second = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "forbidden_action",
-      source: "detector:shortcut",
-      severity: "info",
-    });
-
-    expect(first.accepted).toBe(true);
-    expect(second.accepted).toBe(false);
-    expect(second.decision).toBe("lower_priority");
-  });
-
-  it("allows signal after arbitration window elapsed", () => {
-    setAnticheatPhase(CONTEST_ID, "ACTIVE");
-
-    const first = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "screen_share_stopped",
-      source: "stream",
-      severity: "violation",
-    });
-
-    vi.advanceTimersByTime(2000);
-
-    const second = decideAnticheatSignal(CONTEST_ID, {
-      eventType: "forbidden_action",
-      source: "detector:shortcut",
-      severity: "info",
-    });
-
-    expect(first.accepted).toBe(true);
-    expect(second.accepted).toBe(true);
-  });
-
-  it("sets terminal phase helper", () => {
+    expect(getAnticheatPhase(CONTEST_ID)).toBe("TERMINATING");
     markAnticheatTerminal(CONTEST_ID);
     expect(getAnticheatPhase(CONTEST_ID)).toBe("TERMINAL");
   });

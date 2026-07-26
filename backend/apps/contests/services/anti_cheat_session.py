@@ -12,16 +12,13 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.services.activity_log import log_contest_activity
 
 ACTIVE_SESSION_KEY_PREFIX = "exam:active"
 CONFLICT_TOKEN_KEY_PREFIX = "exam:conflict"
 EVENT_IDEMPOTENCY_KEY_PREFIX = "exam:event:idempotency"
 INCIDENT_FAMILY_KEY_PREFIX = "exam:incident_family"
 INCIDENT_FAMILY_TTL_SECONDS = 2
-HEARTBEAT_KEY_PREFIX = "exam:heartbeat"
-HEARTBEAT_TIMEOUT_SECONDS = 60
-# Key TTL must outlive the check interval to prevent false positives
-HEARTBEAT_KEY_TTL_SECONDS = HEARTBEAT_TIMEOUT_SECONDS * 2
 CONFLICT_TOKEN_TTL_SECONDS = 300
 DEFAULT_ACTIVE_TTL_SECONDS = 2 * 60 * 60
 DEFAULT_EVENT_IDEMPOTENCY_TTL_SECONDS = 1
@@ -42,6 +39,33 @@ def get_device_id(request) -> str:
         or request.query_params.get("device_id")
         or "unknown-device"
     )
+
+
+def classify_active_session_device_kind(user_agent: str) -> str | None:
+    """Classify the server-observed User-Agent for the active exam binding."""
+
+    if type(user_agent) is not str or not user_agent.strip():
+        return None
+    normalized = user_agent.lower()
+    is_ipad = "ipad" in normalized or (
+        "macintosh" in normalized and "mobile" in normalized
+    )
+    is_android_tablet = (
+        "android" in normalized and "mobile" not in normalized
+    )
+    if is_ipad or is_android_tablet:
+        return "tablet"
+    desktop_markers = (
+        "windows nt",
+        "macintosh",
+        "x11",
+        "cros",
+    )
+    if any(marker in normalized for marker in desktop_markers) or (
+        "linux" in normalized and "android" not in normalized
+    ):
+        return "desktop"
+    return None
 
 
 def get_client_ip(request) -> str:
@@ -122,13 +146,15 @@ def get_active_sessions(contest_id: int, user_ids: list[int]) -> dict[int, dict[
 
 
 def set_active_session(contest: Contest, participant: ContestParticipant, request, device_id: str) -> None:
+    user_agent = request.META.get("HTTP_USER_AGENT", "")[:512]
     payload = {
         "contest_id": contest.id,
         "participant_id": participant.id,
         "user_id": participant.user_id,
         "device_id": device_id,
+        "device_kind": classify_active_session_device_kind(user_agent),
         "ip": get_client_ip(request),
-        "ua": request.META.get("HTTP_USER_AGENT", "")[:512],
+        "ua": user_agent,
         "jti": get_token_jti(request),
         "updated_at": timezone.now().isoformat(),
     }
@@ -260,35 +286,6 @@ def clear_incident_family(*, contest_id: int, user_id: int, family: str | None) 
     cache.delete(incident_family_key(contest_id, user_id, family))
 
 
-def heartbeat_key(contest_id: int, user_id: int) -> str:
-    return f"{HEARTBEAT_KEY_PREFIX}:{contest_id}:{user_id}"
-
-
-def touch_heartbeat(contest_id: int, user_id: int) -> None:
-    """Update heartbeat timestamp in Redis. TTL auto-expires stale keys."""
-    cache.set(heartbeat_key(contest_id, user_id), timezone.now().isoformat(), timeout=HEARTBEAT_KEY_TTL_SECONDS)
-
-
-def get_last_heartbeat(contest_id: int, user_id: int) -> str | None:
-    value = cache.get(heartbeat_key(contest_id, user_id))
-    return value if isinstance(value, str) else None
-
-
-def get_last_heartbeats(contest_id: int, user_ids: list[int]) -> dict[int, str | None]:
-    if not user_ids:
-        return {}
-    key_by_user_id = {user_id: heartbeat_key(contest_id, user_id) for user_id in user_ids}
-    values = cache.get_many(key_by_user_id.values())
-    return {
-        user_id: values.get(key) if isinstance(values.get(key), str) else None
-        for user_id, key in key_by_user_id.items()
-    }
-
-
-def clear_heartbeat(contest_id: int, user_id: int) -> None:
-    cache.delete(heartbeat_key(contest_id, user_id))
-
-
 # ---------------------------------------------------------------------------
 # Part A: Blacklist other device tokens on exam start
 # ---------------------------------------------------------------------------
@@ -297,10 +294,6 @@ EXAM_ALLOWED_JTI_PREFIX = "auth:exam_jti"
 EXAM_ALLOWED_JTI_INDEX_PREFIX = "auth:exam_jti:index"
 # Default TTL matches ACCESS_TOKEN_LIFETIME (8 h) + small buffer
 _EXAM_JTI_LOCK_TTL_SECONDS = 8 * 60 * 60 + 600
-
-
-def _legacy_exam_allowed_jti_key(user_id: int) -> str:
-    return f"{EXAM_ALLOWED_JTI_PREFIX}:{user_id}"
 
 
 def _exam_allowed_jti_key(user_id: int, contest_id) -> str:
@@ -342,7 +335,6 @@ def clear_exam_allowed_jti(user_id: int, contest_id=None) -> None:
     - With contest_id: clear one contest-scoped pin.
     - Without contest_id: clear all indexed pins for this user.
     """
-    cache.delete(_legacy_exam_allowed_jti_key(user_id))
     index_key = _exam_allowed_jti_index_key(user_id)
     contest_ids = _load_exam_jti_index(user_id)
     if contest_id is not None:
@@ -386,9 +378,6 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
     if not active_contest_ids:
         clear_exam_allowed_jti(user_id)
         return True
-
-    # Backward-compat: clear legacy single-key pin once contest-scoped pins are used.
-    cache.delete(_legacy_exam_allowed_jti_key(user_id))
 
     for contest_id in active_contest_ids:
         allowed = cache.get(_exam_allowed_jti_key(user_id, contest_id))
@@ -448,20 +437,18 @@ def build_device_conflict_payload(contest, participant, request) -> dict[str, An
     This check applies to ALL exam contests (not just cheat_detection_enabled)
     because device-session integrity is fundamental to exam fairness.
     """
-    from ..models import ExamEvent
-
     device_id = get_device_id(request)
     active = get_active_session(contest.id, participant.user_id)
     if active and active.get("device_id") and active.get("device_id") != device_id:
-        ExamEvent.objects.create(
-            contest=contest,
-            user=participant.user,
-            event_type="concurrent_login_detected",
-            metadata={
-                "existing_device_id": active.get("device_id"),
-                "incoming_device_id": device_id,
-                "source": "device_guard",
-            },
+        log_contest_activity(
+            contest,
+            participant.user,
+            "concurrent_login_detected",
+            (
+                "Blocked concurrent exam login: "
+                f"existing_device_id={active.get('device_id')}; "
+                f"incoming_device_id={device_id}"
+            ),
         )
         return {
             "code": "EXAM_ACTIVE_OTHER_DEVICE",

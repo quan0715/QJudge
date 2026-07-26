@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -12,7 +13,6 @@ from apps.contests.models import (
     ContestActivity,
     ContestParticipant,
     ExamAnswer,
-    ExamEvidenceFrame,
     ExamEvent,
     ExamQuestion,
     ExamQuestionType,
@@ -103,39 +103,12 @@ class ParticipantDashboardApiTests(APITestCase):
             graded_by=self.teacher,
             graded_at=timezone.now(),
         )
-        blur_event = ExamEvent.objects.create(
+        ExamEvent.objects.create(
             contest=contest,
             user=self.student,
-            event_type="window_blur",
-            metadata={
-                "reason": "left window",
-                "forced_capture_uploaded": True,
-                "forced_capture_module_results": {
-                    "screen_share": {
-                        "uploaded": True,
-                        "uploadedObjectKeys": ["screen-1.webp"],
-                    },
-                    "webcam": {
-                        "uploaded": True,
-                        "uploadedObjectKeys": ["webcam-1.webp"],
-                    },
-                },
-            },
+            event_type="mouse_leave_triggered",
+            metadata={"reason": "left window"},
         )
-        for seq, module in enumerate(("screen_share", "webcam"), start=1):
-            ExamEvidenceFrame.objects.create(
-                contest=contest,
-                user=self.student,
-                exam_event=blur_event,
-                source_module=module,
-                evidence_mode="anchor_window",
-                upload_session_id="session-dashboard-1",
-                seq=seq,
-                object_key=f"{module}-{seq}.webp",
-                client_captured_at_ms=1774106646000 + seq,
-                status=ExamEvidenceFrame.Status.UPLOADED,
-                storage_confirmed_at=timezone.now(),
-            )
         ContestActivity.objects.create(
             contest=contest,
             user=self.student,
@@ -154,79 +127,57 @@ class ParticipantDashboardApiTests(APITestCase):
         self.assertEqual(response.data["overview"]["total_questions"], 1)
         self.assertEqual(len(response.data["report"]["overview_rows"]), 1)
         self.assertEqual(len(response.data["report"]["question_details"]), 1)
-        self.assertEqual(response.data["report"]["question_details"][0]["feedback"], "Reasonable answer.")
-        self.assertEqual(response.data["report"]["question_details"][0]["explanation"], "Snapshot explanation.")
+        self.assertEqual(
+            response.data["report"]["question_details"][0]["feedback"],
+            "Reasonable answer.",
+        )
+        self.assertEqual(
+            response.data["report"]["question_details"][0]["explanation"],
+            "Snapshot explanation.",
+        )
         self.assertEqual(len(response.data["timeline"]), 2)
         self.assertNotIn("evidence", response.data)
         self.assertIn("event_feed", response.data)
-        incident_event_ids = [item.get("event_id") for item in response.data["event_feed"]]
-        self.assertTrue(any(incident_event_ids))
-        window_blur = next(item for item in response.data["event_feed"] if item["event_type"] == "window_blur")
-        self.assertEqual(window_blur["evidence_count"], 2)
+        self.assertEqual(
+            [item["source"] for item in response.data["event_feed"]],
+            ["activity"],
+        )
 
-    def test_grouped_incident_preserves_latest_evidence_keys(self):
+    def test_event_feed_projects_one_linear_incident_and_hides_health_snapshots(self):
         contest = self._create_contest(contest_type="paper_exam")
         participant = self._create_participant(contest)
-        first = ExamEvent.objects.create(
-            contest=contest,
-            user=self.student,
-            event_type="mouse_leave_recovery_timeout",
-            metadata={
-                "reason": "first timeout",
-                "upload_session_id": "session-1",
-                "forced_capture_uploaded": True,
-                "forced_capture_uploaded_object_keys": [
-                    f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
-                ],
-                "forced_capture_module_results": {
-                    "screen_share": {
-                        "uploaded": True,
-                        "uploadedSeqs": [9],
-                        "uploadedObjectKeys": [
-                            f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
-                        ],
-                    },
-                },
-            },
+        incident_id = uuid4()
+        base_ms = 1_785_000_000_000
+        phases = (
+            ("mouse_leave_triggered", "triggered", base_ms),
+            ("mouse_leave", "escalated", base_ms + 5_000),
+            ("mouse_leave_restored", "restored", base_ms + 12_000),
         )
-        second = ExamEvent.objects.create(
-            contest=contest,
-            user=self.student,
-            event_type="mouse_leave_recovery_timeout",
-            metadata={
-                "reason": "second timeout",
-                "upload_session_id": "session-1",
-                "forced_capture_uploaded": True,
-                "forced_capture_uploaded_object_keys": [
-                    f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
-                ],
-                "forced_capture_module_results": {
-                    "screen_share": {
-                        "uploaded": True,
-                        "uploadedSeqs": [10],
-                        "uploadedObjectKeys": [
-                            f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
-                        ],
+        events = []
+        for event_type, phase, occurred_at_ms in phases:
+            events.append(
+                ExamEvent.objects.create(
+                    contest=contest,
+                    user=self.student,
+                    event_type=event_type,
+                    incident_id=incident_id,
+                    client_occurred_at_ms=occurred_at_ms,
+                    metadata={
+                        "reason": event_type,
+                        "integrity": {
+                            "definition_id": "mouse_leave",
+                            "phase": phase,
+                        },
                     },
-                },
-            },
-        )
-        second.created_at = first.created_at + timedelta(seconds=10)
-        second.save(update_fields=["created_at"])
-        for event, seq in ((first, 9), (second, 10)):
-            ExamEvidenceFrame.objects.create(
-                contest=contest,
-                user=self.student,
-                exam_event=event,
-                source_module="screen_share",
-                evidence_mode="anchor_window",
-                upload_session_id="session-1",
-                seq=seq,
-                object_key=event.metadata["forced_capture_uploaded_object_keys"][0],
-                client_captured_at_ms=1774106640000 + seq,
-                status=ExamEvidenceFrame.Status.UPLOADED,
-                storage_confirmed_at=timezone.now(),
+                )
             )
+        ExamEvent.objects.create(
+            contest=contest,
+            user=self.student,
+            event_type="health_snapshot",
+            client_occurred_at_ms=base_ms + 20_000,
+            metadata={"online": True},
+        )
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
@@ -234,22 +185,106 @@ class ParticipantDashboardApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        incident = next(
-            item for item in response.data["event_feed"]
-            if item["event_type"] == "mouse_leave_recovery_timeout"
-        )
-        self.assertEqual(incident["count"], 2)
-        self.assertEqual(incident["evidence_count"], 2)
-        self.assertEqual(incident["event_id"], str(second.id))
+        feed = response.data["event_feed"]
+        self.assertNotIn("health_snapshot", [item["event_type"] for item in feed])
+        self.assertEqual(len(feed), 1)
+        incident = feed[0]
+        self.assertEqual(incident["incident_key"], f"incident:{incident_id}")
+        self.assertEqual(incident["event_id"], str(events[1].id))
+        self.assertEqual(incident["event_type"], "mouse_leave")
+        self.assertEqual(incident["count"], 1)
+        self.assertFalse(incident["has_evidence"])
+        self.assertNotIn("evidence_count", incident)
+        self.assertEqual(incident["metadata"]["incident_status"], "restored")
         self.assertEqual(
-            incident["metadata"]["forced_capture_uploaded_object_keys"],
             [
-                f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106645951_seq_0009.webp",
-                f"contest_{contest.id}/user_{self.student.id}/session_session-1/screen_share/ts_1774106646951_seq_0010.webp",
+                transition["event_type"]
+                for transition in incident["metadata"]["transitions"]
             ],
+            ["mouse_leave_triggered", "mouse_leave", "mouse_leave_restored"],
+        )
+        self.assertEqual(
+            [
+                transition["occurred_at_ms"]
+                for transition in incident["metadata"]["transitions"]
+            ],
+            [base_ms, base_ms + 5_000, base_ms + 12_000],
         )
 
-    def test_clipboard_action_feed_item_preserves_grouped_actions(self):
+    def test_event_feed_groups_nearby_escalated_incidents_into_one_episode(self):
+        contest = self._create_contest(contest_type="paper_exam")
+        participant = self._create_participant(contest)
+        base_ms = 1_785_000_000_000
+        incident_ids = (uuid4(), uuid4())
+        for offset, incident_id in enumerate(incident_ids):
+            start_ms = base_ms + offset * 10_000
+            for event_type, phase, delta in (
+                ("mouse_leave_triggered", "triggered", 0),
+                ("mouse_leave", "escalated", 5_000),
+                ("mouse_leave_restored", "restored", 6_000),
+            ):
+                ExamEvent.objects.create(
+                    contest=contest,
+                    user=self.student,
+                    event_type=event_type,
+                    incident_id=incident_id,
+                    client_occurred_at_ms=start_ms + delta,
+                    metadata={
+                        "integrity": {
+                            "definition_id": "mouse_leave",
+                            "phase": phase,
+                        },
+                    },
+                )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["event_feed"]), 1)
+        episode = response.data["event_feed"][0]
+        self.assertEqual(episode["count"], 2)
+        self.assertEqual(
+            [item["incident_id"] for item in episode["metadata"]["occurrences"]],
+            [str(incident_ids[0]), str(incident_ids[1])],
+        )
+
+    def test_event_feed_keeps_escalated_incidents_separate_after_quiet_gap(self):
+        contest = self._create_contest(contest_type="paper_exam")
+        participant = self._create_participant(contest)
+        base_ms = 1_785_000_000_000
+        for offset in (0, 20_000):
+            incident_id = uuid4()
+            for event_type, phase, delta in (
+                ("mouse_leave_triggered", "triggered", 0),
+                ("mouse_leave", "escalated", 5_000),
+                ("mouse_leave_restored", "restored", 6_000),
+            ):
+                ExamEvent.objects.create(
+                    contest=contest,
+                    user=self.student,
+                    event_type=event_type,
+                    incident_id=incident_id,
+                    client_occurred_at_ms=base_ms + offset + delta,
+                    metadata={
+                        "integrity": {
+                            "definition_id": "mouse_leave",
+                            "phase": phase,
+                        },
+                    },
+                )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["event_feed"]), 2)
+
+    def test_clipboard_actions_remain_separate_timeline_items(self):
         contest = self._create_contest(contest_type="paper_exam")
         participant = self._create_participant(contest)
         first = ExamEvent.objects.create(
@@ -286,115 +321,20 @@ class ParticipantDashboardApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         clipboard_items = [
-            item for item in response.data["event_feed"]
+            item
+            for item in response.data["event_feed"]
             if item["event_type"] == "clipboard_action"
         ]
-        self.assertEqual(len(clipboard_items), 1)
-        clipboard_item = clipboard_items[0]
-        self.assertEqual(clipboard_item["count"], 2)
-        self.assertEqual(clipboard_item["event_id"], str(second.id))
-        self.assertEqual(clipboard_item["metadata"]["content"], "print('visible')")
+        self.assertEqual(len(clipboard_items), 2)
         self.assertEqual(
-            [item["action"] for item in clipboard_item["metadata"]["clipboard_actions"]],
-            ["copy", "paste"],
+            [item["event_id"] for item in clipboard_items],
+            [str(second.id), str(first.id)],
         )
         self.assertEqual(
-            clipboard_item["metadata"]["clipboard_actions"][1]["content"],
-            "print('visible')",
+            [item["metadata"]["action"] for item in clipboard_items],
+            ["paste", "copy"],
         )
-
-    def test_admin_can_create_manual_proctor_event(self):
-        contest = self._create_contest(contest_type="paper_exam")
-        participant = self._create_participant(contest)
-        started_at = timezone.now() - timedelta(seconds=20)
-        ended_at = timezone.now()
-        object_key = (
-            f"contest_{contest.id}/user_{self.student.id}/session_manual-session-1/"
-            "screen_share/ts_1774106646951_seq_0001.webp"
-        )
-
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(
-            f"/api/v1/contests/{contest.id}/manual_proctor_event/",
-            {
-                "user_id": participant.user_id,
-                "started_at": started_at.isoformat(),
-                "ended_at": ended_at.isoformat(),
-                "reason": "Suspicious screen activity",
-                "description": "TA observed rapid window changes.",
-                "upload_session_id": "manual-session-1",
-                "uploaded_object_keys": [object_key],
-                "uploaded_seqs": [1],
-                "module_results": {
-                    "screen_share": {
-                        "attempted": True,
-                        "captured": True,
-                        "uploaded": True,
-                        "uploadSessionId": "manual-session-1",
-                        "uploadedObjectKeys": [object_key],
-                        "uploadedSeqs": [1],
-                        "evidenceUploadedFrameCount": 1,
-                    },
-                },
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        event = ExamEvent.objects.get(id=response.data["event_id"])
-        self.assertEqual(event.event_type, "manual_proctor_note")
-        self.assertEqual(event.user_id, participant.user_id)
-        self.assertEqual(event.metadata["upload_session_id"], "manual-session-1")
-        self.assertEqual(event.metadata["reason"], "Suspicious screen activity")
-        self.assertEqual(event.metadata["description"], "TA observed rapid window changes.")
-        self.assertEqual(event.metadata["evidence_window_start"], started_at.isoformat())
-        self.assertEqual(event.metadata["evidence_window_end"], ended_at.isoformat())
-        self.assertTrue(event.metadata["forced_capture_uploaded"])
-        self.assertEqual(event.metadata["forced_capture_uploaded_object_keys"], [object_key])
-
-        dashboard_response = self.client.get(
-            f"/api/v1/contests/{contest.id}/participants/{participant.user_id}/dashboard/"
-        )
-        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
-        manual_items = [
-            item for item in dashboard_response.data["event_feed"]
-            if item["event_type"] == "manual_proctor_note"
-        ]
-        self.assertEqual(len(manual_items), 1)
-        self.assertEqual(manual_items[0]["summary"], "Suspicious screen activity")
-        self.assertEqual(manual_items[0]["metadata"]["upload_session_id"], "manual-session-1")
-        self.assertEqual(manual_items[0]["metadata"]["forced_capture_uploaded_object_keys"], [object_key])
-
-    def test_manual_proctor_event_rejects_invalid_user_id(self):
-        contest = self._create_contest(contest_type="paper_exam")
-
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(
-            f"/api/v1/contests/{contest.id}/manual_proctor_event/",
-            {
-                "user_id": "not-a-number",
-                "started_at": timezone.now().isoformat(),
-                "ended_at": timezone.now().isoformat(),
-                "reason": "Suspicious screen activity",
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("user_id", response.data["error"]["details"])
-
-    def test_manual_proctor_evidence_urls_rejects_invalid_user_id(self):
-        contest = self._create_contest(contest_type="paper_exam")
-
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(
-            f"/api/v1/contests/{contest.id}/manual_proctor_evidence_urls/",
-            {"user_id": "not-a-number"},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("user_id", response.data["error"]["details"])
+        self.assertEqual(clipboard_items[0]["metadata"]["content"], "print('visible')")
 
     @patch(
         "apps.contests.services.participant_dashboard._build_coding_report",
@@ -433,7 +373,9 @@ class ParticipantDashboardApiTests(APITestCase):
             },
         ),
     )
-    def test_coding_dashboard_uses_coding_branch_payload(self, _mock_build_coding_report):
+    def test_coding_dashboard_uses_coding_branch_payload(
+        self, _mock_build_coding_report
+    ):
         contest = self._create_contest(contest_type="coding")
         participant = self._create_participant(contest)
         ContestActivity.objects.create(

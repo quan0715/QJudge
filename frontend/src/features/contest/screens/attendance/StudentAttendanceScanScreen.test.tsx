@@ -47,9 +47,9 @@ vi.mock("@/infrastructure/api/repositories/attendance.repository", () => ({
 }));
 
 vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
-  createEvidenceUploadIntent: (...args: unknown[]) =>
+  createAttendanceEvidenceIntent: (...args: unknown[]) =>
     mockCreateEvidenceUploadIntent(...args),
-  confirmEvidenceUpload: (...args: unknown[]) => mockConfirmEvidenceUpload(...args),
+  confirmAttendanceEvidence: (...args: unknown[]) => mockConfirmEvidenceUpload(...args),
 }));
 
 let capturedOnDetected: ((raw: string) => void) | null = null;

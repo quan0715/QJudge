@@ -24,7 +24,6 @@ def _get_float_env(name: str, default: float) -> float:
         return default
 
 
-HEARTBEAT_INTERVAL_SECONDS = _get_float_env("LT_HEARTBEAT_INTERVAL_SECONDS", 5.0)
 
 
 def student_email(index: int) -> str:

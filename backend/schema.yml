@@ -2777,6 +2777,42 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/contests/{contest_pk}/exam/attendance/evidence/confirm/:
+    post:
+      operationId: v1_contests_exam_attendance_evidence_confirm_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/attendance/evidence/intents/:
+    post:
+      operationId: v1_contests_exam_attendance_evidence_intents_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/end/:
     post:
       operationId: v1_contests_exam_end_create
@@ -2791,92 +2827,15 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/events/:
     get:
       operationId: v1_contests_exam_events_retrieve
-      description: |-
-        Handle exam events.
-        POST: Log an event (Student/Participant)
-        GET: List events (Teacher/Admin only)
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-    post:
-      operationId: v1_contests_exam_events_create
-      description: |-
-        Handle exam events.
-        POST: Log an event (Student/Participant)
-        GET: List events (Teacher/Admin only)
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/evidence/upload-confirm/:
-    post:
-      operationId: v1_contests_exam_evidence_upload_confirm_create
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2886,31 +2845,15 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/evidence/upload-intents/:
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/integrity/checkpoints/:
     post:
-      operationId: v1_contests_exam_evidence_upload_intents_create
+      operationId: v1_contests_exam_integrity_checkpoints_create
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2920,32 +2863,16 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/screenshots/:
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/integrity/evidence/review/:
     get:
-      operationId: v1_contests_exam_screenshots_retrieve
-      description: Return presigned GET URLs for uploaded manifest frames.
+      operationId: v1_contests_exam_integrity_evidence_review_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
         name: contest_pk
@@ -2959,11 +2886,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/config/:
     get:
       operationId: v1_contests_exam_sfu_config_retrieve
@@ -2981,11 +2904,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publisher/heartbeat/:
     post:
       operationId: v1_contests_exam_sfu_publisher_heartbeat_create
@@ -2998,28 +2917,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publisher/stop/:
     post:
       operationId: v1_contests_exam_sfu_publisher_stop_create
@@ -3032,28 +2935,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publishers/{target_user_id}/:
     get:
       operationId: v1_contests_exam_sfu_publishers_retrieve
@@ -3077,11 +2964,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/:
     post:
       operationId: v1_contests_exam_sfu_sessions_create
@@ -3094,28 +2977,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/renegotiate/:
     put:
       operationId: v1_contests_exam_sfu_sessions_renegotiate_update
@@ -3133,28 +3000,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/tracks/new/:
     post:
       operationId: v1_contests_exam_sfu_sessions_tracks_new_create
@@ -3172,28 +3023,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/start/:
     post:
       operationId: v1_contests_exam_start_create
@@ -3206,28 +3041,177 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/:
+    get:
+      operationId: v1_contests_integrity_runs_retrieve
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_contests_integrity_runs_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/:
+    get:
+      operationId: v1_contests_integrity_runs_retrieve_2
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/destroy/:
+    post:
+      operationId: v1_contests_integrity_runs_destroy_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/purge/:
+    post:
+      operationId: v1_contests_integrity_runs_purge_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/start/:
+    post:
+      operationId: v1_contests_integrity_runs_start_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/restart/:
+    post:
+      operationId: v1_contests_integrity_runs_restart_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/stop/:
+    post:
+      operationId: v1_contests_integrity_runs_stop_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/contests/{contest_pk}/problems/:
     get:
       operationId: v1_contests_problems_list
@@ -3712,8 +3696,7 @@ paths:
   /api/v1/contests/{id}/:
     get:
       operationId: v1_contests_retrieve
-      description: Retrieve contest details. Block access if draft or archived for
-        non-privileged users.
+      description: ViewSet for contests.
       parameters:
       - in: path
         name: id
@@ -4194,76 +4177,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/contests/{id}/manual_proctor_event/:
-    post:
-      operationId: v1_contests_manual_proctor_event_create
-      description: Create a TA-authored manual evidence event for a participant.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/manual_proctor_evidence_urls/:
-    post:
-      operationId: v1_contests_manual_proctor_evidence_urls_create
-      description: Issue admin-side evidence upload URLs for manual proctoring captures.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/my_report/:
     get:
       operationId: v1_contests_my_report_retrieve
@@ -4711,6 +4624,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
+  /api/v1/internal/integrity/runs/{run_id}/bootstrap/:
+    get:
+      operationId: v1_internal_integrity_runs_bootstrap_retrieve
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/internal/integrity/runs/{run_id}/commands/:
+    post:
+      operationId: v1_internal_integrity_runs_commands_create
+      parameters:
+      - in: path
+        name: run_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/v1/management/announcements/:
     get:
       operationId: v1_management_announcements_list
@@ -6614,6 +6561,7 @@ components:
       - reopen_exam
       - reset_exam_record
       - concurrent_login_detected
+      - other_devices_logged_out
       - announce
       - other
       type: string
@@ -6635,6 +6583,7 @@ components:
         * `reopen_exam` - Reopen Exam
         * `reset_exam_record` - Reset Exam Record
         * `concurrent_login_detected` - Concurrent Login Detected
+        * `other_devices_logged_out` - Other Devices Logged Out
         * `announce` - Announce
         * `other` - Other
     Announcement:
@@ -7214,18 +7163,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7308,18 +7245,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7417,18 +7342,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7621,18 +7534,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7913,160 +7814,20 @@ components:
       - code
       - language
       - problem
-    EvidenceModeEnum:
+    EventTypeEnum:
       enum:
-      - anchor_window
-      - pre_loss
-      - audit
+      - blur
+      - focus
+      - copy
+      - paste
+      - fullscreen_exit
       type: string
       description: |-
-        * `anchor_window` - Anchor Window
-        * `pre_loss` - Pre Loss
-        * `audit` - Audit
-    ExamEventCreate:
-      type: object
-      description: Serializer for creating exam events.
-      properties:
-        event_type:
-          allOf:
-          - $ref: '#/components/schemas/ExamEventCreateEventTypeEnum'
-          title: 事件類型
-        metadata:
-          nullable: true
-          title: 額外資訊
-          description: JSON 格式的額外事件資訊
-        client_observed_at_ms:
-          type: integer
-          minimum: 0
-        server_time_offset_ms:
-          type: integer
-        evidence_anchor_at_ms:
-          type: integer
-          minimum: 0
-        evidence_mode:
-          $ref: '#/components/schemas/EvidenceModeEnum'
-        event_idempotency_key:
-          type: string
-          maxLength: 160
-      required:
-      - event_type
-    ExamEventCreateEventTypeEnum:
-      enum:
-      - tab_hidden
-      - window_blur
-      - exit_fullscreen
-      - forbidden_focus_event
-      - forbidden_action
-      - multiple_displays
-      - mouse_leave
-      - warning_timeout
-      - force_submit_locked
-      - screen_share_stopped
-      - screen_share_interrupted
-      - screen_share_restored
-      - screen_share_invalid_surface
-      - webcam_interrupted
-      - webcam_restored
-      - webcam_stopped
-      - webcam_quality_degraded
-      - viewport_interrupted
-      - viewport_restored
-      - viewport_stopped
-      - split_view_detected
-      - capture_upload_degraded
-      - exam_entered
-      - exam_submit_initiated
-      - concurrent_login_detected
-      - other_devices_logged_out
-      - end_exam_device_mismatch
-      - heartbeat
-      - heartbeat_timeout
-      - listener_tampered
-      - exit_fullscreen_triggered
-      - mouse_leave_triggered
-      - tab_hidden_triggered
-      - tab_hidden_restored
-      - window_blur_triggered
-      - window_blur_restored
-      - multi_display_triggered
-      - multi_display_restored
-      - display_api_degraded
-      - clipboard_action
-      - manual_proctor_note
-      - attendance_check_in
-      - attendance_check_out
-      type: string
-      description: |-
-        * `tab_hidden` - Tab Hidden
-        * `window_blur` - Window Blur
-        * `exit_fullscreen` - Exit Fullscreen
-        * `forbidden_focus_event` - Forbidden Focus Event
-        * `forbidden_action` - Forbidden Action
-        * `multiple_displays` - Multiple Displays
-        * `mouse_leave` - Mouse Leave
-        * `warning_timeout` - Warning Timeout
-        * `force_submit_locked` - Force Submit Locked
-        * `screen_share_stopped` - Screen Share Stopped
-        * `screen_share_interrupted` - Screen Share Interrupted
-        * `screen_share_restored` - Screen Share Restored
-        * `screen_share_invalid_surface` - Screen Share Invalid Surface
-        * `webcam_interrupted` - Webcam Interrupted
-        * `webcam_restored` - Webcam Restored
-        * `webcam_stopped` - Webcam Stopped
-        * `webcam_quality_degraded` - Webcam Quality Degraded
-        * `viewport_interrupted` - Viewport Interrupted
-        * `viewport_restored` - Viewport Restored
-        * `viewport_stopped` - Viewport Stopped
-        * `split_view_detected` - Split View Detected
-        * `capture_upload_degraded` - Capture Upload Degraded
-        * `exam_entered` - Exam Entered
-        * `exam_submit_initiated` - Exam Submit Initiated
-        * `concurrent_login_detected` - Concurrent Login Detected
-        * `other_devices_logged_out` - Other Devices Logged Out
-        * `end_exam_device_mismatch` - End Exam Device Mismatch
-        * `heartbeat` - Heartbeat
-        * `heartbeat_timeout` - Heartbeat Timeout
-        * `listener_tampered` - Listener Tampered
-        * `exit_fullscreen_triggered` - Exit Fullscreen Triggered
-        * `mouse_leave_triggered` - Mouse Leave Triggered
-        * `tab_hidden_triggered` - Tab Hidden Triggered
-        * `tab_hidden_restored` - Tab Hidden Restored
-        * `window_blur_triggered` - Window Blur Triggered
-        * `window_blur_restored` - Window Blur Restored
-        * `multi_display_triggered` - Multi Display Triggered
-        * `multi_display_restored` - Multi Display Restored
-        * `display_api_degraded` - Display API Degraded
-        * `clipboard_action` - Clipboard Action
-        * `manual_proctor_note` - Manual Proctor Note
-        * `attendance_check_in` - Attendance Check-in
-        * `attendance_check_out` - Attendance Check-out
-    ExamEventCreateRequest:
-      type: object
-      description: Serializer for creating exam events.
-      properties:
-        event_type:
-          allOf:
-          - $ref: '#/components/schemas/ExamEventCreateEventTypeEnum'
-          title: 事件類型
-        metadata:
-          nullable: true
-          title: 額外資訊
-          description: JSON 格式的額外事件資訊
-        client_observed_at_ms:
-          type: integer
-          minimum: 0
-        server_time_offset_ms:
-          type: integer
-        evidence_anchor_at_ms:
-          type: integer
-          minimum: 0
-        evidence_mode:
-          $ref: '#/components/schemas/EvidenceModeEnum'
-        event_idempotency_key:
-          type: string
-          maxLength: 160
-      required:
-      - event_type
+        * `blur` - 視窗失焦
+        * `focus` - 視窗聚焦
+        * `copy` - 複製
+        * `paste` - 貼上
+        * `fullscreen_exit` - 退出全螢幕
     ExamQuestionGroup:
       type: object
       description: Serializer for contest-local question groups.
@@ -8726,18 +8487,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -8828,18 +8577,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -9509,7 +9246,7 @@ components:
       properties:
         event_type:
           allOf:
-          - $ref: '#/components/schemas/ScreenEventEventTypeEnum'
+          - $ref: '#/components/schemas/EventTypeEnum'
           title: 事件類型
         timestamp:
           type: string
@@ -9521,20 +9258,6 @@ components:
       required:
       - event_type
       - timestamp
-    ScreenEventEventTypeEnum:
-      enum:
-      - blur
-      - focus
-      - copy
-      - paste
-      - fullscreen_exit
-      type: string
-      description: |-
-        * `blur` - 視窗失焦
-        * `focus` - 視窗聚焦
-        * `copy` - 複製
-        * `paste` - 貼上
-        * `fullscreen_exit` - 退出全螢幕
     SourceBankInfo:
       type: object
       properties:
