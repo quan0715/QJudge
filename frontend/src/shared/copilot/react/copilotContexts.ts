@@ -38,6 +38,7 @@ export interface CopilotStateContextValue {
 
 export interface CopilotSessionCommandsContextValue {
   create(input?: CopilotCreateSessionInput): Promise<string | null>;
+  startNew(): void;
   select(id: string): Promise<void>;
   rename(id: string, title: string): Promise<CopilotRenameSessionResult>;
   remove(id: string): Promise<CopilotRemoveSessionResult>;

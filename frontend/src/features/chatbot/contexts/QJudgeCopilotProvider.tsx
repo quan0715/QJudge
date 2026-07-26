@@ -40,7 +40,7 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
       translations={props.translations}
       modelCatalog={props.modelCatalog}
       fallbackModels={props.fallbackModels}
-      initialSession="first-or-create"
+      initialSession="first"
     >
       <ArtifactPanelProvider>{props.children}</ArtifactPanelProvider>
     </CopilotProvider>

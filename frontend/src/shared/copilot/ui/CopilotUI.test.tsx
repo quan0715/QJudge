@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { CopilotMessage, CopilotRun } from "@/core/copilot";
+import type {
+  CopilotMessage,
+  CopilotRun,
+  CopilotSessionSummary,
+} from "@/core/copilot";
 import {
   CopilotApprovalCard,
   type CopilotApprovalCardProps,
@@ -15,6 +19,8 @@ import {
 } from "./CopilotQuestionCard";
 import type {
   CopilotErrorStateProps,
+  CopilotHistorySlotProps,
+  CopilotMessageListSlotProps,
   CopilotSuggestionsProps,
 } from "./copilotUI.types";
 import { CopilotProvider } from "../react/CopilotProvider";
@@ -49,6 +55,102 @@ describe("Copilot UI primitives", () => {
     render(<CopilotMessageList />);
 
     expect(screen.getByRole("log")).toBeEmptyDOMElement();
+  });
+
+  it("renders the loading list before the empty state during bootstrap", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const Empty = vi.fn(() => <div data-testid="empty-slot">Empty</div>);
+    const List = vi.fn(({ activeSession }: CopilotMessageListSlotProps) => (
+      <div data-testid="list-slot">{activeSession.status}</div>
+    ));
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel slots={{ emptyState: Empty, messageList: List }} />
+      </CopilotProvider>,
+    );
+
+    expect(screen.getByTestId("list-slot")).toHaveTextContent("initializing");
+    expect(screen.queryByTestId("empty-slot")).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingList.resolve([]);
+      await pendingList.promise;
+    });
+
+    expect(await screen.findByTestId("empty-slot")).toBeInTheDocument();
+  });
+
+  it("hides cached approval UI while reloading a previously visited session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const awaitingSession = await transport.createSession({ title: "Awaiting" });
+    const otherSession = await transport.createSession({ title: "Other" });
+    const started = await transport.startRun({
+      sessionId: awaitingSession.id,
+      text: "deploy",
+    });
+    const awaiting = {
+      ...started,
+      status: "awaiting-approval" as const,
+      approvalRequest: {
+        actions: [{ name: "deploy" }],
+        allowedDecisions: ["approve", "reject"] as const,
+      },
+    } satisfies CopilotRun;
+    vi.spyOn(transport, "getActiveRun").mockImplementation(async (id) =>
+      id === awaitingSession.id ? awaiting : null,
+    );
+    const originalGetSession = transport.getSession.bind(transport);
+    const pendingReload = deferred<Awaited<ReturnType<typeof originalGetSession>>>();
+    let delayAwaitingReload = false;
+    vi.spyOn(transport, "getSession").mockImplementation(async (id) => {
+      if (id === awaitingSession.id && delayAwaitingReload) {
+        return pendingReload.promise;
+      }
+      return originalGetSession(id);
+    });
+    const History = ({ onSelect }: CopilotHistorySlotProps) => (
+      <>
+        <button type="button" onClick={() => onSelect(awaitingSession.id)}>
+          Select awaiting
+        </button>
+        <button type="button" onClick={() => onSelect(otherSession.id)}>
+          Select other
+        </button>
+      </>
+    );
+    const List = ({ activeSession }: CopilotMessageListSlotProps) => (
+      <div data-testid="list-slot">{activeSession.status}</div>
+    );
+    const Approval = () => <div data-testid="approval-slot" />;
+
+    render(
+      <CopilotProvider transport={transport} initialSession="first">
+        <CopilotPanel
+          showHistory
+          slots={{ history: History, messageList: List, approval: Approval }}
+        />
+      </CopilotProvider>,
+    );
+
+    expect(await screen.findByTestId("approval-slot")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Select other" }));
+    await waitFor(() => expect(screen.getByTestId("list-slot")).toHaveTextContent("ready"));
+    expect(screen.queryByTestId("approval-slot")).not.toBeInTheDocument();
+
+    delayAwaitingReload = true;
+    fireEvent.click(screen.getByRole("button", { name: "Select awaiting" }));
+
+    await waitFor(() => expect(screen.getByTestId("list-slot")).toHaveTextContent("loading"));
+    expect(screen.queryByTestId("approval-slot")).not.toBeInTheDocument();
+
+    await act(async () => {
+      pendingReload.resolve(await originalGetSession(awaitingSession.id));
+      await pendingReload.promise;
+    });
+    expect(await screen.findByTestId("approval-slot")).toBeInTheDocument();
   });
 
   it("renders composer semantics and disabled submit", () => {
@@ -150,8 +252,10 @@ describe("Copilot UI primitives", () => {
     expect(screen.getByTestId("list-slot")).toBeInTheDocument();
     expect(screen.getByTestId("composer-slot")).toBeInTheDocument();
     expect(History).toHaveBeenCalled();
-    expect(List.mock.calls.at(-1)?.[0]).toEqual(
-      expect.objectContaining({ activeSessionId: session.id }),
+    await waitFor(() =>
+      expect(List.mock.calls.at(-1)?.[0]).toEqual(
+        expect.objectContaining({ activeSessionId: session.id }),
+      ),
     );
   });
 

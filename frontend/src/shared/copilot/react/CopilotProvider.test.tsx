@@ -64,6 +64,35 @@ function createProviderProbe() {
 }
 
 describe("CopilotProvider session lifecycle", () => {
+  it("exposes initializing before the first session list resolves", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingList = deferred<CopilotSessionSummary[]>();
+    vi.spyOn(transport, "listSessions").mockReturnValueOnce(pendingList.promise);
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+
+    expect(result.current.activeSession).toEqual({
+      status: "initializing",
+      id: null,
+      data: null,
+      error: null,
+    });
+
+    await act(async () => {
+      pendingList.resolve([]);
+      await pendingList.promise;
+    });
+
+    await waitFor(() => expect(result.current.listStatus).toBe("ready"));
+    expect(result.current.activeSession).toEqual({
+      status: "empty",
+      id: null,
+      data: null,
+      error: null,
+    });
+  });
+
   it("does not make requests while disabled", () => {
     const transport = new MemoryCopilotTransport();
     const listSessions = vi.spyOn(transport, "listSessions");
@@ -74,6 +103,74 @@ describe("CopilotProvider session lifecycle", () => {
     expect(result.current.listStatus).toBe("idle");
     expect(result.current.activeSession.status).toBe("empty");
     expect(listSessions).not.toHaveBeenCalled();
+  });
+
+  it("starts an unsaved new chat without creating a transport session", async () => {
+    const transport = new MemoryCopilotTransport();
+    const existing = await transport.createSession({ title: "Existing" });
+    const createSession = vi.spyOn(transport, "createSession");
+    const location = new MemoryCopilotSessionLocation(existing.id);
+    const storage = new MemoryCopilotStorage([
+      ["copilot:last-session-id", existing.id],
+    ]);
+    const { result } = renderHook(
+      () => ({
+        sessions: useCopilotSessions(),
+        composer: useCopilotComposer(),
+      }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: location,
+          storage,
+          initialSession: "first",
+        }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.id).toBe(existing.id),
+    );
+    act(() => result.current.composer.setDraft("discard me"));
+    await act(() =>
+      result.current.composer.addAttachments([
+        new File(["draft"], "draft.txt", { type: "text/plain" }),
+      ]),
+    );
+
+    act(() => result.current.sessions.startNew());
+
+    expect(createSession).not.toHaveBeenCalled();
+    expect(result.current.sessions.activeSession.status).toBe("empty");
+    expect(result.current.sessions.sessions.map((item) => item.id)).toContain(
+      existing.id,
+    );
+    expect(result.current.composer.draft).toBe("");
+    expect(result.current.composer.attachments).toEqual([]);
+    expect(location.get()).toBeNull();
+    expect(storage.get("copilot:last-session-id")).toBeNull();
+
+    await act(() => result.current.sessions.refresh());
+    expect(result.current.sessions.activeSession.status).toBe("empty");
+    expect(result.current.sessions.activeSession.id).toBeNull();
+  });
+
+  it("stops observing the old run without cancelling it when a new chat starts", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    await transport.startRun({ sessionId: session.id, text: "background" });
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const cancelRun = vi.spyOn(transport, "cancelRun");
+    const { result } = renderHook(() => useCopilotSessions(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    const subscription = subscribeRun.mock.results[0].value;
+
+    act(() => result.current.startNew());
+
+    expect(subscription.closed).toBe(true);
+    expect(cancelRun).not.toHaveBeenCalled();
+    expect(result.current.activeSession.status).toBe("empty");
   });
 
   it("atomically clears account-owned runtime state when disabled", async () => {
@@ -378,7 +475,7 @@ describe("CopilotProvider session lifecycle", () => {
     );
 
     expect(snapshot.current?.sessions.sessions).toEqual([]);
-    expect(snapshot.current?.sessions.activeSession.status).toBe("empty");
+    expect(snapshot.current?.sessions.activeSession.status).toBe("initializing");
     await act(async () => {
       pendingNewList.resolve(newListed);
       await pendingNewList.promise;
@@ -1704,6 +1801,135 @@ describe("CopilotProvider session lifecycle", () => {
 });
 
 describe("CopilotProvider composer lifecycle", () => {
+  it("creates exactly one session when the first draft is sent", async () => {
+    const transport = new MemoryCopilotTransport();
+    const createSession = vi.spyOn(transport, "createSession");
+    const startRun = vi.spyOn(transport, "startRun");
+    const location = new MemoryCopilotSessionLocation();
+    const { result } = renderHook(
+      () => ({
+        sessions: useCopilotSessions(),
+        composer: useCopilotComposer(),
+      }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: location,
+          initialSession: "first",
+        }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.status).toBe("empty"),
+    );
+    act(() => result.current.composer.setDraft("First message"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+
+    let sendResult;
+    await act(async () => {
+      sendResult = await result.current.composer.send();
+    });
+
+    expect(sendResult).toMatchObject({ accepted: true, sessionId: "session-1" });
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        text: "First message",
+      }),
+    );
+    expect(location.get()).toBe("session-1");
+    expect(result.current.sessions.activeSession.id).toBe("session-1");
+  });
+
+  it("uses the lazily created session for attachment upload and run start", async () => {
+    const transport = new MemoryCopilotTransport();
+    const uploadAttachment = vi.spyOn(transport, "uploadAttachment");
+    const startRun = vi.spyOn(transport, "startRun");
+    const { result } = renderHook(() => useCopilotComposer(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+    const file = new File(["content"], "first.txt", { type: "text/plain" });
+    await act(() => result.current.addAttachments([file]));
+    await waitFor(() => expect(result.current.canSend).toBe(true));
+
+    await act(() => result.current.send());
+
+    expect(uploadAttachment).toHaveBeenCalledWith("session-1", file);
+    expect(startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: "session-1" }),
+    );
+  });
+
+  it("keeps the unsaved draft and attachment when lazy create fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    vi.spyOn(transport, "createSession").mockRejectedValueOnce(
+      new Error("create offline"),
+    );
+    const startRun = vi.spyOn(transport, "startRun");
+    const { result } = renderHook(
+      () => ({
+        sessions: useCopilotSessions(),
+        composer: useCopilotComposer(),
+      }),
+      { wrapper: createWrapper({ transport, initialSession: "first" }) },
+    );
+    await waitFor(() =>
+      expect(result.current.sessions.activeSession.status).toBe("empty"),
+    );
+    const file = new File(["retry"], "retry.txt", { type: "text/plain" });
+    act(() => result.current.composer.setDraft("Retry me"));
+    await act(() => result.current.composer.addAttachments([file]));
+
+    let sendResult;
+    await act(async () => {
+      sendResult = await result.current.composer.send();
+    });
+
+    expect(sendResult).toMatchObject({
+      accepted: false,
+      sessionId: "",
+      error: { operation: "create-session" },
+    });
+    expect(startRun).not.toHaveBeenCalled();
+    expect(result.current.sessions.activeSession.status).toBe("empty");
+    expect(result.current.composer.draft).toBe("Retry me");
+    expect(result.current.composer.attachments).toEqual([
+      expect.objectContaining({ file, status: "pending" }),
+    ]);
+  });
+
+  it("shares one lazy create across duplicate composer submissions", async () => {
+    const transport = new MemoryCopilotTransport();
+    const pendingCreate = deferred<CopilotSession>();
+    const originalCreate = transport.createSession.bind(transport);
+    const createSession = vi
+      .spyOn(transport, "createSession")
+      .mockReturnValueOnce(pendingCreate.promise);
+    const { result } = renderHook(() => useCopilotComposer(), {
+      wrapper: createWrapper({ transport, initialSession: "first" }),
+    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+    act(() => result.current.setDraft("Only once"));
+
+    let first!: ReturnType<typeof result.current.send>;
+    let second!: ReturnType<typeof result.current.send>;
+    act(() => {
+      first = result.current.send();
+      second = result.current.send();
+    });
+    expect(createSession).toHaveBeenCalledTimes(1);
+
+    const created = await originalCreate();
+    await act(async () => {
+      pendingCreate.resolve(created);
+      const results = await Promise.all([first, second]);
+      expect(results[0]).toEqual(results[1]);
+    });
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
   it("streams deltas into a transport-provided assistant message before completion", async () => {
     const transport = new MemoryCopilotTransport();
     const session = await transport.createSession();
@@ -1848,7 +2074,7 @@ describe("CopilotProvider composer lifecycle", () => {
       second = result.current.send();
     });
     expect(result.current.isSending).toBe(true);
-    expect(uploadAttachment).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(uploadAttachment).toHaveBeenCalledTimes(1));
 
     await act(async () => {
       uploadResult.resolve({

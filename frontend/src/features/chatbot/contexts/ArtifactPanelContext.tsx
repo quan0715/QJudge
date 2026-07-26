@@ -44,8 +44,6 @@ interface ArtifactPanelContextValue {
 const ArtifactPanelContext = createContext<ArtifactPanelContextValue | null>(null);
 
 interface ArtifactPanelProviderProps {
-  /** @deprecated Session ownership lives in CopilotProvider. */
-  sessionId?: string | null;
   children: ReactNode;
 }
 

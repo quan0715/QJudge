@@ -53,7 +53,7 @@ export function ChatHistoryPanel({
             <span>{t("ui.newTask")}</span>
           </button>
         )}
-        <h2 className={styles.heading} data-testid="chat-history-heading">{t("ui.tasks")}</h2>
+        <h2 className={styles.heading}>{t("ui.tasks")}</h2>
       </div>
 
       <div className={styles.list}>
@@ -69,6 +69,7 @@ export function ChatHistoryPanel({
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
+              if (e.target !== e.currentTarget) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onSelectSession(session.id);
@@ -92,7 +93,7 @@ export function ChatHistoryPanel({
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className={styles.itemName} data-testid="chat-history-session-title">
+              <span className={styles.itemName}>
                 {session.title || t("ui.defaultTaskTitle", { id: session.id.slice(0, 8) })}
               </span>
             )}

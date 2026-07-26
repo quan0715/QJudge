@@ -22,6 +22,7 @@ const mockCopilotSessions = vi.hoisted(() => ({
   listStatus: "ready",
   error: null,
   create: vi.fn(),
+  startNew: vi.fn(),
   select: vi.fn(),
   rename: vi.fn(),
   remove: vi.fn(),
@@ -80,9 +81,7 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
           />
         </div>
       ))}
-      {props.onNewTask && (
-        <button type="button" onClick={props.onNewTask}>ui.newTask</button>
-      )}
+      <button type="button" onClick={props.onNewTask}>ui.newTask</button>
     </div>
   ),
 }));
@@ -90,11 +89,6 @@ vi.mock("@/features/chatbot/components/chat-ui/ChatHistoryPanel", () => ({
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location-search">{location.search}</div>;
-}
-
-function PathProbe() {
-  const location = useLocation();
-  return <div data-testid="location-path">{location.pathname}</div>;
 }
 
 function ChatRouteProbe() {
@@ -117,6 +111,7 @@ describe("SideMenu contest admin workspace panels", () => {
       data: null,
       error: null,
     };
+    mockCopilotSessions.startNew.mockClear();
     mockCopilotSessions.create.mockResolvedValue(null);
     mockCopilotSessions.select.mockResolvedValue(undefined);
     mockCopilotSessions.rename.mockResolvedValue({ ok: true });
@@ -224,55 +219,21 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
-  it("creates a Copilot session and navigates with the explicit QJudge query", async () => {
-    mockCopilotSessions.create.mockResolvedValue("session-new");
-
+  it("starts a local new task and removes the session query", async () => {
     render(
-      <MemoryRouter initialEntries={["/chat"]}>
+      <MemoryRouter initialEntries={["/chat?ai_session_id=session-1"]}>
         <SideMenu variant="panel" />
         <LocationProbe />
       </MemoryRouter>,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "新增任務" }));
+    fireEvent.click(await screen.findByText("ui.newTask"));
 
-    await waitFor(() => expect(mockCopilotSessions.create).toHaveBeenCalledTimes(1));
+    expect(mockCopilotSessions.startNew).toHaveBeenCalledTimes(1);
+    expect(mockCopilotSessions.create).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(screen.getByTestId("location-search")).toHaveTextContent(
-        "?ai_session_id=session-new",
-      ),
+      expect(screen.getByTestId("location-search")).toHaveTextContent(""),
     );
-  });
-
-  it("uses Qopilot workspace actions instead of Home and Chat links", async () => {
-    render(
-      <MemoryRouter initialEntries={["/chat"]}>
-        <SideMenu variant="panel" />
-        <PathProbe />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByLabelText("Qopilot")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Home" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Chat" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "返回首頁" }));
-    await waitFor(() =>
-      expect(screen.getByTestId("location-path")).toHaveTextContent("/dashboard"),
-    );
-  });
-
-  it("keeps only Back to Home and New Task actions when compact", async () => {
-    render(
-      <MemoryRouter initialEntries={["/chat"]}>
-        <SideMenu variant="panel" compact />
-      </MemoryRouter>,
-    );
-
-    expect(screen.queryByLabelText("Qopilot")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "返回首頁" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "新增任務" })).toBeInTheDocument();
-    expect(screen.queryByText("ui.newTask")).not.toBeInTheDocument();
   });
 
   it("selects, renames and removes sessions only through the Copilot hook", async () => {
@@ -389,10 +350,8 @@ describe("SideMenu contest admin workspace panels", () => {
     fireEvent.click(await screen.findByRole("button", { name: "delete session-1" }));
     await waitFor(() => expect(mockCopilotSessions.remove).toHaveBeenCalledWith("session-1"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("location-search")).toHaveTextContent(
-        "?ai_session_id=session-replacement",
-      ),
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "?ai_session_id=session-replacement",
     );
   });
 });

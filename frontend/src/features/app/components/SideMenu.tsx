@@ -5,9 +5,6 @@ import {
   Education,
   Checkmark,
   Globe,
-  Add,
-  ArrowLeft,
-  Bot,
   Chat as ChatIcon,
   AiLabel,
   Bullhorn,
@@ -82,7 +79,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const { t } = useTranslation("common");
   const { t: tClassroom } = useTranslation("classroom");
   const { t: tContest } = useTranslation("contest");
-  const { t: tChatbot } = useTranslation("chatbot");
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -98,7 +94,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   const {
     sessions,
     activeSession,
-    create: createSession,
+    startNew: startNewSession,
     select: selectSession,
     rename: renameSession,
     remove: removeSession,
@@ -234,12 +230,11 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     [navigate],
   );
 
-  const handleNewTask = useCallback(async () => {
-    const newSessionId = await createSession();
-    if (!newSessionId) return;
+  const handleNewTask = useCallback(() => {
+    startNewSession();
     onClose?.();
-    goToChatSession(newSessionId);
-  }, [createSession, onClose, goToChatSession]);
+    navigate("/chat");
+  }, [navigate, onClose, startNewSession]);
 
   const handleSelectSession = useCallback((id: string) => {
     void selectSession(id);
@@ -327,8 +322,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
   }, [contestAdminContext, go]);
   const showContestAdminMiniNav = compact && Boolean(contestAdminContext);
   const homeLabel = t("nav.home", "Home");
-  const backToHomeLabel = tChatbot("ui.backToHome", "返回首頁");
-  const newTaskLabel = tChatbot("ui.newTask", "新增任務");
   const contestHomeLabel = tContest("adminLayout.header.backToHome", "前往競賽主頁");
 
   return (
@@ -387,37 +380,27 @@ export const SideMenu: React.FC<SideMenuProps> = ({
             {!showContestAdminMiniNav && (
               isChatRoute && isTeacherOrAdmin ? (
                 <>
-                  <div className="side-menu__qopilot-shell">
-                    {!compact && (
-                      <div className="side-menu__qopilot-header">
-                        <Bot size={20} aria-hidden="true" className="side-menu__qopilot-agent-icon" />
-                        <span className="side-menu__qopilot-wordmark" aria-label="Qopilot">
-                          <span className="side-menu__qopilot-mark">Q</span>opilot
-                        </span>
-                      </div>
-                    )}
-                    <div className="side-menu__qopilot-actions">
-                      <button
-                        type="button"
-                        title={backToHomeLabel}
-                        aria-label={backToHomeLabel}
-                        className="side-menu__qopilot-action side-menu__qopilot-action--back"
-                        onClick={() => go("/dashboard")}
-                      >
-                        <ArrowLeft size={16} aria-hidden="true" />
-                        <span>{backToHomeLabel}</span>
-                      </button>
-                      <button
-                        type="button"
-                        title={newTaskLabel}
-                        aria-label={newTaskLabel}
-                        className="side-menu__qopilot-action side-menu__qopilot-action--new-task"
-                        onClick={handleNewTask}
-                      >
-                        <Add size={16} aria-hidden="true" />
-                        <span>{newTaskLabel}</span>
-                      </button>
-                    </div>
+                  <div className="side-menu__section">
+                    <button
+                      type="button"
+                      title={homeLabel}
+                      aria-label={homeLabel}
+                      className={`side-menu__link${isActive("/dashboard") ? " side-menu__link--active" : ""}`}
+                      onClick={() => go("/dashboard")}
+                    >
+                      <Home size={16} />
+                      <span>{homeLabel}</span>
+                    </button>
+                    <button
+                      type="button"
+                      title={t("nav.chat", "Chat")}
+                      aria-label={t("nav.chat", "Chat")}
+                      className="side-menu__link side-menu__link--active"
+                      onClick={() => go("/chat")}
+                    >
+                      <ChatIcon size={16} />
+                      <span>{t("nav.chat", "Chat")}</span>
+                    </button>
                   </div>
                   <div className="side-menu__chat-panel">
                     <ChatHistoryPanel
@@ -426,6 +409,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                       onSelectSession={handleSelectSession}
                       onDeleteSession={handleDeleteSession}
                       onRenameSession={handleRenameSession}
+                      onNewTask={handleNewTask}
                     />
                   </div>
                 </>

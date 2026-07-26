@@ -94,6 +94,9 @@ export function CopilotPanel({
   const suggestions = findLatestSuggestions(messages);
   const showSuggestions =
     run.state.status === "ready" && suggestions.length > 0;
+  const sessionIsLoading =
+    sessions.activeSession.status === "initializing" ||
+    sessions.activeSession.status === "loading";
 
   return (
     <section className="copilot-panel-content">
@@ -101,7 +104,7 @@ export function CopilotPanel({
         <Header
           activeSession={copilot.activeSession}
           run={run.state}
-          onNewSession={() => void sessions.create()}
+          onNewSession={sessions.startNew}
         />
       )}
       <div className="copilot-panel-body">
@@ -110,13 +113,21 @@ export function CopilotPanel({
             sessions={sessions.sessions}
             activeSession={sessions.activeSession}
             onSelect={(id) => void sessions.select(id)}
-            onCreate={() => void sessions.create()}
+            onCreate={sessions.startNew}
             onRename={(id, title) => void sessions.rename(id, title)}
             onRemove={(id) => void sessions.remove(id)}
           />
         )}
         <div className="copilot-conversation">
-          {sessions.activeSession.status === "error" && ErrorState ? (
+          {sessionIsLoading ? (
+            <MessageList
+              messages={messages}
+              activeSessionId={copilot.activeSession.id}
+              activeSession={copilot.activeSession}
+              run={run.state}
+              messageComponent={Message}
+            />
+          ) : sessions.activeSession.status === "error" && ErrorState ? (
             <ErrorState
               error={sessions.activeSession.error}
               onRetry={() => {
@@ -133,7 +144,7 @@ export function CopilotPanel({
               onRetry={() => void sessions.refresh()}
             />
           ) : messages.length === 0 && Empty ? (
-            <Empty onNewSession={() => void sessions.create()} />
+            <Empty onNewSession={sessions.startNew} />
           ) : (
             <MessageList
               messages={messages}
@@ -143,34 +154,38 @@ export function CopilotPanel({
               messageComponent={Message}
             />
           )}
-          {run.state.status === "awaiting-approval" && (
-            <Approval
-              request={run.state.request}
-              interactionError={run.state.interactionError}
-              pending={run.state.interactionPending}
-              onSubmit={(decision) => void run.submitApproval(decision)}
-            />
-          )}
-          {run.state.status === "awaiting-answer" && (
-            <Question
-              request={run.state.request}
-              interactionError={run.state.interactionError}
-              pending={run.state.interactionPending}
-              onSubmit={(answer) => void run.submitAnswer(answer)}
-            />
-          )}
-          {run.state.status === "error" && ErrorState && (
-            <ErrorState
-              error={run.state.error}
-              onRetry={() => void run.retry()}
-            />
-          )}
-          {showSuggestions && (
-            <Suggestions
-              options={suggestions}
-              disabled={false}
-              onSelect={(message) => void copilot.send({ text: message })}
-            />
+          {!sessionIsLoading && (
+            <>
+              {run.state.status === "awaiting-approval" && (
+                <Approval
+                  request={run.state.request}
+                  interactionError={run.state.interactionError}
+                  pending={run.state.interactionPending}
+                  onSubmit={(decision) => void run.submitApproval(decision)}
+                />
+              )}
+              {run.state.status === "awaiting-answer" && (
+                <Question
+                  request={run.state.request}
+                  interactionError={run.state.interactionError}
+                  pending={run.state.interactionPending}
+                  onSubmit={(answer) => void run.submitAnswer(answer)}
+                />
+              )}
+              {run.state.status === "error" && ErrorState && (
+                <ErrorState
+                  error={run.state.error}
+                  onRetry={() => void run.retry()}
+                />
+              )}
+              {showSuggestions && (
+                <Suggestions
+                  options={suggestions}
+                  disabled={false}
+                  onSelect={(message) => void copilot.send({ text: message })}
+                />
+              )}
+            </>
           )}
           <Composer />
         </div>

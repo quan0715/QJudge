@@ -9,6 +9,11 @@ import { CopilotWorkspaceShell } from "./CopilotWorkspaceShell";
 
 const copilotStyles = readFileSync("src/shared/copilot/ui/copilot.css", "utf8");
 
+function cssRule(source: string, selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return source.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+}
+
 describe("Copilot shells", () => {
   it("composes workspace panel chrome and supports disabled mode", () => {
     const transport = new MemoryCopilotTransport();
@@ -40,5 +45,21 @@ describe("Copilot shells", () => {
 
     expect(workspaceMainRule).toContain("min-height: 0");
     expect(workspaceMainRule).toContain("overflow: hidden");
+  });
+
+  it("contains embed width at every shared shell boundary", () => {
+    const root = cssRule(copilotStyles, ".copilot-root");
+    const embed = cssRule(copilotStyles, ".copilot-embed");
+    const body = cssRule(copilotStyles, ".copilot-panel-body");
+    const conversation = cssRule(copilotStyles, ".copilot-conversation");
+
+    expect(root).toContain("min-width: 0");
+    expect(root).toContain("max-width: 100%");
+    expect(embed).toContain("width: 100%");
+    expect(embed).toContain("overflow: hidden");
+    expect(body).toContain("min-width: 0");
+    expect(body).toContain("overflow: hidden");
+    expect(conversation).toContain("min-width: 0");
+    expect(conversation).toContain("overflow: hidden");
   });
 });

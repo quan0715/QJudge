@@ -115,7 +115,7 @@ def _find_contest(
 # ---------------------------------------------------------------------------
 
 def _get_token(role: str = "teacher") -> str:
-    """Get auth token via dev/token endpoint or email login."""
+    """Get auth token via dev/token endpoint or password login."""
     dev_resp = httpx.post(
         f"{DJANGO_BASE_URL}/api/v1/auth/dev/token",
         json={"role": role},
@@ -134,8 +134,8 @@ def _get_token(role: str = "teacher") -> str:
     cred = seed_credentials.get(role)
     assert cred, f"No credentials for role={role}"
     resp = httpx.post(
-        f"{DJANGO_BASE_URL}/api/v1/auth/email/login",
-        json={"email": cred[0], "password": cred[1]},
+        f"{DJANGO_BASE_URL}/api/v1/auth/login/password",
+        json={"identifier": cred[0], "password": cred[1]},
         timeout=10,
     )
     assert resp.status_code == 200, f"Login failed ({resp.status_code})"
