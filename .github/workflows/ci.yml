@@ -357,9 +357,10 @@ jobs:
         run: pip install ".[controller,worker,test]"
         working-directory: integrity-service
 
+      - name: Prepare repository contract environment
+        run: cp .env.example .env
+
       - name: Run Integrity Service Tests
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: python -m pytest
         working-directory: integrity-service
 
