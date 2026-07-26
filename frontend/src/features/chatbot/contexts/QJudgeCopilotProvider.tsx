@@ -51,10 +51,11 @@ export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const location = useReactRouterCopilotSessionLocation();
   const translations = useMemo(() => new QJudgeCopilotTranslations(), []);
+  const enabled = user?.role === "teacher" || user?.role === "admin";
 
   return (
     <QJudgeCopilotBoundary
-      enabled={!!user}
+      enabled={enabled}
       transport={qJudgeCopilotTransport}
       location={location}
       storage={qJudgeCopilotStorage}

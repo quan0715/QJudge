@@ -4,9 +4,10 @@ import logging
 
 from rest_framework import status, viewsets, generics, serializers
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+
+from apps.users.permissions import IsTeacherOrAdmin
 
 from .models import AIChatRun, AIMessage, AISession
 from .services.stream_response import build_sse_response
@@ -42,7 +43,7 @@ class SchemaAPIView(generics.GenericAPIView):
 class AISessionViewSet(viewsets.ModelViewSet):
     """ViewSet for AI chat sessions."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = AISessionSerializer
 
     def get_queryset(self):
@@ -222,7 +223,7 @@ class AISessionViewSet(viewsets.ModelViewSet):
 class AIChatRunViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for durable AI chat runs."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = AIChatRunSerializer
 
     def get_queryset(self):
@@ -292,7 +293,7 @@ class AIChatRunViewSet(viewsets.ReadOnlyModelViewSet):
 class ModelListView(SchemaAPIView):
     """GET /api/v1/ai/models/ — return available model options."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = ModelInfoSerializer
 
     MODELS = [

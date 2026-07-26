@@ -18,8 +18,9 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from apps.users.permissions import IsTeacherOrAdmin
 
 from .models import AIArtifact, AIChatRun, AISession
 from .permissions import IsAIServiceInternal
@@ -147,7 +148,7 @@ class AIArtifactInternalViewSet(viewsets.ViewSet):
 class AIArtifactUserViewSet(viewsets.ReadOnlyModelViewSet):
     """User-facing read-only artifact view (Artifact Panel)."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrAdmin]
     serializer_class = AIArtifactSerializer
 
     def get_queryset(self):

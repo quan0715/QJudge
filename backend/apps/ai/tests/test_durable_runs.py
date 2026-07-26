@@ -60,11 +60,13 @@ class DurableRunAPITestCase(TransactionTestCase):
             username="runuser",
             email="run@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.other_user = User.objects.create_user(
             username="other",
             email="other@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.session = AISession.objects.create(
             session_id="11111111-1111-1111-1111-111111111111",

@@ -260,10 +260,16 @@ class ArtifactUserEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user1 = User.objects.create_user(
-            username="u1", email="u1@e.com", password="pw"
+            username="u1",
+            email="u1@e.com",
+            password="pw",
+            role="teacher",
         )
         self.user2 = User.objects.create_user(
-            username="u2", email="u2@e.com", password="pw"
+            username="u2",
+            email="u2@e.com",
+            password="pw",
+            role="teacher",
         )
         self.session1 = AISession.objects.create(
             session_id="11111111-1111-1111-1111-111111111111",
