@@ -18,10 +18,8 @@ def infer_source_module(track_name: str | None) -> str:
     return "webcam" if isinstance(track_name, str) and track_name.startswith("webcam-") else "screen_share"
 
 
-def publisher_key(contest_id: int, user_id: int, source_module: str | None = None) -> str:
-    if source_module in SOURCE_MODULES:
-        return f"contest:{contest_id}:sfu:publisher:{user_id}:{source_module}"
-    return f"contest:{contest_id}:sfu:publisher:{user_id}"
+def publisher_key(contest_id: int, user_id: int, source_module: str) -> str:
+    return f"contest:{contest_id}:sfu:publisher:{user_id}:{source_module}"
 
 
 def _publisher_keys(contest_id: int, user_id: int) -> list[str]:
@@ -63,7 +61,6 @@ def register_publisher(
         payload,
         timeout=_cache_timeout(),
     )
-    cache.delete(publisher_key(contest_id, user_id))
     return payload
 
 
@@ -77,7 +74,6 @@ def refresh_publisher(
         keys = [publisher_key(contest_id, user_id, source_module)]
     else:
         keys = _publisher_keys(contest_id, user_id)
-        keys.append(publisher_key(contest_id, user_id))
 
     refreshed: list[dict[str, Any]] = []
     for key in keys:
@@ -96,9 +92,6 @@ def get_publishers(contest_id: int, user_id: int) -> list[dict[str, Any]]:
         payload = cache.get(publisher_key(contest_id, user_id, source_module))
         if isinstance(payload, dict):
             publishers.append(payload)
-    legacy_payload = cache.get(publisher_key(contest_id, user_id))
-    if isinstance(legacy_payload, dict):
-        publishers.append(legacy_payload)
     return publishers
 
 
@@ -123,7 +116,6 @@ def get_preferred_publishers(contest_id: int, user_ids: list[int]) -> dict[int, 
     keys_by_user: dict[int, list[str]] = {}
     for user_id in user_ids:
         keys = [publisher_key(contest_id, user_id, source) for source in SOURCE_MODULES]
-        keys.append(publisher_key(contest_id, user_id))
         keys_by_user[user_id] = keys
         for key in keys:
             key_to_user[key] = user_id
@@ -148,7 +140,6 @@ def get_publishers_by_user(contest_id: int, user_ids: list[int]) -> dict[int, li
     keys_by_user: dict[int, list[str]] = {}
     for user_id in user_ids:
         keys = [publisher_key(contest_id, user_id, source) for source in SOURCE_MODULES]
-        keys.append(publisher_key(contest_id, user_id))
         keys_by_user[user_id] = keys
         for key in keys:
             key_to_user[key] = user_id
@@ -175,7 +166,6 @@ def remove_publisher(
         keys = [publisher_key(contest_id, user_id, source_module)]
     else:
         keys = _publisher_keys(contest_id, user_id)
-        keys.append(publisher_key(contest_id, user_id))
 
     for key in keys:
         payload = cache.get(key)

@@ -264,6 +264,45 @@ def test_command_outbox_checkpoints_only_an_exact_all_command_receipt(tmp_path):
     assert checkpoint["command_ids"] == [item["command_id"] for item in commands]
 
 
+def test_command_outbox_delivers_large_queue_in_backend_sized_chunks(tmp_path):
+    commands = tuple(
+        {
+            "command_id": str(uuid4()),
+            "kind": "update_run_checkpoint",
+            "metadata": {"position": position},
+        }
+        for position in range(149)
+    )
+
+    class Backend:
+        def __init__(self):
+            self.calls = []
+
+        def send_commands(self, pending):
+            assert len(pending) <= 100
+            self.calls.append(pending)
+            return {
+                "accepted_command_ids": [
+                    item["command_id"] for item in pending
+                ],
+                "archive_uploads": [],
+            }
+
+    backend = Backend()
+    outbox = CommandOutbox(tmp_path / "outbox")
+    outbox.append(commands)
+
+    outbox.deliver_pending(backend)
+
+    assert [len(call) for call in backend.calls] == [100, 49]
+    assert outbox.pending_commands == ()
+    assert [
+        len(record["command_ids"])
+        for record in outbox._log.records
+        if record["kind"] == "delivered"
+    ] == [100, 49]
+
+
 def test_archive_retry_preserves_segment_and_hash_chain_manifest(tmp_path):
     backend = FakeArchiveBackend()
     outbox = CommandOutbox(tmp_path / "outbox")

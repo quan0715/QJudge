@@ -196,20 +196,6 @@
   color: var(--cds-support-error);
 }
 
-.runtimeMonitoringCountdown {
-  position: absolute;
-  right: 0.25rem;
-  bottom: 0.25rem;
-  max-inline-size: 2.25rem;
-  overflow: hidden;
-  color: currentColor;
-  font-size: 0.625rem;
-  font-weight: 600;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @keyframes workspaceMonitoringPulse {
   0%,
   100% {

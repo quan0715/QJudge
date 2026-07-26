@@ -25,13 +25,6 @@ import {
   unregisterCaptureStopHandler,
 } from "@/features/contest/anticheat/captureLifecycle";
 
-interface CaptureLifecycleEvent {
-  contestId: string;
-  reason: CaptureStopReason;
-  status: CaptureStopResult["status"];
-  timestamp: string;
-}
-
 interface Options {
   contestId: string;
   /** Controls use of the policy-enabled MediaRecorder source. */
@@ -43,7 +36,6 @@ interface Options {
   preserveStreamOnUnmount?: boolean;
   expectInitialStream?: boolean;
   onScreenShareLost?: () => void;
-  onCaptureLifecycleEvent?: (event: CaptureLifecycleEvent) => void;
 }
 
 export const useAnticheatScreenCapture = ({
@@ -53,7 +45,6 @@ export const useAnticheatScreenCapture = ({
   preserveStreamOnUnmount = false,
   expectInitialStream = false,
   onScreenShareLost,
-  onCaptureLifecycleEvent,
 }: Options) => {
   const [uploadSessionId] = useState(() => {
     // Reuse existing session ID if available (e.g. page reload during exam)
@@ -64,6 +55,7 @@ export const useAnticheatScreenCapture = ({
     return newId;
   });
   const streamRef = useRef<MediaStream | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const sfuPublisherRef = useRef(createSfuScreenSharePublisher());
   const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
@@ -77,6 +69,11 @@ export const useAnticheatScreenCapture = ({
   useEffect(() => {
     onScreenShareLostRef.current = onScreenShareLost;
   }, [onScreenShareLost]);
+
+  const updateStream = useCallback((nextStream: MediaStream | null) => {
+    streamRef.current = nextStream;
+    setStream(nextStream);
+  }, []);
 
   const handleDetectedScreenShareLoss = useCallback(() => {
     streamWasLiveRef.current = false;
@@ -102,23 +99,27 @@ export const useAnticheatScreenCapture = ({
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
-    streamRef.current = null;
+    updateStream(null);
     if (stream) {
       stream.getTracks().forEach((t) => t.stop());
     }
     return !!stream;
-  }, []);
+  }, [updateStream]);
 
-  const emitCaptureLifecycleEvent = useCallback(
-    (event: CaptureLifecycleEvent) => {
-      if (onCaptureLifecycleEvent) {
-        onCaptureLifecycleEvent(event);
-        return;
+  const attachLiveStream = useCallback((stream: MediaStream): MediaStream => {
+    stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+      if (streamRef.current === stream) {
+        updateStream(null);
+        handleDetectedScreenShareLoss();
       }
-      console.info("[anticheat][capture] lifecycle", event);
-    },
-    [onCaptureLifecycleEvent],
-  );
+    });
+    updateStream(stream);
+    streamWasLiveRef.current = true;
+    setStreamActive(true);
+    hasCaptureSessionRef.current = true;
+    ensureSfuPublisher(stream);
+    return stream;
+  }, [ensureSfuPublisher, handleDetectedScreenShareLoss, updateStream]);
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
     const existingStream = streamRef.current;
@@ -134,18 +135,7 @@ export const useAnticheatScreenCapture = ({
       consumePrecheckScreenShareHandoff() ??
       consumeRuntimeScreenShareHandoff();
     if (handoff && isStreamLive(handoff)) {
-      handoff.getVideoTracks()[0]?.addEventListener("ended", () => {
-        if (streamRef.current === handoff) {
-          streamRef.current = null;
-          handleDetectedScreenShareLoss();
-        }
-      });
-      streamRef.current = handoff;
-      streamWasLiveRef.current = true;
-      setStreamActive(true);
-      hasCaptureSessionRef.current = true;
-      ensureSfuPublisher(handoff);
-      return handoff;
+      return attachLiveStream(handoff);
     }
 
     // A stale handoff stream means sharing was interrupted before first capture.
@@ -158,7 +148,15 @@ export const useAnticheatScreenCapture = ({
     // No handoff available — stream died or was never shared.
     // Do NOT call getDisplayMedia() again to avoid repeated browser prompts.
     return null;
-  }, [ensureSfuPublisher, handleDetectedScreenShareLoss, stopStream]);
+  }, [attachLiveStream, handleDetectedScreenShareLoss, stopStream]);
+
+  const resumeFromRuntimeHandoff = useCallback(async (): Promise<boolean> => {
+    const handoff = consumeRuntimeScreenShareHandoff();
+    if (!handoff || !isStreamLive(handoff)) return false;
+    stopStream();
+    attachLiveStream(handoff);
+    return true;
+  }, [attachLiveStream, stopStream]);
 
   const forceStopCapture = useCallback(
     (reason: CaptureStopReason = "manual"): CaptureStopResult => {
@@ -185,15 +183,9 @@ export const useAnticheatScreenCapture = ({
       clearPrecheckScreenShareHandoff(true);
       clearRuntimeScreenShareHandoff(true);
 
-      emitCaptureLifecycleEvent({
-        contestId,
-        reason,
-        status: result.status,
-        timestamp: result.timestamp,
-      });
       return result;
     },
-    [contestId, emitCaptureLifecycleEvent, stopStream],
+    [contestId, stopStream],
   );
 
   useEffect(() => {
@@ -225,7 +217,7 @@ export const useAnticheatScreenCapture = ({
       if (shouldPreserveStream) {
         const stream = streamRef.current;
         if (stream?.active) {
-          streamRef.current = null;
+          updateStream(null);
           setStreamActive(false);
           hasCaptureSessionRef.current = true;
           setRuntimeScreenShareHandoff(stream);
@@ -235,7 +227,7 @@ export const useAnticheatScreenCapture = ({
       }
       forceStopCapture("unmount");
     },
-    [contestId, forceStopCapture, preserveStreamOnUnmount],
+    [contestId, forceStopCapture, preserveStreamOnUnmount, updateStream],
   );
 
   // Lightweight stream health poll — detect loss even when capture interval is off.
@@ -282,7 +274,8 @@ export const useAnticheatScreenCapture = ({
   return {
     uploadSessionId,
     forceStopCapture,
-    stream: streamRef.current,
+    resumeFromRuntimeHandoff,
+    stream,
     /** Reactive flag — true when screen share stream is alive. */
     streamActive,
   };

@@ -174,3 +174,6 @@ running/
 
 # Generated media experiments
 qjudge-promo-abstract/
+
+# Local-only Integrity Controller credentials.
+secrets/

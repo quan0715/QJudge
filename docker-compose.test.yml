@@ -230,6 +230,7 @@ services:
       - backend-test
     volumes:
       - ./frontend:/app
+      - ./backend:/backend:ro
       - /app/node_modules
     networks:
       - test-network

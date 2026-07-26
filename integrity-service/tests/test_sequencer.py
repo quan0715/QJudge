@@ -6,7 +6,6 @@ import pytest
 from integrity_service.core.commands import (
     EngineContext,
     ReceivedEvent,
-    SubmissionState,
     make_command,
 )
 from integrity_service.core.incidents import IncidentEngine
@@ -41,7 +40,7 @@ def batch(
                 event_id=(event_ids or {}).get(seq, uuid4()),
                 seq=seq,
                 kind="event",
-                event_type=(event_types or {}).get(seq, "tab_hidden"),
+                event_type=(event_types or {}).get(seq, "mouse_leave_triggered"),
                 event_schema_version=1,
                 client_occurred_at_ms=1,
                 client_recorded_at_ms=2,
@@ -112,7 +111,7 @@ def test_restore_rebuilds_cursor_without_creating_decisions():
     ("first_type", "second_type"),
     [
         ("exit_fullscreen_triggered", "fullscreen_restored"),
-        ("tab_hidden", "copy_attempt"),
+        ("mouse_leave_triggered", "copy_attempt"),
     ],
 )
 def test_sequencer_rejects_event_uuid_reused_at_another_sequence_before_decisions(
@@ -158,7 +157,7 @@ def test_failed_reused_uuid_batch_is_atomic():
     ("first_type", "reused_type"),
     [
         ("exit_fullscreen_triggered", "fullscreen_restored"),
-        ("tab_hidden", "copy_attempt"),
+        ("mouse_leave_triggered", "copy_attempt"),
     ],
 )
 def test_reused_uuid_that_would_alias_different_command_values_never_reaches_decisions(
@@ -245,7 +244,6 @@ def test_accept_returns_deeply_immutable_snapshot_used_by_received_event_decisio
     command = IncidentEngine(
         Registry(snapshot),
         EngineContext(run_id=RUN_ID),
-        SubmissionState(),
     ).ingest(received).commands[0]
 
     assert command.event_type == "exit_fullscreen_triggered"

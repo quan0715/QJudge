@@ -41,7 +41,7 @@ The Worker remains the only policy authority. Browser hooks report monotonic sta
 | `listener_integrity` | 0 s | A missing integrity listener has no meaningful recovery edge and pauses immediately. |
 | `clipboard`, `forbidden_action`, exam lifecycle | 0 s | These are discrete operations, not duration-based states. |
 
-For browser-origin incidents, a received restore uses `restore.client_occurred_at_ms - trigger.client_occurred_at_ms` to decide whether grace expired. Server receipt time is only the fallback for an incident that has not produced a restore. Invalid client chronology is rejected or handled conservatively; it is never allowed to turn a short, valid interval into a violation merely because delivery was delayed.
+For browser-origin incidents, a received restore uses `restore.client_occurred_at_ms - trigger.client_occurred_at_ms` to decide whether grace expired. Server receipt time is only the fallback for an incident that has not produced a restore. Its timer deadline adds the Run's frozen `batch_interval_ms` as delivery tolerance, giving the next checkpoint one chance to deliver a restore; this does not change the semantic grace duration. Invalid client chronology is rejected or handled conservatively; it is never allowed to turn a short, valid interval into a violation merely because delivery was delayed.
 
 For server-origin connectivity incidents, the Worker continues to use its own clock. Exam completion closes connectivity tracking before later timeout evaluation so submission cannot generate a false `connectivity_timeout`.
 
@@ -108,6 +108,7 @@ After restart, the backend reconciles container ID, name, URL, image digest, and
 - A 0.9 second and a 4.9 second mouse absence produce raw trigger/restore records but no violation card and no evidence upload.
 - A 5.0 second or longer mouse absence produces one escalated incident and one bounded evidence track.
 - Delivery of trigger and restore in different checkpoints does not alter the client-measured duration.
+- Timer escalation waits one frozen checkpoint interval for an in-flight restore without extending the client-measured grace.
 - Multiple DOM leave/enter callbacks in the same state do not create duplicate edges.
 - Multiple qualifying mouse incidents within ten seconds render one episode whose details retain each occurrence.
 - Evidence outside each occurrence's five-second retain window is excluded even when its metadata aliases the incident.

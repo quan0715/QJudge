@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
-import { Information, Locked, View, Security } from "@carbon/icons-react";
+import { BareMetalServer, Information, Locked, View, Security } from "@carbon/icons-react";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal/SettingsModal";
+import IntegrityRunControlCard from "@/features/contest/components/admin/IntegrityRunControlCard";
 import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
@@ -33,6 +34,7 @@ const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { labelKey: string; 
   { id: "access", labelKey: "settings.accessControl", fallback: "狀態與權限", icon: Locked },
   { id: "display", labelKey: "settings.displaySettings", fallback: "顯示設定", icon: View },
   { id: "cheatDetection", labelKey: "settings.examModeSettings", fallback: "防作弊監控設定", icon: Security },
+  { id: "integrity", labelKey: "settings.integrityWorker", fallback: "Integrity Worker", icon: BareMetalServer },
 ];
 
 export default function ContestSettingsModal({
@@ -101,6 +103,12 @@ export default function ContestSettingsModal({
         return <DisplaySettingsPanel {...sharedProps} />;
       case "cheatDetection":
         return <CheatDetectionPanel {...sharedProps} />;
+      case "integrity":
+        return (
+          <IntegrityRunControlCard
+            contestId={contest.id}
+          />
+        );
       default:
         return null;
     }

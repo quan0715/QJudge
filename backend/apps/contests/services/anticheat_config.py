@@ -1,26 +1,7 @@
-"""Builders for contest anti-cheat runtime config payloads."""
+"""Frozen anti-cheat policy builders."""
 from __future__ import annotations
 
-from django.conf import settings
-
-from apps.contests.constants import (
-    EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
-    EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS,
-    EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
-    EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS,
-    EXAM_MONITORING_RECOVERY_GRACE_MS,
-    FORCED_CAPTURE_COOLDOWN_MS,
-    FORCED_CAPTURE_P1_COOLDOWN_MS,
-    INCIDENT_SCREENSHOT_CATEGORIES,
-    INCIDENT_SCREENSHOT_PREVIEW_LIMIT,
-    INCIDENT_SCREENSHOT_WINDOW_AFTER_MS,
-    INCIDENT_SCREENSHOT_WINDOW_BEFORE_MS,
-    SCREEN_SHARE_RECOVERY_GRACE_MS,
-    WEBCAM_CAPTURE_INTERVAL_SECONDS,
-    WEBCAM_RECOVERY_GRACE_MS,
-)
 from apps.contests.models import default_anticheat_device_policy
-from apps.contests.integrity.registry import build_registry_snapshot
 
 
 DEVICE_KINDS = ("desktop", "tablet")
@@ -28,8 +9,6 @@ SOURCE_KINDS = ("screen_share", "webcam")
 DETECTOR_KINDS = (
     "pwa_mode",
     "fullscreen",
-    "focus",
-    "tab_visibility",
     "multi_display",
     "mouse_leave",
     "viewport_integrity",
@@ -37,19 +16,7 @@ DETECTOR_KINDS = (
 
 
 def _as_bool(value, fallback: bool) -> bool:
-    if isinstance(value, bool):
-        return value
-    return fallback
-
-
-def _as_int(value, fallback: int, minimum: int = 0) -> int:
-    if isinstance(value, bool):
-        return fallback
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return fallback
-    return max(minimum, parsed)
+    return value if isinstance(value, bool) else fallback
 
 
 def normalize_anticheat_device_policy(raw_policy) -> dict:
@@ -66,32 +33,28 @@ def normalize_anticheat_device_policy(raw_policy) -> dict:
         raw_sources = raw_device.get("sources")
         if not isinstance(raw_sources, dict):
             raw_sources = {}
-
-        sources: dict[str, dict] = {}
+        sources = {}
         for source in SOURCE_KINDS:
-            default_source = default_device["sources"][source]
             raw_source = raw_sources.get(source)
             if not isinstance(raw_source, dict):
                 raw_source = {}
             sources[source] = {
-                "enabled": _as_bool(raw_source.get("enabled"), default_source["enabled"]),
-                "capture_interval_seconds": _as_int(
-                    raw_source.get("capture_interval_seconds"),
-                    default_source["capture_interval_seconds"],
-                    minimum=1,
+                "enabled": _as_bool(
+                    raw_source.get("enabled"),
+                    default_device["sources"][source]["enabled"],
                 ),
             }
 
         raw_detectors = raw_device.get("detectors")
         if not isinstance(raw_detectors, dict):
             raw_detectors = {}
-
-        detectors: dict[str, bool] = {}
-        for detector in DETECTOR_KINDS:
-            detectors[detector] = _as_bool(
+        detectors = {
+            detector: _as_bool(
                 raw_detectors.get(detector),
                 default_device["detectors"][detector],
             )
+            for detector in DETECTOR_KINDS
+        }
 
         normalized[device] = {
             "enabled": _as_bool(raw_device.get("enabled"), default_device["enabled"]),
@@ -99,185 +62,48 @@ def normalize_anticheat_device_policy(raw_policy) -> dict:
             "detectors": detectors,
         }
 
-    # High-level policy constraints — single source of truth.
-    # focus / tab_visibility are legacy, always off.
-    for device in DEVICE_KINDS:
-        normalized[device]["detectors"]["focus"] = False
-        normalized[device]["detectors"]["tab_visibility"] = False
-    # tablet cannot use screen_share, fullscreen, or multi_display.
     normalized["tablet"]["sources"]["screen_share"]["enabled"] = False
     normalized["tablet"]["detectors"]["fullscreen"] = False
     normalized["tablet"]["detectors"]["multi_display"] = False
-
     return normalized
 
 
 def build_contest_anticheat_config(contest) -> dict:
-    """
-    Return anti-cheat config for frontend runtime behavior.
-
-    Payload shape intentionally separates:
-    - global_defaults: cluster-wide policy knobs
-    - contest_settings: per-contest settings persisted on Contest
-    - effective: frontend should consume from here
-    - frontend_controlled_settings: migration map for global vs per-contest knobs
-    """
-
-    global_defaults = {
-        "capture_interval_seconds": int(settings.ANTICHEAT_CAPTURE_INTERVAL_SECONDS),
-        "forced_capture_cooldown_ms": FORCED_CAPTURE_COOLDOWN_MS,
-        "forced_capture_p1_cooldown_ms": FORCED_CAPTURE_P1_COOLDOWN_MS,
-        "event_feed_aggregation_window_seconds": EVENT_FEED_AGGREGATION_WINDOW_SECONDS,
-        "incident_screenshot_window_before_ms": INCIDENT_SCREENSHOT_WINDOW_BEFORE_MS,
-        "incident_screenshot_window_after_ms": INCIDENT_SCREENSHOT_WINDOW_AFTER_MS,
-        "incident_screenshot_preview_limit": INCIDENT_SCREENSHOT_PREVIEW_LIMIT,
-        "incident_screenshot_categories": list(INCIDENT_SCREENSHOT_CATEGORIES),
-        "monitoring_recovery_grace_ms": EXAM_MONITORING_RECOVERY_GRACE_MS,
-        "mouse_leave_cooldown_ms": EXAM_MONITORING_MOUSE_LEAVE_COOLDOWN_MS,
-        "screen_share_recovery_grace_ms": SCREEN_SHARE_RECOVERY_GRACE_MS,
-        "webcam_recovery_grace_ms": WEBCAM_RECOVERY_GRACE_MS,
-        "webcam_capture_interval_seconds": WEBCAM_CAPTURE_INTERVAL_SECONDS,
-        "multi_display_check_interval_ms": EXAM_MONITORING_MULTI_DISPLAY_CHECK_INTERVAL_MS,
-        "multi_display_report_cooldown_ms": EXAM_MONITORING_MULTI_DISPLAY_REPORT_COOLDOWN_MS,
-        "presigned_url_ttl_seconds": int(settings.OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS),
-    }
-
-    device_policy = normalize_anticheat_device_policy(contest.anticheat_device_policy)
-
-    contest_settings = {
-        "cheat_detection_enabled": bool(contest.cheat_detection_enabled),
-        "allow_multiple_joins": bool(contest.allow_multiple_joins),
-        "contest_type": str(contest.contest_type or "coding"),
-        "warning_timeout_seconds": max(1, int(contest.warning_timeout_seconds or 20)),
-        "screen_share_recovery_grace_ms": SCREEN_SHARE_RECOVERY_GRACE_MS,
-        "anticheat_device_policy": device_policy,
-    }
-
-    frontend_controlled_settings = {
-        "global": [
-            {
-                "key": "capture_interval_seconds",
-                "description": "Background screenshot capture interval",
-            },
-            {
-                "key": "forced_capture_cooldown_ms",
-                "description": "Base forced-capture cooldown for non-P1 events",
-            },
-            {
-                "key": "forced_capture_p1_cooldown_ms",
-                "description": "Forced-capture cooldown for P1 violation events",
-            },
-            {
-                "key": "event_feed_aggregation_window_seconds",
-                "description": "Exam-event grouping window in admin logs",
-            },
-            {
-                "key": "incident_screenshot_window_before_ms",
-                "description": "Screenshot preview lookback window before incident",
-            },
-            {
-                "key": "incident_screenshot_window_after_ms",
-                "description": "Screenshot preview lookahead window after incident",
-            },
-            {
-                "key": "incident_screenshot_preview_limit",
-                "description": "Max screenshots returned per incident preview",
-            },
-            {
-                "key": "incident_screenshot_categories",
-                "description": "Incident categories eligible for screenshot preview",
-            },
-            {
-                "key": "monitoring_recovery_grace_ms",
-                "description": "Fullscreen/mouse leave recovery grace period",
-            },
-            {
-                "key": "mouse_leave_cooldown_ms",
-                "description": "Cooldown between mouse_leave violations",
-            },
-            {
-                "key": "screen_share_recovery_grace_ms",
-                "description": "Screen-share reauth grace before force submit",
-            },
-            {
-                "key": "webcam_recovery_grace_ms",
-                "description": "Webcam reauth grace before force submit",
-            },
-            {
-                "key": "webcam_capture_interval_seconds",
-                "description": "Background webcam capture interval",
-            },
-            {
-                "key": "multi_display_check_interval_ms",
-                "description": "Polling interval for multi-display checks",
-            },
-            {
-                "key": "multi_display_report_cooldown_ms",
-                "description": "Cooldown between multi-display reports",
-            },
-            {
-                "key": "presigned_url_ttl_seconds",
-                "description": "Presigned upload URL validity duration",
-            },
-        ],
-        "contest": [
-            {
-                "key": "cheat_detection_enabled",
-                "description": "Enable anti-cheat runtime and lock workflow",
-            },
-            {
-                "key": "allow_multiple_joins",
-                "description": "Allow re-entry after leaving/submitting",
-            },
-            {
-                "key": "warning_timeout_seconds",
-                "description": "Seconds before warning modal close action becomes available",
-            },
-            {
-                "key": "screen_share_recovery_grace_ms",
-                "description": "Screen-share reauth grace before force submit",
-            },
-            {
-                "key": "anticheat_device_policy",
-                "description": "Per-device anti-cheat source/detector policy",
-            },
-        ],
-    }
-
+    """Return only the policy needed before a run is active."""
     return {
-        "version": 2,
-        "global_defaults": global_defaults,
-        "contest_settings": contest_settings,
-        "effective": {
-            **global_defaults,
-            **contest_settings,
-        },
-        "device_policy": device_policy,
-        "frontend_controlled_settings": frontend_controlled_settings,
-        "event_registry": build_registry_snapshot(),
+        "version": 3,
+        "device_policy": normalize_anticheat_device_policy(
+            contest.anticheat_device_policy,
+        ),
     }
 
 
 def build_integrity_policy_snapshot(contest) -> dict:
-    """Freeze the policy values a browser and worker must share for one run."""
-    config = build_contest_anticheat_config(contest)
+    """Freeze the browser/worker contract for one integrity run."""
     return {
         "version": 1,
         "batch_interval_ms": 5_000,
         "suspect_after_ms": 15_000,
-        "disconnected_after_ms": 60_000,
+        "disconnected_after_ms": 30_000,
         "evidence": {
             "chunk_ms": 5_000,
             "minimum_local_buffer_ms": 60_000,
             "local_cap_ms": 300_000,
             "local_cap_bytes_per_source": 100_000_000,
             "screen": {
-                "width": 1280, "height": 720, "fps": 5, "bitrate": 800_000,
+                "width": 1280,
+                "height": 720,
+                "fps": 5,
+                "bitrate": 800_000,
             },
             "webcam": {
-                "width": 640, "height": 480, "fps": 10, "bitrate": 350_000,
+                "width": 640,
+                "height": 480,
+                "fps": 10,
+                "bitrate": 350_000,
             },
         },
-        "effective": config["effective"],
-        "device_policy": config["device_policy"],
+        "device_policy": normalize_anticheat_device_policy(
+            contest.anticheat_device_policy,
+        ),
     }

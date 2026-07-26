@@ -41,7 +41,7 @@ _DEFINITION_SCHEMA = {
             "additionalProperties": False,
             "properties": {phase: {"type": "string"} for phase in _PHASES},
         },
-        "emission": {"enum": ["every", "edge", "sample", "state_snapshot"]},
+        "emission": {"enum": ["every", "edge", "sample", "health_snapshot"]},
         "incident_family": {"type": "string", "minLength": 1},
         "priority": {"type": "integer", "minimum": 0},
         "grace_ms": {"type": "integer", "minimum": 0},

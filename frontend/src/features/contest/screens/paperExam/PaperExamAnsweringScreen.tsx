@@ -15,12 +15,10 @@ import {
   FlagFilled,
 } from "@carbon/icons-react";
 import { usePaperExamFlow } from "./usePaperExamFlow";
-import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
 import {
-  useCountdownTo,
   usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
@@ -59,7 +57,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId?: string;
   }>();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const { contestId, contest, submitExam, loading } = usePaperExamFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
     classroomId && routeContestId
@@ -131,7 +129,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
-  const countdown = useCountdownTo(contest?.endTime);
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const {
     uploadSessionId: anticheatUploadSessionId,
@@ -184,11 +181,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
     [items, saveIfDirty],
   );
 
-  useInterval(() => {
-    refreshContest().catch(() => {});
-  }, isInProgress ? 30000 : null);
-
-  const [autoSubmitted, setAutoSubmitted] = useState(false);
   const hasLoggedExamEntryRef = useRef(false);
   const isLoggingExamEntryRef = useRef(false);
 
@@ -231,20 +223,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
     submitExam,
     submitProgress,
     t,
-  ]);
-
-  useEffect(() => {
-    if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
-      void runSubmitWithProgress().then((success) => {
-        if (!success) return;
-        setAutoSubmitted(true);
-      });
-    }
-  }, [
-    countdown.remaining,
-    isInProgress,
-    contestId,
-    runSubmitWithProgress,
   ]);
 
   useEffect(() => {
@@ -367,7 +345,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [flushAll]);
 
   const shouldUseHeaderActions =
-    isRuntime && !autoSubmitted && !isSubmitted && !loadingQuestions && items.length > 0;
+    isRuntime && !isSubmitted && !loadingQuestions && items.length > 0;
 
   useEffect(() => {
     if (!shouldUseHeaderActions) {
@@ -428,12 +406,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     runSubmitWithProgress,
   ]);
 
-  if (autoSubmitted || isSubmitted) {
+  if (isSubmitted) {
     return (
       <div className={styles.centered}>
         <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
         <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-          {autoSubmitted ? t("answering.finish.autoSubmitted") : t("answering.finish.submitted")}
+          {t("answering.finish.submitted")}
         </span>
         <Button
           kind="primary"

@@ -14,7 +14,7 @@ def record(seq: int) -> EventRecord:
         event_id=uuid4(),
         seq=seq,
         kind="event",
-        event_type="tab_hidden",
+        event_type="mouse_leave_triggered",
         event_schema_version=1,
         client_occurred_at_ms=1,
         client_recorded_at_ms=2,
@@ -163,7 +163,7 @@ def test_ack_rejects_unknown_command_fields():
         )
 
 
-def test_wire_contract_retains_json_string_uuid_compatibility():
+def test_wire_contract_round_trips_json_string_uuids():
     wire = batch(1, 1).model_dump(mode="json")
     parsed = EventBatch.model_validate(wire)
 

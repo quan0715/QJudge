@@ -15,7 +15,6 @@ from integrity_service.core.commands import IntegrityCommand
 from integrity_service.core.records import AdmittedEventRecord
 from integrity_service.core.timeline import (
     BatchReceiptEntry,
-    SubmissionEntry,
     TimelineBaseline,
 )
 from integrity_service.journal.durability import (
@@ -40,6 +39,9 @@ class CommandBackend(Protocol):
     def send_commands(
         self, commands: tuple[dict[str, object], ...]
     ) -> dict[str, object]: ...
+
+
+MAX_COMMANDS_PER_DELIVERY = 100
 
 
 def _canonical_json(value: object) -> bytes:
@@ -321,25 +323,36 @@ class CommandOutbox:
 
     def deliver_pending(self, backend: CommandBackend) -> dict[str, object]:
         with self._lock:
-            pending = self.pending_commands
-            if not pending:
-                return {}
-            response = backend.send_commands(pending)
-            command_ids = [str(command["command_id"]) for command in pending]
-            validated_response = _validate_delivery_response(response, pending)
-            self._log.append(
-                {
-                    "kind": "delivered",
-                    "command_ids": command_ids,
-                    "response": validated_response,
-                }
-            )
-            for command_id in command_ids:
-                self._delivered.add(command_id)
-                self._responses[command_id] = json.loads(
-                    _canonical_json(validated_response)
+            delivered_ids: list[object] = []
+            archive_uploads: list[object] = []
+            while pending := self.pending_commands[:MAX_COMMANDS_PER_DELIVERY]:
+                response = backend.send_commands(pending)
+                command_ids = [str(command["command_id"]) for command in pending]
+                validated_response = _validate_delivery_response(response, pending)
+                self._log.append(
+                    {
+                        "kind": "delivered",
+                        "command_ids": command_ids,
+                        "response": validated_response,
+                    }
                 )
-            return json.loads(_canonical_json(validated_response))
+                for command_id in command_ids:
+                    self._delivered.add(command_id)
+                    self._responses[command_id] = json.loads(
+                        _canonical_json(validated_response)
+                    )
+                delivered_ids.extend(validated_response["accepted_command_ids"])
+                archive_uploads.extend(validated_response["archive_uploads"])
+            if not delivered_ids:
+                return {}
+            return json.loads(
+                _canonical_json(
+                    {
+                        "accepted_command_ids": delivered_ids,
+                        "archive_uploads": archive_uploads,
+                    }
+                )
+            )
 
     def delivery_response(self, command_id: str) -> dict[str, object] | None:
         with self._lock:
@@ -479,10 +492,6 @@ class TimelineJournal:
                 raise OSError("batch receipt context log is closed")
             self._receipt_context_log.append(projected)
             self._receipt_contexts[batch_id] = projected
-
-    def append_submission(self, entry: SubmissionEntry) -> None:
-        with self._lock:
-            self._append_ordered(entry.to_json())
 
     def append_advance(self, server_ms: int) -> None:
         with self._lock:

@@ -4,7 +4,6 @@ import type {
   ContestParticipant,
   ExamEvent,
 } from "@/core/entities/contest.entity";
-import { getEventPriority } from "@/features/contest/constants/eventTaxonomy";
 import type { GlobalStats } from "@/features/contest/screens/settings/grading/gradingTypes";
 import {
   calculateContestTimeProgressAt,
@@ -409,7 +408,7 @@ export const getTeacherAttentionRows = ({
   tr?: DashboardText;
 }): TeacherAttentionRow[] => {
   const latest = latestEventByUser(
-    examEvents.filter((event) => event.eventType !== "heartbeat"),
+    examEvents,
   );
   const rows: TeacherAttentionRow[] = [];
 
@@ -425,7 +424,7 @@ export const getTeacherAttentionRows = ({
       timeLabel: formatTime(
         latestEvent?.timestamp ||
           participantTimestamps.lockedAt ||
-          participant.lastHeartbeatAt,
+          participant.lastCheckpointAt,
       ),
     };
 
@@ -544,10 +543,9 @@ const buildDistribution = (
 
 const buildRecentEvents = (examEvents: ExamEvent[]): RecentExamEventItem[] =>
   examEvents
-    .filter((event) => event.eventType !== "heartbeat")
     .slice(0, 4)
     .map((event) => {
-      const priority = getEventPriority(event.eventType);
+      const priority = event.priority;
       return {
         id: event.id,
         label: event.eventType,
@@ -564,7 +562,7 @@ const buildPriorityEventSeries = (
 ): DashboardChartSeries[] => {
   const priorityEvents = examEvents
     .filter((event) => {
-      const priority = getEventPriority(event.eventType);
+      const priority = event.priority;
       return priority >= 0 && priority <= 2;
     })
     .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
@@ -579,7 +577,7 @@ const buildPriorityEventSeries = (
   const countFor = (priority: number, label: string) =>
     priorityEvents.filter(
       (event) =>
-        getEventPriority(event.eventType) === priority &&
+        event.priority === priority &&
         formatTime(event.timestamp) === label,
     ).length;
 
@@ -625,7 +623,7 @@ const buildInsightCards = ({
   tr?: DashboardText;
 }): DashboardInsightCard[] => {
   const priorityTotal = examEvents.filter((event) => {
-    const priority = getEventPriority(event.eventType);
+    const priority = event.priority;
     return priority >= 0 && priority <= 2;
   }).length;
 

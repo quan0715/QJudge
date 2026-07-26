@@ -3,7 +3,7 @@ PaperExamUser — simulates paper-exam lifecycle without coding submissions.
 
 Flow:
   login -> fetch contests -> enter -> start
-  -> (fetch contest details + exam questions + auto-save answers + exam events)
+  -> (fetch contest details + exam questions + auto-save answers)
   -> end
 """
 import random
@@ -49,7 +49,6 @@ class PaperExamUser(HttpUser):
         self.exam_questions: list[dict] = []
         self.upload_session_id: str = uuid.uuid4().hex
         self.exam_started = False
-        self._last_heartbeat_at: float = 0.0
         self._last_refresh_at: float = 0.0
 
         result = login_student(self.client, self.email, D.STUDENT_PASSWORD)
@@ -203,29 +202,6 @@ class PaperExamUser(HttpUser):
                 json=payload,
                 name="/api/v1/contests/[id]/exam-answers/submit/",
             )
-
-    @task(3)
-    def heartbeat(self):
-        """Benign exam events to simulate active page telemetry."""
-        if not self.exam_started:
-            return
-        now = time.time()
-        if now - self._last_heartbeat_at < D.HEARTBEAT_INTERVAL_SECONDS:
-            return
-        self._last_heartbeat_at = now
-
-        event_type = random.choice(["mouse_leave", "capture_upload_degraded"])
-        self.client.post(
-            f"/api/v1/contests/{self.contest_id}/exam/events/",
-            json={
-                "event_type": event_type,
-                "metadata": {
-                    "upload_session_id": self.upload_session_id,
-                    "phase": "RESPONDING",
-                },
-            },
-            name="/api/v1/contests/[id]/exam/events/",
-        )
 
     @task(1)
     def refresh_contest_info(self):

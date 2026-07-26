@@ -4,6 +4,7 @@ import {
   getRealtimeSfuConfig,
   heartbeatRealtimeSfuPublisher,
   stopRealtimeSfuPublisher,
+  type RealtimeSfuConfigDto,
   type RealtimeSfuPublisherDto,
   type RealtimeSfuSourceModule,
 } from "@/infrastructure/api/repositories/exam.repository";
@@ -14,6 +15,20 @@ import {
 } from "@/features/contest/anticheat/sfuRealtimeClient";
 
 const HEARTBEAT_INTERVAL_MS = 25_000;
+const configRequestsByContest = new Map<string, Promise<RealtimeSfuConfigDto>>();
+
+const loadRealtimeSfuConfig = (contestId: string): Promise<RealtimeSfuConfigDto> => {
+  const existing = configRequestsByContest.get(contestId);
+  if (existing) return existing;
+  const request = getRealtimeSfuConfig(contestId);
+  configRequestsByContest.set(contestId, request);
+  void request.catch(() => {
+    if (configRequestsByContest.get(contestId) === request) {
+      configRequestsByContest.delete(contestId);
+    }
+  });
+  return request;
+};
 
 export type LiveSourceModule = RealtimeSfuSourceModule;
 
@@ -30,6 +45,7 @@ export class SfuVideoPublisher {
   private peer: RTCPeerConnection | null = null;
   private heartbeatTimer: number | null = null;
   private activeState: SfuVideoPublisherState | null = null;
+  private stopRequest: Promise<void> | null = null;
   private readonly sourceModule: LiveSourceModule;
 
   constructor(sourceModule: LiveSourceModule = "screen_share") {
@@ -42,8 +58,10 @@ export class SfuVideoPublisher {
 
   async start(contestId: string, stream: MediaStream): Promise<SfuVideoPublisherState | null> {
     if (this.activeState) return this.activeState;
+    if (this.stopRequest) await this.stopRequest;
+    this.stopRequest = null;
 
-    const config = await getRealtimeSfuConfig(contestId);
+    const config = await loadRealtimeSfuConfig(contestId);
     if (!config.enabled || !config.configured) return null;
 
     const track = stream.getVideoTracks()[0];
@@ -91,16 +109,21 @@ export class SfuVideoPublisher {
   }
 
   async stop(contestId: string): Promise<void> {
+    if (this.stopRequest) return this.stopRequest;
     const sessionId = this.activeState?.sessionId;
     this.stopHeartbeat();
     this.peer?.close();
     this.peer = null;
     this.activeState = null;
-    try {
-      await stopRealtimeSfuPublisher(contestId, sessionId, this.sourceModule);
-    } catch {
-      // Best effort cleanup only. Cache TTL also expires stale publisher state.
-    }
+    if (!sessionId) return;
+    const stopRequest: Promise<void> = stopRealtimeSfuPublisher(
+      contestId,
+      sessionId,
+      this.sourceModule,
+    ).then(() => undefined).catch(() => undefined);
+    this.stopRequest = stopRequest;
+    await stopRequest;
+    if (this.stopRequest === stopRequest) this.stopRequest = null;
   }
 
   private startHeartbeat(contestId: string) {

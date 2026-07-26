@@ -10,11 +10,6 @@ from ..models import (
     ContestParticipant,
     ExamStatus,
 )
-from ..serializers import ExamEventCreateSerializer
-from ..constants import (
-    IMMEDIATE_LOCK_EVENT_TYPES as IMMEDIATE_LOCK_EVENT_TYPES_CONST,
-    PENALIZED_EVENT_TYPES as PENALIZED_EVENT_TYPES_CONST,
-)
 from ..permissions import can_manage_contest
 from ..services.anti_cheat_session import (
     blacklist_other_tokens,
@@ -24,10 +19,8 @@ from ..services.anti_cheat_session import (
     get_refresh_jti,
     get_token_jti,
     set_active_session,
-    touch_heartbeat,
-    clear_heartbeat,
 )
-from ..models import ExamEvent as _ExamEvent  # noqa: used in lifecycle
+from ..services.integrity_presence import clear_checkpoint
 from ..services.exam_submission import finalize_submission
 from ..services.attendance import (
     assert_attendance_allows_start,
@@ -105,7 +98,6 @@ class ExamLifecycleMixin:
                 'resume_exam',
                 "Resumed exam"
             )
-            touch_heartbeat(contest.id, request.user.id)
             return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
 
         # Start exam for user if not already started
@@ -135,14 +127,13 @@ class ExamLifecycleMixin:
                     refresh_jti=get_refresh_jti(request),
                 )
                 if bl_count:
-                    _ExamEvent.objects.create(
-                        contest=contest,
-                        user=request.user,
-                        event_type="other_devices_logged_out",
-                        metadata={"blacklisted_count": bl_count},
+                    log_contest_activity(
+                        contest,
+                        request.user,
+                        "other_devices_logged_out",
+                        f"Logged out {bl_count} other device session(s)",
                     )
 
-        touch_heartbeat(contest.id, request.user.id)
         return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
 
     @action(detail=False, methods=['post'], url_path='end')
@@ -188,18 +179,9 @@ class ExamLifecycleMixin:
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Soft device check — log event but do NOT block submission
-        conflict_payload = build_device_conflict_payload(contest, participant, request)
-        if conflict_payload is not None:
-            _ExamEvent.objects.create(
-                contest=contest,
-                user=request.user,
-                event_type="end_exam_device_mismatch",
-                metadata={
-                    "device_id": get_device_id(request),
-                    "source": "end_exam_soft_check",
-                },
-            )
+        # Submission remains non-blocking. The shared device guard records any
+        # mismatch as an activity audit, not as an anti-cheat timeline event.
+        build_device_conflict_payload(contest, participant, request)
 
         submit_reason = str(request.data.get('submit_reason') or "Submitted exam").strip()
         finalize_submission(
@@ -211,7 +193,7 @@ class ExamLifecycleMixin:
             activity_action_type="end_exam",
             activity_details=submit_reason,
         )
-        clear_heartbeat(contest.id, request.user.id)
+        clear_checkpoint(contest.id, request.user.id)
 
         # Release JTI pin so other devices can work normally again
         if getattr(contest, "cheat_detection_enabled", False):
@@ -237,7 +219,4 @@ class ExamViewSet(
 ):
     """Composed ExamViewSet — all actions preserved, URL unchanged."""
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ExamEventCreateSerializer
-    PENALIZED_EVENT_TYPES = PENALIZED_EVENT_TYPES_CONST
-    IMMEDIATE_LOCK_EVENT_TYPES = IMMEDIATE_LOCK_EVENT_TYPES_CONST
     MONITORED_STATUSES = {ExamStatus.IN_PROGRESS, ExamStatus.PAUSED, ExamStatus.LOCKED}

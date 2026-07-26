@@ -169,8 +169,8 @@ CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
         "BlkioDeviceWriteIOps",
         "BlkioWeight",
         "BlkioWeightDevice",
-        "CPURealtimePeriod",
-        "CPURealtimeRuntime",
+        "CpuRealtimePeriod",
+        "CpuRealtimeRuntime",
         "CapAdd",
         "CapDrop",
         "Cgroup",
@@ -242,8 +242,8 @@ REQUIRED_CLOSED_WORLD_HOST_CONFIG_FIELDS = frozenset(
         "BlkioDeviceWriteIOps",
         "BlkioWeight",
         "BlkioWeightDevice",
-        "CPURealtimePeriod",
-        "CPURealtimeRuntime",
+        "CpuRealtimePeriod",
+        "CpuRealtimeRuntime",
         "CapAdd",
         "CapDrop",
         "Cgroup",
@@ -372,8 +372,8 @@ CLOSED_WORLD_HOST_CONFIG_MUTATIONS = {
     "BlkioDeviceWriteIOps": [{"Path": "/dev/sda", "Rate": 1}],
     "BlkioWeight": 1000,
     "BlkioWeightDevice": [{"Path": "/dev/sda", "Weight": 1000}],
-    "CPURealtimePeriod": 100_000,
-    "CPURealtimeRuntime": 95_000,
+    "CpuRealtimePeriod": 100_000,
+    "CpuRealtimeRuntime": 95_000,
     "CapAdd": ["SYS_ADMIN"],
     "CapDrop": [],
     "Cgroup": "attacker",
@@ -469,8 +469,8 @@ def _independent_host_config(*, role: str, run_id: UUID) -> dict[str, object]:
         "BlkioDeviceWriteIOps": [],
         "BlkioWeight": 0,
         "BlkioWeightDevice": [],
-        "CPURealtimePeriod": 0,
-        "CPURealtimeRuntime": 0,
+        "CpuRealtimePeriod": 0,
+        "CpuRealtimeRuntime": 0,
         "CapAdd": None,
         "CapDrop": ["ALL"],
         "Cgroup": "",
@@ -549,7 +549,10 @@ def _independent_host_config(*, role: str, run_id: UUID) -> dict[str, object]:
     }
     if role == "secret-initializer":
         role_specific = {
-            "Binds": [secret_volume_name(run_id) + ":/run-secrets:rw"],
+            "Binds": [
+                data_volume_name(run_id) + ":/run-data:rw",
+                secret_volume_name(run_id) + ":/run-secrets:rw",
+            ],
             "Memory": 64 * 1024 * 1024,
             "MemorySwap": 64 * 1024 * 1024,
             "NanoCpus": 100_000_000,
@@ -678,7 +681,9 @@ def _container(
         "HostConfig": host_config,
         "Mounts": mounts,
         "NetworkSettings": {
-            "Networks": {policy.network: endpoint},
+            "Networks": (
+                {} if role == "secret-initializer" else {policy.network: endpoint}
+            ),
             "Ports": {"8020/tcp": None},
         },
         "State": {"Status": status},
@@ -700,7 +705,9 @@ def _delete_nested(mapping: dict, path: tuple[str | int, ...]) -> None:
     del target[path[-1]]
 
 
-def _make_optional_image_field_required(container: Mock, path: tuple[str | int, ...]) -> None:
+def _make_optional_image_field_required(
+    container: Mock, path: tuple[str | int, ...]
+) -> None:
     required_values = {
         ("Config", "Entrypoint"): ["/worker-entrypoint"],
         ("Config", "Healthcheck"): {"Test": ["CMD-SHELL", "true"]},
@@ -751,9 +758,7 @@ def docker_client():
 
     volumes = {
         data_volume_name(RUN_ID): _volume(data_volume_name(RUN_ID), kind="data"),
-        secret_volume_name(RUN_ID): _volume(
-            secret_volume_name(RUN_ID), kind="secret"
-        ),
+        secret_volume_name(RUN_ID): _volume(secret_volume_name(RUN_ID), kind="secret"),
     }
 
     def get_volume(name):
@@ -786,6 +791,7 @@ def docker_client():
         name=secret_initializer_name(RUN_ID),
         role="secret-initializer",
     )
+    client.images.get.return_value = client._test_worker.image
     client.api.create_container.side_effect = [
         {"Id": "created-initializer-id"},
         {"Id": "created-worker-id"},
@@ -808,10 +814,11 @@ def runtime(settings, docker_client):
 
 
 def test_closed_world_field_contract_is_exhaustive():
-    assert frozenset(CLOSED_WORLD_CONFIG_MUTATIONS) == REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
     assert (
-        frozenset(CLOSED_WORLD_HOST_CONFIG_MUTATIONS)
-        == CLOSED_WORLD_HOST_CONFIG_FIELDS
+        frozenset(CLOSED_WORLD_CONFIG_MUTATIONS) == REQUIRED_CLOSED_WORLD_CONFIG_FIELDS
+    )
+    assert (
+        frozenset(CLOSED_WORLD_HOST_CONFIG_MUTATIONS) == CLOSED_WORLD_HOST_CONFIG_FIELDS
     )
     for role in ("worker", "secret-initializer"):
         policy = build_container_policy(
@@ -843,8 +850,8 @@ def test_policy_builder_matches_independent_literal_security_baseline():
         "BlkioDeviceWriteIOps": [],
         "BlkioWeight": 0,
         "BlkioWeightDevice": [],
-        "CPURealtimePeriod": 0,
-        "CPURealtimeRuntime": 0,
+        "CpuRealtimePeriod": 0,
+        "CpuRealtimeRuntime": 0,
         "CapAdd": None,
         "CapDrop": ["ALL"],
         "Cgroup": "",
@@ -952,7 +959,10 @@ def test_policy_builder_matches_independent_literal_security_baseline():
             "network_disabled": True,
             "environment": {},
             "host": {
-                "Binds": [secret_volume_name(RUN_ID) + ":/run-secrets:rw"],
+                "Binds": [
+                    data_volume_name(RUN_ID) + ":/run-data:rw",
+                    secret_volume_name(RUN_ID) + ":/run-secrets:rw",
+                ],
                 "Memory": 64 * 1024 * 1024,
                 "MemorySwap": 64 * 1024 * 1024,
                 "NanoCpus": 100_000_000,
@@ -1240,22 +1250,13 @@ def test_every_worker_lifecycle_rejects_endpoint_host_redirection(
     worker.remove.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    ("field", "unsafe_value"),
-    ENDPOINT_POLICY_MUTATIONS.items(),
-)
-def test_initializer_cleanup_rejects_endpoint_host_redirection(
-    runtime,
-    docker_client,
-    field,
-    unsafe_value,
-):
+def test_initializer_cleanup_rejects_any_network_attachment(runtime, docker_client):
     initializer = _container(
         status="created",
         name=secret_initializer_name(RUN_ID),
         role="secret-initializer",
     )
-    initializer.attrs["NetworkSettings"]["Networks"]["none"][field] = unsafe_value
+    initializer.attrs["NetworkSettings"]["Networks"] = {"bridge": {}}
     docker_client.containers.get.side_effect = _find_only_initializer(
         initializer, docker_client
     )
@@ -1267,31 +1268,20 @@ def test_initializer_cleanup_rejects_endpoint_host_redirection(
     docker_client.api.create_container.assert_not_called()
 
 
-@pytest.mark.parametrize("target", ["worker", "initializer"])
 @pytest.mark.parametrize("field", ENDPOINT_POLICY_MUTATIONS)
 def test_endpoint_policy_requires_every_caller_controlled_field(
     runtime,
     docker_client,
-    target,
     field,
 ):
-    inspected = _container(
-        status="created" if target == "initializer" else "running",
-        name=(secret_initializer_name(RUN_ID) if target == "initializer" else None),
-        role="secret-initializer" if target == "initializer" else "worker",
-    )
+    inspected = _container(status="running")
     endpoint = inspected.attrs["NetworkSettings"]["Networks"]
     del endpoint[next(iter(endpoint))][field]
-    if target == "initializer":
-        docker_client.containers.get.side_effect = _find_only_initializer(
-            inspected, docker_client
-        )
-    else:
-        docker_client.containers.get.side_effect = None
-        docker_client.containers.get.return_value = inspected
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = inspected
 
     with pytest.raises(ContainerConflict):
-        _exercise_policy_target(runtime, target=target, operation="status")
+        _exercise_policy_target(runtime, target="worker", operation="status")
 
     inspected.remove.assert_not_called()
 
@@ -1557,6 +1547,52 @@ def test_start_creates_isolated_non_privileged_worker(runtime, docker_client):
     assert result.image_digest == IMAGE_DIGEST
 
 
+def test_start_accepts_labels_inherited_from_the_allowlisted_worker_image(
+    runtime, docker_client
+):
+    image_labels = {
+        "com.docker.compose.project": "online_judge",
+        "com.docker.compose.service": "integrity-worker-image",
+        "com.docker.compose.version": "5.1.0",
+    }
+    for container in (docker_client._test_initializer, docker_client._test_worker):
+        container.image.attrs["Config"]["Labels"] = image_labels.copy()
+        container.attrs["Config"]["Labels"] = {
+            **image_labels,
+            **container.attrs["Config"]["Labels"],
+        }
+
+    result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    assert result.state == "running"
+    assert docker_client.api.create_container.call_args_list[0].kwargs["labels"] == {
+        **image_labels,
+        "qjudge.integrity.run_id": str(RUN_ID),
+        "qjudge.integrity.role": "secret-initializer",
+        "qjudge.integrity.run_token_sha256": RUN_TOKEN_SHA256,
+    }
+
+
+def test_start_accepts_docker_desktop_safe_initializer_normalization(
+    runtime, docker_client
+):
+    initializer = docker_client._test_initializer
+    host_config = initializer.attrs["HostConfig"]
+    host_config["MemorySwappiness"] = None
+
+    result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    assert result.state == "running"
+
+
+def test_start_accepts_docker_desktop_unset_oom_kill_disable(runtime, docker_client):
+    docker_client._test_worker.attrs["HostConfig"]["OomKillDisable"] = None
+
+    result = runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    assert result.state == "running"
+
+
 def test_worker_low_level_create_request_serializes_endpoint_settings_object(
     runtime,
     docker_client,
@@ -1628,7 +1664,8 @@ def test_failed_fresh_initializer_attestation_removes_it_and_retry_can_continue(
     initializer.remove.assert_called_once_with()
     initializer.put_archive.assert_not_called()
     assert [
-        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
+        call.kwargs["name"]
+        for call in docker_client.api.create_container.call_args_list
     ] == [secret_initializer_name(RUN_ID)]
     docker_client._test_worker.start.assert_not_called()
 
@@ -1637,9 +1674,10 @@ def test_failed_fresh_initializer_attestation_removes_it_and_retry_can_continue(
 
     assert result.state == "running"
     assert initializer.remove.call_count == 2
-    initializer.put_archive.assert_called_once()
+    assert initializer.put_archive.call_count == 2
     assert [
-        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
+        call.kwargs["name"]
+        for call in docker_client.api.create_container.call_args_list
     ] == [
         secret_initializer_name(RUN_ID),
         secret_initializer_name(RUN_ID),
@@ -1715,9 +1753,7 @@ def test_start_attests_new_worker_before_starting_it(runtime, docker_client):
     worker.start.assert_not_called()
 
 
-def test_start_creates_exactly_labelled_data_and_secret_volumes(
-    runtime, docker_client
-):
+def test_start_creates_exactly_labelled_data_and_secret_volumes(runtime, docker_client):
     docker_client._test_volumes.clear()
 
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
@@ -1744,7 +1780,7 @@ def test_start_populates_secret_archive_before_start(runtime, docker_client):
 
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
-    destination, archive = initializer.put_archive.call_args.args
+    destination, archive = initializer.put_archive.call_args_list[0].args
     assert destination == "/run-secrets"
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
         member = tar.getmember("token")
@@ -1754,14 +1790,29 @@ def test_start_populates_secret_archive_before_start(runtime, docker_client):
         extracted = tar.extractfile(member)
         assert extracted is not None
         assert extracted.read() == RUN_TOKEN.encode("utf-8")
-    initializer.put_archive.assert_called_once()
+    assert initializer.put_archive.call_count == 2
     initializer.remove.assert_called_once_with()
     initializer.start.assert_not_called()
     worker.put_archive.assert_not_called()
     worker.start.assert_called_once_with()
 
 
-def test_secret_initializer_is_fixed_networkless_and_mounts_only_secret_rw(
+def test_start_initializes_a_private_run_directory_before_start(runtime, docker_client):
+    initializer = docker_client._test_initializer
+
+    runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
+
+    destination, archive = initializer.put_archive.call_args_list[1].args
+    assert destination == "/run-data"
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        member = tar.getmember(str(RUN_ID))
+        assert member.isdir()
+        assert member.uid == 10001
+        assert member.gid == 10001
+        assert member.mode == 0o700
+
+
+def test_secret_initializer_is_fixed_networkless_and_mounts_run_data_and_secret_rw(
     runtime, docker_client
 ):
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
@@ -1784,13 +1835,15 @@ def test_secret_initializer_is_removed_before_final_worker_starts(
     operations = []
     initializer = docker_client._test_initializer
     worker = docker_client._test_worker
-    initializer.put_archive.side_effect = lambda *_args: operations.append("populate") or True
+    initializer.put_archive.side_effect = (
+        lambda *_args: operations.append("populate") or True
+    )
     initializer.remove.side_effect = lambda: operations.append("remove")
     worker.start.side_effect = lambda: operations.append("start-worker")
 
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
-    assert operations == ["populate", "remove", "start-worker"]
+    assert operations == ["populate", "populate", "remove", "start-worker"]
 
 
 def test_secret_initializer_is_removed_when_archive_population_fails(
@@ -1804,7 +1857,8 @@ def test_secret_initializer_is_removed_when_archive_population_fails(
 
     initializer.remove.assert_called_once_with()
     assert [
-        call.kwargs["name"] for call in docker_client.api.create_container.call_args_list
+        call.kwargs["name"]
+        for call in docker_client.api.create_container.call_args_list
     ] == [secret_initializer_name(RUN_ID)]
     docker_client._test_worker.start.assert_not_called()
 
@@ -1825,7 +1879,7 @@ def test_start_removes_a_matching_stale_initializer_before_retry(
     runtime.start(RUN_ID, RUN_TOKEN, WORKER_IMAGE)
 
     stale.remove.assert_called_once_with()
-    docker_client._test_initializer.put_archive.assert_called_once()
+    assert docker_client._test_initializer.put_archive.call_count == 2
     docker_client._test_worker.start.assert_called_once_with()
 
 
@@ -2256,6 +2310,38 @@ def test_start_resumes_matching_stopped_container(runtime, docker_client):
     assert result.state == "running"
 
 
+def test_restart_restarts_matching_running_container(runtime, docker_client):
+    existing = _container(status="running")
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = existing
+
+    result = runtime.restart(RUN_ID)
+
+    existing.restart.assert_called_once_with(timeout=30)
+    existing.start.assert_not_called()
+    assert result.state == "running"
+    assert result.run_token_sha256 == RUN_TOKEN_SHA256
+
+
+def test_restart_starts_matching_exited_container(runtime, docker_client):
+    existing = _container(status="exited")
+    docker_client.containers.get.side_effect = None
+    docker_client.containers.get.return_value = existing
+
+    result = runtime.restart(RUN_ID)
+
+    existing.start.assert_called_once_with()
+    existing.restart.assert_not_called()
+    assert result.state == "running"
+
+
+def test_restart_rejects_absent_container(runtime, docker_client):
+    docker_client.containers.get.side_effect = DockerNotFound
+
+    with pytest.raises(ContainerConflict):
+        runtime.restart(RUN_ID)
+
+
 def test_start_rejects_a_same_name_volume_with_wrong_labels(runtime, docker_client):
     data = docker_client._test_volumes[data_volume_name(RUN_ID)]
     data.attrs["Labels"]["qjudge.integrity.run_id"] = str(uuid4())
@@ -2371,7 +2457,9 @@ def test_stop_uses_fixed_timeout_and_is_idempotent(runtime, docker_client):
     running.stop.assert_not_called()
 
 
-def test_lifecycle_rejects_a_same_name_non_allowlisted_container(runtime, docker_client):
+def test_lifecycle_rejects_a_same_name_non_allowlisted_container(
+    runtime, docker_client
+):
     attacker = _container(image="attacker/image:latest", status="running")
     docker_client.containers.get.side_effect = None
     docker_client.containers.get.return_value = attacker
@@ -2761,7 +2849,9 @@ def test_destroy_keeps_data_volume_and_removes_secret(runtime, docker_client):
     result = runtime.destroy(RUN_ID)
 
     stopped.remove.assert_called_once_with()
-    docker_client._test_volumes[secret_volume_name(RUN_ID)].remove.assert_called_once_with()
+    docker_client._test_volumes[
+        secret_volume_name(RUN_ID)
+    ].remove.assert_called_once_with()
     docker_client._test_volumes[data_volume_name(RUN_ID)].remove.assert_not_called()
     assert result.data_volume_retained is True
 
@@ -2769,7 +2859,9 @@ def test_destroy_keeps_data_volume_and_removes_secret(runtime, docker_client):
 def test_destroy_is_idempotent_after_container_removal(runtime, docker_client):
     result = runtime.destroy(RUN_ID)
 
-    docker_client._test_volumes[secret_volume_name(RUN_ID)].remove.assert_called_once_with()
+    docker_client._test_volumes[
+        secret_volume_name(RUN_ID)
+    ].remove.assert_called_once_with()
     assert result.data_volume_retained is True
 
 
@@ -2788,7 +2880,9 @@ def test_purge_data_requires_absent_container_and_removes_only_run_volume(
 ):
     result = runtime.purge_data(RUN_ID)
 
-    docker_client._test_volumes[data_volume_name(RUN_ID)].remove.assert_called_once_with()
+    docker_client._test_volumes[
+        data_volume_name(RUN_ID)
+    ].remove.assert_called_once_with()
     docker_client._test_volumes[secret_volume_name(RUN_ID)].remove.assert_not_called()
     assert result.data_purged is True
 

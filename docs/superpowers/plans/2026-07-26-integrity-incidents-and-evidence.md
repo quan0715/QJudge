@@ -76,7 +76,7 @@ git commit -m "fix: tune integrity event grace periods"
 
 **Interfaces:**
 - Consumes: `ReceivedEvent.record.client_occurred_at_ms` and `ParsedDefinition.grace_ms`.
-- Produces: restore ingestion that escalates only when valid client duration reaches grace; timer escalation remains server-clock based while no restore exists.
+- Produces: restore ingestion that escalates only when valid client duration reaches grace; timer escalation remains server-clock based while no restore exists and adds frozen `batch_interval_ms` only as transport delivery tolerance.
 
 - [ ] **Step 1: Add cross-checkpoint duration tests**
 
@@ -286,4 +286,3 @@ Run the commands from Tasks 4–6 and record any environmental blocker separatel
 git add integrity-service/integrity_service/core integrity-service/tests
 git commit -m "fix: close integrity monitoring on submission"
 ```
-

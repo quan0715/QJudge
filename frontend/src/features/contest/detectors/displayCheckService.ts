@@ -1,8 +1,13 @@
-import {
-  isScreenExtended,
-  type ScreenDetailsLike,
-  type WindowWithScreenDetails,
-} from "@/features/contest/domain/examMonitoringPolicy";
+export interface ScreenDetailsLike extends EventTarget {
+  screens?: unknown[];
+}
+
+type WindowWithScreenDetails = Window & {
+  getScreenDetails?: () => Promise<ScreenDetailsLike>;
+};
+
+const isScreenExtended = (): boolean =>
+  (window.screen as Screen & { isExtended?: boolean }).isExtended === true;
 
 export interface DisplayDiagnostics {
   supportsScreenDetails: boolean;

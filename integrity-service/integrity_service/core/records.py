@@ -16,7 +16,7 @@ class AdmittedEventRecord:
 
     event_id: UUID
     seq: int
-    kind: Literal["event", "state_snapshot"]
+    kind: Literal["event", "health_snapshot"]
     event_type: str
     event_schema_version: int
     client_occurred_at_ms: int

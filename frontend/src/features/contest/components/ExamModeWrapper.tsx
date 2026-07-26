@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ExamStatusType } from "@/core/entities/contest.entity";
-import { endExam as serviceEndExam } from "@/infrastructure/api/repositories";
-import { getExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
@@ -37,7 +35,6 @@ import {
 import { isStreamHealthy } from "@/features/contest/anticheat/mediaStreamHealth";
 import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import { useTranslation } from "react-i18next";
-import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import {
   detectAnticheatCapability,
@@ -49,13 +46,8 @@ import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShar
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
-import {
-  IntegrityEvidenceProvider,
-  IntegrityRuntimeProvider,
-} from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
-import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
+import { IntegrityRuntimeProvider } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { useIntegrityRuntime } from "@/features/contest/anticheat/integrity/useIntegrityRuntime";
-import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
 
 interface ExamModeWrapperProps {
@@ -72,6 +64,18 @@ interface ExamModeWrapperProps {
 
 const isMonitoredStatus = (status?: ExamStatusType) =>
   status === "in_progress" || status === "paused" || status === "locked";
+
+export const isIntegrityAttemptActive = (status?: ExamStatusType) =>
+  isMonitoredStatus(status);
+
+/**
+ * The Backend is the authority for whether it will accept integrity batches.
+ * Keep the frozen policy/run available while a browser is carrying a stale
+ * submitted attempt so a permitted rejoin can resume the same run.
+ */
+export const requiresAnticheatPolicyConfig = (
+  cheatDetectionEnabled: boolean,
+): boolean => cheatDetectionEnabled;
 
 const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   contestId,
@@ -90,22 +94,22 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastBlockedActionToastAt = useRef<number>(0);
   const lastAllowedExamPathRef = useRef<string | null>(null);
-  const fullscreenAdapterRef = useRef(createFullscreenAdapter());
+  const [fullscreenAdapter] = useState(createFullscreenAdapter);
   const { showToast } = useToast();
-  const streamAdapterRef = useRef(createStreamAdapter());
+  const [streamAdapter] = useState(createStreamAdapter);
   const { t } = useTranslation("contest");
+  const policyConfigRequired = requiresAnticheatPolicyConfig(cheatDetectionEnabled);
   const policyRequired =
-    cheatDetectionEnabled && (isExamMonitored || isMonitoredStatus(examStatus));
+    policyConfigRequired && (isExamMonitored || isMonitoredStatus(examStatus));
   const {
     config: anticheatConfig,
     loading: anticheatConfigLoading,
     refresh: refreshAnticheatConfig,
-  } = useContestAnticheatConfig(policyRequired ? contestId : undefined);
-  const anticheatEffective = anticheatConfig?.effective;
+  } = useContestAnticheatConfig(policyConfigRequired ? contestId : undefined);
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
     capability,
-    anticheatConfig?.devicePolicy ?? anticheatEffective?.anticheatDevicePolicy,
+    anticheatConfig?.integrityRun?.devicePolicy ?? anticheatConfig?.devicePolicy,
   );
   const primarySourceModule = monitoringPlan.primarySourceModule;
   const effectiveRequiresFullscreen =
@@ -122,7 +126,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     !monitoringPlan.allowed;
   const policyUnavailable = policyConfigMissing || policyDeviceUnavailable;
   const effectiveMonitoringEnabled =
-    policyRequired && !!anticheatEffective && !policyUnavailable;
+    policyRequired && !!anticheatConfig && !policyUnavailable;
   const pwaGuardFailed =
     effectiveMonitoringEnabled &&
     monitoringPlan.precheck.requirePwaMode &&
@@ -138,7 +142,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     isExamMonitored: effectiveMonitoringEnabled,
     lockReason,
     isBypassed: false,
-    requestFullscreen: fullscreenAdapterRef.current.request,
+    requestFullscreen: fullscreenAdapter.request,
   });
 
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
@@ -166,8 +170,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     webcamCapture: "disabled",
   });
   const integrityRuntimeEnabled =
-    effectiveMonitoringEnabled &&
-    anticheatConfig?.version === 2 &&
+    policyConfigRequired &&
+    isIntegrityAttemptActive(examStatus) &&
+    anticheatConfig?.version === 3 &&
     anticheatConfig.integrityRun?.computeState === "running" &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&
@@ -256,7 +261,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     snapshotProvider: () => ({
       pageVisible: typeof document === "undefined" || document.visibilityState !== "hidden",
       online: typeof navigator === "undefined" || navigator.onLine,
-      fullscreen: fullscreenAdapterRef.current.isActive(),
+      fullscreen: fullscreenAdapter.isActive(),
       screenCapture: captureSnapshotRef.current.screenCapture,
       webcamCapture: captureSnapshotRef.current.webcamCapture,
       activeSourceDescriptors: [],
@@ -276,8 +281,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     }),
     [capture],
   );
-  const submissionProgress = useExamSubmissionProgress();
-
   // --- Domain monitoring hooks ---
   const screenShare = useScreenShareMonitoring({
     enabled: screenStreamMonitorEnabled,
@@ -375,10 +378,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const recordForbiddenRouteAttempt = useCallback(
     (targetPath: string) => {
       void integrity.emit({
-        eventType: "forbidden_focus_event",
+        eventType: "forbidden_action",
         clientOccurredAtMs: Date.now(),
         payload: {
-          reason: "exam_route_changed",
+          action: "exam_route_changed",
           target_path: targetPath,
           source: "exam_mode:route_guard",
         },
@@ -482,33 +485,28 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     recordForbiddenRouteAttempt,
   ]);
 
-  const [showFullscreenExitConfirm, setShowFullscreenExitConfirm] =
-    useState(false);
-  const [isSubmittingFromFullscreenExit, setIsSubmittingFromFullscreenExit] =
-    useState(false);
-  const initialFullscreenCheckDone = useRef(false);
-
   const [isRequestingScreenShare, setIsRequestingScreenShare] = useState(false);
   const [isRequestingWebcam, setIsRequestingWebcam] = useState(false);
 
   const handleScreenShareReacquire = useCallback(async () => {
     setIsRequestingScreenShare(true);
     try {
-      const stream = await streamAdapterRef.current.acquireMonitorStream();
+      const stream = await streamAdapter.acquireMonitorStream();
       if (stream) {
         setRuntimeScreenShareHandoff(stream);
+        if (!await capture.resumeFromRuntimeHandoff()) return;
         screenShare.onStreamRestored();
         if (
           effectiveRequiresFullscreen &&
-          !fullscreenAdapterRef.current.isActive()
+          !fullscreenAdapter.isActive()
         ) {
-          void fullscreenAdapterRef.current.request();
+          void fullscreenAdapter.request();
         }
       }
     } finally {
       setIsRequestingScreenShare(false);
     }
-  }, [effectiveRequiresFullscreen, screenShare]);
+  }, [capture, effectiveRequiresFullscreen, screenShare]);
 
   const handleWebcamReacquire = useCallback(async () => {
     if (!supportsUserMediaApi()) return;
@@ -522,7 +520,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       setRuntimeWebcamHandoff(stream);
       webcam.onStreamRestored("user_reauthorized");
     } catch {
-      // user denied or error — do nothing, countdown continues
+      // The recovery modal stays open until a healthy stream is restored.
     } finally {
       setIsRequestingWebcam(false);
     }
@@ -553,37 +551,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, [contestId]);
 
   useEffect(() => {
-    if (initialFullscreenCheckDone.current || !cheatDetectionEnabled) return;
-    if (!isAnsweringPath()) return;
-    if (runtimeReauthActive) return;
-
-    if (
-      effectiveRequiresFullscreen &&
-      !fullscreenAdapterRef.current.isActive()
-    ) {
-      const timer = setTimeout(() => {
-        if (
-          !fullscreenAdapterRef.current.isActive() &&
-          !isSubmittingFromFullscreenExit
-        ) {
-          setShowFullscreenExitConfirm(true);
-        }
-        initialFullscreenCheckDone.current = true;
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      initialFullscreenCheckDone.current = true;
-    }
-  }, [
-    examStatus,
-    cheatDetectionEnabled,
-    isAnsweringPath,
-    isSubmittingFromFullscreenExit,
-    effectiveRequiresFullscreen,
-    runtimeReauthActive,
-  ]);
-
-  useEffect(() => {
     if (runtimeReauthActive) return;
     if (examStatus === "submitted") {
       const stopResult = stopCaptureForContest(contestId, "submitted");
@@ -591,8 +558,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         forceStopCapture("submitted");
       }
       forceStopWebcamCapture();
-      if (fullscreenAdapterRef.current.isActive()) {
-        void fullscreenAdapterRef.current.exit();
+      if (fullscreenAdapter.isActive()) {
+        void fullscreenAdapter.exit();
       }
     }
 
@@ -601,15 +568,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       examStatus === "locked" &&
       effectiveRequiresFullscreen &&
       isAnsweringPath() &&
-      !fullscreenAdapterRef.current.isActive()
+      !fullscreenAdapter.isActive()
     ) {
       if (lockedFullscreenTimerRef.current) {
         clearTimeout(lockedFullscreenTimerRef.current);
       }
       lockedFullscreenTimerRef.current = setTimeout(() => {
         lockedFullscreenTimerRef.current = null;
-        if (!fullscreenAdapterRef.current.isActive()) {
-          void fullscreenAdapterRef.current.request();
+        if (!fullscreenAdapter.isActive()) {
+          void fullscreenAdapter.request();
         }
       }, 100);
     }
@@ -625,51 +592,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   ]);
 
   useEffect(() => {
-    const shouldMonitorFullscreen =
-      cheatDetectionEnabled &&
-      effectiveRequiresFullscreen &&
-      examStatus === "locked" &&
-      isAnsweringPath();
-
-    if (!shouldMonitorFullscreen) return;
-
-    const handleFullscreenExitForLocked = () => {
-      if (runtimeReauthActive) return;
-      if (
-        !fullscreenAdapterRef.current.isActive() &&
-        !isSubmittingFromFullscreenExit
-      ) {
-        setShowFullscreenExitConfirm(true);
-      }
-    };
-
-    document.addEventListener(
-      "fullscreenchange",
-      handleFullscreenExitForLocked,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenExitForLocked,
-      );
-    };
-  }, [
-    cheatDetectionEnabled,
-    effectiveRequiresFullscreen,
-    examStatus,
-    isAnsweringPath,
-    isSubmittingFromFullscreenExit,
-    runtimeReauthActive,
-  ]);
-
-  useEffect(() => {
-    if (runtimeReauthActive && showFullscreenExitConfirm) {
-      setShowFullscreenExitConfirm(false);
-    }
-  }, [runtimeReauthActive, showFullscreenExitConfirm]);
-
-  useEffect(() => {
     return () => {
       if (lockedFullscreenTimerRef.current) {
         clearTimeout(lockedFullscreenTimerRef.current);
@@ -678,71 +600,9 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     };
   }, []);
 
-  const handleFullscreenExitConfirm = async () => {
-    setIsSubmittingFromFullscreenExit(true);
-    try {
-      const success = await submissionProgress.run({
-        handlers: {
-          recording: async () => {
-            await emitIntegritySignalBestEffort(integrity, {
-              eventType: "exam_submit_initiated",
-              clientOccurredAtMs: Date.now(),
-              payload: {
-                source: "exam_mode:fullscreen_exit_confirm",
-                module: primarySourceModule,
-                module_role: "primary",
-                ...(getExamCaptureSessionId(contestId)
-                  ? { upload_session_id: getExamCaptureSessionId(contestId)! }
-                  : {}),
-              },
-            });
-          },
-          finalizing: async () => {
-            await serviceEndExam(contestId, {
-              upload_session_id:
-                getExamCaptureSessionId(contestId) || undefined,
-              source_module: primarySourceModule,
-            });
-            const stopResult = stopCaptureForContest(
-              contestId,
-              "fullscreen_exit_submit",
-            );
-            if (!stopResult) {
-              forceStopCapture("fullscreen_exit_submit");
-            }
-            forceStopWebcamCapture();
-            if (onRefresh) await onRefresh();
-          },
-        },
-      });
-      if (success) {
-        setShowFullscreenExitConfirm(false);
-      } else {
-        setShowFullscreenExitConfirm(false);
-        if (effectiveRequiresFullscreen) {
-          await fullscreenAdapterRef.current.request();
-        }
-      }
-    } catch {
-      setShowFullscreenExitConfirm(false);
-      if (effectiveRequiresFullscreen) {
-        await fullscreenAdapterRef.current.request();
-      }
-    } finally {
-      setIsSubmittingFromFullscreenExit(false);
-    }
-  };
-
-  const handleFullscreenExitCancel = async () => {
-    setShowFullscreenExitConfirm(false);
-    if (effectiveRequiresFullscreen) {
-      await fullscreenAdapterRef.current.request();
-    }
-  };
-
   const handleRecoverFullscreen = useCallback(async () => {
     if (effectiveRequiresFullscreen) {
-      await fullscreenAdapterRef.current.request();
+      await fullscreenAdapter.request();
     }
   }, [effectiveRequiresFullscreen]);
 
@@ -786,7 +646,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       return {
         source: "policy_unavailable",
         tone: "critical",
-        countdownSeconds: null,
       };
     }
 
@@ -794,7 +653,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       return {
         source: "pwa_required",
         tone: "critical",
-        countdownSeconds: null,
       };
     }
 
@@ -819,7 +677,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       tone: activeSensorSource === "screen_share" || activeSensorSource === "webcam"
         ? "critical"
         : "warning",
-      countdownSeconds: null,
     };
   }, [
     capability.isTablet,
@@ -843,8 +700,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   return (
     <IntegrityRuntimeProvider value={integrity}>
-      <IntegrityEvidenceProvider value={{ flushPendingEvidence: examCaptureContextValue.flushPendingUploads }}>
-        <ExamMonitoringStatusProvider value={monitoringReminder}>
+      <ExamMonitoringStatusProvider value={monitoringReminder}>
           <ExamCaptureProvider value={examCaptureContextValue}>
         <div
           ref={containerRef}
@@ -852,46 +708,27 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         >
           {children}
           <ExamOverlays
-            showGracePeriod={false}
-            gracePeriodCountdown={0}
             showLockScreen={shouldShowLockScreen}
             lockReason={lockReasonText}
             onBackToContest={handleBackToContest}
           />
           <ExamModals
-            recoveryCountdown={fullscreen.interrupted || mouseLeave.interrupted || multiDisplay.interrupted ? 0 : null}
-            recoverySource={fullscreen.interrupted ? "fullscreen" : mouseLeave.interrupted ? "mouse_leave" : "multiple_displays"}
+            recoverySource={fullscreen.interrupted ? "fullscreen" : mouseLeave.interrupted ? "mouse_leave" : multiDisplay.interrupted ? "multiple_displays" : null}
             onRecoverFullscreen={handleRecoverFullscreen}
             showUnlockNotification={showUnlockNotification}
             onUnlockContinue={handleUnlockContinue}
-            showFullscreenExitConfirm={showFullscreenExitConfirm}
-            isSubmittingFromFullscreenExit={isSubmittingFromFullscreenExit}
-            onFullscreenExitConfirm={handleFullscreenExitConfirm}
-            onFullscreenExitCancel={handleFullscreenExitCancel}
-            screenShareRecoveryCountdown={
-              screenShare.reauth.inProgress ? 0 : null
-            }
+            showScreenShareRecovery={screenShare.reauth.inProgress}
             isRequestingScreenShare={isRequestingScreenShare}
-            isSubmittingFromScreenShareLoss={false}
             onScreenShareReacquire={handleScreenShareReacquire}
-            webcamRecoveryCountdown={webcam.interrupted ? 0 : null}
-            isSubmittingFromWebcamLoss={false}
+            showWebcamRecovery={webcam.interrupted}
             isRequestingWebcam={isRequestingWebcam}
             onWebcamReacquire={handleWebcamReacquire}
-            webcamModuleRole={webcamModuleRole}
-            viewportRecoveryCountdown={viewport.interrupted ? 0 : null}
-            isSubmittingFromViewportLoss={false}
+            showViewportRecovery={viewport.interrupted}
             isTablet={capability.isTablet}
-            showAutoSubmitNotice={false}
-          />
-          <ExamSubmissionProgressModal
-            state={submissionProgress.state}
-            onRequestClose={submissionProgress.close}
           />
         </div>
           </ExamCaptureProvider>
-        </ExamMonitoringStatusProvider>
-      </IntegrityEvidenceProvider>
+      </ExamMonitoringStatusProvider>
     </IntegrityRuntimeProvider>
   );
 };

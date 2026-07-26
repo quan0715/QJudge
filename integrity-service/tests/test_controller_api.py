@@ -53,6 +53,7 @@ def runtime():
         state="running",
         run_token_sha256=hashlib.sha256(RUN_TOKEN.encode()).hexdigest(),
     )
+    runtime.restart.return_value = runtime.start.return_value
     runtime.stop.return_value = StopResult(run_id=RUN_ID, state="stopped")
     runtime.destroy.return_value = DestroyResult(
         run_id=RUN_ID,
@@ -112,6 +113,7 @@ def test_every_lifecycle_endpoint_requires_bearer_authentication(
             f"/v1/runs/{RUN_ID}/start",
             {"run_token": RUN_TOKEN, "worker_image": WORKER_IMAGE},
         ),
+        ("post", f"/v1/runs/{RUN_ID}/restart", {}),
         ("post", f"/v1/runs/{RUN_ID}/stop", {}),
         ("post", f"/v1/runs/{RUN_ID}/destroy", {}),
         ("post", f"/v1/runs/{RUN_ID}/purge-data", {}),
@@ -126,6 +128,7 @@ def test_every_lifecycle_endpoint_requires_bearer_authentication(
         assert response.status_code == 401
 
     runtime.start.assert_not_called()
+    runtime.restart.assert_not_called()
     runtime.stop.assert_not_called()
     runtime.destroy.assert_not_called()
     runtime.purge_data.assert_not_called()
@@ -135,11 +138,15 @@ def test_every_lifecycle_endpoint_requires_bearer_authentication(
 def test_authentication_reads_exact_token_file_bytes_on_every_request(
     client, settings, runtime
 ):
-    assert client.get(f"/v1/runs/{RUN_ID}/status", headers=_headers()).status_code == 200
+    assert (
+        client.get(f"/v1/runs/{RUN_ID}/status", headers=_headers()).status_code == 200
+    )
 
     settings.internal_token_file.write_bytes(b"rotated-secret")
 
-    assert client.get(f"/v1/runs/{RUN_ID}/status", headers=_headers()).status_code == 401
+    assert (
+        client.get(f"/v1/runs/{RUN_ID}/status", headers=_headers()).status_code == 401
+    )
     assert (
         client.get(
             f"/v1/runs/{RUN_ID}/status",
@@ -150,9 +157,7 @@ def test_authentication_reads_exact_token_file_bytes_on_every_request(
     assert runtime.status.call_count == 2
 
 
-def test_authentication_uses_constant_time_byte_comparison(
-    client, monkeypatch
-):
+def test_authentication_uses_constant_time_byte_comparison(client, monkeypatch):
     import integrity_service.controller.app as app_module
 
     compared = []
@@ -468,7 +473,7 @@ def test_start_delegates_only_validated_values_and_returns_identity(client, runt
     }
 
 
-@pytest.mark.parametrize("operation", ["stop", "destroy", "purge-data"])
+@pytest.mark.parametrize("operation", ["restart", "stop", "destroy", "purge-data"])
 def test_bodyless_lifecycle_operations_reject_caller_supplied_docker_data(
     client, runtime, operation
 ):
@@ -480,20 +485,15 @@ def test_bodyless_lifecycle_operations_reject_caller_supplied_docker_data(
 
     assert response.status_code == 422
     runtime.stop.assert_not_called()
+    runtime.restart.assert_not_called()
     runtime.destroy.assert_not_called()
     runtime.purge_data.assert_not_called()
 
 
 def test_stop_destroy_and_purge_delegate_only_path_run_id(client, runtime):
-    stopped = client.post(
-        f"/v1/runs/{RUN_ID}/stop", json={}, headers=_headers()
-    )
-    destroyed = client.post(
-        f"/v1/runs/{RUN_ID}/destroy", json={}, headers=_headers()
-    )
-    purged = client.post(
-        f"/v1/runs/{RUN_ID}/purge-data", json={}, headers=_headers()
-    )
+    stopped = client.post(f"/v1/runs/{RUN_ID}/stop", json={}, headers=_headers())
+    destroyed = client.post(f"/v1/runs/{RUN_ID}/destroy", json={}, headers=_headers())
+    purged = client.post(f"/v1/runs/{RUN_ID}/purge-data", json={}, headers=_headers())
 
     assert stopped.status_code == 200
     assert stopped.json() == {"run_id": str(RUN_ID), "state": "stopped"}
@@ -504,6 +504,23 @@ def test_stop_destroy_and_purge_delegate_only_path_run_id(client, runtime):
     runtime.stop.assert_called_once_with(RUN_ID)
     runtime.destroy.assert_called_once_with(RUN_ID)
     runtime.purge_data.assert_called_once_with(RUN_ID)
+
+
+def test_restart_delegates_only_path_run_id_and_returns_worker_identity(
+    client, runtime
+):
+    response = client.post(f"/v1/runs/{RUN_ID}/restart", json={}, headers=_headers())
+
+    assert response.status_code == 200
+    runtime.restart.assert_called_once_with(RUN_ID)
+    assert response.json() == {
+        "container_id": "container-id",
+        "container_name": "qjudge-integrity-worker-" + str(RUN_ID),
+        "worker_url": "http://qjudge-integrity-worker-" + str(RUN_ID) + ":8020",
+        "image_digest": "sha256:" + "a" * 64,
+        "state": "running",
+        "run_token_sha256": hashlib.sha256(RUN_TOKEN.encode()).hexdigest(),
+    }
 
 
 def test_status_returns_backend_reconciliation_contract(client, runtime):
@@ -529,7 +546,9 @@ def test_status_returns_backend_reconciliation_contract(client, runtime):
         (ContainerConflict("conflict"), 409),
     ],
 )
-def test_controller_maps_safe_lifecycle_failures(client, runtime, failure, expected_status):
+def test_controller_maps_safe_lifecycle_failures(
+    client, runtime, failure, expected_status
+):
     runtime.start.side_effect = failure
 
     response = client.post(
@@ -542,7 +561,9 @@ def test_controller_maps_safe_lifecycle_failures(client, runtime, failure, expec
     assert RUN_TOKEN not in response.text
 
 
-def test_controller_normalizes_runtime_failures_without_leaking_secrets(client, runtime):
+def test_controller_normalizes_runtime_failures_without_leaking_secrets(
+    client, runtime
+):
     runtime.start.side_effect = RuntimeError("failed with " + RUN_TOKEN)
 
     response = client.post(

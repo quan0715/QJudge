@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import time
 from contextlib import asynccontextmanager
-from typing import Callable, Literal
+from typing import Callable
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
 from integrity_service.core.schemas import EventBatch
 from integrity_service.core.sequencer import SequenceConflict
@@ -35,14 +35,6 @@ from integrity_service.worker.runtime import (
     WorkerRuntime,
 )
 from integrity_service.worker.settings import WorkerBootstrap, WorkerSettings
-
-
-class SubmissionObservation(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    schema_version: Literal[1]
-    participant_id: int = Field(gt=0)
-    source: Literal["manual", "backend"]
 
 
 def create_app(
@@ -170,38 +162,6 @@ def create_app(
                 status_code=507, detail="durable journal unavailable"
             ) from error
         return ack.model_dump(mode="json")
-
-    @application.post("/v1/runs/{run_id}/observations/submission")
-    async def observe_submission(run_id: UUID, request: Request):
-        resolved = current_runtime(request)
-        body = await authenticate(request, path_run_id=run_id, resolved=resolved)
-        try:
-            observation = SubmissionObservation.model_validate_json(body)
-        except ValidationError as error:
-            raise HTTPException(
-                status_code=422, detail="invalid submission observation"
-            ) from error
-        try:
-            timeline_seq = resolved.record_submission(
-                participant_id=observation.participant_id,
-                source=observation.source,
-                server_ms=resolved._clock_ms(),
-            )
-        except WorkerNotAccepting as error:
-            raise HTTPException(status_code=409, detail="Worker is stopping") from error
-        except BackendUnavailable as error:
-            raise HTTPException(
-                status_code=503, detail="Backend delivery unavailable"
-            ) from error
-        except (BackendProtocolError, CommandDeliveryProtocolError) as error:
-            raise HTTPException(
-                status_code=502, detail="Backend command protocol failed"
-            ) from error
-        except (OSError, ValueError) as error:
-            raise HTTPException(
-                status_code=507, detail="durable journal unavailable"
-            ) from error
-        return {"observed": True, "timeline_seq": timeline_seq}
 
     @application.post("/v1/runs/{run_id}/control/stop")
     async def stop_run(run_id: UUID, request: Request):

@@ -2,6 +2,8 @@ import base64
 import json
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -26,10 +28,8 @@ from apps.contests.infrastructure.integrity_worker_client import (
     IntegrityWorkerUnavailable,
     build_integrity_worker_client,
 )
-from apps.contests.services.anti_cheat_session import (
-    active_session_key,
-    heartbeat_key,
-)
+from apps.contests.services.anti_cheat_session import active_session_key
+from apps.contests.services.integrity_presence import get_last_checkpoint
 from apps.users.models import User
 
 
@@ -45,7 +45,7 @@ def make_batch(
     device_id="device-a",
     first_seq=1,
     last_seq=1,
-    event_type="tab_hidden",
+    event_type="mouse_leave_triggered",
 ):
     return {
         "schema_version": 1,
@@ -72,6 +72,17 @@ def make_batch(
             for seq in range(first_seq, last_seq + 1)
         ],
         "client_build": "frontend-test",
+    }
+
+
+def checkpoint(observations):
+    return {
+        "observations": observations,
+        "evidence": {
+            "manifests": [],
+            "completions": [],
+            "unavailable": [],
+        },
     }
 
 
@@ -255,9 +266,16 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        {
+            "observations": batch,
+            "evidence": {
+                "manifests": [],
+                "completions": [],
+                "unavailable": [],
+            },
+        },
         format="json",
     )
 
@@ -266,6 +284,9 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
         "acked_through_seq": 42,
         "pending_commands": [],
         "release_evidence_before_ms": 1_785_000_000_000,
+        "uploads": [],
+        "completions": [],
+        "unavailable": [],
     }
     assert worker_server.verified_signature is True
     assert worker_server.received_body == json.dumps(
@@ -274,6 +295,91 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
         separators=(",", ":"),
         sort_keys=True,
     ).encode("utf-8")
+    api_client.force_authenticate(participant.contest.owner)
+    overview = api_client.get(
+        f"/api/v1/contests/{running_integrity_run.contest_id}/overview-metrics/"
+    )
+    assert overview.status_code == 200
+    assert overview.json()["online_now"] == 1
+
+
+@pytest.mark.django_db
+def test_batch_gateway_does_not_forward_events_after_submission(
+    api_client,
+    running_integrity_run,
+    participant,
+    worker_server,
+):
+    """The Backend owns exam eligibility; the Worker never sees closed attempts."""
+    participant.exam_status = ExamStatus.SUBMITTED
+    participant.save(update_fields=["exam_status"])
+    api_client.force_authenticate(participant.user)
+
+    response = api_client.post(
+        (
+            f"/api/v1/contests/{running_integrity_run.contest_id}"
+            "/exam/integrity/checkpoints/"
+        ),
+        checkpoint(make_batch(
+            run_id=running_integrity_run.id,
+            participant_id=participant.id,
+        )),
+        format="json",
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": {
+            "code": "exam_not_in_progress",
+            "message": "Exam is not currently accepting integrity events.",
+        }
+    }
+    assert worker_server.request_count == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("active_status", (ExamStatus.PAUSED, ExamStatus.LOCKED))
+def test_batch_gateway_forwards_events_for_active_monitored_statuses(
+    api_client,
+    running_integrity_run,
+    participant,
+    worker_server,
+    active_status,
+    monkeypatch,
+):
+    participant.exam_status = active_status
+    participant.save(update_fields=["exam_status"])
+    api_client.force_authenticate(participant.user)
+    worker_server.expect_signed_post(
+        f"/v1/runs/{running_integrity_run.id}/batches",
+        response={
+            "acked_through_seq": 1,
+            "pending_commands": [],
+            "release_evidence_before_ms": 0,
+        },
+    )
+    monkeypatch.setattr(
+        "apps.contests.views.exam_integrity.build_evidence_delivery",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            pending_commands=(),
+            release_before_ms=0,
+        ),
+    )
+
+    response = api_client.post(
+        (
+            f"/api/v1/contests/{running_integrity_run.contest_id}"
+            "/exam/integrity/checkpoints/"
+        ),
+        checkpoint(make_batch(
+            run_id=running_integrity_run.id,
+            participant_id=participant.id,
+        )),
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert worker_server.request_count == 1
 
 
 @pytest.mark.django_db
@@ -324,12 +430,12 @@ def test_batch_gateway_enriches_only_after_durable_worker_ack(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -338,6 +444,9 @@ def test_batch_gateway_enriches_only_after_durable_worker_ack(
         "acked_through_seq": 1,
         "pending_commands": list(projection.pending_commands),
         "release_evidence_before_ms": 900,
+        "uploads": [],
+        "completions": [],
+        "unavailable": [],
     }
     build_delivery.assert_called_once()
     assert build_delivery.call_args.args[:2] == (
@@ -365,12 +474,12 @@ def test_batch_gateway_does_not_project_evidence_without_worker_ack(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -490,23 +599,17 @@ def test_batch_gateway_never_acks_or_mutates_state_when_worker_is_unavailable(
 ):
     api_client.force_authenticate(participant.user)
     worker_server.disconnect()
-    heartbeat_cache_key = heartbeat_key(
-        running_integrity_run.contest_id,
-        participant.user_id,
-    )
-    cache.set(heartbeat_cache_key, "unchanged", timeout=300)
-
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
             first_seq=1,
             last_seq=3,
-        ),
+        )),
         format="json",
     )
 
@@ -517,7 +620,10 @@ def test_batch_gateway_never_acks_or_mutates_state_when_worker_is_unavailable(
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.IN_PROGRESS
     assert participant.violation_count == 0
-    assert cache.get(heartbeat_cache_key) == "unchanged"
+    assert get_last_checkpoint(
+        running_integrity_run.contest_id,
+        participant.user_id,
+    ) is None
 
 
 @pytest.mark.django_db
@@ -532,13 +638,13 @@ def test_batch_gateway_rejects_user_run_or_device_mismatch(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=another_participant.id + 1,
             device_id="borrowed-device",
-        ),
+        )),
         format="json",
     )
 
@@ -570,9 +676,9 @@ def test_batch_gateway_rejects_each_identity_dimension_before_proxying(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        checkpoint(batch),
         format="json",
     )
 
@@ -606,12 +712,12 @@ def test_batch_gateway_propagates_valid_worker_rejections(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -638,12 +744,12 @@ def test_batch_gateway_maps_retryable_worker_statuses_to_503_without_ack(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -665,12 +771,12 @@ def test_batch_gateway_does_not_retry_worker_timeout(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -699,9 +805,9 @@ def test_batch_gateway_rejects_noncontiguous_sequences_before_proxying(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        checkpoint(batch),
         format="json",
     )
 
@@ -726,9 +832,9 @@ def test_batch_gateway_rejects_payload_over_32_kib_before_proxying(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        checkpoint(batch),
         format="json",
     )
 
@@ -756,9 +862,9 @@ def test_batch_gateway_rejects_encoded_batch_over_one_mib_before_proxying(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        checkpoint(batch),
         format="json",
     )
 
@@ -793,9 +899,9 @@ def test_batch_gateway_rejects_coercion_and_unknown_batch_fields(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        batch,
+        checkpoint(batch),
         format="json",
     )
 
@@ -823,12 +929,12 @@ def test_batch_gateway_maps_invalid_worker_ack_to_502_without_ack(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 
@@ -846,12 +952,12 @@ def test_batch_gateway_requires_authentication(
     response = api_client.post(
         (
             f"/api/v1/contests/{running_integrity_run.contest_id}"
-            "/exam/integrity/batches/"
+            "/exam/integrity/checkpoints/"
         ),
-        make_batch(
+        checkpoint(make_batch(
             run_id=running_integrity_run.id,
             participant_id=participant.id,
-        ),
+        )),
         format="json",
     )
 

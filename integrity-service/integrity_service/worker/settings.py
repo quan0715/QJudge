@@ -42,7 +42,6 @@ class WorkerBootstrap:
     server_ms: int
     scheduled_end_ms: int
     active_participant_ids: tuple[int, ...]
-    submitted_participant_ids: tuple[int, ...]
     policy_snapshot: Mapping[str, object]
     registry_snapshot: Mapping[str, object]
     backend_signing_public_key_b64: str
@@ -61,11 +60,6 @@ class WorkerBootstrap:
         _server_ms(self.server_ms, "server_ms")
         _server_ms(self.scheduled_end_ms, "scheduled_end_ms")
         _participant_tuple(self.active_participant_ids, "active_participant_ids")
-        _participant_tuple(self.submitted_participant_ids, "submitted_participant_ids")
-        if not set(self.submitted_participant_ids).issubset(
-            self.active_participant_ids
-        ):
-            raise ValueError("submitted participants must belong to the active snapshot")
         if not isinstance(self.policy_snapshot, Mapping):
             raise TypeError("policy_snapshot must be an object")
         if not isinstance(self.registry_snapshot, Mapping):
@@ -107,7 +101,6 @@ class WorkerBootstrap:
             if not isinstance(participants, list):
                 raise TypeError("participants must be a list")
             active = []
-            submitted = []
             seen: set[int] = set()
             for item in participants:
                 if not isinstance(item, Mapping) or set(item) != {
@@ -122,24 +115,15 @@ class WorkerBootstrap:
                     raise ValueError("participant entries must be unique")
                 seen.add(participant_id)
                 status = item["status"]
-                if status not in ("active", "submitted"):
+                if status != "active":
                     raise ValueError("participant status is not supported")
                 active.append(participant_id)
-                if status == "submitted":
-                    submitted.append(participant_id)
             active.sort()
-            submitted.sort()
         else:
             active = list(
                 _participant_tuple(
                     payload.get("active_participant_ids"),
                     "active_participant_ids",
-                )
-            )
-            submitted = list(
-                _participant_tuple(
-                    payload.get("submitted_participant_ids", []),
-                    "submitted_participant_ids",
                 )
             )
         return cls(
@@ -150,7 +134,6 @@ class WorkerBootstrap:
                 payload["scheduled_end_ms"], "scheduled_end_ms"
             ),
             active_participant_ids=tuple(active),
-            submitted_participant_ids=tuple(submitted),
             policy_snapshot=dict(payload["policy_snapshot"]),
             registry_snapshot=dict(payload["registry_snapshot"]),
             backend_signing_public_key_b64=str(

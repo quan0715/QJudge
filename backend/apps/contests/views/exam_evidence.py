@@ -1,4 +1,4 @@
-"""ExamEvidenceMixin — manifest-backed screenshot evidence APIs."""
+"""Integrity review and attendance photo evidence APIs."""
 from __future__ import annotations
 
 from django.conf import settings
@@ -12,11 +12,6 @@ from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ..integrity_serializers import (
-    EvidenceCompleteSerializer,
-    EvidenceManifestSerializer,
-    EvidenceUnavailableSerializer,
-)
 from ..models import (
     Contest,
     ContestParticipant,
@@ -38,12 +33,8 @@ from ..services.anticheat_storage import (
 from ..services.attendance import ATTENDANCE_EVENT_TYPES
 from ..services.exam_submission import normalize_source_module
 from ..services.integrity_evidence import (
-    IntegrityEvidenceRejected,
-    IntegrityEvidenceStorageError,
-    complete_evidence_chunk,
-    create_evidence_manifest,
-    report_evidence_unavailable,
-    report_evidence_unavailable_projection,
+    evidence_chunks_for_event,
+    evidence_status_for_event,
 )
 from .exam_validation_response import validate_exam_operation_for_view
 
@@ -103,54 +94,6 @@ def _event_window_ms(event: ExamEvent | None, ts_from: int | None, ts_to: int | 
     if metadata.get("evidence_mode") == ExamEvidenceFrame.EvidenceMode.PRE_LOSS:
         return anchor_ms - PRE_LOSS_WINDOW_MS, anchor_ms
     return anchor_ms - ANCHOR_WINDOW_MS, anchor_ms + ANCHOR_WINDOW_MS
-
-
-def _event_for_lookup(contest: Contest, user_id: int | None, event_id: int | None = None, cluster_id: str = ""):
-    if event_id is not None:
-        event = get_object_or_404(
-            ExamEvent.objects.select_related("user"),
-            contest=contest,
-            id=event_id,
-        )
-        if user_id is not None and event.user_id != user_id:
-            return None, Response(
-                {"error": "event_id does not match user_id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return event, None
-
-    if cluster_id and user_id is not None:
-        event = (
-            ExamEvent.objects.filter(
-                contest=contest,
-                user_id=user_id,
-                metadata__evidence_cluster_id=cluster_id,
-            )
-            .order_by("-created_at")
-            .first()
-        )
-        if event is None:
-            return None, Response(
-                {"error": "event with given evidence_cluster_id not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        return event, None
-
-    if cluster_id:
-        return None, Response(
-            {"error": "user_id is required when evidence_cluster_id is used"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    return None, None
-
-
-def _event_expected_loss_module(event: ExamEvent) -> str | None:
-    if event.event_type == "screen_share_stopped":
-        return "screen_share"
-    if event.event_type == "webcam_stopped":
-        return "webcam"
-    return None
 
 
 def _validate_frame_time(event: ExamEvent, evidence_mode: str, captured_at_ms: int) -> str | None:
@@ -239,185 +182,49 @@ def _validate_evidence_object_head(client, object_key: str):
 class ExamEvidenceMixin:
     """Mixin for manifest-backed evidence lookup and upload intent APIs."""
 
-    @staticmethod
-    def _integrity_evidence_participant(request, contest):
-        if not getattr(request.user, "is_student", False):
-            return None
-        return ContestParticipant.objects.filter(
-            contest=contest,
-            user=request.user,
-        ).first()
-
-    @staticmethod
-    def _integrity_evidence_error(error):
-        if isinstance(error, IntegrityEvidenceRejected):
-            return Response(
-                {"code": error.code},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(
-            {"code": "evidence_storage_unavailable"},
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-
     @action(
         detail=False,
-        methods=["post"],
-        url_path="integrity/evidence/manifest",
+        methods=["get"],
+        url_path="integrity/evidence/review",
         permission_classes=[permissions.IsAuthenticated],
     )
-    def integrity_evidence_manifest(self, request, contest_pk=None):
-        serializer = EvidenceManifestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+    def integrity_evidence_review(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
-        participant = self._integrity_evidence_participant(request, contest)
-        if participant is None:
+        if not can_manage_contest(request.user, contest):
             return Response(
-                {"detail": "Only contest participants may submit evidence."},
+                {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        run = get_object_or_404(
-            ExamIntegrityRun.objects.exclude(
-                compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
-            ),
-            pk=data["run_id"],
-            contest=contest,
-        )
-        event = (
-            ExamEvent.objects.filter(
-                integrity_run=run,
-                contest=contest,
-                user=participant.user,
-                incident_id=data["incident_id"],
-            )
-            .order_by("id")
-            .first()
-        )
-        if event is None:
-            raise Http404
-        try:
-            uploads = create_evidence_manifest(
-                run,
-                participant,
-                event,
-                list(data["chunks"]),
-            )
-        except (IntegrityEvidenceRejected, IntegrityEvidenceStorageError) as error:
-            return self._integrity_evidence_error(error)
-        return Response({"uploads": uploads}, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=["post"],
-        url_path="integrity/evidence/complete",
-        permission_classes=[permissions.IsAuthenticated],
-    )
-    def integrity_evidence_complete(self, request, contest_pk=None):
-        serializer = EvidenceCompleteSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        contest = get_object_or_404(Contest, id=contest_pk)
-        participant = self._integrity_evidence_participant(request, contest)
-        if participant is None:
-            return Response(
-                {"detail": "Only contest participants may submit evidence."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        chunk = get_object_or_404(
-            ExamEvidenceChunk,
-            pk=serializer.validated_data["chunk_id"],
-            contest=contest,
-            participant=participant,
-        )
-        try:
-            chunk = complete_evidence_chunk(chunk)
-        except (IntegrityEvidenceRejected, IntegrityEvidenceStorageError) as error:
-            return self._integrity_evidence_error(error)
-        return Response(
-            {"chunk_id": str(chunk.id), "status": chunk.status},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(
-        detail=False,
-        methods=["post"],
-        url_path="integrity/evidence/unavailable",
-        permission_classes=[permissions.IsAuthenticated],
-    )
-    def integrity_evidence_unavailable(self, request, contest_pk=None):
-        serializer = EvidenceUnavailableSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        contest = get_object_or_404(Contest, id=contest_pk)
-        participant = self._integrity_evidence_participant(request, contest)
-        if participant is None:
-            return Response(
-                {"detail": "Only contest participants may submit evidence."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        data = serializer.validated_data
-        if "chunk_id" in data:
-            chunk = get_object_or_404(
-                ExamEvidenceChunk,
-                pk=data["chunk_id"],
-                contest=contest,
-                participant=participant,
-            )
-            try:
-                chunk = report_evidence_unavailable(
-                    chunk,
-                    reason=data["reason"],
-                )
-            except IntegrityEvidenceRejected as error:
-                return self._integrity_evidence_error(error)
-            return Response(
-                {"chunk_id": str(chunk.id), "status": chunk.status},
-                status=status.HTTP_200_OK,
-            )
-
-        run = get_object_or_404(
-            ExamIntegrityRun.objects.exclude(
-                compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
-            ),
-            pk=data["run_id"],
-            contest=contest,
-        )
+        event_id = _parse_int_param(request.query_params.get("event_id"))
+        if event_id is None:
+            return Response({"detail": "event_id is required."}, status=status.HTTP_400_BAD_REQUEST)
         event = get_object_or_404(
-            ExamEvent,
-            pk=data["event_id"],
-            integrity_run=run,
+            ExamEvent.objects.select_related("integrity_run"),
             contest=contest,
-            user=participant.user,
-            incident_id=data["incident_id"],
+            id=event_id,
         )
-        try:
-            markers = report_evidence_unavailable_projection(
-                run,
-                participant,
-                event,
-                source=data["source"],
-                reason=data["reason"],
-            )
-        except IntegrityEvidenceRejected as error:
-            return self._integrity_evidence_error(error)
-        return Response(
-            {
-                "run_id": str(run.id),
-                "incident_id": str(event.incident_id),
-                "event_id": event.id,
-                "source": data["source"],
-                "status": "unavailable",
-                "covered_windows": [
-                    {
-                        "start_at_ms": marker["start_at_ms"],
-                        "end_at_ms": marker["end_at_ms"],
-                    }
-                    for marker in markers
-                ],
-            },
-            status=status.HTTP_200_OK,
-        )
+        chunks = evidence_chunks_for_event(event)
+        items = []
+        for chunk in chunks:
+            items.append({
+                "chunk_id": str(chunk.id),
+                "source": chunk.source,
+                "status": chunk.status,
+                "start_at_ms": chunk.start_at_ms,
+                "end_at_ms": chunk.end_at_ms,
+                "byte_size": chunk.byte_size,
+                "codec": chunk.codec,
+                "content_type": chunk.content_type,
+                "url": (
+                    generate_get_url(settings.ANTICHEAT_RAW_BUCKET, chunk.object_key)
+                    if chunk.status == ExamEvidenceChunk.Status.VERIFIED
+                    else None
+                ),
+            })
+        summary = evidence_status_for_event(event)
+        return Response({**summary, "items": items})
 
-    def _validate_evidence_participant(self, request, contest: Contest, source_module: str | None = None):
+    def _validate_attendance_participant(self, request, contest: Contest):
         participant, error_response = validate_exam_operation_for_view(
             contest,
             request.user,
@@ -428,31 +235,20 @@ class ExamEvidenceMixin:
             return None, error_response
         if participant is None:
             return None, Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
-        requested_source_module = normalize_source_module(
-            source_module if source_module is not None else request.data.get("source_module")
-        )
-        if requested_source_module == ExamEvidenceFrame.SourceModule.ATTENDANCE:
-            allowed_statuses = {ExamStatus.NOT_STARTED, ExamStatus.SUBMITTED}
-        else:
-            allowed_statuses = set(self.MONITORED_STATUSES) | {ExamStatus.SUBMITTED}
-        if participant.exam_status not in allowed_statuses:
+        if participant.exam_status not in {ExamStatus.NOT_STARTED, ExamStatus.SUBMITTED}:
             return None, Response(
                 {"error": f"Evidence upload is not accepted in current state: {participant.exam_status}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if requested_source_module != ExamEvidenceFrame.SourceModule.ATTENDANCE and participant.exam_status in self.MONITORED_STATUSES:
-            conflict_response = self._ensure_active_device_session(contest, participant, request)
-            if conflict_response:
-                return None, conflict_response
         return participant, None
 
     @action(
         detail=False,
         methods=["post"],
-        url_path="evidence/upload-intents",
+        url_path="attendance/evidence/intents",
         permission_classes=[permissions.IsAuthenticated],
     )
-    def evidence_upload_intents(self, request, contest_pk=None):
+    def attendance_evidence_intents(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
 
         serializer = EvidenceUploadIntentSerializer(data=request.data)
@@ -461,6 +257,15 @@ class ExamEvidenceMixin:
 
         # Look up the event by contest+id first so we can detect teacher-assisted mode.
         event = get_object_or_404(ExamEvent, contest=contest, id=data["event_id"])
+        if (
+            event.event_type not in _TEACHER_ASSISTED_ATTENDANCE_EVENT_TYPES
+            or normalize_source_module(data.get("source_module"))
+            != ExamEvidenceFrame.SourceModule.ATTENDANCE
+        ):
+            return Response(
+                {"error": "Only attendance photo evidence is accepted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         target_user = event.user
 
         # Teacher-assisted path: actor uploads evidence for a student's event.
@@ -491,7 +296,7 @@ class ExamEvidenceMixin:
                     {"detail": "Permission denied: event does not belong to this user."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-            participant, error_response = self._validate_evidence_participant(request, contest)
+            participant, error_response = self._validate_attendance_participant(request, contest)
             if error_response is not None:
                 return error_response
 
@@ -506,13 +311,6 @@ class ExamEvidenceMixin:
 
         evidence_mode = str(data.get("evidence_mode") or metadata.get("evidence_mode") or "anchor_window")
         source_module = normalize_source_module(data.get("source_module"))
-        expected_loss_module = _event_expected_loss_module(event)
-        if evidence_mode == ExamEvidenceFrame.EvidenceMode.PRE_LOSS and expected_loss_module:
-            if source_module != expected_loss_module:
-                return Response(
-                    {"error": "pre_loss evidence must target the lost source module"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
         upload_session_id = str(data.get("upload_session_id") or "").strip() or build_upload_session_id()
         frames = list(data.get("frames") or [])
@@ -623,10 +421,10 @@ class ExamEvidenceMixin:
     @action(
         detail=False,
         methods=["post"],
-        url_path="evidence/upload-confirm",
+        url_path="attendance/evidence/confirm",
         permission_classes=[permissions.IsAuthenticated],
     )
-    def evidence_upload_confirm(self, request, contest_pk=None):
+    def attendance_evidence_confirm(self, request, contest_pk=None):
         contest = get_object_or_404(Contest, id=contest_pk)
 
         serializer = EvidenceUploadConfirmSerializer(data=request.data)
@@ -683,9 +481,14 @@ class ExamEvidenceMixin:
                 status=status.HTTP_400_BAD_REQUEST,
             )
         source_module = next(iter(row_source_modules), None)
+        if source_module != ExamEvidenceFrame.SourceModule.ATTENDANCE:
+            return Response(
+                {"error": "Only attendance photo evidence is accepted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not is_teacher_assisted_confirm:
-            participant, error_response = self._validate_evidence_participant(request, contest, source_module=source_module)
+            participant, error_response = self._validate_attendance_participant(request, contest)
             if error_response is not None:
                 return error_response
 
@@ -784,95 +587,3 @@ class ExamEvidenceMixin:
                 )
 
         return Response({"confirmed": confirmed, "confirmed_count": len(confirmed)})
-
-    @action(detail=False, methods=["get"], url_path="screenshots")
-    def screenshots(self, request, contest_pk=None):
-        """Return presigned GET URLs for uploaded manifest frames."""
-        contest = get_object_or_404(Contest, id=contest_pk)
-        if not can_manage_contest(request.user, contest):
-            return Response(
-                {"detail": "You do not have permission to perform this action."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        user_id = request.query_params.get("user_id")
-        event_id = _parse_int_param(request.query_params.get("event_id"))
-        evidence_cluster_id = (request.query_params.get("evidence_cluster_id") or "").strip()
-
-        if user_id is not None:
-            try:
-                user_id = int(user_id)
-            except (TypeError, ValueError):
-                return Response({"error": "invalid user_id"}, status=status.HTTP_400_BAD_REQUEST)
-
-        anchor_event, lookup_error = _event_for_lookup(
-            contest,
-            user_id,
-            event_id=event_id,
-            cluster_id=evidence_cluster_id,
-        )
-        if lookup_error is not None:
-            return lookup_error
-        if user_id is None and anchor_event is not None:
-            user_id = anchor_event.user_id
-        if user_id is None:
-            return Response({"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        participant = ContestParticipant.objects.filter(contest=contest, user_id=user_id).first()
-        if not participant:
-            return Response({"error": "participant not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        upload_session_id = (request.query_params.get("upload_session_id") or "").strip()
-        source_module_raw = (request.query_params.get("source_module") or "").strip()
-        source_module = normalize_source_module(source_module_raw) if source_module_raw else ""
-
-        ts_from = _parse_int_param(request.query_params.get("ts_from"))
-        ts_to = _parse_int_param(request.query_params.get("ts_to"))
-        ts_from, ts_to = _event_window_ms(anchor_event, ts_from, ts_to)
-        limit = min(_parse_int_param(request.query_params.get("limit")) or 20, 50)
-
-        qs = ExamEvidenceFrame.objects.filter(
-            contest=contest,
-            user_id=user_id,
-            status=ExamEvidenceFrame.Status.UPLOADED,
-        )
-        if anchor_event is not None:
-            qs = qs.filter(exam_event=anchor_event)
-        elif evidence_cluster_id:
-            qs = qs.filter(evidence_cluster_id=evidence_cluster_id)
-        if upload_session_id:
-            qs = qs.filter(upload_session_id=upload_session_id)
-        if source_module:
-            qs = qs.filter(source_module=source_module)
-        if ts_from is not None:
-            qs = qs.filter(client_captured_at_ms__gte=ts_from)
-        if ts_to is not None:
-            qs = qs.filter(client_captured_at_ms__lte=ts_to)
-
-        total_filtered_count = qs.count()
-        frames = list(qs.order_by("-client_captured_at_ms", "-seq")[:limit])
-        items = []
-        for frame in frames:
-            if not frame.object_key:
-                continue
-            url = generate_get_url(settings.ANTICHEAT_RAW_BUCKET, frame.object_key, expires_seconds=120)
-            captured_at = frame.client_captured_at_ms
-            items.append(
-                {
-                    "url": url,
-                    "ts_ms": captured_at,
-                    "seq": frame.seq,
-                    "source_module": frame.source_module,
-                    "evidence_frame_id": frame.id,
-                    "evidence_mode": frame.evidence_mode,
-                    "expires_in": 120,
-                }
-            )
-
-        return Response(
-            {
-                "items": items,
-                "total_raw_count": total_filtered_count,
-                "storage_error": False,
-            }
-        )

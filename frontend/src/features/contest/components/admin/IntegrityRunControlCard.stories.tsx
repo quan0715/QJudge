@@ -20,11 +20,10 @@ const meta = {
   component: IntegrityRunControlCard,
   decorators: [(Story) => <ToastProvider><Story /></ToastProvider>],
   args: {
-    contestId: "contest-1", contestName: "2026 Midterm", contestStartAt: new Date(Date.now() + 30_000).toISOString(),
+    contestId: "contest-1",
     repository: {
-      listRuns: async () => [makeRun()], getRun: async () => makeRun(), createRun: async () => makeRun({ computeState: "stopped" }),
-      startRun: async () => makeRun(), stopRun: async () => makeRun({ computeState: "stopped", dataState: "archived" }),
-      destroyRun: async () => makeRun({ computeState: "destroyed", dataState: "archived" }), purgeRun: async () => makeRun({ computeState: "destroyed", dataState: "purged" }),
+      listRuns: async () => [makeRun()],
+      restartRun: async () => makeRun(),
     },
   },
 } satisfies Meta<typeof IntegrityRunControlCard>;
@@ -34,5 +33,5 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {};
 export const NoRun: Story = { args: { repository: { ...meta.args.repository!, listRuns: async () => [] } } };
-export const WarningAndArchiveLag: Story = { args: { repository: { ...meta.args.repository!, listRuns: async () => [makeRun({ health: "unhealthy", warnings: ["archive_lag"] })] } } };
-export const DestroyedRetained: Story = { args: { repository: { ...meta.args.repository!, listRuns: async () => [makeRun({ computeState: "destroyed", dataState: "archived" })] } } };
+export const WorkerUnhealthy: Story = { args: { repository: { ...meta.args.repository!, listRuns: async () => [makeRun({ health: "unhealthy" })] } } };
+export const ArchivedAfterDestroy: Story = { args: { repository: { ...meta.args.repository!, listRuns: async () => [makeRun({ computeState: "destroyed", dataState: "archived" })] } } };

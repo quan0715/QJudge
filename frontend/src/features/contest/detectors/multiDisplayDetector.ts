@@ -1,11 +1,12 @@
 import {
-  EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD,
-  EXAM_MONITORING_DISPLAY_CONFIRM_COUNT,
+  DisplayCheckService,
   type ScreenDetailsLike,
-} from "@/features/contest/domain/examMonitoringPolicy";
-import { DisplayCheckService } from "./displayCheckService";
+} from "./displayCheckService";
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 import type { TFunction } from "i18next";
+
+const DISPLAY_API_FAILURE_THRESHOLD = 3;
+const DISPLAY_CONFIRM_COUNT = 2;
 
 export class MultiDisplayDetector implements ExamDetector {
   readonly id = "multi-display" as const;
@@ -29,6 +30,9 @@ export class MultiDisplayDetector implements ExamDetector {
 
   // Pipeline integration: notify when multi-display condition resolves
   private onResolvedCallback: (() => void) | null = null;
+  private onApiHealthChangeCallback:
+    | ((status: "healthy" | "degraded", reason?: string) => void)
+    | null = null;
   private wasMultiDetected = false;
 
   constructor(t: TFunction, displayService?: DisplayCheckService) {
@@ -62,6 +66,7 @@ export class MultiDisplayDetector implements ExamDetector {
     this.attachedScreenDetails = null;
     this.onViolation = null;
     this.onResolvedCallback = null;
+    this.onApiHealthChangeCallback = null;
     this.wasMultiDetected = false;
   }
 
@@ -83,6 +88,12 @@ export class MultiDisplayDetector implements ExamDetector {
     this.onResolvedCallback = cb;
   }
 
+  onApiHealthChange(
+    cb: (status: "healthy" | "degraded", reason?: string) => void,
+  ): void {
+    this.onApiHealthChangeCallback = cb;
+  }
+
   // Fix 5: stable bound reference for screenschange
   private handleScreensChange = () => {
     // screenschange from the API is authoritative — check screenCount directly
@@ -90,7 +101,7 @@ export class MultiDisplayDetector implements ExamDetector {
     const screens = details?.screens;
     if (Array.isArray(screens) && screens.length > 1) {
       // Fix 1: screenCount > 1 from event is definitive, report immediately
-      this.consecutiveDetections = EXAM_MONITORING_DISPLAY_CONFIRM_COUNT;
+      this.consecutiveDetections = DISPLAY_CONFIRM_COUNT;
       if (!this.wasMultiDetected) {
         this.wasMultiDetected = true;
         this.reportViolation();
@@ -120,16 +131,12 @@ export class MultiDisplayDetector implements ExamDetector {
   private reportApiDegraded(): void {
     if (this.apiDegradedReported) return;
     this.apiDegradedReported = true;
-    this.onViolation?.({
-      detectorId: this.id,
-      eventType: "display_api_degraded",
-      clientOccurredAtMs: Date.now(),
-      message: this.t(
-        "exam.displayApiDegraded",
-        "Display monitoring API is unavailable. The system may not detect multiple displays.",
-      ),
-      severity: "warning",
-    });
+    this.onApiHealthChangeCallback?.(
+      "degraded",
+      this.displayService.getLastScreenDetails() === null
+        ? "request failed"
+        : "screen details unavailable",
+    );
   }
 
   private async ensureSingleDisplay(): Promise<void> {
@@ -142,7 +149,7 @@ export class MultiDisplayDetector implements ExamDetector {
     // Fix 2: track API failures
     if (diag.supportsScreenDetails && diag.screenCount === null) {
       this.consecutiveApiFailures++;
-      if (this.consecutiveApiFailures >= EXAM_MONITORING_DISPLAY_API_FAILURE_THRESHOLD) {
+      if (this.consecutiveApiFailures >= DISPLAY_API_FAILURE_THRESHOLD) {
         this.reportApiDegraded();
       }
       // Fall back to sync check
@@ -154,7 +161,10 @@ export class MultiDisplayDetector implements ExamDetector {
 
     // API succeeded — reset failure counter
     this.consecutiveApiFailures = 0;
-    this.apiDegradedReported = false;
+    if (this.apiDegradedReported) {
+      this.apiDegradedReported = false;
+      this.onApiHealthChangeCallback?.("healthy", undefined);
+    }
 
     const multiDetected =
       diag.isExtended || (diag.screenCount !== null && diag.screenCount > 1);
@@ -193,7 +203,7 @@ export class MultiDisplayDetector implements ExamDetector {
   private handleDetection(): void {
     if (this.wasMultiDetected) return;
     this.consecutiveDetections++;
-    if (this.consecutiveDetections >= EXAM_MONITORING_DISPLAY_CONFIRM_COUNT) {
+    if (this.consecutiveDetections >= DISPLAY_CONFIRM_COUNT) {
       this.wasMultiDetected = true;
       this.reportViolation();
     }

@@ -12,11 +12,9 @@ const basePolicy = {
     sources: {
       screenShare: {
         enabled: true,
-        captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        captureIntervalSeconds: 10,
       },
     },
     detectors: {
@@ -32,11 +30,9 @@ const basePolicy = {
     sources: {
       screenShare: {
         enabled: false,
-        captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        captureIntervalSeconds: 10,
       },
     },
     detectors: {

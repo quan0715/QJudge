@@ -57,13 +57,14 @@ export function useMultiDisplayMonitoring({
         });
         return;
       }
-      if (event.eventType === "display_api_degraded") {
-        emit("display_api_degraded", {
-          reason: event.message,
-          ...((event.metadata ?? {}) as Record<string, IntegrityJsonValue>),
-        });
-      }
     };
+    detector.onApiHealthChange((status, reason) => {
+      emitterRef.current.updateHealth?.({
+        component: "display_api",
+        status,
+        ...(reason ? { reason } : {}),
+      });
+    });
     detector.onResolved(() => {
       setInterrupted(false);
       emit("multi_display_restored", { reason: "single_display_restored" });

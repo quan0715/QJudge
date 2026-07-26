@@ -33,14 +33,12 @@ export interface DeviceMonitoringPlan {
   sources: {
     screenShare: {
       enabled: boolean;
-      captureIntervalSeconds: number;
       available: boolean;
       active: boolean;
       role: "primary" | "secondary" | null;
     };
     webcam: {
       enabled: boolean;
-      captureIntervalSeconds: number;
       available: boolean;
       active: boolean;
       role: "primary" | "secondary" | null;
@@ -105,20 +103,12 @@ export const resolveDeviceMonitoringPlan = (
   const sources = {
     screenShare: {
       enabled: !!selected.sources.screenShare.enabled,
-      captureIntervalSeconds: Math.max(
-        1,
-        Math.floor(selected.sources.screenShare.captureIntervalSeconds || 5)
-      ),
       available: capability.screenShareSupported,
       active: !!selected.sources.screenShare.enabled && capability.screenShareSupported,
       role: null as "primary" | "secondary" | null,
     },
     webcam: {
       enabled: !!selected.sources.webcam.enabled,
-      captureIntervalSeconds: Math.max(
-        1,
-        Math.floor(selected.sources.webcam.captureIntervalSeconds || 10)
-      ),
       available: capability.webcamSupported,
       active: !!selected.sources.webcam.enabled && capability.webcamSupported,
       role: null as "primary" | "secondary" | null,

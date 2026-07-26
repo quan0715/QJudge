@@ -37,7 +37,7 @@ def _validate_json_value(value: object, path: str = "$") -> object:
 class EventRecord(WireModel):
     event_id: UUID
     seq: int = Field(strict=True, ge=1)
-    kind: Literal["event", "state_snapshot"]
+    kind: Literal["event", "health_snapshot"]
     event_type: str = Field(strict=True, min_length=1, max_length=64)
     event_schema_version: int = Field(strict=True, ge=1)
     client_occurred_at_ms: int = Field(strict=True, ge=0)

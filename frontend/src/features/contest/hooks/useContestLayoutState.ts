@@ -150,7 +150,7 @@ export function useContestLayoutState() {
     if (!shouldWarnOnExit) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "考試進行中，離開或刷新頁面將自動交卷。";
+      e.returnValue = "";
       return e.returnValue;
     };
     window.addEventListener("beforeunload", handleBeforeUnload);

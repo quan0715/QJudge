@@ -9,7 +9,6 @@ from integrity_service.core.commands import (
     CommandAction,
     EngineContext,
     IntegrityCommand,
-    SubmissionState,
     deterministic_uuid,
     make_command,
 )
@@ -50,20 +49,24 @@ class ConnectivityMonitor:
         policy: dict[str, object],
         registry: Registry,
         context: EngineContext,
-        submissions: SubmissionState,
     ):
         suspect_after_ms = policy.get("suspect_after_ms")
         disconnected_after_ms = policy.get("disconnected_after_ms")
         if type(suspect_after_ms) is not int or suspect_after_ms < 0:
             raise ValueError("suspect_after_ms must be a non-negative integer")
-        if type(disconnected_after_ms) is not int or disconnected_after_ms < suspect_after_ms:
-            raise ValueError("disconnected_after_ms must be an integer at least suspect_after_ms")
+        if (
+            type(disconnected_after_ms) is not int
+            or disconnected_after_ms < suspect_after_ms
+        ):
+            raise ValueError(
+                "disconnected_after_ms must be an integer at least suspect_after_ms"
+            )
         definition, phase = registry.resolve("connectivity_suspect")
         if phase != "triggered":
             raise ValueError("connectivity_suspect must be a triggered registry signal")
         if definition.origin != "server":
             raise ValueError("connectivity lifecycle must be server-owned")
-        timeout_definition, timeout_phase = registry.resolve("heartbeat_timeout")
+        timeout_definition, timeout_phase = registry.resolve("connectivity_timeout")
         restored_definition, restored_phase = registry.resolve("connectivity_restored")
         if (
             timeout_definition.id != definition.id
@@ -77,12 +80,8 @@ class ConnectivityMonitor:
         self._registry = registry
         self._definition = definition
         self._context = context
-        self._submissions = submissions
         self._devices: dict[tuple[int, str], _DeviceState] = {}
         self._incidents: dict[tuple[int, str], _ConnectivityIncident] = {}
-
-    def mark_submitted(self, participant_id: int) -> None:
-        self._submissions.mark_submitted(participant_id)
 
     def observe(
         self, *, participant_id: int, device_id: str, server_ms: int
@@ -125,6 +124,14 @@ class ConnectivityMonitor:
             raise ValueError("now_server_ms must be a non-negative integer")
         return self._advance(now_server_ms)
 
+    def stop_participant(self, participant_id: int) -> None:
+        if type(participant_id) is not int or participant_id < 1:
+            raise ValueError("participant_id must be a positive integer")
+        for key in tuple(self._devices):
+            if key[0] == participant_id:
+                del self._devices[key]
+        self._incidents.pop(self._incident_key(participant_id), None)
+
     def next_transition_server_ms(self) -> int | None:
         deadlines: list[int] = []
         for state in self._devices.values():
@@ -144,9 +151,13 @@ class ConnectivityMonitor:
             suspect_at = state.last_received_at_server_ms + self._suspect_after_ms
             timeout_at = state.last_received_at_server_ms + self._disconnected_after_ms
             if not state.suspect_sent and now_server_ms >= suspect_at:
-                due.append((suspect_at, 0, participant_id, device_id, "connectivity_suspect"))
+                due.append(
+                    (suspect_at, 0, participant_id, device_id, "connectivity_suspect")
+                )
             if not state.timeout_sent and now_server_ms >= timeout_at:
-                due.append((timeout_at, 1, participant_id, device_id, "heartbeat_timeout"))
+                due.append(
+                    (timeout_at, 1, participant_id, device_id, "connectivity_timeout")
+                )
 
         commands: list[IntegrityCommand] = []
         for transition_ms, _, participant_id, device_id, event_type in sorted(due):
@@ -193,11 +204,7 @@ class ConnectivityMonitor:
             )
             self._incidents[incident_key] = incident
         incident.active_devices.add(device_id)
-        action: CommandAction = (
-            self._action_for_participant(participant_id, "record")
-            if first_device
-            else "audit"
-        )
+        action: CommandAction = "record" if first_device else "audit"
         return self._transition_command(
             participant_id=participant_id,
             device_id=device_id,
@@ -219,25 +226,18 @@ class ConnectivityMonitor:
         incident = self._incidents[self._incident_key(participant_id)]
         action: CommandAction = "audit"
         if not incident.action_applied:
-            action = self._action_for_participant(
-                participant_id, _REGISTRY_ACTIONS[self._definition.action]
-            )
+            action = _REGISTRY_ACTIONS[self._definition.action]
             incident.action_applied = True
         return self._transition_command(
             participant_id=participant_id,
             device_id=device_id,
             incident_id=incident.incident_id,
-            event_type="heartbeat_timeout",
+            event_type="connectivity_timeout",
             phase="escalated",
             transition_at_server_ms=transition_ms,
             last_received_at_server_ms=state.last_received_at_server_ms,
             action=action,
         )
-
-    def _action_for_participant(
-        self, participant_id: int, action: CommandAction
-    ) -> CommandAction:
-        return "audit" if self._submissions.is_submitted(participant_id) else action
 
     def _transition_command(
         self,

@@ -148,9 +148,13 @@ def create_app(
             async with entry.lock:
                 return await run_in_threadpool(operation)
         except ImageNotAllowed as error:
-            raise HTTPException(status_code=403, detail="Worker image is not allowed") from error
+            raise HTTPException(
+                status_code=403, detail="Worker image is not allowed"
+            ) from error
         except ControllerConflict as error:
-            raise HTTPException(status_code=409, detail="Docker lifecycle conflict") from error
+            raise HTTPException(
+                status_code=409, detail="Docker lifecycle conflict"
+            ) from error
         except Exception as error:
             raise HTTPException(
                 status_code=503, detail="Docker lifecycle unavailable"
@@ -167,7 +171,7 @@ def create_app(
             run_id,
             lambda: current_runtime(request).start(
                 run_id, payload.run_token, payload.worker_image
-            )
+            ),
         )
         return StartRunResponse.model_validate(result).model_dump(mode="json")
 
@@ -177,12 +181,16 @@ def create_app(
         result = await execute(run_id, lambda: current_runtime(request).stop(run_id))
         return StopRunResponse.model_validate(result).model_dump(mode="json")
 
+    @application.post("/v1/runs/{run_id}/restart")
+    async def restart_run(run_id: UUID, request: Request):
+        await parse_body(request, EmptyLifecycleRequest)
+        result = await execute(run_id, lambda: current_runtime(request).restart(run_id))
+        return StartRunResponse.model_validate(result).model_dump(mode="json")
+
     @application.post("/v1/runs/{run_id}/destroy")
     async def destroy_run(run_id: UUID, request: Request):
         await parse_body(request, EmptyLifecycleRequest)
-        result = await execute(
-            run_id, lambda: current_runtime(request).destroy(run_id)
-        )
+        result = await execute(run_id, lambda: current_runtime(request).destroy(run_id))
         return DestroyRunResponse.model_validate(result).model_dump(mode="json")
 
     @application.post("/v1/runs/{run_id}/purge-data")

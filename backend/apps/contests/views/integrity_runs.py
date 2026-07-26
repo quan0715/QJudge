@@ -16,6 +16,7 @@ from apps.contests.services.integrity_runs import (
     LiveIntegrityRunExists,
     destroy_run,
     purge_run,
+    restart_run,
     start_run,
     stop_run,
 )
@@ -89,6 +90,12 @@ class IntegrityRunViewSet(viewsets.ViewSet):
         contest = self._managed_contest()
         run = self._run(contest, pk)
         return self._transition_response(lambda: start_run(run.id))
+
+    @action(detail=True, methods=["post"])
+    def restart(self, request, pk=None, contest_pk=None):
+        contest = self._managed_contest()
+        run = self._run(contest, pk)
+        return self._transition_response(lambda: restart_run(run.id))
 
     @action(detail=True, methods=["post"])
     def stop(self, request, pk=None, contest_pk=None):

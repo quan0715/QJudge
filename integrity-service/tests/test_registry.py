@@ -44,10 +44,10 @@ def registry_snapshot() -> dict:
                 "origin": "server",
                 "signals": {
                     "triggered": "connectivity_suspect",
-                    "escalated": "heartbeat_timeout",
+                    "escalated": "connectivity_timeout",
                     "restored": "connectivity_restored",
                 },
-                "emission": "state_snapshot",
+                "emission": "health_snapshot",
                 "incident_family": "connectivity",
                 "priority": 1,
                 "grace_ms": 45_000,

@@ -25,6 +25,7 @@ _SAFE_LIFECYCLE_CODES = frozenset(
     {
         "controller_start_reconciliation_failed",
         "controller_start_finalization_failed",
+        "controller_restart_reconciliation_failed",
         "worker_archive_failed",
         "controller_stop_reconciliation_failed",
         "controller_stop_finalization_failed",
@@ -61,6 +62,9 @@ class ControllerClient(Protocol):
         ...
 
     def status(self, run_id) -> object:
+        ...
+
+    def restart(self, run_id) -> Mapping[str, object]:
         ...
 
     def stop_container(self, run_id) -> Mapping[str, object]:
@@ -548,6 +552,74 @@ def start_run(run_id, *, controller=None) -> ExamIntegrityRun:
         raise IntegrityLifecycleError(code) from None
 
 
+def restart_run(run_id, *, controller=None) -> ExamIntegrityRun:
+    """Recover an existing unhealthy Worker while retaining its run data."""
+
+    error_guard = LifecycleErrorGuard()
+    try:
+        with _serialized_run_operation(run_id):
+            with transaction.atomic():
+                run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+                error_guard.observe(run)
+                if not (
+                    run.compute_state == ExamIntegrityRun.ComputeState.RUNNING
+                    and run.health == ExamIntegrityRun.Health.UNHEALTHY
+                ):
+                    raise InvalidRunTransition(
+                        "restart requires an unhealthy running Worker"
+                    ) from None
+
+            resolved_controller = controller or _build_controller_client()
+            try:
+                restarted = _parse_started_container(
+                    resolved_controller.restart(run_id)
+                )
+            except Exception:
+                raise IntegrityLifecycleError(
+                    "controller_restart_reconciliation_failed"
+                ) from None
+            if (
+                restarted.container_id != run.container_id
+                or restarted.container_name != run.container_name
+                or restarted.worker_url != run.worker_url
+                or restarted.image_digest != run.worker_image_digest
+            ):
+                raise IntegrityLifecycleError(
+                    "controller_restart_reconciliation_failed"
+                ) from None
+            status = _read_controller_status(
+                resolved_controller,
+                run_id,
+                error_code="controller_restart_reconciliation_failed",
+            )
+
+            with transaction.atomic():
+                run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
+                error_guard.observe(run)
+                if not (
+                    run.compute_state == ExamIntegrityRun.ComputeState.RUNNING
+                    and run.health == ExamIntegrityRun.Health.UNHEALTHY
+                    and status.state == "running"
+                    and _status_matches_container(run, status)
+                ):
+                    raise IntegrityLifecycleError(
+                        "controller_restart_reconciliation_failed"
+                    ) from None
+                run.health = ExamIntegrityRun.Health.HEALTHY
+                run.last_error = ""
+                run.save(update_fields=["health", "last_error", "updated_at"])
+                return run
+    except InvalidRunTransition:
+        raise
+    except IntegrityLifecycleError as exc:
+        _record_lifecycle_error(run_id, exc.code, claim=error_guard.claim)
+        raise IntegrityLifecycleError(exc.code) from None
+    except Exception:
+        code = "controller_restart_reconciliation_failed"
+        _record_lifecycle_error(run_id, code, claim=error_guard.claim)
+        raise IntegrityLifecycleError(code) from None
+
+
 def _parse_archive_manifest(
     result: object,
     run: ExamIntegrityRun,
@@ -616,26 +688,29 @@ def _checkpoint_archive(
     worker: WorkerStopClient | None,
     error_guard: LifecycleErrorGuard,
 ) -> tuple[ExamIntegrityRun, bool]:
-    with transaction.atomic():
-        run = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
-        error_guard.observe(run)
-        if (
-            run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
-            and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
-        ):
-            return run, False
-        if run.compute_state != ExamIntegrityRun.ComputeState.STOPPING:
-            raise InvalidRunTransition("stop requires running or stopping") from None
-        if _archive_checkpoint_present(run):
-            _parse_archive_manifest(
-                {
-                    "archived": True,
-                    "manifest_key": run.archive_manifest_key,
-                    "manifest_sha256": run.archive_manifest_sha256,
-                },
-                run,
-            )
-            return run, False
+    # The operation-level advisory lock already serializes this read with every
+    # lifecycle mutation. Keeping a read-only transaction here added a commit
+    # boundary before the external Worker call and made checkpoint recovery
+    # ambiguous when that empty commit failed.
+    run = ExamIntegrityRun.objects.get(pk=run_id)
+    error_guard.observe(run)
+    if (
+        run.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+        and run.data_state == ExamIntegrityRun.DataState.ARCHIVED
+    ):
+        return run, False
+    if run.compute_state != ExamIntegrityRun.ComputeState.STOPPING:
+        raise InvalidRunTransition("stop requires running or stopping") from None
+    if _archive_checkpoint_present(run):
+        _parse_archive_manifest(
+            {
+                "archived": True,
+                "manifest_key": run.archive_manifest_key,
+                "manifest_sha256": run.archive_manifest_sha256,
+            },
+            run,
+        )
+        return run, False
 
     try:
         resolved_worker = worker or _build_worker_client()
@@ -863,19 +938,13 @@ def purge_run(
             resolved_controller.purge_data(run.id)
 
             with transaction.atomic():
-                locked = ExamIntegrityRun.objects.select_for_update().get(
-                    pk=run_id
-                )
+                locked = ExamIntegrityRun.objects.select_for_update().get(pk=run_id)
                 if not (
-                    locked.compute_state
-                    == ExamIntegrityRun.ComputeState.DESTROYED
-                    and locked.data_state
-                    == ExamIntegrityRun.DataState.ARCHIVED
+                    locked.compute_state == ExamIntegrityRun.ComputeState.DESTROYED
+                    and locked.data_state == ExamIntegrityRun.DataState.ARCHIVED
                     and locked.archive_generation == run.archive_generation
-                    and locked.archive_manifest_key
-                    == run.archive_manifest_key
-                    and locked.archive_manifest_sha256
-                    == run.archive_manifest_sha256
+                    and locked.archive_manifest_key == run.archive_manifest_key
+                    and locked.archive_manifest_sha256 == run.archive_manifest_sha256
                 ):
                     raise InvalidRunTransition(
                         "purge Run changed before finalization"

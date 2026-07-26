@@ -1,7 +1,8 @@
 import "fake-indexeddb/auto";
+import { waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TFunction } from "i18next";
-import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
+import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { buildClipboardMetadata, ClipboardDetector } from "./clipboardDetector";
 import type { ViolationEvent } from "./types";
 
@@ -22,13 +23,12 @@ describe("ClipboardDetector", () => {
       target: document.createElement("textarea"),
       clipboardData: { getData: () => "captured text" },
     } as unknown as ClipboardEvent);
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: "clipboard_action",
-      clientOccurredAtMs: 1_000,
-    }));
+    await waitFor(() => {
+      expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
+        eventType: "clipboard_action",
+        clientOccurredAtMs: 1_000,
+      }));
+    });
     now.mockRestore();
     detector.stop();
   });

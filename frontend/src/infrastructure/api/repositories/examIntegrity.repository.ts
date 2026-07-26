@@ -1,7 +1,7 @@
 import type {
-  EvidenceManifestRequest,
+  EvidenceCheckpointRequest,
+  EvidenceCheckpointResponse,
   EvidenceManifestResponse,
-  EvidenceUnavailableReport,
   ExamIntegrityBatch,
   ExamIntegrityBatchAck,
   ExamIntegrityEvidenceDescriptor,
@@ -9,13 +9,14 @@ import type {
   EvidenceRetainCommand,
   ExamIntegrityRun,
 } from "@/core/entities/examIntegrity.entity";
-import { ensureOk, httpClient, requestJson } from "@/infrastructure/api/http.client";
+import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
 export interface ExamIntegrityRepository {
   listRuns(contestId: string): Promise<ExamIntegrityRun[]>;
   getRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   createRun(contestId: string): Promise<ExamIntegrityRun>;
   startRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
+  restartRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   stopRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   destroyRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   purgeRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
@@ -24,12 +25,10 @@ export interface ExamIntegrityRepository {
     batch: ExamIntegrityBatch,
     signal?: AbortSignal,
   ): Promise<ExamIntegrityBatchAck>;
-  requestEvidenceUploads(
+  submitEvidenceCheckpoint(
     contestId: string,
-    request: EvidenceManifestRequest,
-  ): Promise<EvidenceManifestResponse>;
-  completeEvidenceUpload(contestId: string, chunkId: string): Promise<"verified">;
-  reportEvidenceUnavailable(contestId: string, report: EvidenceUnavailableReport): Promise<void>;
+    request: EvidenceCheckpointRequest,
+  ): Promise<EvidenceCheckpointResponse>;
 }
 
 const mapDescriptor = (descriptor: ExamIntegrityEvidenceDescriptor) => ({
@@ -245,6 +244,13 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     ));
   },
 
+  async restartRun(contestId, runId) {
+    return mapRun(await requestJson<WireIntegrityRun>(
+      httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/restart/`), {}),
+      "Failed to restart integrity Worker",
+    ));
+  },
+
   async stopRun(contestId, runId) {
     return mapRun(await requestJson<WireIntegrityRun>(
       httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/stop/`), {}),
@@ -272,9 +278,16 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       pending_commands: Array<Parameters<typeof mapCommand>[0]>;
       release_evidence_before_ms: number;
     }>(
-      httpClient.requestOnce(apiPath(contestId, "batches"), {
+      httpClient.requestOnce(apiPath(contestId, "checkpoints"), {
         method: "POST",
-        body: JSON.stringify(mapBatch(batch)),
+        body: JSON.stringify({
+          observations: mapBatch(batch),
+          evidence: {
+            manifests: [],
+            completions: [],
+            unavailable: [],
+          },
+        }),
         headers: { "Content-Type": "application/json" },
         signal,
       }),
@@ -283,7 +296,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     return mapAck(response, batch);
   },
 
-  async requestEvidenceUploads(contestId, request) {
+  async submitEvidenceCheckpoint(contestId, request) {
     const response = await requestJson<{
       uploads: Array<{
         chunk_id: string;
@@ -294,42 +307,43 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
         put_url: string | null;
         required_headers: Record<string, string>;
       }>;
+      completions: Array<{
+        chunk_id: string;
+        status: string;
+      }>;
     }>(
-      httpClient.post(apiPath(contestId, "evidence/manifest"), {
-        run_id: request.runId,
-        incident_id: request.incidentId,
-        chunks: request.chunks.map(mapDescriptor),
+      httpClient.post(apiPath(contestId, "checkpoints"), {
+        evidence: {
+          manifests: request.manifests.map((manifest) => ({
+            run_id: manifest.runId,
+            incident_id: manifest.incidentId,
+            chunks: manifest.chunks.map(mapDescriptor),
+          })),
+          completions: request.completions.map((chunkId) => ({
+            chunk_id: chunkId,
+          })),
+          unavailable: request.unavailable.map((report) => (
+            "chunkId" in report
+              ? { chunk_id: report.chunkId, reason: report.reason }
+              : {
+                  run_id: report.runId,
+                  incident_id: report.incidentId,
+                  event_id: report.eventId,
+                  source: report.source,
+                  reason: report.reason,
+                }
+          )),
+        },
       }),
-      "Failed to request evidence uploads",
+      "Failed to submit evidence checkpoint",
     );
-    return mapManifestResponse(response);
-  },
-
-  async completeEvidenceUpload(contestId, chunkId) {
-    const response = await requestJson<{ chunk_id: string; status: string }>(
-      httpClient.post(apiPath(contestId, "evidence/complete"), { chunk_id: chunkId }),
-      "Failed to complete evidence upload",
-    );
-    if (response.chunk_id !== chunkId || response.status !== "verified") {
-      throw new Error("Evidence upload was not verified");
-    }
-    return "verified";
-  },
-
-  async reportEvidenceUnavailable(contestId, report) {
-    const payload = "chunkId" in report
-      ? { chunk_id: report.chunkId, reason: report.reason }
-      : {
-          run_id: report.runId,
-          incident_id: report.incidentId,
-          event_id: report.eventId,
-          source: report.source,
-          reason: report.reason,
-        };
-    await ensureOk(
-      httpClient.post(apiPath(contestId, "evidence/unavailable"), payload),
-      "Failed to report unavailable evidence",
-    );
+    return {
+      ...mapManifestResponse(response),
+      completions: response.completions.map((completion) => ({
+        chunkId: completion.chunk_id,
+        status: completion.status,
+      })),
+    };
   },
 };
 

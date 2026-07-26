@@ -10,11 +10,13 @@ from apps.contests.models import Contest, ContestActivity, ContestParticipant, E
 from apps.contests.services.anti_cheat_session import (
     _exam_allowed_jti_key,
     active_session_key,
-    heartbeat_key,
+)
+from apps.contests.services.integrity_presence import (
+    get_last_checkpoint,
+    record_checkpoint,
 )
 from apps.contests.services.participant_state import (
     admin_update_participant,
-    reconcile_participant_on_contest_access,
     reopen_participant_exam,
 )
 from apps.users.models import User
@@ -52,34 +54,6 @@ def contest(teacher: User) -> Contest:
         end_time=now + timedelta(hours=1),
         cheat_detection_enabled=True,
     )
-
-
-@pytest.mark.django_db
-def test_reconcile_participant_auto_submits_after_contest_end(
-    contest: Contest,
-    student: User,
-) -> None:
-    contest.end_time = timezone.now() - timedelta(minutes=5)
-    contest.save(update_fields=["end_time"])
-
-    participant = ContestParticipant.objects.create(
-        contest=contest,
-        user=student,
-        exam_status=ExamStatus.IN_PROGRESS,
-    )
-
-    reconcile_participant_on_contest_access(participant, activity_user=student)
-
-    participant.refresh_from_db()
-    assert participant.exam_status == ExamStatus.SUBMITTED
-    assert participant.left_at is not None
-    assert participant.submit_reason == "Auto-submitted: contest ended"
-    assert ContestActivity.objects.filter(
-        contest=contest,
-        user=student,
-        action_type="auto_submit",
-        details="Auto-submitted: contest ended",
-    ).exists()
 
 
 @pytest.mark.django_db
@@ -168,7 +142,7 @@ def test_admin_update_participant_to_not_started_clears_attempt_and_runtime_keys
         submit_reason="some reason",
     )
     cache.set(active_session_key(contest.id, student.id), {"device_id": "dev-1"}, timeout=300)
-    cache.set(heartbeat_key(contest.id, student.id), timezone.now().isoformat(), timeout=300)
+    record_checkpoint(contest.id, student.id)
     cache.set(_exam_allowed_jti_key(student.id, contest.id), "jti-1", timeout=300)
 
     admin_update_participant(
@@ -184,5 +158,5 @@ def test_admin_update_participant_to_not_started_clears_attempt_and_runtime_keys
     assert participant.left_at is None
     assert participant.submit_reason == ""
     assert cache.get(active_session_key(contest.id, student.id)) is None
-    assert cache.get(heartbeat_key(contest.id, student.id)) is None
+    assert get_last_checkpoint(contest.id, student.id) is None
     assert cache.get(_exam_allowed_jti_key(student.id, contest.id)) is None

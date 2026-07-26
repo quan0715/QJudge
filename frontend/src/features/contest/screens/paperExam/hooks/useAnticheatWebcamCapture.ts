@@ -50,6 +50,7 @@ export const useAnticheatWebcamCapture = ({
     return created;
   });
   const streamRef = useRef<MediaStream | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const sfuPublisherRef = useRef(createSfuVideoPublisher("webcam"));
   const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
@@ -61,6 +62,11 @@ export const useAnticheatWebcamCapture = ({
   useEffect(() => {
     onWebcamLostRef.current = onWebcamLost;
   }, [onWebcamLost]);
+
+  const updateStream = useCallback((nextStream: MediaStream | null) => {
+    streamRef.current = nextStream;
+    setStream(nextStream);
+  }, []);
 
   const ensureSfuPublisher = useCallback(
     (stream: MediaStream) => {
@@ -77,12 +83,12 @@ export const useAnticheatWebcamCapture = ({
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
-    streamRef.current = null;
+    updateStream(null);
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
     return !!stream;
-  }, []);
+  }, [updateStream]);
 
   const handleDetectedWebcamLoss = useCallback(() => {
     streamWasLiveRef.current = false;
@@ -96,12 +102,12 @@ export const useAnticheatWebcamCapture = ({
     const track = getPrimaryVideoTrack(stream);
     track?.addEventListener("ended", () => {
       if (streamRef.current === stream) {
-        streamRef.current = null;
+        updateStream(null);
         handleDetectedWebcamLoss();
       }
     });
     if (isStreamHealthy(stream)) {
-      streamRef.current = stream;
+      updateStream(stream);
       streamWasLiveRef.current = true;
       setStreamActive(true);
       ensureSfuPublisher(stream);
@@ -109,7 +115,7 @@ export const useAnticheatWebcamCapture = ({
     }
     stream.getTracks().forEach((t) => t.stop());
     return null;
-  }, [ensureSfuPublisher, handleDetectedWebcamLoss]);
+  }, [ensureSfuPublisher, handleDetectedWebcamLoss, updateStream]);
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
     const currentStream = streamRef.current;
@@ -191,7 +197,7 @@ export const useAnticheatWebcamCapture = ({
       if (shouldPreserveStream) {
         const stream = streamRef.current;
         if (stream?.active) {
-          streamRef.current = null;
+          updateStream(null);
           setStreamActive(false);
           setRuntimeWebcamHandoff(stream);
           clearPrecheckWebcamHandoff(true);
@@ -200,14 +206,14 @@ export const useAnticheatWebcamCapture = ({
       }
       forceStopCapture();
     },
-    [contestId, forceStopCapture, preserveStreamOnUnmount]
+    [contestId, forceStopCapture, preserveStreamOnUnmount, updateStream]
   );
 
   return {
     uploadSessionId,
     streamActive,
     forceStopCapture,
-    stream: streamRef.current,
+    stream,
   };
 };
 

@@ -6,7 +6,6 @@ import pytest
 from integrity_service.core.commands import (
     EngineContext,
     ReceivedEvent,
-    SubmissionState,
     deterministic_uuid,
 )
 from integrity_service.core.connectivity import ConnectivityMonitor
@@ -54,11 +53,18 @@ def signal(
     )
 
 
-def engine(submissions: SubmissionState | None = None) -> IncidentEngine:
+def engine() -> IncidentEngine:
     return IncidentEngine(
         Registry(registry_snapshot()),
         EngineContext(run_id=RUN_ID),
-        submissions or SubmissionState(),
+    )
+
+
+def engine_with_delivery_tolerance(tolerance_ms: int) -> IncidentEngine:
+    return IncidentEngine(
+        Registry(registry_snapshot()),
+        EngineContext(run_id=RUN_ID),
+        delivery_tolerance_ms=tolerance_ms,
     )
 
 
@@ -83,6 +89,84 @@ def test_trigger_restore_inside_grace_closes_without_pause():
     assert opened.commands[0].action == "record"
     assert {command.action for command in restored.commands} == {"audit"}
     assert subject.tick(40_000).commands == ()
+
+
+def test_cross_checkpoint_restore_uses_client_duration_not_delivery_delay():
+    subject = engine()
+    subject.ingest(
+        signal(
+            "exit_fullscreen_triggered",
+            server_ms=1_000,
+            client_occurred_at_ms=1_000,
+            event_id="00000000-0000-0000-0000-000000000101",
+        )
+    )
+
+    restored = subject.ingest(
+        signal(
+            "fullscreen_restored",
+            server_ms=40_000,
+            client_occurred_at_ms=1_900,
+            event_id="00000000-0000-0000-0000-000000000102",
+        )
+    )
+
+    assert [command.event_type for command in restored.commands] == [
+        "fullscreen_restored"
+    ]
+    assert subject.tick(50_000).commands == ()
+
+
+def test_invalid_restore_chronology_does_not_infer_grace_from_delivery_delay():
+    subject = engine()
+    subject.ingest(
+        signal(
+            "exit_fullscreen_triggered",
+            server_ms=1_000,
+            client_occurred_at_ms=2_000,
+            event_id="00000000-0000-0000-0000-000000000103",
+        )
+    )
+
+    restored = subject.ingest(
+        signal(
+            "fullscreen_restored",
+            server_ms=40_000,
+            client_occurred_at_ms=1_900,
+            event_id="00000000-0000-0000-0000-000000000104",
+        )
+    )
+
+    assert [command.event_type for command in restored.commands] == [
+        "fullscreen_restored"
+    ]
+
+
+def test_delivery_tolerance_delays_timer_without_changing_client_grace():
+    subject = engine_with_delivery_tolerance(5_000)
+    subject.ingest(
+        signal(
+            "exit_fullscreen_triggered",
+            server_ms=1_000,
+            client_occurred_at_ms=1_000,
+            event_id="00000000-0000-0000-0000-000000000105",
+        )
+    )
+
+    assert subject.tick(31_000).commands == ()
+    restored = subject.ingest(
+        signal(
+            "fullscreen_restored",
+            server_ms=32_000,
+            client_occurred_at_ms=31_000,
+            event_id="00000000-0000-0000-0000-000000000106",
+        )
+    )
+
+    assert [command.event_type for command in restored.commands] == [
+        "exit_fullscreen",
+        "fullscreen_restored",
+    ]
 
 
 def test_trigger_escalates_at_exact_registry_grace_boundary_once():
@@ -140,36 +224,6 @@ def test_late_signal_is_audit_only_and_creates_no_deadline():
 
     assert tuple(command.action for command in result.commands) == ("audit",)
     assert subject.tick(200_000).commands == ()
-
-
-def test_submitted_participant_commands_remain_audit_only():
-    subject = engine()
-    subject.mark_submitted(101)
-
-    result = subject.ingest(
-        signal(
-            "exit_fullscreen_triggered",
-            server_ms=1_000,
-            event_id="00000000-0000-0000-0000-000000000007",
-        )
-    )
-
-    assert tuple(command.action for command in result.commands) == ("audit",)
-    assert subject.tick(100_000).commands == ()
-
-
-def test_submission_changes_existing_deadline_to_audit_only():
-    subject = engine()
-    subject.ingest(
-        signal(
-            "exit_fullscreen_triggered",
-            server_ms=1_000,
-            event_id="00000000-0000-0000-0000-000000000008",
-        )
-    )
-    subject.mark_submitted(101)
-
-    assert subject.tick(31_000).commands[0].action == "audit"
 
 
 def test_replay_produces_equal_immutable_commands_and_ids():
@@ -248,18 +302,15 @@ def test_external_escalated_reusing_trigger_uuid_cannot_collide_with_timer_comma
     assert external.command_id != timer.command_id
 
 
-@pytest.mark.parametrize(("delayed", "submitted"), [(True, False), (False, True)])
-def test_external_escalated_is_audit_only_when_delayed_or_submitted(delayed, submitted):
+def test_external_escalated_is_audit_only_when_delayed():
     subject = engine()
-    if submitted:
-        subject.mark_submitted(101)
 
     command = subject.ingest(
         signal(
             "exit_fullscreen",
             server_ms=100_000,
             event_id="00000000-0000-0000-0000-000000000014",
-            delayed_delivery=delayed,
+            delayed_delivery=True,
         )
     ).commands[0]
 
@@ -387,8 +438,24 @@ def test_incident_complete_phase_values_and_uuidv5_formula_are_pinned():
             2_000,
             2_000,
         ),
-        (escalation, trigger_event_id, "escalated", "exit_fullscreen", "pause", 1_000, 31_000),
-        (restore, restore_event_id, "restored", "fullscreen_restored", "audit", 32_000, 32_000),
+        (
+            escalation,
+            trigger_event_id,
+            "escalated",
+            "exit_fullscreen",
+            "pause",
+            1_000,
+            31_000,
+        ),
+        (
+            restore,
+            restore_event_id,
+            "restored",
+            "fullscreen_restored",
+            "audit",
+            32_000,
+            32_000,
+        ),
     ]
     for command, event_id, phase, event_type, action, client_ms, server_ms in rows:
         command_id = uuid5(
@@ -452,14 +519,12 @@ def test_restore_before_exact_and_after_deadline_has_complete_order(
 
 def test_server_owned_browser_claims_cannot_change_connectivity_or_alias_monitor_ids():
     registry = Registry(registry_snapshot())
-    submissions = SubmissionState()
     context = EngineContext(run_id=RUN_ID)
-    incidents = IncidentEngine(registry, context, submissions)
+    incidents = IncidentEngine(registry, context)
     monitor = ConnectivityMonitor(
         {"suspect_after_ms": 15_000, "disconnected_after_ms": 60_000},
         registry,
         context,
-        submissions,
     )
     monitor.observe(participant_id=101, device_id="device-1", server_ms=1_000)
     predictable_monitor_event_id = deterministic_uuid(
@@ -481,7 +546,7 @@ def test_server_owned_browser_claims_cannot_change_connectivity_or_alias_monitor
         ).commands[0],
         incidents.ingest(
             signal(
-                "heartbeat_timeout",
+                "connectivity_timeout",
                 server_ms=3_000,
                 event_id="00000000-0000-0000-0000-000000000090",
             )
@@ -501,7 +566,7 @@ def test_server_owned_browser_claims_cannot_change_connectivity_or_alias_monitor
     authoritative = monitor.tick(61_000)
     assert [command.event_type for command in authoritative] == [
         "connectivity_suspect",
-        "heartbeat_timeout",
+        "connectivity_timeout",
     ]
     assert [command.action for command in authoritative] == ["record", "pause"]
 

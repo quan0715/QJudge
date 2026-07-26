@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from integrity_service.core.commands import EngineContext, SubmissionState
+from integrity_service.core.commands import EngineContext
 from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.registry import Registry
 
@@ -13,12 +13,11 @@ RUN_ID = UUID("00000000-0000-0000-0000-000000000222")
 POLICY = {"suspect_after_ms": 15_000, "disconnected_after_ms": 60_000}
 
 
-def monitor(submissions: SubmissionState | None = None) -> ConnectivityMonitor:
+def monitor() -> ConnectivityMonitor:
     return ConnectivityMonitor(
         POLICY,
         Registry(registry_snapshot()),
         EngineContext(run_id=RUN_ID),
-        submissions or SubmissionState(),
     )
 
 
@@ -29,7 +28,7 @@ def test_connectivity_uses_server_receipt_time_and_exact_boundaries():
     assert subject.tick(15_999) == ()
     assert subject.tick(16_000)[0].event_type == "connectivity_suspect"
     assert subject.tick(60_999) == ()
-    assert subject.tick(61_000)[0].event_type == "heartbeat_timeout"
+    assert subject.tick(61_000)[0].event_type == "connectivity_timeout"
 
 
 def test_connectivity_transitions_are_one_shot_until_observation_restores():
@@ -64,8 +63,8 @@ def test_connectivity_replay_and_sort_order_are_deterministic():
     assert [(command.participant_id, command.event_type) for command in first_commands] == [
         (101, "connectivity_suspect"),
         (202, "connectivity_suspect"),
-        (101, "heartbeat_timeout"),
-        (202, "heartbeat_timeout"),
+        (101, "connectivity_timeout"),
+        (202, "connectivity_timeout"),
     ]
 
 
@@ -105,7 +104,7 @@ def test_observe_advances_every_due_transition_before_restore_without_tick_depen
     assert tuple(without) == tuple(with_intermediary)
     assert [command.event_type for command in without] == [
         "connectivity_suspect",
-        "heartbeat_timeout",
+        "connectivity_timeout",
         "connectivity_restored",
     ]
 
@@ -134,7 +133,7 @@ def test_observe_at_timeout_boundary_emits_every_due_transition_then_restore():
 
     assert [command.event_type for command in commands] == [
         "connectivity_suspect",
-        "heartbeat_timeout",
+        "connectivity_timeout",
         "connectivity_restored",
     ]
 
@@ -166,40 +165,6 @@ def test_multiple_devices_share_incident_and_only_one_applies_participant_action
     assert subject.tick(71_000) == ()
 
 
-@pytest.mark.parametrize("submission_point", ["before", "between", "after"])
-def test_connectivity_actions_are_monotonic_after_shared_submission(submission_point):
-    submissions = SubmissionState()
-    subject = monitor(submissions)
-    subject.observe(participant_id=101, device_id="device-1", server_ms=1_000)
-    if submission_point == "before":
-        subject.mark_submitted(101)
-
-    suspect = subject.tick(16_000)[0]
-    if submission_point == "between":
-        subject.mark_submitted(101)
-    timeout = subject.tick(61_000)[0]
-    if submission_point == "after":
-        subject.mark_submitted(101)
-    restored = subject.observe(
-        participant_id=101, device_id="device-1", server_ms=70_000
-    )[0]
-
-    if submission_point == "before":
-        assert suspect.action == "audit"
-    assert timeout.action == ("pause" if submission_point == "after" else "audit")
-    assert restored.action == "audit"
-
-
-def test_submission_applies_across_devices():
-    subject = monitor()
-    subject.observe(participant_id=101, device_id="device-a", server_ms=1_000)
-    subject.observe(participant_id=101, device_id="device-b", server_ms=1_000)
-    subject.tick(16_000)
-    subject.mark_submitted(101)
-
-    assert [command.action for command in subject.tick(61_000)] == ["audit", "audit"]
-
-
 def test_connectivity_complete_phase_values_and_uuidv5_formula_are_pinned():
     import json
     from uuid import uuid5
@@ -222,7 +187,7 @@ def test_connectivity_complete_phase_values_and_uuidv5_formula_are_pinned():
 
     rows = [
         (suspect, "connectivity_suspect", "triggered", "record", 16_000),
-        (timeout, "heartbeat_timeout", "escalated", "pause", 61_000),
+        (timeout, "connectivity_timeout", "escalated", "pause", 61_000),
         (restored, "connectivity_restored", "restored", "audit", 70_000),
     ]
     for command, event_type, phase, action, transition_ms in rows:

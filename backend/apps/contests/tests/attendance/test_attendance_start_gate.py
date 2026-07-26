@@ -130,7 +130,7 @@ def test_attendance_evidence_confirm_allows_not_started_participant() -> None:
             "ETag": '"attendance-etag"',
         }
         response = api_client.post(
-            f"/api/v1/contests/{contest.id}/exam/evidence/upload-confirm/",
+            f"/api/v1/contests/{contest.id}/exam/attendance/evidence/confirm/",
             {
                 "event_id": event.id,
                 "upload_session_id": "attendance-upload-1",

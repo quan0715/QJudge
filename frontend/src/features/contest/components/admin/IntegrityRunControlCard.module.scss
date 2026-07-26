@@ -1,11 +1,32 @@
-.card { margin: 1rem; display: grid; gap: 1rem; }
-.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.header h2, .header p { margin: 0; }
-.header p, .hint { color: var(--cds-text-secondary); }
-.tags, .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin: 0; }
-.metrics div { min-width: 0; }
-.metrics dt { color: var(--cds-text-secondary); font-size: .75rem; }
-.metrics dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
-.prep, .error, .hint { margin: 0; }
-.error { color: var(--cds-support-error); }
+.card {
+  display: grid;
+  gap: var(--cds-spacing-05);
+  margin: 0;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+}
+
+.description,
+.restartConfirmation p {
+  margin: 0;
+}
+
+.description {
+  color: var(--cds-text-secondary);
+}
+
+.restartConfirmation {
+  display: grid;
+  gap: var(--cds-spacing-04);
+  padding-top: var(--cds-spacing-03);
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.confirmationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cds-spacing-03);
+}

@@ -10,18 +10,14 @@ def default_anticheat_device_policy():
             "sources": {
                 "screen_share": {
                     "enabled": True,
-                    "capture_interval_seconds": 5,
                 },
                 "webcam": {
                     "enabled": False,
-                    "capture_interval_seconds": 10,
                 },
             },
             "detectors": {
                 "pwa_mode": False,
                 "fullscreen": True,
-                "focus": False,
-                "tab_visibility": False,
                 "multi_display": True,
                 "mouse_leave": True,
                 "viewport_integrity": False,
@@ -32,18 +28,14 @@ def default_anticheat_device_policy():
             "sources": {
                 "screen_share": {
                     "enabled": False,
-                    "capture_interval_seconds": 5,
                 },
                 "webcam": {
                     "enabled": True,
-                    "capture_interval_seconds": 10,
                 },
             },
             "detectors": {
                 "pwa_mode": True,
                 "fullscreen": False,
-                "focus": False,
-                "tab_visibility": False,
                 "multi_display": False,
                 "mouse_leave": True,
                 "viewport_integrity": True,

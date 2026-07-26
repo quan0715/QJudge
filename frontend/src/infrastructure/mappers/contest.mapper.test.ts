@@ -75,7 +75,7 @@ describe("contest mapper", () => {
     });
   });
 
-  describe("anti-cheat recovery grace mapping", () => {
+  describe("anti-cheat config mapping", () => {
     it("drops retired contest delivery and warning fields", () => {
       const result = mapContestDetailDto({
         id: "contest-1",
@@ -105,93 +105,55 @@ describe("contest mapper", () => {
       expect(updateDto).not.toHaveProperty("counts_toward_grade");
     });
 
-    it("maps contest detail screen share recovery grace from backend payload", () => {
-      const result = mapContestDetailDto({
-        id: "contest-1",
-        name: "Exam",
-        contest_type: "paper_exam",
-        cheat_detection_enabled: true,
-        anticheat_device_policy: {},
-        warning_timeout_seconds: 20,
-        screen_share_recovery_grace_ms: 45000,
-        permissions: {},
-        problems: [],
-        exam_questions_count: 0,
-      });
-
-      expect(result.screenShareRecoveryGraceMs).toBe(45000);
-    });
-
-    it("omits contest update screen share recovery grace because backend owns it", () => {
-      const dto = mapContestUpdateRequestToDto({
-        screenShareRecoveryGraceMs: 45000,
-      } as any);
-
-      expect(dto).not.toHaveProperty("screen_share_recovery_grace_ms");
-    });
-
-    it("maps anticheat config screen share recovery grace from backend payload", () => {
+    it("maps only device policy and the frozen integrity run", () => {
       const result = mapContestAnticheatConfigDto({
-        version: 1,
-        global_defaults: {
-          capture_interval_seconds: 5,
-          forced_capture_cooldown_ms: 1000,
-          forced_capture_p1_cooldown_ms: 15000,
-          event_feed_aggregation_window_seconds: 60,
-          incident_screenshot_window_before_ms: 15000,
-          incident_screenshot_window_after_ms: 15000,
-          incident_screenshot_preview_limit: 10,
-          incident_screenshot_categories: ["critical"],
-          monitoring_recovery_grace_ms: 3000,
-          mouse_leave_cooldown_ms: 3000,
-          screen_share_recovery_grace_ms: 30000,
-          webcam_recovery_grace_ms: 10000,
-          webcam_capture_interval_seconds: 10,
-          multi_display_check_interval_ms: 5000,
-          multi_display_report_cooldown_ms: 15000,
-          presigned_url_ttl_seconds: 300,
+        version: 3,
+        device_policy: {
+          desktop: {
+            enabled: true,
+            sources: { screen_share: { enabled: true }, webcam: { enabled: false } },
+            detectors: {
+              pwa_mode: false,
+              fullscreen: true,
+              multi_display: true,
+              mouse_leave: true,
+              viewport_integrity: false,
+            },
+          },
+          tablet: {
+            enabled: true,
+            sources: { screen_share: { enabled: false }, webcam: { enabled: true } },
+            detectors: {
+              pwa_mode: true,
+              fullscreen: false,
+              multi_display: false,
+              mouse_leave: true,
+              viewport_integrity: true,
+            },
+          },
         },
-        contest_settings: {
-          cheat_detection_enabled: true,
-          allow_multiple_joins: true,
-          contest_type: "paper_exam",
-          warning_timeout_seconds: 20,
-          screen_share_recovery_grace_ms: 45000,
-          anticheat_device_policy: {},
-        },
-        effective: {
-          capture_interval_seconds: 5,
-          forced_capture_cooldown_ms: 1000,
-          forced_capture_p1_cooldown_ms: 15000,
-          event_feed_aggregation_window_seconds: 60,
-          incident_screenshot_window_before_ms: 15000,
-          incident_screenshot_window_after_ms: 15000,
-          incident_screenshot_preview_limit: 10,
-          incident_screenshot_categories: ["critical"],
-          monitoring_recovery_grace_ms: 3000,
-          mouse_leave_cooldown_ms: 3000,
-          screen_share_recovery_grace_ms: 45000,
-          webcam_recovery_grace_ms: 10000,
-          webcam_capture_interval_seconds: 10,
-          multi_display_check_interval_ms: 5000,
-          multi_display_report_cooldown_ms: 15000,
-          presigned_url_ttl_seconds: 300,
-          cheat_detection_enabled: true,
-          allow_multiple_joins: true,
-          contest_type: "paper_exam",
-          warning_timeout_seconds: 20,
-          anticheat_device_policy: {},
-        },
-        device_policy: {},
-        frontend_controlled_settings: {
-          global: [],
-          contest: [],
+        integrity_run: {
+          id: "run-1",
+          compute_state: "running",
+          health: "healthy",
+          participant_id: "7",
+          policy_snapshot: {
+            device_policy: {
+              desktop: {
+                enabled: false,
+                sources: { screen_share: { enabled: false }, webcam: { enabled: false } },
+                detectors: {},
+              },
+            },
+          },
+          registry_snapshot: { version: "registry-1", definitions: {} },
         },
       });
 
-      expect(result.globalDefaults.screenShareRecoveryGraceMs).toBe(30000);
-      expect(result.contestSettings.screenShareRecoveryGraceMs).toBe(45000);
-      expect(result.effective.screenShareRecoveryGraceMs).toBe(45000);
+      expect(result.version).toBe(3);
+      expect(result.devicePolicy.desktop.sources.screenShare).toEqual({ enabled: true });
+      expect(result.integrityRun?.participantId).toBe(7);
+      expect(result.integrityRun?.devicePolicy.desktop.enabled).toBe(false);
     });
   });
 

@@ -1,7 +1,8 @@
-"""Signed, validation-only gateway for Browser-to-Worker integrity batches."""
+"""Single student checkpoint gateway for observations and evidence."""
 
 import time
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
@@ -18,35 +19,106 @@ from ..infrastructure.integrity_worker_client import (
 )
 from ..integrity_serializers import (
     MAX_INTEGRITY_BATCH_BYTES,
-    ExamIntegrityBatchSerializer,
+    IntegrityCheckpointSerializer,
     canonical_integrity_batch_bytes,
 )
-from ..models import Contest, ContestParticipant, ExamIntegrityRun
+from ..models import (
+    Contest,
+    ContestParticipant,
+    ExamEvidenceChunk,
+    ExamEvent,
+    ExamIntegrityRun,
+    ExamStatus,
+)
 from ..services.anti_cheat_session import get_active_session
-from ..services.integrity_evidence import build_evidence_delivery
+from ..services.integrity_presence import record_checkpoint
+from ..services.integrity_evidence import (
+    IntegrityEvidenceRejected,
+    IntegrityEvidenceStorageError,
+    build_evidence_delivery,
+    complete_evidence_chunk,
+    create_evidence_manifest,
+    report_evidence_unavailable,
+    report_evidence_unavailable_projection,
+)
+
+ACTIVE_INTEGRITY_EXAM_STATUSES = {
+    ExamStatus.IN_PROGRESS,
+    ExamStatus.PAUSED,
+    ExamStatus.LOCKED,
+}
 
 
 class ExamIntegrityMixin:
+    @staticmethod
+    def _checkpoint_evidence_error(error):
+        if isinstance(error, IntegrityEvidenceRejected):
+            return Response(
+                {"code": error.code},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(
+            {"code": "evidence_storage_unavailable"},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
     @action(
         detail=False,
         methods=["post"],
-        url_path="integrity/batches",
+        url_path="integrity/checkpoints",
         permission_classes=[permissions.IsAuthenticated],
         throttle_classes=[ExamEventsThrottle],
     )
-    def integrity_batches(self, request, contest_pk=None):
-        return self._proxy_integrity_batch(request, contest_pk)
-
-    def _proxy_integrity_batch(self, request, contest_pk):
+    def integrity_checkpoints(self, request, contest_pk=None):
+        serializer = IntegrityCheckpointSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         contest = get_object_or_404(Contest, id=contest_pk)
         if not getattr(request.user, "is_student", False):
-            raise PermissionDenied("Only contest participants may submit batches.")
+            raise PermissionDenied("Only contest participants may submit checkpoints.")
         participant = ContestParticipant.objects.filter(
             contest=contest,
             user=request.user,
         ).first()
         if participant is None:
-            raise PermissionDenied("Only contest participants may submit batches.")
+            raise PermissionDenied("Only contest participants may submit checkpoints.")
+
+        response_data = {
+            "uploads": [],
+            "completions": [],
+            "unavailable": [],
+        }
+        observations = serializer.validated_data.get("observations")
+        if observations is not None:
+            observation_response = self._proxy_integrity_observations(
+                contest,
+                participant,
+                observations,
+            )
+            if isinstance(observation_response, Response):
+                return observation_response
+            response_data.update(observation_response)
+
+        evidence_response = self._apply_checkpoint_evidence(
+            contest,
+            participant,
+            serializer.validated_data["evidence"],
+        )
+        if isinstance(evidence_response, Response):
+            return evidence_response
+        response_data.update(evidence_response)
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def _proxy_integrity_observations(self, contest, participant, observations):
+        if participant.exam_status not in ACTIVE_INTEGRITY_EXAM_STATUSES:
+            return Response(
+                {
+                    "error": {
+                        "code": "exam_not_in_progress",
+                        "message": "Exam is not currently accepting integrity events.",
+                    }
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
         run = (
             ExamIntegrityRun.objects.filter(contest=contest)
@@ -73,16 +145,16 @@ class ExamIntegrityMixin:
             )
             else None
         )
-        serializer = ExamIntegrityBatchSerializer(
-            data=request.data,
-            context={
-                "run": run,
-                "participant": participant,
-                "active_device_id": active_device_id,
-            },
-        )
-        serializer.is_valid(raise_exception=True)
-        body = canonical_integrity_batch_bytes(serializer.validated_data)
+        if (
+            observations["run_id"] != run.id
+            or observations["participant_id"] != participant.id
+            or not isinstance(active_device_id, str)
+            or observations["device_id"] != active_device_id
+        ):
+            raise PermissionDenied(
+                "Checkpoint identity does not match the active exam session."
+            )
+        body = canonical_integrity_batch_bytes(observations)
         if len(body) > MAX_INTEGRITY_BATCH_BYTES:
             raise serializers.ValidationError(
                 {"detail": "Encoded batch must not exceed 1 MiB."}
@@ -102,19 +174,142 @@ class ExamIntegrityMixin:
                 {"detail": "Integrity Worker response was invalid."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
+        record_checkpoint(contest.id, participant.user_id)
         delivery = build_evidence_delivery(
             run,
             participant,
             now_ms=int(time.time() * 1000),
         )
-        return Response(
-            {
-                "acked_through_seq": ack.acked_through_seq,
-                "pending_commands": [
-                    dict(command)
-                    for command in delivery.pending_commands
-                ],
-                "release_evidence_before_ms": delivery.release_before_ms,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return {
+            "acked_through_seq": ack.acked_through_seq,
+            "pending_commands": [
+                dict(command)
+                for command in delivery.pending_commands
+            ],
+            "release_evidence_before_ms": delivery.release_before_ms,
+        }
+
+    def _apply_checkpoint_evidence(self, contest, participant, evidence):
+        uploads = []
+        completions = []
+        unavailable = []
+        for manifest in evidence.get("manifests", ()):
+            run = get_object_or_404(
+                ExamIntegrityRun.objects.exclude(
+                    compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+                ),
+                pk=manifest["run_id"],
+                contest=contest,
+            )
+            event = (
+                ExamEvent.objects.filter(
+                    integrity_run=run,
+                    contest=contest,
+                    user=participant.user,
+                    incident_id=manifest["incident_id"],
+                )
+                .order_by("id")
+                .first()
+            )
+            if event is None:
+                raise Http404
+            try:
+                uploads.extend(
+                    create_evidence_manifest(
+                        run,
+                        participant,
+                        event,
+                        list(manifest["chunks"]),
+                    )
+                )
+            except (
+                IntegrityEvidenceRejected,
+                IntegrityEvidenceStorageError,
+            ) as error:
+                return self._checkpoint_evidence_error(error)
+
+        for completion in evidence.get("completions", ()):
+            chunk = get_object_or_404(
+                ExamEvidenceChunk,
+                pk=completion["chunk_id"],
+                contest=contest,
+                participant=participant,
+            )
+            try:
+                chunk = complete_evidence_chunk(chunk)
+            except (
+                IntegrityEvidenceRejected,
+                IntegrityEvidenceStorageError,
+            ) as error:
+                return self._checkpoint_evidence_error(error)
+            completions.append(
+                {"chunk_id": str(chunk.id), "status": chunk.status}
+            )
+
+        for report in evidence.get("unavailable", ()):
+            if "chunk_id" in report:
+                chunk = get_object_or_404(
+                    ExamEvidenceChunk,
+                    pk=report["chunk_id"],
+                    contest=contest,
+                    participant=participant,
+                )
+                try:
+                    chunk = report_evidence_unavailable(
+                        chunk,
+                        reason=report["reason"],
+                    )
+                except IntegrityEvidenceRejected as error:
+                    return self._checkpoint_evidence_error(error)
+                unavailable.append(
+                    {"chunk_id": str(chunk.id), "status": chunk.status}
+                )
+                continue
+
+            run = get_object_or_404(
+                ExamIntegrityRun.objects.exclude(
+                    compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+                ),
+                pk=report["run_id"],
+                contest=contest,
+            )
+            event = get_object_or_404(
+                ExamEvent,
+                pk=report["event_id"],
+                integrity_run=run,
+                contest=contest,
+                user=participant.user,
+                incident_id=report["incident_id"],
+            )
+            try:
+                markers = report_evidence_unavailable_projection(
+                    run,
+                    participant,
+                    event,
+                    source=report["source"],
+                    reason=report["reason"],
+                )
+            except IntegrityEvidenceRejected as error:
+                return self._checkpoint_evidence_error(error)
+            unavailable.append(
+                {
+                    "run_id": str(run.id),
+                    "incident_id": str(event.incident_id),
+                    "event_id": event.id,
+                    "source": report["source"],
+                    "status": "unavailable",
+                    "covered_windows": [
+                        {
+                            "start_at_ms": marker["start_at_ms"],
+                            "end_at_ms": marker["end_at_ms"],
+                        }
+                        for marker in markers
+                    ],
+                }
+            )
+
+        return {
+            "uploads": uploads,
+            "completions": completions,
+            "unavailable": unavailable,
+        }

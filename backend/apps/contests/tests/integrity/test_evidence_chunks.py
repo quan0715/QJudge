@@ -38,6 +38,7 @@ from apps.contests.services.integrity_evidence import (
     IntegrityEvidenceStorageError,
     build_evidence_delivery,
     create_evidence_manifest,
+    evidence_chunks_for_event,
     evidence_retain_windows,
     evidence_statuses_for_events,
     purge_integrity_data,
@@ -213,33 +214,32 @@ def descriptor(
 
 
 def manifest_url(event):
-    return (
-        f"/api/v1/contests/{event.contest_id}"
-        "/exam/integrity/evidence/manifest/"
-    )
+    return f"/api/v1/contests/{event.contest_id}" "/exam/integrity/checkpoints/"
 
 
 def complete_url(chunk):
-    return (
-        f"/api/v1/contests/{chunk.contest_id}"
-        "/exam/integrity/evidence/complete/"
-    )
+    return f"/api/v1/contests/{chunk.contest_id}" "/exam/integrity/checkpoints/"
 
 
 def unavailable_url(chunk):
-    return (
-        f"/api/v1/contests/{chunk.contest_id}"
-        "/exam/integrity/evidence/unavailable/"
-    )
+    return f"/api/v1/contests/{chunk.contest_id}" "/exam/integrity/checkpoints/"
 
 
 def unavailable_projection_payload(event, *, source="screen_share"):
     return {
-        "run_id": str(event.integrity_run_id),
-        "incident_id": str(event.incident_id),
-        "event_id": event.id,
-        "source": source,
-        "reason": "local evidence was unavailable",
+        "evidence": {
+            "manifests": [],
+            "completions": [],
+            "unavailable": [
+                {
+                    "run_id": str(event.integrity_run_id),
+                    "incident_id": str(event.incident_id),
+                    "event_id": event.id,
+                    "source": source,
+                    "reason": "local evidence was unavailable",
+                }
+            ],
+        },
     }
 
 
@@ -247,9 +247,17 @@ def post_manifest(api_client, event, chunks):
     return api_client.post(
         manifest_url(event),
         {
-            "run_id": str(event.integrity_run_id),
-            "incident_id": str(event.incident_id),
-            "chunks": chunks,
+            "evidence": {
+                "manifests": [
+                    {
+                        "run_id": str(event.integrity_run_id),
+                        "incident_id": str(event.incident_id),
+                        "chunks": chunks,
+                    }
+                ],
+                "completions": [],
+                "unavailable": [],
+            },
         },
         format="json",
     )
@@ -293,8 +301,8 @@ def test_manifest_uploads_only_chunks_overlapping_incident_window(
     )
 
     assert response.status_code == 200
-    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [2, 3]
-    assert ExamEvidenceChunk.objects.count() == 2
+    assert [item["chunk_seq"] for item in response.json()["uploads"]] == [2]
+    assert ExamEvidenceChunk.objects.count() == 1
     params = object_store.generate_presigned_url.call_args_list[0].kwargs["Params"]
     assert params["ContentLength"] == 1026
     assert params["ChecksumSHA256"] == base64.b64encode(
@@ -324,7 +332,7 @@ def test_spoofed_event_device_kind_cannot_suppress_bound_desktop_source(
         after_ms=0,
     )
 
-    assert [window.sources for window in windows] == [("screen_share",)]
+    assert [window.sources for window in windows] == [("screen_share", "webcam")]
 
 
 @pytest.mark.django_db
@@ -348,7 +356,7 @@ def test_missing_or_unknown_device_binding_cannot_suppress_evidence_source(
         after_ms=0,
     )
 
-    assert [window.sources for window in windows] == [("screen_share",)]
+    assert [window.sources for window in windows] == [("screen_share", "webcam")]
 
 
 @pytest.mark.django_db
@@ -375,10 +383,13 @@ def test_spoofed_tablet_user_agent_cannot_narrow_frozen_source_union(
         request,
         "spoofed-tablet-device",
     )
-    assert get_active_session(
-        participant.contest_id,
-        participant.user_id,
-    )["ua"] == spoofed_user_agent
+    assert (
+        get_active_session(
+            participant.contest_id,
+            participant.user_id,
+        )["ua"]
+        == spoofed_user_agent
+    )
 
     windows = evidence_retain_windows(
         integrity_run,
@@ -386,7 +397,7 @@ def test_spoofed_tablet_user_agent_cannot_narrow_frozen_source_union(
         after_ms=0,
     )
 
-    assert [window.sources for window in windows] == [("screen_share",)]
+    assert [window.sources for window in windows] == [("screen_share", "webcam")]
 
 
 @pytest.mark.django_db
@@ -447,9 +458,7 @@ def test_manifest_enforces_unique_incident_source_byte_budget_across_requests(
                 seq=1,
                 start=1_000_000,
                 end=1_005_000,
-                recording_session_id=(
-                    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-                ),
+                recording_session_id=("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
             )
         ],
     )
@@ -461,19 +470,14 @@ def test_manifest_enforces_unique_incident_source_byte_budget_across_requests(
                 seq=1,
                 start=1_000_000,
                 end=1_005_000,
-                recording_session_id=(
-                    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
-                ),
+                recording_session_id=("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
             )
         ],
     )
 
     assert first.status_code == 200
     assert second.status_code == 400
-    assert (
-        second.json()["code"]
-        == "evidence_incident_source_limit_exceeded"
-    )
+    assert second.json()["code"] == "evidence_incident_source_limit_exceeded"
     assert ExamEvidenceChunk.objects.count() == 1
     assert object_store.generate_presigned_url.call_count == 1
 
@@ -506,9 +510,7 @@ def test_manifest_counts_only_retained_evidence_against_source_budget(
 
     assert response.status_code == 200
     assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [3]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [3]
     assert object_store.generate_presigned_url.call_count == 1
 
 
@@ -624,9 +626,10 @@ def test_manifest_allows_standalone_segment_after_unavailable_predecessor(
 
     assert response.status_code == 200
     assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [2, 3]
+    assert sorted(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [
+        2,
+        3,
+    ]
     assert object_store.generate_presigned_url.call_count == 2
 
 
@@ -654,9 +657,7 @@ def test_manifest_allows_standalone_non_init_chunks_without_predecessors(
     )
     assert gapped.status_code == 200
     assert [item["chunk_seq"] for item in gapped.json()["uploads"]] == [4]
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [2, 4]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [2, 4]
 
 
 @pytest.mark.django_db
@@ -679,9 +680,7 @@ def test_manifest_does_not_retain_unselected_submitted_predecessor(
 
     assert response.status_code == 200
     assert [item["chunk_seq"] for item in response.json()["uploads"]] == [3]
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [3]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [3]
     assert object_store.generate_presigned_url.call_count == 1
 
 
@@ -749,9 +748,7 @@ def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
         ],
     )
     assert persisted.status_code == 200
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [2]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [2]
     later_init = descriptor(
         seq=8,
         start=1_005_000,
@@ -768,9 +765,7 @@ def test_manifest_rejects_init_after_lower_persisted_non_init_chunk(
 
     assert response.status_code == 400
     assert response.json()["code"] == "evidence_chunk_chain_mismatch"
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [2]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [2]
     assert object_store.generate_presigned_url.call_count == 1
 
 
@@ -794,9 +789,7 @@ def test_manifest_rejects_new_init_after_higher_persisted_non_init_chunk(
         ],
     )
     assert persisted.status_code == 200
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [3]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [3]
     new_init = descriptor(
         seq=init_seq,
         start=1_005_000,
@@ -813,9 +806,7 @@ def test_manifest_rejects_new_init_after_higher_persisted_non_init_chunk(
 
     assert response.status_code == 400
     assert response.json()["code"] == "evidence_chunk_chain_mismatch"
-    assert list(
-        ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)
-    ) == [3]
+    assert list(ExamEvidenceChunk.objects.values_list("chunk_seq", flat=True)) == [3]
     assert object_store.generate_presigned_url.call_count == 1
 
 
@@ -929,7 +920,10 @@ def test_overlapping_incidents_reuse_physical_chunk_and_merge_links(
         client_occurred_at_ms=1_008_000,
         metadata={
             "device_kind": "desktop",
-            "integrity": {"definition_id": "fullscreen_integrity"},
+            "integrity": {
+                "definition_id": "fullscreen_integrity",
+                "phase": "escalated",
+            },
         },
     )
     chunk = descriptor(seq=1, start=1_000_000, end=1_005_000)
@@ -989,7 +983,17 @@ def test_complete_verifies_object_checksum_without_proxying_media(
 
     response = api_client.post(
         complete_url(requested_evidence_chunk),
-        {"chunk_id": str(requested_evidence_chunk.id)},
+        {
+            "evidence": {
+                "manifests": [],
+                "completions": [
+                    {
+                        "chunk_id": str(requested_evidence_chunk.id),
+                    }
+                ],
+                "unavailable": [],
+            },
+        },
         format="json",
     )
 
@@ -1020,7 +1024,17 @@ def test_complete_rejects_checksum_mismatch_and_marks_failed(
 
     response = api_client.post(
         complete_url(requested_evidence_chunk),
-        {"chunk_id": str(requested_evidence_chunk.id)},
+        {
+            "evidence": {
+                "manifests": [],
+                "completions": [
+                    {
+                        "chunk_id": str(requested_evidence_chunk.id),
+                    }
+                ],
+                "unavailable": [],
+            },
+        },
         format="json",
     )
 
@@ -1042,8 +1056,16 @@ def test_unavailable_marks_projected_chunk_with_bounded_reason(
     response = api_client.post(
         unavailable_url(requested_evidence_chunk),
         {
-            "chunk_id": str(requested_evidence_chunk.id),
-            "reason": "local OPFS entry was evicted",
+            "evidence": {
+                "manifests": [],
+                "completions": [],
+                "unavailable": [
+                    {
+                        "chunk_id": str(requested_evidence_chunk.id),
+                        "reason": "local OPFS entry was evicted",
+                    }
+                ],
+            },
         },
         format="json",
     )
@@ -1083,10 +1105,15 @@ def test_unavailable_projection_without_chunk_terminates_retain_and_marks_manage
         unavailable_projection_payload(incident_event),
         format="json",
     )
+    webcam = api_client.post(
+        unavailable_url(incident_event),
+        unavailable_projection_payload(incident_event, source="webcam"),
+        format="json",
+    )
 
-    assert response.status_code == duplicate.status_code == 200
+    assert response.status_code == duplicate.status_code == webcam.status_code == 200
     assert response.json() == duplicate.json()
-    assert response.json()["status"] == "unavailable"
+    assert response.json()["unavailable"][0]["status"] == "unavailable"
     assert ExamEvidenceChunk.objects.count() == 0
     assert not build_evidence_delivery(
         integrity_run,
@@ -1100,13 +1127,89 @@ def test_unavailable_projection_without_chunk_terminates_retain_and_marks_manage
     )
     serialized = next(
         item
-        for item in manager_response.json()
+        for item in manager_response.json()["events"]
         if item["id"] == incident_event.id
     )
     assert serialized["evidence_status"] == "unavailable"
     assert serialized["evidence_sources"] == {
         "screen_share": {"status": "unavailable", "chunks": 0},
+        "webcam": {"status": "unavailable", "chunks": 0},
     }
+
+
+@pytest.mark.django_db
+def test_triggered_and_restored_inside_grace_do_not_request_evidence(
+    integrity_run,
+    participant,
+):
+    incident_id = uuid4()
+    for event_type, phase, occurred_at in (
+        ("exit_fullscreen_triggered", "triggered", 1_005_000),
+        ("fullscreen_restored", "restored", 1_006_000),
+    ):
+        ExamEvent.objects.create(
+            contest=participant.contest,
+            user=participant.user,
+            integrity_run=integrity_run,
+            integrity_command_id=uuid4(),
+            incident_id=incident_id,
+            event_type=event_type,
+            event_definition_version=integrity_run.registry_version,
+            event_schema_version=1,
+            client_occurred_at_ms=occurred_at,
+            metadata={
+                "device_kind": "desktop",
+                "integrity": {
+                    "definition_id": "fullscreen_integrity",
+                    "phase": phase,
+                },
+            },
+        )
+
+    delivery = build_evidence_delivery(
+        integrity_run,
+        participant,
+        now_ms=1_100_000,
+    )
+
+    assert delivery.pending_commands == ()
+
+
+@pytest.mark.django_db
+def test_aliased_chunk_outside_incident_window_is_not_projected_or_played(
+    incident_event,
+    integrity_run,
+    participant,
+):
+    chunk = ExamEvidenceChunk.objects.create(
+        integrity_run=integrity_run,
+        contest=participant.contest,
+        participant=participant,
+        exam_event=incident_event,
+        incident_id=incident_event.incident_id,
+        source=ExamEvidenceChunk.Source.SCREEN,
+        recording_session_id=uuid4(),
+        chunk_seq=1,
+        is_init_chunk=True,
+        start_at_ms=900_000,
+        end_at_ms=905_000,
+        object_key="integrity/far-away.webm",
+        content_type="video/webm",
+        codec="vp8",
+        byte_size=1024,
+        sha256="a" * 64,
+        previous_sha256="",
+        status=ExamEvidenceChunk.Status.VERIFIED,
+        metadata={"incident_ids": [str(incident_event.incident_id)]},
+    )
+
+    summary = evidence_statuses_for_events([incident_event])[incident_event.id]
+
+    assert summary["evidence_sources"]["screen_share"] == {
+        "status": "pending",
+        "chunks": 0,
+    }
+    assert chunk not in evidence_chunks_for_event(incident_event)
 
 
 @pytest.mark.django_db
@@ -1143,7 +1246,7 @@ def test_forged_raw_unavailable_projection_marker_is_ignored(
 
 
 @pytest.mark.django_db
-def test_unavailable_projection_marks_multi_source_manager_status_partial(
+def test_unavailable_projection_keeps_available_source_visible(
     api_client,
     integrity_run,
     participant,
@@ -1183,7 +1286,7 @@ def test_unavailable_projection_marks_multi_source_manager_status_partial(
         is_init_chunk=True,
         start_at_ms=window.start_at_ms,
         end_at_ms=window.end_at_ms,
-        object_key="integrity/partial/no-chunk.webm",
+        object_key="integrity/mixed-source/no-chunk.webm",
         content_type="video/webm",
         codec="vp8",
         byte_size=1024,
@@ -1204,13 +1307,141 @@ def test_unavailable_projection_marks_multi_source_manager_status_partial(
         f"/api/v1/contests/{participant.contest_id}/exam/events/"
     )
     serialized = next(
-        item for item in manager_response.json() if item["id"] == event.id
+        item for item in manager_response.json()["events"] if item["id"] == event.id
     )
-    assert serialized["evidence_status"] == "partial"
+    assert serialized["evidence_status"] == "available"
     assert serialized["evidence_sources"] == {
-        "screen_share": {"status": "complete", "chunks": 1},
+        "screen_share": {"status": "available", "chunks": 1},
         "webcam": {"status": "unavailable", "chunks": 0},
     }
+
+
+@pytest.mark.django_db
+def test_manager_can_review_verified_integrity_video_chunk(
+    api_client,
+    integrity_run,
+    participant,
+    incident_event,
+    monkeypatch,
+):
+    chunk = ExamEvidenceChunk.objects.create(
+        integrity_run=integrity_run,
+        contest=participant.contest,
+        participant=participant,
+        exam_event=incident_event,
+        incident_id=incident_event.incident_id,
+        source="screen_share",
+        recording_session_id=uuid4(),
+        chunk_seq=1,
+        is_init_chunk=True,
+        start_at_ms=1_000_000,
+        end_at_ms=1_005_000,
+        object_key="integrity/review/chunk.webm",
+        content_type="video/webm",
+        codec="vp8",
+        byte_size=1024,
+        sha256="a" * 64,
+        status=ExamEvidenceChunk.Status.VERIFIED,
+    )
+    monkeypatch.setattr(
+        "apps.contests.views.exam_evidence.generate_get_url",
+        lambda _bucket, key: f"https://r2.example/{key}",
+    )
+    api_client.force_authenticate(participant.contest.owner)
+
+    response = api_client.get(
+        f"/api/v1/contests/{participant.contest_id}/exam/integrity/evidence/review/",
+        {"event_id": incident_event.id},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == [
+        {
+            "chunk_id": str(chunk.id),
+            "source": "screen_share",
+            "status": "verified",
+            "start_at_ms": 1_000_000,
+            "end_at_ms": 1_005_000,
+            "byte_size": 1024,
+            "codec": "vp8",
+            "content_type": "video/webm",
+            "url": "https://r2.example/integrity/review/chunk.webm",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_manager_review_lists_chunk_associated_through_bulk_manifest_metadata(
+    api_client,
+    integrity_run,
+    participant,
+    incident_event,
+    monkeypatch,
+):
+    related_event = ExamEvent.objects.create(
+        contest=participant.contest,
+        user=participant.user,
+        integrity_run=integrity_run,
+        integrity_command_id=uuid4(),
+        incident_id=uuid4(),
+        event_type="exit_fullscreen",
+        event_definition_version=integrity_run.registry_version,
+        event_schema_version=1,
+        client_occurred_at_ms=1_005_000,
+        metadata={
+            "device_kind": "desktop",
+            "integrity": {
+                "definition_id": "fullscreen_integrity",
+                "phase": "escalated",
+            },
+        },
+    )
+    chunk = ExamEvidenceChunk.objects.create(
+        integrity_run=integrity_run,
+        contest=participant.contest,
+        participant=participant,
+        exam_event=incident_event,
+        incident_id=incident_event.incident_id,
+        source="webcam",
+        recording_session_id=uuid4(),
+        chunk_seq=1,
+        is_init_chunk=True,
+        start_at_ms=1_000_000,
+        end_at_ms=1_005_000,
+        object_key="integrity/review/bulk-associated.webm",
+        content_type="video/webm",
+        codec="vp8",
+        byte_size=2048,
+        sha256="b" * 64,
+        status=ExamEvidenceChunk.Status.VERIFIED,
+        metadata={"incident_ids": [str(related_event.incident_id)]},
+    )
+    monkeypatch.setattr(
+        "apps.contests.views.exam_evidence.generate_get_url",
+        lambda _bucket, key: f"https://r2.example/{key}",
+    )
+    api_client.force_authenticate(participant.contest.owner)
+
+    response = api_client.get(
+        f"/api/v1/contests/{participant.contest_id}/exam/integrity/evidence/review/",
+        {"event_id": related_event.id},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["evidence_status"] == "available"
+    assert response.json()["items"] == [
+        {
+            "chunk_id": str(chunk.id),
+            "source": "webcam",
+            "status": "verified",
+            "start_at_ms": 1_000_000,
+            "end_at_ms": 1_005_000,
+            "byte_size": 2048,
+            "codec": "vp8",
+            "content_type": "video/webm",
+            "url": "https://r2.example/integrity/review/bulk-associated.webm",
+        }
+    ]
 
 
 @pytest.mark.django_db
@@ -1231,7 +1462,7 @@ def test_unavailable_projection_rejects_other_participants_incident(
 
 
 @pytest.mark.django_db
-def test_unavailable_projection_rejects_source_outside_event_window(
+def test_unavailable_projection_accepts_every_contest_enabled_source(
     api_client,
     incident_event,
     participant,
@@ -1244,8 +1475,8 @@ def test_unavailable_projection_rejects_source_outside_event_window(
         format="json",
     )
 
-    assert response.status_code == 400
-    assert response.json()["code"] == "evidence_source_disabled"
+    assert response.status_code == 200
+    assert response.json()["unavailable"][0]["source"] == "webcam"
 
 
 @pytest.mark.django_db
@@ -1280,7 +1511,10 @@ def test_retain_windows_merge_overlap_and_split_at_sixty_seconds(
         client_occurred_at_ms=1_065_000,
         metadata={
             "device_kind": "desktop",
-            "integrity": {"definition_id": "fullscreen_integrity"},
+            "integrity": {
+                "definition_id": "fullscreen_integrity",
+                "phase": "escalated",
+            },
         },
     )
 
@@ -1319,10 +1553,8 @@ def test_delivery_rebuilds_incomplete_commands_and_release_watermark(
 
     assert first == second
     assert len(first.pending_commands) == 1
-    assert first.pending_commands[0]["incident_id"] == str(
-        incident_event.incident_id
-    )
-    assert first.release_before_ms == 995_000
+    assert first.pending_commands[0]["incident_id"] == str(incident_event.incident_id)
+    assert first.release_before_ms == 1_000_000
 
 
 @pytest.mark.django_db
@@ -1380,11 +1612,11 @@ def test_delivery_keeps_multi_source_window_until_every_source_is_terminal(
         for item in delivery.pending_commands
         if item["incident_id"] == str(event.incident_id)
     )
-    assert command["sources"] == ["screen_share", "webcam"]
+    assert command["sources"] == ["webcam"]
 
 
 @pytest.mark.django_db
-def test_delivery_keeps_window_until_terminal_chunks_cover_full_interval(
+def test_delivery_does_not_rerequest_an_available_source(
     integrity_run,
     participant,
     incident_event,
@@ -1406,7 +1638,7 @@ def test_delivery_keeps_window_until_terminal_chunks_cover_full_interval(
         is_init_chunk=True,
         start_at_ms=window.start_at_ms,
         end_at_ms=window.start_at_ms + 5_000,
-        object_key="integrity/partial-coverage/screen.webm",
+        object_key="integrity/verified-interval/screen.webm",
         content_type="video/webm",
         codec="vp8",
         byte_size=1024,
@@ -1424,45 +1656,12 @@ def test_delivery_keeps_window_until_terminal_chunks_cover_full_interval(
         now_ms=1_100_000,
     )
 
-    assert any(
-        item["incident_id"] == str(incident_event.incident_id)
+    command = next(
+        item
         for item in delivery.pending_commands
+        if item["incident_id"] == str(incident_event.incident_id)
     )
-    ExamEvidenceChunk.objects.create(
-        integrity_run=integrity_run,
-        contest=participant.contest,
-        participant=participant,
-        exam_event=incident_event,
-        incident_id=incident_event.incident_id,
-        source="screen_share",
-        recording_session_id=first_chunk.recording_session_id,
-        chunk_seq=2,
-        is_init_chunk=False,
-        start_at_ms=window.start_at_ms + 5_000,
-        end_at_ms=window.end_at_ms,
-        object_key="integrity/partial-coverage/unavailable.webm",
-        content_type="video/webm",
-        codec="vp8",
-        byte_size=1024,
-        sha256="b" * 64,
-        previous_sha256=first_chunk.sha256,
-        status=ExamEvidenceChunk.Status.UNAVAILABLE,
-        metadata={
-            "incident_ids": [str(incident_event.incident_id)],
-            "event_ids": [incident_event.id],
-        },
-    )
-
-    completed = build_evidence_delivery(
-        integrity_run,
-        participant,
-        now_ms=1_100_000,
-    )
-
-    assert not any(
-        item["incident_id"] == str(incident_event.incident_id)
-        for item in completed.pending_commands
-    )
+    assert command["sources"] == ["webcam"]
 
 
 @pytest.mark.django_db
@@ -1516,22 +1715,21 @@ def test_manager_event_response_includes_chunk_evidence_status(
     )
     api_client.force_authenticate(participant.contest.owner)
 
-    response = api_client.get(
-        f"/api/v1/contests/{participant.contest_id}/exam/events/"
-    )
+    response = api_client.get(f"/api/v1/contests/{participant.contest_id}/exam/events/")
 
     assert response.status_code == 200
     serialized = next(
-        item for item in response.json() if item["id"] == incident_event.id
+        item for item in response.json()["events"] if item["id"] == incident_event.id
     )
-    assert serialized["evidence_status"] == "complete"
+    assert serialized["evidence_status"] == "available"
     assert serialized["evidence_sources"] == {
-        "screen_share": {"status": "complete", "chunks": 1},
+        "screen_share": {"status": "available", "chunks": 1},
+        "webcam": {"status": "pending", "chunks": 0},
     }
 
 
 @pytest.mark.django_db
-def test_manager_event_response_does_not_complete_partial_interval(
+def test_manager_event_response_exposes_any_verified_interval_as_available(
     api_client,
     incident_event,
     participant,
@@ -1542,17 +1740,16 @@ def test_manager_event_response_does_not_complete_partial_interval(
     requested_evidence_chunk.save(update_fields=["status", "verified_at"])
     api_client.force_authenticate(participant.contest.owner)
 
-    response = api_client.get(
-        f"/api/v1/contests/{participant.contest_id}/exam/events/"
-    )
+    response = api_client.get(f"/api/v1/contests/{participant.contest_id}/exam/events/")
 
     assert response.status_code == 200
     serialized = next(
-        item for item in response.json() if item["id"] == incident_event.id
+        item for item in response.json()["events"] if item["id"] == incident_event.id
     )
-    assert serialized["evidence_status"] == "partial"
+    assert serialized["evidence_status"] == "available"
     assert serialized["evidence_sources"] == {
-        "screen_share": {"status": "partial", "chunks": 1},
+        "screen_share": {"status": "available", "chunks": 1},
+        "webcam": {"status": "pending", "chunks": 0},
     }
 
 
@@ -1578,6 +1775,7 @@ def test_bulk_manager_evidence_status_uses_bounded_queries(
                 "device_kind": "desktop",
                 "integrity": {
                     "definition_id": "fullscreen_integrity",
+                    "phase": "escalated",
                 },
             },
         )
@@ -1587,9 +1785,7 @@ def test_bulk_manager_evidence_status_uses_bounded_queries(
         .order_by("id")
     )
     loaded_slices = []
-    original_summary = (
-        integrity_evidence_service._evidence_summary_from_loaded
-    )
+    original_summary = integrity_evidence_service._evidence_summary_from_loaded
 
     def record_loaded_slice(run, windows, chunks):
         loaded_slices.append((len(windows), len(chunks)))
@@ -1631,17 +1827,16 @@ def test_manager_event_response_marks_purged_evidence_unavailable(
     )
     api_client.force_authenticate(participant.contest.owner)
 
-    response = api_client.get(
-        f"/api/v1/contests/{participant.contest_id}/exam/events/"
-    )
+    response = api_client.get(f"/api/v1/contests/{participant.contest_id}/exam/events/")
 
     assert response.status_code == 200
     serialized = next(
-        item for item in response.json() if item["id"] == incident_event.id
+        item for item in response.json()["events"] if item["id"] == incident_event.id
     )
     assert serialized["evidence_status"] == "unavailable"
     assert serialized["evidence_sources"] == {
         "screen_share": {"status": "unavailable", "chunks": 0},
+        "webcam": {"status": "unavailable", "chunks": 0},
     }
 
 
@@ -1653,9 +1848,7 @@ def test_purge_uses_only_verified_manifest_and_exact_run_chunk_keys(
     object_store,
 ):
     manifest_key = f"runs/{integrity_run.id}/generation-1/manifest.json"
-    segment_key = (
-        f"runs/{integrity_run.id}/generation-1/segments/00000001.journal.gz"
-    )
+    segment_key = f"runs/{integrity_run.id}/generation-1/segments/00000001.journal.gz"
     manifest = json.dumps(
         {
             "schema_version": 1,
@@ -1737,9 +1930,7 @@ def test_purge_waits_until_every_presigned_upload_lease_expires(
     object_store,
 ):
     manifest_key = f"runs/{integrity_run.id}/generation-1/manifest.json"
-    segment_key = (
-        f"runs/{integrity_run.id}/generation-1/segments/00000001.journal.gz"
-    )
+    segment_key = f"runs/{integrity_run.id}/generation-1/segments/00000001.journal.gz"
     manifest = json.dumps(
         {
             "schema_version": 1,
@@ -1826,9 +2017,7 @@ def archive_manifest(
         separators=(",", ":"),
         sort_keys=True,
     ).encode()
-    key = (
-        f"runs/{integrity_run.id}/generation-{generation}/manifest.json"
-    )
+    key = f"runs/{integrity_run.id}/generation-{generation}/manifest.json"
     return key, content, hashlib.sha256(content).hexdigest()
 
 
@@ -1965,9 +2154,7 @@ def test_archive_chain_accepts_exact_generation_and_redundant_digest_links(
     }
     object_store.get_object.side_effect = lambda **kwargs: {
         "ContentLength": len(
-            first_content
-            if kwargs["Key"] == first_key
-            else second_content
+            first_content if kwargs["Key"] == first_key else second_content
         ),
         "Body": bodies[kwargs["Key"]],
     }

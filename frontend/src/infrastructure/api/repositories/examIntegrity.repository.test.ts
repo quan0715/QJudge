@@ -15,8 +15,8 @@ const batch = {
     {
       eventId: "11111111-1111-1111-1111-111111111111",
       seq: 8,
-      kind: "state_snapshot" as const,
-      eventType: "state_snapshot",
+      kind: "health_snapshot" as const,
+      eventType: "health_snapshot",
       eventSchemaVersion: 1,
       clientOccurredAtMs: 1_785_000_000_000,
       clientRecordedAtMs: 1_785_000_000_010,
@@ -42,7 +42,27 @@ describe("examIntegrityRepository", () => {
     document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
   });
 
-  it("maps one batch request to the exact snake_case gateway payload", async () => {
+  it("restarts a Worker through the manager recovery endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        id: "run-1",
+        compute_state: "running",
+        health: "healthy",
+        data_state: "open",
+        registry_version: "2026-07-26.3",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const restarted = await examIntegrityRepository.restartRun("contest-a", "run-1");
+
+    expect(restarted.health).toBe("healthy");
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/v1/contests/contest-a/integrity-runs/run-1/restart/",
+    );
+    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("submits observations through the single checkpoint endpoint", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -63,32 +83,39 @@ describe("examIntegrityRepository", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      "/api/v1/contests/contest-a/exam/integrity/batches/",
+      "/api/v1/contests/contest-a/exam/integrity/checkpoints/",
     );
     expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({
-      schema_version: 1,
-      batch_id: batch.batchId,
-      run_id: batch.runId,
-      participant_id: 44,
-      device_id: "device-a",
-      registry_version: "2026-07-21.1",
-      first_seq: 8,
-      last_seq: 8,
-      records: [
-        {
-          event_id: "11111111-1111-1111-1111-111111111111",
-          seq: 8,
-          kind: "state_snapshot",
-          event_type: "state_snapshot",
-          event_schema_version: 1,
-          client_occurred_at_ms: 1_785_000_000_000,
-          client_recorded_at_ms: 1_785_000_000_010,
-          monotonic_ms: 82_100,
-          payload: { pageVisible: true },
-          evidence_descriptors: [],
-        },
-      ],
-      client_build: "frontend-test",
+      observations: {
+        schema_version: 1,
+        batch_id: batch.batchId,
+        run_id: batch.runId,
+        participant_id: 44,
+        device_id: "device-a",
+        registry_version: "2026-07-21.1",
+        first_seq: 8,
+        last_seq: 8,
+        records: [
+          {
+            event_id: "11111111-1111-1111-1111-111111111111",
+            seq: 8,
+            kind: "health_snapshot",
+            event_type: "health_snapshot",
+            event_schema_version: 1,
+            client_occurred_at_ms: 1_785_000_000_000,
+            client_recorded_at_ms: 1_785_000_000_010,
+            monotonic_ms: 82_100,
+            payload: { pageVisible: true },
+            evidence_descriptors: [],
+          },
+        ],
+        client_build: "frontend-test",
+      },
+      evidence: {
+        manifests: [],
+        completions: [],
+        unavailable: [],
+      },
     });
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
       credentials: "include",
@@ -97,6 +124,87 @@ describe("examIntegrityRepository", () => {
     const headers = new Headers(fetchMock.mock.calls[0][1].headers);
     expect(headers.get("X-CSRFToken")).toBe("test-csrf-token");
     expect(headers.get("X-Device-Id")).toBeTruthy();
+  });
+
+  it("submits all evidence operations through one checkpoint request", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          uploads: [],
+          completions: [{ chunk_id: "chunk-a", status: "verified" }],
+          unavailable: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const response = await examIntegrityRepository.submitEvidenceCheckpoint("contest-a", {
+      manifests: [{
+        runId: batch.runId,
+        incidentId: "44444444-4444-4444-4444-444444444444",
+        chunks: [{
+          source: "screen_share",
+          recordingSessionId: "session-a",
+          chunkSeq: 1,
+          isInitChunk: true,
+          startAtMs: 1_785_000_000_000,
+          endAtMs: 1_785_000_005_000,
+          byteSize: 1024,
+          codec: "video/webm;codecs=vp8",
+          contentType: "video/webm",
+          sha256: "a".repeat(64),
+          previousSha256: "",
+          localDescriptorId: "local-a",
+        }],
+      }],
+      completions: ["chunk-a"],
+      unavailable: [{
+        runId: batch.runId,
+        incidentId: "44444444-4444-4444-4444-444444444444",
+        eventId: 17,
+        source: "webcam",
+        reason: "local_window_empty",
+      }],
+    });
+
+    expect(response).toEqual({
+      uploads: [],
+      completions: [{ chunkId: "chunk-a", status: "verified" }],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/v1/contests/contest-a/exam/integrity/checkpoints/",
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({
+      evidence: {
+        manifests: [{
+          run_id: batch.runId,
+          incident_id: "44444444-4444-4444-4444-444444444444",
+          chunks: [{
+            source: "screen_share",
+            recording_session_id: "session-a",
+            chunk_seq: 1,
+            is_init_chunk: true,
+            start_at_ms: 1_785_000_000_000,
+            end_at_ms: 1_785_000_005_000,
+            byte_size: 1024,
+            codec: "video/webm;codecs=vp8",
+            content_type: "video/webm",
+            sha256: "a".repeat(64),
+            previous_sha256: "",
+            local_descriptor_id: "local-a",
+          }],
+        }],
+        completions: [{ chunk_id: "chunk-a" }],
+        unavailable: [{
+          run_id: batch.runId,
+          incident_id: "44444444-4444-4444-4444-444444444444",
+          event_id: 17,
+          source: "webcam",
+          reason: "local_window_empty",
+        }],
+      },
+    });
   });
 
   it("preserves a one-shot typed 401 without an auth refresh or replay", async () => {
@@ -113,7 +221,7 @@ describe("examIntegrityRepository", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(
-      "/api/v1/contests/contest-a/exam/integrity/batches/",
+      "/api/v1/contests/contest-a/exam/integrity/checkpoints/",
     );
   });
 

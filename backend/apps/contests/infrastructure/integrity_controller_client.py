@@ -172,6 +172,14 @@ class IntegrityControllerClient:
             run_token_sha256=run_token_sha256.lower(),
         )
 
+    def restart(self, run_id) -> dict:
+        return self._request(
+            "POST",
+            "/v1/runs/" + str(run_id) + "/restart",
+            payload={},
+            read_timeout_seconds=self.stop_read_timeout_seconds,
+        )
+
     def stop_container(self, run_id) -> dict:
         return self._request(
             "POST",

@@ -22,15 +22,8 @@ export const normalizeSource = (
     source && typeof source === "object" && !Array.isArray(source)
       ? (source as Record<string, unknown>)
       : {};
-  const interval = Number(
-    src.captureIntervalSeconds ?? src.capture_interval_seconds ?? fallback.captureIntervalSeconds,
-  );
   return {
     enabled: typeof src.enabled === "boolean" ? src.enabled : fallback.enabled,
-    captureIntervalSeconds:
-      Number.isFinite(interval) && interval > 0
-        ? Math.floor(interval)
-        : fallback.captureIntervalSeconds,
   };
 };
 

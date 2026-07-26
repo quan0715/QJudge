@@ -6,7 +6,14 @@
 
 export type IntegrityEvidenceSource = "screen_share" | "webcam";
 export type IntegrityCaptureState = "active" | "inactive" | "disabled" | "unavailable";
-export type IntegrityRecordKind = "event" | "state_snapshot";
+export type IntegrityHealthStatus =
+  | "healthy"
+  | "active"
+  | "initializing"
+  | "degraded"
+  | "unavailable"
+  | "disabled";
+export type IntegrityRecordKind = "event" | "health_snapshot";
 export type IntegrityJsonPrimitive = string | number | boolean | null;
 export type IntegrityJsonValue =
   | IntegrityJsonPrimitive
@@ -28,12 +35,31 @@ export interface ExamIntegrityEvidenceDescriptor {
   localDescriptorId: string;
 }
 
+export interface IntegrityHealthComponent {
+  status: IntegrityHealthStatus;
+  reason?: string;
+}
+
+export interface ExamIntegrityHealthSnapshot {
+  displayApi: IntegrityHealthComponent;
+  evidenceSources: Record<IntegrityEvidenceSource, IntegrityHealthComponent>;
+  evidenceBuffer: Record<IntegrityEvidenceSource, IntegrityHealthComponent>;
+}
+
+export type IntegrityHealthUpdate =
+  | ({ component: "display_api" } & IntegrityHealthComponent)
+  | ({
+      component: "evidence_source" | "evidence_buffer";
+      source: IntegrityEvidenceSource;
+    } & IntegrityHealthComponent);
+
 export interface ExamIntegrityStateSnapshot {
   pageVisible: boolean;
   online: boolean;
   fullscreen: boolean;
   screenCapture: IntegrityCaptureState;
   webcamCapture: IntegrityCaptureState;
+  health: ExamIntegrityHealthSnapshot;
   activeSourceDescriptors: ExamIntegrityEvidenceDescriptor[];
 }
 
@@ -117,7 +143,18 @@ export type EvidenceUnavailableReport =
       reason: string;
     };
 
-/** Manager-facing projection of one manually owned Integrity Worker run. */
+export interface EvidenceCheckpointRequest {
+  manifests: EvidenceManifestRequest[];
+  completions: string[];
+  unavailable: EvidenceUnavailableReport[];
+}
+
+export interface EvidenceCheckpointResponse {
+  uploads: EvidenceManifestUpload[];
+  completions: Array<{ chunkId: string; status: string }>;
+}
+
+/** Manager-facing projection of one system-managed Integrity Worker run. */
 export interface ExamIntegrityRun {
   id: string;
   computeState: "stopped" | "starting" | "running" | "stopping" | "destroyed";

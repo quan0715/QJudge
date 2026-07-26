@@ -8,7 +8,8 @@ from django.db import transaction
 from django.db.models import Q
 
 from apps.contests.models import Contest, ContestParticipant, ExamAnswer, ExamEvent, ExamEvidenceFrame, ExamStatus
-from apps.contests.services.anti_cheat_session import clear_active_session, clear_exam_allowed_jti, clear_heartbeat
+from apps.contests.services.anti_cheat_session import clear_active_session, clear_exam_allowed_jti
+from apps.contests.services.integrity_presence import clear_checkpoint
 from apps.submissions.models import Submission
 from apps.contests.services.anticheat_storage import get_s3_client
 from django.conf import settings
@@ -195,7 +196,7 @@ class Command(BaseCommand):
         cleared_session_keys = 0
         for contest_id, user_id in set(participants.values_list("contest_id", "user_id")) | runtime_pairs:
             clear_active_session(contest_id, user_id)
-            clear_heartbeat(contest_id, user_id)
+            clear_checkpoint(contest_id, user_id)
             clear_exam_allowed_jti(user_id, contest_id)
             cleared_session_keys += 3
 

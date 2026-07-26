@@ -232,3 +232,15 @@ def test_dev_controller_runs_as_the_configured_socket_owner(
     config = compose_config(repo_root, "docker-compose.dev.yml")
 
     assert config["services"]["integrity-controller"]["user"] == "501"
+
+
+def test_make_dev_builds_the_integrity_worker_image(repo_root: Path) -> None:
+    """A local lifecycle start must never depend on a manually pre-built image."""
+    makefile = (repo_root / "Makefile").read_text()
+
+    assert "dev: integrity-secrets integrity-worker-build" in makefile
+    assert "python3 scripts/bootstrap_integrity_secrets.py" in makefile
+    assert (
+        "docker compose --profile build -f docker-compose.dev.yml build "
+        "integrity-worker-image"
+    ) in makefile

@@ -27,6 +27,7 @@ from apps.contests.services.integrity_runs import (
     create_run,
     destroy_run,
     purge_run,
+    restart_run,
     start_run,
     stop_run,
 )
@@ -234,6 +235,99 @@ def test_controller_stop_timeout_exceeds_docker_stop_upper_bound(tmp_path):
 
     assert request.call_args.kwargs["timeout"].read == 40.0
     assert request.call_args.kwargs["timeout"].read > 30.0
+
+
+def test_controller_restart_uses_narrow_bodyless_endpoint(tmp_path):
+    token_file = tmp_path / "controller-token"
+    token_file.write_text("controller-secret", encoding="utf-8")
+    response = Mock(status_code=200)
+    response.json.return_value = _controller_start_result()
+    client = IntegrityControllerClient(
+        base_url="http://controller:8010",
+        token_file=str(token_file),
+    )
+
+    with patch(
+        "apps.contests.infrastructure.integrity_controller_client.httpx.request",
+        return_value=response,
+    ) as request:
+        result = client.restart("run-1")
+
+    assert result == _controller_start_result()
+    assert request.call_args.args == (
+        "POST",
+        "http://controller:8010/v1/runs/run-1/restart",
+    )
+    assert request.call_args.kwargs["json"] == {}
+
+
+@pytest.mark.django_db
+def test_restart_recovers_only_an_unhealthy_running_worker(integrity_run):
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.RUNNING
+    integrity_run.health = ExamIntegrityRun.Health.UNHEALTHY
+    integrity_run.token_digest = "a" * 64
+    integrity_run.container_id = "container-1"
+    integrity_run.container_name = "integrity-run-1"
+    integrity_run.worker_url = "http://integrity-run-1:8020"
+    integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.last_error = "worker_unavailable"
+    integrity_run.save()
+    controller = Mock()
+    controller.restart.return_value = _controller_start_result()
+    controller.status.return_value = _container_status(integrity_run)
+
+    restarted = restart_run(integrity_run.id, controller=controller)
+
+    controller.restart.assert_called_once_with(integrity_run.id)
+    assert restarted.compute_state == ExamIntegrityRun.ComputeState.RUNNING
+    assert restarted.health == ExamIntegrityRun.Health.HEALTHY
+    assert restarted.last_error == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("compute_state", "health"),
+    [
+        (ExamIntegrityRun.ComputeState.RUNNING, ExamIntegrityRun.Health.HEALTHY),
+        (ExamIntegrityRun.ComputeState.STOPPED, ExamIntegrityRun.Health.UNHEALTHY),
+    ],
+)
+def test_restart_rejects_normal_or_nonrunning_run(integrity_run, compute_state, health):
+    integrity_run.compute_state = compute_state
+    integrity_run.health = health
+    integrity_run.save(update_fields=["compute_state", "health"])
+    controller = Mock()
+
+    with pytest.raises(InvalidRunTransition):
+        restart_run(integrity_run.id, controller=controller)
+
+    controller.restart.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_restart_keeps_run_unhealthy_when_controller_identity_cannot_reconcile(
+    integrity_run,
+):
+    integrity_run.compute_state = ExamIntegrityRun.ComputeState.RUNNING
+    integrity_run.health = ExamIntegrityRun.Health.UNHEALTHY
+    integrity_run.token_digest = "a" * 64
+    integrity_run.container_id = "container-1"
+    integrity_run.container_name = "integrity-run-1"
+    integrity_run.worker_url = "http://integrity-run-1:8020"
+    integrity_run.worker_image_digest = "sha256:abc"
+    integrity_run.save()
+    controller = Mock()
+    controller.restart.return_value = _controller_start_result()
+    controller.status.return_value = _container_status(
+        integrity_run, token_digest="b" * 64
+    )
+
+    with pytest.raises(IntegrityLifecycleError):
+        restart_run(integrity_run.id, controller=controller)
+
+    integrity_run.refresh_from_db()
+    assert integrity_run.health == ExamIntegrityRun.Health.UNHEALTHY
+    assert integrity_run.last_error == "controller_restart_reconciliation_failed"
 
 
 def test_controller_status_contract_proves_exact_run_and_secret_digest(tmp_path):
@@ -1871,6 +1965,7 @@ def test_manager_api_and_logs_never_render_start_token_or_raw_failure(
         ("get", "{run_id}/"),
         ("post", ""),
         ("post", "{run_id}/start/"),
+        ("post", "{run_id}/restart/"),
         ("post", "{run_id}/stop/"),
         ("post", "{run_id}/destroy/"),
         ("post", "{run_id}/purge/"),
@@ -1900,6 +1995,7 @@ def test_every_manager_endpoint_uses_contest_manager_permission(
         ("get", "{run_id}/", None),
         ("post", "", None),
         ("post", "{run_id}/start/", "start_run"),
+        ("post", "{run_id}/restart/", "restart_run"),
         ("post", "{run_id}/stop/", "stop_run"),
         ("post", "{run_id}/destroy/", "destroy_run"),
         ("post", "{run_id}/purge/", "purge_run"),

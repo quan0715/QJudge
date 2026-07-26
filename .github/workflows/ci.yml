@@ -6,6 +6,7 @@ on:
     paths:
       - "frontend/**"
       - "backend/**"
+      - "integrity-service/**"
       - "mcp-server/**"
       - "ai-service/**"
       - "docker-compose.yml"
@@ -23,6 +24,7 @@ on:
     paths:
       - "frontend/**"
       - "backend/**"
+      - "integrity-service/**"
       - "mcp-server/**"
       - "ai-service/**"
       - "docker-compose.yml"
@@ -327,6 +329,31 @@ jobs:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: python -m pytest tests/test_server.py -q
         working-directory: mcp-server
+
+  integrity-service-unit:
+    name: Integrity Service Tests
+    needs: static-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: integrity-service/pyproject.toml
+
+      - name: Install Integrity Service dependencies
+        run: pip install ".[controller,worker,test]"
+        working-directory: integrity-service
+
+      - name: Run Integrity Service Tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python -m pytest
+        working-directory: integrity-service
 
   # ============================================
   # Judge System Tests (needs Docker)

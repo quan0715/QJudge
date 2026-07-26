@@ -1,4 +1,4 @@
-.PHONY: help dev dev-down test test-down monitor monitor-down loadtest loadtest-down judge-build
+.PHONY: help dev dev-build dev-down integrity-secrets integrity-worker-build test test-down monitor monitor-down loadtest loadtest-down judge-build
 
 # Default target
 help:
@@ -28,17 +28,25 @@ help:
 	@echo ""
 	@echo "Judge System:"
 	@echo "  judge-build     Build the oj-judge Docker image locally"
+	@echo "  integrity-secrets       Create missing local Integrity credentials"
+	@echo "  integrity-worker-build  Build the Integrity Worker image for local exam runs"
 	@echo ""
 
 # --- Development ---
-dev:
+dev: integrity-secrets integrity-worker-build
 	docker compose -f docker-compose.dev.yml up -d
 
-dev-build:
+dev-build: integrity-secrets integrity-worker-build
 	docker compose -f docker-compose.dev.yml up -d --build
 
 dev-down:
 	docker compose -f docker-compose.dev.yml down
+
+integrity-secrets:
+	python3 scripts/bootstrap_integrity_secrets.py
+
+integrity-worker-build:
+	docker compose --profile build -f docker-compose.dev.yml build integrity-worker-image
 
 # --- Testing ---
 test:

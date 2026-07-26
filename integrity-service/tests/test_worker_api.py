@@ -102,8 +102,7 @@ def bootstrap(public_key_b64: str) -> WorkerBootstrap:
         contest_id=UUID("17171717-1717-1717-1717-171717171717"),
         server_ms=NOW_MS,
         scheduled_end_ms=NOW_MS + 10_000,
-        active_participant_ids=(101, 202),
-        submitted_participant_ids=(202,),
+        active_participant_ids=(101,),
         policy_snapshot={
             "suspect_after_ms": 15_000,
             "disconnected_after_ms": 60_000,
@@ -118,6 +117,7 @@ def bootstrap(public_key_b64: str) -> WorkerBootstrap:
 def batch_payload(
     *,
     batch_id: UUID | None = None,
+    participant_id: int = 101,
     event_type: str = "exit_fullscreen_triggered",
     payload: dict[str, object] | None = None,
 ) -> dict[str, object]:
@@ -125,7 +125,7 @@ def batch_payload(
         schema_version=1,
         batch_id=batch_id or uuid4(),
         run_id=RUN_ID,
-        participant_id=101,
+        participant_id=participant_id,
         device_id="device-a",
         registry_version="registry-v2",
         first_seq=1,
@@ -147,6 +147,92 @@ def batch_payload(
     ).model_dump(mode="json")
 
 
+def test_worker_processes_events_without_submission_state(tmp_path):
+    """Submitted participants are a Backend concern, never an event-policy input."""
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    backend = FakeBackend()
+    runtime = WorkerRuntime(
+        bootstrap=bootstrap(base64.b64encode(public_key).decode("ascii")),
+        data_root=tmp_path,
+        backend=backend,
+        clock_ms=lambda: NOW_MS,
+    )
+
+    ack = runtime.ingest(
+        EventBatch.model_validate(batch_payload(participant_id=202)), NOW_MS
+    )
+
+    assert ack.acked_through_seq == 1
+    command = backend.command_batches[-1][0]
+    assert command["participant_id"] == 202
+    assert command["action"] == "record"
+    assert command["incident_id"] is not None
+
+
+def test_worker_uses_batch_interval_as_incident_delivery_tolerance(tmp_path):
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    base = bootstrap(base64.b64encode(public_key).decode("ascii"))
+    runtime = WorkerRuntime(
+        bootstrap=replace(
+            base,
+            policy_snapshot={
+                **dict(base.policy_snapshot),
+                "batch_interval_ms": 5_000,
+            },
+        ),
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+
+    runtime.ingest(EventBatch.model_validate(batch_payload()), NOW_MS)
+
+    assert runtime.incidents.next_deadline_server_ms() == NOW_MS + 35_000
+
+
+def test_worker_restart_accepts_changed_backend_active_participants(tmp_path):
+    """Rejoin status changes must not make the durable run baseline unrecoverable."""
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    frozen = bootstrap(base64.b64encode(public_key).decode("ascii"))
+    runtime = WorkerRuntime(
+        bootstrap=frozen,
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS,
+    )
+    runtime.close()
+
+    recovered = WorkerRuntime(
+        bootstrap=replace(
+            frozen,
+            server_ms=NOW_MS + 1_000,
+            active_participant_ids=(101, 202),
+        ),
+        data_root=tmp_path,
+        backend=FakeBackend(),
+        clock_ms=lambda: NOW_MS + 1_000,
+    )
+
+    ack = recovered.ingest(
+        EventBatch.model_validate(batch_payload(participant_id=202)),
+        NOW_MS + 1_000,
+    )
+
+    assert ack.acked_through_seq == 1
+
+
 def signed_headers(
     private_key: Ed25519PrivateKey,
     body: bytes,
@@ -166,7 +252,9 @@ def signed_headers(
         "content-type": "application/json",
         "X-QJudge-Run-Id": str(run_id),
         "X-QJudge-Timestamp": timestamp_text,
-        "X-QJudge-Signature": base64.b64encode(private_key.sign(message)).decode("ascii"),
+        "X-QJudge-Signature": base64.b64encode(private_key.sign(message)).decode(
+            "ascii"
+        ),
     }
 
 
@@ -298,7 +386,9 @@ def test_batch_ack_requires_raw_timeline_outbox_and_backend_durability(tmp_path)
     assert backend.command_batches
 
 
-def test_journal_failure_returns_507_without_ack_and_marks_unhealthy(tmp_path, monkeypatch):
+def test_journal_failure_returns_507_without_ack_and_marks_unhealthy(
+    tmp_path, monkeypatch
+):
     client, runtime, _, private_key = make_client(tmp_path)
 
     def fail(_batch):
@@ -312,7 +402,9 @@ def test_journal_failure_returns_507_without_ack_and_marks_unhealthy(tmp_path, m
     assert runtime.healthy is False
 
 
-def test_backend_failure_retries_the_same_durable_commands_before_new_processing(tmp_path):
+def test_backend_failure_retries_the_same_durable_commands_before_new_processing(
+    tmp_path,
+):
     client, runtime, backend, private_key = make_client(tmp_path)
     payload = batch_payload()
     backend.failures_remaining = 1
@@ -355,9 +447,10 @@ def test_unknown_signal_is_raw_journaled_ackable_and_deterministically_warned(tm
     response = post_batch(client, private_key, payload)
 
     assert response.status_code == 200
-    assert runtime.journal.recovered_batches[0].records[
-        0
-    ].event_type == "future_detector_signal"
+    assert (
+        runtime.journal.recovered_batches[0].records[0].event_type
+        == "future_detector_signal"
+    )
     warnings = [
         command
         for sent in backend.command_batches
@@ -700,7 +793,9 @@ async def test_scheduler_start_immediately_drains_recovered_outbox(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_scheduler_wait_failure_is_visible_unhealthy_and_observed_on_stop(tmp_path):
+async def test_scheduler_wait_failure_is_visible_unhealthy_and_observed_on_stop(
+    tmp_path,
+):
     async def fail_wait() -> None:
         raise RuntimeError("wait loop exploded with secret details")
 
@@ -817,9 +912,7 @@ async def test_scheduler_cancellation_waits_for_inflight_command_delivery(tmp_pa
             cancel_requested.set()
         backend.allow_delivery.set()
 
-    cancellation_thread = threading.Thread(
-        target=request_cancellation_during_delivery
-    )
+    cancellation_thread = threading.Thread(target=request_cancellation_during_delivery)
     cancellation_thread.start()
 
     with pytest.raises(asyncio.CancelledError):
@@ -877,7 +970,6 @@ def test_bootstrap_snapshot_is_transitively_immutable_at_construction():
         server_ms=NOW_MS,
         scheduled_end_ms=NOW_MS + 10_000,
         active_participant_ids=(101,),
-        submitted_participant_ids=(),
         policy_snapshot=policy,
         registry_snapshot=registry,
         backend_signing_public_key_b64=base64.b64encode(public_key).decode("ascii"),
@@ -919,7 +1011,10 @@ def test_bootstrap_rejects_malformed_ed25519_public_key(encoded):
     "participants",
     [
         ["not-an-object"],
-        [{"participant_id": 101, "status": "active"}, {"participant_id": 101, "status": "active"}],
+        [
+            {"participant_id": 101, "status": "active"},
+            {"participant_id": 101, "status": "active"},
+        ],
         [{"participant_id": 101, "status": "paused"}],
         [{"participant_id": 101}],
         [{"participant_id": 101, "status": 1}],
@@ -948,7 +1043,7 @@ def test_bootstrap_participant_contract_rejects_malformed_duplicate_or_unknown_s
         WorkerBootstrap.from_payload(payload)
 
 
-def test_bootstrap_rejects_legacy_integer_contest_identity():
+def test_bootstrap_requires_uuid_contest_identity():
     payload = _bootstrap_payload(generation=1)
     payload["contest_id"] = 17
 
@@ -976,36 +1071,6 @@ def test_participant_first_seen_after_bootstrap_is_durably_auto_submitted(tmp_pa
     assert submitted == {101, 303}
 
 
-def test_signed_submission_observation_precedes_equal_time_batch_decision(tmp_path):
-    client, runtime, backend, private_key = make_client(tmp_path)
-    observation = {
-        "schema_version": 1,
-        "participant_id": 101,
-        "source": "backend",
-    }
-    body = json.dumps(observation, separators=(",", ":")).encode("utf-8")
-
-    submitted = client.post(
-        f"/v1/runs/{RUN_ID}/observations/submission",
-        content=body,
-        headers=signed_headers(private_key, body),
-    )
-    event = post_batch(client, private_key, batch_payload())
-
-    assert submitted.status_code == 200
-    assert event.status_code == 200
-    ordered = runtime.timeline_journal.records[-2:]
-    assert [item["kind"] for item in ordered] == ["submission", "batch_receipt"]
-    assert [item["server_ms"] for item in ordered] == [NOW_MS, NOW_MS]
-    record_events = [
-        command
-        for sent in backend.command_batches
-        for command in sent
-        if command["kind"] == "record_event"
-    ]
-    assert record_events[-1]["action"] == "audit"
-
-
 def _bootstrap_payload(*, generation: int, previous_manifest=None):
     return {
         "run_id": str(RUN_ID),
@@ -1021,7 +1086,11 @@ def _bootstrap_payload(*, generation: int, previous_manifest=None):
         "backend_signing_public_key_b64": VALID_PUBLIC_KEY_B64,
         "archive_policy": {},
         "generation": generation,
-        **({} if previous_manifest is None else {"previous_manifest": previous_manifest}),
+        **(
+            {}
+            if previous_manifest is None
+            else {"previous_manifest": previous_manifest}
+        ),
     }
 
 
@@ -1236,9 +1305,7 @@ def test_malformed_backend_success_is_bounded_502_without_ack(tmp_path):
     assert runtime.healthy is False
 
 
-def test_ingest_archive_fatal_failure_is_bounded_507_without_ack(
-    tmp_path, monkeypatch
-):
+def test_ingest_archive_fatal_failure_is_bounded_507_without_ack(tmp_path, monkeypatch):
     client, runtime, _, private_key = make_client(tmp_path)
 
     def fail_rotation(_received_at_ms):
@@ -1256,9 +1323,7 @@ def test_ingest_archive_fatal_failure_is_bounded_507_without_ack(
     assert runtime.healthy is False
 
 
-def test_stop_local_archive_failure_is_bounded_507_and_unhealthy(
-    tmp_path, monkeypatch
-):
+def test_stop_local_archive_failure_is_bounded_507_and_unhealthy(tmp_path, monkeypatch):
     client, runtime, _, private_key = make_client(tmp_path)
 
     def fail_rotation(*_args, **_kwargs):
@@ -1273,7 +1338,11 @@ def test_stop_local_archive_failure_is_bounded_507_and_unhealthy(
 
     assert response.status_code == 507
     assert response.json() == {
-        "detail": {"archived": False, "state": "STOPPING", "error": "archive durability failed"}
+        "detail": {
+            "archived": False,
+            "state": "STOPPING",
+            "error": "archive durability failed",
+        }
     }
     assert runtime.healthy is False
     assert "local path" not in response.text
@@ -1339,11 +1408,13 @@ def test_runtime_constructor_failure_unwinds_every_acquired_resource(
 
     with monkeypatch.context() as patch:
         if target is not None:
+
             def fail_constructor(*_args, **_kwargs):
                 raise RuntimeError(f"{boundary} acquisition failed")
 
             patch.setattr(target, fail_constructor)
         else:
+
             def fail_replay(_self):
                 raise RuntimeError("replay acquisition failed")
 
@@ -1365,7 +1436,9 @@ def test_runtime_constructor_failure_unwinds_every_acquired_resource(
     recovered.close()
 
 
-def test_runtime_close_attempts_every_resource_after_one_cleanup_failure(tmp_path, monkeypatch):
+def test_runtime_close_attempts_every_resource_after_one_cleanup_failure(
+    tmp_path, monkeypatch
+):
     _, runtime, _, _ = make_client(tmp_path)
     closed: list[str] = []
 
@@ -1374,6 +1447,7 @@ def test_runtime_close_attempts_every_resource_after_one_cleanup_failure(tmp_pat
             closed.append(name)
             if fail:
                 raise OSError("cleanup failed")
+
         return owned_close
 
     monkeypatch.setattr(runtime.journal, "close", close("journal"))
@@ -1568,26 +1642,6 @@ def test_stop_archive_failure_remains_stopping_without_success_result(tmp_path):
 
     assert runtime.state == "STOPPING"
     assert runtime.accepting is False
-
-
-def test_submission_append_failure_poison_runtime_before_timeline_apply(
-    tmp_path, monkeypatch
-):
-    _, runtime, _, _ = make_client(tmp_path)
-
-    def fail(_record):
-        raise OSError("submission timeline fsync failed")
-
-    monkeypatch.setattr(runtime.timeline_journal._log, "append", fail)
-    with pytest.raises(OSError, match="submission timeline"):
-        runtime.record_submission(
-            participant_id=101,
-            source="backend",
-            server_ms=NOW_MS + 1,
-        )
-
-    assert runtime.healthy is False
-    assert runtime.submissions.is_submitted(101) is False
 
 
 def test_backend_client_retries_only_retryable_status_with_identical_command_bytes():

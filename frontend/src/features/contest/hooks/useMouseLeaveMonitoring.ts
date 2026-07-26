@@ -4,7 +4,7 @@ import type { IntegritySignalEmitter } from "@/features/contest/anticheat/integr
 
 const IME_COMPOSITION_GUARD_MS = 900;
 const POINTER_IDLE_THRESHOLD_MS = 2_000;
-const MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS = 3;
+const POINTER_BOUNDARY_DEBOUNCE_MS = 300;
 
 export interface UseMouseLeaveMonitoringConfig {
   enabled: boolean;
@@ -31,6 +31,8 @@ export function useMouseLeaveMonitoring({
   const isComposingRef = useRef(false);
   const lastCompositionEndAtRef = useRef(0);
   const lastMouseMoveAtRef = useRef(0);
+  const interruptedRef = useRef(false);
+  const pendingLeaveTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     emitterRef.current = emitter;
@@ -39,6 +41,7 @@ export function useMouseLeaveMonitoring({
   const effectiveEnabled = enabled && (!isTablet || supportsFinePointer);
   useEffect(() => {
     if (!effectiveEnabled || examSubmitted) {
+      interruptedRef.current = false;
       setInterrupted(false);
       return;
     }
@@ -55,18 +58,29 @@ export function useMouseLeaveMonitoring({
     };
     const handleMouseLeave = (event: MouseEvent) => {
       if (event.relatedTarget !== null) return;
+      if (interruptedRef.current || pendingLeaveTimerRef.current !== null) return;
       const now = Date.now();
       if (now - lastMouseMoveAtRef.current > POINTER_IDLE_THRESHOLD_MS) return;
       if (isComposingRef.current || now - lastCompositionEndAtRef.current < IME_COMPOSITION_GUARD_MS) return;
-      setInterrupted(true);
-      emit("mouse_leave_triggered", {
-        reason: "mouse_left_exam_window",
-        evidence_window_before_seconds: MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS,
-        evidence_window_after_seconds: MOUSE_LEAVE_EVIDENCE_WINDOW_SECONDS,
-      });
+      pendingLeaveTimerRef.current = window.setTimeout(() => {
+        pendingLeaveTimerRef.current = null;
+        if (interruptedRef.current) return;
+        interruptedRef.current = true;
+        setInterrupted(true);
+        emit("mouse_leave_triggered", {
+          reason: "mouse_left_exam_window",
+        });
+      }, POINTER_BOUNDARY_DEBOUNCE_MS);
     };
     const handleMouseEnter = () => {
       lastMouseMoveAtRef.current = Date.now();
+      if (pendingLeaveTimerRef.current !== null) {
+        window.clearTimeout(pendingLeaveTimerRef.current);
+        pendingLeaveTimerRef.current = null;
+        return;
+      }
+      if (!interruptedRef.current) return;
+      interruptedRef.current = false;
       setInterrupted(false);
       emit("mouse_leave_restored", { reason: "mouse_returned" });
     };
@@ -83,6 +97,11 @@ export function useMouseLeaveMonitoring({
     document.addEventListener("compositionstart", handleCompositionStart, true);
     document.addEventListener("compositionend", handleCompositionEnd, true);
     return () => {
+      if (pendingLeaveTimerRef.current !== null) {
+        window.clearTimeout(pendingLeaveTimerRef.current);
+        pendingLeaveTimerRef.current = null;
+      }
+      interruptedRef.current = false;
       document.documentElement.removeEventListener("mousemove", handleMouseMove);
       document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
       document.documentElement.removeEventListener("mouseenter", handleMouseEnter);

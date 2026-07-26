@@ -5,7 +5,7 @@ import type {
   ExamIntegrityRecord,
   ExamIntegrityStateSnapshot,
 } from "./examIntegrity.entity";
-import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
+import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.repository";
 
 const snapshot: ExamIntegrityStateSnapshot = {
   pageVisible: true,
@@ -13,14 +13,25 @@ const snapshot: ExamIntegrityStateSnapshot = {
   fullscreen: true,
   screenCapture: "active",
   webcamCapture: "disabled",
+  health: {
+    displayApi: { status: "healthy" },
+    evidenceSources: {
+      screen_share: { status: "active" },
+      webcam: { status: "disabled" },
+    },
+    evidenceBuffer: {
+      screen_share: { status: "healthy" },
+      webcam: { status: "disabled" },
+    },
+  },
   activeSourceDescriptors: [],
 };
 
 const record: ExamIntegrityRecord = {
   eventId: "11111111-1111-1111-1111-111111111111",
   seq: 8,
-  kind: "state_snapshot",
-  eventType: "state_snapshot",
+  kind: "health_snapshot",
+  eventType: "health_snapshot",
   eventSchemaVersion: 1,
   clientOccurredAtMs: 1_785_000_000_000,
   clientRecordedAtMs: 1_785_000_000_010,

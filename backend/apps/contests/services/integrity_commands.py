@@ -25,7 +25,6 @@ from apps.contests.models import (
 )
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anticheat_storage import get_s3_client
-from apps.contests.services.evidence_windows import attach_evidence_window_metadata
 from apps.contests.services.exam_submission import finalize_submission
 
 
@@ -45,6 +44,13 @@ _REGISTRY_ACTIONS = {
     "lock": "lock",
     "submit": "submit",
 }
+_CONNECTIVITY_TRANSITIONS = frozenset(
+    {
+        "connectivity_suspect",
+        "connectivity_timeout",
+        "connectivity_restored",
+    }
+)
 _ARCHIVE_CONTENT_TYPES = frozenset(
     {
         "application/gzip",
@@ -54,23 +60,6 @@ _ARCHIVE_CONTENT_TYPES = frozenset(
 _SHA256_RE = re.compile(r"[0-9a-fA-F]{64}\Z")
 _SEGMENT_SUFFIX_RE = re.compile(r"segments/[0-9]{8}\.journal\.gz\Z")
 _DUMMY_TOKEN_DIGEST = "0" * 64
-_EVIDENCE_PROJECTION_FIELDS = frozenset(
-    {
-        "evidence_cluster_id",
-        "evidence_mode",
-        "evidence_anchor_at_ms",
-        "evidence_anchor_at",
-        "evidence_window_start",
-        "evidence_window_end",
-        "evidence_window_before_seconds",
-        "evidence_window_after_seconds",
-        "evidence_window_max_seconds",
-        "evidence_source_module",
-        "pre_buffer_complete",
-    }
-)
-
-
 class IntegrityCommandRejected(ValueError):
     def __init__(self, code: str, *, command_id: str = "") -> None:
         super().__init__(code)
@@ -185,7 +174,6 @@ def build_integrity_bootstrap(run: ExamIntegrityRun) -> dict[str, object]:
         ExamStatus.IN_PROGRESS,
         ExamStatus.PAUSED,
         ExamStatus.LOCKED,
-        ExamStatus.SUBMITTED,
     }
     rows = (
         ContestParticipant.objects.filter(
@@ -199,11 +187,7 @@ def build_integrity_bootstrap(run: ExamIntegrityRun) -> dict[str, object]:
         participants.append(
             {
                 "participant_id": participant.id,
-                "status": (
-                    "submitted"
-                    if participant.exam_status == ExamStatus.SUBMITTED
-                    else "active"
-                ),
+                "status": "active",
             }
         )
 
@@ -553,89 +537,18 @@ def _existing_command_event(
         if type(integrity_metadata) is dict
         else None
     )
-    if type(existing_fingerprint) is str:
-        if hmac.compare_digest(existing_fingerprint, command_fingerprint):
-            return existing
-        raise IntegrityCommandRejected("command_id_conflict")
-    if not _legacy_event_matches_semantics(
-        existing,
-        integrity_metadata,
-        command_semantics,
-    ):
-        raise IntegrityCommandRejected("command_id_conflict")
-    return existing
-
-
-def _legacy_event_matches_semantics(
-    event: ExamEvent,
-    integrity_metadata: object,
-    semantics: dict[str, object],
-) -> bool:
-    if type(integrity_metadata) is not dict:
-        return False
-    metadata = event.metadata if type(event.metadata) is dict else {}
-    expected_metadata = semantics["metadata"]
-    if type(expected_metadata) is not dict:
-        return False
-    extra_metadata_keys = (
-        set(metadata)
-        - set(expected_metadata)
-        - {"integrity"}
-        - _EVIDENCE_PROJECTION_FIELDS
-    )
-    if extra_metadata_keys or any(
-        metadata.get(key) != value
-        for key, value in expected_metadata.items()
-    ):
-        return False
-    expected_incident = semantics["incident_id"]
-    actual_incident = (
-        None if event.incident_id is None else str(event.incident_id)
-    )
-    persisted_action = integrity_metadata.get(
-        "requested_action",
-        integrity_metadata.get("action"),
-    )
     if (
-        actual_incident != expected_incident
-        or event.client_occurred_at_ms != semantics["client_occurred_at_ms"]
-        or event.delayed_delivery is not semantics["delayed_delivery"]
-        or persisted_action != semantics["action"]
-        or integrity_metadata.get("device_id") != semantics["device_id"]
+        type(existing_fingerprint) is str
+        and hmac.compare_digest(existing_fingerprint, command_fingerprint)
     ):
-        return False
-    if (
-        semantics["kind"] == "record_event"
-        and integrity_metadata.get("evidence") != semantics["evidence"]
-    ):
-        return False
-    received_ms = semantics["received_at_server_ms"]
-    if (
-        (event.server_received_at is None) != (received_ms is None)
-        or (
-            event.server_received_at is not None
-            and int(event.server_received_at.timestamp() * 1000) != received_ms
-        )
-    ):
-        return False
-    processed_ms = semantics["worker_processed_at_ms"]
-    if semantics["kind"] == "auto_submit" and processed_ms is None:
-        return event.worker_processed_at is not None
-    if (
-        (event.worker_processed_at is None) != (processed_ms is None)
-        or (
-            event.worker_processed_at is not None
-            and int(event.worker_processed_at.timestamp() * 1000) != processed_ms
-        )
-    ):
-        return False
-    return True
+        return existing
+    raise IntegrityCommandRejected("command_id_conflict")
 
 
 def _pause_reason(event_type: str) -> str:
     reasons = {
-        "heartbeat_timeout": (
-            "Heartbeat timeout: no client signal received for 60 seconds; "
+        "connectivity_timeout": (
+            "Connection timeout: no client checkpoint received for 60 seconds; "
             "pre-check is required to continue"
         ),
         "listener_tampered": (
@@ -816,8 +729,6 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         delayed_delivery=command.delayed_delivery,
         metadata=metadata,
     )
-    event = attach_evidence_window_metadata(event)
-
     if (
         not command.delayed_delivery
         and participant.exam_status != ExamStatus.SUBMITTED
@@ -912,6 +823,19 @@ def _record_event_command(
         "metadata": metadata,
     }
     command_fingerprint = _command_fingerprint(command_semantics)
+    if (
+        event_type in _CONNECTIVITY_TRANSITIONS
+        and ContestParticipant.objects.filter(
+            pk=participant_id,
+            contest_id=run.contest_id,
+            exam_status=ExamStatus.SUBMITTED,
+        ).exists()
+    ):
+        return CommandOutcome(
+            command_id=command_id,
+            status="applied",
+            result={"ignored": "participant_submitted"},
+        )
     before = ExamEvent.objects.filter(integrity_command_id=command_id).exists()
     record_integrity_event(
         RecordIntegrityEvent(

@@ -68,10 +68,6 @@ class BackendClient:
         response = self._request("GET", path)
         return self._response_json(response)
 
-    def bootstrap(self) -> dict[str, object]:
-        """Compatibility name for the single run-scoped bootstrap operation."""
-        return self.fetch_bootstrap()
-
     def send_commands(
         self, commands: tuple[dict[str, object], ...]
     ) -> dict[str, object]:

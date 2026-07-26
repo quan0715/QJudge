@@ -11,13 +11,12 @@ from collections.abc import Awaitable
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Callable
 from uuid import UUID
 
 from integrity_service.core.commands import (
     EngineContext,
     IntegrityCommand,
-    SubmissionState,
     make_command,
     json_projection,
 )
@@ -32,7 +31,6 @@ from integrity_service.core.timeline import (
     BatchReceiptEntry,
     DecisionTimeline,
     ReceiptPlan,
-    SubmissionEntry,
     TimelineBaseline,
 )
 from integrity_service.journal.archive import (
@@ -119,6 +117,12 @@ class WorkerRuntime:
         if delayed is not None and (type(delayed) is not int or delayed < 0):
             raise ValueError("delayed_delivery_after_ms policy is invalid")
         self._delayed_delivery_after_ms: int | None = delayed
+        batch_interval_ms = self._policy_int(
+            self._policy_snapshot,
+            "batch_interval_ms",
+            0,
+            minimum=0,
+        )
 
         archive_policy = json_projection(bootstrap.archive_policy)
         assert isinstance(archive_policy, dict)
@@ -160,36 +164,32 @@ class WorkerRuntime:
             baseline = self._load_or_create_baseline(bootstrap)
             self.registry = Registry(self._registry_snapshot)
             self.sequencer = SessionSequencer()
-            self.submissions = SubmissionState()
             context = EngineContext(self.run_id)
             self.incidents = IncidentEngine(
-                self.registry, context, self.submissions
+                self.registry,
+                context,
+                delivery_tolerance_ms=batch_interval_ms,
             )
             self.connectivity = ConnectivityMonitor(
                 self._policy_snapshot,
                 self.registry,
                 context,
-                self.submissions,
             )
             self.scheduler = DeadlineScheduler(
                 bootstrap.scheduled_end_ms,
                 context,
-                self.submissions,
             )
             self.timeline = DecisionTimeline(
                 baseline=baseline,
                 incidents=self.incidents,
                 connectivity=self.connectivity,
                 scheduler=self.scheduler,
-                submissions=self.submissions,
             )
             self._timeline_seq = 0
             self._clock_server_ms = baseline.server_ms
             self._replay_timeline()
 
-            digest = lambda value: hashlib.sha256(
-                self._canonical(value)
-            ).hexdigest()
+            digest = lambda value: hashlib.sha256(self._canonical(value)).hexdigest()
             self.archiver = ArchiveManager(
                 root=run_root / "archive",
                 run_id=self.run_id,
@@ -316,40 +316,6 @@ class WorkerRuntime:
                 release_evidence_before_ms=0,
             )
 
-    def record_submission(
-        self,
-        *,
-        participant_id: int,
-        source: Literal["manual", "backend"],
-        server_ms: int,
-    ) -> int:
-        with self._lock:
-            if not self.healthy:
-                raise OSError("Worker is unhealthy and requires recovery")
-            if not self._accepting:
-                raise WorkerNotAccepting("Worker is not accepting observations")
-            self._drain_pending()
-            appended = False
-            try:
-                entry = SubmissionEntry(
-                    timeline_seq=self._timeline_seq + 1,
-                    server_ms=server_ms,
-                    participant_id=participant_id,
-                    source=source,
-                )
-                self.timeline_journal.append_submission(entry)
-                appended = True
-                commands = self.timeline.apply(entry)
-                self._timeline_seq = entry.timeline_seq
-                self._clock_server_ms = entry.server_ms
-                self.outbox.append(commands)
-            except BaseException as error:
-                if appended or isinstance(error, OSError):
-                    self._mark_unhealthy("durable_write_failed")
-                raise
-            self._drain_pending()
-            return entry.timeline_seq
-
     def tick(self, now_ms: int | None = None) -> None:
         with self._lock:
             if self._state != "RUNNING":
@@ -419,7 +385,9 @@ class WorkerRuntime:
             pass
         except BaseException as error:
             self._record_scheduler_failure(self._scheduler_error_code(error))
-            raise SchedulerFailed("scheduler failed; process recovery required") from error
+            raise SchedulerFailed(
+                "scheduler failed; process recovery required"
+            ) from error
         self._scheduler_task = asyncio.create_task(
             self._scheduler_loop(), name=f"integrity-scheduler-{self.run_id}"
         )
@@ -438,7 +406,9 @@ class WorkerRuntime:
             raise
         except BaseException as error:
             self._record_scheduler_failure("scheduler_failed")
-            raise SchedulerFailed("scheduler failed; process recovery required") from error
+            raise SchedulerFailed(
+                "scheduler failed; process recovery required"
+            ) from error
 
     async def _scheduler_loop(self) -> None:
         while self._state == "RUNNING":
@@ -480,9 +450,7 @@ class WorkerRuntime:
             cleanup.callback(self.archiver.close)
             cleanup.close()
 
-    def _load_or_create_baseline(
-        self, bootstrap: WorkerBootstrap
-    ) -> TimelineBaseline:
+    def _load_or_create_baseline(self, bootstrap: WorkerBootstrap) -> TimelineBaseline:
         records = self.timeline_journal.records
         if records:
             raw = records[0]
@@ -492,21 +460,12 @@ class WorkerRuntime:
                 timeline_seq=int(raw["timeline_seq"]),
                 server_ms=int(raw["server_ms"]),
                 active_participant_ids=tuple(raw["active_participant_ids"]),
-                submitted_participant_ids=tuple(raw["submitted_participant_ids"]),
             )
-            if (
-                baseline.active_participant_ids
-                != bootstrap.active_participant_ids
-                or baseline.submitted_participant_ids
-                != bootstrap.submitted_participant_ids
-            ):
-                raise DurableLogCorruption("frozen bootstrap conflicts with baseline")
             return baseline
         baseline = TimelineBaseline(
             timeline_seq=0,
             server_ms=bootstrap.server_ms,
             active_participant_ids=bootstrap.active_participant_ids,
-            submitted_participant_ids=bootstrap.submitted_participant_ids,
         )
         self.timeline_journal.ensure_baseline(baseline)
         return baseline
@@ -566,16 +525,6 @@ class WorkerRuntime:
                     entry=entry,
                     delayed_event_ids=delayed,
                 )
-            elif kind == "submission":
-                entry = SubmissionEntry(
-                    timeline_seq=int(durable["timeline_seq"]),
-                    server_ms=int(durable["server_ms"]),
-                    participant_id=int(durable["participant_id"]),
-                    source=str(durable["source"]),  # type: ignore[arg-type]
-                )
-                self.outbox.append(self.timeline.apply(entry))
-                self._timeline_seq = entry.timeline_seq
-                self._clock_server_ms = entry.server_ms
             elif kind == "advance":
                 server_ms = int(durable["server_ms"])
                 self.outbox.append(self.timeline.advance_to(server_ms))
@@ -625,12 +574,8 @@ class WorkerRuntime:
             )
         try:
             accepted = self.sequencer.accept(batch)
-            delayed = self._delayed_event_ids(
-                accepted.new_records, entry.server_ms
-            )
-            self.timeline_journal.append_receipt(
-                entry, accepted.new_records, delayed
-            )
+            delayed = self._delayed_event_ids(accepted.new_records, entry.server_ms)
+            self.timeline_journal.append_receipt(entry, accepted.new_records, delayed)
             self._apply_receipt(
                 batch=batch,
                 accepted=accepted,
@@ -746,9 +691,7 @@ class WorkerRuntime:
         records: tuple[AdmittedEventRecord, ...],
         received_at_server_ms: int,
     ) -> frozenset[UUID]:
-        threshold = self._policy_snapshot.get(
-            "delayed_delivery_after_ms"
-        )
+        threshold = self._policy_snapshot.get("delayed_delivery_after_ms")
         assert threshold == self._delayed_delivery_after_ms
         if threshold is None:
             return frozenset()

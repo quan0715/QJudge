@@ -2,20 +2,15 @@ import React from "react";
 import { Button } from "@carbon/react";
 import { Locked } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import ExamCountdownOverlay from "./ExamCountdownOverlay";
 import styles from "./ExamOverlays.module.scss";
 
 interface ExamOverlaysProps {
-  showGracePeriod: boolean;
-  gracePeriodCountdown: number;
   showLockScreen: boolean;
   lockReason?: string;
   onBackToContest: () => void;
 }
 
 export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
-  showGracePeriod,
-  gracePeriodCountdown,
   showLockScreen,
   lockReason,
   onBackToContest,
@@ -24,15 +19,6 @@ export const ExamOverlays: React.FC<ExamOverlaysProps> = ({
 
   return (
     <>
-      {showGracePeriod && (
-        <ExamCountdownOverlay
-          value={gracePeriodCountdown}
-          title={t("exam.modeEnabled")}
-          message={t("exam.antiCheatStarting")}
-          hint={t("exam.doNotSwitchTabs")}
-        />
-      )}
-
       {showLockScreen && (
         <div className={styles.lockBackdrop} data-testid="exam-lock-overlay">
           <div className={styles.lockPanel} data-testid="exam-lock-panel">

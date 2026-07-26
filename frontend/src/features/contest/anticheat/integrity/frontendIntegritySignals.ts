@@ -7,13 +7,10 @@ import type { IntegrityRegistrySnapshot } from "@/core/entities/contest.entity";
  */
 export const FRONTEND_INTEGRITY_SIGNAL_IDS = [
   "clipboard_action",
-  "display_api_degraded",
-  "evidence_buffer_degraded",
   "exam_entered",
   "exam_submit_initiated",
   "exit_fullscreen_triggered",
   "forbidden_action",
-  "forbidden_focus_event",
   "fullscreen_restored",
   "listener_tampered",
   "mouse_leave_restored",
@@ -22,7 +19,7 @@ export const FRONTEND_INTEGRITY_SIGNAL_IDS = [
   "multi_display_triggered",
   "screen_share_interrupted",
   "screen_share_restored",
-  "state_snapshot",
+  "health_snapshot",
   "viewport_interrupted",
   "viewport_restored",
   "webcam_interrupted",

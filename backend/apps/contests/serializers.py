@@ -1,6 +1,8 @@
 """
 Serializers for contests app.
 """
+from datetime import datetime, timezone as datetime_timezone
+
 from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 from django.utils import timezone
@@ -137,8 +139,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'contest_type',
             'cheat_detection_enabled',
             'anticheat_device_policy',
-            'warning_timeout_seconds',
-            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'owner_username',
             'created_at',
@@ -367,8 +367,6 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'contest_type',
             'cheat_detection_enabled',
             'anticheat_device_policy',
-            'warning_timeout_seconds',
-            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
             'status',
@@ -884,6 +882,10 @@ class ExamEventSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     evidence_status = serializers.SerializerMethodField()
     evidence_sources = serializers.SerializerMethodField()
+    occurred_at = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    penalized = serializers.SerializerMethodField()
 
     def _evidence_summary(self, obj):
         from apps.contests.services.integrity_evidence import evidence_status_for_event
@@ -900,6 +902,32 @@ class ExamEventSerializer(serializers.ModelSerializer):
 
     def get_evidence_sources(self, obj):
         return self._evidence_summary(obj)["evidence_sources"]
+
+    def get_occurred_at(self, obj):
+        if obj.client_occurred_at_ms is None:
+            return obj.created_at
+        return datetime.fromtimestamp(
+            obj.client_occurred_at_ms / 1000,
+            tz=datetime_timezone.utc,
+        )
+
+    def get_priority(self, obj):
+        from apps.contests.services.integrity_event_projection import event_priority
+
+        return event_priority(obj)
+
+    def get_category(self, obj):
+        from apps.contests.services.integrity_event_projection import (
+            event_priority,
+            priority_category,
+        )
+
+        return priority_category(event_priority(obj))
+
+    def get_penalized(self, obj):
+        from apps.contests.services.integrity_event_projection import event_penalized
+
+        return event_penalized(obj)
     
     class Meta:
         model = ExamEvent
@@ -909,56 +937,18 @@ class ExamEventSerializer(serializers.ModelSerializer):
             'user',
             'user_username',
             'event_type',
+            'incident_id',
+            'client_occurred_at_ms',
+            'occurred_at',
             'metadata',
             'evidence_status',
             'evidence_sources',
+            'priority',
+            'category',
+            'penalized',
             'created_at',
         ]
         read_only_fields = ['created_at', 'user_username']
-
-
-class ExamEventCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating exam events."""
-    DEFAULT_METADATA_MAX_SIZE = 8192  # bytes
-    CLIPBOARD_METADATA_MAX_SIZE = 65536  # bytes
-
-    client_observed_at_ms = serializers.IntegerField(required=False, min_value=0)
-    server_time_offset_ms = serializers.IntegerField(required=False)
-    evidence_anchor_at_ms = serializers.IntegerField(required=False, min_value=0)
-    evidence_mode = serializers.ChoiceField(
-        required=False,
-        choices=ExamEvidenceFrame.EvidenceMode.choices,
-    )
-    event_idempotency_key = serializers.CharField(required=False, allow_blank=True, max_length=160)
-
-    class Meta:
-        model = ExamEvent
-        fields = [
-            'event_type',
-            'metadata',
-            'client_observed_at_ms',
-            'server_time_offset_ms',
-            'evidence_anchor_at_ms',
-            'evidence_mode',
-            'event_idempotency_key',
-        ]
-
-    def validate(self, attrs):
-        metadata = attrs.get('metadata')
-        if metadata is not None:
-            import json
-            event_type = attrs.get('event_type')
-            max_size = (
-                self.CLIPBOARD_METADATA_MAX_SIZE
-                if event_type == 'clipboard_action'
-                else self.DEFAULT_METADATA_MAX_SIZE
-            )
-            serialized = json.dumps(metadata, ensure_ascii=False)
-            if len(serialized.encode('utf-8')) > max_size:
-                raise serializers.ValidationError(
-                    {'metadata': f"Metadata exceeds maximum size of {max_size} bytes."}
-                )
-        return attrs
 
 
 class EvidenceUploadIntentFrameSerializer(serializers.Serializer):
@@ -1035,7 +1025,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
-    last_heartbeat_at = serializers.SerializerMethodField()
+    last_checkpoint_at = serializers.SerializerMethodField()
     live_monitoring_online = serializers.SerializerMethodField()
     live_monitoring_sources = serializers.SerializerMethodField()
     
@@ -1046,16 +1036,16 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason',
             'display_name', 'account_role', 'auth_provider',
-            'connection_status', 'last_heartbeat_at', 'live_monitoring_online', 'live_monitoring_sources',
+            'connection_status', 'last_checkpoint_at', 'live_monitoring_online', 'live_monitoring_sources',
         ]
 
-    def _get_last_heartbeat(self, obj):
-        if hasattr(obj, '_last_heartbeat_cached'):
-            return obj._last_heartbeat_cached
-        from apps.contests.services.anti_cheat_session import get_last_heartbeat
+    def _get_last_checkpoint(self, obj):
+        if hasattr(obj, '_last_checkpoint_cached'):
+            return obj._last_checkpoint_cached
+        from apps.contests.services.integrity_presence import get_last_checkpoint
 
-        obj._last_heartbeat_cached = get_last_heartbeat(obj.contest_id, obj.user_id)
-        return obj._last_heartbeat_cached
+        obj._last_checkpoint_cached = get_last_checkpoint(obj.contest_id, obj.user_id)
+        return obj._last_checkpoint_cached
 
     def _get_live_publisher(self, obj):
         if hasattr(obj, '_live_publisher_cached'):
@@ -1080,12 +1070,12 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     def get_connection_status(self, obj):
         if self._get_live_publisher(obj):
             return 'live'
-        if self._get_last_heartbeat(obj):
+        if self._get_last_checkpoint(obj):
             return 'online'
         return 'offline'
 
-    def get_last_heartbeat_at(self, obj):
-        return self._get_last_heartbeat(obj)
+    def get_last_checkpoint_at(self, obj):
+        return self._get_last_checkpoint(obj)
 
     def get_live_monitoring_online(self, obj):
         return bool(self._get_live_publisher(obj))

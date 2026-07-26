@@ -1,12 +1,12 @@
 import { createContext, useContext } from "react";
-import type { IntegrityJsonValue } from "@/core/entities/examIntegrity.entity";
+import type {
+  IntegrityHealthUpdate,
+  IntegrityJsonValue,
+} from "@/core/entities/examIntegrity.entity";
 
 export interface IntegritySignalEmitter {
   emit(signal: IntegritySignal): Promise<void>;
-}
-
-export interface IntegrityEvidenceController {
-  flushPendingEvidence: () => Promise<void>;
+  updateHealth?(update: IntegrityHealthUpdate): void;
 }
 
 export interface IntegritySignal {
@@ -38,6 +38,7 @@ const inactiveEmitter: IntegritySignalEmitter = {
     );
     return detail.completion ?? Promise.resolve();
   },
+  updateHealth: () => undefined,
 };
 
 export const asIntegritySignalDispatch = (
@@ -56,16 +57,3 @@ export const IntegrityRuntimeProvider = IntegrityRuntimeContext.Provider;
 
 export const useIntegritySignalEmitter = (): IntegritySignalEmitter =>
   useContext(IntegrityRuntimeContext);
-
-const inactiveEvidenceController: IntegrityEvidenceController = {
-  flushPendingEvidence: async () => undefined,
-};
-
-const IntegrityEvidenceContext = createContext<IntegrityEvidenceController>(
-  inactiveEvidenceController,
-);
-
-export const IntegrityEvidenceProvider = IntegrityEvidenceContext.Provider;
-
-export const useIntegrityEvidenceController = (): IntegrityEvidenceController =>
-  useContext(IntegrityEvidenceContext);

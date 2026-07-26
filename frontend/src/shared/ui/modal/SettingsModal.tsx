@@ -36,8 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   });
   const visibleItems = useMemo(
     () => navItems.filter((item) => !item.hidden),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [navItems.length, ...navItems.map((i) => `${i.id}:${i.hidden}`)],
+    [navItems],
   );
 
   const [activeId, setActiveId] = useState(
@@ -105,7 +104,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       size="lg"
       className={`settings-modal${className ? ` ${className}` : ""}`}
       preventCloseOnClickOutside
-      selectorsFloatingMenus={['.cds--modal']}
+      selectorsFloatingMenus={[".settings-modal"]}
     >
       <div
         className="settings-modal__layout"

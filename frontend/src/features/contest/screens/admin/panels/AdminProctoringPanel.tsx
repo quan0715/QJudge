@@ -1,10 +1,9 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Modal, TableToolbarSearch, Tag, TextArea, TextInput } from "@carbon/react";
+import { Button, Modal, TableToolbarSearch, Tag, TextArea } from "@carbon/react";
 import {
   ArrowLeft,
   CheckmarkFilled,
-  DataCollection,
   InProgress,
   Locked,
   PauseFilled,
@@ -23,14 +22,9 @@ import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSubscriber";
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentDetail from "@/features/contest/components/admin/IncidentDetail";
-import IntegrityRunControlCard from "@/features/contest/components/admin/IntegrityRunControlCard";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
-import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import {
-  createManualProctorEvent,
-  getManualProctorEvidenceUrls,
   getParticipantDashboard,
-  uploadAnticheatBatch,
   unlockParticipant,
   updateParticipant,
 } from "@/infrastructure/api/repositories";
@@ -58,7 +52,6 @@ const SOURCE_ORDER: LiveSource[] = ["screen_share", "webcam"];
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
 const LIVE_STATUS_REFRESH_MS = 10000;
-const MANUAL_EVIDENCE_CAPTURE_INTERVAL_MS = 5000;
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
@@ -126,73 +119,25 @@ const getParticipantSearchText = (participant: ContestParticipant) =>
     .join(" ")
     .toLowerCase();
 
-interface ManualEvidenceFrame {
-  id: number;
-  createdAt: number;
-  source: LiveSource;
-  blob: Blob;
-}
-
-interface ManualEvidenceCaptureHandle {
-  collectManualEvidenceFrames: () => Promise<ManualEvidenceFrame[]>;
-}
-
-interface UploadedManualEvidence {
-  uploadSessionId: string;
-  uploadedObjectKeys: string[];
-  uploadedSeqs: number[];
-  moduleResults: Partial<Record<LiveSource, Record<string, unknown>>>;
-}
-
-const captureVideoFrame = async (
-  video: HTMLVideoElement | null,
-  source: LiveSource,
-): Promise<ManualEvidenceFrame | null> => {
-  if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.videoWidth <= 0 || video.videoHeight <= 0) {
-    return null;
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const context = canvas.getContext("2d");
-  if (!context) return null;
-  context.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, "image/webp", 0.82);
-  });
-  if (!blob) return null;
-  const createdAt = Date.now();
-  return {
-    id: createdAt,
-    createdAt,
-    source,
-    blob,
-  };
-};
-
 interface MinimalLiveStageProps {
   contestId: string;
   participant: ContestParticipant | null;
   discoveryRefreshKey: number;
   lockActionBusy: boolean;
   monitoringAvailable: boolean;
-  manualEvidenceActive: boolean;
-  onToggleManualEvidence?: () => void;
   onToggleLock?: () => void;
   onBackToRoster?: () => void;
 }
 
-const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStageProps>(function MinimalLiveStage({
+const MinimalLiveStage = ({
   contestId,
   participant,
   discoveryRefreshKey,
   lockActionBusy,
   monitoringAvailable,
-  manualEvidenceActive,
-  onToggleManualEvidence,
   onToggleLock,
   onBackToRoster,
-}, ref) {
+}: MinimalLiveStageProps) => {
   const { t } = useTranslation("contest");
   const videoRefs = useRef<Record<LiveSource, HTMLVideoElement | null>>({
     screen_share: null,
@@ -209,7 +154,6 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   const [publishers, setPublishers] = useState<RealtimeSfuPublisherDto[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [panelError, setPanelError] = useState("");
-  const manualEvidenceFramesRef = useRef<ManualEvidenceFrame[]>([]);
 
   const userId = participant?.userId;
   const participantName = participant ? getParticipantDisplayName(participant) : "";
@@ -354,57 +298,6 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
   const connectedCount = SOURCE_ORDER.filter((source) => sourceStates[source].isStreaming).length;
   const visibleSources = availableSources;
 
-  const captureConnectedFrames = useCallback(async () => {
-    const frames = await Promise.all(
-      SOURCE_ORDER.map(async (source) => {
-        if (!sourceStates[source].isStreaming) return null;
-        return captureVideoFrame(videoRefs.current[source], source);
-      }),
-    );
-    return frames.filter((frame): frame is ManualEvidenceFrame => !!frame);
-  }, [sourceStates]);
-
-  useEffect(() => {
-    if (!manualEvidenceActive) {
-      manualEvidenceFramesRef.current = [];
-      return;
-    }
-    let cancelled = false;
-    const capture = async () => {
-      const frames = await captureConnectedFrames();
-      if (cancelled || frames.length === 0) return;
-      manualEvidenceFramesRef.current = [
-        ...manualEvidenceFramesRef.current,
-        ...frames,
-      ].slice(-24);
-    };
-    void capture();
-    const intervalId = window.setInterval(() => {
-      void capture();
-    }, MANUAL_EVIDENCE_CAPTURE_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [captureConnectedFrames, manualEvidenceActive]);
-
-  useImperativeHandle(ref, () => ({
-    collectManualEvidenceFrames: async () => {
-      const latestFrames = await captureConnectedFrames();
-      const frames = [
-        ...manualEvidenceFramesRef.current,
-        ...latestFrames,
-      ];
-      const seen = new Set<string>();
-      return frames.filter((frame) => {
-        const key = `${frame.source}:${frame.createdAt}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    },
-  }), [captureConnectedFrames]);
-
   const renderSource = (source: LiveSource) => {
     const sourceState = sourceStates[source];
     const connected = sourceState.isStreaming;
@@ -472,20 +365,6 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
           </div>
         </div>
         <div className={styles.monitorActions}>
-          {onToggleManualEvidence ? (
-            <Button
-              className={manualEvidenceActive ? styles.manualEvidenceButtonActive : undefined}
-              kind="danger--ghost"
-              size="md"
-              renderIcon={DataCollection}
-              iconDescription={manualEvidenceActive
-                ? t("proctoringPanel.endManualEvidence", "結束手動採證")
-                : t("proctoringPanel.startManualEvidence", "開始手動採證")}
-              hasIconOnly
-              disabled={!participant}
-              onClick={onToggleManualEvidence}
-            />
-          ) : null}
           {onToggleLock ? (
             <Button
               kind={participantLocked ? "ghost" : "danger--ghost"}
@@ -521,7 +400,7 @@ const MinimalLiveStage = forwardRef<ManualEvidenceCaptureHandle, MinimalLiveStag
       )}
     </div>
   );
-});
+};
 
 interface EventTimelinePaneProps {
   events: EventFeedItem[];
@@ -530,7 +409,6 @@ interface EventTimelinePaneProps {
   selectedKey: string;
   selectedIncident: EventFeedItem | null;
   contestId: string;
-  participant: ContestParticipant | null;
   detailOpen: boolean;
   reducedMotion: boolean;
   onSelect: (event: EventFeedItem) => void;
@@ -544,7 +422,6 @@ const EventTimelinePane = ({
   selectedKey,
   selectedIncident,
   contestId,
-  participant,
   detailOpen,
   reducedMotion,
   onSelect,
@@ -587,9 +464,7 @@ const EventTimelinePane = ({
           >
             <IncidentDetail
               contestId={contestId}
-              userId={participant?.userId}
               incident={selectedIncident}
-              evidenceLayout="list"
               showHeader
               showMetadata={false}
               onClose={onCloseDetail}
@@ -599,127 +474,6 @@ const EventTimelinePane = ({
       </AnimatePresence>
     </aside>
   );
-};
-
-interface ManualEvidenceModalProps {
-  open: boolean;
-  saving: boolean;
-  participantName: string;
-  startedAt: number | null;
-  reason: string;
-  description: string;
-  onReasonChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}
-
-const ManualEvidenceModal = ({
-  open,
-  saving,
-  participantName,
-  startedAt,
-  reason,
-  description,
-  onReasonChange,
-  onDescriptionChange,
-  onClose,
-  onSubmit,
-}: ManualEvidenceModalProps) => {
-  const { t } = useTranslation("contest");
-  const startedAtLabel = startedAt
-    ? formatContestClockTime(startedAt, undefined, { includeSeconds: true })
-    : "";
-
-  return (
-    <Modal
-      open={open}
-      modalHeading={t("proctoringPanel.manualEvidenceModalTitle", "建立手動採證事件")}
-      primaryButtonText={saving ? t("action.loading", "連線中...") : t("button.submit", "送出")}
-      secondaryButtonText={t("button.cancel", "取消")}
-      primaryButtonDisabled={saving || reason.trim().length === 0}
-      onRequestClose={saving ? undefined : onClose}
-      onRequestSubmit={onSubmit}
-    >
-      <div className={styles.manualEvidenceModalBody}>
-        <div className={styles.manualEvidenceMeta}>
-          <span>{participantName}</span>
-          {startedAtLabel ? (
-            <span>{t("proctoringPanel.manualEvidenceStartedAt", "開始於 {{time}}", { time: startedAtLabel })}</span>
-          ) : null}
-        </div>
-        <TextInput
-          id="manual-evidence-reason"
-          labelText={t("proctoringPanel.manualEvidenceTitle", "事件標題")}
-          value={reason}
-          maxLength={120}
-          disabled={saving}
-          onChange={(event) => onReasonChange(event.target.value)}
-        />
-        <TextArea
-          id="manual-evidence-description"
-          labelText={t("proctoringPanel.manualEvidenceDescription", "說明")}
-          value={description}
-          maxLength={1000}
-          disabled={saving}
-          onChange={(event) => onDescriptionChange(event.target.value)}
-        />
-      </div>
-    </Modal>
-  );
-};
-
-const uploadManualEvidenceFrames = async (
-  contestId: string,
-  userId: string | number,
-  frames: ManualEvidenceFrame[],
-  preferredUploadSessionId?: string,
-): Promise<UploadedManualEvidence> => {
-  const uploadSessionId = preferredUploadSessionId || `manual-${userId}-${Date.now()}`;
-  const uploadedObjectKeys: string[] = [];
-  const uploadedSeqs: number[] = [];
-  const moduleResults: UploadedManualEvidence["moduleResults"] = {};
-
-  for (const source of SOURCE_ORDER) {
-    const sourceFrames = frames.filter((frame) => frame.source === source);
-    if (sourceFrames.length === 0) continue;
-    const urls = await getManualProctorEvidenceUrls(contestId, {
-      user_id: userId,
-      module: source,
-      count: sourceFrames.length,
-      upload_session_id: uploadSessionId,
-      start_seq: 1,
-      frame_timestamps: sourceFrames.map((frame) => frame.createdAt),
-    });
-    const uploadItems = urls.items.slice(0, sourceFrames.length);
-    await uploadAnticheatBatch(
-      uploadItems.map((item, index) => ({
-        blob: sourceFrames[index].blob,
-        put_url: item.put_url,
-        required_headers: item.required_headers,
-      })),
-    );
-    const objectKeys = uploadItems.map((item) => item.object_key);
-    const seqs = uploadItems.map((item) => item.seq);
-    uploadedObjectKeys.push(...objectKeys);
-    uploadedSeqs.push(...seqs);
-    moduleResults[source] = {
-      attempted: true,
-      captured: true,
-      uploaded: objectKeys.length > 0,
-      uploadSessionId,
-      uploadedObjectKeys: objectKeys,
-      uploadedSeqs: seqs,
-      evidenceUploadedFrameCount: objectKeys.length,
-    };
-  }
-
-  return {
-    uploadSessionId,
-    uploadedObjectKeys,
-    uploadedSeqs,
-    moduleResults,
-  };
 };
 
 export default function AdminProctoringPanel({
@@ -740,7 +494,6 @@ export default function AdminProctoringPanel({
   const { confirm, modalProps } = useConfirmModal();
   const { showToast } = useToast();
   const refreshInFlightRef = useRef(false);
-  const liveStageRef = useRef<ManualEvidenceCaptureHandle | null>(null);
 
   const selectedUserId = searchParams.get("user");
   const searchQuery = searchParams.get("q") || "";
@@ -756,12 +509,6 @@ export default function AdminProctoringPanel({
   const [lockActionBusy, setLockActionBusy] = useState(false);
   const [lockReasonModalOpen, setLockReasonModalOpen] = useState(false);
   const [manualLockReason, setManualLockReason] = useState("");
-  const [manualEvidenceStartedAt, setManualEvidenceStartedAt] = useState<number | null>(null);
-  const [manualEvidenceUploadSessionId, setManualEvidenceUploadSessionId] = useState("");
-  const [manualEvidenceModalOpen, setManualEvidenceModalOpen] = useState(false);
-  const [manualEvidenceReason, setManualEvidenceReason] = useState("");
-  const [manualEvidenceDescription, setManualEvidenceDescription] = useState("");
-  const [manualEvidenceSaving, setManualEvidenceSaving] = useState(false);
   const [liveDiscoveryRefreshKey, setLiveDiscoveryRefreshKey] = useState(0);
   const inExamWindow = useMemo(
     () => isContestInExamWindow(contest, nowMs),
@@ -842,7 +589,7 @@ export default function AdminProctoringPanel({
   const selectedIncident = useMemo(
     () =>
       eventFeed.find((event) => event.incidentKey === selectedIncidentKey) ||
-      eventFeed.find((event) => event.evidenceCount > 0) ||
+      eventFeed.find((event) => event.hasEvidence) ||
       eventFeed[0] ||
       null,
     [eventFeed, selectedIncidentKey],
@@ -948,103 +695,6 @@ export default function AdminProctoringPanel({
       setLockActionBusy(false);
     }
   }, [contestId, manualLockReason, refreshPanel, selectedParticipant, showToast, t]);
-
-  const handleToggleManualEvidence = useCallback(() => {
-    if (!selectedParticipant) return;
-    if (!manualEvidenceStartedAt) {
-      const startedAt = Date.now();
-      setManualEvidenceStartedAt(startedAt);
-      setManualEvidenceUploadSessionId(`manual-${selectedParticipant.userId}-${startedAt}`);
-      setManualEvidenceReason(t("proctoringPanel.manualEvidenceDefaultTitle", "手動採證"));
-      setManualEvidenceDescription("");
-      showToast({
-        kind: "info",
-        title: t("proctoringPanel.manualEvidenceStarted", "已開始手動採證"),
-        subtitle: getParticipantDisplayName(selectedParticipant),
-      });
-      return;
-    }
-    setManualEvidenceModalOpen(true);
-  }, [manualEvidenceStartedAt, selectedParticipant, showToast, t]);
-
-  const handleCancelManualEvidenceModal = useCallback(() => {
-    if (manualEvidenceSaving) return;
-    setManualEvidenceModalOpen(false);
-  }, [manualEvidenceSaving]);
-
-  const handleSubmitManualEvidence = useCallback(async () => {
-    if (!contestId || !selectedParticipant || !manualEvidenceStartedAt) return;
-    const reason = manualEvidenceReason.trim();
-    if (!reason) return;
-    const endedAt = Date.now();
-    setManualEvidenceSaving(true);
-    try {
-      const capturedFrames = await liveStageRef.current?.collectManualEvidenceFrames() ?? [];
-      const uploadResult = capturedFrames.length > 0
-        ? await uploadManualEvidenceFrames(
-            contestId,
-            selectedParticipant.userId,
-            capturedFrames,
-            manualEvidenceUploadSessionId || undefined,
-          )
-        : {
-            uploadSessionId: "",
-            uploadedObjectKeys: [],
-            uploadedSeqs: [],
-            moduleResults: {},
-          };
-      await createManualProctorEvent(contestId, {
-        user_id: selectedParticipant.userId,
-        started_at: new Date(manualEvidenceStartedAt).toISOString(),
-        ended_at: new Date(endedAt).toISOString(),
-        reason,
-        description: manualEvidenceDescription.trim(),
-        upload_session_id: uploadResult.uploadedObjectKeys.length > 0 ? uploadResult.uploadSessionId : undefined,
-        uploaded_object_keys: uploadResult.uploadedObjectKeys,
-        uploaded_seqs: uploadResult.uploadedSeqs,
-        module_results: uploadResult.moduleResults,
-      });
-      setManualEvidenceStartedAt(null);
-      setManualEvidenceUploadSessionId("");
-      setManualEvidenceModalOpen(false);
-      setManualEvidenceReason("");
-      setManualEvidenceDescription("");
-      await refreshPanel();
-      showToast({
-        kind: "success",
-        title: t("common.success", "成功"),
-        subtitle: t("proctoringPanel.manualEvidenceCreated", "已建立手動採證事件"),
-      });
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("common.error", "錯誤"),
-        subtitle: error instanceof Error
-          ? error.message
-          : t("proctoringPanel.manualEvidenceCreateFailed", "建立手動採證事件失敗"),
-      });
-    } finally {
-      setManualEvidenceSaving(false);
-    }
-  }, [
-    contestId,
-    manualEvidenceDescription,
-    manualEvidenceReason,
-    manualEvidenceStartedAt,
-    manualEvidenceUploadSessionId,
-    refreshPanel,
-    selectedParticipant,
-    showToast,
-    t,
-  ]);
-
-  useEffect(() => {
-    setManualEvidenceStartedAt(null);
-    setManualEvidenceUploadSessionId("");
-    setManualEvidenceModalOpen(false);
-    setManualEvidenceReason("");
-    setManualEvidenceDescription("");
-  }, [selectedUserId]);
 
   useEffect(() => {
     return registerPanelRefresh("proctoring", refreshPanel);
@@ -1262,12 +912,6 @@ export default function AdminProctoringPanel({
         )}
       />
 
-      <IntegrityRunControlCard
-        contestId={contestId}
-        contestName={contest?.name ?? contestId}
-        contestStartAt={contest?.startTime}
-      />
-
       <motion.div
         className={styles.workspace}
         animate={{
@@ -1317,14 +961,11 @@ export default function AdminProctoringPanel({
           >
             <div className={styles.monitorColumn}>
               <MinimalLiveStage
-                ref={liveStageRef}
                 contestId={contestId}
                 participant={selectedParticipant}
                 discoveryRefreshKey={liveDiscoveryRefreshKey}
                 lockActionBusy={lockActionBusy}
                 monitoringAvailable={inExamWindow}
-                manualEvidenceActive={manualEvidenceStartedAt !== null}
-                onToggleManualEvidence={selectedParticipant && inExamWindow ? handleToggleManualEvidence : undefined}
                 onToggleLock={selectedParticipant ? handleToggleSelectedParticipantLock : undefined}
                 onBackToRoster={isMobile ? () => updateParams({ user: null }) : undefined}
               />
@@ -1346,7 +987,6 @@ export default function AdminProctoringPanel({
                     selectedKey={selectedIncident?.incidentKey ?? ""}
                     selectedIncident={selectedIncident}
                     contestId={contestId}
-                    participant={selectedParticipant}
                     detailOpen={eventDetailOpen}
                     reducedMotion={!!prefersReducedMotion}
                     onCloseDetail={() => setEventDetailOpen(false)}
@@ -1361,18 +1001,6 @@ export default function AdminProctoringPanel({
           </motion.section>
         ) : null}
       </motion.div>
-      <ManualEvidenceModal
-        open={manualEvidenceModalOpen}
-        saving={manualEvidenceSaving}
-        participantName={selectedParticipant ? getParticipantDisplayName(selectedParticipant) : ""}
-        startedAt={manualEvidenceStartedAt}
-        reason={manualEvidenceReason}
-        description={manualEvidenceDescription}
-        onReasonChange={setManualEvidenceReason}
-        onDescriptionChange={setManualEvidenceDescription}
-        onClose={handleCancelManualEvidenceModal}
-        onSubmit={() => void handleSubmitManualEvidence()}
-      />
       <Modal
         open={lockReasonModalOpen}
         modalHeading={t("proctoringPanel.manualLockModalTitle", "鎖定參賽者")}

@@ -11,7 +11,6 @@ from integrity_service.core.commands import (
     FrozenDict,
     IntegrityCommand,
     ReceivedEvent,
-    SubmissionState,
     deterministic_uuid,
     freeze_json,
     make_command,
@@ -52,19 +51,21 @@ class IncidentEngine:
         self,
         registry: Registry,
         context: EngineContext,
-        submissions: SubmissionState,
+        *,
+        delivery_tolerance_ms: int = 0,
     ):
+        if type(delivery_tolerance_ms) is not int or delivery_tolerance_ms < 0:
+            raise ValueError("delivery_tolerance_ms must be a non-negative integer")
         self._registry = registry
         self._context = context
+        self._delivery_tolerance_ms = delivery_tolerance_ms
         self._open: dict[tuple[int, str], _OpenIncident] = {}
-        self._submissions = submissions
-
-    def mark_submitted(self, participant_id: int) -> None:
-        self._submissions.mark_submitted(participant_id)
 
     def ingest(self, received: ReceivedEvent) -> IncidentResult:
         definition, phase = self._registry.resolve(received.record.event_type)
-        self._registry.validate_payload(received.record.event_type, received.record.payload)
+        self._registry.validate_payload(
+            received.record.event_type, received.record.payload
+        )
 
         # Server-owned registry lifecycles are observations claimed by an untrusted browser here.
         # Their distinct identity phase cannot collide with the authoritative server producer.
@@ -109,7 +110,7 @@ class IncidentEngine:
             if (
                 opened is not None
                 and not opened.escalated
-                and received.received_at_server_ms >= opened.deadline_server_ms
+                and self._client_grace_expired(opened, received)
             ):
                 commands.append(self._escalate(opened))
             opened = self._open.pop(key, None)
@@ -134,13 +135,9 @@ class IncidentEngine:
                 )
             )
 
-        if self._submissions.is_submitted(received.participant_id):
-            command = self._event_command(received, phase, definition, "audit", None)
-            return IncidentResult((command,))
-
         lifecycle_signal = bool(definition.escalated or definition.restored)
         incident_id = None
-        action = self._eligible_action(received.participant_id, definition.action)
+        action = _REGISTRY_ACTIONS[definition.action]
         if lifecycle_signal:
             incident_id = deterministic_uuid(
                 self._context.run_id,
@@ -157,7 +154,11 @@ class IncidentEngine:
                 trigger_event_id=received.record.event_id,
                 trigger_client_occurred_at_ms=received.record.client_occurred_at_ms,
                 trigger_metadata=self._snapshot_metadata(received.record.payload),
-                deadline_server_ms=received.received_at_server_ms + definition.grace_ms,
+                deadline_server_ms=(
+                    received.received_at_server_ms
+                    + definition.grace_ms
+                    + self._delivery_tolerance_ms
+                ),
             )
             action = "record"
         return IncidentResult(
@@ -172,6 +173,16 @@ class IncidentEngine:
                 commands.append(self._escalate(opened))
         return IncidentResult(tuple(commands))
 
+    @staticmethod
+    def _client_grace_expired(
+        opened: _OpenIncident,
+        restored: ReceivedEvent,
+    ) -> bool:
+        duration_ms = (
+            restored.record.client_occurred_at_ms - opened.trigger_client_occurred_at_ms
+        )
+        return duration_ms >= opened.definition.grace_ms
+
     def next_deadline_server_ms(self) -> int | None:
         deadlines = [
             opened.deadline_server_ms
@@ -179,11 +190,6 @@ class IncidentEngine:
             if not opened.escalated
         ]
         return min(deadlines, default=None)
-
-    def _eligible_action(self, participant_id: int, registry_action: str) -> CommandAction:
-        if self._submissions.is_submitted(participant_id):
-            return "audit"
-        return _REGISTRY_ACTIONS[registry_action]
 
     def _escalate(self, opened: _OpenIncident) -> IntegrityCommand:
         opened.escalated = True
@@ -196,7 +202,7 @@ class IncidentEngine:
             event_id=opened.trigger_event_id,
             phase="escalated",
             event_type=opened.definition.escalated,
-            action=self._eligible_action(opened.participant_id, opened.definition.action),
+            action=_REGISTRY_ACTIONS[opened.definition.action],
             client_occurred_at_ms=opened.trigger_client_occurred_at_ms,
             received_at_server_ms=opened.deadline_server_ms,
             evidence=self._evidence(opened.definition),

@@ -103,23 +103,6 @@ class EngineContext:
             raise ValueError("run_id must be a non-zero UUID")
 
 
-class SubmissionState:
-    """One run-local owner for monotonic participant submission state."""
-
-    __slots__ = ("_submitted",)
-
-    def __init__(self) -> None:
-        self._submitted: set[int] = set()
-
-    def mark_submitted(self, participant_id: int) -> None:
-        if type(participant_id) is not int or participant_id < 1:
-            raise ValueError("participant_id must be a positive integer")
-        self._submitted.add(participant_id)
-
-    def is_submitted(self, participant_id: int) -> bool:
-        return participant_id in self._submitted
-
-
 @dataclass(frozen=True, slots=True)
 class ReceivedEvent:
     """A sequenced browser event paired with authoritative receipt context."""

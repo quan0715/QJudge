@@ -22,8 +22,8 @@ export const createMockContest = (
     desktop: {
       enabled: true,
       sources: {
-        screenShare: { enabled: true, captureIntervalSeconds: 5 },
-        webcam: { enabled: false, captureIntervalSeconds: 10 },
+        screenShare: { enabled: true },
+        webcam: { enabled: false },
       },
       detectors: {
         pwaMode: false,
@@ -36,8 +36,8 @@ export const createMockContest = (
     tablet: {
       enabled: true,
       sources: {
-        screenShare: { enabled: false, captureIntervalSeconds: 5 },
-        webcam: { enabled: true, captureIntervalSeconds: 10 },
+        screenShare: { enabled: false },
+        webcam: { enabled: true },
       },
       detectors: {
         pwaMode: true,
@@ -48,8 +48,6 @@ export const createMockContest = (
       },
     },
   },
-  warningTimeoutSeconds: 20,
-  screenShareRecoveryGraceMs: 30000,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
   resultsPublished: false,

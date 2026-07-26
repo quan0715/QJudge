@@ -1,15 +1,16 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.port";
-import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/IndexedDbIntegrityOutbox";
-import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/OpfsEvidenceStore";
+import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.repository";
+import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
+import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
 import {
   contestIntegritySourceFiles,
   createIntegrityRuntime,
   createQueuedIntegritySignalEmitter,
   useIntegrityRuntime,
 } from "./useIntegrityRuntime";
-import { IntegrityTransport } from "./IntegrityTransport";
+import { IntegrityTransport } from "./integrityTransport";
+import integrityRuntimeSource from "./useIntegrityRuntime.ts?raw";
 import {
   assertFrontendSignalsInRegistry,
   FRONTEND_INTEGRITY_SIGNAL_IDS,
@@ -113,6 +114,25 @@ describe("IntegrityRuntime", () => {
     }));
   });
 
+  it("updates checkpoint health without appending a semantic event", () => {
+    const onHealthUpdate = vi.fn();
+    const queued = createQueuedIntegritySignalEmitter(onHealthUpdate);
+
+    queued.emitter.updateHealth?.({
+      component: "evidence_source",
+      source: "webcam",
+      status: "degraded",
+      reason: "recorder_failed",
+    });
+
+    expect(onHealthUpdate).toHaveBeenCalledWith({
+      component: "evidence_source",
+      source: "webcam",
+      status: "degraded",
+      reason: "recorder_failed",
+    });
+  });
+
   it("persists exactly one exam entry after a delayed IndexedDB open", async () => {
     let resolveOpen!: (outbox: IndexedDbIntegrityOutbox) => void;
     const open = new Promise<IndexedDbIntegrityOutbox>((resolve) => {
@@ -125,7 +145,6 @@ describe("IntegrityRuntime", () => {
     const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockReturnValue(open);
     const evidenceStore = {
       close: vi.fn().mockResolvedValue(undefined),
-      reconcile: vi.fn().mockResolvedValue(undefined),
       pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
       markReported: vi.fn().mockResolvedValue(undefined),
       listDescriptors: vi.fn().mockResolvedValue([]),
@@ -186,7 +205,125 @@ describe("IntegrityRuntime", () => {
     transportStopSpy.mockRestore();
   });
 
-  it("durably records a required evidence source with no supplied stream", async () => {
+  it("keeps event delivery active when OPFS evidence storage is unavailable", async () => {
+    const outbox = {
+      append: vi.fn().mockResolvedValue({}),
+      close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IndexedDbIntegrityOutbox;
+    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
+    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockRejectedValue(
+      new Error("OPFS is unavailable for integrity evidence"),
+    );
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
+    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
+    const { result, unmount } = renderHook(() => useIntegrityRuntime({
+      enabled: true,
+      contestId: "contest-a",
+      integrityRun: {
+        id: "33333333-3333-3333-3333-333333333333",
+        computeState: "running",
+        health: "healthy",
+        participantId: 44,
+        policySnapshot: {},
+        registrySnapshot: {
+          version: "test",
+          definitions: frontendRegistryDefinitions,
+        },
+      },
+      snapshotProvider: () => ({
+        pageVisible: true,
+        online: true,
+        fullscreen: true,
+        screenCapture: "active",
+        webcamCapture: "disabled",
+        activeSourceDescriptors: [],
+      }),
+    }));
+
+    await result.current.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs: 2_000,
+      payload: { source: "answering_screen" },
+    });
+
+    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: "exam_entered",
+    }));
+    expect(transportStartSpy).toHaveBeenCalledTimes(1);
+
+    unmount();
+    openSpy.mockRestore();
+    evidenceOpenSpy.mockRestore();
+    warnSpy.mockRestore();
+    transportStartSpy.mockRestore();
+    transportStopSpy.mockRestore();
+  });
+
+  it("starts event delivery while evidence storage is still initializing", async () => {
+    let resolveEvidenceStore!: (store: OpfsEvidenceStore) => void;
+    const evidenceStoreOpen = new Promise<OpfsEvidenceStore>((resolve) => {
+      resolveEvidenceStore = resolve;
+    });
+    const outbox = {
+      append: vi.fn().mockResolvedValue({}),
+      close: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IndexedDbIntegrityOutbox;
+    const evidenceStore = {
+      close: vi.fn().mockResolvedValue(undefined),
+      reconcile: vi.fn().mockResolvedValue(undefined),
+      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
+      markReported: vi.fn().mockResolvedValue(undefined),
+      listDescriptors: vi.fn().mockResolvedValue([]),
+      getBlob: vi.fn(), protect: vi.fn(), releaseProtection: vi.fn(),
+      markRequested: vi.fn(), markVerified: vi.fn(), markUnavailable: vi.fn(),
+      deleteDescriptor: vi.fn(),
+    } as unknown as OpfsEvidenceStore;
+    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
+    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockReturnValue(evidenceStoreOpen);
+    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
+    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
+    const { result, unmount } = renderHook(() => useIntegrityRuntime({
+      enabled: true,
+      contestId: "contest-a",
+      integrityRun: {
+        id: "33333333-3333-3333-3333-333333333333",
+        computeState: "running",
+        health: "healthy",
+        participantId: 44,
+        policySnapshot: {},
+        registrySnapshot: { version: "test", definitions: frontendRegistryDefinitions },
+      },
+      snapshotProvider: () => ({
+        pageVisible: true, online: true, fullscreen: true,
+        screenCapture: "active", webcamCapture: "disabled", activeSourceDescriptors: [],
+      }),
+    }));
+
+    await waitFor(() => expect(evidenceOpenSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(transportStartSpy).toHaveBeenCalledTimes(1));
+
+    const completion = result.current.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs: 2_000,
+      payload: { source: "answering_screen" },
+    });
+    await completion;
+    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: "exam_entered",
+    }));
+
+    // Let the background evidence initializer settle before unmount cleanup.
+    await act(async () => { resolveEvidenceStore(evidenceStore); });
+
+    unmount();
+    openSpy.mockRestore();
+    evidenceOpenSpy.mockRestore();
+    transportStartSpy.mockRestore();
+    transportStopSpy.mockRestore();
+  });
+
+  it("does not record missing evidence infrastructure as a semantic event", async () => {
     const outbox = {
       append: vi.fn().mockResolvedValue({}),
       close: vi.fn().mockResolvedValue(undefined),
@@ -240,11 +377,7 @@ describe("IntegrityRuntime", () => {
       }),
     }));
 
-    await waitFor(() => expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: "evidence_source_degraded",
-      payload: { source: "webcam", reason: "stream_unavailable" },
-    })));
-
+    await waitFor(() => expect(evidenceOpenSpy).toHaveBeenCalledTimes(1));
     unmount();
     expect(transportStartSpy).toHaveBeenCalledTimes(1);
     expect(transportStopSpy).toHaveBeenCalledTimes(1);
@@ -255,10 +388,13 @@ describe("IntegrityRuntime", () => {
   });
 
   it("keeps every literal frontend emission in the declared frozen-registry contract", async () => {
-    const sourceFiles = await contestIntegritySourceFiles();
+    const sourceFiles = [
+      ...await contestIntegritySourceFiles(),
+      { path: "./useIntegrityRuntime.ts", text: integrityRuntimeSource },
+    ];
     const emittedSignals = new Set<string>();
     for (const source of sourceFiles) {
-      for (const match of source.text.matchAll(/(?:eventType:\\s*|emit\\(\\s*)["']([A-Za-z][A-Za-z0-9_]*)["']/g)) {
+      for (const match of source.text.matchAll(/(?:eventType:\s*|emit\(\s*)["']([A-Za-z][A-Za-z0-9_]*)["']/g)) {
         emittedSignals.add(match[1]);
       }
     }
@@ -274,14 +410,4 @@ describe("IntegrityRuntime", () => {
     })).toThrow("forbidden_action");
   });
 
-  it("contains no legacy direct event transport imports", async () => {
-    const sourceFiles = await contestIntegritySourceFiles();
-    for (const source of sourceFiles) {
-      expect(source.text).not.toMatch(/\brecordExamEvent(?:WithForcedCapture)?\b/);
-      expect(source.text).not.toMatch(/\buseForceSubmitArbiter\b/);
-      expect(source.text).not.toMatch(/\buseViolationPipeline\b/);
-      expect(source.text).not.toMatch(/\bforceCaptureNow\b/);
-      expect(source.text).not.toMatch(/\buseEventEvidenceCapture\b/);
-    }
-  });
 });

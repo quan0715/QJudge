@@ -21,7 +21,7 @@ def test_registry_has_every_active_signal_once():
     assert set(signal_ids) == ACTIVE_SIGNAL_IDS
     assert len(signal_ids) == len(set(signal_ids))
     assert snapshot["version"] == REGISTRY_VERSION
-    assert snapshot["version"] == "2026-07-21.3"
+    assert snapshot["version"] == "2026-07-26.3"
 
 
 def test_registry_definitions_are_data_not_core_switches():
@@ -34,24 +34,44 @@ def test_registry_definitions_are_data_not_core_switches():
     }
     assert fullscreen["origin"] == "browser"
     assert snapshot["definitions"]["connectivity"]["origin"] == "server"
-    assert {definition["origin"] for definition in snapshot["definitions"].values()} == {
+    assert {
+        definition["origin"] for definition in snapshot["definitions"].values()
+    } == {
         "browser",
         "server",
     }
     assert fullscreen["emission"] == "edge"
-    assert fullscreen["evidence"]["before_ms"] == 10_000
-    assert fullscreen["evidence"]["after_ms"] == 10_000
+    assert fullscreen["evidence"]["before_ms"] == 5_000
+    assert fullscreen["evidence"]["after_ms"] == 5_000
     assert snapshot["definitions"]["forbidden_action"]["signals"] == {
         "triggered": "forbidden_action",
         "escalated": "",
         "restored": "",
     }
-    assert snapshot["definitions"]["forbidden_focus"]["signals"] == {
-        "triggered": "forbidden_focus_event",
-        "escalated": "",
-        "restored": "",
-    }
     json.dumps(snapshot)
+
+
+def test_registry_grace_periods_match_recovery_costs():
+    snapshot = build_registry_snapshot()
+
+    assert {
+        key: definition["grace_ms"]
+        for key, definition in snapshot["definitions"].items()
+    } == {
+        "health_snapshot": 0,
+        "connectivity": 30_000,
+        "fullscreen_integrity": 10_000,
+        "mouse_leave": 5_000,
+        "multi_display": 20_000,
+        "screen_share": 20_000,
+        "webcam": 20_000,
+        "viewport": 5_000,
+        "clipboard": 0,
+        "forbidden_action": 0,
+        "listener_integrity": 0,
+        "exam_entered": 0,
+        "exam_submit_initiated": 0,
+    }
 
 
 def test_registry_definitions_are_transitively_immutable():

@@ -54,4 +54,34 @@ describe("MultiDisplayDetector", () => {
 
     detector.stop();
   });
+
+  it("reports Display API degradation and recovery as health", async () => {
+    let diagnostics: DisplayDiagnostics = {
+      supportsScreenDetails: true,
+      screenCount: null,
+      isExtended: false,
+      permissionState: null,
+      errorMessage: "request failed",
+    };
+    const displayService = {
+      check: vi.fn(async () => diagnostics),
+      checkExtendedSync: vi.fn(() => false),
+      getLastScreenDetails: vi.fn(() => null),
+    } as unknown as DisplayCheckService;
+    const detector = new MultiDisplayDetector(((key: string) => key) as TFunction, displayService);
+    const onHealthChange = vi.fn();
+    detector.onApiHealthChange(onHealthChange);
+    detector.start(vi.fn());
+
+    detector.triggerCheck();
+    detector.triggerCheck();
+    await flushChecks();
+    expect(onHealthChange).toHaveBeenCalledWith("degraded", "request failed");
+
+    diagnostics = { ...diagnostics, screenCount: 1, errorMessage: null };
+    detector.triggerCheck();
+    await flushChecks();
+    expect(onHealthChange).toHaveBeenLastCalledWith("healthy", undefined);
+    detector.stop();
+  });
 });

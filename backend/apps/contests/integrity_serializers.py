@@ -111,7 +111,7 @@ class ExamIntegrityRecordSerializer(_StrictSerializer):
     event_id = serializers.UUIDField()
     seq = serializers.IntegerField(min_value=1)
     kind = serializers.ChoiceField(
-        choices=("event", "state_snapshot"),
+        choices=("event", "health_snapshot"),
     )
     event_type = serializers.CharField(
         min_length=1,
@@ -218,10 +218,10 @@ class ExamIntegrityBatchSerializer(_StrictSerializer):
         return super().to_internal_value(data)
 
     def validate(self, attrs):
-        run = self.context["run"]
-        participant = self.context["participant"]
+        run = self.context.get("run")
+        participant = self.context.get("participant")
         active_device_id = self.context.get("active_device_id")
-        if (
+        if run is not None and participant is not None and (
             attrs["run_id"] != run.id
             or attrs["participant_id"] != participant.id
             or not isinstance(active_device_id, str)
@@ -411,6 +411,51 @@ class EvidenceUnavailableSerializer(_StrictSerializer):
                     ]
                     for field in missing_projection_fields
                 }
+            )
+        return attrs
+
+
+class IntegrityCheckpointEvidenceSerializer(_StrictSerializer):
+    manifests = EvidenceManifestSerializer(
+        many=True,
+        required=False,
+        default=list,
+        max_length=200,
+    )
+    completions = EvidenceCompleteSerializer(
+        many=True,
+        required=False,
+        default=list,
+        max_length=200,
+    )
+    unavailable = EvidenceUnavailableSerializer(
+        many=True,
+        required=False,
+        default=list,
+        max_length=200,
+    )
+
+    def validate(self, attrs):
+        operation_count = sum(
+            len(attrs[name])
+            for name in ("manifests", "completions", "unavailable")
+        )
+        if operation_count > 200:
+            raise serializers.ValidationError(
+                "A checkpoint may contain at most 200 evidence operations."
+            )
+        return attrs
+
+
+class IntegrityCheckpointSerializer(_StrictSerializer):
+    observations = ExamIntegrityBatchSerializer(required=False)
+    evidence = IntegrityCheckpointEvidenceSerializer(required=False, default=dict)
+
+    def validate(self, attrs):
+        evidence = attrs["evidence"]
+        if "observations" not in attrs and not any(evidence.values()):
+            raise serializers.ValidationError(
+                "A checkpoint must contain observations or evidence operations."
             )
         return attrs
 
