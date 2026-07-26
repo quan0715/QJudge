@@ -145,6 +145,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare test stack environment
+        run: |
+          cp .env.example .env
+          echo "DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)" >> "$GITHUB_ENV"
+          python3 -m pip install cryptography
+          python3 scripts/bootstrap_integrity_secrets.py \
+            --secrets-dir .tmp/integrity-test-secrets
+
       - name: Pull test stack images (best effort)
         run: docker compose -f docker-compose.test.yml pull --ignore-pull-failures
 
