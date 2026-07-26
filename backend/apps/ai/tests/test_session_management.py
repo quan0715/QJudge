@@ -19,11 +19,13 @@ class SessionCRUDTestCase(TestCase):
             username="testuser",
             email="test@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.other_user = User.objects.create_user(
             username="other",
             email="other@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.session = AISession.objects.create(
             session_id="99999999-9999-9999-9999-999999999999",
@@ -90,6 +92,7 @@ class SessionMessageManagementTestCase(TestCase):
             username="msguser",
             email="msg@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.session = AISession.objects.create(
             session_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -151,6 +154,7 @@ class SessionContextManagementTestCase(TestCase):
             username="ctxuser",
             email="ctx@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.session = AISession.objects.create(
             session_id="cccccccc-cccc-cccc-cccc-cccccccccccc",
@@ -189,11 +193,13 @@ class SessionListIsolationTestCase(TestCase):
             username="listuser",
             email="list@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.other_user = User.objects.create_user(
             username="listother",
             email="listother@example.com",
             password="testpass123",
+            role="teacher",
         )
 
         AISession.objects.create(

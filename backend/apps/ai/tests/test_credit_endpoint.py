@@ -15,7 +15,10 @@ class CreditEndpointTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
-            username="credituser", email="credit@example.com", password="testpass"
+            username="credituser",
+            email="credit@example.com",
+            password="testpass",
+            role="teacher",
         )
 
     def test_requires_authentication(self):

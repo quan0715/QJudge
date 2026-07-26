@@ -18,6 +18,7 @@ class MessagePersistenceTestCase(TestCase):
             username="persistuser",
             email="persist@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.session = AISession.objects.create(
             session_id="88888888-8888-8888-8888-888888888888",

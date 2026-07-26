@@ -14,8 +14,14 @@ import {
   QJudgeCopilotProvider,
 } from "./QJudgeCopilotProvider";
 import * as chatbotFeature from "../index";
+import {
+  qJudgeCopilotModelCatalog,
+  qJudgeCopilotTransport,
+} from "@/infrastructure/copilot/qJudgeCopilotDependencies";
 
-const authState = vi.hoisted(() => ({ user: null as object | null }));
+const authState = vi.hoisted(() => ({
+  user: null as { role: "student" | "teacher" | "admin" } | null,
+}));
 
 vi.mock("@/features/auth/contexts/AuthContext", () => ({
   useAuth: () => ({ user: authState.user }),
@@ -99,6 +105,7 @@ describe("QJudgeCopilotBoundary", () => {
 describe("QJudgeCopilotProvider", () => {
   beforeEach(() => {
     authState.user = null;
+    vi.restoreAllMocks();
   });
 
   it("keeps the QJudge runtime disabled without an authenticated user", async () => {
@@ -115,19 +122,41 @@ describe("QJudgeCopilotProvider", () => {
     expect(result.current.sessions).toHaveLength(0);
   });
 
-  it("enables the QJudge runtime for an authenticated user", async () => {
-    authState.user = {};
+  it("does not bootstrap models or sessions for a student", async () => {
+    authState.user = { role: "student" };
+    const listModels = vi.spyOn(qJudgeCopilotModelCatalog, "list");
+    const listSessions = vi.spyOn(qJudgeCopilotTransport, "listSessions");
     const wrapper = ({ children }: PropsWithChildren) => (
       <QJudgeCopilotProvider>{children}</QJudgeCopilotProvider>
     );
 
     const { result } = renderHook(() => useCopilotSessions(), { wrapper });
 
-    await waitFor(() =>
-      expect(result.current.activeSession.status).toBe("empty"),
-    );
-    expect(result.current.sessions).toHaveLength(0);
+    await act(async () => undefined);
+
+    expect(result.current.listStatus).toBe("idle");
+    expect(listModels).not.toHaveBeenCalled();
+    expect(listSessions).not.toHaveBeenCalled();
   });
+
+  it.each(["teacher", "admin"] as const)(
+    "enables the QJudge runtime for a %s",
+    async (role) => {
+      authState.user = { role };
+      const listModels = vi.spyOn(qJudgeCopilotModelCatalog, "list");
+      const listSessions = vi.spyOn(qJudgeCopilotTransport, "listSessions");
+      const wrapper = ({ children }: PropsWithChildren) => (
+        <QJudgeCopilotProvider>{children}</QJudgeCopilotProvider>
+      );
+
+      const { result } = renderHook(() => useCopilotSessions(), { wrapper });
+
+      await waitFor(() => expect(listModels).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
+      expect(result.current.activeSession.status).toBe("empty");
+      expect(result.current.sessions).toHaveLength(0);
+    },
+  );
 
   it("is exported with its dependency-injected boundary", () => {
     expect(chatbotFeature.QJudgeCopilotProvider).toBe(QJudgeCopilotProvider);

@@ -12,8 +12,89 @@ from apps.ai.models import AIChatRun, AIExecutionLog, AISession
 User = get_user_model()
 
 
-def _create_user(username, email, password="testpass123"):
-    return User.objects.create_user(username=username, email=email, password=password)
+def _create_user(username, email, password="testpass123", role="teacher"):
+    return User.objects.create_user(
+        username=username,
+        email=email,
+        password=password,
+        role=role,
+    )
+
+
+class PublicAIRolePermissionTestCase(TestCase):
+    """Public AI endpoints are available only to teachers and admins."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.student = _create_user(
+            "student",
+            "student@example.com",
+            role="student",
+        )
+        self.teacher = _create_user(
+            "teacher",
+            "teacher@example.com",
+            role="teacher",
+        )
+        self.admin = _create_user("admin", "admin@example.com", role="admin")
+
+    def test_student_cannot_read_public_ai_resources(self):
+        self.client.force_authenticate(user=self.student)
+
+        for endpoint in (
+            "/api/v1/ai/models/",
+            "/api/v1/ai/sessions/",
+            "/api/v1/ai/runs/?status=active",
+            "/api/v1/ai/artifacts/",
+        ):
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(endpoint, format="json")
+                self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_student_cannot_create_session_or_run(self):
+        session = AISession.objects.create(
+            session_id="student-session",
+            user=self.student,
+            context={"title": "student"},
+        )
+        self.client.force_authenticate(user=self.student)
+
+        response = self.client.post(
+            "/api/v1/ai/sessions/new_session/",
+            {},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        delay = MagicMock(return_value=MagicMock(id="must-not-run"))
+        with patch("apps.ai.tasks.execute_ai_chat_run.delay", delay):
+            response = self.client.post(
+                f"/api/v1/ai/sessions/{session.session_id}/runs/",
+                {"content": "hello"},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(AIChatRun.objects.filter(session=session).exists())
+        delay.assert_not_called()
+
+    def test_teacher_and_admin_can_use_public_ai_resources(self):
+        for user in (self.teacher, self.admin):
+            with self.subTest(role=user.role):
+                self.client.force_authenticate(user=user)
+                models_response = self.client.get("/api/v1/ai/models/", format="json")
+                sessions_response = self.client.get(
+                    "/api/v1/ai/sessions/",
+                    format="json",
+                )
+                create_response = self.client.post(
+                    "/api/v1/ai/sessions/new_session/",
+                    {},
+                    format="json",
+                )
+
+                self.assertEqual(models_response.status_code, status.HTTP_200_OK)
+                self.assertEqual(sessions_response.status_code, status.HTTP_200_OK)
+                self.assertEqual(create_response.status_code, status.HTTP_200_OK)
 
 
 class SessionAccessControlTestCase(TestCase):
@@ -77,11 +158,13 @@ class SessionListAccessControlTestCase(TestCase):
             username="user1",
             email="user1@example.com",
             password="testpass123",
+            role="teacher",
         )
         self.user2 = User.objects.create_user(
             username="user2",
             email="user2@example.com",
             password="testpass123",
+            role="teacher",
         )
 
         self.user1_sessions = [
@@ -125,6 +208,7 @@ class SessionCreationAccessControlTestCase(TestCase):
             username="user1",
             email="user1@example.com",
             password="testpass123",
+            role="teacher",
         )
 
     def test_authenticated_user_can_create_session_placeholder(self):
