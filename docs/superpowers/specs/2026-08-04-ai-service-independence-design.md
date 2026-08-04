@@ -13,7 +13,7 @@ QJudge 目前已將 Agent、LangGraph checkpoint 與 MCP client 放在 `ai-servi
 - 暫不建立獨立 API Gateway。
 - Django 暫時保留 BFF／Gateway 角色。
 - AI Service 成為 AI domain 的唯一 owner。
-- AI session、message、run、event、usage、artifact metadata 與 checkpoint 移入獨立 AI database。
+- AI session、message、run、event、artifact metadata 與 checkpoint 移入獨立 AI database；usage 直接記錄在 run，不另建 ledger。
 - AI API 與 AI Worker 共用同一套 application services，不再由 Django Celery 轉送與解讀 Agent stream。
 - 每次會啟動或恢復 Agent 的操作都必須先具備可用 MCP；MCP 失敗視為 AI run 能力失敗，不提供無工具降級模式。
 - 系統仍在 beta，既有 AI 資料直接清除，不設計 dual-write、CDC 或正式資料遷移。
@@ -130,6 +130,7 @@ LLM 只執行一次，但同一個 run 有兩個控制者：
 - 既有 beta AI 資料遷移；
 - dual-write、CDC 或跨 DB foreign key；
 - 無 MCP 的純 AI 降級模式；
+- domain data 的自動清除、封存、retention TTL、資料壓縮與容量 quota；
 - 建立正式 npm package。
 
 ## 4. 目標架構
@@ -219,29 +220,44 @@ AI Worker 直接呼叫共用 application service 與 `DeepAgentRunner`，不得�
 
 ### 5.1 AI Database
 
-AI Service 擁有：
+AI Service 只為需要被 API 單獨定位的 aggregate 建立全域 UUID。子資料使用父 aggregate ID 加序號，不再為每筆資料產生另一個 UUID。
 
-| Aggregate／資料 | 說明 |
-| --- | --- |
-| Session | ownership、title、metadata、timestamps |
-| Message | role、parts/content、projection metadata |
-| Run | lifecycle、model、error、pause payload、idempotency key |
-| Stream Event | run sequence、event type、payload、timestamp |
-| Execution Log | run diagnostics、tool usage、raw metadata |
-| Usage Ledger | token、cost、credit delta 與去重依據 |
-| Artifact Metadata | session/run ownership、object key、checksum、content type |
-| LangGraph Checkpoint | thread state、pending interrupt 與 tool-call state |
-| MCP Credential Cache | encrypted delegated credential 或 refresh handle；不得暴露給 browser |
+| 資料 | Primary key／managed key | 必要性 |
+| --- | --- | --- |
+| Session | `session_id` UUID | URL、search param、ownership check 與 LangGraph thread |
+| Run | `run_id` UUID | SSE、cancel、resume、Worker claim 與 task dispatch |
+| Artifact Metadata | `artifact_id` UUID | UI 開啟、下載與存取權限檢查 |
+| Message | `(session_id, ordinal)` | Message 只在 Session 內排序與定位，不需要全域 UUID |
+| Stream Event | `(run_id, sequence)` | Event 只在 Run 內 replay，不需要 event ID |
+| LangGraph Checkpoint | LangGraph managed schema | 使用 `session_id` 作為 thread ID；不建立第二份 domain mapping |
 
-AI DB 不建立 Django `users` foreign key。使用者 identity 使用：
+AI domain 對外只有三種全域 UUID：`session_id`、`run_id`、`artifact_id`。每個概念只有一個 authoritative ID：
 
-```text
-owner_issuer
-owner_subject
-tenant_id
-```
+- `session_id` 直接作為 LangGraph `thread_id`，資料表不保存另一個 `thread_id`。
+- `run_id` 直接作為 Celery task ID，資料表不保存 `external_run_id` 或 `celery_task_id`。
+- Message API ID 由 `session_id + ordinal` 表示；frontend transport 可將兩者組成穩定字串供 UI 更新，不新增資料欄位。
+- Artifact storage key 由 `session_id + artifact_id` 推導，不保存任意 object key。
+- `tool_call_id` 只存在 event payload；`request_id` 與 `trace_id` 只存在 observability context。
+- `Idempotency-Key` 是 Run 上的普通欄位，以 `(session_id, idempotency_key)` 建立 unique constraint，不是另一個 entity 或 PK。
 
-session ownership 的唯一鍵語意是 `issuer + subject + session_id`。QJudge classroom、contest 或 task identifiers 只能以 metadata／external reference 保存，不建立跨 DB foreign key。
+關聯欄位也只保留無法推導的資料：
+
+- Session 是唯一保存 `owner_issuer`、`owner_subject` 的 aggregate；Run、Message、Event 與 Artifact 不重複保存 owner。
+- Run 保存必要的 `session_id` foreign key，不保存 user／owner foreign key。
+- Message 保存 `session_id` 與可為空的 `run_id`；Run 不反向保存 `user_message_id` 或 `assistant_message_id`。
+- Artifact 保存 `session_id` 與可為空的 `produced_by_run_id`，以支援使用者先上傳、之後才啟動 run 的情境。
+- Event 只保存 `run_id`；其 Session 與 owner 一律經 Run 推導。
+
+本階段不建立下列表格：
+
+- Execution Log：run diagnostics、tool usage 與錯誤送 structured logging／Sentry；必要摘要放在 Run。
+- Usage Ledger：input/output tokens、cost、credit 與 accounted 狀態直接放在 Run。
+- MCP Credential Cache：改用 Redis short-lived credential lease，不進 AI DB。
+- AI Principal／User：不複製 Django user，也不另外建立內部 user ID。
+
+AI DB 不建立 Django `users` foreign key。Session 直接保存 `owner_issuer` 與 `owner_subject`，並以兩者加 `updated_at` 建立查詢 index。`issuer + subject` 是外部身份，不能取代 `session_id` 成為 Session PK。
+
+目前沒有獨立 tenant domain，因此不加入 `tenant_id`。QJudge classroom、contest 或 task identifiers 只能以有 schema 與大小限制的 external reference 保存，不建立跨 DB foreign key，也不作為 AI table PK。
 
 ### 5.2 Django Database
 
@@ -277,9 +293,11 @@ AI Service persistence 採 SQLAlchemy 2 + Alembic；LangGraph 既有 Postgres ch
 
 AI Worker queue 第一階段可與 Django 共用 Redis cluster，但必須使用獨立 queue name、key prefix 與 worker deployment。Django 不得 publish、claim 或 inspect AI run tasks；AI Service 也不得消費 Django domain tasks。
 
+MCP credential lease 也使用 Redis，但與 queue 使用不同 key prefix。Lease key 由 `issuer + subject + mcp_server_id` 經 HMAC 計算，對 queue 呈現為 opaque key；scope 是 lease value，不進 key，避免同一使用者因 scope 組合產生多筆 credential。Lease 只保存完成該次 operation 所需的加密 credential material，TTL 不得超過 token expiry。
+
 ### 5.4 Artifact
 
-一般 AI session artifact 的 metadata 與存取 API 移入 AI Service，binary 繼續存放 object storage。既有由 AI Service 使用 internal token 呼叫 Django `_internal/artifacts` 的路徑應退場。
+一般 AI session artifact 的 metadata 與存取 API 移入 AI Service，binary 繼續存放 object storage。Object key 固定由 `session_id + artifact_id` 推導；filename、content type、size 與 checksum 是 metadata，不參與 PK。既有由 AI Service 使用 internal token 呼叫 Django `_internal/artifacts` 的路徑應退場。
 
 寫入考題、評分、發布等 QJudge domain operation 仍透過 QJudge MCP；它們不是 AI artifact persistence。
 
@@ -326,7 +344,7 @@ QJudge 現有教師／管理員限制應映射成 `ai:chat` scope。AI Service �
 | AI access token | Web App／Django BFF → AI Service | 短效、`aud=ai-service`、包含 AI scopes |
 | MCP delegated token | AI Worker → QJudge MCP | 短效、`aud=qjudge-mcp`、包含 `mcp` scope |
 | Workload token | service → service 系統操作 | audience-scoped；不送到 browser |
-| Refresh token／handle | 可信任 server 內部 | 加密保存；不進 frontend storage |
+| Credential lease | AI API → Redis → AI Worker | 短效、加密、以 derived opaque lease key 交給 queue |
 
 現有 `AI_SERVICE_INTERNAL_TOKEN` 可在過渡期保留給尚未改造的 service-to-service endpoint，但不得成為 browser credential。完成 OAuth／workload identity 後應移除長效 shared secret。
 
@@ -337,13 +355,14 @@ QJudge 現有教師／管理員限制應映射成 `ai:chat` scope。AI Service �
 適用於 start、resume、approve、answer：
 
 1. 驗證 AI access token。
-2. 以 `issuer + subject + mcp_server_id + scopes` 查找 delegated credential。
+2. 以 `issuer + subject + mcp_server_id` 查找 Redis credential lease；requested scopes 與 granted scopes 都是 value，不是 key。
 3. 本地驗證 signature、issuer、audience、expiry 與 scope。
-4. token 無效或低於安全剩餘時間時執行 refresh／token exchange。
-5. API 在接受會啟動 Agent 的 command 前完成 credential readiness preflight。
-6. AI Worker 建立自己的 MCP connection，執行 initialize 與 `list_tools`。
-7. cached token 遇到 MCP `401` 時，清除 cache、強制 exchange，且只重試一次。
-8. 仍失敗時結束該 operation，不呼叫 LLM。
+4. token 無效或低於安全剩餘時間時，使用這次 request 的 subject token 執行 token exchange。
+5. 將 operation 所需的加密 credential material 寫入短效 lease；queue payload 只包含 derived opaque lease key，不另外生成 credential ID。
+6. API 在接受會啟動 Agent 的 command 前完成 credential readiness preflight。
+7. AI Worker 取得 lease，建立自己的 MCP connection，執行 initialize 與 `list_tools`。
+8. cached token 遇到 MCP `401` 時清除原值，使用 lease 中的短效 exchange material 強制交換，且只重試一次。
+9. 仍失敗時結束該 operation，不呼叫 LLM。
 
 API preflight 與 Worker connection 分開，因為跨 process connection 不能共用。preflight 防止已知的 credential failure 產生無效 run；Worker 仍需處理 enqueue 後發生的網路或 protocol failure。
 
@@ -418,7 +437,7 @@ append stream event
 
 Celery／Redis 採 at-least-once delivery。AI Worker 必須原子 claim run；同一 task 重送時不可重複呼叫 LLM 或重複計費。
 
-start run 接受 `Idempotency-Key`。相同 identity、session 與 key 重送時回傳既有 run。
+start run 接受 `Idempotency-Key`。相同 session 與 key 重送時回傳既有 run；session ownership 已由 `issuer + subject` 先行驗證，因此 unique constraint 不重複加入 identity 欄位。
 
 ### 8.4 SSE
 
@@ -486,7 +505,7 @@ ai-service/
 ├── infrastructure/
 │   ├── database/        # SQLAlchemy repositories、Alembic
 │   ├── queue/           # Celery dispatch／claim
-│   ├── oauth/           # JWT verify、exchange、credential cache
+│   ├── oauth/           # JWT verify、exchange、credential lease
 │   ├── mcp/             # MCP transport/tool adapter
 │   ├── artifacts/       # object storage
 │   └── checkpoints/     # LangGraph Postgres
@@ -565,7 +584,8 @@ MCP server_id
 - event reducer／message projection；
 - idempotency；
 - JWT claims 與 scope；
-- MCP credential cache／refresh／single retry；
+- MCP credential lease／exchange／single retry；
+- PK／unique constraint 與 authoritative ID mapping；
 - usage 去重；
 - error mapping。
 
@@ -640,7 +660,10 @@ Frontend
 10. QJudge domain write 只透過 MCP／Backend permission checks。
 11. frontend full-page／embed Copilot 使用者行為不變。
 12. request ID／trace context 能跨 Django、AI API、AI Worker、MCP 與 Django domain API 對應。
-13. unit、integration、contract 與 E2E gates 全部通過。
+13. domain API 只公開 `session_id`、`run_id`、`artifact_id` 三種全域 UUID。
+14. Message／Event 使用 aggregate-scoped sequence；不存在 `external_run_id`、持久化 `thread_id` 或 `celery_task_id`。
+15. usage 不建立獨立 ledger，credential 不建立 AI DB table。
+16. unit、integration、contract 與 E2E gates 全部通過。
 
 ## 15. 獨立 Gateway 的導入條件
 
@@ -662,9 +685,10 @@ Gateway 導入後接手 TLS、routing、JWT baseline validation、CORS、rate li
 | OAuth token audience 混用 | AI token 與 MCP token 使用不同 audience；AI Service 執行 token exchange |
 | Gateway 重新引入第二套 event logic | compatibility adapter 只做 protocol mapping；contract test 禁止 payload rewrite |
 | MCP 短暫故障讓 run 不可用 | 一次強制 exchange/retry、清楚的 retryable error、persistence API 保持可用 |
-| AI DB 與 object storage metadata 不一致 | checksum、stable object key、補償清理 job |
+| AI DB 與 object storage metadata 不一致 | checksum 與 deterministic object key；orphan cleanup 延後到實際出現容量需求時設計 |
 | paused run 在 MCP 失敗時被錯誤推進 | readiness 成功後才改變 paused state |
 | 共用 Postgres／Redis cluster 造成基礎設施層級故障 | database、credential、queue namespace 與 pool 分離；需要時再拆 physical cluster |
+| AI domain data 持續增加 | beta 階段接受此風險並量測 table／object storage 用量；有實際容量壓力後另寫 retention 設計 |
 | beta cutover 遺漏舊 runtime | boundary test／repository search gate 禁止 Django AI models/tasks/runtime symbols |
 
 ## 17. 決策紀錄
@@ -673,6 +697,9 @@ Gateway 導入後接手 TLS、routing、JWT baseline validation、CORS、rate li
 - Django 暫時扮演 BFF／Gateway。
 - AI DB 與 AI Service ownership 先完成。
 - 現有 beta AI 資料可直接清除。
+- AI domain 只公開 `session_id`、`run_id`、`artifact_id` 三種全域 UUID。
+- Message 與 Event 使用父 aggregate ID 加序號；不建立 Execution Log、Usage Ledger、Credential Cache 或 AI User table。
+- 本階段不設計 domain data 的自動清除、封存、retention TTL、壓縮或容量 quota；credential lease 的 TTL 只用來限制 token 暴露時間。
 - AI Service 內建立 AI API、AI Worker、AI scheduler。
 - 第一階段沿用 Celery、Redis、PostgreSQL 與 MCP Streamable HTTP。
 - MCP 是 run operations 的必要依賴。
