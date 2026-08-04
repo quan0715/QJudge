@@ -1,7 +1,7 @@
 # AI Service 獨立化與資料 Ownership 設計
 
 日期：2026-08-04
-狀態：已確認設計，待實作計畫
+狀態：已確認設計；2026-08-04 修訂 usage 範圍
 目標分支：`dev`
 
 ## 1. 摘要
@@ -13,7 +13,7 @@ QJudge 目前已將 Agent、LangGraph checkpoint 與 MCP client 放在 `ai-servi
 - 暫不建立獨立 API Gateway。
 - Django 暫時保留 BFF／Gateway 角色。
 - AI Service 成為 AI domain 的唯一 owner。
-- AI session、message、run、event、artifact metadata 與 checkpoint 移入獨立 AI database；usage 直接記錄在 run，不另建 ledger。
+- AI session、message、run、event、artifact metadata 與 checkpoint 移入獨立 AI database；Run 只記錄 input／output token usage，不建立 cost、credit 或 usage ledger。
 - AI API 與 AI Worker 共用同一套 application services，不再由 Django Celery 轉送與解讀 Agent stream。
 - 每次會啟動或恢復 Agent 的操作都必須先具備可用 MCP；MCP 失敗視為 AI run 能力失敗，不提供無工具降級模式。
 - 系統仍在 beta，既有 AI 資料直接清除，不設計 dual-write、CDC 或正式資料遷移。
@@ -26,7 +26,7 @@ QJudge 目前已將 Agent、LangGraph checkpoint 與 MCP client 放在 `ai-servi
 
 | 元件 | 現有責任 |
 | --- | --- |
-| Django `backend/apps/ai` | session/message/run/event/artifact/credit models、API、Celery orchestration、SSE replay、取消與 stale-run recovery |
+| Django `backend/apps/ai` | session/message/run/event/artifact/credit models、API、Celery orchestration、SSE replay、取消與 stale-run recovery；既有 cost／credit 為待退場 legacy |
 | Django Celery worker | 讀取 `AIChatRun`、呼叫 AI Service、解析上游 SSE、更新 Django models |
 | AI Service Uvicorn process | DeepAgent／LangGraph 執行、checkpoint、MCP connection、tool execution、HITL、原始 SSE |
 | QJudge MCP | OAuth token 驗證、QJudge tools、向 Django domain API 轉交使用者 token |
@@ -110,7 +110,7 @@ LLM 只執行一次，但同一個 run 有兩個控制者：
 
 ### 3.1 必須達成
 
-1. AI Service 是 session、message、run、event、usage、artifact metadata 與 checkpoint 的唯一 owner。
+1. AI Service 是 session、message、run、event、token usage、artifact metadata 與 checkpoint 的唯一 owner。
 2. Django 不直接讀寫 AI database。
 3. AI Service 不直接讀取 Django database 或 Django user model。
 4. AI API 與 AI Worker 可獨立於 Django 部署、擴縮與 migration。
@@ -158,7 +158,7 @@ Django 暫時負責：
 - 驗證 QJudge 使用者與教師／管理員 AI 使用資格；
 - 取得或交換 `aud=ai-service`、包含 `ai:chat` scope 的短效 token；
 - 將 HTTP request、response、SSE bytes、request ID 與 trace context 原樣轉送；
-- 保持舊 frontend contract。
+- 保持既有 Copilot chat contract；legacy `/sessions/credit/` 不保留，管理介面改用 `/api/v1/ai/usage/`。
 
 Django 不再負責：
 
@@ -168,7 +168,7 @@ Django 不再負責：
 - 重新編 event sequence；
 - 聚合 assistant message；
 - 管理 AI run state machine；
-- 計算 AI execution usage；
+- 收集或彙總 AI token usage；
 - 修復 LangGraph checkpoint。
 
 Gateway 是 protocol adapter，不是第二個 AI runtime。SSE proxy 不得解析或改寫 `agent_message_delta`、`awaiting_user_answer`、`tool_call_started` 等 domain events。
@@ -199,7 +199,7 @@ AI Worker 負責：
 - DeepAgent／LangGraph execution；
 - checkpoint；
 - event/message/run persistence；
-- usage accounting；
+- input／output token usage capture；
 - cancel／repair；
 - stale-run recovery 與下一個 queued run dispatch。
 
@@ -251,7 +251,8 @@ AI domain 對外只有三種全域 UUID：`session_id`、`run_id`、`artifact_id
 本階段不建立下列表格：
 
 - Execution Log：run diagnostics、tool usage 與錯誤送 structured logging／Sentry；必要摘要放在 Run。
-- Usage Ledger：input/output tokens、cost、credit 與 accounted 狀態直接放在 Run。
+- Usage Ledger：不建立。Run 只保存 `input_tokens` 與 `output_tokens` 的最終絕對值；request／run count 由 Run rows 聚合，不另存 counter。
+- Cost／Credit：不保存 `cost_cents`、`cost_usd`、`credits`、`usage_accounted`，也不維護模型 pricing、credit scale 或 pricing alignment contract。
 - MCP Credential Cache：改用 Redis short-lived credential lease，不進 AI DB。
 - AI Principal／User：不複製 Django user，也不另外建立內部 user ID。
 
@@ -429,13 +430,16 @@ append stream event
 + update run.last_sequence
 + apply run status transition
 + update message projection
++ replace run.input_tokens / run.output_tokens for usage_report
 ```
 
 不得重現現有「先寫 event，再獨立更新 status」的分裂寫入。
 
+`usage_report` payload 只允許非負整數 `input_tokens` 與 `output_tokens`。它不包含 model pricing、cost、credit 或換算倍率；Run 的 `model_id` 已能指出執行模型，不在 usage payload 重複保存。
+
 ### 8.3 Queue delivery
 
-Celery／Redis 採 at-least-once delivery。AI Worker 必須原子 claim run；同一 task 重送時不可重複呼叫 LLM 或重複計費。
+Celery／Redis 採 at-least-once delivery。AI Worker 必須原子 claim run；同一 task 重送時不可重複呼叫 LLM。`usage_report` 攜帶該 Run 的最終 token 絕對值，projection 使用覆寫而非累加，因此 event replay 不會重複累計。
 
 start run 接受 `Idempotency-Key`。相同 session 與 key 重送時回傳既有 run；session ownership 已由 `issuer + subject` 先行驗證，因此 unique constraint 不重複加入 identity 欄位。
 
@@ -481,12 +485,13 @@ GET    /v1/artifacts
 POST   /v1/artifacts
 GET    /v1/artifacts/{artifact_id}
 GET    /v1/models
+GET    /v1/usage
 
 GET    /health/live
 GET    /health/ready
 ```
 
-Django 過渡期保留 `/api/v1/ai/*`，映射到 canonical API。Compatibility adapter 可以轉換 path、header 與 envelope，但不得轉換 Agent domain events 或維護第二份狀態。
+Django 過渡期保留 `/api/v1/ai/*`，映射到 canonical API。Compatibility adapter 可以轉換 path、header 與 envelope，但不得轉換 Agent domain events 或維護第二份狀態。管理介面的 usage endpoint 固定為 `GET /api/v1/ai/usage/`，回傳 `total_input_tokens`、`total_output_tokens`、`total_runs` 與 `updated_at`；`total_runs` 計算該 owner 的所有 Run rows（含 failed／cancelled），`updated_at` 取最新 Run update。舊 `/sessions/credit/` 與 cost／credit response fields 直接移除。Frontend `AIUsagePanel` 改顯示 input tokens、output tokens 與 runs，不顯示金額或 credits。
 
 AI Service 應輸出 OpenAPI，CI 需加入：
 
@@ -524,7 +529,7 @@ FastAPI router、Celery task、SQLAlchemy model、MCP SDK types 不得滲入 dom
 
 ## 11. Beta Cutover
 
-既有 AI sessions、messages、runs、events、credits 與 artifacts 視為 beta 測試資料，直接清除，不建立正式 migration pipeline。
+既有 AI sessions、messages、runs、events、credits 與 artifacts 視為 beta 測試資料，直接清除，不建立正式 migration pipeline。Legacy pricing、cost 與 credit code 不搬入 AI Service。
 
 切換步驟：
 
@@ -562,7 +567,7 @@ MCP server_id
 - MCP credential exchange／connection／protocol failure；
 - SSE subscriber count 與 reconnect count；
 - stale run count；
-- token usage／cost；
+- input／output token usage；
 - Django Gateway upstream latency 與 5xx；
 - database／queue pool saturation。
 
@@ -586,7 +591,7 @@ MCP server_id
 - JWT claims 與 scope；
 - MCP credential lease／exchange／single retry；
 - PK／unique constraint 與 authoritative ID mapping；
-- usage 去重；
+- token usage 使用絕對值覆寫，不因 replay／duplicate delivery 累加；
 - error mapping。
 
 ### 13.2 AI Service integration tests
@@ -613,7 +618,7 @@ AI API
 - approval／answer；
 - cancel／repair；
 - worker crash／stale recovery；
-- usage 只累計一次；
+- token usage 與該 Run 最終 usage report 一致；
 - persistence API 在 MCP 故障時仍可讀取。
 
 ### 13.3 Contract tests
@@ -662,7 +667,7 @@ Frontend
 12. request ID／trace context 能跨 Django、AI API、AI Worker、MCP 與 Django domain API 對應。
 13. domain API 只公開 `session_id`、`run_id`、`artifact_id` 三種全域 UUID。
 14. Message／Event 使用 aggregate-scoped sequence；不存在 `external_run_id`、持久化 `thread_id` 或 `celery_task_id`。
-15. usage 不建立獨立 ledger，credential 不建立 AI DB table。
+15. usage 不建立獨立 ledger；Run 只保存 input／output tokens，系統不存在 cost、credit、pricing 或 `usage_accounted` 欄位／邏輯；credential 不建立 AI DB table。
 16. unit、integration、contract 與 E2E gates 全部通過。
 
 ## 15. 獨立 Gateway 的導入條件
@@ -681,7 +686,7 @@ Gateway 導入後接手 TLS、routing、JWT baseline validation、CORS、rate li
 
 | 風險 | 控制方式 |
 | --- | --- |
-| AI Worker task 重送造成重複 LLM／計費 | 原子 claim + idempotency key + usage unique guard |
+| AI Worker task 重送造成重複 LLM 或 token usage 累加 | 原子 claim + idempotency key + usage 絕對值覆寫 |
 | OAuth token audience 混用 | AI token 與 MCP token 使用不同 audience；AI Service 執行 token exchange |
 | Gateway 重新引入第二套 event logic | compatibility adapter 只做 protocol mapping；contract test 禁止 payload rewrite |
 | MCP 短暫故障讓 run 不可用 | 一次強制 exchange/retry、清楚的 retryable error、persistence API 保持可用 |
@@ -699,6 +704,7 @@ Gateway 導入後接手 TLS、routing、JWT baseline validation、CORS、rate li
 - 現有 beta AI 資料可直接清除。
 - AI domain 只公開 `session_id`、`run_id`、`artifact_id` 三種全域 UUID。
 - Message 與 Event 使用父 aggregate ID 加序號；不建立 Execution Log、Usage Ledger、Credential Cache 或 AI User table。
+- Run 只保存 input／output token usage；移除 cost、credit、pricing、credit scale 與 `usage_accounted`，request count 由 Run rows 聚合。
 - 本階段不設計 domain data 的自動清除、封存、retention TTL、壓縮或容量 quota；credential lease 的 TTL 只用來限制 token 暴露時間。
 - AI Service 內建立 AI API、AI Worker、AI scheduler。
 - 第一階段沿用 Celery、Redis、PostgreSQL 與 MCP Streamable HTTP。
