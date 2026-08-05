@@ -51,13 +51,20 @@ def _async_database_url(value: str) -> str:
     return value
 
 
+def _alembic_database_url(value: str) -> str:
+    """Escape ConfigParser interpolation syntax without changing the URL."""
+    return value.replace("%", "%%")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def migrated_database() -> None:
     """Apply the AI schema once to the explicitly supplied PostgreSQL database."""
     root = Path(__file__).resolve().parents[2]
     config = Config(root / "alembic.ini")
     config.set_main_option("script_location", str(root / "migrations"))
-    config.set_main_option("sqlalchemy.url", _test_database_url())
+    config.set_main_option(
+        "sqlalchemy.url", _alembic_database_url(_test_database_url())
+    )
     command.upgrade(config, "head")
 
 

@@ -1,6 +1,20 @@
 """Contract tests for the AI Service-owned PostgreSQL schema."""
 
+from pathlib import Path
+
+from alembic.config import Config
 from sqlalchemy import inspect
+
+from tests.integration.conftest import _alembic_database_url
+
+
+def test_percent_encoded_database_url_is_safe_for_alembic_config() -> None:
+    database_url = "postgresql://user:p%40ss@localhost/qjudge_ai_test"
+    config = Config(Path(__file__).resolve().parents[2] / "alembic.ini")
+
+    config.set_main_option("sqlalchemy.url", _alembic_database_url(database_url))
+
+    assert config.get_main_option("sqlalchemy.url") == database_url
 
 
 async def test_ai_schema_has_only_three_uuid_primary_keys(db_engine) -> None:
