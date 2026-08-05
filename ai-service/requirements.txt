@@ -15,7 +15,9 @@ langgraph-checkpoint-postgres==3.0.4
 langchain-deepseek==1.0.1
 langchain-openai==1.1.5
 mcp>=1.9.0
-psycopg[binary]>=3.1.0
+sqlalchemy[asyncio]>=2.0,<3.0
+alembic>=1.13,<2.0
+psycopg[binary,pool]>=3.1,<4.0
 
 # Data validation
 pydantic>=2.6.0

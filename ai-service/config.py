@@ -4,8 +4,7 @@ import json
 from functools import lru_cache
 from typing import Any
 
-from pydantic import AliasChoices, Field
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -14,7 +13,6 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
-
 
 _PATH_LIST_FIELDS = frozenset({"deepagent_skills_paths", "deepagent_memory_paths"})
 
@@ -71,7 +69,17 @@ class Settings(BaseSettings):
     )
 
     # DeepAgent / LangGraph Settings
-    ai_state_postgres_url: str = ""  # Postgres URL for checkpoint store (ai_state schema)
+    ai_state_postgres_url: str = (
+        ""  # Postgres URL for checkpoint store (ai_state schema)
+    )
+
+    # AI Service-owned persistence. Deliberately has no Django database fallback.
+    ai_database_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("AI_DATABASE_URL"),
+    )
+    ai_database_schema: str = "ai"
+    ai_checkpoint_schema: str = "ai_checkpoint"
 
     # Backend→AI-Service auth token
     ai_internal_token: str = Field(
@@ -160,7 +168,6 @@ class Settings(BaseSettings):
     @classmethod
     def _coerce_path_lists(cls, value: Any) -> Any:
         return cls._parse_env_path_list(value)
-
 
 
 @lru_cache
