@@ -97,14 +97,26 @@ class LangGraphCheckpointStore:
         )
 
     async def repair_cancelled_run(self, session_id: UUID) -> None:
-        """Clear the cancelled session checkpoint without changing its identity.
+        """Discard pending HITL control writes while preserving thread history."""
 
-        LangGraph does not expose a supported API for deleting only an interrupt.
-        Resetting the same thread removes pending writes and lets a future run reuse
-        the authoritative session UUID; no replacement thread is created.
-        """
+        if not isinstance(session_id, UUID):
+            raise TypeError("session_id must be a UUID")
+        if self._pool is None:
+            raise RuntimeError("LangGraph checkpoint store is not initialized")
 
-        await self.delete_session(session_id)
+        # LangGraph persists interrupts and their resume markers as reserved
+        # pending writes. Removing only those rows makes a cancelled HITL run
+        # non-resumable without erasing completed messages/checkpoints or
+        # unrelated pending writes on the authoritative session thread.
+        async with self._pool.connection() as connection:
+            await connection.execute(
+                """
+                DELETE FROM checkpoint_writes
+                WHERE thread_id = %s
+                  AND channel = ANY(%s)
+                """,
+                (str(session_id), ["__interrupt__", "__resume__"]),
+            )
 
 
 async def _setup_from_environment() -> None:

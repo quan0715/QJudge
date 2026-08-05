@@ -136,6 +136,12 @@ class Queue(Protocol):
     async def enqueue(self, run_id: UUID) -> None: ...
 
 
+class CheckpointLifecycle(Protocol):
+    """Narrow session-facing lifecycle for non-authoritative Agent state."""
+
+    async def delete_session(self, session_id: UUID) -> None: ...
+
+
 class Clock(Protocol):
     def now(self) -> datetime: ...
 

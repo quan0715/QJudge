@@ -68,10 +68,20 @@ class FakeUnitOfWork:
         return None
 
 
+class FakeCheckpointLifecycle:
+    def __init__(self) -> None:
+        self.deleted_session_ids: list[UUID] = []
+
+    async def delete_session(self, session_id: UUID) -> None:
+        self.deleted_session_ids.append(session_id)
+
+
 async def test_create_and_rename_session_preserve_owner_and_context() -> None:
     principal = Principal(issuer="issuer", subject="subject")
     repository = FakeSessionRepository()
-    service = SessionService(lambda: FakeUnitOfWork(repository))
+    service = SessionService(
+        lambda: FakeUnitOfWork(repository), FakeCheckpointLifecycle()
+    )
 
     created = await service.create_session(principal, {"course_id": "course-1"})
     renamed = await service.rename_session(principal, created.id, "Reviewed chat")
@@ -91,12 +101,15 @@ async def test_missing_or_foreign_session_uses_not_found_semantics() -> None:
     repository = FakeSessionRepository()
     foreign = Session(id=uuid4(), owner=other, title="Private", context={})
     repository.sessions[foreign.id] = foreign
-    service = SessionService(lambda: FakeUnitOfWork(repository))
+    checkpoints = FakeCheckpointLifecycle()
+    service = SessionService(lambda: FakeUnitOfWork(repository), checkpoints)
 
     with pytest.raises(SessionNotFound):
         await service.get_session(principal, foreign.id)
     with pytest.raises(SessionNotFound):
         await service.delete_session(principal, uuid4())
+
+    assert checkpoints.deleted_session_ids == []
 
 
 async def test_rename_reports_not_found_when_owned_update_changes_no_row() -> None:
@@ -105,7 +118,9 @@ async def test_rename_reports_not_found_when_owned_update_changes_no_row() -> No
     existing = Session(id=uuid4(), owner=principal, title="Chat", context={})
     repository.sessions[existing.id] = existing
     repository.fail_next_update = True
-    service = SessionService(lambda: FakeUnitOfWork(repository))
+    service = SessionService(
+        lambda: FakeUnitOfWork(repository), FakeCheckpointLifecycle()
+    )
 
     with pytest.raises(SessionNotFound):
         await service.rename_session(principal, existing.id, "Never persisted")
@@ -113,12 +128,28 @@ async def test_rename_reports_not_found_when_owned_update_changes_no_row() -> No
     assert repository.sessions[existing.id] == existing
 
 
-async def test_clear_session_delegates_without_checkpoint_side_effects() -> None:
+async def test_clear_session_deletes_checkpoint_after_owned_mutation() -> None:
     principal = Principal(issuer="issuer", subject="subject")
     repository = FakeSessionRepository()
     existing = Session(id=uuid4(), owner=principal, title="Chat", context={})
     repository.sessions[existing.id] = existing
-    service = SessionService(lambda: FakeUnitOfWork(repository))
+    checkpoints = FakeCheckpointLifecycle()
+    service = SessionService(lambda: FakeUnitOfWork(repository), checkpoints)
 
     assert await service.clear_session(principal, existing.id) == existing
     assert repository.cleared == [existing.id]
+    assert checkpoints.deleted_session_ids == [existing.id]
+
+
+async def test_delete_session_deletes_checkpoint_after_owned_mutation() -> None:
+    principal = Principal(issuer="issuer", subject="subject")
+    repository = FakeSessionRepository()
+    existing = Session(id=uuid4(), owner=principal, title="Chat", context={})
+    repository.sessions[existing.id] = existing
+    checkpoints = FakeCheckpointLifecycle()
+    service = SessionService(lambda: FakeUnitOfWork(repository), checkpoints)
+
+    await service.delete_session(principal, existing.id)
+
+    assert existing.id not in repository.sessions
+    assert checkpoints.deleted_session_ids == [existing.id]

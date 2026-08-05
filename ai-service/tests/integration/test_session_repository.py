@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -17,6 +17,14 @@ from application.usage_service import UsageService
 from domain.models import Principal, Usage, UsageSummary
 from infrastructure.database.models import MessageRow, RunRow, SessionRow
 from infrastructure.database.uow import SqlAlchemyUnitOfWork
+
+
+class RecordingCheckpointLifecycle:
+    def __init__(self) -> None:
+        self.deleted_session_ids: list[UUID] = []
+
+    async def delete_session(self, session_id: UUID) -> None:
+        self.deleted_session_ids.append(session_id)
 
 
 @pytest.fixture
@@ -40,8 +48,15 @@ def uow_factory(session_factory) -> Callable[[], SqlAlchemyUnitOfWork]:
 
 
 @pytest.fixture
-def session_service(uow_factory) -> SessionService:
-    return SessionService(uow_factory)
+def checkpoint_lifecycle() -> RecordingCheckpointLifecycle:
+    return RecordingCheckpointLifecycle()
+
+
+@pytest.fixture
+def session_service(
+    uow_factory, checkpoint_lifecycle: RecordingCheckpointLifecycle
+) -> SessionService:
+    return SessionService(uow_factory, checkpoint_lifecycle)
 
 
 @pytest.fixture
@@ -69,6 +84,7 @@ async def test_get_session_never_returns_another_subject(
 
 async def test_session_list_and_mutations_are_scoped_to_owner(
     session_service: SessionService,
+    checkpoint_lifecycle: RecordingCheckpointLifecycle,
     principal_a: Principal,
     principal_b: Principal,
 ) -> None:
@@ -85,6 +101,7 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
         await session_service.delete_session(principal_a, hidden.id)
 
     assert (await session_service.get_session(principal_b, hidden.id)).title == "New chat"
+    assert checkpoint_lifecycle.deleted_session_ids == []
 
     another_issuer = Principal(
         issuer="https://another-issuer.example",
@@ -98,10 +115,12 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
         await session_service.delete_session(another_issuer, hidden.id)
 
     assert (await session_service.get_session(principal_b, hidden.id)).title == "New chat"
+    assert checkpoint_lifecycle.deleted_session_ids == []
 
 
 async def test_clear_session_deletes_only_owned_messages_and_resets_ordinal(
     session_service: SessionService,
+    checkpoint_lifecycle: RecordingCheckpointLifecycle,
     session_factory,
     principal_a: Principal,
     principal_b: Principal,
@@ -149,6 +168,21 @@ async def test_clear_session_deletes_only_owned_messages_and_resets_ordinal(
     ]
     assert owned_row is not None and owned_row.next_message_ordinal == 1
     assert hidden_row is not None and hidden_row.next_message_ordinal == 2
+    assert checkpoint_lifecycle.deleted_session_ids == [owned.id]
+
+
+async def test_delete_owned_session_removes_row_then_checkpoint(
+    session_service: SessionService,
+    checkpoint_lifecycle: RecordingCheckpointLifecycle,
+    principal_a: Principal,
+) -> None:
+    owned = await session_service.create_session(principal_a, {})
+
+    await session_service.delete_session(principal_a, owned.id)
+
+    with pytest.raises(SessionNotFound):
+        await session_service.get_session(principal_a, owned.id)
+    assert checkpoint_lifecycle.deleted_session_ids == [owned.id]
 
 
 async def test_usage_is_aggregated_from_owned_runs(

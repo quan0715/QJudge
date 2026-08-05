@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from domain.models import Principal, Session
-from domain.ports import UnitOfWork
+from domain.ports import CheckpointLifecycle, UnitOfWork
 
 
 class SessionNotFound(LookupError):
@@ -20,8 +20,13 @@ class SessionNotFound(LookupError):
 
 
 class SessionService:
-    def __init__(self, uow_factory: Callable[[], UnitOfWork]) -> None:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        checkpoints: CheckpointLifecycle,
+    ) -> None:
         self._uow_factory = uow_factory
+        self._checkpoints = checkpoints
 
     async def create_session(
         self, principal: Principal, context: dict[str, Any]
@@ -69,7 +74,8 @@ class SessionService:
             session = await uow.sessions.clear_for_owner(principal, session_id)
             if session is None:
                 raise SessionNotFound(session_id)
-            return session
+        await self._checkpoints.delete_session(session_id)
+        return session
 
     async def delete_session(self, principal: Principal, session_id: UUID) -> None:
         async with self._uow_factory() as uow:
@@ -77,3 +83,4 @@ class SessionService:
             if session is None:
                 raise SessionNotFound(session_id)
             await uow.sessions.delete(principal, session_id)
+        await self._checkpoints.delete_session(session_id)

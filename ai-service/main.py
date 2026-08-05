@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
+from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from models.schemas import HealthResponse, ModelsResponse
 from routers import chat_router
 from services.deepagent_runner import DeepAgentRunner
@@ -32,19 +33,21 @@ async def lifespan(app: FastAPI):
     if not settings.ai_internal_token.strip():
         raise RuntimeError("AI_INTERNAL_TOKEN must be set and non-empty")
 
-    # Initialize DeepAgent runner with Postgres checkpointer
+    checkpoint_store = LangGraphCheckpointStore(
+        database_url=settings.ai_database_url,
+    )
     runner = DeepAgentRunner(
-        checkpoint_db_url=settings.ai_state_postgres_url,
         mcp_server_url=settings.qjudge_mcp_url,
         skills_paths=settings.deepagent_skills_paths,
         memory_paths=settings.deepagent_memory_paths,
+        checkpoint_store=checkpoint_store,
     )
 
-    if settings.ai_state_postgres_url:
+    if settings.ai_database_url:
         await runner.setup()
         logger.info("DeepAgent runner initialized with Postgres checkpointer.")
     else:
-        logger.warning("AI_STATE_POSTGRES_URL not set — checkpointing disabled.")
+        logger.warning("AI_DATABASE_URL not set — checkpointing disabled.")
 
     app.state.deepagent_runner = runner
     app.state.stream_semaphore = asyncio.Semaphore(max(1, settings.stream_max_concurrency))
@@ -85,7 +88,7 @@ app = create_app()
 @app.get("/health", response_model=HealthResponse, tags=["health"])
 async def health_check() -> HealthResponse:
     settings = get_settings()
-    checkpoint_status = "connected" if settings.ai_state_postgres_url else "not_configured"
+    checkpoint_status = "connected" if settings.ai_database_url else "not_configured"
     overall = "healthy" if (settings.openai_api_key or settings.deepseek_api_key) else "degraded"
     return HealthResponse(
         status=overall,

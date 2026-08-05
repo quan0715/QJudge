@@ -8,6 +8,7 @@ import os
 from collections.abc import Mapping
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, AsyncGenerator
+from uuid import UUID
 
 from deepagents import create_deep_agent
 from deepagents.backends.composite import CompositeBackend
@@ -52,6 +53,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from infrastructure.agent.deepagent_adapter import AgentCommand
+    from models.schemas import RequestContext
 
 _SUMMARIZATION_EVENT_QUEUE: ContextVar[asyncio.Queue | None] = ContextVar(
     "deepagent_summarization_event_queue",
@@ -269,7 +271,6 @@ class DeepAgentRunner:
 
     def __init__(
         self,
-        checkpoint_db_url: str,
         mcp_server_url: str,
         skills_paths: list[str] | None = None,
         memory_paths: list[str] | None = None,
@@ -277,9 +278,8 @@ class DeepAgentRunner:
     ) -> None:
         self._skills_paths = skills_paths or ["/app/.deepagents/skills/"]
         self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
-        self._checkpoint_store = checkpoint_store or LangGraphCheckpointStore(
-            database_url=checkpoint_db_url
-        )
+        self._mcp_server_url = mcp_server_url
+        self._checkpoint_store = checkpoint_store or LangGraphCheckpointStore()
         self._checkpointer: Any | None = None
         self._recursion_handler = RecursionFailureHandler()
 
@@ -433,6 +433,139 @@ class DeepAgentRunner:
             str(command.session_id),
             command.model_id,
             event_queue=event_queue,
+        ):
+            yield event
+
+    @staticmethod
+    def _compatibility_ids(
+        *, thread_id: str | None, request_context: RequestContext | None
+    ) -> tuple[str, str]:
+        """Validate IDs supplied by Django during the temporary router overlap."""
+
+        if request_context is None or not request_context.run_id:
+            raise ValueError("Legacy chat compatibility requires caller run_id")
+        if not thread_id or request_context.session_id != thread_id:
+            raise ValueError("Legacy chat compatibility requires matching session_id")
+        try:
+            session_id = str(UUID(thread_id))
+            run_id = str(UUID(request_context.run_id))
+        except ValueError as exc:
+            raise ValueError("Legacy chat compatibility requires UUID domain IDs") from exc
+        return session_id, run_id
+
+    async def _compatibility_stream(
+        self,
+        *,
+        thread_id: str,
+        run_id: str,
+        model_id: str,
+        system_prompt: str | None,
+        request_context: RequestContext,
+        agent_input: dict[str, Any] | Command,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Keep the pre-``/v1`` router alive without creating domain IDs.
+
+        The canonical application adapter remains the production boundary for
+        the autonomous worker. This short-lived surface only binds the caller's
+        MCP authorization and delegates to the same execution/event machinery.
+        """
+
+        from services.mcp_tool_provider import MCPToolProvider
+
+        event_queue: asyncio.Queue = asyncio.Queue()
+        async with MCPToolProvider(
+            server_url=self._mcp_server_url,
+            authorization_header=request_context.user_authorization,
+            tool_policy=request_context.tool_policy,
+        ) as tool_provider:
+            tools = list(await tool_provider.load_tools())
+            agent = self._build_agent(
+                model_id=model_id,
+                system_prompt=system_prompt,
+                tools=[*tools, build_ask_user_tool(), build_suggest_next_actions_tool()],
+                event_queue=event_queue,
+            )
+            config = self._build_run_config(thread_id=thread_id, run_id=run_id)
+            async for event in self._stream_events(
+                agent,
+                agent_input,
+                config,
+                run_id,
+                thread_id,
+                model_id,
+                event_queue=event_queue,
+            ):
+                yield event
+
+    async def run_stream(
+        self,
+        thread_id: str | None,
+        messages: list[dict[str, str]],
+        model_id: str = "deepseek-v4",
+        system_prompt: str | None = None,
+        request_context: RequestContext | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Temporary caller-ID-safe compatibility for ``/api/chat/stream``."""
+
+        session_id, run_id = self._compatibility_ids(
+            thread_id=thread_id, request_context=request_context
+        )
+        assert request_context is not None
+        async for event in self._compatibility_stream(
+            thread_id=session_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input={"messages": messages},
+        ):
+            yield event
+
+    async def resume_stream(
+        self,
+        thread_id: str,
+        decision: str,
+        model_id: str = "deepseek-v4",
+        system_prompt: str | None = None,
+        request_context: RequestContext | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Temporary caller-ID-safe compatibility for approval resume."""
+
+        session_id, run_id = self._compatibility_ids(
+            thread_id=thread_id, request_context=request_context
+        )
+        assert request_context is not None
+        async for event in self._compatibility_stream(
+            thread_id=session_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input=Command(resume={"decisions": [{"type": decision}]}),
+        ):
+            yield event
+
+    async def answer_stream(
+        self,
+        thread_id: str,
+        answer: str,
+        model_id: str = "deepseek-v4",
+        system_prompt: str | None = None,
+        request_context: RequestContext | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """Temporary caller-ID-safe compatibility for ask-user resume."""
+
+        session_id, run_id = self._compatibility_ids(
+            thread_id=thread_id, request_context=request_context
+        )
+        assert request_context is not None
+        async for event in self._compatibility_stream(
+            thread_id=session_id,
+            run_id=run_id,
+            model_id=model_id,
+            system_prompt=system_prompt,
+            request_context=request_context,
+            agent_input=Command(resume={"answer": answer}),
         ):
             yield event
 

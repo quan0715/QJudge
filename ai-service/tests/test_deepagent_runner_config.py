@@ -108,7 +108,6 @@ def _patch_builder_dependencies(monkeypatch):
 def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
     runner = runner_mod.DeepAgentRunner(
-        checkpoint_db_url="",
         mcp_server_url="http://example.test/mcp",
     )
 
@@ -130,7 +129,6 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
 def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
     runner = runner_mod.DeepAgentRunner(
-        checkpoint_db_url="",
         mcp_server_url="http://example.test/mcp",
     )
 
@@ -151,7 +149,6 @@ def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
 def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
     runner = runner_mod.DeepAgentRunner(
-        checkpoint_db_url="",
         mcp_server_url="http://example.test/mcp",
         skills_paths=["/tmp/custom-skills"],
         memory_paths=["/tmp/custom-agents.md"],
@@ -175,7 +172,6 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
     missing_skill = "/tmp/definitely-missing-qjudge-skill-dir"
     missing_memory = "/tmp/definitely-missing-qjudge-agents.md"
     runner = runner_mod.DeepAgentRunner(
-        checkpoint_db_url="",
         mcp_server_url="http://example.test/mcp",
         skills_paths=[missing_skill],
         memory_paths=[missing_memory],

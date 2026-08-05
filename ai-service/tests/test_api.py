@@ -30,6 +30,7 @@ sys.modules.setdefault("langchain_openai", _openai_stub)
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 
 from config import get_settings  # noqa: E402
+import main as main_module  # noqa: E402
 from main import app  # noqa: E402
 
 # Use whatever token the running environment has configured.
@@ -85,6 +86,45 @@ def error_client():
 
 
 AUTH_HEADERS = {"X-AI-Internal-Token": _CONFIGURED_TOKEN}
+
+
+async def test_lifespan_composes_checkpoints_from_ai_database_url(monkeypatch):
+    settings = get_settings().model_copy(
+        update={
+            "ai_database_url": "postgresql://ai-owned.example/qjudge_ai",
+            "ai_state_postgres_url": "postgresql://legacy.example/django",
+        }
+    )
+    captured = {}
+
+    class FakeCheckpointStore:
+        def __init__(self, *, database_url):
+            captured["database_url"] = database_url
+
+    class FakeRunner:
+        def __init__(self, *, checkpoint_store, mcp_server_url, **kwargs):
+            captured["checkpoint_store"] = checkpoint_store
+            captured["mcp_server_url"] = mcp_server_url
+
+        async def setup(self):
+            captured["setup"] = True
+
+        async def shutdown(self):
+            captured["shutdown"] = True
+
+    monkeypatch.setattr(main_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(main_module, "LangGraphCheckpointStore", FakeCheckpointStore)
+    monkeypatch.setattr(main_module, "DeepAgentRunner", FakeRunner)
+    test_app = main_module.create_app()
+
+    async with main_module.lifespan(test_app):
+        assert test_app.state.deepagent_runner is not None
+
+    assert captured["database_url"] == "postgresql://ai-owned.example/qjudge_ai"
+    assert isinstance(captured["checkpoint_store"], FakeCheckpointStore)
+    assert captured["mcp_server_url"] == settings.qjudge_mcp_url
+    assert captured["setup"] is True
+    assert captured["shutdown"] is True
 
 
 class TestHealthEndpoint:

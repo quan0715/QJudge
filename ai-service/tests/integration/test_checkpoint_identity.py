@@ -6,6 +6,7 @@ import os
 from uuid import uuid4
 
 from langgraph.checkpoint.base import empty_checkpoint
+from langgraph.types import Interrupt
 from sqlalchemy import inspect
 
 from config import get_settings
@@ -24,6 +25,23 @@ async def _put_checkpoint(store: LangGraphCheckpointStore, session_id) -> dict:
         empty_checkpoint(),
         {"source": "input", "step": 0, "parents": {}},
         {},
+    )
+
+
+async def _put_completed_history(store: LangGraphCheckpointStore, session_id) -> dict:
+    checkpoint = empty_checkpoint()
+    version = "00000000000000000000000000000001.0.1"
+    checkpoint["channel_values"] = {"messages": ["completed assistant response"]}
+    checkpoint["channel_versions"] = {"messages": version}
+    configurable = {
+        **store.configurable(session_id),
+        "checkpoint_ns": "",
+    }
+    return await store.checkpointer.aput(
+        {"configurable": configurable},
+        checkpoint,
+        {"source": "loop", "step": 1, "parents": {}},
+        {"messages": version},
     )
 
 
@@ -59,7 +77,7 @@ async def test_checkpoint_store_uses_ai_database_schema_and_session_identity(
         get_settings.cache_clear()
 
 
-async def test_cancel_repair_clears_same_session_without_replacement_thread(
+async def test_cancel_repair_clears_only_pending_interrupt_and_preserves_history(
     db_engine, monkeypatch
 ) -> None:
     monkeypatch.setenv("AI_DATABASE_URL", os.environ["AI_TEST_DATABASE_URL"])
@@ -69,12 +87,30 @@ async def test_cancel_repair_clears_same_session_without_replacement_thread(
 
     try:
         await store.setup()
-        saved_config = await _put_checkpoint(store, session_id)
-        assert await store.checkpointer.aget_tuple(saved_config) is not None
+        saved_config = await _put_completed_history(store, session_id)
+        await store.checkpointer.aput_writes(
+            saved_config,
+            [
+                ("__interrupt__", [Interrupt(value={"question": "continue?"})]),
+                ("safe_channel", "pending non-interrupt write"),
+            ],
+            task_id="cancelled-task",
+        )
+        before = await store.checkpointer.aget_tuple(saved_config)
+        assert before is not None
+        assert {write[1] for write in before.pending_writes or []} == {
+            "__interrupt__",
+            "safe_channel",
+        }
 
         await store.repair_cancelled_run(session_id)
 
-        assert await store.checkpointer.aget_tuple(saved_config) is None
+        after = await store.checkpointer.aget_tuple(saved_config)
+        assert after is not None
+        assert after.checkpoint["channel_values"]["messages"] == [
+            "completed assistant response"
+        ]
+        assert [write[1] for write in after.pending_writes or []] == ["safe_channel"]
         assert store.configurable(session_id) == {"thread_id": str(session_id)}
     finally:
         await store.close()
