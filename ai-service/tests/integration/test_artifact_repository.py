@@ -2,16 +2,52 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+import hashlib
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from application.artifacts import ArtifactService, artifact_object_key
 from domain.models import Artifact, Principal
-from infrastructure.artifacts.s3_artifact_store import SqlAlchemyArtifactRepository
-from infrastructure.database.models import RunRow, SessionRow
+from infrastructure.artifacts.s3_artifact_store import (
+    ArtifactStorageError,
+    SqlAlchemyArtifactRepository,
+)
+from infrastructure.database.models import ArtifactRow, RunRow, SessionRow
+from services.artifact_tools import build_artifact_tools
+
+
+class FailableArtifactStore:
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+        self.fail_put = False
+
+    async def put(self, key: str, content: bytes, content_type: str) -> None:
+        del content_type
+        if self.fail_put:
+            raise ArtifactStorageError("Failed to upload artifact")
+        self.objects[key] = content
+
+    async def get(self, key: str) -> bytes:
+        return self.objects[key]
+
+    async def presign(self, key: str) -> str:
+        return f"https://objects.example/{key}"
+
+
+def _artifact_write_tool(*, session_id: UUID, service: ArtifactService):
+    return next(
+        tool
+        for tool in build_artifact_tools(
+            session_id=session_id,
+            run_id=None,
+            artifact_service=service,
+        )
+        if tool.name == "artifact_write"
+    )
 
 
 @pytest.fixture
@@ -160,3 +196,103 @@ async def test_upsert_is_unique_by_session_step_and_filename(
 
     count = await db_session.scalar(text("SELECT count(*) FROM ai.artifacts"))
     assert count == 1
+
+
+async def test_failed_first_object_write_cannot_commit_artifact_metadata(
+    db_engine,
+    principal_a: Principal,
+) -> None:
+    factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    session_id = uuid4()
+    async with factory.begin() as session:
+        session.add(
+            SessionRow(
+                session_id=session_id,
+                owner_issuer=principal_a.issuer,
+                owner_subject=principal_a.subject,
+                title="Chat",
+                context={},
+            )
+        )
+
+    store = FailableArtifactStore()
+    store.fail_put = True
+    async with factory.begin() as session:
+        service = ArtifactService(
+            SqlAlchemyArtifactRepository(session), store, max_bytes=1024
+        )
+        result = await _artifact_write_tool(
+            session_id=session_id, service=service
+        ).coroutine(
+            step="result",
+            filename="result.txt",
+            content="new bytes",
+            content_type="text/plain",
+        )
+        assert result == {
+            "is_error": True,
+            "detail": "Failed to upload artifact",
+        }
+
+    async with factory() as session:
+        assert await session.scalar(select(ArtifactRow)) is None
+
+
+async def test_failed_overwrite_keeps_committed_metadata_matching_old_bytes(
+    db_engine,
+    principal_a: Principal,
+) -> None:
+    factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    session_id = uuid4()
+    store = FailableArtifactStore()
+    async with factory.begin() as session:
+        session.add(
+            SessionRow(
+                session_id=session_id,
+                owner_issuer=principal_a.issuer,
+                owner_subject=principal_a.subject,
+                title="Chat",
+                context={},
+            )
+        )
+        await session.flush()
+        service = ArtifactService(
+            SqlAlchemyArtifactRepository(session), store, max_bytes=1024
+        )
+        original = await service.put_for_run(
+            session_id=session_id,
+            run_id=None,
+            step="result",
+            filename="result.txt",
+            content=b"old bytes",
+            content_type="text/plain",
+            metadata={"version": 1},
+        )
+
+    store.fail_put = True
+    async with factory.begin() as session:
+        service = ArtifactService(
+            SqlAlchemyArtifactRepository(session), store, max_bytes=1024
+        )
+        result = await _artifact_write_tool(
+            session_id=session_id, service=service
+        ).coroutine(
+            step="result",
+            filename="result.txt",
+            content="new bytes",
+            content_type="application/json",
+            metadata={"version": 2},
+        )
+        assert result["is_error"] is True
+
+    key = artifact_object_key(session_id, original.id)
+    assert store.objects[key] == b"old bytes"
+    async with factory() as session:
+        row = await session.scalar(
+            select(ArtifactRow).where(ArtifactRow.artifact_id == original.id)
+        )
+        assert row is not None
+        assert row.content_type == "text/plain"
+        assert row.size_bytes == len(b"old bytes")
+        assert row.checksum == hashlib.sha256(b"old bytes").hexdigest()
+        assert row.metadata_ == {"version": 1}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from contextlib import AbstractAsyncContextManager
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
@@ -22,6 +23,8 @@ class InvalidArtifact(ValueError):
 
 
 class ArtifactMetadataRepository(Protocol):
+    def atomic_write(self) -> AbstractAsyncContextManager[None]: ...
+
     async def session_exists(self, session_id: UUID) -> bool: ...
 
     async def session_belongs_to(self, principal: Principal, session_id: UUID) -> bool: ...
@@ -178,24 +181,25 @@ class ArtifactService:
         ):
             raise ArtifactNotFound(f"Run not found in session: {produced_by_run_id}")
 
-        artifact = await self._repository.upsert(
-            Artifact(
-                id=uuid4(),
-                session_id=session_id,
-                produced_by_run_id=produced_by_run_id,
-                step=step,
-                filename=filename,
-                content_type=content_type,
-                size_bytes=len(content),
-                checksum=hashlib.sha256(content).hexdigest(),
-                metadata=dict(metadata),
+        async with self._repository.atomic_write():
+            artifact = await self._repository.upsert(
+                Artifact(
+                    id=uuid4(),
+                    session_id=session_id,
+                    produced_by_run_id=produced_by_run_id,
+                    step=step,
+                    filename=filename,
+                    content_type=content_type,
+                    size_bytes=len(content),
+                    checksum=hashlib.sha256(content).hexdigest(),
+                    metadata=dict(metadata),
+                )
             )
-        )
-        await self._store.put(
-            artifact_object_key(artifact.session_id, artifact.id),
-            content,
-            content_type,
-        )
+            await self._store.put(
+                artifact_object_key(artifact.session_id, artifact.id),
+                content,
+                content_type,
+            )
         return artifact
 
     async def list(

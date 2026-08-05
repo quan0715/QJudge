@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -13,12 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.models import Artifact, Principal
 from infrastructure.database.models import ArtifactRow, RunRow, SessionRow
-
-try:
-    from botocore.exceptions import ClientError
-except ModuleNotFoundError:  # metadata-only test environments need no S3 SDK import
-    class ClientError(Exception):  # type: ignore[no-redef]
-        pass
 
 
 class ArtifactStorageError(RuntimeError):
@@ -50,6 +46,13 @@ class SqlAlchemyArtifactRepository:
 
     def __init__(self, db_session: AsyncSession) -> None:
         self._session = db_session
+
+    @asynccontextmanager
+    async def atomic_write(self) -> AsyncIterator[None]:
+        """Rollback only this artifact mutation when object persistence fails."""
+
+        async with self._session.begin_nested():
+            yield
 
     async def session_exists(self, session_id: UUID) -> bool:
         return (
@@ -230,7 +233,7 @@ class S3ArtifactStore:
             self._client.put_object(
                 Bucket=self._bucket, Key=key, Body=content, ContentType=content_type
             )
-        except ClientError as exc:
+        except Exception as exc:
             raise ArtifactStorageError("Failed to upload artifact") from exc
 
     async def get(self, key: str) -> bytes:
@@ -239,24 +242,29 @@ class S3ArtifactStore:
     def _get(self, key: str) -> bytes:
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
-        except ClientError as exc:
-            code = str(exc.response.get("Error", {}).get("Code", ""))
+            stream = response["Body"]
+            try:
+                return stream.read()
+            finally:
+                stream.close()
+        except Exception as exc:
+            code = _provider_error_code(exc)
             if code in {"404", "NoSuchKey", "NotFound", "NoSuchBucket"}:
                 raise ArtifactObjectNotFound("Artifact not found") from exc
             raise ArtifactStorageError("Failed to fetch artifact") from exc
-        stream = response["Body"]
-        try:
-            return stream.read()
-        finally:
-            stream.close()
 
     async def presign(self, key: str) -> str:
-        return await asyncio.to_thread(
-            self._public_client.generate_presigned_url,
-            ClientMethod="get_object",
-            Params={"Bucket": self._bucket, "Key": key},
-            ExpiresIn=self._presign_ttl_seconds,
-        )
+        return await asyncio.to_thread(self._presign, key)
+
+    def _presign(self, key: str) -> str:
+        try:
+            return self._public_client.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": self._bucket, "Key": key},
+                ExpiresIn=self._presign_ttl_seconds,
+            )
+        except Exception as exc:
+            raise ArtifactStorageError("Failed to create artifact URL") from exc
 
     def _ensure_bucket(self) -> None:
         if self._bucket_ready:
@@ -265,8 +273,8 @@ class S3ArtifactStore:
             self._client.head_bucket(Bucket=self._bucket)
             self._bucket_ready = True
             return
-        except ClientError as exc:
-            code = str(exc.response.get("Error", {}).get("Code", ""))
+        except Exception as exc:
+            code = _provider_error_code(exc)
             if not self._auto_create_bucket:
                 if code in {"403", "AccessDenied", "Forbidden"}:
                     self._bucket_ready = True
@@ -281,8 +289,16 @@ class S3ArtifactStore:
             }
         try:
             self._client.create_bucket(**create_params)
-        except ClientError as exc:
-            code = str(exc.response.get("Error", {}).get("Code", ""))
+        except Exception as exc:
+            code = _provider_error_code(exc)
             if code != "BucketAlreadyOwnedByYou":
                 raise ArtifactStorageError("Failed to create artifact bucket") from exc
         self._bucket_ready = True
+
+
+def _provider_error_code(exc: Exception) -> str:
+    response = getattr(exc, "response", None)
+    if not isinstance(response, dict):
+        return ""
+    error = response.get("Error", {})
+    return str(error.get("Code", "")) if isinstance(error, dict) else ""
