@@ -8,6 +8,7 @@ web frameworks.
 from __future__ import annotations
 
 from datetime import datetime
+from types import TracebackType
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -22,6 +23,10 @@ class SessionRepository(Protocol):
     async def get_for_owner(self, principal: Principal, session_id: UUID) -> Session | None: ...
 
     async def update(self, session: Session) -> Session: ...
+
+    async def clear_for_owner(
+        self, principal: Principal, session_id: UUID
+    ) -> Session | None: ...
 
     async def delete(self, principal: Principal, session_id: UUID) -> None: ...
 
@@ -62,3 +67,17 @@ class Clock(Protocol):
 
 class UsageReader(Protocol):
     async def get_for_owner(self, principal: Principal) -> Usage: ...
+
+
+class UnitOfWork(Protocol):
+    sessions: SessionRepository
+    usage: UsageReader
+
+    async def __aenter__(self) -> "UnitOfWork": ...
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None: ...
