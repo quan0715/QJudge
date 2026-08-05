@@ -533,16 +533,18 @@ wheels = [
 [[package]]
 name = "qjudge-mcp-server"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
+    { name = "pyjwt", extra = ["crypto"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.9.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.9,<3.0" },
 ]
 
 [[package]]

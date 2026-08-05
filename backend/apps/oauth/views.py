@@ -2,8 +2,9 @@ import json
 import secrets
 import string
 from datetime import timedelta
-from urllib.parse import urlencode, urlparse, quote
+from urllib.parse import quote, urlencode, urlparse
 
+import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
@@ -14,10 +15,18 @@ from django.views.decorators.http import require_GET, require_POST
 from drf_spectacular.utils import extend_schema, inline_serializer
 from oauth2_provider.models import Application, Grant
 from rest_framework import serializers as drf_serializers
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
+
+from apps.users.permissions import IsTeacherOrAdmin
+
+from .resource_tokens import (
+    decode_resource_token,
+    issue_resource_token,
+    resource_jwks,
+)
 
 User = get_user_model()
 
@@ -47,6 +56,11 @@ def oauth_authorization_server_metadata(request):
             "token_endpoint_auth_methods_supported": ["none"],
         }
     )
+
+
+@require_GET
+def oauth_jwks(request):
+    return JsonResponse(resource_jwks())
 
 
 @require_GET
@@ -328,3 +342,90 @@ class ApproveAuthorizationView(APIView):
         if state:
             params["state"] = state
         return Response({"redirect_uri": f"{redirect_uri}?{urlencode(params)}"})
+
+
+class ResourceTokenView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request):
+        if request.data.get("audience") != "ai-service" or request.data.get(
+            "scope"
+        ) != "ai:chat":
+            return Response(
+                {
+                    "error": "invalid_target",
+                    "error_description": "Unsupported resource token target",
+                },
+                status=400,
+            )
+        token = issue_resource_token(
+            request.user,
+            "ai-service",
+            frozenset({"ai:chat"}),
+        )
+        return Response(
+            {
+                "access_token": token,
+                "token_type": "Bearer",
+                "expires_in": 300,
+                "scope": "ai:chat",
+            }
+        )
+
+
+class TokenExchangeView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if request.data.get("audience") != "qjudge-mcp" or request.data.get(
+            "scope"
+        ) != "mcp":
+            return Response(
+                {
+                    "error": "invalid_target",
+                    "error_description": "Unsupported resource token target",
+                },
+                status=400,
+            )
+        authorization = request.headers.get("Authorization", "")
+        scheme, separator, token = authorization.partition(" ")
+        if separator != " " or scheme.lower() != "bearer" or not token:
+            return Response(
+                {
+                    "error": "invalid_token",
+                    "error_description": "AI resource token is required",
+                },
+                status=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            claims = decode_resource_token(
+                token,
+                audience="ai-service",
+                required_scopes=frozenset({"ai:chat"}),
+            )
+            user = User.objects.get(pk=claims["sub"], is_active=True)
+        except (jwt.PyJWTError, User.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {
+                    "error": "invalid_token",
+                    "error_description": "Invalid AI resource token",
+                },
+                status=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        resource_token = issue_resource_token(
+            user,
+            "qjudge-mcp",
+            frozenset({"mcp"}),
+        )
+        return Response(
+            {
+                "access_token": resource_token,
+                "token_type": "Bearer",
+                "expires_in": 300,
+                "scope": "mcp",
+            }
+        )

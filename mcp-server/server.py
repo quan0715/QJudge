@@ -8,13 +8,8 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
-from mcp.server.auth.provider import AccessToken, TokenVerifier
-from mcp.server.auth.settings import AuthSettings
-from mcp.server.fastmcp import FastMCP, Context
-from mcp.types import ToolAnnotations
-from starlette.routing import Route
+import jwt
 import uvicorn
-
 from config import (
     DJANGO_BASE_URL,
     DJANGO_FORWARDED_PROTO,
@@ -22,8 +17,15 @@ from config import (
     MCP_PORT,
     MCP_PUBLIC_URL,
     OAUTH_ISSUER_URL,
+    OAUTH_JWKS_URL,
 )
 from exam_preview import build_exam_problem_preview
+from jwt import PyJWKClient
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
+from mcp.server.fastmcp import Context, FastMCP
+from mcp.types import ToolAnnotations
+from starlette.routing import Route
 
 
 class DjangoTokenVerifier(TokenVerifier):
@@ -48,6 +50,59 @@ class DjangoTokenVerifier(TokenVerifier):
             token=token,
             client_id="qjudge",
             scopes=["mcp"],
+        )
+
+
+class QJudgeTokenVerifier(TokenVerifier):
+    """Verify QJudge MCP JWTs locally and preserve opaque OAuth fallback."""
+
+    def __init__(
+        self,
+        issuer: str = OAUTH_ISSUER_URL,
+        jwks_client: PyJWKClient | None = None,
+        opaque_fallback: TokenVerifier | None = None,
+    ) -> None:
+        self._issuer = issuer.rstrip("/")
+        self._jwks_client = jwks_client or PyJWKClient(OAUTH_JWKS_URL)
+        self._opaque_fallback = opaque_fallback or DjangoTokenVerifier()
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        if not self._is_qjudge_resource_token(token):
+            return await self._opaque_fallback.verify_token(token)
+        try:
+            signing_key = self._jwks_client.get_signing_key_from_jwt(token).key
+            claims = jwt.decode(
+                token,
+                signing_key,
+                algorithms=["EdDSA"],
+                issuer=self._issuer,
+                audience="qjudge-mcp",
+                options={
+                    "require": ["iss", "sub", "aud", "scope", "iat", "exp"]
+                },
+            )
+        except Exception:
+            return None
+        scopes = frozenset(str(claims["scope"]).split())
+        if "mcp" not in scopes:
+            return None
+        return AccessToken(
+            token=token,
+            client_id=str(claims["sub"]),
+            scopes=sorted(scopes),
+        )
+
+    @staticmethod
+    def _is_qjudge_resource_token(token: str) -> bool:
+        if token.count(".") != 2:
+            return False
+        try:
+            header = jwt.get_unverified_header(token)
+        except jwt.PyJWTError:
+            return False
+        return (
+            header.get("alg") == "EdDSA"
+            and header.get("kid") == "qjudge-ai-ed25519-v1"
         )
 
 
@@ -652,7 +707,7 @@ mcp = FastMCP(
         issuer_url=OAUTH_ISSUER_URL,
         resource_server_url=MCP_PUBLIC_URL,
     ),
-    token_verifier=DjangoTokenVerifier(),
+    token_verifier=QJudgeTokenVerifier(),
 )
 
 def _build_exam_problem_preview(current_question: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:

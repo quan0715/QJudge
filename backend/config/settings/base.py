@@ -164,7 +164,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # MCP OAuth (first: returns None for non-OAuth tokens)
+        "apps.oauth.authentication.ResourceTokenAuthentication",
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # Existing opaque MCP OAuth tokens
         "apps.users.authentication.CookieJWTAuthentication",  # Cookie-based JWT (more secure)
         "rest_framework_simplejwt.authentication.JWTAuthentication",  # Header-based JWT (fallback for API clients)
     ],
@@ -216,6 +217,7 @@ JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 OAUTH2_PROVIDER = {
     "SCOPES": {
         "mcp": "Access QJudge via MCP",
+        "ai:chat": "Access the QJudge AI chat service",
         "qjudge.paper": "Access QJudge paper exam workflows from QJudge Paper CLI",
     },
     "DEFAULT_SCOPES": ["mcp"],
@@ -229,6 +231,12 @@ OAUTH2_PROVIDER = {
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
 OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL)
+AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
+    os.environ.get(
+        "AI_OAUTH_SIGNING_PRIVATE_KEY_FILE",
+        BASE_DIR.parent / "secrets" / "ai-oauth-ed25519-private.pem",
+    )
+)
 # MCP server public URL (served at /mcp via streamable-http transport)
 MCP_PUBLIC_URL = os.environ.get("MCP_PUBLIC_URL", "http://localhost:9000")
 
@@ -245,6 +253,7 @@ SPECTACULAR_SETTINGS = {
             "tokenUrl": "/api/oauth/token/",
             "scopes": {
                 "mcp": "MCP server access",
+                "ai:chat": "QJudge AI chat access",
                 "qjudge.paper": "QJudge Paper CLI access",
             },
         }

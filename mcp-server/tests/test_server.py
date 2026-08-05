@@ -4,8 +4,9 @@ import sys
 from pathlib import Path
 
 import httpx
+import jwt
 import pytest
-
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -64,6 +65,29 @@ class FakeAsyncClient:
     async def get(self, url, **kwargs):
         self._recorder.append({"url": url, **kwargs})
         return self._response
+
+
+class StaticJwksClient:
+    def __init__(self, public_key):
+        self._public_key = public_key
+
+    def get_signing_key_from_jwt(self, token):
+        return type("SigningKey", (), {"key": self._public_key})()
+
+
+class RecordingFallback:
+    def __init__(self, result=None):
+        self._result = result
+        self.tokens = []
+
+    async def verify_token(self, token):
+        self.tokens.append(token)
+        return self._result
+
+
+class FailingFallback:
+    async def verify_token(self, token):
+        raise AssertionError("JWT verification must not call the opaque fallback")
 
 
 def contest_detail(*, contest_id="11111111-1111-1111-1111-111111111111", contest_type="paper_exam"):
@@ -1362,7 +1386,80 @@ def test_build_exam_question_body_normalizes_prompt():
 
 def test_auth_settings_configured():
     """Verify MCP server has auth settings for OAuth discovery."""
-    assert isinstance(server.mcp._token_verifier, server.DjangoTokenVerifier)
+    assert isinstance(server.mcp._token_verifier, server.QJudgeTokenVerifier)
+
+
+def test_qjudge_verifier_accepts_local_mcp_jwt_without_remote_call():
+    private_key = Ed25519PrivateKey.generate()
+    token = jwt.encode(
+        {
+            "iss": "https://issuer.test",
+            "sub": "teacher-42",
+            "aud": "qjudge-mcp",
+            "scope": "mcp",
+            "iat": 1_700_000_000,
+            "nbf": 1_700_000_000,
+            "exp": 1_900_000_000,
+        },
+        private_key,
+        algorithm="EdDSA",
+        headers={"kid": "qjudge-ai-ed25519-v1"},
+    )
+
+    verifier = server.QJudgeTokenVerifier(
+        issuer="https://issuer.test",
+        jwks_client=StaticJwksClient(private_key.public_key()),
+        opaque_fallback=FailingFallback(),
+    )
+    access_token = run(verifier.verify_token(token))
+
+    assert access_token is not None
+    assert access_token.token == token
+    assert access_token.client_id == "teacher-42"
+    assert access_token.scopes == ["mcp"]
+
+
+def test_qjudge_verifier_rejects_wrong_local_jwt_without_opaque_fallback():
+    private_key = Ed25519PrivateKey.generate()
+    token = jwt.encode(
+        {
+            "iss": "https://issuer.test",
+            "sub": "teacher-42",
+            "aud": "ai-service",
+            "scope": "ai:chat",
+            "iat": 1_700_000_000,
+            "nbf": 1_700_000_000,
+            "exp": 1_900_000_000,
+        },
+        private_key,
+        algorithm="EdDSA",
+        headers={"kid": "qjudge-ai-ed25519-v1"},
+    )
+    fallback = RecordingFallback()
+    verifier = server.QJudgeTokenVerifier(
+        issuer="https://issuer.test",
+        jwks_client=StaticJwksClient(private_key.public_key()),
+        opaque_fallback=fallback,
+    )
+
+    assert run(verifier.verify_token(token)) is None
+    assert fallback.tokens == []
+
+
+def test_qjudge_verifier_preserves_opaque_fallback():
+    fallback = RecordingFallback(
+        server.AccessToken(token="opaque", client_id="qjudge", scopes=["mcp"])
+    )
+    verifier = server.QJudgeTokenVerifier(
+        issuer="https://issuer.test",
+        jwks_client=StaticJwksClient(None),
+        opaque_fallback=fallback,
+    )
+
+    access_token = run(verifier.verify_token("opaque"))
+
+    assert access_token is not None
+    assert fallback.tokens == ["opaque"]
 
 
 # ============================================================

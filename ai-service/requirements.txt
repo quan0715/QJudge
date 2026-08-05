@@ -32,6 +32,7 @@ pypdf>=5.0.0
 # Utilities
 python-dotenv>=1.0.0
 pyyaml>=6.0.0
+PyJWT[crypto]>=2.9,<3.0
 
 # Testing (optional, for development)
 pytest>=8.0.0
