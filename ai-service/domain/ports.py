@@ -26,6 +26,14 @@ from .models import (
 
 
 @dataclass(frozen=True, slots=True)
+class TraceContext:
+    """Small, queue-safe request trace propagated into the worker."""
+
+    request_id: str | None = None
+    traceparent: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class CredentialLeaseKey:
     value: str
 
@@ -95,6 +103,10 @@ class SessionRepository(Protocol):
 
     async def get_for_owner(self, principal: Principal, session_id: UUID) -> Session | None: ...
 
+    async def get_for_update(
+        self, principal: Principal, session_id: UUID
+    ) -> Session | None: ...
+
     async def update(
         self, principal: Principal, session: Session
     ) -> Session | None: ...
@@ -111,11 +123,41 @@ class RunRepository(Protocol):
 
     async def get(self, run_id: UUID) -> Run | None: ...
 
+    async def get_for_owner(
+        self, principal: Principal, run_id: UUID
+    ) -> Run | None: ...
+
+    async def get_for_update(
+        self, principal: Principal, run_id: UUID
+    ) -> Run | None: ...
+
+    async def get_by_idempotency_key(
+        self, session_id: UUID, idempotency_key: str
+    ) -> Run | None: ...
+
+    async def create_queued(
+        self, session_id: UUID, model_id: str, idempotency_key: str
+    ) -> Run: ...
+
+    async def has_blocking_run(
+        self, session_id: UUID, excluding: UUID
+    ) -> bool: ...
+
+    async def oldest_queued(
+        self, session_id: UUID, excluding: UUID | None = None
+    ) -> Run | None: ...
+
+    async def oldest_queued_after_terminal(self, run_id: UUID) -> Run | None: ...
+
     async def update(self, run: Run) -> Run: ...
 
     async def append_event(self, run_id: UUID, event: dict[str, Any]) -> StreamEvent: ...
 
     async def list_events(self, run_id: UUID, after: int = 0) -> list[StreamEvent]: ...
+
+    async def list_events_for_owner(
+        self, principal: Principal, run_id: UUID, after: int = 0
+    ) -> list[StreamEvent]: ...
 
 
 class MessageRepository(Protocol):
@@ -124,6 +166,10 @@ class MessageRepository(Protocol):
     async def list_for_session(self, session_id: UUID) -> list[Message]: ...
 
     async def clear_for_session(self, session_id: UUID) -> None: ...
+
+    async def append_pair(
+        self, session: Session, run_id: UUID, prompt: str
+    ) -> tuple[Message, Message]: ...
 
 
 class ArtifactRepository(Protocol):
@@ -134,6 +180,15 @@ class ArtifactRepository(Protocol):
 
 class Queue(Protocol):
     async def enqueue(self, run_id: UUID) -> None: ...
+
+
+class RunDispatcher(Protocol):
+    async def dispatch(
+        self,
+        run_id: UUID,
+        credential_lease_key: str | None,
+        trace_context: TraceContext,
+    ) -> None: ...
 
 
 class CheckpointLifecycle(Protocol):
@@ -156,6 +211,8 @@ class UsageReader(Protocol):
 
 class UnitOfWork(Protocol):
     sessions: SessionRepository
+    runs: RunRepository
+    messages: MessageRepository
     usage: UsageReader
 
     async def __aenter__(self) -> "UnitOfWork": ...
