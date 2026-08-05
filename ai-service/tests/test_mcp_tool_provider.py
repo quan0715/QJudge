@@ -8,6 +8,7 @@ import sys
 import types
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
@@ -33,6 +34,7 @@ _openai_stub.ChatOpenAI = _ChatOpenAIStub
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from application.credential_service import (  # noqa: E402
+    McpAuthFailed,
     McpProtocolError,
     McpToolDiscoveryFailed,
     McpUnavailable,
@@ -249,3 +251,82 @@ def test_probe_maps_malformed_tools_to_discovery_error(monkeypatch):
         asyncio.run(provider.probe())
 
     assert raised.value.code == "MCP_TOOL_DISCOVERY_FAILED"
+
+
+def test_probe_rejects_repeated_pagination_cursor_and_closes(monkeypatch):
+    repeated_page = SimpleNamespace(tools=[], nextCursor="same-cursor")
+    session = _ProbeSession([repeated_page, repeated_page])
+    transport = _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpToolDiscoveryFailed) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_TOOL_DISCOVERY_FAILED"
+    assert session.cursors == [None, "same-cursor"]
+    assert session.closed is True
+    assert transport.closed is True
+
+
+def test_probe_rejects_discovery_that_exceeds_page_bound(monkeypatch):
+    import services.mcp_tool_provider as module
+
+    monkeypatch.setattr(module, "_MAX_TOOL_DISCOVERY_PAGES", 2)
+    session = _ProbeSession(
+        [
+            SimpleNamespace(tools=[], nextCursor="page-2"),
+            SimpleNamespace(tools=[], nextCursor="page-3"),
+        ]
+    )
+    transport = _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpToolDiscoveryFailed) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_TOOL_DISCOVERY_FAILED"
+    assert session.cursors == [None, "page-2"]
+    assert session.closed is True
+    assert transport.closed is True
+
+
+def _http_status_error(status_code: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("POST", "http://example.invalid/mcp")
+    response = httpx.Response(status_code, request=request)
+    return httpx.HTTPStatusError(
+        "delegated credential rejected",
+        request=request,
+        response=response,
+    )
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+@pytest.mark.parametrize("boundary", ["connection", "initialize", "discovery"])
+def test_probe_maps_http_auth_failures_at_each_boundary(
+    monkeypatch,
+    status_code,
+    boundary,
+):
+    auth_error = _http_status_error(status_code)
+    connect_error = auth_error if boundary == "connection" else None
+    initialize_error = auth_error if boundary == "initialize" else None
+    pages = (
+        [auth_error]
+        if boundary == "discovery"
+        else [SimpleNamespace(tools=[], nextCursor=None)]
+    )
+    session = _ProbeSession(pages, initialize_error=initialize_error)
+    transport = _install_probe_transport(
+        monkeypatch,
+        session,
+        connect_error=connect_error,
+    )
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpAuthFailed) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_AUTH_FAILED"
+    if boundary != "connection":
+        assert session.closed is True
+        assert transport.closed is True

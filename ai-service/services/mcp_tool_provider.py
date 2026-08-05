@@ -23,6 +23,9 @@ from domain.ports import (
 
 logger = logging.getLogger(__name__)
 
+_MAX_TOOL_DISCOVERY_PAGES = 100
+_MAX_TOOL_DISCOVERY_TOOLS = 10_000
+
 
 def _preview_for_log(value: Any, *, limit: int = 500) -> str:
     """Best-effort compact preview for logs (avoid giant payload spam)."""
@@ -136,18 +139,29 @@ class MCPToolProvider:
         session = self._require_session()
         tools: list[Tool] = []
         cursor: str | None = None
+        seen_cursors: set[str] = set()
+        pages_read = 0
 
         while True:
+            if pages_read >= _MAX_TOOL_DISCOVERY_PAGES:
+                raise ValueError("MCP tool discovery exceeded the page limit")
             result = await asyncio.wait_for(
                 session.list_tools(cursor=cursor),
                 timeout=max(0.5, settings.mcp_list_tools_timeout_seconds),
             )
+            pages_read += 1
             if validate:
                 _validate_tool_page(result)
+            if len(tools) + len(result.tools) > _MAX_TOOL_DISCOVERY_TOOLS:
+                raise ValueError("MCP tool discovery exceeded the tool limit")
             tools.extend(result.tools)
-            cursor = result.nextCursor
-            if not cursor:
+            next_cursor = result.nextCursor
+            if not next_cursor:
                 break
+            if next_cursor in seen_cursors:
+                raise ValueError("MCP tool discovery repeated a pagination cursor")
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
 
         return tools
 
@@ -315,7 +329,11 @@ def _walk_exceptions(exc: BaseException):
 
 def _is_auth_error(exc: BaseException) -> bool:
     return any(
-        any(
+        (
+            isinstance(item, httpx.HTTPStatusError)
+            and item.response.status_code in {401, 403}
+        )
+        or any(
             marker in str(item).lower()
             for marker in ("401", "403", "unauthorized", "forbidden")
         )

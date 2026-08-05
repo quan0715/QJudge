@@ -63,21 +63,28 @@ class CredentialService:
             except McpAuthFailed:
                 await self._lease_store.delete(key)
             else:
-                # Keep the request credential available for the worker's single
-                # bounded re-exchange attempt without changing the opaque key.
-                await self._lease_store.put(
-                    key,
-                    replace(lease, subject_token=subject_token),
-                )
-                return key
+                if self._has_minimum_validity(lease.expires_at):
+                    # Keep the request credential available for the worker's
+                    # single bounded re-exchange attempt without changing the
+                    # opaque key.
+                    await self._lease_store.put(
+                        key,
+                        replace(lease, subject_token=subject_token),
+                    )
+                    return key
+                # The probe consumed the remaining safety window. Do not hand
+                # the worker a credential that may expire before execution.
+                await self._lease_store.delete(key)
         elif lease is not None:
             await self._lease_store.delete(key)
 
         exchanged = await self._exchange.exchange(subject_token)
         if not self._required_scopes.issubset(exchanged.scopes):
             raise McpAuthFailed("Exchanged token is missing the MCP scope")
-        if exchanged.expires_at <= self._now():
-            raise McpAuthFailed("Exchanged MCP token is already expired")
+        if not self._has_minimum_validity(exchanged.expires_at):
+            raise McpAuthFailed(
+                "Exchanged MCP token lifetime is below the required safety window"
+            )
 
         new_lease = CredentialLease(
             subject_token=subject_token,
@@ -87,6 +94,10 @@ class CredentialService:
         )
         # A failed probe must never leave a credential for a worker to consume.
         await self._preflight.check(new_lease.mcp_token)
+        if not self._has_minimum_validity(new_lease.expires_at):
+            raise McpAuthFailed(
+                "Exchanged MCP token lifetime fell below the required safety window"
+            )
         await self._lease_store.put(key, new_lease)
         return key
 
@@ -94,5 +105,8 @@ class CredentialService:
         return bool(
             lease is not None
             and self._required_scopes.issubset(lease.scopes)
-            and lease.expires_at - self._now() >= self._minimum_validity
+            and self._has_minimum_validity(lease.expires_at)
         )
+
+    def _has_minimum_validity(self, expires_at: datetime) -> bool:
+        return expires_at - self._now() >= self._minimum_validity

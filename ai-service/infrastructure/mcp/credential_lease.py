@@ -87,6 +87,12 @@ class RedisCredentialLeaseStore:
 
         try:
             payload = json.loads(self._fernet.decrypt(encrypted))
+            bound_key = payload["lease_key"]
+            if not isinstance(bound_key, str) or not hmac.compare_digest(
+                bound_key,
+                key.value,
+            ):
+                raise ValueError("lease ciphertext is bound to another key")
             expires_at = datetime.fromisoformat(payload["expires_at"])
             if expires_at.tzinfo is None:
                 raise ValueError("lease expiry must be timezone-aware")
@@ -106,8 +112,12 @@ class RedisCredentialLeaseStore:
         return lease
 
     async def put(self, key: CredentialLeaseKey, lease: CredentialLease) -> None:
+        ttl = math.floor((lease.expires_at - self._now()).total_seconds())
+        if ttl < 1:
+            raise ValueError("credential lease is already expired")
         payload = json.dumps(
             {
+                "lease_key": key.value,
                 "subject_token": lease.subject_token,
                 "mcp_token": lease.mcp_token,
                 "expires_at": lease.expires_at.isoformat(),
@@ -116,7 +126,6 @@ class RedisCredentialLeaseStore:
             separators=(",", ":"),
         ).encode()
         encrypted = self._fernet.encrypt(payload)
-        ttl = max(1, math.floor((lease.expires_at - self._now()).total_seconds()))
         try:
             await self._redis.set(key.value, encrypted, ex=ttl)
         except RedisError as exc:

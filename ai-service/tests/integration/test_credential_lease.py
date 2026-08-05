@@ -99,6 +99,62 @@ async def test_stored_value_is_encrypted_and_ttl_is_bounded_by_token(
     assert await store.get(key) == lease
 
 
+async def test_ciphertext_copied_to_another_principal_key_is_rejected_and_deleted(
+    redis_client: Redis,
+    secret: str,
+) -> None:
+    now = datetime.now(UTC)
+    store = RedisCredentialLeaseStore(
+        redis_client,
+        secret=secret,
+        mcp_server_id="qjudge",
+        now=lambda: now,
+    )
+    source_key = store.key_for(Principal("https://issuer.test", "teacher-42"))
+    destination_key = store.key_for(
+        Principal("https://issuer.test", "teacher-99")
+    )
+    lease = CredentialLease(
+        subject_token="teacher-42-ai-token",
+        mcp_token="teacher-42-mcp-token",
+        expires_at=now + timedelta(minutes=5),
+        scopes=frozenset({"mcp"}),
+    )
+    await store.put(source_key, lease)
+    copied_ciphertext = await redis_client.get(source_key.value)
+    assert copied_ciphertext is not None
+    await redis_client.set(destination_key.value, copied_ciphertext, ex=300)
+
+    assert await store.get(destination_key) is None
+    assert await redis_client.exists(destination_key.value) == 0
+    assert await store.get(source_key) == lease
+
+
+async def test_expired_lease_cannot_be_persisted(
+    redis_client: Redis,
+    secret: str,
+) -> None:
+    now = datetime.now(UTC)
+    store = RedisCredentialLeaseStore(
+        redis_client,
+        secret=secret,
+        mcp_server_id="qjudge",
+        now=lambda: now,
+    )
+    key = store.key_for(Principal("https://issuer.test", "teacher-42"))
+    expired = CredentialLease(
+        subject_token="expired-ai-token",
+        mcp_token="expired-mcp-token",
+        expires_at=now,
+        scopes=frozenset({"mcp"}),
+    )
+
+    with pytest.raises(ValueError, match="already expired"):
+        await store.put(key, expired)
+
+    assert await redis_client.get(key.value) is None
+
+
 async def test_fernet_and_hmac_use_distinct_hkdf_material(
     redis_client: Redis,
     secret: str,

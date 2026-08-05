@@ -37,6 +37,7 @@ class FakeLeaseStore:
 class FakeExchange:
     def __init__(self, now: datetime) -> None:
         self.now = now
+        self.lifetime = timedelta(minutes=5)
         self.subject_tokens: list[str] = []
         self.error: Exception | None = None
 
@@ -46,7 +47,7 @@ class FakeExchange:
             raise self.error
         return ExchangedToken(
             access_token="mcp-token-from-exchange",
-            expires_at=self.now + timedelta(minutes=5),
+            expires_at=self.now + self.lifetime,
             scopes=frozenset({"mcp"}),
         )
 
@@ -170,6 +171,93 @@ async def test_valid_lease_keeps_mcp_token_but_refreshes_subject_token(
     assert exchange.subject_tokens == []
     assert preflight.tokens == ["cached-mcp-token"]
     assert lease_store.leases[key].subject_token == "current-ai-token"
+
+
+async def test_cached_lease_that_drops_below_window_during_probe_is_exchanged_once(
+    lease_store: FakeLeaseStore,
+    exchange: FakeExchange,
+    principal: Principal,
+    now: datetime,
+) -> None:
+    clock = [now]
+    key = lease_store.key_for(principal)
+    lease_store.leases[key] = CredentialLease(
+        subject_token="old-ai-token",
+        mcp_token="cached-mcp-token",
+        expires_at=now + timedelta(seconds=40),
+        scopes=frozenset({"mcp"}),
+    )
+
+    class AdvancingPreflight(FakePreflight):
+        async def check(self, mcp_token: str) -> None:
+            self.tokens.append(mcp_token)
+            if mcp_token == "cached-mcp-token":
+                clock[0] += timedelta(seconds=15)
+
+    preflight = AdvancingPreflight()
+    service = CredentialService(
+        lease_store,
+        exchange,
+        preflight,
+        now=lambda: clock[0],
+        minimum_validity=timedelta(seconds=30),
+    )
+
+    result = await service.ensure_ready(principal, "current-ai-token")
+
+    assert result == key
+    assert exchange.subject_tokens == ["current-ai-token"]
+    assert preflight.tokens == ["cached-mcp-token", "mcp-token-from-exchange"]
+    assert lease_store.leases[key].mcp_token == "mcp-token-from-exchange"
+
+
+async def test_exchanged_token_below_minimum_validity_is_rejected(
+    service: CredentialService,
+    lease_store: FakeLeaseStore,
+    exchange: FakeExchange,
+    preflight: FakePreflight,
+    principal: Principal,
+) -> None:
+    exchange.lifetime = timedelta(seconds=29)
+
+    with pytest.raises(McpAuthFailed) as raised:
+        await service.ensure_ready(principal, "ai-token")
+
+    assert raised.value.code == "MCP_AUTH_FAILED"
+    assert preflight.tokens == []
+    assert lease_store.leases == {}
+
+
+async def test_fresh_lease_that_drops_below_window_during_probe_is_not_stored(
+    lease_store: FakeLeaseStore,
+    exchange: FakeExchange,
+    principal: Principal,
+    now: datetime,
+) -> None:
+    clock = [now]
+    exchange.lifetime = timedelta(seconds=31)
+
+    class AdvancingPreflight(FakePreflight):
+        async def check(self, mcp_token: str) -> None:
+            self.tokens.append(mcp_token)
+            clock[0] += timedelta(seconds=2)
+
+    preflight = AdvancingPreflight()
+    service = CredentialService(
+        lease_store,
+        exchange,
+        preflight,
+        now=lambda: clock[0],
+        minimum_validity=timedelta(seconds=30),
+    )
+
+    with pytest.raises(McpAuthFailed) as raised:
+        await service.ensure_ready(principal, "ai-token")
+
+    assert raised.value.code == "MCP_AUTH_FAILED"
+    assert exchange.subject_tokens == ["ai-token"]
+    assert preflight.tokens == ["mcp-token-from-exchange"]
+    assert lease_store.leases == {}
 
 
 async def test_cached_auth_failure_forces_one_exchange(
