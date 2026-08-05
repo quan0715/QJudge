@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from domain.models import Principal, Usage
+from domain.models import Principal, Usage, UsageSummary
 from domain.ports import UnitOfWork
 
 
@@ -15,3 +15,7 @@ class UsageService:
     async def get_usage(self, principal: Principal) -> Usage:
         async with self._uow_factory() as uow:
             return await uow.usage.get_for_owner(principal)
+
+    async def get_usage_summary(self, principal: Principal) -> UsageSummary:
+        async with self._uow_factory() as uow:
+            return await uow.usage.get_summary_for_owner(principal)

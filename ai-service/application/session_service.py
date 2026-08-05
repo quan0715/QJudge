@@ -55,7 +55,12 @@ class SessionService:
             session = await uow.sessions.get_for_owner(principal, session_id)
             if session is None:
                 raise SessionNotFound(session_id)
-            return await uow.sessions.update(replace(session, title=title))
+            updated = await uow.sessions.update(
+                principal, replace(session, title=title)
+            )
+            if updated is None:
+                raise SessionNotFound(session_id)
+            return updated
 
     async def clear_session(
         self, principal: Principal, session_id: UUID

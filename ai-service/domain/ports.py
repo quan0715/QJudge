@@ -12,7 +12,16 @@ from types import TracebackType
 from typing import Any, Protocol
 from uuid import UUID
 
-from .models import Artifact, Message, Principal, Run, Session, StreamEvent, Usage
+from .models import (
+    Artifact,
+    Message,
+    Principal,
+    Run,
+    Session,
+    StreamEvent,
+    Usage,
+    UsageSummary,
+)
 
 
 class SessionRepository(Protocol):
@@ -22,7 +31,9 @@ class SessionRepository(Protocol):
 
     async def get_for_owner(self, principal: Principal, session_id: UUID) -> Session | None: ...
 
-    async def update(self, session: Session) -> Session: ...
+    async def update(
+        self, principal: Principal, session: Session
+    ) -> Session | None: ...
 
     async def clear_for_owner(
         self, principal: Principal, session_id: UUID
@@ -67,6 +78,10 @@ class Clock(Protocol):
 
 class UsageReader(Protocol):
     async def get_for_owner(self, principal: Principal) -> Usage: ...
+
+    async def get_summary_for_owner(
+        self, principal: Principal
+    ) -> UsageSummary: ...
 
 
 class UnitOfWork(Protocol):

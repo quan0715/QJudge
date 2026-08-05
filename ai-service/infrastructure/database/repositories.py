@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.models import Principal, Session, Usage
+from domain.models import Principal, Session, Usage, UsageSummary
 
 from .models import MessageRow, RunRow, SessionRow
 
@@ -70,19 +70,21 @@ class SqlAlchemySessionRepository:
         )
         return _session_from_row(row) if row is not None else None
 
-    async def update(self, session: Session) -> Session:
+    async def update(
+        self, principal: Principal, session: Session
+    ) -> Session | None:
         row = await self._db_session.scalar(
             update(SessionRow)
             .where(
                 SessionRow.session_id == session.id,
-                SessionRow.owner_issuer == session.owner.issuer,
-                SessionRow.owner_subject == session.owner.subject,
+                SessionRow.owner_issuer == principal.issuer,
+                SessionRow.owner_subject == principal.subject,
             )
             .values(title=session.title, context=dict(session.context))
             .returning(SessionRow)
         )
         if row is None:
-            return session
+            return None
         return _session_from_row(row)
 
     async def clear_for_owner(
@@ -124,11 +126,22 @@ class SqlAlchemyUsageReader:
         self._db_session = db_session
 
     async def get_for_owner(self, principal: Principal) -> Usage:
+        summary = await self.get_summary_for_owner(principal)
+        return Usage(
+            input_tokens=summary.total_input_tokens,
+            output_tokens=summary.total_output_tokens,
+        )
+
+    async def get_summary_for_owner(
+        self, principal: Principal
+    ) -> UsageSummary:
         result = (
             await self._db_session.execute(
                 select(
                     func.coalesce(func.sum(RunRow.input_tokens), 0),
                     func.coalesce(func.sum(RunRow.output_tokens), 0),
+                    func.count(RunRow.run_id),
+                    func.max(RunRow.updated_at),
                 )
                 .select_from(RunRow)
                 .join(SessionRow, SessionRow.session_id == RunRow.session_id)
@@ -138,4 +151,9 @@ class SqlAlchemyUsageReader:
                 )
             )
         ).one()
-        return Usage(input_tokens=int(result[0]), output_tokens=int(result[1]))
+        return UsageSummary(
+            total_input_tokens=int(result[0]),
+            total_output_tokens=int(result[1]),
+            total_runs=int(result[2]),
+            updated_at=result[3],
+        )

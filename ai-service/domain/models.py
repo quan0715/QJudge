@@ -55,6 +55,14 @@ class Usage:
 
 
 @dataclass(frozen=True, slots=True)
+class UsageSummary:
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_runs: int = 0
+    updated_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Run:
     id: UUID
     session_id: UUID
