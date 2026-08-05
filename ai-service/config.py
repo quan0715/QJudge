@@ -81,6 +81,20 @@ class Settings(BaseSettings):
     ai_database_schema: str = "ai"
     ai_checkpoint_schema: str = "ai_checkpoint"
 
+    # AI-owned Redis state. Credential material is encrypted before storage.
+    ai_redis_url: str = "redis://localhost:6379/2"
+    credential_lease_secret: str = Field(
+        default="",
+        min_length=32,
+        # The adapter is not wired into legacy startup until the canonical API
+        # lands; an explicitly configured short value is still rejected.
+        validate_default=False,
+    )
+    mcp_server_id: str = "qjudge"
+    mcp_token_exchange_url: str = (
+        "http://backend:8000/api/oauth/token-exchange/"
+    )
+
     # Backend→AI-Service auth token
     ai_internal_token: str = Field(
         default="",

@@ -17,7 +17,7 @@ dependencies = [
     "langgraph-checkpoint-postgres==3.0.4",
     "langchain-deepseek==1.0.1",
     "langchain-openai==1.1.5",
-    "mcp>=1.9.0",
+    "mcp>=1.9.0,<2.0",
     "sqlalchemy[asyncio]>=2.0,<3.0",
     "alembic>=1.13,<2.0",
     "psycopg[binary,pool]>=3.1,<4.0",
@@ -28,6 +28,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.0",
     "PyJWT[crypto]>=2.9,<3.0",
+    "redis[hiredis]>=5.0,<6.0",
+    "cryptography>=43,<46",
 ]
 
 [tool.ruff]

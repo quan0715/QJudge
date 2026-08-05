@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from types import SimpleNamespace
 import types
+from types import SimpleNamespace
+
+import pytest
 
 os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
@@ -30,7 +32,15 @@ class _ChatOpenAIStub:  # pragma: no cover - import stub only
 _openai_stub.ChatOpenAI = _ChatOpenAIStub
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.mcp_tool_provider import MCPToolProvider, _format_tool_result  # noqa: E402
+from application.credential_service import (  # noqa: E402
+    McpProtocolError,
+    McpToolDiscoveryFailed,
+    McpUnavailable,
+)
+from services.mcp_tool_provider import (  # noqa: E402
+    MCPToolProvider,
+    _format_tool_result,
+)
 
 
 def test_format_tool_result_empty_error_payload_has_fallback_message():
@@ -101,3 +111,141 @@ def test_tool_policy_blocks_denied_qjudge_grading_action(monkeypatch):
         assert result["is_error"] is True
         assert result["error_code"] == "TOOL_ACTION_DENIED"
         assert action in result["detail"]
+
+
+class _AsyncContext:
+    def __init__(self, value=None, error: Exception | None = None):
+        self.value = value
+        self.error = error
+        self.closed = False
+
+    async def __aenter__(self):
+        if self.error is not None:
+            raise self.error
+        return self.value
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.closed = True
+
+
+class _ProbeSession(_AsyncContext):
+    def __init__(self, pages, initialize_error: Exception | None = None):
+        super().__init__(self)
+        self.pages = list(pages)
+        self.initialize_error = initialize_error
+        self.initialized = 0
+        self.cursors = []
+
+    async def initialize(self):
+        self.initialized += 1
+        if self.initialize_error is not None:
+            raise self.initialize_error
+
+    async def list_tools(self, cursor=None):
+        self.cursors.append(cursor)
+        page = self.pages.pop(0)
+        if isinstance(page, Exception):
+            raise page
+        return page
+
+
+def _install_probe_transport(monkeypatch, session, *, connect_error=None):
+    import services.mcp_tool_provider as module
+
+    transport = _AsyncContext(
+        (object(), object(), None),
+        error=connect_error,
+    )
+    monkeypatch.setattr(module, "streamablehttp_client", lambda *a, **kw: transport)
+    monkeypatch.setattr(module, "ClientSession", lambda *a, **kw: session)
+    return transport
+
+
+def test_probe_initializes_and_reads_every_tool_page(monkeypatch):
+    session = _ProbeSession(
+        [
+            SimpleNamespace(
+                tools=[
+                    SimpleNamespace(
+                        name="first", inputSchema={"type": "object"}
+                    )
+                ],
+                nextCursor="next-page",
+            ),
+            SimpleNamespace(
+                tools=[
+                    SimpleNamespace(
+                        name="second", inputSchema={"type": "object"}
+                    )
+                ],
+                nextCursor=None,
+            ),
+        ]
+    )
+    transport = _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(
+        server_url="http://example.invalid/mcp",
+        authorization_header="Bearer mcp-token",
+    )
+
+    asyncio.run(provider.probe())
+
+    assert session.initialized == 1
+    assert session.cursors == [None, "next-page"]
+    assert session.closed is True
+    assert transport.closed is True
+
+
+def test_probe_maps_connection_failure_to_unavailable(monkeypatch):
+    session = _ProbeSession([])
+    _install_probe_transport(
+        monkeypatch,
+        session,
+        connect_error=ConnectionError("offline"),
+    )
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpUnavailable) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_UNAVAILABLE"
+
+
+def test_probe_maps_initialize_failure_to_protocol_error(monkeypatch):
+    session = _ProbeSession([], initialize_error=RuntimeError("bad handshake"))
+    _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpProtocolError) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_PROTOCOL_ERROR"
+
+
+def test_probe_maps_initialize_timeout_to_unavailable(monkeypatch):
+    session = _ProbeSession([], initialize_error=asyncio.TimeoutError())
+    _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpUnavailable) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_UNAVAILABLE"
+
+
+def test_probe_maps_malformed_tools_to_discovery_error(monkeypatch):
+    session = _ProbeSession(
+        [
+            SimpleNamespace(
+                tools=[SimpleNamespace(name="", inputSchema=[])],
+                nextCursor=None,
+            )
+        ]
+    )
+    _install_probe_transport(monkeypatch, session)
+    provider = MCPToolProvider(server_url="http://example.invalid/mcp")
+
+    with pytest.raises(McpToolDiscoveryFailed) as raised:
+        asyncio.run(provider.probe())
+
+    assert raised.value.code == "MCP_TOOL_DISCOVERY_FAILED"

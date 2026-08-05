@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import AsyncExitStack
 import logging
+from contextlib import AsyncExitStack
 from typing import Any
 
+import httpx
 from langchain_core.tools import BaseTool, StructuredTool
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import CallToolResult, Tool
 
 from config import get_settings
+from domain.ports import (
+    McpAuthFailed,
+    McpProtocolError,
+    McpToolDiscoveryFailed,
+    McpUnavailable,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,30 +52,48 @@ class MCPToolProvider:
         self._session: ClientSession | None = None
 
     async def __aenter__(self) -> "MCPToolProvider":
-        settings = get_settings()
+        await self._connect()
+        try:
+            await self._initialize()
+        except Exception:
+            await self._close()
+            raise
+        return self
+
+    async def _connect(self) -> None:
         stack = AsyncExitStack()
         headers: dict[str, str] = {}
         if self._authorization_header:
             headers["Authorization"] = self._authorization_header
 
-        read_stream, write_stream, _ = await stack.enter_async_context(
-            streamablehttp_client(
-                self._server_url,
-                headers=headers or None,
+        try:
+            read_stream, write_stream, _ = await stack.enter_async_context(
+                streamablehttp_client(
+                    self._server_url,
+                    headers=headers or None,
+                )
             )
-        )
-        session = ClientSession(read_stream, write_stream)
-        await stack.enter_async_context(session)
+            session = ClientSession(read_stream, write_stream)
+            await stack.enter_async_context(session)
+        except Exception:
+            await stack.aclose()
+            raise
+
+        self._stack = stack
+        self._session = session
+
+    async def _initialize(self) -> None:
+        settings = get_settings()
+        session = self._require_session()
         await asyncio.wait_for(
             session.initialize(),
             timeout=max(0.5, settings.mcp_initialize_timeout_seconds),
         )
 
-        self._stack = stack
-        self._session = session
-        return self
-
     async def __aexit__(self, exc_type, exc, tb) -> None:
+        await self._close()
+
+    async def _close(self) -> None:
         if self._stack is not None:
             try:
                 await self._stack.aclose()
@@ -81,6 +106,32 @@ class MCPToolProvider:
 
     async def load_tools(self) -> list[BaseTool]:
         """Load all MCP tool definitions and wrap them for LangChain."""
+        tools = await self._list_tool_definitions()
+        return [self._build_langchain_tool(tool) for tool in tools]
+
+    async def probe(self) -> None:
+        """Initialize MCP and validate every tool discovery page, then close."""
+        try:
+            await self._connect()
+        except Exception as exc:
+            raise _map_connection_error(exc) from exc
+
+        try:
+            try:
+                await self._initialize()
+            except Exception as exc:
+                raise _map_initialize_error(exc) from exc
+
+            try:
+                await self._list_tool_definitions(validate=True)
+            except (McpAuthFailed, McpUnavailable):
+                raise
+            except Exception as exc:
+                raise _map_discovery_error(exc) from exc
+        finally:
+            await self._close()
+
+    async def _list_tool_definitions(self, *, validate: bool = False) -> list[Tool]:
         settings = get_settings()
         session = self._require_session()
         tools: list[Tool] = []
@@ -91,12 +142,14 @@ class MCPToolProvider:
                 session.list_tools(cursor=cursor),
                 timeout=max(0.5, settings.mcp_list_tools_timeout_seconds),
             )
+            if validate:
+                _validate_tool_page(result)
             tools.extend(result.tools)
             cursor = result.nextCursor
             if not cursor:
                 break
 
-        return [self._build_langchain_tool(tool) for tool in tools]
+        return tools
 
     def _build_langchain_tool(self, tool_def: Tool) -> BaseTool:
         description = tool_def.description or f"MCP tool: {tool_def.name}"
@@ -237,3 +290,71 @@ def _flatten_content_blocks(blocks: list[Any]) -> Any:
     if text_parts:
         serialised_blocks.insert(0, {"text": "\n".join(part for part in text_parts if part)})
     return serialised_blocks
+
+
+def _validate_tool_page(result: Any) -> None:
+    tools = getattr(result, "tools", None)
+    cursor = getattr(result, "nextCursor", None)
+    if not isinstance(tools, list):
+        raise ValueError("MCP list_tools response has no tool list")
+    if cursor is not None and not isinstance(cursor, str):
+        raise ValueError("MCP list_tools cursor is malformed")
+    for tool in tools:
+        if not isinstance(getattr(tool, "name", None), str) or not tool.name:
+            raise ValueError("MCP tool name is malformed")
+        if not isinstance(getattr(tool, "inputSchema", None), dict):
+            raise ValueError(f"MCP tool {tool.name} has a malformed input schema")
+
+
+def _walk_exceptions(exc: BaseException):
+    yield exc
+    if isinstance(exc, BaseExceptionGroup):
+        for child in exc.exceptions:
+            yield from _walk_exceptions(child)
+
+
+def _is_auth_error(exc: BaseException) -> bool:
+    return any(
+        any(
+            marker in str(item).lower()
+            for marker in ("401", "403", "unauthorized", "forbidden")
+        )
+        for item in _walk_exceptions(exc)
+    )
+
+
+def _is_connectivity_error(exc: BaseException) -> bool:
+    return any(
+        isinstance(
+            item,
+            (
+                asyncio.TimeoutError,
+                ConnectionError,
+                OSError,
+                httpx.TransportError,
+            ),
+        )
+        for item in _walk_exceptions(exc)
+    )
+
+
+def _map_connection_error(exc: BaseException):
+    if _is_auth_error(exc):
+        return McpAuthFailed("MCP rejected the delegated credential")
+    return McpUnavailable("MCP connection failed")
+
+
+def _map_initialize_error(exc: BaseException):
+    if _is_auth_error(exc):
+        return McpAuthFailed("MCP rejected the delegated credential")
+    if _is_connectivity_error(exc):
+        return McpUnavailable("MCP initialize timed out or disconnected")
+    return McpProtocolError("MCP initialize failed")
+
+
+def _map_discovery_error(exc: BaseException):
+    if _is_auth_error(exc):
+        return McpAuthFailed("MCP rejected the delegated credential")
+    if _is_connectivity_error(exc):
+        return McpUnavailable("MCP tool discovery timed out or disconnected")
+    return McpToolDiscoveryFailed("MCP tool discovery failed")

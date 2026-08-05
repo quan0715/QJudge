@@ -7,6 +7,7 @@ web frameworks.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from types import TracebackType
 from typing import Any, Protocol
@@ -22,6 +23,69 @@ from .models import (
     Usage,
     UsageSummary,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class CredentialLeaseKey:
+    value: str
+
+
+@dataclass(frozen=True, slots=True)
+class CredentialLease:
+    subject_token: str
+    mcp_token: str
+    expires_at: datetime
+    scopes: frozenset[str]
+
+
+@dataclass(frozen=True, slots=True)
+class ExchangedToken:
+    access_token: str
+    expires_at: datetime
+    scopes: frozenset[str]
+
+
+class McpReadinessError(RuntimeError):
+    """Stable application error raised before an agent operation is accepted."""
+
+    code = "MCP_UNAVAILABLE"
+    retryable = True
+
+
+class McpAuthFailed(McpReadinessError):
+    code = "MCP_AUTH_FAILED"
+
+
+class McpUnavailable(McpReadinessError):
+    code = "MCP_UNAVAILABLE"
+
+
+class McpProtocolError(McpReadinessError):
+    code = "MCP_PROTOCOL_ERROR"
+    retryable = False
+
+
+class McpToolDiscoveryFailed(McpReadinessError):
+    code = "MCP_TOOL_DISCOVERY_FAILED"
+    retryable = False
+
+
+class CredentialLeaseStore(Protocol):
+    def key_for(self, principal: Principal) -> CredentialLeaseKey: ...
+
+    async def get(self, key: CredentialLeaseKey) -> CredentialLease | None: ...
+
+    async def put(self, key: CredentialLeaseKey, lease: CredentialLease) -> None: ...
+
+    async def delete(self, key: CredentialLeaseKey) -> None: ...
+
+
+class McpTokenExchange(Protocol):
+    async def exchange(self, subject_token: str) -> ExchangedToken: ...
+
+
+class McpReadinessPreflight(Protocol):
+    async def check(self, mcp_token: str) -> None: ...
 
 
 class SessionRepository(Protocol):
