@@ -4,8 +4,11 @@ import asyncio
 import sys
 import types
 from types import SimpleNamespace
+from uuid import UUID
 
+import pytest
 from langgraph.errors import GraphRecursionError
+from langgraph.types import Command
 
 _deepseek_stub = types.ModuleType("langchain_deepseek")
 _openai_stub = types.ModuleType("langchain_openai")
@@ -14,6 +17,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
+from infrastructure.agent.deepagent_adapter import AgentCommand, AgentOperation
 from services.deepagent_runner import DeepAgentRunner
 
 
@@ -170,3 +174,140 @@ def test_stream_events_recursion_path_emits_summary_then_usage_then_completed():
     assert types.count("run_completed") == 1
     assert types.index("agent_message_delta") < types.index("usage_report")
     assert types.index("usage_report") < types.index("run_completed")
+
+
+def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
+    runner = _build_runner()
+    captured: dict = {}
+    command = AgentCommand(
+        run_id=UUID("11111111-1111-4111-8111-111111111111"),
+        session_id=UUID("22222222-2222-4222-8222-222222222222"),
+        operation=AgentOperation.START,
+        prompt="hello",
+        model_id="deepseek-v4",
+        mcp_token="mcp-token",
+        approval=None,
+        answer=None,
+    )
+
+    async def fake_stream_events(
+        agent, agent_input, config, run_id, thread_id, model_id, event_queue=None
+    ):
+        captured.update(
+            agent_input=agent_input,
+            config=config,
+            run_id=run_id,
+            thread_id=thread_id,
+            model_id=model_id,
+        )
+        yield {"type": "run_completed", "run_id": run_id}
+
+    monkeypatch.setattr(runner, "_build_agent", lambda **_kwargs: object())
+    monkeypatch.setattr(runner, "_stream_events", fake_stream_events)
+
+    async def collect():
+        return [
+            event
+            async for event in runner.execute(
+                command=command,
+                tools=[],
+                configurable={
+                    "thread_id": str(command.session_id),
+                    "run_id": str(command.run_id),
+                },
+            )
+        ]
+
+    events = asyncio.run(collect())
+
+    assert events == [{"type": "run_completed", "run_id": str(command.run_id)}]
+    assert captured == {
+        "agent_input": {"messages": [{"role": "user", "content": "hello"}]},
+        "config": {
+            "configurable": {
+                "thread_id": str(command.session_id),
+                "run_id": str(command.run_id),
+            },
+            "metadata": {
+                "thread_id": str(command.session_id),
+                "run_id": str(command.run_id),
+            },
+            "recursion_limit": 100,
+        },
+        "run_id": str(command.run_id),
+        "thread_id": str(command.session_id),
+        "model_id": "deepseek-v4",
+    }
+
+
+@pytest.mark.parametrize(
+    ("operation", "approval", "answer", "expected_resume"),
+    [
+        (
+            AgentOperation.RESUME,
+            {"decisions": [{"type": "approve"}]},
+            None,
+            {"decisions": [{"type": "approve"}]},
+        ),
+        (
+            AgentOperation.APPROVE,
+            {"decision": "reject"},
+            None,
+            {"decisions": [{"type": "reject"}]},
+        ),
+        (AgentOperation.ANSWER, None, "because", {"answer": "because"}),
+    ],
+)
+def test_runner_resume_operations_keep_caller_ids(
+    monkeypatch, operation, approval, answer, expected_resume
+):
+    runner = _build_runner()
+    captured: dict = {}
+    command = AgentCommand(
+        run_id=UUID("11111111-1111-4111-8111-111111111111"),
+        session_id=UUID("22222222-2222-4222-8222-222222222222"),
+        operation=operation,
+        prompt=None,
+        model_id="deepseek-v4",
+        mcp_token="mcp-token",
+        approval=approval,
+        answer=answer,
+    )
+
+    async def fake_stream_events(
+        agent, agent_input, config, run_id, thread_id, model_id, event_queue=None
+    ):
+        captured.update(
+            agent_input=agent_input,
+            config=config,
+            run_id=run_id,
+            thread_id=thread_id,
+        )
+        yield {"type": "run_completed", "run_id": run_id}
+
+    monkeypatch.setattr(runner, "_build_agent", lambda **_kwargs: object())
+    monkeypatch.setattr(runner, "_stream_events", fake_stream_events)
+
+    async def collect():
+        return [
+            event
+            async for event in runner.execute(
+                command=command,
+                tools=[],
+                configurable={
+                    "thread_id": str(command.session_id),
+                    "run_id": str(command.run_id),
+                },
+            )
+        ]
+
+    asyncio.run(collect())
+
+    assert isinstance(captured["agent_input"], Command)
+    assert captured["agent_input"].resume == expected_resume
+    assert captured["run_id"] == str(command.run_id)
+    assert captured["thread_id"] == str(command.session_id)
+    assert captured["config"]["configurable"] == {
+        "thread_id": str(command.session_id),
+        "run_id": str(command.run_id),
+    }

@@ -3,23 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-from contextvars import ContextVar
 import logging
 import os
-import uuid
-from typing import Any, AsyncGenerator
 from collections.abc import Mapping
+from contextvars import ContextVar
+from typing import TYPE_CHECKING, Any, AsyncGenerator
 
-import httpx
 from deepagents import create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
 from deepagents.middleware.summarization import SummarizationMiddleware
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg_pool import AsyncConnectionPool
 from langgraph.types import Command
 
+from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from services.event_adapter import (
     AgentMessageDelta,
     AwaitingApproval,
@@ -33,9 +30,6 @@ from services.event_adapter import (
     adapt_langgraph_event,
     to_sse_dict,
 )
-from config import get_settings
-from models.schemas import RequestContext
-from services.artifact_tools import build_artifact_tools
 from services.ask_user_tool import build_ask_user_tool
 from services.next_turn_tool import build_suggest_next_actions_tool
 from services.adapters.interrupt_state_adapter import (
@@ -44,7 +38,6 @@ from services.adapters.interrupt_state_adapter import (
     extract_question_payload,
 )
 from services.hitl_middleware import ActionAwareHITLMiddleware
-from services.mcp_tool_provider import MCPToolProvider
 from services.model_factory import (
     ModelFactory,
     SUMMARIZATION_TRIGGER_FRACTION,
@@ -56,6 +49,9 @@ from services.runtime.recursion_failure_handler import RecursionFailureHandler
 from services.runtime.usage_accumulator import UsageAccumulator
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from infrastructure.agent.deepagent_adapter import AgentCommand
 
 _SUMMARIZATION_EVENT_QUEUE: ContextVar[asyncio.Queue | None] = ContextVar(
     "deepagent_summarization_event_queue",
@@ -76,24 +72,6 @@ def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
     return CompositeBackend(
         default=StateBackend(rt),
         routes={"/app/.deepagents/": deepagents_fs},
-    )
-
-
-def _build_session_artifact_tools(
-    request_context: RequestContext | None,
-    *,
-    shared_client: httpx.AsyncClient | None = None,
-) -> list[Any]:
-    """Construct session-private artifact tools using ai-service config."""
-    cfg = get_settings()
-    session_id = request_context.session_id if request_context else None
-    run_id = request_context.run_id if request_context else None
-    return build_artifact_tools(
-        session_id=session_id,
-        run_id=run_id,
-        backend_base_url=cfg.qjudge_backend_url,
-        internal_token=cfg.ai_internal_token,
-        shared_client=shared_client,
     )
 
 
@@ -295,13 +273,14 @@ class DeepAgentRunner:
         mcp_server_url: str,
         skills_paths: list[str] | None = None,
         memory_paths: list[str] | None = None,
+        checkpoint_store: LangGraphCheckpointStore | None = None,
     ) -> None:
-        self._checkpoint_db_url = checkpoint_db_url
-        self._mcp_server_url = mcp_server_url
         self._skills_paths = skills_paths or ["/app/.deepagents/skills/"]
         self._memory_paths = memory_paths or ["/app/.deepagents/AGENTS.md"]
-        self._checkpointer: AsyncPostgresSaver | None = None
-        self._pool: AsyncConnectionPool | None = None
+        self._checkpoint_store = checkpoint_store or LangGraphCheckpointStore(
+            database_url=checkpoint_db_url
+        )
+        self._checkpointer: Any | None = None
         self._recursion_handler = RecursionFailureHandler()
 
     async def setup(self) -> None:
@@ -312,22 +291,14 @@ class DeepAgentRunner:
         requests—or a CancelledError that leaves a connection dirty—all share
         a single psycopg AsyncConnection.
         """
-        self._pool = AsyncConnectionPool(
-            conninfo=self._checkpoint_db_url,
-            min_size=1,
-            max_size=10,
-            kwargs={"autocommit": True, "prepare_threshold": 0},
-            open=False,
-        )
-        await self._pool.open()
-        self._checkpointer = AsyncPostgresSaver(self._pool)
-        await self._checkpointer.setup()
+        await self._checkpoint_store.setup()
+        self._checkpointer = self._checkpoint_store.checkpointer
         logger.info("DeepAgent checkpointer initialized with connection pool.")
 
     async def shutdown(self) -> None:
         """Clean up resources."""
-        if self._pool:
-            await self._pool.close()
+        await self._checkpoint_store.close()
+        self._checkpointer = None
         logger.info("DeepAgent runner shut down.")
 
     async def delete_thread(self, thread_id: str) -> None:
@@ -403,53 +374,67 @@ class DeepAgentRunner:
     @staticmethod
     def _build_run_config(thread_id: str, run_id: str) -> dict[str, Any]:
         return {
-            "configurable": {"thread_id": thread_id},
+            "configurable": {"thread_id": thread_id, "run_id": run_id},
             "metadata": {"thread_id": thread_id, "run_id": run_id},
             "recursion_limit": _AGENT_RECURSION_LIMIT,
         }
 
-    async def _stream_with_provider(
+    async def execute(
         self,
         *,
-        thread_id: str,
-        run_id: str,
-        model_id: str,
-        system_prompt: str | None,
-        request_context: RequestContext | None,
-        agent_input: dict[str, Any] | Command,
-        event_queue: asyncio.Queue,
+        command: AgentCommand,
+        tools: list[Any],
+        configurable: dict[str, str],
     ) -> AsyncGenerator[dict[str, Any], None]:
-        async with MCPToolProvider(
-            server_url=self._mcp_server_url,
-            authorization_header=(
-                request_context.user_authorization if request_context else None
-            ),
-            tool_policy=request_context.tool_policy if request_context else None,
-        ) as tool_provider, httpx.AsyncClient(timeout=10.0) as artifact_client:
-            tools = await tool_provider.load_tools()
-            tools = list(tools) + _build_session_artifact_tools(
-                request_context,
-                shared_client=artifact_client,
-            )
-            tools.append(build_ask_user_tool())
-            tools.append(build_suggest_next_actions_tool())
-            agent = self._build_agent(
-                model_id=model_id,
-                system_prompt=system_prompt,
-                tools=tools,
-                event_queue=event_queue,
-            )
-            config = self._build_run_config(thread_id=thread_id, run_id=run_id)
-            async for sse_dict in self._stream_events(
-                agent,
-                agent_input,
-                config,
-                run_id,
-                thread_id,
-                model_id,
-                event_queue=event_queue,
-            ):
-                yield sse_dict
+        """Execute exactly one caller-owned run on its caller-owned session."""
+        expected_configurable = {
+            "thread_id": str(command.session_id),
+            "run_id": str(command.run_id),
+        }
+        if configurable != expected_configurable:
+            raise ValueError("Agent configurable IDs must match the domain command")
+
+        operation = command.operation.value
+        if operation == "start":
+            if not command.prompt:
+                raise ValueError("A start operation requires a prompt")
+            agent_input: dict[str, Any] | Command = {
+                "messages": [{"role": "user", "content": command.prompt}]
+            }
+        elif operation in {"resume", "approve"}:
+            resume = dict(command.approval or {})
+            decision = resume.pop("decision", None)
+            if decision is not None and "decisions" not in resume:
+                resume["decisions"] = [{"type": decision}]
+            agent_input = Command(resume=resume)
+        elif operation == "answer":
+            if command.answer is None:
+                raise ValueError("An answer operation requires an answer")
+            agent_input = Command(resume={"answer": command.answer})
+        else:  # pragma: no cover - StrEnum exhaustiveness guard
+            raise ValueError(f"Unsupported agent operation: {command.operation}")
+
+        event_queue: asyncio.Queue = asyncio.Queue()
+        agent = self._build_agent(
+            model_id=command.model_id,
+            system_prompt=None,
+            tools=[*tools, build_ask_user_tool(), build_suggest_next_actions_tool()],
+            event_queue=event_queue,
+        )
+        config = self._build_run_config(
+            thread_id=str(command.session_id),
+            run_id=str(command.run_id),
+        )
+        async for event in self._stream_events(
+            agent,
+            agent_input,
+            config,
+            str(command.run_id),
+            str(command.session_id),
+            command.model_id,
+            event_queue=event_queue,
+        ):
+            yield event
 
     # ------------------------------------------------------------------
     # Shared streaming loop
@@ -746,84 +731,6 @@ class DeepAgentRunner:
                     message="Agent execution failed",
                 )
             )
-
-    # ------------------------------------------------------------------
-    # Public streaming API
-    # ------------------------------------------------------------------
-
-    async def run_stream(
-        self,
-        thread_id: str | None,
-        messages: list[dict[str, str]],
-        model_id: str = "deepseek-v4",
-        system_prompt: str | None = None,
-        request_context: RequestContext | None = None,
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Run the agent and stream SSE events."""
-        run_id = uuid.uuid4().hex
-        if thread_id is None:
-            thread_id = uuid.uuid4().hex
-
-        event_queue: asyncio.Queue = asyncio.Queue()
-        agent_input: dict[str, Any] = {"messages": messages}
-        async for sse_dict in self._stream_with_provider(
-            thread_id=thread_id,
-            run_id=run_id,
-            model_id=model_id,
-            system_prompt=system_prompt,
-            request_context=request_context,
-            agent_input=agent_input,
-            event_queue=event_queue,
-        ):
-            yield sse_dict
-
-    async def resume_stream(
-        self,
-        thread_id: str,
-        decision: str,
-        model_id: str = "deepseek-v4",
-        system_prompt: str | None = None,
-        request_context: RequestContext | None = None,
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Resume an interrupted agent with a user decision and stream events."""
-        run_id = uuid.uuid4().hex
-
-        event_queue: asyncio.Queue = asyncio.Queue()
-        resume_value = Command(resume={"decisions": [{"type": decision}]})
-        async for sse_dict in self._stream_with_provider(
-            thread_id=thread_id,
-            run_id=run_id,
-            model_id=model_id,
-            system_prompt=system_prompt,
-            request_context=request_context,
-            agent_input=resume_value,
-            event_queue=event_queue,
-        ):
-            yield sse_dict
-
-    async def answer_stream(
-        self,
-        thread_id: str,
-        answer: str,
-        model_id: str = "deepseek-v4",
-        system_prompt: str | None = None,
-        request_context: RequestContext | None = None,
-    ) -> AsyncGenerator[dict[str, Any], None]:
-        """Resume an agent interrupted by ask_user with the user's answer."""
-        run_id = uuid.uuid4().hex
-
-        event_queue: asyncio.Queue = asyncio.Queue()
-        resume_value = Command(resume={"answer": answer})
-        async for sse_dict in self._stream_with_provider(
-            thread_id=thread_id,
-            run_id=run_id,
-            model_id=model_id,
-            system_prompt=system_prompt,
-            request_context=request_context,
-            agent_input=resume_value,
-            event_queue=event_queue,
-        ):
-            yield sse_dict
 
     @staticmethod
     def _calculate_cost(
