@@ -232,6 +232,23 @@ def test_cancelled_run_ignores_late_non_cancel_event(run: Run, assistant: Messag
     assert projection.assistant == assistant
 
 
+@pytest.mark.parametrize(
+    "terminal_event",
+    [
+        {"type": "run_completed"},
+        {"type": "run_failed", "error_code": "AGENT_ERROR", "message": "failed"},
+        {"type": "run_cancelled"},
+    ],
+)
+def test_cancelled_run_rejects_late_terminal_event(
+    terminal_event: dict[str, object], run: Run, assistant: Message
+) -> None:
+    cancelled = replace(run, status=RunStatus.CANCELLED, cancel_requested=True)
+
+    with pytest.raises(InvalidRunTransition):
+        reduce_run_event(cancelled, assistant, terminal_event)
+
+
 def test_second_terminal_transition_is_rejected(run: Run, assistant: Message) -> None:
     completed = replace(run, status=RunStatus.COMPLETED)
 

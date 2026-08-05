@@ -230,3 +230,35 @@ async def test_second_terminal_event_is_rejected_and_not_persisted(
 
     assert run is not None and run.last_sequence == 1
     assert [event.event_type for event in events] == ["run_completed"]
+
+
+@pytest.mark.parametrize(
+    "late_terminal_event",
+    [
+        {"type": "run_completed"},
+        {"type": "run_failed", "error_code": "AGENT_ERROR", "message": "failed"},
+        {"type": "run_cancelled"},
+    ],
+)
+async def test_cancelled_run_rejects_late_terminal_event_without_persisting(
+    session_factory, seeded_run, late_terminal_event
+) -> None:
+    run_id, _ = seeded_run
+    async with session_factory.begin() as db_session:
+        await SqlAlchemyRunRepository(db_session).append_event(
+            run_id, {"type": "run_cancelled"}
+        )
+
+    async with session_factory() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        with pytest.raises(InvalidRunTransition):
+            async with db_session.begin():
+                await repository.append_event(run_id, late_terminal_event)
+
+    async with session_factory() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        run = await repository.get(run_id)
+        events = await repository.list_events(run_id)
+
+    assert run is not None and run.last_sequence == 1
+    assert [event.event_type for event in events] == ["run_cancelled"]

@@ -84,7 +84,10 @@ def reduce_run_event(
     """Return the state produced by one event without performing I/O."""
     event_type = str(event.get("type", ""))
 
-    if run.status is RunStatus.CANCELLED and event_type != "run_cancelled":
+    if (
+        run.status is RunStatus.CANCELLED
+        and event_type not in _TERMINAL_EVENT_STATUSES
+    ):
         return EventProjection(run=run, assistant=assistant)
 
     projected_run = run

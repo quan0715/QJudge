@@ -23,6 +23,10 @@ from domain.models import (
 
 from .models import MessageRow, RunEventRow, RunRow, SessionRow
 
+_TERMINAL_EVENT_TYPES = frozenset(
+    {"run_completed", "run_failed", "run_cancelled"}
+)
+
 
 def _session_from_row(row: SessionRow) -> Session:
     return Session(
@@ -303,7 +307,7 @@ class SqlAlchemyRunRepository:
 
         if (
             RunStatus(run_row.status) is RunStatus.CANCELLED
-            and event.get("type") != "run_cancelled"
+            and event.get("type") not in _TERMINAL_EVENT_TYPES
         ):
             latest = await self._latest_event(run_id)
             if latest is not None:
