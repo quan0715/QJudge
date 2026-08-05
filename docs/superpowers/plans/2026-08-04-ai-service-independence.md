@@ -16,7 +16,7 @@
 - Message primary key 固定為 `(session_id, ordinal)`；Stream Event primary key 固定為 `(run_id, sequence)`。
 - `session_id` 直接作為 LangGraph `thread_id`；`run_id` 直接作為 Celery task ID。不得新增 `external_run_id`、持久化 `thread_id` 或 `celery_task_id`。
 - Owner 只保存在 Session 的 `owner_issuer`、`owner_subject`；其他 AI tables 不重複 owner，也不建立 Django user foreign key、AI User table 或 `tenant_id`。
-- Usage 直接保存在 Run；不得建立 Execution Log、Usage Ledger 或 MCP Credential database table。
+- Run 只保存 input／output token usage；不得建立 Execution Log、Usage Ledger、cost、credit、pricing、credit scale、`usage_accounted` 或 MCP Credential database table。request count 由 Run rows 聚合。
 - MCP credential 使用 Redis short-lived lease；lease key 由 `issuer + subject + mcp_server_id` 經 HMAC 推導，scope 不得進入 key。
 - start、resume、approve、answer 都必須先通過 MCP credential readiness；失敗時不得呼叫 LLM。
 - MCP 故障不得阻斷 session/history、run history、artifact download、model list 與 health APIs。
@@ -217,8 +217,6 @@ class Session:
 class Usage:
     input_tokens: int = 0
     output_tokens: int = 0
-    cost_cents: int = 0
-    credits: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -379,9 +377,6 @@ ai.runs
   last_sequence integer NOT NULL DEFAULT 0
   input_tokens bigint NOT NULL DEFAULT 0
   output_tokens bigint NOT NULL DEFAULT 0
-  cost_cents bigint NOT NULL DEFAULT 0
-  credits bigint NOT NULL DEFAULT 0
-  usage_accounted boolean NOT NULL DEFAULT false
   started_at/heartbeat_at/completed_at/created_at/updated_at timestamptz
   UNIQUE(session_id, idempotency_key)
   partial UNIQUE(session_id) WHERE status IN
@@ -481,10 +476,10 @@ async def test_get_session_never_returns_another_subject(
 async def test_usage_is_aggregated_from_owned_runs(
     uow_factory, usage_service, principal_a, principal_b, run_factory
 ) -> None:
-    await run_factory(principal_a, input_tokens=10, output_tokens=4, credits=2)
-    await run_factory(principal_b, input_tokens=99, output_tokens=99, credits=99)
+    await run_factory(principal_a, input_tokens=10, output_tokens=4)
+    await run_factory(principal_b, input_tokens=99, output_tokens=99)
     usage = await usage_service.get_usage(principal_a)
-    assert usage == Usage(input_tokens=10, output_tokens=4, credits=2)
+    assert usage == Usage(input_tokens=10, output_tokens=4)
 ```
 
 - [ ] **Step 2: Verify the tests fail before repositories exist**
@@ -544,7 +539,7 @@ git commit -m "feat(ai): add owner-scoped repositories"
 **Interfaces:**
 - Produces pure `reduce_run_event(run: Run, assistant: Message | None, event: dict[str, Any]) -> EventProjection`.
 - Produces: `RunRepository.append_event(run_id: UUID, event: dict[str, Any]) -> StreamEvent`.
-- Guarantees: event insert, sequence increment, status transition, usage fields and assistant projection share one transaction.
+- Guarantees: event insert, sequence increment, status transition, absolute input／output token replacement and assistant projection share one transaction.
 
 - [ ] **Step 1: Write pure projector tests for every state-bearing event**
 
@@ -574,7 +569,7 @@ def test_message_delta_appends_to_assistant(run, assistant) -> None:
     assert projection.assistant.content == "Hello"
 ```
 
-Also cover `thinking_delta`, tool start/finish, todo update, verification report, next-turn options and `usage_report`. Store UI projection fields in `MessageRow.metadata`; store usage numbers directly on `RunRow`.
+Also cover `thinking_delta`, tool start/finish, todo update, verification report, next-turn options and `usage_report`. A usage event accepts only non-negative `input_tokens` and `output_tokens`; assign those final totals to `RunRow` instead of incrementing. Store UI projection fields in `MessageRow.metadata`; do not accept or persist cost／credit fields.
 
 - [ ] **Step 2: Write the rollback regression test**
 
@@ -1383,7 +1378,7 @@ celery_app.conf.update(
 )
 ```
 
-Add `AI_CREDIT_SCALE_PER_CREDIT` to AI Service settings and apply it once when `usage_report` is projected onto Run. Do not import Django settings or register `backend.apps.ai.tasks`.
+Project each `usage_report` as the Run's final input／output token totals. Do not introduce pricing, credit conversion, `AI_CREDIT_SCALE_PER_CREDIT`, cost fields, or Django settings imports; do not register `backend.apps.ai.tasks`.
 
 - [ ] **Step 4: Implement atomic claim and event consumption**
 
@@ -1584,7 +1579,7 @@ Set `Cache-Control: no-cache, no-transform` and `X-Accel-Buffering: no`. Do not 
 
 - [ ] **Step 6: Add liveness, readiness, model and usage endpoints**
 
-`/health/live` returns process health only. `/health/ready` checks AI DB, Redis queue connection and required settings, but not transient MCP connectivity. `/v1/models` uses the existing model registry. `/v1/usage` aggregates owned Run usage and exposes the legacy credit summary fields needed by the BFF.
+`/health/live` returns process health only. `/health/ready` checks AI DB, Redis queue connection and required settings, but not transient MCP connectivity. `/v1/models` uses the existing model registry. `/v1/usage` aggregates owned Run rows into `total_input_tokens`, `total_output_tokens`, `total_runs`, and `updated_at`; it exposes no cost, credit, pricing, or entitlement fields.
 
 - [ ] **Step 7: Snapshot and verify OpenAPI**
 
@@ -1621,11 +1616,12 @@ git commit -m "feat(ai): expose canonical API and persisted streams"
 - Create: `backend/apps/ai/tests/test_bff_contract.py`
 - Create: `backend/apps/ai/tests/test_bff_sse.py`
 - Create: `backend/apps/ai/tests/test_bff_permissions.py`
+- Create: `backend/apps/ai/tests/test_bff_usage.py`
 
 **Interfaces:**
 - Produces: `AIServiceClient.request(method, path, user, request, json_body) -> httpx.Response`.
 - Produces: `AIServiceClient.stream(path, user, request, query) -> Iterator[bytes]`.
-- Preserves existing `/api/v1/ai/*` paths, response envelopes, permission behavior and SSE bytes.
+- Preserves existing Copilot `/api/v1/ai/*` paths, response envelopes, permission behavior and SSE bytes; replaces legacy `/sessions/credit/` with `/api/v1/ai/usage/`.
 - Consumes Task 5 token issuer and Task 11 canonical endpoints.
 
 - [ ] **Step 1: Write consumer-contract tests using `httpx.MockTransport`**
@@ -1659,11 +1655,34 @@ def test_stream_proxy_returns_exact_upstream_bytes(
         f"/api/v1/ai/runs/{RUN_ID}/events/?after=6"
     )
     assert b"".join(response.streaming_content) == payload
+
+
+def test_usage_endpoint_maps_only_token_usage(
+    api_client, teacher, ai_transport
+) -> None:
+    api_client.force_authenticate(teacher)
+    ai_transport.respond_json(
+        200,
+        {
+            "total_input_tokens": 10,
+            "total_output_tokens": 4,
+            "total_runs": 3,
+            "updated_at": "2026-08-05T00:00:00Z",
+        },
+    )
+    response = api_client.get("/api/v1/ai/usage/")
+    assert ai_transport.requests[0].url.path == "/v1/usage"
+    assert response.json() == {
+        "total_input_tokens": 10,
+        "total_output_tokens": 4,
+        "total_runs": 3,
+        "updated_at": "2026-08-05T00:00:00Z",
+    }
 ```
 
 - [ ] **Step 2: Run BFF tests and verify they fail against model-backed views**
 
-Run: `cd backend && python -m pytest apps/ai/tests/test_bff_contract.py apps/ai/tests/test_bff_sse.py apps/ai/tests/test_bff_permissions.py -v`
+Run: `cd backend && python -m pytest apps/ai/tests/test_bff_contract.py apps/ai/tests/test_bff_sse.py apps/ai/tests/test_bff_permissions.py apps/ai/tests/test_bff_usage.py -v`
 
 Expected: FAIL because `AIServiceClient` and proxy views do not exist.
 
@@ -1691,11 +1710,11 @@ Use one bounded timeout policy for JSON calls and no automatic retry for POST／
 
 - [ ] **Step 4: Convert every legacy endpoint to path／envelope mapping only**
 
-Map session list/create/detail/rename/clear/delete, active run list, run start/get/events/cancel/approval/answer, model list, credit summary, artifact list/upload/content/download. For `/sessions/credit/`, combine AI Service's read-only consumed usage with the entitlement already owned by Django's subscription/product domain; this is BFF response composition, not a second AI ledger. Add a contract test proving the consumed credit value comes from `/v1/usage` and no `UserAICredit` query occurs. Keep the current teacher/admin permission class in Django. Do not import Django AI models, call Celery, parse event JSON, aggregate message content, or access object storage.
+Map session list/create/detail/rename/clear/delete, active run list, run start/get/events/cancel/approval/answer, model list, `GET /api/v1/ai/usage/`, and artifact list/upload/content/download. Delete `/sessions/credit/`; do not map entitlements, cost, credits, pricing, or `UserAICredit`. Keep the current teacher/admin permission class in Django. Do not import Django AI models, call Celery, parse event JSON, aggregate message content, or access object storage.
 
 - [ ] **Step 5: Verify raw streaming behavior and permission short-circuit**
 
-Run: `cd backend && python -m pytest apps/ai/tests/test_bff_contract.py apps/ai/tests/test_bff_sse.py apps/ai/tests/test_bff_permissions.py -v`
+Run: `cd backend && python -m pytest apps/ai/tests/test_bff_contract.py apps/ai/tests/test_bff_sse.py apps/ai/tests/test_bff_permissions.py apps/ai/tests/test_bff_usage.py -v`
 
 Expected: PASS; unauthorized roles never create an upstream request, and streaming content is byte-for-byte equal across arbitrary chunk boundaries.
 
@@ -1706,7 +1725,7 @@ git add backend/config/settings/base.py backend/apps/ai/services/ai_service_clie
   backend/apps/ai/views.py backend/apps/ai/artifact_views.py \
   backend/apps/ai/serializers.py backend/apps/ai/urls.py \
   backend/apps/ai/tests/test_bff_contract.py backend/apps/ai/tests/test_bff_sse.py \
-  backend/apps/ai/tests/test_bff_permissions.py
+  backend/apps/ai/tests/test_bff_permissions.py backend/apps/ai/tests/test_bff_usage.py
 git commit -m "refactor(ai): proxy Django chat API to AI service"
 ```
 
@@ -1726,6 +1745,12 @@ git commit -m "refactor(ai): proxy Django chat API to AI service"
 - Modify: `frontend/src/shared/copilot/testing/copilotTransportContract.ts`
 - Modify: `frontend/src/shared/copilot/react/CopilotProvider.tsx`
 - Modify: `frontend/src/shared/copilot/react/CopilotProvider.test.tsx`
+- Modify: `frontend/src/features/auth/components/AIUsagePanel.tsx`
+- Create: `frontend/src/features/auth/components/AIUsagePanel.test.tsx`
+- Modify: `frontend/src/i18n/locales/en/common.json`
+- Modify: `frontend/src/i18n/locales/zh-TW/common.json`
+- Modify: `frontend/src/i18n/locales/ja/common.json`
+- Modify: `frontend/src/i18n/locales/ko/common.json`
 
 **Interfaces:**
 - Consumes unchanged Django `/api/v1/ai/*` URLs.
@@ -1733,6 +1758,7 @@ git commit -m "refactor(ai): proxy Django chat API to AI service"
 - Keeps public Copilot hooks, shells, full-page chat and embed chat behavior unchanged.
 - Removes `thread_id`, `threadId`, and `deepagent_thread_id` from frontend contracts because `session_id` is authoritative.
 - Produces one stable idempotency key per optimistic user message and reuses it across auth refresh／explicit retry.
+- Replaces the admin-only credit panel with token usage and run count; no frontend DTO retains cost or credit fields.
 
 - [ ] **Step 1: Add fixture-based transport tests for new response shapes**
 
@@ -1793,6 +1819,8 @@ Return `String(toMessageId(message))` when constructing `ChatMessage`. Change op
 
 Add optional `idempotencyKey?: string` to `CopilotStartRunInput` and `SendMessageOptions` so existing public transport callers remain source-compatible. `CopilotProvider` always passes the optimistic user message ID through `createQJudgeCopilotTransport`; the QJudge transport generates one UUID only when a lower-level caller omitted it. Send the resulting value as the `Idempotency-Key` header in `chatbot.repository.startRun`. The HTTP client's one auth-refresh replay reuses the same `RequestInit`, so it also reuses the same header.
 
+Replace `CreditData` in `AIUsagePanel` with `UsageData` containing `total_input_tokens`, `total_output_tokens`, `total_runs`, and `updated_at`. Fetch `/api/v1/ai/usage/`; render Input tokens, Output tokens, and AI runs. Delete money／credit fallback labels and assert in the component test that the old credit endpoint is never requested.
+
 - [ ] **Step 4: Run Copilot dogfood gates**
 
 Run:
@@ -1803,9 +1831,11 @@ npm run typecheck:copilot
 npm run check:copilot-boundary
 npm run check:copilot-dogfood
 npm run test:copilot
+npx vitest run src/features/auth/components/AIUsagePanel.test.tsx
+npm run check:i18n
 ```
 
-Expected: all commands PASS; full-page and embed transports still depend only on the public Copilot boundary and repository ports.
+Expected: all commands PASS; full-page and embed transports still depend only on the public Copilot boundary and repository ports, and the usage panel sends no request to the removed credit endpoint.
 
 - [ ] **Step 5: Commit**
 
@@ -1821,7 +1851,13 @@ git add frontend/src/core/copilot/copilot.types.ts \
   frontend/src/infrastructure/copilot/qJudgeCopilotTransport.test.ts \
   frontend/src/shared/copilot/testing/copilotTransportContract.ts \
   frontend/src/shared/copilot/react/CopilotProvider.tsx \
-  frontend/src/shared/copilot/react/CopilotProvider.test.tsx
+  frontend/src/shared/copilot/react/CopilotProvider.test.tsx \
+  frontend/src/features/auth/components/AIUsagePanel.tsx \
+  frontend/src/features/auth/components/AIUsagePanel.test.tsx \
+  frontend/src/i18n/locales/en/common.json \
+  frontend/src/i18n/locales/zh-TW/common.json \
+  frontend/src/i18n/locales/ja/common.json \
+  frontend/src/i18n/locales/ko/common.json
 git commit -m "test(copilot): dogfood AI service compatibility contract"
 ```
 
@@ -2011,6 +2047,19 @@ def test_domain_and_application_do_not_import_io_frameworks() -> None:
         forbidden_top_level=forbidden,
     )
     assert violations == []
+
+
+def test_active_ai_service_has_no_cost_or_credit_model() -> None:
+    source = "\n".join(
+        path.read_text()
+        for path in Path.cwd().rglob("*.py")
+        if "tests" not in path.parts and ".deepagents" not in path.parts
+    )
+    for forbidden in (
+        "cost_cents", "cost_usd", "credits", "usage_accounted",
+        "AI_CREDIT_SCALE_PER_CREDIT", "usage_to_credits", "PRICING",
+    ):
+        assert forbidden not in source
 ```
 
 - [ ] **Step 2: Verify the boundary test fails on the current compatibility tree**
@@ -2021,7 +2070,7 @@ Expected: FAIL and report `services`, `routers/chat.py`, and `models/schemas.py`
 
 - [ ] **Step 3: Move reusable adapters without compatibility shims**
 
-Use `git mv` for the listed reusable modules, flatten the single-file `adapters`／`policies`／`runtime` directories into `infrastructure/agent`, and update imports in production and tests. `DeepAgentAdapter` imports artifact tools from `infrastructure.artifacts.tools` and MCP transport from `infrastructure.mcp.provider`. Do not leave re-export modules under `services`; they would preserve the forbidden second ownership path.
+Use `git mv` for the listed reusable modules, flatten the single-file `adapters`／`policies`／`runtime` directories into `infrastructure/agent`, and update imports in production and tests. `DeepAgentAdapter` imports artifact tools from `infrastructure.artifacts.tools` and MCP transport from `infrastructure.mcp.provider`. At the same time, make `UsageAccumulator.build_usage_report()` return only final `input_tokens`／`output_tokens`, remove its `calculate_cost` callback, delete `UsageReport.cost_cents`, `DeepAgentRunner._calculate_cost`, and every `PRICING`／price-rate constant that exists solely for cost estimation. Do not leave re-export modules under `services`; they would preserve the forbidden second ownership path.
 
 - [ ] **Step 4: Delete the old request-time streaming API**
 
@@ -2342,6 +2391,9 @@ rg -n "session_id|run_id|artifact_id" ai-service/domain ai-service/api
   ai-service/domain ai-service/application ai-service/infrastructure/database ai-service/api
 ! rg -n "AIChatRun|AIStreamEvent|AIExecutionLog|UserAICredit|AIArtifact|shared_task" \
   backend/apps/ai --glob '!migrations/**' --glob '!tests/test_boundary.py'
+! rg -n "cost_cents|cost_usd|total_credits|usage_accounted|AI_CREDIT_|usage_to_credits|DEFAULT_MODEL_PRICING" \
+  ai-service backend/apps/ai frontend/src \
+  --glob '!backend/apps/ai/migrations/**' --glob '!**/tests/**'
 ! rg -n "httpx|requests|/api/chat/stream|/api/chat/resume|/api/chat/answer" \
   backend/apps/ai --glob '!services/ai_service_client.py' --glob '!tests/**'
 ```
