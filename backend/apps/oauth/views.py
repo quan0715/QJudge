@@ -23,6 +23,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from apps.users.permissions import IsTeacherOrAdmin
 
 from .resource_tokens import (
+    canonical_oauth_issuer,
     decode_resource_token,
     issue_resource_token,
     resource_jwks,
@@ -41,7 +42,7 @@ def _supported_oauth_scopes() -> list[str]:
 @require_GET
 def oauth_authorization_server_metadata(request):
     """RFC 8414 — OAuth 2.0 Authorization Server Metadata."""
-    issuer = settings.OAUTH_ISSUER_URL
+    issuer = canonical_oauth_issuer()
     return JsonResponse(
         {
             "issuer": issuer,
@@ -369,7 +370,11 @@ class ResourceTokenView(APIView):
                 "token_type": "Bearer",
                 "expires_in": 300,
                 "scope": "ai:chat",
-            }
+            },
+            headers={
+                "Cache-Control": "no-store",
+                "Pragma": "no-cache",
+            },
         )
 
 
@@ -427,5 +432,9 @@ class TokenExchangeView(APIView):
                 "token_type": "Bearer",
                 "expires_in": 300,
                 "scope": "mcp",
-            }
+            },
+            headers={
+                "Cache-Control": "no-store",
+                "Pragma": "no-cache",
+            },
         )

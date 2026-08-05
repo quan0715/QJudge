@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -17,6 +19,26 @@ import server  # noqa: E402
 
 def run(coro):
     return asyncio.run(coro)
+
+
+def test_oauth_config_canonicalizes_trailing_slash():
+    environment = os.environ.copy()
+    environment["OAUTH_ISSUER_URL"] = "https://issuer.test/"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import config; print(config.OAUTH_ISSUER_URL)",
+        ],
+        cwd=ROOT,
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.strip() == "https://issuer.test"
 
 
 class DummyRequest:

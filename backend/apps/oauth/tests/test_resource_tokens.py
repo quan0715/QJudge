@@ -86,6 +86,22 @@ def test_teacher_receives_ai_audience_token(api_client, teacher, signing_key_fil
     assert set(claims) == {"iss", "sub", "aud", "scope", "iat", "nbf", "exp", "jti"}
 
 
+def test_resource_token_response_disables_caching(
+    api_client, teacher, signing_key_file
+):
+    api_client.force_authenticate(teacher)
+
+    response = api_client.post(
+        "/api/oauth/resource-token/",
+        {"audience": "ai-service", "scope": "ai:chat"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response["Cache-Control"] == "no-store"
+    assert response["Pragma"] == "no-cache"
+
+
 def test_student_cannot_receive_ai_chat_scope(api_client, student, signing_key_file):
     api_client.force_authenticate(student)
 
@@ -136,6 +152,51 @@ def test_ai_token_exchanges_to_distinct_mcp_audience(
     assert claims["scope"] == "mcp"
     assert claims["iss"] == "https://issuer.test"
     assert claims["sub"] == str(teacher.pk)
+
+
+def test_token_exchange_response_disables_caching(
+    api_client, teacher, signing_key_file
+):
+    ai_token = issue_resource_token(
+        teacher, "ai-service", frozenset({"ai:chat"})
+    )
+
+    response = api_client.post(
+        "/api/oauth/token-exchange/",
+        {"audience": "qjudge-mcp", "scope": "mcp"},
+        format="json",
+        HTTP_AUTHORIZATION=f"Bearer {ai_token}",
+    )
+
+    assert response.status_code == 200
+    assert response["Cache-Control"] == "no-store"
+    assert response["Pragma"] == "no-cache"
+
+
+@override_settings(OAUTH_ISSUER_URL="https://issuer.test/")
+def test_trailing_slash_issuer_is_canonical_in_metadata_and_token(
+    api_client, teacher, signing_key_file
+):
+    api_client.force_authenticate(teacher)
+
+    token_response = api_client.post(
+        "/api/oauth/resource-token/",
+        {"audience": "ai-service", "scope": "ai:chat"},
+        format="json",
+    )
+    metadata_response = api_client.get(
+        "/.well-known/oauth-authorization-server"
+    )
+
+    assert token_response.status_code == 200
+    claims = _decode(
+        token_response.data["access_token"], signing_key_file, "ai-service"
+    )
+    assert claims["iss"] == "https://issuer.test"
+    assert metadata_response.json()["issuer"] == "https://issuer.test"
+    assert metadata_response.json()["token_endpoint"] == (
+        "https://issuer.test/o/token/"
+    )
 
 
 def test_token_exchange_rejects_non_ai_resource_token(

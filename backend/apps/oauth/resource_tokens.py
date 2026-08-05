@@ -20,6 +20,10 @@ RESOURCE_TOKEN_KID = "qjudge-ai-ed25519-v1"
 RESOURCE_TOKEN_ALGORITHM = "EdDSA"
 
 
+def canonical_oauth_issuer() -> str:
+    return str(settings.OAUTH_ISSUER_URL).rstrip("/")
+
+
 def _private_key() -> Ed25519PrivateKey:
     key_data = Path(settings.AI_OAUTH_SIGNING_PRIVATE_KEY_FILE).read_bytes()
     key = serialization.load_pem_private_key(key_data, password=None)
@@ -40,7 +44,7 @@ def issue_resource_token(
 ) -> str:
     now = datetime.now(UTC)
     payload = {
-        "iss": settings.OAUTH_ISSUER_URL,
+        "iss": canonical_oauth_issuer(),
         "sub": str(user.pk),
         "aud": audience,
         "scope": " ".join(sorted(scopes)),
@@ -73,7 +77,7 @@ def decode_resource_token(
         token,
         _public_key(),
         algorithms=[RESOURCE_TOKEN_ALGORITHM],
-        issuer=settings.OAUTH_ISSUER_URL.rstrip("/"),
+        issuer=canonical_oauth_issuer(),
         audience=audience,
         options={
             "require": [

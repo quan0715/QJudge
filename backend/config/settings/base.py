@@ -230,7 +230,7 @@ OAUTH2_PROVIDER = {
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
-OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL)
+OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
 AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
     os.environ.get(
         "AI_OAUTH_SIGNING_PRIVATE_KEY_FILE",

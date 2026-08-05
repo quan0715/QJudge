@@ -23,13 +23,18 @@ def bootstrap(private_path: Path, public_path: Path) -> None:
             raise ValueError("Existing private key is not Ed25519")
     else:
         key = Ed25519PrivateKey.generate()
-        private_path.write_bytes(
-            key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
+        private_key_data = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
         )
+        descriptor = os.open(
+            private_path,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+            0o600,
+        )
+        with os.fdopen(descriptor, "wb") as private_file:
+            private_file.write(private_key_data)
     os.chmod(private_path, 0o600)
 
     public_path.write_bytes(
