@@ -112,12 +112,57 @@ class Settings(BaseSettings):
     deepagent_skills_paths: list[str] = ["/app/.deepagents/skills/"]
     deepagent_memory_paths: list[str] = ["/app/.deepagents/AGENTS.md"]
 
-    # Backend (Django) base URL for internal artifact tool callbacks
-    qjudge_backend_url: str = Field(
-        default="http://backend:8000",
+    # AI Service-owned artifact object storage.
+    artifact_storage_endpoint_url: str = Field(
+        default="",
         validation_alias=AliasChoices(
-            "QJUDGE_BACKEND_URL",
-            "DJANGO_BASE_URL",  # reuse if present
+            "AI_ARTIFACT_STORAGE_ENDPOINT_URL", "OBJECT_STORAGE_ENDPOINT_URL"
+        ),
+    )
+    artifact_storage_public_endpoint_url: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL",
+            "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
+        ),
+    )
+    artifact_storage_region: str = Field(
+        default="us-east-1",
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_STORAGE_REGION", "OBJECT_STORAGE_REGION"
+        ),
+    )
+    artifact_storage_access_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_STORAGE_ACCESS_KEY", "OBJECT_STORAGE_ACCESS_KEY"
+        ),
+    )
+    artifact_storage_secret_key: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_STORAGE_SECRET_KEY", "OBJECT_STORAGE_SECRET_KEY"
+        ),
+    )
+    artifact_storage_auto_create_bucket: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET",
+            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
+        ),
+    )
+    artifact_s3_bucket: str = Field(
+        default="ai-artifacts", validation_alias=AliasChoices("AI_ARTIFACT_S3_BUCKET")
+    )
+    artifact_max_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        validation_alias=AliasChoices("AI_ARTIFACT_MAX_BYTES"),
+    )
+    artifact_presigned_url_ttl_seconds: int = Field(
+        default=300,
+        validation_alias=AliasChoices(
+            "AI_ARTIFACT_PRESIGNED_URL_TTL_SECONDS",
+            "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS",
         ),
     )
 

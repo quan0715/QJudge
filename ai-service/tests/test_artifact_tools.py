@@ -6,6 +6,7 @@ import io
 import os
 import sys
 import types
+from types import SimpleNamespace
 
 import pypdf
 
@@ -48,7 +49,7 @@ class _StubResponse:
 
 
 class _StubClient:
-    """Minimal drop-in replacement for httpx.AsyncClient used in these tools."""
+    """Scripted backend retained as a behavior fixture for the direct service."""
 
     def __init__(self, responses):
         # responses: list of dicts with keys {method, url_contains, status, json, content}
@@ -82,29 +83,104 @@ class _StubClient:
         return self._next("GET", url)
 
 
+_ACTIVE_STUB: _StubClient | None = None
+
+
+class _ServiceError(RuntimeError):
+    def __init__(self, response: _StubResponse) -> None:
+        detail = response.json().get("detail", "artifact operation failed")
+        super().__init__(detail)
+        self.status_code = response.status_code
+
+
+def _artifact_from_payload(payload):
+    return SimpleNamespace(
+        id=payload.get("id", "artifact-id"),
+        session_id=payload.get("session_id", "sess-1"),
+        produced_by_run_id=payload.get("run_id"),
+        step=payload.get("step", "default"),
+        filename=payload.get("filename", "artifact.txt"),
+        content_type=payload.get("content_type", "application/octet-stream"),
+        size_bytes=payload.get("size_bytes", 0),
+        checksum=payload.get("checksum", ""),
+        metadata=payload.get("metadata", {}),
+        created_at=None,
+        updated_at=None,
+    )
+
+
+class _StubArtifactService:
+    def __init__(self, stub: _StubClient) -> None:
+        self._stub = stub
+
+    async def put_for_run(
+        self,
+        *,
+        session_id,
+        run_id,
+        step,
+        filename,
+        content,
+        content_type,
+        metadata,
+    ):
+        payload = {
+            "session_id": session_id,
+            "step": step,
+            "filename": filename,
+            "content": content.decode(),
+            "content_type": content_type,
+            "metadata": metadata,
+        }
+        if run_id:
+            payload["run_id"] = run_id
+        self._stub.calls.append(
+            {"method": "POST", "url": "artifact-service", "json": payload, "headers": None}
+        )
+        response = self._stub._next("POST", "/api/v1/ai/_internal/artifacts/")
+        if response.status_code >= 400:
+            raise _ServiceError(response)
+        return _artifact_from_payload(response.json())
+
+    async def list_for_run(self, session_id, *, step=None, filename=None):
+        params = {"session_id": str(session_id)}
+        if step:
+            params["step"] = step
+        if filename:
+            params["filename"] = filename
+        self._stub.calls.append(
+            {"method": "GET", "url": "artifact-service", "params": params, "headers": None}
+        )
+        response = self._stub._next("GET", "/api/v1/ai/_internal/artifacts/")
+        if response.status_code >= 400:
+            raise _ServiceError(response)
+        return [_artifact_from_payload(item) for item in response.json()]
+
+    async def get_content_for_run(self, session_id, artifact_id):
+        url = f"/api/v1/ai/_internal/artifacts/{artifact_id}/content/"
+        self._stub.calls.append(
+            {"method": "GET", "url": "artifact-service-content", "params": None, "headers": None}
+        )
+        response = self._stub._next("GET", url)
+        if response.status_code >= 400:
+            raise _ServiceError(response)
+        return response.content
+
+
 def _patch_httpx(monkeypatch, stub):
-    import services.artifact_tools as mod
-
-    class _Factory:
-        def __init__(self, *a, **kw):
-            self._stub = stub
-
-        async def __aenter__(self):
-            return self._stub
-
-        async def __aexit__(self, *a):
-            return None
-
-    monkeypatch.setattr(mod.httpx, "AsyncClient", _Factory)
+    """Compatibility name: select a direct ArtifactService fixture, not HTTP."""
+    del monkeypatch
+    global _ACTIVE_STUB
+    _ACTIVE_STUB = stub
     return stub
 
 
 def _tools(session_id="sess-1", run_id="run-1"):
+    stub = _ACTIVE_STUB or _StubClient([])
     return build_artifact_tools(
         session_id=session_id,
         run_id=run_id,
-        backend_base_url="http://backend",
-        internal_token="test-token",
+        artifact_service=_StubArtifactService(stub),
     )
 
 
@@ -130,7 +206,15 @@ def test_write_posts_expected_payload(monkeypatch):
     assert call["json"]["session_id"] == "sess-1"
     assert call["json"]["run_id"] == "run-1"
     assert call["json"]["step"] == "rubric"
-    assert call["headers"]["X-AI-Internal-Token"] == "test-token"
+    assert call["headers"] is None
+
+
+def test_artifact_tools_have_no_django_http_callback() -> None:
+    source = (os.path.dirname(__file__) + "/../services/artifact_tools.py")
+    with open(source, encoding="utf-8") as handle:
+        contents = handle.read()
+    assert "httpx" not in contents
+    assert "/api/v1/ai/_internal/artifacts" not in contents
 
 
 def test_write_returns_error_on_400(monkeypatch):
@@ -232,8 +316,7 @@ def test_tools_without_session_return_error():
     tools = build_artifact_tools(
         session_id=None,
         run_id=None,
-        backend_base_url="http://backend",
-        internal_token="t",
+        artifact_service=_StubArtifactService(_StubClient([])),
     )
     for name in ("artifact_write", "artifact_list", "artifact_read", "artifact_write_csv"):
         tool = _tool(tools, name)
@@ -1220,8 +1303,7 @@ def test_read_pdf_no_session():
     tools = build_artifact_tools(
         session_id=None,
         run_id=None,
-        backend_base_url="http://backend",
-        internal_token="t",
+        artifact_service=_StubArtifactService(_StubClient([])),
     )
     tool = _tool(tools, "artifact_read_pdf")
     result = _run(tool.coroutine(filename="report.pdf"))

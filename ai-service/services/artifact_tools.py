@@ -1,14 +1,9 @@
 """Local LangChain tools for AI artifact read/write/list.
 
 These tools are NOT loaded via MCP — they are session-private and bound
-to the current run context. We build a small factory that closes over
-``session_id`` / ``run_id`` / backend auth and returns three StructuredTools
-ready to register alongside the MCP tools.
-
-Backend API contract (see backend/apps/ai/artifact_views.py):
-* ``POST   /api/v1/ai/_internal/artifacts/``   → create / upsert
-* ``GET    /api/v1/ai/_internal/artifacts/``   → list (session_id required)
-* ``GET    /api/v1/ai/_internal/artifacts/<id>/content/`` → raw bytes
+to the current run context. Artifact metadata and content are owned by the
+AI Service and reached through its application service, without Django HTTP
+callbacks.
 """
 from __future__ import annotations
 
@@ -16,27 +11,15 @@ import csv
 import io
 import json
 import logging
-from contextlib import asynccontextmanager
 from typing import Any
+from uuid import UUID
 
-import httpx
 import pypdf
 from langchain_core.tools import BaseTool, StructuredTool
 
+from application.artifacts import ArtifactService, artifact_to_payload
+
 logger = logging.getLogger(__name__)
-
-
-_ARTIFACT_INTERNAL_PATH = "/api/v1/ai/_internal/artifacts/"
-
-
-class ArtifactToolError(Exception):
-    """Raised when an artifact tool call fails unrecoverably."""
-
-
-def _headers(token: str) -> dict[str, str]:
-    if not token:
-        raise ArtifactToolError("AI internal token not configured")
-    return {"X-AI-Internal-Token": token}
 
 
 def _truncate(text: str, limit: int = 200_000) -> str:
@@ -47,12 +30,9 @@ def _truncate(text: str, limit: int = 200_000) -> str:
 
 def build_artifact_tools(
     *,
-    session_id: str | None,
-    run_id: str | None,
-    backend_base_url: str,
-    internal_token: str,
-    http_timeout_seconds: float = 10.0,
-    shared_client: httpx.AsyncClient | None = None,
+    session_id: UUID | None,
+    run_id: UUID | None,
+    artifact_service: ArtifactService,
 ) -> list[BaseTool]:
     """Build the three artifact tools scoped to the current run.
 
@@ -60,22 +40,12 @@ def build_artifact_tools(
     rather than raising — the agent sees a clean "session unknown" message.
     """
 
-    base = backend_base_url.rstrip("/")
-    internal_url = f"{base}{_ARTIFACT_INTERNAL_PATH}"
     _DEFAULT_STEP = "default"
 
     def _require_session() -> str | None:
         if not session_id:
             return "session_id unavailable in current context; cannot use artifact tool"
         return None
-
-    @asynccontextmanager
-    async def _client_context():
-        if shared_client is not None:
-            yield shared_client
-            return
-        async with httpx.AsyncClient(timeout=http_timeout_seconds) as client:
-            yield client
 
     async def _resolve_step(
         step: str | None,
@@ -137,40 +107,24 @@ def build_artifact_tools(
             return resolved
         step = resolved
 
-        payload: dict[str, Any] = {
-            "session_id": session_id,
-            "step": step,
-            "filename": filename,
-            "content": content,
-            "content_type": content_type,
-            "metadata": metadata or {},
-        }
-        if run_id:
-            payload["run_id"] = run_id
         try:
-            async with _client_context() as client:
-                resp = await client.post(
-                    internal_url,
-                    json=payload,
-                    headers=_headers(internal_token),
-                )
-        except httpx.HTTPError as exc:
-            logger.exception("artifact_write transport error: %s", exc)
-            return {"is_error": True, "detail": f"transport error: {exc!r}"}
-
-        if resp.status_code >= 400:
-            logger.warning(
-                "artifact_write %s failed %s: %s",
-                filename,
-                resp.status_code,
-                resp.text[:500],
+            artifact = await artifact_service.put_for_run(
+                session_id=session_id,
+                run_id=run_id,
+                step=step,
+                filename=filename,
+                content=content.encode(),
+                content_type=content_type,
+                metadata=metadata or {},
             )
-            return {
-                "is_error": True,
-                "status": resp.status_code,
-                "detail": _safe_json(resp),
-            }
-        return resp.json()
+        except Exception as exc:  # noqa: BLE001 - tool calls return stable payloads
+            logger.exception("artifact_write failed: %s", exc)
+            error = {"is_error": True, "detail": str(exc)}
+            status_code = getattr(exc, "status_code", None)
+            if status_code is not None:
+                error["status"] = status_code
+            return error
+        return artifact_to_payload(artifact)
 
     async def _artifact_write_csv(
         step: str | None = None,
@@ -249,30 +203,13 @@ def build_artifact_tools(
         if err:
             return {"is_error": True, "detail": err}
 
-        params: dict[str, str] = {"session_id": str(session_id)}
-        if step:
-            params["step"] = step
-        if filename:
-            params["filename"] = filename
-
         try:
-            async with _client_context() as client:
-                resp = await client.get(
-                    internal_url,
-                    params=params,
-                    headers=_headers(internal_token),
-                )
-        except httpx.HTTPError as exc:
-            logger.exception("artifact_list transport error: %s", exc)
-            return {"is_error": True, "detail": f"transport error: {exc!r}"}
-
-        if resp.status_code >= 400:
-            return {
-                "is_error": True,
-                "status": resp.status_code,
-                "detail": _safe_json(resp),
-            }
-        return {"artifacts": resp.json()}
+            artifacts = await artifact_service.list_for_run(
+                session_id, step=step, filename=filename
+            )
+        except Exception as exc:  # noqa: BLE001 - tool calls return stable payloads
+            return {"is_error": True, "detail": str(exc)}
+        return {"artifacts": [artifact_to_payload(item) for item in artifacts]}
 
     async def _artifact_read(
         step: str | None = None,
@@ -312,22 +249,14 @@ def build_artifact_tools(
                 ),
             }
         artifact = artifacts[0]
-        artifact_id = artifact["id"]
-        content_url = f"{base}{_ARTIFACT_INTERNAL_PATH}{artifact_id}/content/"
         try:
-            async with _client_context() as client:
-                resp = await client.get(content_url, headers=_headers(internal_token))
-        except httpx.HTTPError as exc:
-            return {"is_error": True, "detail": f"transport error: {exc!r}"}
-
-        if resp.status_code >= 400:
-            return {
-                "is_error": True,
-                "status": resp.status_code,
-                "detail": _safe_json(resp),
-            }
+            content_bytes = await artifact_service.get_content_for_run(
+                session_id, artifact["id"]
+            )
+        except Exception as exc:  # noqa: BLE001 - tool calls return stable payloads
+            return {"is_error": True, "detail": str(exc)}
         try:
-            text = resp.content.decode("utf-8")
+            text = content_bytes.decode("utf-8")
         except UnicodeDecodeError:
             return {
                 "is_error": True,
@@ -939,23 +868,12 @@ def build_artifact_tools(
                 ),
             }
         artifact = artifacts[0]
-        artifact_id = artifact["id"]
-
-        content_url = f"{base}{_ARTIFACT_INTERNAL_PATH}{artifact_id}/content/"
         try:
-            async with _client_context() as client:
-                resp = await client.get(content_url, headers=_headers(internal_token))
-        except httpx.HTTPError as exc:
-            return {"is_error": True, "detail": f"transport error: {exc!r}"}
-
-        if resp.status_code >= 400:
-            return {
-                "is_error": True,
-                "status": resp.status_code,
-                "detail": _safe_json(resp),
-            }
-
-        pdf_bytes = resp.content
+            pdf_bytes = await artifact_service.get_content_for_run(
+                session_id, artifact["id"]
+            )
+        except Exception as exc:  # noqa: BLE001 - tool calls return stable payloads
+            return {"is_error": True, "detail": str(exc)}
         try:
             reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
         except pypdf.errors.PdfReadError as exc:
@@ -1088,13 +1006,6 @@ def build_artifact_tools(
         csv_to_json_tool,
         pdf_read_tool,
     ]
-
-
-def _safe_json(resp: httpx.Response) -> Any:
-    try:
-        return resp.json()
-    except Exception:
-        return resp.text[:500]
 
 
 def _resolve_dot_path(obj: Any, path: str) -> Any:
