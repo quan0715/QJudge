@@ -16,13 +16,18 @@
         "title": "AnswerRunRequest",
         "type": "object"
       },
+      "ApprovalDecision": {
+        "enum": [
+          "approve",
+          "reject"
+        ],
+        "title": "ApprovalDecision",
+        "type": "string"
+      },
       "ApproveRunRequest": {
         "properties": {
           "decision": {
-            "maxLength": 50,
-            "minLength": 1,
-            "title": "Decision",
-            "type": "string"
+            "$ref": "#/components/schemas/ApprovalDecision"
           }
         },
         "required": [
@@ -277,6 +282,67 @@
         "title": "LiveResponse",
         "type": "object"
       },
+      "MessageResponse": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "ordinal",
+          "run_id",
+          "role",
+          "content",
+          "metadata",
+          "created_at"
+        ],
+        "title": "MessageResponse",
+        "type": "object"
+      },
       "ModelInfo": {
         "properties": {
           "description": {
@@ -483,6 +549,65 @@
           "output_tokens"
         ],
         "title": "RunResponse",
+        "type": "object"
+      },
+      "SessionDetailResponse": {
+        "properties": {
+          "context": {
+            "additionalProperties": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "session_id",
+          "title",
+          "context",
+          "created_at",
+          "updated_at",
+          "messages"
+        ],
+        "title": "SessionDetailResponse",
         "type": "object"
       },
       "SessionListResponse": {
@@ -1020,11 +1145,14 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
               }
             },
-            "description": "Successful Response"
+            "description": "Artifact bytes"
           },
           "401": {
             "content": {
@@ -1114,13 +1242,17 @@
           }
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
+          "307": {
+            "description": "Temporary redirect to an owner-scoped download URL",
+            "headers": {
+              "Location": {
+                "description": "Presigned artifact download URL",
+                "schema": {
+                  "format": "uri",
+                  "type": "string"
+                }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "401": {
             "content": {
@@ -1842,11 +1974,13 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {}
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
               }
             },
-            "description": "Successful Response"
+            "description": "Persisted run event stream"
           },
           "401": {
             "content": {
@@ -2209,7 +2343,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
+                  "$ref": "#/components/schemas/SessionDetailResponse"
                 }
               }
             },

@@ -20,6 +20,7 @@ from .models import (
     Principal,
     Run,
     Session,
+    SessionDetail,
     StreamEvent,
     Usage,
     UsageSummary,
@@ -107,6 +108,10 @@ class SessionRepository(Protocol):
     async def list_for_owner(self, principal: Principal) -> list[Session]: ...
 
     async def get_for_owner(self, principal: Principal, session_id: UUID) -> Session | None: ...
+
+    async def get_detail_for_owner(
+        self, principal: Principal, session_id: UUID
+    ) -> SessionDetail | None: ...
 
     async def get_for_update(
         self, principal: Principal, session_id: UUID

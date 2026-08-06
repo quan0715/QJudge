@@ -12,6 +12,7 @@ from api.errors import ERROR_RESPONSES
 from api.schemas import (
     CreateSessionRequest,
     RenameSessionRequest,
+    SessionDetailResponse,
     SessionListResponse,
     SessionResponse,
 )
@@ -45,13 +46,15 @@ async def create_session(
     )
 
 
-@router.get("/sessions/{session_id}", response_model=SessionResponse)
+@router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 async def get_session(
     session_id: UUID,
     principal: Annotated[Principal, Depends(current_principal)],
     service: Annotated[Any, Depends(get_session_service)],
-) -> SessionResponse:
-    return SessionResponse.from_domain(await service.get_session(principal, session_id))
+) -> SessionDetailResponse:
+    return SessionDetailResponse.from_domain(
+        await service.get_session_detail(principal, session_id)
+    )
 
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)

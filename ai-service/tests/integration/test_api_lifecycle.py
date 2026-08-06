@@ -136,6 +136,16 @@ async def test_start_replay_and_complete(api_stack) -> None:
     assert "event: agent_message_delta" in response.text
     assert "event: run_completed" in response.text
 
+    reloaded = await client.get(f"/v1/sessions/{session_id}")
+    assert reloaded.status_code == 200
+    detail = reloaded.json()
+    assert detail["created_at"] is not None
+    assert detail["updated_at"] is not None
+    assert [message["ordinal"] for message in detail["messages"]] == [1, 2]
+    assert detail["messages"][0]["content"] == "hello"
+    assert detail["messages"][1]["content"] == "Hello"
+    assert detail["messages"][1]["metadata"]["run_status"] == "completed"
+
 
 @pytest.mark.asyncio
 async def test_mcp_failure_does_not_break_persistence_routes(api_stack) -> None:

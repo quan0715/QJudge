@@ -41,5 +41,25 @@ def test_openapi_contains_only_canonical_public_surfaces() -> None:
         "/health/live",
         "/health/ready",
     }
-    assert required.issubset(paths)
-    assert all(not path.startswith("/api/chat") for path in paths)
+    assert set(paths) == required
+
+
+def test_openapi_describes_stream_binary_and_redirect_wire_contracts() -> None:
+    paths = create_app().openapi()["paths"]
+
+    events = paths["/v1/runs/{run_id}/events"]["get"]["responses"]
+    assert set(events["200"]["content"]) == {"text/event-stream"}
+
+    content = paths["/v1/artifacts/{artifact_id}/content"]["get"]["responses"]
+    assert content["200"]["content"] == {
+        "application/octet-stream": {
+            "schema": {"type": "string", "format": "binary"}
+        }
+    }
+
+    download = paths["/v1/artifacts/{artifact_id}/download"]["get"]["responses"]
+    assert "200" not in download
+    assert download["307"]["headers"]["Location"]["schema"] == {
+        "type": "string",
+        "format": "uri",
+    }

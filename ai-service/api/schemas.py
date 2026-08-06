@@ -5,12 +5,14 @@ from __future__ import annotations
 import base64
 import binascii
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from domain.models import Artifact, Run, Session, UsageSummary
+from application.artifacts import is_valid_content_type
+from domain.models import Artifact, Message, Run, Session, SessionDetail, UsageSummary
 
 
 class CreateSessionRequest(BaseModel):
@@ -35,6 +37,46 @@ class SessionResponse(BaseModel):
         )
 
 
+class MessageResponse(BaseModel):
+    session_id: UUID
+    ordinal: int
+    run_id: UUID | None
+    role: str
+    content: str
+    metadata: dict[str, Any]
+    created_at: datetime | None
+
+    @classmethod
+    def from_domain(cls, message: Message) -> "MessageResponse":
+        return cls(
+            session_id=message.session_id,
+            ordinal=message.ordinal,
+            run_id=message.run_id,
+            role=message.role,
+            content=message.content,
+            metadata=dict(message.metadata),
+            created_at=message.created_at,
+        )
+
+
+class SessionDetailResponse(SessionResponse):
+    created_at: datetime | None
+    updated_at: datetime | None
+    messages: list[MessageResponse]
+
+    @classmethod
+    def from_domain(cls, detail: SessionDetail) -> "SessionDetailResponse":
+        session = detail.session
+        return cls(
+            session_id=session.id,
+            title=session.title,
+            context=dict(session.context),
+            created_at=detail.created_at,
+            updated_at=detail.updated_at,
+            messages=[MessageResponse.from_domain(message) for message in detail.messages],
+        )
+
+
 class SessionListResponse(BaseModel):
     count: int
     next: str | None = None
@@ -46,9 +88,26 @@ class StartRunRequest(BaseModel):
     message: str = Field(min_length=1, max_length=100_000)
     model_id: str = Field(min_length=1, max_length=50)
 
+    @field_validator("model_id")
+    @classmethod
+    def advertised_model_id(cls, value: str) -> str:
+        # Keep command validation tied to the same registry exposed by
+        # GET /v1/models. Unknown aliases must never silently execute using
+        # ModelFactory's legacy fallback.
+        from services.model_registry import ADVERTISED_MODEL_IDS
+
+        if value not in ADVERTISED_MODEL_IDS:
+            raise ValueError("model_id is not advertised")
+        return value
+
+
+class ApprovalDecision(StrEnum):
+    APPROVE = "approve"
+    REJECT = "reject"
+
 
 class ApproveRunRequest(BaseModel):
-    decision: str = Field(min_length=1, max_length=50)
+    decision: ApprovalDecision
 
 
 class AnswerRunRequest(BaseModel):
@@ -102,6 +161,13 @@ class ArtifactCreateRequest(BaseModel):
     content_type: str
     content_base64: str
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("content_type")
+    @classmethod
+    def valid_content_type(cls, value: str) -> str:
+        if not is_valid_content_type(value):
+            raise ValueError("content_type must be a valid MIME type")
+        return value
 
     @field_validator("content_base64")
     @classmethod

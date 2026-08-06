@@ -60,10 +60,16 @@ def error_response(
             request_id=request_id_for(request),
         )
     )
+    correlation_headers = {"X-Request-ID": request_id_for(request)}
+    traceparent = getattr(request.state, "traceparent", None)
+    if traceparent:
+        correlation_headers["traceparent"] = str(traceparent)
+    if headers:
+        correlation_headers.update(headers)
     return JSONResponse(
         status_code=status_code,
         content=envelope.model_dump(mode="json"),
-        headers=headers,
+        headers=correlation_headers,
     )
 
 

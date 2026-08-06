@@ -99,3 +99,54 @@ async def test_already_paused_run_closes_without_synthetic_event() -> None:
         async for frame in persisted_events(OWNER, RUN_ID, 4, reader, poll_seconds=0)
     ]
     assert frames == []
+
+
+class ClosingRaceReader:
+    """Expose the close event only after the closed run state is observed."""
+
+    def __init__(self) -> None:
+        self.closed_observed = False
+        self.closing_event = event(5, "run_completed", {"stored": "final"})
+
+    async def get_run(self, principal, run_id):
+        self.closed_observed = True
+        return Run(
+            RUN_ID,
+            SESSION_ID,
+            RunStatus.COMPLETED,
+            RunKind.CHAT,
+            "model",
+            last_sequence=5,
+        )
+
+    async def list_after(self, principal, run_id, after):
+        if self.closed_observed:
+            return [self.closing_event]
+        return []
+
+
+@pytest.mark.asyncio
+async def test_closed_state_observed_during_empty_poll_gets_final_replay() -> None:
+    reader = ClosingRaceReader()
+    initial = Run(
+        RUN_ID,
+        SESSION_ID,
+        RunStatus.RUNNING,
+        RunKind.CHAT,
+        "model",
+        last_sequence=4,
+    )
+
+    frames = [
+        frame
+        async for frame in persisted_events(
+            OWNER,
+            RUN_ID,
+            4,
+            reader,
+            poll_seconds=0,
+            initial_run=initial,
+        )
+    ]
+
+    assert frames == [encode_sse(reader.closing_event)]

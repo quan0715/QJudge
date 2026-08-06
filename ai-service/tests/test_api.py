@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from api.dependencies import (
@@ -22,16 +23,19 @@ from api.dependencies import (
 from application.artifacts import ArtifactNotFound
 from application.run_service import RunNotFound
 from application.session_service import SessionNotFound
+from config import Settings
 from domain.models import (
     Artifact,
+    Message,
     Principal,
     Run,
     RunKind,
     RunStatus,
     Session,
+    SessionDetail,
     UsageSummary,
 )
-from main import create_app
+from main import _ReadinessProbe, create_app
 
 OWNER = Principal("https://issuer.test", "teacher-1")
 SESSION_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -41,7 +45,21 @@ ARTIFACT_ID = UUID("33333333-3333-4333-8333-333333333333")
 
 class FakeSessionService:
     def __init__(self) -> None:
+        timestamp = datetime(2026, 8, 6, tzinfo=UTC)
+        self.timestamp = timestamp
         self.session = Session(SESSION_ID, OWNER, "New chat", {"course_id": 7})
+        self.messages = (
+            Message(SESSION_ID, 1, RUN_ID, "user", "hello", created_at=timestamp),
+            Message(
+                SESSION_ID,
+                2,
+                RUN_ID,
+                "assistant",
+                "Hello",
+                {"run_status": "completed"},
+                timestamp,
+            ),
+        )
 
     async def create_session(self, principal, context):
         assert principal == OWNER
@@ -55,6 +73,14 @@ class FakeSessionService:
         if principal != OWNER or session_id != SESSION_ID:
             raise SessionNotFound(session_id)
         return self.session
+
+    async def get_session_detail(self, principal, session_id):
+        return SessionDetail(
+            session=await self.get_session(principal, session_id),
+            messages=self.messages,
+            created_at=self.timestamp,
+            updated_at=self.timestamp,
+        )
 
     async def rename_session(self, principal, session_id, title):
         await self.get_session(principal, session_id)
@@ -74,6 +100,7 @@ class FakeRunService:
             RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-v4"
         )
         self.start_token = None
+        self.approval_calls = 0
 
     async def start(
         self, principal, session_id, prompt, model_id, idempotency_key, subject_token
@@ -92,6 +119,7 @@ class FakeRunService:
         return self.run
 
     async def approve(self, principal, run_id, decision, subject_token):
+        self.approval_calls += 1
         await self.get(principal, run_id)
         return self.run
 
@@ -198,6 +226,62 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
     assert missing_key.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
+def test_session_detail_returns_persisted_messages_and_timestamps() -> None:
+    client, _ = make_client()
+
+    response = client.get(f"/v1/sessions/{SESSION_ID}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "session_id": str(SESSION_ID),
+        "title": "New chat",
+        "context": {"course_id": 7},
+        "created_at": "2026-08-06T00:00:00Z",
+        "updated_at": "2026-08-06T00:00:00Z",
+        "messages": [
+            {
+                "session_id": str(SESSION_ID),
+                "ordinal": 1,
+                "run_id": str(RUN_ID),
+                "role": "user",
+                "content": "hello",
+                "metadata": {},
+                "created_at": "2026-08-06T00:00:00Z",
+            },
+            {
+                "session_id": str(SESSION_ID),
+                "ordinal": 2,
+                "run_id": str(RUN_ID),
+                "role": "assistant",
+                "content": "Hello",
+                "metadata": {"run_status": "completed"},
+                "created_at": "2026-08-06T00:00:00Z",
+            },
+        ],
+    }
+
+
+def test_invalid_model_and_approval_are_rejected_before_command_service() -> None:
+    client, runs = make_client()
+
+    invalid_model = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "unknown-model"},
+        json={"message": "hello", "model_id": "invented-model"},
+    )
+    invalid_decision = client.post(
+        f"/v1/runs/{RUN_ID}/approve",
+        json={"decision": "maybe"},
+    )
+
+    assert invalid_model.status_code == 422
+    assert invalid_model.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert runs.start_token is None
+    assert invalid_decision.status_code == 422
+    assert invalid_decision.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert runs.approval_calls == 0
+
+
 def test_every_error_has_stable_envelope_and_echoed_request_id() -> None:
     client, _ = make_client()
     response = client.get(
@@ -240,11 +324,57 @@ def test_health_is_public_and_artifacts_are_owner_scoped() -> None:
     assert metadata.json()["artifact_id"] == str(ARTIFACT_ID)
     content = client.get(f"/v1/artifacts/{ARTIFACT_ID}/content")
     assert content.content == b"hello"
+    assert content.headers["content-type"] == "application/octet-stream"
+    assert content.headers["content-disposition"].startswith("attachment;")
+    assert content.headers["x-content-type-options"] == "nosniff"
     download = client.get(
         f"/v1/artifacts/{ARTIFACT_ID}/download", follow_redirects=False
     )
     assert download.status_code == 307
     assert download.headers["location"] == "https://objects.test/answer.txt"
+
+
+@pytest.mark.parametrize(
+    ("filename", "content_type"),
+    [("payload.html", "text/html"), ("payload.svg", "image/svg+xml")],
+)
+def test_active_artifact_content_is_forced_to_safe_download(
+    filename: str, content_type: str
+) -> None:
+    client, _ = make_client()
+
+    class ActiveContentArtifacts(FakeArtifactService):
+        def __init__(self) -> None:
+            super().__init__()
+            self.artifact = replace(
+                self.artifact,
+                filename=filename,
+                content_type=content_type,
+            )
+
+    client.app.dependency_overrides[get_artifact_service] = ActiveContentArtifacts
+    response = client.get(f"/v1/artifacts/{ARTIFACT_ID}/content")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/octet-stream"
+    assert response.headers["content-disposition"].startswith("attachment;")
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_artifact_create_rejects_invalid_mime_syntax() -> None:
+    client, _ = make_client()
+    response = client.post(
+        "/v1/artifacts",
+        json={
+            "session_id": str(SESSION_ID),
+            "step": "output",
+            "filename": "bad.bin",
+            "content_type": "text/html\r\nX-Evil: yes",
+            "content_base64": "aGVsbG8=",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 def test_readiness_failure_uses_the_request_correlation_id() -> None:
@@ -260,6 +390,63 @@ def test_readiness_failure_uses_the_request_correlation_id() -> None:
     assert response.json()["error"]["request_id"] == "ready-request"
 
 
+@pytest.mark.asyncio
+async def test_readiness_requires_credentials_for_every_advertised_provider() -> None:
+    class HealthyConnection:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, traceback):
+            return None
+
+        async def execute(self, statement):
+            return None
+
+    class HealthyEngine:
+        def connect(self):
+            return HealthyConnection()
+
+    class HealthyRedis:
+        async def ping(self):
+            return True
+
+    base = {
+        "AI_DATABASE_URL": "postgresql://db/ai",
+        "ai_redis_url": "redis://queue/2",
+        "credential_lease_secret": "x" * 32,
+        "DEEPSEEK_API_KEY": "deepseek-secret",
+        "OPENAI_API_KEY": "",
+    }
+    missing_default = Settings(_env_file=None, **base)
+    probe = _ReadinessProbe(
+        engine=HealthyEngine(),
+        redis=HealthyRedis(),
+        settings=missing_default,
+        oauth_issuer="https://issuer.test",
+        oauth_jwks_url="https://issuer.test/jwks",
+    )
+
+    missing_checks = await probe.check()
+
+    assert missing_checks["providers"] == "not_ready"
+    assert "deepseek-secret" not in repr(missing_checks)
+
+    configured = Settings(
+        _env_file=None,
+        **{**base, "OPENAI_API_KEY": "openai-secret"},
+    )
+    ready_probe = _ReadinessProbe(
+        engine=HealthyEngine(),
+        redis=HealthyRedis(),
+        settings=configured,
+        oauth_issuer="https://issuer.test",
+        oauth_jwks_url="https://issuer.test/jwks",
+    )
+    ready_checks = await ready_probe.check()
+    assert set(ready_checks.values()) == {"ready"}
+    assert "openai-secret" not in repr(ready_checks)
+
+
 def test_unknown_exception_does_not_leak_internal_details() -> None:
     client, _ = make_client()
 
@@ -269,9 +456,19 @@ def test_unknown_exception_does_not_leak_internal_details() -> None:
 
     client.app.dependency_overrides[get_usage_service] = ExplodingUsage
     with TestClient(client.app, raise_server_exceptions=False) as safe_client:
-        response = safe_client.get("/v1/usage")
+        response = safe_client.get(
+            "/v1/usage",
+            headers={
+                "X-Request-ID": "exploding-request",
+                "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+            },
+        )
     assert response.status_code == 500
     assert response.json()["error"]["code"] == "INTERNAL_ERROR"
+    assert response.headers["X-Request-ID"] == "exploding-request"
+    assert response.headers["traceparent"] == (
+        "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+    )
     assert "database-password" not in response.text
 
 

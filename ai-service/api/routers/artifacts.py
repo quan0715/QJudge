@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Any
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
@@ -14,6 +15,19 @@ from api.schemas import ArtifactCreateRequest, ArtifactListResponse, ArtifactRes
 from domain.models import Principal
 
 router = APIRouter(prefix="/v1", tags=["artifacts"], responses=ERROR_RESPONSES)
+
+def _safe_content_response(content: bytes, filename: str) -> Response:
+    # This endpoint is served on the application origin. Always download
+    # opaque bytes so stored HTML/SVG/PDF cannot become executable content.
+    encoded_filename = quote(filename, safe="")
+    return Response(
+        content=content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get("/artifacts", response_model=ArtifactListResponse)
@@ -68,7 +82,20 @@ async def get_artifact(
     )
 
 
-@router.get("/artifacts/{artifact_id}/content")
+@router.get(
+    "/artifacts/{artifact_id}/content",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Artifact bytes",
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        }
+    },
+)
 async def get_artifact_content(
     artifact_id: UUID,
     principal: Annotated[Principal, Depends(current_principal)],
@@ -76,14 +103,25 @@ async def get_artifact_content(
 ) -> Response:
     artifact = await service.get_metadata(principal, artifact_id)
     content = await service.get_content(principal, artifact_id)
-    return Response(
-        content=content,
-        media_type=artifact.content_type,
-        headers={"Content-Disposition": f'inline; filename="{artifact.filename}"'},
-    )
+    return _safe_content_response(content, artifact.filename)
 
 
-@router.get("/artifacts/{artifact_id}/download")
+@router.get(
+    "/artifacts/{artifact_id}/download",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    response_class=RedirectResponse,
+    responses={
+        307: {
+            "description": "Temporary redirect to an owner-scoped download URL",
+            "headers": {
+                "Location": {
+                    "description": "Presigned artifact download URL",
+                    "schema": {"type": "string", "format": "uri"},
+                }
+            },
+        }
+    },
+)
 async def download_artifact(
     artifact_id: UUID,
     principal: Annotated[Principal, Depends(current_principal)],

@@ -7,7 +7,7 @@ from dataclasses import replace
 from typing import Any
 from uuid import UUID, uuid4
 
-from domain.models import Principal, Session
+from domain.models import Principal, Session, SessionDetail
 from domain.ports import CheckpointLifecycle, UnitOfWork
 
 
@@ -52,6 +52,15 @@ class SessionService:
             if session is None:
                 raise SessionNotFound(session_id)
             return session
+
+    async def get_session_detail(
+        self, principal: Principal, session_id: UUID
+    ) -> SessionDetail:
+        async with self._uow_factory() as uow:
+            detail = await uow.sessions.get_detail_for_owner(principal, session_id)
+            if detail is None:
+                raise SessionNotFound(session_id)
+            return detail
 
     async def rename_session(
         self, principal: Principal, session_id: UUID, title: str

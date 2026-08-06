@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from application.artifacts import ArtifactNotFound, ArtifactService
+from application.artifacts import ArtifactNotFound, ArtifactService, InvalidArtifact
 from domain.models import Artifact, Principal, Session
 from infrastructure.artifacts.s3_artifact_store import (
     ArtifactObjectNotFound,
@@ -144,6 +144,29 @@ async def test_put_derives_object_key_from_only_session_and_artifact_id(
     assert artifact_service.store.keys == [
         f"ai-artifacts/{session.id}/{artifact.id}"
     ]
+
+
+@pytest.mark.parametrize(
+    "content_type",
+    ["not-a-media-type", "text/html\r\nX-Evil: yes", "text/plain; broken"],
+)
+async def test_put_rejects_invalid_mime_syntax_for_internal_callers(
+    artifact_service: ArtifactService,
+    principal: Principal,
+    session: Session,
+    content_type: str,
+) -> None:
+    with pytest.raises(InvalidArtifact, match="invalid content_type"):
+        await artifact_service.put(
+            principal,
+            session.id,
+            None,
+            "output",
+            "payload.bin",
+            b"payload",
+            content_type,
+            {},
+        )
 
 
 async def test_other_owner_cannot_download_artifact(

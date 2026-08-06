@@ -12,6 +12,25 @@ from domain.models import Artifact, Principal
 
 _STEP_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
+_MIME_TOKEN_RE = re.compile(r"^[A-Za-z0-9!#$&^_.+\-]+$")
+
+
+def is_valid_content_type(value: str) -> bool:
+    if not value or len(value) > 100 or "\r" in value or "\n" in value:
+        return False
+    parts = [part.strip() for part in value.split(";")]
+    media_parts = parts[0].split("/", 1)
+    if len(media_parts) != 2 or not all(
+        _MIME_TOKEN_RE.fullmatch(part) for part in media_parts
+    ):
+        return False
+    for parameter in parts[1:]:
+        if "=" not in parameter:
+            return False
+        name, parameter_value = (item.strip() for item in parameter.split("=", 1))
+        if not _MIME_TOKEN_RE.fullmatch(name) or not parameter_value:
+            return False
+    return True
 
 
 class ArtifactNotFound(LookupError):
@@ -254,7 +273,7 @@ class ArtifactService:
             raise InvalidArtifact("invalid step")
         if not _FILENAME_RE.fullmatch(filename):
             raise InvalidArtifact("invalid filename")
-        if not content_type or len(content_type) > 100:
+        if not is_valid_content_type(content_type):
             raise InvalidArtifact("invalid content_type")
         if len(content) > self._max_bytes:
             raise InvalidArtifact(

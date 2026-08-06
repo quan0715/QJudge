@@ -16,6 +16,7 @@ from domain.models import (
     RunKind,
     RunStatus,
     Session,
+    SessionDetail,
     StreamEvent,
     Usage,
     UsageSummary,
@@ -152,6 +153,37 @@ class SqlAlchemySessionRepository:
             )
         )
         return _session_from_row(row) if row is not None else None
+
+    async def get_detail_for_owner(
+        self, principal: Principal, session_id: UUID
+    ) -> SessionDetail | None:
+        row = await self._db_session.scalar(
+            select(SessionRow).where(
+                SessionRow.session_id == session_id,
+                SessionRow.owner_issuer == principal.issuer,
+                SessionRow.owner_subject == principal.subject,
+            )
+        )
+        if row is None:
+            return None
+        message_rows = (
+            await self._db_session.scalars(
+                select(MessageRow)
+                .join(SessionRow, SessionRow.session_id == MessageRow.session_id)
+                .where(
+                    MessageRow.session_id == session_id,
+                    SessionRow.owner_issuer == principal.issuer,
+                    SessionRow.owner_subject == principal.subject,
+                )
+                .order_by(MessageRow.ordinal)
+            )
+        ).all()
+        return SessionDetail(
+            session=_session_from_row(row),
+            messages=tuple(_message_from_row(item) for item in message_rows),
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
 
     async def get_for_update(
         self, principal: Principal, session_id: UUID

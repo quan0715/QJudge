@@ -57,7 +57,7 @@ async def models(
 ) -> ModelsResponse:
     # MODEL_INFO contains display metadata only. Pricing is deliberately not a
     # public or persisted concern of the autonomous AI service.
-    from services.model_factory import MODEL_INFO
+    from services.model_registry import MODEL_INFO
 
     return ModelsResponse(models=MODEL_INFO)
 

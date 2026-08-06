@@ -93,6 +93,14 @@ class Message:
 
 
 @dataclass(frozen=True, slots=True)
+class SessionDetail:
+    session: Session
+    messages: tuple[Message, ...] = ()
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class StreamEvent:
     run_id: UUID
     sequence: int

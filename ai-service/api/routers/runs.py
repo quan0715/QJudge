@@ -83,6 +83,15 @@ async def persisted_events(
 
         run = await reader.get_run(principal, run_id)
         if run.status in _CLOSED_STREAM_STATUSES and not batch:
+            # The closing event and Run status are committed together, but
+            # these reads use separate transactions. If the commit lands
+            # between the first event query and this status query, replay
+            # once more before closing so the authoritative final event is
+            # never lost.
+            final_batch = await reader.list_after(principal, run_id, cursor)
+            for event in final_batch:
+                cursor = event.sequence
+                yield encode_sse(event)
             return
         yield b": heartbeat\n\n"
         await asyncio.sleep(poll_seconds)
@@ -136,7 +145,20 @@ async def get_run(
     return RunResponse.from_domain(await service.get(principal, run_id))
 
 
-@router.get("/runs/{run_id}/events")
+@router.get(
+    "/runs/{run_id}/events",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Persisted run event stream",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"}
+                }
+            },
+        }
+    },
+)
 async def stream_run_events(
     run_id: UUID,
     principal: Annotated[Principal, Depends(current_principal)],
@@ -187,7 +209,7 @@ async def approve_run(
     service: Annotated[Any, Depends(get_run_service)],
 ) -> RunResponse:
     return RunResponse.from_domain(
-        await service.approve(principal, run_id, body.decision, token)
+        await service.approve(principal, run_id, body.decision.value, token)
     )
 
 
