@@ -83,6 +83,34 @@ class Settings(BaseSettings):
 
     # AI-owned Redis state. Credential material is encrypted before storage.
     ai_redis_url: str = "redis://localhost:6379/2"
+    ai_queue_name: str = Field(
+        default="qjudge-ai",
+        validation_alias=AliasChoices("AI_QUEUE_NAME"),
+    )
+    ai_queue_key_prefix: str = Field(
+        default="qjudge-ai:",
+        validation_alias=AliasChoices("AI_QUEUE_KEY_PREFIX"),
+    )
+    run_heartbeat_seconds: float = Field(
+        default=15.0,
+        gt=0,
+        validation_alias=AliasChoices("AI_RUN_HEARTBEAT_SECONDS"),
+    )
+    stale_run_seconds: float = Field(
+        default=120.0,
+        gt=0,
+        validation_alias=AliasChoices("AI_STALE_RUN_SECONDS"),
+    )
+    stale_run_scan_seconds: float = Field(
+        default=30.0,
+        gt=0,
+        validation_alias=AliasChoices("AI_STALE_RUN_SCAN_SECONDS"),
+    )
+    queue_reconcile_seconds: float = Field(
+        default=10.0,
+        gt=0,
+        validation_alias=AliasChoices("AI_QUEUE_RECONCILE_SECONDS"),
+    )
     credential_lease_secret: str = Field(
         default="",
         min_length=32,
