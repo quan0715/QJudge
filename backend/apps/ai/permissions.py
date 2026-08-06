@@ -1,21 +1,6 @@
-"""Permission classes for AI app."""
+"""AI BFF permission boundary.
 
-from django.conf import settings
-from rest_framework.permissions import BasePermission
-
-
-class IsAIServiceInternal(BasePermission):
-    """Authorize internal ai-service traffic via shared secret header.
-
-    Matches the header (``X-AI-Internal-Token``) already used for
-    backend↔ai-service communication in run_runtime/stream_proxy.
-    """
-
-    message = "Invalid or missing AI service internal token."
-
-    def has_permission(self, request, view):
-        expected = getattr(settings, "AI_SERVICE_INTERNAL_TOKEN", "").strip()
-        if not expected:
-            return False
-        provided = (request.headers.get("X-AI-Internal-Token") or "").strip()
-        return bool(provided) and provided == expected
+User-facing eligibility is enforced by ``apps.users.permissions``.  The AI
+Service authenticates resource tokens, so Django owns no internal shared-secret
+permission class.
+"""

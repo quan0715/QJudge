@@ -42,7 +42,7 @@ _SAFE_RESPONSE_HEADERS = (
 )
 
 
-class AIArtifactUserViewSet(viewsets.ViewSet):
+class ArtifactViewSet(viewsets.ViewSet):
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = serializers.Serializer
 
@@ -92,16 +92,6 @@ class AIArtifactUserViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         content = uploaded.read()
-        if len(content) > settings.AI_ARTIFACT_MAX_BYTES:
-            return Response(
-                {
-                    "detail": (
-                        "file exceeds "
-                        f"AI_ARTIFACT_MAX_BYTES={settings.AI_ARTIFACT_MAX_BYTES}"
-                    )
-                },
-                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            )
         content_type = _CONTENT_TYPE_BY_EXT[extension]
         return _proxy_json(
             request,

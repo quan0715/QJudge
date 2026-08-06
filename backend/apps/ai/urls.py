@@ -3,14 +3,14 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .artifact_views import AIArtifactUserViewSet
-from .views import AIChatRunViewSet, AISessionViewSet, ModelListView, UsageView
+from .artifact_views import ArtifactViewSet
+from .views import ChatRunViewSet, ModelListView, SessionViewSet, UsageView
 
 
 router = DefaultRouter()
-router.register(r"sessions", AISessionViewSet, basename="ai-session")
-router.register(r"runs", AIChatRunViewSet, basename="ai-run")
-router.register(r"artifacts", AIArtifactUserViewSet, basename="ai-artifact")
+router.register(r"sessions", SessionViewSet, basename="ai-session")
+router.register(r"runs", ChatRunViewSet, basename="ai-run")
+router.register(r"artifacts", ArtifactViewSet, basename="ai-artifact")
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -90,7 +90,7 @@ class SchemaAPIView(generics.GenericAPIView):
     serializer_class = serializers.Serializer
 
 
-class AISessionViewSet(viewsets.ViewSet):
+class SessionViewSet(viewsets.ViewSet):
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = CreateSessionSerializer
 
@@ -235,7 +235,7 @@ class AISessionViewSet(viewsets.ViewSet):
         )
 
 
-class AIChatRunViewSet(viewsets.ViewSet):
+class ChatRunViewSet(viewsets.ViewSet):
     permission_classes = [IsTeacherOrAdmin]
     serializer_class = serializers.Serializer
 

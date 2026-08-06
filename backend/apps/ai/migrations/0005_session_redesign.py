@@ -13,14 +13,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 一次性執行所有操作，禁用觸發器來避免 PostgreSQL 的 pending trigger events 問題
+        # The dependent rows are removed before constraints or key columns are
+        # changed.  Do not disable PostgreSQL system triggers here: application
+        # migration roles are intentionally non-superusers on fresh installs.
         migrations.RunSQL(
             sql="""
-            -- 禁用所有觸發器
-            ALTER TABLE ai_aisession DISABLE TRIGGER ALL;
-            ALTER TABLE ai_aimessage DISABLE TRIGGER ALL;
-            ALTER TABLE ai_aiexecutionlog DISABLE TRIGGER ALL;
-
             -- 清空數據（先清空依賴表）
             DELETE FROM ai_aiexecutionlog;
             DELETE FROM ai_aimessage;
@@ -52,20 +49,41 @@ class Migration(migrations.Migration):
             ALTER TABLE ai_aimessage ADD CONSTRAINT ai_aimessage_session_id_fk FOREIGN KEY (session_id) REFERENCES ai_aisession(session_id) ON DELETE CASCADE;
             ALTER TABLE ai_aiexecutionlog ADD CONSTRAINT ai_aiexecutionlog_session_id_fk FOREIGN KEY (session_id) REFERENCES ai_aisession(session_id) ON DELETE CASCADE;
 
-            -- 重新啟用觸發器
-            ALTER TABLE ai_aisession ENABLE TRIGGER ALL;
-            ALTER TABLE ai_aimessage ENABLE TRIGGER ALL;
-            ALTER TABLE ai_aiexecutionlog ENABLE TRIGGER ALL;
             """,
             reverse_sql="""
-            -- 禁用觸發器
-            ALTER TABLE ai_aisession DISABLE TRIGGER ALL;
-            ALTER TABLE ai_aimessage DISABLE TRIGGER ALL;
-            ALTER TABLE ai_aiexecutionlog DISABLE TRIGGER ALL;
-
-            -- 刪除外鍵約束
-            ALTER TABLE ai_aimessage DROP CONSTRAINT ai_aimessage_session_id_fk;
-            ALTER TABLE ai_aiexecutionlog DROP CONSTRAINT ai_aiexecutionlog_session_id_fk;
+            -- Delete the session foreign keys by relation rather than by a
+            -- generated name.  Reversing the final DeleteModel migration
+            -- recreates these constraints with Django-generated names.
+            DO $$
+            DECLARE constraint_name text;
+            BEGIN
+                SELECT conname INTO constraint_name
+                FROM pg_constraint
+                WHERE conrelid = 'ai_aimessage'::regclass
+                  AND confrelid = 'ai_aisession'::regclass
+                  AND contype = 'f';
+                IF constraint_name IS NOT NULL THEN
+                    EXECUTE format(
+                        'ALTER TABLE ai_aimessage DROP CONSTRAINT %I',
+                        constraint_name
+                    );
+                END IF;
+            END $$;
+            DO $$
+            DECLARE constraint_name text;
+            BEGIN
+                SELECT conname INTO constraint_name
+                FROM pg_constraint
+                WHERE conrelid = 'ai_aiexecutionlog'::regclass
+                  AND confrelid = 'ai_aisession'::regclass
+                  AND contype = 'f';
+                IF constraint_name IS NOT NULL THEN
+                    EXECUTE format(
+                        'ALTER TABLE ai_aiexecutionlog DROP CONSTRAINT %I',
+                        constraint_name
+                    );
+                END IF;
+            END $$;
 
             -- 還原 ai_asession 表結構
             ALTER TABLE ai_aisession DROP CONSTRAINT ai_aisession_pkey;
@@ -74,22 +92,31 @@ class Migration(migrations.Migration):
             ALTER TABLE ai_aisession ADD PRIMARY KEY (id);
             ALTER TABLE ai_aisession ADD COLUMN stage VARCHAR(50);
             ALTER TABLE ai_aisession ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
+            CREATE INDEX ai_aisessio_user_id_3156dc_idx
+                ON ai_aisession (user_id, is_active);
 
             -- 還原依賴表的列型別
+            DROP INDEX IF EXISTS ai_aimessage_session_id_29641548_like;
+            DROP INDEX IF EXISTS ai_aiexecutionlog_session_id_5e413895_like;
             ALTER TABLE ai_aimessage ALTER COLUMN session_id TYPE BIGINT USING session_id::bigint;
             ALTER TABLE ai_aiexecutionlog ALTER COLUMN session_id TYPE BIGINT USING session_id::bigint;
 
             -- 重新創建外鍵約束
             ALTER TABLE ai_aimessage ADD CONSTRAINT ai_aimessage_session_id_29641548_fk_ai_aisession_id FOREIGN KEY (session_id) REFERENCES ai_aisession(id) ON DELETE CASCADE;
             ALTER TABLE ai_aiexecutionlog ADD CONSTRAINT ai_aiexecutionlog_session_id_5e413895_fk_ai_aisession_id FOREIGN KEY (session_id) REFERENCES ai_aisession(id) ON DELETE CASCADE;
+            ALTER TABLE ai_aisession DROP COLUMN session_id_new;
 
-            -- 重新啟用觸發器
-            ALTER TABLE ai_aisession ENABLE TRIGGER ALL;
-            ALTER TABLE ai_aimessage ENABLE TRIGGER ALL;
-            ALTER TABLE ai_aiexecutionlog ENABLE TRIGGER ALL;
             """,
             state_operations=[
                 # Tell Django that AISession PK changed from id to session_id
+                # PostgreSQL drops this index with ``is_active``.  Keep the
+                # migration state in sync here rather than waiting until 0007;
+                # otherwise reversing 0007 tries to recreate an index before
+                # 0005 has restored the field.
+                migrations.RemoveIndex(
+                    model_name='aisession',
+                    name='ai_aisessio_user_id_3156dc_idx',
+                ),
                 migrations.RemoveField(
                     model_name='aisession',
                     name='id',

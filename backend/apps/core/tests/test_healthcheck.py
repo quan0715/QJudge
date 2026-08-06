@@ -10,7 +10,6 @@ class HealthcheckCommandTests(SimpleTestCase):
         OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
         ANTICHEAT_RAW_BUCKET="qjudge-anticheat-raw",
         MARKDOWN_IMAGE_S3_BUCKET="qjudge-markdown-images",
-        AI_ARTIFACT_S3_BUCKET="qjudge-ai-artifacts",
     )
     @patch("apps.contests.services.anticheat_storage.get_s3_client")
     def test_object_storage_connection_uses_bucket_scoped_probe(self, mock_get_client):
@@ -30,7 +29,6 @@ class HealthcheckCommandTests(SimpleTestCase):
     @override_settings(
         ANTICHEAT_RAW_BUCKET="qjudge-anticheat-raw",
         MARKDOWN_IMAGE_S3_BUCKET="qjudge-markdown-images",
-        AI_ARTIFACT_S3_BUCKET="qjudge-ai-artifacts",
     )
     @patch("apps.contests.services.anticheat_storage.get_s3_client")
     def test_object_storage_buckets_use_head_bucket(self, mock_get_client):
@@ -40,12 +38,10 @@ class HealthcheckCommandTests(SimpleTestCase):
         ok, detail = Command()._check_object_storage_buckets()
 
         self.assertTrue(ok)
-        self.assertIn("qjudge-ai-artifacts", detail)
         client.head_bucket.assert_has_calls(
             [
                 call(Bucket="qjudge-anticheat-raw"),
                 call(Bucket="qjudge-markdown-images"),
-                call(Bucket="qjudge-ai-artifacts"),
             ]
         )
         client.list_buckets.assert_not_called()

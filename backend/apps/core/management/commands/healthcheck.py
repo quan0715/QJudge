@@ -104,7 +104,6 @@ class Command(BaseCommand):
         raw_buckets = [
             ("anticheat_raw", getattr(settings, "ANTICHEAT_RAW_BUCKET", "")),
             ("markdown_images", getattr(settings, "MARKDOWN_IMAGE_S3_BUCKET", "")),
-            ("ai_artifacts", getattr(settings, "AI_ARTIFACT_S3_BUCKET", "")),
         ]
         buckets = []
         seen = set()

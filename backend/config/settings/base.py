@@ -341,14 +341,9 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
-# Celery Beat Schedule (for periodic tasks)
-# Only effective when celery-beat service is running
-CELERY_BEAT_SCHEDULE = {
-    "sweep-stale-ai-runs-every-60-seconds": {
-        "task": "apps.ai.tasks.sweep_stale_ai_runs",
-        "schedule": 60.0,
-    },
-}
+# Periodic work is registered by the services that own it.  AI recovery and
+# artifact maintenance run in the independent AI scheduler.
+CELERY_BEAT_SCHEDULE = {}
 
 # NYCU OAuth settings
 NYCU_OAUTH_CLIENT_ID = os.getenv("NYCU_OAUTH_CLIENT_ID", "")
@@ -417,10 +412,6 @@ AI_SERVICE_WRITE_TIMEOUT_SECONDS = float(
 )
 AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
     os.getenv("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
-)
-AI_SERVICE_INTERNAL_TOKEN = os.getenv(
-    "AI_SERVICE_INTERNAL_TOKEN",
-    os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
 )
 # Exam integrity lifecycle services. Backend owns database state while the
 # dedicated Controller is the only service allowed to own the Docker socket.
@@ -523,9 +514,6 @@ MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
     "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
     os.getenv("FRONTEND_URL", ""),
 ).strip()
-
-AI_ARTIFACT_S3_BUCKET = os.getenv("AI_ARTIFACT_S3_BUCKET", "ai-artifacts")
-AI_ARTIFACT_MAX_BYTES = int(os.getenv("AI_ARTIFACT_MAX_BYTES", "10485760"))  # 10 MB
 
 # Recur Payment settings
 RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
