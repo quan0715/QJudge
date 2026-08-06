@@ -1,278 +1,283 @@
-"""API endpoint tests for AI Service (DeepAgent v2)."""
+"""Canonical API smoke, validation, ownership and safe-error coverage."""
 
-import os
-import sys
-import types
+from __future__ import annotations
 
-import pytest
+from dataclasses import replace
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
+
 from fastapi.testclient import TestClient
 
-# Ensure required internal auth secrets exist before app import.
-os.environ.setdefault("AI_INTERNAL_TOKEN", "test-ai-internal-token")
-os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
-os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
+from api.dependencies import (
+    current_bearer_token,
+    current_principal,
+    get_active_run_reader,
+    get_artifact_service,
+    get_event_reader,
+    get_readiness_probe,
+    get_run_service,
+    get_session_service,
+    get_usage_service,
+)
+from application.artifacts import ArtifactNotFound
+from application.run_service import RunNotFound
+from application.session_service import SessionNotFound
+from domain.models import (
+    Artifact,
+    Principal,
+    Run,
+    RunKind,
+    RunStatus,
+    Session,
+    UsageSummary,
+)
+from main import create_app
 
-_openai_stub = types.ModuleType("langchain_openai")
-_deepseek_stub = types.ModuleType("langchain_deepseek")
-
-
-class _ChatOpenAIStub:  # pragma: no cover - import stub only
-    pass
-
-
-class _ChatDeepSeekStub:  # pragma: no cover - import stub only
-    pass
-
-
-_openai_stub.ChatOpenAI = _ChatOpenAIStub
-_deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
-sys.modules.setdefault("langchain_openai", _openai_stub)
-sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
-
-from config import get_settings  # noqa: E402
-import main as main_module  # noqa: E402
-from main import app  # noqa: E402
-
-# Use whatever token the running environment has configured.
-_CONFIGURED_TOKEN = get_settings().ai_internal_token.strip()
-
-
-class _FakeRunner:
-    """No-network runner for API contract tests."""
-
-    def __init__(self):
-        self.last_run_kwargs = None
-        self.last_resume_kwargs = None
-
-    async def run_stream(self, **kwargs):
-        self.last_run_kwargs = kwargs
-        yield {"type": "run_started", "run_id": "r1", "thread_id": "t1"}
-        yield {"type": "run_completed", "run_id": "r1"}
-
-    async def resume_stream(self, **kwargs):
-        self.last_resume_kwargs = kwargs
-        yield {"type": "run_started", "run_id": "r2", "thread_id": kwargs["thread_id"]}
-        yield {"type": "run_completed", "run_id": "r2"}
+OWNER = Principal("https://issuer.test", "teacher-1")
+SESSION_ID = UUID("11111111-1111-4111-8111-111111111111")
+RUN_ID = UUID("22222222-2222-4222-8222-222222222222")
+ARTIFACT_ID = UUID("33333333-3333-4333-8333-333333333333")
 
 
-class _ErrorRunner:
-    """Runner that raises deterministic errors for leak-safety tests."""
+class FakeSessionService:
+    def __init__(self) -> None:
+        self.session = Session(SESSION_ID, OWNER, "New chat", {"course_id": 7})
 
-    async def run_stream(self, **kwargs):
-        raise RuntimeError("sensitive-run-error")
-        yield  # pragma: no cover
+    async def create_session(self, principal, context):
+        assert principal == OWNER
+        self.session = replace(self.session, context=dict(context))
+        return self.session
 
-    async def resume_stream(self, **kwargs):
-        raise RuntimeError("sensitive-resume-error")
-        yield  # pragma: no cover
+    async def list_sessions(self, principal):
+        return [self.session]
 
+    async def get_session(self, principal, session_id):
+        if principal != OWNER or session_id != SESSION_ID:
+            raise SessionNotFound(session_id)
+        return self.session
 
-@pytest.fixture
-def client():
-    """Create test client with fake runner to avoid external LLM calls."""
-    runner = _FakeRunner()
-    with TestClient(app) as test_client:
-        test_client.app.state.deepagent_runner = runner
-        test_client.app.state._test_runner = runner
-        yield test_client
+    async def rename_session(self, principal, session_id, title):
+        await self.get_session(principal, session_id)
+        self.session = replace(self.session, title=title)
+        return self.session
 
+    async def clear_session(self, principal, session_id):
+        return await self.get_session(principal, session_id)
 
-@pytest.fixture
-def error_client():
-    """Create test client with error runner for failure-path assertions."""
-    with TestClient(app) as test_client:
-        test_client.app.state.deepagent_runner = _ErrorRunner()
-        yield test_client
-
-
-AUTH_HEADERS = {"X-AI-Internal-Token": _CONFIGURED_TOKEN}
+    async def delete_session(self, principal, session_id):
+        await self.get_session(principal, session_id)
 
 
-async def test_lifespan_composes_checkpoints_from_ai_database_url(monkeypatch):
-    settings = get_settings().model_copy(
-        update={
-            "ai_database_url": "postgresql://ai-owned.example/qjudge_ai",
-            "ai_state_postgres_url": "postgresql://legacy.example/django",
-        }
+class FakeRunService:
+    def __init__(self) -> None:
+        self.run = Run(
+            RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-v4"
+        )
+        self.start_token = None
+
+    async def start(
+        self, principal, session_id, prompt, model_id, idempotency_key, subject_token
+    ):
+        self.start_token = subject_token
+        return replace(self.run, model_id=model_id)
+
+    async def get(self, principal, run_id):
+        if principal != OWNER or run_id != RUN_ID:
+            raise RunNotFound(run_id)
+        return self.run
+
+    async def cancel(self, principal, run_id):
+        await self.get(principal, run_id)
+        self.run = replace(self.run, cancel_requested=True)
+        return self.run
+
+    async def approve(self, principal, run_id, decision, subject_token):
+        await self.get(principal, run_id)
+        return self.run
+
+    async def answer(self, principal, run_id, answer, subject_token):
+        await self.get(principal, run_id)
+        return self.run
+
+
+class FakeEventReader:
+    async def get_run(self, principal, run_id):
+        if run_id != RUN_ID:
+            raise RunNotFound(run_id)
+        return Run(
+            RUN_ID, SESSION_ID, RunStatus.COMPLETED, RunKind.CHAT, "deepseek-v4", 0
+        )
+
+    async def list_after(self, principal, run_id, after):
+        return []
+
+
+class FakeActiveRunReader:
+    async def list_for_owner(self, principal):
+        return []
+
+
+class FakeArtifactService:
+    def __init__(self) -> None:
+        self.artifact = Artifact(
+            ARTIFACT_ID,
+            SESSION_ID,
+            RUN_ID,
+            "output",
+            "answer.txt",
+            "text/plain",
+            5,
+            "sum",
+        )
+
+    async def put(self, principal, **kwargs):
+        return self.artifact
+
+    async def list(self, principal, session_id, **kwargs):
+        if session_id != SESSION_ID:
+            raise ArtifactNotFound()
+        return [self.artifact]
+
+    async def get_metadata(self, principal, artifact_id):
+        if artifact_id != ARTIFACT_ID:
+            raise ArtifactNotFound()
+        return self.artifact
+
+    async def get_content(self, principal, artifact_id):
+        await self.get_metadata(principal, artifact_id)
+        return b"hello"
+
+    async def get_download_url(self, principal, artifact_id):
+        await self.get_metadata(principal, artifact_id)
+        return "https://objects.test/answer.txt"
+
+
+class FakeUsageService:
+    async def get_usage_summary(self, principal):
+        return UsageSummary(13, 8, 2, datetime(2026, 8, 6, tzinfo=UTC))
+
+
+class FakeReadiness:
+    async def check(self):
+        return {"database": "ready", "queue": "ready", "settings": "ready"}
+
+
+def make_client() -> tuple[TestClient, FakeRunService]:
+    app = create_app()
+    runs = FakeRunService()
+    app.dependency_overrides[current_principal] = lambda: OWNER
+    app.dependency_overrides[current_bearer_token] = lambda: "subject-token"
+    app.dependency_overrides[get_session_service] = FakeSessionService
+    app.dependency_overrides[get_run_service] = lambda: runs
+    app.dependency_overrides[get_event_reader] = FakeEventReader
+    app.dependency_overrides[get_active_run_reader] = FakeActiveRunReader
+    app.dependency_overrides[get_artifact_service] = FakeArtifactService
+    app.dependency_overrides[get_usage_service] = FakeUsageService
+    app.dependency_overrides[get_readiness_probe] = FakeReadiness
+    return TestClient(app), runs
+
+
+def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
+    client, runs = make_client()
+    created = client.post("/v1/sessions", json={"context": {"course_id": 7}})
+    assert created.status_code == 201
+    started = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "browser-message-1"},
+        json={"message": "hello", "model_id": "deepseek-v4"},
     )
-    captured = {}
+    assert started.status_code == 202
+    assert started.json()["run_id"] == str(RUN_ID)
+    assert runs.start_token == "subject-token"
 
-    class FakeCheckpointStore:
-        def __init__(self, *, database_url):
-            captured["database_url"] = database_url
-
-    class FakeRunner:
-        def __init__(self, *, checkpoint_store, mcp_server_url, **kwargs):
-            captured["checkpoint_store"] = checkpoint_store
-            captured["mcp_server_url"] = mcp_server_url
-
-        async def setup(self):
-            captured["setup"] = True
-
-        async def shutdown(self):
-            captured["shutdown"] = True
-
-    monkeypatch.setattr(main_module, "get_settings", lambda: settings)
-    monkeypatch.setattr(main_module, "LangGraphCheckpointStore", FakeCheckpointStore)
-    monkeypatch.setattr(main_module, "DeepAgentRunner", FakeRunner)
-    test_app = main_module.create_app()
-
-    async with main_module.lifespan(test_app):
-        assert test_app.state.deepagent_runner is not None
-
-    assert captured["database_url"] == "postgresql://ai-owned.example/qjudge_ai"
-    assert isinstance(captured["checkpoint_store"], FakeCheckpointStore)
-    assert captured["mcp_server_url"] == settings.qjudge_mcp_url
-    assert captured["setup"] is True
-    assert captured["shutdown"] is True
+    missing_key = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        json={"message": "hello", "model_id": "deepseek-v4"},
+    )
+    assert missing_key.status_code == 422
+    assert missing_key.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-class TestHealthEndpoint:
-    def test_health_check(self, client):
-        response = client.get("/health")
-        assert response.status_code == 200
-
-        data = response.json()
-        assert "status" in data
-        assert "version" in data
-        assert "checkpoint_db" in data
-
-    def test_health_check_fields(self, client):
-        response = client.get("/health")
-        data = response.json()
-
-        assert data["status"] in ["healthy", "degraded"]
-        assert isinstance(data["version"], str)
-        assert data["checkpoint_db"] in ["connected", "not_configured"]
+def test_every_error_has_stable_envelope_and_echoed_request_id() -> None:
+    client, _ = make_client()
+    response = client.get(
+        f"/v1/runs/{uuid4()}", headers={"X-Request-ID": "request-from-gateway"}
+    )
+    assert response.status_code == 404
+    assert response.headers["X-Request-ID"] == "request-from-gateway"
+    assert response.json() == {
+        "error": {
+            "code": "RUN_NOT_FOUND",
+            "message": "Run was not found.",
+            "retryable": False,
+            "request_id": "request-from-gateway",
+        }
+    }
 
 
-class TestRootEndpoint:
-    def test_root(self, client):
-        response = client.get("/")
-        assert response.status_code == 200
-        data = response.json()
-        assert "service" in data
-        assert "version" in data
-        assert "docs" in data
+def test_usage_and_models_never_expose_price_cost_or_credit() -> None:
+    client, _ = make_client()
+    usage = client.get("/v1/usage")
+    assert usage.status_code == 200
+    assert usage.json() == {
+        "total_input_tokens": 13,
+        "total_output_tokens": 8,
+        "total_runs": 2,
+        "updated_at": "2026-08-06T00:00:00Z",
+    }
+    models = client.get("/v1/models")
+    assert models.status_code == 200
+    forbidden = {"price", "pricing", "cost", "credits", "entitlement"}
+    assert all(forbidden.isdisjoint(model) for model in models.json()["models"])
 
 
-class TestModelsEndpoint:
-    def test_models_endpoint(self, client):
-        response = client.get("/api/models")
-        assert response.status_code == 200
-        data = response.json()
-        assert "models" in data
-        assert isinstance(data["models"], list)
-        model_ids = [m["model_id"] for m in data["models"]]
-        default_models = [m["model_id"] for m in data["models"] if m.get("is_default")]
-        assert model_ids == [
-            "openai-nano",
-            "openai-mini",
-            "openai-mini-medium",
-            "deepseek-v4",
-            "deepseek-v4-thinking",
-        ]
-        assert default_models == ["openai-nano"]
+def test_health_is_public_and_artifacts_are_owner_scoped() -> None:
+    client, _ = make_client()
+    assert client.get("/health/live").json() == {"status": "ok"}
+    assert client.get("/health/ready").status_code == 200
+    metadata = client.get(f"/v1/artifacts/{ARTIFACT_ID}")
+    assert metadata.status_code == 200
+    assert metadata.json()["artifact_id"] == str(ARTIFACT_ID)
+    content = client.get(f"/v1/artifacts/{ARTIFACT_ID}/content")
+    assert content.content == b"hello"
+    download = client.get(
+        f"/v1/artifacts/{ARTIFACT_ID}/download", follow_redirects=False
+    )
+    assert download.status_code == 307
+    assert download.headers["location"] == "https://objects.test/answer.txt"
 
 
-class TestChatStreamEndpoint:
-    def test_stream_requires_content(self, client):
-        response = client.post("/api/chat/stream", json={})
-        assert response.status_code == 422
+def test_readiness_failure_uses_the_request_correlation_id() -> None:
+    client, _ = make_client()
 
-    def test_stream_requires_internal_auth(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            json={"content": "hello", "conversation": []},
-        )
-        assert response.status_code == 401
+    class NotReady:
+        async def check(self):
+            return {"database": "not_ready", "queue": "ready", "settings": "ready"}
 
-    def test_stream_rejects_empty_content(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={"content": "", "conversation": []},
-        )
-        assert response.status_code == 422
+    client.app.dependency_overrides[get_readiness_probe] = NotReady
+    response = client.get("/health/ready", headers={"X-Request-ID": "ready-request"})
+    assert response.status_code == 503
+    assert response.json()["error"]["request_id"] == "ready-request"
 
-    def test_stream_limits_conversation_length(self, client):
-        too_many_messages = [{"role": "user", "content": "m"} for _ in range(51)]
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={"content": "hello", "conversation": too_many_messages},
-        )
-        assert response.status_code == 422
 
-    def test_stream_accepts_valid_request(self, client):
-        response = client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "Hello",
-                "conversation": [{"role": "user", "content": "Hi"}],
-            },
-        )
-        assert response.status_code == 200
+def test_unknown_exception_does_not_leak_internal_details() -> None:
+    client, _ = make_client()
 
-    def test_stream_failure_does_not_leak_internal_error(self, error_client):
-        response = error_client.post(
-            "/api/chat/stream",
-            headers=AUTH_HEADERS,
-            json={
-                "content": "Hello",
-                "conversation": [],
-            },
-        )
-        assert response.status_code == 200
-        assert "Streaming failed" in response.text
-        assert "sensitive-run-error" not in response.text
+    class ExplodingUsage:
+        async def get_usage_summary(self, principal):
+            raise RuntimeError("database-password=secret")
 
-    def test_resume_requires_internal_auth(self, client):
-        response = client.post(
-            "/api/chat/resume",
-            json={
-                "thread_id": "thread-1",
-                "decision": "approve",
-            },
-        )
-        assert response.status_code == 401
+    client.app.dependency_overrides[get_usage_service] = ExplodingUsage
+    with TestClient(client.app, raise_server_exceptions=False) as safe_client:
+        response = safe_client.get("/v1/usage")
+    assert response.status_code == 500
+    assert response.json()["error"]["code"] == "INTERNAL_ERROR"
+    assert "database-password" not in response.text
 
-    def test_resume_rejects_empty_thread_id(self, client):
-        response = client.post(
-            "/api/chat/resume",
-            headers=AUTH_HEADERS,
-            json={
-                "thread_id": "",
-                "decision": "approve",
-            },
-        )
-        assert response.status_code == 422
 
-    def test_resume_accepts_valid_request(self, client):
-        response = client.post(
-            "/api/chat/resume",
-            headers=AUTH_HEADERS,
-            json={
-                "thread_id": "thread-1",
-                "model_id": "openai-mini",
-                "decision": "approve",
-            },
-        )
-        assert response.status_code == 200
-        runner = client.app.state._test_runner
-        assert runner.last_resume_kwargs is not None
-        assert runner.last_resume_kwargs["model_id"] == "openai-mini"
-
-    def test_resume_failure_does_not_leak_internal_error(self, error_client):
-        response = error_client.post(
-            "/api/chat/resume",
-            headers=AUTH_HEADERS,
-            json={
-                "thread_id": "thread-1",
-                "decision": "approve",
-            },
-        )
-        assert response.status_code == 200
-        assert "Resume failed" in response.text
-        assert "sensitive-resume-error" not in response.text
+def test_legacy_shared_secret_and_chat_routes_are_removed() -> None:
+    client, _ = make_client()
+    removed = client.post("/api/chat/stream", headers={"X-AI-Internal-Token": "old"})
+    assert removed.status_code == 404
+    assert removed.json()["error"]["code"] == "HTTP_NOT_FOUND"
+    assert client.get("/api/models").status_code == 404
