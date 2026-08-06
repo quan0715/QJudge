@@ -428,7 +428,8 @@ class SqlAlchemyRunRepository:
             raise LookupError(f"Run not found: {run_id}")
 
         if (
-            RunStatus(run_row.status) is RunStatus.CANCELLED
+            RunStatus(run_row.status)
+            in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
             and event.get("type") not in _TERMINAL_EVENT_TYPES
         ):
             latest = await self._latest_event(run_id)

@@ -14,6 +14,8 @@ from .runtime import CheckpointRepair, RecoveryRun
 class SchedulableRuns(Protocol):
     async def fail_stale_runs(self, cutoff: datetime) -> list[RecoveryRun]: ...
 
+    async def complete_stale_recovery(self, recovery: RecoveryRun) -> bool: ...
+
     async def unblocked_queued_runs(self) -> list[RecoveryRun]: ...
 
     async def dispatch_recovery_run(
@@ -51,14 +53,21 @@ class WorkerScheduler:
     async def recover_stale_runs(self) -> int:
         cutoff = datetime.now(UTC) - self._stale_after
         stale = await self._runs.fail_stale_runs(cutoff)
+        recovered = 0
         for recovery in stale:
-            await self._checkpoints.repair_cancelled_run(recovery.session_id)
+            try:
+                await self._checkpoints.repair_cancelled_run(recovery.session_id)
+            except Exception:
+                continue
+            if not await self._runs.complete_stale_recovery(recovery):
+                continue
+            recovered += 1
             await self._runs.dispatch_next_after_terminal(
                 recovery.run_id,
                 self._credentials.key_for(recovery.owner).value,
                 TraceContext(request_id="ai-stale-recovery"),
             )
-        return len(stale)
+        return recovered
 
     async def dispatch_unblocked_sessions(self) -> int:
         queued = await self._runs.unblocked_queued_runs()

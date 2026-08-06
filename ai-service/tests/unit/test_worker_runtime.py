@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -59,10 +60,17 @@ class FakeRuns:
     async def cancel_requested(self, run_id):
         return self.run.cancel_requested
 
-    async def heartbeat(self, run_id):
+    async def heartbeat(self, run_id, execution_epoch):
         self.heartbeats += 1
+        return True
 
-    async def append_event(self, run_id, event):
+    async def execution_active(self, run_id, execution_epoch):
+        return self.run.status is RunStatus.RUNNING
+
+    async def begin_cancel_repair(self, run_id, execution_epoch):
+        return True
+
+    async def append_event(self, run_id, execution_epoch, event):
         self.events.append(event)
         if event["type"] == "run_completed":
             self.run = replace(self.run, status=RunStatus.COMPLETED)
@@ -74,6 +82,12 @@ class FakeRuns:
                 status=RunStatus.FAILED,
                 error_code=event["error_code"],
             )
+        return True
+
+    async def complete_cancel_repair(self, run_id, execution_epoch):
+        return await self.append_event(
+            run_id, execution_epoch, {"type": "run_cancelled"}
+        )
 
     async def dispatch_next_after_terminal(self, run_id, lease_key, trace):
         self.dispatches.append((run_id, lease_key, trace))
@@ -146,12 +160,28 @@ async def test_duplicate_delivery_calls_agent_once() -> None:
     )
 
     await asyncio.gather(
-        runtime.execute(run.id, "lease-key", TRACE),
-        runtime.execute(run.id, "lease-key", TRACE),
+        runtime.execute(run.id, "lease:subject", TRACE),
+        runtime.execute(run.id, "lease:subject", TRACE),
     )
 
     assert [command.run_id for command in agent.commands] == [run.id]
     assert runs.claims == 1
+
+
+@pytest.mark.asyncio
+async def test_foreign_lease_key_fails_before_credentials_or_agent() -> None:
+    run = make_run()
+    owner = Principal("issuer", "subject")
+    runs = FakeRuns(run, owner)
+    credentials = FakeCredentials()
+    agent = FakeAgent()
+    runtime = WorkerRuntime(runs, credentials, agent, FakeCheckpoints())
+
+    await runtime.execute(run.id, "lease:another-subject", TRACE)
+
+    assert credentials.calls == 0
+    assert agent.commands == []
+    assert runs.run.error_code == "MCP_AUTH_FAILED"
 
 
 @pytest.mark.asyncio
@@ -166,11 +196,11 @@ async def test_unrecoverable_mcp_failure_never_calls_model() -> None:
         FakeCheckpoints(),
     )
 
-    await runtime.execute(run.id, "lease-key", TRACE)
+    await runtime.execute(run.id, "lease:subject", TRACE)
 
     assert agent.commands == []
     assert runs.run.error_code == "MCP_UNAVAILABLE"
-    assert runs.dispatches == [(run.id, "lease-key", TRACE)]
+    assert runs.dispatches == [(run.id, "lease:subject", TRACE)]
 
 
 @pytest.mark.asyncio
@@ -207,7 +237,7 @@ async def test_heartbeat_runs_independently_of_agent_events() -> None:
         heartbeat_seconds=0.005,
     )
 
-    await runtime.execute(run.id, "lease-key", TRACE)
+    await runtime.execute(run.id, "lease:subject", TRACE)
 
     assert runs.heartbeats >= 2
 
@@ -222,7 +252,7 @@ async def test_resume_command_uses_persisted_answer() -> None:
     agent = FakeAgent([{"type": "run_completed"}])
     runtime = WorkerRuntime(runs, FakeCredentials(), agent, FakeCheckpoints())
 
-    await runtime.execute(run.id, "lease-key", TRACE)
+    await runtime.execute(run.id, "lease:subject", TRACE)
 
     assert agent.commands[0].operation is AgentOperation.ANSWER
     assert agent.commands[0].answer == "yes"
@@ -247,6 +277,10 @@ class LeaseStore:
 
     async def delete(self, key):
         self.deletes += 1
+
+    @asynccontextmanager
+    async def refresh_lock(self, key):
+        yield
 
 
 class Preflight:

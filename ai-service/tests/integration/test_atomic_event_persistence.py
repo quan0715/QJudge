@@ -209,6 +209,35 @@ async def test_cancelled_run_ignores_late_event_without_allocating_sequence(
     assert [event.event_type for event in events] == ["run_cancelled"]
 
 
+async def test_failed_run_ignores_late_nonterminal_event_without_allocating_sequence(
+    session_factory, seeded_run
+) -> None:
+    run_id, _ = seeded_run
+    async with session_factory.begin() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        failed = await repository.append_event(
+            run_id,
+            {
+                "type": "run_failed",
+                "error_code": "WORKER_STALE",
+                "message": "stale",
+            },
+        )
+        late = await repository.append_event(
+            run_id, {"type": "agent_message_delta", "content": "late"}
+        )
+
+    async with session_factory() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        run = await repository.get(run_id)
+        events = await repository.list_events(run_id)
+
+    assert failed.sequence == 1
+    assert late.sequence == 1
+    assert run is not None and run.last_sequence == 1
+    assert [event.event_type for event in events] == ["run_failed"]
+
+
 async def test_second_terminal_event_is_rejected_and_not_persisted(
     session_factory, seeded_run
 ) -> None:

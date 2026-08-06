@@ -99,6 +99,12 @@ class RunRow(Base):
     cancel_requested: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
+    execution_epoch: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default="0"
+    )
+    repair_pending: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     last_sequence: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )

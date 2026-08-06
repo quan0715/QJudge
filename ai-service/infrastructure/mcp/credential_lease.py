@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import math
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Callable
 
@@ -14,7 +15,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from redis.asyncio import Redis
-from redis.exceptions import RedisError
+from redis.exceptions import LockError, RedisError
 
 from domain.models import Principal
 from domain.ports import CredentialLease, CredentialLeaseKey, McpUnavailable
@@ -136,3 +137,25 @@ class RedisCredentialLeaseStore:
             await self._redis.delete(key.value)
         except RedisError as exc:
             raise McpUnavailable("Credential lease store is unavailable") from exc
+
+    @asynccontextmanager
+    async def refresh_lock(self, key: CredentialLeaseKey):
+        """Serialize rejected-token replacement across Worker processes."""
+        lock = self._redis.lock(
+            f"{key.value}:refresh",
+            timeout=15,
+            blocking_timeout=15,
+        )
+        try:
+            acquired = await lock.acquire()
+        except RedisError as exc:
+            raise McpUnavailable("Credential lease store is unavailable") from exc
+        if not acquired:
+            raise McpUnavailable("Credential lease refresh is busy")
+        try:
+            yield
+        finally:
+            try:
+                await lock.release()
+            except LockError:
+                pass

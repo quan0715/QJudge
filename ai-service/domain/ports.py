@@ -7,6 +7,7 @@ web frameworks.
 
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 from datetime import datetime
 from types import TracebackType
@@ -86,6 +87,10 @@ class CredentialLeaseStore(Protocol):
     async def put(self, key: CredentialLeaseKey, lease: CredentialLease) -> None: ...
 
     async def delete(self, key: CredentialLeaseKey) -> None: ...
+
+    def refresh_lock(
+        self, key: CredentialLeaseKey
+    ) -> AbstractAsyncContextManager[None]: ...
 
 
 class McpTokenExchange(Protocol):
