@@ -525,14 +525,13 @@
   },
   "settings": {
     "aiUsage": {
+      "aiRuns": "AI 執行次數",
       "inputTokens": "輸入 Tokens",
       "lastUpdated": "最後更新",
       "loadError": "無法載入使用量資料",
       "noData": "無資料",
       "outputTokens": "輸出 Tokens",
-      "title": "AI 使用量",
-      "totalCost": "累計費用",
-      "totalRequests": "總請求數"
+      "title": "AI 使用量"
     },
     "description": "管理個人檔案、偏好設定、方案與使用量。",
     "descriptionStudent": "管理個人設定。",

@@ -18,6 +18,7 @@ import {
 import { useCopilotSessions } from "../hooks/useCopilotSessions";
 import { useCopilotComposer } from "../hooks/useCopilotComposer";
 import { useCopilotModels } from "../hooks/useCopilotModels";
+import { useCopilotRun } from "../hooks/useCopilotRun";
 import { useCopilotStateContext } from "./copilotContexts";
 import { CopilotProvider } from "./CopilotProvider";
 
@@ -1801,6 +1802,39 @@ describe("CopilotProvider session lifecycle", () => {
 });
 
 describe("CopilotProvider composer lifecycle", () => {
+  it("reuses the optimistic message id as the run idempotency key", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const startRun = vi
+      .spyOn(transport, "startRun")
+      .mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+      }),
+      {
+        wrapper: createWrapper({
+          transport,
+          sessionLocation: new MemoryCopilotSessionLocation(session.id),
+        }),
+      },
+    );
+    await waitFor(() => expect(result.current.composer.isSending).toBe(false));
+    act(() => result.current.composer.setDraft("hello"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+
+    await act(() => result.current.composer.send());
+    const firstInput = startRun.mock.calls[0]?.[0];
+    expect(firstInput?.idempotencyKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+
+    await act(() => result.current.run.retry());
+    const secondInput = startRun.mock.calls[1]?.[0];
+    expect(secondInput?.idempotencyKey).toBe(firstInput?.idempotencyKey);
+  });
+
   it("creates exactly one session when the first draft is sent", async () => {
     const transport = new MemoryCopilotTransport();
     const createSession = vi.spyOn(transport, "createSession");

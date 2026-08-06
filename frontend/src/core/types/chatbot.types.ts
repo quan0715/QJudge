@@ -124,8 +124,8 @@ export interface ChatRun {
     options?: string[];
     input_type?: string;
   };
-  userMessageId?: number;
-  assistantMessageId?: number;
+  userMessageId?: string | number;
+  assistantMessageId?: string | number;
   error?: string;
 }
 
@@ -139,7 +139,6 @@ export interface ChatSession {
   context?: Record<string, unknown>;
   metadata?: {
     backend_session_id?: string;
-    deepagent_thread_id?: string;
     title_pending?: boolean;
     sync_timestamp?: number;
     active_run_id?: string;
@@ -154,7 +153,6 @@ export interface StreamEvent extends BaseStreamEvent {
   metadata?: Record<string, unknown>;
   todoItems?: RunTodoItem[];
   runId?: string;
-  threadId?: string;
   verificationReport?: VerificationReport;
   toolName?: string;
 }
@@ -211,6 +209,7 @@ export interface SendMessageOptions {
   context?: ChatContext;
   reference?: ProblemReference;
   modelOverride?: string;
+  idempotencyKey?: string;
   signal?: AbortSignal;
 }
 

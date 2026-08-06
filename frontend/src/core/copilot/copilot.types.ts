@@ -227,6 +227,7 @@ export interface CopilotStartRunInput {
   text: string;
   attachments?: readonly CopilotAttachmentPart[];
   modelId?: string;
+  idempotencyKey?: string;
   metadata?: Record<string, unknown>;
 }
 

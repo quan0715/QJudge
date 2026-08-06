@@ -148,9 +148,11 @@ export function createQJudgeCopilotTransport(
 
     async startRun(input): Promise<CopilotRun> {
       try {
+        const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
         return rememberRun(
           await repository.startRun(input.sessionId, input.text, {
             modelOverride: input.modelId,
+            idempotencyKey,
           }),
         );
       } catch (error) {

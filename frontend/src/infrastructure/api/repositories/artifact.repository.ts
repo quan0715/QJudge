@@ -15,7 +15,6 @@ export interface ArtifactRecord {
   run_id: string | null;
   step: string;
   filename: string;
-  object_key: string;
   content_type: string;
   size_bytes: number;
   checksum: string;

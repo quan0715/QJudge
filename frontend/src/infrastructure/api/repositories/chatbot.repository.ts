@@ -42,7 +42,6 @@ interface V2StreamEvent {
 
   // run_started
   run_id?: string;
-  thread_id?: string;
 
   // agent_message_delta
   content?: string;
@@ -65,7 +64,6 @@ interface V2StreamEvent {
   // usage_report
   input_tokens?: number;
   output_tokens?: number;
-  cost_cents?: number;
   model_used?: string;
 
   // run_failed
@@ -90,7 +88,9 @@ interface V2StreamEvent {
 
 // ===== Backend response types =====
 interface BackendMessage {
-  id: number;
+  id?: string | number;
+  session_id?: string;
+  ordinal?: number;
   role: string;
   content: string;
   message_type: string;
@@ -144,8 +144,8 @@ interface BackendRun {
     options?: string[];
     input_type?: string;
   };
-  user_message_id?: number;
-  assistant_message_id?: number;
+  user_message_id?: string | number;
+  assistant_message_id?: string | number;
   error?: string;
 }
 
@@ -389,7 +389,23 @@ function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefi
   );
 }
 
-function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
+function toMessageId(backendMsg: BackendMessage, sessionId: string): string {
+  const ordinal =
+    backendMsg.ordinal ??
+    (typeof backendMsg.id === "number"
+      ? backendMsg.id
+      : typeof backendMsg.id === "string" && /^\d+$/.test(backendMsg.id)
+        ? Number(backendMsg.id)
+        : undefined);
+  if (ordinal !== undefined) return `${sessionId}:${ordinal}`;
+  if (backendMsg.id !== undefined) return String(backendMsg.id);
+  throw new Error("AI message is missing its aggregate identity");
+}
+
+function convertBackendMessage(
+  backendMsg: BackendMessage,
+  sessionId: string,
+): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
     typeof metadata.thinking === "string" ? metadata.thinking : undefined;
@@ -438,7 +454,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     .map((o) => ({ label: String(o.label), message: String(o.message) }));
 
   return {
-    id: backendMsg.id.toString(),
+    id: toMessageId(backendMsg, sessionId),
     role: backendMsg.role as "user" | "assistant",
     content: backendMsg.content,
     timestamp: new Date(backendMsg.created_at),
@@ -478,8 +494,28 @@ async function requestJson<T>(
   try {
     const response = await fetchPromise;
     if (!response.ok) {
-      const error = new Error(errorMessage) as Error & { response?: Response };
+      let envelope: unknown;
+      try {
+        envelope = await response.clone().json();
+      } catch {
+        envelope = undefined;
+      }
+      const upstreamMessage =
+        envelope &&
+        typeof envelope === "object" &&
+        "error" in envelope &&
+        envelope.error &&
+        typeof envelope.error === "object" &&
+        "message" in envelope.error &&
+        typeof envelope.error.message === "string"
+          ? envelope.error.message
+          : undefined;
+      const error = new Error(upstreamMessage ?? errorMessage) as Error & {
+        response?: Response;
+        envelope?: unknown;
+      };
       error.response = response;
+      error.envelope = envelope;
       throw error;
     }
     return response.json();
@@ -545,7 +581,9 @@ const chatbotRepository: ChatbotRepository = {
       httpClient.get(`${BASE_URL}/${sessionId.toString()}/`),
       "無法載入對話"
     );
-    const messages: ChatMessage[] = (data.messages || []).map(convertBackendMessage);
+    const messages: ChatMessage[] = (data.messages || []).map((message) =>
+      convertBackendMessage(message, data.session_id),
+    );
     return {
       id: data.session_id,
       title: data.title,
@@ -628,10 +666,16 @@ const chatbotRepository: ChatbotRepository = {
     options?: SendMessageOptions
   ): Promise<ChatRun> {
     const data = await requestJson<BackendRun>(
-      httpClient.post(`${BASE_URL}/${sessionId.toString()}/runs/`, {
-        content,
-        model_id: options?.modelOverride,
-      }),
+      httpClient.post(
+        `${BASE_URL}/${sessionId.toString()}/runs/`,
+        {
+          content,
+          model_id: options?.modelOverride,
+        },
+        options?.idempotencyKey
+          ? { headers: { "Idempotency-Key": options.idempotencyKey } }
+          : undefined,
+      ),
       "無法建立 AI 任務"
     );
     return convertBackendRun(data);
@@ -703,7 +747,6 @@ const chatbotRepository: ChatbotRepository = {
               currentMessage,
               callbacks,
               run.sessionId,
-              () => {}
             );
           } catch (e) {
             console.debug("Failed to parse run event:", e);
@@ -721,7 +764,6 @@ const chatbotRepository: ChatbotRepository = {
             currentMessage,
             callbacks,
             run.sessionId,
-            () => {}
           );
         } catch (e) {
           console.debug("Failed to parse final run event:", e);
@@ -765,7 +807,6 @@ const chatbotRepository: ChatbotRepository = {
     currentMessage: Partial<ChatMessage>,
     callbacks: StreamCallbacks,
     resolvedSessionId: string,
-    setResolvedId: (id: string) => void
   ) {
     const resumeSequence =
       typeof event.seq === "number" ? event.seq : undefined;
@@ -790,12 +831,7 @@ const chatbotRepository: ChatbotRepository = {
     switch (event.type) {
       // ===== v2 Events =====
       case "run_started":
-        console.debug("SSE: run_started", { runId: event.run_id, threadId: event.thread_id });
-        // DeepAgent v2 uses thread_id as the canonical session id.
-        // For newly created chats, this replaces the temporary backend session id.
-        if (event.thread_id) {
-          setResolvedId(event.thread_id);
-        }
+        console.debug("SSE: run_started", { runId: event.run_id });
         break;
 
       case "summarization_started": {
@@ -933,7 +969,6 @@ const chatbotRepository: ChatbotRepository = {
         console.debug("SSE: usage_report", {
           inputTokens: event.input_tokens,
           outputTokens: event.output_tokens,
-          costCents: event.cost_cents,
           modelUsed: event.model_used,
         });
         break;
@@ -1051,7 +1086,6 @@ const chatbotRepository: ChatbotRepository = {
     currentMessage: Partial<ChatMessage>,
     callbacks: StreamCallbacks,
     resolvedSessionId: string,
-    setResolvedId: (id: string) => void
   ) => void;
 };
 

@@ -1,7 +1,112 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { httpClient } from "@/infrastructure/api/http.client";
 import chatbotRepository from "./chatbot.repository";
+
+const SESSION_ID = "11111111-1111-1111-1111-111111111111";
+const RUN_ID = "22222222-2222-2222-2222-222222222222";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe("chatbotRepository AI-owned identifiers", () => {
+  it("maps aggregate-scoped message ordinals to stable UI ids", async () => {
+    vi.spyOn(httpClient, "get").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          session_id: SESSION_ID,
+          title: "Chat",
+          context: {},
+          messages: [
+            {
+              session_id: SESSION_ID,
+              ordinal: 3,
+              role: "assistant",
+              content: "Hi",
+              message_type: "text",
+              metadata: {},
+              created_at: "2026-08-06T00:00:00Z",
+            },
+            {
+              id: 4,
+              role: "user",
+              content: "Hello",
+              message_type: "text",
+              metadata: {},
+              created_at: "2026-08-06T00:00:01Z",
+            },
+          ],
+          created_at: "2026-08-06T00:00:00Z",
+          updated_at: "2026-08-06T00:00:01Z",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const session = await chatbotRepository.getSession(SESSION_ID);
+
+    expect(session.messages.map((message) => message.id)).toEqual([
+      `${SESSION_ID}:3`,
+      `${SESSION_ID}:4`,
+    ]);
+  });
+
+  it("reconnects with the last persisted sequence", async () => {
+    const request = vi.spyOn(httpClient, "request").mockResolvedValueOnce(
+      new Response("", { status: 200 }),
+    );
+
+    await chatbotRepository.subscribeRunEvents(
+      {
+        id: RUN_ID,
+        sessionId: SESSION_ID,
+        status: "running",
+        kind: "chat",
+        modelId: "openai-nano",
+        lastEventSeq: 9,
+      },
+      {},
+    );
+
+    const requestedUrl = new URL(
+      String(request.mock.calls[0]?.[0]),
+      "https://qjudge.test",
+    );
+    expect(requestedUrl.searchParams.get("after")).toBe("9");
+  });
+
+  it("reuses the idempotency header across the HTTP auth refresh replay", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: RUN_ID,
+            session_id: SESSION_ID,
+            status: "queued",
+            kind: "chat",
+            model_id: "openai-nano",
+            last_event_seq: 0,
+          }),
+          { status: 202, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await chatbotRepository.startRun(SESSION_ID, "hello", {
+      idempotencyKey: "copilot-user-stable",
+    });
+
+    const firstHeaders = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+    const replayHeaders = new Headers(fetchMock.mock.calls[2]?.[1]?.headers);
+    expect(firstHeaders.get("Idempotency-Key")).toBe("copilot-user-stable");
+    expect(replayHeaders.get("Idempotency-Key")).toBe("copilot-user-stable");
+  });
+});
 
 describe("chatbotRepository request errors", () => {
   it.each([403, 404, 503])("preserves HTTP status %s on request errors", async (status) => {
@@ -13,9 +118,57 @@ describe("chatbotRepository request errors", () => {
       status,
     });
   });
+
+  it("preserves a structured AI Service error envelope", async () => {
+    vi.spyOn(httpClient, "get").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: "AI_SERVICE_UNAVAILABLE",
+            message: "AI Service is unavailable.",
+            retryable: true,
+            request_id: "request-1",
+          },
+        }),
+        { status: 503, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await expect(chatbotRepository.getSession(SESSION_ID)).rejects.toMatchObject({
+      message: "AI Service is unavailable.",
+      status: 503,
+    });
+  });
 });
 
 describe("chatbotRepository stream events", () => {
+  it("keeps the requested session authoritative when run_started carries a legacy thread id", () => {
+    const setResolvedId = vi.fn();
+
+    (chatbotRepository as unknown as {
+      _handleStreamEvent: (
+        event: Record<string, unknown>,
+        currentMessage: Record<string, unknown>,
+        callbacks: Record<string, never>,
+        resolvedSessionId: string,
+        legacySetResolvedId: (id: string) => void,
+      ) => void;
+    })._handleStreamEvent(
+      {
+        type: "run_started",
+        run_id: RUN_ID,
+        thread_id: "legacy-thread-id",
+      },
+      {},
+      {},
+      SESSION_ID,
+      setResolvedId,
+    );
+
+    expect(setResolvedId).not.toHaveBeenCalled();
+  });
+
   it("propagates the backend sequence through every callback from one source event", () => {
     const callbacks = {
       onSessionNotice: vi.fn(),

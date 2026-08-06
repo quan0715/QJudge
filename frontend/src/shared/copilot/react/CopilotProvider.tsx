@@ -1378,7 +1378,7 @@ export function CopilotProvider({
 
       const optimisticId =
         (input as CopilotSendInput & { optimisticId?: string }).optimisticId ??
-        `copilot-user-${++optimisticSequence}`;
+        crypto.randomUUID();
       const optimisticMessage: CopilotMessage = {
         id: optimisticId,
         role: "user",
@@ -1416,6 +1416,7 @@ export function CopilotProvider({
           text,
           attachments: uploaded,
           modelId: input.modelId,
+          idempotencyKey: optimisticId,
           metadata: input.metadata,
         });
         if (!isCurrentSend()) return staleResult();

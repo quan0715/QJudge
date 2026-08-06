@@ -525,14 +525,13 @@
   },
   "settings": {
     "aiUsage": {
+      "aiRuns": "AI 実行回数",
       "inputTokens": "入力 Tokens",
       "lastUpdated": "最終更新",
       "loadError": "使用量データを読み込めません",
       "noData": "データなし",
       "outputTokens": "出力 Tokens",
-      "title": "AI 使用量",
-      "totalCost": "累計費用",
-      "totalRequests": "総リクエスト数"
+      "title": "AI 使用量"
     },
     "description": "プロフィール、環境設定、プラン、利用状況を管理します。",
     "descriptionStudent": "設定を管理します",

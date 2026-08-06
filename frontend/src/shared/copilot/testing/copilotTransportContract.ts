@@ -83,6 +83,76 @@ export function runCopilotTransportContract(
       expect(run.status).toBe("queued");
     });
 
+    it("preserves queued, running, paused, and terminal run states", async () => {
+      const session = await transport.createSession();
+      const run = await transport.startRun({
+        sessionId: session.id,
+        text: "Hello",
+      });
+
+      expect((await transport.getActiveRun?.(session.id))?.status).toBe("queued");
+
+      const states = [
+        "running",
+        "awaiting-approval",
+        "awaiting-answer",
+      ] as const;
+      for (const [index, status] of states.entries()) {
+        transport.emit(run.id, {
+          type: "run-status",
+          runId: run.id,
+          sessionId: session.id,
+          sequence: index + 1,
+          status,
+        });
+        expect((await transport.getActiveRun?.(session.id))?.status).toBe(status);
+      }
+
+      transport.emit(run.id, {
+        type: "run-status",
+        runId: run.id,
+        sessionId: session.id,
+        sequence: 4,
+        status: "completed",
+      });
+      expect(await transport.getActiveRun?.(session.id)).toBeNull();
+    });
+
+    it("delivers SSE events in source order", async () => {
+      const session = await transport.createSession();
+      const run = await transport.startRun({
+        sessionId: session.id,
+        text: "Hello",
+      });
+      const observed: number[] = [];
+      transport.subscribeRun(run, {
+        next(event) {
+          observed.push(event.sequence);
+        },
+        error: vi.fn(),
+        complete: vi.fn(),
+      });
+
+      transport.emit(run.id, {
+        type: "text-delta",
+        runId: run.id,
+        sessionId: session.id,
+        messageId: `${session.id}:2`,
+        sequence: 1,
+        delta: "A",
+      });
+      transport.emit(run.id, {
+        type: "text-delta",
+        runId: run.id,
+        sessionId: session.id,
+        messageId: `${session.id}:2`,
+        sequence: 2,
+        delta: "B",
+      });
+
+      expect(observed).toEqual([1, 2]);
+    });
+
     it("closes subscriptions synchronously and suppresses later observers", async () => {
       const session = await transport.createSession();
       const run = await transport.startRun({

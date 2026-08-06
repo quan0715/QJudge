@@ -197,7 +197,6 @@ function createQJudgeContractSubject(): CopilotTransportContractSubject {
     run_id: null,
     step: "user_upload",
     filename: file.name,
-    object_key: "private",
     content_type: file.type,
     size_bytes: file.size,
     checksum: "private",
@@ -224,6 +223,20 @@ describe("chatbotCopilotMapper", () => {
       id: legacyRun.id,
       assistantMessageId: "42",
     });
+  });
+
+  it("preserves aggregate-scoped assistant message ids in both directions", () => {
+    const assistantMessageId = `${legacySession.id}:2`;
+
+    const portable = mapChatRunToCopilot({
+      ...legacyRun,
+      assistantMessageId,
+    });
+
+    expect(portable.assistantMessageId).toBe(assistantMessageId);
+    expect(mapCopilotRunToChat(portable).assistantMessageId).toBe(
+      assistantMessageId,
+    );
   });
 
   it.each([
@@ -408,7 +421,6 @@ describe("chatbotCopilotMapper", () => {
       run_id: "run-1",
       step: "user_upload",
       filename: "answer.pdf",
-      object_key: "private/key",
       content_type: "application/pdf",
       size_bytes: 123,
       checksum: "secret-checksum",
@@ -427,6 +439,29 @@ describe("chatbotCopilotMapper", () => {
 });
 
 describe("createQJudgeCopilotTransport", () => {
+  it("forwards a caller idempotency key and creates one only when omitted", async () => {
+    const repository = createRepository();
+    const startRun = vi.mocked(repository.startRun);
+    const transport = createQJudgeCopilotTransport(repository, vi.fn());
+
+    await transport.startRun({
+      sessionId: legacySession.id,
+      text: "First",
+      idempotencyKey: "copilot-user-stable",
+    });
+    await transport.startRun({
+      sessionId: legacySession.id,
+      text: "Second",
+    });
+
+    expect(startRun.mock.calls[0]?.[2]).toMatchObject({
+      idempotencyKey: "copilot-user-stable",
+    });
+    expect(startRun.mock.calls[1]?.[2]?.idempotencyKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
+
   it("enriches each session with its own active run without subscribing", async () => {
     const secondSession: ChatSession = {
       ...legacySession,

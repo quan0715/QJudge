@@ -525,14 +525,13 @@
   },
   "settings": {
     "aiUsage": {
+      "aiRuns": "AI Runs",
       "inputTokens": "Input Tokens",
       "lastUpdated": "Last Updated",
       "loadError": "Failed to load usage data",
       "noData": "No data",
       "outputTokens": "Output Tokens",
-      "title": "AI Usage",
-      "totalCost": "Total Cost",
-      "totalRequests": "Total Requests"
+      "title": "AI Usage"
     },
     "description": "Manage profile, preferences, plans, and usage.",
     "descriptionStudent": "Manage your settings.",

@@ -175,10 +175,6 @@ export function mapChatRunToCopilot(run: ChatRun): CopilotRun {
 }
 
 export function mapCopilotRunToChat(run: CopilotRun): ChatRun {
-  const assistantMessageId =
-    run.assistantMessageId === undefined
-      ? undefined
-      : Number(run.assistantMessageId);
   return {
     id: run.id,
     sessionId: run.sessionId,
@@ -186,10 +182,7 @@ export function mapCopilotRunToChat(run: CopilotRun): ChatRun {
     kind: "chat",
     modelId: run.modelId ?? "",
     lastEventSeq: run.lastSequence ?? 0,
-    assistantMessageId:
-      assistantMessageId !== undefined && Number.isSafeInteger(assistantMessageId)
-        ? assistantMessageId
-        : undefined,
+    assistantMessageId: run.assistantMessageId,
   };
 }
 
