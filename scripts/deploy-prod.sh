@@ -17,6 +17,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required for OAuth key bootstrap" >&2
+  exit 1
+fi
+
 if ! docker compose version >/dev/null 2>&1; then
   echo "docker compose is required" >&2
   exit 1
@@ -89,9 +94,19 @@ reject_env_values() {
 }
 
 required_env_keys=(
+  POSTGRES_ADMIN_USER
+  POSTGRES_ADMIN_PASSWORD
   DB_NAME
   DB_USER
   DB_PASSWORD
+  AI_DB_NAME
+  AI_DB_USER
+  AI_DB_PASSWORD
+  AI_DATABASE_URL
+  AI_REDIS_URL
+  AI_QUEUE_NAME
+  AI_QUEUE_KEY_PREFIX
+  CREDENTIAL_LEASE_SECRET
   DB_SSLMODE
   SECRET_KEY
   FRONTEND_URL
@@ -99,7 +114,6 @@ required_env_keys=(
   CORS_ALLOWED_ORIGINS
   CSRF_TRUSTED_ORIGINS
   REDIS_URL
-  AI_SERVICE_INTERNAL_TOKEN
   RECUR_PUBLISHABLE_KEY
   TUNNEL_TOKEN
   MCP_PUBLIC_URL
@@ -114,12 +128,36 @@ for key in "${required_env_keys[@]}"; do
 done
 
 reject_env_placeholder "SECRET_KEY"
-reject_env_placeholder "AI_SERVICE_INTERNAL_TOKEN"
+reject_env_placeholder "POSTGRES_ADMIN_PASSWORD"
+reject_env_placeholder "DB_PASSWORD"
+reject_env_placeholder "AI_DB_PASSWORD"
+reject_env_placeholder "AI_DATABASE_URL"
+reject_env_placeholder "CREDENTIAL_LEASE_SECRET"
 reject_env_placeholder "TUNNEL_TOKEN"
 reject_env_placeholder "GLITCHTIP_SECRET_KEY"
 reject_env_placeholder "OBJECT_STORAGE_ENDPOINT_URL"
 reject_env_values "DB_PASSWORD" "postgres" "password"
+reject_env_values "POSTGRES_ADMIN_PASSWORD" "postgres" "password"
+reject_env_values "AI_DB_PASSWORD" "postgres" "password"
 reject_env_values "GRAFANA_PASSWORD" "admin" "password"
+
+postgres_admin_user="$(get_env_value POSTGRES_ADMIN_USER)"
+django_db_user="$(get_env_value DB_USER)"
+ai_db_user="$(get_env_value AI_DB_USER)"
+if [ "$postgres_admin_user" = "$django_db_user" ] || \
+   [ "$postgres_admin_user" = "$ai_db_user" ] || \
+   [ "$django_db_user" = "$ai_db_user" ]; then
+  echo "POSTGRES_ADMIN_USER, DB_USER, and AI_DB_USER must be distinct" >&2
+  exit 1
+fi
+for application_user in "$django_db_user" "$ai_db_user"; do
+  case "$application_user" in
+    postgres|root|rds_superuser|cloudsqlsuperuser)
+      echo "application database role ${application_user} must not be a superuser" >&2
+      exit 1
+      ;;
+  esac
+done
 
 for key in \
   OBJECT_STORAGE_PUBLIC_ENDPOINT_URL \
@@ -149,6 +187,12 @@ echo "[deploy] fetch and checkout ${GIT_REF}"
 git fetch --all --tags --prune
 git checkout --force "${GIT_REF}"
 
+echo "[deploy] bootstrap AI OAuth signing key"
+python3 scripts/bootstrap_ai_oauth_keys.py
+
+echo "[deploy] validate rendered Compose"
+docker compose "${COMPOSE_FILES[@]}" config --quiet
+
 echo "[deploy] pull judge image from GHCR"
 if docker pull ghcr.io/quan0715/qjudge/judge:latest; then
   docker tag ghcr.io/quan0715/qjudge/judge:latest oj-judge:latest
@@ -167,6 +211,29 @@ docker compose "${COMPOSE_FILES[@]}" build
 
 echo "[deploy] start services"
 docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
+
+echo "[deploy] verify application database roles"
+export PGPASSWORD="$(get_env_value POSTGRES_ADMIN_PASSWORD)"
+unsafe_role_count="$({
+  docker compose "${COMPOSE_FILES[@]}" exec -T \
+    -e PGPASSWORD \
+    postgres \
+    psql --no-psqlrc --quiet --tuples-only --no-align \
+      --username "$postgres_admin_user" \
+      --dbname postgres \
+      --set "django_db_user=$django_db_user" \
+      --set "ai_db_user=$ai_db_user" <<'SQL'
+SELECT count(*)
+FROM pg_roles
+WHERE rolname IN (:'django_db_user', :'ai_db_user')
+  AND (rolsuper OR rolcreatedb OR rolcreaterole);
+SQL
+} | tr -d '[:space:]')"
+unset PGPASSWORD
+if [ "$unsafe_role_count" != "0" ]; then
+  echo "Django and AI database roles must be non-superusers without role/database creation privileges" >&2
+  exit 1
+fi
 
 echo "[deploy] prune old images"
 docker image prune -f
