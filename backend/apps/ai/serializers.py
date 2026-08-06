@@ -15,6 +15,21 @@ class RenameSessionSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=100)
 
 
+class UpdateSessionSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=100, required=False)
+    context = serializers.JSONField(required=False)
+    context_mode = serializers.ChoiceField(
+        choices=["merge", "replace"], required=False, default="merge"
+    )
+
+    def validate(self, attrs):
+        if "title" not in attrs and "context" not in attrs:
+            raise serializers.ValidationError("title or context is required")
+        if "context" in attrs and not isinstance(attrs["context"], dict):
+            raise serializers.ValidationError({"context": "Must be an object."})
+        return attrs
+
+
 class StartRunSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=100_000)
     model_id = serializers.ChoiceField(
@@ -87,7 +102,7 @@ def session_to_legacy(
         "context": data.get("context") or {},
         "created_at": data.get("created_at"),
         "updated_at": data.get("updated_at"),
-        "message_count": len(messages),
+        "message_count": int(data["message_count"]),
     }
     if include_messages:
         result["messages"] = messages

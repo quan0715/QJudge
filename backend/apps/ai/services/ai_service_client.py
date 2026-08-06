@@ -156,9 +156,13 @@ class AIServiceClient:
             raise AIServiceUnavailable from exc
 
         if response.status_code >= 400:
-            response.read()
-            response.close()
-            client.close()
+            try:
+                response.read()
+            except httpx.TransportError as exc:
+                raise AIServiceUnavailable from exc
+            finally:
+                response.close()
+                client.close()
             error = AIServiceUpstreamResponse(response)
             raise error
 

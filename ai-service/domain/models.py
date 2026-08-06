@@ -46,6 +46,9 @@ class Session:
     owner: Principal
     title: str
     context: dict[str, Any]
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    message_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)

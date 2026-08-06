@@ -6,10 +6,10 @@ import base64
 import binascii
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from application.artifacts import is_valid_content_type
 from domain.models import Artifact, Message, Run, Session, SessionDetail, UsageSummary
@@ -19,14 +19,25 @@ class CreateSessionRequest(BaseModel):
     context: dict[str, Any] = Field(default_factory=dict)
 
 
-class RenameSessionRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
+class UpdateSessionRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    context: dict[str, Any] | None = None
+    context_mode: Literal["merge", "replace"] = "merge"
+
+    @model_validator(mode="after")
+    def has_update(self) -> Self:
+        if self.title is None and self.context is None:
+            raise ValueError("title or context is required")
+        return self
 
 
 class SessionResponse(BaseModel):
     session_id: UUID
     title: str
     context: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    message_count: int
 
     @classmethod
     def from_domain(cls, session: Session) -> "SessionResponse":
@@ -34,6 +45,9 @@ class SessionResponse(BaseModel):
             session_id=session.id,
             title=session.title,
             context=dict(session.context),
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            message_count=session.message_count,
         )
 
 
@@ -60,8 +74,6 @@ class MessageResponse(BaseModel):
 
 
 class SessionDetailResponse(SessionResponse):
-    created_at: datetime | None
-    updated_at: datetime | None
     messages: list[MessageResponse]
 
     @classmethod
@@ -71,8 +83,9 @@ class SessionDetailResponse(SessionResponse):
             session_id=session.id,
             title=session.title,
             context=dict(session.context),
-            created_at=detail.created_at,
-            updated_at=detail.updated_at,
+            created_at=detail.created_at or session.created_at,
+            updated_at=detail.updated_at or session.updated_at,
+            message_count=len(detail.messages),
             messages=[MessageResponse.from_domain(message) for message in detail.messages],
         )
 

@@ -102,9 +102,7 @@ class AIArtifactUserViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
-        content_type = (uploaded.content_type or "").lower()
-        if not content_type or content_type == "application/octet-stream":
-            content_type = _CONTENT_TYPE_BY_EXT[extension]
+        content_type = _CONTENT_TYPE_BY_EXT[extension]
         return _proxy_json(
             request,
             method="POST",

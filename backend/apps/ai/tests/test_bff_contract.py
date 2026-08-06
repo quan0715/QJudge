@@ -141,6 +141,121 @@ def test_create_run_maps_path_token_body_and_idempotency(
     assert response.json()["last_event_seq"] == 0
 
 
+def test_task_manifest_context_is_forwarded_without_django_state(
+    api_client, teacher, ai_transport
+) -> None:
+    created_at = "2026-08-05T03:04:05Z"
+    updated_at = "2026-08-06T03:04:05Z"
+    manifest = {
+        "schema_version": 1,
+        "task_type": "grading.question",
+        "context": {"contest_id": "contest-1", "question_id": "question-1"},
+        "prompt": "Grade this question",
+    }
+    ai_transport.respond_json(
+        200,
+        {
+            "session_id": SESSION_ID,
+            "title": "New chat",
+            "context": {"course_id": "course-1", "task_manifest": manifest},
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "message_count": 4,
+        },
+    )
+    api_client.force_authenticate(teacher)
+
+    response = api_client.patch(
+        f"/api/v1/ai/sessions/{SESSION_ID}/",
+        {"context": {"task_manifest": manifest}},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    upstream = ai_transport.requests[0]
+    assert upstream.url.path == f"/v1/sessions/{SESSION_ID}"
+    assert json.loads(upstream.content) == {
+        "context": {"task_manifest": manifest},
+        "context_mode": "merge",
+    }
+    assert response.json()["context"]["task_manifest"] == manifest
+    assert response.json()["created_at"] == created_at
+    assert response.json()["updated_at"] == updated_at
+    assert response.json()["message_count"] == 4
+
+
+def test_session_list_preserves_ai_owned_timestamps_and_message_count(
+    api_client, teacher, ai_transport
+) -> None:
+    ai_transport.respond_json(
+        200,
+        {
+            "count": 1,
+            "next": None,
+            "previous": None,
+            "results": [
+                {
+                    "session_id": SESSION_ID,
+                    "title": "Newest",
+                    "context": {},
+                    "created_at": "2026-08-05T01:02:03Z",
+                    "updated_at": "2026-08-06T04:05:06Z",
+                    "message_count": 11,
+                }
+            ],
+        },
+    )
+    api_client.force_authenticate(teacher)
+
+    response = api_client.get("/api/v1/ai/sessions/")
+
+    assert response.json()["results"][0]["created_at"] == "2026-08-05T01:02:03Z"
+    assert response.json()["results"][0]["updated_at"] == "2026-08-06T04:05:06Z"
+    assert response.json()["results"][0]["message_count"] == 11
+
+
+def test_session_create_and_clear_preserve_ai_owned_summary_fields(
+    api_client, teacher, ai_transport
+) -> None:
+    ai_transport.respond_json(
+        201,
+        {
+            "session_id": SESSION_ID,
+            "title": "New chat",
+            "context": {"course_id": "course-1"},
+            "created_at": "2026-08-05T01:02:03Z",
+            "updated_at": "2026-08-05T01:02:03Z",
+            "message_count": 0,
+        },
+    )
+    ai_transport.respond_json(
+        200,
+        {
+            "session_id": SESSION_ID,
+            "title": "New chat",
+            "context": {"course_id": "course-1"},
+            "created_at": "2026-08-05T01:02:03Z",
+            "updated_at": "2026-08-06T04:05:06Z",
+            "message_count": 0,
+        },
+    )
+    api_client.force_authenticate(teacher)
+
+    created = api_client.post(
+        "/api/v1/ai/sessions/",
+        {"context": {"course_id": "course-1"}},
+        format="json",
+    )
+    cleared = api_client.post(f"/api/v1/ai/sessions/{SESSION_ID}/clear/")
+
+    assert created.status_code == 201
+    assert created.json()["created_at"] == "2026-08-05T01:02:03Z"
+    assert created.json()["message_count"] == 0
+    assert cleared.status_code == 200
+    assert cleared.json()["updated_at"] == "2026-08-06T04:05:06Z"
+    assert cleared.json()["message_count"] == 0
+
+
 @pytest.mark.parametrize(
     ("method", "legacy_path", "upstream_path", "upstream_status", "payload"),
     [
@@ -156,7 +271,14 @@ def test_create_run_maps_path_token_body_and_idempotency(
             "/api/v1/ai/sessions/new_session/",
             "/v1/sessions",
             201,
-            {"session_id": SESSION_ID, "title": "New chat", "context": {}},
+            {
+                "session_id": SESSION_ID,
+                "title": "New chat",
+                "context": {},
+                "created_at": "2026-08-05T00:00:00Z",
+                "updated_at": "2026-08-05T00:00:00Z",
+                "message_count": 0,
+            },
         ),
         (
             "get",
@@ -169,6 +291,7 @@ def test_create_run_maps_path_token_body_and_idempotency(
                 "context": {},
                 "created_at": "2026-08-05T00:00:00Z",
                 "updated_at": "2026-08-05T00:00:00Z",
+                "message_count": 0,
                 "messages": [],
             },
         ),
@@ -177,14 +300,28 @@ def test_create_run_maps_path_token_body_and_idempotency(
             f"/api/v1/ai/sessions/{SESSION_ID}/rename/",
             f"/v1/sessions/{SESSION_ID}",
             200,
-            {"session_id": SESSION_ID, "title": "Renamed", "context": {}},
+            {
+                "session_id": SESSION_ID,
+                "title": "Renamed",
+                "context": {},
+                "created_at": "2026-08-05T00:00:00Z",
+                "updated_at": "2026-08-05T01:00:00Z",
+                "message_count": 0,
+            },
         ),
         (
             "post",
             f"/api/v1/ai/sessions/{SESSION_ID}/clear/",
             f"/v1/sessions/{SESSION_ID}/clear",
             200,
-            {"session_id": SESSION_ID, "title": "Chat", "context": {}},
+            {
+                "session_id": SESSION_ID,
+                "title": "Chat",
+                "context": {},
+                "created_at": "2026-08-05T00:00:00Z",
+                "updated_at": "2026-08-05T02:00:00Z",
+                "message_count": 0,
+            },
         ),
         (
             "delete",
@@ -327,6 +464,18 @@ def test_transport_failure_returns_stable_unavailable_error(
     assert attempts == 1
 
 
+def test_malformed_success_payload_returns_stable_invalid_response(
+    api_client, teacher, ai_transport
+) -> None:
+    ai_transport.respond_json(200, {"title": "missing required session id"})
+    api_client.force_authenticate(teacher)
+
+    response = api_client.get(f"/api/v1/ai/sessions/{SESSION_ID}/")
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "AI_SERVICE_INVALID_RESPONSE"
+
+
 def _artifact_payload() -> dict[str, object]:
     return {
         "artifact_id": ARTIFACT_ID,
@@ -402,6 +551,29 @@ def test_artifact_upload_converts_multipart_to_canonical_content(
     }
     assert response.status_code == 201
     assert response.json()["id"] == ARTIFACT_ID
+
+
+def test_artifact_upload_normalizes_client_mime_from_supported_extension(
+    api_client, teacher, ai_transport
+) -> None:
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    ai_transport.respond_json(201, _artifact_payload())
+    api_client.force_authenticate(teacher)
+
+    response = api_client.post(
+        "/api/v1/ai/artifacts/upload/",
+        {
+            "session_id": SESSION_ID,
+            "file": SimpleUploadedFile("notes.md", b"hello", content_type="text/html"),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 201
+    assert (
+        json.loads(ai_transport.requests[0].content)["content_type"] == "text/markdown"
+    )
 
 
 def test_artifact_content_and_download_preserve_legacy_consumers(

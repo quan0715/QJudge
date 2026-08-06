@@ -19,6 +19,7 @@ from .serializers import (
     RunAnswerSerializer,
     RunApprovalSerializer,
     StartRunSerializer,
+    UpdateSessionSerializer,
     run_list_to_legacy,
     run_to_legacy,
     session_list_to_legacy,
@@ -34,6 +35,21 @@ from .services.ai_service_client import (
 
 
 JsonMapper = Callable[[dict[str, Any]], object]
+
+
+def _invalid_response(request) -> Response:
+    return Response(
+        {
+            "success": False,
+            "error": {
+                "code": "AI_SERVICE_INVALID_RESPONSE",
+                "message": "AI Service returned an invalid response.",
+                "retryable": True,
+                "request_id": getattr(request, "request_id", "unknown"),
+            },
+        },
+        status=status.HTTP_502_BAD_GATEWAY,
+    )
 
 
 def _proxy_json(
@@ -61,20 +77,12 @@ def _proxy_json(
     try:
         payload = upstream.json()
     except (ValueError, UnicodeDecodeError):
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": "AI_SERVICE_INVALID_RESPONSE",
-                    "message": "AI Service returned an invalid response.",
-                    "retryable": True,
-                    "request_id": getattr(request, "request_id", "unknown"),
-                },
-            },
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
+        return _invalid_response(request)
     if mapper is not None:
-        payload = mapper(payload)
+        try:
+            payload = mapper(payload)
+        except (KeyError, TypeError, ValueError):
+            return _invalid_response(request)
     return Response(payload, status=upstream.status_code)
 
 
@@ -137,12 +145,29 @@ class AISessionViewSet(viewsets.ViewSet):
         )
 
     def update(self, request, pk=None):
-        title = request.data.get("title")
-        if title is None and isinstance(request.data.get("context"), dict):
-            title = request.data["context"].get("title")
-        serializer = RenameSessionSerializer(data={"title": title})
+        update_data = dict(request.data)
+        context = request.data.get("context")
+        if "title" not in update_data and isinstance(context, dict):
+            if context_title := context.get("title"):
+                update_data["title"] = context_title
+        serializer = UpdateSessionSerializer(data=update_data)
         serializer.is_valid(raise_exception=True)
-        return self._rename(request, pk, serializer.validated_data["title"])
+        body = {
+            key: value
+            for key, value in serializer.validated_data.items()
+            if key in {"title", "context", "context_mode"}
+        }
+        if "context" not in body:
+            body.pop("context_mode", None)
+        return _proxy_json(
+            request,
+            method="PATCH",
+            path=f"/v1/sessions/{pk}",
+            json_body=body,
+            mapper=lambda data: session_to_legacy(
+                data, user_id=request.user.pk, include_messages=False
+            ),
+        )
 
     partial_update = update
 
@@ -232,7 +257,9 @@ class AIChatRunViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=["get"])
     def events(self, request, pk=None):
-        query = {"after": request.query_params.get("after", "0")}
+        query = {}
+        if "after" in request.query_params:
+            query["after"] = request.query_params["after"]
         try:
             chunks = get_ai_service_client().stream(
                 f"/v1/runs/{pk}/events",

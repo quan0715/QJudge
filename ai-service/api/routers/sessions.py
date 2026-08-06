@@ -11,7 +11,7 @@ from api.dependencies import current_principal, get_session_service
 from api.errors import ERROR_RESPONSES
 from api.schemas import (
     CreateSessionRequest,
-    RenameSessionRequest,
+    UpdateSessionRequest,
     SessionDetailResponse,
     SessionListResponse,
     SessionResponse,
@@ -58,14 +58,20 @@ async def get_session(
 
 
 @router.patch("/sessions/{session_id}", response_model=SessionResponse)
-async def rename_session(
+async def update_session(
     session_id: UUID,
-    body: RenameSessionRequest,
+    body: UpdateSessionRequest,
     principal: Annotated[Principal, Depends(current_principal)],
     service: Annotated[Any, Depends(get_session_service)],
 ) -> SessionResponse:
     return SessionResponse.from_domain(
-        await service.rename_session(principal, session_id, body.title)
+        await service.update_session(
+            principal,
+            session_id,
+            title=body.title,
+            context=body.context,
+            context_mode=body.context_mode,
+        )
     )
 
 

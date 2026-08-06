@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -47,7 +47,17 @@ class FakeSessionService:
     def __init__(self) -> None:
         timestamp = datetime(2026, 8, 6, tzinfo=UTC)
         self.timestamp = timestamp
-        self.session = Session(SESSION_ID, OWNER, "New chat", {"course_id": 7})
+        self.updated_timestamp = timestamp + timedelta(minutes=1)
+        self.cleared_timestamp = timestamp + timedelta(minutes=2)
+        self.session = Session(
+            SESSION_ID,
+            OWNER,
+            "New chat",
+            {"course_id": 7},
+            created_at=timestamp,
+            updated_at=timestamp,
+            message_count=2,
+        )
         self.messages = (
             Message(SESSION_ID, 1, RUN_ID, "user", "hello", created_at=timestamp),
             Message(
@@ -63,7 +73,7 @@ class FakeSessionService:
 
     async def create_session(self, principal, context):
         assert principal == OWNER
-        self.session = replace(self.session, context=dict(context))
+        self.session = replace(self.session, context=dict(context), message_count=0)
         return self.session
 
     async def list_sessions(self, principal):
@@ -87,8 +97,37 @@ class FakeSessionService:
         self.session = replace(self.session, title=title)
         return self.session
 
+    async def update_session(
+        self,
+        principal,
+        session_id,
+        *,
+        title=None,
+        context=None,
+        context_mode="merge",
+    ):
+        await self.get_session(principal, session_id)
+        next_context = self.session.context
+        if context is not None:
+            next_context = (
+                {**self.session.context, **context}
+                if context_mode == "merge"
+                else dict(context)
+            )
+        self.session = replace(
+            self.session,
+            title=title if title is not None else self.session.title,
+            context=next_context,
+            updated_at=self.updated_timestamp,
+        )
+        return self.session
+
     async def clear_session(self, principal, session_id):
-        return await self.get_session(principal, session_id)
+        await self.get_session(principal, session_id)
+        self.session = replace(
+            self.session, updated_at=self.cleared_timestamp, message_count=0
+        )
+        return self.session
 
     async def delete_session(self, principal, session_id):
         await self.get_session(principal, session_id)
@@ -209,6 +248,14 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
     client, runs = make_client()
     created = client.post("/v1/sessions", json={"context": {"course_id": 7}})
     assert created.status_code == 201
+    assert created.json() == {
+        "session_id": str(SESSION_ID),
+        "title": "New chat",
+        "context": {"course_id": 7},
+        "created_at": "2026-08-06T00:00:00Z",
+        "updated_at": "2026-08-06T00:00:00Z",
+        "message_count": 0,
+    }
     started = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
         headers={"Idempotency-Key": "browser-message-1"},
@@ -238,6 +285,7 @@ def test_session_detail_returns_persisted_messages_and_timestamps() -> None:
         "context": {"course_id": 7},
         "created_at": "2026-08-06T00:00:00Z",
         "updated_at": "2026-08-06T00:00:00Z",
+        "message_count": 2,
         "messages": [
             {
                 "session_id": str(SESSION_ID),
@@ -259,6 +307,64 @@ def test_session_detail_returns_persisted_messages_and_timestamps() -> None:
             },
         ],
     }
+
+
+def test_session_list_and_mutations_return_authoritative_summary_fields() -> None:
+    client, _ = make_client()
+
+    listed = client.get("/v1/sessions")
+    updated = client.patch(
+        f"/v1/sessions/{SESSION_ID}",
+        json={
+            "context": {
+                "task_manifest": {
+                    "schema_version": 1,
+                    "task_type": "grading.question",
+                    "context": {"contest_id": "contest-1", "question_id": "q-1"},
+                }
+            },
+            "context_mode": "merge",
+        },
+    )
+    replaced = client.patch(
+        f"/v1/sessions/{SESSION_ID}",
+        json={"context": {"locale": "en"}, "context_mode": "replace"},
+    )
+    cleared = client.post(f"/v1/sessions/{SESSION_ID}/clear")
+
+    assert listed.json()["results"][0] == {
+        "session_id": str(SESSION_ID),
+        "title": "New chat",
+        "context": {"course_id": 7},
+        "created_at": "2026-08-06T00:00:00Z",
+        "updated_at": "2026-08-06T00:00:00Z",
+        "message_count": 2,
+    }
+    assert updated.status_code == 200
+    assert updated.json()["context"] == {
+        "course_id": 7,
+        "task_manifest": {
+            "schema_version": 1,
+            "task_type": "grading.question",
+            "context": {"contest_id": "contest-1", "question_id": "q-1"},
+        },
+    }
+    assert updated.json()["created_at"] == "2026-08-06T00:00:00Z"
+    assert updated.json()["updated_at"] == "2026-08-06T00:01:00Z"
+    assert updated.json()["message_count"] == 2
+    assert replaced.json()["context"] == {"locale": "en"}
+    assert cleared.json()["created_at"] == "2026-08-06T00:00:00Z"
+    assert cleared.json()["updated_at"] == "2026-08-06T00:02:00Z"
+    assert cleared.json()["message_count"] == 0
+
+
+def test_session_update_requires_a_title_or_context() -> None:
+    client, _ = make_client()
+
+    response = client.patch(f"/v1/sessions/{SESSION_ID}", json={})
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 def test_invalid_model_and_approval_are_rejected_before_command_service() -> None:

@@ -95,6 +95,41 @@ async def test_create_and_rename_session_preserve_owner_and_context() -> None:
     )
 
 
+async def test_update_session_merges_or_replaces_context_explicitly() -> None:
+    principal = Principal(issuer="issuer", subject="subject")
+    repository = FakeSessionRepository()
+    existing = Session(
+        id=uuid4(),
+        owner=principal,
+        title="Chat",
+        context={"course_id": "course-1", "locale": "zh-TW"},
+    )
+    repository.sessions[existing.id] = existing
+    service = SessionService(
+        lambda: FakeUnitOfWork(repository), FakeCheckpointLifecycle()
+    )
+
+    merged = await service.update_session(
+        principal,
+        existing.id,
+        context={"task_manifest": {"schema_version": 1}},
+        context_mode="merge",
+    )
+    replaced = await service.update_session(
+        principal,
+        existing.id,
+        context={"task_manifest": {"schema_version": 2}},
+        context_mode="replace",
+    )
+
+    assert merged.context == {
+        "course_id": "course-1",
+        "locale": "zh-TW",
+        "task_manifest": {"schema_version": 1},
+    }
+    assert replaced.context == {"task_manifest": {"schema_version": 2}}
+
+
 async def test_missing_or_foreign_session_uses_not_found_semantics() -> None:
     principal = Principal(issuer="issuer", subject="subject")
     other = Principal(issuer="issuer", subject="other")

@@ -30,12 +30,15 @@ _TERMINAL_EVENT_TYPES = frozenset(
 )
 
 
-def _session_from_row(row: SessionRow) -> Session:
+def _session_from_row(row: SessionRow, *, message_count: int = 0) -> Session:
     return Session(
         id=row.session_id,
         owner=Principal(issuer=row.owner_issuer, subject=row.owner_subject),
         title=row.title,
         context=dict(row.context),
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        message_count=message_count,
     )
 
 
@@ -127,32 +130,45 @@ class SqlAlchemySessionRepository:
         )
         self._db_session.add(row)
         await self._db_session.flush()
-        return _session_from_row(row)
+        return _session_from_row(row, message_count=0)
 
     async def list_for_owner(self, principal: Principal) -> list[Session]:
         rows = (
-            await self._db_session.scalars(
-                select(SessionRow)
+            await self._db_session.execute(
+                select(SessionRow, func.count(MessageRow.ordinal))
+                .outerjoin(MessageRow, MessageRow.session_id == SessionRow.session_id)
                 .where(
                     SessionRow.owner_issuer == principal.issuer,
                     SessionRow.owner_subject == principal.subject,
                 )
+                .group_by(SessionRow.session_id)
                 .order_by(SessionRow.updated_at.desc(), SessionRow.session_id)
             )
         ).all()
-        return [_session_from_row(row) for row in rows]
+        return [
+            _session_from_row(row, message_count=int(message_count))
+            for row, message_count in rows
+        ]
 
     async def get_for_owner(
         self, principal: Principal, session_id: UUID
     ) -> Session | None:
-        row = await self._db_session.scalar(
-            select(SessionRow).where(
-                SessionRow.session_id == session_id,
-                SessionRow.owner_issuer == principal.issuer,
-                SessionRow.owner_subject == principal.subject,
+        result = (
+            await self._db_session.execute(
+                select(SessionRow, func.count(MessageRow.ordinal))
+                .outerjoin(MessageRow, MessageRow.session_id == SessionRow.session_id)
+                .where(
+                    SessionRow.session_id == session_id,
+                    SessionRow.owner_issuer == principal.issuer,
+                    SessionRow.owner_subject == principal.subject,
+                )
+                .group_by(SessionRow.session_id)
             )
-        )
-        return _session_from_row(row) if row is not None else None
+        ).one_or_none()
+        if result is None:
+            return None
+        row, message_count = result
+        return _session_from_row(row, message_count=int(message_count))
 
     async def get_detail_for_owner(
         self, principal: Principal, session_id: UUID
@@ -179,7 +195,7 @@ class SqlAlchemySessionRepository:
             )
         ).all()
         return SessionDetail(
-            session=_session_from_row(row),
+            session=_session_from_row(row, message_count=len(message_rows)),
             messages=tuple(_message_from_row(item) for item in message_rows),
             created_at=row.created_at,
             updated_at=row.updated_at,
@@ -214,7 +230,7 @@ class SqlAlchemySessionRepository:
         )
         if row is None:
             return None
-        return _session_from_row(row)
+        return _session_from_row(row, message_count=session.message_count)
 
     async def clear_for_owner(
         self, principal: Principal, session_id: UUID
@@ -238,7 +254,8 @@ class SqlAlchemySessionRepository:
         )
         row.next_message_ordinal = 1
         await self._db_session.flush()
-        return _session_from_row(row)
+        await self._db_session.refresh(row)
+        return _session_from_row(row, message_count=0)
 
     async def delete(self, principal: Principal, session_id: UUID) -> None:
         await self._db_session.execute(

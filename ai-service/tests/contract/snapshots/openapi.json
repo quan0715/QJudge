@@ -408,21 +408,6 @@
         "title": "ReadyResponse",
         "type": "object"
       },
-      "RenameSessionRequest": {
-        "properties": {
-          "title": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title"
-        ],
-        "title": "RenameSessionRequest",
-        "type": "object"
-      },
       "RunListResponse": {
         "properties": {
           "count": {
@@ -559,16 +544,13 @@
             "type": "object"
           },
           "created_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At"
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "message_count": {
+            "title": "Message Count",
+            "type": "integer"
           },
           "messages": {
             "items": {
@@ -587,16 +569,9 @@
             "type": "string"
           },
           "updated_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
           }
         },
         "required": [
@@ -605,6 +580,7 @@
           "context",
           "created_at",
           "updated_at",
+          "message_count",
           "messages"
         ],
         "title": "SessionDetailResponse",
@@ -660,6 +636,15 @@
             "title": "Context",
             "type": "object"
           },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "message_count": {
+            "title": "Message Count",
+            "type": "integer"
+          },
           "session_id": {
             "format": "uuid",
             "title": "Session Id",
@@ -668,12 +653,20 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
           }
         },
         "required": [
           "session_id",
           "title",
-          "context"
+          "context",
+          "created_at",
+          "updated_at",
+          "message_count"
         ],
         "title": "SessionResponse",
         "type": "object"
@@ -698,6 +691,46 @@
           "model_id"
         ],
         "title": "StartRunRequest",
+        "type": "object"
+      },
+      "UpdateSessionRequest": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "context_mode": {
+            "default": "merge",
+            "enum": [
+              "merge",
+              "replace"
+            ],
+            "title": "Context Mode",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "UpdateSessionRequest",
         "type": "object"
       },
       "UsageResponse": {
@@ -2421,7 +2454,7 @@
         ]
       },
       "patch": {
-        "operationId": "rename_session_v1_sessions__session_id__patch",
+        "operationId": "update_session_v1_sessions__session_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -2438,7 +2471,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameSessionRequest"
+                "$ref": "#/components/schemas/UpdateSessionRequest"
               }
             }
           },
@@ -2521,7 +2554,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Rename Session",
+        "summary": "Update Session",
         "tags": [
           "sessions"
         ]

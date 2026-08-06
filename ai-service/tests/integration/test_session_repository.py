@@ -96,6 +96,12 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
     with pytest.raises(SessionNotFound):
         await session_service.rename_session(principal_a, hidden.id, "stolen")
     with pytest.raises(SessionNotFound):
+        await session_service.update_session(
+            principal_a,
+            hidden.id,
+            context={"task_manifest": {"schema_version": 1}},
+        )
+    with pytest.raises(SessionNotFound):
         await session_service.clear_session(principal_a, hidden.id)
     with pytest.raises(SessionNotFound):
         await session_service.delete_session(principal_a, hidden.id)
@@ -110,12 +116,67 @@ async def test_session_list_and_mutations_are_scoped_to_owner(
     with pytest.raises(SessionNotFound):
         await session_service.rename_session(another_issuer, hidden.id, "stolen")
     with pytest.raises(SessionNotFound):
+        await session_service.update_session(
+            another_issuer,
+            hidden.id,
+            context={"task_manifest": {"schema_version": 1}},
+        )
+    with pytest.raises(SessionNotFound):
         await session_service.clear_session(another_issuer, hidden.id)
     with pytest.raises(SessionNotFound):
         await session_service.delete_session(another_issuer, hidden.id)
 
     assert (await session_service.get_session(principal_b, hidden.id)).title == "New chat"
     assert checkpoint_lifecycle.deleted_session_ids == []
+
+
+async def test_session_summary_and_context_update_are_authoritative(
+    session_service: SessionService,
+    session_factory,
+    principal_a: Principal,
+) -> None:
+    created = await session_service.create_session(
+        principal_a, {"course_id": "course-1", "locale": "zh-TW"}
+    )
+    assert created.created_at is not None
+    assert created.updated_at is not None
+    assert created.message_count == 0
+
+    async with session_factory.begin() as db_session:
+        db_session.add(
+            MessageRow(
+                session_id=created.id,
+                ordinal=1,
+                role="user",
+                content="hello",
+            )
+        )
+
+    updated = await session_service.update_session(
+        principal_a,
+        created.id,
+        context={
+            "task_manifest": {
+                "schema_version": 1,
+                "task_type": "grading.question",
+            }
+        },
+        context_mode="merge",
+    )
+    listed = await session_service.list_sessions(principal_a)
+
+    assert updated.context == {
+        "course_id": "course-1",
+        "locale": "zh-TW",
+        "task_manifest": {
+            "schema_version": 1,
+            "task_type": "grading.question",
+        },
+    }
+    assert updated.created_at == created.created_at
+    assert updated.updated_at is not None and updated.updated_at >= created.updated_at
+    assert updated.message_count == 1
+    assert listed == [updated]
 
 
 async def test_clear_session_deletes_only_owned_messages_and_resets_ordinal(
@@ -152,7 +213,11 @@ async def test_clear_session_deletes_only_owned_messages_and_resets_ordinal(
             ]
         )
 
-    assert await session_service.clear_session(principal_a, owned.id) == owned
+    cleared = await session_service.clear_session(principal_a, owned.id)
+    assert cleared.id == owned.id
+    assert cleared.created_at == owned.created_at
+    assert cleared.updated_at is not None and cleared.updated_at >= owned.updated_at
+    assert cleared.message_count == 0
 
     async with session_factory() as db_session:
         messages = (

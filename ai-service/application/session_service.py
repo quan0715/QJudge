@@ -65,12 +65,40 @@ class SessionService:
     async def rename_session(
         self, principal: Principal, session_id: UUID, title: str
     ) -> Session:
+        return await self.update_session(
+            principal,
+            session_id,
+            title=title,
+        )
+
+    async def update_session(
+        self,
+        principal: Principal,
+        session_id: UUID,
+        *,
+        title: str | None = None,
+        context: dict[str, Any] | None = None,
+        context_mode: str = "merge",
+    ) -> Session:
         async with self._uow_factory() as uow:
             session = await uow.sessions.get_for_owner(principal, session_id)
             if session is None:
                 raise SessionNotFound(session_id)
+            if context is None:
+                updated_context = session.context
+            elif context_mode == "merge":
+                updated_context = {**session.context, **context}
+            elif context_mode == "replace":
+                updated_context = dict(context)
+            else:
+                raise ValueError(f"Unsupported context mode: {context_mode}")
             updated = await uow.sessions.update(
-                principal, replace(session, title=title)
+                principal,
+                replace(
+                    session,
+                    title=title if title is not None else session.title,
+                    context=updated_context,
+                ),
             )
             if updated is None:
                 raise SessionNotFound(session_id)
