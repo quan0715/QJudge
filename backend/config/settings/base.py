@@ -405,14 +405,23 @@ if os.getenv("DOCKER_SECCOMP_PROFILE") == "":
 # AI Service settings
 # URL for the AI Service container (LangChain DeepAgent)
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
+AI_ACCESS_TOKEN_SECONDS = int(os.getenv("AI_ACCESS_TOKEN_SECONDS", "300"))
+AI_SERVICE_CONNECT_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_CONNECT_TIMEOUT_SECONDS", "3")
+)
+AI_SERVICE_READ_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_READ_TIMEOUT_SECONDS", "30")
+)
+AI_SERVICE_WRITE_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_WRITE_TIMEOUT_SECONDS", "10")
+)
+AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
+)
 AI_SERVICE_INTERNAL_TOKEN = os.getenv(
     "AI_SERVICE_INTERNAL_TOKEN",
     os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
 )
-# AI Credit 換算：1 credit = SCALE_PER_CREDIT 份「美分 × 10⁻⁶」的模型成本
-# 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
-AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
-
 # Exam integrity lifecycle services. Backend owns database state while the
 # dedicated Controller is the only service allowed to own the Docker socket.
 INTEGRITY_CONTROLLER_URL = os.getenv(
