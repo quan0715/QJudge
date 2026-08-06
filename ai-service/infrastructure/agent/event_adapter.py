@@ -70,7 +70,6 @@ class ToolCallFinished:
 class UsageReport:
     input_tokens: int
     output_tokens: int
-    model_used: str
 
 
 @dataclass(slots=True)

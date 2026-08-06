@@ -111,6 +111,35 @@ async def test_append_event_does_not_commit_callers_transaction(
     assert events == []
 
 
+async def test_invalid_usage_event_is_rejected_before_persistence(
+    session_factory, seeded_run
+) -> None:
+    run_id, _ = seeded_run
+
+    async with session_factory() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        with pytest.raises(ValueError, match="only type and token totals"):
+            async with db_session.begin():
+                await repository.append_event(
+                    run_id,
+                    {
+                        "type": "usage_report",
+                        "input_tokens": 3,
+                        "output_tokens": 2,
+                        "cost_cents": 0,
+                    },
+                )
+
+    async with session_factory() as db_session:
+        repository = SqlAlchemyRunRepository(db_session)
+        refreshed = await repository.get(run_id)
+        events = await repository.list_events(run_id)
+
+    assert refreshed is not None
+    assert refreshed.last_sequence == 0
+    assert events == []
+
+
 async def test_event_run_usage_and_assistant_projection_commit_atomically(
     session_factory, seeded_run
 ) -> None:

@@ -49,6 +49,9 @@ def _project_todos(metadata: dict[str, Any], payload: Any) -> None:
 
 
 def _validate_usage_event(event: dict[str, Any]) -> Usage:
+    allowed_keys = {"type", "input_tokens", "output_tokens"}
+    if set(event) != allowed_keys:
+        raise ValueError("usage_report payload must contain only type and token totals")
     input_tokens = event.get("input_tokens")
     output_tokens = event.get("output_tokens")
     if (

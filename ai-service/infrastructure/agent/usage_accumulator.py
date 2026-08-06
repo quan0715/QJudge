@@ -38,13 +38,8 @@ class UsageAccumulator:
         self._total_input_tokens += int(usage_metadata.get("input_tokens", 0) or 0)
         self._total_output_tokens += int(usage_metadata.get("output_tokens", 0) or 0)
 
-    def build_usage_report(
-        self,
-        *,
-        model_id: str,
-    ) -> UsageReport:
+    def build_usage_report(self) -> UsageReport:
         return UsageReport(
             input_tokens=self._total_input_tokens,
             output_tokens=self._total_output_tokens,
-            model_used=model_id,
         )

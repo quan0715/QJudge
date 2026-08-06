@@ -11,6 +11,7 @@ sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from infrastructure.agent.usage_accumulator import UsageAccumulator
+from infrastructure.agent.event_adapter import to_sse_dict
 
 
 class _Output:
@@ -34,12 +35,15 @@ def test_usage_accumulator_collects_tokens_from_chat_model_end_event():
         }
     )
 
-    report = acc.build_usage_report(model_id="deepseek-v4")
+    report = acc.build_usage_report()
 
     assert report.input_tokens == 13
     assert report.output_tokens == 36
-    assert not hasattr(report, "cost_cents")
-    assert report.model_used == "deepseek-v4"
+    assert to_sse_dict(report) == {
+        "type": "usage_report",
+        "input_tokens": 13,
+        "output_tokens": 36,
+    }
 
 
 def test_usage_accumulator_ignores_irrelevant_events():
@@ -47,8 +51,12 @@ def test_usage_accumulator_ignores_irrelevant_events():
 
     acc.ingest_langgraph_event({"event": "on_chat_model_stream", "data": {}})
 
-    report = acc.build_usage_report(model_id="deepseek-v4")
+    report = acc.build_usage_report()
 
     assert report.input_tokens == 0
     assert report.output_tokens == 0
-    assert not hasattr(report, "cost_cents")
+    assert to_sse_dict(report) == {
+        "type": "usage_report",
+        "input_tokens": 0,
+        "output_tokens": 0,
+    }

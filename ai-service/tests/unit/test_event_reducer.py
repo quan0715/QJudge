@@ -208,6 +208,20 @@ def test_usage_report_replaces_absolute_totals(run: Run, assistant: Message) -> 
     [
         {"type": "usage_report", "input_tokens": -1, "output_tokens": 0},
         {"type": "usage_report", "input_tokens": 0, "output_tokens": -1},
+        {"type": "usage_report", "input_tokens": True, "output_tokens": 0},
+        {"type": "usage_report", "input_tokens": 0, "output_tokens": 1.5},
+        {
+            "type": "usage_report",
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "model_used": "must-not-persist",
+        },
+        {
+            "type": "usage_report",
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cost_cents": 0,
+        },
     ],
 )
 def test_usage_report_rejects_invalid_token_totals(

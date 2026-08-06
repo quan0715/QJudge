@@ -742,7 +742,7 @@ class _DeepAgentRuntime:
         )
 
         def _build_usage_event() -> UsageReport:
-            return usage_accumulator.build_usage_report(model_id=model_id)
+            return usage_accumulator.build_usage_report()
 
         try:
             try:
