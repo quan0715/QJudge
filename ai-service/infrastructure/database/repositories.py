@@ -6,9 +6,11 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.event_reducer import EventProjection, reduce_run_event
+from domain.errors import RepositoryConflict
 from domain.models import (
     Message,
     Principal,
@@ -387,7 +389,10 @@ class SqlAlchemyRunRepository:
             idempotency_key=idempotency_key,
         )
         self._session.add(row)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            raise RepositoryConflict("run idempotency key already exists") from exc
         return _run_from_row(row)
 
     async def has_blocking_run(

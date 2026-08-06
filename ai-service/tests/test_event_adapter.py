@@ -22,7 +22,7 @@ _openai_stub.ChatOpenAI = _ChatOpenAIStub
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.event_adapter import (
+from infrastructure.agent.event_adapter import (
     AgentMessageDelta,
     ThinkingDelta,
     adapt_langgraph_event,

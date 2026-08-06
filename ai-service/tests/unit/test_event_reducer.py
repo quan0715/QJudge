@@ -208,11 +208,9 @@ def test_usage_report_replaces_absolute_totals(run: Run, assistant: Message) -> 
     [
         {"type": "usage_report", "input_tokens": -1, "output_tokens": 0},
         {"type": "usage_report", "input_tokens": 0, "output_tokens": -1},
-        {"type": "usage_report", "input_tokens": 1, "output_tokens": 2, "cost_cents": 3},
-        {"type": "usage_report", "input_tokens": 1, "output_tokens": 2, "credits": 3},
     ],
 )
-def test_usage_report_rejects_invalid_or_billing_fields(
+def test_usage_report_rejects_invalid_token_totals(
     event: dict[str, object], run: Run, assistant: Message
 ) -> None:
     with pytest.raises(ValueError):

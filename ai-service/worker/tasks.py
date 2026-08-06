@@ -30,8 +30,6 @@ from infrastructure.mcp.credential_lease import RedisCredentialLeaseStore
 from infrastructure.mcp.preflight import McpPreflight
 from infrastructure.mcp.token_exchange import McpTokenExchangeClient
 from infrastructure.queue.celery_dispatcher import CeleryRunDispatcher
-from services.deepagent_runner import DeepAgentRunner
-
 from .celery_app import celery_app
 from .runtime import (
     SqlAlchemyWorkerRunStore,
@@ -183,27 +181,23 @@ async def _execute_run(
     lease_store = _redis_lease_store(redis)
     credentials = _credentials(lease_store)
     checkpoints = LangGraphCheckpointStore(database_url=settings.ai_database_url)
-    runner = DeepAgentRunner(
-        mcp_server_url=settings.qjudge_mcp_url,
-        skills_paths=settings.deepagent_skills_paths,
-        memory_paths=settings.deepagent_memory_paths,
-        checkpoint_store=checkpoints,
-    )
+    agent: DeepAgentAdapter | None = None
     try:
-        await runner.setup()
         artifacts = ArtifactService(
             _WorkerArtifactRepository(session_factory),
             _artifact_store(),
             max_bytes=settings.artifact_max_bytes,
         )
         agent = DeepAgentAdapter(
-            runner=runner,
             mcp_provider=McpToolConnectionProvider(
                 server_url=settings.qjudge_mcp_url
             ),
             artifact_service=artifacts,
             checkpoint_store=checkpoints,
+            skills_paths=settings.deepagent_skills_paths,
+            memory_paths=settings.deepagent_memory_paths,
         )
+        await agent.setup()
         runs = SqlAlchemyWorkerRunStore(
             session_factory,
             CeleryRunDispatcher(celery_app),
@@ -221,7 +215,8 @@ async def _execute_run(
             trace_context,
         )
     finally:
-        await runner.shutdown()
+        if agent is not None:
+            await agent.shutdown()
         await redis.aclose()
         await engine.dispose()
 

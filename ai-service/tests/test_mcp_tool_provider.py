@@ -39,7 +39,7 @@ from application.credential_service import (  # noqa: E402
     McpToolDiscoveryFailed,
     McpUnavailable,
 )
-from services.mcp_tool_provider import (  # noqa: E402
+from infrastructure.mcp.provider import (  # noqa: E402
     MCPToolProvider,
     _format_tool_result,
 )
@@ -152,7 +152,7 @@ class _ProbeSession(_AsyncContext):
 
 
 def _install_probe_transport(monkeypatch, session, *, connect_error=None):
-    import services.mcp_tool_provider as module
+    import infrastructure.mcp.provider as module
 
     transport = _AsyncContext(
         (object(), object(), None),
@@ -269,7 +269,7 @@ def test_probe_rejects_repeated_pagination_cursor_and_closes(monkeypatch):
 
 
 def test_probe_rejects_discovery_that_exceeds_page_bound(monkeypatch):
-    import services.mcp_tool_provider as module
+    import infrastructure.mcp.provider as module
 
     monkeypatch.setattr(module, "_MAX_TOOL_DISCOVERY_PAGES", 2)
     session = _ProbeSession(

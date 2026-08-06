@@ -23,11 +23,11 @@ class _ChatDeepSeekStub:  # pragma: no cover - import stub only
 _deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 
-from services.artifact_tools import build_artifact_tools  # noqa: E402
+from infrastructure.artifacts.tools import build_artifact_tools  # noqa: E402
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def _tool(tools, name):
@@ -210,7 +210,10 @@ def test_write_posts_expected_payload(monkeypatch):
 
 
 def test_artifact_tools_have_no_django_http_callback() -> None:
-    source = (os.path.dirname(__file__) + "/../services/artifact_tools.py")
+    source = (
+        os.path.dirname(__file__)
+        + "/../infrastructure/artifacts/tools.py"
+    )
     with open(source, encoding="utf-8") as handle:
         contents = handle.read()
     assert "httpx" not in contents

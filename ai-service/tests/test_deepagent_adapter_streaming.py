@@ -18,7 +18,7 @@ sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from infrastructure.agent.deepagent_adapter import AgentCommand, AgentOperation
-from services.deepagent_runner import DeepAgentRunner
+from infrastructure.agent.deepagent_adapter import DeepAgentAdapter
 
 
 class _UsageOutput:
@@ -64,9 +64,9 @@ class _FakeRecursionHandler:
         return "recursion summary"
 
 
-async def _collect_events(runner: DeepAgentRunner, agent: _FakeAgent):
+async def _collect_events(runner: DeepAgentAdapter, agent: _FakeAgent):
     events = []
-    async for item in runner._stream_events(
+    async for item in runner._runner._stream_events(
         agent=agent,
         agent_input={"messages": []},
         config={"configurable": {"thread_id": "thread-1"}},
@@ -79,97 +79,14 @@ async def _collect_events(runner: DeepAgentRunner, agent: _FakeAgent):
     return events
 
 
-def _build_runner() -> DeepAgentRunner:
-    runner = DeepAgentRunner(mcp_server_url="http://example.test/mcp")
-    runner._checkpointer = _Checkpointer()
+def _build_runner() -> DeepAgentAdapter:
+    runner = DeepAgentAdapter(
+        mcp_provider=object(),
+        artifact_service=object(),
+        checkpoint_store=object(),
+    )
+    runner._runner._checkpointer = _Checkpointer()
     return runner
-
-
-async def test_legacy_stream_generators_iterate_with_caller_owned_ids(monkeypatch):
-    runner = _build_runner()
-    session_id = "22222222-2222-4222-8222-222222222222"
-    run_id = "11111111-1111-4111-8111-111111111111"
-    captured = []
-
-    async def fake_compatibility_stream(**kwargs):
-        captured.append(kwargs)
-        yield {
-            "type": "run_started",
-            "run_id": kwargs["run_id"],
-            "thread_id": kwargs["thread_id"],
-        }
-
-    monkeypatch.setattr(runner, "_compatibility_stream", fake_compatibility_stream)
-    context = SimpleNamespace(
-        run_id=run_id,
-        session_id=session_id,
-        user_authorization="Bearer user-token",
-        tool_policy=None,
-    )
-
-    start_events = [
-        event
-        async for event in runner.run_stream(
-            thread_id=session_id,
-            messages=[{"role": "user", "content": "hello"}],
-            request_context=context,
-        )
-    ]
-    resume_events = [
-        event
-        async for event in runner.resume_stream(
-            thread_id=session_id,
-            decision="approve",
-            request_context=context,
-        )
-    ]
-    answer_events = [
-        event
-        async for event in runner.answer_stream(
-            thread_id=session_id,
-            answer="yes",
-            request_context=context,
-        )
-    ]
-
-    assert [events[0]["run_id"] for events in (start_events, resume_events, answer_events)] == [
-        run_id,
-        run_id,
-        run_id,
-    ]
-    assert [call["thread_id"] for call in captured] == [session_id] * 3
-    assert [call["run_id"] for call in captured] == [run_id] * 3
-
-
-async def test_legacy_stream_rejects_missing_or_mismatched_caller_ids():
-    runner = _build_runner()
-    context = SimpleNamespace(
-        run_id=None,
-        session_id="22222222-2222-4222-8222-222222222222",
-        user_authorization="Bearer user-token",
-        tool_policy=None,
-    )
-
-    with pytest.raises(ValueError, match="run_id"):
-        _ = [
-            event
-            async for event in runner.run_stream(
-                thread_id=context.session_id,
-                messages=[{"role": "user", "content": "hello"}],
-                request_context=context,
-            )
-        ]
-
-    context.run_id = "11111111-1111-4111-8111-111111111111"
-    with pytest.raises(ValueError, match="session_id"):
-        _ = [
-            event
-            async for event in runner.run_stream(
-                thread_id="33333333-3333-4333-8333-333333333333",
-                messages=[{"role": "user", "content": "hello"}],
-                request_context=context,
-            )
-        ]
 
 
 def _event_types(events: list[dict]) -> list[str]:
@@ -246,7 +163,7 @@ def test_stream_events_fail_closed_when_interrupt_payload_has_no_actions():
 
 def test_stream_events_recursion_path_emits_summary_then_usage_then_completed():
     runner = _build_runner()
-    runner._recursion_handler = _FakeRecursionHandler()
+    runner._runner._recursion_handler = _FakeRecursionHandler()
     agent = _FakeAgent(
         events=[],
         state=SimpleNamespace(interrupts=(), values={"messages": []}),
@@ -289,13 +206,13 @@ def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
         )
         yield {"type": "run_completed", "run_id": run_id}
 
-    monkeypatch.setattr(runner, "_build_agent", lambda **_kwargs: object())
-    monkeypatch.setattr(runner, "_stream_events", fake_stream_events)
+    monkeypatch.setattr(runner._runner, "_build_agent", lambda **_kwargs: object())
+    monkeypatch.setattr(runner._runner, "_stream_events", fake_stream_events)
 
     async def collect():
         return [
             event
-            async for event in runner.execute(
+            async for event in runner._runner.execute(
                 command=command,
                 tools=[],
                 configurable={
@@ -372,13 +289,13 @@ def test_runner_resume_operations_keep_caller_ids(
         )
         yield {"type": "run_completed", "run_id": run_id}
 
-    monkeypatch.setattr(runner, "_build_agent", lambda **_kwargs: object())
-    monkeypatch.setattr(runner, "_stream_events", fake_stream_events)
+    monkeypatch.setattr(runner._runner, "_build_agent", lambda **_kwargs: object())
+    monkeypatch.setattr(runner._runner, "_stream_events", fake_stream_events)
 
     async def collect():
         return [
             event
-            async for event in runner.execute(
+            async for event in runner._runner.execute(
                 command=command,
                 tools=[],
                 configurable={

@@ -18,7 +18,7 @@ os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage  # noqa: E402
 
-from services.hitl_middleware import ActionAwareHITLMiddleware  # noqa: E402
+from infrastructure.agent.hitl_middleware import ActionAwareHITLMiddleware  # noqa: E402
 
 
 WRITE_ACTIONS = {
@@ -62,7 +62,7 @@ class TestWriteActionFiltering:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "approve"}]},
         ) as fake_interrupt:
             mw.after_model(state, runtime)
@@ -82,7 +82,7 @@ class TestWriteActionFiltering:
         )
         runtime = Mock()
 
-        with patch("services.hitl_middleware.interrupt") as fake_interrupt:
+        with patch("infrastructure.agent.hitl_middleware.interrupt") as fake_interrupt:
             result = mw.after_model(state, runtime)
 
         fake_interrupt.assert_not_called()
@@ -96,7 +96,7 @@ class TestWriteActionFiltering:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "approve"}]},
         ) as fake_interrupt:
             mw.after_model(state, runtime)
@@ -111,7 +111,7 @@ class TestWriteActionFiltering:
         )
         runtime = Mock()
 
-        with patch("services.hitl_middleware.interrupt") as fake_interrupt:
+        with patch("infrastructure.agent.hitl_middleware.interrupt") as fake_interrupt:
             result = mw.after_model(state, runtime)
 
         fake_interrupt.assert_not_called()
@@ -127,7 +127,7 @@ class TestWriteActionFiltering:
         )
         runtime = Mock()
 
-        with patch("services.hitl_middleware.interrupt") as fake_interrupt:
+        with patch("infrastructure.agent.hitl_middleware.interrupt") as fake_interrupt:
             result = mw.after_model(state, runtime)
 
         fake_interrupt.assert_not_called()
@@ -142,7 +142,7 @@ class TestDecisionProcessing:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "approve"}]},
         ):
             result = mw.after_model(state, runtime)
@@ -162,7 +162,7 @@ class TestDecisionProcessing:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "reject"}]},
         ):
             result = mw.after_model(state, runtime)
@@ -188,7 +188,7 @@ class TestMixedToolCalls:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "approve"}]},
         ) as fake_interrupt:
             result = mw.after_model(state, runtime)
@@ -214,7 +214,7 @@ class TestMixedToolCalls:
         runtime = Mock()
 
         with patch(
-            "services.hitl_middleware.interrupt",
+            "infrastructure.agent.hitl_middleware.interrupt",
             return_value={"decisions": [{"type": "reject"}]},
         ):
             result = mw.after_model(state, runtime)
@@ -229,7 +229,7 @@ class TestEmptyStates:
     def test_no_messages_returns_none(self):
         mw = _make_middleware()
         runtime = Mock()
-        with patch("services.hitl_middleware.interrupt") as fake_interrupt:
+        with patch("infrastructure.agent.hitl_middleware.interrupt") as fake_interrupt:
             result = mw.after_model({"messages": []}, runtime)
         assert result is None
         fake_interrupt.assert_not_called()
@@ -238,7 +238,7 @@ class TestEmptyStates:
         mw = _make_middleware()
         runtime = Mock()
         state = {"messages": [HumanMessage(content="hi"), AIMessage(content="hello")]}
-        with patch("services.hitl_middleware.interrupt") as fake_interrupt:
+        with patch("infrastructure.agent.hitl_middleware.interrupt") as fake_interrupt:
             result = mw.after_model(state, runtime)
         assert result is None
         fake_interrupt.assert_not_called()
@@ -250,7 +250,7 @@ async def test_aafter_model_delegates_to_sync():
     state = _make_state(_tool_call("qjudge_grading", {"action": "grade", "score": 60}))
     runtime = Mock()
     with patch(
-        "services.hitl_middleware.interrupt",
+        "infrastructure.agent.hitl_middleware.interrupt",
         return_value={"decisions": [{"type": "approve"}]},
     ) as fake_interrupt:
         result = await mw.aafter_model(state, runtime)

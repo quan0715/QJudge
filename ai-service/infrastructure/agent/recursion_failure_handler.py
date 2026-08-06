@@ -8,7 +8,7 @@ from typing import Any
 from langchain_core.messages import AnyMessage
 from langgraph.errors import GraphRecursionError
 
-from services.model_factory import ModelFactory
+from infrastructure.agent.model_factory import ModelFactory
 
 _DEFAULT_RECURSION_SUMMARY_MODEL_ID = "openai-nano"
 _DEFAULT_RECURSION_TAIL_MESSAGES = 12

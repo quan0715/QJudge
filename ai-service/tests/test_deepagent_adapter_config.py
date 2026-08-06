@@ -1,4 +1,4 @@
-"""Tests for DeepAgentRunner skill/memory integration wiring."""
+"""Tests for DeepAgentAdapter skill/memory integration wiring."""
 
 from __future__ import annotations
 
@@ -28,7 +28,16 @@ sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from deepagents.backends.composite import CompositeBackend
 
-from services import deepagent_runner as runner_mod
+from infrastructure.agent import deepagent_adapter as runner_mod
+
+
+def _build_adapter(**kwargs):
+    return runner_mod.DeepAgentAdapter(
+        mcp_provider=MagicMock(),
+        artifact_service=MagicMock(),
+        checkpoint_store=MagicMock(),
+        **kwargs,
+    )
 
 
 def test_summarization_middleware_is_patched():
@@ -107,11 +116,9 @@ def _patch_builder_dependencies(monkeypatch):
 
 def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
-    runner = runner_mod.DeepAgentRunner(
-        mcp_server_url="http://example.test/mcp",
-    )
+    runner = _build_adapter()
 
-    runner._build_agent(
+    runner._runner._build_agent(
         model_id="deepseek-v4",
         system_prompt=None,
         tools=[],
@@ -128,11 +135,9 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
 
 def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
-    runner = runner_mod.DeepAgentRunner(
-        mcp_server_url="http://example.test/mcp",
-    )
+    runner = _build_adapter()
 
-    runner._build_agent(
+    runner._runner._build_agent(
         model_id="deepseek-v4",
         system_prompt=None,
         tools=[],
@@ -148,13 +153,12 @@ def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
 
 def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
     capture = _patch_builder_dependencies(monkeypatch)
-    runner = runner_mod.DeepAgentRunner(
-        mcp_server_url="http://example.test/mcp",
+    runner = _build_adapter(
         skills_paths=["/tmp/custom-skills"],
         memory_paths=["/tmp/custom-agents.md"],
     )
 
-    runner._build_agent(
+    runner._runner._build_agent(
         model_id="deepseek-v4",
         system_prompt="custom-prompt",
         tools=[],
@@ -171,14 +175,13 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
     capture = _patch_builder_dependencies(monkeypatch)
     missing_skill = "/tmp/definitely-missing-qjudge-skill-dir"
     missing_memory = "/tmp/definitely-missing-qjudge-agents.md"
-    runner = runner_mod.DeepAgentRunner(
-        mcp_server_url="http://example.test/mcp",
+    runner = _build_adapter(
         skills_paths=[missing_skill],
         memory_paths=[missing_memory],
     )
 
     with caplog.at_level(logging.WARNING):
-        runner._build_agent(
+        runner._runner._build_agent(
             model_id="deepseek-v4",
             system_prompt=None,
             tools=[],

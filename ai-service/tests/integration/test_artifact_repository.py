@@ -17,7 +17,7 @@ from infrastructure.artifacts.s3_artifact_store import (
     SqlAlchemyArtifactRepository,
 )
 from infrastructure.database.models import ArtifactRow, RunRow, SessionRow
-from services.artifact_tools import build_artifact_tools
+from infrastructure.artifacts.tools import build_artifact_tools
 
 
 class FailableArtifactStore:

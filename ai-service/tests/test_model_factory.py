@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from services import model_factory as model_factory_mod
+from infrastructure.agent import model_factory as model_factory_mod
 
 
 class _ChatDeepSeekStub:

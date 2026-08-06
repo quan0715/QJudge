@@ -9,7 +9,7 @@ from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
 from config import get_settings
-from services.tpm_gate import (
+from infrastructure.agent.tpm_gate import (
     TpmBudget,
     estimate_input_tokens,
     get_or_create_budget,

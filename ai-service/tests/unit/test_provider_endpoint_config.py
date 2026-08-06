@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from config import Settings
-from services import model_factory
+from infrastructure.agent import model_factory
 
 
 @pytest.mark.parametrize(

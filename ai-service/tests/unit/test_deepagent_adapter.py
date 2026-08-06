@@ -134,7 +134,7 @@ async def test_resume_operations_reuse_the_same_domain_ids(
 
 
 def test_runner_source_does_not_generate_domain_ids() -> None:
-    source = Path("services/deepagent_runner.py").read_text()
+    source = Path("infrastructure/agent/deepagent_adapter.py").read_text()
     assert "uuid.uuid4" not in source
     assert "uuid4(" not in source
     assert "backend_base_url" not in source

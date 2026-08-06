@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from services.event_adapter import UsageReport
+from infrastructure.agent.event_adapter import UsageReport
 
 
 class UsageAccumulator:

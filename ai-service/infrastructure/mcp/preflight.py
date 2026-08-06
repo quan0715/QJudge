@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from services.mcp_tool_provider import MCPToolProvider
+from infrastructure.mcp.provider import MCPToolProvider
 
 
 class McpPreflight:

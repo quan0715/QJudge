@@ -7,9 +7,8 @@ from contextvars import ContextVar, Token
 from dataclasses import replace
 from uuid import UUID
 
-from sqlalchemy.exc import IntegrityError
-
 from application.credential_service import CredentialService
+from domain.errors import RepositoryConflict
 from domain.models import Principal, Run, RunKind, RunStatus
 from domain.ports import RunDispatcher, TraceContext, UnitOfWork
 
@@ -112,7 +111,7 @@ class RunService:
                     and oldest_queued is not None
                     and oldest_queued.id == run.id
                 )
-        except IntegrityError:
+        except RepositoryConflict:
             # The unique constraint is authoritative if another process won a
             # race despite application-level locking.
             async with self._uow_factory() as uow:

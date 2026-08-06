@@ -10,7 +10,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.runtime.usage_accumulator import UsageAccumulator
+from infrastructure.agent.usage_accumulator import UsageAccumulator
 
 
 class _Output:

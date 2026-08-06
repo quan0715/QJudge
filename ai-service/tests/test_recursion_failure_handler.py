@@ -15,7 +15,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.runtime.recursion_failure_handler import RecursionFailureHandler
+from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
 
 
 class _FakeSummaryModel:

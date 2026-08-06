@@ -16,13 +16,10 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from api.errors import install_error_handlers
-from api.routers import (
-    artifacts_router,
-    health_router,
-    runs_router,
-    sessions_router,
-    system_router,
-)
+from api.routers.artifacts import router as artifacts_router
+from api.routers.runs import router as runs_router
+from api.routers.sessions import router as sessions_router
+from api.routers.system import health_router, system_router
 from application.artifacts import ArtifactNotFound, ArtifactService
 from application.credential_service import CredentialService, McpUnavailable
 from application.run_service import (

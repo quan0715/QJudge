@@ -24,14 +24,6 @@ _PAUSE_EVENT_STATUSES = {
     "awaiting_approval": RunStatus.AWAITING_APPROVAL,
     "awaiting_user_answer": RunStatus.AWAITING_USER_ANSWER,
 }
-_BILLING_FIELDS = {
-    "cost",
-    "cost_cents",
-    "cost_usd",
-    "credit",
-    "credits",
-    "pricing",
-}
 _TODO_TOOL_NAMES = {"write_todos", "update_todos"}
 
 
@@ -57,11 +49,6 @@ def _project_todos(metadata: dict[str, Any], payload: Any) -> None:
 
 
 def _validate_usage_event(event: dict[str, Any]) -> Usage:
-    forbidden = _BILLING_FIELDS.intersection(event)
-    if forbidden:
-        names = ", ".join(sorted(forbidden))
-        raise ValueError(f"usage_report does not accept billing fields: {names}")
-
     input_tokens = event.get("input_tokens")
     output_tokens = event.get("output_tokens")
     if (

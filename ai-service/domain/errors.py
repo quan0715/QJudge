@@ -12,3 +12,7 @@ class InvalidRunTransition(ValueError):
         self.source = source
         self.target = target
         super().__init__(f"Cannot transition run from {source} to {target}")
+
+
+class RepositoryConflict(RuntimeError):
+    """A persistence uniqueness rule rejected a concurrent write."""

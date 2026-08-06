@@ -107,7 +107,7 @@ class StartRunRequest(BaseModel):
         # Keep command validation tied to the same registry exposed by
         # GET /v1/models. Unknown aliases must never silently execute using
         # ModelFactory's legacy fallback.
-        from services.model_registry import ADVERTISED_MODEL_IDS
+        from domain.model_registry import ADVERTISED_MODEL_IDS
 
         if value not in ADVERTISED_MODEL_IDS:
             raise ValueError("model_id is not advertised")
