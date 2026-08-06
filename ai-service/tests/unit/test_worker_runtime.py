@@ -131,6 +131,19 @@ class SlowAgent(FakeAgent):
         yield {"type": "run_completed"}
 
 
+class CloseAwareAgent(FakeAgent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.closed = False
+
+    async def execute(self, command) -> AsyncIterator[dict]:
+        self.commands.append(command)
+        try:
+            yield {"type": "run_completed"}
+        finally:
+            self.closed = True
+
+
 class FakeCheckpoints:
     def __init__(self) -> None:
         self.repairs = []
@@ -240,6 +253,18 @@ async def test_heartbeat_runs_independently_of_agent_events() -> None:
     await runtime.execute(run.id, "lease:subject", TRACE)
 
     assert runs.heartbeats >= 2
+
+
+@pytest.mark.asyncio
+async def test_terminal_event_closes_agent_transport_before_task_returns() -> None:
+    run = make_run()
+    runs = FakeRuns(run, Principal("issuer", "subject"))
+    agent = CloseAwareAgent()
+    runtime = WorkerRuntime(runs, FakeCredentials(), agent, FakeCheckpoints())
+
+    await runtime.execute(run.id, "lease:subject", TRACE)
+
+    assert agent.closed is True
 
 
 @pytest.mark.asyncio

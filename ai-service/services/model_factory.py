@@ -1,8 +1,4 @@
-"""Model factory — abstraction layer for LLM provider switching.
-
-To switch models, change _MODEL_MAP and PRICING. Everything else
-(deepagent_runner, routers, config) reads from here.
-"""
+"""Model factory — abstraction layer for LLM provider switching."""
 
 import logging
 from typing import Any
@@ -169,19 +165,6 @@ MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "deepseek-v4-thinking": 12_000,
 }
 
-# Pricing in cents per million tokens.
-# IMPORTANT: keep in sync with backend/apps/ai/credits.py::DEFAULT_MODEL_PRICING.
-# A contract test (backend/apps/ai/tests/test_pricing_alignment.py) enforces equality in CI.
-PRICING: dict[str, dict[str, int]] = {
-    "openai-nano": {"input": 5, "output": 20},
-    "openai-mini": {"input": 75, "output": 450},
-    "openai-mini-medium": {"input": 75, "output": 450},
-    "deepseek-v4": {"input": 14, "output": 28},
-    "deepseek-v4-flash": {"input": 14, "output": 28},
-    "deepseek-v4-pro": {"input": 55, "output": 219},
-    "deepseek-v4-thinking": {"input": 14, "output": 28},
-}
-
 class ModelFactory:
     """Factory for creating LLM model instances."""
 
@@ -229,6 +212,8 @@ class ModelFactory:
                 "api_key": api_key or None,
                 "streaming": True,
             }
+            if settings.openai_base_url:
+                openai_kwargs["base_url"] = settings.openai_base_url
             rate_limit_rps = _OPENAI_RATE_LIMIT_RPS.get(model_id)
             if rate_limit_rps:
                 # LangChain waits on this limiter before each model invocation.
@@ -292,6 +277,8 @@ class ModelFactory:
                     "thinking": {"type": "enabled" if thinking else "disabled"}
                 },
             }
+            if settings.deepseek_base_url:
+                deepseek_kwargs["api_base"] = settings.deepseek_base_url
             if thinking:
                 deepseek_kwargs["reasoning_effort"] = "low"
             model = deepseek_cls(**deepseek_kwargs)

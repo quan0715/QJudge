@@ -811,10 +811,7 @@ class DeepAgentRunner:
         )
 
         def _build_usage_event() -> UsageReport:
-            return usage_accumulator.build_usage_report(
-                model_id=model_id,
-                calculate_cost=self._calculate_cost,
-            )
+            return usage_accumulator.build_usage_report(model_id=model_id)
 
         try:
             try:
@@ -864,16 +861,3 @@ class DeepAgentRunner:
                     message="Agent execution failed",
                 )
             )
-
-    @staticmethod
-    def _calculate_cost(
-        model_id: str,
-        input_tokens: int,
-        output_tokens: int,
-    ) -> int:
-        """Calculate cost in cents based on model pricing."""
-        from services.model_factory import PRICING, _DEFAULT_MODEL_ID
-
-        rates = PRICING.get(model_id, PRICING[_DEFAULT_MODEL_ID])
-        cost = (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
-        return round(cost)

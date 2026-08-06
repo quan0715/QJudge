@@ -3,8 +3,9 @@
 import json
 from functools import lru_cache
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -67,6 +68,14 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("OPENAI_API_KEY"),
     )
+    deepseek_base_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("DEEPSEEK_BASE_URL"),
+    )
+    openai_base_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENAI_BASE_URL"),
+    )
 
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = (
@@ -78,6 +87,8 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("AI_DATABASE_URL"),
     )
+    ai_db_user: str = Field(default="", validation_alias=AliasChoices("AI_DB_USER"))
+    ai_db_name: str = Field(default="", validation_alias=AliasChoices("AI_DB_NAME"))
     ai_database_schema: str = "ai"
     ai_checkpoint_schema: str = "ai_checkpoint"
 
@@ -255,6 +266,24 @@ class Settings(BaseSettings):
     @classmethod
     def _coerce_path_lists(cls, value: Any) -> Any:
         return cls._parse_env_path_list(value)
+
+    @model_validator(mode="after")
+    def _validate_database_identity(self) -> "Settings":
+        if not self.ai_db_user and not self.ai_db_name:
+            return self
+        if not self.ai_database_url or not self.ai_db_user or not self.ai_db_name:
+            raise ValueError(
+                "AI_DATABASE_URL, AI_DB_USER, and AI_DB_NAME must be configured together"
+            )
+        normalized = self.ai_database_url.replace(
+            "postgresql+psycopg://", "postgresql://", 1
+        )
+        parsed = urlsplit(normalized)
+        if unquote(parsed.username or "") != self.ai_db_user:
+            raise ValueError("AI_DATABASE_URL username does not match AI_DB_USER")
+        if unquote(parsed.path.lstrip("/")) != self.ai_db_name:
+            raise ValueError("AI_DATABASE_URL database does not match AI_DB_NAME")
+        return self
 
 
 @lru_cache

@@ -70,7 +70,6 @@ class ToolCallFinished:
 class UsageReport:
     input_tokens: int
     output_tokens: int
-    cost_cents: int
     model_used: str
 
 
@@ -217,7 +216,7 @@ def adapt_langgraph_event(event: dict[str, Any]) -> list[InternalEvent] | None:
         else:
             if content:
                 results.append(AgentMessageDelta(content=content))
-                
+
         return results or None
 
     # Tool invocation started

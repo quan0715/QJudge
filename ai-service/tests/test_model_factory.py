@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-import types
+import pytest
 
-
-_deepseek_stub = types.ModuleType("langchain_deepseek")
-_openai_stub = types.ModuleType("langchain_openai")
+from services import model_factory as model_factory_mod
 
 
 class _ChatDeepSeekStub:
@@ -20,17 +17,22 @@ class _ChatOpenAIStub:
         self.kwargs = kwargs
 
 
-_deepseek_stub.ChatDeepSeek = _ChatDeepSeekStub
-_openai_stub.ChatOpenAI = _ChatOpenAIStub
-sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
-sys.modules.setdefault("langchain_openai", _openai_stub)
-
-from services import model_factory as model_factory_mod  # noqa: E402
+@pytest.fixture(autouse=True)
+def _stub_provider_models(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(model_factory_mod, "TpmGatedChatOpenAI", _ChatOpenAIStub)
+    monkeypatch.setattr(model_factory_mod, "ChatDeepSeek", _ChatDeepSeekStub)
+    monkeypatch.setattr(
+        model_factory_mod,
+        "ReasoningPreservingChatDeepSeek",
+        _ChatDeepSeekStub,
+    )
 
 
 class _FakeSettings:
     deepseek_api_key = "deepseek-key"
     openai_api_key = "openai-key"
+    deepseek_base_url = ""
+    openai_base_url = ""
 
 
 def test_create_model_openai_nano(monkeypatch):
@@ -113,4 +115,3 @@ def test_unknown_model_does_not_leak_across_providers(monkeypatch):
     model = model_factory_mod.ModelFactory.create_model("deepseek-r1")  # stale
     assert isinstance(model, _ChatOpenAIStub)
     assert model.kwargs["model"] == "gpt-5-nano"
-

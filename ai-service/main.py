@@ -200,7 +200,6 @@ class _ReadinessProbe:
             "database": "not_ready",
             "queue": "not_ready",
             "settings": "not_ready",
-            "providers": "not_ready",
         }
         required_settings = (
             self._settings.ai_database_url.strip(),
@@ -211,24 +210,6 @@ class _ReadinessProbe:
         )
         if all(required_settings):
             checks["settings"] = "ready"
-
-        # Every provider advertised by /v1/models must be usable. The result
-        # reports only readiness labels and never credential values.
-        from services.model_registry import ADVERTISED_MODEL_IDS
-
-        required_provider_credentials = []
-        if any(
-            model_id.startswith("openai-") for model_id in ADVERTISED_MODEL_IDS
-        ):
-            required_provider_credentials.append(self._settings.openai_api_key.strip())
-        if any(
-            model_id.startswith("deepseek-") for model_id in ADVERTISED_MODEL_IDS
-        ):
-            required_provider_credentials.append(
-                self._settings.deepseek_api_key.strip()
-            )
-        if required_provider_credentials and all(required_provider_credentials):
-            checks["providers"] = "ready"
 
         if self._engine is not None:
             try:

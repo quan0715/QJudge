@@ -642,6 +642,7 @@ class WorkerRuntime:
             )
         )
         terminalized = False
+        events: AsyncIterator[dict[str, Any]] | None = None
         try:
             if credential_lease_key is None:
                 raise McpAuthFailed("MCP credential lease is missing")
@@ -716,6 +717,11 @@ class WorkerRuntime:
                 },
             )
         finally:
+            if events is not None:
+                close = getattr(events, "aclose", None)
+                if close is not None:
+                    with suppress(asyncio.CancelledError):
+                        await close()
             heartbeat_stop.set()
             heartbeat_task.cancel()
             with suppress(asyncio.CancelledError):

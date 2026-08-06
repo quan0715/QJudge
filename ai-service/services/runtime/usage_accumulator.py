@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Callable
+from typing import Any
 
 from services.event_adapter import UsageReport
 
@@ -42,15 +42,9 @@ class UsageAccumulator:
         self,
         *,
         model_id: str,
-        calculate_cost: Callable[[str, int, int], int],
     ) -> UsageReport:
         return UsageReport(
             input_tokens=self._total_input_tokens,
             output_tokens=self._total_output_tokens,
-            cost_cents=calculate_cost(
-                model_id,
-                self._total_input_tokens,
-                self._total_output_tokens,
-            ),
             model_used=model_id,
         )

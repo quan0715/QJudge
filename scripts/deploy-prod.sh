@@ -103,6 +103,9 @@ required_env_keys=(
   AI_DB_USER
   AI_DB_PASSWORD
   AI_DATABASE_URL
+  GLITCHTIP_DB_NAME
+  GLITCHTIP_DB_USER
+  GLITCHTIP_DB_PASSWORD
   AI_REDIS_URL
   AI_QUEUE_NAME
   AI_QUEUE_KEY_PREFIX
@@ -132,6 +135,7 @@ reject_env_placeholder "POSTGRES_ADMIN_PASSWORD"
 reject_env_placeholder "DB_PASSWORD"
 reject_env_placeholder "AI_DB_PASSWORD"
 reject_env_placeholder "AI_DATABASE_URL"
+reject_env_placeholder "GLITCHTIP_DB_PASSWORD"
 reject_env_placeholder "CREDENTIAL_LEASE_SECRET"
 reject_env_placeholder "TUNNEL_TOKEN"
 reject_env_placeholder "GLITCHTIP_SECRET_KEY"
@@ -144,13 +148,17 @@ reject_env_values "GRAFANA_PASSWORD" "admin" "password"
 postgres_admin_user="$(get_env_value POSTGRES_ADMIN_USER)"
 django_db_user="$(get_env_value DB_USER)"
 ai_db_user="$(get_env_value AI_DB_USER)"
+glitchtip_db_user="$(get_env_value GLITCHTIP_DB_USER)"
 if [ "$postgres_admin_user" = "$django_db_user" ] || \
    [ "$postgres_admin_user" = "$ai_db_user" ] || \
-   [ "$django_db_user" = "$ai_db_user" ]; then
-  echo "POSTGRES_ADMIN_USER, DB_USER, and AI_DB_USER must be distinct" >&2
+   [ "$postgres_admin_user" = "$glitchtip_db_user" ] || \
+   [ "$django_db_user" = "$ai_db_user" ] || \
+   [ "$django_db_user" = "$glitchtip_db_user" ] || \
+   [ "$ai_db_user" = "$glitchtip_db_user" ]; then
+  echo "POSTGRES_ADMIN_USER, DB_USER, AI_DB_USER, and GLITCHTIP_DB_USER must be distinct" >&2
   exit 1
 fi
-for application_user in "$django_db_user" "$ai_db_user"; do
+for application_user in "$django_db_user" "$ai_db_user" "$glitchtip_db_user"; do
   case "$application_user" in
     postgres|root|rds_superuser|cloudsqlsuperuser)
       echo "application database role ${application_user} must not be a superuser" >&2
@@ -158,6 +166,29 @@ for application_user in "$django_db_user" "$ai_db_user"; do
       ;;
   esac
 done
+
+export AI_DATABASE_URL="$(get_env_value AI_DATABASE_URL)"
+export AI_DB_USER="$ai_db_user"
+export AI_DB_NAME="$(get_env_value AI_DB_NAME)"
+export AI_DB_PASSWORD="$(get_env_value AI_DB_PASSWORD)"
+python3 - <<'PY'
+import os
+from urllib.parse import unquote, urlsplit
+
+url = os.environ["AI_DATABASE_URL"].replace(
+    "postgresql+psycopg://", "postgresql://", 1
+)
+parsed = urlsplit(url)
+checks = {
+    "username": (unquote(parsed.username or ""), os.environ["AI_DB_USER"]),
+    "password": (unquote(parsed.password or ""), os.environ["AI_DB_PASSWORD"]),
+    "database": (unquote(parsed.path.lstrip("/")), os.environ["AI_DB_NAME"]),
+}
+for label, (actual, expected) in checks.items():
+    if actual != expected:
+        raise SystemExit(f"AI_DATABASE_URL {label} does not match AI database configuration")
+PY
+unset AI_DATABASE_URL AI_DB_USER AI_DB_NAME AI_DB_PASSWORD
 
 for key in \
   OBJECT_STORAGE_PUBLIC_ENDPOINT_URL \
@@ -222,16 +253,17 @@ unsafe_role_count="$({
       --username "$postgres_admin_user" \
       --dbname postgres \
       --set "django_db_user=$django_db_user" \
-      --set "ai_db_user=$ai_db_user" <<'SQL'
+      --set "ai_db_user=$ai_db_user" \
+      --set "glitchtip_db_user=$glitchtip_db_user" <<'SQL'
 SELECT count(*)
 FROM pg_roles
-WHERE rolname IN (:'django_db_user', :'ai_db_user')
+WHERE rolname IN (:'django_db_user', :'ai_db_user', :'glitchtip_db_user')
   AND (rolsuper OR rolcreatedb OR rolcreaterole);
 SQL
 } | tr -d '[:space:]')"
 unset PGPASSWORD
 if [ "$unsafe_role_count" != "0" ]; then
-  echo "Django and AI database roles must be non-superusers without role/database creation privileges" >&2
+  echo "Application database roles must be non-superusers without role/database creation privileges" >&2
   exit 1
 fi
 

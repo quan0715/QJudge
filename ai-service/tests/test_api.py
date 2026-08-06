@@ -497,7 +497,7 @@ def test_readiness_failure_uses_the_request_correlation_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_readiness_requires_credentials_for_every_advertised_provider() -> None:
+async def test_api_readiness_does_not_require_worker_provider_credentials() -> None:
     class HealthyConnection:
         async def __aenter__(self):
             return self
@@ -520,37 +520,20 @@ async def test_readiness_requires_credentials_for_every_advertised_provider() ->
         "AI_DATABASE_URL": "postgresql://db/ai",
         "ai_redis_url": "redis://queue/2",
         "credential_lease_secret": "x" * 32,
-        "DEEPSEEK_API_KEY": "deepseek-secret",
-        "OPENAI_API_KEY": "",
     }
-    missing_default = Settings(_env_file=None, **base)
+    api_settings = Settings(_env_file=None, **base)
     probe = _ReadinessProbe(
         engine=HealthyEngine(),
         redis=HealthyRedis(),
-        settings=missing_default,
+        settings=api_settings,
         oauth_issuer="https://issuer.test",
         oauth_jwks_url="https://issuer.test/jwks",
     )
 
-    missing_checks = await probe.check()
+    ready_checks = await probe.check()
 
-    assert missing_checks["providers"] == "not_ready"
-    assert "deepseek-secret" not in repr(missing_checks)
-
-    configured = Settings(
-        _env_file=None,
-        **{**base, "OPENAI_API_KEY": "openai-secret"},
-    )
-    ready_probe = _ReadinessProbe(
-        engine=HealthyEngine(),
-        redis=HealthyRedis(),
-        settings=configured,
-        oauth_issuer="https://issuer.test",
-        oauth_jwks_url="https://issuer.test/jwks",
-    )
-    ready_checks = await ready_probe.check()
     assert set(ready_checks.values()) == {"ready"}
-    assert "openai-secret" not in repr(ready_checks)
+    assert "providers" not in ready_checks
 
 
 def test_unknown_exception_does_not_leak_internal_details() -> None:
