@@ -82,6 +82,20 @@ class FakeRunRepository:
             for run in self.runs.values()
         )
 
+    async def oldest_queued(
+        self, session_id: UUID, excluding: UUID | None = None
+    ) -> Run | None:
+        return next(
+            (
+                run
+                for run in self.runs.values()
+                if run.session_id == session_id
+                and run.status is RunStatus.QUEUED
+                and run.id != excluding
+            ),
+            None,
+        )
+
     async def get_for_owner(
         self, principal: Principal, run_id: UUID
     ) -> Run | None:

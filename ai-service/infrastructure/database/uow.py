@@ -6,7 +6,12 @@ from types import TracebackType
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .repositories import SqlAlchemySessionRepository, SqlAlchemyUsageReader
+from .repositories import (
+    SqlAlchemyMessageRepository,
+    SqlAlchemyRunRepository,
+    SqlAlchemySessionRepository,
+    SqlAlchemyUsageReader,
+)
 
 
 class SqlAlchemyUnitOfWork:
@@ -18,6 +23,8 @@ class SqlAlchemyUnitOfWork:
         self.session = self._session_factory()
         await self.session.begin()
         self.sessions = SqlAlchemySessionRepository(self.session)
+        self.runs = SqlAlchemyRunRepository(self.session)
+        self.messages = SqlAlchemyMessageRepository(self.session)
         self.usage = SqlAlchemyUsageReader(self.session)
         return self
 

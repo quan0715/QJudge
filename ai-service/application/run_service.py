@@ -103,8 +103,14 @@ class RunService:
                     session.id, model_id, idempotency_key
                 )
                 await uow.messages.append_pair(session, run.id, prompt)
-                dispatch_after_commit = not await uow.runs.has_blocking_run(
+                has_active_run = await uow.runs.has_blocking_run(
                     session.id, excluding=run.id
+                )
+                oldest_queued = await uow.runs.oldest_queued(session.id)
+                dispatch_after_commit = (
+                    not has_active_run
+                    and oldest_queued is not None
+                    and oldest_queued.id == run.id
                 )
         except IntegrityError:
             # The unique constraint is authoritative if another process won a

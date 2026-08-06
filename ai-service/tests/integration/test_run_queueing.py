@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from types import TracebackType
 from uuid import UUID, uuid4
 
 import pytest
@@ -15,40 +14,8 @@ from application.run_service import RunService
 from domain.models import Principal, RunStatus, Session
 from domain.ports import CredentialLeaseKey, TraceContext
 from infrastructure.database.models import MessageRow, RunRow
-from infrastructure.database.repositories import (
-    SqlAlchemyMessageRepository,
-    SqlAlchemyRunRepository,
-    SqlAlchemySessionRepository,
-)
-
-
-class CommandUnitOfWork:
-    def __init__(self, factory: async_sessionmaker[AsyncSession]) -> None:
-        self._factory = factory
-        self.session: AsyncSession | None = None
-
-    async def __aenter__(self) -> "CommandUnitOfWork":
-        self.session = self._factory()
-        await self.session.begin()
-        self.sessions = SqlAlchemySessionRepository(self.session)
-        self.runs = SqlAlchemyRunRepository(self.session)
-        self.messages = SqlAlchemyMessageRepository(self.session)
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ) -> None:
-        assert self.session is not None
-        try:
-            if exc_type is None:
-                await self.session.commit()
-            else:
-                await self.session.rollback()
-        finally:
-            await self.session.close()
+from infrastructure.database.repositories import SqlAlchemySessionRepository
+from infrastructure.database.uow import SqlAlchemyUnitOfWork
 
 
 class ReadyCredentials:
@@ -99,12 +66,49 @@ def run_service(
 ) -> tuple[RunService, RecordingDispatcher]:
     dispatcher = RecordingDispatcher(session_factory)
     service = RunService(
-        lambda: CommandUnitOfWork(session_factory),
+        lambda: SqlAlchemyUnitOfWork(session_factory),
         ReadyCredentials(),
         dispatcher,
         trace_provider=TraceContext,
     )
     return service, dispatcher
+
+
+async def test_start_runs_through_production_sqlalchemy_uow(
+    session_factory,
+    chat_session: Session,
+    principal: Principal,
+) -> None:
+    dispatcher = RecordingDispatcher(session_factory)
+    service = RunService(
+        lambda: SqlAlchemyUnitOfWork(session_factory),
+        ReadyCredentials(),
+        dispatcher,
+        trace_provider=TraceContext,
+    )
+
+    run = await service.start(
+        principal,
+        chat_session.id,
+        "hello",
+        "deepseek-v4",
+        "production-uow",
+        "token",
+    )
+
+    async with session_factory() as db_session:
+        messages = (
+            await db_session.scalars(
+                select(MessageRow)
+                .where(MessageRow.session_id == chat_session.id)
+                .order_by(MessageRow.ordinal)
+            )
+        ).all()
+    assert [(row.role, row.content) for row in messages] == [
+        ("user", "hello"),
+        ("assistant", ""),
+    ]
+    assert dispatcher.calls == [(run.id, "lease:teacher-1")]
 
 
 async def test_start_commits_one_user_assistant_pair_and_dispatches_after_commit(
@@ -181,6 +185,38 @@ async def test_concurrent_duplicate_starts_use_database_as_final_arbiter(
     assert run_count == 1
     assert message_count == 2
     assert dispatcher.calls == [(first.id, "lease:teacher-1")]
+
+
+async def test_concurrent_distinct_starts_dispatch_only_first_accepted_run(
+    run_service, chat_session: Session, principal: Principal, session_factory
+) -> None:
+    service, dispatcher = run_service
+
+    first, second = await asyncio.gather(
+        service.start(
+            principal, chat_session.id, "first", "deepseek-v4", "first", "token"
+        ),
+        service.start(
+            principal, chat_session.id, "second", "deepseek-v4", "second", "token"
+        ),
+    )
+
+    async with session_factory() as db_session:
+        messages = (
+            await db_session.scalars(
+                select(MessageRow)
+                .where(MessageRow.session_id == chat_session.id)
+                .order_by(MessageRow.ordinal)
+            )
+        ).all()
+    assert {first.id, second.id} == {row.run_id for row in messages}
+    assert [(row.ordinal, row.role) for row in messages] == [
+        (1, "user"),
+        (2, "assistant"),
+        (3, "user"),
+        (4, "assistant"),
+    ]
+    assert dispatcher.calls == [(messages[0].run_id, "lease:teacher-1")]
 
 
 async def test_running_run_blocks_dispatch_of_next_queued_run(
