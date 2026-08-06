@@ -30,14 +30,14 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 
 ## 三、常用測試命令
 
-### 1) AI app smoke test
+### 1) AI compatibility BFF smoke test
 
 ```bash
 docker compose -f docker-compose.dev.yml exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
-  pytest apps/ai/tests/test_session_creation.py::AISessionCreationTest::test_session_model_with_pk -q
+  pytest apps/ai/tests/test_boundary.py::test_django_ai_app_is_only_a_bff -q
 ```
 
 ### 2) AI app 全部測試
