@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import re
+import subprocess
 from pathlib import Path
 
 
@@ -24,6 +27,12 @@ GENERATED_SECRET_KEYS = {
     "DB_PASSWORD",
     "AI_DB_PASSWORD",
     "CREDENTIAL_LEASE_SECRET",
+}
+STORAGE_ENVIRONMENT = {
+    "OBJECT_STORAGE_ENDPOINT_URL": "https://storage.example.test",
+    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://storage.example.test",
+    "OBJECT_STORAGE_ACCESS_KEY": "storage-key",
+    "OBJECT_STORAGE_SECRET_KEY": "storage-secret",
 }
 
 
@@ -53,3 +62,112 @@ def test_root_env_example_excludes_internal_and_special_purpose_settings() -> No
         "MCP_WIDGET_CLASSROOM_LIST_JS",
     }
     assert not forbidden & _active_env_keys()
+
+
+def _run_setup(
+    tmp_path: Path,
+    *,
+    origin: str = "https://judge.example.test",
+    storage: str = "r2",
+    force: bool = False,
+) -> tuple[subprocess.CompletedProcess[str], Path]:
+    output = tmp_path / ".env"
+    environment = os.environ.copy()
+    environment.update(STORAGE_ENVIRONMENT)
+    command = [
+        "bash",
+        str(REPOSITORY_ROOT / "scripts/setup-env.sh"),
+        "--target",
+        "self-hosted",
+        "--storage",
+        storage,
+        "--origin",
+        origin,
+        "--output",
+        str(output),
+    ]
+    if force:
+        command.append("--force")
+    result = subprocess.run(
+        command,
+        cwd=REPOSITORY_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result, output
+
+
+def _env_values(path: Path) -> dict[str, str]:
+    return dict(
+        line.split("=", 1)
+        for line in path.read_text().splitlines()
+        if line and not line.startswith("#")
+    )
+
+
+def test_setup_env_generates_complete_secret_safe_file(tmp_path: Path) -> None:
+    result, output = _run_setup(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    values = _env_values(output)
+    assert set(values) == EXPECTED_ACTIVE_KEYS | {"HOST_PROJECT_ROOT", "DOCKER_GID"}
+    generated = [values[name] for name in GENERATED_SECRET_KEYS]
+    assert all(generated)
+    assert len(generated) == len(set(generated))
+    assert re.fullmatch(r"[A-Za-z0-9]+", values["POSTGRES_ADMIN_PASSWORD"])
+    assert re.fullmatch(r"[A-Za-z0-9]+", values["DB_PASSWORD"])
+    assert re.fullmatch(r"[A-Za-z0-9]+", values["AI_DB_PASSWORD"])
+    assert values["DOCKER_GID"].isdigit()
+    assert output.stat().st_mode & 0o777 == 0o600
+
+
+def test_setup_env_refuses_to_overwrite_existing_file(tmp_path: Path) -> None:
+    output = tmp_path / ".env"
+    output.write_text("sentinel=true\n")
+
+    result, _ = _run_setup(tmp_path)
+
+    assert result.returncode != 0
+    assert output.read_text() == "sentinel=true\n"
+
+
+def test_setup_env_force_replaces_existing_file(tmp_path: Path) -> None:
+    output = tmp_path / ".env"
+    output.write_text("sentinel=true\n")
+
+    result, _ = _run_setup(tmp_path, force=True)
+
+    assert result.returncode == 0, result.stderr
+    assert "sentinel" not in output.read_text()
+
+
+def test_setup_env_rejects_origin_with_path_before_writing(tmp_path: Path) -> None:
+    result, output = _run_setup(
+        tmp_path, origin="https://judge.example.test/path"
+    )
+
+    assert result.returncode != 0
+    assert "must not include a path" in result.stderr
+    assert not output.exists()
+
+
+def test_setup_env_never_prints_supplied_or_generated_secrets(tmp_path: Path) -> None:
+    result, output = _run_setup(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    values = _env_values(output)
+    captured = result.stdout + result.stderr
+    for secret in STORAGE_ENVIRONMENT.values():
+        assert secret not in captured
+    for name in GENERATED_SECRET_KEYS:
+        assert values[name] not in captured
+
+
+def test_setup_env_rejects_unimplemented_minio_mode(tmp_path: Path) -> None:
+    result, output = _run_setup(tmp_path, storage="minio")
+
+    assert result.returncode != 0
+    assert "MinIO setup is not implemented" in result.stderr
+    assert not output.exists()
