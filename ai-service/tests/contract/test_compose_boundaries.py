@@ -381,13 +381,13 @@ def test_tunnel_profile_adds_cloudflared(tmp_path: Path) -> None:
     assert "cloudflared" in set(result.stdout.splitlines())
 
 
-def test_production_deploy_does_not_require_removed_integrations(
-    tmp_path: Path,
-) -> None:
+def _run_fake_production_deploy(
+    tmp_path: Path, *, extra_env: str = ""
+) -> tuple[subprocess.CompletedProcess[str], str]:
     deploy_path = tmp_path / "deploy"
     deploy_path.mkdir()
     (deploy_path / ".git").mkdir()
-    (deploy_path / ".env").write_text(_minimal_production_env())
+    (deploy_path / ".env").write_text(_minimal_production_env() + extra_env)
 
     command_log = tmp_path / "commands.log"
     fake_bin = tmp_path / "bin"
@@ -426,10 +426,36 @@ exit 0
         text=True,
         check=False,
     )
+    commands = command_log.read_text() if command_log.exists() else ""
+    return result, commands
+
+
+def test_production_deploy_does_not_require_removed_integrations(
+    tmp_path: Path,
+) -> None:
+    result, commands = _run_fake_production_deploy(tmp_path)
+
     assert result.returncode == 0, result.stderr
-    commands = command_log.read_text()
     assert "docker-compose.monitoring.yml" not in commands
     assert "oj_grafana" not in commands
+    assert "--profile tunnel" not in commands
+
+
+def test_production_deploy_enables_tunnel_only_when_token_is_configured(
+    tmp_path: Path,
+) -> None:
+    result, commands = _run_fake_production_deploy(
+        tmp_path, extra_env="TUNNEL_TOKEN=secure-tunnel-token\n"
+    )
+
+    assert result.returncode == 0, result.stderr
+    compose_deployment_commands = [
+        line
+        for line in commands.splitlines()
+        if line.startswith("docker compose -f")
+    ]
+    assert compose_deployment_commands
+    assert all("--profile tunnel" in line for line in compose_deployment_commands)
 
 
 def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
@@ -454,6 +480,39 @@ def test_production_deploy_validates_roles_and_bootstraps_oauth_before_render() 
     oauth = source.index("python3 scripts/bootstrap_ai_oauth_keys.py")
     render = source.index('docker compose "${COMPOSE_FILES[@]}" config --quiet')
     assert oauth < render
-    assert "POSTGRES_ADMIN_USER, DB_USER, and AI_DB_USER must be distinct" in source
-    assert 'f"AI_DATABASE_URL {label} does not match AI database configuration"' in source
+    required_block = source.split("required_env_keys=(", 1)[1].split(")", 1)[0]
+    expected_required = {
+        "POSTGRES_ADMIN_PASSWORD",
+        "DB_PASSWORD",
+        "AI_DB_PASSWORD",
+        "CREDENTIAL_LEASE_SECRET",
+        "SECRET_KEY",
+        "QJUDGE_PUBLIC_ORIGIN",
+        "OBJECT_STORAGE_ENDPOINT_URL",
+        "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
+        "OBJECT_STORAGE_ACCESS_KEY",
+        "OBJECT_STORAGE_SECRET_KEY",
+    }
+    assert expected_required == set(required_block.split())
+    for key in (
+        "AI_DATABASE_URL",
+        "AI_REDIS_URL",
+        "AI_QUEUE_NAME",
+        "AI_QUEUE_KEY_PREFIX",
+        "DB_SSLMODE",
+        "FRONTEND_URL",
+        "ALLOWED_HOSTS",
+        "CORS_ALLOWED_ORIGINS",
+        "CSRF_TRUSTED_ORIGINS",
+        "REDIS_URL",
+        "MCP_PUBLIC_URL",
+        "OAUTH_ISSUER_URL",
+        "OBJECT_STORAGE_REGION",
+        "ANTICHEAT_RAW_BUCKET",
+        "MARKDOWN_IMAGE_S3_BUCKET",
+        "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
+        "AI_ARTIFACT_S3_BUCKET",
+    ):
+        assert key not in required_block
+    assert "AI_DATABASE_URL" not in source
     assert "rolsuper OR rolcreatedb OR rolcreaterole" in source
