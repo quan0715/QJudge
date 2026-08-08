@@ -576,3 +576,90 @@ Before reporting completion, record:
 - `git diff --check` exit code.
 - The exact Git commits created for Tasks 1–6.
 - Remaining unverified work: MinIO compatibility, clean Linux end-to-end deployment, AWS EC2 deployment.
+
+### Task 7: Move Custom Model Endpoints Out Of Deployment Scope
+
+**Files:**
+- Modify: `ai-service/tests/contract/test_deployment_docs.py`
+- Modify: `.env.example`
+- Modify: `docs/deployment/ai-and-mcp.md`
+- Modify: `docs/deployment/prerequisites.md`
+
+**Interfaces:**
+- Consumes: 現有 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY` provider inputs，以及底層仍支援 `OPENAI_BASE_URL`、`DEEPSEEK_BASE_URL` 的 model factory。
+- Produces: 只說明既有 provider credential 的部署文件；自訂 endpoint 能力保留在程式，但不出現在 deployment contract。
+
+- [ ] **Step 1: Add a failing deployment-scope contract**
+
+在 `test_deployment_docs.py` 新增：
+
+```python
+def test_custom_model_endpoints_are_outside_deployment_scope() -> None:
+    documents = (
+        REPOSITORY_ROOT / ".env.example",
+        REPOSITORY_ROOT / "docs/deployment.md",
+        *GUIDES,
+    )
+    for document in documents:
+        text = _read(document)
+        assert "OPENAI_BASE_URL" not in text, document
+        assert "DEEPSEEK_BASE_URL" not in text, document
+```
+
+- [ ] **Step 2: Run the test to verify RED state**
+
+Run:
+
+```bash
+python3 -m pytest \
+  ai-service/tests/contract/test_deployment_docs.py::test_custom_model_endpoints_are_outside_deployment_scope \
+  -q
+```
+
+Expected: FAIL because `.env.example` and `docs/deployment/ai-and-mcp.md` still mention both Base URL variables.
+
+- [ ] **Step 3: Remove custom endpoint documentation**
+
+Apply these exact scope changes:
+
+- `.env.example` keeps `OPENAI_API_KEY` and `DEEPSEEK_API_KEY`, but removes both Base URL comment lines.
+- `ai-and-mcp.md` provider table lists only the two API keys.
+- `ai-and-mcp.md` removes the private OpenAI-compatible endpoint section and any instruction to export a Base URL.
+- `prerequisites.md` describes AI provider as an optional existing cloud provider credential; it does not list a self-hosted endpoint or model proxy.
+- Do not modify `scripts/setup-env.sh`, `ai-service/config.py` or `model_factory.py`; those belong to the future model-extension surface.
+
+- [ ] **Step 4: Run documentation and capability regression tests**
+
+Run:
+
+```bash
+python3 -m pytest \
+  ai-service/tests/contract/test_deployment_docs.py \
+  ai-service/tests/contract/test_setup_env.py \
+  ai-service/tests/unit/test_provider_endpoint_config.py \
+  -q
+```
+
+Expected: all tests pass. `test_provider_endpoint_config.py` proves the hidden extension capability remains available.
+
+- [ ] **Step 5: Scan and commit**
+
+Run:
+
+```bash
+rg -n 'OPENAI_BASE_URL|DEEPSEEK_BASE_URL' .env.example docs/deployment.md docs/deployment
+git diff --check
+```
+
+Expected: `rg` has no matches and exits 1; `git diff --check` exits 0.
+
+Commit:
+
+```bash
+git add \
+  .env.example \
+  ai-service/tests/contract/test_deployment_docs.py \
+  docs/deployment/ai-and-mcp.md \
+  docs/deployment/prerequisites.md
+git commit -m "docs: separate custom model endpoint guidance"
+```
