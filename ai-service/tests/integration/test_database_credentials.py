@@ -14,8 +14,6 @@ import pytest
     (
         "AI_TO_DJANGO_TEST_URL",
         "DJANGO_TO_AI_TEST_URL",
-        "GLITCHTIP_TO_DJANGO_TEST_URL",
-        "DJANGO_TO_GLITCHTIP_TEST_URL",
     ),
 )
 def test_application_role_cannot_connect_to_the_other_database(variable: str) -> None:
@@ -30,7 +28,7 @@ def test_application_role_cannot_connect_to_the_other_database(variable: str) ->
 
 @pytest.mark.parametrize(
     "variable",
-    ("AI_OWN_TEST_URL", "DJANGO_OWN_TEST_URL", "GLITCHTIP_OWN_TEST_URL"),
+    ("AI_OWN_TEST_URL", "DJANGO_OWN_TEST_URL"),
 )
 def test_application_role_can_connect_only_to_its_own_database(variable: str) -> None:
     database_url = os.environ.get(variable, "")

@@ -8,6 +8,8 @@ from pathlib import Path
 from datetime import timedelta
 from urllib.parse import urlparse
 
+from config.deployment import parse_public_origin
+
 
 def _endpoint_is_r2(url: str) -> bool:
     """True iff the hostname is on cloudflarestorage.com (R2)."""
@@ -228,7 +230,16 @@ OAUTH2_PROVIDER = {
     "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https", "cursor", "vscode"],
 }
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+_QJUDGE_PUBLIC_ORIGIN_RAW = os.environ.get("QJUDGE_PUBLIC_ORIGIN", "")
+_QJUDGE_PUBLIC_ORIGIN = (
+    parse_public_origin(_QJUDGE_PUBLIC_ORIGIN_RAW)
+    if _QJUDGE_PUBLIC_ORIGIN_RAW
+    else None
+)
+FRONTEND_URL = os.environ.get(
+    "FRONTEND_URL",
+    _QJUDGE_PUBLIC_ORIGIN.url if _QJUDGE_PUBLIC_ORIGIN else "http://localhost:5173",
+)
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
 OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
 AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(

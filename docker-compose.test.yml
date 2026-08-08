@@ -81,9 +81,6 @@ services:
       AI_DB_NAME: qjudge_ai_test
       AI_DB_USER: qjudge_ai
       AI_DB_PASSWORD: qjudge_ai
-      GLITCHTIP_DB_NAME: glitchtip_test
-      GLITCHTIP_DB_USER: qjudge_glitchtip
-      GLITCHTIP_DB_PASSWORD: qjudge_glitchtip
     volumes:
       - ./scripts/db/bootstrap-ai-database.sh:/bootstrap/bootstrap-ai-database.sh:ro
     depends_on:
@@ -318,7 +315,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
     group_add:
-      - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group}"
+      - "${DOCKER_GID:-0}"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m

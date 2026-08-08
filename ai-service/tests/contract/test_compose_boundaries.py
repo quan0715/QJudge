@@ -72,24 +72,11 @@ def _write_executable(path: Path, source: str) -> None:
 
 def _rendered_compose(filename: str, extra_environment: dict[str, str] | None = None) -> dict:
     environment = {
-        "POSTGRES_ADMIN_USER": "render_admin",
         "POSTGRES_ADMIN_PASSWORD": "render-admin-password",
-        "DB_NAME": "render_web_db",
-        "DB_USER": "render_web",
         "DB_PASSWORD": "render-web-password",
-        "AI_DB_NAME": "render_ai_db",
-        "AI_DB_USER": "render_ai",
         "AI_DB_PASSWORD": "render-ai-password",
-        "AI_DATABASE_URL": (
-            "postgresql+psycopg://render_ai:render-ai-password"
-            "@postgres:5432/render_ai_db"
-        ),
         "SECRET_KEY": "render-secret",
-        "FRONTEND_URL": "https://frontend.example.test",
-        "OAUTH_ISSUER_URL": "https://issuer.example.test",
-        "ALLOWED_HOSTS": "example.test",
-        "CORS_ALLOWED_ORIGINS": "https://frontend.example.test",
-        "CSRF_TRUSTED_ORIGINS": "https://frontend.example.test",
+        "QJUDGE_PUBLIC_ORIGIN": "https://frontend.example.test",
         "OBJECT_STORAGE_ENDPOINT_URL": "https://storage.example.test",
         "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://cdn.example.test",
         "OBJECT_STORAGE_ACCESS_KEY": "render-storage-key",
@@ -100,7 +87,7 @@ def _rendered_compose(filename: str, extra_environment: dict[str, str] | None = 
     }
     environment.update(extra_environment or {})
     compose = deepcopy(_compose(filename))
-    expression = re.compile(r"^\$\{([A-Z0-9_]+)(?::[-?](.*))?\}$")
+    expression = re.compile(r"\$\{([A-Z0-9_]+)(?::([-?])(.*?))?\}")
     services = compose["services"]
     for service in services.values():
         parent_name = service.get("extends", {}).get("service")
@@ -115,10 +102,14 @@ def _rendered_compose(filename: str, extra_environment: dict[str, str] | None = 
         for key, value in values.items():
             if not isinstance(value, str):
                 continue
-            match = expression.fullmatch(value)
-            if match:
-                variable, default = match.groups()
-                values[key] = environment.get(variable, default or "")
+            def replace(match: re.Match[str]) -> str:
+                variable, operator, fallback = match.groups()
+                configured = environment.get(variable, "")
+                if configured:
+                    return configured
+                return fallback or "" if operator == "-" else ""
+
+            values[key] = expression.sub(replace, value)
     return compose
 
 
@@ -204,6 +195,28 @@ def test_rendered_ai_database_identity_matches_bootstrap(filename: str) -> None:
         assert environment["AI_DB_NAME"] == bootstrap["AI_DB_NAME"]
 
 
+def test_production_compose_derives_public_runtime_values_from_one_origin() -> None:
+    services = _rendered_compose(
+        "docker-compose.yml",
+        {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.test"},
+    )["services"]
+    backend = services["backend"]["environment"]
+    assert backend["FRONTEND_URL"] == "https://judge.example.test"
+    assert backend["OAUTH_ISSUER_URL"] == "https://judge.example.test"
+    assert backend["CORS_ALLOWED_ORIGINS"] == "https://judge.example.test"
+    assert backend["CSRF_TRUSTED_ORIGINS"] == "https://judge.example.test"
+
+
+def test_production_compose_builds_ai_database_url_from_generated_password() -> None:
+    services = _rendered_compose(
+        "docker-compose.yml", {"AI_DB_PASSWORD": "UrlSafe123"}
+    )["services"]
+    for name in ("ai-migrate", "ai-service", "ai-worker"):
+        assert services[name]["environment"]["AI_DATABASE_URL"] == (
+            "postgresql+psycopg://qjudge_ai:UrlSafe123@postgres:5432/qjudge_ai"
+        )
+
+
 @pytest.mark.parametrize("filename", COMPOSE_FILES)
 def test_database_bootstrap_owns_database_credential_creation(filename: str) -> None:
     services = _compose(filename)["services"]
@@ -272,7 +285,7 @@ def test_test_backend_waits_for_idempotent_oauth_key_bootstrap() -> None:
 
 
 @pytest.mark.parametrize("filename", ("docker-compose.yml", "docker-compose.dev.yml"))
-def test_django_allowlist_preserves_supported_runtime_settings(filename: str) -> None:
+def test_django_runtime_defaults_are_not_user_env_inputs(filename: str) -> None:
     services = _rendered_compose(
         filename,
         {
@@ -289,15 +302,17 @@ def test_django_allowlist_preserves_supported_runtime_settings(filename: str) ->
         },
     )["services"]
     django_names = ("backend", "celery", "celery-high", "celery-beat")
-    expected = {
-        "DB_CONN_MAX_AGE": "37",
-        "JUDGE_ENGINE_ENABLED": "False",
-        "JUDGE_MAX_CPU_TIME": "23",
+    expected_fixed = {
+        "DB_CONN_MAX_AGE": "0",
+        "JUDGE_ENGINE_ENABLED": "True",
+        "JUDGE_MAX_CPU_TIME": "10",
+        "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "false",
+        "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "false",
+        "INTEGRITY_ARCHIVE_MAX_BYTES": "52428800",
+        "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": "3",
+    }
+    expected_external = {
         "HOST_PROJECT_ROOT": "/srv/qjudge",
-        "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "true",
-        "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "true",
-        "INTEGRITY_ARCHIVE_MAX_BYTES": "7654321",
-        "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": "11",
         "CLOUDFLARE_REALTIME_APP_ID": "render-cf-app",
         "CLOUDFLARE_REALTIME_APP_SECRET": "render-cf-secret",
     }
@@ -310,7 +325,8 @@ def test_django_allowlist_preserves_supported_runtime_settings(filename: str) ->
     }
     for name in django_names:
         environment = services[name]["environment"]
-        assert expected.items() <= environment.items()
+        assert expected_fixed.items() <= environment.items()
+        assert expected_external.items() <= environment.items()
         assert not ai_secrets & set(environment)
 
 

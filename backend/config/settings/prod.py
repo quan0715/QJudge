@@ -3,6 +3,7 @@ Production settings
 """
 import os
 from .base import *
+from config.deployment import parse_public_origin
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
@@ -34,7 +35,13 @@ if GLITCHTIP_DSN:
         environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
     )
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+_PUBLIC_ORIGIN_VALUE = os.getenv("QJUDGE_PUBLIC_ORIGIN", "")
+if _PUBLIC_ORIGIN_VALUE:
+    ALLOWED_HOSTS = [parse_public_origin(_PUBLIC_ORIGIN_VALUE).hostname]
+else:
+    ALLOWED_HOSTS = [
+        host for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host
+    ]
 
 # =============================================================================
 # Production Database Configuration

@@ -3,13 +3,13 @@ x-django-environment: &django_dev_environment
   DEBUG: "True"
   DJANGO_SETTINGS_MODULE: config.settings.dev
   SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me}
-  DB_NAME: ${DB_NAME:-online_judge}
-  DB_USER: ${DB_USER:-qjudge_web}
+  DB_NAME: online_judge
+  DB_USER: qjudge_web
   DB_PASSWORD: ${DB_PASSWORD:-qjudge_web_dev}
   DB_HOST: pgbouncer
   DB_PORT: "5432"
   DB_SSLMODE: disable
-  DB_CONN_MAX_AGE: ${DB_CONN_MAX_AGE:-0}
+  DB_CONN_MAX_AGE: "0"
   REDIS_URL: redis://redis:6379/0
   OAUTH_ISSUER_URL: ${OAUTH_ISSUER_URL:-http://localhost:8000}
   FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
@@ -23,28 +23,28 @@ x-django-environment: &django_dev_environment
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
   GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
   GLITCHTIP_DSN: ${GLITCHTIP_DSN:-}
-  JUDGE_ENGINE_ENABLED: ${JUDGE_ENGINE_ENABLED:-True}
-  JUDGE_MAX_CPU_TIME: ${JUDGE_MAX_CPU_TIME:-10}
-  JUDGE_MAX_MEMORY: ${JUDGE_MAX_MEMORY:-256}
+  JUDGE_ENGINE_ENABLED: "True"
+  JUDGE_MAX_CPU_TIME: "10"
+  JUDGE_MAX_MEMORY: "256"
   DOCKER_IMAGE_JUDGE: ${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
-  DOCKER_JUDGE_PIDS_LIMIT: ${DOCKER_JUDGE_PIDS_LIMIT:-64}
-  DOCKER_JUDGE_TMPFS_SIZE: ${DOCKER_JUDGE_TMPFS_SIZE:-100M}
-  DOCKER_JUDGE_TIMEOUT: ${DOCKER_JUDGE_TIMEOUT:-60}
+  DOCKER_JUDGE_PIDS_LIMIT: "64"
+  DOCKER_JUDGE_TMPFS_SIZE: 100M
+  DOCKER_JUDGE_TIMEOUT: "60"
   HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
   OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
   OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
-  OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+  OBJECT_STORAGE_REGION: auto
   OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
   OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
-  OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
-  OBJECT_STORAGE_OBJECT_TAGGING_ENABLED: ${OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:-false}
-  OBJECT_STORAGE_AUTO_CREATE_BUCKETS: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
-  ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
-  ANTICHEAT_CAPTURE_INTERVAL_SECONDS: ${ANTICHEAT_CAPTURE_INTERVAL_SECONDS:-3}
-  MARKDOWN_IMAGE_S3_BUCKET: ${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
-  MARKDOWN_IMAGE_MAX_BYTES: ${MARKDOWN_IMAGE_MAX_BYTES:-5242880}
-  MARKDOWN_IMAGE_PUBLIC_BASE_URL: ${MARKDOWN_IMAGE_PUBLIC_BASE_URL:-}
-  INTEGRITY_ARCHIVE_MAX_BYTES: ${INTEGRITY_ARCHIVE_MAX_BYTES:-52428800}
+  OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: "300"
+  OBJECT_STORAGE_OBJECT_TAGGING_ENABLED: "false"
+  OBJECT_STORAGE_AUTO_CREATE_BUCKETS: "false"
+  ANTICHEAT_RAW_BUCKET: anticheat-raw
+  ANTICHEAT_CAPTURE_INTERVAL_SECONDS: "3"
+  MARKDOWN_IMAGE_S3_BUCKET: markdown-images
+  MARKDOWN_IMAGE_MAX_BYTES: "5242880"
+  MARKDOWN_IMAGE_PUBLIC_BASE_URL: http://localhost:5173
+  INTEGRITY_ARCHIVE_MAX_BYTES: "52428800"
   LIVE_MONITORING_ENABLED: ${LIVE_MONITORING_ENABLED:-false}
   LIVE_MONITORING_ROOM_PREFIX: ${LIVE_MONITORING_ROOM_PREFIX:-qjudge-dev-exam}
   CLOUDFLARE_REALTIME_API_BASE_URL: ${CLOUDFLARE_REALTIME_API_BASE_URL:-https://rtc.live.cloudflare.com/v1}
@@ -58,11 +58,11 @@ x-django-environment: &django_dev_environment
   RECUR_PRODUCT_TEAM_ID: ${RECUR_PRODUCT_TEAM_ID:-}
 
 x-ai-database-environment: &ai_dev_database_environment
-  AI_DATABASE_URL: ${AI_DATABASE_URL:-postgresql+psycopg://qjudge_ai:qjudge_ai_dev@postgres:5432/qjudge_ai}
-  AI_DB_USER: ${AI_DB_USER:-qjudge_ai}
-  AI_DB_NAME: ${AI_DB_NAME:-qjudge_ai}
+  AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD:-qjudge_ai_dev}@postgres:5432/qjudge_ai
+  AI_DB_USER: qjudge_ai
+  AI_DB_NAME: qjudge_ai
 x-ai-queue-environment: &ai_dev_queue_environment
-  AI_REDIS_URL: ${AI_REDIS_URL:-redis://redis:6379/2}
+  AI_REDIS_URL: redis://redis:6379/2
   AI_QUEUE_NAME: qjudge-ai
   AI_QUEUE_KEY_PREFIX: "qjudge-ai:"
 x-ai-api-environment: &ai_dev_api_environment
@@ -75,7 +75,7 @@ x-ai-api-environment: &ai_dev_api_environment
   AI_OAUTH_JWKS_URL: http://backend:8000/.well-known/jwks.json
   AI_ARTIFACT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
   AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
-  AI_ARTIFACT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+  AI_ARTIFACT_STORAGE_REGION: auto
   AI_ARTIFACT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
   AI_ARTIFACT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
   AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
@@ -93,7 +93,7 @@ x-ai-worker-environment: &ai_dev_worker_environment
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
   AI_ARTIFACT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
   AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
-  AI_ARTIFACT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+  AI_ARTIFACT_STORAGE_REGION: auto
   AI_ARTIFACT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
   AI_ARTIFACT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
   AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
@@ -118,7 +118,7 @@ services:
     command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
       POSTGRES_DB: postgres
-      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-qjudge_admin}
+      POSTGRES_USER: qjudge_admin
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-qjudge_admin_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -130,7 +130,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_ADMIN_USER:-qjudge_admin} -d postgres",
+          "pg_isready -U qjudge_admin -d postgres",
         ]
       interval: 10s
       timeout: 5s
@@ -143,17 +143,14 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER:-qjudge_admin}
+      POSTGRES_ADMIN_USER: qjudge_admin
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-qjudge_admin_dev}
-      DB_NAME: ${DB_NAME:-online_judge}
-      DB_USER: ${DB_USER:-qjudge_web}
+      DB_NAME: online_judge
+      DB_USER: qjudge_web
       DB_PASSWORD: ${DB_PASSWORD:-qjudge_web_dev}
-      AI_DB_NAME: ${AI_DB_NAME:-qjudge_ai}
-      AI_DB_USER: ${AI_DB_USER:-qjudge_ai}
+      AI_DB_NAME: qjudge_ai
+      AI_DB_USER: qjudge_ai
       AI_DB_PASSWORD: ${AI_DB_PASSWORD:-qjudge_ai_dev}
-      GLITCHTIP_DB_NAME: ${GLITCHTIP_DB_NAME:-glitchtip}
-      GLITCHTIP_DB_USER: ${GLITCHTIP_DB_USER:-qjudge_glitchtip}
-      GLITCHTIP_DB_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-qjudge_glitchtip_dev}
     volumes:
       - ./scripts/db/bootstrap-ai-database.sh:/bootstrap/bootstrap-ai-database.sh:ro
     depends_on:
@@ -169,9 +166,9 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_NAME: ${DB_NAME:-online_judge}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: online_judge
+      DB_USER: qjudge_web
+      DB_PASSWORD: ${DB_PASSWORD:-qjudge_web_dev}
       AUTH_TYPE: plain
       POOL_MODE: session
       MAX_CLIENT_CONN: "200"
@@ -197,7 +194,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -h localhost -p 5432 -U ${DB_USER:-postgres}",
+          "pg_isready -h localhost -p 5432 -U qjudge_web",
         ]
       interval: 10s
       timeout: 5s
@@ -311,7 +308,7 @@ services:
       AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
       OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
       OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
-      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_REGION: auto
       OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
       OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
       OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
@@ -367,13 +364,13 @@ services:
     environment:
       - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
       - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-      - INTEGRITY_WORKER_NETWORK=${INTEGRITY_WORKER_NETWORK_DEV:-online_judge_oj_network_dev}
+      - INTEGRITY_WORKER_NETWORK=online_judge_oj_network_dev
       - BACKEND_INTERNAL_URL=http://backend:8000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
     group_add:
-      - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group}"
+      - "${DOCKER_GID:-0}"
     # Docker Desktop commonly exposes a user-owned socket (for example UID 501
     # on macOS), unlike Linux's root:docker 0660 socket.  Production and test
     # keep the image's non-root UID; dev explicitly adopts the local owner.
@@ -421,7 +418,7 @@ services:
       JUDGE_TMP_DIR: /judge_tmp
       HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
       OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
-      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
+      OBJECT_STORAGE_REGION: auto
       OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
       OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
       ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
@@ -544,4 +541,4 @@ volumes:
 networks:
   oj_network_dev:
     driver: bridge
-    name: ${INTEGRITY_WORKER_NETWORK_DEV:-online_judge_oj_network_dev}
+    name: online_judge_oj_network_dev
