@@ -79,6 +79,20 @@ docs/
 
 MinIO 在相容性實作與測試完成前，文件必須標示為「尚未提供」，不得放入可直接執行的成功路徑。EC2 亦須在實際部署後才標示為已驗證。
 
+## AI 模型文件邊界
+
+正式部署指南只說明如何為系統現有的 AI provider 提供 API key，以及未提供 key 時對最小部署的影響。部署者使用官方 provider endpoint 時，不需要設定 Base URL。
+
+下列內容不屬於架設與部署指南：
+
+- `OPENAI_BASE_URL`、`DEEPSEEK_BASE_URL` 等自訂 endpoint。
+- Self-hosted OpenAI-compatible model server。
+- API gateway、model proxy 與 provider routing。
+- Model registry 的新增、更新或下架流程。
+- 新模型的 context window、rate limit、tool calling 與 reasoning 相容性測試。
+
+底層程式可以保留自訂 endpoint 能力，但 `.env.example` 與 `docs/deployment/` 不公開這些設定。未來建立獨立的模型擴充文件，再說明自架 endpoint、provider adapter、model registry 與驗證流程。
+
 ## 指令與腳本原則
 
 文件解釋每個決策及其輸入，腳本只處理容易出錯或不適合手動完成的操作：
