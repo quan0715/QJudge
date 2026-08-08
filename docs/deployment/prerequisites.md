@@ -8,7 +8,7 @@
 
 - 64-bit Linux
 - Git
-- Python 3 與 `cryptography` package
+- Python 3
 - Docker Engine
 - Docker Compose v2
 - curl
@@ -74,12 +74,11 @@ free -h
 df -h
 ```
 
-確認工具與 Python package：
+確認工具：
 
 ```bash
 git --version
 python3 --version
-python3 -c 'import cryptography; print(cryptography.__version__)'
 docker --version
 docker compose version
 curl --version

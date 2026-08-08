@@ -31,14 +31,13 @@
 
 ## 3. 部署前準備
 
-主機需要 64-bit Linux、Git、Python 3、Python `cryptography`、Docker Engine、Docker Compose v2 與 curl。各服務的用途、自架／雲端選擇及主機資源檢查方式，請先閱讀 [部署前準備與服務選擇](deployment/prerequisites.md)。
+主機需要 64-bit Linux、Git、Python 3、Docker Engine、Docker Compose v2 與 curl。各服務的用途、自架／雲端選擇及主機資源檢查方式，請先閱讀 [部署前準備與服務選擇](deployment/prerequisites.md)。
 
 先確認必要工具可用：
 
 ```bash
 git --version
 python3 --version
-python3 -c 'import cryptography; print(cryptography.__version__)'
 docker --version
 docker compose version
 curl --version
@@ -105,7 +104,19 @@ Cloud VM 將 `--target` 改為 `cloud-vm`。`--origin` 必須是使用者實際�
 
 ## 6. 啟動服務
 
-先建立 exam integrity 服務需要的本機金鑰。腳本會保留已存在且格式正確的檔案：
+金鑰初始化腳本使用 Python `cryptography` package。先檢查目前的 Python 環境是否已安裝：
+
+```bash
+python3 -c 'import cryptography'
+```
+
+若出現 `ModuleNotFoundError`，安裝後再繼續：
+
+```bash
+python3 -m pip install --user 'cryptography>=42,<46'
+```
+
+接著建立 exam integrity 服務需要的本機金鑰。腳本會保留已存在且格式正確的檔案：
 
 ```bash
 python3 scripts/bootstrap_integrity_secrets.py

@@ -85,7 +85,7 @@ EC2 特有流程到下列條件即結束：
 
 1. Instance 可透過 SSH 或選定的 management channel 登入。
 2. Security Group 與 host firewall 已建立預期規則。
-3. Git、Python 3、`cryptography`、Docker Engine、Docker Compose v2 與 curl 可用。
+3. Git、Python 3、Docker Engine、Docker Compose v2 與 curl 可用。
 4. 部署磁碟已掛載並有足夠空間。
 5. Instance 能連到 Git、registry 與 R2 endpoint。
 
