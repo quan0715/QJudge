@@ -110,10 +110,11 @@ Cloud VM 將 `--target` 改為 `cloud-vm`。`--origin` 必須是使用者實際�
 python3 -c 'import cryptography'
 ```
 
-若出現 `ModuleNotFoundError`，安裝後再繼續：
+若在本指南採用的 Ubuntu LTS 出現 `ModuleNotFoundError`，使用系統套件管理工具安裝後再繼續：
 
 ```bash
-python3 -m pip install --user 'cryptography>=42,<46'
+sudo apt-get update
+sudo apt-get install -y python3-cryptography
 ```
 
 接著建立 exam integrity 服務需要的本機金鑰。腳本會保留已存在且格式正確的檔案：
