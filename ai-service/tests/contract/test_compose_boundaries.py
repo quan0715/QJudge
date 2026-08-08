@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import textwrap
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -43,6 +46,28 @@ def _environment_mapping(service: dict) -> dict[str, str]:
 def _command(service: dict) -> str:
     command = service.get("command", "")
     return command if isinstance(command, str) else " ".join(command)
+
+
+def _minimal_production_env() -> str:
+    return textwrap.dedent(
+        """\
+        QJUDGE_PUBLIC_ORIGIN=https://qjudge.invalid
+        POSTGRES_ADMIN_PASSWORD=secure-admin-password
+        DB_PASSWORD=secure-web-password
+        AI_DB_PASSWORD=secure-ai-password
+        CREDENTIAL_LEASE_SECRET=secure-credential-lease-secret-long-enough
+        SECRET_KEY=secure-production-secret
+        OBJECT_STORAGE_ENDPOINT_URL=https://storage.invalid
+        OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.invalid
+        OBJECT_STORAGE_ACCESS_KEY=secure-storage-key
+        OBJECT_STORAGE_SECRET_KEY=secure-storage-secret
+        """
+    )
+
+
+def _write_executable(path: Path, source: str) -> None:
+    path.write_text(source)
+    path.chmod(0o755)
 
 
 def _rendered_compose(filename: str, extra_environment: dict[str, str] | None = None) -> dict:
@@ -252,7 +277,6 @@ def test_django_allowlist_preserves_supported_runtime_settings(filename: str) ->
         filename,
         {
             "DB_CONN_MAX_AGE": "37",
-            "GLITCHTIP_DSN": "https://dsn.example.test/42",
             "JUDGE_ENGINE_ENABLED": "False",
             "JUDGE_MAX_CPU_TIME": "23",
             "HOST_PROJECT_ROOT": "/srv/qjudge",
@@ -267,7 +291,6 @@ def test_django_allowlist_preserves_supported_runtime_settings(filename: str) ->
     django_names = ("backend", "celery", "celery-high", "celery-beat")
     expected = {
         "DB_CONN_MAX_AGE": "37",
-        "GLITCHTIP_DSN": "https://dsn.example.test/42",
         "JUDGE_ENGINE_ENABLED": "False",
         "JUDGE_MAX_CPU_TIME": "23",
         "HOST_PROJECT_ROOT": "/srv/qjudge",
@@ -291,18 +314,106 @@ def test_django_allowlist_preserves_supported_runtime_settings(filename: str) ->
         assert not ai_secrets & set(environment)
 
 
-def test_fresh_production_bootstrap_includes_isolated_glitchtip_database() -> None:
-    services = _compose("docker-compose.yml")["services"]
-    bootstrap = services["ai-db-bootstrap"]["environment"]
-    assert {"GLITCHTIP_DB_NAME", "GLITCHTIP_DB_USER", "GLITCHTIP_DB_PASSWORD"} <= set(bootstrap)
-    assert (
-        services["glitchtip"]["depends_on"]["ai-db-bootstrap"]["condition"]
-        == "service_completed_successfully"
+def test_default_production_compose_excludes_removed_integrations(tmp_path: Path) -> None:
+    env_file = tmp_path / "production.env"
+    env_file.write_text(_minimal_production_env())
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            str(env_file),
+            "-f",
+            str(REPOSITORY_ROOT / "docker-compose.yml"),
+            "config",
+            "--services",
+        ],
+        cwd=REPOSITORY_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    for name in ("glitchtip", "glitchtip-worker"):
-        environment = services[name]["environment"]
-        assert "${GLITCHTIP_DB_USER" in environment["DATABASE_URL"]
-        assert "${DB_USER" not in environment["DATABASE_URL"]
+    assert result.returncode == 0, result.stderr
+    services = set(result.stdout.splitlines())
+    assert "glitchtip" not in services
+    assert "glitchtip-worker" not in services
+    assert "cloudflared" not in services
+
+
+def test_tunnel_profile_adds_cloudflared(tmp_path: Path) -> None:
+    env_file = tmp_path / "production.env"
+    env_file.write_text(_minimal_production_env() + "TUNNEL_TOKEN=secure-tunnel-token\n")
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            str(env_file),
+            "-f",
+            str(REPOSITORY_ROOT / "docker-compose.yml"),
+            "--profile",
+            "tunnel",
+            "config",
+            "--services",
+        ],
+        cwd=REPOSITORY_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "cloudflared" in set(result.stdout.splitlines())
+
+
+def test_production_deploy_does_not_require_removed_integrations(
+    tmp_path: Path,
+) -> None:
+    deploy_path = tmp_path / "deploy"
+    deploy_path.mkdir()
+    (deploy_path / ".git").mkdir()
+    (deploy_path / ".env").write_text(_minimal_production_env())
+
+    command_log = tmp_path / "commands.log"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(
+        fake_bin / "git",
+        '#!/bin/sh\nprintf "git %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\n',
+    )
+    _write_executable(
+        fake_bin / "docker",
+        """#!/bin/sh
+printf 'docker %s\n' "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
+case "$*" in
+  "compose version") exit 0 ;;
+  *"exec -T"*) printf '0\n' ;;
+esac
+exit 0
+""",
+    )
+    _write_executable(fake_bin / "python3", "#!/bin/sh\nexit 0\n")
+    _write_executable(fake_bin / "curl", "#!/bin/sh\nexit 0\n")
+
+    environment = os.environ.copy()
+    environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
+    environment["QJUDGE_TEST_COMMAND_LOG"] = str(command_log)
+    result = subprocess.run(
+        [
+            "bash",
+            str(REPOSITORY_ROOT / "scripts/deploy-prod.sh"),
+            str(deploy_path),
+            "deadbeef",
+        ],
+        cwd=REPOSITORY_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    commands = command_log.read_text()
+    assert "docker-compose.monitoring.yml" not in commands
+    assert "oj_grafana" not in commands
 
 
 def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
@@ -313,12 +424,11 @@ def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
     assert "NOCREATEDB" in source
     assert "NOCREATEROLE" in source
     assert "REVOKE ALL ON DATABASE" in source
-    assert "POSTGRES_ADMIN_USER, Django, AI, and GlitchTip role names must be distinct" in source
+    assert "POSTGRES_ADMIN_USER, DB_USER, and AI_DB_USER must be distinct" in source
     for secret in (
         "$POSTGRES_ADMIN_PASSWORD",
         "$DB_PASSWORD",
         "$AI_DB_PASSWORD",
-        "$GLITCHTIP_DB_PASSWORD",
     ):
         assert f'echo "{secret}"' not in source
 
@@ -328,6 +438,6 @@ def test_production_deploy_validates_roles_and_bootstraps_oauth_before_render() 
     oauth = source.index("python3 scripts/bootstrap_ai_oauth_keys.py")
     render = source.index('docker compose "${COMPOSE_FILES[@]}" config --quiet')
     assert oauth < render
-    assert "POSTGRES_ADMIN_USER, DB_USER, AI_DB_USER, and GLITCHTIP_DB_USER must be distinct" in source
+    assert "POSTGRES_ADMIN_USER, DB_USER, and AI_DB_USER must be distinct" in source
     assert 'f"AI_DATABASE_URL {label} does not match AI database configuration"' in source
     assert "rolsuper OR rolcreatedb OR rolcreaterole" in source
