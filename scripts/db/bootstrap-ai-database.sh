@@ -200,6 +200,13 @@ WHERE relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
   AND nspname NOT IN ('pg_catalog', 'information_schema')
   AND nspname NOT LIKE 'pg_toast%'
   AND nspname NOT LIKE 'pg_temp_%'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM pg_depend AS dependency
+      WHERE dependency.classid = 'pg_class'::regclass
+        AND dependency.objid = pg_class.oid
+        AND dependency.deptype IN ('a', 'i')
+  )
 \gexec
 
 \connect :ai_db_name
@@ -228,6 +235,13 @@ WHERE relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
   AND nspname NOT IN ('pg_catalog', 'information_schema')
   AND nspname NOT LIKE 'pg_toast%'
   AND nspname NOT LIKE 'pg_temp_%'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM pg_depend AS dependency
+      WHERE dependency.classid = 'pg_class'::regclass
+        AND dependency.objid = pg_class.oid
+        AND dependency.deptype IN ('a', 'i')
+  )
 \gexec
 
 \connect :glitchtip_db_name
@@ -256,6 +270,13 @@ WHERE relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
   AND nspname NOT IN ('pg_catalog', 'information_schema')
   AND nspname NOT LIKE 'pg_toast%'
   AND nspname NOT LIKE 'pg_temp_%'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM pg_depend AS dependency
+      WHERE dependency.classid = 'pg_class'::regclass
+        AND dependency.objid = pg_class.oid
+        AND dependency.deptype IN ('a', 'i')
+  )
 \gexec
 
 \connect postgres

@@ -203,6 +203,23 @@ def test_usage_report_replaces_absolute_totals(run: Run, assistant: Message) -> 
     }
 
 
+def test_usage_report_accepts_the_run_id_added_by_the_transport_boundary(
+    run: Run, assistant: Message
+) -> None:
+    projection = reduce_run_event(
+        run,
+        assistant,
+        {
+            "type": "usage_report",
+            "run_id": str(run.id),
+            "input_tokens": 12,
+            "output_tokens": 7,
+        },
+    )
+
+    assert projection.run.usage == Usage(input_tokens=12, output_tokens=7)
+
+
 @pytest.mark.parametrize(
     "event",
     [

@@ -301,9 +301,7 @@ services:
     command: python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app
     volumes:
       - ./backend:/app
-      - ./secrets/ai-oauth-ed25519-private.pem:/run-secrets/ai-oauth-ed25519-private.pem:ro
-      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
-      - ./secrets/integrity/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
+      - ./secrets:/run-secrets:ro
     ports:
       - "8000:8000"
     environment:
@@ -335,6 +333,25 @@ services:
         condition: service_healthy
       ai-service:
         condition: service_healthy
+      ai-oauth-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - oj_network_dev
+
+  ai-oauth-bootstrap:
+    build: *backend_dev_build
+    image: oj_backend_dev_img
+    restart: "no"
+    command:
+      - python
+      - /bootstrap/bootstrap_ai_oauth_keys.py
+      - --private-key
+      - /oauth-secrets/ai-oauth-ed25519-private.pem
+      - --public-key
+      - /oauth-secrets/ai-oauth-ed25519-public.pem
+    volumes:
+      - ./scripts/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
+      - ./secrets:/oauth-secrets
     networks:
       - oj_network_dev
 
@@ -463,6 +480,7 @@ services:
     ports:
       - "5173:5173"
     environment:
+      - VITE_API_TARGET=http://backend:8000
       - VITE_STORYBOOK_TARGET=http://storybook:6006
       - VITE_MCP_PUBLIC_URL=${VITE_MCP_PUBLIC_URL:-http://localhost:9002/mcp}
       - VITE_RECUR_PUBLISHABLE_KEY=${VITE_RECUR_PUBLISHABLE_KEY:-}
@@ -512,6 +530,7 @@ services:
       - DJANGO_BASE_URL=http://backend:8000
       - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-http://localhost:9002}
       - OAUTH_ISSUER_URL=${OAUTH_ISSUER_URL:-http://localhost:8000}
+      - OAUTH_JWKS_URL=http://backend:8000/.well-known/jwks.json
     depends_on:
       - backend
     networks:
