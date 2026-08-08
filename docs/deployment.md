@@ -27,7 +27,7 @@
 
 部署者另外提供一組 S3-compatible object storage。現階段 `setup-env.sh` 已支援並驗證 Cloudflare R2 的環境契約；其他方案的狀態請見 [S3-compatible Object Storage](deployment/object-storage.md)。
 
-最小部署只需要 HTTP。公開網域、HTTPS、Tunnel、第三方 OAuth、外部 AI provider 與 Remote MCP 都是選用功能；未啟用時不應阻止核心服務啟動。
+可信任的內網或初次部署驗證可以只使用 HTTP。對 Internet 公開時應先完成 HTTPS。Tunnel、第三方 OAuth、外部 AI provider 與 Remote MCP 都是選用功能；未啟用時不應阻止核心服務啟動。
 
 ## 3. 部署前準備
 
@@ -91,7 +91,7 @@ export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
   --origin http://HOST_OR_IP
 ```
 
-Cloud VM 將 `--target` 改為 `cloud-vm`。`--origin` 必須是使用者實際開啟的 origin，只能包含 scheme、hostname 與選用的 port，不能包含路徑。
+Cloud VM 將 `--target` 改為 `cloud-vm`。`--origin` 必須是使用者實際開啟的 origin，只能包含 scheme、hostname 與選用的 port，不能包含路徑。Production security 會依 scheme 設定 redirect、Secure cookies 與 HSTS：明確的 `http://` origin 供 private network 使用，`https://` origin 會啟用完整的 HTTPS-only 設定。
 
 初始化工具會：
 

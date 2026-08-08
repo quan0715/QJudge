@@ -1,43 +1,45 @@
 # Cloudflare Deployment Notes
 
-## Current Recommendation
+QJudge 的正式部署主線請先閱讀 [正式架設與部署指南](deployment.md)。HTTPS、OAuth 與 Tunnel 操作以 [HTTPS 與 OAuth](deployment/https-and-oauth.md) 為準；R2 操作以 [S3-compatible Object Storage](deployment/object-storage.md) 為準。
 
-QJudge should keep the production application on Cloudflare Tunnel in front of the Docker Compose host. The app is not a good fit for a single Cloudflare Worker or Pages-only deployment because it depends on Django, Daphne, PostgreSQL, PgBouncer, Redis, Celery workers, Docker-based judging, S3-compatible object storage, and the MCP service.
+本文件保存 Cloudflare 平台選擇、既有帳號資源與 landing page 的背景。這些資訊不是最小部署的前置條件。
 
-Use Cloudflare this way:
+## Cloudflare 在 QJudge 的用途
 
-- **Cloudflare Tunnel**: public ingress for the Compose services.
-- **Cloudflare DNS / proxy**: managed hostnames for `q-judge.com` and service subdomains.
-- **Cloudflare R2**: canonical object storage target for anti-cheat event evidence screenshots, markdown images, and AI artifacts. The old anti-cheat compiled-video bucket is no longer part of the active pipeline.
-- **Cloudflare Pages**: useful for standalone static surfaces such as `www.q-judge.com` landing and later `docs.q-judge.com`, but not a drop-in production replacement unless `/api`, auth cookies, CSRF, uploads, SSE, and service routing are deliberately handled.
-- **Workers / D1 / KV**: not the primary fit for the current Django + Compose application.
+- **Cloudflare Tunnel**：選用的公開 ingress。Production Compose 以 `tunnel` profile 提供 `cloudflared`。
+- **Cloudflare DNS／Proxy**：管理 `q-judge.com` 與相關 subdomains。
+- **Cloudflare R2**：目前 deployment initializer 支援的 S3-compatible object storage。
+- **Cloudflare Pages**：適合獨立 static landing page，不直接取代 Django、Celery、PostgreSQL、Redis、Judge 與 MCP services。
+- **Workers／D1／KV**：不是目前 QJudge application runtime 的主要部署方式。
+
+不使用 Tunnel 時，可改採自行管理的 reverse proxy 或 private network。是否使用 Cloudflare 不改變 QJudge 的 Compose 與 `.env` 主流程。
 
 ## Historical MCP Inspection Snapshot
 
-The following is an external-state snapshot inspected on 2026-04-24 through the
-Cloudflare MCP API for account `5c4436c7b498dada4961ff21dfd81595`.
-It is not part of the current default deployment contract; verify or remove
-legacy monitoring routes separately in Cloudflare.
+以下是 2026-04-24 透過 Cloudflare MCP API 取得的外部狀態快照。它只描述當時帳號狀態，不能取代部署驗證；使用前要重新確認 Cloudflare 實際設定。
 
-- Zones: `q-judge.com` and `quan.wtf` are active.
-- `q-judge.com` plan: Free Website.
-- Production tunnel: `QJudge_Production`, tunnel id `71730ffe-e9d4-4c7d-87c7-11c06ab5a85a`, healthy, remotely configured.
-- Dev tunnel: `QJudge-Dev`, tunnel id `6180bcd2-1559-4ff4-b09b-5248feed9e3a`, healthy, remotely configured.
-- DNS for `q-judge.com` points `q-judge.com`, `grafana.q-judge.com`, `monitor.q-judge.com`, and `mcp.q-judge.com` to the production tunnel CNAME.
-- Production tunnel ingress routes:
-  - `q-judge.com` -> `http://frontend:80`
-  - `grafana.q-judge.com` -> `http://grafana:3000`
-  - `monitor.q-judge.com` -> `http://glitchtip:8000`
-  - `mcp.q-judge.com` -> `http://qjudge-mcp:9000`
-- Workers: none.
-- Pages projects: none.
-- D1 databases: none.
-- KV namespaces: none.
-- R2 buckets: one bucket named `image`.
+- Account：`5c4436c7b498dada4961ff21dfd81595`
+- Zones：`q-judge.com`、`quan.wtf`
+- `q-judge.com` plan：Free Website
+- Production tunnel：`QJudge_Production`，tunnel id `71730ffe-e9d4-4c7d-87c7-11c06ab5a85a`
+- Dev tunnel：`QJudge-Dev`，tunnel id `6180bcd2-1559-4ff4-b09b-5248feed9e3a`
+- 當時 DNS 將 `q-judge.com`、`grafana.q-judge.com`、`monitor.q-judge.com`、`mcp.q-judge.com` 指向 production tunnel CNAME
+- 當時 production ingress：
+  - `q-judge.com` → `http://frontend:80`
+  - `grafana.q-judge.com` → `http://grafana:3000`
+  - `monitor.q-judge.com` → `http://glitchtip:8000`
+  - `mcp.q-judge.com` → `http://qjudge-mcp:9000`
+- Workers：none
+- Pages projects：none
+- D1 databases：none
+- KV namespaces：none
+- R2 buckets：一個名為 `image` 的 bucket
 
-## Wrangler Configuration
+舊監控 routes 已不屬於目前預設部署。若帳號仍保留這些 routes，應在 Cloudflare 端另外確認用途或移除。
 
-The frontend now has a Wrangler Pages config for the standalone landing deployment at `frontend/wrangler.jsonc`:
+## Landing Page
+
+Frontend repository 內的 `frontend/wrangler.jsonc` 用於獨立 landing page：
 
 ```jsonc
 {
@@ -49,7 +51,7 @@ The frontend now has a Wrangler Pages config for the standalone landing deployme
 }
 ```
 
-Available commands:
+相關命令：
 
 ```bash
 cd frontend
@@ -59,119 +61,30 @@ npm run cf:landing:deploy:preview
 npm run cf:landing:deploy
 ```
 
-Treat this as the static landing path for `www.q-judge.com`. The production app should remain on Tunnel at `q-judge.com`.
+Landing deployment 與 production application CD 分開：
 
-## Landing CI/CD
+- Workflow：`.github/workflows/deploy-landing.yml`
+- Project：`qjudge-landing`
+- Production domain：`https://www.q-judge.com`
+- Pages fallback：`https://qjudge-landing.pages.dev`
+- GitHub secret：`CLOUDFLARE_API_TOKEN`
 
-Landing deploy is intentionally separate from production app CD:
+Token 只需要部署 Pages project 所需的最小 account permissions，不需要遠端 Docker host 或 deployment SSH 權限。
 
-- Workflow: `.github/workflows/deploy-landing.yml`
-- Project: `qjudge-landing`
-- Production domain: `https://www.q-judge.com`
-- Pages fallback domain: `https://qjudge-landing.pages.dev` redirects to `https://www.q-judge.com`
+## Tunnel Background
 
-Required GitHub secret:
+Production Compose 中的 `cloudflared` 是 opt-in profile。Token、全新安裝、既有 `.env` 更新與驗收步驟統一維護在 [HTTPS 與 OAuth](deployment/https-and-oauth.md)，本頁不再保存第二份操作指令。
 
-```bash
-CLOUDFLARE_API_TOKEN
-```
+Tunnel route 由 Cloudflare remote configuration 管理。變更 public hostname 後，除了 container 狀態，還要驗證 DNS、ingress target、OAuth callback 與 Remote MCP transport。
 
-The token needs enough permission to deploy the `qjudge-landing` Cloudflare Pages project, for example account-level Pages edit access plus account read access. It does not need access to the remote Docker host or Tailscale deployment secrets.
+## R2 Background
 
-The existing production app deployment remains:
+Application 只接受四個 operator-managed `OBJECT_STORAGE_*` inputs。Production bucket names、auto-create policy 與 TTL 是版本化的 Compose defaults；正式 bucket 建立、credential 與 CORS 步驟統一維護在 [S3-compatible Object Storage](deployment/object-storage.md)。
 
-- Workflow: `.github/workflows/cd-prod.yml`
-- Domain: `https://q-judge.com`
-- Runtime: Cloudflare Tunnel -> remote Docker Compose host
-- Compose/env details: `docs/deployment.md`
+早期 Cloudflare 環境曾使用 `qjudge-*` prefixed bucket names。現行 production Compose 使用 `anticheat-raw`、`markdown-images` 與 `ai-artifacts`；切換既有資料前要先制定搬移與回復計畫，不能只改 bucket 名稱。
 
-## Tunnel Operations
+## Realtime
 
-Production Compose provides an opt-in Tunnel profile:
+Cloudflare Realtime 是考試 live monitoring 的選用 provider，不屬於最小部署。Compose 預設停用功能；需要啟用時才提供 `CLOUDFLARE_REALTIME_APP_ID` 與 `CLOUDFLARE_REALTIME_APP_SECRET`，並另外驗證 room 建立、publisher 權限、TTL 與瀏覽器連線。
 
-```yaml
-cloudflared:
-  image: cloudflare/cloudflared:latest
-  profiles: ["tunnel"]
-  command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
-```
-
-Optional production environment variable:
-
-```bash
-TUNNEL_TOKEN=<Cloudflare tunnel token for QJudge_Production>
-```
-
-Deployment remains the existing path through `scripts/deploy-prod.sh`. For
-manual compose validation on the remote host:
-
-```bash
-docker compose --profile tunnel -f docker-compose.yml config -q
-docker compose --profile tunnel -f docker-compose.yml up -d --build
-```
-
-The remote tunnel config lives in Cloudflare, so route changes should be made through the dashboard/API/Terraform and then verified with MCP.
-
-## R2 Object Storage
-
-Use `OBJECT_STORAGE_*` as the only object storage connection settings for the
-app.
-
-Current production R2 buckets:
-
-| Bucket | Purpose | CORS |
-| --- | --- | --- |
-| `qjudge-anticheat-raw` | Anti-cheat event evidence screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
-| `qjudge-markdown-images` | Markdown editor images | `GET`, `PUT`, `HEAD` from `https://q-judge.com` and `https://www.q-judge.com` |
-| `qjudge-ai-artifacts` | AI-generated grading artifacts | Backend/API access only |
-
-Current dev R2 buckets:
-
-| Bucket | Purpose | CORS |
-| --- | --- | --- |
-| `qjudge-dev-anticheat-raw` | Dev anti-cheat event evidence screenshots | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
-| `qjudge-dev-markdown-images` | Dev Markdown editor images | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
-| `qjudge-dev-ai-artifacts` | Dev AI-generated grading artifacts | Backend/API access only |
-
-Dev R2 inputs:
-
-```bash
-OBJECT_STORAGE_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_ACCESS_KEY=<dev_r2_access_key_id>
-OBJECT_STORAGE_SECRET_KEY=<dev_r2_secret_access_key>
-```
-
-Production R2 inputs:
-
-```bash
-OBJECT_STORAGE_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_ACCESS_KEY=<r2_access_key_id>
-OBJECT_STORAGE_SECRET_KEY=<r2_secret_access_key>
-```
-
-## Realtime Live Monitoring
-
-Realtime SFU is configured through backend environment variables and remains
-feature-flagged:
-
-```bash
-LIVE_MONITORING_ENABLED=true
-LIVE_MONITORING_ROOM_PREFIX=qjudge-prod-exam
-CLOUDFLARE_REALTIME_API_BASE_URL=https://rtc.live.cloudflare.com/v1
-CLOUDFLARE_REALTIME_APP_ID=<cloudflare_realtime_app_id>
-CLOUDFLARE_REALTIME_APP_SECRET=<cloudflare_realtime_api_token>
-LIVE_MONITORING_PUBLISHER_TTL_SECONDS=60
-```
-
-`LIVE_MONITORING_SPIKE_ENABLED` is still accepted as a backward-compatible
-fallback, but new environments should use `LIVE_MONITORING_ENABLED`.
-
-When changing object storage settings:
-
-1. Create separate buckets for anti-cheat event evidence screenshots, markdown images, and AI artifacts.
-2. Configure CORS for browser direct uploads from `https://q-judge.com`.
-3. Decide lifecycle policies for anti-cheat event evidence screenshots.
-4. Update `.env` with `OBJECT_STORAGE_*`.
-5. Restart backend and Celery, then smoke-test presigned uploads/downloads.
+Realtime credentials 應透過 secret manager 或初始化前的 shell 傳入，不把 feature flag、room prefix、API base URL 或 TTL 重新搬回根目錄 `.env`。

@@ -15,7 +15,7 @@ Private HTTP 只能用在可信任網路。登入 cookie、OAuth code 或 MCP to
 
 ## Public origin
 
-`QJUDGE_PUBLIC_ORIGIN` 是使用者實際開啟的 origin，也是 frontend URL、CORS、CSRF 與 OAuth issuer 的共同來源。例如：
+`QJUDGE_PUBLIC_ORIGIN` 是使用者實際開啟的 origin，也是 frontend URL、CORS、CSRF 與 OAuth issuer 的共同來源。Production settings 會依它的 scheme 決定 SSL redirect、Secure cookies 與 HSTS。例如：
 
 ```text
 https://judge.example.com
