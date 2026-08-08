@@ -168,6 +168,28 @@ case "$OBJECT_STORAGE_PUBLIC_ENDPOINT_URL" in
     ;;
 esac
 
+require_pair() {
+  local label="$1"
+  local first_name="$2"
+  local second_name="$3"
+  local first_value="${!first_name:-}"
+  local second_value="${!second_name:-}"
+  if { [ -n "$first_value" ] && [ -z "$second_value" ]; } || \
+     { [ -z "$first_value" ] && [ -n "$second_value" ]; }; then
+    echo "$label credentials must be configured together" >&2
+    exit 1
+  fi
+}
+
+require_pair "NYCU OAuth" NYCU_OAUTH_CLIENT_ID NYCU_OAUTH_CLIENT_SECRET
+require_pair "GitHub OAuth" GITHUB_OAUTH_CLIENT_ID GITHUB_OAUTH_CLIENT_SECRET
+require_pair "Google OAuth" GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET
+require_pair "SMTP" EMAIL_HOST_USER EMAIL_HOST_PASSWORD
+require_pair \
+  "Cloudflare Realtime" \
+  CLOUDFLARE_REALTIME_APP_ID \
+  CLOUDFLARE_REALTIME_APP_SECRET
+
 OUTPUT_DIR="$(dirname "$OUTPUT_PATH")"
 if [ ! -d "$OUTPUT_DIR" ]; then
   echo "Output directory does not exist: $OUTPUT_DIR" >&2
@@ -182,6 +204,12 @@ DOCKER_GID="$(python3 - <<'PY'
 import os
 
 print(os.stat("/var/run/docker.sock").st_gid)
+PY
+)"
+DOCKER_SOCKET_UID="$(python3 - <<'PY'
+import os
+
+print(os.stat("/var/run/docker.sock").st_uid)
 PY
 )"
 
@@ -199,6 +227,25 @@ DB_PASSWORD="$(random_password)"
 AI_DB_PASSWORD="$(random_password)"
 CREDENTIAL_LEASE_SECRET="$(random_token)"
 
+OPTIONAL_ENV_KEYS=(
+  OPENAI_API_KEY
+  OPENAI_BASE_URL
+  DEEPSEEK_API_KEY
+  DEEPSEEK_BASE_URL
+  MCP_PUBLIC_URL
+  TUNNEL_TOKEN
+  NYCU_OAUTH_CLIENT_ID
+  NYCU_OAUTH_CLIENT_SECRET
+  GITHUB_OAUTH_CLIENT_ID
+  GITHUB_OAUTH_CLIENT_SECRET
+  GOOGLE_OAUTH_CLIENT_ID
+  GOOGLE_OAUTH_CLIENT_SECRET
+  EMAIL_HOST_USER
+  EMAIL_HOST_PASSWORD
+  CLOUDFLARE_REALTIME_APP_ID
+  CLOUDFLARE_REALTIME_APP_SECRET
+)
+
 TEMP_ENV="$(mktemp "${OUTPUT_DIR}/.qjudge-env.XXXXXX")"
 chmod 600 "$TEMP_ENV"
 {
@@ -214,6 +261,13 @@ chmod 600 "$TEMP_ENV"
   printf 'OBJECT_STORAGE_SECRET_KEY=%s\n' "$OBJECT_STORAGE_SECRET_KEY"
   printf 'HOST_PROJECT_ROOT=%s\n' "$REPOSITORY_ROOT"
   printf 'DOCKER_GID=%s\n' "$DOCKER_GID"
+  printf 'DOCKER_SOCKET_UID=%s\n' "$DOCKER_SOCKET_UID"
+  for optional_key in "${OPTIONAL_ENV_KEYS[@]}"; do
+    optional_value="${!optional_key:-}"
+    if [ -n "$optional_value" ]; then
+      printf '%s=%s\n' "$optional_key" "$optional_value"
+    fi
+  done
 } > "$TEMP_ENV"
 
 docker compose \

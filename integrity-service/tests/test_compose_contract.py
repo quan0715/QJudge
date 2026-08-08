@@ -23,26 +23,31 @@ def repo_root() -> Path:
     return REPO_ROOT
 
 
+def _compose_environment() -> dict[str, str]:
+    """Return external inputs needed to render any deployment environment."""
+    return {
+        **os.environ,
+        "QJUDGE_PUBLIC_ORIGIN": "https://judge.example.invalid",
+        "SECRET_KEY": "compose-contract-django-secret",
+        "POSTGRES_ADMIN_PASSWORD": "compose-contract-admin-password",
+        "DB_PASSWORD": "compose-contract-django-password",
+        "AI_DB_PASSWORD": "compose-contract-ai-password",
+        "CREDENTIAL_LEASE_SECRET": "compose-contract-credential-lease-secret",
+        "OBJECT_STORAGE_ENDPOINT_URL": "https://example.invalid",
+        "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://example.invalid",
+        "OBJECT_STORAGE_ACCESS_KEY": "compose-contract-access-key",
+        "OBJECT_STORAGE_SECRET_KEY": "compose-contract-secret-key",
+        "DOCKER_GID": "999",
+        "DOCKER_SOCKET_UID": "501",
+        "INTEGRITY_TEST_SECRETS_DIR": "/tmp/qjudge-integrity-compose-contract",
+    }
+
+
 def compose_config(repo_root: Path, compose_file: str) -> dict[str, Any]:
     """Render one Compose file without reading a local secret-bearing .env."""
     if shutil.which("docker") is None:
         pytest.skip("Docker Compose is required to render the Compose contract")
 
-    environment = {
-        **os.environ,
-        "AI_SERVICE_INTERNAL_TOKEN": "compose-contract-token",
-        "OBJECT_STORAGE_ENDPOINT_URL": "https://example.invalid",
-        "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://example.invalid",
-        "OBJECT_STORAGE_ACCESS_KEY": "compose-contract-access-key",
-        "OBJECT_STORAGE_SECRET_KEY": "compose-contract-secret-key",
-        "TUNNEL_TOKEN": "compose-contract-tunnel-token",
-        "DOCKER_GID": "999",
-        "DOCKER_SOCKET_UID": "501",
-        "INTEGRITY_TEST_SECRETS_DIR": "/tmp/qjudge-integrity-compose-contract",
-        "INTEGRITY_WORKER_NETWORK": "qjudge-contract-main-network",
-        "INTEGRITY_WORKER_NETWORK_DEV": "qjudge-contract-dev-network",
-        "INTEGRITY_WORKER_NETWORK_TEST": "qjudge-contract-test-network",
-    }
     result = subprocess.run(
         [
             "docker",
@@ -59,7 +64,7 @@ def compose_config(repo_root: Path, compose_file: str) -> dict[str, Any]:
             "json",
         ],
         cwd=repo_root,
-        env=environment,
+        env=_compose_environment(),
         check=False,
         capture_output=True,
         text=True,
@@ -82,7 +87,7 @@ def compose_profiles(repo_root: Path, compose_file: str) -> set[str]:
             "--profiles",
         ],
         cwd=repo_root,
-        env={**os.environ, "DOCKER_GID": "999"},
+        env=_compose_environment(),
         check=False,
         capture_output=True,
         text=True,
@@ -112,6 +117,11 @@ def _volume_is_read_only(volume: Any) -> bool:
     if isinstance(volume, dict):
         return bool(volume.get("read_only"))
     return str(volume).endswith(":ro")
+
+
+def _volume_covers_target(volume: Any, target: str) -> bool:
+    mounted_target = _volume_target(volume).rstrip("/")
+    return target == mounted_target or target.startswith(f"{mounted_target}/")
 
 
 def _socket_mount_services(services: dict[str, dict[str, Any]]) -> set[str]:
@@ -189,7 +199,9 @@ def test_integrity_compose_contract(
         "/run-secrets/integrity-worker-signing-key",
     ):
         matching_volumes = [
-            volume for volume in backend_volumes if _volume_target(volume) == target
+            volume
+            for volume in backend_volumes
+            if _volume_covers_target(volume, target)
         ]
         assert matching_volumes
         assert all(_volume_is_read_only(volume) for volume in matching_volumes)
@@ -217,12 +229,19 @@ def test_integrity_compose_contract(
     assert "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY" not in backend_environment
 
 
-def test_primary_network_default_matches_backend_setting(repo_root: Path) -> None:
+def test_primary_network_default_matches_compose_setting(repo_root: Path) -> None:
     settings = (repo_root / "backend/config/settings/base.py").read_text()
     environment_template = (repo_root / ".env.example").read_text()
+    config = compose_config(repo_root, "docker-compose.yml")
 
     assert '"INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"' in settings
-    assert "INTEGRITY_WORKER_NETWORK=online_judge_oj_network" in environment_template
+    assert (
+        _environment(config["services"]["integrity-controller"])[
+            "INTEGRITY_WORKER_NETWORK"
+        ]
+        == "online_judge_oj_network"
+    )
+    assert "INTEGRITY_WORKER_NETWORK=" not in environment_template
 
 
 def test_dev_controller_runs_as_the_configured_socket_owner(

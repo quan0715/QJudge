@@ -70,10 +70,12 @@ def _run_setup(
     origin: str = "https://judge.example.test",
     storage: str = "r2",
     force: bool = False,
+    extra_environment: dict[str, str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path]:
     output = tmp_path / ".env"
     environment = os.environ.copy()
     environment.update(STORAGE_ENVIRONMENT)
+    environment.update(extra_environment or {})
     command = [
         "bash",
         str(REPOSITORY_ROOT / "scripts/setup-env.sh"),
@@ -112,7 +114,11 @@ def test_setup_env_generates_complete_secret_safe_file(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     values = _env_values(output)
-    assert set(values) == EXPECTED_ACTIVE_KEYS | {"HOST_PROJECT_ROOT", "DOCKER_GID"}
+    assert set(values) == EXPECTED_ACTIVE_KEYS | {
+        "HOST_PROJECT_ROOT",
+        "DOCKER_GID",
+        "DOCKER_SOCKET_UID",
+    }
     generated = [values[name] for name in GENERATED_SECRET_KEYS]
     assert all(generated)
     assert len(generated) == len(set(generated))
@@ -120,6 +126,7 @@ def test_setup_env_generates_complete_secret_safe_file(tmp_path: Path) -> None:
     assert re.fullmatch(r"[A-Za-z0-9]+", values["DB_PASSWORD"])
     assert re.fullmatch(r"[A-Za-z0-9]+", values["AI_DB_PASSWORD"])
     assert values["DOCKER_GID"].isdigit()
+    assert values["DOCKER_SOCKET_UID"].isdigit()
     assert output.stat().st_mode & 0o777 == 0o600
 
 
@@ -170,4 +177,39 @@ def test_setup_env_rejects_unimplemented_minio_mode(tmp_path: Path) -> None:
 
     assert result.returncode != 0
     assert "MinIO setup is not implemented" in result.stderr
+    assert not output.exists()
+
+
+def test_setup_env_preserves_only_configured_optional_external_inputs(
+    tmp_path: Path,
+) -> None:
+    optional = {
+        "OPENAI_API_KEY": "optional-openai-key",
+        "OPENAI_BASE_URL": "http://model-gateway:11434/v1",
+        "TUNNEL_TOKEN": "optional-tunnel-token",
+        "EMAIL_HOST_USER": "mailer@example.test",
+        "EMAIL_HOST_PASSWORD": "optional-mail-password",
+    }
+
+    result, output = _run_setup(tmp_path, extra_environment=optional)
+
+    assert result.returncode == 0, result.stderr
+    values = _env_values(output)
+    assert optional.items() <= values.items()
+    assert "GOOGLE_OAUTH_CLIENT_ID" not in values
+    captured = result.stdout + result.stderr
+    for value in optional.values():
+        assert value not in captured
+
+
+def test_setup_env_rejects_half_configured_optional_credential_pair(
+    tmp_path: Path,
+) -> None:
+    result, output = _run_setup(
+        tmp_path,
+        extra_environment={"GITHUB_OAUTH_CLIENT_ID": "github-client"},
+    )
+
+    assert result.returncode != 0
+    assert "GitHub OAuth credentials must be configured together" in result.stderr
     assert not output.exists()

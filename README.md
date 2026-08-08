@@ -24,7 +24,15 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 ## 快速啟動（建議）
 
 ```bash
-cp .env.example .env
+export OBJECT_STORAGE_ENDPOINT_URL=https://ACCOUNT_ID.r2.cloudflarestorage.com
+export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
+read -r -p "R2 access key: " OBJECT_STORAGE_ACCESS_KEY
+read -r -s -p "R2 secret key: " OBJECT_STORAGE_SECRET_KEY
+export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
+./scripts/setup-env.sh \
+  --target self-hosted \
+  --storage r2 \
+  --origin http://localhost:5173
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
@@ -53,7 +61,7 @@ GitHub (push to main)
   → CD: Tailscale SSH → remote server
     → git fetch + checkout
     → docker compose build + up
-    → smoke checks (web + monitoring)
+    → web smoke check
 ```
 
 - 生產環境：`~/deploy/QJudge`（Ubuntu 22.04 + Docker Compose）
@@ -63,26 +71,27 @@ GitHub (push to main)
 
 ### 環境變數
 
-根目錄 `.env` 不進 git。從範本開始：
+根目錄 `.env` 不進 git，也不需要手動填寫內部 URL、queue、bucket 名稱或
+資料庫帳號。初始化工具會產生 Django、PostgreSQL 與 credential lease secrets：
 
 ```bash
-cp .env.example .env
+./scripts/setup-env.sh \
+  --target self-hosted \
+  --storage r2 \
+  --origin http://HOST_OR_IP
 ```
 
-生產環境 `.env` 由 `scripts/deploy-prod.sh` 做 fail-fast 檢查，至少需包含：
+執行前先將四個 `OBJECT_STORAGE_*` 值放入目前的 shell；缺少時，互動模式會提示輸入。
+生產環境 `.env` 由 `scripts/deploy-prod.sh` 做 fail-fast 檢查，最小契約如下：
 
 | 變數 | 說明 |
 | --- | --- |
-| `SECRET_KEY` | Django secret key |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE` | PostgreSQL / PgBouncer 設定 |
-| `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | public URL 與 browser security |
-| `REDIS_URL` | Redis 連線位址，production compose 會覆蓋為 `redis://redis:6379/0` |
-| `AI_SERVICE_INTERNAL_TOKEN` | Backend 與 AI service 內部 token |
-| `OBJECT_STORAGE_*`, `ANTICHEAT_RAW_BUCKET`, `MARKDOWN_IMAGE_S3_BUCKET`, `AI_ARTIFACT_S3_BUCKET` | R2 object storage |
-| `TUNNEL_TOKEN`, `MCP_PUBLIC_URL`, `OAUTH_ISSUER_URL` | Cloudflare Tunnel 與 MCP OAuth |
-| `GLITCHTIP_SECRET_KEY`, `GRAFANA_PASSWORD` | production operations |
+| `QJUDGE_PUBLIC_ORIGIN` | 使用者實際開啟的完整 origin |
+| `SECRET_KEY`, `POSTGRES_ADMIN_PASSWORD`, `DB_PASSWORD`, `AI_DB_PASSWORD`, `CREDENTIAL_LEASE_SECRET` | 初始化工具產生的 secrets |
+| 四個 `OBJECT_STORAGE_*` | S3-compatible endpoint 與憑證 |
 
-完整清單與 production/dev/test compose 掃描見 [`docs/deployment.md`](docs/deployment.md) 與 `.env.example`。
+AI provider、第三方 OAuth、SMTP、Remote MCP 與 Tunnel 都是條件式設定，不屬於最小部署。
+完整規則見 [`docs/deployment.md`](docs/deployment.md) 與 `.env.example`。
 
 ### GitHub Secrets（CD Pipeline）
 

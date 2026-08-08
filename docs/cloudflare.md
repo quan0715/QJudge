@@ -8,14 +8,16 @@ Use Cloudflare this way:
 
 - **Cloudflare Tunnel**: public ingress for the Compose services.
 - **Cloudflare DNS / proxy**: managed hostnames for `q-judge.com` and service subdomains.
-- **Cloudflare Access**: recommended for private operational surfaces such as Grafana and GlitchTip when they should not be public.
 - **Cloudflare R2**: canonical object storage target for anti-cheat event evidence screenshots, markdown images, and AI artifacts. The old anti-cheat compiled-video bucket is no longer part of the active pipeline.
 - **Cloudflare Pages**: useful for standalone static surfaces such as `www.q-judge.com` landing and later `docs.q-judge.com`, but not a drop-in production replacement unless `/api`, auth cookies, CSRF, uploads, SSE, and service routing are deliberately handled.
 - **Workers / D1 / KV**: not the primary fit for the current Django + Compose application.
 
-## MCP Inspection Snapshot
+## Historical MCP Inspection Snapshot
 
-Inspected on 2026-04-24 through the Cloudflare MCP API for account `5c4436c7b498dada4961ff21dfd81595`.
+The following is an external-state snapshot inspected on 2026-04-24 through the
+Cloudflare MCP API for account `5c4436c7b498dada4961ff21dfd81595`.
+It is not part of the current default deployment contract; verify or remove
+legacy monitoring routes separately in Cloudflare.
 
 - Zones: `q-judge.com` and `quan.wtf` are active.
 - `q-judge.com` plan: Free Website.
@@ -85,15 +87,16 @@ The existing production app deployment remains:
 
 ## Tunnel Operations
 
-Production Compose already runs:
+Production Compose provides an opt-in Tunnel profile:
 
 ```yaml
 cloudflared:
   image: cloudflare/cloudflared:latest
+  profiles: ["tunnel"]
   command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
 ```
 
-Required production environment variable:
+Optional production environment variable:
 
 ```bash
 TUNNEL_TOKEN=<Cloudflare tunnel token for QJudge_Production>
@@ -103,8 +106,8 @@ Deployment remains the existing path through `scripts/deploy-prod.sh`. For
 manual compose validation on the remote host:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml config -q
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
+docker compose --profile tunnel -f docker-compose.yml config -q
+docker compose --profile tunnel -f docker-compose.yml up -d --build
 ```
 
 The remote tunnel config lives in Cloudflare, so route changes should be made through the dashboard/API/Terraform and then verified with MCP.
@@ -130,34 +133,22 @@ Current dev R2 buckets:
 | `qjudge-dev-markdown-images` | Dev Markdown editor images | `GET`, `PUT`, `HEAD` from `https://q-judge-dev.quan.wtf`, `http://localhost:5173`, and `http://127.0.0.1:5173` |
 | `qjudge-dev-ai-artifacts` | Dev AI-generated grading artifacts | Backend/API access only |
 
-Dev `.env` example:
+Dev R2 inputs:
 
 ```bash
 OBJECT_STORAGE_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_REGION=auto
 OBJECT_STORAGE_ACCESS_KEY=<dev_r2_access_key_id>
 OBJECT_STORAGE_SECRET_KEY=<dev_r2_secret_access_key>
-
-ANTICHEAT_RAW_BUCKET=qjudge-dev-anticheat-raw
-MARKDOWN_IMAGE_S3_BUCKET=qjudge-dev-markdown-images
-MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge-dev.quan.wtf
-AI_ARTIFACT_S3_BUCKET=qjudge-dev-ai-artifacts
 ```
 
-Production `.env` example:
+Production R2 inputs:
 
 ```bash
 OBJECT_STORAGE_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
-OBJECT_STORAGE_REGION=auto
 OBJECT_STORAGE_ACCESS_KEY=<r2_access_key_id>
 OBJECT_STORAGE_SECRET_KEY=<r2_secret_access_key>
-
-ANTICHEAT_RAW_BUCKET=qjudge-anticheat-raw
-MARKDOWN_IMAGE_S3_BUCKET=qjudge-markdown-images
-MARKDOWN_IMAGE_PUBLIC_BASE_URL=https://q-judge.com
-AI_ARTIFACT_S3_BUCKET=qjudge-ai-artifacts
 ```
 
 ## Realtime Live Monitoring
