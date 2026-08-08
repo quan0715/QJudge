@@ -37,8 +37,10 @@ if GLITCHTIP_DSN:
 
 _PUBLIC_ORIGIN_VALUE = os.getenv("QJUDGE_PUBLIC_ORIGIN", "")
 if _PUBLIC_ORIGIN_VALUE:
-    ALLOWED_HOSTS = [parse_public_origin(_PUBLIC_ORIGIN_VALUE).hostname]
+    _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
+    ALLOWED_HOSTS = [_PUBLIC_ORIGIN.hostname]
 else:
+    _PUBLIC_ORIGIN = None
     ALLOWED_HOSTS = [
         host for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host
     ]
@@ -73,19 +75,24 @@ DATABASES['default'] = {
 if SECRET_KEY == "django-insecure-default-key-change-in-production":
     raise RuntimeError("SECRET_KEY must be set in production")
 
-# Security settings
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Security settings. Explicit HTTP origins support private-network and initial
+# deployment verification; HTTPS and the legacy no-origin fallback stay strict.
+_PUBLIC_ORIGIN_USES_HTTPS = (
+    _PUBLIC_ORIGIN is None or _PUBLIC_ORIGIN.url.startswith("https://")
+)
+SECURE_SSL_REDIRECT = _PUBLIC_ORIGIN_USES_HTTPS
+SESSION_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
+CSRF_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
+JWT_AUTH_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # HSTS settings
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+SECURE_HSTS_SECONDS = 31536000 if _PUBLIC_ORIGIN_USES_HTTPS else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _PUBLIC_ORIGIN_USES_HTTPS
+SECURE_HSTS_PRELOAD = _PUBLIC_ORIGIN_USES_HTTPS
 
 # Email backend for production
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
