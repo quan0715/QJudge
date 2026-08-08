@@ -633,10 +633,11 @@ Apply these exact scope changes:
 Run:
 
 ```bash
+cd ai-service
 python3 -m pytest \
-  ai-service/tests/contract/test_deployment_docs.py \
-  ai-service/tests/contract/test_setup_env.py \
-  ai-service/tests/unit/test_provider_endpoint_config.py \
+  tests/contract/test_deployment_docs.py \
+  tests/contract/test_setup_env.py \
+  tests/unit/test_provider_endpoint_config.py \
   -q
 ```
 

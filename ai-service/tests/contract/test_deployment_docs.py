@@ -75,6 +75,18 @@ def test_ai_mcp_and_https_guides_keep_https_optional() -> None:
     assert "Cloudflare Tunnel" in https_oauth
 
 
+def test_custom_model_endpoints_are_outside_deployment_scope() -> None:
+    documents = (
+        REPOSITORY_ROOT / ".env.example",
+        REPOSITORY_ROOT / "docs/deployment.md",
+        *GUIDES,
+    )
+    for document in documents:
+        text = _read(document)
+        assert "OPENAI_BASE_URL" not in text, document
+        assert "DEEPSEEK_BASE_URL" not in text, document
+
+
 def test_readme_and_cloudflare_notes_point_to_the_canonical_guide() -> None:
     readme = _read(REPOSITORY_ROOT / "README.md")
     cloudflare = _read(REPOSITORY_ROOT / "docs/cloudflare.md")

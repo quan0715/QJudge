@@ -28,7 +28,7 @@
 | AI service | AI workflow 與 artifacts | QJudge 管理 | API、worker、scheduler containers |
 | MCP server | QJudge tools 與內部 AI 整合 | QJudge 管理 | 內部 Compose service |
 | Object storage | Evidence、Markdown images、AI artifacts | 部署者提供 | Cloudflare R2 |
-| AI provider | 模型推論 | 選用、部署者提供 | Cloud API 或 private OpenAI-compatible endpoint |
+| AI provider | 模型推論 | 選用、部署者提供 | 現有支援供應商的 Cloud API |
 | 公開 HTTPS 入口 | 公開網域、TLS 與 OAuth callback | 選用、部署者提供 | 反向代理或 Tunnel |
 
 Object storage 是目前唯一由最小部署外部提供的必要服務。資料庫與 Redis 若要改用 managed service，必須另行修改、測試 Compose 內部連線與 bootstrap 流程；不能只替換 `.env`。
@@ -43,7 +43,7 @@ Object storage 是目前唯一由最小部署外部提供的必要服務。資�
 | Redis | Compose Redis | Amazon ElastiCache 等 managed Redis | Compose 已使用；managed Redis 尚未建立部署路徑 |
 | Object storage | MinIO | Cloudflare R2、Amazon S3 | R2 env 契約已驗證；MinIO 尚未提供 |
 | HTTPS ingress | Caddy、Nginx | Cloudflare Tunnel、雲端 Load Balancer | 選用；Tunnel profile 已提供 |
-| AI provider | Private OpenAI-compatible endpoint | OpenAI-compatible cloud API | 選用；需個別驗證模型與 endpoint |
+| AI provider | 不在本部署指南範圍 | OpenAI、DeepSeek API | 選用；只需設定實際使用供應商的 API key |
 | MCP | 內部 qjudge-mcp | 公開 Remote MCP | 內部路徑已在 Compose 定義；公開路徑需要 HTTPS |
 
 選擇雲端服務前，應確認費用、資料存放區域、備份、網路流量及供應商權限。這些是部署決策，不應全部轉成根目錄 `.env`。

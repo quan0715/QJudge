@@ -9,28 +9,24 @@ AI provider 與公開 Remote MCP 都是選用功能。Production Compose 會啟�
 - Backend 呼叫 `ai-service`。
 - AI service 與 AI worker 使用內部 PostgreSQL、Redis 與 backend token exchange。
 - AI worker 呼叫 `http://qjudge-mcp:9000/mcp`。
-- AI worker 呼叫 private network 內的 OpenAI-compatible endpoint。
 
 雲端 AI API 使用的是 application 對外發出的 HTTPS request。這種 outbound HTTPS 不代表 QJudge 本身必須具有公開網域或公開 HTTPS 入口。
 
 ## 啟用 AI provider
 
-目前可提供兩組 OpenAI-compatible provider inputs：
+部署時只需為實際使用的既有 provider 提供 API key：
 
 | 變數 | 用途 |
 | --- | --- |
-| `OPENAI_API_KEY` | OpenAI-compatible provider credential |
-| `OPENAI_BASE_URL` | 選用的 OpenAI-compatible API base URL |
-| `DEEPSEEK_API_KEY` | DeepSeek-compatible provider credential |
-| `DEEPSEEK_BASE_URL` | 選用的 DeepSeek-compatible API base URL |
+| `OPENAI_API_KEY` | OpenAI API credential |
+| `DEEPSEEK_API_KEY` | DeepSeek API credential |
 
 只設定實際使用的 provider。全新安裝可在執行 `setup-env.sh` 前匯出選用值，初始化工具會將非空值寫入 `.env`：
 
 ```bash
-read -r -s -p "OpenAI-compatible API key: " OPENAI_API_KEY
+read -r -s -p "OpenAI API key: " OPENAI_API_KEY
 printf '\n'
 export OPENAI_API_KEY
-export OPENAI_BASE_URL=https://provider.example.com/v1
 ```
 
 再依 [正式架設與部署指南](../deployment.md) 建立 `.env`。既有部署應透過 secret manager 或安全編輯方式更新 `.env`，再重建 AI worker：
@@ -41,13 +37,7 @@ docker compose up -d --no-deps --force-recreate ai-worker
 
 Provider keys 只會注入執行模型工作的 AI worker，不會提供給 frontend、backend 或 AI API service。
 
-### Private OpenAI-compatible endpoint
-
-Private model server 可以使用 HTTP，但只能放在受控網路。`OPENAI_BASE_URL` 或 `DEEPSEEK_BASE_URL` 必須是 AI worker container 能解析與連線的位址。
-
-不要在 container 內用 `localhost` 指向 Docker host；`localhost` 代表該 container 本身。建議將 model server 放到明確的 Docker network，使用 service hostname，或使用防火牆限制的 private IP。
-
-啟用後先從 AI worker 測試 DNS 與 TCP/HTTP 連線，再執行一筆最小 AI request。不要把 provider 的 `/models` 或 health endpoint 是否存在當成通用假設，各 provider 的 API 能力可能不同。
+若要加入其他模型供應商、自架模型或代理端點，屬於模型擴充工作，不在本部署指南的範圍內，後續會以獨立文件說明。
 
 ## 內部 MCP
 
