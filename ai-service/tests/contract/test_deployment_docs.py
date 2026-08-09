@@ -56,3 +56,34 @@ def test_storage_guide_keeps_r2_executable_and_minio_unverified() -> None:
     assert "MinIO" in storage
     assert "尚未完成相容性實測" in storage
     assert "--storage minio" not in storage
+
+
+def test_optional_features_keep_https_boundary_clear() -> None:
+    options = _read(PUBLIC_DEPLOYMENT_ROOT / "deployment-options.md")
+    assert "AI provider" in options
+    assert "Internal MCP" in options
+    assert "Remote MCP" in options
+    assert "Cloudflare Tunnel" in options
+    assert "OAuth" in options
+    assert "Internal MCP 不需要公開 HTTPS" in options
+    assert "Remote MCP 需要公開 HTTPS" in options
+    assert "OPENAI_BASE_URL" not in options
+    assert "DEEPSEEK_BASE_URL" not in options
+
+
+def test_troubleshooting_follows_the_deployment_order() -> None:
+    guide = _read(PUBLIC_DEPLOYMENT_ROOT / "deployment-troubleshooting.md")
+    _assert_in_order(
+        guide,
+        (
+            "## 1. 主機與工具",
+            "## 2. 環境設定",
+            "## 3. Compose 與啟動",
+            "## 4. Database 與 migration",
+            "## 5. 健康檢查",
+            "## 6. R2 與檔案",
+            "## 7. Judge 與 Integrity",
+            "## 8. Tunnel 與 OAuth",
+        ),
+    )
+    assert "down -v" not in guide
