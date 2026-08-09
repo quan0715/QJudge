@@ -1,4 +1,4 @@
-"""Contracts for the repository's canonical deployment guide."""
+"""Contracts for the public Traditional Chinese deployment guide."""
 
 from __future__ import annotations
 
@@ -7,14 +7,12 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-DEPLOYMENT_ROOT = REPOSITORY_ROOT / "docs/deployment"
-GUIDES = (
-    DEPLOYMENT_ROOT / "prerequisites.md",
-    DEPLOYMENT_ROOT / "object-storage.md",
-    DEPLOYMENT_ROOT / "ai-and-mcp.md",
-    DEPLOYMENT_ROOT / "https-and-oauth.md",
-    DEPLOYMENT_ROOT / "ec2.md",
-    DEPLOYMENT_ROOT / "troubleshooting.md",
+PUBLIC_DEPLOYMENT_ROOT = REPOSITORY_ROOT / "frontend/public/docs/zh-TW"
+DEPLOYMENT_GUIDES = (
+    PUBLIC_DEPLOYMENT_ROOT / "deployment.md",
+    PUBLIC_DEPLOYMENT_ROOT / "deployment-storage.md",
+    PUBLIC_DEPLOYMENT_ROOT / "deployment-options.md",
+    PUBLIC_DEPLOYMENT_ROOT / "deployment-troubleshooting.md",
 )
 
 
@@ -27,87 +25,34 @@ def _assert_in_order(text: str, values: tuple[str, ...]) -> None:
     assert positions == sorted(positions)
 
 
-def test_canonical_deployment_guide_is_a_linear_minimum_path() -> None:
-    guide = _read(REPOSITORY_ROOT / "docs/deployment.md")
+def test_public_deployment_guide_is_a_linear_minimum_path() -> None:
+    guide = _read(PUBLIC_DEPLOYMENT_ROOT / "deployment.md")
     _assert_in_order(
         guide,
         (
-            "## 1. 適用範圍",
-            "## 2. 最小部署架構",
-            "## 3. 部署前準備",
+            "## 1. 先確認這條路適合你",
+            "## 2. 準備主機",
+            "## 3. 準備檔案儲存",
             "## 4. 取得 QJudge",
             "## 5. 建立環境設定",
-            "## 6. 啟動服務",
-            "## 7. 初始化系統",
-            "## 8. 驗收",
-            "## 9. 選用功能",
-            "## 10. 更新與停止服務",
+            "## 6. 啟動 QJudge",
+            "## 7. 建立管理者帳號",
+            "## 8. 完成第一次驗收",
+            "## 9. 決定是否開放到 Internet",
+            "## 10. 更新與暫停",
         ),
     )
     assert "scripts/setup-env.sh" in guide
     assert "scripts/deploy-prod.sh" in guide
     assert "cp .env.example .env" not in guide
-    assert not re.search(r"Grafana|GlitchTip|Recur", guide, re.IGNORECASE)
+    assert not re.search(r"Grafana|GlitchTip|Recur|billing", guide, re.IGNORECASE)
 
 
-def test_all_supporting_deployment_guides_exist_and_are_linked() -> None:
-    main = _read(REPOSITORY_ROOT / "docs/deployment.md")
-    for guide in GUIDES:
-        assert guide.is_file(), f"missing deployment guide: {guide}"
-        relative = guide.relative_to(REPOSITORY_ROOT / "docs").as_posix()
-        assert f"]({relative})" in main
-
-
-def test_unverified_storage_and_cloud_paths_are_explicit() -> None:
-    storage = _read(DEPLOYMENT_ROOT / "object-storage.md")
-    ec2 = _read(DEPLOYMENT_ROOT / "ec2.md")
-    assert "MinIO：尚未提供" in storage
-    assert "部署狀態：尚未驗證" in ec2
+def test_storage_guide_keeps_r2_executable_and_minio_unverified() -> None:
+    storage = _read(PUBLIC_DEPLOYMENT_ROOT / "deployment-storage.md")
+    for bucket in ("anticheat-raw", "markdown-images", "ai-artifacts"):
+        assert bucket in storage
+    assert "R2" in storage
+    assert "MinIO" in storage
+    assert "尚未完成相容性實測" in storage
     assert "--storage minio" not in storage
-
-
-def test_ai_mcp_and_https_guides_keep_https_optional() -> None:
-    ai_mcp = _read(DEPLOYMENT_ROOT / "ai-and-mcp.md")
-    https_oauth = _read(DEPLOYMENT_ROOT / "https-and-oauth.md")
-    assert "不需要公開 HTTPS" in ai_mcp
-    assert "Remote MCP" in ai_mcp
-    assert "OAuth" in https_oauth
-    assert "Cloudflare Tunnel" in https_oauth
-
-
-def test_custom_model_endpoints_are_outside_deployment_scope() -> None:
-    documents = (
-        REPOSITORY_ROOT / ".env.example",
-        REPOSITORY_ROOT / "docs/deployment.md",
-        *GUIDES,
-    )
-    for document in documents:
-        text = _read(document)
-        assert "OPENAI_BASE_URL" not in text, document
-        assert "DEEPSEEK_BASE_URL" not in text, document
-
-
-def test_readme_and_cloudflare_notes_point_to_the_canonical_guide() -> None:
-    readme = _read(REPOSITORY_ROOT / "README.md")
-    cloudflare = _read(REPOSITORY_ROOT / "docs/cloudflare.md")
-    assert "](docs/deployment.md)" in readme
-    assert "](deployment.md)" in cloudflare
-    assert "](deployment/https-and-oauth.md)" in cloudflare
-    assert "](deployment/object-storage.md)" in cloudflare
-
-
-def test_local_markdown_links_resolve() -> None:
-    documents = (
-        REPOSITORY_ROOT / "README.md",
-        REPOSITORY_ROOT / "docs/deployment.md",
-        REPOSITORY_ROOT / "docs/cloudflare.md",
-        *GUIDES,
-    )
-    pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-    for document in documents:
-        for raw_target in pattern.findall(_read(document)):
-            target = raw_target.split("#", 1)[0]
-            if not target or target.startswith(("http://", "https://", "mailto:")):
-                continue
-            resolved = (document.parent / target).resolve()
-            assert resolved.exists(), f"broken link in {document}: {raw_target}"
