@@ -13,6 +13,8 @@
 
 ## 公開文件
 
-正式部署入口將移至 `frontend/public/docs/zh-TW/deployment.md`。遷移完成前，`docs/deployment.md` 與 `docs/deployment/` 只是本次整理的來源，不再新增內容。
+正式的使用者、教師、管理者、開發與部署文件位於
+[`frontend/public/docs/zh-TW`](../frontend/public/docs/zh-TW/overview.md)。架設者請從
+[QJudge 架設與部署指南](../frontend/public/docs/zh-TW/deployment.md)開始。
 
 已完成的設計稿與實作計畫不留在這個目錄；需要追溯時請使用 Git history。

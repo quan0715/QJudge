@@ -6,7 +6,7 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 
 - Production domain：`q-judge.com`
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
-- 考試系統：Exam V2 已有資料模型、API 與前端流程骨架（註冊/前檢/作答/檢查/評分/結果）
+- 考試系統：支援註冊、前檢、作答、檢查、評分與結果流程
 - CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
 - 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
@@ -49,10 +49,9 @@ export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
 
 ## 目前已知狀態
 
-- `ai-service` 健康檢查可通過（`/health`）
-- 前端/後端仍有部分既有型別與測試環境問題（非單一功能可一次清除）
+- `ai-service` 提供 `/health/live` 與 `/health/ready` 健康檢查
 - compose 矩陣固定為 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.test.yml`
-- 若要跑 backend 測試，使用 `docker-compose.test.yml` 或顯式指定 `config.settings.test`，避免誤連 dev/prod DB
+- backend 測試使用 `docker-compose.test.yml` 的 `backend-test` service，避免誤連 dev/prod DB
 
 ## 架設與部署
 

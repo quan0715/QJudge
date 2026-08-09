@@ -111,3 +111,36 @@ def test_public_navigation_and_readme_use_the_public_source() -> None:
         assert label in labels
     assert "](frontend/public/docs/zh-TW/deployment.md)" in readme
     assert "](docs/deployment.md)" not in readme
+
+
+def test_obsolete_internal_guides_are_removed() -> None:
+    obsolete = (
+        "docs/deployment.md",
+        "docs/deployment",
+        "docs/user-guide.md",
+        "docs/developer-guide.md",
+        "docs/qauth-service-architecture.md",
+        "docs/cloudflare.md",
+        "docs/monitoring.md",
+    )
+    for relative in obsolete:
+        assert not (REPOSITORY_ROOT / relative).exists(), relative
+
+
+def test_local_links_in_active_documentation_resolve() -> None:
+    documents = (
+        REPOSITORY_ROOT / "README.md",
+        *DEPLOYMENT_GUIDES,
+        *sorted((REPOSITORY_ROOT / "docs").glob("*.md")),
+        *sorted((REPOSITORY_ROOT / "docs/operations").glob("*.md")),
+    )
+    pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+    for document in documents:
+        for raw_target in pattern.findall(_read(document)):
+            target = raw_target.split("#", 1)[0]
+            if not target or target.startswith(
+                ("http://", "https://", "mailto:", "/")
+            ):
+                continue
+            resolved = (document.parent / target).resolve()
+            assert resolved.exists(), f"broken link in {document}: {raw_target}"

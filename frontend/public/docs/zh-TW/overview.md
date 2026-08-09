@@ -1,33 +1,50 @@
-> 文件狀態：2026-02-24，對齊 `ta-agent` 分支（Draft PR #51）
+# 認識 QJudge
 
-QJudge 目前是整合「線上評測 + 競賽管理 + AI 助教 + 考試流程（Exam V2 骨架）」的教學平台。
+QJudge 是一套給課程使用的線上教學與評測系統。老師可以建立教室、題目、競賽與考試；學生可以在線上作答、提交程式並查看結果；助教則能協助管理內容與批改。系統也提供選用的 AI 助教與 MCP 連線，但第一次架設時不必先啟用它們。
 
-## 目前專案現況
+如果你是第一次接觸 QJudge，可以先把它想成三個部分：
 
-- 主要開發分支：`ta-agent`
-- 進行中 PR：[PR #51](https://github.com/quan0715/QJudge/pull/51)
-- 核心服務：`frontend`、`backend`、`ai-service`、`postgres`、`redis`、`celery`
-- AI 助教：已改為 DeepAgent（LangGraph）流程，前後端以 SSE 串流整合
-- Exam V2：已建立註冊/前檢/作答/評分/結果流程骨架
+- **課程空間**：管理教室、成員、題目、競賽與考試。
+- **評測流程**：接收學生提交，在隔離的容器中執行程式，再保存結果。
+- **教學工具**：提供批改、成績檢視、Exam Integrity、AI 助教與 MCP 等延伸能力。
 
-## 角色與功能
+## 先找到適合你的入口
 
-| 角色 | 可用功能 |
+### 我是學生
+
+先從[快速開始](/docs/quick-start)認識介面，再閱讀[提交程式](/docs/submission)與[參加競賽](/docs/contests)。授課單位會提供網址、帳號與加入教室的方法，你不需要自己架設系統。
+
+### 我是老師或助教
+
+從[教師功能總覽](/docs/teacher-overview)開始。你會依序建立教室、加入學生、準備題目，最後建立競賽或考試。若要讓 AI 工具協助出題或批改，再閱讀[連接 MCP](/docs/mcp-setup)。
+
+### 我是系統管理者
+
+如果你代表系所、實驗室或開課單位架設 QJudge，請從[架設與部署](/docs/deployment)開始。那份指南會先完成一套可用的最小部署，再依需要加入 HTTPS、校園登入、AI 或遠端 MCP。
+
+### 我想參與開發
+
+先完成[本機開發環境](/docs/dev-setup)，再閱讀[貢獻指南](/docs/contributing)。登入來源的擴充方式另見[身分登入擴充](/docs/identity-auth-extension)。
+
+## 系統裡常見的服務
+
+部署畫面會出現一些第一次看到的名稱。它們各自處理不同工作：
+
+| 服務 | 它替你做什麼 |
 | --- | --- |
-| Student | 練習題目、提交程式、參加競賽、使用 AI 助教 |
-| Teacher | 建立與管理競賽、題目管理、成績/提交檢視、考試流程設定 |
-| Admin | 使用者與權限管理、公告管理、系統層設定與監控 |
+| Frontend | 顯示學生、教師與管理員實際操作的網頁 |
+| Backend | 處理帳號、教室、題目、競賽、提交與權限 |
+| PostgreSQL | 保存系統中的結構化資料 |
+| Redis 與 Celery | 排程並執行不適合卡住網頁的背景工作 |
+| Judge | 在隔離環境中編譯、執行並評測學生程式 |
+| Object storage | 保存截圖、Markdown 圖片與 AI 產物等檔案 |
+| AI Service | 選用；串接模型供應商並執行 AI 助教工作 |
+| MCP Server | 選用；讓相容的 AI 工具在授權後操作 QJudge |
 
-## 文件導覽
+你不需要在閱讀文件前記住這些名稱。遇到某個服務時，先看它解決什麼問題，再決定現在是否需要它。
 
-- 新手提交：[/docs/quick-start](/docs/quick-start)
-- 提交流程：[/docs/submission](/docs/submission)
-- 競賽流程：[/docs/contests](/docs/contests)
-- 教師操作：[/docs/teacher-overview](/docs/teacher-overview)
-- 管理員操作：[/docs/admin-overview](/docs/admin-overview)
-- 開發與貢獻：[/docs/dev-setup](/docs/dev-setup)、[/docs/contributing](/docs/contributing)
+## 權限從哪裡來
 
-## 注意事項
+QJudge 以平台內的角色、教室成員身分與競賽權限決定使用者能做什麼。即使使用 Google、GitHub 或校園 SSO 登入，外部登入來源也不會直接把使用者變成老師或管理員；這些權限仍由 QJudge 管理。
 
-- 若文件描述與畫面不一致，請以 `ta-agent` 分支實際 UI 與 API 行為為準。
-- 專案仍在重構與整合中，部分頁面屬於「可用骨架 + 持續收斂」。
+若文件內容與實際畫面不一致，請記錄使用的 QJudge 版本，並向該站台的管理者確認。自行架設者則可在專案的 issue tracker 回報可重現的步驟與版本資訊。
