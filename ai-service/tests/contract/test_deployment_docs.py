@@ -87,3 +87,27 @@ def test_troubleshooting_follows_the_deployment_order() -> None:
         ),
     )
     assert "down -v" not in guide
+
+
+def test_public_navigation_and_readme_use_the_public_source() -> None:
+    config = _read(REPOSITORY_ROOT / "frontend/public/docs/config.json")
+    labels = _read(REPOSITORY_ROOT / "frontend/src/i18n/locales/zh-TW/docs.json")
+    readme = _read(REPOSITORY_ROOT / "README.md")
+    assert '"id": "deployment"' in config
+    for slug in (
+        "deployment",
+        "deployment-storage",
+        "deployment-options",
+        "deployment-troubleshooting",
+    ):
+        assert f'"{slug}"' in config
+    for label in (
+        '"deployment": "架設與部署"',
+        '"deployment": "從一台主機開始部署"',
+        '"deployment-storage": "準備檔案儲存"',
+        '"deployment-options": "加入選用功能"',
+        '"deployment-troubleshooting": "部署故障排除"',
+    ):
+        assert label in labels
+    assert "](frontend/public/docs/zh-TW/deployment.md)" in readme
+    assert "](docs/deployment.md)" not in readme

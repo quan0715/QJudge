@@ -23,6 +23,10 @@
       "contests": "參加競賽",
       "contributing": "如何貢獻",
       "create-exam": "建立考試與題目",
+      "deployment": "從一台主機開始部署",
+      "deployment-options": "加入選用功能",
+      "deployment-storage": "準備檔案儲存",
+      "deployment-troubleshooting": "部署故障排除",
       "dev-setup": "開發環境設定",
       "e2e-testing": "E2E 測試指南",
       "exam-grading": "考試批改與成績發布",
@@ -52,6 +56,7 @@
     "searchPlaceholder": "搜尋文檔...",
     "sections": {
       "admin-guide": "管理員指南",
+      "deployment": "架設與部署",
       "developer-guide": "開發者指南",
       "getting-started": "快速開始",
       "reference": "參考資料",

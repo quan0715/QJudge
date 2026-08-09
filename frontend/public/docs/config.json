@@ -5,6 +5,15 @@
       "items": ["overview", "quick-start"]
     },
     {
+      "id": "deployment",
+      "items": [
+        "deployment",
+        "deployment-storage",
+        "deployment-options",
+        "deployment-troubleshooting"
+      ]
+    },
+    {
       "id": "user-guide",
       "items": ["submission", "contests", "student-exam-guide", "judge-system"]
     },

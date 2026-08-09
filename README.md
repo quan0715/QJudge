@@ -57,16 +57,15 @@ export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
 ## 架設與部署
 
 正式的最小部署流程、外部服務選擇與驗收方式，請參考
-[QJudge 正式架設與部署指南](docs/deployment.md)。Repo 內的指南是部署步驟的唯一正式來源；論文附錄會從通過實測的 release tag 擷取。
+[QJudge 架設與部署指南](frontend/public/docs/zh-TW/deployment.md)。`frontend/public/docs` 是對外文件的正式來源；論文附錄會從完成實機驗證的 release tag 擷取。
 
 ## 文件導覽
 
-- [使用者與教師手冊](docs/user-guide.md)：教室、題庫、競賽功能說明。
-- [開發者指南](docs/developer-guide.md)：系統架構、環境設定、開發規範。
-- [QJudge 正式架設與部署指南](docs/deployment.md)：從零開始的最小部署、選用服務與驗收流程。
+- [公開使用說明](frontend/public/docs/zh-TW/overview.md)：學生、教師、管理者與部署者的正式文件入口。
+- [QJudge 架設與部署指南](frontend/public/docs/zh-TW/deployment.md)：從一台主機開始的最小部署、選用服務與驗收流程。
+- [內部技術文件索引](docs/README.md)：API、Exam Integrity、語系、壓測與營運文件。
 - 後端測試指南：`backend/RUN_TESTS.md`
 - 壓力測試說明：`docs/loadtest.md`
-- 監控部署說明：`docs/monitoring.md`
 - 多國語系指南：`docs/i18n.md`
 
 ## 授權
