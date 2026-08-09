@@ -105,8 +105,8 @@ Write `docs/README.md` with these sections and responsibilities:
 Apply these exact corrections:
 
 - Remove `docs/plans/api-envelope-migration.md` from `api-conventions.md`; describe the migration table as current status, not a roadmap.
-- Keep `anticheat-architecture.md` explicit that evidence has `pending` and `available` lifecycle states and does not expose a `partial` state.
-- In `operations/exam-integrity-runbook.md`, remove the claim that evidence may be `partial`／`unavailable`; direct operators to inspect incident/error data and retry or restart only through supported Integrity Run actions.
+- Keep `anticheat-architecture.md` explicit that each evidence source can be `pending`、`available` or `unavailable`, while the API does not expose a `partial` aggregate state.
+- In `operations/exam-integrity-runbook.md`, remove the nonexistent `partial` status, retain the implemented `unavailable` meaning, and direct operators to inspect per-source status plus incident/error data before using supported Integrity Run recovery actions.
 - In `loadtest.md`, remove production-domain commands and obsolete heartbeat tuning. Keep local/test Compose commands, Locust, the load-test Grafana dashboard, and the warning that `down -v` is valid only for the isolated test environment.
 - In `i18n.md`, document `npm run check:i18n` for application keys and `npm run check:docs` for public Markdown coverage; state that deployment translations are intentionally deferred in this phase.
 
@@ -120,7 +120,9 @@ Run:
 
 ```bash
 find docs -type f -not -path 'docs/superpowers/*' | sort
-rg -n 'docs/plans/|partial.?unavailable|LT_HEARTBEAT_INTERVAL_SECONDS|https://grafana\.q-judge\.com' docs --glob '*.md' --glob '!superpowers/**'
+rg -n 'docs/plans/|partial.{0,10}unavailable|LT_HEARTBEAT_INTERVAL_SECONDS|https://grafana\.q-judge\.com' \
+  docs/README.md docs/api-conventions.md docs/anticheat-architecture.md docs/i18n.md \
+  docs/loadtest.md docs/operations/exam-integrity-runbook.md
 git diff --check
 ```
 

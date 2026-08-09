@@ -1,8 +1,8 @@
 # QJudge API Conventions
 
-**Status:** active, first implementation landed 2026-04 on
-`contests/exam-answers/all-answers?projection=grading`. The conventions below
-will tighten as more endpoints migrate.
+**Status:** active. The first implementation is
+`contests/exam-answers/all-answers?projection=grading`. The migration table
+below records the current code state; it is not a roadmap.
 
 Jump to:
 
@@ -299,5 +299,3 @@ Landed with the 2026-04 AI grading performance work:
 - Frontend: `frontend/src/infrastructure/api/envelope.ts`,
   `frontend/src/infrastructure/api/repositories/examAnswers.repository.ts`
   (`getAllExamAnswersForGrading`).
-
-See `docs/plans/api-envelope-migration.md` for the roadmap forward.

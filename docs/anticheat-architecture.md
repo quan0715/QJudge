@@ -43,7 +43,7 @@ Frontend 依 contest/run 的 frozen device policy 決定是否啟用 `screen_sha
 2. Backend 回傳 R2 presigned upload。
 3. Frontend 直傳 WebM 到 R2。
 4. Frontend 在下一個 checkpoint 回報完成。
-5. Backend 驗證 object 並把證據標為 available；有多少來源就顯示多少，不使用 partial 狀態。
+5. Backend 驗證 object 並把該來源標為 `available`。尚在處理的來源是 `pending`；無片段、上傳失敗或資料已清除時是 `unavailable`。管理端逐一顯示來源，不產生 `partial` 聚合狀態。
 
 管理端透過 `GET /exam/events/` 取得原始可見事件與 Backend 已聚合的 `event_feed`，再以 `GET /exam/integrity/evidence/review/?event_id=...` 取得可播放 URL。舊 evidence 不做 fallback。
 
