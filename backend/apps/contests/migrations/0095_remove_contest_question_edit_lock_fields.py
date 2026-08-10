@@ -3,7 +3,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("contests", "0094_add_exam_started_question_lock_trigger"),
+        ("contests", "0093_remove_examanswer_question_snapshot"),
     ]
 
     operations = [

@@ -348,11 +348,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<QuestionFormState>(() => toFormState(question));
   const [saving, setSaving] = useState(false);
-  const [lockedSaveOpen, setLockedSaveOpen] = useState(false);
-  const [lockedSaveImpact, setLockedSaveImpact] = useState<LockedSaveImpact>({
-    kind: "no-op",
-    affectedCount: 0,
-  });
+  const [lockedSaveImpact, setLockedSaveImpact] = useState<LockedSaveImpact | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
@@ -470,7 +466,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
   // Click outside → save if dirty, else just close
   useEffect(() => {
-    if (!editing || lockedSaveOpen || discardOpen) return;
+    if (!editing || lockedSaveImpact || discardOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
         void handleCloseOrSave();
@@ -478,11 +474,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [discardOpen, editing, handleCloseOrSave, lockedSaveOpen]);
+  }, [discardOpen, editing, handleCloseOrSave, lockedSaveImpact]);
 
   // Escape → save if dirty, else just close
   useEffect(() => {
-    if (!editing || lockedSaveOpen || discardOpen) return;
+    if (!editing || lockedSaveImpact || discardOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         void handleCloseOrSave();
@@ -490,7 +486,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [discardOpen, editing, handleCloseOrSave, lockedSaveOpen]);
+  }, [discardOpen, editing, handleCloseOrSave, lockedSaveImpact]);
 
   const handleInlineBlurAutoSave = useCallback(() => {
     if (!editing || frozen || contentLocked) return;
@@ -531,12 +527,11 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     );
     if (impact.kind === "no-op") return;
     setLockedSaveImpact(impact);
-    setLockedSaveOpen(true);
   };
 
   const handleLockedSaveChoice = async (action: ExistingGradesAction) => {
     const saved = await persistAutoSave(true, action);
-    if (saved) setLockedSaveOpen(false);
+    if (saved) setLockedSaveImpact(null);
   };
 
   const handleDiscard = () => {
@@ -1250,14 +1245,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           </div>
         </div>
       </div>
-      <LockedGradingSaveModal
-        open={lockedSaveOpen}
-        impact={lockedSaveImpact}
-        resultsPublished={resultsPublished}
-        submitting={saving}
-        onCancel={() => setLockedSaveOpen(false)}
-        onChoose={(action) => void handleLockedSaveChoice(action)}
-      />
+      {lockedSaveImpact ? (
+        <LockedGradingSaveModal
+          open
+          impact={lockedSaveImpact}
+          resultsPublished={resultsPublished}
+          submitting={saving}
+          onCancel={() => setLockedSaveImpact(null)}
+          onChoose={(action) => void handleLockedSaveChoice(action)}
+        />
+      ) : null}
       <ComposedModal
         open={discardOpen}
         onClose={() => setDiscardOpen(false)}

@@ -203,44 +203,39 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(self.request.user, "id", None),
-            action="exam_question.create",
+        contest = lock_contest_for_question_edit(contest=contest)
+
+        # Lock the contest's existing exam questions so concurrent
+        # create / import / reorder operations serialize and we can't
+        # race past the unique (contest, order) constraint.
+        existing = (
+            ExamQuestion.objects.select_for_update()
+            .filter(contest=contest)
+            .order_by('order')
         )
 
-        with transaction.atomic():
-            # Lock the contest's existing exam questions so concurrent
-            # create / import / reorder operations serialize and we can't
-            # race past the unique (contest, order) constraint.
-            existing = (
-                ExamQuestion.objects.select_for_update()
-                .filter(contest=contest)
-                .order_by('order')
+        if 'order' not in self.request.data:
+            last_order = existing.aggregate(Max('order'))['order__max']
+            target_order = (last_order if last_order is not None else -1) + 1
+            serializer.save(contest=contest, order=target_order)
+        else:
+            try:
+                requested_order = int(self.request.data['order'])
+            except (TypeError, ValueError):
+                raise DRFValidationError({'order': 'order must be an integer'})
+
+            # Push semantics: shift everything at or after the requested
+            # slot one step down so the new question can occupy it
+            # without colliding with existing rows.
+            existing.filter(order__gte=requested_order).update(
+                order=F('order') + 1,
             )
+            serializer.save(contest=contest, order=requested_order)
 
-            if 'order' not in self.request.data:
-                last_order = existing.aggregate(Max('order'))['order__max']
-                target_order = (last_order if last_order is not None else -1) + 1
-                serializer.save(contest=contest, order=target_order)
-            else:
-                try:
-                    requested_order = int(self.request.data['order'])
-                except (TypeError, ValueError):
-                    raise DRFValidationError({'order': 'order must be an integer'})
-
-                # Push semantics: shift everything at or after the requested
-                # slot one step down so the new question can occupy it
-                # without colliding with existing rows.
-                existing.filter(order__gte=requested_order).update(
-                    order=F('order') + 1,
-                )
-                serializer.save(contest=contest, order=requested_order)
-
-            ensure_contest_binding_for_exam_question(
-                exam_question=serializer.instance,
-                actor=self.request.user,
-            )
+        ensure_contest_binding_for_exam_question(
+            exam_question=serializer.instance,
+            actor=self.request.user,
+        )
 
         log_contest_activity(
             contest,
@@ -295,11 +290,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(self.request.user, "id", None),
-            action="exam_question.delete",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
         question_id = instance.id
         question_asset = instance.question_asset
         instance.delete()
@@ -356,11 +347,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def import_from_bank(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(request.user, "id", None),
-            action="exam_question.import_from_bank",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         import_mode = "copy"
 
@@ -370,58 +357,57 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
 
         created_rows = []
 
-        with transaction.atomic():
-            # Lock existing rows so concurrent imports / creates can't both
-            # observe the same max(order) and produce overlapping inserts.
-            current_max_order = (
-                ExamQuestion.objects.select_for_update()
-                .filter(contest=contest)
-                .aggregate(Max('order'))['order__max']
+        # Lock existing rows so concurrent imports / creates can't both
+        # observe the same max(order) and produce overlapping inserts.
+        current_max_order = (
+            ExamQuestion.objects.select_for_update()
+            .filter(contest=contest)
+            .aggregate(Max('order'))['order__max']
+        )
+        next_order = (current_max_order if current_max_order is not None else -1) + 1
+
+        for item in items:
+            if not isinstance(item, dict):
+                raise DRFValidationError('Invalid item payload')
+
+            question_bank_id = item.get('question_bank_id')
+            question_id = item.get('question_id')
+            if not question_bank_id or question_id is None:
+                raise DRFValidationError('Each item requires question_bank_id and question_id')
+
+            bank, bank_item = resolve_bank_question_for_import(
+                user=request.user,
+                question_bank_id=question_bank_id,
+                question_id=question_id,
+                allowed_question_types={"exam"},
             )
-            next_order = (current_max_order if current_max_order is not None else -1) + 1
 
-            for item in items:
-                if not isinstance(item, dict):
-                    raise DRFValidationError('Invalid item payload')
+            payload = bank_item.payload if isinstance(bank_item.payload, dict) else {}
+            prompt = (bank_item.prompt or bank_item.title or "").strip()
+            if not prompt:
+                raise DRFValidationError(f'Imported question {bank_item.id} has empty prompt/title')
 
-                question_bank_id = item.get('question_bank_id')
-                question_id = item.get('question_id')
-                if not question_bank_id or question_id is None:
-                    raise DRFValidationError('Each item requires question_bank_id and question_id')
-
-                bank, bank_item = resolve_bank_question_for_import(
-                    user=request.user,
-                    question_bank_id=question_bank_id,
-                    question_id=question_id,
-                    allowed_question_types={"exam"},
-                )
-
-                payload = bank_item.payload if isinstance(bank_item.payload, dict) else {}
-                prompt = (bank_item.prompt or bank_item.title or "").strip()
-                if not prompt:
-                    raise DRFValidationError(f'Imported question {bank_item.id} has empty prompt/title')
-
-                exam_question = ExamQuestion.objects.create(
-                    contest=contest,
-                    question_type=self._normalize_exam_question_type_from_bank_item(bank_item),
-                    prompt=prompt,
-                    options=payload.get("options") or [],
-                    correct_answer=payload.get("correct_answer"),
-                    score=max(1, int(payload.get("score") or 1)),
-                    order=next_order,
-                    source_bank_id=bank.uuid,
-                    source_bank_name=bank.name,
-                    source_question_id=bank_item.id,
-                    source_mode=import_mode,
-                    question_asset=bank_item.question_asset,
-                    question_version=bank_item.question_version,
-                )
-                ensure_contest_binding_for_exam_question(
-                    exam_question=exam_question,
-                    actor=request.user,
-                )
-                created_rows.append(exam_question)
-                next_order += 1
+            exam_question = ExamQuestion.objects.create(
+                contest=contest,
+                question_type=self._normalize_exam_question_type_from_bank_item(bank_item),
+                prompt=prompt,
+                options=payload.get("options") or [],
+                correct_answer=payload.get("correct_answer"),
+                score=max(1, int(payload.get("score") or 1)),
+                order=next_order,
+                source_bank_id=bank.uuid,
+                source_bank_name=bank.name,
+                source_question_id=bank_item.id,
+                source_mode=import_mode,
+                question_asset=bank_item.question_asset,
+                question_version=bank_item.question_version,
+            )
+            ensure_contest_binding_for_exam_question(
+                exam_question=exam_question,
+                actor=request.user,
+            )
+            created_rows.append(exam_question)
+            next_order += 1
 
         log_contest_activity(
             contest,
@@ -441,38 +427,33 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
     def reorder(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(request.user, "id", None),
-            action="exam_question.reorder",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         orders = request.data.get('orders', [])
         if not isinstance(orders, list) or not orders:
             raise DRFValidationError('No orders provided')
 
-        with transaction.atomic():
-            # Lock the contest's questions so concurrent reorders can't race;
-            # the unique (contest, order) constraint is deferrable so the
-            # intermediate updates within this transaction stay legal until
-            # the final state is committed.
-            ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
+        # Lock the contest's questions so concurrent reorders can't race;
+        # the unique (contest, order) constraint is deferrable so the
+        # intermediate updates within this transaction stay legal until
+        # the final state is committed.
+        ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
 
-            for item in orders:
-                question_id = item.get('id')
-                new_order = item.get('order')
-                if question_id is None or new_order is None:
-                    continue
-                ExamQuestion.objects.filter(
-                    contest=contest, id=question_id
-                ).update(order=new_order)
+        for item in orders:
+            question_id = item.get('id')
+            new_order = item.get('order')
+            if question_id is None or new_order is None:
+                continue
+            ExamQuestion.objects.filter(
+                contest=contest, id=question_id
+            ).update(order=new_order)
 
-            # Compact gaps so the final state is contiguous 0..N-1.
-            questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
-            for idx, question in enumerate(questions):
-                if question.order != idx:
-                    question.order = idx
-                    question.save(update_fields=['order'])
+        # Compact gaps so the final state is contiguous 0..N-1.
+        questions = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
+        for idx, question in enumerate(questions):
+            if question.order != idx:
+                question.order = idx
+                question.save(update_fields=['order'])
 
         log_contest_activity(
             contest,

@@ -153,8 +153,7 @@ def apply_locked_question_update(
     if scores_changed:
         ExamScoringService(contest).recalculate_all()
 
-    should_unpublish = action in {"regrade", "mark_pending"} or policy_changed
-    if should_unpublish and contest.results_published:
+    if scores_changed and contest.results_published:
         contest.results_published = False
         contest.save(update_fields=["results_published", "updated_at"])
 

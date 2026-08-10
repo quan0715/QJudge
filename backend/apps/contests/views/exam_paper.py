@@ -293,71 +293,66 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def create(self, request, contest_pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(request.user, 'id', None),
-            action='exam_paper.block.create',
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         kind = request.data.get('kind')
         if kind not in {'question', 'group'}:
             raise DRFValidationError({'kind': 'kind must be question or group'})
 
-        with transaction.atomic():
-            ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
-            ExamQuestionGroup.objects.select_for_update().filter(contest=contest).exists()
+        ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
+        ExamQuestionGroup.objects.select_for_update().filter(contest=contest).exists()
 
-            if kind == 'question':
-                question_payload = request.data.get('question')
-                if not isinstance(question_payload, dict):
-                    raise DRFValidationError({'question': 'question payload is required'})
-                order = self._int_or_default(question_payload.get('order'), self._next_order(contest))
-                ExamQuestion.objects.filter(contest=contest, order__gte=order).update(order=F('order') + 1)
-                question = self._create_question(request, contest, question_payload, order)
-                section = {
-                    'kind': 'question',
-                    'id': str(question.id),
-                    'question': question,
-                    'children': [],
-                }
+        if kind == 'question':
+            question_payload = request.data.get('question')
+            if not isinstance(question_payload, dict):
+                raise DRFValidationError({'question': 'question payload is required'})
+            order = self._int_or_default(question_payload.get('order'), self._next_order(contest))
+            ExamQuestion.objects.filter(contest=contest, order__gte=order).update(order=F('order') + 1)
+            question = self._create_question(request, contest, question_payload, order)
+            section = {
+                'kind': 'question',
+                'id': str(question.id),
+                'question': question,
+                'children': [],
+            }
 
-            else:
-                group_payload = request.data.get('group') or {}
-                if not isinstance(group_payload, dict):
-                    raise DRFValidationError({'group': 'group payload must be an object'})
-                children_payload = request.data.get('children') or []
-                if not isinstance(children_payload, list):
-                    raise DRFValidationError({'children': 'children must be an array'})
+        else:
+            group_payload = request.data.get('group') or {}
+            if not isinstance(group_payload, dict):
+                raise DRFValidationError({'group': 'group payload must be an object'})
+            children_payload = request.data.get('children') or []
+            if not isinstance(children_payload, list):
+                raise DRFValidationError({'children': 'children must be an array'})
 
-                order = self._int_or_default(group_payload.get('order'), self._next_order(contest))
-                order_span = max(1, len(children_payload))
-                if order_span:
-                    ExamQuestion.objects.filter(contest=contest, order__gte=order).update(
-                        order=F('order') + order_span,
-                    )
-                group = ExamQuestionGroup.objects.create(
-                    contest=contest,
-                    title=str(group_payload.get('title') or ''),
-                    shared_stem_markdown=str(group_payload.get('shared_stem_markdown') or ''),
-                    order=order,
+            order = self._int_or_default(group_payload.get('order'), self._next_order(contest))
+            order_span = max(1, len(children_payload))
+            if order_span:
+                ExamQuestion.objects.filter(contest=contest, order__gte=order).update(
+                    order=F('order') + order_span,
                 )
-                children = [
-                    self._create_question(
-                        request,
-                        contest,
-                        child_payload,
-                        order + index,
-                        group=group,
-                        order_in_group=index + 1,
-                    )
-                    for index, child_payload in enumerate(children_payload)
-                ]
-                section = {
-                    'kind': 'group',
-                    'id': str(group.id),
-                    'group': group,
-                    'children': children,
-                }
+            group = ExamQuestionGroup.objects.create(
+                contest=contest,
+                title=str(group_payload.get('title') or ''),
+                shared_stem_markdown=str(group_payload.get('shared_stem_markdown') or ''),
+                order=order,
+            )
+            children = [
+                self._create_question(
+                    request,
+                    contest,
+                    child_payload,
+                    order + index,
+                    group=group,
+                    order_in_group=index + 1,
+                )
+                for index, child_payload in enumerate(children_payload)
+            ]
+            section = {
+                'kind': 'group',
+                'id': str(group.id),
+                'group': group,
+                'children': children,
+            }
 
         log_contest_activity(
             contest,
@@ -374,89 +369,84 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def partial_update_collection(self, request, contest_pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(request.user, 'id', None),
-            action='exam_paper.block.reorder',
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         blocks = request.data.get('blocks')
         if not isinstance(blocks, list) or not blocks:
             raise DRFValidationError({'blocks': 'blocks must be a non-empty array'})
 
-        with transaction.atomic():
-            ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
-            ExamQuestionGroup.objects.select_for_update().filter(contest=contest).exists()
+        ExamQuestion.objects.select_for_update().filter(contest=contest).exists()
+        ExamQuestionGroup.objects.select_for_update().filter(contest=contest).exists()
 
-            existing_sections = self._build_sections(contest)
-            section_by_key = {
-                (section['kind'], section['id']): section
-                for section in existing_sections
-            }
-            ordered_sections = []
-            seen = set()
+        existing_sections = self._build_sections(contest)
+        section_by_key = {
+            (section['kind'], section['id']): section
+            for section in existing_sections
+        }
+        ordered_sections = []
+        seen = set()
 
-            for block in blocks:
-                if not isinstance(block, dict):
-                    raise DRFValidationError({'blocks': 'each block must be an object'})
-                key = (block.get('kind'), str(block.get('id')))
-                if key not in section_by_key:
-                    raise DRFValidationError({'blocks': f'unknown paper block {key[1]}'})
-                if key in seen:
-                    raise DRFValidationError({'blocks': f'duplicate paper block {key[1]}'})
-                ordered_sections.append(section_by_key[key])
-                seen.add(key)
+        for block in blocks:
+            if not isinstance(block, dict):
+                raise DRFValidationError({'blocks': 'each block must be an object'})
+            key = (block.get('kind'), str(block.get('id')))
+            if key not in section_by_key:
+                raise DRFValidationError({'blocks': f'unknown paper block {key[1]}'})
+            if key in seen:
+                raise DRFValidationError({'blocks': f'duplicate paper block {key[1]}'})
+            ordered_sections.append(section_by_key[key])
+            seen.add(key)
 
-            ordered_sections.extend(
-                section for section in existing_sections
-                if (section['kind'], section['id']) not in seen
-            )
+        ordered_sections.extend(
+            section for section in existing_sections
+            if (section['kind'], section['id']) not in seen
+        )
 
-            next_order = 0
-            dirty_questions = []
-            dirty_groups = []
-            for section in ordered_sections:
-                if section['kind'] == 'question':
-                    question = section['question']
-                    changed = False
-                    if question.order != next_order:
-                        question.order = next_order
-                        changed = True
-                    if question.group_id is not None:
-                        question.group = None
-                        question.order_in_group = None
-                        changed = True
-                    if changed:
-                        dirty_questions.append(question)
-                    next_order += 1
-                    continue
+        next_order = 0
+        dirty_questions = []
+        dirty_groups = []
+        for section in ordered_sections:
+            if section['kind'] == 'question':
+                question = section['question']
+                changed = False
+                if question.order != next_order:
+                    question.order = next_order
+                    changed = True
+                if question.group_id is not None:
+                    question.group = None
+                    question.order_in_group = None
+                    changed = True
+                if changed:
+                    dirty_questions.append(question)
+                next_order += 1
+                continue
 
-                group = section['group']
-                if group.order != next_order:
-                    group.order = next_order
-                    dirty_groups.append(group)
-                if not section['children']:
-                    next_order += 1
-                    continue
-                for child_index, question in enumerate(section['children'], start=1):
-                    changed = False
-                    if question.order != next_order:
-                        question.order = next_order
-                        changed = True
-                    if question.group_id != group.id:
-                        question.group = group
-                        changed = True
-                    if question.order_in_group != child_index:
-                        question.order_in_group = child_index
-                        changed = True
-                    if changed:
-                        dirty_questions.append(question)
-                    next_order += 1
+            group = section['group']
+            if group.order != next_order:
+                group.order = next_order
+                dirty_groups.append(group)
+            if not section['children']:
+                next_order += 1
+                continue
+            for child_index, question in enumerate(section['children'], start=1):
+                changed = False
+                if question.order != next_order:
+                    question.order = next_order
+                    changed = True
+                if question.group_id != group.id:
+                    question.group = group
+                    changed = True
+                if question.order_in_group != child_index:
+                    question.order_in_group = child_index
+                    changed = True
+                if changed:
+                    dirty_questions.append(question)
+                next_order += 1
 
-            if dirty_questions:
-                ExamQuestion.objects.bulk_update(dirty_questions, ['order', 'group', 'order_in_group'])
-            if dirty_groups:
-                ExamQuestionGroup.objects.bulk_update(dirty_groups, ['order'])
+        if dirty_questions:
+            ExamQuestion.objects.bulk_update(dirty_questions, ['order', 'group', 'order_in_group'])
+        if dirty_groups:
+            ExamQuestionGroup.objects.bulk_update(dirty_groups, ['order'])
 
         log_contest_activity(
             contest,
@@ -512,11 +502,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 }
 
             else:
-                ensure_contest_question_editable(
-                    contest=contest,
-                    actor_id=getattr(request.user, 'id', None),
-                    action='exam_paper.block.update',
-                )
+                ensure_contest_question_editable(contest=contest)
                 if group is None:
                     raise DRFValidationError('group block not found')
                 group_payload = request.data.get('group') or {}
@@ -602,32 +588,27 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def destroy(self, request, contest_pk=None, pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        contest = lock_contest_for_question_edit(
-            contest=contest,
-            actor_id=getattr(request.user, 'id', None),
-            action='exam_paper.block.delete',
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
-        with transaction.atomic():
-            question = ExamQuestion.objects.filter(contest=contest, id=pk).first()
-            group = ExamQuestionGroup.objects.filter(contest=contest, id=pk).first()
-            if group is not None:
-                child_assets = [
-                    child.question_asset
-                    for child in group.questions.select_related('question_asset')
-                    if child.question_asset_id
-                ]
-                group.questions.all().delete()
-                group.delete()
-                for asset in child_assets:
-                    cleanup_orphan_asset_if_needed(asset)
-            elif question is not None:
-                question_asset = question.question_asset
-                question.delete()
-                cleanup_orphan_asset_if_needed(question_asset)
-            else:
-                raise DRFValidationError('paper block not found')
-            self._normalize_orders(contest)
+        question = ExamQuestion.objects.filter(contest=contest, id=pk).first()
+        group = ExamQuestionGroup.objects.filter(contest=contest, id=pk).first()
+        if group is not None:
+            child_assets = [
+                child.question_asset
+                for child in group.questions.select_related('question_asset')
+                if child.question_asset_id
+            ]
+            group.questions.all().delete()
+            group.delete()
+            for asset in child_assets:
+                cleanup_orphan_asset_if_needed(asset)
+        elif question is not None:
+            question_asset = question.question_asset
+            question.delete()
+            cleanup_orphan_asset_if_needed(question_asset)
+        else:
+            raise DRFValidationError('paper block not found')
+        self._normalize_orders(contest)
 
         log_contest_activity(
             contest,

@@ -135,9 +135,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.create",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         from apps.problems.serializers import ProblemAdminSerializer
         data = request.data.copy()
@@ -194,9 +192,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.update",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         binding = self._resolve_binding(contest_id=contest.id, lookup_value=lookup_value)
         if not binding:
@@ -244,9 +240,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.destroy",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         binding = self._resolve_binding(contest_id=contest.id, lookup_value=lookup_value)
         if not binding:
@@ -277,9 +271,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(request.user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(request.user, "id", None), action="contest_problem.update_score",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         binding = self._resolve_binding(contest_id=contest.id, lookup_value=binding_id)
         if not binding:
@@ -321,9 +313,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.import_from_bank",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         items = request.data.get("items", [])
         if not isinstance(items, list) or not items:
@@ -342,54 +332,53 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         next_order = (last_order if last_order is not None else -1) + 1
         created_bindings = []
 
-        with transaction.atomic():
-            for item in items:
-                if not isinstance(item, dict):
-                    raise DRFValidationError("Invalid item payload")
+        for item in items:
+            if not isinstance(item, dict):
+                raise DRFValidationError("Invalid item payload")
 
-                question_bank_id = item.get("question_bank_id")
-                question_id = item.get("question_id")
-                if not question_bank_id or question_id is None:
-                    raise DRFValidationError("Each item requires question_bank_id and question_id")
+            question_bank_id = item.get("question_bank_id")
+            question_id = item.get("question_id")
+            if not question_bank_id or question_id is None:
+                raise DRFValidationError("Each item requires question_bank_id and question_id")
 
-                bank, bank_item = resolve_bank_question_for_import(
-                    user=user,
-                    question_bank_id=question_bank_id,
-                    question_id=question_id,
-                    allowed_question_types={"coding"},
-                    invalid_type_message="Only coding bank questions can be imported here",
-                )
+            bank, bank_item = resolve_bank_question_for_import(
+                user=user,
+                question_bank_id=question_bank_id,
+                question_id=question_id,
+                allowed_question_types={"coding"},
+                invalid_type_message="Only coding bank questions can be imported here",
+            )
 
-                problem = materialize_problem_from_bank_item(
-                    contest=contest, bank_item=bank_item, user=user, request=request,
-                )
+            problem = materialize_problem_from_bank_item(
+                contest=contest, bank_item=bank_item, user=user, request=request,
+            )
 
-                if not problem.question_asset_id:
-                    from apps.question_bank.question_assets import ensure_problem_question_asset
-                    ensure_problem_question_asset(problem=problem, actor=user)
-                    problem.refresh_from_db(fields=["question_asset", "question_version"])
+            if not problem.question_asset_id:
+                from apps.question_bank.question_assets import ensure_problem_question_asset
+                ensure_problem_question_asset(problem=problem, actor=user)
+                problem.refresh_from_db(fields=["question_asset", "question_version"])
 
-                default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
-                requested = item.get("max_score")
-                max_score = max(1, int(requested)) if requested is not None else default_max_score
+            default_max_score = max(1, int(problem.test_cases.aggregate(total=Sum("score"))["total"] or 100))
+            requested = item.get("max_score")
+            max_score = max(1, int(requested)) if requested is not None else default_max_score
 
-                binding = ContestQuestionBinding.objects.create(
-                    contest=contest,
-                    question_asset=problem.question_asset,
-                    question_version=problem.question_version,
-                    coding_problem=problem,
-                    binding_type=QuestionAsset.AssetType.CODING,
-                    order=next_order,
-                    score=max_score,
-                    source_bank_id=bank.uuid,
-                    source_bank_name=bank.name,
-                    source_question_id=bank_item.id,
-                    source_mode="copy",
-                    created_by=user,
-                )
+            binding = ContestQuestionBinding.objects.create(
+                contest=contest,
+                question_asset=problem.question_asset,
+                question_version=problem.question_version,
+                coding_problem=problem,
+                binding_type=QuestionAsset.AssetType.CODING,
+                order=next_order,
+                score=max_score,
+                source_bank_id=bank.uuid,
+                source_bank_name=bank.name,
+                source_question_id=bank_item.id,
+                source_mode="copy",
+                created_by=user,
+            )
 
-                created_bindings.append(binding)
-                next_order += 1
+            created_bindings.append(binding)
+            next_order += 1
 
         log_contest_activity(
             contest, user, "update_problem",
@@ -411,9 +400,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.duplicate",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         problem_id = request.data.get("problem_id")
         if not problem_id:
@@ -467,9 +454,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        contest = lock_contest_for_question_edit(
-            contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.reorder",
-        )
+        contest = lock_contest_for_question_edit(contest=contest)
 
         orders = request.data.get("orders", [])
         if not orders:

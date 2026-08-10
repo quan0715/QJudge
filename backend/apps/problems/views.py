@@ -180,29 +180,19 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         return Contest.objects.filter(id__in=contest_ids)
 
-    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem, action: str) -> None:
+    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem) -> None:
         for contest in self._get_bound_contests(problem).select_for_update().order_by("id"):
-            ensure_contest_question_editable(
-                contest=contest,
-                actor_id=getattr(self.request.user, "id", None),
-                action=action,
-            )
+            ensure_contest_question_editable(contest=contest)
 
     @transaction.atomic
     def perform_update(self, serializer):
-        self._ensure_problem_editable_under_contest_lock(
-            serializer.instance,
-            action="problem.update",
-        )
+        self._ensure_problem_editable_under_contest_lock(serializer.instance)
         # Asset update is handled inside ProblemService.update_problem_adapter.
         serializer.save()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        self._ensure_problem_editable_under_contest_lock(
-            instance,
-            action="problem.destroy",
-        )
+        self._ensure_problem_editable_under_contest_lock(instance)
         instance.delete()
 
     @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
