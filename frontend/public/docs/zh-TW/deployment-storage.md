@@ -6,7 +6,7 @@ QJudge 使用 S3-compatible API 連線物件儲存。目前可以直接跟著文
 
 ## QJudge 會保存哪些檔案
 
-部署前要建立三個 private bucket。Bucket 可以理解成用途分開的檔案容器：
+QJudge 的完整功能會使用三個 private bucket。Bucket 可以理解成用途分開的檔案容器：
 
 | Bucket | 保存內容 |
 | --- | --- |
@@ -14,7 +14,11 @@ QJudge 使用 S3-compatible API 連線物件儲存。目前可以直接跟著文
 | `markdown-images` | 題目、公告與其他 Markdown 內容中的圖片 |
 | `ai-artifacts` | AI workflow 產生、供使用者下載或檢視的檔案 |
 
-Production Compose 不會自動建立這三個 bucket。先建立 bucket，再啟動 QJudge，能避免 application credential 同時擁有管理整個 account 的權限。
+這三個名稱是 QJudge 的預設值，不是 R2 規定的名稱。一般部署直接沿用預設值即可，因此不需要再增加環境變數；若學校已有命名規範，也可以分別設定 `ANTICHEAT_RAW_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET` 與 `AI_ARTIFACT_S3_BUCKET`。
+
+三個 bucket 分開的原因是資料性質不同：一般內容圖片、監考證據與 AI 產物通常需要不同的存取權、保存期限與清理規則。技術上可以讓三個設定指向同一個 bucket，但正式環境不建議這樣做。
+
+Production Compose 不會自動建立 bucket。核心圖片上傳會使用 `markdown-images`；啟用 Exam Integrity 或 AI artifact 時，才會分別使用另外兩個。指南仍在第一次部署時一起準備，讓後續啟用功能時不會在實際考試或 AI 工作中途才發現儲存空間不存在，也能避免 application credential 擁有建立或管理整個 account bucket 的權限。
 
 ## 你需要準備的四個值
 
@@ -31,7 +35,7 @@ R2 的兩個 endpoint 通常相同。Bucket 名稱、region、presigned URL 有�
 
 ## 在 Cloudflare R2 建立 bucket
 
-登入 Cloudflare dashboard，進入 R2 Object Storage，依序建立：
+登入 Cloudflare dashboard，進入 R2 Object Storage，依序建立 QJudge 的三個預設 bucket：
 
 ```text
 anticheat-raw

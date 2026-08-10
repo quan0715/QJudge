@@ -148,11 +148,13 @@ python3 scripts/bootstrap_integrity_secrets.py
 
 腳本會保留格式正確的既有檔案，不需要每次部署都重建。
 
-現在把目前 commit 交給 production 部署腳本：
+現在把這次要部署的 commit SHA 交給 production 部署腳本：
 
 ```bash
 ./scripts/deploy-prod.sh "$(pwd)" "$(git rev-parse HEAD)"
 ```
+
+第二個參數的用途是固定這次部署的版本。腳本會先從 Git remote 更新資料，再以 `checkout --force` 切到指定 SHA；因此這個 commit 必須已經存在於 remote、release tag，或部署主機的 repository 中。不要在保存開發中修改的工作目錄執行這支腳本，否則未提交的修改可能被覆蓋。
 
 這一步會下載或建立 images、執行 database bootstrap 與 migrations、啟動服務，再檢查首頁。第一次 build 可能需要一段時間。正常結束會看到：
 
