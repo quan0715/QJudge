@@ -23,7 +23,7 @@ docker compose exec backend python manage.py createsuperuser
 
 進入使用者管理後，畫面會提供使用者搜尋、目前角色與角色變更操作。下圖使用專用的虛構帳號，搜尋結果只保留王老師一人。
 
-![管理員在使用者管理頁搜尋王老師](../images/admin-getting-started/admin-user-management.png)
+![管理員在使用者管理頁搜尋王老師](/docs/images/admin-getting-started/admin-user-management.png)
 
 圖：使用者管理是站台層級的功能。搜尋先縮小到要處理的帳號，能避免在大量名單中改錯人。
 

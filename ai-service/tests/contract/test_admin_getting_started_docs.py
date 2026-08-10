@@ -41,6 +41,10 @@ def test_navigation_presents_one_admin_to_teacher_journey() -> None:
         for items in sections.values()
         for retired in RETIRED_SLUGS
     )
+    assert all(
+        not (ZH_TW_ROOT / f"{retired}.md").exists()
+        for retired in RETIRED_SLUGS
+    )
 
 
 def test_journey_pages_exist_and_explain_the_role_handoff() -> None:
@@ -82,9 +86,13 @@ def test_journey_screenshots_resolve_inside_the_dedicated_folder() -> None:
     for slug in JOURNEY_SLUGS:
         guide = ZH_TW_ROOT / f"{slug}.md"
         for target in image_pattern.findall(_read(guide)):
-            resolved = (guide.parent / target).resolve()
+            if target.startswith("/docs/"):
+                resolved = (PUBLIC_DOCS_ROOT / target.removeprefix("/docs/")).resolve()
+            else:
+                resolved = (guide.parent / target).resolve()
             assert resolved.is_relative_to(IMAGE_ROOT.resolve())
             assert resolved.exists(), f"missing screenshot in {guide.name}: {target}"
+            assert resolved.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
             referenced_images.add(resolved)
 
     assert len(referenced_images) >= 8
@@ -98,3 +106,13 @@ def test_ai_guidance_stays_inside_exam_preparation() -> None:
     config = _read(PUBLIC_DOCS_ROOT / "config.json")
     assert '"ai-grading"' not in config
     assert '"ai-question-generation"' not in config
+
+
+def test_internal_document_links_resolve_to_existing_pages() -> None:
+    link_pattern = re.compile(r"#/docs/([a-z0-9-]+)")
+
+    for guide in ZH_TW_ROOT.glob("*.md"):
+        for slug in link_pattern.findall(_read(guide)):
+            assert (ZH_TW_ROOT / f"{slug}.md").exists(), (
+                f"broken documentation link in {guide.name}: {slug}"
+            )

@@ -14,7 +14,7 @@ MCP 是選用功能。只使用 QJudge 網頁、提交與評測時，不需要�
 https://mcp.example.edu/mcp
 ```
 
-若你就是站台管理者，請先完成[加入選用功能](/docs/deployment-options)中的「Remote MCP」與 HTTPS 設定。只在 QJudge 內部讓 AI Service 呼叫 MCP 時，不需要公開 HTTPS；要讓校外的 AI 工具連進來時，才需要可公開存取的 HTTPS 網址。
+若你就是站台管理者，請先完成[加入選用功能](#/docs/deployment-options)中的「Remote MCP」與 HTTPS 設定。只在 QJudge 內部讓 AI Service 呼叫 MCP 時，不需要公開 HTTPS；要讓校外的 AI 工具連進來時，才需要可公開存取的 HTTPS 網址。
 
 ## 在 AI 工具中加入連線
 
@@ -101,4 +101,4 @@ https://mcp.example.edu/mcp
 
 ### 我是站台管理者，連線仍失敗
 
-依序確認公開 HTTPS、MCP URL、OAuth issuer 與 callback 是否一致，再查看服務日誌。部署端的檢查順序請見[部署故障排除](/docs/deployment-troubleshooting)。
+依序確認公開 HTTPS、MCP URL、OAuth issuer 與 callback 是否一致，再查看服務日誌。部署端的檢查順序請見[部署故障排除](#/docs/deployment-troubleshooting)。

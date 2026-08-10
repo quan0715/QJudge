@@ -17,7 +17,7 @@
 - Python
 - Java
 
-詳細說明請見 [/docs/supported-languages](/docs/supported-languages)。
+詳細說明請見[支援的程式語言](#/docs/supported-languages)。
 
 ## 結果狀態
 

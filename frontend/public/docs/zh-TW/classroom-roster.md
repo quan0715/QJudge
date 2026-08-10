@@ -25,7 +25,7 @@ student.wu@example.test
 
 匯入後，QJudge 不會立刻修改名冊，而是先整理結果。本例故意重複放入一次陳同學的信箱，因此畫面顯示 3 筆可加入、1 筆重複。
 
-![CSV 匯入後的學生名冊預覽](../images/admin-getting-started/roster-import.png)
+![CSV 匯入後的學生名冊預覽](/docs/images/admin-getting-started/roster-import.png)
 
 圖：預覽會先處理格式與重複資料。這時尚未加入任何學生，可以回到原始名單修正後再匯入。
 
@@ -40,7 +40,7 @@ student.wu@example.test
 
 確認後按「確認新增」。系統會再檢查帳號是否存在，並將成功加入的帳號列在成員列表。
 
-![三名虛構學生加入教室後的成員列表](../images/admin-getting-started/roster-result.png)
+![三名虛構學生加入教室後的成員列表](/docs/images/admin-getting-started/roster-result.png)
 
 圖：成員加入後預設為學生。只有確實協助管理課程的人員，才需要再調整為助教。
 

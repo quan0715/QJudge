@@ -1,12 +1,12 @@
 # 建立本機開發環境
 
-這份文件用 Docker Compose 啟動一套可以修改程式、即時查看結果的 QJudge。它是開發環境，不適合直接提供正式課程使用；要架設正式站台，請改看[架設與部署](/docs/deployment)。
+這份文件用 Docker Compose 啟動一套可以修改程式、即時查看結果的 QJudge。它是開發環境，不適合直接提供正式課程使用；要架設正式站台，請改看[架設與部署](#/docs/deployment)。
 
 ## 1. 準備工具與 R2
 
 主機需要 Git、Docker 與 Docker Compose v2。Node.js、Python、PostgreSQL 等執行環境會放在容器內，因此不必先逐一安裝到電腦上。
 
-目前開發環境也需要 S3-compatible object storage。已完成驗證的選項是 Cloudflare R2；請先依[準備檔案儲存](/docs/deployment-storage)建立三個 bucket 與 API token。
+目前開發環境也需要 S3-compatible object storage。已完成驗證的選項是 Cloudflare R2；請先依[準備檔案儲存](#/docs/deployment-storage)建立三個 bucket 與 API token。
 
 ## 2. 取得程式碼
 
@@ -110,4 +110,4 @@ frontend、backend 與 ai-service 的原始碼會掛載進容器。大多數修�
 
 這會停止容器，但保留資料 volume。再次執行 `dev up -d` 即可繼續。不要為了排除一般啟動問題使用 `down -v`，因為 `-v` 會刪除本機資料庫 volume。
 
-完成環境後，下一步可閱讀[貢獻指南](/docs/contributing)，了解分支、測試與文件更新方式。
+完成環境後，下一步可閱讀[貢獻指南](#/docs/contributing)，了解分支、測試與文件更新方式。

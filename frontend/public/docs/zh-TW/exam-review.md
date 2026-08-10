@@ -6,7 +6,7 @@
 
 在 `第一次段考` 的「Exam 管理」頁，按右上角的眼睛圖示「預覽作答畫面」。預覽會另外開啟 Demo 模式，不會產生學生作答紀錄，也不會把考試發布給名冊中的學生。
 
-![教師以 Demo 模式預覽第一次段考](../images/admin-getting-started/exam-preview.png)
+![教師以 Demo 模式預覽第一次段考](/docs/images/admin-getting-started/exam-preview.png)
 
 圖：左側列出兩道題目，中央呈現學生實際作答區。Demo 模式讓教師在發布前檢查題型、順序、選項與版面。
 

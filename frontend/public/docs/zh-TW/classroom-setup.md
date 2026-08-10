@@ -13,13 +13,13 @@ QJudge 的「教室」可以對應一門課、一個班級或一個學期。教�
 3. 輸入能讓授課團隊辨認學期與課程的名稱。本例使用 `115 學年度作業系統`。
 4. 在描述中簡短寫下課程用途。描述可以之後再修改，不需要把完整課綱貼進來。
 
-![教師填寫教室名稱與描述](../images/admin-getting-started/classroom-create.png)
+![教師填寫教室名稱與描述](/docs/images/admin-getting-started/classroom-create.png)
 
 圖：建立教室只需要名稱，描述為選填。名稱中保留學年度或學期，有助於日後辨認封存課程。
 
 按下「建立」後，QJudge 會直接進入新教室。先檢查頁首名稱與描述是否正確；成員數量為 0 是正常的，下一步才會加入學生。
 
-![新教室建立完成後的概要頁](../images/admin-getting-started/classroom-overview.png)
+![新教室建立完成後的概要頁](/docs/images/admin-getting-started/classroom-overview.png)
 
 圖：教室概要集中顯示課程資訊、即將開始的考試與最新公告。右側顯示的成員數不包含教室擁有者。
 

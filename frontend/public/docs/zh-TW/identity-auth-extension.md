@@ -2,7 +2,7 @@
 
 QJudge 可以使用帳號密碼，也可以串接校園 SSO、OAuth 2.0 或 OpenID Connect。這份文件提供給維護者與學校系統管理者，說明現有登入邊界，以及新增 provider 時應修改哪些地方。
 
-如果你只是要啟用現有的 Google、GitHub 或 NYCU 登入，不需要修改程式。先向 provider 申請 client ID 與 client secret，再依[加入選用功能](/docs/deployment-options)設定 HTTPS、callback 與環境變數。
+如果你只是要啟用現有的 Google、GitHub 或 NYCU 登入，不需要修改程式。先向 provider 申請 client ID 與 client secret，再依[加入選用功能](#/docs/deployment-options)設定 HTTPS、callback 與環境變數。
 
 ## 先分清楚兩種 OAuth
 

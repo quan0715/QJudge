@@ -4,7 +4,7 @@ QJudge 涵蓋課程管理、評測、考試、AI 與身分認證。第一次貢�
 
 ## 開始之前
 
-先完成[本機開發環境](/docs/dev-setup)，確認 QJudge 能啟動。接著閱讀儲存庫根目錄與目標資料夾附近的維護指示；不同模組可能有自己的架構、測試或 UI 規則。
+先完成[本機開發環境](#/docs/dev-setup)，確認 QJudge 能啟動。接著閱讀儲存庫根目錄與目標資料夾附近的維護指示；不同模組可能有自己的架構、測試或 UI 規則。
 
 若你準備修 issue，先確認目前行為、預期行為與重現方式。只有描述「不能用」通常不足以判斷修正是否完成；一個小型重現案例或失敗測試會更有幫助。
 
@@ -24,7 +24,7 @@ git switch -c YOUR_FEATURE_BRANCH
 
 ## 在相同環境驗證
 
-QJudge 的依賴與測試以 Compose 管理。前端測試在 dev frontend container 中執行，後端測試使用 test Compose 的 `backend-test`，詳細指令見[本機開發環境](/docs/dev-setup)。
+QJudge 的依賴與測試以 Compose 管理。前端測試在 dev frontend container 中執行，後端測試使用 test Compose 的 `backend-test`，詳細指令見[本機開發環境](#/docs/dev-setup)。
 
 至少驗證你改到的範圍；若變更會跨服務傳遞資料，再補上相鄰服務的 contract 或整合測試。不要只因為完整測試耗時，就完全省略可直接證明行為的最小測試。
 
@@ -40,7 +40,7 @@ QJudge 的依賴與測試以 Compose 管理。前端測試在 dev frontend conta
 
 使用者可閱讀的內容以 `frontend/public/docs` 為正式來源；`docs` 只保存維護與營運所需的內部技術文件。若畫面、操作流程、部署需求或限制改變，請在同一個 PR 更新相對應的公開文件。
 
-新增登入來源前先看[身分登入擴充](/docs/identity-auth-extension)；調整 Contest 頁面的 tab、panel、module 或 route 時，先看[Contest 頁面擴充架構指南](/docs/contest-extension-architecture)。
+新增登入來源前先看[身分登入擴充](#/docs/identity-auth-extension)；調整 Contest 頁面的 tab、panel、module 或 route 時，先看[Contest 頁面擴充架構指南](#/docs/contest-extension-architecture)。
 
 ## 提交 Pull Request
 
