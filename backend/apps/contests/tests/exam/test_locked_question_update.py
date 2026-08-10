@@ -14,6 +14,7 @@ from apps.contests.models import (
     ExamQuestionType,
     ExamStatus,
 )
+from apps.contests.services.locked_question_update import apply_locked_question_update
 from apps.users.models import User
 
 
@@ -101,6 +102,18 @@ def locked_exam():
 
 def question_url(exam, question):
     return f"/api/v1/contests/{exam['contest'].id}/exam-questions/{question.id}/"
+
+
+@pytest.mark.django_db
+def test_locked_update_returns_updated_question(locked_exam):
+    updated = apply_locked_question_update(
+        question=locked_exam["essay"],
+        validated_data={"explanation": "Updated explanation"},
+        action="keep",
+    )
+
+    assert isinstance(updated, ExamQuestion)
+    assert updated.explanation == "Updated explanation"
 
 
 @pytest.mark.django_db

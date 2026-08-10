@@ -258,12 +258,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
             locked = is_contest_question_edit_locked(contest)
             if locked:
-                result = apply_locked_question_update(
+                serializer.instance = apply_locked_question_update(
                     question=serializer.instance,
                     validated_data=serializer.validated_data,
                     action=action,
                 )
-                serializer.instance = result.question
             else:
                 old_policy = serializer.instance.score_policy
                 old_score = serializer.instance.score

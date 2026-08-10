@@ -1,7 +1,6 @@
 """Atomic grading-rule updates for questions whose exam content is locked."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Literal
 
 from django.core.cache import cache
@@ -46,13 +45,6 @@ GRADING_FIELDS = (
 )
 
 
-@dataclass(frozen=True)
-class LockedQuestionUpdateResult:
-    question: ExamQuestion
-    affected_answers: int
-    results_unpublished: bool
-
-
 def _changed_fields(question: ExamQuestion, values: dict) -> set[str]:
     return {
         name
@@ -94,7 +86,7 @@ def apply_locked_question_update(
     question: ExamQuestion,
     validated_data: dict,
     action: ExistingGradesAction | None,
-) -> LockedQuestionUpdateResult:
+) -> ExamQuestion:
     """Update grading fields and apply the selected existing-grade action."""
     contest = Contest.objects.select_for_update().get(pk=question.contest_id)
     locked_question = ExamQuestion.objects.select_for_update().get(pk=question.pk)
@@ -111,7 +103,7 @@ def apply_locked_question_update(
     if unsupported:
         raise ContestQuestionEditLocked()
     if not changes:
-        return LockedQuestionUpdateResult(locked_question, 0, False)
+        return locked_question
 
     _validate_action(
         question=locked_question,
@@ -123,7 +115,6 @@ def apply_locked_question_update(
         setattr(locked_question, name, value)
     locked_question.save(update_fields=[*changes, "updated_at"])
 
-    affected_answers = 0
     if action == "regrade":
         now = timezone.now()
         for answer in answers:
@@ -137,7 +128,6 @@ def apply_locked_question_update(
                 answers,
                 ["score", "is_correct", "graded_by", "graded_at", "updated_at"],
             )
-        affected_answers = len(answers)
     elif action == "mark_pending":
         now = timezone.now()
         for answer in answers:
@@ -157,7 +147,6 @@ def apply_locked_question_update(
                     "updated_at",
                 ],
             )
-        affected_answers = len(answers)
 
     policy_changed = bool(changes & POLICY_FIELDS)
     scores_changed = action in {"regrade", "mark_pending"} or policy_changed
@@ -165,15 +154,10 @@ def apply_locked_question_update(
         ExamScoringService(contest).recalculate_all()
 
     should_unpublish = action in {"regrade", "mark_pending"} or policy_changed
-    results_unpublished = should_unpublish and contest.results_published
-    if results_unpublished:
+    if should_unpublish and contest.results_published:
         contest.results_published = False
         contest.save(update_fields=["results_published", "updated_at"])
 
     cache_key = f"contest:{contest.id}:exam_question_detail:{locked_question.id}:v2"
     transaction.on_commit(lambda: cache.delete(cache_key))
-    return LockedQuestionUpdateResult(
-        question=locked_question,
-        affected_answers=affected_answers,
-        results_unpublished=results_unpublished,
-    )
+    return locked_question

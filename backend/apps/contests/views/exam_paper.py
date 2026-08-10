@@ -492,12 +492,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 serializer.is_valid(raise_exception=True)
                 action = serializer.validated_data.pop("existing_grades_action", None)
                 if is_contest_question_edit_locked(contest):
-                    result = apply_locked_question_update(
+                    question = apply_locked_question_update(
                         question=question,
                         validated_data=serializer.validated_data,
                         action=action,
                     )
-                    question = result.question
                     serializer.instance = question
                 else:
                     question = serializer.save()
