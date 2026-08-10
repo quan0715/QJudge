@@ -61,7 +61,14 @@ def test_journey_pages_exist_and_explain_the_role_handoff() -> None:
     quick_start = _read(ZH_TW_ROOT / "quick-start.md")
     positions = [
         quick_start.index(text)
-        for text in ("部署", "管理員", "教師資格", "建立教室", "學生名冊", "準備考試")
+        for text in (
+            "## 1. 系統尚未部署",
+            "## 2. 建立第一個管理員",
+            "## 3. 管理教師資格",
+            "## 4. 建立教室",
+            "## 5. 管理學生名冊",
+            "## 6. 準備考試",
+        )
     ]
     assert positions == sorted(positions)
     assert "管理員登出" in quick_start
