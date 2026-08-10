@@ -15,6 +15,7 @@ from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
+from apps.submissions.models import Submission
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
@@ -927,20 +928,19 @@ def test_contest_problem_destroy_keeps_asset_when_in_bank(
 def test_contest_question_mutations_blocked_when_question_edit_locked(
     api_client: APIClient,
     owner: User,
+    student: User,
     contest: Contest,
 ) -> None:
-    contest.question_edit_locked = True
-    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-    contest.question_edit_locked_at = timezone.now()
-    contest.save(
-        update_fields=[
-            "question_edit_locked",
-            "question_edit_lock_trigger",
-            "question_edit_locked_at",
-        ]
-    )
     problem = _create_problem("Locked Contest Problem", owner)
     binding = bind_problem_to_contest(contest, problem, order=0, score=20)
+    Submission.objects.create(
+        user=student,
+        contest=contest,
+        problem=problem,
+        source_type="contest",
+        language="python",
+        code="print(1)",
+    )
 
     api_client.force_authenticate(user=owner)
 
@@ -1018,29 +1018,46 @@ def test_reorder_problems_updates_and_normalizes_order(
 
 
 @pytest.mark.django_db
-def test_contest_detail_exposes_question_edit_lock_fields(
+def test_contest_detail_computes_question_edit_lock_from_submission(
     api_client: APIClient,
     owner: User,
+    student: User,
     contest: Contest,
 ) -> None:
-    locked_at = timezone.now()
-    contest.question_edit_locked = True
-    contest.question_edit_locked_at = locked_at
-    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-    contest.save(
-        update_fields=[
-            "question_edit_locked",
-            "question_edit_locked_at",
-            "question_edit_lock_trigger",
-        ]
+    problem = _create_problem("Detail Lock Evidence", owner)
+    Submission.objects.create(
+        user=student,
+        contest=contest,
+        problem=problem,
+        source_type="contest",
+        language="python",
+        code="print(1)",
     )
 
     api_client.force_authenticate(user=owner)
     response = api_client.get(f"/api/v1/contests/{contest.id}/")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["question_edit_locked"] is True
-    assert response.data["question_edit_lock_trigger"] == "coding_submission"
-    assert response.data["question_edit_locked_at"] is not None
+    assert "question_edit_lock_trigger" not in response.data
+    assert "question_edit_locked_at" not in response.data
+
+
+@pytest.mark.django_db
+def test_contest_list_omits_question_edit_lock_metadata(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.get("/api/v1/contests/")
+
+    assert response.status_code == status.HTTP_200_OK
+    rows = response.data.get("results", response.data)
+    row = next(item for item in rows if str(item["id"]) == str(contest.id))
+    assert "question_edit_locked" not in row
+    assert "question_edit_lock_trigger" not in row
+    assert "question_edit_locked_at" not in row
 
 
 @pytest.mark.django_db

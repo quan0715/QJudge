@@ -38,9 +38,6 @@ def locked_exam():
         status="published",
         start_time=timezone.now() - timedelta(hours=1),
         end_time=timezone.now() + timedelta(hours=1),
-        question_edit_locked=True,
-        question_edit_locked_at=timezone.now(),
-        question_edit_lock_trigger=Contest.QuestionEditLockTrigger.EXAM_STARTED,
         results_published=True,
     )
     participant = ContestParticipant.objects.create(

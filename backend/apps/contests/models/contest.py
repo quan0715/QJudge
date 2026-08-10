@@ -96,31 +96,6 @@ class Contest(models.Model):
         help_text='coding: 程式題; paper_exam: 紙筆題考試'
     )
 
-    # Contest-level question edit lock (production safeguard)
-    class QuestionEditLockTrigger(models.TextChoices):
-        CODING_SUBMISSION = 'coding_submission', 'Coding Submission'
-        EXAM_ANSWER = 'exam_answer', 'Exam Answer'
-        EXAM_STARTED = 'exam_started', 'Exam Started'
-
-    question_edit_locked = models.BooleanField(
-        default=False,
-        db_index=True,
-        verbose_name='題目編輯已鎖定',
-        help_text='任一學生正式作答後鎖定整場競賽題目編輯',
-    )
-    question_edit_locked_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='題目鎖定時間',
-    )
-    question_edit_lock_trigger = models.CharField(
-        max_length=32,
-        choices=QuestionEditLockTrigger.choices,
-        null=True,
-        blank=True,
-        verbose_name='題目鎖定觸發來源',
-    )
-
     # Cheat detection settings
     cheat_detection_enabled = models.BooleanField(
         default=False,
@@ -175,19 +150,6 @@ class Contest(models.Model):
 
     def __str__(self):
         return self.name
-
-    def has_exam_started(self):
-        """任何學生已開始作答即回傳 True（用於凍結題目判定）"""
-        from .participants import ExamStatus
-
-        return self.registrations.filter(
-            exam_status__in=[
-                ExamStatus.IN_PROGRESS,
-                ExamStatus.PAUSED,
-                ExamStatus.LOCKED,
-                ExamStatus.SUBMITTED,
-            ]
-        ).exists()
 
     @property
     def can_download_my_report(self):

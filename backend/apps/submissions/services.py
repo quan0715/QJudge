@@ -8,7 +8,6 @@ from django.db import transaction
 
 from apps.contests.models import Contest
 from apps.contests.services.activity_log import log_contest_activity
-from apps.contests.services.question_edit_lock import maybe_lock_from_coding_submission
 from apps.problems.models import CodingProblem
 from apps.submissions.access_policy import SubmissionAccessPolicy
 from apps.submissions.models import Submission
@@ -111,6 +110,10 @@ class SubmissionService:
                 create_payload["contest_question_binding_id"] = binding.id
 
         with transaction.atomic():
+            if contest is not None:
+                contest = Contest.objects.select_for_update().get(pk=contest.pk)
+                create_payload["contest"] = contest
+
             if violation_message:
                 submission = Submission.objects.create(
                     user=user,
@@ -120,7 +123,6 @@ class SubmissionService:
                     error_message=violation_message,
                     **create_payload,
                 )
-                maybe_lock_from_coding_submission(submission=submission)
                 return SubmissionCreateResult(
                     submission=submission,
                     should_judge=False,
@@ -132,7 +134,6 @@ class SubmissionService:
                 source_type=source_type,
                 **create_payload,
             )
-            maybe_lock_from_coding_submission(submission=submission)
 
         return SubmissionCreateResult(
             submission=submission,

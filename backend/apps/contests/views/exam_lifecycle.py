@@ -29,7 +29,6 @@ from ..services.attendance import (
     normalize_attendance_error_code,
 )
 from ..services.activity_log import log_contest_activity
-from ..services.question_edit_lock import lock_contest_question_editing
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
@@ -98,12 +97,6 @@ class ExamLifecycleMixin:
             if participant.exam_status == ExamStatus.PAUSED:
                 participant.exam_status = ExamStatus.IN_PROGRESS
                 participant.save(update_fields=["exam_status"])
-                lock_contest_question_editing(
-                    contest=contest,
-                    trigger=Contest.QuestionEditLockTrigger.EXAM_STARTED,
-                    actor_id=request.user.id,
-                )
-
                 # Log activity
                 log_contest_activity(
                     contest,
@@ -126,12 +119,6 @@ class ExamLifecycleMixin:
                     'start_exam',
                     "Started exam"
                 )
-
-            lock_contest_question_editing(
-                contest=contest,
-                trigger=Contest.QuestionEditLockTrigger.EXAM_STARTED,
-                actor_id=request.user.id,
-            )
 
         set_active_session(contest, participant, request, get_device_id(request))
 

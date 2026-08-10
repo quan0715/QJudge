@@ -11,6 +11,7 @@ from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer,
     ExamStatus, ExamQuestionType,
 )
+from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
 
 User = get_user_model()
 
@@ -32,6 +33,7 @@ class ExamAnswerTestBase(APITestCase):
             start_time=timezone.now() - timedelta(minutes=10),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.teacher,
+            contest_type='paper_exam',
             visibility='public',
             status='published',
             cheat_detection_enabled=True,
@@ -210,30 +212,23 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         }, format='json')
         self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
 
-    def test_student_non_empty_answer_locks_contest_question_edit(self):
+    def test_started_participant_keeps_question_edit_locked_after_answer(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_essay.id,
             'answer': {'text': 'hello'},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.contest.refresh_from_db()
-        self.assertTrue(self.contest.question_edit_locked)
-        self.assertEqual(
-            self.contest.question_edit_lock_trigger,
-            Contest.QuestionEditLockTrigger.EXAM_ANSWER,
-        )
-        self.assertIsNotNone(self.contest.question_edit_locked_at)
+        self.assertTrue(is_contest_question_edit_locked(self.contest))
 
-    def test_empty_answer_does_not_lock_contest_question_edit(self):
+    def test_started_participant_keeps_question_edit_locked_with_empty_answer(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_essay.id,
             'answer': {'text': ''},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.contest.refresh_from_db()
-        self.assertFalse(self.contest.question_edit_locked)
+        self.assertTrue(is_contest_question_edit_locked(self.contest))
 
 
 class ExamAnswerMyAnswersTests(ExamAnswerTestBase):

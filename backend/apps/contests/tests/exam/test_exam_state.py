@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
 
 User = get_user_model()
 
@@ -20,6 +21,7 @@ class ExamStateTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
+            contest_type='paper_exam',
             visibility='public',
             status='published',
             cheat_detection_enabled=True,
@@ -43,12 +45,13 @@ class ExamStateTests(APITestCase):
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.contest.refresh_from_db()
-        self.assertTrue(self.contest.question_edit_locked)
-        self.assertEqual(
-            self.contest.question_edit_lock_trigger,
-            'exam_started',
-        )
+        self.assertTrue(is_contest_question_edit_locked(self.contest))
+
+        detail = self.client.get(f'/api/v1/contests/{self.contest.id}/')
+        self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertTrue(detail.data['question_edit_locked'])
+        self.assertNotIn('question_edit_locked_at', detail.data)
+        self.assertNotIn('question_edit_lock_trigger', detail.data)
 
     def test_owner_participant_can_start_exam(self):
         ContestParticipant.objects.create(contest=self.contest, user=self.admin)

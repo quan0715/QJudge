@@ -24,6 +24,7 @@ from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, Que
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
+from apps.users.models import User
 
 
 @pytest.fixture
@@ -64,6 +65,7 @@ def contest(teacher):
     return Contest.objects.create(
         name="EQ Test Contest",
         owner=teacher,
+        contest_type="paper_exam",
         status="published",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=2),
@@ -826,15 +828,17 @@ class TestQuestionEditLockGuard:
         assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
 
     def test_blocks_exam_question_create_update_delete_reorder_and_import(self, api_client, teacher, contest):
-        contest.question_edit_locked = True
-        contest.question_edit_locked_at = timezone.now()
-        contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-        contest.save(
-            update_fields=[
-                "question_edit_locked",
-                "question_edit_locked_at",
-                "question_edit_lock_trigger",
-            ]
+        student = User.objects.create_user(
+            username="locked-question-student",
+            email="locked-question-student@example.com",
+            password="pass123",
+            role="student",
+        )
+        ContestParticipant.objects.create(
+            contest=contest,
+            user=student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
         )
 
         api_client.force_authenticate(user=teacher)

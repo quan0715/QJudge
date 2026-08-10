@@ -24,6 +24,7 @@ from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
 from .services.open_answer_document import validate_open_answer_document
+from .services.question_edit_lock import is_contest_question_edit_locked
 from apps.users.serializers import UserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
@@ -42,9 +43,6 @@ class ContestListSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
     is_registered = serializers.SerializerMethodField()
-    question_edit_locked = serializers.BooleanField(read_only=True)
-    question_edit_locked_at = serializers.DateTimeField(read_only=True)
-    question_edit_lock_trigger = serializers.CharField(read_only=True)
     attendance_status = serializers.SerializerMethodField()
     
     class Meta:
@@ -62,9 +60,6 @@ class ContestListSerializer(serializers.ModelSerializer):
             'participant_count',
             'is_registered',
             'attendance_status',
-            'question_edit_locked',
-            'question_edit_locked_at',
-            'question_edit_lock_trigger',
             'created_at',
         ]
     
@@ -110,9 +105,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     is_classroom_bound = serializers.SerializerMethodField()
     bound_classroom_id = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
-    question_edit_locked = serializers.BooleanField(read_only=True)
-    question_edit_locked_at = serializers.DateTimeField(read_only=True)
-    question_edit_lock_trigger = serializers.CharField(read_only=True)
+    question_edit_locked = serializers.SerializerMethodField()
 
     # SSoT computed flags — frontend should consume these instead of deriving from examStatus
     is_exam_monitored = serializers.SerializerMethodField()
@@ -163,8 +156,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'results_published',
             'exam_questions_count',
             'question_edit_locked',
-            'question_edit_locked_at',
-            'question_edit_lock_trigger',
             'attendance_status',
             'is_exam_monitored',
             'requires_fullscreen',
@@ -177,6 +168,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return None
         return user
+
+    def get_question_edit_locked(self, obj):
+        return is_contest_question_edit_locked(obj)
 
     def _get_current_registration(self, obj):
         user = self._get_request_user()

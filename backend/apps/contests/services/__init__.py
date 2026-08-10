@@ -10,24 +10,6 @@ from .export_service import (
     build_student_report_response,
     parse_scale,
 )
-from .question_edit_lock import (
-    ContestQuestionEditLocked,
-    LOCKED_ERROR_CODE,
-    LOCKED_ERROR_MESSAGE,
-    ensure_contest_question_editable,
-    is_contest_question_edit_locked,
-    lock_contest_for_question_edit,
-    lock_contest_question_editing,
-    maybe_lock_from_coding_submission,
-    maybe_lock_from_exam_answer,
-    is_non_empty_exam_answer,
-)
-from .locked_question_update import (
-    ExistingGradesAction,
-    LockedQuestionUpdateResult,
-    apply_locked_question_update,
-)
-
 __all__ = [
     "ExportValidationError",
     "build_contest_download_response",
@@ -35,17 +17,4 @@ __all__ = [
     "build_paper_exam_sheet_response",
     "build_student_report_response",
     "parse_scale",
-    "ContestQuestionEditLocked",
-    "LOCKED_ERROR_CODE",
-    "LOCKED_ERROR_MESSAGE",
-    "ensure_contest_question_editable",
-    "is_contest_question_edit_locked",
-    "lock_contest_for_question_edit",
-    "lock_contest_question_editing",
-    "maybe_lock_from_coding_submission",
-    "maybe_lock_from_exam_answer",
-    "is_non_empty_exam_answer",
-    "ExistingGradesAction",
-    "LockedQuestionUpdateResult",
-    "apply_locked_question_update",
 ]

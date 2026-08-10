@@ -6962,13 +6962,6 @@ components:
           type: string
           readOnly: true
         question_edit_locked:
-          type: boolean
-          readOnly: true
-        question_edit_locked_at:
-          type: string
-          format: date-time
-          readOnly: true
-        question_edit_lock_trigger:
           type: string
           readOnly: true
         attendance_status:
@@ -7004,9 +6997,7 @@ components:
       - participant_count
       - permissions
       - problems
-      - question_edit_lock_trigger
       - question_edit_locked
-      - question_edit_locked_at
       - requires_fullscreen
       - rule
       - started_at
@@ -7155,16 +7146,6 @@ components:
         attendance_status:
           type: string
           readOnly: true
-        question_edit_locked:
-          type: boolean
-          readOnly: true
-        question_edit_locked_at:
-          type: string
-          format: date-time
-          readOnly: true
-        question_edit_lock_trigger:
-          type: string
-          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -7177,9 +7158,6 @@ components:
       - is_registered
       - owner_username
       - participant_count
-      - question_edit_lock_trigger
-      - question_edit_locked
-      - question_edit_locked_at
     ContestProblem:
       type: object
       description: |-

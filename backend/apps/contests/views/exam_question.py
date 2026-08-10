@@ -33,7 +33,10 @@ from ..services.export_service import (
     build_paper_exam_sheet_response,
     parse_scale,
 )
-from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.question_edit_lock import (
+    ensure_contest_question_editable,
+    is_contest_question_edit_locked,
+)
 from ..services.locked_question_update import apply_locked_question_update
 from ..services.exam_scoring import ExamScoringService
 from ..services.activity_log import log_contest_activity
@@ -252,7 +255,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         action = serializer.validated_data.pop("existing_grades_action", None)
         with transaction.atomic():
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
-            locked = contest.question_edit_locked or contest.has_exam_started()
+            locked = is_contest_question_edit_locked(contest)
             if locked:
                 result = apply_locked_question_update(
                     question=serializer.instance,

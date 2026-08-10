@@ -14,7 +14,10 @@ from ..serializers import (
     ExamQuestionSerializer,
     ExamQuestionStudentSerializer,
 )
-from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.question_edit_lock import (
+    ensure_contest_question_editable,
+    is_contest_question_edit_locked,
+)
 from ..services.locked_question_update import apply_locked_question_update
 from apps.question_bank.question_assets import (
     cleanup_orphan_asset_if_needed,
@@ -485,7 +488,7 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 )
                 serializer.is_valid(raise_exception=True)
                 action = serializer.validated_data.pop("existing_grades_action", None)
-                if contest.question_edit_locked or contest.has_exam_started():
+                if is_contest_question_edit_locked(contest):
                     result = apply_locked_question_update(
                         question=question,
                         validated_data=serializer.validated_data,

@@ -15,6 +15,7 @@ from django.utils import timezone
 from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
 from apps.submissions.models import Submission
@@ -287,7 +288,7 @@ def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_student_formal_contest_submission_locks_question_editing(judge_mock: Mock) -> None:
+def test_student_formal_contest_submission_is_question_lock_evidence(judge_mock: Mock) -> None:
     teacher = UserFactory(role="teacher")
     student = UserFactory(role="student")
     contest = ContestFactory(owner=teacher)
@@ -304,10 +305,7 @@ def test_student_formal_contest_submission_locks_question_editing(judge_mock: Mo
         },
     )
 
-    contest.refresh_from_db()
-    assert contest.question_edit_locked is True
-    assert contest.question_edit_lock_trigger == Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-    assert contest.question_edit_locked_at is not None
+    assert is_contest_question_edit_locked(contest) is True
 
 
 @pytest.mark.django_db
@@ -354,7 +352,7 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
 
 
 @pytest.mark.django_db
-def test_privileged_contest_submission_does_not_lock_question_editing(judge_mock: Mock) -> None:
+def test_privileged_contest_submission_is_not_question_lock_evidence(judge_mock: Mock) -> None:
     owner = UserFactory(role="teacher")
     contest = ContestFactory(owner=owner)
     problem = ProblemFactory(created_by=owner)
@@ -369,6 +367,4 @@ def test_privileged_contest_submission_does_not_lock_question_editing(judge_mock
         },
     )
 
-    contest.refresh_from_db()
-    assert contest.question_edit_locked is False
-    assert contest.question_edit_lock_trigger in (None, "")
+    assert is_contest_question_edit_locked(contest) is False

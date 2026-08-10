@@ -177,17 +177,15 @@ class ProblemViewSet(viewsets.ModelViewSet):
         if not contest_ids:
             return Contest.objects.none()
 
-        return Contest.objects.filter(id__in=contest_ids, question_edit_locked=True)
+        return Contest.objects.filter(id__in=contest_ids)
 
     def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem, action: str) -> None:
-        locked_contest = self._get_locking_contests(problem).order_by("question_edit_locked_at").first()
-        if not locked_contest:
-            return
-        ensure_contest_question_editable(
-            contest=locked_contest,
-            actor_id=getattr(self.request.user, "id", None),
-            action=action,
-        )
+        for contest in self._get_locking_contests(problem).order_by("id"):
+            ensure_contest_question_editable(
+                contest=contest,
+                actor_id=getattr(self.request.user, "id", None),
+                action=action,
+            )
 
     def perform_update(self, serializer):
         self._ensure_problem_editable_under_contest_lock(
