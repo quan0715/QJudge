@@ -283,8 +283,6 @@ export interface ContestDetail extends Contest {
 
   // Contest-level question edit lock
   questionEditLocked?: boolean;
-  questionEditLockedAt?: string | null;
-  questionEditLockTrigger?: "coding_submission" | "exam_answer" | null;
 
   examQuestionsCount: number;
 

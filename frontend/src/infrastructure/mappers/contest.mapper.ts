@@ -100,8 +100,6 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     allowMultipleJoins: !!dto.allow_multiple_joins,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
-    questionEditLockedAt: dto.question_edit_locked_at ?? null,
-    questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
     examQuestionsCount: dto.exam_questions_count ?? 0,
 
     hasStarted: !!dto.has_started,

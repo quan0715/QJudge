@@ -11,6 +11,22 @@ import {
 } from "./contest.mapper";
 
 describe("contest mapper", () => {
+  it("keeps only the computed question lock boolean", () => {
+    const result = mapContestDetailDto({
+      id: "contest-1",
+      name: "Exam",
+      question_edit_locked: true,
+      question_edit_locked_at: "2026-08-10T12:00:00+08:00",
+      question_edit_lock_trigger: "exam_started",
+      permissions: {},
+      problems: [],
+    } as any);
+
+    expect(result.questionEditLocked).toBe(true);
+    expect(result).not.toHaveProperty("questionEditLockedAt");
+    expect(result).not.toHaveProperty("questionEditLockTrigger");
+  });
+
   describe("mapContestParticipantDto", () => {
     it("maps participant display name from profile display_name", () => {
       const result = mapContestParticipantDto({

@@ -560,16 +560,6 @@ describe("StudentContestDashboard", () => {
         feedback: "Good",
         gradedByUsername: "teacher",
         gradedAt: "2000-05-05T11:00:00.000Z",
-        ...({
-          questionSnapshot: {
-            prompt: "Legacy prompt",
-            options: [],
-            correctAnswer: "Legacy answer",
-            explanation: "Legacy explanation",
-            questionType: "essay",
-            score: 99,
-          },
-        } as Record<string, unknown>),
       },
     ]);
 
@@ -589,7 +579,6 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("Current prompt")).toBeInTheDocument();
-    expect(screen.queryByText("Legacy prompt")).not.toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();
     expect(screen.queryByText("相關頁面")).not.toBeInTheDocument();
   });

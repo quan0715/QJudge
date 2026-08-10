@@ -146,8 +146,6 @@ export interface ContestDetailDto extends ContestDto {
   allow_multiple_joins?: boolean;
   results_published?: boolean;
   question_edit_locked?: boolean;
-  question_edit_locked_at?: string | null;
-  question_edit_lock_trigger?: "coding_submission" | "exam_answer" | null;
   exam_questions_count?: number;
   has_started?: boolean;
   started_at?: string;
