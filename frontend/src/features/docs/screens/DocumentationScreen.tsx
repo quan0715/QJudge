@@ -8,7 +8,6 @@ import DocSidebar from "../components/DocSidebar";
 import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
-import AIGeneratedBadge from "../components/AIGeneratedBadge";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
@@ -223,7 +222,6 @@ const DocumentationScreen: React.FC = () => {
                 >
                   {currentTitle}
                 </h1>
-                <AIGeneratedBadge />
               </div>
               {lastUpdated && (
                 <p className="cds--label" style={{ margin: 0 }}>

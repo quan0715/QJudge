@@ -74,7 +74,7 @@ docker compose --profile tunnel ps cloudflared
 
 正常情況是 running。接著從校外網路開啟 HTTPS 網域，確認首頁、登入、登出與圖片讀取；不能只以 Cloudflare dashboard 顯示 Healthy 作為驗收。
 
-改變 public origin 也要同步修改 R2 CORS allowed origin。正式切換前先準備可以恢復舊 origin 與 route 的維護方式。
+改變 public origin 也要同步修改 object storage 的 CORS allowed origin。正式切換前先準備可以恢復舊 origin 與 route 的維護方式。
 
 ## 啟用第三方 OAuth 登入
 

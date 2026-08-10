@@ -48,14 +48,16 @@ def test_public_deployment_guide_is_a_linear_minimum_path() -> None:
     assert not re.search(r"Grafana|GlitchTip|Recur|billing", guide, re.IGNORECASE)
 
 
-def test_storage_guide_keeps_r2_executable_and_minio_unverified() -> None:
+def test_storage_guide_provides_executable_r2_and_minio_paths() -> None:
     storage = _read(PUBLIC_DEPLOYMENT_ROOT / "deployment-storage.md")
     for bucket in ("anticheat-raw", "markdown-images", "ai-artifacts"):
         assert bucket in storage
     assert "R2" in storage
     assert "MinIO" in storage
-    assert "尚未完成相容性實測" in storage
-    assert "--storage minio" not in storage
+    assert "--storage r2" in storage
+    assert "--storage minio" in storage
+    assert "尚未完成相容性實測" not in storage
+    assert "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL" in storage
 
 
 def test_optional_features_keep_https_boundary_clear() -> None:
@@ -81,7 +83,7 @@ def test_troubleshooting_follows_the_deployment_order() -> None:
             "## 3. Compose 與啟動",
             "## 4. Database 與 migration",
             "## 5. 健康檢查",
-            "## 6. R2 與檔案",
+            "## 6. 檔案儲存",
             "## 7. Judge 與 Integrity",
             "## 8. Tunnel 與 OAuth",
         ),
@@ -111,6 +113,15 @@ def test_public_navigation_and_readme_use_the_public_source() -> None:
         assert label in labels
     assert "](frontend/public/docs/zh-TW/deployment.md)" in readme
     assert "](docs/deployment.md)" not in readme
+
+
+def test_reviewed_public_docs_are_not_globally_labeled_as_ai_generated() -> None:
+    documentation_screen = _read(
+        REPOSITORY_ROOT
+        / "frontend/src/features/docs/screens/DocumentationScreen.tsx"
+    )
+
+    assert "AIGeneratedBadge" not in documentation_screen
 
 
 def test_obsolete_internal_guides_are_removed() -> None:

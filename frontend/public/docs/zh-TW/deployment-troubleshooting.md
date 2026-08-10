@@ -35,7 +35,7 @@ awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/{print $1}' .env
 
 如果 `.env` 已存在，初始化工具拒絕覆寫是正常的保護機制。不要直接加入 `--force`；它會重新產生 application 與 database secrets。先備份並確認你是要修改單一設定，還是重新建立整套環境。
 
-非互動的 shell 不會出現 R2 提示。自動化流程需要預先注入四個 `OBJECT_STORAGE_*` 值，但 log 只能顯示 key 是否存在，不能輸出 value。
+非互動的 shell 不會出現 object storage 提示。自動化流程需要預先注入四個 `OBJECT_STORAGE_*` 值，但 log 只能顯示 key 是否存在，不能輸出 value。
 
 ## 3. Compose 與啟動
 
@@ -101,7 +101,7 @@ docker compose logs --tail=200 frontend backend ai-service
 
 只啟動 container 但沒有完成瀏覽器登入、題目、評測與圖片上傳，仍不能視為部署完成。
 
-## 6. R2 與檔案
+## 6. 檔案儲存
 
 **症狀：** Bucket not found、Access denied、signature mismatch、圖片無法讀取或瀏覽器顯示 CORS error。
 
@@ -112,13 +112,15 @@ awk -F= '/^OBJECT_STORAGE_(ENDPOINT_URL|PUBLIC_ENDPOINT_URL)=/{print}' .env
 date -u
 ```
 
-兩個 endpoint 應是瀏覽器與 containers 都能連到的 R2 HTTPS endpoint。三個 bucket 必須已存在：`anticheat-raw`、`markdown-images`、`ai-artifacts`。
+Container endpoint 必須能從 QJudge services 連線，public endpoint 則必須能從使用者瀏覽器連線。使用 R2 時兩者通常相同且都使用 HTTPS；使用 MinIO 時可以不同，但 QJudge 網站若使用 HTTPS，public endpoint 也必須使用 HTTPS。
+
+目前使用之功能對應的 bucket 必須存在：核心圖片上傳使用 `markdown-images`，Exam Integrity 使用 `anticheat-raw`，AI 產物使用 `ai-artifacts`。
 
 依症狀檢查：
 
 - Signature mismatch：endpoint、access key、secret key 或主機時間不一致。
 - Access denied：credential 沒有指定 bucket 的 object read／write 權限。
-- CORS error：bucket allowed origin 和 `QJUDGE_PUBLIC_ORIGIN` 不完全相同，或 method／header 未允許。
+- CORS error：bucket allowed origin 和 `QJUDGE_PUBLIC_ORIGIN` 不完全相同，或 method／header 未允許。R2 與 MinIO 都要檢查。
 - URL 指向錯誤主機：public endpoint 使用了瀏覽器無法解析的 hostname。
 
 接著查看實際處理 request 的 service：

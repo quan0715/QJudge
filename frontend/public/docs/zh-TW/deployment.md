@@ -10,7 +10,7 @@
 
 QJudge 適合由校園教師、課程助教或開課單位部署在一台長期運作的 Linux 主機上。這台主機會提供網頁、API、程式評測與背景工作；Docker Compose 會一併管理 PostgreSQL database 與 Redis queue。
 
-另外還要準備一個保存檔案的空間。QJudge 目前使用 Cloudflare R2 保存題目圖片、監考證據與 AI 產生的檔案。Database 保存帳號、題目與作答紀錄；R2 保存較大的檔案，兩者不能互相取代。
+另外還要準備一個保存檔案的空間。QJudge 使用 S3-compatible object storage 保存題目圖片、監考證據與 AI 產生的檔案，可以連接 Cloudflare R2，也可以連接由學校維護的 MinIO。Database 保存帳號、題目與作答紀錄；object storage 保存較大的檔案，兩者不能互相取代。
 
 你可以使用兩種主機：
 
@@ -58,16 +58,20 @@ Cloud VM 還要確認供應商的 firewall／Security Group 沒有把 PostgreSQL
 
 ## 3. 準備檔案儲存
 
-在下載 QJudge 前，先準備 Cloudflare R2。你需要三個 private bucket，以及只能讀寫這三個 bucket 的 application credential。
+在下載 QJudge 前，先選擇檔案要放在哪裡：
 
-如果 bucket、endpoint、access key 或 CORS 對你來說是新名詞，請先跟著[準備 QJudge 的檔案儲存](deployment-storage.md)完成設定。回到這裡時，手邊應有：
+- Cloudflare R2：不必自行維護 storage server，適合希望先完成部署的課程團隊。
+- MinIO：檔案可以留在校內或既有機房，但容量、備份、更新與 HTTPS 要由管理單位負責。
 
-- R2 S3 API endpoint。
+如果 bucket、endpoint、access key 或 CORS 對你來說是新名詞，請先跟著[準備 QJudge 的檔案儲存](deployment-storage.md)完成其中一條路徑。回到這裡時，手邊應有：
+
+- QJudge containers 使用的 S3 API endpoint。
+- 使用者瀏覽器可以連線的 public endpoint。
 - Access key ID。
 - Secret access key。
-- `anticheat-raw`、`markdown-images`、`ai-artifacts` 三個 bucket。
+- 目前要啟用之功能所需的 bucket；第一次核心驗收至少需要 `markdown-images`。
 
-這三項 credential 不要寫進筆記、shell script 或 Git。下一節的初始化工具會在需要時從終端機詢問，並把結果寫入權限為 `0600` 的 `.env`。
+Credential 不要寫進筆記、shell script 或 Git。下一節的初始化工具會在需要時從終端機詢問，並把結果寫入權限為 `0600` 的 `.env`。
 
 ## 4. 取得 QJudge
 
@@ -95,7 +99,7 @@ git rev-parse HEAD
 
 QJudge 根目錄的 `.env` 是部署設定，不進 Git。你不需要從 `.env.example` 複製後逐行填寫；`scripts/setup-env.sh` 會詢問必要資料、產生 secrets、檢查 Docker socket，並在寫入前驗證 production Compose。
 
-如果這台機器是學校或實驗室管理的主機，執行：
+如果使用 R2，而且這台機器是學校或實驗室管理的主機，執行：
 
 ```bash
 ./scripts/setup-env.sh \
@@ -104,7 +108,7 @@ QJudge 根目錄的 `.env` 是部署設定，不進 Git。你不需要從 `.env.
   --origin http://YOUR_QJUDGE_HOST
 ```
 
-如果是 Cloud VM，把 target 改成：
+如果使用 R2，但主機是 Cloud VM，把 target 改成：
 
 ```bash
 ./scripts/setup-env.sh \
@@ -113,9 +117,18 @@ QJudge 根目錄的 `.env` 是部署設定，不進 Git。你不需要從 `.env.
   --origin http://YOUR_QJUDGE_HOST
 ```
 
-`YOUR_QJUDGE_HOST` 要換成瀏覽器實際使用的 hostname 或 IP；如果有非標準 port，也要一起寫入。Origin 只能包含 `http://` 或 `https://`、hostname 與選用 port，不能加 `/app` 等路徑。
+若使用 MinIO，將 storage 改成 `minio`：
 
-腳本接著會詢問 R2 endpoint、access key 與 secret key。正常完成時會顯示：
+```bash
+./scripts/setup-env.sh \
+  --target self-hosted \
+  --storage minio \
+  --origin http://YOUR_QJUDGE_HOST
+```
+
+Cloud VM 同樣將 target 改成 `cloud-vm`。`YOUR_QJUDGE_HOST` 要換成瀏覽器實際使用的 hostname 或 IP；如果有非標準 port，也要一起寫入。Origin 只能包含 `http://` 或 `https://`、hostname 與選用 port，不能加 `/app` 等路徑。
+
+腳本接著會詢問對應服務的 endpoint、access key 與 secret key。R2 的 container endpoint 與 public endpoint 通常相同；MinIO 可能分別使用校內位址與公開 HTTPS 網域。正常完成時會顯示：
 
 ```text
 Environment ready: .../.env
@@ -180,7 +193,7 @@ docker compose ps --all ai-db-bootstrap ai-migrate
 docker compose exec backend python manage.py createsuperuser
 ```
 
-依畫面輸入 email、顯示名稱與密碼。終端機顯示建立成功後，才進入瀏覽器驗收。
+依畫面輸入 username、email 與密碼。終端機顯示建立成功後，才進入瀏覽器驗收；顯示名稱可以在第一次登入後設定。
 
 ## 8. 完成第一次驗收
 
@@ -225,7 +238,7 @@ curl --fail http://127.0.0.1:8001/health/ready
 
 如果 QJudge 只在可信任的校園網路或 VPN 內使用，可以先維持受限制的 HTTP 入口。如果學生會經由 Internet 登入，請先設定網域與 HTTPS，再開放服務。
 
-第三方 OAuth 登入與 Remote MCP 都需要穩定的公開 HTTPS。Cloudflare Tunnel 是其中一種方式，但不是 R2 的必要條件；兩者解決不同問題。
+第三方 OAuth 登入與 Remote MCP 都需要穩定的公開 HTTPS。Cloudflare Tunnel 是其中一種方式，但不是 object storage 的必要條件；兩者解決不同問題。
 
 需要公開入口、OAuth、AI provider 或外部 MCP 時，請繼續閱讀[在核心部署完成後加入選用功能](deployment-options.md)。
 

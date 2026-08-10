@@ -81,15 +81,35 @@
       "tag": "管理員",
       "title": "系統管理"
     },
+    "administration": {
+      "description": "建立第一個管理者帳號，並決定哪些帳號可以使用教師功能",
+      "tag": "步驟 2",
+      "title": "建立管理者與教師資格"
+    },
+    "classroom": {
+      "description": "用教師帳號建立教室，再加入或匯入本學期的學生名冊",
+      "tag": "步驟 3",
+      "title": "準備教室與名冊"
+    },
     "contestant": {
       "description": "了解競賽規則、計分方式與常見問題排解",
       "tag": "競賽",
       "title": "參加程式競賽"
     },
+    "deployment": {
+      "description": "從一台 Ubuntu 主機完成最小可行部署，再依需要加入 HTTPS 與外部服務",
+      "tag": "步驟 1",
+      "title": "架設與部署"
+    },
     "developer": {
       "description": "設定開發環境、了解專案架構與貢獻流程",
       "tag": "開發者",
       "title": "貢獻程式碼"
+    },
+    "exam": {
+      "description": "建立考試、安排題目與時間，發布前再依檢查表逐項確認",
+      "tag": "步驟 4",
+      "title": "準備第一場考試"
     },
     "student": {
       "description": "學習如何瀏覽題庫、撰寫程式碼並提交評測",

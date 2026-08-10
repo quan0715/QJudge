@@ -1,72 +1,91 @@
 # 準備 QJudge 的檔案儲存
 
-QJudge 的 database 適合保存帳號、題目、權限與作答紀錄；題目圖片、監考影音片段與 AI 產生的檔案則需要另一個可以存放大型檔案的空間。這類服務通常稱為 object storage（物件儲存）。
+QJudge 的 database 保存帳號、題目、權限與作答紀錄；題目圖片、監考證據與 AI 產生的檔案則放在 object storage（物件儲存）。兩者都屬於核心資料，但用途不同，不能用 database 取代檔案儲存。
 
-QJudge 使用 S3-compatible API 連線物件儲存。目前可以直接跟著文件部署的是 Cloudflare R2。MinIO 也提供相容的 API，但 QJudge 尚未完成相容性實測，因此本頁不會把它寫成可執行的部署路徑。
+QJudge 透過 S3-compatible API 讀寫檔案，因此不綁定單一供應商。第一次部署可以使用 Cloudflare R2，也可以連接 MinIO。Cloudflare Tunnel 只處理網站流量，與選擇哪一種 object storage 無關。
 
-## QJudge 會保存哪些檔案
+## 先選擇 R2 或 MinIO
 
-QJudge 的完整功能會使用三個 private bucket。Bucket 可以理解成用途分開的檔案容器：
+| 選項 | 適合的情況 | 部署者要負責的工作 |
+| --- | --- | --- |
+| Cloudflare R2 | 課程團隊沒有維護儲存服務的人力，希望先完成 QJudge 部署 | 建立 bucket、credential 與 CORS；服務容量與更新由 Cloudflare 維護 |
+| MinIO | 學校已有 MinIO，或政策要求檔案留在校內 | 維護 MinIO 的容量、備份、更新、網路與 HTTPS |
 
-| Bucket | 保存內容 |
-| --- | --- |
-| `anticheat-raw` | Exam Integrity 的螢幕分享與 Webcam 證據 |
-| `markdown-images` | 題目、公告與其他 Markdown 內容中的圖片 |
-| `ai-artifacts` | AI workflow 產生、供使用者下載或檢視的檔案 |
+兩條路使用相同的 QJudge application code。差別集中在 endpoint、credential、region 與 bucket 管理方式；日後切換供應商時不需要修改 Backend、AI Service 或 Frontend。
 
-這三個名稱是 QJudge 的預設值，不是 R2 規定的名稱。一般部署直接沿用預設值即可，因此不需要再增加環境變數；若學校已有命名規範，也可以分別設定 `ANTICHEAT_RAW_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET` 與 `AI_ARTIFACT_S3_BUCKET`。
+MinIO 本身是一套獨立的儲存系統。這份指南說明如何把既有或另行部署的 MinIO 交給 QJudge 使用，不取代 MinIO 的正式維運文件。若要新建 MinIO，請先依組織採用版本的官方文件完成儲存磁碟、備份與 TLS；單機 container 適合驗證相容性，但不等於正式環境的備援設計。
 
-三個 bucket 分開的原因是資料性質不同：一般內容圖片、監考證據與 AI 產物通常需要不同的存取權、保存期限與清理規則。技術上可以讓三個設定指向同一個 bucket，但正式環境不建議這樣做。
+QJudge 目前以 Cloudflare R2 與 `minio/minio:RELEASE.2025-07-23T15-54-02Z` 驗證圖片、監考證據、AI artifact 與 presigned URL。這個 MinIO 版本只代表相容性基準，不是要求正式環境使用舊版 image；部署者仍應依組織的維護與資安政策選擇受支援的版本。
 
-Production Compose 不會自動建立 bucket。核心圖片上傳會使用 `markdown-images`；啟用 Exam Integrity 或 AI artifact 時，才會分別使用另外兩個。指南仍在第一次部署時一起準備，讓後續啟用功能時不會在實際考試或 AI 工作中途才發現儲存空間不存在，也能避免 application credential 擁有建立或管理整個 account bucket 的權限。
+## Bucket 不必一次全部建立
 
-## 你需要準備的四個值
+QJudge 預設使用三個 private bucket：
 
-QJudge 對所有物件儲存共用四個輸入：
+| Bucket | 何時需要 | 保存內容 |
+| --- | --- | --- |
+| `markdown-images` | 第一次核心部署就需要 | 題目、公告與其他 Markdown 內容中的圖片 |
+| `anticheat-raw` | 啟用 Exam Integrity 前需要 | 螢幕分享、Webcam 與其他監考證據 |
+| `ai-artifacts` | 啟用會產生檔案的 AI workflow 前需要 | AI 產生、供教師下載或檢視的檔案 |
 
-| 設定 | 部署者需要知道的意思 |
+最小可行部署只要先準備 `markdown-images`。另外兩個 bucket 可以等到啟用對應功能前再建立；若已確定近期會使用正式考試與 AI，也可以一次準備完成。
+
+分開的原因是三類檔案通常有不同的存取權、保存期限、容量與刪除規則。例如監考證據可能受校務規範限制，題目圖片則需要跟課程內容保留較久。技術上可以把三個設定指向同一個 bucket，但正式環境仍建議分開，後續管理會比較清楚。
+
+名稱是 QJudge 的預設值，不是 R2 或 MinIO 的規定。學校已有命名規範時，可以在 `.env` 改用：
+
+```text
+ANTICHEAT_RAW_BUCKET=school-qjudge-anticheat
+MARKDOWN_IMAGE_S3_BUCKET=school-qjudge-markdown
+AI_ARTIFACT_S3_BUCKET=school-qjudge-ai-artifacts
+```
+
+這三項是選用的部署配置。沿用預設名稱時，不需要放進 `.env`。
+
+## QJudge 需要的連線資料
+
+無論使用哪一種服務，初始化工具都會整理以下四個值：
+
+| 設定 | 用途 |
 | --- | --- |
 | `OBJECT_STORAGE_ENDPOINT_URL` | QJudge containers 送出 S3 request 的位置 |
-| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 瀏覽器開啟 presigned URL 時能連到的位置 |
-| `OBJECT_STORAGE_ACCESS_KEY` | application credential 的識別碼 |
-| `OBJECT_STORAGE_SECRET_KEY` | application credential 的秘密，不可寫進 Git 或 issue |
+| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 使用者瀏覽器開啟 presigned URL 的位置 |
+| `OBJECT_STORAGE_ACCESS_KEY` | QJudge application credential 的識別碼 |
+| `OBJECT_STORAGE_SECRET_KEY` | Credential 的秘密，不可寫進 Git、issue 或截圖 |
 
-R2 的兩個 endpoint 通常相同。Bucket 名稱、region、presigned URL 有效時間與檔案大小限制由 QJudge 的版本化設定管理，不需要再塞進根目錄 `.env`。
+R2 的兩個 endpoint 通常相同。MinIO 若位於校內網路，container endpoint 可以使用 private hostname；public endpoint 必須是使用者瀏覽器實際能連到的網址。不要把 `http://127.0.0.1:9000` 當成另一台主機或 container 也能使用的位址。
 
-## 在 Cloudflare R2 建立 bucket
+## 使用 Cloudflare R2
 
-登入 Cloudflare dashboard，進入 R2 Object Storage，依序建立 QJudge 的三個預設 bucket：
+### 1. 建立需要的 bucket
+
+登入 Cloudflare dashboard，進入 R2 Object Storage。第一次核心驗收先建立：
+
+```text
+markdown-images
+```
+
+準備啟用 Exam Integrity 或 AI 檔案時，再建立：
 
 ```text
 anticheat-raw
-markdown-images
 ai-artifacts
 ```
 
-三個 bucket 都維持 private。QJudge 會在需要讀寫時產生短效的 presigned URL，不需要把整個 bucket 設成 public。
+Bucket 維持 private。QJudge 會在需要上傳或讀取時產生短效 presigned URL，不必把整個 bucket 公開。
 
-接著建立 R2 API credential。權限只允許讀寫這三個 bucket，不要使用 account owner key 或可管理所有 Cloudflare 資源的 token。
+### 2. 建立 application credential
 
-建立後立即保存兩個只會完整顯示一次的值：
+建立只能讀寫 QJudge buckets 的 R2 API credential，不要使用 account owner key。建立後保存 Access Key ID 與 Secret Access Key；secret 通常只會完整顯示一次。
 
-- Access Key ID
-- Secret Access Key
-
-R2 S3 API endpoint 使用 account ID，格式是：
+R2 S3 API endpoint 格式如下：
 
 ```text
 https://YOUR_R2_ACCOUNT_ID.r2.cloudflarestorage.com
 ```
 
-`YOUR_R2_ACCOUNT_ID` 要換成 Cloudflare 顯示的實際 account ID，不要保留尖括號、引號或路徑。
+### 3. 設定 CORS
 
-## 讓瀏覽器可以使用 presigned URL
-
-有些檔案由瀏覽器直接上傳或讀取，因此 R2 bucket 的 CORS policy 要允許 QJudge 的實際 origin。CORS 是瀏覽器用來判斷「哪個網站可以向這個 bucket 發 request」的規則。
-
-例如 QJudge 會從 `https://judge.example.edu` 提供服務，policy 的 allowed origin 就要使用完全相同的 scheme 與 hostname。若使用非標準 port，也要包含 port。
-
-三個 bucket 可使用以下方向設定；請把示例 origin 換成你的實際值：
+瀏覽器會直接使用 presigned URL 上傳或讀取，因此每個啟用的 bucket 都要允許 QJudge 的實際 origin。假設網站是 `https://judge.example.edu`，可使用：
 
 ```json
 [
@@ -80,11 +99,11 @@ https://YOUR_R2_ACCOUNT_ID.r2.cloudflarestorage.com
 ]
 ```
 
-初次在可信任內網以 HTTP 驗收時，allowed origin 也必須和 `QJUDGE_PUBLIC_ORIGIN` 完全相同。改成正式 HTTPS 網域後，要同步更新 R2 CORS。
+Origin 必須包含正確的 `http` 或 `https`、hostname 與非標準 port。日後改用正式 HTTPS 網域時，也要同步更新 CORS。
 
-## 交給 QJudge 初始化工具
+### 4. 產生 QJudge 環境設定
 
-回到 QJudge repository，不需要先把 credential 寫成一串 shell export。執行初始化工具：
+回到 QJudge repository 執行：
 
 ```bash
 ./scripts/setup-env.sh \
@@ -93,44 +112,82 @@ https://YOUR_R2_ACCOUNT_ID.r2.cloudflarestorage.com
   --origin http://YOUR_QJUDGE_HOST
 ```
 
-Cloud VM 將 `self-hosted` 改成 `cloud-vm`。腳本會依序詢問：
+Cloud VM 將 target 改成 `cloud-vm`。工具會詢問 R2 endpoint、access key 與 secret key，並自動使用同一個 public endpoint。
 
-```text
-R2 S3 endpoint
-R2 access key
-R2 secret key
+## 使用 MinIO
+
+### 1. 確認 MinIO 的兩個入口
+
+先確認 MinIO 已經運作，並準備：
+
+- QJudge containers 可以連到的 S3 API endpoint，例如 `http://minio.internal:9000`。
+- 使用者瀏覽器可以連到的 endpoint，例如 `https://storage.example.edu`。
+
+兩者可以相同，也可以不同。QJudge 網站若使用 HTTPS，MinIO public endpoint 也必須使用 HTTPS，否則瀏覽器會阻擋混合內容。MinIO Console 的 `9001` 是管理介面，不是 S3 API endpoint；QJudge 應連接 S3 API 使用的 `9000` 或其 HTTPS reverse proxy。
+
+### 2. 建立 bucket 與 credential
+
+使用 MinIO Console 建立目前需要的 private bucket，再建立只允許這些 bucket 讀寫的 application access key。不要把 MinIO root credential 長期交給 QJudge。
+
+若管理單位已設定 `mc` alias，可以用以下指令建立預設 buckets；`--ignore-existing` 讓重複執行不會破壞既有資料：
+
+```bash
+mc mb --ignore-existing qjudge/markdown-images
+mc mb --ignore-existing qjudge/anticheat-raw
+mc mb --ignore-existing qjudge/ai-artifacts
 ```
 
-Access key 與 secret key 不會回顯在畫面上。腳本會把 public endpoint 設成同一個 R2 endpoint，驗證兩者都使用 HTTPS，再將必要值寫入 `.env`。
+只建立目前會用到的 bucket 即可。
 
-若 `.env` 已經存在，不要用 `--force` 只為了換 R2 credential；那會同時重新產生其他 secrets。既有部署應先備份，再透過安全的 secret 管理方式更新這四個值並重建受影響的 services。
+### 3. 設定 CORS
 
-## 部署後怎麼確認
+MinIO 使用 S3 XML 格式設定 bucket CORS。建立 `qjudge-cors.xml`，並把 origin 換成 QJudge 的實際網址：
 
-完成主部署後，不要只看 bucket 是否存在。請從 QJudge 實際執行使用者流程：
+```xml
+<CORSConfiguration>
+  <CORSRule>
+    <AllowedOrigin>https://judge.example.edu</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+    <ExposeHeader>ETag</ExposeHeader>
+    <MaxAgeSeconds>3600</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>
+```
+
+再把規則套用到已建立的 bucket：
+
+```bash
+mc cors set qjudge/markdown-images qjudge-cors.xml
+mc cors set qjudge/anticheat-raw qjudge-cors.xml
+mc cors set qjudge/ai-artifacts qjudge-cors.xml
+```
+
+### 4. 產生 QJudge 環境設定
+
+回到 QJudge repository 執行：
+
+```bash
+./scripts/setup-env.sh \
+  --target self-hosted \
+  --storage minio \
+  --origin http://YOUR_QJUDGE_HOST
+```
+
+工具會分別詢問 container endpoint 與 public endpoint，再詢問 application access key 與 secret key。它也會寫入 MinIO 所需的 region、bucket 建立與 object tagging policy；這些值由工具管理，不需要另外加入 `.env.example`。
+
+## 部署後驗收
+
+完成主部署後，從 QJudge 實際驗證：
 
 1. 在 Markdown editor 上傳一張小圖片。
-2. 儲存內容並重新開啟頁面，確認圖片能讀取。
-3. 從瀏覽器開發者工具確認 request 指向預期的 R2 endpoint。
-4. 確認 production bucket 沒有出現 load-test 使用的 object。
-5. 若已啟用 Exam Integrity 或 AI provider，再分別驗證 evidence 與 AI artifact；沒有啟用時不需要為了測 storage 強行開啟它們。
+2. 儲存內容並重新開啟，確認圖片可以讀取。
+3. 從瀏覽器開發者工具確認 request 指向預期的 public endpoint。
+4. 確認 object 出現在 `markdown-images`，而不是其他用途的 bucket。
+5. 啟用 Exam Integrity 或 AI provider 後，再分別驗證監考證據與 AI artifact。
 
-如果瀏覽器出現 CORS error，先比對實際 origin、bucket CORS 與 public endpoint。如果出現 signature mismatch，先確認 endpoint、access key、secret key 與主機時間。完整順序請見[部署故障排除](deployment-troubleshooting.md)。
+如果瀏覽器顯示 CORS error，先比對 `QJUDGE_PUBLIC_ORIGIN`、public endpoint 與 bucket CORS。出現 signature mismatch 時，檢查 endpoint、credential、region 與主機時間。完整順序請見[部署故障排除](deployment-troubleshooting.md)。
 
-## MinIO 的目前狀態
-
-MinIO 是可以自行架設的 S3-compatible object storage，適合希望檔案不離開校園或機房的單位。不過 QJudge 尚未完成相容性實測，目前的 `setup-env.sh` 也會拒絕 MinIO selector。
-
-正式支援前必須確認：
-
-- private HTTP 與 HTTPS endpoint 的安全邊界。
-- path-style／virtual-hosted-style addressing。
-- 三個 bucket 可以重複執行而不破壞既有資料的初始化流程。
-- Backend、AI worker 與 Integrity Worker 使用相同 credential contract。
-- Presigned URL 不會指向只有 container 才看得到的 hostname。
-- CORS、過期時間、大檔案與錯誤 credential 的 end-to-end tests。
-- R2 與 MinIO 之間切換時不需要改 application code。
-
-在這些項目完成前，本文件不提供 MinIO 指令，也不宣稱兩者已經可以互換。這能避免部署者在建立完 database 後，才發現瀏覽器無法使用產生的 URL。
-
-準備好 R2 後，回到[從一台主機開始部署 QJudge](deployment.md)繼續安裝。
+完成其中一條儲存路徑後，回到[從一台主機開始部署 QJudge](deployment.md)繼續安裝。
