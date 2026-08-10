@@ -34,8 +34,8 @@ from ..services.export_service import (
     parse_scale,
 )
 from ..services.question_edit_lock import (
-    ensure_contest_question_editable,
     is_contest_question_edit_locked,
+    lock_contest_for_question_edit,
 )
 from ..services.locked_question_update import apply_locked_question_update
 from ..services.exam_scoring import ExamScoringService
@@ -199,10 +199,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             return conflict
         return super().retrieve(request, *args, **kwargs)
 
+    @transaction.atomic
     def perform_create(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(self.request.user, "id", None),
             action="exam_question.create",
@@ -291,10 +292,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             f"Updated exam question #{serializer.instance.id}"
         )
 
+    @transaction.atomic
     def perform_destroy(self, instance):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(self.request.user, "id", None),
             action="exam_question.delete",
@@ -351,10 +353,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
             ensure_contest_binding_for_exam_question(exam_question=question, actor=actor)
 
     @action(detail=False, methods=['post'], url_path='import-from-bank')
+    @transaction.atomic
     def import_from_bank(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, "id", None),
             action="exam_question.import_from_bank",
@@ -435,10 +438,11 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         return Response(serialized.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='reorder')
+    @transaction.atomic
     def reorder(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, "id", None),
             action="exam_question.reorder",

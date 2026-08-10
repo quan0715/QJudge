@@ -15,7 +15,7 @@ from ..models import (
 )
 from ..serializers import ContestProblemSerializer
 from ..permissions import can_manage_contest
-from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.question_edit_lock import lock_contest_for_question_edit
 from ..services.activity_log import log_contest_activity
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 
@@ -126,6 +126,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         """Create a new coding problem and bind it to the contest."""
         contest_id = self.kwargs.get('contest_pk')
@@ -134,7 +135,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.create",
         )
 
@@ -183,6 +184,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         )
         return Response(response_data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
     def update(self, request, *args, **kwargs):
         """Update a coding problem within the contest (partial update)."""
         contest_id = self.kwargs.get('contest_pk')
@@ -192,7 +194,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.update",
         )
 
@@ -232,6 +234,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         """PATCH support — delegates to update with partial=True."""
         return self.update(request, *args, **kwargs)
 
+    @transaction.atomic
     def destroy(self, request, *args, **kwargs):
         """Remove a problem from the contest."""
         contest_id = self.kwargs.get('contest_pk')
@@ -241,7 +244,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({'detail': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.destroy",
         )
 
@@ -265,6 +268,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated], url_path="score")
+    @transaction.atomic
     def update_score(self, request, *args, **kwargs):
         """Update contest-level score assignment for a binding."""
         contest_id = self.kwargs.get("contest_pk")
@@ -273,7 +277,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(request.user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(request.user, "id", None), action="contest_problem.update_score",
         )
 
@@ -304,6 +308,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=False, methods=["post"], url_path="import-from-bank")
+    @transaction.atomic
     def import_from_bank(self, request, *args, **kwargs):
         """Batch-import coding problems from a question bank.
 
@@ -316,7 +321,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.import_from_bank",
         )
 
@@ -397,6 +402,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="duplicate")
+    @transaction.atomic
     def duplicate(self, request, *args, **kwargs):
         """Clone an existing coding problem within the contest."""
         contest_id = self.kwargs.get("contest_pk")
@@ -405,7 +411,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.duplicate",
         )
 
@@ -452,6 +458,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         return Response(data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="reorder")
+    @transaction.atomic
     def reorder(self, request, *args, **kwargs):
         """Reorder coding problems. Payload: {"orders": [{"id": "...", "order": N}, ...]}"""
         contest_id = self.kwargs.get("contest_pk")
@@ -460,7 +467,7 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
 
         if not can_manage_contest(user, contest):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest, actor_id=getattr(user, "id", None), action="contest_problem.reorder",
         )
 

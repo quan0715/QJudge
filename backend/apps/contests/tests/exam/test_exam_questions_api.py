@@ -14,6 +14,7 @@ Covers:
 from datetime import timedelta
 
 import pytest
+from django.db import connection
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
@@ -24,6 +25,7 @@ from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, Que
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
+from apps.contests.services.question_edit_lock import lock_contest_for_question_edit
 from apps.users.models import User
 
 
@@ -803,6 +805,32 @@ class TestImportFromQuestionBank:
 
 @pytest.mark.django_db
 class TestQuestionEditLockGuard:
+    def test_create_checks_lock_while_contest_row_transaction_is_open(
+        self,
+        api_client,
+        teacher,
+        contest,
+        monkeypatch,
+    ):
+        def assert_atomic_guard(**kwargs):
+            assert connection.in_atomic_block is True
+            return lock_contest_for_question_edit(**kwargs)
+
+        monkeypatch.setattr(
+            exam_question_view_module,
+            "lock_contest_for_question_edit",
+            assert_atomic_guard,
+        )
+        api_client.force_authenticate(user=teacher)
+
+        response = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "transaction protected",
+            "score": 1,
+        }, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+
     def test_started_participant_blocks_content_edits_when_legacy_flag_is_false(
         self,
         api_client,

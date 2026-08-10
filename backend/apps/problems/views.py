@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
+from django.db import transaction
 from django.db.models import QuerySet
 
 from .models import (
@@ -164,7 +165,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         """
         serializer.save(created_by=self.request.user)
 
-    def _get_locking_contests(self, problem: CodingProblem) -> QuerySet:
+    def _get_bound_contests(self, problem: CodingProblem) -> QuerySet:
         from apps.contests.models import Contest
         from apps.question_bank.models import ContestQuestionBinding
 
@@ -180,13 +181,14 @@ class ProblemViewSet(viewsets.ModelViewSet):
         return Contest.objects.filter(id__in=contest_ids)
 
     def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem, action: str) -> None:
-        for contest in self._get_locking_contests(problem).order_by("id"):
+        for contest in self._get_bound_contests(problem).select_for_update().order_by("id"):
             ensure_contest_question_editable(
                 contest=contest,
                 actor_id=getattr(self.request.user, "id", None),
                 action=action,
             )
 
+    @transaction.atomic
     def perform_update(self, serializer):
         self._ensure_problem_editable_under_contest_lock(
             serializer.instance,
@@ -195,6 +197,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         # Asset update is handled inside ProblemService.update_problem_adapter.
         serializer.save()
 
+    @transaction.atomic
     def perform_destroy(self, instance):
         self._ensure_problem_editable_under_contest_lock(
             instance,

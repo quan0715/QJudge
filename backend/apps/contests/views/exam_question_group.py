@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from ..models import Contest, ExamQuestion, ExamQuestionGroup
 from ..permissions import can_manage_contest
 from ..serializers import ExamQuestionGroupSerializer
-from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.question_edit_lock import lock_contest_for_question_edit
 from ..services.activity_log import log_contest_activity
 
 
@@ -43,10 +43,11 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
         context['contest'] = self._get_contest()
         return context
 
+    @transaction.atomic
     def perform_create(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(self.request.user, 'id', None),
             action='exam_question_group.create',
@@ -59,10 +60,11 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             'Created exam question group',
         )
 
+    @transaction.atomic
     def perform_update(self, serializer):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(self.request.user, 'id', None),
             action='exam_question_group.update',
@@ -75,10 +77,11 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
             'Updated exam question group',
         )
 
+    @transaction.atomic
     def perform_destroy(self, instance):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(self.request.user, 'id', None),
             action='exam_question_group.delete',
@@ -129,10 +132,11 @@ class ContestExamQuestionGroupViewSet(viewsets.ModelViewSet):
         return sections
 
     @action(detail=False, methods=['post'], url_path='reorder')
+    @transaction.atomic
     def reorder(self, request, contest_pk=None):
         contest = self._get_contest()
         self._ensure_admin_permission(contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, 'id', None),
             action='exam_question_group.reorder',

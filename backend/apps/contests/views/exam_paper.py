@@ -17,6 +17,7 @@ from ..serializers import (
 from ..services.question_edit_lock import (
     ensure_contest_question_editable,
     is_contest_question_edit_locked,
+    lock_contest_for_question_edit,
 )
 from ..services.locked_question_update import apply_locked_question_update
 from apps.question_bank.question_assets import (
@@ -288,10 +289,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 return Response(self._serialize_block(section, request, contest))
         raise DRFValidationError('paper block not found')
 
+    @transaction.atomic
     def create(self, request, contest_pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, 'id', None),
             action='exam_paper.block.create',
@@ -368,10 +370,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @transaction.atomic
     def partial_update_collection(self, request, contest_pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, 'id', None),
             action='exam_paper.block.reorder',
@@ -596,10 +599,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
         )
         return Response(self._serialize_block(section, request, contest))
 
+    @transaction.atomic
     def destroy(self, request, contest_pk=None, pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        ensure_contest_question_editable(
+        contest = lock_contest_for_question_edit(
             contest=contest,
             actor_id=getattr(request.user, 'id', None),
             action='exam_paper.block.delete',
