@@ -236,9 +236,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             question=question,
             defaults={'answer': answer}
         )
-        # 首次建立時記錄題目快照（後續更新答案不覆蓋快照）
-        if created:
-            answer_obj.question_snapshot = question.to_snapshot()
         # Auto-grade objective questions
         answer_obj.auto_grade()
         answer_obj.save()

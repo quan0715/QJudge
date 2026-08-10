@@ -629,6 +629,11 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(required=False, allow_null=True)
     effective_max_score = serializers.SerializerMethodField()
+    existing_grades_action = serializers.ChoiceField(
+        choices=("regrade", "keep", "mark_pending"),
+        required=False,
+        write_only=True,
+    )
 
     class Meta:
         model = ExamQuestion
@@ -646,6 +651,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'score_policy',
             'score_policy_config',
             'effective_max_score',
+            'existing_grades_action',
             'order',
             'group_id',
             'order_in_group',
@@ -1158,9 +1164,7 @@ class ExamAnswerSerializer(serializers.ModelSerializer):
 
 
 class ExamAnswerDetailSerializer(serializers.ModelSerializer):
-    """Read serializer with grading info (for results / TA view).
-    優先從 question_snapshot 讀取題目資料，fallback 到 question.*。
-    """
+    """Read serializer with grading info (for results / TA view)."""
     question_id = serializers.UUIDField(source='question.id', read_only=True)
     question_prompt = serializers.SerializerMethodField()
     question_type = serializers.SerializerMethodField()
@@ -1180,7 +1184,6 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
             'id', 'question_id', 'question_prompt', 'question_type',
             'question_options', 'question_explanation', 'max_score',
             'answer', 'is_correct', 'score', 'feedback',
-            'question_snapshot',
             'graded_by_username', 'graded_at',
             'participant_user_id', 'participant_username', 'participant_display_name',
             'created_at', 'updated_at',
@@ -1188,28 +1191,18 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_question_prompt(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('prompt', '')
         return obj.question.prompt
 
     def get_question_type(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('question_type', '')
         return obj.question.question_type
 
     def get_question_explanation(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('explanation', '')
         return obj.question.explanation
 
     def get_max_score(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('score', 0)
         return obj.question.score
 
     def get_question_options(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('options', [])
         return obj.question.options
 
     def get_participant_user_id(self, obj):
@@ -1227,7 +1220,7 @@ class ExamAnswerGradingSerializer(serializers.ModelSerializer):
     """Slim serializer for grading screens.
 
     Drops redundant per-row duplicates (question_prompt/type/options/explanation/
-    max_score/question_snapshot and participant_username/display_name). Consumers
+    max_score and participant_username/display_name). Consumers
     should join question info via GET /exam-questions/ and participant info via
     contest participants list — both are O(题数) / O(学生数) rather than
     O(answers)."""

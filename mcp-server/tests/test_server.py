@@ -272,36 +272,8 @@ def test_django_api_handles_custom_exception_handler_message_only(monkeypatch):
     assert result["errors"] == ["You do not have permission to perform this action."]
 
 
-def test_strip_snapshots_handles_list_and_string_inputs():
-    raw_list = [{
-        "id": "1",
-        "question_snapshot": {"prompt": "Q1"},
-        "correct_answer_snapshot": {"selected": "A"},
-        "answer": {"selected": "B"},
-    }]
-    list_result = server._strip_snapshots(raw_list)
-    assert list_result == [{"id": "1", "answer": {"selected": "B"}}]
-
-    raw_string = json.dumps({
-        "responses": [{
-            "exam_answer_id": "1",
-            "question_snapshot": {"prompt": "Q1"},
-            "correct_answer_snapshot": {"selected": "A"},
-            "answer": {"selected": "B"},
-        }]
-    })
-    string_result = server._strip_snapshots(raw_string)
-    assert json.loads(string_result) == {
-        "responses": [{
-            "exam_answer_id": "1",
-            "answer": {"selected": "B"},
-        }]
-    }
-
-
-def test_strip_snapshots_leaves_non_json_string_unchanged():
-    raw = "not-json"
-    assert server._strip_snapshots(raw) == raw
+def test_answer_snapshot_compatibility_helper_is_removed():
+    assert not hasattr(server, "_strip_snapshots")
 
 
 def test_artifact_csv_delete_rows_by_row_index(tmp_path):
@@ -523,7 +495,6 @@ def test_qjudge_grading_list_answers_returns_compact_projection(monkeypatch):
             "is_correct": None,
             "score": 7,
             "feedback": "ok",
-            "question_snapshot": {"prompt": "snapshot"},
             "participant_user_id": 99,
             "participant_username": "alice",
             "participant_nickname": "Alice",
@@ -612,8 +583,8 @@ def test_qjudge_grading_question_detail_strips_participants_and_omitted_by_defau
             "question_id": "q-1",
             "responses": [{
                 "exam_answer_id": "ans-1",
+                "question_prompt": "Current prompt",
                 "answer": {"text": "hello"},
-                "question_snapshot": {"prompt": "snapshot"},
             }],
             "option_distribution": [{
                 "label": "A. Option",
@@ -632,6 +603,7 @@ def test_qjudge_grading_question_detail_strips_participants_and_omitted_by_defau
         "question_id": "q-1",
         "responses": [{
             "exam_answer_id": "ans-1",
+            "question_prompt": "Current prompt",
             "answer": {"text": "hello"},
         }],
         "option_distribution": [{

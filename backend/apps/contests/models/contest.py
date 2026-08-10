@@ -100,6 +100,7 @@ class Contest(models.Model):
     class QuestionEditLockTrigger(models.TextChoices):
         CODING_SUBMISSION = 'coding_submission', 'Coding Submission'
         EXAM_ANSWER = 'exam_answer', 'Exam Answer'
+        EXAM_STARTED = 'exam_started', 'Exam Started'
 
     question_edit_locked = models.BooleanField(
         default=False,

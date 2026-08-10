@@ -426,12 +426,6 @@ class PaperExamReportRenderer(BaseRenderer):
         """Format a numeric score at canonical UI precision."""
         return f"{float(value):.2f}"
 
-    @staticmethod
-    def _get_snapshot_value(answer, key, fallback=None):
-        if answer and answer.question_snapshot:
-            return answer.question_snapshot.get(key, fallback)
-        return fallback
-
     def _get_question_status(self, question, answer, has_answer, is_graded):
         """Return status dict: icon, label, status_class, color."""
         if not has_answer:
@@ -555,7 +549,7 @@ class PaperExamReportRenderer(BaseRenderer):
             student_str = ', '.join(sorted(student_letters))
             lines.append(f'<div class="choice-answer-summary">{your_label}: <strong>{student_str}</strong></div>')
 
-        explanation = self._get_snapshot_value(answer, 'explanation', question.explanation)
+        explanation = question.explanation
         if self.include_grading and explanation:
             explanation_label = self.get_label('explanation', '詳解')
             lines.append(
@@ -608,7 +602,7 @@ class PaperExamReportRenderer(BaseRenderer):
             )
 
         # Reference answer — only when grading is included
-        reference_answer = self._get_snapshot_value(answer, 'correct_answer', question.correct_answer)
+        reference_answer = question.correct_answer
         if self.include_grading and reference_answer:
             ref_label = self.get_label('reference_answer')
             ref_text = reference_answer
@@ -620,7 +614,7 @@ class PaperExamReportRenderer(BaseRenderer):
                 f'</div>'
             )
 
-        explanation = self._get_snapshot_value(answer, 'explanation', question.explanation)
+        explanation = question.explanation
         if self.include_grading and explanation:
             explanation_label = self.get_label('explanation', '詳解')
             lines.append(

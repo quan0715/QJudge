@@ -16,7 +16,7 @@ from apps.submissions.models import Submission
 logger = logging.getLogger(__name__)
 
 LOCKED_ERROR_CODE = "CONTEST_QUESTION_EDIT_LOCKED"
-LOCKED_ERROR_MESSAGE = "已有學生正式作答，競賽題目已鎖定"
+LOCKED_ERROR_MESSAGE = "已有考生開始作答，競賽內容已鎖定"
 
 
 class ContestQuestionEditLocked(APIException):
@@ -104,14 +104,13 @@ def ensure_contest_question_editable(
     action: str | None = None,
 ) -> None:
     """Raise 409 if contest question editing is locked."""
-    if contest.question_edit_locked:
+    if contest.question_edit_locked or contest.has_exam_started():
         _log_contest_question_edit_blocked(
             contest=contest,
             actor_id=actor_id,
             action=action,
         )
         raise ContestQuestionEditLocked()
-
 
 def maybe_lock_from_coding_submission(*, submission: Submission) -> bool:
     """Lock contest when a student makes the first formal coding submission."""

@@ -1,7 +1,6 @@
 """QJudge MCP Server tools."""
 
 import csv
-import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -340,41 +339,9 @@ def _truncate_text(value: str, limit: int = 120) -> str:
     return value[: limit - 1].rstrip() + "…"
 
 
-def _strip_snapshots(raw: Any) -> Any:
-    """Remove large answer snapshot fields from grading payloads."""
-    parsed_from_string = False
-    try:
-        if isinstance(raw, str):
-            data = json.loads(raw)
-            parsed_from_string = True
-        else:
-            data = raw
-    except (json.JSONDecodeError, TypeError):
-        return raw
-
-    def strip(obj: Any) -> Any:
-        if isinstance(obj, dict):
-            obj.pop("question_snapshot", None)
-            obj.pop("correct_answer_snapshot", None)
-            return obj
-        if isinstance(obj, list):
-            for item in obj:
-                strip(item)
-        return obj
-
-    if isinstance(data, dict) and "responses" in data:
-        strip(data.get("responses", []))
-    elif isinstance(data, list):
-        strip(data)
-
-    if parsed_from_string:
-        return json.dumps(data, ensure_ascii=False)
-    return data
-
-
 def _compact_answers(raw: Any) -> Any:
     """Project all-answers response down to grading essentials."""
-    data = _strip_snapshots(raw)
+    data = raw
     if not isinstance(data, list):
         return data
 
@@ -411,7 +378,7 @@ def _compact_answers_for_grading(raw: Any) -> Any:
     agent pipes ``result["items"]`` straight into
     artifact_write_csv_from_records with no remapping.
     """
-    data = _strip_snapshots(raw)
+    data = raw
     if not isinstance(data, list):
         return _items([])
 
@@ -438,7 +405,7 @@ def _compact_question_detail(
     include_omitted: bool = False,
 ) -> Any:
     """Trim question detail payload for MCP usage."""
-    data = _strip_snapshots(raw)
+    data = raw
     if not isinstance(data, dict):
         return data
 

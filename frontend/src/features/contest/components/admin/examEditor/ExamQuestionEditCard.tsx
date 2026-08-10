@@ -12,6 +12,10 @@ import {
   RadioButtonGroup,
   Checkbox,
   InlineLoading,
+  ComposedModal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from "@carbon/react";
 import {
   Add,
@@ -25,7 +29,6 @@ import type {
   ExamQuestion,
   ExamQuestionAnswerFormat,
   ExamQuestionType,
-  OpenAnswerDocument,
 } from "@/core/entities/contest.entity";
 import type { ExamQuestionUpsertPayload } from "@/infrastructure/api/repositories";
 import { useToast } from "@/shared/contexts";
@@ -46,6 +49,13 @@ import ScorePolicyMenu, { ScorePolicyTag } from "@/features/contest/screens/sett
 import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
 import styles from "./ExamQuestionEditCard.module.scss";
+import LockedGradingSaveModal from "./LockedGradingSaveModal";
+import {
+  classifyLockedQuestionSave,
+  type ExistingGradesAction,
+  type LockedQuestionComparableState,
+  type LockedSaveImpact,
+} from "./lockedQuestionSaveImpact";
 
 // --- Constants ---
 
@@ -62,19 +72,10 @@ const ALLOWED_TYPE_SWITCHES: Record<ExamQuestionType, ExamQuestionType[]> = {
 
 // --- Form types & helpers ---
 
-interface QuestionFormState {
-  questionType: ExamQuestionType;
+interface QuestionFormState extends LockedQuestionComparableState {
   prompt: string;
-  explanation: string;
-  score: string;
   options: string[];
-  singleAnswerIndex: string;
-  multiAnswerIndexes: string[];
-  essayReferenceAnswer: string;
-  shortAnswer: string;
   answerFormat: ExamQuestionAnswerFormat;
-  referenceAnswerDocument: OpenAnswerDocument | null;
-  explanationDocument: OpenAnswerDocument | null;
 }
 
 const getDefaultOptions = (type: ExamQuestionType): string[] => {
@@ -301,6 +302,9 @@ interface ExamQuestionEditCardProps {
   index: number;
   showScoreField?: boolean;
   frozen?: boolean;
+  contentLocked?: boolean;
+  gradedAnswerCount?: number;
+  resultsPublished?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
   allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string; scorePolicyConfig?: { redistributeTo?: string[] } | null }>;
@@ -308,7 +312,11 @@ interface ExamQuestionEditCardProps {
   editorImpactContext?: ScorePolicyMenuImpactContext;
   /** Called when the policy overflow menu is opened — triggers lazy data load. */
   onMenuOpen?: () => void;
-  onAutoSave: (payload: ExamQuestionUpsertPayload, questionId?: string) => Promise<void>;
+  onAutoSave: (
+    payload: ExamQuestionUpsertPayload,
+    questionId?: string,
+    action?: ExistingGradesAction,
+  ) => Promise<void>;
   onDelete: (questionId: string) => Promise<void>;
   onDuplicate: (questionId: string) => Promise<void>;
   onSaveToBank?: (question: ExamQuestion) => void;
@@ -321,6 +329,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   index,
   showScoreField = true,
   frozen,
+  contentLocked = false,
+  gradedAnswerCount = 0,
+  resultsPublished = false,
   startEditingSignal,
   allQuestions,
   editorImpactContext,
@@ -337,6 +348,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<QuestionFormState>(() => toFormState(question));
   const [saving, setSaving] = useState(false);
+  const [lockedSaveOpen, setLockedSaveOpen] = useState(false);
+  const [lockedSaveImpact, setLockedSaveImpact] = useState<LockedSaveImpact>({
+    kind: "no-op",
+    affectedCount: 0,
+  });
+  const [discardOpen, setDiscardOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
   const latestFormRef = useRef<QuestionFormState>(toFormState(question));
@@ -366,30 +383,6 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     };
   }, []);
 
-  // Click outside → save if dirty, else just close
-  useEffect(() => {
-    if (!editing) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        handleCloseOrSave();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  });
-
-  // Escape → save if dirty, else just close
-  useEffect(() => {
-    if (!editing) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleCloseOrSave();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  });
-
   const getValidationError = useCallback((): string | null => {
     if (!form.prompt.trim()) {
       return t("examEditor.validation.emptyPrompt", "題目內容不可為空");
@@ -411,7 +404,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }, [form, showScoreField, t]);
 
   const persistAutoSave = useCallback(
-    async (showValidationError = false): Promise<boolean> => {
+    async (
+      showValidationError = false,
+      action?: ExistingGradesAction,
+    ): Promise<boolean> => {
       const validationError = getValidationError();
       if (validationError) {
         if (showValidationError) {
@@ -428,8 +424,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(true);
         const snapshot = latestFormRef.current;
         const payload = buildPayload(snapshot, showScoreField);
-        await onAutoSave(payload, question.id);
+        await onAutoSave(payload, question.id, action);
         originalFormRef.current = { ...snapshot };
+        setForm({ ...snapshot });
         return true;
       } catch (error) {
         const subtitle =
@@ -449,10 +446,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     [getValidationError, onAutoSave, question.id, showScoreField, showToast, t]
   );
 
-  const handleCloseOrSave = async () => {
+  const handleCloseOrSave = useCallback(async () => {
     if (saveDebounceRef.current) {
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = null;
+    }
+    if (contentLocked) {
+      if (isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) {
+        setDiscardOpen(true);
+        return;
+      }
+      setEditing(false);
+      return;
     }
     if (isFormDirty(latestFormRef.current, originalFormRef.current)) {
       const ok = await persistAutoSave(true);
@@ -461,27 +466,86 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     } else {
       setEditing(false);
     }
-  };
+  }, [contentLocked, persistAutoSave, showScoreField]);
+
+  // Click outside → save if dirty, else just close
+  useEffect(() => {
+    if (!editing || lockedSaveOpen || discardOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        void handleCloseOrSave();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [discardOpen, editing, handleCloseOrSave, lockedSaveOpen]);
+
+  // Escape → save if dirty, else just close
+  useEffect(() => {
+    if (!editing || lockedSaveOpen || discardOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        void handleCloseOrSave();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [discardOpen, editing, handleCloseOrSave, lockedSaveOpen]);
 
   const handleInlineBlurAutoSave = useCallback(() => {
-    if (!editing || frozen) return;
+    if (!editing || frozen || contentLocked) return;
     if (!isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) return;
     if (saveDebounceRef.current) {
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = null;
     }
     void persistAutoSave(false);
-  }, [editing, frozen, persistAutoSave, showScoreField]);
+  }, [contentLocked, editing, frozen, persistAutoSave, showScoreField]);
 
   useEffect(() => {
-    if (!editing || frozen) return;
+    if (!editing || frozen || contentLocked) return;
     if (!isFormDirty(form, originalFormRef.current, showScoreField)) return;
     if (getValidationError()) return;
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
       void persistAutoSave(false);
     }, 1000);
-  }, [editing, form, frozen, getValidationError, persistAutoSave, showScoreField]);
+  }, [contentLocked, editing, form, frozen, getValidationError, persistAutoSave, showScoreField]);
+
+  const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
+
+  const handleExplicitSave = () => {
+    const validationError = getValidationError();
+    if (validationError) {
+      showToast({
+        kind: "error",
+        title: t("examEditor.validationFailed", "驗證失敗"),
+        subtitle: validationError,
+      });
+      return;
+    }
+    const impact = classifyLockedQuestionSave(
+      originalFormRef.current,
+      latestFormRef.current,
+      gradedAnswerCount,
+    );
+    if (impact.kind === "no-op") return;
+    setLockedSaveImpact(impact);
+    setLockedSaveOpen(true);
+  };
+
+  const handleLockedSaveChoice = async (action: ExistingGradesAction) => {
+    const saved = await persistAutoSave(true, action);
+    if (saved) setLockedSaveOpen(false);
+  };
+
+  const handleDiscard = () => {
+    const original = { ...originalFormRef.current };
+    latestFormRef.current = original;
+    setForm(original);
+    setDiscardOpen(false);
+    setEditing(false);
+  };
 
   const handleTypeChange = (nextType: ExamQuestionType) => {
     const currentType = form.questionType;
@@ -574,6 +638,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       <Layer>
         <div
           ref={cardRef}
+          data-testid={`exam-card-${question.id}`}
           className={`${styles.card} ${styles.cardPreview}`}
           onClick={() => {
             if (!frozen) setEditing(true);
@@ -588,7 +653,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             }
           }}
         >
-          {!frozen && onPointerDownDrag && (
+          {!frozen && !contentLocked && onPointerDownDrag && (
             <div
               className={styles.dragIndicator}
               data-testid={`exam-card-reorder-${question.id}`}
@@ -615,7 +680,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     <DataBase size={12} />
                     {question.sourceBank.name}
                   </Tag>
-                ) : !frozen && onSaveToBank ? (
+                ) : !frozen && !contentLocked && onSaveToBank ? (
                   <button
                     type="button"
                     className={styles.saveToBankButton}
@@ -663,7 +728,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     onMenuOpen={onMenuOpen}
                   />
                 </div>
-                {!frozen && (
+                {!frozen && !contentLocked && (
                   <>
                     <IconButton
                       kind="ghost"
@@ -818,6 +883,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     <Layer>
       <div
         ref={cardRef}
+        data-testid={`exam-card-${question.id}`}
         className={`${styles.card} ${styles.cardEditing}`}
         onBlurCapture={handleInlineBlurAutoSave}
       >
@@ -832,7 +898,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 size="sm"
                 value={form.questionType}
                 onChange={(e) => handleTypeChange(e.target.value as ExamQuestionType)}
-                disabled={frozen}
+                disabled={frozen || contentLocked}
                 inline
               >
                 {(["single_choice", "multiple_choice", "true_false", "short_answer", "essay"] as ExamQuestionType[]).map((type) => (
@@ -877,7 +943,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       answerFormat: e.target.value as ExamQuestionAnswerFormat,
                     }))
                   }
-                  disabled={frozen}
+                  disabled={frozen || contentLocked}
                   inline
                 >
                   <SelectItem
@@ -906,6 +972,22 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 status="active"
                 description={t("common.saving", "儲存中...")}
               />
+            ) : contentLocked ? (
+              <>
+                <span className={styles.autoSaveHint}>
+                  {dirty
+                    ? t("examEditor.lockedSave.unsaved", "尚未儲存")
+                    : t("examEditor.lockedSave.saved", "已儲存")}
+                </span>
+                <Button
+                  kind="primary"
+                  size="sm"
+                  onClick={handleExplicitSave}
+                  disabled={!dirty}
+                >
+                  {t("examEditor.lockedSave.saveChanges", "儲存變更")}
+                </Button>
+              </>
             ) : (
               <span className={styles.autoSaveHint}>
                 {t("examEditor.autoSaveEnabled", "自動儲存中")}
@@ -927,7 +1009,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               onChange={(val) => setForm((p) => ({ ...p, prompt: val }))}
               placeholder={t("examEditor.promptPlaceholder", "輸入題目敘述（支援 Markdown / LaTeX）")}
               minHeight="200px"
-              disabled={!!frozen}
+              disabled={!!frozen || contentLocked}
             />
           </div>
 
@@ -962,7 +1044,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         onChange={(val) => updateOption(i, val)}
                         placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
                         minHeight="96px"
-                        disabled={!!frozen}
+                        disabled={!!frozen || contentLocked}
                       />
                     </div>
                   </div>
@@ -994,10 +1076,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
-                        disabled={frozen}
+                        disabled={frozen || contentLocked}
                       />
                     </div>
-                    {!frozen && (
+                    {!frozen && !contentLocked && (
                       <div className={styles.optionActions}>
                         <IconButton
                           kind="ghost"
@@ -1012,7 +1094,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     )}
                   </div>
                 ))}
-                {!frozen && (
+                {!frozen && !contentLocked && (
                   <div className={styles.addOptionRow}>
                     <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
                       {t("examEditor.addOption", "新增選項")}
@@ -1051,10 +1133,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
-                        disabled={frozen}
+                        disabled={frozen || contentLocked}
                       />
                     </div>
-                    {!frozen && (
+                    {!frozen && !contentLocked && (
                       <div className={styles.optionActions}>
                         <IconButton
                           kind="ghost"
@@ -1069,7 +1151,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     )}
                   </div>
                 ))}
-                {!frozen && (
+                {!frozen && !contentLocked && (
                   <div className={styles.addOptionRow}>
                     <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
                       {t("examEditor.addOption", "新增選項")}
@@ -1168,6 +1250,35 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           </div>
         </div>
       </div>
+      <LockedGradingSaveModal
+        open={lockedSaveOpen}
+        impact={lockedSaveImpact}
+        resultsPublished={resultsPublished}
+        submitting={saving}
+        onCancel={() => setLockedSaveOpen(false)}
+        onChoose={(action) => void handleLockedSaveChoice(action)}
+      />
+      <ComposedModal
+        open={discardOpen}
+        onClose={() => setDiscardOpen(false)}
+        size="sm"
+      >
+        <ModalHeader
+          title={t("examEditor.lockedSave.discardTitle", "尚有未儲存變更")}
+          closeModal={() => setDiscardOpen(false)}
+        />
+        <ModalBody>
+          <p>{t("examEditor.lockedSave.discardBody", "要繼續編輯，還是捨棄這次變更？")}</p>
+        </ModalBody>
+        <ModalFooter>
+          <Button kind="secondary" onClick={() => setDiscardOpen(false)}>
+            {t("examEditor.lockedSave.continueEditing", "繼續編輯")}
+          </Button>
+          <Button kind="danger" onClick={handleDiscard}>
+            {t("examEditor.lockedSave.discard", "捨棄變更")}
+          </Button>
+        </ModalFooter>
+      </ComposedModal>
     </Layer>
   );
 };

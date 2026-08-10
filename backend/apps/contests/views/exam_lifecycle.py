@@ -1,5 +1,6 @@
 """ExamLifecycleMixin + composed ExamViewSet."""
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -28,6 +29,7 @@ from ..services.attendance import (
     normalize_attendance_error_code,
 )
 from ..services.activity_log import log_contest_activity
+from ..services.question_edit_lock import lock_contest_question_editing
 from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
@@ -74,44 +76,61 @@ class ExamLifecycleMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Check if already submitted
-        if participant.exam_status == ExamStatus.SUBMITTED:
-            if contest.allow_multiple_joins:
-                # Re-entry keeps historical violations as the backend source of truth.
+        with transaction.atomic():
+            contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            participant = ContestParticipant.objects.select_for_update().get(
+                pk=participant.pk,
+            )
+
+            # Check if already submitted
+            if participant.exam_status == ExamStatus.SUBMITTED:
+                if contest.allow_multiple_joins:
+                    # Re-entry keeps historical violations as the backend source of truth.
+                    participant.exam_status = ExamStatus.IN_PROGRESS
+                    participant.save(update_fields=["exam_status"])
+                else:
+                    return Response(
+                        {'error': 'You have already finished this exam.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            # Handle resume from paused state
+            if participant.exam_status == ExamStatus.PAUSED:
                 participant.exam_status = ExamStatus.IN_PROGRESS
                 participant.save(update_fields=["exam_status"])
-            else:
-                return Response(
-                    {'error': 'You have already finished this exam.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                lock_contest_question_editing(
+                    contest=contest,
+                    trigger=Contest.QuestionEditLockTrigger.EXAM_STARTED,
+                    actor_id=request.user.id,
                 )
 
-        # Handle resume from paused state
-        if participant.exam_status == ExamStatus.PAUSED:
-            participant.exam_status = ExamStatus.IN_PROGRESS
-            participant.save()
+                # Log activity
+                log_contest_activity(
+                    contest,
+                    request.user,
+                    'resume_exam',
+                    "Resumed exam"
+                )
+                return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
 
-            # Log activity
-            log_contest_activity(
-                contest,
-                request.user,
-                'resume_exam',
-                "Resumed exam"
-            )
-            return Response({'status': 'resumed', 'exam_status': ExamStatus.IN_PROGRESS})
+            # Start exam for user if not already started
+            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
+                participant.started_at = timezone.now()
+                participant.exam_status = ExamStatus.IN_PROGRESS
+                participant.save(update_fields=["started_at", "exam_status"])
 
-        # Start exam for user if not already started
-        if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
-            participant.started_at = timezone.now()
-            participant.exam_status = ExamStatus.IN_PROGRESS
-            participant.save()
+                # Log activity
+                log_contest_activity(
+                    contest,
+                    request.user,
+                    'start_exam',
+                    "Started exam"
+                )
 
-            # Log activity
-            log_contest_activity(
-                contest,
-                request.user,
-                'start_exam',
-                "Started exam"
+            lock_contest_question_editing(
+                contest=contest,
+                trigger=Contest.QuestionEditLockTrigger.EXAM_STARTED,
+                actor_id=request.user.id,
             )
 
         set_active_session(contest, participant, request, get_device_id(request))

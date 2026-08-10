@@ -20,6 +20,11 @@ from .question_edit_lock import (
     maybe_lock_from_exam_answer,
     is_non_empty_exam_answer,
 )
+from .locked_question_update import (
+    ExistingGradesAction,
+    LockedQuestionUpdateResult,
+    apply_locked_question_update,
+)
 
 __all__ = [
     "ExportValidationError",
@@ -36,4 +41,7 @@ __all__ = [
     "maybe_lock_from_coding_submission",
     "maybe_lock_from_exam_answer",
     "is_non_empty_exam_answer",
+    "ExistingGradesAction",
+    "LockedQuestionUpdateResult",
+    "apply_locked_question_update",
 ]

@@ -412,7 +412,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
       }
     }
 
-    // Backfill orphan answer rows (defensive: stale/deleted question snapshots).
+    // Backfill orphan answer rows defensively if a question was deleted outside the editor contract.
     for (const a of answers) {
       if (map.has(a.questionId)) continue;
       map.set(a.questionId, {

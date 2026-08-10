@@ -236,11 +236,7 @@ def _build_paper_exam_report(
                 "prompt": question.prompt,
                 "options": question.options or [],
                 "correct_answer": question.correct_answer,
-                "explanation": (
-                    answer.question_snapshot.get("explanation", "")
-                    if answer and answer.question_snapshot
-                    else question.explanation
-                ),
+                "explanation": question.explanation,
                 "answer": _normalize_answer_value(
                     question.question_type, answer.answer if answer else {}
                 ),

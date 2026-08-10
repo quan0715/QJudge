@@ -78,7 +78,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
   const inBank = isContestProblemLinkedToBank(contestBinding);
   const saveToBankDisabled = !!frozen || inBank;
   const saveToBankTitle = frozen
-    ? t("examEditor.questionLockedReason", "已有學生正式作答，競賽題目已鎖定")
+    ? t("examEditor.questionLockedReason", "已有考生開始作答，競賽內容已鎖定")
     : inBank
       ? t("examEditor.saveToBankAlreadyInBank", "此題已收錄至題庫")
       : undefined;

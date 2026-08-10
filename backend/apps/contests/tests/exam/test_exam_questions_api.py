@@ -19,7 +19,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests.models import Contest, ContestParticipant, ExamQuestion, ExamStatus
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBank
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views
@@ -801,6 +801,30 @@ class TestImportFromQuestionBank:
 
 @pytest.mark.django_db
 class TestQuestionEditLockGuard:
+    def test_started_participant_blocks_content_edits_when_legacy_flag_is_false(
+        self,
+        api_client,
+        teacher,
+        student,
+        contest,
+    ):
+        ContestParticipant.objects.create(
+            contest=contest,
+            user=student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+        api_client.force_authenticate(user=teacher)
+
+        create_res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "blocked",
+            "score": 1,
+        }, format="json")
+
+        assert create_res.status_code == status.HTTP_409_CONFLICT
+        assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+
     def test_blocks_exam_question_create_update_delete_reorder_and_import(self, api_client, teacher, contest):
         contest.question_edit_locked = True
         contest.question_edit_locked_at = timezone.now()
@@ -822,7 +846,7 @@ class TestQuestionEditLockGuard:
         }, format="json")
         assert create_res.status_code == status.HTTP_409_CONFLICT
         assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert create_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert create_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         q = ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", score=1, order=0,
@@ -830,12 +854,12 @@ class TestQuestionEditLockGuard:
         update_res = api_client.patch(url(contest.id, q.id), {"prompt": "new"}, format="json")
         assert update_res.status_code == status.HTTP_409_CONFLICT
         assert update_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert update_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert update_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         delete_res = api_client.delete(url(contest.id, q.id))
         assert delete_res.status_code == status.HTTP_409_CONFLICT
         assert delete_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert delete_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert delete_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         reorder_res = api_client.post(
             url(contest.id) + "reorder/",

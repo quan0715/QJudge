@@ -780,11 +780,10 @@ export default function StudentContestDashboard({
           const answered = !!answerPayload;
           const questionType = (
             result?.questionType ??
-            result?.questionSnapshot?.questionType ??
             question.questionType
           ) as ExamQuestionType;
           const maxScore =
-            question.score ?? result?.maxScore ?? result?.questionSnapshot?.score ?? 0;
+            question.score ?? result?.maxScore ?? 0;
           const status =
             marked
               ? {
@@ -831,7 +830,6 @@ export default function StudentContestDashboard({
                       };
           const prompt =
             result?.questionPrompt ??
-            result?.questionSnapshot?.prompt ??
             question.prompt;
 
           return (
@@ -856,22 +854,13 @@ export default function StudentContestDashboard({
               maxScore={maxScore}
               gradedByUsername={result?.gradedByUsername}
               feedback={result?.feedback}
-              correctAnswer={
-                result?.questionSnapshot?.correctAnswer ?? question.correctAnswer
-              }
-              referenceAnswerDocument={
-                result?.questionSnapshot?.referenceAnswerDocument ??
-                question.referenceAnswerDocument
-              }
+              correctAnswer={question.correctAnswer}
+              referenceAnswerDocument={question.referenceAnswerDocument}
               explanation={
                 result?.questionExplanation ??
-                result?.questionSnapshot?.explanation ??
                 question.explanation
               }
-              explanationDocument={
-                result?.questionSnapshot?.explanationDocument ??
-                question.explanationDocument
-              }
+              explanationDocument={question.explanationDocument}
               scorePolicy={question.scorePolicy}
             />
           );

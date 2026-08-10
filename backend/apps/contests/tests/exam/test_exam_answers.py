@@ -152,15 +152,37 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_single)
         self.assertEqual(ans.answer['selected'], 'B')
 
-    def test_submit_creates_snapshot_with_explanation(self):
+    def test_auto_grade_uses_current_question_rules(self):
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.post(self._url(), {
+            'question_id': self.q_single.id,
+            'answer': {'selected': 'B'},
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        answer = ExamAnswer.objects.get(
+            participant=self.participant,
+            question=self.q_single,
+        )
+
+        self.q_single.correct_answer = 'A'
+        self.q_single.score = 7
+        self.q_single.save(update_fields=['correct_answer', 'score'])
+        answer.auto_grade()
+
+        self.assertFalse(answer.is_correct)
+        self.assertEqual(answer.score, 0)
+
+    def test_submit_model_has_no_question_snapshot(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
             'question_id': self.q_essay.id,
             'answer': {'text': 'My essay answer'},
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        ans = ExamAnswer.objects.get(participant=self.participant, question=self.q_essay)
-        self.assertEqual(ans.question_snapshot['explanation'], 'Essay explanation')
+        self.assertNotIn(
+            'question_snapshot',
+            {field.name for field in ExamAnswer._meta.get_fields()},
+        )
 
     def test_submit_requires_in_progress(self):
         """Cannot submit when exam is not in progress."""
@@ -272,6 +294,31 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         self.assertEqual(len(resp.data), 1)
         self.assertEqual(float(resp.data[0]['score']), 5.0)
         self.assertEqual(resp.data[0]['question_explanation'], 'Single-choice explanation')
+
+    def test_results_use_current_question_explanation(self):
+        self.client.force_authenticate(user=self.student)
+        submit_url = reverse(
+            'contests:contest-exam-answers-submit-answer',
+            kwargs={'contest_pk': self.contest.id},
+        )
+        submit_resp = self.client.post(submit_url, {
+            'question_id': self.q_essay.id,
+            'answer': {'text': 'My essay answer'},
+        }, format='json')
+        self.assertEqual(submit_resp.status_code, status.HTTP_201_CREATED)
+
+        self.q_essay.explanation = 'Corrected explanation'
+        self.q_essay.save(update_fields=['explanation'])
+        self.contest.results_published = True
+        self.contest.save(update_fields=['results_published'])
+
+        resp = self.client.get(self._url())
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            resp.data[0]['question_explanation'],
+            'Corrected explanation',
+        )
 
     def test_teacher_can_view_before_publish(self):
         self.client.force_authenticate(user=self.teacher)

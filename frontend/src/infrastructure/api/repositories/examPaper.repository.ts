@@ -8,6 +8,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import type { ExamPaperBlockDto, ExamPaperDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamPaperBlockDto, mapExamPaperDto } from "@/infrastructure/mappers/contest.mapper";
+import type { ExistingGradesAction } from "./examQuestions.repository";
 
 export interface ExamPaperQuestionPayload {
   id?: string;
@@ -21,6 +22,7 @@ export interface ExamPaperQuestionPayload {
   score?: number;
   order?: number;
   answer_format?: ExamQuestionAnswerFormat;
+  existing_grades_action?: ExistingGradesAction;
 }
 
 export interface ExamPaperGroupPayload {

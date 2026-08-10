@@ -539,7 +539,7 @@ describe("StudentContestDashboard", () => {
         id: "question-1",
         contestId: "contest-1",
         questionType: "short_answer",
-        prompt: "Explain",
+        prompt: "Current prompt",
         options: [],
         explanation: "",
         score: 10,
@@ -560,6 +560,16 @@ describe("StudentContestDashboard", () => {
         feedback: "Good",
         gradedByUsername: "teacher",
         gradedAt: "2000-05-05T11:00:00.000Z",
+        ...({
+          questionSnapshot: {
+            prompt: "Legacy prompt",
+            options: [],
+            correctAnswer: "Legacy answer",
+            explanation: "Legacy explanation",
+            questionType: "essay",
+            score: 99,
+          },
+        } as Record<string, unknown>),
       },
     ]);
 
@@ -578,6 +588,8 @@ describe("StudentContestDashboard", () => {
     expect(await screen.findAllByText("8.00 / 10.00")).not.toHaveLength(0);
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
+    expect(screen.getByText("Current prompt")).toBeInTheDocument();
+    expect(screen.queryByText("Legacy prompt")).not.toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();
     expect(screen.queryByText("相關頁面")).not.toBeInTheDocument();
   });

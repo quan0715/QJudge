@@ -84,7 +84,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
   const inBank = isContestProblemLinkedToBank(contestBinding);
   const saveToBankDisabled = !!frozen || inBank;
   const saveToBankLabel = frozen
-    ? t("examEditor.questionLockedReason", "已有學生正式作答，競賽題目已鎖定")
+    ? t("examEditor.questionLockedReason", "已有考生開始作答，競賽內容已鎖定")
     : inBank
       ? t("examEditor.saveToBankAlreadyInBank", "此題已收錄至題庫")
       : undefined;

@@ -90,13 +90,10 @@ class ParticipantDashboardApiTests(APITestCase):
             score=10,
             order=0,
         )
-        snapshot = question.to_snapshot()
-        snapshot["explanation"] = "Snapshot explanation."
         ExamAnswer.objects.create(
             participant=participant,
             question=question,
             answer={"text": "It pulls objects together."},
-            question_snapshot=snapshot,
             score=Decimal("8.0"),
             feedback="Reasonable answer.",
             is_correct=False,
@@ -133,7 +130,7 @@ class ParticipantDashboardApiTests(APITestCase):
         )
         self.assertEqual(
             response.data["report"]["question_details"][0]["explanation"],
-            "Snapshot explanation.",
+            "Current explanation.",
         )
         self.assertEqual(len(response.data["timeline"]), 2)
         self.assertNotIn("evidence", response.data)

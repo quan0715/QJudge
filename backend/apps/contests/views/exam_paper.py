@@ -15,6 +15,7 @@ from ..serializers import (
     ExamQuestionStudentSerializer,
 )
 from ..services.question_edit_lock import ensure_contest_question_editable
+from ..services.locked_question_update import apply_locked_question_update
 from apps.question_bank.question_assets import (
     cleanup_orphan_asset_if_needed,
     ensure_contest_binding_for_exam_question,
@@ -462,15 +463,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
     def partial_update(self, request, contest_pk=None, pk=None):
         contest = self._get_contest(contest_pk)
         self._ensure_admin_permission(request, contest)
-        ensure_contest_question_editable(
-            contest=contest,
-            actor_id=getattr(request.user, 'id', None),
-            action='exam_paper.block.update',
-        )
 
         kind = request.data.get('kind')
 
         with transaction.atomic():
+            contest = Contest.objects.select_for_update().get(pk=contest.pk)
             question = ExamQuestion.objects.filter(contest=contest, id=pk).first()
             group = ExamQuestionGroup.objects.filter(contest=contest, id=pk).first()
 
@@ -487,7 +484,17 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                     context={'contest': contest},
                 )
                 serializer.is_valid(raise_exception=True)
-                question = serializer.save()
+                action = serializer.validated_data.pop("existing_grades_action", None)
+                if contest.question_edit_locked or contest.has_exam_started():
+                    result = apply_locked_question_update(
+                        question=question,
+                        validated_data=serializer.validated_data,
+                        action=action,
+                    )
+                    question = result.question
+                    serializer.instance = question
+                else:
+                    question = serializer.save()
                 ensure_contest_binding_for_exam_question(
                     exam_question=question,
                     actor=request.user,
@@ -500,6 +507,11 @@ class ContestExamPaperViewSet(viewsets.ViewSet):
                 }
 
             else:
+                ensure_contest_question_editable(
+                    contest=contest,
+                    actor_id=getattr(request.user, 'id', None),
+                    action='exam_paper.block.update',
+                )
                 if group is None:
                     raise DRFValidationError('group block not found')
                 group_payload = request.data.get('group') or {}

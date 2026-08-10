@@ -9,6 +9,8 @@ import type {
 import type { ExamQuestionDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamQuestionDto } from "@/infrastructure/mappers/contest.mapper";
 
+export type ExistingGradesAction = "regrade" | "keep" | "mark_pending";
+
 export interface ExamQuestionUpsertPayload {
   question_type: ExamQuestionType;
   prompt: string;
@@ -23,6 +25,7 @@ export interface ExamQuestionUpsertPayload {
   group_id?: string | null;
   order_in_group?: number | null;
   answer_format?: ExamQuestionAnswerFormat;
+  existing_grades_action?: ExistingGradesAction;
 }
 
 export interface ExamQuestionBankImportItem {
@@ -136,7 +139,10 @@ export const setExamQuestionScorePolicy = async (
   policy: ExamQuestionScorePolicy,
   config?: { redistribute_to?: string[] },
 ): Promise<ExamQuestion> => {
-  const data: Record<string, unknown> = { score_policy: policy };
+  const data: Record<string, unknown> = {
+    score_policy: policy,
+    existing_grades_action: "keep",
+  };
   if (config) {
     data.score_policy_config = config;
   }

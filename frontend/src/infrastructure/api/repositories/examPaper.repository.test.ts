@@ -139,6 +139,7 @@ describe("getExamPaper", () => {
       question: {
         prompt: "更新後題目",
         answer_format: "markdown_math",
+        existing_grades_action: "keep",
       },
     });
     const reordered = await reorderExamPaperBlocks("contest-1", [
@@ -161,6 +162,9 @@ describe("getExamPaper", () => {
       "/api/v1/contests/contest-1/exam-paper/question-1/",
       expect.objectContaining({ method: "PATCH" }),
     );
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({
+      question: { existing_grades_action: "keep" },
+    });
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
       "/api/v1/contests/contest-1/exam-paper/",
