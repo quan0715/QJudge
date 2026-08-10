@@ -28,6 +28,11 @@ GENERATED_SECRET_KEYS = {
     "AI_DB_PASSWORD",
     "CREDENTIAL_LEASE_SECRET",
 }
+GENERATED_STORAGE_POLICY_KEYS = {
+    "OBJECT_STORAGE_REGION",
+    "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
+    "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED",
+}
 STORAGE_ENVIRONMENT = {
     "OBJECT_STORAGE_ENDPOINT_URL": "https://storage.example.test",
     "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://storage.example.test",
@@ -64,6 +69,10 @@ def test_root_env_example_excludes_internal_and_special_purpose_settings() -> No
     assert not forbidden & _active_env_keys()
 
 
+def test_legacy_root_env_template_is_removed() -> None:
+    assert not (REPOSITORY_ROOT / "example.env").exists()
+
+
 def _run_setup(
     tmp_path: Path,
     *,
@@ -73,7 +82,13 @@ def _run_setup(
     extra_environment: dict[str, str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], Path]:
     output = tmp_path / ".env"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir(exist_ok=True)
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text("#!/bin/sh\nexit 0\n")
+    fake_docker.chmod(0o755)
     environment = os.environ.copy()
+    environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
     environment.update(STORAGE_ENVIRONMENT)
     environment.update(extra_environment or {})
     command = [
@@ -114,11 +129,14 @@ def test_setup_env_generates_complete_secret_safe_file(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     values = _env_values(output)
-    assert set(values) == EXPECTED_ACTIVE_KEYS | {
+    assert set(values) == EXPECTED_ACTIVE_KEYS | GENERATED_STORAGE_POLICY_KEYS | {
         "HOST_PROJECT_ROOT",
         "DOCKER_GID",
         "DOCKER_SOCKET_UID",
     }
+    assert values["OBJECT_STORAGE_REGION"] == "auto"
+    assert values["OBJECT_STORAGE_AUTO_CREATE_BUCKETS"] == "false"
+    assert values["OBJECT_STORAGE_OBJECT_TAGGING_ENABLED"] == "false"
     generated = [values[name] for name in GENERATED_SECRET_KEYS]
     assert all(generated)
     assert len(generated) == len(set(generated))
@@ -172,11 +190,46 @@ def test_setup_env_never_prints_supplied_or_generated_secrets(tmp_path: Path) ->
         assert values[name] not in captured
 
 
-def test_setup_env_rejects_unimplemented_minio_mode(tmp_path: Path) -> None:
-    result, output = _run_setup(tmp_path, storage="minio")
+def test_setup_env_configures_minio_without_expanding_the_manual_env_surface(
+    tmp_path: Path,
+) -> None:
+    result, output = _run_setup(
+        tmp_path,
+        storage="minio",
+        origin="http://judge.example.test",
+        extra_environment={
+            "OBJECT_STORAGE_ENDPOINT_URL": "http://minio.internal:9000",
+            "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "http://storage.example.test:9000",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    values = _env_values(output)
+    assert values["OBJECT_STORAGE_ENDPOINT_URL"] == "http://minio.internal:9000"
+    assert values["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"] == (
+        "http://storage.example.test:9000"
+    )
+    assert values["OBJECT_STORAGE_REGION"] == "us-east-1"
+    assert values["OBJECT_STORAGE_AUTO_CREATE_BUCKETS"] == "true"
+    assert values["OBJECT_STORAGE_OBJECT_TAGGING_ENABLED"] == "true"
+    assert _active_env_keys() == EXPECTED_ACTIVE_KEYS
+
+
+def test_setup_env_rejects_http_minio_public_endpoint_for_https_site(
+    tmp_path: Path,
+) -> None:
+    result, output = _run_setup(
+        tmp_path,
+        storage="minio",
+        origin="https://judge.example.test",
+        extra_environment={
+            "OBJECT_STORAGE_ENDPOINT_URL": "http://minio.internal:9000",
+            "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "http://storage.example.test:9000",
+        },
+    )
 
     assert result.returncode != 0
-    assert "MinIO setup is not implemented" in result.stderr
+    assert "public endpoint must use HTTPS" in result.stderr
     assert not output.exists()
 
 

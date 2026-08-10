@@ -128,7 +128,8 @@ postgres_admin_user="qjudge_admin"
 django_db_user="qjudge_web"
 ai_db_user="qjudge_ai"
 
-export QJUDGE_PUBLIC_ORIGIN="$(get_env_value QJUDGE_PUBLIC_ORIGIN)"
+public_origin="$(get_env_value QJUDGE_PUBLIC_ORIGIN)"
+export QJUDGE_PUBLIC_ORIGIN="$public_origin"
 python3 - <<'PY'
 import os
 from urllib.parse import urlsplit
@@ -149,12 +150,43 @@ PY
 unset QJUDGE_PUBLIC_ORIGIN
 
 object_storage_endpoint="$(get_env_value "OBJECT_STORAGE_ENDPOINT_URL")"
-case "$object_storage_endpoint" in
-  http://*)
-    echo ".env key OBJECT_STORAGE_ENDPOINT_URL must use HTTPS in production" >&2
-    exit 1
-    ;;
-esac
+object_storage_public_endpoint="$(get_env_value "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL")"
+python3 - \
+  "$public_origin" \
+  "$object_storage_endpoint" \
+  "$object_storage_public_endpoint" <<'PY'
+import sys
+from urllib.parse import urlsplit
+
+origin_value, endpoint_value, public_endpoint_value = sys.argv[1:]
+
+
+def parse_endpoint(label: str, value: str):
+    try:
+        parsed = urlsplit(value.strip())
+        parsed.port
+    except ValueError as exc:
+        raise SystemExit(f".env key {label} is not a valid URL") from exc
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+        raise SystemExit(f".env key {label} must use HTTP or HTTPS and include a host")
+    if parsed.username is not None or parsed.password is not None:
+        raise SystemExit(f".env key {label} must not include user information")
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise SystemExit(f".env key {label} must not include a path, query, or fragment")
+    return parsed
+
+
+origin = urlsplit(origin_value)
+parse_endpoint("OBJECT_STORAGE_ENDPOINT_URL", endpoint_value)
+public_endpoint = parse_endpoint(
+    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", public_endpoint_value
+)
+if origin.scheme.lower() == "https" and public_endpoint.scheme.lower() != "https":
+    raise SystemExit(
+        ".env key OBJECT_STORAGE_PUBLIC_ENDPOINT_URL must use HTTPS "
+        "when QJUDGE_PUBLIC_ORIGIN uses HTTPS"
+    )
+PY
 
 tunnel_token="$(get_env_value TUNNEL_TOKEN)"
 if [ -n "$tunnel_token" ]; then

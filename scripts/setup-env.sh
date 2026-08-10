@@ -12,7 +12,7 @@ FORCE=false
 TEMP_ENV=""
 
 usage() {
-  echo "Usage: setup-env.sh --target <cloud-vm|self-hosted> --storage <r2> --origin <http(s)://host> [--output <path>] [--force]" >&2
+  echo "Usage: setup-env.sh --target <cloud-vm|self-hosted> --storage <r2|minio> --origin <http(s)://host> [--output <path>] [--force]" >&2
 }
 
 cleanup() {
@@ -69,13 +69,9 @@ case "$TARGET" in
 esac
 
 case "$STORAGE" in
-  r2) ;;
-  minio)
-    echo "MinIO setup is not implemented yet" >&2
-    exit 2
-    ;;
+  r2|minio) ;;
   *)
-    echo "--storage must be r2" >&2
+    echo "--storage must be r2 or minio" >&2
     exit 2
     ;;
 esac
@@ -145,28 +141,64 @@ read_if_missing() {
   export "$variable_name"
 }
 
-read_if_missing OBJECT_STORAGE_ENDPOINT_URL "R2 S3 endpoint: "
-if [ -z "${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:-}" ]; then
-  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
-  export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
+if [ "$STORAGE" = r2 ]; then
+  read_if_missing OBJECT_STORAGE_ENDPOINT_URL "R2 S3 endpoint: "
+  if [ -z "${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:-}" ]; then
+    OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
+    export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
+  fi
+  read_if_missing OBJECT_STORAGE_ACCESS_KEY "R2 access key: " true
+  read_if_missing OBJECT_STORAGE_SECRET_KEY "R2 secret key: " true
+  OBJECT_STORAGE_REGION=auto
+  OBJECT_STORAGE_AUTO_CREATE_BUCKETS=false
+  OBJECT_STORAGE_OBJECT_TAGGING_ENABLED=false
+else
+  read_if_missing OBJECT_STORAGE_ENDPOINT_URL "MinIO endpoint used by QJudge containers: "
+  read_if_missing OBJECT_STORAGE_PUBLIC_ENDPOINT_URL "MinIO endpoint opened by users' browsers: "
+  read_if_missing OBJECT_STORAGE_ACCESS_KEY "MinIO access key: " true
+  read_if_missing OBJECT_STORAGE_SECRET_KEY "MinIO secret key: " true
+  OBJECT_STORAGE_REGION=us-east-1
+  OBJECT_STORAGE_AUTO_CREATE_BUCKETS=true
+  OBJECT_STORAGE_OBJECT_TAGGING_ENABLED=true
 fi
-read_if_missing OBJECT_STORAGE_ACCESS_KEY "R2 access key: " true
-read_if_missing OBJECT_STORAGE_SECRET_KEY "R2 secret key: " true
 
-case "$OBJECT_STORAGE_ENDPOINT_URL" in
-  https://*) ;;
-  *)
-    echo "R2 OBJECT_STORAGE_ENDPOINT_URL must use HTTPS" >&2
-    exit 1
-    ;;
-esac
-case "$OBJECT_STORAGE_PUBLIC_ENDPOINT_URL" in
-  https://*) ;;
-  *)
-    echo "R2 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL must use HTTPS" >&2
-    exit 1
-    ;;
-esac
+python3 - \
+  "$STORAGE" \
+  "$NORMALIZED_ORIGIN" \
+  "$OBJECT_STORAGE_ENDPOINT_URL" \
+  "$OBJECT_STORAGE_PUBLIC_ENDPOINT_URL" <<'PY'
+import sys
+from urllib.parse import urlsplit
+
+storage, origin_value, endpoint_value, public_endpoint_value = sys.argv[1:]
+
+
+def parse_endpoint(label: str, value: str):
+    try:
+        parsed = urlsplit(value.strip())
+        parsed.port
+    except ValueError as exc:
+        raise SystemExit(f"{label} is not a valid URL") from exc
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+        raise SystemExit(f"{label} must use HTTP or HTTPS and include a host")
+    if parsed.username is not None or parsed.password is not None:
+        raise SystemExit(f"{label} must not include user information")
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise SystemExit(f"{label} must not include a path, query, or fragment")
+    return parsed
+
+
+origin = urlsplit(origin_value)
+endpoint = parse_endpoint("object storage endpoint", endpoint_value)
+public_endpoint = parse_endpoint("object storage public endpoint", public_endpoint_value)
+
+if storage == "r2" and (
+    endpoint.scheme.lower() != "https" or public_endpoint.scheme.lower() != "https"
+):
+    raise SystemExit("R2 endpoints must use HTTPS")
+if origin.scheme.lower() == "https" and public_endpoint.scheme.lower() != "https":
+    raise SystemExit("object storage public endpoint must use HTTPS when QJudge uses HTTPS")
+PY
 
 require_pair() {
   local label="$1"
@@ -259,6 +291,9 @@ chmod 600 "$TEMP_ENV"
   printf 'OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=%s\n' "$OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"
   printf 'OBJECT_STORAGE_ACCESS_KEY=%s\n' "$OBJECT_STORAGE_ACCESS_KEY"
   printf 'OBJECT_STORAGE_SECRET_KEY=%s\n' "$OBJECT_STORAGE_SECRET_KEY"
+  printf 'OBJECT_STORAGE_REGION=%s\n' "$OBJECT_STORAGE_REGION"
+  printf 'OBJECT_STORAGE_AUTO_CREATE_BUCKETS=%s\n' "$OBJECT_STORAGE_AUTO_CREATE_BUCKETS"
+  printf 'OBJECT_STORAGE_OBJECT_TAGGING_ENABLED=%s\n' "$OBJECT_STORAGE_OBJECT_TAGGING_ENABLED"
   printf 'HOST_PROJECT_ROOT=%s\n' "$REPOSITORY_ROOT"
   printf 'DOCKER_GID=%s\n' "$DOCKER_GID"
   printf 'DOCKER_SOCKET_UID=%s\n' "$DOCKER_SOCKET_UID"

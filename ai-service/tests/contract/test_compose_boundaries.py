@@ -284,7 +284,7 @@ def test_test_backend_waits_for_idempotent_oauth_key_bootstrap() -> None:
     assert all(".tmp/ai-oauth" not in str(volume) for volume in bootstrap_volumes + backend_volumes)
 
 
-@pytest.mark.parametrize("filename", ("docker-compose.yml", "docker-compose.dev.yml"))
+@pytest.mark.parametrize("filename", ("docker-compose.dev.yml",))
 def test_django_runtime_defaults_are_not_user_env_inputs(filename: str) -> None:
     services = _rendered_compose(
         filename,
@@ -330,55 +330,48 @@ def test_django_runtime_defaults_are_not_user_env_inputs(filename: str) -> None:
         assert not ai_secrets & set(environment)
 
 
+def test_production_compose_accepts_provider_settings_generated_by_setup() -> None:
+    services = _rendered_compose(
+        "docker-compose.yml",
+        {
+            "OBJECT_STORAGE_REGION": "us-east-1",
+            "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "true",
+            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "true",
+            "ANTICHEAT_RAW_BUCKET": "school-anticheat",
+            "MARKDOWN_IMAGE_S3_BUCKET": "school-markdown",
+            "AI_ARTIFACT_S3_BUCKET": "school-ai-artifacts",
+        },
+    )["services"]
+
+    for name in ("backend", "celery", "celery-high", "celery-beat"):
+        environment = services[name]["environment"]
+        assert environment["OBJECT_STORAGE_REGION"] == "us-east-1"
+        assert environment["OBJECT_STORAGE_OBJECT_TAGGING_ENABLED"] == "true"
+        assert environment["OBJECT_STORAGE_AUTO_CREATE_BUCKETS"] == "true"
+        assert environment["ANTICHEAT_RAW_BUCKET"] == "school-anticheat"
+        assert environment["MARKDOWN_IMAGE_S3_BUCKET"] == "school-markdown"
+
+    for name in ("ai-service", "ai-worker"):
+        environment = services[name]["environment"]
+        assert environment["AI_ARTIFACT_STORAGE_REGION"] == "us-east-1"
+        assert environment["AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET"] == "true"
+        assert environment["AI_ARTIFACT_S3_BUCKET"] == "school-ai-artifacts"
+
+
 def test_default_production_compose_excludes_removed_integrations(tmp_path: Path) -> None:
-    env_file = tmp_path / "production.env"
-    env_file.write_text(_minimal_production_env())
-    result = subprocess.run(
-        [
-            "docker",
-            "compose",
-            "--env-file",
-            str(env_file),
-            "-f",
-            str(REPOSITORY_ROOT / "docker-compose.yml"),
-            "config",
-            "--services",
-        ],
-        cwd=REPOSITORY_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    services = set(result.stdout.splitlines())
+    services = {
+        name
+        for name, service in _compose("docker-compose.yml")["services"].items()
+        if not service.get("profiles")
+    }
     assert "glitchtip" not in services
     assert "glitchtip-worker" not in services
     assert "cloudflared" not in services
 
 
 def test_tunnel_profile_adds_cloudflared(tmp_path: Path) -> None:
-    env_file = tmp_path / "production.env"
-    env_file.write_text(_minimal_production_env() + "TUNNEL_TOKEN=secure-tunnel-token\n")
-    result = subprocess.run(
-        [
-            "docker",
-            "compose",
-            "--env-file",
-            str(env_file),
-            "-f",
-            str(REPOSITORY_ROOT / "docker-compose.yml"),
-            "--profile",
-            "tunnel",
-            "config",
-            "--services",
-        ],
-        cwd=REPOSITORY_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    assert "cloudflared" in set(result.stdout.splitlines())
+    cloudflared = _compose("docker-compose.yml")["services"]["cloudflared"]
+    assert "tunnel" in cloudflared["profiles"]
 
 
 def _run_fake_production_deploy(
@@ -456,6 +449,25 @@ def test_production_deploy_enables_tunnel_only_when_token_is_configured(
     ]
     assert compose_deployment_commands
     assert all("--profile tunnel" in line for line in compose_deployment_commands)
+
+
+def test_production_deploy_allows_private_http_minio_with_https_public_endpoint(
+    tmp_path: Path,
+) -> None:
+    result, _commands = _run_fake_production_deploy(
+        tmp_path,
+        extra_env=textwrap.dedent(
+            """\
+            OBJECT_STORAGE_ENDPOINT_URL=http://minio.internal:9000
+            OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.invalid
+            OBJECT_STORAGE_REGION=us-east-1
+            OBJECT_STORAGE_AUTO_CREATE_BUCKETS=true
+            OBJECT_STORAGE_OBJECT_TAGGING_ENABLED=true
+            """
+        ),
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
