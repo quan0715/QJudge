@@ -17,7 +17,7 @@
 3. 確認帳號與信箱都正確，再按「直接開通教師」。
 4. 系統會再次顯示原角色與新角色。確認對象無誤後按「確認」。
 
-![將王老師的角色由學生變更為教師的確認視窗](../images/admin-getting-started/teacher-role-confirmation.png)
+![將王老師的角色由學生變更為教師的確認視窗](/docs/images/admin-getting-started/teacher-role-confirmation.png)
 
 圖：角色變更前的最後確認。成為教師後，該帳號就能建立教室並使用教師端管理功能。
 
