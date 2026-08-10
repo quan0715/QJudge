@@ -17,6 +17,9 @@
     "back": "返回",
     "items": {
       "admin-overview": "管理員功能總覽",
+      "admin-account": "建立管理員帳號",
+      "classroom-roster": "管理學生名冊",
+      "classroom-setup": "建立教室",
       "classroom-management": "教室管理",
       "common-errors": "常見錯誤",
       "contest-extension-architecture": "Contest 擴充架構指南",
@@ -32,6 +35,8 @@
       "exam-grading": "考試批改與成績發布",
       "exam-precheck-anticheat": "Exam Pre-check 與防弊時序",
       "exam-proctoring": "監考與人工介入處理",
+      "exam-preparation": "準備考試",
+      "exam-review": "確認考試內容",
       "exam-statistics": "考試作答統計與檢視",
       "identity-auth-extension": "身份模組維護與擴充",
       "judge-system": "評測系統說明",
@@ -48,7 +53,8 @@
       "teacher-exam-workflow": "正式考試導入流程",
       "teacher-first-class-setup": "第一堂課前設定",
       "teacher-grading-feedback": "批改、統計與回饋",
-      "teacher-overview": "教師功能總覽"
+      "teacher-overview": "教師功能總覽",
+      "teacher-qualification": "管理教師資格"
     },
     "lastUpdated": "前次更新",
     "onThisPage": "在此頁面",
@@ -59,6 +65,7 @@
       "deployment": "架設與部署",
       "developer-guide": "開發者指南",
       "getting-started": "快速開始",
+      "first-exam": "準備第一場考試",
       "reference": "參考資料",
       "teacher-guide": "教師指南",
       "user-guide": "使用指南"
@@ -70,7 +77,7 @@
   },
   "quickLinks": {
     "admin": {
-      "description": "管理使用者、權限設定與系統配置",
+      "description": "建立站台管理員，確認並開通教師資格",
       "tag": "管理員",
       "title": "系統管理"
     },
@@ -90,9 +97,9 @@
       "title": "解決程式題目"
     },
     "teacher": {
-      "description": "建立競賽、管理題目、查看學生成績與統計",
+      "description": "建立教室與學生名冊，準備第一場考試",
       "tag": "教師",
-      "title": "建立與管理競賽"
+      "title": "準備課程與考試"
     }
   },
   "search": {

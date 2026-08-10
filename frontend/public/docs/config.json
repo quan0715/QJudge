@@ -14,6 +14,17 @@
       ]
     },
     {
+      "id": "first-exam",
+      "items": [
+        "admin-account",
+        "teacher-qualification",
+        "classroom-setup",
+        "classroom-roster",
+        "exam-preparation",
+        "exam-review"
+      ]
+    },
+    {
       "id": "user-guide",
       "items": ["submission", "contests", "student-exam-guide", "judge-system"]
     },
@@ -24,13 +35,10 @@
     {
       "id": "teacher-guide",
       "items": [
-        "teacher-overview",
         "teacher-adoption-overview",
-        "teacher-first-class-setup",
         "teacher-assignment-workflow",
         "teacher-exam-workflow",
         "teacher-grading-feedback",
-        "create-exam",
         "exam-grading",
         "exam-statistics",
         "exam-proctoring",
@@ -39,7 +47,7 @@
     },
     {
       "id": "admin-guide",
-      "items": ["admin-overview", "identity-auth-extension"]
+      "items": ["identity-auth-extension"]
     }
   ],
   "defaultDoc": "overview"

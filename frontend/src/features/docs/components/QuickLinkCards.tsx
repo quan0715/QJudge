@@ -34,13 +34,13 @@ const quickLinks: QuickLink[] = [
     id: "teacher",
     icon: UserAdmin,
     tagType: "purple",
-    links: ["teacher-overview"],
+    links: ["classroom-setup", "exam-preparation"],
   },
   {
     id: "admin",
     icon: Settings,
     tagType: "magenta",
-    links: ["admin-overview"],
+    links: ["admin-account", "teacher-qualification"],
   },
   {
     id: "developer",
