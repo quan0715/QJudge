@@ -3,7 +3,6 @@ import type {
   QuestionBank,
   BankQuestion,
   QuestionInboxSummary,
-  ExploreBankItem,
   BankCategory,
 } from "@/core/entities/question-bank.entity";
 import {
@@ -29,10 +28,9 @@ export const getBank = async (bankId: string): Promise<QuestionBank> => {
   return mapQuestionBankDto(responseData);
 };
 
-export const getQuestionBanks = async (scope?: string): Promise<QuestionBank[]> => {
-  const query = scope ? `?scope=${scope}` : "";
+export const getQuestionBanks = async (): Promise<QuestionBank[]> => {
   const data = await requestJson<{ results?: QuestionBankDto[] } | QuestionBankDto[]>(
-    httpClient.get(`/api/v1/question-banks/${query}`),
+    httpClient.get("/api/v1/question-banks/"),
     "Failed to fetch question banks"
   );
   const results = Array.isArray(data) ? data : data.results || [];
@@ -40,19 +38,7 @@ export const getQuestionBanks = async (scope?: string): Promise<QuestionBank[]> 
 };
 
 export const listMine = async (): Promise<QuestionBank[]> => {
-  return getQuestionBanks("mine");
-};
-
-export const listExplore = async (): Promise<ExploreBankItem[]> => {
-  const data = await requestJson<{ results?: QuestionBankDto[] } | QuestionBankDto[]>(
-    httpClient.get(`/api/v1/question-banks/explore/`),
-    "Failed to fetch explore banks"
-  );
-  const results = Array.isArray(data) ? data : data.results || [];
-  return results.map((dto) => ({
-    ...mapQuestionBankDto(dto),
-    source: "platform",
-  }));
+  return getQuestionBanks();
 };
 
 export const create = async (payload: any): Promise<QuestionBank> => {
@@ -82,29 +68,6 @@ export const uploadCover = async (id: string, file: File): Promise<string> => {
     "Failed to upload cover"
   );
   return data.cover_url;
-};
-
-export const submitForReview = async (id: string): Promise<QuestionBank> => {
-  const responseData = await requestJson<QuestionBankDto>(
-    httpClient.post(`/api/v1/question-banks/${id}/submit-for-review/`),
-    "Failed to submit for review"
-  );
-  return mapQuestionBankDto(responseData);
-};
-
-export const review = async (
-  id: string,
-  payload: { decision: "approve" | "reject"; note?: string }
-): Promise<QuestionBank> => {
-  const responseData = await requestJson<QuestionBankDto>(
-    httpClient.post(`/api/v1/question-banks/${id}/review/`, payload),
-    "Failed to review bank"
-  );
-  return mapQuestionBankDto(responseData);
-};
-
-export const listReviewQueue = async (): Promise<QuestionBank[]> => {
-  return getQuestionBanks("review-queue");
 };
 
 export const deleteBank = async (id: string): Promise<void> => {
@@ -189,29 +152,6 @@ export const ingestInbox = async (params: {
   );
 };
 
-// Subscriptions
-export const subscribe = async (bankId: string): Promise<void> => {
-  await requestJson(
-    httpClient.post(`/api/v1/question-banks/${bankId}/subscribe/`),
-    "Failed to subscribe"
-  );
-};
-
-export const unsubscribe = async (bankId: string): Promise<void> => {
-  await requestJson(
-    httpClient.delete(`/api/v1/question-banks/${bankId}/subscribe/`),
-    "Failed to unsubscribe"
-  );
-};
-
-export const listSubscribed = async (): Promise<QuestionBank[]> => {
-  const responseData = await requestJson<{ results: QuestionBankDto[] }>(
-    httpClient.get("/api/v1/question-banks/subscribed/"),
-    "Failed to list subscribed banks"
-  );
-  return responseData.results.map(mapQuestionBankDto);
-};
-
 // ============================================================================
 // Repository Export
 // ============================================================================
@@ -219,13 +159,9 @@ export const listSubscribed = async (): Promise<QuestionBank[]> => {
 export const questionBankRepository = {
   getBank,
   listMine,
-  listExplore,
   create,
   update,
   uploadCover,
-  submitForReview,
-  review,
-  listReviewQueue,
   delete: deleteBank,
   listQuestions,
   createQuestion,
@@ -234,9 +170,6 @@ export const questionBankRepository = {
   clone,
   listInbox,
   ingestInbox,
-  subscribe,
-  unsubscribe,
-  listSubscribed,
 };
 
 export default questionBankRepository;

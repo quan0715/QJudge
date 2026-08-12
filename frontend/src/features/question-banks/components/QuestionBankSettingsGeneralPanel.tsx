@@ -1,16 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TextInput, TextArea, Select, SelectItem, Button, Tag as CarbonTag } from "@carbon/react";
-import type { BankVisibility, QuestionBank } from "@/core/entities/question-bank.entity";
+import { TextInput, TextArea } from "@carbon/react";
+import type { QuestionBank } from "@/core/entities/question-bank.entity";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
 import { ImageEditDialog } from "@/shared/ui/image";
 import { PRESET_COVER_IMAGES } from "@/shared/ui/image/presetCoverImages";
-import {
-  update as updateQuestionBank,
-  uploadCover,
-  submitForReview,
-} from "@/infrastructure/api/repositories/questionBank.repository";
+import { update as updateQuestionBank, uploadCover } from "@/infrastructure/api/repositories/questionBank.repository";
 import { CLASSROOM_ICON_OPTIONS } from "@/features/classroom/constants/classroomIcons";
 
 const AUTO_SAVE_DELAY = 800;
@@ -29,24 +25,18 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
   const [settingName, setSettingName] = useState(bank.name);
   const [settingDescription, setSettingDescription] = useState(bank.description ?? "");
   const [settingIcon, setSettingIcon] = useState(bank.icon ?? "");
-  const [settingVisibility, setSettingVisibility] = useState<BankVisibility>(
-    (bank.visibility as BankVisibility) ?? "private",
-  );
   const [coverPreview, setCoverPreview] = useState(bank.coverUrl ?? "");
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   const latestRef = useRef({
     name: settingName,
     description: settingDescription,
     icon: settingIcon,
-    visibility: settingVisibility,
   });
   latestRef.current = {
     name: settingName,
     description: settingDescription,
     icon: settingIcon,
-    visibility: settingVisibility,
   };
 
   const savingRef = useRef(false);
@@ -56,25 +46,23 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
     setSettingName(bank.name);
     setSettingDescription(bank.description ?? "");
     setSettingIcon(bank.icon ?? "");
-    setSettingVisibility((bank.visibility as BankVisibility) ?? "private");
     setCoverPreview(bank.coverUrl ?? "");
-  }, [bank.name, bank.description, bank.icon, bank.visibility, bank.coverUrl]);
+  }, [bank.name, bank.description, bank.icon, bank.coverUrl]);
 
   const saveFields = useCallback(async () => {
     if (savingRef.current) return;
-    const { name, description, icon, visibility } = latestRef.current;
+    const { name, description, icon } = latestRef.current;
     if (
       name === bank.name &&
       description === (bank.description ?? "") &&
-      icon === (bank.icon ?? "") &&
-      visibility === ((bank.visibility as BankVisibility) ?? "private")
+      icon === (bank.icon ?? "")
     )
       return;
     if (!name.trim()) return;
 
     savingRef.current = true;
     try {
-      await updateQuestionBank(bank.id, { name, description, icon, visibility });
+      await updateQuestionBank(bank.id, { name, description, icon });
       await onRefresh();
     } catch (error) {
       showToast({
@@ -85,7 +73,7 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
     } finally {
       savingRef.current = false;
     }
-  }, [bank.id, bank.name, bank.description, bank.icon, bank.visibility, onRefresh, showToast, t]);
+  }, [bank.id, bank.name, bank.description, bank.icon, onRefresh, showToast, t]);
 
   const scheduleSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -117,13 +105,6 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
   const handleIconChange = (key: string) => {
     setSettingIcon(key);
     latestRef.current = { ...latestRef.current, icon: key };
-    if (timerRef.current) clearTimeout(timerRef.current);
-    void saveFields();
-  };
-
-  const handleVisibilityChange = (value: string) => {
-    setSettingVisibility(value as BankVisibility);
-    latestRef.current = { ...latestRef.current, visibility: value as BankVisibility };
     if (timerRef.current) clearTimeout(timerRef.current);
     void saveFields();
   };
@@ -190,27 +171,6 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
         title: t("message.error"),
         subtitle: error instanceof Error ? error.message : undefined,
       });
-    }
-  };
-
-  const handleSubmitForReview = async () => {
-    setSubmitting(true);
-    try {
-      await submitForReview(bank.id);
-      await onRefresh();
-      showToast({
-        kind: "success",
-        title: t("message.success"),
-        subtitle: t("questionBank.submitForReviewSuccess", "已提交審核申請"),
-      });
-    } catch (err: any) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: err?.message || t("message.error"),
-      });
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -295,21 +255,6 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
             onRemove={coverPreview ? handleRemoveCover : undefined}
           />
         </FieldRow>
-        <FieldRow
-          label={t("questionBank.visibility", "可見性")}
-          description={t("questionBank.visibilityDesc", "公開題庫可被所有人瀏覽")}
-        >
-          <Select
-            id="bank-visibility-setting"
-            labelText=""
-            hideLabel
-            value={settingVisibility}
-            onChange={(e) => handleVisibilityChange(e.currentTarget.value)}
-          >
-            <SelectItem value="private" text={t("questionBank.tagPrivate", "私人")} />
-            <SelectItem value="public" text={t("questionBank.tagPublic", "公開")} />
-          </Select>
-        </FieldRow>
       </Section>
 
       <Section title={t("questionBank.otherInfo", "其他資訊")}>
@@ -323,52 +268,6 @@ export const QuestionBankSettingsGeneralPanel: React.FC<
         <ActionRow label={t("questionBank.createdAt", "建立時間")}>
           <span>{bank.createdAt ? new Date(bank.createdAt).toLocaleString() : "—"}</span>
         </ActionRow>
-      </Section>
-
-      <Section title={t("questionBank.marketplace", "Marketplace")}>
-        <ActionRow label={t("questionBank.reviewStatusLabel", "上架狀態")}>
-          {bank.reviewStatus === "draft" && (
-            <Button
-              kind="primary"
-              size="sm"
-              disabled={submitting || bank.questionCount === 0}
-              onClick={handleSubmitForReview}
-            >
-              {t("questionBank.applyToMarketplace", "申請上架")}
-            </Button>
-          )}
-          {bank.reviewStatus === "rejected" && (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <CarbonTag type="red">{t("questionBank.rejected", "已被退回")}</CarbonTag>
-              <Button
-                kind="primary"
-                size="sm"
-                disabled={submitting || bank.questionCount === 0}
-                onClick={handleSubmitForReview}
-              >
-                {t("questionBank.reapply", "重新申請")}
-              </Button>
-            </div>
-          )}
-          {bank.reviewStatus === "pending" && (
-            <CarbonTag type="blue">{t("questionBank.pendingReview", "審核中")}</CarbonTag>
-          )}
-          {bank.reviewStatus === "approved" && (
-            <CarbonTag type="green">{t("questionBank.published", "已上架")}</CarbonTag>
-          )}
-        </ActionRow>
-        {bank.reviewNote && (
-          <ActionRow label={t("questionBank.reviewNoteLabel", "審核備註")}>
-            <span>{bank.reviewNote}</span>
-          </ActionRow>
-        )}
-        {bank.reviewStatus === "draft" && bank.questionCount === 0 && (
-          <ActionRow label="">
-            <span style={{ color: "var(--cds-text-secondary)", fontSize: "0.875rem" }}>
-              {t("questionBank.needQuestionsToApply", "至少需要 1 題才能申請上架")}
-            </span>
-          </ActionRow>
-        )}
       </Section>
     </>
   );

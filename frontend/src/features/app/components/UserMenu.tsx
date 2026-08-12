@@ -13,7 +13,6 @@ import {
   Settings,
   UserMultiple,
   Bullhorn,
-  Microscope,
   DocumentBlank,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
@@ -276,18 +275,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               >
                 <UserMultiple size={16} />
                 {t("header.userManagement", "用戶管理")}
-              </button>
-              <button
-                type="button"
-                className="user-menu-link"
-                onClick={() => {
-                  navigate("/system/review-queue");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <Microscope size={16} />
-                {t("header.reviewQueue", "送審佇列")}
               </button>
               <button
                 type="button"

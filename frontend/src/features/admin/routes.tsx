@@ -3,7 +3,6 @@ import { Route } from "react-router";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
 const AnnouncementManagementScreen = lazy(() => import("./screens/AnnouncementManagementScreen"));
-const ReviewQueueScreen = lazy(() => import("./screens/ReviewQueueScreen"));
 const UserManagementScreen = lazy(() => import("./screens/UserManagementScreen"));
 const DraftProblemsScreen = lazy(() => import("./screens/DraftProblemsScreen"));
 
@@ -33,14 +32,6 @@ export const adminRoutes = (
       element={
         <RouteLoadingBoundary>
           <AnnouncementManagementScreen />
-        </RouteLoadingBoundary>
-      }
-    />
-    <Route
-      path="/system/review-queue"
-      element={
-        <RouteLoadingBoundary>
-          <ReviewQueueScreen />
         </RouteLoadingBoundary>
       }
     />

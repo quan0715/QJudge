@@ -13,9 +13,6 @@ const bank: QuestionBank = {
   name: "Bank",
   description: "",
   category: "exam",
-  visibility: "private",
-  verified: true,
-  reviewStatus: "approved",
   ownerUsername: "QJudge Community",
   questionCount: 2,
 };
@@ -80,7 +77,6 @@ describe("questionBankProblemManagement.utils", () => {
     const meta = buildQuestionPreviewMeta(questions[0], bank);
     expect(meta.providerName).toBe("QJudge Community");
     expect(meta.downloadCount).toBe(3200);
-    expect(meta.isVerified).toBe(true);
     expect(formatDownloadCount(meta.downloadCount)).toBe("3.2k");
   });
 

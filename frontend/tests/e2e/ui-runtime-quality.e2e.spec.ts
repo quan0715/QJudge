@@ -13,8 +13,13 @@ const publicRoutes = [
   "/register",
   "/docs",
   "/changelog",
-  "/pricing",
 ] as const;
+
+const retiredRoutes = [
+  { role: "teacher" as const, route: "/marketplace" },
+  { role: "teacher" as const, route: "/pricing" },
+  { role: "admin" as const, route: "/system/review-queue" },
+];
 
 const profiles: RuntimeProfile[] = [
   {
@@ -40,16 +45,10 @@ const protectedRoutes: Array<{
   route: string;
 }> = [
   { role: "student", route: "/dashboard" },
-  { role: "teacher", route: "/marketplace" },
   { role: "teacher", route: "/drafts" },
   { role: "teacher", route: "/chat" },
   { role: "admin", route: "/system/users" },
   { role: "admin", route: "/management/announcements" },
-  {
-    expectedHeading: /送審佇列|review queue/i,
-    role: "admin",
-    route: "/system/review-queue",
-  },
 ];
 
 async function collectRuntimeErrors(page: Page) {
@@ -221,22 +220,19 @@ for (const profile of profiles) {
   });
 }
 
-test("admin menu opens the review queue on a browser-safe frontend path", async ({
-  page,
-}) => {
-  await loginViaAPI(page, "admin");
-  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-
-  await page.getByTestId("user-menu-toggle-btn").click();
-  await page.getByRole("button", { name: /送審佇列|review queue/i }).click();
-
-  await expect(page).toHaveURL(/\/system\/review-queue$/);
-});
+for (const { role, route } of retiredRoutes) {
+  test(`${route} uses the existing not-found page`, async ({ page }) => {
+    await loginViaAPI(page, role);
+    await page.goto(route, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("404", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "頁面不存在" })).toBeVisible();
+  });
+}
 
 test("closed user menu stays out of the keyboard order", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await loginViaAPI(page, "admin");
-  await page.goto("/system/review-queue", { waitUntil: "domcontentloaded" });
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
 
   const toggle = page.getByTestId("user-menu-toggle-btn");
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -281,7 +277,7 @@ test("teacher Copilot APIs stay idle until a Copilot surface is requested", asyn
     }
   });
 
-  await page.goto("/marketplace", { waitUntil: "domcontentloaded" });
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(500);
   expect(aiRequests).toEqual([]);
 

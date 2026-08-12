@@ -35,7 +35,6 @@ export const CreateBankModal = ({ open, onClose, onCreated }: CreateBankModalPro
         name: name.trim(),
         description: description.trim(),
         category,
-        visibility: "private",
       });
       reset();
       onCreated(bank);

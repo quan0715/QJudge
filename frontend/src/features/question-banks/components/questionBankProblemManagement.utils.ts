@@ -18,7 +18,6 @@ export interface QuestionFilterState {
 export interface QuestionPreviewMeta {
   providerName: string;
   downloadCount: number;
-  isVerified: boolean;
   difficulty: string;
   tags: string[];
   passRate: number | null;
@@ -125,7 +124,6 @@ export const buildQuestionPreviewMeta = (
   return {
     providerName: bank.ownerUsername || "QJudge Community",
     downloadCount: Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
-    isVerified: Boolean(bank.verified),
     difficulty: normalizedDifficulty,
     tags: extractQuestionTags(question),
     passRate: toPassRate(passRateCandidate),

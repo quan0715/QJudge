@@ -4,7 +4,6 @@ import {
   Dashboard,
   Education,
   Checkmark,
-  Globe,
   Chat as ChatIcon,
   AiLabel,
   Bullhorn,
@@ -439,18 +438,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                         <span>{t("nav.chat", "Chat")}</span>
                       </button>
                     )}
-                    {isTeacherOrAdmin && (
-                      <button
-                        type="button"
-                        title={t("nav.marketplace", "Marketplace")}
-                        aria-label={t("nav.marketplace", "Marketplace")}
-                        className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                        onClick={() => go("/marketplace")}
-                      >
-                        <Globe size={16} />
-                        <span>{t("nav.marketplace", "Marketplace")}</span>
-                      </button>
-                    )}
                   </div>
                   <div className="side-menu__divider" />
                   <div className="side-menu__section">
@@ -523,18 +510,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                       >
                         <ChatIcon size={16} />
                         <span>{t("nav.chat", "Chat")}</span>
-                      </button>
-                    )}
-                    {isTeacherOrAdmin && (
-                      <button
-                        type="button"
-                        title={t("nav.marketplace", "Marketplace")}
-                        aria-label={t("nav.marketplace", "Marketplace")}
-                        className={`side-menu__link${isActive("/marketplace") ? " side-menu__link--active" : ""}`}
-                        onClick={() => go("/marketplace")}
-                      >
-                        <Globe size={16} />
-                        <span>{t("nav.marketplace", "Marketplace")}</span>
                       </button>
                     )}
                   </div>

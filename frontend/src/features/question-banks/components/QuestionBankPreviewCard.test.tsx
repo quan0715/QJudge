@@ -16,9 +16,6 @@ const bank: QuestionBank = {
   icon: "",
   coverUrl: "",
   category: "exam",
-  visibility: "private",
-  verified: true,
-  reviewStatus: "approved",
   ownerUsername: "QJudge",
   questionCount: 1,
 };

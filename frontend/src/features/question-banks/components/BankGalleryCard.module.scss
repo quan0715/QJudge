@@ -25,9 +25,7 @@
   padding: var(--cds-spacing-05);
   position: relative;
   color: #fff;
-  background-image:
-    linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 65%),
-    url("../screens/community-cover.jpg");
+  background: var(--cds-background-brand);
   background-size: cover;
   background-position: center 40%;
 }
@@ -77,11 +75,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--cds-spacing-02);
-}
-
-.verifiedIcon {
-  color: #0f62fe;
-  flex-shrink: 0;
 }
 
 .meta {

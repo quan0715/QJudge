@@ -48,16 +48,8 @@ import { changelogRoutes } from "@/features/changelog/routes";
 import { errorRoutes, fallbackRoute } from "@/features/app/routes";
 import { adminRoutes, draftProblemsRoute } from "@/features/admin/routes";
 import { landingRoute } from "@/features/landing/routes";
-import {
-  checkoutSuccessRoute,
-  pricingRoute,
-} from "@/features/pricing/routes";
-import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
 import { classroomDetailRoute } from "@/features/classroom/routes";
-import {
-  questionBankMarketplaceRoute,
-  questionBankDetailRoute,
-} from "@/features/question-banks/routes";
+import { questionBankDetailRoute } from "@/features/question-banks/routes";
 
 const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
 
@@ -107,7 +99,6 @@ function App() {
                   <AuthProvider>
                     <UserPreferencesHydrator />
                     <SettingsDialogProvider>
-                    <RecurProviderBridge>
                     <BrowserRouter>
                       <WorkspaceProvider>
                       <QJudgeCopilotProvider>
@@ -137,10 +128,6 @@ function App() {
 
                         {/* Public Landing Page */}
                         {landingRoute}
-                        {pricingRoute}
-
-                        {/* Public Checkout Success */}
-                        {checkoutSuccessRoute}
 
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>
@@ -182,7 +169,6 @@ function App() {
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
-                              {questionBankMarketplaceRoute}
                               {questionBankDetailRoute}
                               {draftProblemsRoute}
                               {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
@@ -223,7 +209,6 @@ function App() {
                       </WorkspaceProvider>
                     </BrowserRouter>
                     <SettingsDialogHost />
-                    </RecurProviderBridge>
                     </SettingsDialogProvider>
                   </AuthProvider>
                 </MarkdownImageUploadProvider>

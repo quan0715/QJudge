@@ -1,9 +1,7 @@
 import type {
   BankQuestion,
-  ExploreBankItem,
   QuestionBank,
   BankCategory,
-  BankVisibility,
   QuestionInboxSummary,
   QuestionInboxSourceType,
 } from "@/core/entities/question-bank.entity";
@@ -12,8 +10,6 @@ export interface CreateQuestionBankPayload {
   name: string;
   description?: string;
   category: BankCategory;
-  visibility?: BankVisibility;
-  verified?: boolean;
 }
 
 export interface UpdateQuestionBankPayload {
@@ -21,7 +17,6 @@ export interface UpdateQuestionBankPayload {
   description?: string;
   icon?: string;
   cover_url?: string;
-  visibility?: BankVisibility;
 }
 
 export interface UpsertBankQuestionPayload {
@@ -48,16 +43,9 @@ export interface UpsertBankQuestionPayload {
 export interface IQuestionBankRepository {
   getBank(bankId: string): Promise<QuestionBank>;
   listMine(): Promise<QuestionBank[]>;
-  listExplore(): Promise<ExploreBankItem[]>;
   create(payload: CreateQuestionBankPayload): Promise<QuestionBank>;
   update(id: string, payload: UpdateQuestionBankPayload): Promise<QuestionBank>;
   uploadCover(id: string, file: File): Promise<string>;
-  submitForReview(id: string): Promise<QuestionBank>;
-  review(
-    id: string,
-    payload: { decision: "approve" | "reject"; note?: string }
-  ): Promise<QuestionBank>;
-  listReviewQueue(): Promise<QuestionBank[]>;
   delete(id: string): Promise<void>;
   listQuestions(bankId: string): Promise<BankQuestion[]>;
   createQuestion(bankId: string, payload: UpsertBankQuestionPayload): Promise<BankQuestion>;

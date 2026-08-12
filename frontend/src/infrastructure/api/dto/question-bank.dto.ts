@@ -1,4 +1,4 @@
-import type { BankCategory, BankVisibility, BankReviewStatus, QuestionInboxSourceType } from "@/core/entities/question-bank.entity";
+import type { BankCategory, QuestionInboxSourceType } from "@/core/entities/question-bank.entity";
 
 export interface CodingQuestionExtDto {
   translations?: Array<{
@@ -59,16 +59,8 @@ export interface QuestionBankDto {
   icon?: string;
   cover_url?: string;
   category: BankCategory;
-  visibility: BankVisibility;
-  verified?: boolean;
-  review_status: BankReviewStatus;
-  review_note?: string;
-  submitted_at?: string;
-  reviewed_at?: string;
-  reviewed_by_username?: string;
   owner_username?: string;
   question_count?: number;
-  is_subscribed?: boolean;
   created_at?: string;
   updated_at?: string;
 }
