@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.classrooms.models import Classroom, ClassroomContest
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
 from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.users.models import User
@@ -142,6 +142,11 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             name="Config Room",
             owner=self.owner,
             invite_code="CFGROOM1",
+        )
+        ClassroomMember.objects.create(
+            classroom=classroom,
+            user=self.student,
+            role="student",
         )
         ClassroomContest.objects.create(classroom=classroom, contest=self.contest)
 

@@ -56,6 +56,6 @@ describe("contest repository integration", () => {
     expect(detail.id).toBe(contestId);
     expect(detail.name).toBe(TEST_CONTESTS.active.name);
     expect(Array.isArray(detail.problems)).toBe(true);
-    expect(detail.visibility).toBeDefined();
+    expect("visibility" in detail).toBe(false);
   });
 });

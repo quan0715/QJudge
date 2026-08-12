@@ -49,7 +49,6 @@ def contest(teacher: User) -> Contest:
         name="Participant State Contest",
         owner=teacher,
         status="published",
-        visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
         cheat_detection_enabled=True,

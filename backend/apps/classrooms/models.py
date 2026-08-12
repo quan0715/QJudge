@@ -127,6 +127,12 @@ class ClassroomContest(models.Model):
 
     class Meta:
         unique_together = ['classroom', 'contest']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['contest'],
+                name='unique_classroom_binding_per_contest',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.classroom.name} ↔ {self.contest.name}'

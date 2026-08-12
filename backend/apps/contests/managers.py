@@ -27,14 +27,24 @@ class ContestQuerySet(models.QuerySet):
                     classroom_bindings__classroom__memberships__role="ta",
                 )
             )
+            unbound_manager_filter = Q(classroom_bindings__isnull=True) & (
+                Q(owner=user) | Q(admins=user)
+            )
             return self.filter(
-                Q(owner=user) | Q(admins=user) | classroom_manager_filter
+                classroom_manager_filter | unbound_manager_filter
             ).distinct()
 
         if scope == "participated":
             if not user or not user.is_authenticated:
                 return self.none()
-            queryset = self.filter(registrations__user=user).distinct()
+            classroom_relation_filter = (
+                Q(classroom_bindings__classroom__owner=user)
+                | Q(classroom_bindings__classroom__admins=user)
+                | Q(classroom_bindings__classroom__memberships__user=user)
+            )
+            queryset = self.filter(registrations__user=user).filter(
+                classroom_relation_filter | Q(classroom_bindings__isnull=True)
+            ).distinct()
             if not (user.is_staff or getattr(user, "role", "") in ["admin", "teacher"]):
                 queryset = queryset.exclude(status="draft")
             return queryset
@@ -44,16 +54,14 @@ class ContestQuerySet(models.QuerySet):
         if not user or not user.is_authenticated:
             return queryset.none()
 
-        relation_filter = (
-            Q(registrations__user=user)
-            | Q(classroom_bindings__classroom__owner=user)
+        classroom_relation_filter = (
+            Q(classroom_bindings__classroom__owner=user)
             | Q(classroom_bindings__classroom__admins=user)
             | Q(classroom_bindings__classroom__memberships__user=user)
-            | Q(owner=user)
-            | Q(admins=user)
         )
-        return (
-            queryset.filter(relation_filter)
-            .filter(visibility__in=["public", "private"])
-            .distinct()
+        unbound_relation_filter = Q(classroom_bindings__isnull=True) & (
+            Q(registrations__user=user) | Q(owner=user) | Q(admins=user)
         )
+        return queryset.filter(
+            classroom_relation_filter | unbound_relation_filter
+        ).distinct()

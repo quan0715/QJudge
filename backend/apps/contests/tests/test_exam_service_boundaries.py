@@ -45,7 +45,6 @@ def published_contest(teacher: User) -> Contest:
         name="Published Service Boundary Contest",
         owner=teacher,
         status="published",
-        visibility="public",
         start_time=now - timedelta(minutes=5),
         end_time=now + timedelta(hours=1),
         contest_type="paper_exam",
@@ -61,7 +60,6 @@ def test_validate_exam_operation_raises_drf_exceptions_instead_of_returning_resp
         name="Draft Service Boundary Contest",
         owner=teacher,
         status="draft",
-        visibility="private",
         contest_type="paper_exam",
     )
 
@@ -141,7 +139,6 @@ def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
         name="Draft View Adapter Contest",
         owner=teacher,
         status="draft",
-        visibility="private",
         contest_type="paper_exam",
     )
 

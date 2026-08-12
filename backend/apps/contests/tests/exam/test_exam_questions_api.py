@@ -115,7 +115,6 @@ def _create_exam_bank_item(
         asset_type=asset_type,
         title=prompt,
         prompt=prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": question_type,
             "options": options or ["3", "4"],
@@ -698,7 +697,6 @@ class TestImportFromQuestionBank:
             asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
             title="2+2 = ?",
             prompt="2+2 = ?",
-            visibility=QuestionAsset.Visibility.PRIVATE,
             payload={
                 "question_type": "single_choice",
                 "options": ["3", "4"],

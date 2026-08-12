@@ -22,7 +22,6 @@ class ExamStateTests(APITestCase):
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
             contest_type='paper_exam',
-            visibility='public',
             status='published',
             cheat_detection_enabled=True,
         )

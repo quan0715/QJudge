@@ -57,7 +57,6 @@ export function mapBoundContestDto(dto: BoundContestDto): BoundContest {
     contestName: dto.contest_name,
     contestDescription: dto.contest_description,
     contestStatus: dto.contest_status,
-    contestVisibility: dto.contest_visibility,
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
     contestType: dto.contest_type,
     contestStartTime: dto.contest_start_time,

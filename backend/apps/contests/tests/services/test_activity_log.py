@@ -27,7 +27,6 @@ def contest(teacher: User) -> Contest:
         name="Activity Log Contest",
         owner=teacher,
         status="published",
-        visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )

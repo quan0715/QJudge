@@ -403,7 +403,6 @@ class Command(BaseCommand):
                 "start_time": now - timedelta(hours=1),
                 "end_time": now + timedelta(hours=2),
                 "owner": teacher,
-                "visibility": "private",
                 "status": "published",
                 "contest_type": "paper_exam",
                 "cheat_detection_enabled": True,

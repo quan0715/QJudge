@@ -34,7 +34,6 @@ class ExamAnswerTestBase(APITestCase):
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.teacher,
             contest_type='paper_exam',
-            visibility='public',
             status='published',
             cheat_detection_enabled=True,
         )

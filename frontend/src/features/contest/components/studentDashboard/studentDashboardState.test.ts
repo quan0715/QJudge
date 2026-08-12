@@ -20,7 +20,6 @@ const createContest = (
     startTime: "2026-05-05T10:00:00.000Z",
     endTime: "2026-05-05T12:00:00.000Z",
     status: "published",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",

@@ -36,7 +36,6 @@ class ContestExamViewsSmokeTests(APITestCase):
             start_time=timezone.now() - timedelta(minutes=5),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type="paper_exam",
             cheat_detection_enabled=True,

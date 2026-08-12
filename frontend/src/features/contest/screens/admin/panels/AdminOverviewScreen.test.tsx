@@ -101,7 +101,6 @@ const contest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     startTime: "2026-05-03T09:00:00+08:00",
     endTime: "2026-05-03T11:00:00+08:00",
     status: "published",
-    visibility: "private",
     attendanceCheckEnabled: true,
     hasJoined: false,
     isRegistered: false,

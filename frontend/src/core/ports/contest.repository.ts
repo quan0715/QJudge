@@ -6,7 +6,6 @@ import type {
   ContestDetail,
   ContestOverviewMetrics,
   ContestStatus,
-  ContestVisibility,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
 
@@ -32,7 +31,6 @@ export interface ContestUpdatePayload {
   endTime?: string;
   status?: ContestStatus;
   resultsPublished?: boolean;
-  visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;

@@ -26,7 +26,6 @@ from ..serializers import (
 from ..permissions import (
     IsContestOwnerOrAdmin,
     IsContestLifecycleOwner,
-    IsTeacherOrAdmin,
     can_manage_contest,
 )
 from ..services.export_service import (
@@ -65,18 +64,13 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter
     ]
-    filterset_fields = ['visibility', 'owner', 'status']
+    filterset_fields = ['owner', 'status']
     search_fields = ['name']
     ordering_fields = ['start_time', 'end_time', 'created_at']
     ordering = ['-created_at']
 
-    def get_permissions(self):
-        if self.action == "create":
-            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
-        return [permission() for permission in self.permission_classes]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def create(self, request, *args, **kwargs):
+        return self._contest_requires_classroom_binding_response()
 
     def _resolve_exam_window_status(self, contest: Contest, now):
         if contest.status == "archived":
@@ -208,8 +202,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Filter contests based on visibility and user role.
-        Draft/archived contests are hidden from public listing.
+        Filter contests based on classroom/contest relationships and user role.
+        Draft/archived contests are hidden from the default listing.
         """
         queryset = super().get_queryset()
 

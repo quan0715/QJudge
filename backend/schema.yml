@@ -588,17 +588,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateSession'
           description: ''
-  /api/v1/ai/usage/:
-    get:
-      operationId: v1_ai_usage_retrieve
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/auth/callback/{provider}:
     post:
       operationId: v1_auth_callback_create
@@ -1355,17 +1344,6 @@ paths:
           * `draft` - Draft
           * `published` - Published
           * `archived` - Archived
-      - in: query
-        name: visibility
-        schema:
-          type: string
-          title: 可見性
-          enum:
-          - private
-          - public
-        description: |-
-          * `public` - Public
-          * `private` - Private
       tags:
       - v1
       security:
@@ -4526,166 +4504,6 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/management/announcements/:
-    get:
-      operationId: v1_management_announcements_list
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAnnouncementList'
-          description: ''
-    post:
-      operationId: v1_management_announcements_create
-      description: API endpoint that allows announcements to be viewed or edited.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-  /api/v1/management/announcements/{id}/:
-    get:
-      operationId: v1_management_announcements_retrieve
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    put:
-      operationId: v1_management_announcements_update
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    patch:
-      operationId: v1_management_announcements_partial_update
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    delete:
-      operationId: v1_management_announcements_destroy
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/management/problems/:
     get:
       operationId: v1_management_problems_list
@@ -5934,53 +5752,6 @@ components:
         * `other_devices_logged_out` - Other Devices Logged Out
         * `announce` - Announce
         * `other` - Other
-    Announcement:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        title:
-          type: string
-          maxLength: 255
-        content:
-          type: string
-        author:
-          allOf:
-          - $ref: '#/components/schemas/User'
-          readOnly: true
-        visible:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - author
-      - content
-      - created_at
-      - id
-      - title
-      - updated_at
-    AnnouncementRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        content:
-          type: string
-          minLength: 1
-        visible:
-          type: boolean
-      required:
-      - content
-      - title
     AttendancePhotoPolicyEnum:
       enum:
       - room
@@ -6478,10 +6249,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6560,10 +6327,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6657,10 +6420,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6840,10 +6599,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -6918,10 +6673,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7375,29 +7126,6 @@ components:
       required:
       - code
       - redirect_uri
-    PaginatedAnnouncementList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Announcement'
     PaginatedClarificationList:
       type: object
       required:
@@ -7559,18 +7287,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-    PatchedAnnouncementRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        content:
-          type: string
-          minLength: 1
-        visible:
-          type: boolean
     PatchedClarificationRequest:
       type: object
       description: Serializer for clarifications/Q&A.
@@ -7691,10 +7407,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7781,10 +7493,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -8345,8 +8053,6 @@ components:
         owner:
           type: integer
           readOnly: true
-          nullable: true
-          description: Null means platform-managed official bank.
         owner_username:
           type: string
           readOnly: true
@@ -9191,14 +8897,6 @@ components:
         * `student` - student
         * `teacher` - teacher
         * `admin` - admin
-    VisibilityEnum:
-      enum:
-      - public
-      - private
-      type: string
-      description: |-
-        * `public` - Public
-        * `private` - Private
   securitySchemes:
     cookieJwtAuth:
       type: apiKey

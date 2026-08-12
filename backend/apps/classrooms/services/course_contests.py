@@ -24,7 +24,6 @@ def _create_bound_contest(
     *,
     actor,
     data: dict,
-    visibility: str,
     cheat_detection_enabled: bool,
 ) -> BoundClassroomContestResult:
     with transaction.atomic():
@@ -35,7 +34,6 @@ def _create_bound_contest(
             contest_type=data["contest_type"],
             start_time=data.get("start_time"),
             end_time=data.get("end_time"),
-            visibility=visibility,
             attendance_check_enabled=data.get("attendance_check_enabled", False),
             cheat_detection_enabled=cheat_detection_enabled,
             allow_multiple_joins=data.get("allow_multiple_joins", False),
@@ -60,6 +58,5 @@ def create_classroom_contest(
         classroom,
         actor=actor,
         data=data,
-        visibility=data.get("visibility", "public"),
         cheat_detection_enabled=data.get("cheat_detection_enabled", False),
     )

@@ -44,7 +44,6 @@ def _create_coding_bank_item(
         asset_type=QuestionAsset.AssetType.CODING,
         title=title,
         prompt=prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": score,
             "order": 0,
@@ -121,10 +120,27 @@ def contest(owner: User) -> Contest:
         name="Contest View Actions",
         owner=owner,
         status="published",
-        visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )
+
+
+@pytest.mark.django_db
+def test_global_contest_create_requires_classroom_context(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(
+        "/api/v1/contests/",
+        {"name": "Unbound contest", "contest_type": "paper_exam"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
+    assert not Contest.objects.filter(name="Unbound contest").exists()
 
 
 @pytest.mark.django_db
@@ -204,7 +220,6 @@ def test_toggle_status_rejects_publish_without_schedule(
         name="Draft Without Schedule",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=owner)
 
@@ -464,7 +479,6 @@ def test_register_rejects_non_published_contest(
         name="Draft Contest For Register",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=student)
 
@@ -604,7 +618,6 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Asset Only Coding Question",
         prompt="desc",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,

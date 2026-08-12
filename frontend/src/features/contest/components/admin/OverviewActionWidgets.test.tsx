@@ -28,7 +28,6 @@ const buildContest = (
     startTime: "2026-03-16T09:00:00.000Z",
     endTime: "2026-03-16T11:00:00.000Z",
     status: "draft",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",

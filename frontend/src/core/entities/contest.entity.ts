@@ -2,7 +2,6 @@ import type { SubmissionStatus } from "./submission.entity";
 import type { Difficulty } from "./problem.entity";
 
 export type ContestStatus = "draft" | "published" | "archived";
-export type ContestVisibility = "public" | "private";
 export type ContestType = "coding" | "paper_exam";
 export type ContestScopeRole =
   | "platform_admin"
@@ -237,7 +236,6 @@ export interface Contest {
   startTime: string;
   endTime: string;
   status: ContestStatus;
-  visibility: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   organizer?: string;
@@ -592,7 +590,6 @@ export interface ContestUpdateRequest {
   startTime?: string;
   endTime?: string;
   status?: ContestStatus;
-  visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;

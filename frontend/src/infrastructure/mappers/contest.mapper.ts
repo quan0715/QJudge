@@ -68,7 +68,6 @@ export function mapContestDto(dto: ContestDto): Contest {
     startTime: dto.start_time || "",
     endTime: dto.end_time || "",
     status: dto.status || "draft",
-    visibility: dto.visibility || "public",
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
     attendancePhotoPolicy: dto.attendance_photo_policy || "room",
 
@@ -523,7 +522,6 @@ export function mapContestUpdateRequestToDto(
     start_time: request.startTime,
     end_time: request.endTime,
     status: request.status,
-    visibility: request.visibility,
     attendance_check_enabled: request.attendanceCheckEnabled,
     attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,

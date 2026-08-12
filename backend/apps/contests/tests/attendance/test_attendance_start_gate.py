@@ -25,7 +25,6 @@ def make_contest(**overrides) -> Contest:
     defaults = {
         "name": "Attendance Start Gate",
         "status": "published",
-        "visibility": "public",
         "start_time": now - timedelta(minutes=5),
         "end_time": now + timedelta(hours=1),
         "attendance_check_enabled": True,

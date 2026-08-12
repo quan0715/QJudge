@@ -42,7 +42,6 @@ def make_contest(owner: User | None = None, **overrides) -> Contest:
         "name": "Attendance Exam",
         "owner": owner,
         "status": "published",
-        "visibility": "public",
         "start_time": now - timedelta(minutes=5),
         "end_time": now + timedelta(hours=1),
         "attendance_check_enabled": True,

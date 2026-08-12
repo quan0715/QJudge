@@ -49,7 +49,6 @@ class ParticipantDashboardApiTests(APITestCase):
             start_time=timezone.now() - timedelta(minutes=30),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type=contest_type,
             cheat_detection_enabled=(contest_type == "paper_exam"),

@@ -9,7 +9,6 @@ export const createMockContest = (
   startTime: "2026-04-10T09:00:00.000Z",
   endTime: "2026-04-10T12:00:00.000Z",
   status: "published",
-  visibility: "public",
   attendanceCheckEnabled: false,
   organizer: "teacher",
   hasJoined: false,

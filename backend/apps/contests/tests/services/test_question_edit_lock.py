@@ -47,7 +47,6 @@ def contest(owner: User) -> Contest:
         name="Derived Question Lock",
         owner=owner,
         status="published",
-        visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )

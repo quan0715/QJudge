@@ -47,7 +47,6 @@ def published_exam(teacher: User) -> Contest:
         name="Anti Cheat Session Contest",
         owner=teacher,
         status="published",
-        visibility="private",
         start_time=now - timedelta(minutes=30),
         end_time=now + timedelta(minutes=30),
         contest_type="paper_exam",

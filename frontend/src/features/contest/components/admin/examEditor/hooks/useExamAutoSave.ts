@@ -38,7 +38,6 @@ const FIELD_NAME_MAP: Record<string, keyof ContestUpdatePayload> = {
   startTime: "startTime",
   endTime: "endTime",
   status: "status",
-  visibility: "visibility",
   attendanceCheckEnabled: "attendanceCheckEnabled",
   attendancePhotoPolicy: "attendancePhotoPolicy",
   cheatDetectionEnabled: "cheatDetectionEnabled",

@@ -38,17 +38,6 @@ class Contest(models.Model):
         blank=True
     )
 
-    # Visibility and access control
-    VISIBILITY_CHOICES = [
-        ('public', 'Public'),
-        ('private', 'Private'),
-    ]
-    visibility = models.CharField(
-        max_length=20,
-        choices=VISIBILITY_CHOICES,
-        default='public',
-        verbose_name='可見性'
-    )
     attendance_check_enabled = models.BooleanField(
         default=False,
         verbose_name='啟用 QR 簽到簽退',

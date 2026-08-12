@@ -2,7 +2,6 @@ import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import type {
   ContestScopeRole,
   ContestStatus,
-  ContestVisibility,
   ContestType,
   ExamStatusType,
   ExamQuestionAnswerFormat,
@@ -93,7 +92,6 @@ export interface ContestDto {
   start_time?: string;
   end_time?: string;
   status?: ContestStatus;
-  visibility?: ContestVisibility;
   attendance_check_enabled?: boolean;
   attendance_photo_policy?: "room" | "room_and_selfie";
   has_joined?: boolean;

@@ -9,7 +9,6 @@ const sampleContest = (override: Partial<Contest> = {}): Contest => ({
   startTime: new Date().toISOString(),
   endTime: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
   status: "published",
-  visibility: "public",
   hasJoined: false,
   isRegistered: false,
   organizer: "Host Team",

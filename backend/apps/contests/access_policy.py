@@ -92,13 +92,8 @@ BASE_ROLE_PERMISSIONS = {
         'view_scoreboard_limited', 'submit', 'view_own_report',
         'create_clarification',
     },
-    'outsider': {
-        'view_public_contest',
-        'view_own_report',  # passes role check; context check enforces participant status
-    },
-    'anonymous': {
-        'view_public_contest',
-    },
+    'outsider': set(),
+    'anonymous': set(),
 }
 
 # Restrictions based on contest status
@@ -115,40 +110,18 @@ STATUS_RESTRICTIONS = {
     }
 }
 
-def _get_bound_classroom(contest: Contest):
-    return (
+def get_effective_contest_scope_role(user, contest: Contest) -> str:
+    """Use classroom membership as the authority for classroom-bound contests."""
+    binding = (
         contest.classroom_bindings.select_related('classroom')
         .order_by('bound_at')
         .first()
     )
-
-
-def _get_classroom_scope_role(user, classroom) -> str:
-    if not user or not user.is_authenticated:
-        return 'anonymous'
-    if user.is_staff or user.is_superuser:
-        return 'platform_admin'
-    if classroom.owner_id == user.id:
-        return 'owner'
-    if classroom.admins.filter(pk=user.pk).exists():
-        return 'manager'
-
-    membership = classroom.memberships.filter(user=user).first()
-    if membership:
-        return 'manager' if membership.role == 'ta' else 'student'
-    return 'outsider'
-
-
-def get_effective_contest_scope_role(user, contest: Contest) -> str:
-    """
-    Resolve effective contest scope role.
-    Classroom ACL role names are mapped into contest scope roles before the
-    permission matrix is evaluated.
-    """
-    binding = _get_bound_classroom(contest)
     if binding is not None:
-        classroom_scope_role = _get_classroom_scope_role(user, binding.classroom)
-        return map_classroom_role_to_contest_scope(classroom_scope_role)
+        from apps.classrooms.permissions import get_user_role_in_classroom
+
+        classroom_role = get_user_role_in_classroom(user, binding.classroom)
+        return map_classroom_role_to_contest_scope(classroom_role)
     return get_contest_scope_role(user, contest)
 
 
@@ -234,6 +207,14 @@ class ContestAccessPolicy(permissions.BasePermission):
         action = view.action
         role = get_effective_contest_scope_role(user, contest) if user.is_authenticated else 'anonymous'
 
+        if role in {'outsider', 'anonymous'}:
+            request._permission_error = self._get_error_response(
+                action,
+                ErrorCodes.INSUFFICIENT_ROLE,
+                'You do not have permission to access this contest',
+            )
+            return False
+
         # 1. Check contest status restrictions
         status_error = self._check_contest_status(contest, user, role, action)
         if status_error is not None:
@@ -314,8 +295,8 @@ class ContestAccessPolicy(permissions.BasePermission):
         """Check context-specific conditions (scoreboard settings, exam status, etc.)."""
         is_ended = bool(contest.end_time and timezone.now() > contest.end_time)
 
-        # Scoreboard visibility for participants and outsiders (not managers)
-        if action == 'standings' and role in ('participant', 'outsider'):
+        # Scoreboard visibility for participants (not managers)
+        if action == 'standings' and role == 'participant':
             if not contest.scoreboard_visible_during_contest:
                 # Allow viewing after contest ends
                 if not is_ended:

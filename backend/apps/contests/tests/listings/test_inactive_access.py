@@ -61,7 +61,6 @@ class DraftContestAccessTests(APITestCase):
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.teacher,
-            visibility='public',
             status='draft'  # Key: draft status
         )
 
@@ -71,7 +70,6 @@ class DraftContestAccessTests(APITestCase):
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.teacher,
-            visibility='public',
             status='published'
         )
 
@@ -169,11 +167,11 @@ class DraftContestAccessTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Active Contest')
 
-    def test_anonymous_can_access_active_public_contest(self):
-        """Anonymous users should be able to access active public contest."""
+    def test_anonymous_cannot_access_active_contest(self):
+        """Anonymous users cannot access classroom-scoped contests."""
         url = reverse('contests:contest-detail', args=[self.active_contest.id])
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     # =========================================================================
     # Test 4: CodingProblem structure visibility
@@ -196,23 +194,19 @@ class DraftContestAccessTests(APITestCase):
         # Active contest has started and student is registered, so problems should be visible
         self.assertGreater(len(response.data['problems']), 0)
 
-    def test_unregistered_student_cannot_see_problems_in_active_contest(self):
-        """Unregistered student should NOT see problem structure even in active contest."""
+    def test_unregistered_student_cannot_access_active_contest(self):
+        """Outsiders cannot read classroom-scoped contests."""
         # another_student is not registered for active_contest
         self.client.force_authenticate(user=self.another_student)
         url = reverse('contests:contest-detail', args=[self.active_contest.id])
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Unregistered user should see empty problems list
-        self.assertEqual(len(response.data['problems']), 0)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_anonymous_cannot_see_problems_in_active_contest(self):
-        """Anonymous users should NOT see problem structure even in active contest."""
+    def test_anonymous_cannot_read_active_contest(self):
+        """Anonymous users cannot read contest details."""
         url = reverse('contests:contest-detail', args=[self.active_contest.id])
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Anonymous user should see empty problems list
-        self.assertEqual(len(response.data['problems']), 0)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     # =========================================================================
     # Test 5: Contest list filtering
@@ -266,6 +260,58 @@ class DraftContestAccessTests(APITestCase):
         contest_ids = [c["id"] for c in response.data["results"]]
         self.assertIn(str(self.draft_contest.id), contest_ids)
 
+    def test_bound_contest_legacy_owner_is_hidden_from_manage_list(self):
+        """A classroom binding replaces legacy contest-level management access."""
+        classroom_owner = User.objects.create_user(
+            username="classroom_owner",
+            email="classroom_owner@example.com",
+            password="password123",
+            role="teacher",
+        )
+        classroom = Classroom.objects.create(
+            name="Private Room",
+            owner=classroom_owner,
+            invite_code="PRIVATE1",
+        )
+        ClassroomContest.objects.create(
+            classroom=classroom,
+            contest=self.draft_contest,
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            f"{reverse('contests:contest-list')}?scope=manage"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        contest_ids = [c["id"] for c in response.data["results"]]
+        self.assertNotIn(str(self.draft_contest.id), contest_ids)
+
+    def test_bound_contest_participant_outside_classroom_is_hidden_from_list(self):
+        """Contest registration alone cannot expose a classroom-private contest."""
+        classroom_owner = User.objects.create_user(
+            username="private_classroom_owner",
+            email="private_classroom_owner@example.com",
+            password="password123",
+            role="teacher",
+        )
+        classroom = Classroom.objects.create(
+            name="Members Only",
+            owner=classroom_owner,
+            invite_code="PRIVATE2",
+        )
+        ClassroomContest.objects.create(
+            classroom=classroom,
+            contest=self.active_contest,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(reverse('contests:contest-list'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        contest_ids = [c["id"] for c in response.data["results"]]
+        self.assertNotIn(str(self.active_contest.id), contest_ids)
+
     def test_classroom_ta_gets_edit_permissions_in_contest_detail(self):
         ta_user = User.objects.create_user(
             username="classroom_ta_detail",
@@ -314,7 +360,6 @@ class ContestNotStartedAccessTests(APITestCase):
             start_time=timezone.now() + timedelta(hours=2),  # Starts in 2 hours
             end_time=timezone.now() + timedelta(hours=4),
             owner=self.teacher,
-            visibility='public',
             status='published'
         )
 
@@ -382,7 +427,6 @@ class ContestEndedAccessTests(APITestCase):
             start_time=timezone.now() - timedelta(hours=4),  # Started 4 hours ago
             end_time=timezone.now() - timedelta(hours=2),    # Ended 2 hours ago
             owner=self.teacher,
-            visibility='public',
             status='published'
         )
 
@@ -454,7 +498,6 @@ class ArchivedContestAccessTests(APITestCase):
             start_time=timezone.now() - timedelta(hours=4),
             end_time=timezone.now() - timedelta(hours=2),
             owner=self.teacher,
-            visibility='public',
             status='archived'
         )
 

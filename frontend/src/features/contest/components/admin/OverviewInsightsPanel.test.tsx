@@ -21,7 +21,6 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     startTime: "2026-03-16T09:00:00.000Z",
     endTime: "2026-03-16T11:00:00.000Z",
     status: "published",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",

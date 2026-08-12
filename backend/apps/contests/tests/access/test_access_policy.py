@@ -101,8 +101,7 @@ class TestBaseRolePermissions:
         """Anonymous should have minimal permissions."""
         anon_perms = BASE_ROLE_PERMISSIONS['anonymous']
 
-        assert len(anon_perms) <= 2
-        assert 'view_public_contest' in anon_perms
+        assert anon_perms == set()
 
 
 # ============================================================================
@@ -307,10 +306,10 @@ class TestContestAccessPolicy:
         assert result is False
         assert request._permission_error.data['error']['code'] == ErrorCodes.EXAM_NOT_SUBMITTED
 
-    def test_my_report_blocked_for_non_participant(
+    def test_my_report_blocked_for_outsider(
         self, policy, contest
     ):
-        """Non-participant cannot view report."""
+        """An outsider cannot access any private contest action."""
         other_user = User.objects.create_user(
             username='other',
             email='other@test.com',
@@ -322,7 +321,7 @@ class TestContestAccessPolicy:
 
         result = policy.has_object_permission(request, view, contest)
         assert result is False
-        assert request._permission_error.data['error']['code'] == ErrorCodes.NOT_PARTICIPANT
+        assert request._permission_error.data['error']['code'] == ErrorCodes.INSUFFICIENT_ROLE
 
     # ==================== 403 Error Format Tests ====================
 

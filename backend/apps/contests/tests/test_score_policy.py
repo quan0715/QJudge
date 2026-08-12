@@ -35,7 +35,6 @@ class ScorePolicyCalculationTests(TestCase):
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type="paper_exam",
         )
@@ -207,7 +206,6 @@ class ExamScoringServiceTests(TestCase):
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type="paper_exam",
         )
@@ -352,7 +350,6 @@ class ExamScoringRedistributeTests(TestCase):
             start_time=timezone.now() - timedelta(hours=1),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type="paper_exam",
         )
