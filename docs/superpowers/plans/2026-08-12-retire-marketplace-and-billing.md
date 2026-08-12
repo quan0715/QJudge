@@ -31,7 +31,7 @@
 - Consumes: Existing DRF question-bank router, current-user API, and application routes.
 - Produces: Executable requirements for retired endpoints, role-only user payloads, and frontend 404 behavior.
 
-- [ ] **Step 1: Replace Marketplace workflow assertions with removed-route assertions**
+- [x] **Step 1: Replace Marketplace workflow assertions with removed-route assertions**
 
 Add parameterized requests for:
 
@@ -50,7 +50,7 @@ def test_marketplace_actions_are_not_routed(api_client, teacher, bank):
         assert getattr(api_client, method)(path).status_code == 404
 ```
 
-- [ ] **Step 2: Assert user payload has role but no subscription**
+- [x] **Step 2: Assert user payload has role but no subscription**
 
 ```python
 def test_current_user_payload_uses_role_without_subscription(api_client, teacher):
@@ -61,11 +61,11 @@ def test_current_user_payload_uses_role_without_subscription(api_client, teacher
     assert "subscription" not in response.data["data"]
 ```
 
-- [ ] **Step 3: Change frontend E2E route expectations**
+- [x] **Step 3: Change frontend E2E route expectations**
 
 Replace Marketplace/pricing/review-queue smoke entries with one test that visits `/marketplace`, `/pricing`, and `/system/review-queue` and asserts the existing not-found heading or status content. Remove menu-click tests that expect these links.
 
-- [ ] **Step 4: Run the focused tests and verify RED**
+- [x] **Step 4: Run the focused tests and verify RED**
 
 Run:
 
@@ -98,11 +98,11 @@ Expected: Marketplace and user-payload assertions fail because the endpoints and
 - Consumes: `QuestionBank.owner`, `QuestionBank.is_archived`, private-bank question workflows, and question-asset visibility.
 - Produces: A `QuestionBank` model with no Marketplace state and APIs whose bank queries are scoped to `owner=request.user`.
 
-- [ ] **Step 1: Add a migration test for normalization and deletion**
+- [x] **Step 1: Add a migration test for normalization and deletion**
 
 Use `MigrationExecutor` to migrate from `question_bank.0017_eliminate_question_bank_legacy_adapters` to `0018_retire_marketplace`. Create an owned public approved bank, an ownerless public bank, and a subscription before migration. Assert afterward that the owned bank remains, the ownerless bank is archived, the Marketplace columns are absent, and `question_bank_subscriptions` is absent.
 
-- [ ] **Step 2: Run the migration test and verify RED**
+- [x] **Step 2: Run the migration test and verify RED**
 
 Run:
 
@@ -112,7 +112,7 @@ Run:
 
 Expected: FAIL because migration `0018_retire_marketplace` does not exist.
 
-- [ ] **Step 3: Create the Marketplace retirement migration**
+- [x] **Step 3: Create the Marketplace retirement migration**
 
 Implement the ordered operations:
 
@@ -133,11 +133,11 @@ operations = [
 
 Remove indexes before their fields and remove all seven Marketplace-only fields.
 
-- [ ] **Step 4: Delete Marketplace model and serializer state**
+- [x] **Step 4: Delete Marketplace model and serializer state**
 
 Remove `QuestionBank.Visibility`, `QuestionBank.ReviewStatus`, verification/review fields, Marketplace indexes, `QuestionBankSubscription`, `ExploreBankItemSerializer`, `is_subscribed`, and all corresponding serializer fields. Keep `QuestionAsset.Visibility` unchanged.
 
-- [ ] **Step 5: Delete Marketplace actions and make all bank reads owner-only**
+- [x] **Step 5: Delete Marketplace actions and make all bank reads owner-only**
 
 Delete the `explore`, `review_queue`, `submit_for_review`, `review`, `subscribe`, and `subscribed` actions and their imports. Reduce `get_queryset()` to active banks owned by the request user. Change read/import resolvers from public fallback logic to:
 
@@ -148,11 +148,11 @@ if bank.owner_id != user.id or bank.is_archived:
 
 Remove `is_publicly_accessible_bank` and make clone/import source resolution owner-only.
 
-- [ ] **Step 6: Update seed command and retained tests**
+- [x] **Step 6: Update seed command and retained tests**
 
 Stop creating ownerless public banks. Remove Marketplace-specific tests and Marketplace-only constructor fields. Rewrite retained copy/import tests so the source bank belongs to the acting teacher. Keep QuestionAsset visibility assertions.
 
-- [ ] **Step 7: Run question-bank tests and verify GREEN**
+- [x] **Step 7: Run question-bank tests and verify GREEN**
 
 Run:
 
@@ -163,7 +163,7 @@ Run:
 
 Expected: no pending migrations; all question-bank tests pass.
 
-- [ ] **Step 8: Commit the question-bank backend retirement**
+- [x] **Step 8: Commit the question-bank backend retirement**
 
 Stage only Task 1–2 backend files and commit:
 
@@ -199,19 +199,19 @@ git commit -m "refactor(question-bank): retire marketplace backend"
 - Consumes: Owner-only question-bank API from Task 2.
 - Produces: Private-bank-only frontend types, repository, routes, settings, and contest import sources.
 
-- [ ] **Step 1: Remove routes, screens, and navigation**
+- [x] **Step 1: Remove routes, screens, and navigation**
 
 Keep the lazy-loaded `/question-banks/:bankId` route. Delete Marketplace routes/screens, side-menu links, admin review route/screen, and admin user-menu link.
 
-- [ ] **Step 2: Reduce frontend bank contracts**
+- [x] **Step 2: Reduce frontend bank contracts**
 
 Remove `BankVisibility`, `BankReviewStatus`, `ExploreBankItem`, public/review/subscription properties, and repository methods. `QuestionBank` keeps identity, presentation metadata, category, owner, count, and timestamps.
 
-- [ ] **Step 3: Reduce private-bank settings and imports**
+- [x] **Step 3: Reduce private-bank settings and imports**
 
 Remove publication/review controls from `QuestionBankSettingsGeneralPanel` and Marketplace state from `QuestionBankDetailScreen`. Change both contest question-source components to call only `listMine()` and remove subscribed-source labels.
 
-- [ ] **Step 4: Run focused frontend tests and typecheck**
+- [x] **Step 4: Run focused frontend tests and typecheck**
 
 Run:
 
@@ -222,7 +222,7 @@ Run:
 
 Expected: question-bank tests and TypeScript/Vite build pass.
 
-- [ ] **Step 5: Commit Marketplace frontend retirement**
+- [x] **Step 5: Commit Marketplace frontend retirement**
 
 ```bash
 git commit -m "refactor(frontend): remove marketplace surfaces"
@@ -248,11 +248,11 @@ git commit -m "refactor(frontend): remove marketplace surfaces"
 - Consumes: Existing `subscriptions.0001_initial` migration state.
 - Produces: A deployable installed app containing only app metadata and migration `0002`, with no HTTP/runtime billing behavior.
 
-- [ ] **Step 1: Write and run a failing billing migration test**
+- [x] **Step 1: Write and run a failing billing migration test**
 
 Create subscription and webhook rows at migration state `0001_initial`, migrate to `0002_delete_billing_models`, then assert both models and tables are absent. Run it and verify failure because `0002` does not exist.
 
-- [ ] **Step 2: Add the destructive migration**
+- [x] **Step 2: Add the destructive migration**
 
 ```python
 operations = [
@@ -261,11 +261,11 @@ operations = [
 ]
 ```
 
-- [ ] **Step 3: Remove runtime billing projections and routes**
+- [x] **Step 3: Remove runtime billing projections and routes**
 
 Delete `UserSerializer.subscription` and its fallback free tier. Remove the subscription URL include. Delete all runtime app modules except `__init__.py`, `apps.py`, and migrations.
 
-- [ ] **Step 4: Verify Release 1 backend state**
+- [x] **Step 4: Verify Release 1 backend state**
 
 Run:
 
@@ -276,7 +276,7 @@ Run:
 
 Expected: migrations and focused tests pass; `/api/v1/subscriptions/*` is not routed.
 
-- [ ] **Step 5: Commit the independently deployable migration shell**
+- [x] **Step 5: Commit the independently deployable migration shell**
 
 ```bash
 git commit -m "refactor(billing): migrate away subscription data"
@@ -312,19 +312,19 @@ git commit -m "refactor(billing): migrate away subscription data"
 - Consumes: Role-only user payload from Task 4.
 - Produces: Frontend with no billing routes, types, package dependency, settings, or product messaging.
 
-- [ ] **Step 1: Remove pricing routes and Recur provider**
+- [x] **Step 1: Remove pricing routes and Recur provider**
 
 Delete pricing feature imports, routes, and `RecurProviderBridge` from `App.tsx`; delete the feature directory and `recur-tw` dependency.
 
-- [ ] **Step 2: Remove settings billing UI and types**
+- [x] **Step 2: Remove settings billing UI and types**
 
 Delete plans tab/panel. Remove subscription hooks, portal controls, subscription section, and subscription styling from `ProfilePanel`. Remove `UserSubscription` and `User.subscription` from auth entities.
 
-- [ ] **Step 3: Remove pricing content**
+- [x] **Step 3: Remove pricing content**
 
 Remove landing pricing navigation/content/footer links, common settings plan/subscription keys, landing pricing keys, and the sitemap entry. Preserve unrelated product and role text.
 
-- [ ] **Step 4: Synchronize the lockfile and verify frontend**
+- [x] **Step 4: Synchronize the lockfile and verify frontend**
 
 Run:
 
@@ -336,7 +336,7 @@ Run:
 
 Expected: no `recur-tw` package, synchronized locales, successful build.
 
-- [ ] **Step 5: Commit frontend billing retirement**
+- [x] **Step 5: Commit frontend billing retirement**
 
 ```bash
 git commit -m "refactor(frontend): remove billing and plans"
@@ -356,7 +356,7 @@ git commit -m "refactor(frontend): remove billing and plans"
 - Consumes: Applied `subscriptions.0002_delete_billing_models` from Task 4.
 - Produces: Final codebase with no installed billing app and no Recur build/runtime configuration.
 
-- [ ] **Step 1: Confirm destructive migration is applied**
+- [x] **Step 1: Confirm destructive migration is applied**
 
 Run:
 
@@ -366,11 +366,11 @@ Run:
 
 Expected: `[X] 0001_initial` and `[X] 0002_delete_billing_models`.
 
-- [ ] **Step 2: Remove the migration shell and configuration**
+- [x] **Step 2: Remove the migration shell and configuration**
 
 Delete the subscriptions package, remove it from `INSTALLED_APPS`, and remove every `RECUR_*`/`VITE_RECUR_*` setting or build argument. Do not modify untracked or user-local secret files unless they are tracked project configuration.
 
-- [ ] **Step 3: Verify final Django state**
+- [x] **Step 3: Verify final Django state**
 
 Run:
 
@@ -381,7 +381,7 @@ Run:
 
 Expected: Django checks pass and no pending migrations exist.
 
-- [ ] **Step 4: Commit final billing app removal**
+- [x] **Step 4: Commit final billing app removal**
 
 ```bash
 git commit -m "refactor(billing): remove subscription app"
@@ -398,7 +398,7 @@ git commit -m "refactor(billing): remove subscription app"
 - Consumes: Final frontend/backend runtime surfaces.
 - Produces: Generated schema and validation inventories that match the retired product.
 
-- [ ] **Step 1: Regenerate OpenAPI schema**
+- [x] **Step 1: Regenerate OpenAPI schema**
 
 Run in the backend container:
 
@@ -408,7 +408,7 @@ python manage.py spectacular --file schema.yml
 
 Copy/update the committed `backend/schema.yml` through the mounted workspace.
 
-- [ ] **Step 2: Run scoped residual searches**
+- [x] **Step 2: Run scoped residual searches**
 
 Run:
 
@@ -419,11 +419,11 @@ rg -n -i 'apps\.subscriptions|/subscriptions|recur[_-]|recur\.tw|pricing|plan ti
 
 Expected: no runtime/product references. Historical question-bank migrations and generic stream subscriptions are not retirement defects.
 
-- [ ] **Step 3: Update E2E inventory and run it**
+- [x] **Step 3: Update E2E inventory and run it**
 
 Keep explicit assertions that the three retired frontend URLs show the existing 404 page, then run the focused E2E file.
 
-- [ ] **Step 4: Commit schema and residual cleanup**
+- [x] **Step 4: Commit schema and residual cleanup**
 
 ```bash
 git commit -m "chore: remove retired product references"
@@ -438,7 +438,7 @@ git commit -m "chore: remove retired product references"
 - Consumes: All prior task outputs.
 - Produces: Fresh evidence for every preservation and removal requirement.
 
-- [ ] **Step 1: Run backend verification**
+- [x] **Step 1: Run backend verification**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test python manage.py migrate
@@ -447,7 +447,7 @@ git commit -m "chore: remove retired product references"
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test pytest -q
 ```
 
-- [ ] **Step 2: Run frontend verification**
+- [x] **Step 2: Run frontend verification**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run check:i18n
@@ -455,7 +455,7 @@ git commit -m "chore: remove retired product references"
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run build
 ```
 
-- [ ] **Step 3: Run QJudge quality gates**
+- [x] **Step 3: Run QJudge quality gates**
 
 ```bash
 node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
@@ -463,7 +463,7 @@ node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --roo
 bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged
 ```
 
-- [ ] **Step 4: Audit every requirement against evidence**
+- [x] **Step 4: Audit every requirement against evidence**
 
 Confirm from migrations, router output, UI route tests, residual searches, and full suites that:
 
@@ -473,8 +473,18 @@ Confirm from migrations, router output, UI route tests, residual searches, and f
 - platform roles remain `student`, `teacher`, and `admin`;
 - no unrelated working-tree change was staged or committed.
 
-- [ ] **Step 5: Commit only direct verification fixes, if any**
+- [x] **Step 5: Commit only direct verification fixes, if any**
 
 ```bash
 git commit -m "test: verify marketplace and billing retirement"
 ```
+
+## Completion Record (2026-08-12)
+
+- Marketplace, role, billing-route, and migration coverage: `89 passed`.
+- Backend suite excluding `apps/judge/tests.py`: `1285 passed, 1 skipped`. The excluded integration file requires a Docker socket that is not mounted in `backend-test`; its 23 failures all returned the same Docker connection error.
+- Frontend unit suite: `182` files passed, `1026` tests passed, `1` skipped.
+- Frontend production build and all seven i18n namespace checks passed.
+- Retired-route E2E: `/marketplace`, `/pricing`, and `/system/review-queue` all rendered the existing 404 page (`6 passed`, including authentication setup).
+- Naming, architecture, Carbon staged-style, Django system, migration-drift, and residual-reference checks passed.
+- Production upgrades must deploy and migrate Release 1 commit `1e9c179f` before deploying the commit that removes the subscription migration shell.
