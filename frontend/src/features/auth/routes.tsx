@@ -1,11 +1,11 @@
 import { lazy } from "react";
 import { Route } from "react-router";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
+import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 
 const LoginScreen = lazy(() => import("./screens/LoginScreen"));
 const RegisterScreen = lazy(() => import("./screens/RegisterScreen"));
 const CampusSsoScreen = lazy(() => import("./screens/CampusSsoScreen"));
-const OAuthCallbackScreen = lazy(() => import("./screens/OAuthCallbackScreen"));
 const OnboardingScreen = lazy(() => import("./screens/OnboardingScreen"));
 const InviteLinkScreen = lazy(() => import("./screens/InviteLinkScreen"));
 const OAuthAuthorizeScreen = lazy(() => import("./screens/OAuthAuthorizeScreen"));
