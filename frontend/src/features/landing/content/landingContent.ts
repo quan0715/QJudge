@@ -52,18 +52,6 @@ export interface LandingCaseStudy {
   imageAlt: string;
 }
 
-export interface LandingPricingCard {
-  name: string;
-  price: string;
-  period?: string;
-  description: string;
-  badge?: string;
-  highlighted?: boolean;
-  cta: string;
-  target: "register" | "pricing" | "contact";
-  features: Array<{ text: string }>;
-}
-
 export interface LandingFaqItem {
   question: string;
   answer: string;
@@ -104,7 +92,6 @@ export interface LandingContent {
   audiences: LandingAudienceItem[];
   caseStudies: LandingCaseStudy[];
   mcp: MCPCollaborationContent;
-  pricing: LandingPricingCard[];
   faqs: LandingFaqItem[];
   footer: {
     title: string;
@@ -123,7 +110,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
     nav: [
       { id: "landing-proposition", label: t("nav.features") },
       { id: "landing-audience", label: t("nav.audience") },
-      { id: "pricing", label: t("nav.pricing"), href: "/pricing" },
       { id: "landing-faq", label: t("nav.faq") },
     ],
     hero: {
@@ -279,50 +265,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
         notion: t("mcp.tools.notion"),
       },
     },
-    pricing: [
-      {
-        name: t("pricing.cards.free.name"),
-        price: t("pricing.cards.free.price"),
-        description: t("pricing.cards.free.description"),
-        cta: t("pricing.cards.free.cta"),
-        target: "register",
-        features: [
-          { text: t("pricing.cards.free.features.0") },
-          { text: t("pricing.cards.free.features.1") },
-          { text: t("pricing.cards.free.features.2") },
-          { text: t("pricing.cards.free.features.3") },
-        ],
-      },
-      {
-        name: t("pricing.cards.pro.name"),
-        price: t("pricing.cards.pro.price"),
-        period: t("pricing.cards.pro.period"),
-        description: t("pricing.cards.pro.description"),
-        badge: t("pricing.cards.pro.badge"),
-        highlighted: true,
-        cta: t("pricing.cards.pro.cta"),
-        target: "pricing",
-        features: [
-          { text: t("pricing.cards.pro.features.0") },
-          { text: t("pricing.cards.pro.features.1") },
-          { text: t("pricing.cards.pro.features.2") },
-          { text: t("pricing.cards.pro.features.3") },
-        ],
-      },
-      {
-        name: t("pricing.cards.enterprise.name"),
-        price: t("pricing.cards.enterprise.price"),
-        description: t("pricing.cards.enterprise.description"),
-        cta: t("pricing.cards.enterprise.cta"),
-        target: "contact",
-        features: [
-          { text: t("pricing.cards.enterprise.features.0") },
-          { text: t("pricing.cards.enterprise.features.1") },
-          { text: t("pricing.cards.enterprise.features.2") },
-          { text: t("pricing.cards.enterprise.features.3") },
-        ],
-      },
-    ],
     faqs: [
       {
         question: t("faq.items.0.question"),
@@ -356,7 +298,6 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       secondaryCta: t("footer.secondaryCta"),
       productLinks: [
         { label: t("footer.links.product.0.label"), href: "#landing-proposition" },
-        { label: t("footer.links.product.1.label"), href: "/pricing" },
         { label: t("footer.links.product.2.label"), href: "#landing-faq" },
       ],
       contactLinks: [

@@ -56,25 +56,6 @@
     color: $text-helper;
   }
 
-  // Subscription
-  &__sub-row {
-    display: flex;
-    align-items: center;
-    gap: $spacing-03;
-    margin-bottom: $spacing-02;
-  }
-
-  &__sub-tier {
-    @include type-style("heading-03");
-    font-weight: 300;
-  }
-
-  &__sub-desc {
-    @include type-style("helper-text-01");
-    color: $text-helper;
-    margin: 0 0 $spacing-04;
-  }
-
   // Device table header
   &__device-table-head {
     display: grid;

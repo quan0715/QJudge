@@ -13,7 +13,6 @@ export * from "./announcement.repository";
 export * from "./chatbot.repository";
 export * from "./markdown.repository";
 export * from "./questionBank.repository";
-export * from "./subscription.repository";
 
 // Classroom Repository (exclude announcement names that conflict with global announcement.repository)
 export {

@@ -1,5 +1,5 @@
 import React from "react";
-import { UserAvatar, Settings, Catalog, Connect, Activity } from "@carbon/icons-react";
+import { UserAvatar, Settings, Connect, Activity } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useSettingsDialog } from "@/features/auth/contexts/SettingsDialogContext";
@@ -7,7 +7,6 @@ import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal";
 import { ProfilePanel } from "@/features/auth/components/ProfilePanel";
 import { PreferencesPanel } from "@/features/auth/components/PreferencesPanel";
 import { AIUsagePanel } from "@/features/auth/components/AIUsagePanel";
-import { PlansPanel } from "@/features/auth/components/PlansPanel";
 import { MCPSetupPanel } from "@/features/auth/components/settings/MCPSetupPanel";
 
 const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; adminOnly?: boolean })[] = [
@@ -15,7 +14,6 @@ const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { tKey: string; admi
   { id: "preferences", tKey: "settings.tabs.preferences", icon: Settings },
   { id: "ai-usage",    tKey: "settings.tabs.aiUsage",     icon: Activity, adminOnly: true },
   { id: "mcp",         tKey: "settings.tabs.mcp",         icon: Connect, adminOnly: true },
-  { id: "plans",       tKey: "settings.tabs.plans",       icon: Catalog },
 ];
 
 // Memoized panels to prevent re-renders from parent state changes
@@ -23,7 +21,6 @@ const MemoProfilePanel = React.memo(ProfilePanel);
 const MemoPreferencesPanel = React.memo(PreferencesPanel);
 const MemoAIUsagePanel = React.memo(AIUsagePanel);
 const MemoMCPSetupPanel = React.memo(MCPSetupPanel);
-const MemoPlansPanel = React.memo(PlansPanel);
 
 export const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -53,8 +50,6 @@ export const SettingsDialog: React.FC = () => {
         return isTeacherOrAdmin ? <MemoAIUsagePanel /> : null;
       case "mcp":
         return isTeacherOrAdmin ? <MemoMCPSetupPanel /> : null;
-      case "plans":
-        return <MemoPlansPanel />;
       default:
         return null;
     }

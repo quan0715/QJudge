@@ -224,7 +224,6 @@
     "platform": "Online Judge Platform",
     "prefix": "System",
     "problemManagement": "Problem Management",
-    "reviewQueue": "Review Queue",
     "sideNav": "Side Navigation",
     "systemSettings": "System Settings",
     "teacherDashboard": "Teacher Dashboard",
@@ -318,7 +317,6 @@
     "contests": "Contests",
     "dashboard": "Dashboard",
     "documentation": "Docs",
-    "marketplace": "Marketplace",
     "problemList": "Problem List",
     "problems": "Problems",
     "questionBanks": "Question Banks",
@@ -400,7 +398,6 @@
   "questionBank": {
     "addQuestion": "Add Question",
     "allTypes": "All Types",
-    "applyToMarketplace": "Apply to Marketplace",
     "bankCreated": "Question bank created",
     "bankDeleted": "Question bank deleted",
     "bankNotFound": "Bank Not Found",
@@ -411,7 +408,6 @@
     "categoryExam": "Exam",
     "clone": "Clone to My Bank",
     "cloneSuccess": "Question cloned to your bank",
-    "communityTag": "QJudge Community",
     "createBank": "Create Question Bank",
     "deleteBank": "Delete Question Bank",
     "deleteBankConfirmBody": "Delete bank \"{{name}}\"?",
@@ -421,10 +417,7 @@
     "difficulty": "Difficulty",
     "editBank": "Edit Question Bank",
     "editQuestion": "Edit Question",
-    "emptyExplore": "Explore is currently centered on QJudge Community; no content available yet.",
     "emptyQuestions": "This question bank has no questions yet.",
-    "exploreOnlyPlatform": "Explore is currently centered on QJudge Community",
-    "exploreOnlyPlatformDesc": "Phase 1 does not include shared banks; focuses on Community validation first.",
     "importFromInbox": "Import Drafts",
     "inbox": {
       "clearSelection": "Clear Selection",
@@ -436,40 +429,14 @@
       "selectedCount": "{{count}} selected"
     },
     "loadQuestions": "View Questions",
-    "marketplace": "Marketplace",
     "memoryLimit": "Memory Limit (MB)",
-    "mockGalleryDesc": "UI mock preview demonstrating QJudge Community question bank cards.",
-    "mockGalleryTitle": "Mock Card Gallery",
-    "mockOfficialBank1Desc": "Start with recursion and basic search to build problem-solving skills.",
-    "mockOfficialBank1Name": "Intro to Algorithms - Recursion",
-    "mockOfficialBank2Desc": "Implementation problems organized by curriculum progress.",
-    "mockOfficialBank2Name": "Data Structure Implementation",
-    "mockOfficialTag": "Editor Choice",
-    "mockOwnerLabel": "Owner",
-    "mockOwnerPlatform": "QJudge Community",
-    "mockOwnerTeacherA": "Teacher A",
-    "mockOwnerTeacherB": "Teacher B",
-    "mockQuestionCount": "{{count}} questions",
-    "mockUserBank1Desc": "Classroom-oriented practice focusing on APCS concepts and common mistakes.",
-    "mockUserBank1Name": "Teacher Chen's APCS Practice Set",
-    "mockUserBank2Desc": "School exam questions with grading points and difficulty levels.",
-    "mockUserBank2Name": "Teacher Lin's Midterm Bank",
-    "mockUserPublicTag": "Public Bank",
-    "mockVerifiedTag": "verified",
-    "needQuestionsToApply": "At least 1 question is required to apply",
     "notFound": "Question bank not found.",
     "openBank": "Open Bank",
-    "pendingReview": "Under Review",
     "prompt": "Prompt",
-    "published": "Published",
     "questionCountLabel": "{{count}} questions",
     "questionCreated": "Question created",
     "questionDeleted": "Question deleted",
     "questionUpdated": "Question updated",
-    "reapply": "Reapply",
-    "rejected": "Rejected",
-    "reviewNoteLabel": "Review Note",
-    "reviewStatusLabel": "Listing Status",
     "saveToBank": {
       "desc": "Save \"{{title}}\" to question bank:",
       "success": "Saved to bank",
@@ -481,24 +448,11 @@
     "sortOldest": "Oldest First",
     "sortOrder": "Default Order",
     "sortType": "By Type",
-    "submitForReviewSuccess": "Review application submitted",
-    "subscribeBtn": "Subscribe",
-    "subscribed": "Subscribed",
-    "subscribedBtn": "Subscribed",
-    "subscribedLabel": "Subscribed",
-    "tabs": {
-      "explore": "Explore"
-    },
     "tagMine": "My Bank",
-    "tagPrivate": "Private",
-    "tagPublic": "Public",
-    "tagUserPublic": "Public",
     "timeLimit": "Time Limit (ms)",
     "type": "Type",
-    "unsubscribed": "Unsubscribed",
     "untitled": "Untitled",
-    "usedInContests": "{{count}} contest(s)",
-    "verified": "Verified"
+    "usedInContests": "{{count}} contest(s)"
   },
   "questionType": {
     "description": {
@@ -533,7 +487,7 @@
       "outputTokens": "Output Tokens",
       "title": "AI Usage"
     },
-    "description": "Manage profile, preferences, plans, and usage.",
+    "description": "Manage profile, preferences, and usage.",
     "descriptionStudent": "Manage your settings.",
     "loginRecords": {
       "current": "Current device",
@@ -548,67 +502,11 @@
       "now": "Now",
       "title": "Device Management"
     },
-    "plans": {
-      "contactUs": "Contact us",
-      "description": "All plans include full functionality. Only usage limits differ.",
-      "enterpriseCustom": "We can prepare a custom enterprise plan for you.",
-      "enterpriseTitle": "Need a larger deployment?",
-      "features": {
-        "pro": [
-          "Up to 200 students per exam",
-          "500 AI Credits / month",
-          "Unlimited question bank storage",
-          "1 year data retention",
-          "10 GB storage"
-        ],
-        "team": [
-          "Up to 500 students per exam",
-          "2,000 AI Credits / month",
-          "Unlimited question bank storage",
-          "Up to 10 admins",
-          "50 GB storage"
-        ]
-      },
-      "freeTrial": "30-day free trial",
-      "month": "month",
-      "openCheckoutFailed": "Failed to open checkout. Please try again later.",
-      "processing": "Processing...",
-      "startingTrial": "Start free trial",
-      "subscribeNow": "Subscribe now",
-      "title": "View plans"
-    },
-    "subscription": {
-      "desc": {
-        "free": "You are currently on the free plan. You can upgrade at any time.",
-        "pro": "For individual users who need a reliable exam environment",
-        "team": "For schools, departments, and training organizations"
-      },
-      "manage": "Manage subscription",
-      "manageDesc": "Change payment method, cancel subscription, or view invoices",
-      "openPortalFailed": "Failed to open the subscription portal",
-      "periodEndDate": "Current period ends",
-      "status": {
-        "active": "Active",
-        "canceled": "Canceled",
-        "expired": "Expired",
-        "past_due": "Past due",
-        "trialing": "Trialing"
-      },
-      "tier": {
-        "enterprise": "Enterprise",
-        "free": "Free",
-        "pro": "Pro",
-        "team": "Team"
-      },
-      "trialEndDate": "Trial ends"
-    },
     "tabs": {
       "aiUsage": "AI Usage",
       "mcp": "MCP Connection",
-      "plans": "Plans",
       "preferences": "Preferences",
       "profile": "Profile",
-      "subscription": "Subscription",
       "usage": "Usage"
     },
     "title": "Settings"

@@ -16,11 +16,6 @@ export interface UserProfile extends UserPreferences {
   accept_rate: number;
 }
 
-export interface UserSubscription {
-  tier: "free" | "pro" | "team" | "enterprise";
-  status: "active" | "trialing" | "past_due" | "cancelled" | "expired";
-}
-
 export interface ManagedUser {
   id: number;
   username: string;
@@ -85,7 +80,6 @@ export interface User {
   last_login_at?: string | null;
   is_active?: boolean;
   profile?: UserProfile;
-  subscription?: UserSubscription;
 }
 
 export interface AuthProviderOption {

@@ -224,7 +224,6 @@
     "platform": "QJudge 平台",
     "prefix": "",
     "problemManagement": "題目管理",
-    "reviewQueue": "送審佇列",
     "sideNav": "側邊導航",
     "systemSettings": "系統設定",
     "teacherDashboard": "教師後台",
@@ -318,7 +317,6 @@
     "contests": "競賽",
     "dashboard": "儀表板",
     "documentation": "文件",
-    "marketplace": "題庫市集",
     "problemList": "題目列表",
     "problems": "題目",
     "questionBanks": "題庫",
@@ -400,7 +398,6 @@
   "questionBank": {
     "addQuestion": "新增題目",
     "allTypes": "全部題型",
-    "applyToMarketplace": "申請上架",
     "bankCreated": "題庫已建立",
     "bankDeleted": "題庫已刪除",
     "bankNotFound": "找不到題庫",
@@ -411,7 +408,6 @@
     "categoryExam": "考卷題",
     "clone": "收錄",
     "cloneSuccess": "題目已收錄",
-    "communityTag": "QJudge Community",
     "createBank": "建立題庫",
     "deleteBank": "刪除題庫",
     "deleteBankConfirmBody": "刪除題庫「{{name}}」？",
@@ -421,10 +417,7 @@
     "difficulty": "難度",
     "editBank": "編輯題庫",
     "editQuestion": "編輯題目",
-    "emptyExplore": "探索題庫目前以 QJudge Community 為主；暫無可探索內容。",
     "emptyQuestions": "此題庫目前沒有題目。",
-    "exploreOnlyPlatform": "探索題庫目前以 QJudge Community 為主",
-    "exploreOnlyPlatformDesc": "Phase1 不包含教師共享題庫，先以 Community 驗證題庫為主。",
     "importFromInbox": "匯入草稿",
     "inbox": {
       "clearSelection": "清除選取",
@@ -436,40 +429,14 @@
       "selectedCount": "已選 {{count}} 題"
     },
     "loadQuestions": "查看題目",
-    "marketplace": "Marketplace",
     "memoryLimit": "記憶體限制(MB)",
-    "mockGalleryDesc": "以下為 UI mock 預覽，示範 QJudge Community 題庫卡片。",
-    "mockGalleryTitle": "Mock Card Gallery",
-    "mockOfficialBank1Desc": "從遞迴與基礎搜尋開始，逐步建立解題思維。",
-    "mockOfficialBank1Name": "演算法入門 - 迭迴",
-    "mockOfficialBank2Desc": "以教學進度分層整理的資料結構與實作題。",
-    "mockOfficialBank2Name": "資料結構實作題庫",
-    "mockOfficialTag": "Community 精選",
-    "mockOwnerLabel": "擁有者",
-    "mockOwnerPlatform": "QJudge Community",
-    "mockOwnerTeacherA": "陳老師",
-    "mockOwnerTeacherB": "林老師",
-    "mockQuestionCount": "{{count}} 題",
-    "mockUserBank1Desc": "教室實戰導向，聚焦 APCS 觀念與常見錯誤。",
-    "mockUserBank1Name": "陳老師 APCS 練習集",
-    "mockUserBank2Desc": "校內段考題型整理，附評分重點與難度分級。",
-    "mockUserBank2Name": "林老師段考題庫",
-    "mockUserPublicTag": "用戶 Public 題庫",
-    "mockVerifiedTag": "verified",
-    "needQuestionsToApply": "至少需要 1 題才能申請上架",
     "notFound": "找不到此題庫",
     "openBank": "進入題庫",
-    "pendingReview": "審核中",
     "prompt": "題目敘述",
-    "published": "已上架",
     "questionCountLabel": "{{count}} 題",
     "questionCreated": "題目已建立",
     "questionDeleted": "題目已刪除",
     "questionUpdated": "題目已更新",
-    "reapply": "重新申請",
-    "rejected": "已被退回",
-    "reviewNoteLabel": "審核備註",
-    "reviewStatusLabel": "上架狀態",
     "saveToBank": {
       "desc": "將「{{title}}」收錄到題庫：",
       "success": "已收錄到題庫",
@@ -481,24 +448,11 @@
     "sortOldest": "最早更新",
     "sortOrder": "預設排序",
     "sortType": "依題型",
-    "submitForReviewSuccess": "已提交審核申請",
-    "subscribeBtn": "訂閱",
-    "subscribed": "已訂閱",
-    "subscribedBtn": "已訂閱",
-    "subscribedLabel": "已訂閱",
-    "tabs": {
-      "explore": "探索題庫"
-    },
     "tagMine": "我的題庫",
-    "tagPrivate": "私人",
-    "tagPublic": "公開",
-    "tagUserPublic": "用戶公開",
     "timeLimit": "時間限制(ms)",
     "type": "類型",
-    "unsubscribed": "已取消訂閱",
     "untitled": "未命名",
-    "usedInContests": "{{count}} 場考試",
-    "verified": "已認證"
+    "usedInContests": "{{count}} 場考試"
   },
   "questionType": {
     "description": {
@@ -533,7 +487,7 @@
       "outputTokens": "輸出 Tokens",
       "title": "AI 使用量"
     },
-    "description": "管理個人檔案、偏好設定、方案與使用量。",
+    "description": "管理個人檔案、偏好設定與使用量。",
     "descriptionStudent": "管理個人設定。",
     "loginRecords": {
       "current": "目前裝置",
@@ -548,67 +502,11 @@
       "now": "現在",
       "title": "裝置管理"
     },
-    "plans": {
-      "contactUs": "聯絡我們",
-      "description": "所有方案皆可使用完整功能，差異僅在使用額度。",
-      "enterpriseCustom": "我們可以為你規劃客製化企業方案。",
-      "enterpriseTitle": "需要更大規模的使用嗎？",
-      "features": {
-        "pro": [
-          "每場考試最多 200 人",
-          "每月 500 AI Credits",
-          "無限制題庫儲存",
-          "資料保留 1 年",
-          "10 GB 儲存空間"
-        ],
-        "team": [
-          "每場考試最多 500 人",
-          "每月 2,000 AI Credits",
-          "無限制題庫儲存",
-          "最多 10 位管理者",
-          "50 GB 儲存空間"
-        ]
-      },
-      "freeTrial": "免費試用 30 天",
-      "month": "月",
-      "openCheckoutFailed": "無法開啟結帳頁面，請稍後再試。",
-      "processing": "處理中...",
-      "startingTrial": "開始免費試用",
-      "subscribeNow": "立即訂閱",
-      "title": "查看方案"
-    },
-    "subscription": {
-      "desc": {
-        "free": "目前使用免費方案，可隨時升級。",
-        "pro": "適合需要穩定考試環境的個人用戶",
-        "team": "適合學校、科系與培訓機構"
-      },
-      "manage": "管理訂閱",
-      "manageDesc": "變更付款方式、取消訂閱或查看發票",
-      "openPortalFailed": "無法開啟訂閱管理頁面",
-      "periodEndDate": "目前週期結束",
-      "status": {
-        "active": "啟用中",
-        "canceled": "已取消",
-        "expired": "已到期",
-        "past_due": "付款逾期",
-        "trialing": "試用中"
-      },
-      "tier": {
-        "enterprise": "企業方案",
-        "free": "免費方案",
-        "pro": "Pro 方案",
-        "team": "Team 方案"
-      },
-      "trialEndDate": "試用結束日"
-    },
     "tabs": {
       "aiUsage": "AI 使用量",
       "mcp": "MCP 連線",
-      "plans": "方案",
       "preferences": "偏好設定",
       "profile": "個人檔案",
-      "subscription": "訂閱狀態",
       "usage": "使用量"
     },
     "title": "設定"
