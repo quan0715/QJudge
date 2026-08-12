@@ -61,8 +61,6 @@ def _resolve_or_create_active_personal_bank(user, category: str) -> QuestionBank
             category=category,
             is_archived=False,
             name=get_my_bank_default_name(category),
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
     except IntegrityError:
         bank = (
@@ -253,15 +251,6 @@ def clone_membership_to_bank(
         )
 
 
-def is_publicly_accessible_bank(bank: QuestionBank) -> bool:
-    if bank.visibility != QuestionBank.Visibility.PUBLIC or not bank.verified or bank.is_archived:
-        return False
-    if bank.review_status == QuestionBank.ReviewStatus.APPROVED:
-        return True
-    owner = getattr(bank, "owner", None)
-    return owner is None or bool(getattr(owner, "is_staff", False) or getattr(owner, "role", None) == "admin")
-
-
 def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> ExamReconstructibilityResult:
     if not exam_question.prompt or not exam_question.prompt.strip():
         return ExamReconstructibilityResult(False, "prompt is empty")
@@ -280,11 +269,7 @@ def validate_exam_question_reconstructibility(exam_question: ExamQuestion) -> Ex
 
 
 def _is_effectively_accessible_bank_for_user(*, bank: QuestionBank, user) -> bool:
-    if bank.is_archived:
-        return False
-    if bank.owner_id == user.id:
-        return True
-    return is_publicly_accessible_bank(bank)
+    return not bank.is_archived and bank.owner_id == user.id
 
 
 def _source_id_from_membership_payload(

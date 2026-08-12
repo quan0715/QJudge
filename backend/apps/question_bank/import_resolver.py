@@ -11,7 +11,6 @@ from rest_framework.exceptions import (
     ValidationError as DRFValidationError,
 )
 
-from .bank_workflows import is_publicly_accessible_bank
 from .models import QuestionAsset, QuestionBank, QuestionBankMembership
 
 
@@ -66,7 +65,7 @@ def resolve_bank_question_for_import(
     if not bank:
         raise NotFound("Question bank not found")
 
-    if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
+    if bank.owner_id != user.id:
         raise PermissionDenied("No access to this question bank")
 
     normalized_question_uuid = _normalize_uuid(

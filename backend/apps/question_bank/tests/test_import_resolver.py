@@ -29,7 +29,6 @@ def test_resolve_bank_question_for_import_resolves_membership_and_enforces_type(
         owner=teacher,
         name="Exam Bank",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,

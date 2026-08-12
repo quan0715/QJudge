@@ -1,10 +1,8 @@
-import pytest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
-from apps.question_bank.models import QuestionAsset, QuestionBank
-from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
+from apps.question_bank.models import QuestionBank
 
 User = get_user_model()
 
@@ -21,7 +19,6 @@ class QuestionBankViewsEnhancedTests(APITestCase):
             name='Teacher Bank',
             owner=self.teacher,
             category='coding',
-            visibility='private'
         )
         self.list_url = reverse('question_bank:question-bank-list')
         self.detail_url = reverse('question_bank:question-bank-detail', kwargs={'uuid': self.bank.uuid})
@@ -32,67 +29,22 @@ class QuestionBankViewsEnhancedTests(APITestCase):
         response = self.client.post(self.list_url, {'name': 'Student Bank', 'category': 'coding'})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_review_queue_permissions(self):
-        """Test that only admins can access the review queue"""
-        # Teacher (forbidden)
+    def test_marketplace_actions_are_not_routed(self):
+        """Retired Marketplace URLs must not retain callable API behavior."""
         self.client.force_authenticate(user=self.teacher)
-        queue_url = reverse('question_bank:question-bank-review-queue')
-        response = self.client.get(queue_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        
-        # Admin (allowed)
-        self.client.force_authenticate(user=self.admin)
-        response = self.client.get(queue_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        requests = [
+            ("get", "/api/v1/question-banks/explore/"),
+            ("get", "/api/v1/question-banks/review-queue/"),
+            ("post", f"/api/v1/question-banks/{self.bank.uuid}/submit-for-review/"),
+            ("post", f"/api/v1/question-banks/{self.bank.uuid}/review/"),
+            ("post", f"/api/v1/question-banks/{self.bank.uuid}/subscribe/"),
+            ("get", "/api/v1/question-banks/subscribed/"),
+        ]
 
-    def test_submit_and_review_workflow(self):
-        """Test the full submit for review -> admin review workflow"""
-        # Add a question first (required for submission)
-        asset, _version = create_question_asset(
-            owner=self.teacher,
-            asset_type=QuestionAsset.AssetType.CODING,
-            title='Test Question',
-            prompt='',
-            visibility=QuestionAsset.Visibility.PRIVATE,
-            payload={
-                'score': 100,
-                'order': 0,
-                'difficulty': 'medium',
-                'time_limit': 1000,
-                'memory_limit': 128,
-                'options': [],
-                'correct_answer': None,
-                'metadata': {},
-                'test_cases': [],
-                'language_configs': [],
-                'forbidden_keywords': [],
-                'required_keywords': [],
-            },
-            actor=self.teacher,
-        )
-        ensure_question_bank_membership(
-            bank=self.bank,
-            question_asset=asset,
-            order=0,
-            actor=self.teacher,
-        )
-        
-        # Submit for review
-        self.client.force_authenticate(user=self.teacher)
-        submit_url = reverse('question_bank:question-bank-submit-for-review', kwargs={'uuid': self.bank.uuid})
-        response = self.client.post(submit_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.bank.refresh_from_db()
-        self.assertEqual(self.bank.review_status, 'pending')
-        
-        # Admin approve
-        self.client.force_authenticate(user=self.admin)
-        review_url = reverse('question_bank:question-bank-review', kwargs={'uuid': self.bank.uuid})
-        response = self.client.post(review_url, {'decision': 'approve', 'note': 'Looks good'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.bank.refresh_from_db()
-        self.assertEqual(self.bank.review_status, 'approved')
-        self.assertTrue(self.bank.verified)
+        for method, path in requests:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path)
+                self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_inbox_category_validation(self):
         """Test inbox endpoint with invalid category"""

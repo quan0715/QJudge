@@ -7,9 +7,8 @@ from io import BytesIO
 from PIL import Image, UnidentifiedImageError
 from django.conf import settings
 from django.http import Http404
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.decorators import action
@@ -22,7 +21,7 @@ from apps.core.services import (
     store_markdown_image,
 )
 
-from .models import QuestionBank, QuestionBankSubscription
+from .models import QuestionBank
 from .read_models import (
     build_read_row_for_membership,
     get_bank_for_read,
@@ -30,7 +29,6 @@ from .read_models import (
     resolve_bank_question_target_for_user,
 )
 from .serializers import (
-    ExploreBankItemSerializer,
     QuestionBankSerializer,
     QuestionBankItemReadSerializer,
     QuestionCloneSerializer,
@@ -40,13 +38,12 @@ from .serializers import (
     QUESTION_TYPE_CODING,
     QUESTION_TYPE_EXAM,
 )
-from .permissions import IsQuestionBankAdminReviewer, IsQuestionBankOwner
+from .permissions import IsQuestionBankOwner
 from .write_workflows import create_bank_question, update_bank_question_membership
 from .bank_workflows import (
     clone_membership_to_bank,
     get_or_create_personal_bank,
     ingest_question_bank_inbox_items,
-    is_publicly_accessible_bank,
     list_question_bank_inbox,
 )
 
@@ -74,68 +71,7 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         "WEBP": ("webp", "image/webp"),
     }
 
-    @staticmethod
-    def _is_admin_user(user) -> bool:
-        return bool(user and (user.is_staff or getattr(user, "role", None) == "admin"))
-
     def get_queryset(self):
-        if self.action == "explore":
-            return (
-                QuestionBank.objects.filter(
-                    is_archived=False,
-                    visibility=QuestionBank.Visibility.PUBLIC,
-                    verified=True,
-                    review_status=QuestionBank.ReviewStatus.APPROVED,
-                )
-                .annotate(question_count=Count("asset_memberships", distinct=True))
-            )
-
-        if self.action == "retrieve":
-            visibility_filter = Q(
-                is_archived=False,
-                visibility=QuestionBank.Visibility.PUBLIC,
-                verified=True,
-                review_status=QuestionBank.ReviewStatus.APPROVED,
-            )
-            if self._is_admin_user(self.request.user):
-                return (
-                    QuestionBank.objects.filter(is_archived=False)
-                    .annotate(question_count=Count("asset_memberships", distinct=True))
-                )
-            return (
-                QuestionBank.objects.filter(
-                    Q(owner=self.request.user, is_archived=False)
-                    | visibility_filter
-                )
-                .annotate(question_count=Count("asset_memberships", distinct=True))
-            )
-
-        if self.action == "review_queue":
-            if not self._is_admin_user(self.request.user):
-                return QuestionBank.objects.none()
-            return (
-                QuestionBank.objects.filter(
-                    is_archived=False,
-                    review_status=QuestionBank.ReviewStatus.PENDING,
-                )
-                .annotate(question_count=Count("asset_memberships", distinct=True))
-                .order_by("submitted_at", "-updated_at")
-            )
-
-        if self.action == "submit_for_review":
-            return (
-                QuestionBank.objects.filter(is_archived=False)
-                .annotate(question_count=Count("asset_memberships", distinct=True))
-            )
-        if self.action == "review":
-            return QuestionBank.objects.filter(is_archived=False)
-
-        if self.action == "subscribe":
-            return (
-                QuestionBank.objects.filter(is_archived=False)
-                .annotate(question_count=Count("asset_memberships", distinct=True))
-            )
-
         return (
             QuestionBank.objects.filter(
                 owner=self.request.user,
@@ -146,10 +82,6 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         )
 
     def get_permissions(self):
-        if self.action == "review":
-            return [permissions.IsAuthenticated(), IsQuestionBankAdminReviewer()]
-        if self.action == "submit_for_review":
-            return [permissions.IsAuthenticated(), IsQuestionBankOwner()]
         if self.action == "questions" and self.request.method.lower() == "post":
             return [permissions.IsAuthenticated(), IsQuestionBankOwner()]
         return super().get_permissions()
@@ -164,23 +96,6 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_archived = True
         instance.save(update_fields=["is_archived", "updated_at"])
-
-    @action(detail=False, methods=["get"], url_path="explore")
-    def explore(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = ExploreBankItemSerializer(queryset, many=True, context={"request": request})
-        return Response({
-            "count": len(serializer.data),
-            "results": serializer.data,
-        })
-
-    @action(detail=False, methods=["get"], url_path="review-queue")
-    def review_queue(self, request):
-        if not self._is_admin_user(request.user):
-            raise PermissionDenied('Admin only.')
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = QuestionBankSerializer(queryset, many=True, context={"request": request})
-        return Response({"count": len(serializer.data), "results": serializer.data})
 
     @action(detail=False, methods=["get"], url_path="inbox")
     def inbox(self, request):
@@ -267,108 +182,6 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
 
         return Response({"cover_url": image_url}, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="submit-for-review")
-    def submit_for_review(self, request, uuid=None, pk=None):
-        bank = self.get_object()
-        self.check_object_permissions(request, bank)
-        if bank.review_status == QuestionBank.ReviewStatus.PENDING:
-            raise DRFValidationError("This bank is already pending review.")
-        if not bank.asset_memberships.exists():
-            raise DRFValidationError("Please add at least one question before submission.")
-
-        bank.review_status = QuestionBank.ReviewStatus.PENDING
-        bank.review_note = ""
-        bank.submitted_at = timezone.now()
-        bank.reviewed_at = None
-        bank.reviewed_by = None
-        bank.verified = False
-        bank.visibility = QuestionBank.Visibility.PUBLIC
-        bank.save(
-            update_fields=[
-                "review_status",
-                "review_note",
-                "submitted_at",
-                "reviewed_at",
-                "reviewed_by",
-                "verified",
-                "visibility",
-                "updated_at",
-            ]
-        )
-        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=["post"], url_path="review")
-    def review(self, request, uuid=None, pk=None):
-        bank = self.get_object()
-        self.check_object_permissions(request, bank)
-
-        decision = str(request.data.get("decision", "")).strip().lower()
-        note = str(request.data.get("note", "")).strip()
-        if decision not in {"approve", "reject"}:
-            raise DRFValidationError("decision must be approve or reject")
-        if bank.review_status != QuestionBank.ReviewStatus.PENDING:
-            raise DRFValidationError("Bank is not pending review.")
-
-        if decision == "approve":
-            bank.review_status = QuestionBank.ReviewStatus.APPROVED
-            bank.verified = True
-            bank.visibility = QuestionBank.Visibility.PUBLIC
-        else:
-            bank.review_status = QuestionBank.ReviewStatus.REJECTED
-            bank.verified = False
-
-        bank.review_note = note
-        bank.reviewed_at = timezone.now()
-        bank.reviewed_by = request.user
-        bank.save(
-            update_fields=[
-                "review_status",
-                "verified",
-                "visibility",
-                "review_note",
-                "reviewed_at",
-                "reviewed_by",
-                "updated_at",
-            ]
-        )
-        return Response(QuestionBankSerializer(bank, context={"request": request}).data, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=["post", "delete"], url_path="subscribe")
-    def subscribe(self, request, uuid=None, pk=None):
-        bank = self.get_object()
-        if request.method == "DELETE":
-            deleted, _ = QuestionBankSubscription.objects.filter(
-                user=request.user, bank=bank,
-            ).delete()
-            if not deleted:
-                raise DRFValidationError("Not subscribed.")
-            return Response({"subscribed": False}, status=status.HTTP_200_OK)
-        # POST
-        if not is_publicly_accessible_bank(bank):
-            raise PermissionDenied("Bank is not available for subscription.")
-        if bank.owner_id == request.user.id:
-            raise DRFValidationError("Cannot subscribe to your own bank.")
-        _, created = QuestionBankSubscription.objects.get_or_create(
-            user=request.user, bank=bank,
-        )
-        if not created:
-            raise DRFValidationError("Already subscribed.")
-        return Response({"subscribed": True}, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["get"], url_path="subscribed")
-    def subscribed(self, request):
-        bank_ids = QuestionBankSubscription.objects.filter(
-            user=request.user,
-        ).values_list("bank_id", flat=True)
-        queryset = (
-            QuestionBank.objects.filter(id__in=bank_ids, is_archived=False)
-            .annotate(question_count=Count("asset_memberships", distinct=True))
-        )
-        serializer = QuestionBankSerializer(
-            queryset, many=True, context={"request": request}
-        )
-        return Response({"count": len(serializer.data), "results": serializer.data})
-
     @action(detail=True, methods=["get", "post"], url_path="questions")
     def questions(self, request, uuid=None, pk=None):
         if request.method.lower() == "get":
@@ -406,11 +219,10 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
         return Response(_serialize_bank_question_response(membership=membership), status=status.HTTP_201_CREATED)
 
     @staticmethod
-    def _resolve_bank_question_target_or_404(*, bank: QuestionBank, user, raw_id: str, allow_cloneable: bool = False):
+    def _resolve_bank_question_target_or_404(*, bank: QuestionBank, user, raw_id: str):
         target = resolve_bank_question_target_for_user(
             user=user,
             raw_id=raw_id,
-            allow_cloneable=allow_cloneable,
         )
         if not target:
             raise Http404
@@ -471,16 +283,12 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             bank=bank,
             user=request.user,
             raw_id=question_id,
-            allow_cloneable=True,
         )
 
         if not target.membership:
             raise Http404
 
         source_membership = target.membership
-        if source_membership.bank.owner_id != request.user.id and not is_publicly_accessible_bank(source_membership.bank):
-            raise PermissionDenied("Question is not cloneable.")
-
         payload = QuestionCloneSerializer(data=request.data or {})
         payload.is_valid(raise_exception=True)
         target_bank_id = payload.validated_data.get("target_bank_id")
