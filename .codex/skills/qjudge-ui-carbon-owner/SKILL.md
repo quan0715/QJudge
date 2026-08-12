@@ -13,6 +13,7 @@ metadata:
 ## Quick start
 - 先確認需求屬於：元件/UI 行為、樣式、版面或 Storybook。
 - 先讀：`references/carbon-policy.md`。
+- Carbon component、icon、Charts 或 Labs API 不確定時，套用 `carbon-builder` 的 MCP Discover → Canonicalize → Target 流程；QJudge 專案規則仍以本 skill 為準。
 - 若是捲動/裁切問題，再讀：`references/overflow-layout-playbook.md`。
 - 變更 shared/component 時同步更新 stories 與 registry。
 - 若 Carbon API、variant 或 accessibility 規則可能變動，先用 IBM Carbon MCP 查 `docs_search`，再用 `code_search` 取得目前 React 範例；Carbon Charts 只用 `get_charts`。

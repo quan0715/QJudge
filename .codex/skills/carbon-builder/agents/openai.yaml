@@ -1,0 +1,11 @@
+interface:
+  display_name: "Carbon Builder"
+  short_description: "Build and verify current Carbon interfaces"
+  default_prompt: "Use $carbon-builder to verify and implement this Carbon interface with the current MCP sources."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ibm_carbon_mcp"
+      description: "Current Carbon components, documentation, Charts, and Labs references"
+policy:
+  allow_implicit_invocation: true
