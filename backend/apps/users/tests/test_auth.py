@@ -66,6 +66,11 @@ class AuthTests(APITestCase):
         self.assertEqual(user["role"], "teacher")
         self.assertNotIn("subscription", user)
 
+    def test_billing_routes_are_not_registered(self):
+        response = self.client.get("/api/v1/subscriptions/me/")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_login_response_includes_onboarding_profile_state(self):
         """Completed onboarding should survive a fresh login response."""
         user = User.objects.create_user(

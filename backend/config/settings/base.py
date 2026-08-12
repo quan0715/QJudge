@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     "apps.classrooms",
     "apps.ai",  # AI Chat
     "apps.question_bank",
-    "apps.subscriptions",
     "apps.oauth",
     "drf_spectacular",
 ]
@@ -525,10 +524,3 @@ MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
     "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
     os.getenv("FRONTEND_URL", ""),
 ).strip()
-
-# Recur Payment settings
-RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
-RECUR_SECRET_KEY = os.getenv("RECUR_SECRET_KEY", "")
-RECUR_WEBHOOK_SECRET = os.getenv("RECUR_WEBHOOK_SECRET", "")
-RECUR_PRODUCT_PRO_ID = os.getenv("RECUR_PRODUCT_PRO_ID", "")
-RECUR_PRODUCT_TEAM_ID = os.getenv("RECUR_PRODUCT_TEAM_ID", "")
