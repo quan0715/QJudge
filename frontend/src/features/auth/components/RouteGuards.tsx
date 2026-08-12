@@ -1,26 +1,13 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Loading } from '@carbon/react';
+import PageLoading from '@/shared/ui/PageLoading';
 import { getAuthedLandingPath, hasCompletedOnboarding } from "../utils/onboarding";
-
-const PageLoading = () => (
-  <div style={{ 
-    height: '100vh', 
-    width: '100vw', 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    backgroundColor: 'var(--cds-background)'
-  }}>
-    <Loading description="Loading..." withOverlay={false} />
-  </div>
-);
 
 export const RequireAuth = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (!user) {
     // Redirect to landing page for unauthenticated users
@@ -33,7 +20,7 @@ export const RequireAuth = () => {
 export const RequireGuest = () => {
   const { user, loading } = useAuth();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (user) {
     return <Navigate to={getAuthedLandingPath(user)} replace />;
@@ -45,7 +32,7 @@ export const RequireGuest = () => {
 export const RequirePendingOnboarding = () => {
   const { user, loading } = useAuth();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -62,7 +49,7 @@ export const RequireCompletedOnboarding = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -79,7 +66,7 @@ export const RequireAdmin = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (!user) {
     // Redirect to landing page for unauthenticated users
@@ -97,7 +84,7 @@ export const RequireTeacherOrAdmin = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <PageLoading />;
+  if (loading) return <PageLoading fullScreen />;
 
   if (!user) {
     // Redirect to landing page for unauthenticated users

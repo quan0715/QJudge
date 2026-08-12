@@ -1,6 +1,16 @@
+import { lazy } from "react";
 import { Route } from "react-router";
-import ChangelogScreen from "./screens/ChangelogScreen";
+import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
+
+const ChangelogScreen = lazy(() => import("./screens/ChangelogScreen"));
 
 export const changelogRoutes = (
-  <Route path="/changelog" element={<ChangelogScreen />} />
+  <Route
+    path="/changelog"
+    element={
+      <RouteLoadingBoundary>
+        <ChangelogScreen />
+      </RouteLoadingBoundary>
+    }
+  />
 );

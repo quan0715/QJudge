@@ -1,0 +1,13 @@
+@use "@carbon/layout";
+
+.root {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  min-block-size: layout.rem(192px);
+  background: var(--cds-background);
+}
+
+.fullScreen {
+  min-block-size: 100dvh;
+}

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 
 import {
   ContestProvider,
@@ -33,6 +34,7 @@ const AdminPanelSlot = ({
   contestModule,
   ...rest
 }: AdminPanelProps & { panelId: AdminPanelId; contestModule: ContestTypeModule }) => {
+  const { t } = useTranslation("common");
   /* eslint-disable react-hooks/static-components */
   const Renderer = getAdminPanelRenderer(panelId, contestModule);
   return (
@@ -42,7 +44,7 @@ const AdminPanelSlot = ({
           <Loading
             small
             withOverlay={false}
-            description="載入管理面板"
+            description={t("message.loading")}
           />
         </div>
       )}
@@ -54,6 +56,7 @@ const AdminPanelSlot = ({
 };
 
 const AdminDashboardInner = () => {
+  const { t } = useTranslation("common");
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -148,7 +151,7 @@ const AdminDashboardInner = () => {
       </div>
 
       {exportOpen && contest && contestId && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<Loading description={t("message.loading")} />}>
           <ContestExportDialog
             open
             onClose={() => setExportOpen(false)}
@@ -159,7 +162,7 @@ const AdminDashboardInner = () => {
       )}
 
       {isSettingsOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<Loading description={t("message.loading")} />}>
           <ContestSettingsOverlay
             open
             onClose={closeSettings}
