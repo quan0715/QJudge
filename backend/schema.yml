@@ -5481,125 +5481,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/QuestionBank'
           description: ''
-  /api/v1/question-banks/{uuid}/review/:
-    post:
-      operationId: v1_question_banks_review_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/{uuid}/submit-for-review/:
-    post:
-      operationId: v1_question_banks_submit_for_review_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/{uuid}/subscribe/:
-    post:
-      operationId: v1_question_banks_subscribe_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-    delete:
-      operationId: v1_question_banks_subscribe_destroy
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/question-banks/{uuid}/upload_cover/:
     post:
       operationId: v1_question_banks_upload_cover_create
@@ -5620,21 +5501,6 @@ paths:
             schema:
               $ref: '#/components/schemas/QuestionBankRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/explore/:
-    get:
-      operationId: v1_question_banks_explore_retrieve
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5677,36 +5543,6 @@ paths:
             schema:
               $ref: '#/components/schemas/QuestionBankRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/review-queue/:
-    get:
-      operationId: v1_question_banks_review_queue_retrieve
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/subscribed/:
-    get:
-      operationId: v1_question_banks_subscribed_retrieve
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5865,41 +5701,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
-  /api/v1/subscriptions/checkout/:
-    post:
-      operationId: v1_subscriptions_checkout_create
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/subscriptions/me/:
-    get:
-      operationId: v1_subscriptions_me_retrieve
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/subscriptions/portal/:
-    post:
-      operationId: v1_subscriptions_portal_create
-      description: POST /api/v1/subscriptions/portal/ — create Recur customer portal
-        session.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/users/:
     get:
       operationId: v1_users_retrieve
@@ -8137,8 +7938,6 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
     PatchedTagRequest:
       type: object
       description: Serializer for tags.
@@ -8543,31 +8342,6 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
-        verified:
-          type: boolean
-          readOnly: true
-        review_status:
-          allOf:
-          - $ref: '#/components/schemas/ReviewStatusEnum'
-          readOnly: true
-        review_note:
-          type: string
-          readOnly: true
-        submitted_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        reviewed_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        reviewed_by_username:
-          type: string
-          readOnly: true
         owner:
           type: integer
           readOnly: true
@@ -8578,9 +8352,6 @@ components:
           readOnly: true
         question_count:
           type: string
-          readOnly: true
-        is_subscribed:
-          type: boolean
           readOnly: true
         created_at:
           type: string
@@ -8593,18 +8364,11 @@ components:
       required:
       - created_at
       - id
-      - is_subscribed
       - name
       - owner
       - owner_username
       - question_count
-      - review_note
-      - review_status
-      - reviewed_at
-      - reviewed_by_username
-      - submitted_at
       - updated_at
-      - verified
     QuestionBankRequest:
       type: object
       properties:
@@ -8626,8 +8390,6 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
       required:
       - name
     Register:
@@ -8668,18 +8430,6 @@ components:
       - password
       - password_confirm
       - username
-    ReviewStatusEnum:
-      enum:
-      - draft
-      - pending
-      - approved
-      - rejected
-      type: string
-      description: |-
-        * `draft` - Draft
-        * `pending` - Pending Review
-        * `approved` - Approved
-        * `rejected` - Rejected
     ScreenEvent:
       type: object
       description: Serializer for screen events.
@@ -9159,9 +8909,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/UserProfile'
           readOnly: true
-        subscription:
-          type: string
-          readOnly: true
       required:
       - auth_provider
       - date_joined
@@ -9169,7 +8916,6 @@ components:
       - id
       - last_login_at
       - profile
-      - subscription
       - username
     UserLoginRecord:
       type: object
