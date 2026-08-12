@@ -26,7 +26,6 @@ const ProblemTabs: React.FC<ProblemTabsProps> = ({
     { label: "解題與提交", key: "solver" },
     { label: "提交記錄", key: "history" },
     { label: "解題統計", key: "stats" },
-    { label: "討論", key: "discussions" },
   ];
 
   if (isAdmin) {

@@ -9,10 +9,8 @@ import {
   Logout,
   Code,
   Book,
-  RecentlyViewed,
   Settings,
   UserMultiple,
-  Bullhorn,
   DocumentBlank,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
@@ -219,19 +217,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
             type="button"
             className="user-menu-link"
             onClick={() => {
-              navigate("/changelog");
-              setIsExpandedInternal(false);
-              onExpandedChange?.(false);
-            }}
-          >
-            <RecentlyViewed size={16} />
-            {t("nav.changelog")}
-          </button>
-
-          <button
-            type="button"
-            className="user-menu-link"
-            onClick={() => {
               openSettings();
               setIsExpandedInternal(false);
               onExpandedChange?.(false);
@@ -275,18 +260,6 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               >
                 <UserMultiple size={16} />
                 {t("header.userManagement", "用戶管理")}
-              </button>
-              <button
-                type="button"
-                className="user-menu-link"
-                onClick={() => {
-                  navigate("/management/announcements");
-                  setIsExpandedInternal(false);
-                  onExpandedChange?.(false);
-                }}
-              >
-                <Bullhorn size={16} />
-                {t("header.announcements", "公告管理")}
               </button>
             </>
           )}

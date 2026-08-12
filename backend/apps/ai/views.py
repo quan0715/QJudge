@@ -353,10 +353,3 @@ class ModelListView(SchemaAPIView):
 
     def get(self, request):
         return _proxy_json(request, method="GET", path="/v1/models")
-
-
-class UsageView(SchemaAPIView):
-    permission_classes = [IsTeacherOrAdmin]
-
-    def get(self, request):
-        return _proxy_json(request, method="GET", path="/v1/usage")

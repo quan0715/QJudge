@@ -134,11 +134,6 @@
     "locale": "zh-TW"
   },
   "dashboard": {
-    "announcements": {
-      "noAnnouncements": "目前沒有公告",
-      "subtitle": "最新公告",
-      "title": "公告"
-    },
     "classroomHub": {
       "emptyDesc": "先建立教室或透過邀請連結加入教室。",
       "emptyTitle": "尚未加入任何教室",
@@ -214,7 +209,6 @@
   },
   "header": {
     "adminNavigation": "管理導覽",
-    "announcements": "公告管理",
     "contestManagement": "競賽管理",
     "contestNavigation": "競賽導覽",
     "createContest": "建立競賽",
@@ -311,7 +305,6 @@
   },
   "nav": {
     "back": "返回",
-    "changelog": "更新紀錄",
     "chat": "Chat",
     "classrooms": "教室",
     "contests": "競賽",
@@ -320,7 +313,6 @@
     "problemList": "題目列表",
     "problems": "題目",
     "questionBanks": "題庫",
-    "ranking": "排行榜",
     "submissions": "提交紀錄"
   },
   "oauth": {
@@ -335,7 +327,6 @@
     }
   },
   "page": {
-    "announcements": "公告管理",
     "contestDetail": "競賽詳情",
     "contestManagement": "競賽管理",
     "contests": "競賽列表",
@@ -478,16 +469,7 @@
     "teacher": "教師"
   },
   "settings": {
-    "aiUsage": {
-      "aiRuns": "AI 執行次數",
-      "inputTokens": "輸入 Tokens",
-      "lastUpdated": "最後更新",
-      "loadError": "無法載入使用量資料",
-      "noData": "無資料",
-      "outputTokens": "輸出 Tokens",
-      "title": "AI 使用量"
-    },
-    "description": "管理個人檔案、偏好設定與使用量。",
+    "description": "管理個人檔案與偏好設定。",
     "descriptionStudent": "管理個人設定。",
     "loginRecords": {
       "current": "目前裝置",
@@ -503,11 +485,9 @@
       "title": "裝置管理"
     },
     "tabs": {
-      "aiUsage": "AI 使用量",
       "mcp": "MCP 連線",
       "preferences": "偏好設定",
-      "profile": "個人檔案",
-      "usage": "使用量"
+      "profile": "個人檔案"
     },
     "title": "設定"
   },

@@ -10,13 +10,6 @@ export { useProblemSolver } from "./useProblemSolver";
 // Re-export solver types from core
 export type { ExecutionState, ResultMode } from "@/core/types/solver.types";
 
-// Discussion hooks
-export {
-  useDiscussionList,
-  useDiscussionDetail,
-  discussionKeys,
-} from "./useProblemDiscussions";
-
 // Auto-save hook
 export {
   useAutoSave,

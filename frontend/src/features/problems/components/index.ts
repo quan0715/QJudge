@@ -10,9 +10,6 @@ export * from "./codingEditor";
 // List components
 export * from "./list";
 
-// Discussion components
-export * from "./discussions";
-
 // Layout components
 export { default as ProblemHero } from "./layout/ProblemHero";
 export { default as ProblemLayout } from "./layout/ProblemLayout";

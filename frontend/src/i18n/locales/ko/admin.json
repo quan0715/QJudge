@@ -1,33 +1,4 @@
 {
-  "announcement": {
-    "columns": {
-      "actions": "작업",
-      "author": "작성자",
-      "createdAt": "생성 시간",
-      "status": "상태",
-      "title": "제목"
-    },
-    "confirmDelete": "공지 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
-    "create": "공지 생성",
-    "delete": "공지 삭제",
-    "edit": "공지 편집",
-    "form": {
-      "content": "내용",
-      "contentPlaceholder": "공지 내용 입력",
-      "hidden": "비공개",
-      "publishLabel": "게시 여부",
-      "published": "게시",
-      "title": "제목",
-      "titlePlaceholder": "공지 제목 입력"
-    },
-    "list": "시스템 공지 목록",
-    "management": "공지 관리",
-    "search": "공지 검색",
-    "status": {
-      "hidden": "비공개",
-      "published": "게시됨"
-    }
-  },
   "environment": {
     "cannotSync": "동기화 불가",
     "cloud": "클라우드",

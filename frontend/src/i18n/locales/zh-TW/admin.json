@@ -1,33 +1,4 @@
 {
-  "announcement": {
-    "columns": {
-      "actions": "操作",
-      "author": "作者",
-      "createdAt": "建立時間",
-      "status": "狀態",
-      "title": "標題"
-    },
-    "confirmDelete": "您確定要刪除公告「{{title}}」嗎？此動作無法復原。",
-    "create": "建立公告",
-    "delete": "刪除公告",
-    "edit": "編輯公告",
-    "form": {
-      "content": "內容",
-      "contentPlaceholder": "請輸入公告內容",
-      "hidden": "隱藏",
-      "publishLabel": "是否發布",
-      "published": "發布",
-      "title": "標題",
-      "titlePlaceholder": "請輸入公告標題"
-    },
-    "list": "系統公告列表",
-    "management": "公告管理",
-    "search": "搜尋公告",
-    "status": {
-      "hidden": "隱藏",
-      "published": "已發布"
-    }
-  },
   "environment": {
     "cannotSync": "無法同步",
     "cloud": "雲端",

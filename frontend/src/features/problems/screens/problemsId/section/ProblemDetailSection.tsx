@@ -26,7 +26,6 @@ import {
   ProblemStatsTab,
   ProblemSubmissionList,
 } from "@/features/problems/components/solve";
-import { DiscussionList } from "@/features/problems/components/discussions";
 import { type TestCaseItem } from "@/core/entities/testcase.entity";
 import { SubmissionDetailModal } from "@/features/submissions/components";
 import {
@@ -317,21 +316,14 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
           />
         </section>
 
-        {/* Section 3: Discussion */}
-        <section className="problem-detail-page__section">
-          <ContainerCard title="討論區">
-            <DiscussionList problemId={problem.id} />
-          </ContainerCard>
-        </section>
-
-        {/* Section 4: Submission List */}
+        {/* Section 3: Submission List */}
         <section className="problem-detail-page__section">
           <ContainerCard title="提交記錄" padding="none">
             <ProblemSubmissionList problemId={problem.id} />
           </ContainerCard>
         </section>
 
-        {/* Section 5: Stats */}
+        {/* Section 4: Stats */}
         <section className="problem-detail-page__section">
           <ContainerCard title="解題統計">
             <ProblemStatsTab />

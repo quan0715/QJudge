@@ -134,11 +134,6 @@
     "locale": "en-US"
   },
   "dashboard": {
-    "announcements": {
-      "noAnnouncements": "No announcements",
-      "subtitle": "Latest updates",
-      "title": "Announcements"
-    },
     "classroomHub": {
       "emptyDesc": "Create a classroom or join one via invite link.",
       "emptyTitle": "No classrooms joined yet",
@@ -214,7 +209,6 @@
   },
   "header": {
     "adminNavigation": "Admin Navigation",
-    "announcements": "Announcements",
     "contestManagement": "Contest Management",
     "contestNavigation": "Contest Navigation",
     "createContest": "Create Contest",
@@ -311,7 +305,6 @@
   },
   "nav": {
     "back": "Back",
-    "changelog": "Changelog",
     "chat": "Chat",
     "classrooms": "Classrooms",
     "contests": "Contests",
@@ -320,7 +313,6 @@
     "problemList": "Problem List",
     "problems": "Problems",
     "questionBanks": "Question Banks",
-    "ranking": "Ranking",
     "submissions": "Submissions"
   },
   "oauth": {
@@ -335,7 +327,6 @@
     }
   },
   "page": {
-    "announcements": "Announcements",
     "contestDetail": "Contest Detail",
     "contestManagement": "Contest Management",
     "contests": "Contest List",
@@ -478,16 +469,7 @@
     "teacher": "Teacher"
   },
   "settings": {
-    "aiUsage": {
-      "aiRuns": "AI Runs",
-      "inputTokens": "Input Tokens",
-      "lastUpdated": "Last Updated",
-      "loadError": "Failed to load usage data",
-      "noData": "No data",
-      "outputTokens": "Output Tokens",
-      "title": "AI Usage"
-    },
-    "description": "Manage profile, preferences, and usage.",
+    "description": "Manage profile and preferences.",
     "descriptionStudent": "Manage your settings.",
     "loginRecords": {
       "current": "Current device",
@@ -503,11 +485,9 @@
       "title": "Device Management"
     },
     "tabs": {
-      "aiUsage": "AI Usage",
       "mcp": "MCP Connection",
       "preferences": "Preferences",
-      "profile": "Profile",
-      "usage": "Usage"
+      "profile": "Profile"
     },
     "title": "Settings"
   },

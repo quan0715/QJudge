@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     "apps.problems",
     "apps.submissions",
     "apps.contests",
-    "apps.announcements",
     "apps.classrooms",
     "apps.ai",  # AI Chat
     "apps.question_bank",

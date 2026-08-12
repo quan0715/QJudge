@@ -44,7 +44,6 @@ import ContestWorkspaceLayout from "@/features/contest/components/layout/Contest
 import { dashboardRoute } from "@/features/dashboard/routes";
 import { docsRoutes } from "@/features/docs/routes";
 import DocsLayout from "@/features/docs/components/DocsLayout";
-import { changelogRoutes } from "@/features/changelog/routes";
 import { errorRoutes, fallbackRoute } from "@/features/app/routes";
 import { adminRoutes, draftProblemsRoute } from "@/features/admin/routes";
 import { landingRoute } from "@/features/landing/routes";
@@ -123,7 +122,6 @@ function App() {
                         {/* Public Documentation Routes - no login required, custom layout */}
                         <Route element={<DocsLayout />}>
                           {docsRoutes}
-                          {changelogRoutes}
                         </Route>
 
                         {/* Public Landing Page */}
@@ -134,10 +132,6 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {dashboardRoute}
-                              <Route
-                                path="/ranking"
-                                element={<div>Ranking Page (Coming Soon)</div>}
-                              />
                               {/* Classroom Detail - inside MainLayout for shared sidebar */}
                               {classroomDetailRoute}
                             </Route>

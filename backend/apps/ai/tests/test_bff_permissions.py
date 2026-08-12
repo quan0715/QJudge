@@ -10,7 +10,6 @@ from .test_bff_contract import ai_transport, api_client, student
         ("post", "/api/v1/ai/sessions/new_session/"),
         ("get", "/api/v1/ai/runs/?status=active"),
         ("get", "/api/v1/ai/models/"),
-        ("get", "/api/v1/ai/usage/"),
         (
             "get",
             "/api/v1/ai/artifacts/?session_id=11111111-1111-1111-1111-111111111111",

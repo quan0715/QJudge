@@ -38,7 +38,6 @@ urlpatterns = [
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),
-    path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(**schema_view_kwargs), name='schema'),

@@ -1,1 +1,0 @@
-export { changelogRoutes } from "./routes";

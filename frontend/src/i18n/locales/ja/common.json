@@ -134,11 +134,6 @@
     "locale": "ja-JP"
   },
   "dashboard": {
-    "announcements": {
-      "noAnnouncements": "お知らせはありません",
-      "subtitle": "最新のお知らせ",
-      "title": "お知らせ"
-    },
     "classroomHub": {
       "emptyDesc": "クラスルームを作成するか、招待リンクで参加してください。",
       "emptyTitle": "まだクラスルームに参加していません",
@@ -214,7 +209,6 @@
   },
   "header": {
     "adminNavigation": "管理ナビゲーション",
-    "announcements": "お知らせ管理",
     "contestManagement": "コンテスト管理",
     "contestNavigation": "コンテストナビゲーション",
     "createContest": "コンテスト作成",
@@ -311,7 +305,6 @@
   },
   "nav": {
     "back": "戻る",
-    "changelog": "変更履歴",
     "chat": "Chat",
     "classrooms": "クラスルーム",
     "contests": "コンテスト",
@@ -320,7 +313,6 @@
     "problemList": "問題一覧",
     "problems": "問題",
     "questionBanks": "問題集",
-    "ranking": "ランキング",
     "submissions": "提出履歴"
   },
   "oauth": {
@@ -335,7 +327,6 @@
     }
   },
   "page": {
-    "announcements": "お知らせ管理",
     "contestDetail": "コンテスト詳細",
     "contestManagement": "コンテスト管理",
     "contests": "コンテスト一覧",
@@ -478,16 +469,7 @@
     "teacher": "教員"
   },
   "settings": {
-    "aiUsage": {
-      "aiRuns": "AI 実行回数",
-      "inputTokens": "入力 Tokens",
-      "lastUpdated": "最終更新",
-      "loadError": "使用量データを読み込めません",
-      "noData": "データなし",
-      "outputTokens": "出力 Tokens",
-      "title": "AI 使用量"
-    },
-    "description": "プロフィール、環境設定、利用状況を管理します。",
+    "description": "プロフィールと環境設定を管理します。",
     "descriptionStudent": "設定を管理します",
     "loginRecords": {
       "current": "現在のデバイス",
@@ -503,11 +485,9 @@
       "title": "デバイス管理"
     },
     "tabs": {
-      "aiUsage": "AI 使用量",
       "mcp": "MCP 接続",
       "preferences": "基本設定",
-      "profile": "プロフィール",
-      "usage": "利用統計"
+      "profile": "プロフィール"
     },
     "title": "設定"
   },

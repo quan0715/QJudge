@@ -134,11 +134,6 @@
     "locale": "ko-KR"
   },
   "dashboard": {
-    "announcements": {
-      "noAnnouncements": "공지사항이 없습니다",
-      "subtitle": "최신 공지사항",
-      "title": "공지사항"
-    },
     "classroomHub": {
       "emptyDesc": "교실을 만들거나 초대 링크로 참가하세요.",
       "emptyTitle": "아직 참가한 교실이 없습니다",
@@ -214,7 +209,6 @@
   },
   "header": {
     "adminNavigation": "관리 탐색",
-    "announcements": "공지 관리",
     "contestManagement": "대회 관리",
     "contestNavigation": "대회 탐색",
     "createContest": "대회 생성",
@@ -311,7 +305,6 @@
   },
   "nav": {
     "back": "뒤로",
-    "changelog": "변경 내역",
     "chat": "Chat",
     "classrooms": "교실",
     "contests": "대회",
@@ -320,7 +313,6 @@
     "problemList": "문제 목록",
     "problems": "문제",
     "questionBanks": "문제 은행",
-    "ranking": "랭킹",
     "submissions": "제출 기록"
   },
   "oauth": {
@@ -335,7 +327,6 @@
     }
   },
   "page": {
-    "announcements": "공지 관리",
     "contestDetail": "대회 상세",
     "contestManagement": "대회 관리",
     "contests": "대회 목록",
@@ -478,16 +469,7 @@
     "teacher": "교수"
   },
   "settings": {
-    "aiUsage": {
-      "aiRuns": "AI 실행 횟수",
-      "inputTokens": "입력 Tokens",
-      "lastUpdated": "마지막 업데이트",
-      "loadError": "사용량 데이터를 불러오지 못했습니다",
-      "noData": "데이터 없음",
-      "outputTokens": "출력 Tokens",
-      "title": "AI 사용량"
-    },
-    "description": "프로필, 환경설정 및 사용량을 관리합니다.",
+    "description": "프로필과 환경설정을 관리합니다.",
     "descriptionStudent": "환경설정을 관리합니다",
     "loginRecords": {
       "current": "현재 기기",
@@ -503,11 +485,9 @@
       "title": "기기 관리"
     },
     "tabs": {
-      "aiUsage": "AI 사용량",
       "mcp": "MCP 연결",
       "preferences": "환경설정",
-      "profile": "프로필",
-      "usage": "사용량 통계"
+      "profile": "프로필"
     },
     "title": "설정"
   },
