@@ -38,7 +38,7 @@ export const ContestProblemList: React.FC<ContestProblemListProps> = ({
     problemId: problem.problemId || problem.id,
     title: problem.title,
     label: problem.label || "-",
-    score: problem.score || 0,
+    score: problem.maxScore || 0,
     order: problem.order || 0,
     difficulty: problem.difficulty,
     isSolved: myRank?.problems?.[problem.id]?.status === "AC",

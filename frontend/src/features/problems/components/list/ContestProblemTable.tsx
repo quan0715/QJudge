@@ -55,7 +55,7 @@ const ContestProblemTable: React.FC<ContestProblemTableProps> = ({
             <DifficultyBadge difficulty={problem.difficulty || "medium"} />
           </div>
           <div className="contest-problem-table__col--score">
-            {formatScore(problem.score)}
+            {formatScore(problem.maxScore)}
           </div>
           {onRemove && (
             <div className="contest-problem-table__col--actions">

@@ -45,7 +45,6 @@ function mapContestProblemSummaryDto(
     label: dto.label || "",
     title: dto.title || "",
     order: dto.order,
-    score: resolvedMaxScore,
     maxScore: resolvedMaxScore,
     sourceBank: dto.source_bank
       ? {

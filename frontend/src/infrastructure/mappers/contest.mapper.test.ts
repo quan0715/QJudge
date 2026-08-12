@@ -27,6 +27,25 @@ describe("contest mapper", () => {
     expect(result).not.toHaveProperty("questionEditLockTrigger");
   });
 
+  it("normalizes contest problem score aliases to maxScore", () => {
+    const result = mapContestDetailDto({
+      id: "contest-1",
+      name: "Exam",
+      permissions: {},
+      problems: [
+        {
+          id: "binding-1",
+          problem_id: "problem-1",
+          title: "Two Sum",
+          score: 100,
+        },
+      ],
+    } as any);
+
+    expect(result.problems[0]).toMatchObject({ maxScore: 100 });
+    expect(result.problems[0]).not.toHaveProperty("score");
+  });
+
   describe("mapContestParticipantDto", () => {
     it("maps participant display name from profile display_name", () => {
       const result = mapContestParticipantDto({

@@ -110,7 +110,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           id: canonicalId,
           order: problem.order ?? idx + 1,
           title: problem.title || `P${idx + 1}`,
-          maxScore: Number(problem.maxScore ?? problem.score ?? 0),
+          maxScore: Number(problem.maxScore ?? 0),
           label: problem.label,
         });
       }

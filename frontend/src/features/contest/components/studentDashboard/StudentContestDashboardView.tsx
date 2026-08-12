@@ -744,7 +744,7 @@ export default function StudentContestDashboard({
       problemId: problem.problemId,
       title: problem.title,
       order: problem.order ?? index,
-      score: problem.maxScore ?? problem.score ?? 0,
+      score: problem.maxScore ?? 0,
       userStatus: problem.userStatus,
     }));
 

@@ -503,7 +503,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                 sourceBank: cp.sourceBank ?? null,
                 sourceMode: cp.sourceMode,
               }}
-              score={cp.maxScore ?? cp.score}
+              score={cp.maxScore}
               frozen={questionEditLocked}
               onDuplicate={
                 questionEditLocked

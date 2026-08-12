@@ -7,7 +7,7 @@ const problem = {
   label: "A",
   title: "Two Sum",
   difficulty: "easy" as const,
-  score: 100,
+  maxScore: 100,
 };
 
 describe("ContestProblemTable", () => {

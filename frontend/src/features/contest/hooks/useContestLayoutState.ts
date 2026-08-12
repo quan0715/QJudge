@@ -56,7 +56,10 @@ export function useContestLayoutState() {
       : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
-  const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
+  const totalMaxScore = contest?.problems?.reduce(
+    (sum, problem) => sum + (problem.maxScore || 0),
+    0,
+  ) ?? 0;
 
   const refreshContest = useCallback(async () => {
     if (contestId) {
