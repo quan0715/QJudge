@@ -18,9 +18,6 @@ class QuestionBank(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="question_banks",
-        null=True,
-        blank=True,
-        help_text="Null means platform-managed official bank.",
     )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
@@ -44,8 +41,7 @@ class QuestionBank(models.Model):
         ]
 
     def __str__(self):
-        owner = self.owner.username if self.owner else "platform"
-        return f"{self.name} ({owner})"
+        return f"{self.name} ({self.owner.username})"
 
 
 class QuestionAsset(models.Model):
@@ -57,19 +53,6 @@ class QuestionAsset(models.Model):
         SHORT_ANSWER = "short_answer", "Short Answer"
         ESSAY = "essay", "Essay"
         READING_SET = "reading_set", "Reading Set"
-
-    class Status(models.TextChoices):
-        DRAFT = "draft", "Draft"
-        ACTIVE = "active", "Active"
-        ARCHIVED = "archived", "Archived"
-
-    class Visibility(models.TextChoices):
-        PRIVATE = "private", "Private"
-        PUBLIC = "public", "Public"
-
-    class VersionState(models.TextChoices):
-        DRAFT = "draft", "Draft"
-        PUBLISHED = "published", "Published"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(
@@ -84,24 +67,6 @@ class QuestionAsset(models.Model):
     )
     title = models.CharField(max_length=255, blank=True, default="")
     prompt = models.TextField(blank=True, default="")
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.ACTIVE,
-        db_index=True,
-    )
-    visibility = models.CharField(
-        max_length=20,
-        choices=Visibility.choices,
-        default=Visibility.PRIVATE,
-        db_index=True,
-    )
-    version_state = models.CharField(
-        max_length=20,
-        choices=VersionState.choices,
-        default=VersionState.PUBLISHED,
-        db_index=True,
-    )
     payload = models.JSONField(default=dict, blank=True)
     latest_version = models.ForeignKey(
         "QuestionVersion",
@@ -118,7 +83,6 @@ class QuestionAsset(models.Model):
         ordering = ["-updated_at", "id"]
         indexes = [
             models.Index(fields=["owner", "asset_type"]),
-            models.Index(fields=["status", "visibility"]),
         ]
 
     def __str__(self):

@@ -114,7 +114,6 @@ def create_bank_membership(
         asset_type=asset_type,
         title=title,
         prompt=prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload=payload,
         actor=owner,
     )
@@ -357,7 +356,6 @@ class TestQuestionBankAPI:
             asset_type="coding",
             title="Canonical Only",
             prompt="prompt",
-            visibility="private",
             payload={
                 "score": 100,
                 "order": 0,

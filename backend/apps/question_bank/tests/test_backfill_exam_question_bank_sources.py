@@ -16,7 +16,6 @@ def _create_exam_membership(*, bank: QuestionBank, teacher: User, exam_question:
         asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
         title=exam_question.prompt,
         prompt=exam_question.prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": exam_question.question_type,
             "options": exam_question.options,

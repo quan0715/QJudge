@@ -222,7 +222,6 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Patch Me",
         prompt="prompt v1",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -340,7 +339,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
         asset_type=QuestionAsset.AssetType.READING_SET,
         title="Passage 1",
         prompt="A long passage",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "passage": "A long passage",
             "child_items": [
@@ -386,7 +384,6 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Canonical Only Item",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -436,7 +433,6 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Alias Item",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -484,7 +480,6 @@ def test_question_viewset_can_patch_canonical_only_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Before Patch",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -549,7 +544,6 @@ def test_question_viewset_can_delete_canonical_only_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Delete Me",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -606,7 +600,6 @@ def test_clone_owned_canonical_membership_reuses_asset_membership(
         asset_type=QuestionAsset.AssetType.CODING,
         title="Clone Asset Only",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,

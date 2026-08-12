@@ -30,12 +30,9 @@ class QuestionAssetAdmin(admin.ModelAdmin):
         "asset_type",
         "title",
         "owner",
-        "status",
-        "visibility",
-        "version_state",
         "updated_at",
     )
-    list_filter = ("asset_type", "status", "visibility", "version_state")
+    list_filter = ("asset_type",)
     search_fields = ("title", "owner__username")
 
 

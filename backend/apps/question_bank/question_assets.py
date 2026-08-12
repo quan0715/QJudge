@@ -128,13 +128,11 @@ def publish_question_version(
         prompt=prompt or "",
         payload=payload or {},
         latest_version=version,
-        version_state=QuestionAsset.VersionState.PUBLISHED,
     )
     question_asset.title = title or ""
     question_asset.prompt = prompt or ""
     question_asset.payload = payload or {}
     question_asset.latest_version = version
-    question_asset.version_state = QuestionAsset.VersionState.PUBLISHED
     return version
 
 
@@ -144,7 +142,6 @@ def create_question_asset(
     asset_type: str,
     title: str,
     prompt: str,
-    visibility: str,
     payload: dict[str, Any],
     actor=None,
 ) -> tuple[QuestionAsset, QuestionVersion]:
@@ -153,9 +150,6 @@ def create_question_asset(
         asset_type=asset_type,
         title=title or "",
         prompt=prompt or "",
-        visibility=visibility,
-        status=QuestionAsset.Status.ACTIVE,
-        version_state=QuestionAsset.VersionState.PUBLISHED,
         payload=payload or {},
     )
     version = publish_question_version(
@@ -208,7 +202,6 @@ def create_question_asset_for_bank_payload(
         asset_type=asset_type,
         title=title or "",
         prompt=prompt or "",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload=payload,
         actor=actor or owner,
     )
@@ -255,10 +248,8 @@ def write_coding_content_to_asset(
         QuestionAsset.objects.filter(pk=existing_asset.pk).update(
             owner=owner or existing_asset.owner,
             asset_type=QuestionAsset.AssetType.CODING,
-            visibility=QuestionAsset.Visibility.PRIVATE,
-            status=QuestionAsset.Status.ACTIVE,
         )
-        existing_asset.refresh_from_db(fields=["owner", "asset_type", "visibility", "status"])
+        existing_asset.refresh_from_db(fields=["owner", "asset_type"])
         version = publish_question_version(
             question_asset=existing_asset,
             title=title or "",
@@ -273,7 +264,6 @@ def write_coding_content_to_asset(
         asset_type=QuestionAsset.AssetType.CODING,
         title=title or "",
         prompt=prompt or "",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload=payload,
         actor=actor or owner,
     )
@@ -347,10 +337,8 @@ def sync_exam_question_question_asset(
         QuestionAsset.objects.filter(pk=question_asset.pk).update(
             owner=exam_question.contest.owner,
             asset_type=asset_type,
-            visibility=QuestionAsset.Visibility.PRIVATE,
-            status=QuestionAsset.Status.ACTIVE,
         )
-        question_asset.refresh_from_db(fields=["owner", "asset_type", "visibility", "status"])
+        question_asset.refresh_from_db(fields=["owner", "asset_type"])
         version = publish_question_version(
             question_asset=question_asset,
             title=title,
@@ -364,7 +352,6 @@ def sync_exam_question_question_asset(
             asset_type=asset_type,
             title=title,
             prompt=prompt,
-            visibility=QuestionAsset.Visibility.PRIVATE,
             payload=payload,
             actor=actor or exam_question.contest.owner,
         )

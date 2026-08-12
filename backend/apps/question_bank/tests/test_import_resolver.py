@@ -35,7 +35,6 @@ def test_resolve_bank_question_for_import_resolves_membership_and_enforces_type(
         asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
         title="Short answer",
         prompt="Explain the result.",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": "single_choice",
             "options": ["A", "B"],
