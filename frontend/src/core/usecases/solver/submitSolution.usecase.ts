@@ -5,11 +5,8 @@
  * Returns initial result - polling is handled separately by the caller.
  */
 
-import {
-  submitSolution,
-  getSubmission,
-} from "@/infrastructure/api/repositories/submission.repository";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
+import type { ISubmissionRepository } from "@/core/ports/submission.repository";
 
 // ============================================================================
 // Types
@@ -51,6 +48,11 @@ export interface SubmitSolutionOutput {
   error?: string;
 }
 
+export type SubmitSolutionDependencies = Pick<
+  ISubmissionRepository,
+  "submitSolution" | "getSubmission"
+>;
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -91,12 +93,13 @@ function transformSubmissionToResult(data: SubmissionDetail): SubmissionResult {
 // ============================================================================
 
 export async function submitSolutionUseCase(
-  input: SubmitSolutionInput
+  input: SubmitSolutionInput,
+  dependencies: SubmitSolutionDependencies,
 ): Promise<SubmitSolutionOutput> {
   const { problemId, language, code, contestId } = input;
 
   try {
-    const submission = await submitSolution({
+    const submission = await dependencies.submitSolution({
       problem_id: problemId,
       language,
       code,
@@ -120,10 +123,11 @@ export async function submitSolutionUseCase(
  * Call this repeatedly until isPending is false
  */
 export async function pollSubmissionUseCase(
-  submissionId: string
+  submissionId: string,
+  dependencies: SubmitSolutionDependencies,
 ): Promise<SubmitSolutionOutput> {
   try {
-    const submission = await getSubmission(submissionId);
+    const submission = await dependencies.getSubmission(submissionId);
 
     return {
       success: true,

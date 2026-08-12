@@ -346,5 +346,3 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     };
   },
 };
-
-export default examIntegrityRepository;

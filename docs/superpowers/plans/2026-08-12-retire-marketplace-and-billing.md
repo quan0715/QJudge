@@ -459,7 +459,7 @@ git commit -m "chore: remove retired product references"
 
 ```bash
 node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
-node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src --policy compat
+node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src
 bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged
 ```
 

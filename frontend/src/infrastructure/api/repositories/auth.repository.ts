@@ -116,23 +116,3 @@ export const getAuthSessions = async (): Promise<LoginRecordsResponseDto> => {
     "Failed to fetch auth sessions"
   );
 };
-
-// ============================================================================
-// Repository Instance
-// ============================================================================
-
-export const authRepository = {
-  login,
-  register,
-  getAuthOptions,
-  logout,
-  logoutOtherSessions,
-  issueTeacherActivationActionLink,
-  inspectActionLink,
-  redeemActionLink,
-  getOAuthUrl,
-  oauthCallback,
-  getAuthSessions,
-};
-
-export default authRepository;

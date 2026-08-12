@@ -146,23 +146,3 @@ export const toggleLikeComment = async (id: string): Promise<any> => {
     "Failed to toggle like"
   );
 };
-
-// ============================================================================
-// Repository Export
-// ============================================================================
-
-export const discussionRepository = {
-  getDiscussions,
-  getDiscussion,
-  createDiscussion,
-  updateDiscussion,
-  deleteDiscussion,
-  getComments,
-  createComment,
-  updateComment,
-  deleteComment,
-  toggleLikeDiscussion,
-  toggleLikeComment,
-};
-
-export default discussionRepository;

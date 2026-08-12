@@ -7,9 +7,7 @@
  * 3. Return navigation path
  */
 
-import { endExam } from "@/infrastructure/api/repositories";
-import { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
-export { exitFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
+import type { IExamSessionRepository } from "@/core/ports/examSession.repository";
 
 // ============================================================================
 // Types
@@ -29,8 +27,14 @@ export interface LeaveExamOutput {
   error?: string;
 }
 
+export interface LeaveExamDependencies
+  extends Pick<IExamSessionRepository, "endExam"> {
+  exitFullscreen(): Promise<boolean>;
+}
+
 export async function leaveExamUseCase(
-  input: LeaveExamInput
+  input: LeaveExamInput,
+  dependencies: LeaveExamDependencies,
 ): Promise<LeaveExamOutput> {
   const {
     contestId,
@@ -46,11 +50,14 @@ export async function leaveExamUseCase(
       const payload: { upload_session_id?: string; source_module?: "screen_share" | "webcam" } = {};
       if (uploadSessionId) payload.upload_session_id = uploadSessionId;
       if (sourceModule) payload.source_module = sourceModule;
-      await endExam(contestId, Object.keys(payload).length > 0 ? payload : undefined);
+      await dependencies.endExam(
+        contestId,
+        Object.keys(payload).length > 0 ? payload : undefined,
+      );
     }
 
     // Exit fullscreen
-    await exitFullscreen();
+    await dependencies.exitFullscreen();
 
     return {
       success: true,
@@ -58,7 +65,7 @@ export async function leaveExamUseCase(
     };
   } catch (error: unknown) {
     // Still navigate even if there's an error
-    await exitFullscreen();
+    await dependencies.exitFullscreen();
 
     return {
       success: false,

@@ -1,4 +1,4 @@
-import { httpClient, requestJson, ensureOk } from "@/infrastructure/api/http.client";
+import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type {
   ExamQuestion,
   ExamQuestionAnswerFormat,
@@ -28,7 +28,7 @@ export interface ExamQuestionUpsertPayload {
   existing_grades_action?: ExistingGradesAction;
 }
 
-export interface ExamQuestionBankImportItem {
+interface ExamQuestionBankImportItem {
   question_bank_id: string;
   question_id: string;
 }
@@ -37,7 +37,7 @@ export interface ExamQuestionBankImportItem {
  * Shorthand aliases understood by the backend ``?kind=`` filter. The same
  * aliases are honoured by the exam dashboard summary endpoint.
  */
-export type ExamQuestionKindFilter =
+type ExamQuestionKindFilter =
   | "subjective"
   | "objective"
   | ExamQuestionType
@@ -64,18 +64,7 @@ export const getExamQuestions = async (
   return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];
 };
 
-export const createExamQuestion = async (
-  contestId: string,
-  payload: ExamQuestionUpsertPayload
-): Promise<ExamQuestion> => {
-  const data = await requestJson<ExamQuestionDto>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam-questions/`, payload),
-    "Failed to create exam question"
-  );
-  return mapExamQuestionDto(data);
-};
-
-export const updateExamQuestion = async (
+const updateExamQuestion = async (
   contestId: string,
   questionId: string,
   payload: Partial<ExamQuestionUpsertPayload>
@@ -88,30 +77,6 @@ export const updateExamQuestion = async (
     "Failed to update exam question"
   );
   return mapExamQuestionDto(data);
-};
-
-export const deleteExamQuestion = async (
-  contestId: string,
-  questionId: string
-): Promise<void> => {
-  await ensureOk(
-    httpClient.delete(`/api/v1/contests/${contestId}/exam-questions/${questionId}/`),
-    "Failed to delete exam question"
-  );
-};
-
-export const reorderExamQuestions = async (
-  contestId: string,
-  orders: Array<{ id: string; order: number }>
-): Promise<ExamQuestion[]> => {
-  const data = await requestJson<ExamQuestionDto[]>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam-questions/reorder/`, {
-      orders,
-    }),
-    "Failed to reorder exam questions"
-  );
-
-  return Array.isArray(data) ? data.map(mapExamQuestionDto) : [];
 };
 
 export const importExamQuestionsFromBank = async (

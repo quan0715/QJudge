@@ -70,10 +70,6 @@ export const uploadCover = async (id: string, file: File): Promise<string> => {
   return data.cover_url;
 };
 
-export const deleteBank = async (id: string): Promise<void> => {
-  await ensureOk(httpClient.delete(`/api/v1/question-banks/${id}/`), "Failed to delete question bank");
-};
-
 // Questions
 export const listQuestions = async (bankId: string): Promise<BankQuestion[]> => {
   const data = await requestJson<{ results?: BankQuestionDto[] } | BankQuestionDto[]>(
@@ -111,21 +107,6 @@ export const deleteQuestion = async (bankId: string, bankItemId: string): Promis
   );
 };
 
-export const clone = async (
-  bankId: string,
-  bankItemId: string,
-  targetBankId?: string
-): Promise<BankQuestion> => {
-  const responseData = await requestJson<BankQuestionDto>(
-    httpClient.post(
-      `/api/v1/question-banks/${bankId}/questions/${bankItemId}/clone-to-my-bank/`,
-      { target_bank_id: targetBankId }
-    ),
-    "Failed to clone question"
-  );
-  return mapBankQuestionDto(responseData);
-};
-
 // Inbox
 export const listInbox = async (category?: BankCategory): Promise<QuestionInboxSummary> => {
   const query = category ? `?category=${category}` : "";
@@ -151,25 +132,3 @@ export const ingestInbox = async (params: {
     "Failed to ingest questions"
   );
 };
-
-// ============================================================================
-// Repository Export
-// ============================================================================
-
-export const questionBankRepository = {
-  getBank,
-  listMine,
-  create,
-  update,
-  uploadCover,
-  delete: deleteBank,
-  listQuestions,
-  createQuestion,
-  updateQuestion,
-  deleteQuestion,
-  clone,
-  listInbox,
-  ingestInbox,
-};
-
-export default questionBankRepository;

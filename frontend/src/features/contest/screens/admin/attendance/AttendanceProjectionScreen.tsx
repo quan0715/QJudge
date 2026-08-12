@@ -15,7 +15,11 @@ import { Link, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import type { AttendancePurpose, ContestDetail } from "@/core/entities/contest.entity";
-import { exitFullscreen, isFullscreen, requestFullscreen } from "@/core/usecases/exam";
+import {
+  exitFullscreen,
+  isFullscreen,
+  requestFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import { getAttendanceQrToken } from "@/infrastructure/api/repositories/attendance.repository";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import type { AttendanceTranslate } from "@/features/contest/screens/attendance/lib/photoRequirements";

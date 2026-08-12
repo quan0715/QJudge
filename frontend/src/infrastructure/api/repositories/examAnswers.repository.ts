@@ -3,7 +3,7 @@ import { fetchEnvelope, type BaseMeta } from "@/infrastructure/api/envelope";
 
 // ── Types ──
 
-export interface ExamAnswerDto {
+interface ExamAnswerDto {
   id: number;
   question_id: string;
   answer: Record<string, unknown>;
@@ -11,7 +11,7 @@ export interface ExamAnswerDto {
   updated_at: string;
 }
 
-export interface ExamAnswerDetailDto extends ExamAnswerDto {
+interface ExamAnswerDetailDto extends ExamAnswerDto {
   is_correct: boolean | null;
   score: string | null;
   feedback: string;
@@ -56,7 +56,7 @@ export interface ExamAnswerDetail extends ExamAnswer {
  * Drops per-row question_* / participant name duplicates; consumers join those
  * via {@link getExamQuestions} + contest participants list.
  */
-export interface ExamAnswerGradingDto {
+interface ExamAnswerGradingDto {
   id: number;
   question_id: string;
   participant_user_id: number;
@@ -85,7 +85,7 @@ export interface ExamAnswerGrading {
 }
 
 /** Meta returned by `?projection=grading`. */
-export interface GradingListMeta extends BaseMeta {
+interface GradingListMeta extends BaseMeta {
   count?: number;
   projection?: "grading";
   question_id?: string;
@@ -141,7 +141,7 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
 
 const DRAFT_PREFIX = "qjudge.exam.draft";
 
-export const saveExamAnswerDraft = (
+const saveExamAnswerDraft = (
   contestId: string,
   questionId: string,
   answer: Record<string, unknown>
@@ -171,7 +171,7 @@ export const getExamAnswerDraft = (
   }
 };
 
-export const clearExamAnswerDraft = (
+const clearExamAnswerDraft = (
   contestId: string,
   questionId: string
 ): void => {
@@ -260,21 +260,6 @@ export const getExamResults = async (
 };
 
 // ── TA/Admin API ──
-
-/** Get all answers for all students (TA only). Filter by user_id. */
-export const getAllExamAnswers = async (
-  contestId: string,
-  userId?: string
-): Promise<ExamAnswerDetail[]> => {
-  const params = userId ? `?user_id=${userId}` : "";
-  const data = await requestJson<ExamAnswerDetailDto[]>(
-    httpClient.get(
-      `/api/v1/contests/${contestId}/exam-answers/all-answers/${params}`
-    ),
-    "Failed to fetch all answers"
-  );
-  return data.map(mapAnswerDetailDto);
-};
 
 /**
  * Get slim answers optimized for grading screens (TA/admin only).

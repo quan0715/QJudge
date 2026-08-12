@@ -7,3 +7,4 @@ export * from "./contest.repository";
 export * from "./chatbot.repository";
 export * from "./questionBank.repository";
 export * from "./examIntegrity.repository";
+export * from "./examSession.repository";

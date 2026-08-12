@@ -53,23 +53,27 @@ if [[ "$SCOPE" == "all" ]]; then
 fi
 
 TARGET_FILES=()
-while IFS= read -r file; do
-  [[ -n "$file" ]] && TARGET_FILES+=("$file")
-done < <(git diff --cached --name-only --diff-filter=ACMR | rg '\.(css|scss|sass|less|ts|tsx|js|jsx)$' || true)
+while IFS= read -r -d '' file; do
+  [[ "$file" =~ \.(css|scss|sass|less|ts|tsx|js|jsx)$ ]] && TARGET_FILES+=("$file")
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
 
 if [[ ${#TARGET_FILES[@]} -eq 0 ]]; then
   exit 0
 fi
 
 FAILED=0
-if rg -n --no-heading '\b(cds|bx)--' "${TARGET_FILES[@]}"; then
-  printf '%s\n' 'Blocked: direct Carbon internal selectors (.cds-- / .bx--) are not allowed.' >&2
-  FAILED=1
-fi
+for file in "${TARGET_FILES[@]}"; do
+  if MATCHES=$(git show ":${file}" | rg -n --no-heading '\b(cds|bx)--'); then
+    printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
+    printf '%s\n' 'Blocked: direct Carbon internal selectors (.cds-- / .bx--) are not allowed.' >&2
+    FAILED=1
+  fi
 
-if rg -n --no-heading '!important' "${TARGET_FILES[@]}"; then
-  printf '%s\n' 'Blocked: !important is not allowed; fix specificity or component composition.' >&2
-  FAILED=1
-fi
+  if MATCHES=$(git show ":${file}" | rg -n --no-heading '!important'); then
+    printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
+    printf '%s\n' 'Blocked: !important is not allowed; fix specificity or component composition.' >&2
+    FAILED=1
+  fi
+done
 
 exit "$FAILED"

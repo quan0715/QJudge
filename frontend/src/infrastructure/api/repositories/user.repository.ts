@@ -7,13 +7,6 @@ import type {
   UserSearchResponseDto,
 } from "@/infrastructure/api/dto/auth.dto";
 
-export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
-  return requestJson<CurrentUserResponseDto>(
-    httpClient.get("/api/v1/users/me"),
-    "Failed to fetch user data",
-  );
-};
-
 export const updateAccountProfile = async (
   data: { username?: string; email?: string },
 ): Promise<CurrentUserResponseDto> => {
@@ -75,15 +68,3 @@ export const updateUserRole = async (id: number | string, role: string): Promise
     "Failed to update user role",
   );
 };
-
-export const userRepository = {
-  getCurrentUser,
-  updateAccountProfile,
-  getPreferences,
-  updatePreferences,
-  uploadAvatar,
-  searchUsers,
-  updateUserRole,
-};
-
-export default userRepository;

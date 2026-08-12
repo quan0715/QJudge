@@ -38,7 +38,10 @@ import {
   getClassroomContestPrecheckPath,
   shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
+import {
+  exitFullscreen,
+  isFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";

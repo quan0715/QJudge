@@ -48,14 +48,3 @@ export const deleteAnnouncement = async (id: number): Promise<void> => {
     "Failed to delete announcement"
   );
 };
-
-// ============================================================================
-// Default Export
-// ============================================================================
-
-export default {
-  getAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
-};

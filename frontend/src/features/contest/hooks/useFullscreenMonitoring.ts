@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { IntegrityJsonValue } from "@/core/entities/examIntegrity.entity";
-import { isFullscreen } from "@/core/usecases/exam";
+import { isFullscreen } from "@/infrastructure/browser/fullscreen";
 import type { IntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;

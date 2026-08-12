@@ -4,13 +4,19 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   enterExamUseCase,
   leaveExamUseCase,
-  requestFullscreen,
-  exitFullscreen,
-  isFullscreen,
 } from "@/core/usecases/exam";
 import { joinContestUseCase } from "@/core/usecases/contest";
-import { endExam } from "@/infrastructure/api/repositories";
-import { isSubmittedExamSessionResponse } from "@/infrastructure/api/repositories/exam.repository";
+import { contestRepository } from "@/infrastructure/api/repositories/contest.repository";
+import {
+  endExam,
+  examSessionRepository,
+  isSubmittedExamSessionResponse,
+} from "@/infrastructure/api/repositories/exam.repository";
+import {
+  exitFullscreen,
+  isFullscreen,
+  requestFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
 import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
@@ -104,7 +110,7 @@ export const useContestExamActions = ({
 
       const result = await joinContestUseCase({
         contestId: contest.id,
-      });
+      }, contestRepository);
 
       if (result.success) {
         await refreshContest();
@@ -136,7 +142,7 @@ export const useContestExamActions = ({
       cheatDetectionEnabled: contest.cheatDetectionEnabled,
       answeringEntryPath,
       precheckPath,
-    });
+    }, examSessionRepository);
 
     if (result.success && result.navigateTo) {
       await refreshContest();
@@ -235,7 +241,7 @@ export const useContestExamActions = ({
                 uploadSessionId: uploadSessionId || undefined,
                 sourceModule,
                 navigateTo,
-              });
+              }, { ...examSessionRepository, exitFullscreen });
               if (!result.success) {
                 throw new Error(result.error || "Failed to leave exam");
               }
@@ -256,7 +262,7 @@ export const useContestExamActions = ({
           shouldEndExam: false,
           uploadSessionId: undefined,
           navigateTo,
-        });
+        }, { ...examSessionRepository, exitFullscreen });
         if (!result.success) {
           onError(result.error || messages.exitError);
           return;

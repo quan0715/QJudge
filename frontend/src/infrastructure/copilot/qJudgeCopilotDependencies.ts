@@ -1,4 +1,4 @@
-import { chatbotRepository } from "@/infrastructure/api/repositories";
+import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
 import { uploadUserArtifact } from "@/infrastructure/api/repositories/artifact.repository";
 import { BrowserCopilotStorage } from "./browserCopilotStorage";
 import { createQJudgeCopilotTransport } from "./qJudgeCopilotTransport";

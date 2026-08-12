@@ -4,6 +4,8 @@ import {
   pollSubmissionUseCase,
 } from "@/core/usecases/solver/submitSolution.usecase";
 import { testRunUseCase } from "@/core/usecases/solver/testRun.usecase";
+import { problemRepository } from "@/infrastructure/api/repositories/problem.repository";
+import { submissionRepository } from "@/infrastructure/api/repositories/submission.repository";
 import { setupApiTestEnv, loginAndSetToken, setAuthToken } from "./helpers/apiTestEnv";
 import {
   TEST_CODE_SAMPLES,
@@ -49,7 +51,7 @@ describe("solver use case integration", () => {
       problemId,
       language: "cpp",
       code: TEST_CODE_SAMPLES.aPlusBCorrect,
-    });
+    }, problemRepository);
 
     expect(result.success).toBe(true);
     expect(result.total).toBe(result.cases.length);
@@ -66,7 +68,7 @@ describe("solver use case integration", () => {
       problemId,
       language: "cpp",
       code: TEST_CODE_SAMPLES.aPlusBCorrect,
-    });
+    }, submissionRepository);
 
     expect(submissionResult.success).toBe(true);
     expect(submissionResult.result?.submissionId).toBeDefined();
@@ -78,7 +80,10 @@ describe("solver use case integration", () => {
       throw new Error("Submit solution use case did not return submissionId");
     }
 
-    const pollResult = await pollSubmissionUseCase(submissionId);
+    const pollResult = await pollSubmissionUseCase(
+      submissionId,
+      submissionRepository,
+    );
 
     expect(pollResult.success).toBe(true);
     expect(pollResult.result?.submissionId).toBe(submissionId);

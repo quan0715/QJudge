@@ -25,7 +25,7 @@ export const isFullscreen = (): boolean => !!getFullscreenElement();
 const waitForFullscreenState = async (
   expected: boolean,
   timeoutMs = 400,
-  pollMs = 40
+  pollMs = 40,
 ): Promise<boolean> => {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {

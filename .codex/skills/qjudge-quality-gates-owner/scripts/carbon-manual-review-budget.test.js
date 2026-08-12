@@ -20,7 +20,7 @@ const budget = JSON.parse(
   ),
 );
 
-test("manual Carbon review debt can only decrease", () => {
+test("manual Carbon review debt matches the reviewed baseline exactly", () => {
   const report = JSON.parse(
     execFileSync(
       process.execPath,
@@ -41,9 +41,10 @@ test("manual Carbon review debt can only decrease", () => {
   );
   for (const [rule, entry] of Object.entries(budget.rules)) {
     assert.ok(entry.reason, `${rule} needs a review rationale`);
-    assert.ok(
-      (actual.get(rule) || 0) <= entry.max,
-      `${rule} grew from its budget of ${entry.max} to ${actual.get(rule)}`,
+    assert.equal(
+      actual.get(rule) || 0,
+      entry.max,
+      `${rule} changed from its reviewed baseline of ${entry.max} to ${actual.get(rule)}; review the delta and update the baseline intentionally`,
     );
   }
 });

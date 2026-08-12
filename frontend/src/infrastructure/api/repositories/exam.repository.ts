@@ -2,26 +2,22 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type {
   EventFeedItem,
   ExamEvent,
-  ExamStatusType,
 } from "@/core/entities/contest.entity";
+import type {
+  EndExamPayload,
+  ExamSessionResponse,
+  IExamSessionRepository,
+} from "@/core/ports/examSession.repository";
 import type { EventFeedItemDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
 import { mapEventFeedItemDto } from "@/infrastructure/mappers/contestParticipant.mapper";
-
-export interface ExamSessionResponse {
-  status: string;
-  exam_status?: ExamStatusType;
-  submit_reason?: string;
-  already_submitted?: boolean;
-  error?: string;
-}
 
 export const isSubmittedExamSessionResponse = (
   response: ExamSessionResponse | null | undefined
 ): boolean => response?.exam_status === "submitted";
 
-export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
-export type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
+type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
+type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
 
 export interface ExamAnswerDto {
   id: string;
@@ -43,7 +39,7 @@ export interface ExamAnswerDto {
   updated_at: string;
 }
 
-export interface ExamDashboardQuestionSummaryDto {
+interface ExamDashboardQuestionSummaryDto {
   question_id: string;
   order: number;
   title: string;
@@ -156,18 +152,18 @@ export interface RealtimeSfuPublisherDto {
   updated_at: string;
 }
 
-export interface RealtimeSfuPublisherResponse {
+interface RealtimeSfuPublisherResponse {
   active: boolean;
   publisher: RealtimeSfuPublisherDto | null;
   publishers?: RealtimeSfuPublisherDto[];
 }
 
-export interface RealtimeSfuTrackRequest {
+interface RealtimeSfuTrackRequest {
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
 }
 
-export interface RealtimeSfuTrackResponse {
+interface RealtimeSfuTrackResponse {
   requiresImmediateRenegotiation?: boolean;
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
@@ -287,12 +283,17 @@ export const startExam = async (contestId: string): Promise<ExamSessionResponse>
 
 export const endExam = async (
   contestId: string,
-  payload?: { submit_reason?: string; upload_session_id?: string; source_module?: "screen_share" | "webcam" }
+  payload?: EndExamPayload,
 ): Promise<ExamSessionResponse> => {
   return requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
     "Failed to end exam"
   );
+};
+
+export const examSessionRepository: IExamSessionRepository = {
+  startExam,
+  endExam,
 };
 
 export const getExamEvents = async (
@@ -389,15 +390,6 @@ export const getContestActivities = async (
   return results.map(mapActivityToExamEvent);
 };
 
-export const getAllExamAnswers = async (
-  contestId: string,
-): Promise<ExamAnswerDto[]> => {
-  return requestJson<ExamAnswerDto[]>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/all-answers/`),
-    "Failed to fetch all exam answers",
-  );
-};
-
 export const getExamDashboardSummary = async (
   contestId: string,
   opts: { kind?: string } = {},
@@ -423,12 +415,12 @@ export const getExamDashboardQuestionDetail = async (
   );
 };
 
-export interface AttendanceEvidenceIntentFrame {
+interface AttendanceEvidenceIntentFrame {
   client_captured_at_ms: number;
   seq: number;
 }
 
-export interface AttendanceEvidenceIntentRequest {
+interface AttendanceEvidenceIntentRequest {
   event_id: number | string;
   evidence_cluster_id?: string;
   source_module: EvidenceSourceModule;
@@ -438,7 +430,7 @@ export interface AttendanceEvidenceIntentRequest {
   unavailable_reason?: string;
 }
 
-export interface AttendanceEvidenceIntentItem {
+interface AttendanceEvidenceIntentItem {
   evidence_frame_id: number;
   seq: number;
   object_key: string;
@@ -448,7 +440,7 @@ export interface AttendanceEvidenceIntentItem {
   required_headers?: Record<string, string>;
 }
 
-export interface AttendanceEvidenceIntentResponse {
+interface AttendanceEvidenceIntentResponse {
   upload_session_id: string;
   evidence_cluster_id?: string;
   evidence_mode?: EvidenceMode;
@@ -458,7 +450,7 @@ export interface AttendanceEvidenceIntentResponse {
   items: AttendanceEvidenceIntentItem[];
 }
 
-export interface AttendanceEvidenceConfirmFrame {
+interface AttendanceEvidenceConfirmFrame {
   evidence_frame_id: number;
   object_key: string;
   byte_size?: number;

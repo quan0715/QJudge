@@ -14,7 +14,9 @@ metadata:
 - 先跑 naming：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src`
 - 再跑 architecture：
-  - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src --policy compat`
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src`
+- 檢查 repository public surface：
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-repository-exports.js`
 - 跑 Carbon 全量 audit（不因 review findings 失敗）：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/audit-carbon-practices.js --root frontend/src`
 - 檢查 staged hard blockers：
@@ -23,7 +25,7 @@ metadata:
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`
 
 ## 責任邊界（Owner Scope）
-- ✅ lint 規則、quality profile（compat/strict）、CI gate 定義。
+- ✅ lint 規則、Carbon quality profile（compat/strict）、CI gate 定義。
 - ✅ 架構/命名/Carbon public API/樣式禁則的可執行檢查腳本。
 - ✅ 違規分類與遷移節奏（先報告再阻擋）。
 - ❌ 不做 feature 架構決策（交給 `qjudge-architecture-owner`）。
@@ -50,6 +52,7 @@ metadata:
 - `references/carbon-manual-review-budget.json`
 - `scripts/lint-naming.js`
 - `scripts/lint-architecture.js`
+- `scripts/lint-repository-exports.js`
 - `scripts/audit-carbon-practices.js`
 - `scripts/check-carbon-style.sh`
 

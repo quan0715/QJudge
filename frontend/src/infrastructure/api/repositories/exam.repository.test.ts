@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isSubmittedExamSessionResponse,
-  type ExamSessionResponse,
 } from "./exam.repository";
+import type { ExamSessionResponse } from "@/core/ports/examSession.repository";
 
 describe("isSubmittedExamSessionResponse", () => {
   it("accepts a submitted exam response", () => {

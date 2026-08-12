@@ -97,6 +97,16 @@ function isContextualException(relativePath, rule) {
     return true;
   }
   if (/\.(test|spec|stories|story)\.[jt]sx?$/.test(relativePath)) {
+    const blockerFixturePaths = new Set([
+      "shared/ui/modal/SettingsModal.test.tsx",
+      "test/architecture/copilotPackageBoundary.test.ts",
+    ]);
+    if (
+      ["carbon-internal-selector", "important-declaration"].includes(rule) &&
+      !blockerFixturePaths.has(relativePath)
+    ) {
+      return false;
+    }
     return true;
   }
   if (

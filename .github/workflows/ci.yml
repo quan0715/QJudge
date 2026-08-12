@@ -90,14 +90,15 @@ jobs:
       - name: Frontend Naming, Architecture, and Carbon Gates
         run: |
           node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
-          node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src --policy compat
+          node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src
+          node .codex/skills/qjudge-quality-gates-owner/scripts/lint-repository-exports.js
           bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all
 
       - name: i18n Health Check (Reporting)
         run: python3 scripts/i18n/i18n_check.py
 
       - name: TypeScript Compile Check
-        run: npx tsc --noEmit
+        run: npm run typecheck
         working-directory: frontend
 
       - name: Frontend Build Check (Ensures CD Success)

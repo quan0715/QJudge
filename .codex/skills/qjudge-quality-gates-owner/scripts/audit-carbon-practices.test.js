@@ -188,6 +188,25 @@ test("marks architectural and contextual exceptions without hiding them", (t) =>
   assert.ok(report.findings.every((finding) => finding.disposition === "exception-review"));
 });
 
+test("does not blanket-exempt Carbon internals in application tests", (t) => {
+  const result = runFixture(t, {
+    "features/example/Component.test.tsx":
+      'expect(button).toHaveClass("cds--btn--primary");',
+    "test/architecture/copilotPackageBoundary.test.ts":
+      'const blockedFixture = ".cds--button";',
+  });
+  const report = parseReport(result);
+  const applicationFinding = report.findings.find((finding) =>
+    finding.path.includes("features/example"),
+  );
+  const gateFixtureFinding = report.findings.find((finding) =>
+    finding.path.includes("test/architecture"),
+  );
+
+  assert.equal(applicationFinding?.disposition, "blocker");
+  assert.equal(gateFixtureFinding?.disposition, "exception-review");
+});
+
 test("attaches exact policy decisions without hiding future raw controls", (t) => {
   const result = runFixture(t, {
     "features/landing/sections/FaqSection.tsx": `

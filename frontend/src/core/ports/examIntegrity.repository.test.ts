@@ -4,8 +4,8 @@ import type {
   ExamIntegrityBatch,
   ExamIntegrityRecord,
   ExamIntegrityStateSnapshot,
-} from "./examIntegrity.entity";
-import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.repository";
+} from "@/core/entities/examIntegrity.entity";
+import type { ExamIntegrityOutbox } from "./examIntegrity.repository";
 
 const snapshot: ExamIntegrityStateSnapshot = {
   pageVisible: true,

@@ -5,8 +5,10 @@
  * Test runs are synchronous - no polling needed.
  */
 
-import { testRun } from "@/infrastructure/api/repositories/problem.repository";
-import type { TestRunResult as ApiTestRunResult } from "@/core/ports/problem.repository";
+import type {
+  IProblemRepository,
+  TestRunResult as ApiTestRunResult,
+} from "@/core/ports/problem.repository";
 
 // ============================================================================
 // Types
@@ -38,6 +40,8 @@ export interface TestRunOutput {
   cases: TestCaseResult[];
   error?: string;
 }
+
+export type TestRunDependencies = Pick<IProblemRepository, "testRun">;
 
 // ============================================================================
 // Use Case Implementation
@@ -74,12 +78,13 @@ function transformApiResult(result: ApiTestRunResult): TestRunOutput {
 }
 
 export async function testRunUseCase(
-  input: TestRunInput
+  input: TestRunInput,
+  dependencies: TestRunDependencies,
 ): Promise<TestRunOutput> {
   const { problemId, language, code } = input;
 
   try {
-    const result = await testRun(problemId, {
+    const result = await dependencies.testRun(problemId, {
       language,
       code,
     });

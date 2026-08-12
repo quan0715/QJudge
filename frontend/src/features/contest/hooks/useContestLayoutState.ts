@@ -17,7 +17,7 @@ import {
   getClassroomContestPrecheckPath,
   shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
+import { isFullscreen as isFullscreenMode } from "@/infrastructure/browser/fullscreen";
 import { useInterval } from "@/shared/hooks/useInterval";
 
 const CONTEST_POLL_INTERVAL_MS = 15_000;

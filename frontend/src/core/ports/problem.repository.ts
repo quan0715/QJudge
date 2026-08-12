@@ -19,13 +19,6 @@ export interface GetProblemsParams {
   page_size?: number;
 }
 
-export interface PaginatedProblems {
-  results: CodingProblem[];
-  count: number;
-  next: string | null;
-  previous: string | null;
-}
-
 // ============================================================================
 // Statistics Types
 // ============================================================================
@@ -48,7 +41,7 @@ export interface TestRunPayload {
   contest_id?: string;
 }
 
-export interface TestRunResultItem {
+interface TestRunResultItem {
   status: string;
   input: string;
   output: string;

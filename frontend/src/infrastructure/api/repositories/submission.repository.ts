@@ -75,5 +75,3 @@ export const submissionRepository: ISubmissionRepository = {
   getSubmission,
   submitSolution,
 };
-
-export default submissionRepository;

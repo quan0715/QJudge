@@ -17,7 +17,10 @@ import {
   ArrowRight,
   WarningAlt,
 } from "@carbon/icons-react";
-import { requestFullscreen, isFullscreen } from "@/core/usecases/exam";
+import {
+  isFullscreen,
+  requestFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import {

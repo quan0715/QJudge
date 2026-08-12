@@ -1,6 +1,6 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
-export interface MarkdownImageUploadResponse {
+interface MarkdownImageUploadResponse {
   url: string;
   markdown: string;
   content_type: string;

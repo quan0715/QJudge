@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExamModeState, ExamStatusType } from "@/core/entities/contest.entity";
-import { isFullscreen } from "@/core/usecases/exam";
+import { isFullscreen } from "@/infrastructure/browser/fullscreen";
 import { syncAnticheatPhaseWithExamStatus } from "@/features/contest/anticheat/orchestrator";
 
 export interface UseExamStateProps {

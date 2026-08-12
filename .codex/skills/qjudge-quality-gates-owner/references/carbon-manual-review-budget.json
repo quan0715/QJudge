@@ -2,15 +2,15 @@
   "version": 1,
   "rules": {
     "hardcoded-spacing": {
-      "max": 145,
+      "max": 144,
       "reason": "Remaining values do not map exactly to the Carbon spacing scale and need layout or visual review before changing geometry."
     },
     "hardcoded-typography": {
-      "max": 332,
+      "max": 331,
       "reason": "Choosing a Carbon type token requires knowing the text role and hierarchy, not only its current numeric size."
     },
     "hardcoded-theme-color": {
-      "max": 568,
+      "max": 566,
       "reason": "Choosing semantic theme tokens requires light/dark visual review and editor, chart, brand, or status context."
     },
     "scroll-owner-review": {

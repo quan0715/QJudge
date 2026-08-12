@@ -25,13 +25,13 @@ export interface ExamPaperQuestionPayload {
   existing_grades_action?: ExistingGradesAction;
 }
 
-export interface ExamPaperGroupPayload {
+interface ExamPaperGroupPayload {
   title?: string;
   shared_stem_markdown?: string;
   order?: number;
 }
 
-export type ExamPaperBlockCreatePayload =
+type ExamPaperBlockCreatePayload =
   | {
       kind: "question";
       question: ExamPaperQuestionPayload & {
@@ -46,7 +46,7 @@ export type ExamPaperBlockCreatePayload =
       children?: ExamPaperQuestionPayload[];
     };
 
-export type ExamPaperBlockUpdatePayload =
+type ExamPaperBlockUpdatePayload =
   | {
       kind: "question";
       question: Partial<ExamPaperQuestionPayload>;

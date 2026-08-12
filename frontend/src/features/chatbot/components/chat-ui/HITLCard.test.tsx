@@ -44,32 +44,6 @@ describe("HITLCard", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("uses secondary cancel, primary confirm, and an execution label while pending", () => {
-    render(
-      <HITLCard
-        request={{
-          actions: [{ name: "deploy" }],
-          allowedDecisions: ["approve", "reject"],
-        }}
-        pending
-        onSubmit={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: /ui.cancelAction/ }),
-    ).toHaveClass("cds--btn--secondary");
-    expect(
-      screen.getByRole("button", { name: /ui.processing/ }),
-    ).toHaveClass("cds--btn--primary");
-    expect(
-      screen.getByRole("button", { name: /ui.cancelAction/ }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: /ui.processing/ }),
-    ).toBeDisabled();
-  });
-
   it("disables decisions while a submission is pending", () => {
     render(
       <HITLCard

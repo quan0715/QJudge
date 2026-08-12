@@ -1,187 +1,27 @@
 import type {
+  AttendancePhotoPolicy,
   Contest,
-  ContestAnticheatDevicePolicy,
   ContestAnticheatConfig,
+  ContestAnticheatDevicePolicy,
   ContestDetail,
   ContestOverviewMetrics,
-  AttendancePhotoPolicy,
   ContestStatus,
   ContestVisibility,
   ScoreboardData,
-  ContestParticipant,
-  ContestProblemSummary,
-  ExamEvent,
-  EventFeedItem,
-  Clarification,
-  ContestAnnouncement,
-  ExamQuestion,
-  ExamQuestionType,
 } from "@/core/entities/contest.entity";
-import type { CodingProblemDetail } from "@/core/entities/problem.entity";
-import type { Submission } from "@/core/entities/submission.entity";
-
-// ============================================================================
-// Contest Core Operations
-// ============================================================================
 
 export interface IContestRepository {
-  // Contest CRUD
   getContests(scope?: string): Promise<Contest[]>;
   getContest(id: string): Promise<ContestDetail | undefined>;
   updateContest(id: string, data: ContestUpdatePayload): Promise<Contest>;
   deleteContest(id: string): Promise<void>;
-
-  // Contest Actions
   toggleStatus(id: string): Promise<{ status: string }>;
-  registerContest(
-    id: string,
-    data?: Record<string, never>
-  ): Promise<void>;
+  registerContest(id: string, data?: Record<string, never>): Promise<void>;
   enterContest(id: string, data?: Record<string, never>): Promise<void>;
   archiveContest(id: string): Promise<void>;
-
-  // Scoreboard
   getContestStandings(id: string): Promise<ScoreboardData>;
   getContestAnticheatConfig(id: string): Promise<ContestAnticheatConfig>;
   getContestOverviewMetrics(id: string): Promise<ContestOverviewMetrics>;
-}
-
-// ============================================================================
-// Contest Problems Operations
-// ============================================================================
-
-export interface IContestProblemRepository {
-  getContestProblems(contestId: string): Promise<ContestProblemSummary[]>;
-  getContestProblem(
-    contestId: string,
-    contestProblemId: string
-  ): Promise<CodingProblemDetail | undefined>;
-  addProblemToContest(
-    contestId: string,
-    problemId: string,
-    data?: { label?: string; score?: number }
-  ): Promise<void>;
-  removeProblemFromContest(contestId: string, problemId: string): Promise<void>;
-  reorderProblems(
-    contestId: string,
-    orderedIds: string[]
-  ): Promise<ContestProblemSummary[]>;
-  importProblems(
-    contestId: string,
-    problemIds: string[]
-  ): Promise<ContestProblemSummary[]>;
-}
-
-// ============================================================================
-// Contest Participants Operations
-// ============================================================================
-
-export interface IContestParticipantRepository {
-  getParticipants(contestId: string): Promise<ContestParticipant[]>;
-  addParticipant(
-    contestId: string,
-    data: { user_id?: string; username?: string }
-  ): Promise<ContestParticipant>;
-  removeParticipant(contestId: string, participantId: string): Promise<void>;
-}
-
-// ============================================================================
-// Contest Submissions Operations
-// ============================================================================
-
-export interface IContestSubmissionRepository {
-  getContestSubmissions(
-    contestId: string,
-    params?: {
-      problem?: string;
-      user?: string;
-      status?: string;
-      page?: number;
-      page_size?: number;
-    }
-  ): Promise<{ results: Submission[]; count: number }>;
-}
-
-// ============================================================================
-// Exam Mode Operations
-// ============================================================================
-
-export interface IExamRepository {
-  getExamEvents(
-    contestId: string,
-    params?: { user_id?: string }
-  ): Promise<{ events: ExamEvent[]; eventFeed: EventFeedItem[] }>;
-  unlockParticipant(contestId: string, participantId: string): Promise<void>;
-  lockParticipant(
-    contestId: string,
-    participantId: string,
-    reason: string
-  ): Promise<void>;
-}
-
-// ============================================================================
-// Clarifications & Announcements
-// ============================================================================
-
-export interface IClarificationRepository {
-  getClarifications(contestId: string): Promise<Clarification[]>;
-  createClarification(
-    contestId: string,
-    data: { question: string; problem_id?: string }
-  ): Promise<Clarification>;
-  answerClarification(
-    contestId: string,
-    clarificationId: string,
-    data: { answer: string; is_public?: boolean }
-  ): Promise<Clarification>;
-}
-
-export interface IContestAnnouncementRepository {
-  getAnnouncements(contestId: string): Promise<ContestAnnouncement[]>;
-  createAnnouncement(
-    contestId: string,
-    data: { title: string; content: string }
-  ): Promise<ContestAnnouncement>;
-  updateAnnouncement(
-    contestId: string,
-    announcementId: string,
-    data: { title?: string; content?: string }
-  ): Promise<ContestAnnouncement>;
-  deleteAnnouncement(contestId: string, announcementId: string): Promise<void>;
-}
-
-export interface IExamQuestionRepository {
-  getExamQuestions(contestId: string): Promise<ExamQuestion[]>;
-  createExamQuestion(
-    contestId: string,
-    data: {
-      question_type: ExamQuestionType;
-      prompt: string;
-      options?: string[];
-      correct_answer?: unknown;
-      explanation?: string;
-      score: number;
-      order?: number;
-    }
-  ): Promise<ExamQuestion>;
-  updateExamQuestion(
-    contestId: string,
-    questionId: string,
-    data: {
-      question_type?: ExamQuestionType;
-      prompt?: string;
-      options?: string[];
-      correct_answer?: unknown;
-      explanation?: string;
-      score?: number;
-      order?: number;
-    }
-  ): Promise<ExamQuestion>;
-  deleteExamQuestion(contestId: string, questionId: string): Promise<void>;
-  reorderExamQuestions(
-    contestId: string,
-    orders: Array<{ id: string; order: number }>
-  ): Promise<ExamQuestion[]>;
 }
 
 export interface ContestUpdatePayload {

@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFullscreenMonitoring } from "./useFullscreenMonitoring";
 
 const fullscreen = vi.fn();
-vi.mock("@/core/usecases/exam", () => ({ isFullscreen: () => fullscreen() }));
+vi.mock("@/infrastructure/browser/fullscreen", () => ({
+  isFullscreen: () => fullscreen(),
+}));
 
 describe("useFullscreenMonitoring", () => {
   it("emits the browser observation at the settled callback time", () => {

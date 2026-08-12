@@ -7,8 +7,7 @@
  * 3. Return result with navigation path.
  */
 
-import { startExam } from "@/infrastructure/api/repositories";
-export { requestFullscreen } from "@/core/usecases/exam/fullscreen.usecase";
+import type { IExamSessionRepository } from "@/core/ports/examSession.repository";
 
 // ============================================================================
 // Types
@@ -28,8 +27,11 @@ export interface EnterExamOutput {
   error?: string;
 }
 
+export type EnterExamDependencies = Pick<IExamSessionRepository, "startExam">;
+
 export async function enterExamUseCase(
-  input: EnterExamInput
+  input: EnterExamInput,
+  dependencies: EnterExamDependencies,
 ): Promise<EnterExamOutput> {
   const { contestId, cheatDetectionEnabled, answeringEntryPath, precheckPath } = input;
 
@@ -43,7 +45,7 @@ export async function enterExamUseCase(
   }
 
   try {
-    const response = await startExam(contestId);
+    const response = await dependencies.startExam(contestId);
 
     if (
       response &&

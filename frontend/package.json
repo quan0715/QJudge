@@ -19,6 +19,7 @@
     "check:typography": "node scripts/check-typography-tokens.js",
     "sync:i18n": "node scripts/sync-i18n.js",
     "lint": "eslint . --max-warnings=9999",
+    "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

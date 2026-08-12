@@ -1,4 +1,4 @@
-import { isFullscreen } from "@/core/usecases/exam";
+import { isFullscreen } from "@/infrastructure/browser/fullscreen";
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;
