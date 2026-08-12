@@ -46,6 +46,26 @@ class AuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access_token', response.data['data'])
 
+    def test_login_user_uses_role_without_subscription(self):
+        """Account authorization is represented by role, not a billing tier."""
+        User.objects.create_user(
+            username="teacher",
+            email="teacher@example.com",
+            password="StrongPassword123!",
+            auth_provider="email",
+            role="teacher",
+        )
+
+        response = self.client.post(
+            self.login_url,
+            {"identifier": "teacher@example.com", "password": "StrongPassword123!"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user = response.data["data"]["user"]
+        self.assertEqual(user["role"], "teacher")
+        self.assertNotIn("subscription", user)
+
     def test_login_response_includes_onboarding_profile_state(self):
         """Completed onboarding should survive a fresh login response."""
         user = User.objects.create_user(
