@@ -4,13 +4,8 @@ import type { FieldSaveState } from "@/features/contest/components/admin/examEdi
 import {
   TITLE_STYLE,
   DESC_STYLE,
-  Section as SharedSection,
   settingsPanelStyles as s,
 } from "@/shared/layout/SettingsPanel";
-
-// Re-export shared primitives for backwards compatibility
-export { TITLE_STYLE, DESC_STYLE };
-export const Section = SharedSection;
 
 // Contest-specific wrappers that add save-state indicators
 

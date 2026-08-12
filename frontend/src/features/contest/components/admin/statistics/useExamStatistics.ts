@@ -1,10 +1,10 @@
 import { useMemo } from "react";
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import { useGradingData } from "@/features/contest/screens/settings/grading/useGradingData";
 import { isSubjectiveType } from "@/features/contest/screens/settings/grading/gradingTypes";
 import type {
   GradingAnswerRow,
   QuestionProgress,
-  QuestionType,
 } from "@/features/contest/screens/settings/grading/gradingTypes";
 
 export interface OptionStat {
@@ -24,7 +24,7 @@ export interface SubjectiveEntry {
 export interface QuestionStatistics {
   questionId: string;
   questionIndex: number;
-  questionType: QuestionType;
+  questionType: ExamQuestionType;
   prompt: string;
   maxScore: number;
   averageScore: number;
@@ -130,7 +130,7 @@ function buildOptionDistribution(answers: GradingAnswerRow[]): OptionStat[] {
 
 function normalizeSelectedIndexes(
   value: unknown,
-  questionType: QuestionType,
+  questionType: ExamQuestionType,
   options: string[],
 ): number[] {
   if (Array.isArray(value)) {
@@ -146,7 +146,7 @@ function normalizeSelectedIndexes(
 
 function normalizeChoiceIndex(
   value: unknown,
-  questionType: QuestionType,
+  questionType: ExamQuestionType,
   options: string[],
 ): number | null {
   if (questionType === "true_false") {

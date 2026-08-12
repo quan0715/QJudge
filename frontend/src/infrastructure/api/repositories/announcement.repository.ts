@@ -11,9 +11,6 @@ import type {
   UpdateAnnouncementRequest,
 } from "@/core/entities/announcement.entity";
 
-// Re-export entity types for backward compatibility
-export type { Announcement, CreateAnnouncementRequest, UpdateAnnouncementRequest };
-
 // ============================================================================
 // Announcement Repository Implementation
 // ============================================================================

@@ -1,8 +1,6 @@
 import { Toggle } from "@carbon/react";
-import {
-  Section,
-  ActionRow,
-} from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { ActionRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { Section } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 export default function DisplaySettingsPanel({

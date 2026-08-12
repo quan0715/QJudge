@@ -11,8 +11,8 @@ import {
   createComment,
   updateComment,
   deleteComment,
-  likeDiscussion,
-  likeComment,
+  toggleLikeDiscussion,
+  toggleLikeComment,
 } from "@/infrastructure/api/repositories/discussion.repository";
 import type {
   Discussion,
@@ -124,7 +124,7 @@ export function useDiscussionList(
   // Like discussion mutation
   const likeDiscussionMutation = useMutation({
     mutationFn: async (discussionId: string) => {
-      return likeDiscussion(discussionId);
+      return toggleLikeDiscussion(discussionId);
     },
     onSuccess: (data, discussionId) => {
       // Optimistically update the discussion in the list
@@ -148,7 +148,7 @@ export function useDiscussionList(
   // Like comment mutation (for inline comment likes)
   const likeCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      return likeComment(commentId);
+      return toggleLikeComment(commentId);
     },
     onSuccess: () => {
       // Refresh discussion list to get updated comment like status
@@ -370,7 +370,7 @@ export function useDiscussionDetail(
   const likeDiscussionMutation = useMutation({
     mutationFn: async () => {
       if (!discussionId) throw new Error("Discussion ID required");
-      return likeDiscussion(discussionId);
+      return toggleLikeDiscussion(discussionId);
     },
     onSuccess: (data) => {
       // Update discussion in cache
@@ -387,7 +387,7 @@ export function useDiscussionDetail(
   // Like comment mutation
   const likeCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      return likeComment(commentId);
+      return toggleLikeComment(commentId);
     },
     onSuccess: (data, commentId) => {
       // Update comment in cache

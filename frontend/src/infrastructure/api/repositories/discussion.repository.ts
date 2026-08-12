@@ -147,12 +147,6 @@ export const toggleLikeComment = async (id: string): Promise<any> => {
   );
 };
 
-// Compatibility aliases
-export const likeDiscussion = toggleLikeDiscussion;
-export const unlikeDiscussion = toggleLikeDiscussion;
-export const likeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
-export const unlikeComment = (id: string, _optionalId?: string) => toggleLikeComment(id);
-
 // ============================================================================
 // Repository Export
 // ============================================================================
@@ -169,10 +163,6 @@ export const discussionRepository = {
   deleteComment,
   toggleLikeDiscussion,
   toggleLikeComment,
-  likeDiscussion,
-  unlikeDiscussion,
-  likeComment,
-  unlikeComment,
 };
 
 export default discussionRepository;

@@ -13,7 +13,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestion,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
 import {
   getAllExamAnswersForGrading,
@@ -27,7 +30,6 @@ import { isSubjectiveType } from "./gradingTypes";
 import type {
   GradingAnswerRow,
   QuestionProgress,
-  QuestionType,
 } from "./gradingTypes";
 
 interface UseAiGradingScreenDataResult {
@@ -191,7 +193,7 @@ export function useAiGradingScreenData(
           gradedCount: 0,
           averageScore: 0,
         };
-        const qType = q.questionType as QuestionType;
+        const qType = q.questionType as ExamQuestionType;
         const totalAnswers = stats.answerCount;
         const gradedCount = stats.gradedCount;
         return {

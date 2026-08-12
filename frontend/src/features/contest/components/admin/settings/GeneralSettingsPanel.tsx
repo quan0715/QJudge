@@ -8,10 +8,8 @@ import {
   TimePickerSelect,
 } from "@carbon/react";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
-import {
-  Section,
-  FieldRow,
-} from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { FieldRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { Section } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 interface GeneralSettingsPanelProps extends ContestSettingsPanelProps {

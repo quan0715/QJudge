@@ -26,11 +26,3 @@ export {
   type UseAutoSaveOptions,
   type UseAutoSaveReturn,
 } from "./useAutoSave";
-
-// Scroll-spy hook - Re-export from shared for backward compatibility
-export {
-  useScrollSpy,
-  type ScrollSpySection,
-  type UseScrollSpyOptions,
-  type UseScrollSpyReturn,
-} from "@/shared/hooks/useScrollSpy";

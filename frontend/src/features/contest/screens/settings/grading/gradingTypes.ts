@@ -9,9 +9,6 @@ import type {
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import i18n from "i18next";
 
-/** @deprecated Use ExamQuestionType from core entity directly. */
-export type QuestionType = ExamQuestionType;
-
 /** Whether a question type requires manual grading. */
 export const isSubjectiveType = (t: ExamQuestionType): boolean =>
   t === "short_answer" || t === "essay";
@@ -34,7 +31,7 @@ export interface GradingAnswerRow {
   questionPrompt: string;
   questionExplanation?: string;
   questionExplanationDocument?: OpenAnswerDocument | null;
-  questionType: QuestionType;
+  questionType: ExamQuestionType;
   answerFormat?: ExamQuestionAnswerFormat;
   questionOptions: string[];
   maxScore: number;
@@ -67,7 +64,7 @@ export interface GradingAnswerRow {
 export interface QuestionProgress {
   questionId: string;
   questionIndex: number;
-  questionType: QuestionType;
+  questionType: ExamQuestionType;
   prompt: string;
   explanation?: string;
   correctAnswer?: unknown;
