@@ -657,8 +657,6 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Exam Bank",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         _asset, membership = _create_exam_bank_item(
             bank=bank,
@@ -694,8 +692,6 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Asset Only Exam Bank",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         asset, _version = create_question_asset(
             owner=teacher,
@@ -752,8 +748,6 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Exam Bank Non Membership Reject",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         asset, _membership = _create_exam_bank_item(
             bank=bank,

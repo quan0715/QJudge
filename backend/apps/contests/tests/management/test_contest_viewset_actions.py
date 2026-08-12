@@ -543,23 +543,14 @@ def test_import_from_bank_creates_problem_copy(
     contest: Contest,
 ) -> None:
     """ContestProblemViewSet: POST /problems/import-from-bank/ with items array (binding-based)."""
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_bank_import",
-        email="platform_admin_for_bank_import@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank",
+        owner=owner,
+        name="Coding Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     _asset, membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Bank Coding Question",
         prompt="Use source problem",
         score=100,
@@ -603,22 +594,13 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
     owner: User,
     contest: Contest,
 ) -> None:
-    platform_admin = User.objects.create_user(
-        username="platform_admin_asset_only_bank_import",
-        email="platform_admin_asset_only_bank_import@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
+        owner=owner,
         name="Asset Only Coding Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     asset, _version = create_question_asset(
-        owner=platform_admin,
+        owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Asset Only Coding Question",
         prompt="desc",
@@ -640,13 +622,13 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=platform_admin,
+        actor=owner,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
         question_asset=asset,
         order=0,
-        actor=platform_admin,
+        actor=owner,
     )
 
     api_client.force_authenticate(user=owner)
@@ -683,23 +665,14 @@ def test_import_from_bank_materializes_coding_ext(
     contest: Contest,
 ) -> None:
     """ContestProblemViewSet: POST /problems/import-from-bank/ materializes coding extension data (binding-based)."""
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_materialize",
-        email="platform_admin_for_materialize@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank Materialize",
+        owner=owner,
+        name="Coding Bank Materialize",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     _asset, membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Materialized Coding Question",
         prompt="prompt",
         difficulty="easy",
@@ -742,23 +715,14 @@ def test_import_from_bank_rejects_non_membership_question_id(
     owner: User,
     contest: Contest,
 ) -> None:
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_non_membership_id_reject",
-        email="platform_admin_for_non_membership_id_reject@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank Non Membership Reject",
+        owner=owner,
+        name="Coding Bank Non Membership Reject",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     asset, _membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Non Membership ID Reject",
         prompt="non-membership",
         score=100,
