@@ -18,9 +18,32 @@
 ## Theme and tokens
 
 - Keep app-level `<Theme theme="white|g10|g90|g100">` and `data-carbon-theme` aligned.
-- Use Carbon color, spacing, typography, layer, border, and focus tokens. A numeric fallback inside `var(--cds-..., fallback)` is acceptable only when runtime support requires it.
+- Use Carbon color, spacing, typography, layer, border, and focus tokens. A numeric fallback inside a documented runtime color/theme token is acceptable only when runtime support requires it.
+- Carbon React does **not** emit `--cds-spacing-*` runtime custom properties. A fallback does not make this pattern acceptable: it hides a missing token contract and diverges from the Sass API used by Carbon React.
 - Hard-coded colors are limited to media overlays, syntax highlighting, editors, charts, and imported brand artwork; document why a semantic Carbon token cannot represent the value.
 - Preserve Carbon focus, hover, active, disabled, and high-contrast states. Do not paint over them with custom skins.
+
+### Spacing token contract
+
+React SCSS must import Carbon's Sass layout module and reference its public spacing tokens:
+
+```scss
+@use "@carbon/layout";
+
+.card {
+  padding: layout.$spacing-05;
+  gap: layout.$spacing-03;
+}
+```
+
+Do not write `var(--cds-spacing-05)`, with or without a fallback. When the variable is undefined, the browser drops the declaration; this commonly appears as cards, side panels, and dashboard grids losing all padding or gap at once. Plain `.css` files cannot consume Sass tokens, so use the canonical rem value or migrate the file to SCSS.
+
+If several unrelated surfaces suddenly lose spacing, search globally before patching component selectors:
+
+```bash
+rg -n 'var\(--cds-spacing-' frontend/src --glob '*.scss' --glob '*.css'
+node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src
+```
 
 ## Component decisions
 

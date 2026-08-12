@@ -65,6 +65,14 @@ test("all-scope gate rejects Carbon internals and important declarations", (t) =
   assert.doesNotMatch(result.stdout, /hardcoded-spacing/);
 });
 
+test("all-scope gate rejects runtime Carbon spacing variables", (t) => {
+  const result = runFixture(t, {
+    "BadSpacing.module.scss": `.root { padding: var(--cds-spacing-05, 1rem); }`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /invalid-carbon-spacing-variable/);
+});
+
 test("staged gate reads the index instead of a clean working-tree version", (t) => {
   const result = runStagedFixture(
     t,
@@ -86,6 +94,23 @@ test("staged gate ignores an unstaged blocker absent from the index", (t) => {
   );
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
+test("staged gate rejects invalid spacing variables and accepts Sass tokens", (t) => {
+  const blocked = runStagedFixture(
+    t,
+    ".root { padding: var(--cds-spacing-05); }",
+    '@use "@carbon/layout";\n.root { padding: layout.$spacing-05; }',
+  );
+  assert.equal(blocked.status, 1);
+  assert.match(blocked.stderr, /does not emit --cds-spacing/);
+
+  const clean = runStagedFixture(
+    t,
+    '@use "@carbon/layout";\n.root { padding: layout.$spacing-05; }',
+    ".root { padding: var(--cds-spacing-05); }",
+  );
+  assert.equal(clean.status, 0, clean.stderr || clean.stdout);
 });
 
 test("help documents staged and all scopes", () => {

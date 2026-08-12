@@ -29,6 +29,7 @@ metadata:
 ## 核心規則
 - 禁止新增或依賴 `.cds--*` / `.bx--*` internal selector；只使用 Carbon public API、app-owned class 與 token。
 - 禁止 `!important`。
+- React SCSS 禁止 `var(--cds-spacing-*)`：Carbon React 不會輸出這組 runtime custom properties，瀏覽器會直接丟棄整條 spacing declaration。使用 `@use "@carbon/layout";` 與 `layout.$spacing-*`；plain CSS 則使用 canonical rem value 或遷移成 SCSS。
 - Layout 優先 Carbon `Grid` / `Column` 與 2x Grid 節奏。
 - 單視圖只保留一個主垂直捲動容器。
 - 操作回饋（成功/失敗）優先使用 `useToast`；避免在內容區堆疊 `InlineNotification`。
@@ -50,6 +51,9 @@ metadata:
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged`
 - 全量 strict gate：
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`
+- spacing token 自動修復（先 dry-run，再寫入）：
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src`
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src --write`
 
 ## 參考文件
 - Carbon 規範：`references/carbon-policy.md`

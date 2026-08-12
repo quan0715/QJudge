@@ -1,6 +1,7 @@
+@use "@carbon/layout";
 .card {
   display: grid;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   margin: 0;
 }
 
@@ -20,13 +21,13 @@
 
 .restartConfirmation {
   display: grid;
-  gap: var(--cds-spacing-04);
-  padding-top: var(--cds-spacing-03);
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-03;
   border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .confirmationActions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
 }

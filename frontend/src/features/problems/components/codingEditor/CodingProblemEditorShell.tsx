@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Button } from "@carbon/react";
-import { Download, View } from "@carbon/icons-react";
+import { View } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
@@ -8,7 +8,6 @@ import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
 import ProblemEditHeader from "@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader";
 import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/components/ProblemEditSections";
 import ProblemEditPreviewModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal";
-import ProblemEditExportModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditExportModal";
 import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
 import "@/features/problems/screens/problemsIdEdit/screen.scss";
 import styles from "./CodingProblemEditorShell.module.scss";
@@ -20,11 +19,6 @@ interface CodingProblemEditorShellProps {
   hideBackButton?: boolean;
   hideHeader?: boolean;
   onBack?: () => void;
-  onExportConfirm?: (args: {
-    exportFormat: "pdf" | "yaml";
-    pdfScale: number;
-    close: () => void;
-  }) => void;
   showPreview?: boolean;
   showGlobalSaveStatus?: boolean;
   onGlobalSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void;
@@ -39,7 +33,6 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
   hideBackButton = true,
   hideHeader = false,
   onBack,
-  onExportConfirm,
   showPreview = true,
   showGlobalSaveStatus = true,
   onGlobalSaveStatusChange,
@@ -48,8 +41,6 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
 }) => {
   const { autoSave } = useProblemEdit();
   const previewModalRef = React.useRef<TriggerModalHandle>(null);
-  const [exportFormat, setExportFormat] = useState<"pdf" | "yaml">("pdf");
-  const [pdfScale, setPdfScale] = useState(100);
 
   const previewData = useMemo(() => formSchemaToPreview(formValues), [formValues]);
 
@@ -57,44 +48,9 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
     onGlobalSaveStatusChange?.(autoSave.globalStatus);
   }, [autoSave.globalStatus, onGlobalSaveStatusChange]);
 
-  const actionButtons = useMemo(
-    () => (
-      <>
-        {onExportConfirm ? (
-          <TriggerModal
-            trigger={
-              <Button kind="ghost" renderIcon={Download} size="sm" hasIconOnly iconDescription="Export">
-                Export
-              </Button>
-            }
-            renderModal={({ open, onClose }) => (
-              <ProblemEditExportModal
-                open={open}
-                onClose={onClose}
-                onConfirm={() =>
-                  onExportConfirm({
-                    exportFormat,
-                    pdfScale,
-                    close: onClose,
-                  })
-                }
-                exportFormat={exportFormat}
-                onExportFormatChange={setExportFormat}
-                pdfScale={pdfScale}
-                onPdfScaleChange={setPdfScale}
-              />
-            )}
-          />
-        ) : null}
-        {extraActions}
-      </>
-    ),
-    [onExportConfirm, exportFormat, pdfScale, extraActions]
-  );
-
   useEffect(() => {
-    onToolbarActionsReady?.(actionButtons);
-  }, [actionButtons, onToolbarActionsReady]);
+    onToolbarActionsReady?.(extraActions);
+  }, [extraActions, onToolbarActionsReady]);
 
   return (
     <div className={styles.editorRoot}>
@@ -108,7 +64,7 @@ const CodingProblemEditorShell: React.FC<CodingProblemEditorShellProps> = ({
           }
           actions={
             <>
-              {actionButtons}
+              {extraActions}
               {showPreview ? (
                 <Button
                   kind="secondary"

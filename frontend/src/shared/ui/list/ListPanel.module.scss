@@ -57,7 +57,7 @@
 .item {
   display: flex;
   align-items: center;
-  padding: 0.625rem var(--cds-spacing-04);
+  padding: 0.625rem layout.$spacing-04;
   cursor: pointer;
   border: none;
   border-bottom: 1px solid var(--cds-border-subtle-01);
@@ -75,11 +75,36 @@
   }
 }
 
+.itemComposite {
+  padding: 0;
+  cursor: default;
+}
+
+.itemPrimaryAction {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  flex: 1;
+  min-width: 0;
+  padding: 0.625rem layout.$spacing-03 0.625rem layout.$spacing-04;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemSecondaryAction {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: layout.$spacing-03;
+}
+
 // Active / selected
 .itemActive {
   background-color: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
-  border-left: 3px solid var(--cds-interactive);
-  padding-left: calc(var(--cds-spacing-04) - 3px);
 
   &:hover {
     background-color: var(--cds-layer-selected-hover-01);
@@ -88,8 +113,15 @@
 
 // Danger variant (active)
 .itemDanger.itemActive {
-  border-left-color: var(--cds-support-error);
   color: var(--cds-support-error);
+}
+
+.item:focus-visible,
+.itemPrimaryAction:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--cds-focus);
+  outline-offset: -2px;
 }
 
 // Compact / mini variant
@@ -110,12 +142,6 @@
   font-weight: 600;
 }
 
-.itemCompact.itemActive {
-  padding-left: 0;
-  border-left-width: 3px;
-  border-left-style: solid;
-}
-
 // ─── Slots ──────────────────────────────────────────────────
 .leading {
   flex-shrink: 0;
@@ -130,7 +156,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-01);
+  gap: layout.$spacing-01;
 }
 
 .title {

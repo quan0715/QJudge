@@ -1,9 +1,10 @@
+@use "@carbon/layout";
 .card {
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: var(--cds-spacing-05, 1rem);
+  padding: layout.$spacing-05;
   background: transparent;
 }
 
@@ -18,7 +19,7 @@
 .title {
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-03, 0.5rem);
+  gap: layout.$spacing-03;
   color: var(--cds-text-secondary);
 }
 
@@ -26,7 +27,7 @@
   font-weight: 300;
   display: flex;
   align-items: baseline;
-  gap: var(--cds-spacing-02, 0.25rem);
+  gap: layout.$spacing-02;
 }
 
 .unit {
@@ -40,13 +41,13 @@
 
 .sizeSm .title {
   font-size: 0.75rem;
-  margin-bottom: var(--cds-spacing-02, 0.25rem);
+  margin-bottom: layout.$spacing-02;
 }
 
 .sizeSm .value {
   font-size: 1.5rem;
   line-height: 1.2;
-  margin-bottom: var(--cds-spacing-02, 0.25rem);
+  margin-bottom: layout.$spacing-02;
 }
 
 .sizeSm .description {
@@ -55,13 +56,13 @@
 
 .sizeDefault .title {
   font-size: 0.875rem;
-  margin-bottom: var(--cds-spacing-03, 0.5rem);
+  margin-bottom: layout.$spacing-03;
 }
 
 .sizeDefault .value {
   font-size: 2rem;
   line-height: 1;
-  margin-bottom: var(--cds-spacing-03, 0.5rem);
+  margin-bottom: layout.$spacing-03;
 }
 
 .sizeDefault .description {
@@ -70,13 +71,13 @@
 
 .sizeLg .title {
   font-size: 1rem;
-  margin-bottom: var(--cds-spacing-04, 0.75rem);
+  margin-bottom: layout.$spacing-04;
 }
 
 .sizeLg .value {
   font-size: 2.5rem;
   line-height: 1;
-  margin-bottom: var(--cds-spacing-04, 0.75rem);
+  margin-bottom: layout.$spacing-04;
 }
 
 .sizeLg .description {
@@ -85,13 +86,13 @@
 
 .sizeXl .title {
   font-size: 1.125rem;
-  margin-bottom: var(--cds-spacing-05, 1rem);
+  margin-bottom: layout.$spacing-05;
 }
 
 .sizeXl .value {
   font-size: 3rem;
   line-height: 1;
-  margin-bottom: var(--cds-spacing-05, 1rem);
+  margin-bottom: layout.$spacing-05;
 }
 
 .sizeXl .description {
@@ -99,7 +100,7 @@
 }
 
 .kpi {
-  padding: var(--cds-spacing-05, 1rem) var(--cds-spacing-07, 2rem);
+  padding: layout.$spacing-05 layout.$spacing-07;
   align-items: flex-start;
 }
 
@@ -108,7 +109,7 @@
 }
 
 .kpiIcon {
-  margin-bottom: var(--cds-spacing-03, 0.5rem);
+  margin-bottom: layout.$spacing-03;
   color: var(--cds-text-secondary);
 }
 
@@ -116,7 +117,7 @@
   font-size: var(--cds-productive-heading-05, 2rem);
   font-weight: 300;
   line-height: 1;
-  margin-bottom: var(--cds-spacing-02, 0.25rem);
+  margin-bottom: layout.$spacing-02;
 }
 
 .kpiLabel {
@@ -137,7 +138,7 @@
 .kpiDescription {
   font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
-  margin-top: var(--cds-spacing-01, 0.125rem);
+  margin-top: layout.$spacing-01;
 }
 
 .kpiMeta {
@@ -154,7 +155,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-radius: 0.25rem;
-  padding: var(--cds-spacing-04, 0.75rem) var(--cds-spacing-06, 1.5rem);
+  padding: layout.$spacing-04 layout.$spacing-06;
 
   .kpiIcon {
     color: rgba(255, 255, 255, 0.6);

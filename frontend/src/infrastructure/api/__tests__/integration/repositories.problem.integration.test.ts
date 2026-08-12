@@ -3,9 +3,14 @@ import {
   getProblem,
   getProblemStatistics,
   getProblems,
+  testRun,
 } from "@/infrastructure/api/repositories/problem.repository";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
-import { TEST_PROBLEMS, TEST_USERS } from "@/tests/helpers/data.helper";
+import {
+  TEST_CODE_SAMPLES,
+  TEST_PROBLEMS,
+  TEST_USERS,
+} from "@/tests/helpers/data.helper";
 import { ensureProblemExists } from "./helpers/problemSeed";
 
 describe("problem repository integration", () => {
@@ -55,5 +60,15 @@ describe("problem repository integration", () => {
     expect(stats.submissionCount).toBeGreaterThanOrEqual(0);
     expect(stats.acceptedCount).toBeGreaterThanOrEqual(0);
     expect(stats.trend.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("runs server-side test cases", async () => {
+    const result = await testRun(problemId, {
+      language: "cpp",
+      code: TEST_CODE_SAMPLES.aPlusBCorrect,
+    });
+
+    expect(result.results.length).toBeGreaterThan(0);
+    expect(result.results.every((item) => typeof item.status === "string")).toBe(true);
   });
 });

@@ -1,9 +1,5 @@
 import type {
-  CodingProblem,
-  CodingProblemDetail,
-  ProblemUpsertPayload,
   Difficulty,
-  Tag,
 } from "@/core/entities/problem.entity";
 
 // ============================================================================
@@ -54,31 +50,4 @@ interface TestRunResultItem {
 export interface TestRunResult {
   status: string;
   results: TestRunResultItem[];
-}
-
-// ============================================================================
-// Port Interface
-// ============================================================================
-
-export interface IProblemRepository {
-  // Read operations
-  getProblems(params?: GetProblemsParams | string): Promise<CodingProblem[]>;
-  getProblem(id: string, scope?: string): Promise<CodingProblemDetail | undefined>;
-  getTags(): Promise<Tag[]>;
-  getProblemStatistics(
-    problemId: string,
-    params?: { contest?: string; limit?: number }
-  ): Promise<ProblemStatistics>;
-
-  // Write operations
-  createProblem(data: ProblemUpsertPayload): Promise<CodingProblemDetail>;
-  updateProblem(id: string, data: ProblemUpsertPayload): Promise<CodingProblemDetail>;
-  patchProblem(
-    id: string,
-    data: Partial<ProblemUpsertPayload>
-  ): Promise<CodingProblemDetail>;
-  deleteProblem(id: string): Promise<void>;
-
-  // Test run
-  testRun(problemId: string, payload: TestRunPayload): Promise<TestRunResult>;
 }

@@ -47,6 +47,3 @@ export const MemberGrid: React.FC<MemberGridProps> = ({ members }) => {
     </div>
   );
 };
-
-// Backward-compat alias
-export const MemberTable = MemberGrid;

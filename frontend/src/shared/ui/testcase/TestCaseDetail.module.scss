@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .container {
   display: flex;
   flex-direction: column;
@@ -18,14 +19,14 @@
   justify-content: center;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--cds-spacing-04) var(--cds-spacing-05);
+  padding: layout.$spacing-04 layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
   background-color: var(--cds-layer-02);
 }
@@ -48,14 +49,14 @@
 }
 
 .content {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   overflow-y: auto;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
 }
 
 .sectionLabel {
@@ -83,8 +84,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--cds-spacing-04);
-  padding: var(--cds-spacing-07);
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-07;
   color: var(--cds-text-secondary);
   
   svg {

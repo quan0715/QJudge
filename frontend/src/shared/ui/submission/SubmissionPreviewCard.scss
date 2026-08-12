@@ -1,8 +1,9 @@
+@use "@carbon/layout";
 .submission-preview-card {
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-04);
-  padding: var(--cds-spacing-04) var(--cds-spacing-05);
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
   background-color: var(--cds-layer);
   border-bottom: 1px solid var(--cds-border-subtle);
   transition: background-color 0.15s ease;
@@ -21,8 +22,8 @@
   }
 
   &--compact {
-    padding: var(--cds-spacing-03) var(--cds-spacing-04);
-    gap: var(--cds-spacing-03);
+    padding: layout.$spacing-03 layout.$spacing-04;
+    gap: layout.$spacing-03;
 
     .submission-preview-card__score {
       font-size: 0.75rem;
@@ -30,7 +31,7 @@
 
     .submission-preview-card__metric {
       font-size: 0.75rem;
-      gap: var(--cds-spacing-02);
+      gap: layout.$spacing-02;
     }
 
     .submission-preview-card__created-text {
@@ -52,9 +53,9 @@
   &__score {
     display: flex;
     align-items: baseline;
-    gap: var(--cds-spacing-01);
+    gap: layout.$spacing-01;
     flex-shrink: 0;
-    padding: 0 var(--cds-spacing-03);
+    padding: 0 layout.$spacing-03;
   }
 
   &__score-value {
@@ -72,7 +73,7 @@
   &__metrics {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-05);
+    gap: layout.$spacing-05;
     flex-shrink: 0;
   }
 

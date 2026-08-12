@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@carbon/react";
-import { Download, View } from "@carbon/icons-react";
+import { View } from "@carbon/icons-react";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import {
   deleteProblem,
@@ -27,38 +27,27 @@ import { problemFormSchema } from "@/features/problems/forms/problemFormValidati
 import ProblemEditHeader from "./components/ProblemEditHeader";
 import ProblemEditSections from "./components/ProblemEditSections";
 import ProblemEditPreviewModal from "./components/ProblemEditPreviewModal";
-import ProblemEditExportModal from "./components/ProblemEditExportModal";
 import {
   ProblemEditError,
   ProblemEditLoading,
   ProblemEditPermissionDenied,
 } from "./components/ProblemEditState";
-import {
-  ProblemEditUIProvider,
-  useProblemEditUI,
-} from "./contexts/ProblemEditUIContext";
 import { formSchemaToPreview } from "./utils/previewAdapter";
 import "./screen.scss";
 
 interface ProblemEditScreenContentProps {
   problem: CodingProblemDetail;
   handleDelete: () => Promise<void>;
-  handleExportConfirm: (onClose: () => void) => void;
   onBack: () => void;
-  onProblemUpdated: () => void;
 }
 
 const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
   problem,
   handleDelete,
-  handleExportConfirm,
   onBack,
-  onProblemUpdated: _onProblemUpdated,
 }) => {
   const { t } = useTranslation("problem");
   const { autoSave } = useProblemEdit();
-  const { exportFormat, setExportFormat, pdfScale, setPdfScale } =
-    useProblemEditUI();
   const { watch } = useFormContext<ProblemFormSchema>();
   const previewModalRef = useRef<TriggerModalHandle>(null);
 
@@ -75,33 +64,13 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
         onBack={onBack}
         globalSaveStatus={<GlobalSaveStatus status={autoSave.globalStatus} />}
         actions={
-          <>
-            <TriggerModal
-              trigger={
-                <Button kind="ghost" renderIcon={Download}>
-                  {t("edit.actions.export")}
-                </Button>
-              }
-              renderModal={({ open, onClose }) => (
-                <ProblemEditExportModal
-                  open={open}
-                  onClose={onClose}
-                  onConfirm={() => handleExportConfirm(onClose)}
-                  exportFormat={exportFormat}
-                  onExportFormatChange={setExportFormat}
-                  pdfScale={pdfScale}
-                  onPdfScaleChange={setPdfScale}
-                />
-              )}
-            />
-            <Button
-              kind="secondary"
-              renderIcon={View}
-              onClick={() => previewModalRef.current?.open()}
-            >
-              {t("edit.actions.preview")}
-            </Button>
-          </>
+          <Button
+            kind="secondary"
+            renderIcon={View}
+            onClick={() => previewModalRef.current?.open()}
+          >
+            {t("edit.actions.preview")}
+          </Button>
         }
       />
 
@@ -138,13 +107,12 @@ const ProblemEditScreenContent: React.FC<ProblemEditScreenContentProps> = ({
  * - Preview modal
  * - Danger Zone for delete
  */
-const ProblemEditPageInner: React.FC = () => {
+const ProblemEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("problem");
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { exportFormat, pdfScale } = useProblemEditUI();
 
   // Permission check
   const canEdit = user && (user.role === "admin" || user.role === "teacher");
@@ -159,14 +127,9 @@ const ProblemEditPageInner: React.FC = () => {
 
   const { reset } = methods;
 
-  const { problem, formSchema, isLoading, error, refetch } = useProblemDetail(id, {
+  const { problem, formSchema, isLoading, error } = useProblemDetail(id, {
     scope: "manage",
   });
-
-  // Agent commit 成功後重新載入題目資料（useEffect 會自動 reset form）
-  const handleProblemUpdated = useCallback(() => {
-    refetch();
-  }, [refetch]);
 
   // Reset form when problem data changes
   useEffect(() => {
@@ -201,42 +164,6 @@ const ProblemEditPageInner: React.FC = () => {
     }
   };
 
-  // Handle export
-  const handleExportConfirm = useCallback(
-    (onClose: () => void) => {
-      if (!problem) return;
-
-      if (exportFormat === "yaml") {
-        // YAML export
-        // TODO: Implement proper YAML export with form data
-        const yamlContent = `# Problem: ${problem.title}\n# Export not yet implemented`;
-        const blob = new Blob([yamlContent], { type: "text/yaml" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${problem.title.replace(/[^a-zA-Z0-9]/g, "_")}.yaml`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        onClose();
-        showToast({
-          kind: "success",
-          title: t("edit.messages.exportSuccess"),
-          subtitle: t("edit.messages.exportSuccessDetail"),
-        });
-      } else {
-        // PDF export
-        // TODO: Implement PDF export with scale option
-        onClose();
-        showToast({
-          kind: "success",
-          title: "PDF Export",
-          subtitle: `PDF export feature in development... (Scale: ${pdfScale}%)`,
-        });
-      }
-    },
-    [problem, exportFormat, pdfScale, showToast],
-  );
   const header = (
     <ProblemEditHeader
       title={
@@ -283,21 +210,11 @@ const ProblemEditPageInner: React.FC = () => {
           <ProblemEditScreenContent
             problem={problem}
             handleDelete={handleDelete}
-            handleExportConfirm={handleExportConfirm}
             onBack={() => navigate(-1)}
-            onProblemUpdated={handleProblemUpdated}
           />
         </ProblemEditProvider>
       </FormProvider>
     </MarkdownEditorProvider>
-  );
-};
-
-const ProblemEditPage: React.FC = () => {
-  return (
-    <ProblemEditUIProvider>
-      <ProblemEditPageInner />
-    </ProblemEditUIProvider>
   );
 };
 

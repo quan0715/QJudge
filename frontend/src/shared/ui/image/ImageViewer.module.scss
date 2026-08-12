@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .overlay {
   position: fixed;
   inset: 0;
@@ -16,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   padding-inline-start: 1rem;
   background: rgb(0 0 0 / 48%);
 }
@@ -39,7 +40,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   border: 0;
   background: transparent;
   cursor: zoom-out;

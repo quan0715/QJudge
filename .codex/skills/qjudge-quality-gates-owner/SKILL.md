@@ -23,6 +23,9 @@ metadata:
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged`
 - 需要確認歷史債是否歸零時跑 strict：
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`
+- 修復無效的 `var(--cds-spacing-*)` 與可精確映射的 spacing（先 dry-run）：
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src`
+  - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src --write`
 
 ## 責任邊界（Owner Scope）
 - ✅ lint 規則、Carbon quality profile（compat/strict）、CI gate 定義。
@@ -33,12 +36,12 @@ metadata:
 
 ## Policy
 - `audit`：全量掃描，將每個檔案標成 `clean`、`findings`、`policy-reviewed`、`exception-review` 或 `not-applicable`；review 類不阻擋。
-- `compat`：以 `--staged` 防止新的 Carbon internal selector 與 `!important` 進入（預設 PR gate）。
+- `compat`：以 `--staged` 防止新的 Carbon internal selector、`!important` 與無效 `var(--cds-spacing-*)` 進入（預設 PR gate）。
 - `strict`：以 `--all` 掃整個 root；只要仍有 blocker 就失敗，作為歷史債收斂目標。
 
 ## Carbon audit contract
 
-- `blocker`：`.cds--*` / `.bx--*` internal selector、`!important`。
+- `blocker`：`.cds--*` / `.bx--*` internal selector、`!important`、Carbon React 不會輸出的 `var(--cds-spacing-*)` runtime variable。
 - `review`：hard-coded theme/spacing/type、raw controls、accessible labels、notification variant、scroll owner 等需結合 UI context 判斷的候選。
 - `policy-reviewed`：已由 `references/carbon-audit-decisions.json` 以精確檔案、元件類型、理由、owner 與移除條件完成審查；新路徑或新控制類型不會自動繼承決策。
 - `exception-review`：測試 fixture、`shared/copilot` boundary、editor/media 等合理但仍需人工驗證的例外。

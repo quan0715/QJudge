@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import {
+  existsSync,
   readFileSync,
   readdirSync,
   statSync,
@@ -9,6 +10,21 @@ import {
 import { extname, join, resolve } from "node:path";
 
 const args = process.argv.slice(2);
+
+if (args.includes("--help")) {
+  console.log(`Usage: node fix-carbon-spacing-tokens.js [options]
+
+Options:
+  --root <path>  Style file or directory to migrate (default: frontend/src)
+  --write        Write changes instead of reporting the number of affected files
+  --help         Show this help
+
+SCSS uses @carbon/layout Sass tokens. Plain CSS uses the canonical rem value because
+Carbon React does not emit --cds-spacing-* runtime custom properties.
+`);
+  process.exit(0);
+}
+
 const rootIndex = args.indexOf("--root");
 const root = resolve(
   process.cwd(),
@@ -17,28 +33,42 @@ const root = resolve(
 const write = args.includes("--write");
 const supportedExtensions = new Set([".css", ".scss", ".sass"]);
 
-const tokenByRem = new Map([
-  [0.125, "01"],
-  [0.25, "02"],
-  [0.5, "03"],
-  [0.75, "04"],
-  [1, "05"],
-  [1.5, "06"],
-  [2, "07"],
-  [2.5, "08"],
-  [3, "09"],
-  [4, "10"],
-  [5, "11"],
-  [6, "12"],
-  [10, "13"],
+const remByToken = new Map([
+  ["01", 0.125],
+  ["02", 0.25],
+  ["03", 0.5],
+  ["04", 0.75],
+  ["05", 1],
+  ["06", 1.5],
+  ["07", 2],
+  ["08", 2.5],
+  ["09", 3],
+  ["10", 4],
+  ["11", 5],
+  ["12", 6],
+  ["13", 10],
 ]);
+const tokenByRem = new Map(
+  [...remByToken.entries()].map(([token, rem]) => [rem, token]),
+);
 
 const spacingDeclaration = /(\b(?:margin(?:-(?:block|inline|top|right|bottom|left))?|padding(?:-(?:block|inline|top|right|bottom|left))?|gap|row-gap|column-gap)\s*:\s*)([^;\n}]+)(?=;)/gi;
 const lengthValue = /(?<![-\w.])(\d*\.?\d+)(rem|px)\b/gi;
+const invalidRuntimeToken = /var\(\s*--cds-spacing-(0[1-9]|1[0-3])(?:\s*,[^)]*)?\s*\)/gi;
+const carbonLayoutUse = /^\s*@use\s+["']@carbon\/layout["'](?:\s+as\s+[\w*-]+)?\s*;?/m;
 
-function walk(directory, output = []) {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    const fullPath = join(directory, entry.name);
+function walk(target, output = []) {
+  const metadata = statSync(target);
+  if (metadata.isFile()) {
+    if (supportedExtensions.has(extname(target))) output.push(target);
+    return output;
+  }
+
+  for (const entry of readdirSync(target, { withFileTypes: true })) {
+    if (entry.isDirectory() && ["node_modules", "dist", "coverage", "storybook-static"].includes(entry.name)) {
+      continue;
+    }
+    const fullPath = join(target, entry.name);
     if (entry.isDirectory()) {
       walk(fullPath, output);
     } else if (entry.isFile() && supportedExtensions.has(extname(entry.name))) {
@@ -48,10 +78,16 @@ function walk(directory, output = []) {
   return output;
 }
 
-function maskComments(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
-    .replace(/(^|\s)\/\/.*$/gm, (comment) => comment.replace(/[^\n]/g, " "));
+function maskComments(source, extension) {
+  let masked = source.replace(/\/\*[\s\S]*?\*\//g, (comment) =>
+    comment.replace(/[^\n]/g, " "),
+  );
+  if (extension !== ".css") {
+    masked = masked.replace(/(^|\s)\/\/.*$/gm, (comment) =>
+      comment.replace(/[^\n]/g, " "),
+    );
+  }
+  return masked;
 }
 
 const safeCssMathFunctions = new Set(["calc", "clamp", "max", "min"]);
@@ -70,7 +106,7 @@ function activeFunctionsAt(value, offset) {
   return stack;
 }
 
-function replaceSpacingValue(value) {
+function replaceExactSpacingLengths(value) {
   return value.replace(lengthValue, (match, amount, unit, offset) => {
     const activeFunctions = activeFunctionsAt(value, offset).filter(Boolean);
     const isSafeFunctionContext = activeFunctions.every((functionName) =>
@@ -80,25 +116,13 @@ function replaceSpacingValue(value) {
 
     const rem = unit.toLowerCase() === "px" ? Number(amount) / 16 : Number(amount);
     const token = tokenByRem.get(rem);
-    return token ? `var(--cds-spacing-${token})` : match;
+    return token ? `layout.$spacing-${token}` : match;
   });
 }
 
-function transform(source) {
-  const cleanSource = maskComments(source);
-  const edits = [];
-  for (const match of cleanSource.matchAll(spacingDeclaration)) {
-    const valueStart = match.index + match[1].length;
-    const valueEnd = valueStart + match[2].length;
-    const originalValue = source.slice(valueStart, valueEnd);
-    const nextValue = replaceSpacingValue(originalValue);
-    if (nextValue !== originalValue) {
-      edits.push({ start: valueStart, end: valueEnd, value: nextValue });
-    }
-  }
-
+function applyEdits(source, edits) {
   return edits
-    .reverse()
+    .sort((left, right) => right.start - left.start)
     .reduce(
       (result, edit) =>
         `${result.slice(0, edit.start)}${edit.value}${result.slice(edit.end)}`,
@@ -106,19 +130,77 @@ function transform(source) {
     );
 }
 
-if (!statSync(root).isDirectory()) {
-  throw new Error(`Spacing token root is not a directory: ${root}`);
+function transformSass(source, extension) {
+  const cleanSource = maskComments(source, extension);
+  const runtimeTokenEdits = [];
+
+  for (const match of cleanSource.matchAll(invalidRuntimeToken)) {
+    runtimeTokenEdits.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      value: `layout.$spacing-${match[1]}`,
+    });
+  }
+
+  const tokenMigratedSource = applyEdits(source, runtimeTokenEdits);
+  const tokenMigratedCleanSource = maskComments(tokenMigratedSource, extension);
+  const lengthEdits = [];
+  for (const match of tokenMigratedCleanSource.matchAll(spacingDeclaration)) {
+    const valueStart = match.index + match[1].length;
+    const valueEnd = valueStart + match[2].length;
+    const originalValue = tokenMigratedSource.slice(valueStart, valueEnd);
+    const nextValue = replaceExactSpacingLengths(originalValue);
+    if (nextValue !== originalValue) {
+      lengthEdits.push({ start: valueStart, end: valueEnd, value: nextValue });
+    }
+  }
+
+  if (runtimeTokenEdits.length === 0 && lengthEdits.length === 0) return source;
+  const migrated = applyEdits(tokenMigratedSource, lengthEdits);
+  if (carbonLayoutUse.test(migrated)) return migrated;
+
+  const importLine = extension === ".sass"
+    ? '@use "@carbon/layout"\n'
+    : '@use "@carbon/layout";\n';
+  return `${importLine}${migrated}`;
+}
+
+function formatRem(rem) {
+  return `${Number.isInteger(rem) ? rem : rem.toString()}rem`;
+}
+
+function transformCss(source) {
+  const cleanSource = maskComments(source, ".css");
+  const edits = [];
+  for (const match of cleanSource.matchAll(invalidRuntimeToken)) {
+    edits.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      value: formatRem(remByToken.get(match[1])),
+    });
+  }
+  return applyEdits(source, edits);
+}
+
+function transform(source, extension) {
+  return extension === ".css"
+    ? transformCss(source)
+    : transformSass(source, extension);
+}
+
+if (!existsSync(root)) {
+  throw new Error(`Spacing token root does not exist: ${root}`);
 }
 
 let changedFiles = 0;
 for (const file of walk(root)) {
   const source = readFileSync(file, "utf8");
-  const nextSource = transform(source);
+  const nextSource = transform(source, extname(file));
   if (nextSource === source) continue;
   changedFiles += 1;
   if (write) writeFileSync(file, nextSource);
 }
 
 console.log(
-  `${write ? "Updated" : "Would update"} ${changedFiles} style file(s) with exact Carbon spacing tokens.`,
+  `${write ? "Updated" : "Would update"} ${changedFiles} style file(s) with valid Carbon spacing tokens.`,
 );

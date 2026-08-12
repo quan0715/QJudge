@@ -10,14 +10,11 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from apps.users.auth.account_linking import link_qauth_identity
+from apps.users.auth.options import get_auth_options
 from apps.users.auth.provider_registry import get_oauth_service
 from apps.users.auth.providers import GitHubOAuthService, GoogleOAuthService, NYCUOAuthService
 from apps.users.models import User, UserProfile
-from apps.users.services import (
-    EmailAuthService,
-    JWTService,
-    get_auth_options,
-)
+from apps.users.services import EmailAuthService, JWTService
 
 
 def link_oauth_user(service, user_info, access_token=""):

@@ -7,7 +7,6 @@ import type {
   Tag,
 } from "@/core/entities/problem.entity";
 import type {
-  IProblemRepository,
   GetProblemsParams,
   ProblemStatistics,
   TestRunPayload,
@@ -75,17 +74,6 @@ export const createProblem = async (
   const responseData = await requestJson<ProblemDetailDto>(
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
     "Failed to create problem"
-  );
-  return mapProblemDetailDto(responseData);
-};
-
-const updateProblem = async (
-  id: string,
-  data: ProblemUpsertPayload
-): Promise<CodingProblemDetail> => {
-  const responseData = await requestJson<ProblemDetailDto>(
-    httpClient.put(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
-    "Failed to update problem"
   );
   return mapProblemDetailDto(responseData);
 };
@@ -182,20 +170,4 @@ export const testRun = async (
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/test_run/`, payload),
     "Test run failed"
   );
-};
-
-// ============================================================================
-// Repository Instance (implements IProblemRepository)
-// ============================================================================
-
-export const problemRepository: IProblemRepository = {
-  getProblems,
-  getProblem,
-  createProblem,
-  updateProblem,
-  patchProblem,
-  deleteProblem,
-  getTags,
-  getProblemStatistics,
-  testRun,
 };

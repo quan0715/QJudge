@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   Button,
   IconButton,
@@ -38,6 +44,7 @@ import {
   EXAM_QUESTION_TYPE_TAG_COLOR as TYPE_TAG_COLOR,
 } from "@/shared/ui/examQuestionTypeVisual";
 import ExamQuestionPrompt from "@/features/contest/components/exam/ExamQuestionPrompt";
+import ExamQuestionPreviewSection from "@/features/contest/components/exam/ExamQuestionPreviewSection";
 import {
   OpenAnswerDocumentEditor,
   OpenAnswerDocumentRenderer,
@@ -45,7 +52,9 @@ import {
 } from "@/shared/ui/editor";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
-import ScorePolicyMenu, { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
+import ScorePolicyMenu, {
+  ScorePolicyTag,
+} from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { ScorePolicyMenuImpactContext } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import type { QuestionProgress } from "@/features/contest/screens/settings/grading/gradingTypes";
 import styles from "./ExamQuestionEditCard.module.scss";
@@ -85,7 +94,9 @@ const getDefaultOptions = (type: ExamQuestionType): string[] => {
 };
 
 const isChoiceType = (type: ExamQuestionType) =>
-  type === "true_false" || type === "single_choice" || type === "multiple_choice";
+  type === "true_false" ||
+  type === "single_choice" ||
+  type === "multiple_choice";
 
 const isSubjectiveType = (type: ExamQuestionType) =>
   type === "short_answer" || type === "essay";
@@ -95,7 +106,8 @@ const toSingleAnswerIndex = (
   options: string[],
   questionType: ExamQuestionType,
 ): string => {
-  if (typeof value === "number" && Number.isInteger(value)) return String(value);
+  if (typeof value === "number" && Number.isInteger(value))
+    return String(value);
   if (typeof value === "boolean") return value ? "0" : "1";
   if (typeof value === "string") {
     const lowered = value.toLowerCase().trim();
@@ -104,7 +116,8 @@ const toSingleAnswerIndex = (
       if (lowered === "false") return "1";
     }
     const asNumber = Number(value);
-    if (!Number.isNaN(asNumber) && Number.isInteger(asNumber)) return String(asNumber);
+    if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
+      return String(asNumber);
     const matchingIndex = options.findIndex((option) => option === value);
     if (matchingIndex >= 0) return String(matchingIndex);
   }
@@ -115,10 +128,12 @@ const toMultiAnswerIndexes = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
-      if (typeof item === "number" && Number.isInteger(item)) return String(item);
+      if (typeof item === "number" && Number.isInteger(item))
+        return String(item);
       if (typeof item === "string") {
         const asNumber = Number(item);
-        if (!Number.isNaN(asNumber) && Number.isInteger(asNumber)) return String(asNumber);
+        if (!Number.isNaN(asNumber) && Number.isInteger(asNumber))
+          return String(asNumber);
       }
       return "";
     })
@@ -143,13 +158,22 @@ const toFormState = (question: ExamQuestion): QuestionFormState => {
   };
 
   if (question.questionType === "multiple_choice") {
-    return { ...base, options, multiAnswerIndexes: toMultiAnswerIndexes(question.correctAnswer) };
+    return {
+      ...base,
+      options,
+      multiAnswerIndexes: toMultiAnswerIndexes(question.correctAnswer),
+    };
   }
   if (question.questionType === "short_answer") {
     const answer = question.correctAnswer;
     return {
       ...base,
-      shortAnswer: answer == null ? "" : typeof answer === "string" ? answer : String(answer),
+      shortAnswer:
+        answer == null
+          ? ""
+          : typeof answer === "string"
+            ? answer
+            : String(answer),
     };
   }
   if (question.questionType === "essay") {
@@ -187,11 +211,17 @@ const buildPayload = (
   const payload: ExamQuestionUpsertPayload = {
     question_type: form.questionType,
     prompt: form.prompt.trim(),
-    explanation: form.answerFormat === "open_document" ? "" : form.explanation.trim(),
+    explanation:
+      form.answerFormat === "open_document" ? "" : form.explanation.trim(),
     score: includeScore ? Number(form.score || 0) : 1,
-    answer_format: isChoiceType(form.questionType) ? "plain_text" : form.answerFormat,
+    answer_format: isChoiceType(form.questionType)
+      ? "plain_text"
+      : form.answerFormat,
   };
-  if (isSubjectiveType(form.questionType) && form.answerFormat === "open_document") {
+  if (
+    isSubjectiveType(form.questionType) &&
+    form.answerFormat === "open_document"
+  ) {
     payload.correct_answer = null;
     payload.reference_answer_document = form.referenceAnswerDocument;
     payload.explanation_document = form.explanationDocument;
@@ -242,12 +272,21 @@ const isFormDirty = (
   if (a.essayReferenceAnswer !== b.essayReferenceAnswer) return true;
   if (a.shortAnswer !== b.shortAnswer) return true;
   if (a.answerFormat !== b.answerFormat) return true;
-  if (JSON.stringify(a.referenceAnswerDocument) !== JSON.stringify(b.referenceAnswerDocument)) return true;
-  if (JSON.stringify(a.explanationDocument) !== JSON.stringify(b.explanationDocument)) return true;
+  if (
+    JSON.stringify(a.referenceAnswerDocument) !==
+    JSON.stringify(b.referenceAnswerDocument)
+  )
+    return true;
+  if (
+    JSON.stringify(a.explanationDocument) !==
+    JSON.stringify(b.explanationDocument)
+  )
+    return true;
   if (a.options.length !== b.options.length) return true;
   if (a.options.some((o, i) => o !== b.options[i])) return true;
   if (a.multiAnswerIndexes.length !== b.multiAnswerIndexes.length) return true;
-  if (a.multiAnswerIndexes.some((o, i) => o !== b.multiAnswerIndexes[i])) return true;
+  if (a.multiAnswerIndexes.some((o, i) => o !== b.multiAnswerIndexes[i]))
+    return true;
   return false;
 };
 
@@ -258,8 +297,18 @@ const getCorrectSingleIndex = (question: ExamQuestion): number | null => {
   const { correctAnswer, questionType } = question;
   if (correctAnswer == null) return null;
   if (questionType === "true_false") {
-    if (correctAnswer === 0 || correctAnswer === true || correctAnswer === "true") return 0;
-    if (correctAnswer === 1 || correctAnswer === false || correctAnswer === "false") return 1;
+    if (
+      correctAnswer === 0 ||
+      correctAnswer === true ||
+      correctAnswer === "true"
+    )
+      return 0;
+    if (
+      correctAnswer === 1 ||
+      correctAnswer === false ||
+      correctAnswer === "false"
+    )
+      return 1;
     return null;
   }
   if (typeof correctAnswer === "number") return correctAnswer;
@@ -270,7 +319,9 @@ const getCorrectSingleIndex = (question: ExamQuestion): number | null => {
 const getCorrectMultiIndexes = (question: ExamQuestion): Set<number> => {
   if (!Array.isArray(question.correctAnswer)) return new Set();
   return new Set(
-    (question.correctAnswer as number[]).filter((v) => typeof v === "number" && Number.isInteger(v)),
+    (question.correctAnswer as number[]).filter(
+      (v) => typeof v === "number" && Number.isInteger(v),
+    ),
   );
 };
 
@@ -283,7 +334,11 @@ const OptionMarkdownLabel = ({
 }) => (
   <span className={styles.optionMarkdownLabel}>
     <span className={styles.optionLetterPreview}>{letter}.</span>
-    <MarkdownRenderer enableMath enableHighlight className={styles.optionMarkdownContent}>
+    <MarkdownRenderer
+      enableMath
+      enableHighlight
+      className={styles.optionMarkdownContent}
+    >
       {children}
     </MarkdownRenderer>
   </span>
@@ -307,7 +362,15 @@ interface ExamQuestionEditCardProps {
   resultsPublished?: boolean;
   startEditingSignal?: number;
   /** All questions for redistribute target selection */
-  allQuestions?: Array<{ id: string; order: number; prompt: string; score: number; questionType?: string; scorePolicy?: string; scorePolicyConfig?: { redistributeTo?: string[] } | null }>;
+  allQuestions?: Array<{
+    id: string;
+    order: number;
+    prompt: string;
+    score: number;
+    questionType?: string;
+    scorePolicy?: string;
+    scorePolicyConfig?: { redistributeTo?: string[] } | null;
+  }>;
   /** Grading impact context from the editor layout (lazy-loaded on menu open). */
   editorImpactContext?: ScorePolicyMenuImpactContext;
   /** Called when the policy overflow menu is opened — triggers lazy data load. */
@@ -346,9 +409,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const { showToast } = useToast();
   const { t } = useTranslation("contest");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<QuestionFormState>(() => toFormState(question));
+  const [form, setForm] = useState<QuestionFormState>(() =>
+    toFormState(question),
+  );
   const [saving, setSaving] = useState(false);
-  const [lockedSaveImpact, setLockedSaveImpact] = useState<LockedSaveImpact | null>(null);
+  const [lockedSaveImpact, setLockedSaveImpact] =
+    useState<LockedSaveImpact | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const originalFormRef = useRef<QuestionFormState>(toFormState(question));
@@ -439,7 +505,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         setSaving(false);
       }
     },
-    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t]
+    [getValidationError, onAutoSave, question.id, showScoreField, showToast, t],
   );
 
   const handleCloseOrSave = useCallback(async () => {
@@ -448,7 +514,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       saveDebounceRef.current = null;
     }
     if (contentLocked) {
-      if (isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) {
+      if (
+        isFormDirty(
+          latestFormRef.current,
+          originalFormRef.current,
+          showScoreField,
+        )
+      ) {
         setDiscardOpen(true);
         return;
       }
@@ -490,7 +562,14 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
   const handleInlineBlurAutoSave = useCallback(() => {
     if (!editing || frozen || contentLocked) return;
-    if (!isFormDirty(latestFormRef.current, originalFormRef.current, showScoreField)) return;
+    if (
+      !isFormDirty(
+        latestFormRef.current,
+        originalFormRef.current,
+        showScoreField,
+      )
+    )
+      return;
     if (saveDebounceRef.current) {
       clearTimeout(saveDebounceRef.current);
       saveDebounceRef.current = null;
@@ -506,7 +585,15 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     saveDebounceRef.current = setTimeout(() => {
       void persistAutoSave(false);
     }, 1000);
-  }, [contentLocked, editing, form, frozen, getValidationError, persistAutoSave, showScoreField]);
+  }, [
+    contentLocked,
+    editing,
+    form,
+    frozen,
+    getValidationError,
+    persistAutoSave,
+    showScoreField,
+  ]);
 
   const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
 
@@ -559,7 +646,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
 
     setForm((prev) => {
       if (nextType === "essay" || nextType === "short_answer") {
-        return { ...prev, questionType: nextType, options: [], singleAnswerIndex: "", multiAnswerIndexes: [] };
+        return {
+          ...prev,
+          questionType: nextType,
+          options: [],
+          singleAnswerIndex: "",
+          multiAnswerIndexes: [],
+        };
       }
       if (nextType === "true_false") {
         return {
@@ -574,7 +667,8 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       return {
         ...prev,
         questionType: nextType,
-        options: prev.options.length > 0 ? prev.options : getDefaultOptions(nextType),
+        options:
+          prev.options.length > 0 ? prev.options : getDefaultOptions(nextType),
         singleAnswerIndex: "",
         multiAnswerIndexes: [],
         answerFormat: "plain_text",
@@ -582,20 +676,31 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     });
   };
 
-  const addOption = () => setForm((prev) => ({ ...prev, options: [...prev.options, ""] }));
+  const addOption = () =>
+    setForm((prev) => ({ ...prev, options: [...prev.options, ""] }));
   const updateOption = (i: number, value: string) =>
-    setForm((prev) => ({ ...prev, options: prev.options.map((o, idx) => (idx === i ? value : o)) }));
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.map((o, idx) => (idx === i ? value : o)),
+    }));
   const removeOption = (i: number) => {
     setForm((prev) => {
       const nextOptions = prev.options.filter((_, idx) => idx !== i);
       const nextSingleAnswer =
-        prev.singleAnswerIndex === String(i) ? ""
+        prev.singleAnswerIndex === String(i)
+          ? ""
           : prev.singleAnswerIndex !== "" && Number(prev.singleAnswerIndex) > i
-            ? String(Number(prev.singleAnswerIndex) - 1) : prev.singleAnswerIndex;
+            ? String(Number(prev.singleAnswerIndex) - 1)
+            : prev.singleAnswerIndex;
       const nextMultiAnswers = prev.multiAnswerIndexes
         .filter((item) => item !== String(i))
         .map((item) => (Number(item) > i ? String(Number(item) - 1) : item));
-      return { ...prev, options: nextOptions, singleAnswerIndex: nextSingleAnswer, multiAnswerIndexes: nextMultiAnswers };
+      return {
+        ...prev,
+        options: nextOptions,
+        singleAnswerIndex: nextSingleAnswer,
+        multiAnswerIndexes: nextMultiAnswers,
+      };
     });
   };
 
@@ -605,19 +710,23 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const impactContext = useMemo<ScorePolicyMenuImpactContext>(() => {
     if (editorImpactContext) return editorImpactContext;
     // Fallback: no student data yet (shows "no data" state in dialog)
-    const questions: QuestionProgress[] = (allQuestions ?? []).map((q, idx) => ({
-      questionId: q.id,
-      questionIndex: (q.order ?? idx) + 1,
-      questionType: (q.questionType ?? "single_choice") as QuestionProgress["questionType"],
-      prompt: q.prompt ?? "",
-      maxScore: q.score,
-      scorePolicy: (q.scorePolicy ?? "normal") as QuestionProgress["scorePolicy"],
-      scorePolicyConfig: q.scorePolicyConfig,
-      totalAnswers: 0,
-      gradedCount: 0,
-      progressPercent: 0,
-      isObjective: true,
-    }));
+    const questions: QuestionProgress[] = (allQuestions ?? []).map(
+      (q, idx) => ({
+        questionId: q.id,
+        questionIndex: (q.order ?? idx) + 1,
+        questionType: (q.questionType ??
+          "single_choice") as QuestionProgress["questionType"],
+        prompt: q.prompt ?? "",
+        maxScore: q.score,
+        scorePolicy: (q.scorePolicy ??
+          "normal") as QuestionProgress["scorePolicy"],
+        scorePolicyConfig: q.scorePolicyConfig,
+        totalAnswers: 0,
+        gradedCount: 0,
+        progressPercent: 0,
+        isObjective: true,
+      }),
+    );
     return { questions, studentIds: [], answersByStudent: new Map() };
   }, [editorImpactContext, allQuestions]);
 
@@ -625,9 +734,13 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   if (!editing) {
     const correctSingle = getCorrectSingleIndex(question);
     const correctMulti = getCorrectMultiIndexes(question);
-    const tfOptions = question.options.length >= 2
-      ? question.options
-      : [t("examEditor.trueOption", "是 (True)"), t("examEditor.falseOption", "否 (False)")];
+    const tfOptions =
+      question.options.length >= 2
+        ? question.options
+        : [
+            t("examEditor.trueOption", "是 (True)"),
+            t("examEditor.falseOption", "否 (False)"),
+          ];
 
     return (
       <Layer>
@@ -664,10 +777,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             <div className={styles.header}>
               <span className={styles.label}>
                 {t("examEditor.questionNumber", { num: index + 1 })}{" "}
-                <Tag size="sm" type={TYPE_TAG_COLOR[question.questionType] as never}>
+                <Tag
+                  size="sm"
+                  type={TYPE_TAG_COLOR[question.questionType] as never}
+                >
                   <span className={styles.typeTagContent}>
-                    {React.createElement(TYPE_ICON[question.questionType], { size: 12 })}
-                    {t(`common:questionType.label.${question.questionType}`, question.questionType)}
+                    {React.createElement(TYPE_ICON[question.questionType], {
+                      size: 12,
+                    })}
+                    {t(
+                      `common:questionType.label.${question.questionType}`,
+                      question.questionType,
+                    )}
                   </span>
                 </Tag>
                 {question.sourceBank ? (
@@ -689,12 +810,14 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     {t("examEditor.saveToBank", { defaultValue: "收錄到題庫" })}
                   </button>
                 ) : null}
-                {!isChoiceType(question.questionType) && question.answerFormat === "markdown_math" ? (
+                {!isChoiceType(question.questionType) &&
+                question.answerFormat === "markdown_math" ? (
                   <Tag size="sm" type="cyan">
                     {t("examEditor.answerFormats.markdownMath", "數學作答")}
                   </Tag>
                 ) : null}
-                {!isChoiceType(question.questionType) && question.answerFormat === "open_document" ? (
+                {!isChoiceType(question.questionType) &&
+                question.answerFormat === "open_document" ? (
                   <Tag size="sm" type="cyan">
                     {t("examEditor.answerFormats.openDocument", "開放作答紙")}
                   </Tag>
@@ -706,9 +829,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.headerRight}>
                 {showScoreField ? (
                   <span className={styles.score}>
-                    {question.effectiveMaxScore != null && question.effectiveMaxScore !== question.score
+                    {question.effectiveMaxScore != null &&
+                    question.effectiveMaxScore !== question.score
                       ? `${formatScore(question.score)}→${formatScore(question.effectiveMaxScore)}分`
-                      : t("examEditor.scoreUnit", { score: formatScore(question.score) })}
+                      : t("examEditor.scoreUnit", {
+                          score: formatScore(question.score),
+                        })}
                   </span>
                 ) : null}
                 {/* Score policy menu — always available, even when frozen */}
@@ -731,9 +857,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       label={t("examEditor.actions.copy", "複製")}
                       data-testid={`exam-card-duplicate-${question.id}`}
                       onClick={(event) => {
-                      event.stopPropagation();
-                      onDuplicate(question.id);
-                    }}
+                        event.stopPropagation();
+                        onDuplicate(question.id);
+                      }}
                     >
                       <Copy size={16} />
                     </IconButton>
@@ -743,9 +869,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       label={t("examEditor.actions.delete", "刪除")}
                       data-testid={`exam-card-delete-${question.id}`}
                       onClick={(event) => {
-                      event.stopPropagation();
-                      onDelete(question.id);
-                    }}
+                        event.stopPropagation();
+                        onDelete(question.id);
+                      }}
                     >
                       <TrashCan size={16} />
                     </IconButton>
@@ -757,15 +883,16 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
             <ExamQuestionPrompt
               content={question.prompt}
               emptyText={t("examEditor.promptEmpty", "（尚未填寫題目敘述）")}
+              ariaLabel={t("grading.question", "題目")}
             />
 
-            <div className={styles.answerArea}>
-              <div className={styles.answerLabel}>
-                {isSubjectiveType(question.questionType)
+            <ExamQuestionPreviewSection
+              label={
+                isSubjectiveType(question.questionType)
                   ? t("examEditor.gradingReferenceAnswer", "評分參考答案")
-                  : t("examEditor.correctAnswer", "正確答案")}
-              </div>
-
+                  : t("examEditor.correctAnswer", "正確答案")
+              }
+            >
               {/* Non-interactive answer display */}
               <div className={styles.previewAnswers}>
                 {/* True/False */}
@@ -773,7 +900,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   <div className={styles.optionList}>
                     {tfOptions.map((label, i) => (
                       <div key={i} className={styles.answerText}>
-                        <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                        <OptionMarkdownLabel
+                          letter={String.fromCharCode(65 + i)}
+                        >
                           {label}
                         </OptionMarkdownLabel>
                         {correctSingle === i ? (
@@ -792,14 +921,18 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                     name={`preview-${question.id}`}
                     legendText=""
                     orientation="vertical"
-                    valueSelected={correctSingle != null ? String(correctSingle) : undefined}
+                    valueSelected={
+                      correctSingle != null ? String(correctSingle) : undefined
+                    }
                     onChange={() => {}}
                   >
                     {question.options.map((opt, i) => (
                       <RadioButton
                         key={i}
                         labelText={
-                          <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                          <OptionMarkdownLabel
+                            letter={String.fromCharCode(65 + i)}
+                          >
                             {opt}
                           </OptionMarkdownLabel>
                         }
@@ -818,7 +951,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                         key={i}
                         id={`pv-${question.id}-mc-${i}`}
                         labelText={
-                          <OptionMarkdownLabel letter={String.fromCharCode(65 + i)}>
+                          <OptionMarkdownLabel
+                            letter={String.fromCharCode(65 + i)}
+                          >
                             {opt}
                           </OptionMarkdownLabel>
                         }
@@ -832,39 +967,67 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {/* Short answer */}
                 {question.questionType === "short_answer" && (
                   <div className={styles.answerText}>
-                    {question.answerFormat === "open_document" && question.referenceAnswerDocument ? (
-                      <OpenAnswerDocumentRenderer document={question.referenceAnswerDocument} />
-                    ) : question.correctAnswer != null
-                      ? <MarkdownRenderer enableMath enableHighlight>{String(question.correctAnswer)}</MarkdownRenderer>
-                      : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
+                    {question.answerFormat === "open_document" &&
+                    question.referenceAnswerDocument ? (
+                      <OpenAnswerDocumentRenderer
+                        document={question.referenceAnswerDocument}
+                      />
+                    ) : question.correctAnswer != null ? (
+                      <MarkdownRenderer enableMath enableHighlight>
+                        {String(question.correctAnswer)}
+                      </MarkdownRenderer>
+                    ) : (
+                      <span className={styles.answerEmpty}>
+                        {t("examEditor.referenceNotSet", "（未設定參考答案）")}
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {/* Essay */}
                 {question.questionType === "essay" && (
                   <div className={styles.answerText}>
-                    {question.answerFormat === "open_document" && question.referenceAnswerDocument ? (
-                      <OpenAnswerDocumentRenderer document={question.referenceAnswerDocument} />
-                    ) : question.correctAnswer
-                      ? <MarkdownRenderer enableMath enableHighlight>{String(question.correctAnswer)}</MarkdownRenderer>
-                      : <span className={styles.answerEmpty}>{t("examEditor.referenceNotSet", "（未設定參考答案）")}</span>}
+                    {question.answerFormat === "open_document" &&
+                    question.referenceAnswerDocument ? (
+                      <OpenAnswerDocumentRenderer
+                        document={question.referenceAnswerDocument}
+                      />
+                    ) : question.correctAnswer ? (
+                      <MarkdownRenderer enableMath enableHighlight>
+                        {String(question.correctAnswer)}
+                      </MarkdownRenderer>
+                    ) : (
+                      <span className={styles.answerEmpty}>
+                        {t("examEditor.referenceNotSet", "（未設定參考答案）")}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
+            </ExamQuestionPreviewSection>
 
-            <div className={styles.answerArea}>
-              <div className={styles.answerLabel}>{t("examEditor.solutionExplanation", "詳解（解題過程）")}</div>
+            <ExamQuestionPreviewSection
+              label={t("examEditor.solutionExplanation", "詳解（解題過程）")}
+            >
               <div className={styles.previewAnswers}>
                 <div className={styles.answerText}>
-                  {question.answerFormat === "open_document" && question.explanationDocument ? (
-                    <OpenAnswerDocumentRenderer document={question.explanationDocument} />
-                  ) : question.explanation
-                    ? <MarkdownRenderer enableMath enableHighlight>{question.explanation}</MarkdownRenderer>
-                    : <span className={styles.answerEmpty}>{t("examEditor.explanationNotSet", "（未設定詳解）")}</span>}
+                  {question.answerFormat === "open_document" &&
+                  question.explanationDocument ? (
+                    <OpenAnswerDocumentRenderer
+                      document={question.explanationDocument}
+                    />
+                  ) : question.explanation ? (
+                    <MarkdownRenderer enableMath enableHighlight>
+                      {question.explanation}
+                    </MarkdownRenderer>
+                  ) : (
+                    <span className={styles.answerEmpty}>
+                      {t("examEditor.explanationNotSet", "（未設定詳解）")}
+                    </span>
+                  )}
                 </div>
               </div>
-            </div>
+            </ExamQuestionPreviewSection>
           </div>
         </div>
       </Layer>
@@ -892,16 +1055,32 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 hideLabel
                 size="sm"
                 value={form.questionType}
-                onChange={(e) => handleTypeChange(e.target.value as ExamQuestionType)}
+                onChange={(e) =>
+                  handleTypeChange(e.target.value as ExamQuestionType)
+                }
                 disabled={frozen || contentLocked}
                 inline
               >
-                {(["single_choice", "multiple_choice", "true_false", "short_answer", "essay"] as ExamQuestionType[]).map((type) => (
+                {(
+                  [
+                    "single_choice",
+                    "multiple_choice",
+                    "true_false",
+                    "short_answer",
+                    "essay",
+                  ] as ExamQuestionType[]
+                ).map((type) => (
                   <SelectItem
                     key={type}
                     value={type}
                     text={t(`common:questionType.label.${type}`, type)}
-                    disabled={!(ALLOWED_TYPE_SWITCHES[form.questionType] ?? [form.questionType]).includes(type)}
+                    disabled={
+                      !(
+                        ALLOWED_TYPE_SWITCHES[form.questionType] ?? [
+                          form.questionType,
+                        ]
+                      ).includes(type)
+                    }
                   />
                 ))}
               </Select>
@@ -951,11 +1130,17 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                   />
                   <SelectItem
                     value="markdown_math"
-                    text={t("examEditor.answerFormats.markdownMath", "數學作答")}
+                    text={t(
+                      "examEditor.answerFormats.markdownMath",
+                      "數學作答",
+                    )}
                   />
                   <SelectItem
                     value="open_document"
-                    text={t("examEditor.answerFormats.openDocument", "開放作答紙")}
+                    text={t(
+                      "examEditor.answerFormats.openDocument",
+                      "開放作答紙",
+                    )}
                   />
                 </Select>
               </div>
@@ -988,7 +1173,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 {t("examEditor.autoSaveEnabled", "自動儲存中")}
               </span>
             )}
-            <IconButton kind="ghost" size="sm" label={t("button.close", "關閉")} onClick={handleCloseOrSave}>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={t("button.close", "關閉")}
+              onClick={handleCloseOrSave}
+            >
               <Close size={16} />
             </IconButton>
           </div>
@@ -1002,7 +1192,10 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               labelText={t("examEditor.promptLabel", "題目敘述")}
               value={form.prompt}
               onChange={(val) => setForm((p) => ({ ...p, prompt: val }))}
-              placeholder={t("examEditor.promptPlaceholder", "輸入題目敘述（支援 Markdown / LaTeX）")}
+              placeholder={t(
+                "examEditor.promptPlaceholder",
+                "輸入題目敘述（支援 Markdown / LaTeX）",
+              )}
               minHeight="200px"
               disabled={!!frozen || contentLocked}
             />
@@ -1027,17 +1220,23 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       labelText=""
                       value={String(i)}
                       checked={form.singleAnswerIndex === String(i)}
-                      onChange={() => setForm((p) => ({ ...p, singleAnswerIndex: String(i) }))}
+                      onChange={() =>
+                        setForm((p) => ({ ...p, singleAnswerIndex: String(i) }))
+                      }
                       disabled={frozen}
                     />
-                    <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
+                    <span className={styles.optionLetter}>
+                      {String.fromCharCode(65 + i)}.
+                    </span>
                     <div className={styles.optionMarkdown}>
                       <MarkdownField
                         id={`eqc-tf-option-${question.id}-${i}`}
                         labelText=""
                         value={label}
                         onChange={(val) => updateOption(i, val)}
-                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
+                        placeholder={t("examEditor.optionPlaceholder", {
+                          letter: String.fromCharCode(65 + i),
+                        })}
                         minHeight="96px"
                         disabled={!!frozen || contentLocked}
                       />
@@ -1058,17 +1257,23 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       labelText=""
                       value={String(i)}
                       checked={form.singleAnswerIndex === String(i)}
-                      onChange={() => setForm((p) => ({ ...p, singleAnswerIndex: String(i) }))}
+                      onChange={() =>
+                        setForm((p) => ({ ...p, singleAnswerIndex: String(i) }))
+                      }
                       disabled={frozen}
                     />
-                    <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
+                    <span className={styles.optionLetter}>
+                      {String.fromCharCode(65 + i)}.
+                    </span>
                     <div className={styles.optionInput}>
                       <TextInput
                         id={`eqc-opt-${question.id}-${i}`}
                         labelText=""
                         hideLabel
                         size="sm"
-                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
+                        placeholder={t("examEditor.optionPlaceholder", {
+                          letter: String.fromCharCode(65 + i),
+                        })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
                         disabled={frozen || contentLocked}
@@ -1091,7 +1296,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 ))}
                 {!frozen && !contentLocked && (
                   <div className={styles.addOptionRow}>
-                    <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
+                    <Button
+                      size="sm"
+                      kind="ghost"
+                      renderIcon={Add}
+                      onClick={addOption}
+                    >
                       {t("examEditor.addOption", "新增選項")}
                     </Button>
                   </div>
@@ -1108,24 +1318,33 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                       id={`edit-mc-${question.id}-${i}`}
                       labelText=""
                       checked={form.multiAnswerIndexes.includes(String(i))}
-                      onChange={(_: unknown, { checked }: { checked: boolean }) => {
+                      onChange={(
+                        _: unknown,
+                        { checked }: { checked: boolean },
+                      ) => {
                         setForm((p) => ({
                           ...p,
                           multiAnswerIndexes: checked
                             ? [...p.multiAnswerIndexes, String(i)]
-                            : p.multiAnswerIndexes.filter((x) => x !== String(i)),
+                            : p.multiAnswerIndexes.filter(
+                                (x) => x !== String(i),
+                              ),
                         }));
                       }}
                       disabled={frozen}
                     />
-                    <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
+                    <span className={styles.optionLetter}>
+                      {String.fromCharCode(65 + i)}.
+                    </span>
                     <div className={styles.optionInput}>
                       <TextInput
                         id={`eqc-opt-${question.id}-${i}`}
                         labelText=""
                         hideLabel
                         size="sm"
-                        placeholder={t("examEditor.optionPlaceholder", { letter: String.fromCharCode(65 + i) })}
+                        placeholder={t("examEditor.optionPlaceholder", {
+                          letter: String.fromCharCode(65 + i),
+                        })}
                         value={option}
                         onChange={(e) => updateOption(i, e.target.value)}
                         disabled={frozen || contentLocked}
@@ -1148,7 +1367,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
                 ))}
                 {!frozen && !contentLocked && (
                   <div className={styles.addOptionRow}>
-                    <Button size="sm" kind="ghost" renderIcon={Add} onClick={addOption}>
+                    <Button
+                      size="sm"
+                      kind="ghost"
+                      renderIcon={Add}
+                      onClick={addOption}
+                    >
                       {t("examEditor.addOption", "新增選項")}
                     </Button>
                   </div>
@@ -1161,23 +1385,37 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.shortInput}>
                 {form.answerFormat === "open_document" ? (
                   <OpenAnswerDocumentEditor
-                    value={form.referenceAnswerDocument ?? createEmptyOpenAnswerDocument()}
+                    value={
+                      form.referenceAnswerDocument ??
+                      createEmptyOpenAnswerDocument()
+                    }
                     onChange={(document) =>
-                      setForm((p) => ({ ...p, referenceAnswerDocument: document }))
+                      setForm((p) => ({
+                        ...p,
+                        referenceAnswerDocument: document,
+                      }))
                     }
                     readOnly={!!frozen}
-                    ariaLabel={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    ariaLabel={t(
+                      "examEditor.gradingReferenceAnswer",
+                      "評分參考答案",
+                    )}
                   />
                 ) : (
                   <MarkdownField
                     id={`eqc-short-answer-${question.id}`}
-                    labelText={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    labelText={t(
+                      "examEditor.gradingReferenceAnswer",
+                      "評分參考答案",
+                    )}
                     placeholder={t(
                       "examEditor.gradingReferencePlaceholder",
                       "輸入評分用答案要點或最終結論；完整推導請放在詳解",
                     )}
                     value={form.shortAnswer}
-                    onChange={(val) => setForm((p) => ({ ...p, shortAnswer: val }))}
+                    onChange={(val) =>
+                      setForm((p) => ({ ...p, shortAnswer: val }))
+                    }
                     minHeight="96px"
                     disabled={!!frozen}
                   />
@@ -1190,19 +1428,33 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
               <div className={styles.essayArea}>
                 {form.answerFormat === "open_document" ? (
                   <OpenAnswerDocumentEditor
-                    value={form.referenceAnswerDocument ?? createEmptyOpenAnswerDocument()}
+                    value={
+                      form.referenceAnswerDocument ??
+                      createEmptyOpenAnswerDocument()
+                    }
                     onChange={(document) =>
-                      setForm((p) => ({ ...p, referenceAnswerDocument: document }))
+                      setForm((p) => ({
+                        ...p,
+                        referenceAnswerDocument: document,
+                      }))
                     }
                     readOnly={!!frozen}
-                    ariaLabel={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    ariaLabel={t(
+                      "examEditor.gradingReferenceAnswer",
+                      "評分參考答案",
+                    )}
                   />
                 ) : (
                   <MarkdownField
                     id={`eqc-essay-answer-${question.id}`}
-                    labelText={t("examEditor.gradingReferenceAnswer", "評分參考答案")}
+                    labelText={t(
+                      "examEditor.gradingReferenceAnswer",
+                      "評分參考答案",
+                    )}
                     value={form.essayReferenceAnswer}
-                    onChange={(val) => setForm((p) => ({ ...p, essayReferenceAnswer: val }))}
+                    onChange={(val) =>
+                      setForm((p) => ({ ...p, essayReferenceAnswer: val }))
+                    }
                     placeholder={t(
                       "examEditor.gradingReferencePlaceholder",
                       "輸入評分用答案要點或最終結論；完整推導請放在詳解",
@@ -1216,23 +1468,36 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           </div>
 
           <div className={styles.answerArea}>
-            <div className={styles.answerLabel}>{t("examEditor.solutionExplanation", "詳解（解題過程）")}</div>
+            <div className={styles.answerLabel}>
+              {t("examEditor.solutionExplanation", "詳解（解題過程）")}
+            </div>
             <div className={styles.essayArea}>
-              {isSubjectiveType(form.questionType) && form.answerFormat === "open_document" ? (
+              {isSubjectiveType(form.questionType) &&
+              form.answerFormat === "open_document" ? (
                 <OpenAnswerDocumentEditor
-                  value={form.explanationDocument ?? createEmptyOpenAnswerDocument()}
+                  value={
+                    form.explanationDocument ?? createEmptyOpenAnswerDocument()
+                  }
                   onChange={(document) =>
                     setForm((p) => ({ ...p, explanationDocument: document }))
                   }
                   readOnly={!!frozen}
-                  ariaLabel={t("examEditor.solutionExplanation", "詳解（解題過程）")}
+                  ariaLabel={t(
+                    "examEditor.solutionExplanation",
+                    "詳解（解題過程）",
+                  )}
                 />
               ) : (
                 <MarkdownField
                   id={`eqc-explanation-${question.id}`}
-                  labelText={t("examEditor.solutionExplanation", "詳解（解題過程）")}
+                  labelText={t(
+                    "examEditor.solutionExplanation",
+                    "詳解（解題過程）",
+                  )}
                   value={form.explanation}
-                  onChange={(val) => setForm((p) => ({ ...p, explanation: val }))}
+                  onChange={(val) =>
+                    setForm((p) => ({ ...p, explanation: val }))
+                  }
                   placeholder={t(
                     "examEditor.explanationPlaceholder",
                     "輸入完整解題過程、推導或觀念解析；不要把評分用最終答案只放在這裡",
@@ -1265,7 +1530,12 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
           closeModal={() => setDiscardOpen(false)}
         />
         <ModalBody>
-          <p>{t("examEditor.lockedSave.discardBody", "要繼續編輯，還是捨棄這次變更？")}</p>
+          <p>
+            {t(
+              "examEditor.lockedSave.discardBody",
+              "要繼續編輯，還是捨棄這次變更？",
+            )}
+          </p>
         </ModalBody>
         <ModalFooter>
           <Button kind="secondary" onClick={() => setDiscardOpen(false)}>

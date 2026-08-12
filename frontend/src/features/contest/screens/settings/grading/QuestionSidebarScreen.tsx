@@ -1,5 +1,6 @@
 import { Button } from "@carbon/react";
 import {
+  Checkmark,
   ChevronLeft,
   ChevronRight,
 } from "@carbon/icons-react";
@@ -31,12 +32,6 @@ interface QuestionSidebarScreenProps {
   onToggleCollapse?: () => void;
 }
 
-const getProgressRingColor = (progressPercent: number) => {
-  if (progressPercent >= 100) return "var(--cds-support-success)";
-  if (progressPercent > 0) return "var(--cds-support-warning)";
-  return "var(--cds-border-strong)";
-};
-
 function getStatusClass(q: QuestionProgress) {
   if (q.totalAnswers === 0) return mini.statusEmpty;
   if (q.progressPercent === 100 || q.isObjective) return mini.statusDone;
@@ -65,20 +60,20 @@ export default function QuestionSidebarScreen({
 
   if (collapsed) {
     return (
-      <div className={`${styles.sidebar} ${styles.sidebarMini}`}>
+      <div className={styles.sidebar}>
         <ListPanel
           header={
             <ListHeader
               title=""
               action={
-                <button
-                  type="button"
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  hasIconOnly
+                  renderIcon={ChevronRight}
+                  iconDescription={t("grading.expandQuestionList", "展開題目列表")}
                   onClick={onToggleCollapse}
-                  aria-label={t("grading.expandQuestionList", "展開題目列表")}
-                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--cds-icon-primary)" }}
-                >
-                  <ChevronRight size={16} />
-                </button>
+                />
               }
             />
           }
@@ -140,8 +135,12 @@ export default function QuestionSidebarScreen({
               onClick={() => onSelect(q.questionId)}
               className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
             >
-              <ListItemLeading>
-                <TypeIcon size={14} className={styles.sidebarTypeIcon} />
+              <ListItemLeading className={styles.questionTypeMarker}>
+                <TypeIcon
+                  size={14}
+                  className={styles.sidebarTypeIcon}
+                  data-testid="question-type-marker"
+                />
               </ListItemLeading>
               <ListItemContent>
                 <ListItemTitle>
@@ -159,19 +158,41 @@ export default function QuestionSidebarScreen({
                 </ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
-                <span
-                  className={styles.sidebarProgress}
-                  title={`${q.progressPercent}% (${q.gradedCount}/${q.totalAnswers})`}
-                >
+                {q.totalAnswers > 0 && (q.progressPercent === 100 || q.isObjective) ? (
                   <span
-                    className={styles.sidebarProgressRing}
-                    style={{
-                      background: `conic-gradient(${getProgressRingColor(q.progressPercent)} ${q.progressPercent}%, var(--cds-border-strong) ${q.progressPercent}% 100%)`,
-                    }}
+                    className={styles.questionComplete}
+                    aria-label={t(
+                      "grading.completedCount",
+                      "{{graded}}/{{total}} 完成",
+                      { graded: q.gradedCount, total: q.totalAnswers },
+                    )}
+                    title={t(
+                      "grading.completedCount",
+                      "{{graded}}/{{total}} 完成",
+                      { graded: q.gradedCount, total: q.totalAnswers },
+                    )}
                   >
-                    <span className={styles.sidebarProgressRingCenter} />
+                    <Checkmark size={16} aria-hidden="true" />
                   </span>
-                </span>
+                ) : q.totalAnswers > 0 ? (
+                  <span
+                    className={styles.questionProgressText}
+                    aria-label={t(
+                      "grading.gradedAnswerCount",
+                      "已批改 {{graded}}，共 {{total}} 份",
+                      { graded: q.gradedCount, total: q.totalAnswers },
+                    )}
+                  >
+                    {q.gradedCount}/{q.totalAnswers}
+                  </span>
+                ) : (
+                  <span
+                    className={styles.questionProgressText}
+                    aria-label={t("grading.noAnswers", "尚無作答")}
+                  >
+                    —
+                  </span>
+                )}
               </ListItemTrailing>
             </ListItem>
           );

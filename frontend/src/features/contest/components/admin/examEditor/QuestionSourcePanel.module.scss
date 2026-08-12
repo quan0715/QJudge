@@ -112,7 +112,7 @@
 .typeInfo {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-01);
+  gap: layout.$spacing-01;
   min-width: 0;
 }
 

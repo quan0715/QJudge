@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .card {
   border: 1px solid var(--cds-border-subtle);
   border-radius: 0;
@@ -80,7 +81,7 @@
   display: flex;
   justify-content: space-between;
   align-items: stretch;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
   border-bottom: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-background-01);
 }
@@ -131,14 +132,14 @@
 
 .userBlock {
   min-width: 0;
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   flex: 1 1 auto;
   display: flex;
   align-items: center;
 }
 
 .statusBlock {
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   display: flex;
   align-items: center;
 }
@@ -160,7 +161,7 @@
 }
 
 .answerCol {
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
@@ -186,7 +187,7 @@
 }
 
 .aiRow {
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   min-height: 5.5rem;
   display: flex;
   flex-direction: column;
@@ -234,7 +235,7 @@
 }
 
 .aiScoreDelta {
-  margin-left: var(--cds-spacing-03);
+  margin-left: layout.$spacing-03;
   font-size: 0.875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -288,8 +289,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--cds-spacing-03);
-  margin-top: var(--cds-spacing-02);
+  gap: layout.$spacing-03;
+  margin-top: layout.$spacing-02;
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
   line-height: 1.4;
@@ -348,7 +349,7 @@
 }
 
 .shimmerText {
-  margin-left: var(--cds-spacing-02);
+  margin-left: layout.$spacing-02;
 }
 
 .shimmerBar {

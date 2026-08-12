@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { Tag } from "@carbon/react";
-import { Document, UserMultiple, Checkmark, WarningAlt, ChevronLeft, ChevronRight } from "@carbon/icons-react";
+import { Button, Tag } from "@carbon/react";
+import { Document, UserMultiple, Checkmark, WarningAlt, ChevronLeft, ChevronRight, Flag } from "@carbon/icons-react";
 import {
   ListPanel,
   ListHeader,
@@ -154,6 +154,37 @@ export const WithParticipants: Story = {
             </ListItemTrailing>
           </ListItem>
         ))}
+      </ListPanel>
+    </div>
+  ),
+};
+
+export const WithSecondaryAction: Story = {
+  name: "Row with secondary action",
+  render: () => (
+    <div style={{ width: 320, display: "flex", flexDirection: "column", border: "1px solid var(--cds-border-subtle)" }}>
+      <ListPanel>
+        <ListItem
+          active
+          onClick={() => {}}
+          secondaryAction={
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={Flag}
+              iconDescription="Flag question"
+            />
+          }
+        >
+          <ListItemContent>
+            <ListItemTitle>Q1. Sorting</ListItemTitle>
+            <ListItemMeta>2/10 graded</ListItemMeta>
+          </ListItemContent>
+          <ListItemTrailing>
+            <Tag size="sm" type="warm-gray">Pending</Tag>
+          </ListItemTrailing>
+        </ListItem>
       </ListPanel>
     </div>
   ),

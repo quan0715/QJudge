@@ -180,7 +180,7 @@
 .previewCardLeft {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-01);
+  gap: layout.$spacing-01;
   flex: 1;
   min-width: 0;
 }

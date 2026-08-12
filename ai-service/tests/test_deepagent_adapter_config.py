@@ -178,6 +178,7 @@ def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
 
 def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog):
     capture = _patch_builder_dependencies(monkeypatch)
+    monkeypatch.setattr(runner_mod.logger, "disabled", False)
     missing_skill = "/tmp/definitely-missing-qjudge-skill-dir"
     missing_memory = "/tmp/definitely-missing-qjudge-agents.md"
     runner = _build_adapter(
@@ -185,7 +186,7 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
         memory_paths=[missing_memory],
     )
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.WARNING, logger=runner_mod.__name__):
         runner._runner._build_agent(
             model_id="deepseek-v4",
             system_prompt=None,

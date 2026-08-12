@@ -177,6 +177,12 @@ function auditStyle(file, source, cleanSource) {
       message: "Remove !important and fix specificity or component composition instead.",
     },
     {
+      regex: /var\(\s*--cds-spacing-(?:0[1-9]|1[0-3])(?:\s*,[^)]*)?\s*\)/gi,
+      rule: "invalid-carbon-spacing-variable",
+      severity: "error",
+      message: "Carbon React does not emit runtime --cds-spacing-* variables; use @carbon/layout Sass tokens.",
+    },
+    {
       regex: /(?:#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi,
       rule: "hardcoded-theme-color",
       severity: "warning",

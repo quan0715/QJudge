@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 /* Full-bleed editor shell (used by ContestExamGradingScreen) */
 
 .editorRoot {
@@ -33,8 +34,8 @@
 .globalToolbar {
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-04);
-  padding: var(--cds-spacing-03) var(--cds-spacing-04);
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-03 layout.$spacing-04;
   border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
   background: var(--cds-layer-02, var(--cds-layer));
@@ -43,14 +44,8 @@
 .toolbarGroup {
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
   min-width: 0;
-}
-
-.globalMeta {
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  white-space: nowrap;
 }
 
 .modeSwitcher {
@@ -77,15 +72,15 @@
 .globalFilterPopoverFields {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-04);
-  padding: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
 }
 
 .globalFilterPopoverActions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--cds-spacing-03);
-  padding: var(--cds-spacing-03) var(--cds-spacing-04) var(--cds-spacing-04);
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-04 layout.$spacing-04;
   border-top: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
 }
 
@@ -119,8 +114,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--cds-spacing-03);
-  padding: var(--cds-spacing-09) var(--cds-spacing-07);
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-09 layout.$spacing-07;
   text-align: center;
   height: 100%;
   min-height: 200px;

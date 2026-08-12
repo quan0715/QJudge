@@ -647,7 +647,7 @@ class ProblemTestRunContestAccessTests(TestCase):
             name='Active', owner=self.teacher,
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2),
-            visibility='public', status='published',
+            status='published',
         )
         bind_problem_to_contest(self.active_contest, self.problem)
         ContestParticipant.objects.create(
@@ -707,7 +707,7 @@ class ProblemTestRunContestAccessTests(TestCase):
             name='Future', owner=future_owner,
             start_time=now + timedelta(hours=1),
             end_time=now + timedelta(hours=3),
-            visibility='public', status='published',
+            status='published',
         )
         bind_problem_to_contest(future_contest, self.problem)
         ContestParticipant.objects.create(

@@ -1,41 +1,31 @@
+import { Suspense } from "react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { AdminPanelRenderer, ContestTypeModule } from "./types";
+
+import type { ContestTypeModule } from "./types";
 import { getAdminPanelRenderer } from "./AdminPanelRendererRegistry";
 
-const createModule = (
-  renderer?: AdminPanelRenderer,
-): ContestTypeModule => ({
-  type: "coding",
-  student: {
-    getTabs: () => [],
-    getSolveRenderer: () => () => null,
-    getAnsweringEntryPath: () => "/dashboard",
-  },
+vi.mock("../screens/settings/ContestExamGradingScreen", () => ({
+  default: () => <div>批改畫面已接管載入狀態</div>,
+}));
+
+const contestModule = {
   admin: {
-    editorKind: "coding",
-    getAvailablePanels: () => ["overview"],
-    getPanelRenderers: renderer
-      ? () => ({ overview: renderer })
-      : undefined,
-    getExportTargets: () => [],
+    getPanelRenderers: () => ({}),
   },
-});
+} as unknown as ContestTypeModule;
 
-describe("admin panel renderer registry", () => {
-  it.each(["overview", "clarifications", "proctoring", "grading", "ai-grading"] as const)(
-    "keeps the default %s panel behind a lazy boundary",
-    (panelId) => {
-      const renderer = getAdminPanelRenderer(panelId, createModule());
+describe("AdminPanelRendererRegistry", () => {
+  it("renders the grading panel synchronously so it owns the only loading state", () => {
+    const GradingPanel = getAdminPanelRenderer("grading", contestModule);
 
-      expect(renderer).toHaveProperty("$$typeof", Symbol.for("react.lazy"));
-    },
-  );
-
-  it("prefers a module-specific renderer", () => {
-    const customRenderer = vi.fn(() => null);
-
-    expect(getAdminPanelRenderer("overview", createModule(customRenderer))).toBe(
-      customRenderer,
+    render(
+      <Suspense fallback={<div>外層 panel loading</div>}>
+        <GradingPanel contestId="contest-1" />
+      </Suspense>,
     );
+
+    expect(screen.getByText("批改畫面已接管載入狀態")).toBeInTheDocument();
+    expect(screen.queryByText("外層 panel loading")).not.toBeInTheDocument();
   });
 });

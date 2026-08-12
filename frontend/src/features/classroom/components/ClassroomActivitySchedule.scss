@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 @use "@carbon/react/scss/spacing" as *;
 @use "@carbon/react/scss/type" as *;
 
@@ -74,7 +75,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: var(--cds-spacing-01);
+  padding-top: layout.$spacing-01;
   gap: 1px;
   user-select: none;
 }
@@ -111,7 +112,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-02;
-  padding-top: var(--cds-spacing-01);
+  padding-top: layout.$spacing-01;
   min-width: 0;
 }
 

@@ -1,11 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button, Tag } from "@carbon/react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Flag,
-  FlagFilled,
-} from "@carbon/icons-react";
+import { Checkmark, ChevronLeft, ChevronRight } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSplitLayout from "@/features/contest/components/admin/layout/AdminSplitLayout";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
@@ -17,7 +12,6 @@ import {
   ListItemLeading,
   ListItemContent,
   ListItemTitle,
-  ListItemMeta,
   ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -83,7 +77,10 @@ export default function GradingByStudentTabScreen({
   const [isQuestionPaneCollapsed, setIsQuestionPaneCollapsed] = useState(false);
   const [selectedAnswerIdx, setSelectedAnswerIdx] = useState(0);
   const orderedQuestions = useMemo(
-    () => [...questionProgress].sort((left, right) => left.questionIndex - right.questionIndex),
+    () =>
+      [...questionProgress].sort(
+        (left, right) => left.questionIndex - right.questionIndex,
+      ),
     [questionProgress],
   );
 
@@ -99,7 +96,9 @@ export default function GradingByStudentTabScreen({
 
     return students.map((s) => {
       const answers = answersByStudent.get(s.studentId) ?? [];
-      const gradedCount = answers.filter((a) => a.score !== null && isCountedQuestion(a.scorePolicy)).length;
+      const gradedCount = answers.filter(
+        (a) => a.score !== null && isCountedQuestion(a.scorePolicy),
+      ).length;
       const totalScore = computeStudentDisplayTotal(
         answers.map((a) => ({
           maxScore: a.maxScore,
@@ -115,10 +114,11 @@ export default function GradingByStudentTabScreen({
         totalScore,
         maxPossible,
         gradedCount,
-        totalCount: answers.filter((a) => isCountedQuestion(a.scorePolicy)).length,
+        totalCount: answers.filter((a) => isCountedQuestion(a.scorePolicy))
+          .length,
       };
     });
-  }, [students, answersByStudent]);
+  }, [students, answersByStudent, orderedQuestions]);
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return studentSummaries;
@@ -126,7 +126,7 @@ export default function GradingByStudentTabScreen({
     return studentSummaries.filter(
       (s) =>
         s.username.toLowerCase().includes(q) ||
-        s.displayName.toLowerCase().includes(q)
+        s.displayName.toLowerCase().includes(q),
     );
   }, [studentSummaries, searchQuery]);
   const activeSelectedStudentId = useMemo(() => {
@@ -140,47 +140,52 @@ export default function GradingByStudentTabScreen({
     return filtered[0].studentId;
   }, [filtered, selectedStudentId]);
   const activeStudent = useMemo(
-    () => students.find((student) => student.studentId === activeSelectedStudentId) ?? null,
+    () =>
+      students.find(
+        (student) => student.studentId === activeSelectedStudentId,
+      ) ?? null,
     [students, activeSelectedStudentId],
   );
 
-  const currentStudentAnswers = useMemo(
-    () => {
-      if (!activeSelectedStudentId) return [];
-      const studentAnswers = answersByStudent.get(activeSelectedStudentId) ?? [];
-      const answerByQuestionId = new Map(
-        studentAnswers.map((answer) => [answer.questionId, answer] as const),
-      );
+  const currentStudentAnswers = useMemo(() => {
+    if (!activeSelectedStudentId) return [];
+    const studentAnswers = answersByStudent.get(activeSelectedStudentId) ?? [];
+    const answerByQuestionId = new Map(
+      studentAnswers.map((answer) => [answer.questionId, answer] as const),
+    );
 
-      return orderedQuestions.map((question) => {
-        const existing = answerByQuestionId.get(question.questionId);
-        if (existing) {
-          return existing;
-        }
-        return {
-          id: `absent-${activeSelectedStudentId}-${question.questionId}`,
-          studentId: activeSelectedStudentId,
-          studentUsername: activeStudent?.username ?? "",
-          studentDisplayName: activeStudent?.displayName ?? "",
-          questionId: question.questionId,
-          questionIndex: question.questionIndex,
-          questionPrompt: question.prompt,
-          questionType: question.questionType,
-          questionOptions: [],
-          maxScore: question.maxScore,
-          answerContent: {},
-          score: null,
-          feedback: "",
-          gradedBy: null,
-          gradedAt: null,
-          isAutoGraded: false,
-          correctAnswer: null,
-          isAbsent: true,
-        } satisfies GradingAnswerRow;
-      });
-    },
-    [activeSelectedStudentId, answersByStudent, orderedQuestions, activeStudent],
-  );
+    return orderedQuestions.map((question) => {
+      const existing = answerByQuestionId.get(question.questionId);
+      if (existing) {
+        return existing;
+      }
+      return {
+        id: `absent-${activeSelectedStudentId}-${question.questionId}`,
+        studentId: activeSelectedStudentId,
+        studentUsername: activeStudent?.username ?? "",
+        studentDisplayName: activeStudent?.displayName ?? "",
+        questionId: question.questionId,
+        questionIndex: question.questionIndex,
+        questionPrompt: question.prompt,
+        questionType: question.questionType,
+        questionOptions: [],
+        maxScore: question.maxScore,
+        answerContent: {},
+        score: null,
+        feedback: "",
+        gradedBy: null,
+        gradedAt: null,
+        isAutoGraded: false,
+        correctAnswer: null,
+        isAbsent: true,
+      } satisfies GradingAnswerRow;
+    });
+  }, [
+    activeSelectedStudentId,
+    answersByStudent,
+    orderedQuestions,
+    activeStudent,
+  ]);
 
   const selectableIndexes = useMemo(
     () =>
@@ -197,12 +202,14 @@ export default function GradingByStudentTabScreen({
     [selectableIndexes, selectedAnswerIdx],
   );
   const hasAnySubmission = selectableIndexes.length > 0;
-  const currentAnswer =
-    hasAnySubmission
-      ? (currentStudentAnswers[selectedAnswerIdx] ?? null)
-      : null;
+  const currentAnswer = hasAnySubmission
+    ? (currentStudentAnswers[selectedAnswerIdx] ?? null)
+    : null;
   const selectedStudentSummary = useMemo(
-    () => filtered.find((student) => student.studentId === activeSelectedStudentId) ?? null,
+    () =>
+      filtered.find(
+        (student) => student.studentId === activeSelectedStudentId,
+      ) ?? null,
     [filtered, activeSelectedStudentId],
   );
   const hasNext = nextSelectableIdx >= 0;
@@ -225,7 +232,10 @@ export default function GradingByStudentTabScreen({
     }
     if (currentStudentAnswers[selectedAnswerIdx]?.isAbsent) {
       const firstSelectableIdx = selectableIndexes[0];
-      if (firstSelectableIdx !== undefined && firstSelectableIdx !== selectedAnswerIdx) {
+      if (
+        firstSelectableIdx !== undefined &&
+        firstSelectableIdx !== selectedAnswerIdx
+      ) {
         setSelectedAnswerIdx(firstSelectableIdx);
       }
     }
@@ -237,7 +247,9 @@ export default function GradingByStudentTabScreen({
     return filtered.findIndex((s) => s.studentId === activeSelectedStudentId);
   }, [filtered, activeSelectedStudentId]);
 
-  const hasNextStudent = currentStudentFilteredIdx >= 0 && currentStudentFilteredIdx < filtered.length - 1;
+  const hasNextStudent =
+    currentStudentFilteredIdx >= 0 &&
+    currentStudentFilteredIdx < filtered.length - 1;
 
   const handleStudentSelect = (studentId: string) => {
     onSelectedStudentIdChange(studentId);
@@ -255,7 +267,12 @@ export default function GradingByStudentTabScreen({
     const nextStudent = filtered[currentStudentFilteredIdx + 1];
     onSelectedStudentIdChange(nextStudent.studentId);
     setSelectedAnswerIdx(0);
-  }, [filtered, currentStudentFilteredIdx, hasNextStudent, onSelectedStudentIdChange]);
+  }, [
+    filtered,
+    currentStudentFilteredIdx,
+    hasNextStudent,
+    onSelectedStudentIdChange,
+  ]);
 
   const sidebarContent = (
     <ListPanel
@@ -271,9 +288,11 @@ export default function GradingByStudentTabScreen({
     >
       {filtered.length === 0 ? (
         <EmptyState
-          title={searchQuery.trim()
-            ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
-            : t("grading.noStudents", "尚無學生資料")}
+          title={
+            searchQuery.trim()
+              ? t("grading.noMatchingStudents", "沒有符合搜尋條件的學生")
+              : t("grading.noStudents", "尚無學生資料")
+          }
           compact
         />
       ) : (
@@ -285,16 +304,44 @@ export default function GradingByStudentTabScreen({
             onClick={() => handleStudentSelect(s.studentId)}
           >
             <ListItemContent>
-              <ListItemTitle>{s.displayName || s.username}</ListItemTitle>
-              {s.displayName && s.displayName !== s.username && (
-                <ListItemMeta>{s.username}</ListItemMeta>
-              )}
+              <ListItemTitle>{s.username}</ListItemTitle>
             </ListItemContent>
             <ListItemTrailing>
               {s.totalCount === 0 ? (
-                <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
+                <Tag type="red" size="sm">
+                  {t("grading.absent", "缺交")}
+                </Tag>
+              ) : s.gradedCount === s.totalCount ? (
+                <span
+                  className={styles.completionDone}
+                  aria-label={t(
+                    "grading.completedCount",
+                    "{{graded}}/{{total}} 完成",
+                    {
+                      graded: s.gradedCount,
+                      total: s.totalCount,
+                    },
+                  )}
+                  title={t(
+                    "grading.completedCount",
+                    "{{graded}}/{{total}} 完成",
+                    {
+                      graded: s.gradedCount,
+                      total: s.totalCount,
+                    },
+                  )}
+                >
+                  <Checkmark size={16} aria-hidden="true" />
+                </span>
               ) : (
-                <span style={{ color: s.gradedCount === s.totalCount ? "var(--cds-support-success)" : "var(--cds-text-secondary)", fontWeight: 600, fontSize: "0.8125rem", whiteSpace: "nowrap" }}>
+                <span
+                  className={styles.completionProgress}
+                  aria-label={t(
+                    "grading.progressCount",
+                    "已完成 {{graded}}，共 {{total}} 題",
+                    { graded: s.gradedCount, total: s.totalCount },
+                  )}
+                >
                   {s.gradedCount}/{s.totalCount}
                 </span>
               )}
@@ -311,39 +358,41 @@ export default function GradingByStudentTabScreen({
         <ListHeader
           title=""
           action={
-              <button
-                type="button"
+            <Button
+              kind="ghost"
+              size="sm"
+              hasIconOnly
+              renderIcon={ChevronRight}
+              iconDescription={t("grading.expandQuestionList", "展開題目列表")}
               onClick={() => setIsQuestionPaneCollapsed(false)}
-              aria-label={t("grading.expandQuestionList", "展開題目列表")}
-              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--cds-icon-primary)" }}
-            >
-              <ChevronRight size={16} />
-            </button>
+            />
           }
         />
       }
       footer={<ListFooter>&nbsp;</ListFooter>}
     >
-      {activeSelectedStudentId && currentStudentAnswers.length > 0 ? (
-        currentStudentAnswers.map((answer, idx) => {
-          const statusClass = answer.isAbsent
-            ? mini.statusEmpty
-            : answer.score !== null
-              ? mini.statusDone
-              : mini.statusPending;
-          return (
-            <ListItem
-              key={answer.id}
-              size="compact"
-              active={idx === selectedAnswerIdx}
-              onClick={answer.isAbsent ? undefined : () => setSelectedAnswerIdx(idx)}
-              className={`${idx === selectedAnswerIdx ? mini.statusActive : ""} ${statusClass}`}
-            >
-              Q{answer.questionIndex}
-            </ListItem>
-          );
-        })
-      ) : null}
+      {activeSelectedStudentId && currentStudentAnswers.length > 0
+        ? currentStudentAnswers.map((answer, idx) => {
+            const statusClass = answer.isAbsent
+              ? mini.statusEmpty
+              : answer.score !== null
+                ? mini.statusDone
+                : mini.statusPending;
+            return (
+              <ListItem
+                key={answer.id}
+                size="compact"
+                active={idx === selectedAnswerIdx}
+                onClick={
+                  answer.isAbsent ? undefined : () => setSelectedAnswerIdx(idx)
+                }
+                className={`${idx === selectedAnswerIdx ? mini.statusActive : ""} ${statusClass}`}
+              >
+                Q{answer.questionIndex}
+              </ListItem>
+            );
+          })
+        : null}
     </ListPanel>
   ) : (
     <ListPanel
@@ -356,7 +405,10 @@ export default function GradingByStudentTabScreen({
               size="sm"
               hasIconOnly
               renderIcon={ChevronLeft}
-              iconDescription={t("grading.collapseQuestionList", "收摺題目列表")}
+              iconDescription={t(
+                "grading.collapseQuestionList",
+                "收摺題目列表",
+              )}
               onClick={() => setIsQuestionPaneCollapsed(true)}
             />
           }
@@ -394,40 +446,44 @@ export default function GradingByStudentTabScreen({
               onClick={isAbsent ? undefined : () => setSelectedAnswerIdx(i)}
               className={`${isActive ? mini.statusActive : ""} ${statusClass}`}
             >
-              <ListItemLeading>
-                <TypeIcon size={14} className={styles.sidebarTypeIcon} />
+              <ListItemLeading className={styles.questionTypeMarker}>
+                <TypeIcon
+                  size={14}
+                  className={styles.sidebarTypeIcon}
+                  data-testid="question-type-marker"
+                />
               </ListItemLeading>
               <ListItemContent>
                 <ListItemTitle>Q{a.questionIndex}</ListItemTitle>
               </ListItemContent>
               <ListItemTrailing>
-                {!isAbsent && onToggleFlag && (
-                  <button
-                    type="button"
-                    className={styles.flagBtn}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFlag(a.id);
-                    }}
-                    aria-label={t("grading.toggleFlag", "標記")}
-                  >
-                    {flaggedIds?.has(a.id) ? (
-                      <FlagFilled size={14} className={styles.flagActive} />
-                    ) : (
-                      <Flag size={14} className={styles.flagInactive} />
-                    )}
-                  </button>
-                )}
                 {isAbsent ? (
-                  <Tag type="warm-gray" size="sm">{t("grading.absent", "缺交")}</Tag>
-                ) : readOnly ? (
-                  <Tag type="cool-gray" size="sm">{a.latestSubmissionStatus || t("grading.answered", "已作答")}</Tag>
-                ) : a.score !== null ? (
-                  <Tag type="green" size="sm">
-                    {formatScore(a.score)}/{formatScore(a.maxScore)}
+                  <Tag type="warm-gray" size="sm">
+                    {t("grading.absent", "缺交")}
                   </Tag>
+                ) : readOnly ? (
+                  <Tag type="cool-gray" size="sm">
+                    {a.latestSubmissionStatus ||
+                      t("grading.answered", "已作答")}
+                  </Tag>
+                ) : a.score !== null ? (
+                  <span
+                    className={styles.questionScore}
+                    aria-label={t(
+                      "grading.questionScoreLabel",
+                      "得分 {{score}}，共 {{maxScore}} 分",
+                      {
+                        score: formatScore(a.score),
+                        maxScore: formatScore(a.maxScore),
+                      },
+                    )}
+                  >
+                    {formatScore(a.score)}/{formatScore(a.maxScore)}
+                  </span>
                 ) : (
-                  <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批")}</Tag>
+                  <Tag type="warm-gray" size="sm">
+                    {t("grading.ungraded", "未批")}
+                  </Tag>
                 )}
               </ListItemTrailing>
             </ListItem>
@@ -435,9 +491,14 @@ export default function GradingByStudentTabScreen({
         })
       ) : (
         <EmptyState
-          title={activeSelectedStudentId
-            ? t("grading.noSubmissions", "此學生尚未提交任何作答")
-            : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
+          title={
+            activeSelectedStudentId
+              ? t("grading.noSubmissions", "此學生尚未提交任何作答")
+              : t(
+                  "grading.selectStudentToGrade",
+                  "選擇一位學生來查看其所有作答",
+                )
+          }
           compact
         />
       )}
@@ -450,7 +511,9 @@ export default function GradingByStudentTabScreen({
       sidebarWidth={GRADING_PRIMARY_LIST_WIDTH}
       middlePane={middlePaneContent}
       middlePaneWidth={
-        isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_SECONDARY_LIST_WIDTH
+        isQuestionPaneCollapsed
+          ? GRADING_COLLAPSED_LIST_WIDTH
+          : GRADING_SECONDARY_LIST_WIDTH
       }
       contentClassName={styles.gradingContent}
       mobileMode="stacked"
@@ -461,7 +524,9 @@ export default function GradingByStudentTabScreen({
             answer={currentAnswer}
             onGrade={onGrade}
             onUngrade={onUngrade}
-            isFlagged={currentAnswer ? flaggedIds?.has(currentAnswer.id) : false}
+            isFlagged={
+              currentAnswer ? flaggedIds?.has(currentAnswer.id) : false
+            }
             onToggleFlag={onToggleFlag}
             flowMode="byStudent"
             readOnly={readOnly}
@@ -471,7 +536,7 @@ export default function GradingByStudentTabScreen({
             hasNextStudent={hasNextStudent}
             contextPath={{
               primary: selectedStudentSummary
-                ? `${selectedStudentSummary.displayName} (${selectedStudentSummary.username})`
+                ? selectedStudentSummary.username
                 : t("grading.student", "學生"),
               secondary: currentAnswer
                 ? `Q${currentAnswer.questionIndex}`
@@ -482,7 +547,10 @@ export default function GradingByStudentTabScreen({
           <div className={styles.panelEmpty}>
             {activeSelectedStudentId
               ? t("grading.noSubmissions", "此學生尚未提交任何作答")
-              : t("grading.selectStudentToGrade", "選擇一位學生來查看其所有作答")}
+              : t(
+                  "grading.selectStudentToGrade",
+                  "選擇一位學生來查看其所有作答",
+                )}
           </div>
         )}
       </div>

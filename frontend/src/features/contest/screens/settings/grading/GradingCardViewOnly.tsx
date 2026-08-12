@@ -26,7 +26,8 @@ function stringifyAnswer(answer: Record<string, unknown>): string {
   const text = answer?.text;
   if (typeof text === "string" && text.trim()) return text;
   const selected = answer?.selected;
-  if (typeof selected === "string" || typeof selected === "number") return String(selected);
+  if (typeof selected === "string" || typeof selected === "number")
+    return String(selected);
   if (Array.isArray(selected)) return selected.join(", ");
   const code = answer?.code;
   if (typeof code === "string" && code.trim()) return code;
@@ -49,46 +50,60 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 }) => {
   const { t } = useTranslation("contest");
 
-  const user = useMemo(
-    () =>
-      row.studentDisplayName === row.studentUsername
-        ? row.studentDisplayName
-        : `${row.studentDisplayName} (${row.studentUsername})`,
-    [row.studentDisplayName, row.studentUsername],
-  );
+  const user = useMemo(() => row.studentUsername, [row.studentUsername]);
 
-  const answerText = useMemo(() => stringifyAnswer(row.answerContent), [row.answerContent]);
+  const answerText = useMemo(
+    () => stringifyAnswer(row.answerContent),
+    [row.answerContent],
+  );
 
   const hasOriginalScore = row.score != null;
   const hasOriginalFeedback = !!row.feedback?.trim();
 
   const aiScoreText = aiScore == null ? "-" : formatScore(aiScore);
   const scoreDelta =
-    aiScore != null && hasOriginalScore && row.score != null ? aiScore - row.score : null;
+    aiScore != null && hasOriginalScore && row.score != null
+      ? aiScore - row.score
+      : null;
   const deltaLabel =
     scoreDelta == null
       ? null
       : scoreDelta === 0
-      ? "±0.00"
-      : scoreDelta > 0
-      ? `+${formatScore(scoreDelta)}`
-      : `-${formatScore(Math.abs(scoreDelta))}`;
+        ? "±0.00"
+        : scoreDelta > 0
+          ? `+${formatScore(scoreDelta)}`
+          : `-${formatScore(Math.abs(scoreDelta))}`;
   const deltaClass =
     scoreDelta == null || scoreDelta === 0
       ? styles.deltaZero
       : scoreDelta > 0
-      ? styles.deltaUp
-      : styles.deltaDown;
+        ? styles.deltaUp
+        : styles.deltaDown;
   const aiReasonText = (aiReason ?? "").trim() || "-";
   const isPending = status === "pending";
   const scoreAnimationKey = aiScore == null ? "empty" : `${aiScore}`;
   const scoreDigits = aiScoreText.split("");
   const statusTag = {
-    idle: { type: "cool-gray" as const, label: t("grading.cardStatePending", "待批改") },
-    pending: { type: "blue" as const, label: t("grading.cardStateAiRunning", "AI批改中") },
-    reviewable: { type: "green" as const, label: t("grading.reviewable", "可審核") },
-    submitted: { type: "teal" as const, label: t("grading.submitted", "已送出") },
-    missing: { type: "red" as const, label: t("grading.cardStateMissing", "未產生建議") },
+    idle: {
+      type: "cool-gray" as const,
+      label: t("grading.cardStatePending", "待批改"),
+    },
+    pending: {
+      type: "blue" as const,
+      label: t("grading.cardStateAiRunning", "AI批改中"),
+    },
+    reviewable: {
+      type: "green" as const,
+      label: t("grading.reviewable", "可審核"),
+    },
+    submitted: {
+      type: "teal" as const,
+      label: t("grading.submitted", "已送出"),
+    },
+    missing: {
+      type: "red" as const,
+      label: t("grading.cardStateMissing", "未產生建議"),
+    },
   }[status];
 
   const interactive = !!onToggleSelected;
@@ -128,13 +143,17 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
           <div className={styles.user}>{user}</div>
         </div>
         <div className={styles.statusBlock}>
-          <Tag type={statusTag.type} size="sm">{statusTag.label}</Tag>
+          <Tag type={statusTag.type} size="sm">
+            {statusTag.label}
+          </Tag>
         </div>
         <div
           className={`${styles.selectCell} ${selected ? styles.selectCellActive : ""}`}
           aria-hidden="true"
         >
-          <span className={`${styles.selectMark} ${selected ? styles.selectMarkActive : ""}`}>
+          <span
+            className={`${styles.selectMark} ${selected ? styles.selectMarkActive : ""}`}
+          >
             {selected ? <Checkmark size={14} /> : null}
           </span>
         </div>
@@ -142,7 +161,9 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 
       <section className={styles.mainRow}>
         <section className={styles.answerCol}>
-          <div className={styles.label}>{t("grading.answerContent", "作答內容")}</div>
+          <div className={styles.label}>
+            {t("grading.answerContent", "作答內容")}
+          </div>
           <div className={`${styles.value} ${styles.answerBox}`}>
             {answerText || <span className={styles.muted}>-</span>}
           </div>
@@ -151,7 +172,9 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
               {t("grading.originalScore", "原評分")}
             </span>
             <span className={styles.originalScore}>
-              {hasOriginalScore ? `${formatScore(row.score)} / ${formatScore(row.maxScore)}` : "-"}
+              {hasOriginalScore
+                ? `${formatScore(row.score)} / ${formatScore(row.maxScore)}`
+                : "-"}
             </span>
             <span className={styles.originalLabel}>
               {t("grading.originalFeedback", "原評語")}
@@ -164,9 +187,14 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
 
         <section className={styles.aiCol}>
           <div className={styles.aiRow}>
-            <div className={styles.label}>{t("grading.aiScore", "AI 建議評分")}</div>
+            <div className={styles.label}>
+              {t("grading.aiScore", "AI 建議評分")}
+            </div>
             {isPending ? (
-              <div className={`${styles.value} ${styles.shimmer}`} aria-hidden="true">
+              <div
+                className={`${styles.value} ${styles.shimmer}`}
+                aria-hidden="true"
+              >
                 <span className={styles.shimmerDot} />
                 <span className={styles.shimmerDot} />
                 <span className={styles.shimmerDot} />
@@ -186,7 +214,9 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
                       <span
                         key={`${digit}-${index}`}
                         className={styles.scoreDigit}
-                        style={{ animationDelay: `${index * 42}ms` } as CSSProperties}
+                        style={
+                          { animationDelay: `${index * 42}ms` } as CSSProperties
+                        }
                         aria-hidden="true"
                       >
                         {digit}
@@ -194,25 +224,34 @@ const GradingCardViewOnly: React.FC<GradingCardViewOnlyProps> = ({
                     ))}
                   </span>
                 )}
-                <span className={styles.aiScoreUnit}> / {formatScore(row.maxScore)}</span>
+                <span className={styles.aiScoreUnit}>
+                  {" "}
+                  / {formatScore(row.maxScore)}
+                </span>
                 {deltaLabel ? (
-                  <span className={`${styles.aiScoreDelta} ${deltaClass}`}>{deltaLabel}</span>
+                  <span className={`${styles.aiScoreDelta} ${deltaClass}`}>
+                    {deltaLabel}
+                  </span>
                 ) : null}
               </div>
             )}
           </div>
 
           <div className={styles.aiRow}>
-            <div className={styles.label}>{t("grading.aiReason", "AI 建議評語")}</div>
+            <div className={styles.label}>
+              {t("grading.aiReason", "AI 建議評語")}
+            </div>
             {isPending ? (
-              <div className={`${styles.value} ${styles.shimmerBar}`} aria-hidden="true" />
+              <div
+                className={`${styles.value} ${styles.shimmerBar}`}
+                aria-hidden="true"
+              />
             ) : (
               <div className={styles.value}>{aiReasonText}</div>
             )}
           </div>
         </section>
       </section>
-
     </article>
   );
 };

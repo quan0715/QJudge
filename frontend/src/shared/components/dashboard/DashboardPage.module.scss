@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .root {
   display: flex;
   flex: 1 1 auto;
@@ -14,7 +15,7 @@
   max-width: 1180px;
   width: 100%;
   margin: 0 auto;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
 }
 
 .inner > * {
@@ -29,7 +30,7 @@
 
 @media (max-width: 672px) {
   .inner {
-    padding: var(--cds-spacing-04);
+    padding: layout.$spacing-04;
   }
 
   .fullBleed {

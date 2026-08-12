@@ -1,47 +1,48 @@
+@use "@carbon/layout";
 .modalBody {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-07);
+  gap: layout.$spacing-07;
 }
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .section {
-  margin-top: var(--cds-spacing-06);
-  padding-top: var(--cds-spacing-06);
+  margin-top: layout.$spacing-06;
+  padding-top: layout.$spacing-06;
   border-top: 1px solid var(--cds-border-subtle-01);
 }
 
 .sectionTitle {
-  margin: 0 0 var(--cds-spacing-04);
+  margin: 0 0 layout.$spacing-04;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
   line-height: 1.3;
 }
 
 .emptyNotice {
-  margin-top: var(--cds-spacing-05);
+  margin-top: layout.$spacing-05;
   color: var(--cds-text-secondary);
 }
 
 .settingsStack {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-07);
+  gap: layout.$spacing-07;
 }
 
 .inlineOptions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
 }
 
 .checkboxBlock {
-  margin-top: var(--cds-spacing-05);
+  margin-top: layout.$spacing-05;
 }
 
 .targetHelp {
@@ -50,7 +51,7 @@
 }
 
 .radioList {
-  margin-top: var(--cds-spacing-02);
+  margin-top: layout.$spacing-02;
 }
 
 .fieldLabel {
@@ -59,5 +60,5 @@
 }
 
 .loadingArea {
-  margin-top: var(--cds-spacing-05);
+  margin-top: layout.$spacing-05;
 }

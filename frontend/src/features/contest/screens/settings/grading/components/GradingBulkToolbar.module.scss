@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .bulkBar {
   position: sticky;
   top: 0;
@@ -18,7 +19,7 @@
 
 .bulkCount {
   margin-right: auto;
-  padding: 0 var(--cds-spacing-05);
+  padding: 0 layout.$spacing-05;
   display: inline-flex;
   align-items: center;
   font-size: 0.875rem;

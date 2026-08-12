@@ -1,32 +1,13 @@
+@use "@carbon/layout";
 /* AnswerDisplay — flows naturally in parent layout */
 
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-06;
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--cds-text-primary);
-}
-
-.group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--cds-spacing-02);
-}
-
-.label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--cds-text-secondary);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-/* Reference answer — left accent, no box */
-.reference {
-  border-left: 3px solid var(--cds-support-info);
-  padding-left: var(--cds-spacing-04);
 }
 
 .referenceText {
@@ -44,14 +25,14 @@
 .optionsList {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .optionItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4375rem var(--cds-spacing-04);
+  padding: 0.4375rem layout.$spacing-04;
   border-radius: 4px;
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-field, var(--cds-layer-01));
@@ -63,7 +44,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
   width: 100%;
   min-width: 0;
 }
@@ -71,7 +52,7 @@
 .optionText {
   display: inline-flex;
   align-items: baseline;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   min-width: 0;
 }
 
@@ -124,33 +105,17 @@
   flex-shrink: 0;
 }
 
-/* Correct answer summary */
-.correctSummary {
-  display: flex;
-  align-items: baseline;
-  gap: var(--cds-spacing-02);
-  font-size: 0.8125rem;
-  border-left: 3px solid var(--cds-support-info);
-  padding-left: var(--cds-spacing-04);
-}
-
-.correctLabel {
-  color: var(--cds-text-secondary);
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
 .correctValues {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
   min-width: 0;
 }
 
 .correctValue {
   display: inline-flex;
   align-items: baseline;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   color: var(--cds-support-success);
   font-weight: 500;
 }

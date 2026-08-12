@@ -11,7 +11,7 @@ usage() {
   printf '%s\n' \
     'Usage: check-carbon-style.sh [--staged | --all] [--root <path>] [--format text|json|markdown]' \
     '' \
-    '  --staged         Block new .cds/.bx selectors and !important in staged files (default).' \
+    '  --staged         Block Carbon internals, !important, and invalid spacing variables (default).' \
     '  --all            Audit the complete root and fail on blocking findings.' \
     '  --root <path>    Source root for --all (default: frontend/src).' \
     '  --format <type>  Output format for --all (default: text).' \
@@ -72,6 +72,12 @@ for file in "${TARGET_FILES[@]}"; do
   if MATCHES=$(git show ":${file}" | rg -n --no-heading '!important'); then
     printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
     printf '%s\n' 'Blocked: !important is not allowed; fix specificity or component composition.' >&2
+    FAILED=1
+  fi
+
+  if MATCHES=$(git show ":${file}" | rg -n --no-heading 'var\(\s*--cds-spacing-(0[1-9]|1[0-3])(\s*,[^)]*)?\s*\)'); then
+    printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
+    printf '%s\n' 'Blocked: Carbon React does not emit --cds-spacing-* runtime variables; use @carbon/layout Sass tokens.' >&2
     FAILED=1
   fi
 done

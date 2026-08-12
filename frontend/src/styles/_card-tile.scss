@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 // Shared card/tile mixins
 // Usage: @use "../../../styles/card-tile" as card;
 
@@ -14,7 +15,7 @@
 
 @mixin surface {
   background-color: var(--qj-card-bg);
-  padding: var(--cds-spacing-05) 1.25rem;
+  padding: layout.$spacing-05 1.25rem;
 }
 
 @mixin interactive {

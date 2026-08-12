@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import type { AdminPanelId, ContestTypeModule, AdminPanelRenderer } from "./types";
+import ContestExamGradingScreen from "../screens/settings/ContestExamGradingScreen";
 
 const AdminOverviewScreen = lazy(
   () => import("../screens/admin/panels/AdminOverviewScreen"),
@@ -9,9 +10,6 @@ const AdminClarificationsScreen = lazy(
 );
 const AdminProctoringPanel = lazy(
   () => import("../screens/admin/panels/AdminProctoringPanel"),
-);
-const ContestExamGradingScreen = lazy(
-  () => import("../screens/settings/ContestExamGradingScreen"),
 );
 const ContestAiGradingScreen = lazy(
   () => import("../screens/settings/ContestAiGradingScreen"),

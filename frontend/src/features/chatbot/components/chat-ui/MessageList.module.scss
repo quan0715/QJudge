@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 @use "./variables" as *;
 
 .wrapper {
@@ -26,7 +27,7 @@
   // 不會擋住內部垂直捲動。
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: var(--cds-spacing-05) 0 9rem;
+  padding: layout.$spacing-05 0 9rem;
 
   // Center message content within full-width scroll container
   display: flex;
@@ -106,7 +107,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: var(--cds-spacing-04) var(--cds-spacing-05);
+  padding: layout.$spacing-04 layout.$spacing-05;
 }
 
 .skeletonMessage {
@@ -132,5 +133,5 @@
   min-width: 0;
   flex: 1 1 auto;
   max-width: min(95%, 860px);
-  padding-top: var(--cds-spacing-01);
+  padding-top: layout.$spacing-01;
 }

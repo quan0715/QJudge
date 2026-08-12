@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .panel {
   display: flex;
   flex-direction: column;
@@ -12,8 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-03);
-  padding: 0 var(--cds-spacing-03);
+  gap: layout.$spacing-03;
+  padding: 0 layout.$spacing-03;
   border-bottom: 1px solid var(--cds-border-subtle);
   min-height: 2.5rem;
 }
@@ -21,7 +22,7 @@
 .title {
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
   min-width: 0;
   flex: 1;
 }
@@ -48,7 +49,7 @@
 
 .headerActions {
   display: flex;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .body {
@@ -66,14 +67,14 @@
 }
 
 .state {
-  padding: var(--cds-spacing-06) var(--cds-spacing-05);
+  padding: layout.$spacing-06 layout.$spacing-05;
   text-align: center;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
 }
 
 .error {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   color: var(--cds-support-error);
   font-size: 0.875rem;
 }

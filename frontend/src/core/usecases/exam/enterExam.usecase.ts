@@ -84,5 +84,3 @@ export async function enterExamUseCase(
     };
   }
 }
-
-export default enterExamUseCase;

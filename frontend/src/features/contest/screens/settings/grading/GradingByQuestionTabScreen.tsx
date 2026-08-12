@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Tag } from "@carbon/react";
-import { Flag, FlagFilled } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import {
   ListPanel,
@@ -9,7 +8,6 @@ import {
   ListItem,
   ListItemContent,
   ListItemTitle,
-  ListItemMeta,
   ListItemTrailing,
 } from "@/shared/ui/list/ListPanel";
 import { EmptyState } from "@/shared/ui/EmptyState";
@@ -91,7 +89,9 @@ export default function GradingByQuestionTabScreen({
     const exists = questionProgress.some(
       (question) => question.questionId === selectedQuestionId,
     );
-    return exists ? selectedQuestionId : (questionProgress[0]?.questionId ?? "");
+    return exists
+      ? selectedQuestionId
+      : (questionProgress[0]?.questionId ?? "");
   }, [questionProgress, selectedQuestionId]);
 
   // Derive answers-by-student map for score impact simulation
@@ -138,7 +138,9 @@ export default function GradingByQuestionTabScreen({
   // Current question's answers (filtered by global toolbar state), including absent placeholders
   const currentAnswers = useMemo(() => {
     const existingRows = answersByQuestion.get(activeQuestionId) ?? [];
-    const qInfo = questionProgress.find((q) => q.questionId === activeQuestionId);
+    const qInfo = questionProgress.find(
+      (q) => q.questionId === activeQuestionId,
+    );
 
     // Build set of students who have answered this question
     const answeredStudentIds = new Set(existingRows.map((r) => r.studentId));
@@ -170,19 +172,27 @@ export default function GradingByQuestionTabScreen({
     let rows = [...existingRows, ...absentRows];
 
     if (filter === "graded") rows = rows.filter((r) => r.score !== null);
-    if (filter === "ungraded") rows = rows.filter((r) => r.score === null && !r.isAbsent);
+    if (filter === "ungraded")
+      rows = rows.filter((r) => r.score === null && !r.isAbsent);
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       rows = rows.filter(
         (r) =>
           r.studentUsername.toLowerCase().includes(q) ||
-          r.studentDisplayName.toLowerCase().includes(q)
+          r.studentDisplayName.toLowerCase().includes(q),
       );
     }
 
     return rows;
-  }, [answersByQuestion, activeQuestionId, filter, searchQuery, students, questionProgress]);
+  }, [
+    answersByQuestion,
+    activeQuestionId,
+    filter,
+    searchQuery,
+    students,
+    questionProgress,
+  ]);
 
   useEffect(() => {
     const selectableRows = currentAnswers.filter((row) => !row.isAbsent);
@@ -211,7 +221,9 @@ export default function GradingByQuestionTabScreen({
     if (!selectionRequest || activeQuestionId !== selectionRequest.questionId) {
       return;
     }
-    if (lastAppliedSelectionStudentNonceRef.current === selectionRequest.nonce) {
+    if (
+      lastAppliedSelectionStudentNonceRef.current === selectionRequest.nonce
+    ) {
       return;
     }
     const selectedRow = currentAnswers.find(
@@ -221,7 +233,12 @@ export default function GradingByQuestionTabScreen({
       setSelectedAnswerId(selectedRow.id);
       lastAppliedSelectionStudentNonceRef.current = selectionRequest.nonce;
     }
-  }, [selectionRequest?.nonce, selectionRequest, activeQuestionId, currentAnswers]);
+  }, [
+    selectionRequest?.nonce,
+    selectionRequest,
+    activeQuestionId,
+    currentAnswers,
+  ]);
 
   // Scroll card list to the selected answer
   useEffect(() => {
@@ -241,10 +258,11 @@ export default function GradingByQuestionTabScreen({
             .get(activeQuestionId)
             ?.find((a) => a.id === selectedAnswerId) ?? null)
         : null,
-    [answersByQuestion, activeQuestionId, selectedAnswerId]
+    [answersByQuestion, activeQuestionId, selectedAnswerId],
   );
   const selectedQuestion = useMemo(
-    () => questionProgress.find((q) => q.questionId === activeQuestionId) ?? null,
+    () =>
+      questionProgress.find((q) => q.questionId === activeQuestionId) ?? null,
     [questionProgress, activeQuestionId],
   );
   const findNextUngraded = (): GradingAnswerRow | null => {
@@ -340,9 +358,11 @@ export default function GradingByQuestionTabScreen({
       <div ref={cardListRef}>
         {currentAnswers.length === 0 ? (
           <EmptyState
-            title={searchQuery.trim() || filter !== "all"
-              ? t("grading.noMatchingAnswers", "沒有符合條件的作答")
-              : t("grading.noAnswersForQuestion", "此題目尚無學生作答")}
+            title={
+              searchQuery.trim() || filter !== "all"
+                ? t("grading.noMatchingAnswers", "沒有符合條件的作答")
+                : t("grading.noAnswersForQuestion", "此題目尚無學生作答")
+            }
             compact
           />
         ) : (
@@ -364,47 +384,36 @@ export default function GradingByQuestionTabScreen({
                 className={isAbsent ? styles.absentItem : undefined}
               >
                 <ListItemContent>
-                  <ListItemTitle>{a.studentDisplayName}</ListItemTitle>
-                  <ListItemMeta>{a.studentUsername}</ListItemMeta>
+                  <ListItemTitle>{a.studentUsername}</ListItemTitle>
                 </ListItemContent>
                 <ListItemTrailing>
-                  {!isAbsent && onToggleFlag && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className={styles.flagBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFlag(a.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onToggleFlag(a.id);
-                        }
-                      }}
-                      aria-label={t("grading.toggleFlag", "標記")}
-                    >
-                      {flaggedIds?.has(a.id) ? (
-                        <FlagFilled size={14} className={styles.flagActive} />
-                      ) : (
-                        <Flag size={14} className={styles.flagInactive} />
-                      )}
-                    </span>
-                  )}
                   {isAbsent ? (
-                    <Tag type="red" size="sm">{t("grading.absent", "缺交")}</Tag>
+                    <Tag type="red" size="sm">
+                      {t("grading.absent", "缺交")}
+                    </Tag>
                   ) : readOnly ? (
                     <Tag type="cool-gray" size="sm">
-                      {a.latestSubmissionStatus || t("grading.answered", "已作答")}
+                      {a.latestSubmissionStatus ||
+                        t("grading.answered", "已作答")}
                     </Tag>
                   ) : a.score !== null ? (
-                    <span className={styles.scoreText}>
+                    <span
+                      className={styles.scoreText}
+                      aria-label={t(
+                        "grading.questionScoreLabel",
+                        "得分 {{score}}，共 {{maxScore}} 分",
+                        {
+                          score: formatScore(a.score),
+                          maxScore: formatScore(a.maxScore),
+                        },
+                      )}
+                    >
                       {formatScore(a.score)}/{formatScore(a.maxScore)}
                     </span>
                   ) : (
-                    <Tag type="warm-gray" size="sm">{t("grading.ungraded", "未批改")}</Tag>
+                    <Tag type="warm-gray" size="sm">
+                      {t("grading.ungraded", "未批改")}
+                    </Tag>
                   )}
                 </ListItemTrailing>
               </ListItem>
@@ -419,7 +428,9 @@ export default function GradingByQuestionTabScreen({
     <AdminSplitLayout
       sidebar={sidebarContent}
       sidebarWidth={
-        isQuestionPaneCollapsed ? GRADING_COLLAPSED_LIST_WIDTH : GRADING_PRIMARY_LIST_WIDTH
+        isQuestionPaneCollapsed
+          ? GRADING_COLLAPSED_LIST_WIDTH
+          : GRADING_PRIMARY_LIST_WIDTH
       }
       middlePane={middlePaneContent}
       middlePaneWidth={GRADING_SECONDARY_LIST_WIDTH}
@@ -432,7 +443,7 @@ export default function GradingByQuestionTabScreen({
           selectedQuestion ? `Q${selectedQuestion.questionIndex}` : "—"
         }
         studentLabel={
-          selectedAnswer?.studentDisplayName ?? t("grading.noSelection", "未選擇")
+          selectedAnswer?.studentUsername ?? t("grading.noSelection", "未選擇")
         }
         questionContent={sidebarContent}
         studentContent={middlePaneContent}
@@ -453,9 +464,7 @@ export default function GradingByQuestionTabScreen({
           primary: selectedQuestion
             ? `Q${selectedQuestion.questionIndex}`
             : t("grading.question", "題目"),
-          secondary: selectedAnswer
-            ? `${selectedAnswer.studentDisplayName} (${selectedAnswer.studentUsername})`
-            : undefined,
+          secondary: selectedAnswer?.studentUsername,
         }}
       />
     </AdminSplitLayout>

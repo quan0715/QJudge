@@ -1,6 +1,5 @@
 import type {
   Submission,
-  SubmissionDetail,
 } from "@/core/entities/submission.entity";
 
 // ============================================================================
@@ -32,17 +31,4 @@ export interface SubmitSolutionPayload {
   language: string;
   code: string;
   contest_id?: string;
-}
-
-// ============================================================================
-// Port Interface
-// ============================================================================
-
-export interface ISubmissionRepository {
-  // Read operations
-  getSubmissions(params?: GetSubmissionsParams): Promise<GetSubmissionsResult>;
-  getSubmission(id: string): Promise<SubmissionDetail>;
-
-  // Write operations
-  submitSolution(data: SubmitSolutionPayload): Promise<SubmissionDetail>;
 }

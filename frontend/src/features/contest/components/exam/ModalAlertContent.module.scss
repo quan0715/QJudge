@@ -11,7 +11,7 @@
 
 // ─── Icon circle ────────────────────────────────────────────
 .iconCircle {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   border-radius: 50%;
   margin-bottom: layout.$spacing-06;
 }

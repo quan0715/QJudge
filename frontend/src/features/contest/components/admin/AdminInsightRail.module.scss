@@ -1,6 +1,7 @@
+@use "@carbon/layout";
 .card {
   display: grid;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   align-content: start;
   padding: 1.25rem;
 }
@@ -36,16 +37,16 @@
 
 .gradingSkeleton {
   display: grid;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .distributionList {
   display: grid;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .distributionCard {
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
   min-height: 0;
 }
 
@@ -64,13 +65,13 @@
 
 .distributionItem {
   display: grid;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .distributionMeta {
   display: flex;
   justify-content: space-between;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }

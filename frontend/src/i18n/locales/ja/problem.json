@@ -11,24 +11,13 @@
     "actions": {
       "back": "戻る",
       "delete": "削除",
-      "export": "エクスポート",
       "preview": "プレビュー",
       "save": "保存"
-    },
-    "exportModal": {
-      "cancel": "キャンセル",
-      "description": "バックアップや他のシステムへのインポート用に、問題データをYAML形式でエクスポートします。",
-      "scaleLabel": "スケール",
-      "scalePlaceholder": "スケールを選択",
-      "submit": "エクスポート",
-      "title": "問題をエクスポート"
     },
     "messages": {
       "deleteFailed": "削除失敗",
       "deleteSuccess": "削除成功",
       "deleteSuccessDetail": "リダイレクト中...",
-      "exportSuccess": "YAMLエクスポート成功",
-      "exportSuccessDetail": "ファイルがダウンロードされました",
       "loadFailed": "問題データの読み込みに失敗しました",
       "noPermission": "この問題を編集する権限がありません",
       "noPermissionTitle": "権限がありません",

@@ -66,5 +66,3 @@ export async function joinContestUseCase(
     };
   }
 }
-
-export default joinContestUseCase;

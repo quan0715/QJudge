@@ -43,7 +43,6 @@ class SubmissionListProblemFilterContractTests(TestCase):
             name="Filter Contract Contest",
             owner=cls.teacher,
             status="published",
-            visibility="public",
         )
         ContestParticipant.objects.create(
             contest=cls.contest,

@@ -50,6 +50,7 @@ export const ListFooter = ({ children, className }: { children: ReactNode; class
 // ─── ListItem ───────────────────────────────────────────────
 interface ListItemProps {
   children: ReactNode;
+  secondaryAction?: ReactNode;
   active?: boolean;
   danger?: boolean;
   size?: "default" | "compact";
@@ -62,6 +63,7 @@ interface ListItemProps {
 
 export const ListItem = ({
   children,
+  secondaryAction,
   active = false,
   danger = false,
   size = "default",
@@ -77,6 +79,28 @@ export const ListItem = ({
     size === "compact" && styles.itemCompact,
     className,
   );
+
+  if (secondaryAction) {
+    return (
+      <div
+        className={cx(cls, styles.itemComposite)}
+        data-testid={testId}
+      >
+        {asButton || onClick ? (
+          <button
+            type="button"
+            className={styles.itemPrimaryAction}
+            onClick={onClick}
+          >
+            {children}
+          </button>
+        ) : (
+          <div className={styles.itemPrimaryAction}>{children}</div>
+        )}
+        <div className={styles.itemSecondaryAction}>{secondaryAction}</div>
+      </div>
+    );
+  }
 
   if (asButton || onClick) {
     return (

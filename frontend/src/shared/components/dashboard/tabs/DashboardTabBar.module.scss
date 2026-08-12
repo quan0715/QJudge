@@ -1,15 +1,16 @@
+@use "@carbon/layout";
 .root {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 // padding="default" — keep the tab strip from hugging the block edge.
 // Mirrors the inline padding used by DashboardBlock padding="default".
 .padded {
-  padding-inline: var(--cds-spacing-05);
+  padding-inline: layout.$spacing-05;
 }
 
 .tabs {
@@ -30,7 +31,7 @@
   .root {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--cds-spacing-03);
+    gap: layout.$spacing-03;
   }
 
   .padded {

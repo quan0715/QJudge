@@ -319,10 +319,8 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         if not isinstance(items, list) or not items:
             raise DRFValidationError("items must be a non-empty list")
 
-        from apps.contests.services.contest_problem_service import (
-            resolve_bank_question_for_import,
-            materialize_problem_from_bank_item,
-        )
+        from apps.contests.services.contest_problem_service import materialize_problem_from_bank_item
+        from apps.question_bank.import_resolver import resolve_bank_question_for_import
 
         last_order = (
             ContestQuestionBinding.objects.filter(

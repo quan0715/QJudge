@@ -1,6 +1,7 @@
+@use "@carbon/layout";
 .root {
   display: grid;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   min-width: 0;
 }
 

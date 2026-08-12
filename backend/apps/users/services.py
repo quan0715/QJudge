@@ -10,7 +10,6 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .auth.options import get_auth_options  # noqa: F401 - compatibility re-export
 from .models import TeacherActivationInvite, User
 
 logger = logging.getLogger(__name__)

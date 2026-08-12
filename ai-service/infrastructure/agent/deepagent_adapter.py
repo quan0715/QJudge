@@ -57,8 +57,8 @@ from infrastructure.mcp.provider import MCPToolProvider
 
 logger = logging.getLogger(__name__)
 
-_MODEL_CREDITS_EXHAUSTED_MESSAGE = (
-    "The selected AI model has no remaining provider credits. "
+_MODEL_QUOTA_EXHAUSTED_MESSAGE = (
+    "The selected AI model has no remaining provider quota. "
     "Select another model or contact an administrator."
 )
 
@@ -66,8 +66,8 @@ _MODEL_CREDITS_EXHAUSTED_MESSAGE = (
 def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
     """Convert safe-to-recognize upstream model failures into API contract errors."""
     detail = str(exc).casefold()
-    if "no credits remaining" in detail or "insufficient_quota" in detail:
-        return "MODEL_CREDITS_EXHAUSTED", _MODEL_CREDITS_EXHAUSTED_MESSAGE
+    if "insufficient_quota" in detail or "insufficient balance" in detail:
+        return "MODEL_QUOTA_EXHAUSTED", _MODEL_QUOTA_EXHAUSTED_MESSAGE
     return "AGENT_ERROR", "Agent execution failed"
 
 

@@ -43,7 +43,6 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
             start_time=now - timedelta(minutes=5),
             end_time=now + timedelta(hours=2),
             owner=self.teacher,
-            visibility="public",
             status="published",
             cheat_detection_enabled=True,
         )

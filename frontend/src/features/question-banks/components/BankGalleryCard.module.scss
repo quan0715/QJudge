@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 /* ── Bank gallery card ── */
 
 .galleryCard {
@@ -22,7 +23,7 @@
 
 .banner {
   min-height: 7.25rem;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   position: relative;
   color: #fff;
   background: var(--cds-background-brand);
@@ -63,8 +64,8 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-03);
-  padding: 1.625rem var(--cds-spacing-05) var(--cds-spacing-05);
+  gap: layout.$spacing-03;
+  padding: 1.625rem layout.$spacing-05 layout.$spacing-05;
 }
 
 .description {
@@ -74,14 +75,14 @@
   color: var(--cds-text-secondary);
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .meta {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }
@@ -100,8 +101,8 @@
   .miniBody {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-04);
-    padding: var(--cds-spacing-04) var(--cds-spacing-05);
+    gap: layout.$spacing-04;
+    padding: layout.$spacing-04 layout.$spacing-05;
   }
 
   .miniIcon {
@@ -138,7 +139,7 @@
       color: var(--cds-text-secondary);
       display: inline-flex;
       align-items: center;
-      gap: var(--cds-spacing-02);
+      gap: layout.$spacing-02;
     }
   }
 }

@@ -1,11 +1,12 @@
+@use "@carbon/layout";
 // 此 module 只保留 student dashboard 內部 list / chart / tab content 的局部樣式。
 // 頁面層級 layout、title、metric、time 已改用 @/shared/components/dashboard 元件。
 
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--cds-spacing-03);
-  margin-top: var(--cds-spacing-02);
+  gap: layout.$spacing-03;
+  margin-top: layout.$spacing-02;
 }
 
 .tabPanel {
@@ -14,20 +15,20 @@
 
 .tabContent {
   display: grid;
-  gap: var(--cds-spacing-05);
-  padding: var(--cds-spacing-06);
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-06;
 }
 
 .actionStack,
 .modalStack {
   display: grid;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .headerActions {
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
 }
 
 .actionStackItem {
@@ -37,7 +38,7 @@
 .progressTrack {
   position: relative;
   block-size: 0.5rem;
-  margin-top: var(--cds-spacing-04);
+  margin-top: layout.$spacing-04;
   overflow: hidden;
   background: var(--cds-layer-accent-01);
 }
@@ -50,7 +51,7 @@
 
 .scoreDistributionChart {
   min-height: 11.25rem;
-  margin-top: var(--cds-spacing-04);
+  margin-top: layout.$spacing-04;
   overflow: hidden;
 }
 
@@ -65,14 +66,14 @@
 
 .announcementList {
   display: grid;
-  gap: var(--cds-spacing-05);
-  margin-top: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
+  margin-top: layout.$spacing-05;
 }
 
 .announcementItem {
   display: grid;
-  gap: var(--cds-spacing-04);
-  padding-top: var(--cds-spacing-05);
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-05;
   border-top: 1px solid var(--cds-border-subtle);
 }
 
@@ -106,7 +107,7 @@
 }
 
 .recordMeta {
-  margin-top: var(--cds-spacing-02);
+  margin-top: layout.$spacing-02;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
@@ -126,15 +127,15 @@
 
 .problemReportList {
   display: grid;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .problemReportItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   align-items: center;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
 }
 
@@ -142,17 +143,17 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .questionList {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .errorText {
-  margin: var(--cds-spacing-05) 0 0;
+  margin: layout.$spacing-05 0 0;
   color: var(--cds-text-error);
 }
 
@@ -162,14 +163,14 @@
 
 .studentQrModal {
   display: grid;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
   justify-items: center;
   color: var(--cds-text-secondary);
   text-align: center;
 }
 
 .studentQrFrame {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
   background: #fff;
 }
@@ -180,7 +181,7 @@
 
 @media (max-width: 672px) {
   .tabContent {
-    padding: var(--cds-spacing-05);
+    padding: layout.$spacing-05;
   }
 
   .problemReportItem {

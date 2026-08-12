@@ -1,7 +1,8 @@
+@use "@carbon/layout";
 .stepStack {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
 }
 
 .helperText {
@@ -14,7 +15,7 @@
 .typeSelector {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .typeOption {
@@ -24,7 +25,7 @@
   gap: 0.35rem;
   width: 100%;
   min-height: 5.5rem;
-  padding: 0.875rem var(--cds-spacing-05);
+  padding: 0.875rem layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
   border-radius: 0.25rem;
   background: var(--cds-layer-01, #262626);
@@ -56,7 +57,7 @@
 }
 
 .nameInput {
-  margin-top: var(--cds-spacing-02);
+  margin-top: layout.$spacing-02;
 }
 
 .sectionLabel {
@@ -68,8 +69,8 @@
 
 .questionCard {
   display: grid;
-  gap: var(--cds-spacing-04);
-  padding: 0.875rem var(--cds-spacing-05);
+  gap: layout.$spacing-04;
+  padding: 0.875rem layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
   border-radius: 0.25rem;
   background: var(--cds-layer-01, #262626);
@@ -79,12 +80,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
 }
 
 .questionCopy {
   display: grid;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   min-width: 0;
   align-self: center;
 }

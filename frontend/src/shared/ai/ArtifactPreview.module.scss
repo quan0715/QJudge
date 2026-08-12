@@ -1,17 +1,18 @@
+@use "@carbon/layout";
 .state {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   color: var(--cds-text-secondary);
 }
 
 .error {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   color: var(--cds-support-error);
   font-size: 0.875rem;
 }
 
 .code {
   margin: 0;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   white-space: pre;
   overflow: auto;
   font-family: "IBM Plex Mono", monospace;
@@ -34,7 +35,7 @@
 // Carbon DataTable handles styling; we only need the wrapper to scroll.
 
 .markdownWrapper {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   overflow: auto;
   height: 100%;
   min-height: 0;

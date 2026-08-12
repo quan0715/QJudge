@@ -1,7 +1,8 @@
+@use "@carbon/layout";
 .progressCard {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
   padding: 0;
   background: transparent;
 }
@@ -10,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .status {

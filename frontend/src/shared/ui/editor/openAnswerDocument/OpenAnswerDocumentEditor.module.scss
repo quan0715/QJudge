@@ -54,8 +54,8 @@
 .mathToken {
   display: inline-flex;
   align-items: center;
-  margin: 0 var(--cds-spacing-01);
-  padding: 0 var(--cds-spacing-01);
+  margin: 0 layout.$spacing-01;
+  padding: 0 layout.$spacing-01;
   border-radius: 4px;
   vertical-align: baseline;
   cursor: pointer;

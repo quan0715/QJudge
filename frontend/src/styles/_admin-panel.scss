@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 // ─── Shared Admin Panel Mixins ───
 // Extracted from Grading, Statistics, and Exam Editor panels
 // to unify sidebar items, card lists, and empty states.
@@ -8,7 +9,7 @@
 $pane-header-height: 2.5rem;
 
 @mixin sidebar-header {
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--cds-text-secondary);
@@ -31,7 +32,7 @@ $pane-header-height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   cursor: pointer;
   border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   transition: background 0.1s;
@@ -45,7 +46,7 @@ $pane-header-height: 2.5rem;
 @mixin sidebar-item-active {
   background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
   border-left: 3px solid var(--cds-interactive);
-  padding-left: calc(var(--cds-spacing-04) - 3px);
+  padding-left: calc(layout.$spacing-04 - 3px);
 
   &:hover {
     background: var(--cds-layer-selected-hover-01);
@@ -74,13 +75,13 @@ $pane-header-height: 2.5rem;
 }
 
 @mixin card-item {
-  padding: 0.625rem var(--cds-spacing-04);
+  padding: 0.625rem layout.$spacing-04;
   border-bottom: 1px solid var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
   cursor: pointer;
   transition: background 0.1s;
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-01);
+  gap: layout.$spacing-01;
 
   &:hover {
     background: var(--cds-layer-hover-01);
@@ -90,7 +91,7 @@ $pane-header-height: 2.5rem;
 @mixin card-item-active {
   background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
   border-left: 3px solid var(--cds-interactive);
-  padding-left: calc(var(--cds-spacing-04) - 3px);
+  padding-left: calc(layout.$spacing-04 - 3px);
 
   &:hover {
     background: var(--cds-layer-selected-hover-01);
@@ -121,8 +122,8 @@ $pane-header-height: 2.5rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--cds-spacing-03);
-  padding: var(--cds-spacing-09) var(--cds-spacing-07);
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-09 layout.$spacing-07;
   text-align: center;
   height: 100%;
   min-height: 200px;

@@ -4,7 +4,10 @@
 .card {
   max-width: 720px;
   background: var(--cds-layer);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
   border: 1px solid transparent;
 }
 
@@ -68,19 +71,19 @@
 .typeTagContent {
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .sourceBankTag {
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
 }
 
 .saveToBankButton {
   display: inline-flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
+  gap: layout.$spacing-02;
   padding: 0;
   border: none;
   background: none;
@@ -111,7 +114,10 @@
     line-height: inherit;
     color: inherit;
 
-    p, li, td, th {
+    p,
+    li,
+    td,
+    th {
       font-size: inherit;
       line-height: inherit;
     }
@@ -125,17 +131,19 @@
   font-style: italic;
 }
 
+// Edit-mode field groups keep their form spacing; preview-mode content uses
+// ExamQuestionPreviewSection as the shared visual owner.
 .answerArea {
   padding-top: layout.$spacing-05;
   border-top: 1px solid var(--cds-border-subtle);
 }
 
 .answerLabel {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  letter-spacing: 0.32px;
-  color: var(--cds-text-helper);
-  text-transform: uppercase;
   margin-bottom: layout.$spacing-04;
+  color: var(--cds-text-helper);
+  letter-spacing: 0.32px;
+  text-transform: uppercase;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
 .previewAnswers {
@@ -253,7 +261,6 @@
 
 .promptSection {
   margin-bottom: layout.$spacing-06;
-
 }
 
 .editOptionList {

@@ -1,9 +1,12 @@
-/* ═══ ScoreSlider — standalone component ═══ */
+@use "@carbon/layout";
+@use "@carbon/type";
 
 .sliderRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem;
   align-items: flex-start;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
+  min-width: 0;
 }
 
 .sliderArea {
@@ -11,76 +14,70 @@
   min-width: 0;
 }
 
-.sliderMaxOuter {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--cds-text-secondary);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.5rem;
-}
-
 .sliderPill {
   position: relative;
   height: 1.5rem;
-  border-radius: 0;
-  background: var(--cds-field, var(--cds-layer-01));
-  border: 1px solid var(--cds-border-subtle-01);
   overflow: hidden;
   cursor: pointer;
   touch-action: none;
   user-select: none;
+  background: var(--cds-field, var(--cds-layer-01));
+  border: 1px solid var(--cds-border-subtle-01);
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
+  }
 }
 
 .sliderFill {
   position: relative;
   z-index: 1;
-  height: 100%;
-  border-radius: 0;
   display: flex;
   align-items: center;
-  padding-left: var(--cds-spacing-03);
-  transition: width 0.06s ease-out, background-color 0.15s ease-out;
-  min-width: 1.5rem;
   box-sizing: border-box;
+  min-width: 1.5rem;
+  height: 100%;
+  padding-left: layout.$spacing-03;
+  transition: width 60ms ease-out, background-color 150ms ease-out;
 }
 
 .sliderFill::after {
-  content: "";
   position: absolute;
-  right: 4px;
   top: 50%;
+  right: layout.$spacing-02;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  content: "";
   transform: translateY(-50%);
-  width: 7px;
-  height: 7px;
+  border: 1px solid var(--cds-border-strong-01);
   border-radius: 50%;
-  background: var(--cds-background, #fff);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  background: var(--cds-background);
 }
 
 .sliderValue {
   position: relative;
   z-index: 2;
-  font-size: 0.75rem;
-  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
+  @include type.type-style("label-01");
 }
 
-.tickLine {
+.tickLine,
+.tickLineMajor {
   position: absolute;
+  z-index: 0;
   top: 22%;
   bottom: 22%;
-  width: 1.5px;
-  background: var(--cds-border-strong);
+  width: 1px;
+  transform: translateX(-0.5px);
   pointer-events: none;
-  z-index: 0;
-  transform: translateX(-0.75px);
+  background: var(--cds-border-strong-01);
 }
 
 .tickLineMajor {
-  composes: tickLine;
   top: 8%;
   bottom: 8%;
 }
@@ -88,21 +85,26 @@
 .sliderTicks {
   position: relative;
   height: 1.125rem;
-  margin: 0.1875rem 1px 0;
+  margin-top: layout.$spacing-02;
 }
 
 .tick {
   position: absolute;
   transform: translateX(-50%);
-  font-size: 0.6875rem;
-  color: var(--cds-text-primary);
+  color: var(--cds-text-secondary);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   line-height: 1;
   user-select: none;
+  @include type.type-style("helper-text-01");
 }
 
-/* ── Disabled state (objective questions) ── */
+.exactInput {
+  width: 5rem;
+  max-width: 5rem;
+  min-width: 0;
+  overflow: hidden;
+}
 
 .disabled {
   .sliderPill {
@@ -114,8 +116,18 @@
     display: none;
   }
 
-  .sliderMaxOuter,
   .tick {
-    color: var(--cds-text-secondary);
+    color: var(--cds-text-disabled);
+  }
+}
+
+@media (max-width: 672px) {
+  .sliderRow {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+  }
+
+  .exactInput {
+    width: 4.5rem;
+    max-width: 4.5rem;
   }
 }

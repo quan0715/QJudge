@@ -25,7 +25,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("QuestionSidebarScreen", () => {
-  it("renders question progress as a circular percentage indicator", () => {
+  it("shows partial progress as quiet count text", () => {
     const questions: QuestionProgress[] = [
       {
         questionId: "q-1",
@@ -48,6 +48,60 @@ describe("QuestionSidebarScreen", () => {
       />,
     );
 
-    expect(screen.getByTitle("50% (2/4)")).toBeInTheDocument();
+    const progress = screen.getByLabelText("已批改 2，共 4 份");
+    expect(progress).toHaveTextContent("2/4");
+  });
+
+  it("compresses completed progress into a labelled checkmark", () => {
+    const questions: QuestionProgress[] = [
+      {
+        questionId: "q-1",
+        questionIndex: 1,
+        questionType: "short_answer",
+        prompt: "Q1",
+        maxScore: 10,
+        totalAnswers: 4,
+        gradedCount: 4,
+        progressPercent: 100,
+        isObjective: false,
+      },
+    ];
+
+    render(
+      <QuestionSidebarScreen
+        questions={questions}
+        selectedQuestionId="q-1"
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("4/4 完成")).toBeInTheDocument();
+  });
+
+  it("shows a question type icon on every row, including adjacent questions of the same type", () => {
+    const baseQuestion: QuestionProgress = {
+      questionId: "q-1",
+      questionIndex: 1,
+      questionType: "short_answer",
+      prompt: "Q1",
+      maxScore: 2,
+      totalAnswers: 1,
+      gradedCount: 1,
+      progressPercent: 100,
+      isObjective: false,
+    };
+
+    render(
+      <QuestionSidebarScreen
+        questions={[
+          baseQuestion,
+          { ...baseQuestion, questionId: "q-2", questionIndex: 2, prompt: "Q2" },
+        ]}
+        selectedQuestionId="q-1"
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByTestId("question-type-marker")).toHaveLength(2);
   });
 });

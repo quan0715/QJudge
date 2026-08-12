@@ -1,5 +1,6 @@
+@use "@carbon/layout";
 .section {
-  padding: var(--cds-spacing-04);
+  padding: layout.$spacing-04;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
@@ -9,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .heading h5 {
@@ -29,18 +30,18 @@
 .timeline {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-05);
-  margin-top: var(--cds-spacing-04);
+  gap: layout.$spacing-05;
+  margin-top: layout.$spacing-04;
 }
 
 .slice {
-  padding-left: var(--cds-spacing-04);
+  padding-left: layout.$spacing-04;
   border-left: 2px solid var(--cds-border-interactive);
 }
 
 .sliceHeading {
   align-items: baseline;
-  margin-bottom: var(--cds-spacing-03);
+  margin-bottom: layout.$spacing-03;
   font-variant-numeric: tabular-nums;
 }
 
@@ -52,7 +53,7 @@
 .players {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
 }
 
 .player {
@@ -63,7 +64,7 @@
 
 .playerHeading {
   min-height: 2rem;
-  padding: var(--cds-spacing-02) var(--cds-spacing-03);
+  padding: layout.$spacing-02 layout.$spacing-03;
 }
 
 .player video {
@@ -76,5 +77,5 @@
 
 .empty {
   display: block;
-  margin: var(--cds-spacing-04) 0 0;
+  margin: layout.$spacing-04 0 0;
 }

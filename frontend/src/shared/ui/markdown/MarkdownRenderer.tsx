@@ -68,7 +68,7 @@ import { normalizeMarkdownText } from "@/shared/utils/markdownText";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
-import "@/styles/markdown.css";
+import "@/styles/markdown.scss";
 
 // Language display names
 const LANGUAGE_LABELS: Record<string, string> = {

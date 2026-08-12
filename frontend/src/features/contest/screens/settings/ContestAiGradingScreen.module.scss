@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .root {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
@@ -35,16 +36,16 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: var(--cds-spacing-05);
-  gap: var(--cds-spacing-04);
+  padding: layout.$spacing-05;
+  gap: layout.$spacing-04;
 }
 
 .cardAnchor {
-  scroll-margin-block: var(--cds-spacing-10);
+  scroll-margin-block: layout.$spacing-10;
 }
 
 .problemInfoTab {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
 }
 
 @media (max-width: 1024px) {

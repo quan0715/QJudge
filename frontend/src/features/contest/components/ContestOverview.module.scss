@@ -1,13 +1,14 @@
+@use "@carbon/layout";
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-06);
+  gap: layout.$spacing-06;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-04);
+  gap: layout.$spacing-04;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
@@ -26,14 +27,14 @@
 }
 
 .rulesContent {
-  margin-top: var(--cds-spacing-02);
+  margin-top: layout.$spacing-02;
 }
 
 .reportRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--cds-spacing-05);
+  gap: layout.$spacing-05;
 }
 
 .reportDescription {

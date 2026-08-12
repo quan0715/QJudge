@@ -62,7 +62,6 @@ class ContestFactory(factory.django.DjangoModelFactory):
     name = factory.Sequence(lambda n: f"SvcContest {n}")
     owner = factory.SubFactory(UserFactory, role="teacher")
     status = "published"
-    visibility = "public"
     start_time = factory.LazyFunction(lambda: timezone.now() - timedelta(hours=1))
     end_time = factory.LazyFunction(lambda: timezone.now() + timedelta(hours=1))
 

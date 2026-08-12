@@ -19,7 +19,10 @@ vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
     children: ReactNode;
     enableMath?: boolean;
   }) => (
-    <div data-testid="markdown-preview" data-enable-math={enableMath ? "true" : "false"}>
+    <div
+      data-testid="markdown-preview"
+      data-enable-math={enableMath ? "true" : "false"}
+    >
       {children}
     </div>
   ),
@@ -112,11 +115,18 @@ describe("ExamQuestionEditCard", () => {
 
     const previews = screen.getAllByTestId("markdown-preview");
     const reference = previews.find((node) => node.textContent === "$x=1$");
-    const explanation = previews.find((node) => node.textContent === "$\\int_0^1 x\\,dx=\\frac12$");
+    const explanation = previews.find(
+      (node) => node.textContent === "$\\int_0^1 x\\,dx=\\frac12$",
+    );
     expect(reference).toHaveAttribute("data-enable-math", "true");
     expect(explanation).toHaveAttribute("data-enable-math", "true");
-    expect(screen.getByText("評分參考答案")).toBeInTheDocument();
-    expect(screen.getByText("詳解（解題過程）")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "題目" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "評分參考答案" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "詳解（解題過程）" }),
+    ).toBeInTheDocument();
   });
 
   it("does not auto-save a locked grading edit", async () => {

@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .contest-problem-page {
   display: flex;
   flex-direction: column;
@@ -12,8 +13,8 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: var(--cds-spacing-05);
-    padding: var(--cds-spacing-07);
+    gap: layout.$spacing-05;
+    padding: layout.$spacing-07;
     text-align: center;
 
     h3 {
@@ -31,7 +32,7 @@
 
   &__error-banner {
     flex-shrink: 0;
-    padding: var(--cds-spacing-03);
+    padding: layout.$spacing-03;
     background-color: var(--cds-layer-01);
     border-bottom: 1px solid var(--cds-border-subtle-01);
   }
@@ -42,7 +43,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: var(--cds-spacing-04);
+    gap: layout.$spacing-04;
     color: var(--cds-text-secondary);
     font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   }

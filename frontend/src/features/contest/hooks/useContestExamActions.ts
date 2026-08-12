@@ -1,11 +1,9 @@
 import { useCallback } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import {
-  enterExamUseCase,
-  leaveExamUseCase,
-} from "@/core/usecases/exam";
-import { joinContestUseCase } from "@/core/usecases/contest";
+import { joinContestUseCase } from "@/core/usecases/contest/joinContest.usecase";
+import { enterExamUseCase } from "@/core/usecases/exam/enterExam.usecase";
+import { leaveExamUseCase } from "@/core/usecases/exam/leaveExam.usecase";
 import { contestRepository } from "@/infrastructure/api/repositories/contest.repository";
 import {
   endExam,
