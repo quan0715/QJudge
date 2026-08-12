@@ -312,6 +312,10 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
               <input
                 className={styles.searchInput}
                 type="text"
+                aria-label={t(
+                  "logs.searchPlaceholder",
+                  "搜尋使用者、事件類型、原因…",
+                )}
                 placeholder={t(
                   "logs.searchPlaceholder",
                   "搜尋使用者、事件類型、原因…",

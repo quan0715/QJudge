@@ -125,7 +125,7 @@ const ProblemSolveScreen = () => {
       <div className="problem-solve-screen">
         {renderHeader()}
         <div className="problem-solve-screen__content problem-solve-screen__content--loading">
-          <Loading />
+          <Loading description="載入題目資料" />
         </div>
       </div>
     );

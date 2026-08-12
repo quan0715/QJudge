@@ -33,14 +33,23 @@ const ContestProblemTable: React.FC<ContestProblemTableProps> = ({
         <div
           key={problem.id}
           className="contest-problem-table__row"
-          onClick={() => onRowClick?.(problem)}
-          style={{ cursor: onRowClick ? "pointer" : "default" }}
         >
           <div className="contest-problem-table__col--label">
             <Tag type="cyan">{problem.label || "-"}</Tag>
           </div>
           <div className="contest-problem-table__col--title">
-            {problem.title}
+            {onRowClick ? (
+              <Button
+                type="button"
+                kind="ghost"
+                className="contest-problem-table__open"
+                onClick={() => onRowClick(problem)}
+              >
+                {problem.title}
+              </Button>
+            ) : (
+              problem.title
+            )}
           </div>
           <div className="contest-problem-table__col--difficulty">
             <DifficultyBadge difficulty={problem.difficulty || "medium"} />
@@ -51,15 +60,13 @@ const ContestProblemTable: React.FC<ContestProblemTableProps> = ({
           {onRemove && (
             <div className="contest-problem-table__col--actions">
               <Button
+                className="contest-problem-table__remove"
                 kind="ghost"
                 size="sm"
                 hasIconOnly
                 renderIcon={TrashCan}
                 iconDescription="移除題目"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(problem.id.toString());
-                }}
+                onClick={() => onRemove(problem.id.toString())}
                 tooltipPosition="left"
               />
             </div>

@@ -8,13 +8,6 @@ $dashboard-padding-inline: layout.$spacing-10;
   padding-bottom: layout.$spacing-08;
 }
 
-// ── Hero action buttons ──
-.dashboard-hero__actions {
-  display: flex;
-  gap: layout.$spacing-03;
-  flex-wrap: wrap;
-}
-
 // ── Main content area ──
 .dashboard-classroom__main {
   min-width: 0;
@@ -289,15 +282,6 @@ $dashboard-padding-inline: layout.$spacing-10;
     align-items: flex-start;
   }
 
-  // Hero action buttons: full-width vertical stack
-  .dashboard-hero__actions {
-    flex-direction: column;
-
-    :global(.cds--btn) {
-      width: 100%;
-      max-width: none;
-    }
-  }
 }
 
 // Match QJudgeHeroWidget .inner padding at ≤1056px breakpoint

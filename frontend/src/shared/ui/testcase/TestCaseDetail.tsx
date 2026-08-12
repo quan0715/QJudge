@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import {
   Stack,
   CodeSnippet,
@@ -50,6 +50,8 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
   onClose,
   className,
 }) => {
+  const fieldId = useId();
+
   // Empty state
   if (!testCase) {
     return (
@@ -135,11 +137,10 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
         <Stack gap={5} className={styles.content}>
           {/* Input Section */}
           <div className={styles.section}>
-            <label className={styles.sectionLabel}>Input</label>
             {isWritable ? (
               <TextArea
-                id="testcase-input"
-                labelText=""
+                id={`${fieldId}-input`}
+                labelText="Input"
                 placeholder="輸入測試資料..."
                 value={input || ""}
                 onChange={(e) => onInputChange?.(e.target.value)}
@@ -147,19 +148,21 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
                 className={styles.textarea}
               />
             ) : (
-              <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
-                {input || "(Empty)"}
-              </CodeSnippet>
+              <>
+                <h4 className={styles.sectionLabel}>Input</h4>
+                <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
+                  {input || "(Empty)"}
+                </CodeSnippet>
+              </>
             )}
           </div>
 
           {/* Expected Output Section */}
           <div className={styles.section}>
-            <label className={styles.sectionLabel}>Expected Output</label>
             {isWritable ? (
               <TextArea
-                id="testcase-output"
-                labelText=""
+                id={`${fieldId}-output`}
+                labelText="Expected Output"
                 placeholder="預期輸出..."
                 value={output || ""}
                 onChange={(e) => onOutputChange?.(e.target.value)}
@@ -167,9 +170,12 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
                 className={styles.textarea}
               />
             ) : (
-              <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
-                {output || "(Empty)"}
-              </CodeSnippet>
+              <>
+                <h4 className={styles.sectionLabel}>Expected Output</h4>
+                <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
+                  {output || "(Empty)"}
+                </CodeSnippet>
+              </>
             )}
           </div>
         </Stack>

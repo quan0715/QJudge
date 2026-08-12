@@ -1,5 +1,5 @@
 .tabPanel {
-  padding: 1rem 0 0;
+  padding: var(--cds-spacing-05) 0 0;
   max-height: 60vh;
   overflow-y: auto;
 }

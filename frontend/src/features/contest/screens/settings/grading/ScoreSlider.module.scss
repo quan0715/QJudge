@@ -3,7 +3,7 @@
 .sliderRow {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .sliderArea {
@@ -39,7 +39,7 @@
   border-radius: 0;
   display: flex;
   align-items: center;
-  padding-left: 0.5rem;
+  padding-left: var(--cds-spacing-03);
   transition: width 0.06s ease-out, background-color 0.15s ease-out;
   min-width: 1.5rem;
   box-sizing: border-box;

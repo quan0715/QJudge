@@ -266,7 +266,7 @@ const CodeBlock: React.FC<{
       {/* Header with language label and copy button */}
       <div className="code-block-header">
         {displayLanguage && (
-          <Tag type="gray" size="sm">
+          <Tag type="gray" size="sm" className="code-language-tag">
             {displayLanguage}
           </Tag>
         )}

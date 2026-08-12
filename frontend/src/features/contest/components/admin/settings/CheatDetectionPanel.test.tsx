@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createMockContest, stubT } from "@/shared/mocks/contest.mock";
 import CheatDetectionPanel from "./CheatDetectionPanel";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 const createProps = (
   overrides?: Partial<ContestSettingsPanelProps>,

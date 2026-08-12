@@ -1,4 +1,6 @@
 import { useMemo, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   QJUDGE_FALLBACK_MODELS,
@@ -49,9 +51,20 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
 
 export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { right } = useWorkspace();
+  const routerLocation = useLocation();
   const location = useReactRouterCopilotSessionLocation();
   const translations = useMemo(() => new QJudgeCopilotTranslations(), []);
-  const enabled = user?.role === "teacher" || user?.role === "admin";
+  const hasCopilotRole = user?.role === "teacher" || user?.role === "admin";
+  const isStandaloneChat = routerLocation.pathname === "/chat";
+  const isContestAiGrading =
+    /^\/classrooms\/[^/]+\/contest\/[^/]+\/admin\/?$/.test(
+      routerLocation.pathname,
+    ) &&
+    new URLSearchParams(routerLocation.search).get("panel") === "ai-grading";
+  const enabled =
+    hasCopilotRole &&
+    (right.isOpenPreference || isStandaloneChat || isContestAiGrading);
 
   return (
     <QJudgeCopilotBoundary

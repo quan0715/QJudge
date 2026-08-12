@@ -99,8 +99,8 @@ function App() {
                     <SettingsDialogProvider>
                     <RecurProviderBridge>
                     <BrowserRouter>
-                      <QJudgeCopilotProvider>
                       <WorkspaceProvider>
+                      <QJudgeCopilotProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -209,8 +209,8 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
-                      </WorkspaceProvider>
                       </QJudgeCopilotProvider>
+                      </WorkspaceProvider>
                     </BrowserRouter>
                     <SettingsDialog />
                     </RecurProviderBridge>

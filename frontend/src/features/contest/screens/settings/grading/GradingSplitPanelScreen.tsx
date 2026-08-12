@@ -330,7 +330,8 @@ export default function GradingSplitPanelScreen({
         </div>
         <div className={styles.panelHeaderActions}>
           {onToggleFlag && (
-            <button
+              <button
+                type="button"
               className={`${styles.flagToggle} ${isFlagged ? styles.flagToggleActive : ""}`}
               onClick={() => onToggleFlag(answer.id)}
               aria-label={t("grading.toggleFlag", "標記")}

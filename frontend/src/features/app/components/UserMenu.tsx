@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   HeaderGlobalAction,
   HeaderPanel,
@@ -56,20 +56,16 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
   const [isExpandedInternal, setIsExpandedInternal] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const isExpanded = isExpandedInternal && !otherPanelExpanded;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      const userMenuButton = document.querySelector(
-        '[aria-label="' + t("header.userMenu") + '"]'
-      );
-      if (userMenuButton?.contains(target)) return;
-
-      const panel = target.closest(".cds--header-panel");
-      const switcher = target.closest(".user-menu-container");
-      if (panel || switcher) return;
+      if (triggerRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
 
       if (isExpanded) {
         setIsExpandedInternal(false);
@@ -81,6 +77,21 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isExpanded, onExpandedChange, t]);
 
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setIsExpandedInternal(false);
+      onExpandedChange?.(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isExpanded, onExpandedChange]);
+
   const handleToggle = () => {
     if (effectiveSettingsOnly) {
       openSettings();
@@ -89,6 +100,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     const newState = !isExpandedInternal;
     setIsExpandedInternal(newState);
     onExpandedChange?.(newState);
+  };
+
+  const handlePanelBlur = () => {
+    setIsExpandedInternal(false);
+    onExpandedChange?.(false);
   };
 
   const handleLogout = async () => {
@@ -130,10 +146,13 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   return (
     <>
       <button
+        ref={triggerRef}
         data-testid="user-menu-toggle-btn"
         type="button"
         className={`user-menu-trigger ${isExpanded ? "user-menu-trigger--active" : ""}`}
         aria-label={t("header.userMenu")}
+        aria-controls="user-menu-panel"
+        aria-expanded={isExpanded}
         onClick={handleToggle}
       >
         <Avatar
@@ -143,8 +162,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         />
       </button>
 
-      <HeaderPanel aria-label={t("header.userMenu")} expanded={isExpanded}>
-        <div className="user-menu-container">
+      <HeaderPanel
+        ref={panelRef}
+        aria-label={t("header.userMenu")}
+        expanded={isExpanded}
+        onHeaderPanelFocus={handlePanelBlur}
+      >
+        <div
+          id="user-menu-panel"
+          className="user-menu-container"
+          aria-hidden={!isExpanded}
+          inert={!isExpanded}
+        >
           {/* User Info */}
           <div className="user-menu-header">
             <Avatar
@@ -252,7 +281,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
                 type="button"
                 className="user-menu-link"
                 onClick={() => {
-                  navigate("/admin/review-queue");
+                  navigate("/system/review-queue");
                   setIsExpandedInternal(false);
                   onExpandedChange?.(false);
                 }}

@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import type { TestCaseItem } from "@/core/entities/testcase.entity";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layer } from "@carbon/react";
-import { 
-  TestCaseSidebarList, 
-  TEST_CASE_SIDEBAR_LABELS,
+import type { TestCaseData, TestCaseItem } from "@/core/entities/testcase.entity";
+import { TestCaseDetail } from "@/shared/ui/testcase/TestCaseDetail";
+import {
+  TestCaseSidebarList,
   type TestCaseGroup,
-  type CaseResultDisplay,
 } from "../execution";
-import { TestCaseDetail } from "./TestCaseDetail";
+import styles from "./EditTestCasesPanel.module.scss";
+
+const TEST_CASE_SIDEBAR_LABELS = { addAction: "新增測資" };
 
 interface EditTestCasesPanelProps {
   testCases: TestCaseItem[];
@@ -18,142 +19,170 @@ interface EditTestCasesPanelProps {
   onUpdateTestCase?: (id: string, input: string, output: string) => void;
 }
 
-// Convert TestCaseItem to CaseResultDisplay for shared components
-const toCaseResultDisplay = (tc: TestCaseItem, idx: number, type: 'sample' | 'custom'): CaseResultDisplay => ({
-  id: tc.id,
-  status: 'pending',
-  label: type === 'sample' ? `Sample ${idx}` : `Custom ${idx}`,
-  isHidden: tc.isHidden,
-  input: tc.input,
-  expectedOutput: tc.output,
+const toSidebarItem = (
+  testCase: TestCaseItem,
+  index: number,
+  type: "sample" | "custom",
+) => ({
+  id: testCase.id,
+  label: type === "sample" ? `Sample ${index + 1}` : `Custom ${index + 1}`,
+  isHidden: testCase.isHidden,
 });
 
-export const EditTestCasesPanel: React.FC<EditTestCasesPanelProps> = ({
+const toTestCaseData = (testCase: TestCaseItem): TestCaseData => ({
+  id: testCase.id,
+  input: testCase.input,
+  output: testCase.output ?? "",
+  source: testCase.isHidden
+    ? "hidden"
+    : testCase.source === "custom" && !testCase.isSample
+      ? "custom"
+      : "sample",
+  isHidden: testCase.isHidden,
+});
+
+export const EditTestCasesPanel = ({
   testCases,
+  selectedCaseId,
   onSelectCase,
   onAddTestCase,
   onDeleteTestCase,
   onUpdateTestCase,
-}) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const prevCount = useRef(testCases.length);
+}: EditTestCasesPanelProps) => {
+  const previousCount = useRef(testCases.length);
+  const [selection, setSelection] = useState(() => ({
+    externalId: selectedCaseId,
+    activeId: selectedCaseId,
+  }));
 
-  // Separate cases by source
-  const publicCases = useMemo(() => 
-    testCases.filter((tc) => tc.source === "public" || tc.isSample),
-    [testCases]
+  const sampleCases = useMemo(
+    () => testCases.filter((testCase) => testCase.source === "public" || testCase.isSample),
+    [testCases],
   );
-  const customCases = useMemo(() => 
-    testCases.filter((tc) => tc.source === "custom" && !tc.isSample),
-    [testCases]
+  const customCases = useMemo(
+    () => testCases.filter((testCase) => testCase.source === "custom" && !testCase.isSample),
+    [testCases],
+  );
+  const orderedCases = useMemo(
+    () => [...sampleCases, ...customCases],
+    [sampleCases, customCases],
   );
 
-  // Convert to CaseResultDisplay format for shared components
-  const allCasesDisplay: CaseResultDisplay[] = useMemo(() => [
-    ...publicCases.map((tc, idx) => toCaseResultDisplay(tc, idx, 'sample')),
-    ...customCases.map((tc, idx) => toCaseResultDisplay(tc, idx, 'custom')),
-  ], [publicCases, customCases]);
+  const groupedCases: TestCaseGroup = useMemo(
+    () => ({
+      sample: sampleCases.map((testCase, index) =>
+        toSidebarItem(testCase, index, "sample"),
+      ),
+      custom: customCases.map((testCase, index) =>
+        toSidebarItem(testCase, index, "custom"),
+      ),
+    }),
+    [sampleCases, customCases],
+  );
 
-  const groupedCases: TestCaseGroup = useMemo(() => ({
-    sample: publicCases.map((tc, idx) => toCaseResultDisplay(tc, idx, 'sample')),
-    custom: customCases.map((tc, idx) => toCaseResultDisplay(tc, idx, 'custom')),
-  }), [publicCases, customCases]);
-
-  // Auto-select new test case when added
   useEffect(() => {
-    if (testCases.length > prevCount.current) {
-        // New case added, select the last one
-        const newIndex = allCasesDisplay.length - 1;
-        if (newIndex >= 0) {
-            setSelectedIndex(newIndex);
-            const target = allCasesDisplay[newIndex];
-            if (target) {
-                onSelectCase(target.id);
-            }
-        }
+    if (testCases.length > previousCount.current) {
+      const target = orderedCases.at(-1);
+      if (target) {
+        onSelectCase(target.id);
+      }
     }
-    prevCount.current = testCases.length;
-  }, [testCases.length, allCasesDisplay, onSelectCase]);
+    previousCount.current = testCases.length;
+  }, [onSelectCase, orderedCases, testCases.length]);
 
-  // Sync internal selectedIndex with props if needed/desired (or just rely on internal State for now)
-  // But strictly we should respect if selectedCaseId changes from outside. 
-  // For now the requirement is "on Add", which is covered above.
-
-  const selectedCase = testCases[selectedIndex];
+  const effectiveSelectedId =
+    selection.externalId === selectedCaseId
+      ? selection.activeId
+      : selectedCaseId;
+  const matchedSelectedIndex = orderedCases.findIndex(
+    (testCase) => testCase.id === effectiveSelectedId,
+  );
+  const selectedIndex = Math.max(0, matchedSelectedIndex);
+  const selectedCase = orderedCases[selectedIndex];
   const isCustomCase = selectedCase?.source === "custom";
-  const selectedCaseDisplay = allCasesDisplay[selectedIndex];
 
-  // Handle case selection
-  const handleSelectCase = useCallback((idx: number) => {
-    setSelectedIndex(idx);
-    const caseItem = testCases[idx];
-    if (caseItem) {
-      onSelectCase(caseItem.id);
-    }
-  }, [testCases, onSelectCase]);
+  const handleSelectCase = useCallback(
+    (index: number) => {
+      const nextCase = orderedCases[index];
+      if (nextCase) {
+        setSelection({ externalId: selectedCaseId, activeId: nextCase.id });
+        onSelectCase(nextCase.id);
+      }
+    },
+    [onSelectCase, orderedCases, selectedCaseId],
+  );
 
-  // Handle add new case - Immediately create
   const handleAddNew = useCallback(() => {
     onAddTestCase("", "");
   }, [onAddTestCase]);
 
-  // Handle duplicate sample as custom
   const handleDuplicate = useCallback(() => {
     if (selectedCase) {
-      onAddTestCase(selectedCase.input || "", selectedCase.output || "");
+      onAddTestCase(selectedCase.input, selectedCase.output ?? "");
     }
-  }, [selectedCase, onAddTestCase]);
+  }, [onAddTestCase, selectedCase]);
 
-  // Handle delete
   const handleDelete = useCallback(() => {
-    if (selectedCase && isCustomCase) {
-      onDeleteTestCase(selectedCase.id);
-      // Select previous or next case
-      const newIndex = Math.max(0, selectedIndex - 1);
-      setSelectedIndex(newIndex);
+    if (!selectedCase || !isCustomCase) return;
+    const remainingCases = orderedCases.filter(
+      (testCase) => testCase.id !== selectedCase.id,
+    );
+    const fallbackCase =
+      remainingCases[Math.max(0, selectedIndex - 1)] ?? remainingCases[0];
+    onDeleteTestCase(selectedCase.id);
+    if (fallbackCase) {
+      setSelection({ externalId: selectedCaseId, activeId: fallbackCase.id });
+      onSelectCase(fallbackCase.id);
     }
-  }, [selectedCase, isCustomCase, onDeleteTestCase, selectedIndex]);
+  }, [
+    isCustomCase,
+    onDeleteTestCase,
+    onSelectCase,
+    orderedCases,
+    selectedCase,
+    selectedCaseId,
+    selectedIndex,
+  ]);
 
-  // Handle direct update
-  const handleUpdate = useCallback((field: 'input' | 'expectedOutput', value: string) => {
-    if (selectedCase && isCustomCase && onUpdateTestCase) {
-        const input = field === 'input' ? value : (selectedCase.input || "");
-        const output = field === 'expectedOutput' ? value : (selectedCase.output || "");
-        onUpdateTestCase(selectedCase.id, input, output);
-    }
-  }, [selectedCase, isCustomCase, onUpdateTestCase]);
+  const handleUpdate = useCallback(
+    (field: "input" | "expectedOutput", value: string) => {
+      if (!selectedCase || !isCustomCase || !onUpdateTestCase) return;
+      onUpdateTestCase(
+        selectedCase.id,
+        field === "input" ? value : selectedCase.input,
+        field === "expectedOutput" ? value : selectedCase.output ?? "",
+      );
+    },
+    [isCustomCase, onUpdateTestCase, selectedCase],
+  );
 
   return (
-    <Layer level={0} style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-       <div style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden" }}>
-        {/* Sidebar - Using shared component */}
-        <div style={{ 
-          width: "160px",
-          minWidth: "160px",
-          maxWidth: "160px",
-          flexShrink: 0,
-          overflowY: "auto", 
-          borderRight: "1px solid var(--cds-border-subtle)" 
-        }}>
+    <Layer level={0} className={styles.panel}>
+      <div className={styles.content}>
+        <div className={styles.sidebar}>
           <TestCaseSidebarList
             selectedIndex={selectedIndex}
             onSelect={handleSelectCase}
             groupedCases={groupedCases}
             onAdd={handleAddNew}
-            isAddingNew={false} // Always false as we add immediately
             labels={TEST_CASE_SIDEBAR_LABELS}
           />
         </div>
 
-        {/* Detail - Using shared component with edit mode */}
-        <div style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
+        <div className={styles.detail}>
           <TestCaseDetail
-            result={selectedCaseDisplay}
-            editable={true}
-            onUpdate={handleUpdate}
+            testCase={selectedCase ? toTestCaseData(selectedCase) : null}
+            mode={
+              selectedCase?.isHidden
+                ? "hidden"
+                : isCustomCase
+                  ? "writable"
+                  : "readonly"
+            }
+            onInputChange={(value) => handleUpdate("input", value)}
+            onOutputChange={(value) => handleUpdate("expectedOutput", value)}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
-            isCustomCase={isCustomCase}
           />
         </div>
       </div>

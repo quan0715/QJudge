@@ -4,7 +4,7 @@ import {
   ActionRow,
   FieldRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import {
   getAccessPolicyView,
   getEvidencePolicyView,

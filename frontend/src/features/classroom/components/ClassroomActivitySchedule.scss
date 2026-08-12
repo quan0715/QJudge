@@ -74,7 +74,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 2px;
+  padding-top: var(--cds-spacing-01);
   gap: 1px;
   user-select: none;
 }
@@ -111,7 +111,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-02;
-  padding-top: 2px;
+  padding-top: var(--cds-spacing-01);
   min-width: 0;
 }
 

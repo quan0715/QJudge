@@ -13,7 +13,7 @@ from enum import StrEnum
 from typing import Any, AsyncGenerator, Protocol
 from uuid import UUID
 
-from deepagents import create_deep_agent
+from deepagents import FilesystemPermission, create_deep_agent
 from deepagents.backends.composite import CompositeBackend
 from deepagents.backends.filesystem import FilesystemBackend
 from deepagents.backends.state import StateBackend
@@ -56,6 +56,19 @@ from infrastructure.artifacts.tools import build_artifact_tools
 from infrastructure.mcp.provider import MCPToolProvider
 
 logger = logging.getLogger(__name__)
+
+_MODEL_CREDITS_EXHAUSTED_MESSAGE = (
+    "The selected AI model has no remaining provider credits. "
+    "Select another model or contact an administrator."
+)
+
+
+def _classify_agent_failure(exc: Exception) -> tuple[str, str]:
+    """Convert safe-to-recognize upstream model failures into API contract errors."""
+    detail = str(exc).casefold()
+    if "no credits remaining" in detail or "insufficient_quota" in detail:
+        return "MODEL_CREDITS_EXHAUSTED", _MODEL_CREDITS_EXHAUSTED_MESSAGE
+    return "AGENT_ERROR", "Agent execution failed"
 
 
 class AgentOperation(StrEnum):
@@ -138,7 +151,7 @@ def _qjudge_backend_factory(rt: Any) -> CompositeBackend:
         virtual_mode=True,
     )
     return CompositeBackend(
-        default=StateBackend(rt),
+        default=StateBackend(),
         routes={"/app/.deepagents/": deepagents_fs},
     )
 
@@ -418,6 +431,16 @@ class _DeepAgentRuntime:
             "backend": _qjudge_backend_factory,
             "skills": skills,
             "memory": memory,
+            # Skills and AGENTS.md are mounted content. The agent may read them,
+            # but task output belongs in Artifact Service, never in the deployed
+            # application's `.deepagents` tree.
+            "permissions": [
+                FilesystemPermission(
+                    operations=["write"],
+                    paths=["/app/.deepagents/**"],
+                    mode="deny",
+                )
+            ],
             "middleware": [
                 # Must be the last middleware: inspects the final tool_calls produced by
                 # the model turn and pauses execution for human approval on write actions.
@@ -785,11 +808,12 @@ class _DeepAgentRuntime:
 
         except Exception as exc:
             logger.exception("DeepAgent execution failed: %s", exc)
+            error_code, message = _classify_agent_failure(exc)
             yield to_sse_dict(
                 RunFailed(
                     run_id=run_id,
-                    error_code="AGENT_ERROR",
-                    message="Agent execution failed",
+                    error_code=error_code,
+                    message=message,
                 )
             )
 

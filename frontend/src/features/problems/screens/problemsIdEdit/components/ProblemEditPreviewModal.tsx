@@ -21,7 +21,6 @@ const ProblemEditPreviewModal: React.FC<ProblemEditPreviewModalProps> = ({
       modalHeading="題目預覽"
       passiveModal
       size="lg"
-      className="problem-edit-page__preview-modal"
     >
       <ProblemPreview problem={previewData} compact />
     </Modal>

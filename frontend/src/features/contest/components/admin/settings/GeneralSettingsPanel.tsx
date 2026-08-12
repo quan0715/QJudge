@@ -12,7 +12,7 @@ import {
   Section,
   FieldRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 interface GeneralSettingsPanelProps extends ContestSettingsPanelProps {
   startDateInput: Date | null;

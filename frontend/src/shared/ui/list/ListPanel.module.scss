@@ -57,7 +57,7 @@
 .item {
   display: flex;
   align-items: center;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem var(--cds-spacing-04);
   cursor: pointer;
   border: none;
   border-bottom: 1px solid var(--cds-border-subtle-01);
@@ -79,7 +79,7 @@
 .itemActive {
   background-color: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
   border-left: 3px solid var(--cds-interactive);
-  padding-left: calc(0.75rem - 3px);
+  padding-left: calc(var(--cds-spacing-04) - 3px);
 
   &:hover {
     background-color: var(--cds-layer-selected-hover-01);
@@ -130,7 +130,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--cds-spacing-01);
 }
 
 .title {

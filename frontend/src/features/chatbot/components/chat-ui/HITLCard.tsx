@@ -1,4 +1,11 @@
-import { Button, InlineNotification, Tag } from "@carbon/react";
+import {
+  Accordion,
+  AccordionItem,
+  Button,
+  InlineNotification,
+  Tag,
+} from "@carbon/react";
+import { Information } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { CopilotApprovalCardProps } from "@copilot";
 import { getHITLRenderer } from "./hitlRendererRegistry";
@@ -30,28 +37,75 @@ function PrettyJsonFallback({ args }: { args: Record<string, unknown> }) {
   );
 }
 
-function ActionItem({ name, args }: { name: string; args?: Record<string, unknown> }) {
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+function summarizeValue(value: unknown, t: Translate): string {
+  if (Array.isArray(value)) {
+    return t("ui.toolArrayItems", { count: value.length });
+  }
+  if (value !== null && typeof value === "object") {
+    return t("ui.toolObjectFields", { count: Object.keys(value).length });
+  }
+  if (value === null) return "null";
+  if (typeof value === "string") return value || "—";
+  return String(value);
+}
+
+function summarizeActionArguments(args: Record<string, unknown>, t: Translate) {
+  return Object.entries(args)
+    .filter(([key]) => key !== "action")
+    .map(([key, value]) => ({
+      key,
+      value: summarizeValue(value, t),
+    }));
+}
+
+function ActionItem({
+  name,
+  args,
+  t,
+  showIdentity,
+}: {
+  name: string;
+  args?: Record<string, unknown>;
+  t: Translate;
+  showIdentity: boolean;
+}) {
   const actionArg = typeof args?.action === "string" ? args.action : undefined;
   const renderer = getHITLRenderer(name, actionArg);
   const safeArgs = args ?? {};
+  const summary = summarizeActionArguments(safeArgs, t);
 
   return (
     <div className={styles.actionItem}>
-      <div className={styles.actionHeader}>
-        <span className={styles.toolName}>{name}</span>
-        {actionArg && (
-          <Tag type="blue" size="sm" className={styles.actionTag}>
-            {actionArg}
-          </Tag>
-        )}
-      </div>
-      <div className={styles.actionBody}>
-        {renderer ? (
-          renderer(safeArgs)
-        ) : Object.keys(safeArgs).length > 0 ? (
-          <PrettyJsonFallback args={safeArgs} />
-        ) : null}
-      </div>
+      {showIdentity && (
+        <div className={styles.actionHeader}>
+          <span className={styles.toolName}>{name}</span>
+          {actionArg && (
+            <Tag type="blue" size="sm" className={styles.actionTag}>
+              {actionArg}
+            </Tag>
+          )}
+        </div>
+      )}
+      {Object.keys(safeArgs).length > 0 && (
+        <dl className={styles.actionSummary}>
+          {summary.map(({ key, value }) => (
+            <div className={styles.summaryRow} key={key}>
+              <dt>{key}</dt>
+              <dd title={value}>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {renderer && <div className={styles.actionBody}>{renderer(safeArgs)}</div>}
+      {summary.length > 0 && (
+        <Accordion align="start" className={styles.technicalDetails}>
+          <AccordionItem title={t("ui.toolTechnicalDetails")}>
+            <PrettyJsonFallback args={safeArgs} />
+          </AccordionItem>
+        </Accordion>
+      )}
     </div>
   );
 }
@@ -68,6 +122,12 @@ export function HITLCard({
 
   if (!actions.length) return null;
 
+  const primaryAction = actions[0];
+  const confirmationTitle =
+    typeof primaryAction.arguments?.action === "string"
+      ? primaryAction.arguments.action
+      : primaryAction.name;
+
   const handleDecision = (decision: "approve" | "reject") => {
     if (pending) return;
     onSubmit(decision);
@@ -77,9 +137,17 @@ export function HITLCard({
     <div className={styles.wrapper}>
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <span className={styles.headerLabel}>{t("ui.toolConfirm")}</span>
+          <Information className={styles.headerIcon} size={20} aria-hidden="true" />
+          <div className={styles.headerCopy}>
+            <span className={styles.headerEyebrow}>
+              {t("ui.toolConfirmationRequired")}
+            </span>
+            <span className={styles.headerLabel}>{confirmationTitle}</span>
+          </div>
           {actions.length > 1 && (
-            <Tag type="gray" size="sm">{actions.length} 個操作</Tag>
+            <Tag type="gray" size="sm" className={styles.actionCount}>
+              {t("ui.toolActionCount", { count: actions.length })}
+            </Tag>
           )}
         </div>
 
@@ -89,6 +157,8 @@ export function HITLCard({
               key={`${action.name}-${idx}`}
               name={action.name}
               args={action.arguments}
+              t={t}
+              showIdentity={actions.length > 1}
             />
           ))}
         </div>
@@ -107,18 +177,16 @@ export function HITLCard({
           {request.allowedDecisions.includes("approve") && (
             <Button
               kind="primary"
-              size="lg"
               className={styles.footerBtn}
               disabled={pending}
               onClick={() => handleDecision("approve")}
             >
-              {t("ui.confirmAction")}
+              {pending ? t("ui.processing") : t("ui.confirmAction")}
             </Button>
           )}
           {request.allowedDecisions.includes("reject") && (
             <Button
-              kind="danger"
-              size="lg"
+              kind="secondary"
               className={styles.footerBtn}
               disabled={pending}
               onClick={() => handleDecision("reject")}

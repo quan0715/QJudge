@@ -5,6 +5,7 @@ on:
     branches: [main, dev]
     paths:
       - "frontend/**"
+      - ".codex/skills/qjudge-*/**"
       - "backend/**"
       - "integrity-service/**"
       - "mcp-server/**"
@@ -23,6 +24,7 @@ on:
     branches: [main, dev]
     paths:
       - "frontend/**"
+      - ".codex/skills/qjudge-*/**"
       - "backend/**"
       - "integrity-service/**"
       - "mcp-server/**"
@@ -81,6 +83,15 @@ jobs:
       - name: Install Frontend Deps
         run: npm ci
         working-directory: frontend
+
+      - name: Frontend Quality Gate Contract Tests
+        run: node --test .codex/skills/qjudge-quality-gates-owner/scripts/*.test.js
+
+      - name: Frontend Naming, Architecture, and Carbon Gates
+        run: |
+          node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
+          node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src --policy compat
+          bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all
 
       - name: i18n Health Check (Reporting)
         run: python3 scripts/i18n/i18n_check.py

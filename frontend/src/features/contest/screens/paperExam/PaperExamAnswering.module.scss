@@ -10,9 +10,6 @@
 .title           { @include exam.exam-title; }
 .toolbarCenter   { @include exam.exam-toolbar-center; }
 
-.toolbarLeft :global(.cds--btn),
-.toolbarCenter :global(.cds--btn) { @include exam.exam-toolbar-btn-height; }
-
 .headerActions {
   display: flex;
   align-items: center;

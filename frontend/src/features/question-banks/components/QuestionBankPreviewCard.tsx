@@ -11,7 +11,7 @@ import {
   formatDownloadCount,
   getQuestionDisplayTitle,
   resolveExamQuestionType,
-} from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+} from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import styles from "./QuestionBankPreviewCard.module.scss";
 
 const DIFFICULTY_LABEL_KEY = {

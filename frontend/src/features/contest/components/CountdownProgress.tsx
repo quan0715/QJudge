@@ -80,9 +80,6 @@ export function CountdownProgress({
           size="small"
           value={display.percent}
           status={phase === "after" ? "finished" : "active"}
-          className={`${styles.progressBar} ${
-            phase === "during" ? styles.running : ""
-          }`}
         />
       ) : null}
     </div>

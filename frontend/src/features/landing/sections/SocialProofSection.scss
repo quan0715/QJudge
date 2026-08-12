@@ -164,8 +164,8 @@
 @media (prefers-reduced-motion: reduce) {
   .landing-social-proof-section__card,
   .landing-social-proof-section__card-image {
-    transition: none !important;
-    animation: none !important;
+    transition: none;
+    animation: none;
   }
 }
 
@@ -184,4 +184,3 @@
 [data-carbon-theme="g90"] .landing-social-proof-section__card-content {
   border-color: rgba(163, 191, 240, 0.18);
 }
-

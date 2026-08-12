@@ -428,7 +428,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
   if (loadingQuestions) {
     return (
       <div className={styles.centered}>
-        <Loading withOverlay={false} small />
+        <Loading
+          withOverlay={false}
+          small
+          description={t("answering.loading")}
+        />
         <span>{t("answering.loading")}</span>
       </div>
     );

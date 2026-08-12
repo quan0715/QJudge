@@ -19,7 +19,15 @@ const __dirname = path.dirname(__filename);
 const I18N_DIR = path.join(__dirname, "../src/i18n/locales");
 const REFERENCE_LANG = "zh-TW";
 const TARGET_LANGS = ["en", "ja", "ko"];
-const NAMESPACES = ["common", "problem", "contest", "admin", "docs", "landing"];
+const NAMESPACES = [
+  "common",
+  "problem",
+  "contest",
+  "admin",
+  "docs",
+  "landing",
+  "chatbot",
+];
 
 const colors = {
   reset: "\x1b[0m",

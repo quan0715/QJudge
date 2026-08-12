@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SettingsModal, type SettingsModalNavItem } from "./SettingsModal";
 
 vi.mock("@carbon/react", () => ({
+  Button: ({ children, ...props }: { children: ReactNode }) => (
+    <button {...props}>{children}</button>
+  ),
   Modal: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
@@ -60,5 +63,21 @@ describe("SettingsModal", () => {
 
     expect(source).toContain("[navItems]");
     expect(source).not.toContain("...navItems.map");
+  });
+
+  it("uses public Carbon modal and button composition", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/shared/ui/modal/SettingsModal.tsx"),
+      "utf8",
+    );
+    const styles = readFileSync(
+      resolve(process.cwd(), "src/shared/ui/modal/SettingsModal.scss"),
+      "utf8",
+    );
+
+    expect(source).toContain("isFullWidth");
+    expect(source).not.toContain("<button");
+    expect(styles).not.toMatch(/\.(?:cds|bx)--/);
+    expect(styles).not.toContain("!important");
   });
 });

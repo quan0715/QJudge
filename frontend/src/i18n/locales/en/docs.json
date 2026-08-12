@@ -16,18 +16,27 @@
   "nav": {
     "back": "Back",
     "items": {
+      "admin-account": "Create an administrator account",
       "admin-overview": "Admin Features",
       "classroom-management": "Classroom Management",
+      "classroom-roster": "Manage the student roster",
+      "classroom-setup": "Create a classroom",
       "common-errors": "Common Errors",
       "contest-extension-architecture": "Contest Extension Architecture Guide",
       "contests": "Joining Contests",
       "contributing": "Contributing",
       "create-exam": "Create Exam & Questions",
+      "deployment": "Deploy from a single host",
+      "deployment-options": "Add optional features",
+      "deployment-storage": "Prepare file storage",
+      "deployment-troubleshooting": "Troubleshoot deployment",
       "dev-setup": "Development Setup",
       "e2e-testing": "E2E Testing Guide",
       "exam-grading": "Exam Grading & Results",
       "exam-precheck-anticheat": "Exam Pre-check and Anti-Cheat Sequence",
+      "exam-preparation": "Prepare an exam",
       "exam-proctoring": "Proctoring & Interventions",
+      "exam-review": "Review exam content",
       "exam-statistics": "Exam Statistics & Review",
       "identity-auth-extension": "Identity Authentication Maintenance and Extension",
       "judge-system": "Judge System",
@@ -44,7 +53,8 @@
       "teacher-exam-workflow": "Formal Exam Workflow",
       "teacher-first-class-setup": "First Class Setup",
       "teacher-grading-feedback": "Grading, Analytics, and Feedback",
-      "teacher-overview": "Teacher Overview"
+      "teacher-overview": "Teacher Overview",
+      "teacher-qualification": "Manage teacher access"
     },
     "lastUpdated": "Last updated",
     "onThisPage": "On this page",
@@ -53,6 +63,8 @@
     "sections": {
       "admin-guide": "Admin Guide",
       "developer-guide": "Developer Guide",
+      "deployment": "Setup and Deployment",
+      "first-exam": "Prepare Your First Exam",
       "getting-started": "Getting Started",
       "reference": "Reference",
       "teacher-guide": "Teacher Guide",
@@ -64,6 +76,11 @@
     "title": "Documentation"
   },
   "quickLinks": {
+    "administration": {
+      "description": "Create the first administrator account and decide which accounts can use teacher features",
+      "tag": "Step 2",
+      "title": "Set up administrators and teacher access"
+    },
     "admin": {
       "description": "Manage users, permissions and system configuration",
       "tag": "Admin",
@@ -74,10 +91,25 @@
       "tag": "Contest",
       "title": "Join Contests"
     },
+    "classroom": {
+      "description": "Create a classroom with a teacher account, then add or import this term's student roster",
+      "tag": "Step 3",
+      "title": "Prepare a classroom and roster"
+    },
+    "deployment": {
+      "description": "Complete a minimal deployment on one Ubuntu host, then add HTTPS and external services as needed",
+      "tag": "Step 1",
+      "title": "Set up and deploy"
+    },
     "developer": {
       "description": "Set up development environment and learn contribution workflow",
       "tag": "Developer",
       "title": "Contribute Code"
+    },
+    "exam": {
+      "description": "Create an exam, arrange its questions and schedule, then verify each checklist item before publishing",
+      "tag": "Step 4",
+      "title": "Prepare the first exam"
     },
     "student": {
       "description": "Learn how to browse problems, write code and submit for evaluation",

@@ -1,83 +1,83 @@
 # Carbon Policy (QJudge)
 
-## Must
-- Use Carbon components/tokens first.
-- Keep global overrides in a single allowlist file.
-- Use token-based spacing/typography/colors.
+## Carbon MCP verification snapshot
 
-## Must not
-- Override `.cds--*` / `.bx--*` internals directly.
-- Use `!important`.
-- Hard-code theme colors that fight Carbon tokens.
+- Verified: 2026-08-12 via IBM Carbon MCP `docs_search` and `code_search`.
+- React examples: Carbon v11, repository tag `v11.113.0`, MCP index updated 2026-08-07.
+- QJudge lockfile at verification time: `@carbon/react` `1.97.0`; `package.json` range `^1.96.0`.
+- When MCP returns a newer source tag or changed API, follow the new public API and update this snapshot plus skill metadata in the same change.
 
-## Theme baseline
-- App-level `<Theme theme="white|g10|g90|g100">`.
-- Keep `data-carbon-theme` aligned for CSS token behavior.
+## Public API boundary
 
-## Component style guidance
-- Prefer adjusting composition and spacing before custom visual skins.
-- Keep focus/hover/active states accessible and token-driven.
+- Use Carbon components, documented props, theme tokens, layout tokens, and app-owned wrapper classes first.
+- Never select, emit, test against, or style `.cds--*` / `.bx--*` internal class names in production code.
+- Never use `!important`; repair ownership, composition, or specificity.
+- Do not copy Carbon DOM structure into app components. Internal markup can change between releases.
+- A compatibility exception needs a named app-owned boundary, a reason, an owner, and a removal condition. It must not become a generic override file.
 
----
+## Theme and tokens
 
-## ⚠️ 已知陷阱 & 修復模式
+- Keep app-level `<Theme theme="white|g10|g90|g100">` and `data-carbon-theme` aligned.
+- Use Carbon color, spacing, typography, layer, border, and focus tokens. A numeric fallback inside `var(--cds-..., fallback)` is acceptable only when runtime support requires it.
+- Hard-coded colors are limited to media overlays, syntax highlighting, editors, charts, and imported brand artwork; document why a semantic Carbon token cannot represent the value.
+- Preserve Carbon focus, hover, active, disabled, and high-contrast states. Do not paint over them with custom skins.
 
-### 1. 巢狀 Carbon Modal — focus trap 互搶輸入
+## Component decisions
 
-**現象**：外層 `Modal`（如 `SettingsModal`）開著時，從其子元件再開一個內層 `Modal`（如 `AddMembersModal`），內層的 `<input>` / `<textarea>` 無法獲得焦點、無法輸入。
+| Need | Carbon-first choice | Required review |
+| --- | --- | --- |
+| Action | `Button`; `IconButton` or `Button hasIconOnly` for icon-only actions | Icon-only actions need `label`, `iconDescription`, or equivalent accessible name. Button labels use concise sentence case and hierarchy follows primary/secondary/ghost/danger intent. |
+| Text/form input | `TextInput`, `TextArea`, `NumberInput`, `Checkbox`, `Toggle`, `RadioButton` | Give controls a stable `id` and programmatic label. Associate helper/error text. Use read-only when users must still perceive the value; disabled controls are not focusable. |
+| Single submitted choice | `Select` | Use inside a form when one value is submitted. Provide `id` and `labelText`. |
+| Filter, sort, or action choice | `Dropdown`, `ComboBox`, `MultiSelect` | Provide `id` plus `titleText` or an equivalent label. `Dropdown` is not a drop-in replacement for form `Select`. |
+| Dialog | `Modal` | Provide concise `modalHeading` or an equivalent accessible label, predictable initial focus, close behavior, and focus return. Avoid stacking dialogs when an in-modal step can work. |
+| Status message | `InlineNotification`, `ToastNotification`, or `ActionableNotification` | Inline is contextual task-flow state; toast is transient global feedback; actionable is only for an interactive recovery path. QJudge operation success/failure normally goes through `useToast`. |
+| Loading | `Loading`, `InlineLoading`, skeleton variants | Localize `description`/`iconDescription`; use `InlineLoading` next to an in-progress action and a skeleton for initial content loading. Keep `aria-live` proportional to urgency. |
+| Tabular data | `DataTable` with Carbon table subcomponents | Preserve `TableContainer`, header/row prop helpers, toolbar semantics, and an `aria-label` or visible title. Do not restyle internal table selectors. |
+| Page layout | `Grid` and `Column` | Follow the Carbon 2x Grid, responsive column spans, and token spacing before custom fixed gutters. |
+| Clickable surface | `ClickableTile`, `Button`, or semantic link | A custom `div`/`span` click target must supply role, tab stop, keyboard activation, visible focus, and accessible name. Prefer the native/Carbon element. |
 
-**根本原因**：Carbon Modal 使用 sentinel + `onBlur` 的 `wrapFocus()` 機制。每次焦點離開外層 modal 的 `bodyNode`，`wrapFocus()` 就把焦點強制拉回。內層 modal 的 DOM 是透過 `createPortal` 放在 `modal-portal-root`，不在 `bodyNode` 裡，因此焦點一進入內層就被劫持。
+## Raw HTML exceptions
 
-```js
-// wrapFocus 內部邏輯（@carbon/react/es/internal/wrapFocus.js）
-if (!bodyNode.contains(currentActiveNode) &&
-    !elementOrParentIsFloatingMenu(currentActiveNode, selectorsFloatingMenus)) {
-  // 強制 focus 回 outer modal ← 這行殺死 inner modal 的輸入
-}
-```
+- `shared/copilot` cannot import Carbon because of its package boundary. Native controls there are an architectural exception, not a waiver from HTML accessibility.
+- Hidden file inputs, Monaco/editor surfaces, canvas/media controls, and third-party widgets may require native elements.
+- Each exception still needs a programmatic label, keyboard behavior, visible focus where applicable, and a documented reason during review.
 
-**修復方式**：在 **外層** `SettingsModal` 的 Carbon `<Modal>` 加上：
+## Nested Modal focus trap
+
+When a portal rendered from an outer `Modal` opens another focusable floating surface, use `selectorsFloatingMenus` with an **app-owned selector** applied to that child surface. Never pass `.cds--modal`.
 
 ```tsx
-<Modal
-  selectorsFloatingMenus={['.cds--modal']}
-  ...
->
+<Modal selectorsFloatingMenus={[".qjudge-child-dialog"]} {...outerProps}>
+  {children}
+</Modal>
+
+<Modal className="qjudge-child-dialog" {...childProps} />
 ```
 
-`elementOrParentIsFloatingMenu` 用 `node.closest(selector)` 判斷。只要新的焦點目標的祖先包含 `.cds--modal`（即在任何 Carbon Modal 裡），外層就不搶焦點。Carbon 自己也用同一機制豁免 overflow-menu-options / tooltip。
+Verify that the selector matches the actual child portal root, that Tab stays in the active dialog, Escape closes only the intended layer, and focus returns to the opener. Prefer one modal with internal steps when practical.
 
-**實作位置**：`src/shared/ui/modal/SettingsModal.tsx`
+## Fixed shell focus and scroll
 
-> 規則：任何包裝 Carbon `Modal` 的 wrapper（如 `SettingsModal`），若子元件可能再開 child modal，**必須加** `selectorsFloatingMenus={['.cds--modal']}`。
+Carbon controls may focus themselves after pointer interaction, which can cause browser scrolling. A full-screen fixed shell must lock body scrolling while mounted, and every flex/grid node above the intended scroll owner must be shrinkable.
 
----
-
-### 2. Carbon Toggle / 其他互動元件 — `scrollIntoView` 導致版面跳動
-
-**現象**：在 Admin Shell（`position: fixed; inset: 0`）的設定頁中切換 `<Toggle>`，整頁內容消失或位移。
-
-**根本原因**：Carbon `Toggle` 在 `onClick` 時呼叫 `buttonElement.current.focus()`，觸發瀏覽器原生 `scrollIntoView()`。如果 `body` 沒有被鎖定捲動，瀏覽器會往上找到 `document` 並移動 `window.scrollY`。同時，面板根元素（`SettingsPanel.module.scss .root`）是 flex item 但缺少 `min-height: 0`，導致內容可以把父層撐爆並被 `overflow: clip` 截斷。
-
-**修復方式**（雙管齊下）：
-
-1. **flex scroll container**（`SettingsPanel.module.scss`）：
-```css
-.root {
+```scss
+.panelRoot {
   flex: 1 1 auto;
-  min-height: 0;   /* ← 關鍵：允許縮小到低於內容高度，overflow-y: auto 才能生效 */
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 ```
 
-2. **Admin Shell 鎖定 body scroll**（`AdminShellLayout.tsx`）：
-```tsx
-useEffect(() => {
-  const prev = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
-  return () => { document.body.style.overflow = prev; };
-}, []);
+Use the overflow playbook for full-height and split-pane layouts; do not patch Carbon internals to hide the symptom.
+
+## Verification
+
+```bash
+node .codex/skills/qjudge-quality-gates-owner/scripts/audit-carbon-practices.js --root frontend/src
+bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged
 ```
 
-> 規則：凡是 `position: fixed / absolute; inset: 0` 的全屏 shell，**mount 時就鎖 body scroll**。flex 子元素若作為 scroll container，**必須加 `min-height: 0`**（flex item 預設 `min-height: auto` 會無視 overflow scroll）。
+For changed interactive components, also run focused tests, typecheck/build, Storybook coverage, keyboard checks, and light/dark visual checks.

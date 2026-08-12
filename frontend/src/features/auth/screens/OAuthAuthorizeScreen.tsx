@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, InlineNotification } from "@carbon/react";
 import { Checkmark, Close } from "@carbon/icons-react";
@@ -7,13 +7,13 @@ import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContext";
 import { httpClient } from "@/infrastructure/api/http.client";
 
-export default function OAuthAuthorizePage() {
+export default function OAuthAuthorizeScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clientName, setClientName] = useState<string>("QJudge OAuth Client");
+  const clientName = searchParams.get("client_name") || "QJudge OAuth Client";
 
   const clientId = searchParams.get("client_id");
   const redirectUri = searchParams.get("redirect_uri");
@@ -29,11 +29,6 @@ export default function OAuthAuthorizePage() {
     responseType === "code" &&
     codeChallenge &&
     codeChallengeMethod;
-
-  useEffect(() => {
-    const name = searchParams.get("client_name");
-    if (name) setClientName(name);
-  }, [searchParams]);
 
   const metadata = useMemo(
     () => ({

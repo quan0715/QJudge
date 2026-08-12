@@ -14,11 +14,10 @@ export { StatementPanel } from "./statement";
 // Result
 export { ResultPanel } from "./result/ResultPanel";
 export { ResultToolbar } from "./result/ResultToolbar";
-export { ResultsPanel, TEST_CASE_SIDEBAR_LABELS } from "./result/execution";
+export { ResultsPanel } from "./result/execution";
 export { TestResultHeader } from "./result/execution";
 export { TestCaseResultDetail } from "./result/execution";
 export { EditTestCasesPanel } from "./result/testcases";
-export { TestCaseDetail } from "./result/testcases";
 export type { CaseResultDisplay, HeaderInfo } from "./result/execution/utils";
 
 // Menu

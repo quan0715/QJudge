@@ -6,7 +6,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import type { EventFeedItemDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
-import { mapEventFeedItemDto } from "@/infrastructure/mappers/contest.participant.mapper";
+import { mapEventFeedItemDto } from "@/infrastructure/mappers/contestParticipant.mapper";
 
 export interface ExamSessionResponse {
   status: string;

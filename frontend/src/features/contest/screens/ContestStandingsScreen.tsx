@@ -1,5 +1,11 @@
 import { useMemo } from "react";
-import { Button, InlineLoading, DataTableSkeleton } from "@carbon/react";
+import {
+  Button,
+  Column,
+  DataTableSkeleton,
+  Grid,
+  InlineLoading,
+} from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
@@ -109,9 +115,8 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className="cds--grid" style={{ padding: 0 }}>
-        <div className="cds--row">
-          <div className="cds--col-lg-16">
+      <Grid fullWidth style={{ padding: 0 }}>
+          <Column lg={16} md={8} sm={4}>
             <ContainerCard
               title={t("standings.title")}
               action={
@@ -152,9 +157,8 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                 )}
               </div>
             </ContainerCard>
-          </div>
-        </div>
-      </div>
+          </Column>
+      </Grid>
     </SurfaceSection>
   );
 };

@@ -9,6 +9,7 @@ import {
   TabPanels,
   Tabs,
   TextInput,
+  Tile,
 } from "@carbon/react";
 import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -100,15 +101,17 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   const galleryPanel = (
     <div className="image-edit-gallery">
       {galleryImages?.map((image, galleryIndex) => (
-        <button
-          type="button"
-          key={image.url}
-          data-testid={`image-edit-gallery-${galleryIndex}`}
-          className="cds--tile cds--tile--clickable image-edit-gallery__item"
-          onClick={() => handleGallerySelect(image)}
-          disabled={disabled}
-        >
-          <img src={image.url} alt={image.label} loading="lazy" />
+        <Tile key={image.url} className="image-edit-gallery__item">
+          <button
+            type="button"
+            data-testid={`image-edit-gallery-${galleryIndex}`}
+            className="image-edit-gallery__select"
+            aria-label={image.label}
+            onClick={() => handleGallerySelect(image)}
+            disabled={disabled}
+          >
+            <img src={image.url} alt="" loading="lazy" />
+          </button>
           <span className="image-edit-gallery__attribution">
             by{" "}
             <a
@@ -120,7 +123,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
               {image.photographer}
             </a>
           </span>
-        </button>
+        </Tile>
       ))}
     </div>
   );

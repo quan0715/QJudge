@@ -31,6 +31,11 @@ const getCsrfToken = (): string | null => {
 const DEVICE_ID_KEY = "qjudge.device_id.v1";
 const AUTH_REFRESH_ENDPOINT = "/api/v1/auth/refresh";
 
+export interface HttpClientRequestInit extends RequestInit {
+  /** Keep an error local to a feature that already renders its own fallback UI. */
+  suppressGlobalError?: boolean;
+}
+
 const ensureDeviceId = (): string => {
   if (typeof window === "undefined") return "server";
   const existing = window.localStorage.getItem(DEVICE_ID_KEY);
@@ -160,12 +165,14 @@ const buildHeaders = (init: RequestInit = {}): Headers => {
   return headers;
 };
 
-const performFetch = (endpoint: string, init: RequestInit = {}) =>
-  fetch(endpoint, {
-    ...init,
-    headers: buildHeaders(init),
+const performFetch = (endpoint: string, init: HttpClientRequestInit = {}) => {
+  const { suppressGlobalError: _suppressGlobalError, ...requestInit } = init;
+  return fetch(endpoint, {
+    ...requestInit,
+    headers: buildHeaders(requestInit),
     credentials: "include",
   });
+};
 
 /**
  * One-shot request path for protocols whose POST identity must never be
@@ -173,7 +180,7 @@ const performFetch = (endpoint: string, init: RequestInit = {}) =>
  * shared cookie, CSRF, and device headers, but does not refresh, redirect, or
  * otherwise issue a second request.
  */
-const performSingleFetch = (endpoint: string, init: RequestInit = {}) =>
+const performSingleFetch = (endpoint: string, init: HttpClientRequestInit = {}) =>
   performFetch(endpoint, { ...init, redirect: "error" });
 
 let refreshPromise: Promise<boolean> | null = null;
@@ -250,7 +257,7 @@ export const ensureOk = async (
  * - CSRF token is included in X-CSRFToken header for state-changing requests
  * - The `credentials: 'include'` option ensures cookies are sent with requests
  */
-const customFetch = async (endpoint: string, init: RequestInit = {}) => {
+const customFetch = async (endpoint: string, init: HttpClientRequestInit = {}) => {
   let response = await performFetch(endpoint, init);
 
   if (response.status === 401 && shouldAttemptTokenRefresh(endpoint)) {
@@ -267,7 +274,7 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
   // Handle server errors (5xx) - dispatch event but don't throw
   // This allows components to still handle the error if needed
-  if (handleServerError(response)) {
+  if (!init.suppressGlobalError && handleServerError(response)) {
     // Don't throw - let calling code decide how to handle
   }
 
@@ -277,29 +284,29 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 export const httpClient = {
   request: customFetch,
   requestOnce: performSingleFetch,
-  get: (url: string, init?: RequestInit) =>
+  get: (url: string, init?: HttpClientRequestInit) =>
     customFetch(url, { ...init, method: "GET" }),
-  post: (url: string, body?: any, init?: RequestInit) =>
+  post: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "POST",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  put: (url: string, body?: any, init?: RequestInit) =>
+  put: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "PUT",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  patch: (url: string, body?: any, init?: RequestInit) =>
+  patch: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "PATCH",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  delete: (url: string, init?: RequestInit) =>
+  delete: (url: string, init?: HttpClientRequestInit) =>
     customFetch(url, { ...init, method: "DELETE" }),
 };

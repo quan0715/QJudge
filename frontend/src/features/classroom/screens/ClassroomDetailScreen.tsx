@@ -32,7 +32,7 @@ import { AnnouncementModal } from "../components/AnnouncementModal";
 import CreateContestModal from "@/features/classroom/components/CreateContestModal";
 import ClassroomAdminLayout, {
   type ClassroomAdminPanelId,
-} from "./ClassroomAdminLayout";
+} from "@/features/classroom/components/ClassroomAdminLayout";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { ClassroomSkeleton } from "../components/ClassroomSkeleton";
 import { AnnouncementSection } from "../components/AnnouncementSection";

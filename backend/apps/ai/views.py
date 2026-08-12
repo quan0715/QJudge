@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable, Iterator
 from typing import Any
 
+from asgiref.sync import sync_to_async
 from django.http import StreamingHttpResponse
 from rest_framework import generics, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -35,6 +36,34 @@ from .services.ai_service_client import (
 
 
 JsonMapper = Callable[[dict[str, Any]], object]
+_STREAM_EXHAUSTED = object()
+
+
+def _next_stream_chunk(chunks: Iterator[bytes]) -> bytes | object:
+    return next(chunks, _STREAM_EXHAUSTED)
+
+
+async def _as_async_sse_chunks(chunks: Iterator[bytes]) -> AsyncIterator[bytes]:
+    """Bridge the synchronous HTTPX iterator one chunk at a time for ASGI.
+
+    ``StreamingHttpResponse`` otherwise has to consume a synchronous iterator
+    from an async Django request, which buffers the relay and loses token-level
+    chat streaming. Keep the existing synchronous client boundary (including
+    pre-header upstream error handling) but make the response body native async.
+    """
+    iterator = iter(chunks)
+    try:
+        while True:
+            chunk = await sync_to_async(_next_stream_chunk, thread_sensitive=False)(
+                iterator
+            )
+            if chunk is _STREAM_EXHAUSTED:
+                return
+            yield chunk
+    finally:
+        close = getattr(iterator, "close", None)
+        if callable(close):
+            await sync_to_async(close, thread_sensitive=False)()
 
 
 def _invalid_response(request) -> Response:
@@ -276,7 +305,9 @@ class ChatRunViewSet(viewsets.ViewSet):
                 safe_upstream_error(exc.response, request),
                 status=exc.response.status_code,
             )
-        response = StreamingHttpResponse(chunks, content_type="text/event-stream")
+        response = StreamingHttpResponse(
+            _as_async_sse_chunks(chunks), content_type="text/event-stream"
+        )
         response["Cache-Control"] = "no-cache, no-transform"
         response["X-Accel-Buffering"] = "no"
         return response

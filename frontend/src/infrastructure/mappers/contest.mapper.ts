@@ -27,13 +27,13 @@ import type {
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
-import { mapAnticheatDevicePolicyDto } from "./contest.anticheat.mapper";
+import { mapAnticheatDevicePolicyDto } from "./contestAnticheat.mapper";
 
-export { mapContestAnticheatConfigDto } from "./contest.anticheat.mapper";
+export { mapContestAnticheatConfigDto } from "./contestAnticheat.mapper";
 export {
   mapContestParticipantDto,
   mapParticipantDashboardDto,
-} from "./contest.participant.mapper";
+} from "./contestParticipant.mapper";
 
 function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,

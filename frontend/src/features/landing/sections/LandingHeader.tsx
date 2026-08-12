@@ -58,7 +58,7 @@ const LandingHeader: FC<LandingHeaderProps> = ({
               tooltipPosition="bottom"
             />
           </div>
-          <Button kind="ghost" size="sm" onClick={onLogin}>
+          <Button kind="ghost" onClick={onLogin}>
             登入
           </Button>
         </div>

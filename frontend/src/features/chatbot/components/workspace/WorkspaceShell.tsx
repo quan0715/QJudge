@@ -5,7 +5,7 @@ import AiLaunch from "@carbon/icons-react/es/AiLaunch.js";
 import { AppSidebar } from "@/features/app/components/AppSidebar";
 import { WorkspaceTopNav } from "@/features/app/components/workspace/WorkspaceTopNav";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { WorkspaceToolbarSlotProvider } from "@/features/app/contexts/WorkspaceToolbarSlot";
+import { WorkspaceToolbarSlotProvider } from "@/features/app/contexts/WorkspaceToolbarSlotContext";
 import { QJudgeChatPanel } from "../chat-ui/QJudgeChatPanel";
 import {
   WorkspaceBackdrop,

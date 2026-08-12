@@ -1,6 +1,6 @@
 .root {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   min-width: 0;
 }
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Modal } from "@carbon/react";
+import React, { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Button, Modal } from "@carbon/react";
 import "./SettingsModal.scss";
 
 export interface SettingsModalNavItem {
@@ -20,80 +20,53 @@ export interface SettingsModalProps {
   className?: string;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
-  open,
+interface SettingsModalContentProps
+  extends Omit<SettingsModalProps, "open" | "navItems"> {
+  visibleItems: SettingsModalNavItem[];
+}
+
+const MOBILE_MEDIA_QUERY = "(max-width: 672px)";
+
+const subscribeToMobileViewport = (onChange: () => void) => {
+  const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
+  mediaQuery.addEventListener("change", onChange);
+  return () => mediaQuery.removeEventListener("change", onChange);
+};
+
+const getMobileViewportSnapshot = () =>
+  window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+
+const SettingsModalContent: React.FC<SettingsModalContentProps> = ({
   onRequestClose,
   modalHeading,
-  navItems,
+  visibleItems,
   initialActiveId,
   renderPanel,
   renderMobileContent,
   className,
 }) => {
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(max-width: 672px)").matches;
-  });
-  const visibleItems = useMemo(
-    () => navItems.filter((item) => !item.hidden),
-    [navItems],
-  );
-
-  const [activeId, setActiveId] = useState(
-    () => initialActiveId ?? visibleItems[0]?.id ?? "",
+  const initialId =
+    initialActiveId && visibleItems.some((item) => item.id === initialActiveId)
+      ? initialActiveId
+      : visibleItems[0]?.id ?? "";
+  const [selectedId, setSelectedId] = useState(initialId);
+  const activeId = visibleItems.some((item) => item.id === selectedId)
+    ? selectedId
+    : initialId;
+  const isMobile = useSyncExternalStore(
+    subscribeToMobileViewport,
+    getMobileViewportSnapshot,
+    () => false,
   );
   const contentRef = useRef<HTMLDivElement>(null);
-  const prevOpenRef = useRef(false);
-
-  useEffect(() => {
-    // Only reset activeId when modal opens (open transitions false → true)
-    if (open && !prevOpenRef.current) {
-      const resolved =
-        initialActiveId &&
-        visibleItems.some((item) => item.id === initialActiveId)
-          ? initialActiveId
-          : visibleItems[0]?.id ?? "";
-      setActiveId(resolved);
-      contentRef.current?.scrollTo(0, 0);
-    }
-    prevOpenRef.current = open;
-  }, [open, initialActiveId, visibleItems]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const mediaQuery = window.matchMedia("(max-width: 672px)");
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsMobile(event.matches);
-    };
-
-    setIsMobile(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
-  }, []);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  if (!open) return null;
 
   const handleNavClick = (id: string) => {
-    setActiveId(id);
+    setSelectedId(id);
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const activeLabel =
-    visibleItems.find((i) => i.id === activeId)?.label ?? "";
+    visibleItems.find((item) => item.id === activeId)?.label ?? "";
 
   return (
     <Modal
@@ -102,33 +75,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       modalHeading={modalHeading}
       passiveModal
       size="lg"
+      isFullWidth
       className={`settings-modal${className ? ` ${className}` : ""}`}
       preventCloseOnClickOutside
       selectorsFloatingMenus={[".settings-modal"]}
     >
       <div
         className="settings-modal__layout"
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        {/* Sidebar navigation (desktop) */}
         <nav className="settings-modal__nav">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button
+              <Button
                 key={item.id}
-                className={`settings-modal__nav-item ${activeId === item.id ? "settings-modal__nav-item--active" : ""}`}
+                type="button"
+                kind={activeId === item.id ? "secondary" : "ghost"}
+                size="md"
+                renderIcon={Icon}
+                className="settings-modal__nav-item"
                 onClick={() => handleNavClick(item.id)}
               >
-                <Icon size={16} />
-                <span>{item.label}</span>
-              </button>
+                {item.label}
+              </Button>
             );
           })}
         </nav>
 
-        {/* Content — single panel mount (avoid duplicate ids / testids in DOM) */}
         <div className="settings-modal__content" ref={contentRef}>
           <h2 className="settings-modal__content-title">{activeLabel}</h2>
           <div className="settings-modal__body">
@@ -139,6 +114,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       </div>
     </Modal>
+  );
+};
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  open,
+  onRequestClose,
+  modalHeading,
+  navItems,
+  initialActiveId,
+  renderPanel,
+  renderMobileContent,
+  className,
+}) => {
+  const visibleItems = useMemo(
+    () => navItems.filter((item) => !item.hidden),
+    [navItems],
+  );
+
+  if (!open) return null;
+
+  return (
+    <SettingsModalContent
+      onRequestClose={onRequestClose}
+      modalHeading={modalHeading}
+      visibleItems={visibleItems}
+      initialActiveId={initialActiveId}
+      renderPanel={renderPanel}
+      renderMobileContent={renderMobileContent}
+      className={className}
+    />
   );
 };
 

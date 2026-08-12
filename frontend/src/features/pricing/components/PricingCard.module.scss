@@ -73,7 +73,7 @@
 .period {
   @include type-style("body-compact-01");
   color: $text-helper;
-  margin-left: 2px;
+  margin-left: var(--cds-spacing-01);
 }
 
 .features {

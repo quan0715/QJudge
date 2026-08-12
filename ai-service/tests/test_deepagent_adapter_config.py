@@ -131,6 +131,11 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     backend_factory = capture.kwargs["backend"]
     assert callable(backend_factory)
     assert isinstance(backend_factory(MagicMock()), CompositeBackend)
+    permissions = capture.kwargs["permissions"]
+    assert len(permissions) == 1
+    assert permissions[0].operations == ["write"]
+    assert permissions[0].paths == ["/app/.deepagents/**"]
+    assert permissions[0].mode == "deny"
 
 
 def test_build_agent_default_system_prompt_key_phrases(monkeypatch):

@@ -1,24 +1,24 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--cds-spacing-05);
+  margin-bottom: var(--cds-spacing-05);
 }
 
 .checkList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .checkItem {
   border: 1px solid var(--cds-border-subtle-01);
   border-radius: 0.5rem;
-  padding: 0.75rem;
+  padding: var(--cds-spacing-04);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .checkItemMain {
@@ -30,7 +30,7 @@
 
 .checkItemTitleRow {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -52,20 +52,20 @@
 .widgetsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .widgetTile {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .widgetHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .widgetTitle {
@@ -82,7 +82,7 @@
 .passwordBlock {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .passwordError {
@@ -106,7 +106,7 @@
     width: 100%;
   }
 
-  .checkItemAction :global(.cds--btn) {
+  .checkItemAction > * {
     width: 100%;
   }
 }

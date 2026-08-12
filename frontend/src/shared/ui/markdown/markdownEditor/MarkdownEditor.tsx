@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
+import { Button } from "@carbon/react";
 import { Edit, View } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -417,26 +418,30 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       <div className="markdown-editor__topbar">
         {supportsPreview && (
           <div className="markdown-editor__tab-group" role="tablist">
-            <button
+            <Button
               type="button"
+              kind={selectedTab === "edit" ? "secondary" : "ghost"}
+              size="sm"
+              renderIcon={Edit}
               role="tab"
               aria-selected={selectedTab === "edit"}
-              className={`markdown-editor__tab-btn${selectedTab === "edit" ? " markdown-editor__tab-btn--active" : ""}`}
+              className="markdown-editor__tab-btn"
               onClick={() => { setSelectedTab("edit"); editorRef.current?.focus(); }}
             >
-              <Edit size={16} />
-              <span>{t("button.edit")}</span>
-            </button>
-            <button
+              {t("button.edit")}
+            </Button>
+            <Button
               type="button"
+              kind={selectedTab === "preview" ? "secondary" : "ghost"}
+              size="sm"
+              renderIcon={View}
               role="tab"
               aria-selected={selectedTab === "preview"}
-              className={`markdown-editor__tab-btn${selectedTab === "preview" ? " markdown-editor__tab-btn--active" : ""}`}
+              className="markdown-editor__tab-btn"
               onClick={() => setSelectedTab("preview")}
             >
-              <View size={16} />
-              <span>{t("button.preview")}</span>
-            </button>
+              {t("button.preview")}
+            </Button>
           </div>
         )}
         {toolbarNode && (

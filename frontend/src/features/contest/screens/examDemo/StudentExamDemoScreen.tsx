@@ -181,7 +181,7 @@ const StudentExamDemoScreen: FC = () => {
   if (contestLoading || loadingQuestions) {
     return (
       <div className={styles.centered}>
-        <Loading withOverlay={false} small />
+        <Loading withOverlay={false} small description="載入考試資料中" />
         <span>載入考試資料中...</span>
       </div>
     );

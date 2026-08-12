@@ -68,19 +68,19 @@
 .typeTagContent {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--cds-spacing-02);
 }
 
 .sourceBankTag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--cds-spacing-02);
 }
 
 .saveToBankButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--cds-spacing-02);
   padding: 0;
   border: none;
   background: none;
@@ -247,33 +247,13 @@
 }
 
 .scoreNumberInput {
-  :global(.cds--number) {
-    width: 8.5rem;
-    min-width: 8.5rem;
-  }
+  width: 8.5rem;
+  min-width: 8.5rem;
 }
 
 .promptSection {
   margin-bottom: layout.$spacing-06;
 
-  // Monaco injects inline styles with !important on its background;
-  // overriding here requires !important to prevent hover color flash.
-  :global(.markdown-field__editor) {
-    &:hover {
-      :global(.monaco-editor),
-      :global(.monaco-editor .margin),
-      :global(.monaco-editor-background) {
-        background-color: var(--cds-field) !important;
-      }
-    }
-  }
-
-  :global(.markdown-editor__content),
-  :global(.markdown-editor__editor) {
-    &:hover {
-      background-color: var(--cds-field) !important;
-    }
-  }
 }
 
 .editOptionList {

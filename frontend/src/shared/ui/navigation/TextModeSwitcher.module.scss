@@ -1,10 +1,10 @@
 .root {
   display: inline-flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
   border: 1px solid var(--cds-border-subtle);
   border-radius: 999px;
-  padding: 0.125rem;
+  padding: var(--cds-spacing-01);
   background: var(--cds-layer-01);
 }
 
@@ -17,13 +17,18 @@
   justify-content: center;
   min-width: 2rem;
   height: 1.75rem;
-  padding: 0 0.5rem;
+  padding: 0 var(--cds-spacing-03);
   border-radius: 999px;
   cursor: pointer;
   color: var(--cds-text-secondary);
 
   &:hover {
     color: var(--cds-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
   }
 }
 

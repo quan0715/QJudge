@@ -104,7 +104,7 @@ function ChainOfThoughtComponent({
   return (
     <div className={styles.cot}>
       <div className={styles.label}>{t("ui.reasoningSteps")}</div>
-      <Accordion size="sm" className={styles.accordion}>
+      <Accordion size="sm">
         {steps.map((step, i) => (
           <ChainOfThoughtStep
             key={step.toolCallId}

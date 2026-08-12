@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   padding-inline-start: 1rem;
   background: rgb(0 0 0 / 48%);
 }
@@ -39,7 +39,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--cds-spacing-05);
   border: 0;
   background: transparent;
   cursor: zoom-out;

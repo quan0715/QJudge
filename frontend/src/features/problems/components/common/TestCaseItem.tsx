@@ -199,9 +199,9 @@ const TestCaseItem: React.FC<TestCaseItemProps> = ({
         {isEditing ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <div>
-              <FormLabel style={{ marginBottom: "0.25rem" }}>輸入 (Input)</FormLabel>
               <TextArea
-                labelText=""
+                id={`edit-tc-input-${item.id}`}
+                labelText="輸入 (Input)"
                 rows={4}
                 value={editInput}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
@@ -210,9 +210,9 @@ const TestCaseItem: React.FC<TestCaseItemProps> = ({
               />
             </div>
             <div>
-              <FormLabel style={{ marginBottom: "0.25rem" }}>預期輸出 (Expected Output)</FormLabel>
               <TextArea
-                labelText=""
+                id={`edit-tc-output-${item.id}`}
+                labelText="預期輸出 (Expected Output)"
                 rows={4}
                 value={editOutput}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>

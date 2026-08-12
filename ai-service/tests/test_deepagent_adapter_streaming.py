@@ -161,6 +161,29 @@ def test_stream_events_fail_closed_when_interrupt_payload_has_no_actions():
     assert events[-1]["error_code"] == "INTERRUPT_PAYLOAD_INVALID"
 
 
+def test_stream_events_exposes_model_credit_exhaustion_as_actionable_failure():
+    runner = _build_runner()
+    agent = _FakeAgent(
+        events=[],
+        state=SimpleNamespace(interrupts=()),
+        fail_with=RuntimeError(
+            "You have no credits remaining. Add credits to continue using the API."
+        ),
+    )
+
+    events = asyncio.run(_collect_events(runner, agent))
+
+    assert events[-1] == {
+        "type": "run_failed",
+        "run_id": "run-1",
+        "error_code": "MODEL_CREDITS_EXHAUSTED",
+        "message": (
+            "The selected AI model has no remaining provider credits. "
+            "Select another model or contact an administrator."
+        ),
+    }
+
+
 def test_stream_events_recursion_path_emits_summary_then_usage_then_completed():
     runner = _build_runner()
     runner._runner._recursion_handler = _FakeRecursionHandler()

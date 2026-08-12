@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { SkeletonText, IconButton, Tag } from "@carbon/react";
+import { Button, SkeletonText, IconButton, Tag } from "@carbon/react";
 import { ArrowLeft, Launch } from "@carbon/icons-react";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
 import DocTableOfContents from "@/features/docs/components/DocTableOfContents";
@@ -97,10 +97,10 @@ const ChangelogScreen: React.FC = () => {
       {/* Left Sidebar - Version List */}
       <aside className={styles.leftSidebar}>
         <div className={styles.sidebarHeader}>
-          <p className="cds--label" style={{ marginBottom: "0.25rem" }}>
+          <p className={styles.eyebrow}>
             QJudge
           </p>
-          <h2 className="cds--type-productive-heading-03" style={{ margin: 0 }}>
+          <h2 className={styles.sidebarTitle}>
             <BrandLockup label={t("title")} size={22} />
           </h2>
         </div>
@@ -109,7 +109,9 @@ const ChangelogScreen: React.FC = () => {
           {meta ? (
             <nav>
               {meta.versions.map((v) => (
-                <div
+                <Button
+                  type="button"
+                  kind="ghost"
                   key={v.version}
                   className={styles.versionItem}
                   onClick={() => scrollToVersion(v.version)}
@@ -122,8 +124,8 @@ const ChangelogScreen: React.FC = () => {
                       </Tag>
                     )}
                   </div>
-                  <span className="cds--label">{v.date}</span>
-                </div>
+                  <span className={styles.versionDate}>{v.date}</span>
+                </Button>
               ))}
             </nav>
           ) : (
@@ -167,13 +169,10 @@ const ChangelogScreen: React.FC = () => {
 
           {!loading && !error && (
             <div>
-              <h1
-                className="cds--type-productive-heading-05"
-                style={{ margin: 0, marginBottom: "0.5rem" }}
-              >
+              <h1 className={styles.pageTitle}>
                 {t("title")}
               </h1>
-              <p className="cds--label" style={{ margin: 0 }}>
+              <p className={styles.pageDescription}>
                 {t("description")}
               </p>
             </div>
@@ -192,7 +191,7 @@ const ChangelogScreen: React.FC = () => {
               <SkeletonText paragraph lineCount={10} />
             ) : error ? (
               <div className={styles.errorContainer}>
-                <p className="cds--type-body-long-02" style={{ color: "var(--cds-text-secondary)" }}>
+                <p className={styles.errorText}>
                   {error}
                 </p>
               </div>

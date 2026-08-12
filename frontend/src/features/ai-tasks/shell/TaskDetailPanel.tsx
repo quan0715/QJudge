@@ -4,7 +4,7 @@ import { ModelSelect } from "@/shared/ai/ModelSelect";
 import { TodoList } from "@/shared/ai/TodoList";
 import { InitPromptEditor } from "./InitPromptEditor";
 import { ProgressCard, SecondaryProgressBar } from "./ProgressCard";
-import { ArtifactFileIcon } from "./artifactIcon";
+import { ArtifactFileIcon } from "./ArtifactFileIcon";
 import type {
   ArtifactRecord,
   ModelInfo,

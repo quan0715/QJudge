@@ -1,4 +1,4 @@
 interface:
   display_name: "QJudge Mobile Action Footer"
-  short_description: "Mobile sticky action footer and Carbon ButtonSet usage rules"
-  default_prompt: "Implement or review QJudge mobile button sets using MobileActionFooter, Carbon ButtonSet, and desktop/mobile action deduplication patterns."
+  short_description: "Accessible Carbon mobile actions with safe-area and viewport rules"
+  default_prompt: "Implement or review QJudge mobile actions with shared MobileActionFooter and Carbon ButtonSet, accessible labels, safe-area handling, dynamic viewport checks, and desktop/mobile action deduplication."

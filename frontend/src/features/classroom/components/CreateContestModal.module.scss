@@ -1,7 +1,7 @@
 .stepStack {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
 }
 
 .helperText {
@@ -14,7 +14,7 @@
 .typeSelector {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .typeOption {
@@ -24,7 +24,7 @@
   gap: 0.35rem;
   width: 100%;
   min-height: 5.5rem;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem var(--cds-spacing-05);
   border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
   border-radius: 0.25rem;
   background: var(--cds-layer-01, #262626);
@@ -56,7 +56,7 @@
 }
 
 .nameInput {
-  margin-top: 0.25rem;
+  margin-top: var(--cds-spacing-02);
 }
 
 .sectionLabel {
@@ -66,36 +66,10 @@
   line-height: 1.25rem;
 }
 
-.fieldStack {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.dateField :global(.cds--date-picker),
-.dateField :global(.cds--date-picker-container),
-.dateField :global(.cds--date-picker-input__wrapper) {
-  width: 100%;
-}
-
-.timeFieldBlock :global(.cds--select),
-.durationFieldBlock :global(.cds--select) {
-  width: 100%;
-}
-
-.timeFieldBlock {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.durationFieldBlock {
-  display: grid;
-  gap: 0.35rem;
-}
-
 .questionCard {
   display: grid;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  gap: var(--cds-spacing-04);
+  padding: 0.875rem var(--cds-spacing-05);
   border: 1px solid var(--cds-border-subtle-01, #8d8d8d);
   border-radius: 0.25rem;
   background: var(--cds-layer-01, #262626);
@@ -105,12 +79,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
 }
 
 .questionCopy {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   min-width: 0;
   align-self: center;
 }
@@ -128,17 +102,7 @@
   line-height: 1.25rem;
 }
 
-.questionHeader :global(.cds--toggle) {
+.questionToggle {
   flex-shrink: 0;
   align-self: center;
-}
-
-.passwordInput {
-  margin-top: 0.25rem;
-}
-
-@media (max-width: 672px) {
-  .timeFieldBlock {
-    gap: 0.35rem;
-  }
 }

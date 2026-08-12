@@ -23,7 +23,7 @@
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   min-width: 0;
 }
 
@@ -37,7 +37,7 @@
 
 .navTitle {
   min-width: 0;
-  margin-left: 0.5rem;
+  margin-left: var(--cds-spacing-03);
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -80,7 +80,7 @@
   display: grid;
   align-content: center;
   justify-items: start;
-  padding: clamp(2rem, 4vw, 5rem);
+  padding: clamp(var(--cds-spacing-07), 4vw, var(--cds-spacing-11));
   border-right: 1px solid var(--cds-border-subtle);
   min-height: 0;
   overflow: hidden;
@@ -91,7 +91,7 @@
   display: grid;
   align-content: center;
   justify-items: start;
-  gap: clamp(2.5rem, 7vh, 5rem);
+  gap: clamp(var(--cds-spacing-08), 7vh, var(--cds-spacing-11));
   text-align: left;
 }
 
@@ -99,7 +99,7 @@
   color: var(--cds-text-secondary);
   font-size: var(--projection-label-size);
   font-weight: 300;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--cds-spacing-04);
 }
 
 .title {
@@ -110,13 +110,13 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .statusChip {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
+  padding: var(--cds-spacing-02) var(--cds-spacing-04);
   border: 1px solid var(--cds-border-subtle);
   border-radius: 999px;
   background: var(--cds-layer);
@@ -131,7 +131,7 @@
 .countdownGroup,
 .progressGroup {
   display: grid;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   width: 100%;
   justify-items: start;
 }
@@ -148,7 +148,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   color: var(--cds-text-secondary);
   font-size: var(--projection-label-size);
   font-weight: 300;
@@ -157,7 +157,7 @@
 .progressScale {
   width: 100%;
   display: grid;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
 }
 
 .progressTrack {
@@ -213,7 +213,7 @@
   position: absolute;
   top: 0;
   display: grid;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   line-height: 1.25;
@@ -267,7 +267,7 @@
 }
 
 .qrPanel {
-  padding: clamp(2rem, 4vw, 4rem);
+  padding: clamp(var(--cds-spacing-07), 4vw, var(--cds-spacing-10));
   display: grid;
   align-content: center;
   justify-items: center;
@@ -280,7 +280,7 @@
 }
 
 .qrBox {
-  padding: 0.75rem;
+  padding: var(--cds-spacing-04);
   border: 1px solid var(--cds-border-subtle);
   width: min(100%, 28rem);
   aspect-ratio: 1;
@@ -297,8 +297,8 @@
   width: min(100%, 28rem);
   display: grid;
   justify-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0;
+  gap: var(--cds-spacing-03);
+  padding: var(--cds-spacing-05) 0;
   border-top: 1px solid var(--cds-border-subtle);
   border-bottom: 1px solid var(--cds-border-subtle);
 }
@@ -332,7 +332,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  padding: 0 0.75rem;
+  padding: 0 var(--cds-spacing-04);
   color: var(--cds-text-secondary);
   border-right: 1px solid var(--cds-border-subtle);
   font-size: var(--projection-label-size);
@@ -357,7 +357,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   color: var(--cds-text-secondary);
   font-size: var(--projection-label-size);
   font-weight: 300;
@@ -366,7 +366,7 @@
 .modeSwitchItem {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .modeSwitchItem span {
@@ -424,8 +424,8 @@
     align-items: stretch;
     display: grid;
     height: auto;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: var(--cds-spacing-04);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
   }
 
   .headerLeft {
@@ -434,11 +434,11 @@
 
   .headerRight {
     display: grid;
-    gap: 0.75rem;
+    gap: var(--cds-spacing-04);
   }
 
   .leftPanel {
-    padding: 2rem;
+    padding: var(--cds-spacing-07);
     border-right: 0;
     overflow: visible;
   }

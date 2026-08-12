@@ -33,7 +33,12 @@ const TYPE_COLORS: Record<ExamQuestionType, string> = {
   essay: "magenta",
 };
 
-const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight?: number }> = ({ minHeight = 120, ...props }) => {
+const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight?: number }> = ({
+  id,
+  labelText,
+  minHeight = 120,
+  ...props
+}) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const resize = useCallback(() => {
@@ -51,6 +56,8 @@ const AutoResizeTextArea: FC<React.ComponentProps<typeof TextArea> & { minHeight
     <div className={styles.textArea}>
       <TextArea
         {...props}
+        id={id}
+        labelText={labelText}
         ref={(node: HTMLTextAreaElement | null) => {
           (textareaRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = node;
           if (node) {
@@ -179,7 +186,8 @@ export const ExamQuestionCard: FC<ExamQuestionCardProps> = memo(({
       <AutoResizeTextArea
         id={`q-${question.id}`}
         data-testid={`exam-answer-input-${question.id}`}
-        labelText=""
+        labelText={t("answering.question.answerLabel", "作答內容")}
+        hideLabel
         placeholder={placeholder}
         value={value}
         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>

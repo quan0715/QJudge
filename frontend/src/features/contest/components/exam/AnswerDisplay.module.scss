@@ -3,7 +3,7 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--cds-text-primary);
@@ -12,7 +12,7 @@
 .group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .label {
@@ -26,7 +26,7 @@
 /* Reference answer — left accent, no box */
 .reference {
   border-left: 3px solid var(--cds-support-info);
-  padding-left: 0.75rem;
+  padding-left: var(--cds-spacing-04);
 }
 
 .referenceText {
@@ -44,14 +44,14 @@
 .optionsList {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .optionItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4375rem 0.75rem;
+  padding: 0.4375rem var(--cds-spacing-04);
   border-radius: 4px;
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-field, var(--cds-layer-01));
@@ -63,7 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
   width: 100%;
   min-width: 0;
 }
@@ -71,7 +71,7 @@
 .optionText {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   min-width: 0;
 }
 
@@ -128,10 +128,10 @@
 .correctSummary {
   display: flex;
   align-items: baseline;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   font-size: 0.8125rem;
   border-left: 3px solid var(--cds-support-info);
-  padding-left: 0.75rem;
+  padding-left: var(--cds-spacing-04);
 }
 
 .correctLabel {
@@ -143,14 +143,14 @@
 .correctValues {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   min-width: 0;
 }
 
 .correctValue {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   color: var(--cds-support-success);
   font-weight: 500;
 }

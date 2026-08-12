@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@carbon/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMockContest, stubT } from "@/shared/mocks/contest.mock";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
 import DisplaySettingsPanel from "./DisplaySettingsPanel";

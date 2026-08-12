@@ -62,7 +62,6 @@ const ProgressChart = ({ card }: { card: DashboardInsightCard }) => {
       size="small"
       value={progressValue}
       status={progressValue >= 100 ? "finished" : "active"}
-      className={styles.rightPanelProgressBar}
     />
   );
 };

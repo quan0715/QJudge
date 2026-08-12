@@ -32,7 +32,7 @@ import { shouldLockContestWorkspaceNavigation } from "@/features/contest/domain/
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import type { AdminPanelId } from "@/features/contest/modules/types";
-import type { ClassroomAdminPanelId } from "@/features/classroom/screens/ClassroomAdminLayout";
+import type { ClassroomAdminPanelId } from "@/features/classroom/components/ClassroomAdminLayout";
 import SideMenuContestIdleSection from "./SideMenuContestIdleSection";
 import SideMenuContestRuntimeSection from "./SideMenuContestRuntimeSection";
 import "./SideMenu.scss";

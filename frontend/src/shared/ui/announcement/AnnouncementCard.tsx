@@ -70,15 +70,34 @@ export const AnnouncementCard = ({
     createdBy ?? announcement.author?.username;
   const hasActions = actions || (canDelete && onDelete);
 
-  const renderContent = () => (
+  const renderTitle = (asButton: boolean) => {
+    const title = (
+      <>
+        {showPin && announcement.isPinned && (
+          <Pin size={14} className={styles.pinIcon} />
+        )}
+        {announcement.title}
+      </>
+    );
+
+    return asButton ? (
+      <Button
+        type="button"
+        kind="ghost"
+        className={`${styles.title} ${styles.titleButton}`}
+        onClick={onClick}
+      >
+        {title}
+      </Button>
+    ) : (
+      <div className={styles.title}>{title}</div>
+    );
+  };
+
+  const renderContent = (titleAsButton = false) => (
     <>
       <div className={styles.header}>
-        <div className={styles.title}>
-          {showPin && announcement.isPinned && (
-            <Pin size={14} className={styles.pinIcon} />
-          )}
-          {announcement.title}
-        </div>
+        {renderTitle(titleAsButton)}
         {hasActions && (
           <div className={styles.actions}>
             {actions}
@@ -109,7 +128,7 @@ export const AnnouncementCard = ({
     </>
   );
 
-  const cardClassName = `${styles.card} ${onClick ? styles.clickable : ""} ${
+  const cardClassName = `${styles.card} ${onClick && !hasActions ? styles.clickable : ""} ${
     announcement.isPinned ? styles.pinned : ""
   }`;
 
@@ -121,11 +140,7 @@ export const AnnouncementCard = ({
     );
   }
 
-  return (
-    <div className={cardClassName} onClick={onClick}>
-      {renderContent()}
-    </div>
-  );
+  return <div className={cardClassName}>{renderContent(Boolean(onClick))}</div>;
 };
 
 export default AnnouncementCard;

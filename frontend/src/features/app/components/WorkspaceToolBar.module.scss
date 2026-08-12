@@ -6,8 +6,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem;
-  padding: 0 0.5rem;
+  gap: var(--cds-spacing-02);
+  padding: 0 var(--cds-spacing-03);
   width: 100%;
   min-height: 2.5rem;
   box-sizing: border-box;
@@ -20,7 +20,7 @@
 .leading {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
   min-width: 0;
   flex: 1;
 }
@@ -36,6 +36,6 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   flex-shrink: 0;
 }

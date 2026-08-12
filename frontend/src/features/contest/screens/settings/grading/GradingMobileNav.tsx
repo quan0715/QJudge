@@ -69,10 +69,14 @@ export default function GradingMobileNav({
       </div>
 
       {/* Backdrop */}
-      <div
-        className={`${styles.backdrop} ${openDrawer ? styles.backdropOpen : ""}`}
-        onClick={() => setOpenDrawer(null)}
-      />
+      {openDrawer && (
+        <button
+          type="button"
+          aria-label={t("common.close", "關閉")}
+          className={`${styles.backdrop} ${styles.backdropOpen}`}
+          onClick={() => setOpenDrawer(null)}
+        />
+      )}
 
       {/* Drawer */}
       <div className={`${styles.drawer} ${openDrawer ? styles.drawerOpen : ""}`}>

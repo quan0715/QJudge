@@ -5,7 +5,7 @@ import TestCaseAddModal from "./TestCaseAddModal";
 import TestCaseItem from "./TestCaseItem";
 import type { TestCaseItem as TestCaseItemType, TestCaseMode } from "./TestCaseTypes";
 
-interface TestCaseListProps {
+interface ProblemTestCaseEditorProps {
   items: TestCaseItemType[];
   mode?: TestCaseMode;
   readOnly?: boolean;
@@ -22,7 +22,7 @@ interface TestCaseListProps {
   onCancelAdd?: () => void;
 }
 
-export const TestCaseList: React.FC<TestCaseListProps> = ({
+export const ProblemTestCaseEditor: React.FC<ProblemTestCaseEditorProps> = ({
   items,
   mode = "solver",
   readOnly = false,
@@ -189,4 +189,4 @@ export const TestCaseList: React.FC<TestCaseListProps> = ({
 };
 
 export type { TestCaseItemType as TestCaseItem };
-export default TestCaseList;
+export default ProblemTestCaseEditor;

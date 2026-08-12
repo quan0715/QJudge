@@ -281,7 +281,8 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
       <div className={styles.modeSwitcher}>
         {VIEW_MODES.map((m) => (
           <Tooltip key={m.key} label={m.label} align="left" autoAlign>
-            <button
+                  <button
+                    type="button"
               className={`${styles.modeBtn} ${effectiveViewMode === m.key ? styles.modeBtnActive : ""}`}
               onClick={() => setViewMode(m.key)}
               aria-label={m.label}

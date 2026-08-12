@@ -18,8 +18,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem 0.5rem;
+  gap: var(--cds-spacing-05);
+  padding: var(--cds-spacing-04) var(--cds-spacing-05) var(--cds-spacing-03);
   border-bottom: 1px solid var(--qg-panel-divider-color, var(--cds-border-subtle));
   flex-shrink: 0;
 }
@@ -27,7 +27,7 @@
 .summary {
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   color: var(--cds-text-primary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
@@ -35,7 +35,7 @@
 .legend {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
   color: var(--cds-text-secondary);
   font-size: var(--cds-label-01-font-size, 0.75rem);
 }
@@ -103,7 +103,7 @@
   font-weight: 500;
   font-size: var(--cds-label-01-font-size, 0.75rem);
   justify-content: flex-start;
-  padding: 0 0.75rem;
+  padding: 0 var(--cds-spacing-04);
 }
 
 /* ── Frozen column — body rows ── */
@@ -114,7 +114,7 @@
   height: var(--row-h);
   background: var(--cds-layer);
   justify-content: flex-start;
-  padding: 0 0.75rem;
+  padding: 0 var(--cds-spacing-04);
 }
 
 /* Shadow on frozen column edge */
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   width: 100%;
   min-width: 0;
 }
@@ -161,7 +161,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
 }
 
 .studentUsername {
@@ -189,7 +189,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.1;
-  padding-left: 0.5rem;
+  padding-left: var(--cds-spacing-03);
   padding-top: 0;
 }
 

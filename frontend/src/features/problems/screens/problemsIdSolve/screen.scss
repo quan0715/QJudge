@@ -16,9 +16,7 @@
     // OVERRIDE: Remove Carbon Header default padding for edge-to-edge layout
     // Reason: Solver screen needs buttons flush to edges for compact toolbar
     // Remove when: Carbon provides padding prop for Header component
-    &.cds--header {
-      padding: 0;
-    }
+    padding: 0;
   }
 
   &__header-left {
@@ -38,16 +36,14 @@
 
     // OVERRIDE: Adjust Carbon HeaderName padding for compact layout
     // Reason: Default prefix spacing not needed, use minimal padding
-    &.cds--header__name {
-      padding: 0 layout.$spacing-03;
-    }
+    padding: 0 layout.$spacing-03;
   }
 
   &__content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-top: layout.rem(48px); // Account for fixed header height
+    margin-top: layout.$spacing-09; // Account for fixed header height
     min-height: 0;
     overflow: hidden;
 

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "rules": {
+    "hardcoded-spacing": {
+      "max": 145,
+      "reason": "Remaining values do not map exactly to the Carbon spacing scale and need layout or visual review before changing geometry."
+    },
+    "hardcoded-typography": {
+      "max": 332,
+      "reason": "Choosing a Carbon type token requires knowing the text role and hierarchy, not only its current numeric size."
+    },
+    "hardcoded-theme-color": {
+      "max": 568,
+      "reason": "Choosing semantic theme tokens requires light/dark visual review and editor, chart, brand, or status context."
+    },
+    "scroll-owner-review": {
+      "max": 60,
+      "reason": "Scroll ownership must be verified at runtime across container heights, zoom, and responsive viewports."
+    }
+  }
+}

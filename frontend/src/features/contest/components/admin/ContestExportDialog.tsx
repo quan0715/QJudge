@@ -186,6 +186,7 @@ export default function ContestExportDialog({
     contest.name,
     onClose,
     availableTargets,
+    includeAnswerArea,
   ]);
 
   const isExamTarget = target?.startsWith("exam-") ?? false;

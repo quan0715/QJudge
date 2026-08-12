@@ -87,16 +87,12 @@ const QuickLinkCards: React.FC = () => {
             </div>
 
             {/* Title */}
-            <h4
-              className="cds--type-productive-heading-02"
-              style={{ margin: 0 }}
-            >
+            <h4 style={{ margin: 0 }}>
               {t(`quickLinks.${link.id}.title`, link.id)}
             </h4>
 
             {/* Description */}
             <p
-              className="cds--type-body-compact-01"
               style={{
                 margin: 0,
                 color: "var(--cds-text-secondary)",

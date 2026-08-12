@@ -8,7 +8,7 @@
 .section {
   background: var(--cds-background);
   width: 100%;
-  padding: 1.5rem 4rem;
+  padding: var(--cds-spacing-06) var(--cds-spacing-10);
   flex: 1;
 }
 
@@ -20,7 +20,7 @@
 .bodyGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   align-items: start;
 }
 
@@ -62,12 +62,12 @@
 
 @media (max-width: 1056px) {
   .section {
-    padding: 1.5rem 2rem;
+    padding: var(--cds-spacing-06) var(--cds-spacing-07);
   }
 }
 
 @media (max-width: 672px) {
   .section {
-    padding: 1rem;
+    padding: var(--cds-spacing-05);
   }
 }

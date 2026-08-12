@@ -6,7 +6,11 @@ interface ArtifactIconProps {
   className?: string;
 }
 
-export function ArtifactFileIcon({ filename, size = 16, className }: ArtifactIconProps) {
+export function ArtifactFileIcon({
+  filename,
+  size = 16,
+  className,
+}: ArtifactIconProps) {
   const lower = filename.toLowerCase();
   if (lower.endsWith(".csv")) {
     return <Csv size={size} className={className} aria-hidden />;

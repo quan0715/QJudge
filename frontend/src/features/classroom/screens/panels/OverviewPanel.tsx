@@ -14,7 +14,7 @@ import { AnnouncementSection } from "../../components/AnnouncementSection";
 import { ClassroomContestPreviewModal } from "../../components/ClassroomContestPreviewModal";
 import "../../components/ClassroomActivitySchedule.scss";
 import { getUpcomingContestTasks } from "../../domain/classroomActivityTimeline";
-import type { ClassroomAdminPanelId } from "../ClassroomAdminLayout";
+import type { ClassroomAdminPanelId } from "@/features/classroom/components/ClassroomAdminLayout";
 
 interface OverviewPanelProps {
   classroom: ClassroomDetail;

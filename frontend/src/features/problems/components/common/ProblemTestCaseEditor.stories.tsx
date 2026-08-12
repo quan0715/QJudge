@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import TestCaseList, { type TestCaseItem } from "./TestCaseList";
+import ProblemTestCaseEditor, { type TestCaseItem } from "./ProblemTestCaseEditor";
 import type { TestCaseMode } from "./TestCaseTypes";
 
 const getInitialItems = (mode: TestCaseMode): TestCaseItem[] => {
@@ -65,7 +65,7 @@ const getInitialItems = (mode: TestCaseMode): TestCaseItem[] => {
   ];
 };
 
-const TestCaseListDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: boolean }) => {
+const ProblemTestCaseEditorDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: boolean }) => {
   const [items, setItems] = useState<TestCaseItem[]>(() => getInitialItems(mode));
 
   useEffect(() => {
@@ -101,7 +101,7 @@ const TestCaseListDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: bo
   };
 
   return (
-    <TestCaseList
+    <ProblemTestCaseEditor
       items={items}
       mode={mode}
       readOnly={readOnly}
@@ -114,9 +114,9 @@ const TestCaseListDemo = ({ mode, readOnly }: { mode: TestCaseMode; readOnly: bo
   );
 };
 
-const meta: Meta<typeof TestCaseListDemo> = {
-  title: "features/problems/components/common/TestCaseList",
-  component: TestCaseListDemo,
+const meta: Meta<typeof ProblemTestCaseEditorDemo> = {
+  title: "features/problems/components/common/ProblemTestCaseEditor",
+  component: ProblemTestCaseEditorDemo,
   args: {
     mode: "problem",
     readOnly: false,
@@ -141,7 +141,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
-  render: (args) => <TestCaseListDemo mode={args.mode} readOnly={args.readOnly} />,
+  render: (args) => <ProblemTestCaseEditorDemo mode={args.mode} readOnly={args.readOnly} />,
 };
 
 export const AllModes: Story = {
@@ -150,15 +150,15 @@ export const AllModes: Story = {
     <div style={{ display: "grid", gap: "1.5rem" }}>
       <div>
         <h4 style={{ margin: "0 0 0.5rem" }}>Problem Mode</h4>
-        <TestCaseListDemo mode="problem" readOnly={false} />
+        <ProblemTestCaseEditorDemo mode="problem" readOnly={false} />
       </div>
       <div>
         <h4 style={{ margin: "0 0 0.5rem" }}>Solver Mode</h4>
-        <TestCaseListDemo mode="solver" readOnly={false} />
+        <ProblemTestCaseEditorDemo mode="solver" readOnly={false} />
       </div>
       <div>
         <h4 style={{ margin: "0 0 0.5rem" }}>Result Mode</h4>
-        <TestCaseListDemo mode="result" readOnly={true} />
+        <ProblemTestCaseEditorDemo mode="result" readOnly={true} />
       </div>
     </div>
   ),

@@ -1,6 +1,11 @@
 ---
 name: qjudge-mobile-action-footer
-description: QJudge 前端 mobile button set / sticky action footer 實作技能。當任務涉及手機版底部操作列、Carbon ButtonSet、MobileActionFooter、桌手機 action 分流、避免重複操作按鈕或 mobile CTA 破版時使用。
+description: Use when implementing or reviewing QJudge mobile sticky action footers, Carbon ButtonSet composition, responsive CTA placement, or desktop/mobile action deduplication.
+metadata:
+  version: "2026.08.12"
+  carbon_mcp_verified: "2026-08-12"
+  carbon_framework: "v11"
+  carbon_reference_tag: "v11.113.0"
 ---
 
 # QJudge Mobile Action Footer
@@ -57,20 +62,23 @@ const buildActionSetItems = (): Array<{ key: string; node: ReactNode }> => {
 - If single-action right-half placement is not supported by the shared component, update `MobileButtonSet` once instead of adding invisible placeholder buttons in each page.
 - Bottom button sets must not use Carbon tertiary styles (`tertiary` or `danger--tertiary`). Use `secondary` for low-emphasis actions and `danger` for destructive submit actions.
 - Add bottom spacer through `MobileActionFooter`; do not add ad hoc page padding unless a screen has a known fixed overlay.
+- Shared footer 必須集中處理 `padding-bottom: env(safe-area-inset-bottom)`；feature 不得各自複製 safe-area padding。
 - Prefer Carbon button kinds:
   - Primary progress action: `kind="primary"`
   - Secondary safe action: `kind="secondary"` or `kind="ghost"`
   - Utility / document action: `kind="ghost"`
   - Destructive / irreversible action: `kind="danger"` or project-approved danger style
-- Icon-only buttons belong in navbar/toolbars, not the mobile action footer, unless the icon is universally clear and has `iconDescription`.
+- Icon-only buttons belong in navbar/toolbars, not the mobile action footer. 若例外保留，必須有 Carbon `label` / `iconDescription` 或等價 **accessible name**，並驗證 hover、focus 與 screen reader 名稱。
 
 ## Layout Checklist
 - One visible source of truth for each action.
 - Footer does not cover the last content row on iOS/Android viewport sizes.
+- 至少驗證 `390x844`、`393x852` 與 `412x915`，包含瀏覽器 chrome 收合與螢幕旋轉。
 - Long button labels wrap or truncate acceptably; no text overflow inside Carbon buttons.
+- 200% zoom 與鍵盤 focus 下仍能看到完整主要動作，不被 safe area 或虛擬鍵盤遮住。
 - No nested cards just to host actions.
 - No `.cds--*` overrides and no `!important`.
-- Run `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh` after style changes.
+- Run `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged` after style changes.
 
 ## When Not To Use
 - Repeated row actions inside tables/lists.

@@ -19,6 +19,11 @@
     background-color: var(--cds-layer-hover);
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+
   &--active {
     background-color: var(--cds-layer-selected-01);
   }
@@ -131,7 +136,7 @@
     }
   }
 
-  &:focus {
+  &:focus-visible {
     outline: 2px solid var(--cds-focus);
     outline-offset: -2px;
   }

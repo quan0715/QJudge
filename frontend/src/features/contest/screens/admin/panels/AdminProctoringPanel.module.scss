@@ -46,7 +46,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.25rem;
+  padding: 0 var(--cds-spacing-02);
   border-radius: 999px;
   background: var(--cds-support-success);
   color: var(--cds-text-on-color);
@@ -87,9 +87,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
   height: 3rem;
-  padding: 0 0.75rem;
+  padding: 0 var(--cds-spacing-04);
   border-bottom: 1px solid var(--cds-border-subtle);
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
@@ -111,7 +111,7 @@
   grid-template-columns: 1rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem var(--cds-spacing-04);
   border: 0;
   border-left: 3px solid transparent;
   border-bottom: 1px solid var(--cds-border-subtle);
@@ -167,7 +167,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
 }
 
 .rosterName {
@@ -193,7 +193,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .violationPill {
@@ -298,8 +298,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.75rem;
+  gap: var(--cds-spacing-05);
+  padding: 0 var(--cds-spacing-04);
   border-bottom: 1px solid var(--cds-border-subtle);
   color: var(--cds-text-primary);
   font-size: 0.875rem;
@@ -336,7 +336,7 @@
 
 .eventsEmpty,
 .eventsError {
-  padding: 1rem 0.75rem;
+  padding: var(--cds-spacing-05) var(--cds-spacing-04);
   color: var(--cds-text-secondary);
   font-size: 0.8125rem;
   line-height: 1.35;
@@ -353,8 +353,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0 1rem;
+  gap: var(--cds-spacing-05);
+  padding: 0 var(--cds-spacing-05);
   border-bottom: 1px solid var(--cds-border-subtle);
   background: var(--cds-background);
 }
@@ -363,14 +363,14 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .monitorIdentity {
   min-width: 0;
   display: inline-flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .monitorName {
@@ -393,13 +393,13 @@
 .monitorActions {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   flex: 0 0 auto;
 }
 
 .monitorError {
   flex: 0 0 auto;
-  padding: 0.5rem 1rem;
+  padding: var(--cds-spacing-03) var(--cds-spacing-05);
   border-bottom: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-accent-01);
   color: var(--cds-text-secondary);
@@ -453,8 +453,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--cds-spacing-05);
+  padding: var(--cds-spacing-03) var(--cds-spacing-04);
   background: linear-gradient(to bottom, rgb(0 0 0 / 72%), transparent);
   color: #fff;
   font-size: 0.75rem;

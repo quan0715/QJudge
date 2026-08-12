@@ -32,7 +32,7 @@
 
 .chartColumn {
   display: grid;
-  gap: 1rem;
+  gap: var(--cds-spacing-05);
 }
 
 .emptyState {

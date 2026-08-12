@@ -3,7 +3,7 @@ import {
   Section,
   ActionRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 export default function DisplaySettingsPanel({
   t,

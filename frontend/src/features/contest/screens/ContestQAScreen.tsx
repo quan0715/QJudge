@@ -11,7 +11,9 @@ const ContestQAScreen: React.FC<ContestQAScreenProps> = ({ maxWidth }) => {
   const { t } = useTranslation("contest");
   const { contest, loading } = useContest();
 
-  if (loading) return <Loading />;
+  if (loading) {
+    return <Loading description={t("common:message.loading", "載入問答資料")} />;
+  }
   if (!contest) return <div>{t("clarifications.notFound")}</div>;
 
   return (

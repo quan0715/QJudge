@@ -3,7 +3,7 @@
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem var(--cds-spacing-04);
   background-color: var(--cds-layer);
   border: 1px solid var(--cds-border-subtle);
   border-radius: 10px;
@@ -36,7 +36,7 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  gap: 0.125rem;
+  gap: var(--cds-spacing-01);
 }
 
 .filename {
@@ -51,7 +51,7 @@
 .meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }

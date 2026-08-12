@@ -48,31 +48,8 @@
   }
 
   &__tab-btn {
-    all: unset;
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--cds-text-secondary);
-    cursor: pointer;
+    max-inline-size: none;
     border-right: 1px solid var(--cds-border-subtle-01);
-
-    &:hover {
-      color: var(--cds-text-primary);
-    }
-
-    &--active {
-      background: var(--cds-layer-01);
-      color: var(--cds-text-primary);
-      font-weight: 600;
-    }
-
-    svg {
-      flex-shrink: 0;
-    }
   }
 
   &__topbar-toolbar {
@@ -141,12 +118,12 @@
   &__preview-content {
     flex: 1;
     min-height: 0;
-    padding: 1rem; // explicit padding
+    padding: var(--cds-spacing-05); // explicit padding
     overflow: auto;
 
     .markdown-body {
       > *:not(:last-child) {
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--cds-spacing-04);
       }
     }
   }
@@ -161,11 +138,6 @@
   padding: 0 var(--cds-spacing-03);
   background: var(--cds-layer-02);
   border-bottom: 1px solid var(--cds-border-subtle-01);
-
-  .cds--btn {
-    border: none;
-  }
-
 
   &__group {
     display: flex;
@@ -254,7 +226,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem; // spacing-03
+    margin-bottom: var(--cds-spacing-03); // spacing-03
   }
 
   &__label {
@@ -279,7 +251,7 @@
   &__content {
     min-height: 80px;
     max-height: 300px;
-    padding: 1rem; // explicit padding
+    padding: var(--cds-spacing-05); // explicit padding
     overflow: auto;
     background: var(--cds-field-01);
     border: 1px solid var(--cds-border-subtle-01);
@@ -288,7 +260,7 @@
       font-size: 0.875rem;
 
       > *:not(:last-child) {
-        margin-bottom: 0.75rem;
+        margin-bottom: var(--cds-spacing-04);
       }
     }
   }
@@ -304,41 +276,12 @@
   }
 }
 
-// Modal styles
-.markdown-editor-modal {
-  .cds--modal-container {
-    max-width: 90vw;
-    width: 90vw;
-    max-height: 90vh;
-    height: 90vh;
-  }
-
-  .cds--modal-content {
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__body {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-
-    .markdown-editor {
-      flex: 1;
-      min-height: 0;
-    }
-  }
-}
-
 // MarkdownField - Always-visible editor for forms (Carbon-style)
 .markdown-field {
   // Label - matches Carbon's .cds--label
   &__label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--cds-spacing-03);
     font-size: 0.75rem;
     font-weight: 400;
     line-height: 1rem;
@@ -383,26 +326,11 @@
       }
     }
 
-    // Monaco editor background
-    .monaco-editor,
-    .monaco-editor .margin,
-    .monaco-editor-background {
-      background-color: var(--cds-field) !important;
-    }
-
-    // Monaco editor on hover
-    &:hover {
-      .monaco-editor,
-      .monaco-editor .margin,
-      .monaco-editor-background {
-        background-color: var(--cds-field-hover) !important;
-      }
-    }
   }
 
   // Helper text - matches Carbon's .cds--form__helper-text
   &__helper-text {
-    margin-top: 0.25rem;
+    margin-top: var(--cds-spacing-02);
     font-size: 0.75rem;
     line-height: 1rem;
     letter-spacing: 0.32px;

@@ -19,7 +19,10 @@ export { default as ProblemLayout } from "./layout/ProblemLayout";
 export { default as ProblemTabs } from "./layout/ProblemTabs";
 
 // Common components
-export { TestCaseList, type TestCaseItem } from "./common/TestCaseList";
+export {
+  ProblemTestCaseEditor,
+  type TestCaseItem,
+} from "./common/ProblemTestCaseEditor";
 
 // Other components
 export { default as ProblemLink } from "./ProblemLink";

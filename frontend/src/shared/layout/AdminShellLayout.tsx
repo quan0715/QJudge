@@ -87,6 +87,7 @@ const AdminShellLayout = ({
       <SideNav
         aria-label={sideNavAriaLabel}
         {...(isRail ? { isRail: true } : { expanded: true })}
+        style={{ top: "3rem", height: "calc(100dvh - 3rem)" }}
         className={`${styles.sidenav}${!isRail ? ` ${styles.sidenavExpanded}` : ""}`}
       >
         <SideNavItems>

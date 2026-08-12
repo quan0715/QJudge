@@ -9,7 +9,7 @@ import {
 } from "@carbon/react";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import { listMine, listSubscribed, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
-import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+import { getQuestionDisplayTitle } from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import QuestionBankPreviewCard from "@/features/question-banks/components/QuestionBankPreviewCard";
 import styles from "./QuestionBankImportModal.module.scss";
 

@@ -17,6 +17,6 @@ export const adminRoutes = (
       path="/management/announcements"
       element={<Suspense fallback={null}><AnnouncementManagementScreen /></Suspense>}
     />
-    <Route path="/admin/review-queue" element={<Suspense fallback={null}><ReviewQueueScreen /></Suspense>} />
+    <Route path="/system/review-queue" element={<Suspense fallback={null}><ReviewQueueScreen /></Suspense>} />
   </>
 );

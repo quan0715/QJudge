@@ -286,7 +286,9 @@ describe("QJudgeChatPanel", () => {
     renderPanel(transport, session.id, <QJudgeChatPanel mode="full" />);
 
     const input = await screen.findByRole("textbox", { name: /message|輸入/i });
-    expect(screen.getByRole("button", { name: /new|新增/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /new|新增/i }),
+    ).toBeInTheDocument();
     fireEvent.change(input, { target: { value: "你好" } });
     fireEvent.click(screen.getByRole("button", { name: /send|送出/i }));
 

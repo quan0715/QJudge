@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { useCopilotStateContext } from "../react/copilotContexts";
 
 export interface UseCopilotSessionLocationResult {
@@ -8,15 +8,19 @@ export interface UseCopilotSessionLocationResult {
 
 export function useCopilotSessionLocation(): UseCopilotSessionLocationResult {
   const { sessionLocation } = useCopilotStateContext();
-  const [id, setId] = useState(() => sessionLocation?.get() ?? null);
-  useEffect(() => {
-    setId(sessionLocation?.get() ?? null);
-    return sessionLocation?.subscribe(setId);
-  }, [sessionLocation]);
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      sessionLocation?.subscribe(() => notify()) ?? (() => {}),
+    [sessionLocation],
+  );
+  const getSnapshot = useCallback(
+    () => sessionLocation?.get() ?? null,
+    [sessionLocation],
+  );
+  const id = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const set = useCallback(
     (next: string | null, options?: { replace?: boolean }) => {
       sessionLocation?.set(next, options);
-      setId(next);
     },
     [sessionLocation],
   );

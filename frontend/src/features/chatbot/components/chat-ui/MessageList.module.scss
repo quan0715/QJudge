@@ -26,7 +26,7 @@
   // 不會擋住內部垂直捲動。
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: 1rem 0 9rem;
+  padding: var(--cds-spacing-05) 0 9rem;
 
   // Center message content within full-width scroll container
   display: flex;
@@ -106,7 +106,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: 0.75rem 1rem;
+  padding: var(--cds-spacing-04) var(--cds-spacing-05);
 }
 
 .skeletonMessage {
@@ -132,5 +132,5 @@
   min-width: 0;
   flex: 1 1 auto;
   max-width: min(95%, 860px);
-  padding-top: 0.125rem;
+  padding-top: var(--cds-spacing-01);
 }

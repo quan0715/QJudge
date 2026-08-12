@@ -8,7 +8,7 @@ import { fetchArtifactDownloadUrl } from "@/infrastructure/api/repositories/arti
 import { useMediaQuery } from "@/shared/hooks";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskMainTabs } from "./TaskMainTabs";
-import { ArtifactFileIcon } from "./artifactIcon";
+import { ArtifactFileIcon } from "./ArtifactFileIcon";
 import type {
   ArtifactRecord,
   ModelInfo,

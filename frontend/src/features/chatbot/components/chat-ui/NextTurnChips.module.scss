@@ -1,8 +1,8 @@
 .wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: var(--cds-spacing-03);
+  padding: var(--cds-spacing-03) var(--cds-spacing-05);
   max-width: min(90%, 720px);
 }
 

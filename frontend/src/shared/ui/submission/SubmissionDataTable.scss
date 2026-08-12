@@ -52,11 +52,7 @@
 
   // Loading state
   &--loading {
-    .cds--data-table {
-      tbody tr {
-        pointer-events: none;
-      }
-    }
+    pointer-events: none;
   }
 
   // Empty message inside table
@@ -66,9 +62,9 @@
     align-items: center;
     justify-content: center;
     min-height: 200px;
-    padding: 3rem 1rem;
+    padding: var(--cds-spacing-09) var(--cds-spacing-05);
     text-align: center;
-    gap: 0.5rem;
+    gap: var(--cds-spacing-03);
   }
 
   &__empty-title {

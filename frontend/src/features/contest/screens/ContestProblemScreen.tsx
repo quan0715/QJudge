@@ -123,7 +123,7 @@ const ContestProblemScreen = () => {
   if (contestLoading) {
     return (
       <div className="contest-problem-page contest-problem-page--loading">
-        <Loading />
+        <Loading description={t("common:message.loading", "載入競賽題目")} />
       </div>
     );
   }
@@ -148,7 +148,7 @@ const ContestProblemScreen = () => {
   if (problemSelection.isProblemLoading || !problemSelection.selectedProblem) {
     return (
       <div className="contest-problem-page contest-problem-page--loading">
-        <Loading />
+        <Loading description={t("common:message.loading", "載入競賽題目")} />
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Layer, SkeletonText, SkeletonPlaceholder } from "@carbon/react";
+import { Button, Layer, SkeletonText, SkeletonPlaceholder } from "@carbon/react";
 import { Information } from "@carbon/icons-react";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
 import type { ExecutionState } from "@/core/types/solver.types";
@@ -13,17 +13,6 @@ import { TestResultDetail } from "@/shared/ui/submission";
 import { SubmissionStatusIcon } from "@/shared/ui/tag/SubmissionStatusBadge";
 import { TestResultHeader } from "./TestResultHeader";
 import styles from "./ResultsPanel.module.scss";
-
-// Labels for TestCaseSidebarList (used by EditTestCasesPanel)
-export const TEST_CASE_SIDEBAR_LABELS = {
-  list: "Test Cases",
-  sample: "範例測資",
-  custom: "自訂測資",
-  emptyCustom: "尚無自訂測資",
-  addAction: "新增測資",
-  addNewLabel: "新增測資",
-  addNewTag: "新增",
-};
 
 /**
  * 將 CaseResultDisplay 轉換為 TestResult
@@ -179,7 +168,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 const iconStatus = getIconStatus(result.status);
                 
                 return (
-                  <div
+                  <Button
+                    type="button"
+                    kind="ghost"
+                    size="sm"
                     key={result.id ?? idx}
                     onClick={() => setSelectedResult(result)}
                     className={`${styles.resultItem} ${isActive ? styles["resultItem--active"] : ""}`}
@@ -189,7 +181,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     <span className={styles.resultMeta}>
                       {result.status !== "pending" && result.execTime !== undefined && result.execTime > 0 && formatTime(result.execTime)}
                     </span>
-                  </div>
+                  </Button>
                 );
               })}
             </div>

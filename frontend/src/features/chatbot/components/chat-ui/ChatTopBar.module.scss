@@ -21,11 +21,11 @@
 .titleBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: var(--cds-spacing-02) var(--cds-spacing-03);
   border-radius: 4px;
   color: var(--cds-text-primary, #161616);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
@@ -61,7 +61,7 @@
   font-weight: 500;
   border: 1px solid var(--cds-focus, #0f62fe);
   border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  padding: var(--cds-spacing-02) var(--cds-spacing-03);
   background: var(--cds-field-01, #fff);
   color: var(--cds-text-primary, #161616);
   outline: none;
@@ -83,14 +83,14 @@
   border-radius: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   z-index: 200;
-  padding: 0.25rem 0;
+  padding: var(--cds-spacing-02) 0;
 }
 
 .dropdownItem {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.375rem 0.5rem;
+  padding: 0.375rem var(--cds-spacing-03);
   background: transparent;
   border: none;
   cursor: pointer;

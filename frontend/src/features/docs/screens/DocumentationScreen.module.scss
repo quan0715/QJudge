@@ -1,5 +1,35 @@
 // DocumentationScreen responsive styles
 
+.eyebrow,
+.pageMeta {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size);
+  line-height: var(--cds-label-01-line-height);
+}
+
+.eyebrow {
+  margin-bottom: var(--cds-spacing-02);
+}
+
+.sidebarTitle {
+  margin: 0;
+  font-size: var(--cds-heading-03-font-size);
+  line-height: var(--cds-heading-03-line-height);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--cds-heading-05-font-size);
+  line-height: var(--cds-heading-05-line-height);
+}
+
+.errorText {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-02-font-size);
+  line-height: var(--cds-body-02-line-height);
+}
+
 .container {
   display: flex;
   min-height: calc(100vh - 3rem);
@@ -19,44 +49,44 @@
 }
 
 .sidebarHeader {
-  padding: 1.5rem 1rem 0.5rem 1rem;
+  padding: var(--cds-spacing-06) var(--cds-spacing-05) var(--cds-spacing-03) var(--cds-spacing-05);
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .sidebarContent {
   flex: 1;
-  padding-top: 1rem;
+  padding-top: var(--cds-spacing-05);
   overflow-y: auto;
 }
 
 // Settings section at bottom of sidebar
 .sidebarSettings {
   flex-shrink: 0;
-  padding-bottom: 0.5rem;
+  padding-bottom: var(--cds-spacing-03);
 }
 
 .settingsDivider {
   height: 1px;
   background-color: var(--cds-border-subtle-01);
-  margin: 0.5rem 1rem;
+  margin: var(--cds-spacing-03) var(--cds-spacing-05);
 }
 
 .settingsSection {
-  padding: 0.75rem 1rem;
+  padding: var(--cds-spacing-04) var(--cds-spacing-05);
 }
 
 .settingsLabel {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: var(--cds-spacing-03);
+  margin-bottom: var(--cds-spacing-03);
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
 }
 
 .themeButtons {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .themeBtn,
@@ -65,8 +95,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
+  gap: var(--cds-spacing-02);
+  padding: var(--cds-spacing-03);
   background: transparent;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 4px;
@@ -90,14 +120,14 @@
 
 .languageButtons {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .dashboardLink {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: var(--cds-spacing-04);
+  padding: var(--cds-spacing-04) var(--cds-spacing-05);
   color: var(--cds-link-primary);
   text-decoration: none;
   font-size: 0.875rem;
@@ -116,7 +146,7 @@
 }
 
 .pageHeader {
-  padding: 1.5rem 2rem;
+  padding: var(--cds-spacing-06) var(--cds-spacing-07);
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
@@ -128,7 +158,7 @@
 
 .mainContent {
   flex: 1;
-  padding: 1.5rem 2rem;
+  padding: var(--cds-spacing-06) var(--cds-spacing-07);
   min-width: 0;
   overflow-y: auto;
 }
@@ -146,11 +176,11 @@
   }
 
   .leftSidebar {
-    display: none !important;
+    display: none;
   }
 
   .rightSidebar {
-    display: none !important;
+    display: none;
   }
 
   .mainArea {
@@ -158,11 +188,11 @@
   }
 
   .pageHeader {
-    padding: 1rem;
+    padding: var(--cds-spacing-05);
   }
 
   .mainContent {
-    padding: 1rem;
+    padding: var(--cds-spacing-05);
     width: 100%;
   }
 }
@@ -178,10 +208,10 @@
   }
 
   .pageHeader {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem var(--cds-spacing-06);
   }
 
   .mainContent {
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem var(--cds-spacing-06);
   }
 }

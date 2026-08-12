@@ -16,18 +16,27 @@
   "nav": {
     "back": "뒤로",
     "items": {
+      "admin-account": "관리자 계정 만들기",
       "admin-overview": "관리자 기능",
       "classroom-management": "클래스룸 관리",
+      "classroom-roster": "학생 명단 관리",
+      "classroom-setup": "클래스룸 만들기",
       "common-errors": "자주 발생하는 오류",
       "contest-extension-architecture": "대회 확장 아키텍처 가이드",
       "contests": "대회 참가",
       "contributing": "기여하기",
       "create-exam": "시험 및 문제 만들기",
+      "deployment": "단일 호스트에서 배포 시작",
+      "deployment-options": "선택 기능 추가",
+      "deployment-storage": "파일 스토리지 준비",
+      "deployment-troubleshooting": "배포 문제 해결",
       "dev-setup": "개발 환경 설정",
       "e2e-testing": "E2E 테스트 가이드",
       "exam-grading": "시험 채점 및 결과 발표",
       "exam-precheck-anticheat": "Exam Pre-check 및 부정행위 방지 시퀀스",
+      "exam-preparation": "시험 준비",
       "exam-proctoring": "시험 감독 및 수동 개입",
+      "exam-review": "시험 내용 확인",
       "exam-statistics": "시험 통계 및 검토",
       "identity-auth-extension": "인증 모듈 유지보수 및 확장",
       "judge-system": "채점 시스템",
@@ -44,7 +53,8 @@
       "teacher-exam-workflow": "정식 시험 운영 흐름",
       "teacher-first-class-setup": "첫 수업 전 설정",
       "teacher-grading-feedback": "채점, 분석 및 피드백",
-      "teacher-overview": "교사 기능 개요"
+      "teacher-overview": "교사 기능 개요",
+      "teacher-qualification": "교사 자격 관리"
     },
     "lastUpdated": "마지막 업데이트",
     "onThisPage": "이 페이지에서",
@@ -53,6 +63,8 @@
     "sections": {
       "admin-guide": "관리자 가이드",
       "developer-guide": "개발자 가이드",
+      "deployment": "구축 및 배포",
+      "first-exam": "첫 시험 준비",
       "getting-started": "시작하기",
       "reference": "참고 자료",
       "teacher-guide": "교사 가이드",
@@ -64,6 +76,11 @@
     "title": "문서"
   },
   "quickLinks": {
+    "administration": {
+      "description": "첫 관리자 계정을 만들고 교사 기능을 사용할 계정을 지정합니다",
+      "tag": "단계 2",
+      "title": "관리자 및 교사 자격 설정"
+    },
     "admin": {
       "description": "사용자, 권한 설정 및 시스템 구성 관리",
       "tag": "관리자",
@@ -74,10 +91,25 @@
       "tag": "대회",
       "title": "프로그래밍 대회 참가"
     },
+    "classroom": {
+      "description": "교사 계정으로 클래스룸을 만들고 이번 학기의 학생 명단을 추가하거나 가져옵니다",
+      "tag": "단계 3",
+      "title": "클래스룸 및 명단 준비"
+    },
+    "deployment": {
+      "description": "Ubuntu 호스트 한 대에 최소 구성으로 배포한 뒤 필요에 따라 HTTPS와 외부 서비스를 추가합니다",
+      "tag": "단계 1",
+      "title": "구축 및 배포"
+    },
     "developer": {
       "description": "개발 환경 설정, 프로젝트 구조 이해 및 기여 절차",
       "tag": "개발자",
       "title": "코드 기여"
+    },
+    "exam": {
+      "description": "시험을 만들고 문제와 일정을 구성한 뒤 게시 전에 체크리스트를 항목별로 확인합니다",
+      "tag": "단계 4",
+      "title": "첫 시험 준비"
     },
     "student": {
       "description": "문제를 탐색하고 코드를 작성하여 제출하는 방법을 배웁니다",

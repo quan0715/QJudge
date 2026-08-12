@@ -10,11 +10,11 @@
 .diffHeader {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 0.5rem 1rem;
+  padding: var(--cds-spacing-03) var(--cds-spacing-05);
   background-color: var(--cds-layer-02);
   border-bottom: 1px solid var(--cds-border-subtle-01);
-  gap: 0.5rem;
-  padding-left: 3rem; // Account for line numbers
+  gap: var(--cds-spacing-03);
+  padding-left: var(--cds-spacing-09); // Account for line numbers
 }
 
 .columnHeader {
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 0.75rem;
+  padding-right: var(--cds-spacing-04);
   color: var(--cds-text-helper);
   background-color: var(--cds-layer-02);
   border-right: 1px solid var(--cds-border-subtle-01);
@@ -83,7 +83,7 @@
 .actualCell {
   display: flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
+  padding: var(--cds-spacing-02) var(--cds-spacing-04);
   white-space: pre;
   overflow-x: auto;
   min-height: 1.5rem;
@@ -103,7 +103,7 @@
 }
 
 .truncated {
-  padding: 0.75rem 1rem;
+  padding: var(--cds-spacing-04) var(--cds-spacing-05);
   text-align: center;
   color: var(--cds-text-helper);
   background-color: var(--cds-layer-02);

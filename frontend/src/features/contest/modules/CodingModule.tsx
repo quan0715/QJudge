@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   canAccessExamContent,
@@ -13,9 +14,12 @@ import type {
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
-import CodingTestEditorLayout from "@/features/contest/components/admin/examEditor/CodingTestEditorLayout";
 import ContestProblemScreen from "@/features/contest/screens/ContestProblemScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
+
+const CodingTestEditorLayout = lazy(
+  () => import("@/features/contest/components/admin/examEditor/CodingTestEditorLayout"),
+);
 
 const getFirstProblemId = (
   contest?: ContestDetail | null,

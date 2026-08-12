@@ -11,12 +11,7 @@
   z-index: var(--admin-shell-header-z, 8001);
 }
 
-// Carbon SideNav sets top/height via inline styles; !important is the
-// only way to anchor it below our 48 px header.
 .sidenav {
-  top: 3rem !important;
-  height: calc(100vh - 3rem) !important;
-  height: calc(100dvh - 3rem) !important;
   border-right: 1px solid var(--cds-border-subtle);
   transition: width 180ms ease;
 }

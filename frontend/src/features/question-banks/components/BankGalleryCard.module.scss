@@ -22,7 +22,7 @@
 
 .banner {
   min-height: 7.25rem;
-  padding: 1rem;
+  padding: var(--cds-spacing-05);
   position: relative;
   color: #fff;
   background-image:
@@ -65,8 +65,8 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.625rem 1rem 1rem;
+  gap: var(--cds-spacing-03);
+  padding: 1.625rem var(--cds-spacing-05) var(--cds-spacing-05);
 }
 
 .description {
@@ -76,7 +76,7 @@
   color: var(--cds-text-secondary);
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .verifiedIcon {
@@ -88,7 +88,7 @@
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
   font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }
@@ -107,8 +107,8 @@
   .miniBody {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    gap: var(--cds-spacing-04);
+    padding: var(--cds-spacing-04) var(--cds-spacing-05);
   }
 
   .miniIcon {
@@ -145,7 +145,7 @@
       color: var(--cds-text-secondary);
       display: inline-flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: var(--cds-spacing-02);
     }
   }
 }

@@ -8,16 +8,13 @@
   position: relative;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
+  background-color: var(--cds-layer-01, var(--cds-layer));
 
-  &.cds--tile--clickable {
-    background-color: var(--cds-layer-01, var(--cds-layer));
-  }
-
-  &.cds--tile--clickable:hover {
+  &:hover {
     background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
   }
 
-  &.cds--tile--clickable:active {
+  &:active {
     background-color: var(--cds-layer-active-01, var(--cds-layer-active));
   }
 }

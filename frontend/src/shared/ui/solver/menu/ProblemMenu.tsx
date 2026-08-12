@@ -43,7 +43,7 @@ export const ProblemMenu: React.FC<ProblemMenuProps> = ({
         <div className="solver-menu__indicator" style={{ top: indicatorTop }} />
       )}
 
-      <ContainedList isInset>
+      <ContainedList isInset size="lg" className="solver-menu__list">
         {problems.map((p) => {
           const isActive = p.id === selectedProblemId;
 

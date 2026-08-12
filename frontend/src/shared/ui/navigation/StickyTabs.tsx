@@ -1,10 +1,4 @@
-import React, {
-  useRef,
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useCallback,
-} from "react";
+import React from "react";
 import { Tabs, Tab, TabList } from "@carbon/react";
 import "./StickyTabs.scss";
 
@@ -30,14 +24,8 @@ interface StickyTabsProps {
   stickyTop?: string;
 }
 
-interface IndicatorStyle {
-  left: number;
-  width: number;
-}
-
 /**
- * Reusable tabs component with smooth sliding indicator animation.
- * Supports sticky positioning with configurable top offset.
+ * Reusable Carbon tabs with optional sticky positioning.
  */
 export const StickyTabs: React.FC<StickyTabsProps> = ({
   items,
@@ -48,57 +36,6 @@ export const StickyTabs: React.FC<StickyTabsProps> = ({
   sticky = true,
   stickyTop = "3rem",
 }) => {
-  const tabListRef = useRef<HTMLDivElement>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState<IndicatorStyle>({
-    left: 0,
-    width: 0,
-  });
-  const [hasInitialized, setHasInitialized] = useState(false);
-
-  // Calculate indicator position based on selected tab
-  const updateIndicator = useCallback(() => {
-    if (!tabListRef.current) return;
-
-    const tabList = tabListRef.current.querySelector(".cds--tabs__nav");
-    if (!tabList) return;
-
-    const tabs = tabList.querySelectorAll(".cds--tabs__nav-item");
-    const selectedTab = tabs[selectedIndex] as HTMLElement;
-
-    if (selectedTab) {
-      const tabListRect = tabList.getBoundingClientRect();
-      const tabRect = selectedTab.getBoundingClientRect();
-
-      setIndicatorStyle({
-        left: tabRect.left - tabListRect.left,
-        width: tabRect.width,
-      });
-    }
-  }, [selectedIndex]);
-
-  // Use layoutEffect for synchronous DOM measurement after render
-  useLayoutEffect(() => {
-    // Use requestAnimationFrame to ensure Carbon tabs have rendered
-    const rafId = requestAnimationFrame(() => {
-      updateIndicator();
-      if (!hasInitialized) {
-        // Small delay before enabling transitions
-        setTimeout(() => setHasInitialized(true), 50);
-      }
-    });
-
-    return () => cancelAnimationFrame(rafId);
-  }, [selectedIndex, items.length, updateIndicator, hasInitialized]);
-
-  // Update indicator on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      requestAnimationFrame(updateIndicator);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [updateIndicator]);
-
   const containerClasses = [
     "sticky-tabs-container",
     sticky && "sticky-tabs-container--sticky",
@@ -118,30 +55,18 @@ export const StickyTabs: React.FC<StickyTabsProps> = ({
           margin: maxWidth ? "0 auto" : undefined,
         }}
       >
-        <div className="sticky-tabs-wrapper" ref={tabListRef}>
-          <Tabs
-            selectedIndex={selectedIndex}
-            onChange={({ selectedIndex }: { selectedIndex: number }) =>
-              onChange(selectedIndex)
-            }
-          >
-            <TabList aria-label={ariaLabel}>
-              {items.map((item) => (
-                <Tab key={item.key}>{item.label}</Tab>
-              ))}
-            </TabList>
-          </Tabs>
-          {/* Sliding indicator */}
-          <div
-            className={`sticky-tabs-indicator${
-              hasInitialized ? " sticky-tabs-indicator--animated" : ""
-            }`}
-            style={{
-              left: indicatorStyle.left,
-              width: indicatorStyle.width,
-            }}
-          />
-        </div>
+        <Tabs
+          selectedIndex={selectedIndex}
+          onChange={({ selectedIndex }: { selectedIndex: number }) =>
+            onChange(selectedIndex)
+          }
+        >
+          <TabList aria-label={ariaLabel}>
+            {items.map((item) => (
+              <Tab key={item.key}>{item.label}</Tab>
+            ))}
+          </TabList>
+        </Tabs>
       </div>
     </div>
   );

@@ -10,9 +10,6 @@
 .title           { @include exam.exam-title; }
 .toolbarCenter   { @include exam.exam-toolbar-center(layout.$spacing-05); }
 
-.toolbarLeft :global(.cds--btn),
-.toolbarCenter :global(.cds--btn) { @include exam.exam-toolbar-btn-height; }
-
 .timer           { @include exam.exam-timer; }
 .timerText       { @include exam.exam-timer-text; }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapEventFeedItemDto } from "./contest.participant.mapper";
+import { mapEventFeedItemDto } from "./contestParticipant.mapper";
 
 describe("mapEventFeedItemDto", () => {
   it("maps semantic evidence availability without exposing chunk counts", () => {

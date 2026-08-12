@@ -102,6 +102,7 @@ const SubmissionDetailModal = ({
       color="white"
       onRequestClose={onClose}
       passiveModal
+      modalHeading={t("submission.detail", "繳交詳情")}
       size="lg"
       style={{ minHeight: "600px" }}
     >

@@ -149,6 +149,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
         {renamingId !== null && renamingId === currentSessionId ? (
           <input
             className={styles.renameInput}
+            aria-label={t("ui.renameTask", "重新命名工作")}
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={commitRename}

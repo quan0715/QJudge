@@ -76,4 +76,25 @@ describe("httpClient auth refresh", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/login/password");
   });
+
+  it("can suppress global server-error toasts for optional background reads", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: false }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const onServerError = vi.fn();
+    window.addEventListener("server-error", onServerError);
+
+    const response = await httpClient.get(
+      "/api/v1/ai/models/",
+      { suppressGlobalError: true },
+    );
+
+    expect(response.status).toBe(503);
+    expect(onServerError).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("suppressGlobalError");
+    window.removeEventListener("server-error", onServerError);
+  });
 });

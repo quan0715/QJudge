@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { createMockContest, stubT } from "@/shared/mocks/contest.mock";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import ContestSettingsModal from "./ContestSettingsModal";
 
 vi.mock("@/shared/ui/modal/SettingsModal", () => ({

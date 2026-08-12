@@ -39,7 +39,6 @@ const ProblemEditExportModal: React.FC<ProblemEditExportModalProps> = ({
       primaryButtonText={t("edit.exportModal.submit")}
       secondaryButtonText={t("edit.exportModal.cancel")}
       size="sm"
-      className="problem-edit-page__export-modal"
     >
       <div className="problem-edit-page__export-content">
         <ContentSwitcher

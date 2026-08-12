@@ -16,6 +16,7 @@ import { httpClient } from "@/infrastructure/api/http.client";
 
 const BASE_URL = "/api/v1/ai/sessions";
 const AI_BASE = "/api/v1/ai";
+const OPTIONAL_AI_READ_OPTIONS = { suppressGlobalError: true } as const;
 
 // ===== v2 SSE event shape from ai-service =====
 interface V2StreamEvent {
@@ -550,7 +551,7 @@ const chatbotRepository: ChatbotRepository = {
 
     while (nextUrl) {
       const response: PaginatedResponse<BackendSessionListItem> = await requestJson(
-        httpClient.get(nextUrl),
+        httpClient.get(nextUrl, OPTIONAL_AI_READ_OPTIONS),
         "無法載入對話列表"
       );
       sessions.push(...(response.results || []));
@@ -578,7 +579,10 @@ const chatbotRepository: ChatbotRepository = {
 
   async getSession(sessionId: string | number): Promise<ChatSession> {
     const data = await requestJson<BackendSession>(
-      httpClient.get(`${BASE_URL}/${sessionId.toString()}/`),
+      httpClient.get(
+        `${BASE_URL}/${sessionId.toString()}/`,
+        OPTIONAL_AI_READ_OPTIONS,
+      ),
       "無法載入對話"
     );
     const messages: ChatMessage[] = (data.messages || []).map((message) =>
@@ -654,7 +658,7 @@ const chatbotRepository: ChatbotRepository = {
 
   async getModels(): Promise<ModelInfo[]> {
     const data = await requestJson<{ models: ModelInfo[] }>(
-      httpClient.get(`${AI_BASE}/models/`),
+      httpClient.get(`${AI_BASE}/models/`, OPTIONAL_AI_READ_OPTIONS),
       "無法載入模型列表"
     );
     return data.models;
@@ -683,7 +687,10 @@ const chatbotRepository: ChatbotRepository = {
 
   async getActiveRuns(): Promise<ChatRun[]> {
     const response = await requestJson<PaginatedResponse<BackendRun>>(
-      httpClient.get(`${AI_BASE}/runs/?status=active`),
+      httpClient.get(
+        `${AI_BASE}/runs/?status=active`,
+        OPTIONAL_AI_READ_OPTIONS,
+      ),
       "無法載入進行中的 AI 任務"
     );
     return (response.results || []).map(convertBackendRun);

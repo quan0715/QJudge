@@ -38,15 +38,6 @@ body {
   flex-direction: column;
 }
 
-.cds--content {
-  flex: 1;
-  min-height: calc(100vh - 3rem);
-  margin-top: 3rem;
-  background: var(--cds-background);
-  // Remove default Carbon padding so pages control their own spacing
-  padding: 0 !important;
-}
-
 :root {
   --problem-difficulty-easy: #22c55e;
   --problem-difficulty-medium: #f59e0b;
@@ -87,12 +78,11 @@ body {
 
 // Markdown body overrides to fix background color rendering
 .markdown-body:not(.chat-thinking-markdown) {
-  background-color: transparent !important;
-  color: var(--cds-text-primary) !important;
+  background-color: transparent;
+  color: var(--cds-text-primary);
 
-  // Fix blockquote backgrounds
   blockquote {
-    color: var(--cds-text-secondary) !important;
-    border-left-color: var(--cds-border-subtle) !important;
+    color: var(--cds-text-secondary);
+    border-left-color: var(--cds-border-subtle);
   }
 }

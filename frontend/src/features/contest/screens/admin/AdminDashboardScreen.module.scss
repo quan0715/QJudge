@@ -14,3 +14,11 @@
   flex-direction: column;
   overflow: hidden;
 }
+
+.loadingState {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+}

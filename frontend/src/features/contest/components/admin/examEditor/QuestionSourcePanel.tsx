@@ -16,7 +16,7 @@ import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import { listMine, listSubscribed, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
 import { QuestionBankPreviewCard } from "@/features/question-banks/components/QuestionBankPreviewCard";
-import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+import { getQuestionDisplayTitle } from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import { Code } from "@carbon/icons-react";
 import {

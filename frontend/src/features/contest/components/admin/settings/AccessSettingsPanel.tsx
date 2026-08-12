@@ -12,7 +12,7 @@ import {
   ActionRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 const STATUS_LABELS: Record<ContestStatus, string> = {
   draft: "Draft",

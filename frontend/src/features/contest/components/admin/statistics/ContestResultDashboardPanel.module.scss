@@ -55,20 +55,6 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-03;
-
-  // Fix Carbon Charts white background in dark mode
-  :global {
-    .cds--cc--chart-wrapper,
-    .chart-wrapper,
-    .cds--chart-holder,
-    .chart-holder {
-      background-color: transparent !important;
-    }
-
-    .cds--cc--chart-wrapper svg.layout-child {
-      background-color: transparent !important;
-    }
-  }
 }
 
 .chartHeader {
@@ -194,7 +180,7 @@
 .previewCardLeft {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--cds-spacing-01);
   flex: 1;
   min-width: 0;
 }
@@ -383,21 +369,6 @@
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-03;
-}
-
-.drawerChartFrame {
-  :global {
-    .cds--cc--chart-wrapper,
-    .chart-wrapper,
-    .cds--chart-holder,
-    .chart-holder {
-      background-color: transparent !important;
-    }
-
-    .cds--cc--chart-wrapper svg.layout-child {
-      background-color: transparent !important;
-    }
-  }
 }
 
 .drawerEmptyState {

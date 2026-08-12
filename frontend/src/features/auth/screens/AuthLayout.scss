@@ -81,7 +81,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(6rem, 12vh, 8rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
+  padding: clamp(var(--cds-spacing-12), 12vh, 8rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
   background-color: $layer-01;
   border: 0;
   border-radius: 0;

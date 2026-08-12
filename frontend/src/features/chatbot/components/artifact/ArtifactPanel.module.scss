@@ -12,8 +12,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0 0.5rem;
+  gap: var(--cds-spacing-03);
+  padding: 0 var(--cds-spacing-03);
   border-bottom: 1px solid var(--cds-border-subtle);
   min-height: 2.5rem;
 }
@@ -21,7 +21,7 @@
 .title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   min-width: 0;
   flex: 1;
 }
@@ -48,7 +48,7 @@
 
 .headerActions {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .body {
@@ -66,14 +66,14 @@
 }
 
 .state {
-  padding: 1.5rem 1rem;
+  padding: var(--cds-spacing-06) var(--cds-spacing-05);
   text-align: center;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
 }
 
 .error {
-  padding: 1rem;
+  padding: var(--cds-spacing-05);
   color: var(--cds-support-error);
   font-size: 0.875rem;
 }

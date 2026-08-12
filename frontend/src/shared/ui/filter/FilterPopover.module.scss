@@ -7,17 +7,18 @@
 
 .triggerActive {
   background-color: var(--cds-layer-active);
-}
 
-.activeIndicator {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--cds-interactive);
-  pointer-events: none;
+  &::after {
+    position: absolute;
+    top: layout.$spacing-02;
+    right: layout.$spacing-02;
+    width: layout.$spacing-02;
+    height: layout.$spacing-02;
+    border-radius: 50%;
+    background-color: var(--cds-border-interactive);
+    content: "";
+    pointer-events: none;
+  }
 }
 
 // ─── Popover content ────────────────────────────────────────
@@ -25,10 +26,6 @@
   min-width: 280px;
   display: flex;
   flex-direction: column;
-
-  :global(.cds--dropdown) {
-    width: 100%;
-  }
 }
 
 .fields {
@@ -40,16 +37,6 @@
 
 // ─── Action buttons ─────────────────────────────────────────
 .actions {
-  display: flex;
   margin: 0;
-  padding: 0;
   border-top: 1px solid var(--cds-border-subtle);
-
-  :global(.cds--btn) {
-    flex: 1;
-    max-width: none;
-    border-radius: 0;
-    margin: 0;
-    padding-block: layout.$spacing-05;
-  }
 }

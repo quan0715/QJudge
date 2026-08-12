@@ -42,15 +42,15 @@ import { useAuth } from "@/features/auth";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QuestionBankSettingsGeneralPanel } from "@/features/question-banks/components/QuestionBankSettingsGeneralPanel";
 import { ImportInboxModal } from "@/features/question-banks/components/ImportInboxModal";
-import QuestionBankProblemManagementPanel from "./QuestionBankProblemManagementPanel";
-import QuestionEditModal from "./QuestionEditModal";
+import QuestionBankProblemManagementPanel from "@/features/question-banks/components/QuestionBankProblemManagementPanel";
+import QuestionEditModal from "@/features/question-banks/components/QuestionEditModal";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import {
   resolveExamQuestionType,
   toExamBankPayload,
   type QuestionFilterState,
   type QuestionSortKey,
-} from "./questionBankProblemManagement.utils";
+} from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import styles from "./QuestionBankDetailScreen.module.scss";
 
 const getErrorMessage = (error: unknown, fallback: string): string =>

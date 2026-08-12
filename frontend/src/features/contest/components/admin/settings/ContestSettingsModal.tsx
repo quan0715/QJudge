@@ -2,7 +2,7 @@ import type { ChangeEvent } from "react";
 import { BareMetalServer, Information, Locked, View, Security } from "@carbon/icons-react";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal/SettingsModal";
 import IntegrityRunControlCard from "@/features/contest/components/admin/IntegrityRunControlCard";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
 import DisplaySettingsPanel from "./DisplaySettingsPanel";

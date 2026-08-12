@@ -1,6 +1,6 @@
 .cot {
-  padding: 0.5rem 0;
-  margin: 0.25rem 0;
+  padding: var(--cds-spacing-03) 0;
+  margin: var(--cds-spacing-02) 0;
 }
 
 .label {
@@ -9,32 +9,13 @@
   letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
   text-transform: uppercase;
   color: var(--cds-text-secondary, #525252);
-  margin-bottom: 0.5rem;
-}
-
-.accordion {
-  :global(.cds--accordion) {
-    // Remove default Carbon accordion borders to blend with container
-    border: none;
-  }
-
-  :global(.cds--accordion__item) {
-    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  :global(.cds--accordion__content) {
-    padding: 0.75rem 0 0.5rem;
-  }
+  margin-bottom: var(--cds-spacing-03);
 }
 
 .stepTitle {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
@@ -52,7 +33,7 @@
 }
 
 .section {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--cds-spacing-03);
 }
 
 .sectionLabel {
@@ -61,7 +42,7 @@
   color: var(--cds-text-secondary, #525252);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.125rem;
+  margin-bottom: var(--cds-spacing-01);
 }
 
 .json {
@@ -69,7 +50,7 @@
   line-height: 1.4;
   background: var(--cds-layer-02, #f4f4f4);
   border-radius: 4px;
-  padding: 0.5rem;
+  padding: var(--cds-spacing-03);
   margin: 0;
   overflow-x: auto;
   max-height: 150px;
@@ -84,14 +65,14 @@
 
 .todoList {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .todoItem {
   display: grid;
   grid-template-columns: 1rem minmax(0, 1fr);
   align-items: start;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   color: var(--cds-text-secondary, #525252);
 }
 

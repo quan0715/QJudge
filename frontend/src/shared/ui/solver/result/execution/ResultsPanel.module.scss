@@ -78,7 +78,12 @@
   align-items: center;
   gap: layout.$spacing-03;
   padding: layout.$spacing-03 layout.$spacing-05;
-  cursor: pointer;
+  width: 100%;
+  max-width: none;
+  min-height: auto;
+  justify-content: flex-start;
+  color: inherit;
+  text-align: left;
   transition: background-color 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
 
   &:hover {

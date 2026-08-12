@@ -13,8 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.75rem;
+  gap: var(--cds-spacing-05);
+  padding: 0 var(--cds-spacing-04);
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
@@ -22,7 +22,7 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   overflow: hidden;
   color: var(--cds-text-primary);
   font-size: 0.8125rem;
@@ -39,7 +39,7 @@
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--cds-spacing-02);
 }
 
 .time {
@@ -60,8 +60,8 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--cds-spacing-05);
+  padding: var(--cds-spacing-03) var(--cds-spacing-04);
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
@@ -84,28 +84,28 @@
 .eventContentSection,
 .metaSection,
 .occurrenceSection {
-  padding: 0.75rem;
+  padding: var(--cds-spacing-04);
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .occurrenceSection {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .occurrenceList {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
 }
 
 .eventContentHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  gap: var(--cds-spacing-04);
+  margin-bottom: var(--cds-spacing-03);
 }
 
 .eventContentList {
@@ -124,14 +124,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--cds-spacing-04);
 }
 
 .eventContentMeta {
   display: inline-flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--cds-spacing-03);
   color: var(--cds-text-secondary);
   font-size: 0.75rem;
   text-align: right;
@@ -139,7 +139,7 @@
 
 .eventContentValue {
   margin: 0;
-  padding: 0.75rem;
+  padding: var(--cds-spacing-04);
   border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-02);
   color: var(--cds-text-primary);
@@ -156,7 +156,7 @@
 }
 
 .metaSection {
-  padding-block: 0.25rem;
+  padding-block: var(--cds-spacing-02);
 }
 
 .metaSection .row {

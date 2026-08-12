@@ -12,6 +12,64 @@ const retainedError: CopilotError = {
 };
 
 describe("HITLCard", () => {
+  it("shows a single action name heading and only the arguments needing confirmation", () => {
+    render(
+      <HITLCard
+        request={{
+          actions: [
+            {
+              name: "qjudge_grading",
+              arguments: {
+                action: "batch_grade",
+                grades: [{ score: 2 }],
+                options: { dry_run: false },
+              },
+            },
+          ],
+          allowedDecisions: ["approve", "reject"],
+        }}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("qjudge_grading")).not.toBeInTheDocument();
+    expect(screen.queryByText("action")).not.toBeInTheDocument();
+    expect(screen.getAllByText("batch_grade")).toHaveLength(1);
+    expect(screen.getByText("grades")).toBeInTheDocument();
+    expect(screen.getByText("ui.toolArrayItems")).toBeInTheDocument();
+    expect(screen.getByText("options")).toBeInTheDocument();
+    expect(screen.getByText("ui.toolObjectFields")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "ui.toolTechnicalDetails" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("uses secondary cancel, primary confirm, and an execution label while pending", () => {
+    render(
+      <HITLCard
+        request={{
+          actions: [{ name: "deploy" }],
+          allowedDecisions: ["approve", "reject"],
+        }}
+        pending
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /ui.cancelAction/ }),
+    ).toHaveClass("cds--btn--secondary");
+    expect(
+      screen.getByRole("button", { name: /ui.processing/ }),
+    ).toHaveClass("cds--btn--primary");
+    expect(
+      screen.getByRole("button", { name: /ui.cancelAction/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /ui.processing/ }),
+    ).toBeDisabled();
+  });
+
   it("disables decisions while a submission is pending", () => {
     render(
       <HITLCard
@@ -24,7 +82,7 @@ describe("HITLCard", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /ui.confirmAction/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /ui.processing/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /ui.cancelAction/ })).toBeDisabled();
   });
 
@@ -43,8 +101,8 @@ describe("HITLCard", () => {
       />,
     );
 
-    expect(screen.getByText("deploy")).toBeInTheDocument();
-    expect(screen.getByText(/staging/)).toBeInTheDocument();
+    expect(screen.getAllByText("deploy")).toHaveLength(1);
+    expect(screen.getAllByText(/staging/)).toHaveLength(2);
     expect(screen.getByRole("alert")).toHaveTextContent(retainedError.message!);
     expect(screen.queryByRole("button", { name: /ui.confirmAction/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /ui.cancelAction/ }));

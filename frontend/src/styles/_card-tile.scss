@@ -14,10 +14,10 @@
 
 @mixin surface {
   background-color: var(--qj-card-bg);
-  padding: 1rem 1.25rem;
+  padding: var(--cds-spacing-05) 1.25rem;
 }
 
-@mixin interactive($override-tile: false) {
+@mixin interactive {
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 
@@ -27,14 +27,5 @@
 
   &:active {
     background-color: var(--qj-card-active-bg);
-  }
-
-  @if $override-tile {
-    &.cds--tile,
-    &.cds--tile--clickable {
-      background-color: var(--qj-card-bg);
-      &:hover { background-color: var(--qj-card-hover-bg); }
-      &:active { background-color: var(--qj-card-active-bg); }
-    }
   }
 }

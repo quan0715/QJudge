@@ -5,7 +5,7 @@ import CampusSsoScreen from "./screens/CampusSsoScreen";
 import OAuthCallbackScreen from "./screens/OAuthCallbackScreen";
 import OnboardingScreen from "./screens/OnboardingScreen";
 import InviteLinkScreen from "./screens/InviteLinkScreen";
-import OAuthAuthorizePage from "./screens/OAuthAuthorizePage";
+import OAuthAuthorizeScreen from "./screens/OAuthAuthorizeScreen";
 
 /**
  * Guest 路由（需在 RequireGuest + AuthLayout 內使用）
@@ -36,5 +36,5 @@ export const inviteLinkRoute = (
 );
 
 export const oauthAuthorizeRoute = (
-  <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
+  <Route path="/oauth/authorize" element={<OAuthAuthorizeScreen />} />
 );

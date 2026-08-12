@@ -311,8 +311,8 @@ export default function GradingByStudentTabScreen({
         <ListHeader
           title=""
           action={
-            <button
-              type="button"
+              <button
+                type="button"
               onClick={() => setIsQuestionPaneCollapsed(false)}
               aria-label={t("grading.expandQuestionList", "展開題目列表")}
               style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", color: "var(--cds-icon-primary)" }}
@@ -403,6 +403,7 @@ export default function GradingByStudentTabScreen({
               <ListItemTrailing>
                 {!isAbsent && onToggleFlag && (
                   <button
+                    type="button"
                     className={styles.flagBtn}
                     onClick={(e) => {
                       e.stopPropagation();

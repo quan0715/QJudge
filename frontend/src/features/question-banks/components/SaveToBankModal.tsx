@@ -94,7 +94,10 @@ export const SaveToBankModal = ({
       size="sm"
     >
       {loading ? (
-        <Loading withOverlay={false} />
+        <Loading
+          withOverlay={false}
+          description={t("message.loading", "載入題庫")}
+        />
       ) : (
         <Stack gap={4}>
           <p>{t("questionBank.saveToBank.desc", "將「{{title}}」收錄到題庫：").replace("{{title}}", sourceTitle)}</p>
