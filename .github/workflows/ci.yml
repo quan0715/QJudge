@@ -18,8 +18,7 @@ on:
       - ".env.example"
       - ".github/workflows/**"
       - ".github/actions/**"
-      - "scripts/i18n/i18n_check.py"
-      - "scripts/deploy-prod.sh"
+      - "scripts/**"
   pull_request:
     branches: [main, dev]
     paths:
@@ -37,8 +36,7 @@ on:
       - ".env.example"
       - ".github/workflows/**"
       - ".github/actions/**"
-      - "scripts/i18n/i18n_check.py"
-      - "scripts/deploy-prod.sh"
+      - "scripts/**"
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -70,15 +68,8 @@ jobs:
       - name: Deployment Compose Config Check
         run: |
           set -euo pipefail
-          bash -n scripts/deploy-prod.sh
-          # Compose env_file entries require a physical .env file.
-          cp .env.example .env
-          docker compose --env-file .env.example -f docker-compose.yml config -q
-          docker compose --env-file .env.example -f docker-compose.dev.yml config -q
-          docker compose -f docker-compose.test.yml config -q
-          docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.monitoring.yml config -q
-          docker compose --env-file .env.example -f docker-compose.dev.yml -f docker-compose.monitoring.yml config -q
-          docker compose --env-file .env.example -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml config -q
+          bash -n scripts/deploy-prod.sh scripts/check-compose-config.sh
+          bash scripts/check-compose-config.sh
 
       - name: Install Frontend Deps
         run: npm ci
@@ -225,7 +216,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install MCP Server dependencies
-        run: pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
+        run: pip install "mcp[cli]>=1.9.0,<2.0" "httpx>=0.27.0" "PyJWT[crypto]>=2.9,<3.0" pytest
         working-directory: mcp-server
 
       - name: MCP Server Integration Tests
@@ -355,7 +346,7 @@ jobs:
           cache-dependency-path: mcp-server/pyproject.toml
 
       - name: Install MCP Server dependencies
-        run: pip install "mcp[cli]>=1.9.0" "httpx>=0.27.0" pytest
+        run: pip install "mcp[cli]>=1.9.0,<2.0" "httpx>=0.27.0" "PyJWT[crypto]>=2.9,<3.0" pytest
         working-directory: mcp-server
 
       - name: Run MCP Server Unit Tests

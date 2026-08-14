@@ -1,40 +1,37 @@
 name: CD Prod
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
-
   workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Confirm deployment of the selected main commit to production
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: cd-prod
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    if: github.ref == 'refs/heads/main' && inputs.confirm_production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+    environment: production
     permissions:
       contents: read
       checks: read
+      actions: read
 
     steps:
       - name: Determine SHA
         id: sha
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
-          fi
+          echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,6 +61,23 @@ jobs:
           PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
           PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+
+      - name: Verify release CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          conclusion="$(gh run list \
+            --workflow CI \
+            --commit "$DEPLOY_SHA" \
+            --event push \
+            --limit 1 \
+            --json conclusion \
+            --jq '.[0].conclusion // ""')"
+          if [ "$conclusion" != "success" ]; then
+            echo "CI has not passed for production SHA $DEPLOY_SHA" >&2
+            exit 1
+          fi
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v4

@@ -110,6 +110,20 @@ for key in "${required_env_keys[@]}"; do
   require_env_key "$key"
 done
 
+docker_socket_gid="$(stat -c '%g' /var/run/docker.sock 2>/dev/null || true)"
+case "$docker_socket_gid" in
+  ''|*[!0-9]*)
+    echo "Cannot determine the Docker socket group id" >&2
+    exit 1
+    ;;
+esac
+configured_docker_gid="$(get_env_value DOCKER_GID)"
+if [ -n "$configured_docker_gid" ] && [ "$configured_docker_gid" != "$docker_socket_gid" ]; then
+  echo ".env DOCKER_GID does not match /var/run/docker.sock" >&2
+  exit 1
+fi
+export DOCKER_GID="$docker_socket_gid"
+
 reject_env_placeholder "SECRET_KEY"
 reject_env_placeholder "POSTGRES_ADMIN_PASSWORD"
 reject_env_placeholder "DB_PASSWORD"
@@ -196,6 +210,8 @@ fi
 
 # ── deploy ─────────────────────────────────────────────────────
 
+previous_git_ref="$(git rev-parse HEAD)"
+
 echo "[deploy] fetch and checkout ${GIT_REF}"
 git fetch --all --tags --prune
 git checkout --force "${GIT_REF}"
@@ -203,8 +219,68 @@ git checkout --force "${GIT_REF}"
 echo "[deploy] bootstrap AI OAuth signing key"
 python3 scripts/bootstrap_ai_oauth_keys.py
 
+echo "[deploy] bootstrap Integrity credentials"
+python3 scripts/bootstrap_integrity_secrets.py
+
 echo "[deploy] validate rendered Compose"
 docker compose "${COMPOSE_FILES[@]}" config --quiet
+
+backup_file=""
+running_services="$(docker compose "${COMPOSE_FILES[@]}" ps --status running --services)"
+if printf '%s\n' "$running_services" | grep -qx postgres; then
+  backup_dir="${DEPLOY_PATH}/artifacts/db_backups"
+  backup_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  backup_file="${backup_dir}/production_${backup_timestamp}_${previous_git_ref:0:12}.dump"
+  backup_tmp="${backup_file}.tmp"
+  umask 077
+  mkdir -p "$backup_dir"
+  chmod 700 "$backup_dir"
+  echo "[deploy] create pre-deploy database backup"
+  if ! docker compose "${COMPOSE_FILES[@]}" exec -T postgres sh -lc \
+    'exec pg_dump --username "$POSTGRES_USER" --dbname online_judge --format=custom --no-owner --no-privileges --compress=6' \
+    > "$backup_tmp"; then
+    rm -f -- "$backup_tmp"
+    echo "Pre-deploy database backup failed" >&2
+    exit 1
+  fi
+  if [ ! -s "$backup_tmp" ]; then
+    rm -f -- "$backup_tmp"
+    echo "Pre-deploy database backup is empty" >&2
+    exit 1
+  fi
+  if ! docker compose "${COMPOSE_FILES[@]}" exec -T postgres \
+    pg_restore --list < "$backup_tmp" >/dev/null; then
+    rm -f -- "$backup_tmp"
+    echo "Pre-deploy database backup validation failed" >&2
+    exit 1
+  fi
+  mv -- "$backup_tmp" "$backup_file"
+  sha256sum "$backup_file" > "${backup_file}.sha256"
+  echo "[deploy] backup ready: ${backup_file}"
+
+  echo "[deploy] prepare production database administrator"
+  export QJUDGE_BOOTSTRAP_ADMIN_PASSWORD="$(get_env_value POSTGRES_ADMIN_PASSWORD)"
+  docker compose "${COMPOSE_FILES[@]}" exec -T \
+    -e QJUDGE_BOOTSTRAP_ADMIN_PASSWORD \
+    postgres \
+    sh -lc 'psql --username "$POSTGRES_USER" --dbname postgres --no-psqlrc --quiet --set ON_ERROR_STOP=1' <<'SQL'
+\getenv admin_password QJUDGE_BOOTSTRAP_ADMIN_PASSWORD
+SELECT format(
+  'CREATE ROLE qjudge_admin LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD %L',
+  :'admin_password'
+)
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'qjudge_admin')
+\gexec
+SELECT format(
+  'ALTER ROLE qjudge_admin LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD %L',
+  :'admin_password'
+)
+\gexec
+SQL
+  unset QJUDGE_BOOTSTRAP_ADMIN_PASSWORD
+else
+  echo "[deploy] backup skipped: postgres is not running (fresh installation)"
+fi
 
 echo "[deploy] pull judge image from GHCR"
 if docker pull ghcr.io/quan0715/qjudge/judge:latest; then
@@ -222,8 +298,17 @@ fi
 echo "[deploy] build images"
 docker compose "${COMPOSE_FILES[@]}" build
 
+echo "[deploy] build Integrity worker image"
+docker compose "${COMPOSE_FILES[@]}" --profile build build integrity-worker-image
+
 echo "[deploy] start services"
-docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
+if ! docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans; then
+  echo "Deployment start failed. Previous SHA: ${previous_git_ref}" >&2
+  if [ -n "$backup_file" ]; then
+    echo "Validated database backup: ${backup_file}" >&2
+  fi
+  exit 1
+fi
 
 echo "[deploy] verify application database roles"
 export PGPASSWORD="$(get_env_value POSTGRES_ADMIN_PASSWORD)"
@@ -248,27 +333,38 @@ if [ "$unsafe_role_count" != "0" ]; then
   exit 1
 fi
 
-echo "[deploy] prune old images"
-docker image prune -f
-
 # ── smoke check ────────────────────────────────────────────────
 
+wait_for_http() {
+  local label="$1"
+  local url="$2"
+  local attempt=1
+  local max_attempts=30
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if curl --fail --silent --show-error --max-time 8 "$url" >/dev/null 2>&1; then
+      echo "[deploy] smoke ok: ${label}"
+      return 0
+    fi
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  echo "[deploy] smoke failed: ${label} did not respond within 60s" >&2
+  return 1
+}
+
 echo "[deploy] smoke check"
-max_attempts=30
-attempt=1
-
-while [ "$attempt" -le "$max_attempts" ]; do
-  if curl -sf http://localhost:80 >/dev/null 2>&1; then
-    echo "[deploy] smoke ok: http://localhost:80"
-    break
+if ! wait_for_http "frontend" "http://localhost:80" || \
+   ! wait_for_http "backend" "http://localhost:8000/api/health/" || \
+   ! wait_for_http "AI service" "http://localhost:8001/health/ready" || \
+   ! wait_for_http "Integrity controller" "http://localhost:8010/health"; then
+  echo "Deployment health checks failed. Previous SHA: ${previous_git_ref}" >&2
+  if [ -n "$backup_file" ]; then
+    echo "Validated database backup: ${backup_file}" >&2
   fi
-  sleep 2
-  attempt=$((attempt + 1))
-done
-
-if [ "$attempt" -gt "$max_attempts" ]; then
-  echo "[deploy] smoke failed: http://localhost:80 did not respond within 60s" >&2
   exit 1
 fi
+
+echo "[deploy] prune old images"
+docker image prune -f
 
 echo "[deploy] success"

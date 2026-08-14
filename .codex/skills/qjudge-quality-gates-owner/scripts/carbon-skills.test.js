@@ -2,7 +2,6 @@
 
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
-const { homedir } = require("node:os");
 const { join, resolve } = require("node:path");
 const test = require("node:test");
 
@@ -12,7 +11,10 @@ const projectSkills = [
   join(repoRoot, ".codex/skills/qjudge-quality-gates-owner/SKILL.md"),
   join(repoRoot, ".codex/skills/qjudge-mobile-action-footer/SKILL.md"),
 ];
-const overflowSkill = join(homedir(), ".codex/skills/qjudge-carbon-overflow-ux-fix/SKILL.md");
+const overflowSkill = join(
+  repoRoot,
+  ".codex/skills/qjudge-carbon-overflow-ux-fix/SKILL.md",
+);
 
 test("Carbon skills record the current MCP verification snapshot", () => {
   for (const skillPath of [...projectSkills, overflowSkill]) {
@@ -43,7 +45,12 @@ test("UI owner covers current component, accessibility, and public API decisions
   ]) {
     assert.match(policy, new RegExp(topic), topic);
   }
-  assert.doesNotMatch(policy, /selectorsFloatingMenus=\{\['\.cds--modal'\]\}/);
+  const internalModalSelector = new RegExp(
+    String.raw`selectorsFloatingMenus=\{\['\.` +
+      "cds" +
+      String.raw`--modal'\]\}`,
+  );
+  assert.doesNotMatch(policy, internalModalSelector);
   assert.match(policy, /app-owned selector/);
 });
 

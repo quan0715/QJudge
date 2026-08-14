@@ -85,7 +85,7 @@ cd "$PROJECT_ROOT"
 # ==================== 4. Docker Compose 配置驗證 ====================
 print_step "驗證 Docker Compose 配置..."
 
-if docker compose config -q 2>/dev/null || docker-compose config -q 2>/dev/null; then
+if bash scripts/check-compose-config.sh; then
     print_success "Docker Compose 配置有效"
 else
     print_error "Docker Compose 配置無效"

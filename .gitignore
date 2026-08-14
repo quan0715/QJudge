@@ -80,6 +80,7 @@ coverage.xml
 # Docker
 *.env
 !.env.example
+.env.next
 
 # Celery
 celerybeat-schedule

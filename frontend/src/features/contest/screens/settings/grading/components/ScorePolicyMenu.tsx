@@ -4,7 +4,7 @@
  *
  * A before/after score distribution preview is shown before committing any policy change.
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { OverflowMenu, OverflowMenuItem, Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
@@ -51,7 +51,7 @@ export default function ScorePolicyMenu({
   // ── Redistribute target selection modal ────────────────────────────────
   const [redistributeModalOpen, setRedistributeModalOpen] = useState(false);
   const [redistributeModalKey, setRedistributeModalKey] = useState(0);
-  const pendingRedistributeTargetIds = useRef<string[]>([]);
+  const [pendingRedistributeTargetIds, setPendingRedistributeTargetIds] = useState<string[]>([]);
 
   // ── Impact preview dialog ──────────────────────────────────────────────
   const [impactOpen, setImpactOpen] = useState(false);
@@ -119,7 +119,7 @@ export default function ScorePolicyMenu({
 
       if (policy === "redistribute") {
         // Open target selection first; impact shown after targets chosen
-        pendingRedistributeTargetIds.current = [];
+        setPendingRedistributeTargetIds([]);
         setRedistributeModalKey((k) => k + 1);
         setRedistributeModalOpen(true);
         return;
@@ -134,7 +134,7 @@ export default function ScorePolicyMenu({
 
   const handleRedistributeTargetsChosen = useCallback(
     (targetIds: string[]) => {
-      pendingRedistributeTargetIds.current = targetIds;
+      setPendingRedistributeTargetIds(targetIds);
       setRedistributeModalOpen(false);
 
       openImpactDialog("redistribute", targetIds);
@@ -146,11 +146,11 @@ export default function ScorePolicyMenu({
 
   const handleImpactConfirm = useCallback(() => {
     if (impactPolicy === "redistribute") {
-      commitPolicy("redistribute", pendingRedistributeTargetIds.current);
+      commitPolicy("redistribute", pendingRedistributeTargetIds);
     } else {
       commitPolicy(impactPolicy);
     }
-  }, [impactPolicy, commitPolicy]);
+  }, [impactPolicy, commitPolicy, pendingRedistributeTargetIds]);
 
   const handleBackToTargetSelection = useCallback(() => {
     setImpactOpen(false);
@@ -210,7 +210,7 @@ export default function ScorePolicyMenu({
         open={redistributeModalOpen}
         questionIndex={questionIndex}
         availableTargets={availableTargets}
-        initialSelectedIds={pendingRedistributeTargetIds.current}
+        initialSelectedIds={pendingRedistributeTargetIds}
         onClose={() => setRedistributeModalOpen(false)}
         onConfirm={handleRedistributeTargetsChosen}
         submitting={submitting}
