@@ -592,3 +592,8 @@ def test_production_deploy_checks_each_critical_http_boundary(tmp_path: Path) ->
     assert "http://localhost:8000/api/health/" in commands
     assert "http://localhost:8001/health/ready" in commands
     assert "http://localhost:8010/health" in commands
+    assert "exec -T integrity-controller python -c" in commands
+    assert (
+        "curl --fail --silent --show-error --max-time 8 "
+        "http://localhost:8010/health"
+    ) not in commands
