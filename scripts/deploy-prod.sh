@@ -352,11 +352,31 @@ wait_for_http() {
   return 1
 }
 
+wait_for_compose_http() {
+  local label="$1"
+  local service="$2"
+  local url="$3"
+  local attempt=1
+  local max_attempts=30
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if docker compose "${COMPOSE_FILES[@]}" exec -T "$service" \
+      python -c 'import sys; from urllib.request import urlopen; urlopen(sys.argv[1], timeout=8).close()' \
+      "$url" >/dev/null 2>&1; then
+      echo "[deploy] smoke ok: ${label}"
+      return 0
+    fi
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  echo "[deploy] smoke failed: ${label} did not respond within 60s" >&2
+  return 1
+}
+
 echo "[deploy] smoke check"
 if ! wait_for_http "frontend" "http://localhost:80" || \
    ! wait_for_http "backend" "http://localhost:8000/api/health/" || \
    ! wait_for_http "AI service" "http://localhost:8001/health/ready" || \
-   ! wait_for_http "Integrity controller" "http://localhost:8010/health"; then
+   ! wait_for_compose_http "Integrity controller" "integrity-controller" "http://localhost:8010/health"; then
   echo "Deployment health checks failed. Previous SHA: ${previous_git_ref}" >&2
   if [ -n "$backup_file" ]; then
     echo "Validated database backup: ${backup_file}" >&2
