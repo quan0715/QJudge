@@ -10,6 +10,7 @@ For non-IO judging (special judge, checker, etc.) create a separate judge class.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
@@ -20,6 +21,8 @@ from django.conf import settings
 from .base_judge import BaseJudge
 
 _CE_SENTINEL = "QJUDGE_CE_7f3a"
+_PUBLIC_SYSTEM_ERROR = "Judge system error"
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -131,12 +134,15 @@ class IOJudge(BaseJudge):
                 mem_limit=memory_limit,
             )
             return self._interpret(result, expected_output, time_limit)
-        except RuntimeError as exc:
-            return {"status": "SE", "output": "", "error": str(exc), "time": 0, "memory": 0}
-        except docker.errors.DockerException as exc:
-            return {"status": "SE", "output": "", "error": f"Docker error: {exc}", "time": 0, "memory": 0}
-        except Exception as exc:
-            return {"status": "SE", "output": "", "error": f"System Error: {exc}", "time": 0, "memory": 0}
+        except RuntimeError:
+            logger.exception("Judge runtime infrastructure failure")
+            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
+        except docker.errors.DockerException:
+            logger.exception("Judge Docker infrastructure failure")
+            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
+        except Exception:
+            logger.exception("Unexpected judge infrastructure failure")
+            return {"status": "SE", "output": "", "error": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -249,10 +255,12 @@ class IOJudge(BaseJudge):
                 "time": elapsed_ms,
                 "memory": 4096,
             }
-        except docker.errors.APIError as exc:
-            return {"exit_code": -1, "output": f"Docker API Error: {exc}", "time": 0, "memory": 0}
-        except Exception as exc:
-            return {"exit_code": -1, "output": f"System Error: {exc}", "time": 0, "memory": 0}
+        except docker.errors.APIError:
+            logger.exception("Judge container API failure")
+            return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
+        except Exception:
+            logger.exception("Unexpected judge container failure")
+            return {"exit_code": -1, "output": _PUBLIC_SYSTEM_ERROR, "time": 0, "memory": 0}
         finally:
             if container:
                 try:

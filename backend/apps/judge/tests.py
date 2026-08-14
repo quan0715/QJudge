@@ -11,6 +11,7 @@
 """
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 import docker.errors
 from django.test import TestCase
@@ -272,10 +273,13 @@ class IOJudgeMockTests(TestCase):
 
     def test_se_on_docker_unavailable(self):
         judge = IOJudge("cpp")
-        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(RuntimeError("Cannot connect"))
+        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(
+            RuntimeError("docker-host-secret")
+        )
         r = judge.execute("", "", "", 1000, 128)
         self.assertEqual(r["status"], "SE")
-        self.assertIn("Cannot connect", r["error"])
+        self.assertEqual(r["error"], "Judge system error")
+        self.assertNotIn("secret", str(r))
 
     def test_se_on_docker_api_error(self):
         judge = self._mock_judge()
@@ -287,14 +291,48 @@ class IOJudgeMockTests(TestCase):
 
     def test_se_response_has_all_fields(self):
         judge = IOJudge("python")
-        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(Exception("boom"))
+        judge._ensure_docker_client = lambda: (_ for _ in ()).throw(
+            Exception("judge-runtime-secret")
+        )
         r = judge.execute("", "", "", 1000, 128)
         for key in ("status", "output", "error", "time", "memory"):
             self.assertIn(key, r)
         self.assertEqual(r["status"], "SE")
         self.assertEqual(r["output"], "")
+        self.assertEqual(r["error"], "Judge system error")
+        self.assertNotIn("secret", str(r))
         self.assertEqual(r["time"], 0)
         self.assertEqual(r["memory"], 0)
+
+    def test_container_api_failure_does_not_expose_exception_details(self):
+        judge = IOJudge("cpp")
+        judge._client = SimpleNamespace(
+            containers=SimpleNamespace(
+                run=lambda **_kwargs: (_ for _ in ()).throw(
+                    docker.errors.APIError("docker-api-secret")
+                )
+            )
+        )
+
+        result = judge._run_in_container("true", timeout=1, mem_limit=64)
+
+        self.assertEqual(result["output"], "Judge system error")
+        self.assertNotIn("secret", str(result))
+
+    def test_container_runtime_failure_does_not_expose_exception_details(self):
+        judge = IOJudge("cpp")
+        judge._client = SimpleNamespace(
+            containers=SimpleNamespace(
+                run=lambda **_kwargs: (_ for _ in ()).throw(
+                    ValueError("container-runtime-secret")
+                )
+            )
+        )
+
+        result = judge._run_in_container("true", timeout=1, mem_limit=64)
+
+        self.assertEqual(result["output"], "Judge system error")
+        self.assertNotIn("secret", str(result))
 
     def test_python_no_compile_cmd(self):
         """Python 不應有 compile 步驟"""
