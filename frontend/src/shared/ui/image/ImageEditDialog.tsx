@@ -11,6 +11,7 @@ import {
   Tile,
 } from "@carbon/react";
 import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
+import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
 import type { PresetCoverImage } from "./presetCoverImages";
 import "./ImageEditDialog.scss";
@@ -39,6 +40,22 @@ interface ImageEditDialogProps {
   triggerDataTestId?: string;
   fileInputDataTestId?: string;
 }
+
+const normalizeRemoteImageUrl = (value: string): string | null => {
+  try {
+    const sanitizedValue = DOMPurify.sanitize(value, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
+    const parsed = new URL(sanitizedValue.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.href;
+  } catch {
+    return null;
+  }
+};
 
 export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   previewUrl,
@@ -69,6 +86,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasGallery = Boolean(galleryImages && galleryImages.length > 0);
+  const normalizedUrlInput = normalizeRemoteImageUrl(urlInput);
 
   const closeModal = () => {
     setOpen(false);
@@ -82,9 +100,8 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   };
 
   const handleApplyUrl = () => {
-    const nextUrl = urlInput.trim();
-    if (!nextUrl) return;
-    void Promise.resolve(onApplyUrl(nextUrl)).finally(closeModal);
+    if (!normalizedUrlInput) return;
+    void Promise.resolve(onApplyUrl(normalizedUrlInput)).finally(closeModal);
   };
 
   const handleGallerySelect = (image: PresetCoverImage) => {
@@ -157,7 +174,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
           if (e.key === "Enter") handleApplyUrl();
         }}
       />
-      <Button type="button" kind="primary" size="md" disabled={!urlInput.trim() || disabled} onClick={handleApplyUrl}>
+      <Button type="button" kind="primary" size="md" disabled={!normalizedUrlInput || disabled} onClick={handleApplyUrl}>
         {applyLabel}
       </Button>
     </div>
