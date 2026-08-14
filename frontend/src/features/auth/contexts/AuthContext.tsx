@@ -1,14 +1,25 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import type { User } from "@/core/entities/auth.entity";
 import { logout as logoutApi } from "@/infrastructure/api/repositories/auth.repository";
-import { clearAuthStorage } from "@/infrastructure/api/http.client";
+import { getCurrentUser } from "@/infrastructure/api/repositories/user.repository";
+import {
+  clearAuthStorage,
+  isAuthSessionStorageEvent,
+} from "@/infrastructure/api/http.client";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   setUser: (user: User | null) => void;
-  checkUser: () => void;
+  checkUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -17,30 +28,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const lastUserStrRef = useRef<string | null>(null);
 
-  const checkUser = () => {
-    const userStr = localStorage.getItem('user');
-    // Skip setUser if the serialized value hasn't changed — prevents
-    // unnecessary re-renders when useUserPreferences writes back
-    // the same data to localStorage.
-    if (userStr === lastUserStrRef.current) {
-      setLoading(false);
-      return;
-    }
-    lastUserStrRef.current = userStr;
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
-        setUser(null);
-      }
-    } else {
+  const checkUser = useCallback(async () => {
+    try {
+      const response = await getCurrentUser();
+      setUser(response.data);
+    } catch (error) {
       setUser(null);
+      const status = (error as { status?: number }).status;
+      if (status !== 401) {
+        console.error("Failed to load current user", error);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
   const logout = async () => {
     try {
@@ -55,12 +57,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
-    checkUser();
-    // Listen for storage changes to sync across tabs/components if they update localStorage directly
-    const handleStorageChange = () => checkUser();
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    void checkUser();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (isAuthSessionStorageEvent(event)) {
+        void checkUser();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [checkUser]);
 
   return (
     <AuthContext.Provider value={{ user, loading, setUser, checkUser, logout }}>
@@ -72,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

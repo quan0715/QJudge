@@ -2,8 +2,10 @@ import json
 import hashlib
 import base64
 import secrets
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from oauth2_provider.models import Application, Grant
@@ -60,6 +62,28 @@ class AuthorizeRedirectTest(TestCase):
         self.assertIn("client_id=test-client-id", location)
         self.assertIn("client_name=Test", location)
 
+    @patch("apps.oauth.views._get_user_from_jwt_cookie")
+    def test_redirect_drops_unrecognized_query_fields(self, mock_get_user):
+        mock_get_user.return_value = self.user
+        _, challenge = _pkce_pair()
+
+        response = self.client.get(
+            "/o/authorize/",
+            {
+                "response_type": "code",
+                "client_id": "test-client-id",
+                "redirect_uri": "http://localhost:3000/callback",
+                "code_challenge": challenge,
+                "code_challenge_method": "S256",
+                "next": "https://evil.example/steal",
+            },
+        )
+
+        location = urlparse(response["Location"])
+        self.assertEqual(location.scheme, "https")
+        self.assertEqual(location.netloc, "qjudge.com")
+        self.assertNotIn("next", parse_qs(location.query))
+
     def test_redirects_to_login_when_not_authenticated(self):
         _, challenge = _pkce_pair()
         response = self.client.get(
@@ -78,6 +102,11 @@ class AuthorizeRedirectTest(TestCase):
         self.assertIn("next=", location)
         # next must be a relative path (not absolute) so the frontend accepts it
         self.assertNotIn("next=http", location)
+
+    @override_settings(FRONTEND_URL="javascript:alert(1)")
+    def test_rejects_unsafe_frontend_url_configuration(self):
+        with self.assertRaises(ImproperlyConfigured):
+            self.client.get("/o/authorize/")
 
 
 @override_settings(

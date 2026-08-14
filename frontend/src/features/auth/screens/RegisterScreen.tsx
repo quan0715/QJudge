@@ -11,6 +11,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { AuthProviderOption } from "@/core/entities/auth.entity";
 import { getOAuthUrl, register } from "@/infrastructure/api/repositories/auth.repository";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 import { useAuthOptions } from "@/features/auth/hooks";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import { AuthProviderButton } from "@/features/auth/components/AuthProviderButton";
@@ -75,9 +76,8 @@ const RegisterPage = () => {
         password_confirm: confirmPassword,
       });
       if (response.success) {
-        const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
-        localStorage.setItem("user", JSON.stringify(safeData.user));
-        window.location.href = getAuthedLandingPath(safeData.user);
+        notifyAuthSessionChanged();
+        window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.register.failed"));
       }

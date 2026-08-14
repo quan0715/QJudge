@@ -69,6 +69,14 @@ AttendanceErrorCode = Literal[
 ]
 ATTENDANCE_ERROR_CODES: tuple[AttendanceErrorCode, ...] = get_args(AttendanceErrorCode)
 
+
+class AttendanceValidationError(ValueError):
+    """Attendance validation failure with a safe public error code."""
+
+    def __init__(self, code: AttendanceErrorCode) -> None:
+        self.code = code
+        super().__init__(code)
+
 ATTENDANCE_ERROR_MESSAGES: dict[AttendanceErrorCode, str] = {
     "attendance_check_in_already_completed": "Attendance check-in has already been completed.",
     "attendance_check_in_required": (
@@ -119,17 +127,11 @@ def _credential_lock_cache_key(contest: Contest, purpose: str) -> str:
     return f"{ATTENDANCE_CREDENTIAL_LOCK_CACHE_PREFIX}:{contest.id}:{purpose}"
 
 
-def normalize_attendance_error_code(error: ValueError) -> str:
-    code = str(error)
-    return code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
-
-
-def build_attendance_error_payload(code: str) -> dict[str, Any]:
-    safe_code = code if code in ATTENDANCE_ERROR_MESSAGES else "invalid_attendance_request"
+def build_attendance_error_payload(code: AttendanceErrorCode) -> dict[str, Any]:
     return {
-        "code": safe_code,
+        "code": code,
         "error": {
-            "message": ATTENDANCE_ERROR_MESSAGES[safe_code],
+            "message": ATTENDANCE_ERROR_MESSAGES[code],
         },
     }
 
@@ -246,12 +248,12 @@ def _generate_new_attendance_credential(
                 timeout=cache_timeout,
             )
             return _public_attendance_credential(payload)
-    raise ValueError("attendance_manual_code_generation_failed")
+    raise AttendanceValidationError("attendance_manual_code_generation_failed")
 
 
 def create_attendance_credential(contest: Contest, purpose: str) -> dict[str, str]:
     if purpose not in ATTENDANCE_EVENT_TYPES:
-        raise ValueError("invalid_attendance_purpose")
+        raise AttendanceValidationError("invalid_attendance_purpose")
     active_key = _active_credential_cache_key(contest, purpose)
     active = cache.get(active_key)
     if _is_active_credential_fresh(active):
@@ -290,32 +292,32 @@ def create_attendance_token(contest: Contest, purpose: str) -> str:
 
 def validate_attendance_cache_payload(contest: Contest, purpose: str, value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise ValueError("invalid_attendance_token")
+        raise AttendanceValidationError("invalid_attendance_token")
     if str(value.get("contest_id")) != str(contest.id) or value.get("purpose") != purpose:
-        raise ValueError("invalid_attendance_token")
+        raise AttendanceValidationError("invalid_attendance_token")
     if not _is_credential_within_validation_window(value):
-        raise ValueError("invalid_attendance_token")
+        raise AttendanceValidationError("invalid_attendance_token")
     return value
 
 
 def validate_attendance_token(contest: Contest, purpose: str, token: str) -> dict[str, Any]:
     if purpose not in ATTENDANCE_EVENT_TYPES:
-        raise ValueError("invalid_attendance_purpose")
+        raise AttendanceValidationError("invalid_attendance_purpose")
     value = cache.get(_token_cache_key(token))
     return validate_attendance_cache_payload(contest, purpose, value)
 
 
 def validate_attendance_manual_code(contest: Contest, purpose: str, manual_code: str) -> dict[str, Any]:
     if purpose not in ATTENDANCE_EVENT_TYPES:
-        raise ValueError("invalid_attendance_purpose")
+        raise AttendanceValidationError("invalid_attendance_purpose")
     normalized = normalize_attendance_manual_code(manual_code)
     if len(normalized) != ATTENDANCE_MANUAL_CODE_LENGTH:
-        raise ValueError("invalid_attendance_manual_code")
+        raise AttendanceValidationError("invalid_attendance_manual_code")
     value = cache.get(_manual_code_cache_key(normalized))
     try:
         return validate_attendance_cache_payload(contest, purpose, value)
-    except ValueError:
-        raise ValueError("invalid_attendance_manual_code") from None
+    except AttendanceValidationError:
+        raise AttendanceValidationError("invalid_attendance_manual_code") from None
 
 
 def build_attendance_qr_value(purpose: str, token: str) -> str:
@@ -435,7 +437,7 @@ def build_attendance_status(contest: Contest, participant: ContestParticipant | 
 def assert_attendance_allows_start(contest: Contest, participant: ContestParticipant) -> None:
     status = build_attendance_status(contest, participant)
     if status["attendanceRequired"] and not status["canStartExam"]:
-        raise ValueError("attendance_check_in_required")
+        raise AttendanceValidationError("attendance_check_in_required")
 
 
 def validate_self_scan_credential(
@@ -443,9 +445,9 @@ def validate_self_scan_credential(
 ) -> str:
     """Validate the QR token or manual code and return the credential source label."""
     if token and manual_code:
-        raise ValueError("attendance_credential_conflict")
+        raise AttendanceValidationError("attendance_credential_conflict")
     if not token and not manual_code:
-        raise ValueError("attendance_token_required")
+        raise AttendanceValidationError("attendance_token_required")
     if manual_code:
         validate_attendance_manual_code(contest, purpose, manual_code)
         return "manual_code"
@@ -461,7 +463,7 @@ def _resolve_self_scan_event(
 ) -> dict[str, Any]:
     purpose = data["purpose"]
     if data.get("user_id"):
-        raise ValueError("user_id_forbidden_for_self_scan")
+        raise AttendanceValidationError("user_id_forbidden_for_self_scan")
     credential_source = validate_self_scan_credential(
         contest,
         purpose,
@@ -475,7 +477,7 @@ def _resolve_self_scan_event(
     if participant is None:
         participant = ContestParticipant.objects.filter(contest=contest, user=actor).first()
     if participant is None:
-        raise ValueError("not_registered")
+        raise AttendanceValidationError("not_registered")
 
     if purpose == "check_in" and participant.exam_status != ExamStatus.NOT_STARTED:
         return {"error_code": "check_in_only_before_personal_start"}
@@ -513,21 +515,21 @@ def _resolve_teacher_assisted_event(
 ) -> dict[str, Any]:
     purpose = data["purpose"]
     if not can_manage_contest(actor, contest):
-        raise ValueError("attendance_teacher_permission_required")
+        raise AttendanceValidationError("attendance_teacher_permission_required")
     if data.get("token"):
-        raise ValueError("token_forbidden_for_teacher_assisted")
+        raise AttendanceValidationError("token_forbidden_for_teacher_assisted")
     if not data.get("user_id"):
-        raise ValueError("user_id_required")
+        raise AttendanceValidationError("user_id_required")
     reason = str(data.get("reason") or "").strip()
     if not reason:
-        raise ValueError("reason_required")
+        raise AttendanceValidationError("reason_required")
     try:
         participant = ContestParticipant.objects.select_related("user").get(
             contest=contest,
             user_id=data["user_id"],
         )
     except ContestParticipant.DoesNotExist:
-        raise ValueError("participant_not_found") from None
+        raise AttendanceValidationError("participant_not_found") from None
 
     if _is_attendance_purpose_completed(contest, participant, purpose):
         return {"error_code": _attendance_completed_error_code(purpose)}
@@ -561,7 +563,7 @@ def create_attendance_event(
     elif mode == "teacher_assisted":
         resolved = _resolve_teacher_assisted_event(contest, actor, data)
     else:
-        raise ValueError("invalid_attendance_mode")
+        raise AttendanceValidationError("invalid_attendance_mode")
 
     if "error_response" in resolved or "error_code" in resolved:
         return resolved
@@ -604,7 +606,7 @@ def reset_participant_exam_records(
             user_id=user_id,
         )
     except ContestParticipant.DoesNotExist:
-        raise ValueError("participant_not_found") from None
+        raise AttendanceValidationError("participant_not_found") from None
 
     reset_summary = reset_participant_exam_record(
         participant,

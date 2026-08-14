@@ -24,9 +24,9 @@ from ..services.anti_cheat_session import (
 from ..services.integrity_presence import clear_checkpoint
 from ..services.exam_submission import finalize_submission
 from ..services.attendance import (
+    AttendanceValidationError,
     assert_attendance_allows_start,
     build_attendance_error_payload,
-    normalize_attendance_error_code,
 )
 from ..services.activity_log import log_contest_activity
 from .exam_events import ExamEventsMixin
@@ -69,9 +69,9 @@ class ExamLifecycleMixin:
 
         try:
             assert_attendance_allows_start(contest, participant)
-        except ValueError as exc:
+        except AttendanceValidationError as exc:
             return Response(
-                build_attendance_error_payload(normalize_attendance_error_code(exc)),
+                build_attendance_error_payload(exc.code),
                 status=status.HTTP_403_FORBIDDEN,
             )
 

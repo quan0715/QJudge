@@ -6,6 +6,7 @@ import type { ClassroomDetailDto } from "@/infrastructure/api/dto/classroom.dto"
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useAuthLayoutMetadata } from "@/features/auth/contexts/AuthLayoutContext";
 import { inspectActionLink, redeemActionLink } from "@/infrastructure/api/repositories/auth.repository";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 import { mapClassroomDetailDto } from "@/infrastructure/mappers/classroom.mapper";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import { PENDING_ACTIONS, storePendingAction, clearPendingAction } from "@/features/auth/pending-actions";
@@ -133,8 +134,7 @@ const InviteLinkScreen = () => {
       if (isAuthRedeemResponse(response)) {
         const nextUser = response.data.user;
         setUser(nextUser);
-        localStorage.setItem("user", JSON.stringify(nextUser));
-        window.dispatchEvent(new Event("storage"));
+        notifyAuthSessionChanged();
         setSuccess(response.message || "邀請已完成");
         window.location.href = getAuthedLandingPath(nextUser);
         return;

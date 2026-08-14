@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { searchUsers, updateUserRole, uploadAvatar } from "./user.repository";
+import {
+  getCurrentUser,
+  searchUsers,
+  updateUserRole,
+  uploadAvatar,
+} from "./user.repository";
 
 describe("user repository endpoints", () => {
   const fetchMock = vi.fn();
@@ -33,6 +38,26 @@ describe("user repository endpoints", () => {
     expect(url).toBe("/api/v1/users/?q=alice");
     expect(options.method).toBe("GET");
     expect(options.credentials).toBe("include");
+  });
+
+  it("loads the current user through the cookie-backed session endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ success: true, data: { id: 7, username: "alice" } }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const response = await getCurrentUser();
+
+    expect(response.data).toMatchObject({ id: 7, username: "alice" });
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/users/me");
+    expect(options.credentials).toBe("include");
+    expect(options).not.toHaveProperty("allowUnauthenticated");
   });
 
   it("updateUserRole calls the users role endpoint", async () => {

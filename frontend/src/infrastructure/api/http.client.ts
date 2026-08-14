@@ -1,12 +1,19 @@
-/**
- * Clear auth storage (for logout or token expiry)
- * Note: JWT tokens are now stored in HttpOnly cookies (more secure),
- * but we keep localStorage for user info cache.
- */
-export const clearAuthStorage = () => {
-  localStorage.removeItem("user");
-  window.dispatchEvent(new Event("storage"));
+const AUTH_SESSION_EVENT_KEY = "qjudge.auth.session_changed_at";
+
+/** Notify other tabs that the cookie-backed session state changed. */
+export const notifyAuthSessionChanged = () => {
+  localStorage.setItem(AUTH_SESSION_EVENT_KEY, String(Date.now()));
 };
+
+/** Clear client-side authentication state after logout or token expiry. */
+export const clearAuthStorage = () => {
+  // Remove data written by older builds. Identity is never restored from it.
+  localStorage.removeItem("user");
+  notifyAuthSessionChanged();
+};
+
+export const isAuthSessionStorageEvent = (event: StorageEvent): boolean =>
+  event.key === AUTH_SESSION_EVENT_KEY;
 
 /**
  * Get CSRF token from cookie.
@@ -34,6 +41,8 @@ const AUTH_REFRESH_ENDPOINT = "/api/v1/auth/refresh";
 export interface HttpClientRequestInit extends RequestInit {
   /** Keep an error local to a feature that already renders its own fallback UI. */
   suppressGlobalError?: boolean;
+  /** Return the final 401 response without redirecting, after one refresh attempt. */
+  allowUnauthenticated?: boolean;
 }
 
 const ensureDeviceId = (): string => {
@@ -166,7 +175,11 @@ const buildHeaders = (init: RequestInit = {}): Headers => {
 };
 
 const performFetch = (endpoint: string, init: HttpClientRequestInit = {}) => {
-  const { suppressGlobalError: _suppressGlobalError, ...requestInit } = init;
+  const {
+    suppressGlobalError: _suppressGlobalError,
+    allowUnauthenticated: _allowUnauthenticated,
+    ...requestInit
+  } = init;
   return fetch(endpoint, {
     ...requestInit,
     headers: buildHeaders(requestInit),
@@ -267,7 +280,7 @@ const customFetch = async (endpoint: string, init: HttpClientRequestInit = {}) =
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && !init.allowUnauthenticated) {
     handleUnauthorized();
     throw new Error("Unauthorized");
   }
