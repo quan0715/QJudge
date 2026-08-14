@@ -412,6 +412,9 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   const [form, setForm] = useState<QuestionFormState>(() =>
     toFormState(question),
   );
+  const [originalForm, setOriginalForm] = useState<QuestionFormState>(() =>
+    toFormState(question),
+  );
   const [saving, setSaving] = useState(false);
   const [lockedSaveImpact, setLockedSaveImpact] =
     useState<LockedSaveImpact | null>(null);
@@ -426,6 +429,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     if (!editing) {
       const next = toFormState(question);
       setForm(next);
+      setOriginalForm(next);
       originalFormRef.current = next;
     }
   }, [question, editing]);
@@ -488,6 +492,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
         const payload = buildPayload(snapshot, showScoreField);
         await onAutoSave(payload, question.id, action);
         originalFormRef.current = { ...snapshot };
+        setOriginalForm({ ...snapshot });
         setForm({ ...snapshot });
         return true;
       } catch (error) {
@@ -595,7 +600,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     showScoreField,
   ]);
 
-  const dirty = isFormDirty(form, originalFormRef.current, showScoreField);
+  const dirty = isFormDirty(form, originalForm, showScoreField);
 
   const handleExplicitSave = () => {
     const validationError = getValidationError();

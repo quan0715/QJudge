@@ -85,7 +85,6 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
 
   const questionAreaRef = useRef<HTMLDivElement>(null);
   const allContentRef = useRef<HTMLDivElement>(null);
-  const allItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const prevIndexRef = useRef<number | null>(null);
   const maxIndex = items.length > 0 ? items.length - 1 : 0;
   const isSyncIndexActive = syncIndex != null && syncIndex >= 0 && syncIndex < items.length;
@@ -141,7 +140,9 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
       let closestIdx = 0;
       let closestDist = Infinity;
 
-      allItemRefs.current.forEach((el, idx) => {
+      container.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {
+        const idx = Number(el.dataset.index);
+        if (!Number.isInteger(idx)) return;
         const rect = el.getBoundingClientRect();
         const dist = Math.abs(rect.top + rect.height / 2 - centerY);
         if (dist < closestDist) {
@@ -163,7 +164,9 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
   const toolbarVisible = effectiveViewMode === "single" ? singleScrollVisible : allScrollVisible;
 
   const handleScrollToItem = useCallback((index: number) => {
-    const el = allItemRefs.current.get(index);
+    const el = allContentRef.current?.querySelector<HTMLElement>(
+      `[data-index="${index}"]`,
+    );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -255,10 +258,6 @@ export const PaperExamCore: React.FC<PaperExamCoreProps> = ({
           <div
             key={item.data.id}
             data-index={index}
-            ref={(el) => {
-              if (el) allItemRefs.current.set(index, el);
-              else allItemRefs.current.delete(index);
-            }}
             className={`${styles.allItem} ${dimClass}`}
           >
             {renderItem(item, index, "all")}

@@ -67,15 +67,23 @@ export default function AdminOverviewScreen({
   const [publishingResults, setPublishingResults] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
+  const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const classroomBound = Boolean(contest?.isClassroomBound);
+
+  useEffect(() => {
+    const updateTime = () => setCurrentTimeMs(Date.now());
+    updateTime();
+    const intervalId = window.setInterval(updateTime, 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const contestInProgress = useMemo(() => {
     if (!contest || contest.status !== "published") return false;
     const startMs = new Date(contest.startTime).getTime();
     const endMs = new Date(contest.endTime).getTime();
     if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
-    const now = Date.now();
-    return now >= startMs && now < endMs;
-  }, [contest]);
+    return currentTimeMs >= startMs && currentTimeMs < endMs;
+  }, [contest, currentTimeMs]);
   const handleAddParticipant = useCallback(
     async (username: string) => {
       if (!contest?.id) return;

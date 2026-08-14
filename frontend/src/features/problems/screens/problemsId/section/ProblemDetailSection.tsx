@@ -184,13 +184,17 @@ const ProblemDetailSectionInner: React.FC<Omit<ProblemDetailSectionProps, "probl
 
   // -- Test Case Handlers --
   const handleAddTestCase = (input: string, output: string) => {
-    const newCase: TestCaseItem = {
-      id: `custom_${Date.now()}`,
-      input,
-      output,
-      source: "custom",
-    };
     setTestCases((prev) => {
+      let sequence = prev.length + 1;
+      while (prev.some((testCase) => testCase.id === `custom_${sequence}`)) {
+        sequence += 1;
+      }
+      const newCase: TestCaseItem = {
+        id: `custom_${sequence}`,
+        input,
+        output,
+        source: "custom",
+      };
       const next = [...prev, newCase];
       saveCustomCases(next);
       return next;

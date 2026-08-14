@@ -1,6 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
+import {
+  useContentLanguage,
+  type ContentLanguage,
+} from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   getPreferences as getUserPreferences,
@@ -89,20 +92,14 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const effectiveTheme: "light" | "dark" =
     theme === "g100" || theme === "g90" ? "dark" : "light";
 
-  // Store setContentLanguage in a ref to avoid dependency issues
-  const setContentLanguageRef = useRef(setContentLanguage);
-  setContentLanguageRef.current = setContentLanguage;
-
   const applyPreferencesToState = useCallback(
     (nextPreferences: UserPreferences) => {
       setPreferences(nextPreferences);
       // Sync backend preference into ThemeContext (single source of truth)
       setPreference(nextPreferences.preferred_theme);
-      setContentLanguageRef.current(
-        nextPreferences.preferred_language as typeof contentLanguage
-      );
+      setContentLanguage(nextPreferences.preferred_language as ContentLanguage);
     },
-    [setPreference]
+    [setContentLanguage, setPreference]
   );
 
   const syncAuthUserProfile = useCallback(
@@ -240,7 +237,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
         }
         return next;
       });
-      setContentLanguage(lang as typeof contentLanguage);
+      setContentLanguage(lang as ContentLanguage);
 
       if (user) {
         try {

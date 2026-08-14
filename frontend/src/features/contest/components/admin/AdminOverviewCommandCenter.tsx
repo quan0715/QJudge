@@ -461,7 +461,12 @@ export default function AdminOverviewCommandCenter({
     await Promise.all([refreshAllAdminData(), participantDashboard.refresh()]);
   }, [refreshAllAdminData, participantDashboard]);
 
-  const studentQrCamera = useCameraStream({
+  const {
+    videoRef: studentQrVideoRef,
+    setVideoElement: setStudentQrVideoElement,
+    cameraState: studentQrCameraState,
+    cameraError: studentQrCameraError,
+  } = useCameraStream({
     active: studentQrScannerOpen,
     facingMode: "environment",
     messages: {
@@ -529,8 +534,8 @@ export default function AdminOverviewCommandCenter({
     [contestId, participants, showToast, t],
   );
   const studentQrScannerMode = useQrScanner({
-    videoRef: studentQrCamera.videoRef,
-    active: studentQrScannerOpen && studentQrCamera.cameraState === "ready",
+    videoRef: studentQrVideoRef,
+    active: studentQrScannerOpen && studentQrCameraState === "ready",
     onDetected: handleStudentQrDetected,
   });
 
@@ -1394,11 +1399,11 @@ export default function AdminOverviewCommandCenter({
       >
         <div className={styles.studentQrScanner}>
           <div className={styles.studentQrScannerViewport}>
-            {studentQrCamera.cameraState === "unavailable" ? (
-              <p>{studentQrCamera.cameraError}</p>
+            {studentQrCameraState === "unavailable" ? (
+              <p>{studentQrCameraError}</p>
             ) : (
               <video
-                ref={studentQrCamera.setVideoElement}
+                ref={setStudentQrVideoElement}
                 className={styles.studentQrScannerVideo}
                 muted
                 playsInline
@@ -1407,7 +1412,7 @@ export default function AdminOverviewCommandCenter({
             )}
           </div>
           <p className={styles.studentQrScannerHint}>
-            {studentQrCamera.cameraState === "ready"
+            {studentQrCameraState === "ready"
               ? t(
                   "adminOverview.command.participants.studentQr.ready",
                   "請掃描學生競賽主頁上的考生 QR。",

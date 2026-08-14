@@ -161,6 +161,17 @@ python3 scripts/bootstrap_integrity_secrets.py
 
 腳本會保留格式正確的既有檔案，不需要每次部署都重建。
 
+從舊版升級時，先產生一份不會自動生效的 release 環境候選檔：
+
+```bash
+python3 scripts/prepare-prod-release-env.py \
+  --input .env \
+  --output .env.next \
+  --origin https://your-qjudge-origin.example
+```
+
+候選檔會保留現行服務仍需的設定，另外建立彼此獨立的 database admin、Django、AI 與 credential lease secrets，並寫入主機實際的 Docker socket UID/GID。腳本不會修改 `.env`，也拒絕覆寫既有 `.env.next`。先完成備份與 review，只有在核准的維護窗口才把候選檔提升為 active `.env`。
+
 現在把這次要部署的 commit SHA 交給 production 部署腳本：
 
 ```bash
@@ -169,7 +180,7 @@ python3 scripts/bootstrap_integrity_secrets.py
 
 第二個參數的用途是固定這次部署的版本。腳本會先從 Git remote 更新資料，再以 `checkout --force` 切到指定 SHA；因此這個 commit 必須已經存在於 remote、release tag，或部署主機的 repository 中。不要在保存開發中修改的工作目錄執行這支腳本，否則未提交的修改可能被覆蓋。
 
-這一步會下載或建立 images、執行 database bootstrap 與 migrations、啟動服務，再檢查首頁。第一次 build 可能需要一段時間。正常結束會看到：
+這一步會先建立並驗證 `artifacts/db_backups/` 下的 PostgreSQL custom-format 備份，接著初始化 database boundary 與 Integrity credentials、建立 images、執行 migrations、啟動服務，再分別檢查 frontend、backend、AI service 與 Integrity controller。第一次 build 可能需要一段時間。正常結束會看到：
 
 ```text
 [deploy] success
@@ -255,6 +266,10 @@ git fetch --all --tags --prune
 ```bash
 ./scripts/deploy-prod.sh "$(pwd)" "RELEASE_TAG_OR_COMMIT_SHA"
 ```
+
+GitHub 的正式部署工作流只接受從 `main` 手動觸發，必須勾選 production confirmation，且該 SHA 的 CI push run 必須成功。部署進行中不會被另一個 workflow run 自動取消。
+
+若健康檢查失敗，部署腳本會輸出先前 SHA 與本次已驗證的 backup 路徑。不要直接重跑 migration 或刪除 volume；先保留現場 logs，再依該 SHA、backup 與維護窗口的資料取捨執行人工回復。
 
 更新後重新執行第 8 節的健康檢查與使用者流程。
 

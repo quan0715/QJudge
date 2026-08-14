@@ -387,21 +387,36 @@ def _run_fake_production_deploy(
     fake_bin.mkdir()
     _write_executable(
         fake_bin / "git",
-        '#!/bin/sh\nprintf "git %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\n',
+        """#!/bin/sh
+printf 'git %s\n' "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
+case "$*" in
+  "rev-parse HEAD") printf 'previous-sha\n' ;;
+esac
+""",
     )
     _write_executable(
         fake_bin / "docker",
         """#!/bin/sh
-printf 'docker %s\n' "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
+printf 'DOCKER_GID=%s docker %s\n' "${DOCKER_GID:-}" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
 case "$*" in
   "compose version") exit 0 ;;
+  *"ps --status running --services"*) printf 'postgres\n' ;;
+  *"pg_dump"*) printf 'fake-custom-dump\n' ;;
+  *"pg_restore --list"*) exit 0 ;;
   *"exec -T"*) printf '0\n' ;;
 esac
 exit 0
 """,
     )
-    _write_executable(fake_bin / "python3", "#!/bin/sh\nexit 0\n")
-    _write_executable(fake_bin / "curl", "#!/bin/sh\nexit 0\n")
+    _write_executable(
+        fake_bin / "python3",
+        '#!/bin/sh\nprintf "python3 %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\nexit 0\n',
+    )
+    _write_executable(
+        fake_bin / "curl",
+        '#!/bin/sh\nprintf "curl %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\nexit 0\n',
+    )
+    _write_executable(fake_bin / "stat", "#!/bin/sh\nprintf '138\\n'\n")
 
     environment = os.environ.copy()
     environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
@@ -445,7 +460,7 @@ def test_production_deploy_enables_tunnel_only_when_token_is_configured(
     compose_deployment_commands = [
         line
         for line in commands.splitlines()
-        if line.startswith("docker compose -f")
+        if "docker compose -f" in line
     ]
     assert compose_deployment_commands
     assert all("--profile tunnel" in line for line in compose_deployment_commands)
@@ -528,3 +543,52 @@ def test_production_deploy_validates_roles_and_bootstraps_oauth_before_render() 
         assert key not in required_block
     assert "AI_DATABASE_URL" not in source
     assert "rolsuper OR rolcreatedb OR rolcreaterole" in source
+
+
+def test_production_deploy_prepares_integrity_runtime_before_start(
+    tmp_path: Path,
+) -> None:
+    result, commands = _run_fake_production_deploy(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    integrity_bootstrap = commands.index(
+        "python3 scripts/bootstrap_integrity_secrets.py"
+    )
+    compose_start = commands.index("up -d --remove-orphans")
+    assert integrity_bootstrap < compose_start
+    assert "--profile build build integrity-worker-image" in commands
+    assert "DOCKER_GID=138 docker compose" in commands
+
+
+def test_production_deploy_backs_up_database_before_start(tmp_path: Path) -> None:
+    result, commands = _run_fake_production_deploy(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    database_backup = commands.index("pg_dump")
+    compose_start = commands.index("up -d --remove-orphans")
+    assert database_backup < compose_start
+    assert "pg_restore --list" in commands
+    assert "[deploy] backup ready:" in result.stdout
+
+
+def test_production_deploy_prepares_database_admin_before_start(
+    tmp_path: Path,
+) -> None:
+    result, commands = _run_fake_production_deploy(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    database_admin = commands.index(
+        "exec -T -e QJUDGE_BOOTSTRAP_ADMIN_PASSWORD postgres"
+    )
+    compose_start = commands.index("up -d --remove-orphans")
+    assert database_admin < compose_start
+
+
+def test_production_deploy_checks_each_critical_http_boundary(tmp_path: Path) -> None:
+    result, commands = _run_fake_production_deploy(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "http://localhost:80" in commands
+    assert "http://localhost:8000/api/health/" in commands
+    assert "http://localhost:8001/health/ready" in commands
+    assert "http://localhost:8010/health" in commands
