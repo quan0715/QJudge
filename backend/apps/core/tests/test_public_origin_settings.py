@@ -79,3 +79,37 @@ print(json.dumps([
 
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == expected
+
+
+def test_production_allowed_hosts_include_required_internal_service_names() -> None:
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "DJANGO_ENV": "production",
+            "QJUDGE_PUBLIC_ORIGIN": "https://judge.example.test",
+            "SECRET_KEY": "allowed-hosts-test-secret",
+        }
+    )
+    script = """
+import json
+from config.settings import prod
+
+print(json.dumps(prod.ALLOWED_HOSTS))
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=BACKEND_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [
+        "judge.example.test",
+        "localhost",
+        "127.0.0.1",
+        "backend",
+    ]
