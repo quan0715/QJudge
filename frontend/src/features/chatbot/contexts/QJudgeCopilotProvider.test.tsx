@@ -8,7 +8,11 @@ import {
   MemoryCopilotStorage,
   MemoryCopilotTransport,
 } from "@copilot/testing";
-import { DefaultCopilotTranslations, useCopilotSessions } from "@copilot";
+import {
+  DefaultCopilotTranslations,
+  useCopilotModels,
+  useCopilotSessions,
+} from "@copilot";
 import { useArtifactPanel } from "./ArtifactPanelContext";
 import {
   QJudgeCopilotBoundary,
@@ -48,7 +52,6 @@ vi.mock("@/infrastructure/copilot/qJudgeCopilotDependencies", async () => {
     qJudgeCopilotTransport: new MemoryCopilotTransport(),
     qJudgeCopilotModelCatalog: new MemoryCopilotModelCatalog(),
     qJudgeCopilotStorage: new MemoryCopilotStorage(),
-    QJUDGE_FALLBACK_MODELS: [],
   };
 });
 
@@ -76,7 +79,6 @@ describe("QJudgeCopilotBoundary", () => {
         storage={new MemoryCopilotStorage()}
         translations={new DefaultCopilotTranslations()}
         modelCatalog={new MemoryCopilotModelCatalog()}
-        fallbackModels={[]}
       >
         {children}
       </QJudgeCopilotBoundary>
@@ -100,7 +102,6 @@ describe("QJudgeCopilotBoundary", () => {
         storage={new MemoryCopilotStorage()}
         translations={new DefaultCopilotTranslations()}
         modelCatalog={new MemoryCopilotModelCatalog()}
-        fallbackModels={[]}
       >
         {children}
       </QJudgeCopilotBoundary>
@@ -116,6 +117,27 @@ describe("QJudgeCopilotBoundary", () => {
     );
     expect(result.current.sessions.sessions).toHaveLength(0);
     expect(result.current.artifacts.isOpen).toBe(false);
+  });
+
+  it("keeps the model list empty when the server catalog fails", async () => {
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QJudgeCopilotBoundary
+        enabled
+        transport={new MemoryCopilotTransport()}
+        location={new MemoryCopilotSessionLocation()}
+        storage={new MemoryCopilotStorage()}
+        translations={new DefaultCopilotTranslations()}
+        modelCatalog={{ list: vi.fn().mockRejectedValue(new Error("unavailable")) }}
+      >
+        {children}
+      </QJudgeCopilotBoundary>
+    );
+
+    const { result } = renderHook(() => useCopilotModels(), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.models).toEqual([]);
+    expect(result.current.selectedModelId).toBeNull();
   });
 });
 

@@ -142,7 +142,7 @@ async def seed_run(session_factory, *, status=RunStatus.QUEUED, cancel=False):
                 session_id=chat.id,
                 status=status.value,
                 kind="chat",
-                model_id="deepseek-v4",
+                model_id="deepseek-v4-flash",
                 idempotency_key=str(run_id),
                 cancel_requested=cancel,
                 heartbeat_at=datetime.now(UTC),
@@ -268,7 +268,7 @@ async def test_cancel_repair_failure_keeps_session_blocked(session_factory) -> N
                 session_id=chat.id,
                 status=RunStatus.QUEUED.value,
                 kind="chat",
-                model_id="deepseek-v4",
+                model_id="deepseek-v4-flash",
                 idempotency_key=str(successor_id),
             )
         )
@@ -377,7 +377,7 @@ async def test_terminal_run_dispatches_oldest_queued_successor(session_factory) 
                 session_id=chat.id,
                 status=RunStatus.QUEUED.value,
                 kind="chat",
-                model_id="deepseek-v4",
+                model_id="deepseek-v4-flash",
                 idempotency_key=str(second_id),
             )
         )

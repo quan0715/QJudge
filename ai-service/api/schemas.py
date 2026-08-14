@@ -103,14 +103,11 @@ class StartRunRequest(BaseModel):
 
     @field_validator("model_id")
     @classmethod
-    def advertised_model_id(cls, value: str) -> str:
-        # Keep command validation tied to the same registry exposed by
-        # GET /v1/models. Unknown aliases must never silently execute using
-        # ModelFactory's legacy fallback.
-        from domain.model_registry import ADVERTISED_MODEL_IDS
+    def supported_model_id(cls, value: str) -> str:
+        from domain.model_registry import MODEL_IDS
 
-        if value not in ADVERTISED_MODEL_IDS:
-            raise ValueError("model_id is not advertised")
+        if value not in MODEL_IDS:
+            raise ValueError("model_id is not supported")
         return value
 
 

@@ -3,14 +3,12 @@ import { useLocation } from "react-router-dom";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
-  QJUDGE_FALLBACK_MODELS,
   qJudgeCopilotModelCatalog,
   qJudgeCopilotStorage,
   qJudgeCopilotTransport,
 } from "@/infrastructure/copilot/qJudgeCopilotDependencies";
 import {
   CopilotProvider,
-  type CopilotModel,
   type CopilotModelCatalog,
   type CopilotSessionLocation,
   type CopilotStorage,
@@ -28,7 +26,6 @@ export interface QJudgeCopilotBoundaryProps {
   storage: CopilotStorage;
   translations: CopilotTranslations;
   modelCatalog: CopilotModelCatalog;
-  fallbackModels: readonly CopilotModel[];
   children: ReactNode;
 }
 
@@ -41,7 +38,6 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
       storage={props.storage}
       translations={props.translations}
       modelCatalog={props.modelCatalog}
-      fallbackModels={props.fallbackModels}
       initialSession="first"
     >
       <ArtifactPanelProvider>{props.children}</ArtifactPanelProvider>
@@ -74,7 +70,6 @@ export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
       storage={qJudgeCopilotStorage}
       translations={translations}
       modelCatalog={qJudgeCopilotModelCatalog}
-      fallbackModels={QJUDGE_FALLBACK_MODELS}
     >
       {children}
     </QJudgeCopilotBoundary>

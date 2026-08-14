@@ -226,10 +226,10 @@ async def test_duplicate_idempotency_key_returns_the_same_run(
 ) -> None:
     session = next(iter(state.sessions.values()))
     first = await run_service.start(
-        principal, session.id, "hello", "deepseek-v4", "same-key", "ai-token"
+        principal, session.id, "hello", "deepseek-v4-flash", "same-key", "ai-token"
     )
     second = await run_service.start(
-        principal, session.id, "hello", "deepseek-v4", "same-key", "ai-token"
+        principal, session.id, "hello", "deepseek-v4-flash", "same-key", "ai-token"
     )
 
     assert second.id == first.id
@@ -244,12 +244,12 @@ async def test_second_run_stays_queued_while_session_has_a_blocker(
 ) -> None:
     session = next(iter(state.sessions.values()))
     first = await run_service.start(
-        principal, session.id, "one", "deepseek-v4", "key-1", "token"
+        principal, session.id, "one", "deepseek-v4-flash", "key-1", "token"
     )
     state.runs[first.id] = replace(first, status=RunStatus.RUNNING)
 
     second = await run_service.start(
-        principal, session.id, "two", "deepseek-v4", "key-2", "token"
+        principal, session.id, "two", "deepseek-v4-flash", "key-2", "token"
     )
 
     assert second.status is RunStatus.QUEUED
@@ -268,7 +268,7 @@ async def test_failed_answer_preflight_leaves_paused_run_unchanged(
         session_id=session.id,
         status=RunStatus.AWAITING_USER_ANSWER,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         pause_payload={"question": "Continue?"},
     )
     state.runs[paused.id] = paused
@@ -295,7 +295,7 @@ async def test_failed_start_preflight_creates_no_run_or_messages(
             principal,
             session.id,
             "never accepted",
-            "deepseek-v4",
+            "deepseek-v4-flash",
             "offline",
             "token",
         )
@@ -314,7 +314,7 @@ async def test_approve_and_answer_resume_the_same_run_after_preflight(
         session_id=session.id,
         status=RunStatus.AWAITING_APPROVAL,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         pause_payload={"action_requests": [{"name": "write"}]},
     )
     answer = replace(
@@ -357,7 +357,7 @@ async def test_paused_cancel_dispatches_repair_once_without_credentials(
         session_id=session.id,
         status=RunStatus.AWAITING_USER_ANSWER,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     state.runs[paused.id] = paused
 
@@ -391,7 +391,7 @@ async def test_cancel_marks_queued_or_running_without_new_dispatch(
         session_id=session.id,
         status=source,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     state.runs[run.id] = run
 
@@ -411,7 +411,7 @@ async def test_cancel_race_cannot_be_resurrected_by_answer(
         session_id=session.id,
         status=RunStatus.AWAITING_USER_ANSWER,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         cancel_requested=True,
     )
     state.runs[paused.id] = paused
@@ -435,7 +435,7 @@ async def test_get_is_owner_scoped_and_never_checks_mcp(
         session_id=session.id,
         status=RunStatus.RUNNING,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     state.runs[run.id] = run
 
@@ -454,7 +454,7 @@ async def test_invalid_resume_state_does_not_mutate_run(
         session_id=session.id,
         status=RunStatus.RUNNING,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     state.runs[run.id] = run
 
@@ -472,7 +472,7 @@ async def test_terminal_handoff_dispatches_oldest_queued_after_commit(
         session_id=session.id,
         status=RunStatus.COMPLETED,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     queued = replace(terminal, id=uuid4(), status=RunStatus.QUEUED)
     state.runs.update({terminal.id: terminal, queued.id: queued})

@@ -91,7 +91,7 @@ async def test_start_runs_through_production_sqlalchemy_uow(
         principal,
         chat_session.id,
         "hello",
-        "deepseek-v4",
+        "deepseek-v4-flash",
         "production-uow",
         "token",
     )
@@ -117,7 +117,7 @@ async def test_start_commits_one_user_assistant_pair_and_dispatches_after_commit
     service, dispatcher = run_service
 
     run = await service.start(
-        principal, chat_session.id, "hello", "deepseek-v4", "message-1", "token"
+        principal, chat_session.id, "hello", "deepseek-v4-flash", "message-1", "token"
     )
 
     async with session_factory() as db_session:
@@ -141,10 +141,10 @@ async def test_duplicate_idempotency_key_creates_one_run_and_one_pair(
 ) -> None:
     service, dispatcher = run_service
     first = await service.start(
-        principal, chat_session.id, "hello", "deepseek-v4", "same", "token"
+        principal, chat_session.id, "hello", "deepseek-v4-flash", "same", "token"
     )
     second = await service.start(
-        principal, chat_session.id, "ignored", "deepseek-v4", "same", "token"
+        principal, chat_session.id, "ignored", "deepseek-v4-flash", "same", "token"
     )
 
     async with session_factory() as db_session:
@@ -167,10 +167,10 @@ async def test_concurrent_duplicate_starts_use_database_as_final_arbiter(
 
     first, second = await asyncio.gather(
         service.start(
-            principal, chat_session.id, "hello", "deepseek-v4", "race", "token"
+            principal, chat_session.id, "hello", "deepseek-v4-flash", "race", "token"
         ),
         service.start(
-            principal, chat_session.id, "hello", "deepseek-v4", "race", "token"
+            principal, chat_session.id, "hello", "deepseek-v4-flash", "race", "token"
         ),
     )
 
@@ -194,10 +194,10 @@ async def test_concurrent_distinct_starts_dispatch_only_first_accepted_run(
 
     first, second = await asyncio.gather(
         service.start(
-            principal, chat_session.id, "first", "deepseek-v4", "first", "token"
+            principal, chat_session.id, "first", "deepseek-v4-flash", "first", "token"
         ),
         service.start(
-            principal, chat_session.id, "second", "deepseek-v4", "second", "token"
+            principal, chat_session.id, "second", "deepseek-v4-flash", "second", "token"
         ),
     )
 
@@ -224,7 +224,7 @@ async def test_running_run_blocks_dispatch_of_next_queued_run(
 ) -> None:
     service, dispatcher = run_service
     first = await service.start(
-        principal, chat_session.id, "one", "deepseek-v4", "one", "token"
+        principal, chat_session.id, "one", "deepseek-v4-flash", "one", "token"
     )
     async with session_factory.begin() as db_session:
         row = await db_session.get(RunRow, first.id)
@@ -232,7 +232,7 @@ async def test_running_run_blocks_dispatch_of_next_queued_run(
         row.status = RunStatus.RUNNING.value
 
     second = await service.start(
-        principal, chat_session.id, "two", "deepseek-v4", "two", "token"
+        principal, chat_session.id, "two", "deepseek-v4-flash", "two", "token"
     )
 
     assert second.status is RunStatus.QUEUED
@@ -244,7 +244,7 @@ async def test_owner_scope_hides_run_without_mcp_dependency(
 ) -> None:
     service, _ = run_service
     run = await service.start(
-        principal, chat_session.id, "hello", "deepseek-v4", "owner", "token"
+        principal, chat_session.id, "hello", "deepseek-v4-flash", "owner", "token"
     )
 
     with pytest.raises(LookupError):
@@ -258,17 +258,17 @@ async def test_terminal_handoff_selects_oldest_queued_after_commit(
 ) -> None:
     service, dispatcher = run_service
     first = await service.start(
-        principal, chat_session.id, "one", "deepseek-v4", "one", "token"
+        principal, chat_session.id, "one", "deepseek-v4-flash", "one", "token"
     )
     async with session_factory.begin() as db_session:
         row = await db_session.get(RunRow, first.id)
         assert row is not None
         row.status = RunStatus.RUNNING.value
     second = await service.start(
-        principal, chat_session.id, "two", "deepseek-v4", "two", "token"
+        principal, chat_session.id, "two", "deepseek-v4-flash", "two", "token"
     )
     third = await service.start(
-        principal, chat_session.id, "three", "deepseek-v4", "three", "token"
+        principal, chat_session.id, "three", "deepseek-v4-flash", "three", "token"
     )
     async with session_factory.begin() as db_session:
         row = await db_session.get(RunRow, first.id)

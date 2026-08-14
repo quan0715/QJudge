@@ -72,7 +72,7 @@ async def _collect_events(runner: DeepAgentAdapter, agent: _FakeAgent):
         config={"configurable": {"thread_id": "thread-1"}},
         run_id="run-1",
         thread_id="thread-1",
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         event_queue=None,
     ):
         events.append(item)
@@ -209,7 +209,7 @@ def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
         session_id=UUID("22222222-2222-4222-8222-222222222222"),
         operation=AgentOperation.START,
         prompt="hello",
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         mcp_token="mcp-token",
         approval=None,
         answer=None,
@@ -261,7 +261,7 @@ def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
         },
         "run_id": str(command.run_id),
         "thread_id": str(command.session_id),
-        "model_id": "deepseek-v4",
+        "model_id": "deepseek-v4-flash",
     }
 
 
@@ -293,7 +293,7 @@ def test_runner_resume_operations_keep_caller_ids(
         session_id=UUID("22222222-2222-4222-8222-222222222222"),
         operation=operation,
         prompt=None,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         mcp_token="mcp-token",
         approval=approval,
         answer=answer,

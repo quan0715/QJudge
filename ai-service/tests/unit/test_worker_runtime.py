@@ -158,7 +158,7 @@ def make_run(**changes) -> Run:
         session_id=uuid4(),
         status=RunStatus.QUEUED,
         kind=RunKind.CHAT,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
     )
     return replace(run, **changes)
 

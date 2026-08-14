@@ -14,22 +14,20 @@ def test_start_run_serializer_accepts_expected_model_ids():
         "openai-nano",
         "openai-mini",
         "openai-mini-medium",
-        "deepseek-v4",
         "deepseek-v4-flash",
         "deepseek-v4-pro",
-        "deepseek-v4-thinking",
     ):
         serializer = StartRunSerializer(data={"content": "hello", "model_id": model_id})
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["model_id"] == model_id
 
 
-def test_start_run_serializer_rejects_unknown_model_id():
+def test_start_run_serializer_defers_model_validation_to_ai_service():
     serializer = StartRunSerializer(
-        data={"content": "hello", "model_id": "anthropic-haiku"}
+        data={"content": "hello", "model_id": "future-model"}
     )
-    assert not serializer.is_valid()
-    assert "model_id" in serializer.errors
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data["model_id"] == "future-model"
 
 
 def test_start_run_serializer_default_model_id_is_openai_nano():
@@ -38,13 +36,5 @@ def test_start_run_serializer_default_model_id_is_openai_nano():
     assert serializer.validated_data["model_id"] == "openai-nano"
 
 
-def test_start_run_model_choices_match_the_ai_service_registry():
-    assert list(StartRunSerializer().fields["model_id"].choices) == [
-        "openai-nano",
-        "openai-mini",
-        "openai-mini-medium",
-        "deepseek-v4",
-        "deepseek-v4-flash",
-        "deepseek-v4-pro",
-        "deepseek-v4-thinking",
-    ]
+def test_start_run_model_field_does_not_duplicate_ai_service_registry():
+    assert not hasattr(StartRunSerializer().fields["model_id"], "choices")

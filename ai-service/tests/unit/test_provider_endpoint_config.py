@@ -19,7 +19,7 @@ from infrastructure.agent import model_factory
             "http://fake-model.test/v1",
         ),
         (
-            "deepseek-v4",
+            "deepseek-v4-flash",
             "deepseek_base_url",
             "api_base",
             "http://fake-deepseek.test/v1",
@@ -47,6 +47,11 @@ def test_model_factory_uses_configured_provider_base_url(
     monkeypatch.setattr(model_factory, "get_settings", lambda: settings)
     monkeypatch.setattr(model_factory, "TpmGatedChatOpenAI", RecordingModel)
     monkeypatch.setattr(model_factory, "ChatDeepSeek", RecordingModel)
+    monkeypatch.setattr(
+        model_factory,
+        "ReasoningPreservingChatDeepSeek",
+        RecordingModel,
+    )
 
     model = model_factory.ModelFactory.create_model(model_id)
 
