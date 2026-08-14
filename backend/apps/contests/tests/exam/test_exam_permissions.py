@@ -105,15 +105,13 @@ class ExamPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn('not published', response.data.get('error', ''))
 
-    def test_log_event_draft_contest_rejected(self):
-        """Event logging should fail when contest is draft."""
+    def test_event_post_is_not_allowed(self):
         self.client.force_authenticate(user=self.student)
         response = self.client.post(
             f'/api/v1/contests/{self.draft_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
+            {'event_type': 'mouse_leave_triggered'}
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('not published', response.data.get('error', ''))
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_end_exam_draft_contest_rejected(self):
         """End exam should fail when contest is draft."""
@@ -143,54 +141,6 @@ class ExamPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('ended', response.data.get('error', ''))
 
-    def test_log_event_after_end_time_rejected(self):
-        """Event logging should fail after contest ends."""
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(
-            f'/api/v1/contests/{self.ended_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('ended', response.data.get('error', ''))
-
-    # ===== Layer 3: Participant Status Tests =====
-    
-    def test_log_event_not_started_rejected(self):
-        """Event logging should fail if exam is not_started."""
-        self.participant.exam_status = ExamStatus.NOT_STARTED
-        self.participant.save()
-        
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(
-            f'/api/v1/contests/{self.active_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('not accepted in current state', response.data.get('error', ''))
-
-    def test_log_event_in_progress_allowed(self):
-        """Event logging should succeed when in_progress."""
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(
-            f'/api/v1/contests/{self.active_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('violation_count', response.data)
-
-    def test_log_event_paused_allowed(self):
-        """Event logging should be accepted in paused state."""
-        self.participant.exam_status = ExamStatus.PAUSED
-        self.participant.save()
-
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post(
-            f'/api/v1/contests/{self.active_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('violation_count', response.data)
-
     def test_start_exam_success_published_contest(self):
         """Exam start should succeed for published contest within time range."""
         # Reset participant to not started
@@ -204,22 +154,3 @@ class ExamPermissionTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data.get('status'), 'started')
-
-    # ===== Admin/Teacher Permission Consistency =====
-    
-    def test_teacher_draft_contest_not_bypassed(self):
-        """Owners/teachers should not bypass exam event checks."""
-        ContestParticipant.objects.create(
-            contest=self.draft_contest,
-            user=self.teacher,
-            exam_status=ExamStatus.IN_PROGRESS,
-            started_at=timezone.now()
-        )
-        
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.post(
-            f'/api/v1/contests/{self.draft_contest.id}/exam/events/',
-            {'event_type': 'tab_hidden'}
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn('not published', response.data.get('error', ''))

@@ -18,7 +18,6 @@ const makeContest = (overrides: Partial<BoundContest>): BoundContest => ({
   contestName: "2026 春季期中考試",
   contestDescription: "",
   contestStatus: "published",
-  contestVisibility: "public",
   contestType: "paper_exam",
   contestStartTime: new Date(now + 2 * DAY).toISOString(),
   contestEndTime:   new Date(now + 2 * DAY + 7_200_000).toISOString(),

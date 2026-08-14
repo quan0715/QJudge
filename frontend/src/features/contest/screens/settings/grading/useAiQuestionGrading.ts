@@ -569,7 +569,7 @@ export function useAiQuestionGrading() {
   /**
    * 外部綁定已存在的 session（例如頁面刷新後重新接回正在跑的批改）。
    * 綁定前會驗證 manifest task_type/context，避免把其他頁面或其他題目的 session 接進來。
-   * run 狀態由 ChatbotProvider 的 SSE activeRuns 反映；這裡只做 session binding 與 artifact 初載。
+   * run 狀態由 CopilotProvider 的公開 runtime 反映；這裡只做 session binding 與 artifact 初載。
    */
   const bindSession = useCallback(
     async (

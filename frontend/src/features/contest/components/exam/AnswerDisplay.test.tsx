@@ -5,16 +5,28 @@ import { describe, it, expect, vi } from "vitest";
 import AnswerDisplay from "./AnswerDisplay";
 
 vi.mock("@/shared/ui/markdown/MarkdownContent", () => {
-  const Renderer = ({ children, kind }: { children: ReactNode; kind: string }) => (
+  const Renderer = ({
+    children,
+    kind,
+  }: {
+    children: ReactNode;
+    kind: string;
+  }) => (
     <span data-testid="markdown-content" data-kind={kind}>
       {children}
     </span>
   );
   return {
     default: {
-      Simple: ({ children }: { children: ReactNode }) => <Renderer kind="simple">{children}</Renderer>,
-      Rich: ({ children }: { children: ReactNode }) => <Renderer kind="rich">{children}</Renderer>,
-      Problem: ({ children }: { children: ReactNode }) => <Renderer kind="problem">{children}</Renderer>,
+      Simple: ({ children }: { children: ReactNode }) => (
+        <Renderer kind="simple">{children}</Renderer>
+      ),
+      Rich: ({ children }: { children: ReactNode }) => (
+        <Renderer kind="rich">{children}</Renderer>
+      ),
+      Problem: ({ children }: { children: ReactNode }) => (
+        <Renderer kind="problem">{children}</Renderer>
+      ),
     },
   };
 });
@@ -143,6 +155,13 @@ describe("AnswerDisplay rendering", () => {
       .find((node) => node.textContent?.includes("frac12"));
     expect(reference).toHaveAttribute("data-kind", "problem");
     expect(explanation).toHaveAttribute("data-kind", "problem");
+    expect(
+      screen.getByRole("region", { name: "作答內容" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "參考答案" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "詳解" })).toBeInTheDocument();
   });
 
   it("renders objective options and correct summary with problem markdown", () => {
@@ -159,7 +178,11 @@ describe("AnswerDisplay rendering", () => {
       .getAllByTestId("markdown-content")
       .filter((node) => node.textContent === "$\\frac{2\\pi}{5}$");
     expect(renderedMath).toHaveLength(2);
-    expect(renderedMath.every((node) => node.getAttribute("data-kind") === "problem")).toBe(true);
+    expect(
+      renderedMath.every(
+        (node) => node.getAttribute("data-kind") === "problem",
+      ),
+    ).toBe(true);
   });
 
   it("renders open document subjective answers", () => {

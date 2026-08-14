@@ -1,7 +1,8 @@
+@use "@carbon/layout";
 .entry {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
   background-color: var(--cds-layer-01);
   border: 1px solid var(--cds-border-subtle);
   border-radius: 4px;
@@ -44,7 +45,7 @@
 .icons {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
   margin-left: auto;
 }
 
@@ -62,7 +63,7 @@
   code {
     font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
     background-color: var(--cds-layer-02);
-    padding: 0.125rem 0.25rem;
+    padding: layout.$spacing-01 layout.$spacing-02;
     border-radius: 2px;
   }
 }

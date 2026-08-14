@@ -9,7 +9,6 @@ export const createMockContest = (
   startTime: "2026-04-10T09:00:00.000Z",
   endTime: "2026-04-10T12:00:00.000Z",
   status: "published",
-  visibility: "public",
   attendanceCheckEnabled: false,
   organizer: "teacher",
   hasJoined: false,
@@ -22,8 +21,8 @@ export const createMockContest = (
     desktop: {
       enabled: true,
       sources: {
-        screenShare: { enabled: true, captureIntervalSeconds: 5 },
-        webcam: { enabled: false, captureIntervalSeconds: 10 },
+        screenShare: { enabled: true },
+        webcam: { enabled: false },
       },
       detectors: {
         pwaMode: false,
@@ -36,8 +35,8 @@ export const createMockContest = (
     tablet: {
       enabled: true,
       sources: {
-        screenShare: { enabled: false, captureIntervalSeconds: 5 },
-        webcam: { enabled: true, captureIntervalSeconds: 10 },
+        screenShare: { enabled: false },
+        webcam: { enabled: true },
       },
       detectors: {
         pwaMode: true,
@@ -48,8 +47,6 @@ export const createMockContest = (
       },
     },
   },
-  warningTimeoutSeconds: 20,
-  screenShareRecoveryGraceMs: 30000,
   scoreboardVisibleDuringContest: false,
   allowMultipleJoins: false,
   resultsPublished: false,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkeletonText, SkeletonPlaceholder } from '@carbon/react';
+import { SkeletonText, SkeletonPlaceholder, Theme } from '@carbon/react';
 import styles from './QJudgeHeroWidget.module.scss';
 
 export interface QJudgeHeroWidgetProps {
@@ -79,7 +79,9 @@ export const QJudgeHeroWidget: React.FC<QJudgeHeroWidgetProps> = ({
   const variantClass = isDark ? styles.heroDark : styles.heroPlain;
 
   return (
-    <div
+    <Theme
+      as="section"
+      theme={isDark ? "g100" : undefined}
       className={`${styles.heroContainer} ${variantClass} ${className}`}
       style={containerStyle}
     >
@@ -153,7 +155,7 @@ export const QJudgeHeroWidget: React.FC<QJudgeHeroWidgetProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </Theme>
   );
 };
 

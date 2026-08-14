@@ -1,0 +1,910 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
+import type { CopilotError, CopilotSubscription } from "@/core/copilot";
+import { useCopilotComposer } from "../hooks/useCopilotComposer";
+import { useCopilotRun } from "../hooks/useCopilotRun";
+import { useCopilotSessions } from "../hooks/useCopilotSessions";
+import { MemoryCopilotTransport } from "../testing";
+import { CopilotProvider } from "./CopilotProvider";
+import type { CopilotInitialSessionStrategy } from "./copilotSessionBootstrap";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((onResolve, onReject) => {
+    resolve = onResolve;
+    reject = onReject;
+  });
+  return { promise, resolve, reject };
+}
+
+function wrapper(
+  transport: MemoryCopilotTransport,
+  initialSession: CopilotInitialSessionStrategy = "create",
+) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <CopilotProvider transport={transport} initialSession={initialSession}>
+        {children}
+      </CopilotProvider>
+    );
+  };
+}
+
+describe("CopilotProvider run lifecycle", () => {
+  it("publishes pending reasoning before the first run event", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Think first"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+
+    const sent = await act(() => result.current.composer.send());
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+
+    expect(assistant?.parts).toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it.each(["queued", "cancelled", "failed"] as const)(
+    "clears pending reasoning when the run reports %s",
+    async (status) => {
+      const transport = new MemoryCopilotTransport();
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport) },
+      );
+      act(() => result.current.composer.setDraft("Think first"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 1,
+          status,
+        }),
+      );
+
+      const assistant =
+        result.current.sessions.activeSession.data?.messages.find(
+          (message) => message.metadata?.runId === sent.runId,
+        );
+      expect(assistant?.parts).not.toContainEqual({
+        type: "reasoning",
+        text: "",
+        state: "streaming",
+      });
+    },
+  );
+
+  it("retains pending reasoning across a running status before content", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Still thinking"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        status: "running",
+      }),
+    );
+
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it("clears pending reasoning after a nonrecoverable stream error", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Fail before content"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    act(() =>
+      transport.fail(sent.runId!, {
+        code: "stream-disconnected",
+        operation: "subscribe-run",
+        recoverable: false,
+      }),
+    );
+
+    expect(result.current.run.state.status).toBe("error");
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).not.toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it.each(["missing-run", "unsupported-resume"] as const)(
+    "clears pending reasoning when restore settles as %s",
+    async (scenario) => {
+      const transport = new MemoryCopilotTransport();
+      if (scenario === "missing-run") {
+        vi.spyOn(transport, "getActiveRun").mockResolvedValueOnce(null);
+      } else {
+        Object.assign(transport.capabilities, { resumableStreams: false });
+      }
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          run: useCopilotRun(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport) },
+      );
+      act(() => result.current.composer.setDraft("Restore before content"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      vi.useFakeTimers();
+      try {
+        act(() =>
+          transport.fail(sent.runId!, {
+            code: "stream-disconnected",
+            operation: "subscribe-run",
+            recoverable: true,
+          }),
+        );
+        await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+        expect(result.current.run.state.status).toBe("ready");
+        const assistant =
+          result.current.sessions.activeSession.data?.messages.find(
+            (message) => message.metadata?.runId === sent.runId,
+          );
+        expect(assistant?.parts).not.toContainEqual({
+          type: "reasoning",
+          text: "",
+          state: "streaming",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("clears pending reasoning when stopping an uncancellable run", async () => {
+    const transport = new MemoryCopilotTransport();
+    Object.assign(transport.capabilities, { cancellableRuns: false });
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Stop before content"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    await act(() => result.current.run.stop());
+
+    expect(result.current.run.state.status).toBe("ready");
+    const assistant = result.current.sessions.activeSession.data?.messages.find(
+      (message) => message.metadata?.runId === sent.runId,
+    );
+    expect(assistant?.parts).not.toContainEqual({
+      type: "reasoning",
+      text: "",
+      state: "streaming",
+    });
+  });
+
+  it("moves from submitted through streaming to ready", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Hello"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    let sent!: Awaited<ReturnType<typeof result.current.composer.send>>;
+    await act(async () => {
+      sent = await result.current.composer.send();
+    });
+
+    expect(sent.accepted).toBe(true);
+    expect(result.current.run.state.status).toBe("submitted");
+    const sessionId = sent.sessionId;
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId,
+        sequence: 1,
+        status: "running",
+      }),
+    );
+    expect(result.current.run.state.status).toBe("streaming");
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId,
+        sequence: 2,
+        status: "completed",
+      }),
+    );
+    expect(result.current.run.state.status).toBe("ready");
+  });
+
+  it("closes the captured subscription before cancelling", async () => {
+    const transport = new MemoryCopilotTransport();
+    const order: string[] = [];
+    const originalSubscribe = transport.subscribeRun.bind(transport);
+    vi.spyOn(transport, "subscribeRun").mockImplementation((run, observer, options) => {
+      const subscription = originalSubscribe(run, observer, options);
+      return {
+        get closed() {
+          return subscription.closed;
+        },
+        close() {
+          order.push("close");
+          subscription.close();
+        },
+      } satisfies CopilotSubscription;
+    });
+    const originalCancel = transport.cancelRun.bind(transport);
+    vi.spyOn(transport, "cancelRun").mockImplementation(async (id) => {
+      order.push("cancel");
+      return originalCancel(id);
+    });
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Stop me"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    await act(() => result.current.composer.send());
+
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunStatus: "queued",
+    });
+
+    await act(() => result.current.run.stop());
+
+    expect(order.slice(0, 2)).toEqual(["close", "cancel"]);
+    expect(result.current.run.state.status).toBe("ready");
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunStatus,
+    ).toBeUndefined();
+  });
+
+  it("retains an approval request and interaction error when submission fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Change it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-approval",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: { actions: [{ name: "write" }], allowedDecisions: ["approve"] },
+      }),
+    );
+    const failure: Error & CopilotError = Object.assign(new Error("offline"), {
+      code: "transport-error" as const,
+      operation: "submit-approval" as const,
+      recoverable: true,
+    });
+    vi.spyOn(transport, "submitApproval").mockRejectedValueOnce(failure);
+
+    await act(() => result.current.run.submitApproval("approve"));
+    expect(result.current.run.state.status).toBe("awaiting-approval");
+    if (result.current.run.state.status === "awaiting-approval") {
+      expect(result.current.run.state.request.actions).toEqual([{ name: "write" }]);
+      expect(result.current.run.state.interactionError).toBe(failure);
+    }
+  });
+
+  it("deduplicates an in-flight approval and permits retry after failure", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Change it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-approval",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: {
+          actions: [{ name: "write" }],
+          allowedDecisions: ["approve"],
+        },
+      }),
+    );
+    const pending = deferred<CopilotRun>();
+    const submitApproval = vi
+      .spyOn(transport, "submitApproval")
+      .mockReturnValue(pending.promise);
+
+    let first!: Promise<void>;
+    let duplicate!: Promise<void>;
+    act(() => {
+      first = result.current.run.submitApproval("approve");
+      duplicate = result.current.run.submitApproval("approve");
+    });
+    expect(result.current.run.state).toMatchObject({
+      status: "awaiting-approval",
+      interactionPending: true,
+    });
+    await act(async () => {
+      pending.reject(new Error("offline"));
+      await Promise.all([first, duplicate]);
+    });
+
+    expect(submitApproval).toHaveBeenCalledTimes(1);
+    submitApproval.mockResolvedValueOnce({
+      id: sent.runId!,
+      sessionId: sent.sessionId,
+      status: "running",
+    });
+    await act(() => result.current.run.submitApproval("approve"));
+    expect(submitApproval).toHaveBeenCalledTimes(2);
+  });
+
+  it("subscribes to the run returned by submitApproval", async () => {
+    const transport = new MemoryCopilotTransport();
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        run: useCopilotRun(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Change it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-approval",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 3,
+        request: { actions: [{ name: "write" }], allowedDecisions: ["approve"] },
+      }),
+    );
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "awaiting-approval",
+    });
+
+    await act(() => result.current.run.submitApproval("approve"));
+
+    expect(subscribeRun).toHaveBeenCalledTimes(2);
+    expect(subscribeRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: sent.runId, status: "running" }),
+      expect.any(Object),
+      expect.objectContaining({ fromSequence: 3 }),
+    );
+    expect(result.current.run.state.status).toBe("streaming");
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "running",
+    });
+  });
+
+  it("restores active-run metadata into the selected session summary", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Existing" });
+    const run = await transport.startRun({ sessionId: session.id, text: "Resume" });
+
+    const { result } = renderHook(
+      () => ({ run: useCopilotRun(), sessions: useCopilotSessions() }),
+      { wrapper: wrapper(transport, "first") },
+    );
+
+    await waitFor(() => expect(result.current.run.state.status).toBe("submitted"));
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: run.id,
+      activeRunStatus: "queued",
+    });
+  });
+
+  it.each(["completed", "failed", "cancelled"] as const)(
+    "clears %s run metadata without contaminating another session",
+    async (status) => {
+      const transport = new MemoryCopilotTransport();
+      const first = await transport.createSession({ title: "First" });
+      const second = await transport.createSession({ title: "Second" });
+      const { result } = renderHook(
+        () => ({
+          composer: useCopilotComposer(),
+          run: useCopilotRun(),
+          sessions: useCopilotSessions(),
+        }),
+        { wrapper: wrapper(transport, "first") },
+      );
+      await waitFor(() => expect(result.current.sessions.activeSession.id).toBe(first.id));
+      act(() => result.current.composer.setDraft("Track metadata"));
+      await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+      const sent = await act(() => result.current.composer.send());
+
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata,
+      ).toMatchObject({
+        activeRunId: sent.runId,
+        activeRunStatus: "queued",
+      });
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === second.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 1,
+          status: "running",
+        }),
+      );
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata,
+      ).toMatchObject({
+        activeRunId: sent.runId,
+        activeRunStatus: "running",
+      });
+
+      act(() =>
+        transport.emit(sent.runId!, {
+          type: "run-status",
+          runId: sent.runId!,
+          sessionId: sent.sessionId,
+          sequence: 2,
+          status,
+        }),
+      );
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunStatus,
+      ).toBeUndefined();
+
+      await act(() => result.current.sessions.select(second.id));
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === first.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+      expect(
+        result.current.sessions.sessions.find((session) => session.id === second.id)
+          ?.metadata?.activeRunId,
+      ).toBeUndefined();
+    },
+  );
+
+  it("keeps live run metadata authoritative across rename and refresh", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Original" });
+    const originalListSessions = transport.listSessions.bind(transport);
+    const { result } = renderHook(
+      () => ({
+        composer: useCopilotComposer(),
+        sessions: useCopilotSessions(),
+      }),
+      { wrapper: wrapper(transport, "first") },
+    );
+    await waitFor(() => expect(result.current.sessions.activeSession.id).toBe(session.id));
+    act(() => result.current.composer.setDraft("Keep metadata"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    await act(() => result.current.sessions.rename(session.id, "Renamed"));
+    await act(() => result.current.sessions.refresh());
+    expect(result.current.sessions.sessions[0]?.metadata).toMatchObject({
+      activeRunId: sent.runId,
+      activeRunStatus: "queued",
+    });
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        status: "completed",
+      }),
+    );
+    const [staleSummary] = await originalListSessions();
+    vi.spyOn(transport, "listSessions").mockResolvedValueOnce([
+      {
+        ...staleSummary,
+        metadata: {
+          ...staleSummary.metadata,
+          activeRunId: sent.runId,
+          activeRunStatus: "running",
+        },
+      },
+    ]);
+    await act(() => result.current.sessions.refresh());
+
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunId,
+    ).toBeUndefined();
+    expect(
+      result.current.sessions.sessions[0]?.metadata?.activeRunStatus,
+    ).toBeUndefined();
+  });
+
+  it("re-subscribes to a run after submitting an answer", async () => {
+    const transport = new MemoryCopilotTransport();
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Grade it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-answer",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 25,
+        resumeSequence: 7,
+        request: {
+          question: "Which rubric should I use?",
+          input: "text",
+        },
+      }),
+    );
+    expect(result.current.run.state.status).toBe("awaiting-answer");
+
+    await act(() => result.current.run.submitAnswer("Use the existing rubric"));
+
+    expect(subscribeRun).toHaveBeenCalledTimes(2);
+    expect(subscribeRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: sent.runId, status: "running" }),
+      expect.any(Object),
+      expect.objectContaining({ fromSequence: 7 }),
+    );
+    expect(result.current.run.state.status).toBe("streaming");
+  });
+
+  it("retains a question and interaction error when submission fails", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Grade it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-answer",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: { question: "Continue?", input: "text" },
+      }),
+    );
+    vi.spyOn(transport, "submitAnswer").mockRejectedValueOnce(new Error("offline"));
+
+    await act(() => result.current.run.submitAnswer("yes"));
+
+    expect(result.current.run.state.status).toBe("awaiting-answer");
+    if (result.current.run.state.status === "awaiting-answer") {
+      expect(result.current.run.state.request.question).toBe("Continue?");
+      expect(result.current.run.state.interactionError?.operation).toBe("submit-answer");
+    }
+  });
+
+  it("deduplicates an in-flight answer and permits retry after failure", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Grade it"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "awaiting-answer",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        request: { question: "Continue?", input: "text" },
+      }),
+    );
+    const pending = deferred<CopilotRun>();
+    const submitAnswer = vi
+      .spyOn(transport, "submitAnswer")
+      .mockReturnValue(pending.promise);
+
+    let first!: Promise<void>;
+    let duplicate!: Promise<void>;
+    act(() => {
+      first = result.current.run.submitAnswer("yes");
+      duplicate = result.current.run.submitAnswer("yes");
+    });
+    expect(result.current.run.state).toMatchObject({
+      status: "awaiting-answer",
+      interactionPending: true,
+    });
+    await act(async () => {
+      pending.reject(new Error("offline"));
+      await Promise.all([first, duplicate]);
+    });
+
+    expect(submitAnswer).toHaveBeenCalledTimes(1);
+    submitAnswer.mockResolvedValueOnce({
+      id: sent.runId!,
+      sessionId: sent.sessionId,
+      status: "running",
+    });
+    await act(() => result.current.run.submitAnswer("yes"));
+    expect(submitAnswer).toHaveBeenCalledTimes(2);
+  });
+
+  it("exposes and clears the current run notice", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Long conversation"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-notice",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        notice: "Summarizing",
+      }),
+    );
+    expect(result.current.run.notice).toBe("Summarizing");
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-notice",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 2,
+        notice: null,
+      }),
+    );
+    expect(result.current.run.notice).toBeNull();
+  });
+
+  it("reconnects a recoverable interruption from the last sequence", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const run = await transport.startRun({ sessionId: session.id, text: "start" });
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const getActiveRun = vi.spyOn(transport, "getActiveRun");
+    const { result } = renderHook(() => useCopilotRun(), {
+      wrapper: wrapper(transport, "first"),
+    });
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    act(() =>
+      transport.emit(run.id, {
+        type: "run-status",
+        runId: run.id,
+        sessionId: session.id,
+        sequence: 8,
+        resumeSequence: 4,
+        status: "running",
+      }),
+    );
+    getActiveRun.mockResolvedValueOnce({
+      ...run,
+      status: "running",
+      lastSequence: 2,
+    });
+    vi.useFakeTimers();
+    try {
+      act(() =>
+        transport.fail(run.id, {
+          code: "stream-disconnected",
+          operation: "subscribe-run",
+          recoverable: true,
+        }),
+      );
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+      expect(subscribeRun).toHaveBeenCalledTimes(2);
+      expect(subscribeRun).toHaveBeenLastCalledWith(
+        expect.objectContaining({ id: run.id, lastSequence: 4 }),
+        expect.any(Object),
+        expect.objectContaining({ fromSequence: 4 }),
+      );
+      expect(result.current.state.status).toBe("streaming");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not reconnect a recoverable interruption while awaiting HITL", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession();
+    const run = await transport.startRun({ sessionId: session.id, text: "start" });
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(() => useCopilotRun(), {
+      wrapper: wrapper(transport, "first"),
+    });
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    vi.useFakeTimers();
+    try {
+      act(() => {
+        transport.emit(run.id, {
+          type: "awaiting-answer",
+          runId: run.id,
+          sessionId: session.id,
+          sequence: 1,
+          request: { question: "Continue?", input: "text" },
+        });
+        transport.fail(run.id, {
+          code: "stream-disconnected",
+          operation: "subscribe-run",
+          recoverable: true,
+        });
+      });
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+      expect(subscribeRun).toHaveBeenCalledTimes(1);
+      expect(result.current.state.status).toBe("awaiting-answer");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a failed terminal event authoritative when the stream completes", async () => {
+    const transport = new MemoryCopilotTransport();
+    const { result } = renderHook(
+      () => ({ composer: useCopilotComposer(), run: useCopilotRun() }),
+      { wrapper: wrapper(transport) },
+    );
+    act(() => result.current.composer.setDraft("Fail"));
+    await waitFor(() => expect(result.current.composer.canSend).toBe(true));
+    const sent = await act(() => result.current.composer.send());
+    const error: CopilotError = {
+      code: "run-failed",
+      operation: "subscribe-run",
+      recoverable: false,
+    };
+
+    act(() =>
+      transport.emit(sent.runId!, {
+        type: "run-status",
+        runId: sent.runId!,
+        sessionId: sent.sessionId,
+        sequence: 1,
+        resumeSequence: 9,
+        status: "failed",
+        error,
+      }),
+    );
+
+    expect(result.current.run.state).toMatchObject({
+      status: "error",
+      error,
+    });
+  });
+
+  it("does not let a reconnect timer subscribe after a session switch", async () => {
+    const transport = new MemoryCopilotTransport();
+    const first = await transport.createSession();
+    const run = await transport.startRun({ sessionId: first.id, text: "start" });
+    const second = await transport.createSession();
+    const subscribeRun = vi.spyOn(transport, "subscribeRun");
+    const { result } = renderHook(
+      () => ({ run: useCopilotRun(), sessions: useCopilotSessions() }),
+      { wrapper: wrapper(transport, "first") },
+    );
+    await waitFor(() => expect(subscribeRun).toHaveBeenCalledTimes(1));
+    vi.useFakeTimers();
+    try {
+      act(() =>
+        transport.fail(run.id, {
+          code: "stream-disconnected",
+          operation: "subscribe-run",
+          recoverable: true,
+        }),
+      );
+      await act(() => result.current.sessions.select(second.id));
+      await act(() => vi.advanceTimersByTimeAsync(1_000));
+
+      expect(result.current.sessions.activeSession.id).toBe(second.id);
+      expect(subscribeRun).toHaveBeenCalledTimes(1);
+      expect(result.current.run.state.status).toBe("ready");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps failed attachments and draft for retry", async () => {
+    const transport = new MemoryCopilotTransport();
+    vi.spyOn(transport, "uploadAttachment").mockRejectedValueOnce(new Error("bad file"));
+    const { result } = renderHook(() => useCopilotComposer(), {
+      wrapper: wrapper(transport),
+    });
+    const file = new File(["x"], "bad.txt", { type: "text/plain" });
+    act(() => result.current.setDraft("with file"));
+    await waitFor(() => expect(result.current.canSend).toBe(true));
+    await act(() => result.current.addAttachments([file]));
+
+    const sent = await act(() => result.current.send());
+
+    expect(sent.accepted).toBe(false);
+    expect(result.current.draft).toBe("with file");
+    expect(result.current.attachments[0].status).toBe("error");
+  });
+});

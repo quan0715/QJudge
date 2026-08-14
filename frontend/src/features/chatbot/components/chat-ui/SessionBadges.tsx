@@ -3,15 +3,20 @@ import { Checkmark, Warning, InProgress, Document } from "@carbon/icons-react";
 import { Tag } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
-import type { ChatMessage } from "@/core/types/chatbot.types";
+import type { CopilotMessage } from "@copilot";
 import { useOptionalArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { ArtifactInlineCard } from "../artifact/ArtifactInlineCard";
-import { TodoList, pickLatestTodos, summarizeTodos } from "@/shared/ai/TodoList";
+import {
+  TodoList,
+  summarizeTodos,
+  type TodoListItem,
+} from "@/shared/ai/TodoList";
+import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
 
 import styles from "./SessionBadges.module.scss";
 
 interface SessionBadgesProps {
-  messages: ChatMessage[];
+  messages: readonly CopilotMessage[];
   /** When true, render without outer wrapper padding (for inline use inside
    *  the composer toolbar). */
   inline?: boolean;
@@ -19,18 +24,10 @@ interface SessionBadgesProps {
 
 type OpenPanel = "todos" | "artifacts" | null;
 
-/** Aggregate whether the current session has any todos / artifacts to show.
- *  Exposed so the composer can decide whether to force-expand. */
-export function useSessionBadgeSummary(messages: ChatMessage[]): {
-  hasTodos: boolean;
-  hasArtifacts: boolean;
-  hasAny: boolean;
-} {
-  const artifactCtx = useOptionalArtifactPanel();
-  const todos = useMemo(() => pickLatestTodos(messages), [messages]);
-  const hasTodos = todos.length > 0;
-  const hasArtifacts = (artifactCtx?.artifacts.length ?? 0) > 0;
-  return { hasTodos, hasArtifacts, hasAny: hasTodos || hasArtifacts };
+function selectBadgeTodoItems(
+  messages: readonly CopilotMessage[],
+): readonly TodoListItem[] {
+  return selectLatestTodoItems(messages);
 }
 
 export function SessionBadges({ messages, inline = false }: SessionBadgesProps) {
@@ -40,7 +37,7 @@ export function SessionBadges({ messages, inline = false }: SessionBadgesProps) 
 
   const artifactCtx = useOptionalArtifactPanel();
   const artifacts = artifactCtx?.artifacts ?? [];
-  const todos = useMemo(() => pickLatestTodos(messages), [messages]);
+  const todos = useMemo(() => selectBadgeTodoItems(messages), [messages]);
   const summary = useMemo(() => summarizeTodos(todos), [todos]);
 
   // Close the floating popover when clicking outside (e.g. into the textarea

@@ -15,6 +15,8 @@ import {
   Toggle,
   InlineLoading,
   SkeletonText,
+  Column,
+  Grid,
 } from "@carbon/react";
 import { View, Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -239,10 +241,9 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
 
   return (
     <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <div className="cds--grid" style={{ padding: 0 }}>
-        <div className="cds--row">
+      <Grid fullWidth style={{ padding: 0 }}>
           {/* Left Column: Filters */}
-          <div className="cds--col-lg-4 cds--col-md-8">
+          <Column lg={4} md={8} sm={4}>
             <ContainerCard
               title={t("submissions.filters")}
               style={{ marginBottom: "1rem" }}
@@ -345,10 +346,10 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
                 </Button>
               </div>
             </ContainerCard>
-          </div>
+          </Column>
 
           {/* Right Column: Table */}
-          <div className="cds--col-lg-12 cds--col-md-8">
+          <Column lg={12} md={8} sm={4}>
             <ContainerCard
               title={
                 showSkeleton
@@ -468,9 +469,8 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
                 style={{ borderTop: "1px solid var(--cds-border-subtle)" }}
               />
             </ContainerCard>
-          </div>
-        </div>
-      </div>
+          </Column>
+      </Grid>
 
       <SubmissionDetailModal
         submissionId={searchParams.get("submission_id")}

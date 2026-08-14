@@ -1,17 +1,35 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from "react";
-import { Add, ArrowUp, Close, Document, InProgress } from "@carbon/icons-react";
+import {
+  Add,
+  ArrowUp,
+  Close,
+  Document,
+  InProgress,
+  Warning,
+} from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import type { ChatMessage, ModelInfo } from "@/core/types/chatbot.types";
-import { SessionBadges, useSessionBadgeSummary } from "./SessionBadges";
+import type {
+  CopilotMessage,
+  CopilotModel,
+  CopilotPendingAttachment,
+} from "@copilot";
+import { SessionBadges } from "./SessionBadges";
+import { useSessionBadgeSummary } from "./useSessionBadgeSummary";
 import { ModelSelect } from "@/shared/ai/ModelSelect";
 import styles from "./ComposerBar.module.scss";
 
 const TEXTAREA_MAX_HEIGHT = 160; // sync with $chat-textarea-max-height in _variables.scss
 
 interface ComposerBarProps {
-  onSend: (text: string, pendingFiles?: File[]) => boolean | Promise<boolean>;
-  models: ModelInfo[];
-  selectedModelId: string;
+  value: string;
+  onValueChange(value: string): void;
+  attachments: readonly CopilotPendingAttachment[];
+  onAddAttachments(files: readonly File[]): void | Promise<void>;
+  onRemoveAttachment(id: string): void;
+  onSend(): Promise<boolean>;
+  canSend: boolean;
+  models: readonly CopilotModel[];
+  selectedModelId: string | null;
   onModelChange: (modelId: string) => void;
   onStop?: () => void;
   isStreaming: boolean;
@@ -19,11 +37,17 @@ interface ComposerBarProps {
   placeholder?: string;
   sessionNotice?: string | null;
   /** Session-scoped messages to feed SessionBadges (todo/artifact). */
-  messages?: ChatMessage[];
+  messages?: readonly CopilotMessage[];
 }
 
 export function ComposerBar({
+  value,
+  onValueChange,
+  attachments,
+  onAddAttachments,
+  onRemoveAttachment,
   onSend,
+  canSend,
   models,
   selectedModelId,
   onModelChange,
@@ -37,26 +61,36 @@ export function ComposerBar({
   const { t } = useTranslation("chatbot");
   const displayPlaceholder = placeholder || t("ui.inputPlaceholder");
 
-  const [value, setValue] = useState("");
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   // Expanded layout: active when textarea wraps >= 2 visual lines OR the
   // session has badges to show. New chats with a single-line draft and no
   // badges stay in the compact pill layout.
   const [isWrapped, setIsWrapped] = useState(false);
+  // Reconcile a cleared controlled value before commit so a following prop
+  // update cannot cancel the reset between renders.
+  if (value.length === 0 && isWrapped) {
+    setIsWrapped(false);
+  }
   const badgeSummary = useSessionBadgeSummary(messages ?? []);
-  const isExpanded = isWrapped || badgeSummary.hasAny || pendingFiles.length > 0;
+  const isExpanded =
+    (value.length > 0 && isWrapped) ||
+    badgeSummary.hasAny ||
+    attachments.length > 0;
   const composingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const hasUploadingAttachment = attachments.some(
+    (attachment) => attachment.status === "uploading",
+  );
 
   const handleSubmit = useCallback(async () => {
-    const trimmed = value.trim();
-    if (!trimmed || disabled || isStreaming) return;
-    const didSend = await onSend(trimmed, pendingFiles);
-    if (!didSend) return;
-    setValue("");
-    setPendingFiles([]);
-  }, [value, pendingFiles, disabled, isStreaming, onSend]);
+    if (
+      (!value.trim() && attachments.length === 0) ||
+      disabled ||
+      isStreaming ||
+      hasUploadingAttachment
+    ) return;
+    await onSend();
+  }, [attachments.length, disabled, hasUploadingAttachment, isStreaming, onSend, value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -72,8 +106,8 @@ export function ComposerBar({
   );
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value);
-  }, []);
+    onValueChange(e.target.value);
+  }, [onValueChange]);
 
   // Adjusts textarea height only — never touches isExpanded.
   // Used by both initial render and ResizeObserver so layout shifts
@@ -96,10 +130,7 @@ export function ComposerBar({
     const next = Math.min(ta.scrollHeight, TEXTAREA_MAX_HEIGHT);
     ta.style.height = `${next}px`;
 
-    if (value.length === 0) {
-      if (isWrapped) setIsWrapped(false);
-      return;
-    }
+    if (value.length === 0) return;
     if (isWrapped) return;
 
     const cs = window.getComputedStyle(ta);
@@ -107,7 +138,8 @@ export function ComposerBar({
     const paddingY =
       (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     if (next - paddingY > lineHeight * 1.5) {
-      setIsWrapped(true);
+      const frame = window.requestAnimationFrame(() => setIsWrapped(true));
+      return () => window.cancelAnimationFrame(frame);
     }
   }, [value, isWrapped]);
 
@@ -121,9 +153,14 @@ export function ComposerBar({
     return () => ro.disconnect();
   }, [adjustTextareaHeight]);
 
-  const canSend = value.trim().length > 0 && !disabled && !isStreaming;
+  const canSubmit =
+    canSend &&
+    (value.trim().length > 0 || attachments.length > 0) &&
+    !disabled &&
+    !isStreaming &&
+    !hasUploadingAttachment;
   const hasStatusBlock = Boolean(sessionNotice);
-  const canUpload = !disabled && !isStreaming;
+  const canUpload = !disabled && !isStreaming && !hasUploadingAttachment;
 
   const handlePickFile = useCallback(() => {
     if (!canUpload) return;
@@ -133,15 +170,14 @@ export function ComposerBar({
   const handleUploadChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPendingFiles((files) => [...files, file]);
+    void onAddAttachments([file]);
     e.target.value = "";
-  }, []);
+  }, [onAddAttachments]);
 
-  const removePendingFile = useCallback((indexToRemove: number) => {
-    setPendingFiles((files) =>
-      files.filter((_file, index) => index !== indexToRemove),
-    );
-  }, []);
+  const modelOptions = models.map((model) => ({
+    id: model.id,
+    label: model.displayName,
+  }));
 
   return (
     <div className={styles.bar}>
@@ -182,16 +218,32 @@ export function ComposerBar({
             <Add size={16} />
           </button>
         )}
-        {pendingFiles.length > 0 && (
+        {attachments.length > 0 && (
           <div className={styles.pendingFileList} aria-label={t("ui.pendingFiles", "待上傳檔案")}>
-            {pendingFiles.map((file, index) => (
-              <span className={styles.pendingFileTag} key={`${file.name}-${file.lastModified}-${index}`}>
+            {attachments.map((attachment) => (
+              <span className={styles.pendingFileTag} key={attachment.id}>
                 <Document size={14} className={styles.pendingFileIcon} />
-                <span className={styles.pendingFileName}>{file.name}</span>
+                <span className={styles.pendingFileName}>{attachment.file.name}</span>
+                {attachment.status === "uploading" && (
+                  <span className={styles.pendingFileStatus} role="status">
+                    <InProgress size={14} className={styles.spinningIcon} aria-hidden />
+                    <span>{t("ui.attachmentUploading", "上傳中")}</span>
+                  </span>
+                )}
+                {attachment.status === "error" && (
+                  <span className={styles.pendingFileError} role="alert">
+                    <Warning size={14} aria-hidden />
+                    <span>
+                      {attachment.error?.message ??
+                        t("ui.attachmentUploadError", "附件上傳失敗")}
+                    </span>
+                  </span>
+                )}
                 <button
                   type="button"
                   className={styles.pendingFileRemove}
-                  onClick={() => removePendingFile(index)}
+                  onClick={() => onRemoveAttachment(attachment.id)}
+                  disabled={disabled || isStreaming || hasUploadingAttachment}
                   aria-label={t("ui.removeAttachment", "移除附件")}
                   title={t("ui.removeAttachment", "移除附件")}
                 >
@@ -212,7 +264,7 @@ export function ComposerBar({
           placeholder={displayPlaceholder}
           rows={1}
           disabled={disabled}
-          aria-label={t("ui.inputAriaLabel")}
+          aria-label={t("ui.inputAriaLabel", "輸入訊息")}
         />
 
         <div className={styles.toolbar}>
@@ -245,7 +297,7 @@ export function ComposerBar({
           )}
           <div className={styles.rightTools}>
             <ModelSelect
-              models={models}
+              models={modelOptions}
               selectedModelId={selectedModelId}
               onChange={onModelChange}
               disabled={disabled || isStreaming}
@@ -275,8 +327,8 @@ export function ComposerBar({
                 type="button"
                 className={styles.sendButton}
                 onClick={handleSubmit}
-                disabled={!canSend}
-                aria-label={t("ui.send")}
+                disabled={!canSubmit}
+                aria-label={t("ui.send", "送出")}
               >
                 <ArrowUp size={18} />
               </button>

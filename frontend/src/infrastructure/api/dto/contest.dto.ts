@@ -2,7 +2,6 @@ import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import type {
   ContestScopeRole,
   ContestStatus,
-  ContestVisibility,
   ContestType,
   ExamStatusType,
   ExamQuestionAnswerFormat,
@@ -93,7 +92,6 @@ export interface ContestDto {
   start_time?: string;
   end_time?: string;
   status?: ContestStatus;
-  visibility?: ContestVisibility;
   attendance_check_enabled?: boolean;
   attendance_photo_policy?: "room" | "room_and_selfie";
   has_joined?: boolean;
@@ -106,8 +104,8 @@ export interface AnticheatDevicePolicyDto {
   desktop?: {
     enabled?: boolean;
     sources?: {
-      screen_share?: { enabled?: boolean; capture_interval_seconds?: number };
-      webcam?: { enabled?: boolean; capture_interval_seconds?: number };
+      screen_share?: { enabled?: boolean };
+      webcam?: { enabled?: boolean };
     };
     detectors?: {
       pwa_mode?: boolean;
@@ -120,8 +118,8 @@ export interface AnticheatDevicePolicyDto {
   tablet?: {
     enabled?: boolean;
     sources?: {
-      screen_share?: { enabled?: boolean; capture_interval_seconds?: number };
-      webcam?: { enabled?: boolean; capture_interval_seconds?: number };
+      screen_share?: { enabled?: boolean };
+      webcam?: { enabled?: boolean };
     };
     detectors?: {
       pwa_mode?: boolean;
@@ -142,14 +140,10 @@ export interface ContestDetailDto extends ContestDto {
   contest_type?: ContestType;
   cheat_detection_enabled?: boolean;
   anticheat_device_policy?: AnticheatDevicePolicyDto;
-  warning_timeout_seconds?: number;
-  screen_share_recovery_grace_ms?: number;
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
   results_published?: boolean;
   question_edit_locked?: boolean;
-  question_edit_locked_at?: string | null;
-  question_edit_lock_trigger?: "coding_submission" | "exam_answer" | null;
   exam_questions_count?: number;
   has_started?: boolean;
   started_at?: string;
@@ -216,7 +210,7 @@ export interface ContestParticipantDto {
   account_role?: string;
   auth_provider?: string;
   connection_status?: "offline" | "online" | "live";
-  last_heartbeat_at?: string | null;
+  last_checkpoint_at?: string | null;
   live_monitoring_online?: boolean;
   live_monitoring_sources?: Array<"screen_share" | "webcam">;
   score?: number;
@@ -280,7 +274,7 @@ export interface EventFeedItemDto {
   first_at?: string;
   last_at?: string;
   count?: number;
-  evidence_count?: number;
+  has_evidence?: boolean;
   summary?: string;
   source?: string;
   user_name?: string;

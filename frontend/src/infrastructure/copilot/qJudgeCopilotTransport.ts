@@ -1,0 +1,490 @@
+import type { ChatbotRepository } from "@/core/ports/chatbot.repository";
+import type {
+  ChatMessage,
+  ChatRun,
+  ChatRunStatus,
+  StreamCallbacks,
+  ToolInfo,
+  VerificationReport,
+} from "@/core/types/chatbot.types";
+import type {
+  CopilotError,
+  CopilotQuestionRequest,
+  CopilotRun,
+  CopilotRunEvent,
+  CopilotRunObserver,
+  CopilotSession,
+  CopilotSessionSummary,
+  CopilotSubscribeOptions,
+  CopilotSubscription,
+  CopilotToolPart,
+  CopilotTransport,
+} from "@copilot";
+import type { ArtifactRecord } from "@/infrastructure/api/repositories/artifact.repository";
+import {
+  mapArtifactRecordToCopilotAttachment,
+  mapChatApprovalToCopilot,
+  mapChatRunStatusToCopilot,
+  mapChatRunToCopilot,
+  mapChatSessionToCopilot,
+  mapChatSessionToCopilotSummary,
+  mapCopilotRunToChat,
+  mapQJudgeError,
+  mapToolInfoToCopilotPart,
+} from "./chatbotCopilotMapper";
+
+type UploadArtifact = (
+  sessionId: string,
+  file: File,
+  options?: { step?: string },
+) => Promise<ArtifactRecord>;
+
+type CopilotRunEventPayload = CopilotRunEvent extends infer Event
+  ? Event extends CopilotRunEvent
+    ? Omit<Event, "runId" | "sessionId" | "sequence">
+    : never
+  : never;
+
+function subscriptionDelta(previous: string, next: string): string {
+  if (next.startsWith(previous)) return next.slice(previous.length);
+  return next;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === "AbortError") ||
+    (error instanceof Error && error.name === "AbortError")
+  );
+}
+
+export function createQJudgeCopilotTransport(
+  repository: ChatbotRepository,
+  uploadArtifact: UploadArtifact,
+): CopilotTransport {
+  const repositoryRuns = new Map<string, ChatRun>();
+  const normalizedSequenceByRun = new Map<string, number>();
+
+  const rememberRun = (run: ChatRun): CopilotRun => {
+    repositoryRuns.set(run.id, run);
+    return mapChatRunToCopilot(run);
+  };
+
+  return {
+    capabilities: {
+      resumableStreams: true,
+      cancellableRuns: true,
+      attachments: true,
+      approvals: true,
+      questions: true,
+    },
+
+    async listSessions(): Promise<CopilotSessionSummary[]> {
+      try {
+        const [sessions, runs] = await Promise.all([
+          repository.getSessions(),
+          repository.getActiveRuns(),
+        ]);
+        const runBySession = new Map(runs.map((run) => [run.sessionId, run]));
+        return sessions.map((session) => {
+          const summary = mapChatSessionToCopilotSummary(session);
+          const run = runBySession.get(session.id);
+          return run
+            ? {
+                ...summary,
+                metadata: {
+                  ...summary.metadata,
+                  activeRunId: run.id,
+                  activeRunStatus: mapChatRunStatusToCopilot(run.status),
+                },
+              }
+            : summary;
+        });
+      } catch (error) {
+        throw mapQJudgeError("load-sessions", error);
+      }
+    },
+
+    async getSession(id): Promise<CopilotSession> {
+      try {
+        return mapChatSessionToCopilot(await repository.getSession(id));
+      } catch (error) {
+        throw mapQJudgeError("load-session", error);
+      }
+    },
+
+    async createSession(input): Promise<CopilotSession> {
+      try {
+        const created = await repository.createBackendSession();
+        let session = await repository.getSession(created.id);
+        if (input?.title && input.title !== session.title) {
+          session = await repository.renameSession(created.id, input.title);
+        }
+        const mapped = mapChatSessionToCopilot(session);
+        return input?.metadata
+          ? { ...mapped, metadata: { ...mapped.metadata, ...input.metadata } }
+          : mapped;
+      } catch (error) {
+        throw mapQJudgeError("create-session", error);
+      }
+    },
+
+    async renameSession(id, title): Promise<CopilotSessionSummary> {
+      try {
+        return mapChatSessionToCopilotSummary(
+          await repository.renameSession(id, title),
+        );
+      } catch (error) {
+        throw mapQJudgeError("update-session", error);
+      }
+    },
+
+    async deleteSession(id): Promise<void> {
+      try {
+        await repository.deleteSession(id);
+      } catch (error) {
+        throw mapQJudgeError("update-session", error);
+      }
+    },
+
+    async startRun(input): Promise<CopilotRun> {
+      try {
+        const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
+        return rememberRun(
+          await repository.startRun(input.sessionId, input.text, {
+            modelOverride: input.modelId,
+            idempotencyKey,
+          }),
+        );
+      } catch (error) {
+        throw mapQJudgeError("start-run", error);
+      }
+    },
+
+    async getActiveRun(sessionId): Promise<CopilotRun | null> {
+      try {
+        const run = (await repository.getActiveRuns()).find(
+          (candidate) => candidate.sessionId === sessionId,
+        );
+        return run ? rememberRun(run) : null;
+      } catch (error) {
+        throw mapQJudgeError("subscribe-run", error);
+      }
+    },
+
+    subscribeRun(
+      run: CopilotRun,
+      observer: CopilotRunObserver,
+      options: CopilotSubscribeOptions = {},
+    ): CopilotSubscription {
+      const controller = new AbortController();
+      const externalSignal = options.signal;
+      let closed = false;
+      let sequence = normalizedSequenceByRun.get(run.id) ?? 0;
+      let textCursor = "";
+      let reasoningCursor = "";
+      let latestStatus: ChatRunStatus = mapCopilotRunToChat(run).status;
+      let runFailureError: CopilotError | undefined;
+      let terminalObserved = false;
+      let terminalResumeSequence: number | undefined;
+      const toolFingerprints = new Map<string, string>();
+      const activeToolParts = new Map<string, CopilotToolPart>();
+      const verificationIterations = new Set<number>();
+      const legacyRun = {
+        ...(repositoryRuns.get(run.id) ?? mapCopilotRunToChat(run)),
+        lastEventSeq: options.fromSequence ?? run.lastSequence ?? 0,
+      };
+      repositoryRuns.set(run.id, legacyRun);
+      const messageId = String(
+        legacyRun.assistantMessageId ?? `run-${run.id}-assistant`,
+      );
+
+      const nextSequence = (): number => {
+        sequence += 1;
+        normalizedSequenceByRun.set(run.id, sequence);
+        return sequence;
+      };
+      const emit = (
+        event: CopilotRunEventPayload,
+        resumeSequence?: number,
+      ) => {
+        if (closed) return;
+        observer.next({
+          ...event,
+          runId: run.id,
+          sessionId: run.sessionId,
+          sequence: nextSequence(),
+          ...(typeof resumeSequence === "number" ? { resumeSequence } : {}),
+        } as CopilotRunEvent);
+      };
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        externalSignal?.removeEventListener("abort", close);
+        controller.abort();
+      };
+      externalSignal?.addEventListener("abort", close, { once: true });
+      if (externalSignal?.aborted) close();
+
+      const emitToolPart = (
+        part: CopilotToolPart,
+        resumeSequence?: number,
+      ) => {
+        const fingerprint = JSON.stringify(part);
+        if (toolFingerprints.get(part.toolCallId) === fingerprint) return;
+        toolFingerprints.set(part.toolCallId, fingerprint);
+        emit({ type: "part-upsert", messageId, part }, resumeSequence);
+      };
+      const emitToolUpdates = (
+        tools: ToolInfo[] | undefined,
+        resumeSequence?: number,
+      ) => {
+        for (const [index, tool] of (tools ?? []).entries()) {
+          const mappedPart = mapToolInfoToCopilotPart(tool, index);
+          const activePart = activeToolParts.get(mappedPart.toolCallId);
+          const part = activePart
+            ? {
+                ...activePart,
+                ...mappedPart,
+                input: mappedPart.input ?? activePart.input,
+              }
+            : mappedPart;
+          activeToolParts.delete(part.toolCallId);
+          emitToolPart(part, resumeSequence);
+        }
+      };
+      const emitVerificationUpdates = (
+        reports: VerificationReport[] | undefined,
+        resumeSequence?: number,
+      ) => {
+        for (const report of reports ?? []) {
+          if (verificationIterations.has(report.iteration)) continue;
+          verificationIterations.add(report.iteration);
+          emit(
+            {
+              type: "part-upsert",
+              messageId,
+              part: { type: "data-verification", data: report },
+            },
+            resumeSequence,
+          );
+        }
+      };
+
+      const callbacks: StreamCallbacks = {
+        onRunStatus(status, resumeSequence) {
+          if (status === "awaiting_approval") return;
+          latestStatus = status;
+          if (["completed", "cancelled", "failed"].includes(status)) {
+            terminalObserved = true;
+            terminalResumeSequence = resumeSequence;
+          }
+        },
+        onMessageUpdate(update: Partial<ChatMessage>, resumeSequence) {
+          const sourceSequence = resumeSequence ?? update.lastEventSeq;
+          if (update.runStatus) latestStatus = update.runStatus;
+          if (typeof update.runError === "string" && update.runError.length > 0) {
+            runFailureError = mapQJudgeError("subscribe-run", update.runError, {
+              code: "run-failed",
+              recoverable: false,
+            });
+          }
+          if (typeof update.content === "string") {
+            const delta = subscriptionDelta(textCursor, update.content);
+            textCursor = update.content;
+            if (delta) {
+              emit(
+                { type: "text-delta", messageId, delta },
+                sourceSequence,
+              );
+            }
+          }
+          const nextReasoning = update.thinkingInfo?.thinking;
+          if (typeof nextReasoning === "string") {
+            const delta = subscriptionDelta(reasoningCursor, nextReasoning);
+            reasoningCursor = nextReasoning;
+            if (delta) {
+              emit(
+                { type: "reasoning-delta", messageId, delta },
+                sourceSequence,
+              );
+            }
+          }
+          emitToolUpdates(update.toolExecutions, sourceSequence);
+          emitVerificationUpdates(
+            update.verificationReports,
+            sourceSequence,
+          );
+          if (update.todoItems) {
+            emit(
+              {
+                type: "part-upsert",
+                messageId,
+                part: { type: "data-todo-items", data: update.todoItems },
+              },
+              sourceSequence,
+            );
+          }
+        },
+        onToolStarted(tool, resumeSequence) {
+          if (!tool.toolCallId) return;
+          const part: CopilotToolPart = {
+            type: "tool",
+            toolCallId: tool.toolCallId,
+            toolName: tool.toolName,
+            state: "input-ready",
+            ...(tool.inputData ? { input: tool.inputData } : {}),
+          };
+          activeToolParts.set(part.toolCallId, part);
+          emitToolPart(part, resumeSequence);
+        },
+        onVerificationReport(report, resumeSequence) {
+          emitVerificationUpdates([report], resumeSequence);
+        },
+        onSessionNotice(notice, resumeSequence) {
+          emit({ type: "run-notice", notice }, resumeSequence);
+        },
+        onTodoItemsUpdate(items, resumeSequence) {
+          if (!items) return;
+          emit({
+            type: "part-upsert",
+            messageId,
+            part: { type: "data-todo-items", data: items },
+          }, resumeSequence);
+        },
+        onAwaitingApproval(request, resumeSequence) {
+          const approvalRequest = mapChatApprovalToCopilot(request);
+          if (!approvalRequest) return;
+          latestStatus = "awaiting_approval";
+          emit({
+            type: "awaiting-approval",
+            request: approvalRequest,
+          }, resumeSequence);
+        },
+        onAwaitingUserAnswer(request, resumeSequence) {
+          latestStatus = "awaiting_user_answer";
+          const normalized: CopilotQuestionRequest = {
+            question: request.question,
+            input: request.inputType ?? "text",
+            options: request.options,
+          };
+          emit(
+            { type: "awaiting-answer", request: normalized },
+            resumeSequence,
+          );
+        },
+        onNextTurnOptions(nextOptions, resumeSequence) {
+          emit({
+            type: "part-upsert",
+            messageId,
+            part: { type: "data-next-turn-options", data: nextOptions },
+          }, resumeSequence);
+        },
+        onComplete(session, resumeSequence) {
+          const status = ["completed", "cancelled", "failed"].includes(latestStatus)
+            ? mapChatRunStatusToCopilot(latestStatus)
+            : "completed";
+          emit(
+            {
+              type: "run-status",
+              status,
+              ...(status === "failed" && runFailureError
+                ? { error: runFailureError }
+                : {}),
+            },
+            resumeSequence ?? terminalResumeSequence,
+          );
+          if (!closed) observer.complete(mapChatSessionToCopilot(session));
+          close();
+        },
+        onError(message) {
+          if (closed) return;
+          if (latestStatus === "failed") {
+            const synchronizationError = mapQJudgeError(
+              "subscribe-run",
+              message,
+            );
+            const failureError = runFailureError
+              ? Object.assign(
+                  new Error(runFailureError.message),
+                  runFailureError,
+                  { cause: synchronizationError },
+                )
+              : mapQJudgeError("subscribe-run", message, {
+                  code: "run-failed",
+                  recoverable: false,
+                });
+            emit(
+              { type: "run-status", status: "failed", error: failureError },
+              terminalResumeSequence,
+            );
+            observer.complete();
+            close();
+            return;
+          }
+          observer.error(mapQJudgeError("subscribe-run", message));
+          close();
+        },
+      };
+
+      void repository
+        .subscribeRunEvents(legacyRun, callbacks, { signal: controller.signal })
+        .then(() => {
+          if (closed || terminalObserved) return;
+          observer.error(
+            mapQJudgeError(
+              "subscribe-run",
+              new Error("Run event stream ended before a terminal event"),
+            ),
+          );
+          close();
+        })
+        .catch((error: unknown) => {
+          if (!closed && !isAbortError(error)) {
+            observer.error(mapQJudgeError("subscribe-run", error));
+            close();
+          }
+        });
+
+      return {
+        close,
+        get closed() {
+          return closed;
+        },
+      };
+    },
+
+    async cancelRun(runId): Promise<CopilotRun> {
+      try {
+        return rememberRun(await repository.cancelRun(runId));
+      } catch (error) {
+        throw mapQJudgeError("cancel-run", error);
+      }
+    },
+
+    async submitApproval(runId, decision): Promise<CopilotRun> {
+      try {
+        return rememberRun(await repository.submitRunApproval(runId, decision));
+      } catch (error) {
+        throw mapQJudgeError("submit-approval", error);
+      }
+    },
+
+    async submitAnswer(runId, answer): Promise<CopilotRun> {
+      try {
+        return rememberRun(await repository.submitRunAnswer(runId, answer));
+      } catch (error) {
+        throw mapQJudgeError("submit-answer", error);
+      }
+    },
+
+    async uploadAttachment(sessionId, file) {
+      try {
+        return mapArtifactRecordToCopilotAttachment(
+          await uploadArtifact(sessionId, file),
+        );
+      } catch (error) {
+        throw mapQJudgeError("upload-attachment", error);
+      }
+    },
+  };
+}

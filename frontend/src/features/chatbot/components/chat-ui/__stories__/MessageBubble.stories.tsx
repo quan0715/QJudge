@@ -15,7 +15,7 @@ const meta: Meta<typeof MessageBubble> = {
   parameters: {
     docs: {
       description: {
-        component: "單則訊息泡泡 — 根據 role 區分 user（右對齊）/ assistant（左對齊 + WatsonxAi avatar）。支援 Markdown、Thinking、CoT 步驟。",
+        component: "單則 Copilot 訊息泡泡 — 依公開 parts contract 呈現 Markdown、推理與工具步驟。",
       },
     },
   },
@@ -58,4 +58,38 @@ export const AiStreaming: Story = {
 export const AiRichMarkdown: Story = {
   name: "AI — 表格 + 程式碼",
   args: { message: mockAiWithMarkdown },
+};
+
+export const NarrowOverflowStress: Story = {
+  name: "AI — 窄面板 overflow stress",
+  decorators: [
+    (StoryComponent) => (
+      <div style={{ width: 320, maxWidth: "100%", overflow: "hidden" }}>
+        <StoryComponent />
+      </div>
+    ),
+  ],
+  args: {
+    message: {
+      id: "overflow-stress",
+      role: "assistant",
+      createdAt: new Date("2026-07-21T00:00:00.000Z"),
+      parts: [
+        {
+          type: "text",
+          text: [
+            "https://example.com/this-is-a-very-long-unbroken-path-that-must-not-expand-the-chat-panel-beyond-its-container",
+            "",
+            "| very long heading | another very long heading |",
+            "| --- | --- |",
+            "| long-table-cell-without-spaces-abcdefghijklmnopqrstuvwxyz | another-long-cell-abcdefghijklmnopqrstuvwxyz |",
+            "",
+            "```text",
+            "const_really_long_identifier_without_breaks_abcdefghijklmnopqrstuvwxyz_abcdefghijklmnopqrstuvwxyz = true;",
+            "```",
+          ].join("\n"),
+        },
+      ],
+    },
+  },
 };

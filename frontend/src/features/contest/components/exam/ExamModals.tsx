@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import { WarningAlt, CheckmarkFilled, ScreenOff, DocumentExport, VideoOff, FitToScreen } from "@carbon/icons-react";
+import { CheckmarkFilled, ScreenOff, VideoOff, FitToScreen } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { ModalAlertContent } from "./ModalAlertContent";
 import styles from "./ModalAlertContent.module.scss";
@@ -8,66 +8,43 @@ import styles from "./ModalAlertContent.module.scss";
 interface ExamModalsProps {
   showUnlockNotification: boolean;
   onUnlockContinue: () => void;
-  showFullscreenExitConfirm?: boolean;
-  isSubmittingFromFullscreenExit?: boolean;
-  onFullscreenExitConfirm?: () => void;
-  onFullscreenExitCancel?: () => void;
-  recoveryCountdown?: number | null;
   recoverySource?: string | null;
   onRecoverFullscreen?: () => void;
-  screenShareRecoveryCountdown?: number | null;
+  showScreenShareRecovery?: boolean;
   isRequestingScreenShare?: boolean;
-  isSubmittingFromScreenShareLoss?: boolean;
   onScreenShareReacquire?: () => void;
-  webcamRecoveryCountdown?: number | null;
-  isSubmittingFromWebcamLoss?: boolean;
+  showWebcamRecovery?: boolean;
   isRequestingWebcam?: boolean;
   onWebcamReacquire?: () => void;
-  webcamModuleRole?: "primary" | "secondary" | null;
-  viewportRecoveryCountdown?: number | null;
-  isSubmittingFromViewportLoss?: boolean;
+  showViewportRecovery?: boolean;
   isTablet?: boolean;
-  showAutoSubmitNotice?: boolean;
-  onAutoSubmitReturnToDashboard?: () => void;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
   showUnlockNotification,
   onUnlockContinue,
-  showFullscreenExitConfirm = false,
-  isSubmittingFromFullscreenExit = false,
-  onFullscreenExitConfirm,
-  onFullscreenExitCancel,
-  recoveryCountdown,
   recoverySource,
   onRecoverFullscreen,
-  screenShareRecoveryCountdown,
+  showScreenShareRecovery = false,
   isRequestingScreenShare = false,
-  isSubmittingFromScreenShareLoss = false,
   onScreenShareReacquire,
-  webcamRecoveryCountdown,
-  isSubmittingFromWebcamLoss = false,
+  showWebcamRecovery = false,
   isRequestingWebcam = false,
   onWebcamReacquire,
-  webcamModuleRole,
-  viewportRecoveryCountdown,
-  isSubmittingFromViewportLoss = false,
+  showViewportRecovery = false,
   isTablet = false,
-  showAutoSubmitNotice = false,
-  onAutoSubmitReturnToDashboard,
 }) => {
   const { t } = useTranslation("contest");
-  const { t: tc } = useTranslation("common");
   const withButtonTestId = (testId: string, label: React.ReactNode) => (
     <span data-testid={testId}>{label}</span>
   );
 
   return (
     <>
-      {/* Recovery warning (grace window before counting a violation) */}
+      {/* Local sensor warning; the Worker is the only policy authority. */}
       <Modal
         data-testid="exam-recovery-modal"
-        open={recoveryCountdown != null}
+        open={recoverySource != null}
         modalHeading={
           recoverySource === "multiple_displays"
             ? t("exam.multiDisplayRecoveryTitle", "偵測到多螢幕")
@@ -91,10 +68,10 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         <div className={styles.recoveryWrapper}>
           <p className={styles.recoveryText}>
             {recoverySource === "multiple_displays"
-              ? t("exam.multiDisplayRecoveryDesc", { defaultValue: "請在 {{seconds}} 秒內中斷外接螢幕，否則將記錄一次違規。", seconds: recoveryCountdown ?? 0 })
+              ? t("exam.multiDisplaySensorWarning", "偵測到多螢幕，請回到單一顯示器。")
               : recoverySource === "mouse_leave"
-              ? t("exam.mouseLeaveRecoveryDesc", { seconds: recoveryCountdown ?? 0 })
-              : t("exam.fullscreenRecoveryDesc", { seconds: recoveryCountdown ?? 0 })}
+                ? t("exam.mouseLeaveSensorWarning", "偵測到游標離開考試視窗，請回到考試頁面。")
+                : t("exam.fullscreenSensorWarning", "請回到全螢幕模式繼續作答。")}
           </p>
           <p className={styles.recoveryHint}>{t("exam.stayInExamPage")}</p>
         </div>
@@ -127,17 +104,15 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
       {/* Screen Share Recovery Modal */}
       <Modal
         data-testid="exam-screen-share-modal"
-        open={screenShareRecoveryCountdown != null}
+        open={showScreenShareRecovery}
         modalHeading={t("exam.screenShareLostTitle")}
         primaryButtonText={withButtonTestId(
           "exam-screen-share-reshare-btn",
-          isSubmittingFromScreenShareLoss
-            ? t("exam.submittingExam")
-            : isRequestingScreenShare
+          isRequestingScreenShare
             ? t("exam.requestingScreenShare")
             : t("exam.reshareScreen")
         )}
-        primaryButtonDisabled={isRequestingScreenShare || isSubmittingFromScreenShareLoss}
+        primaryButtonDisabled={isRequestingScreenShare}
         onRequestSubmit={onScreenShareReacquire}
         preventCloseOnClickOutside
         danger
@@ -149,13 +124,10 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           title={t("exam.screenShareLostHeading")}
           description={t("exam.screenShareLostDesc")}
         >
-          {screenShareRecoveryCountdown != null && screenShareRecoveryCountdown > 0 && (
-            <p className={styles.countdown}>
-              {t("exam.screenShareForceSubmitIn", { seconds: screenShareRecoveryCountdown })}
-            </p>
-          )}
           <div className={styles.warningBox}>
-            <p className={styles.warningBoxText}>{t("exam.screenShareTimeoutWarning")}</p>
+            <p className={styles.warningBoxText}>
+              {t("exam.screenShareSensorWarning", "請重新分享螢幕以恢復監考來源。")}
+            </p>
           </div>
         </ModalAlertContent>
       </Modal>
@@ -163,17 +135,15 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
       {/* Webcam Recovery Modal */}
       <Modal
         data-testid="exam-webcam-recovery-modal"
-        open={webcamRecoveryCountdown != null}
+        open={showWebcamRecovery}
         modalHeading={t("exam.webcamLostTitle", "Webcam 連線中斷")}
         primaryButtonText={withButtonTestId(
           "exam-webcam-recovery-btn",
-          isSubmittingFromWebcamLoss
-            ? t("exam.submittingExam")
-            : isRequestingWebcam
+          isRequestingWebcam
             ? t("exam.requestingWebcam", "正在請求 Webcam…")
             : t("exam.reauthorizeWebcam", "重新授權 Webcam")
         )}
-        primaryButtonDisabled={isRequestingWebcam || isSubmittingFromWebcamLoss}
+        primaryButtonDisabled={isRequestingWebcam}
         onRequestSubmit={onWebcamReacquire}
         preventCloseOnClickOutside
         danger
@@ -185,33 +155,18 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           title={t("exam.webcamLostHeading", "Webcam 已停止運作")}
           description={t("exam.webcamLostDesc", "系統偵測到 Webcam 連線中斷，請確認攝影機未被其他程式佔用。")}
         >
-          {webcamRecoveryCountdown != null && webcamRecoveryCountdown > 0 && (
-            <p className={styles.countdown}>
-              {webcamModuleRole === "primary"
-                ? t("exam.webcamForceSubmitIn", {
-                    defaultValue: "將在 {{seconds}} 秒後自動交卷",
-                    seconds: webcamRecoveryCountdown,
-                  })
-                : t("exam.webcamStopIn", {
-                    defaultValue: "將在 {{seconds}} 秒後記錄違規",
-                    seconds: webcamRecoveryCountdown,
-                  })}
+          <div className={styles.warningBox}>
+            <p className={styles.warningBoxText}>
+              {t("exam.webcamSensorWarning", "請重新授權 Webcam 以恢復監考來源。")}
             </p>
-          )}
-          {webcamModuleRole === "primary" && (
-            <div className={styles.warningBox}>
-              <p className={styles.warningBoxText}>
-                {t("exam.webcamTimeoutWarning", "若未在時限內恢復 Webcam，系統將自動交卷。")}
-              </p>
-            </div>
-          )}
+          </div>
         </ModalAlertContent>
       </Modal>
 
       {/* Viewport / Split View Recovery Modal */}
       <Modal
         data-testid="exam-viewport-recovery-modal"
-        open={viewportRecoveryCountdown != null}
+        open={showViewportRecovery}
         modalHeading={
           isTablet
             ? t("exam.splitViewDetectedTitle", "偵測到分割畫面")
@@ -219,11 +174,8 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
         }
         primaryButtonText={withButtonTestId(
           "exam-viewport-recovery-btn",
-          isSubmittingFromViewportLoss
-            ? t("exam.submittingExam")
-            : t("exam.iUnderstand")
+          t("exam.iUnderstand")
         )}
-        primaryButtonDisabled={isSubmittingFromViewportLoss}
         onRequestSubmit={() => {}}
         preventCloseOnClickOutside
         danger
@@ -243,75 +195,14 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
               : t("exam.viewportInterruptedDesc", "系統偵測到視窗大小或縮放異常，請恢復原始大小。")
           }
         >
-          {viewportRecoveryCountdown != null && viewportRecoveryCountdown > 0 && (
-            <p className={styles.countdown}>
-              {t("exam.viewportPenaltyIn", {
-                defaultValue: "將在 {{seconds}} 秒後記錄違規",
-                seconds: viewportRecoveryCountdown,
-              })}
-            </p>
-          )}
           <div className={styles.warningBox}>
             <p className={styles.warningBoxText}>
-              {t("exam.viewportTimeoutWarning", "若未在時限內恢復，系統將記錄一次違規。")}
+              {t("exam.viewportSensorWarning", "請恢復原始視窗大小或關閉分割畫面。")}
             </p>
           </div>
         </ModalAlertContent>
       </Modal>
 
-      {/* Auto-Submit Notification */}
-      <Modal
-        data-testid="exam-auto-submit-modal"
-        open={showAutoSubmitNotice}
-        modalHeading={t("exam.autoSubmittedTitle")}
-        primaryButtonText={withButtonTestId("exam-auto-submit-return-btn", t("exam.returnToDashboard"))}
-        onRequestSubmit={onAutoSubmitReturnToDashboard}
-        onRequestClose={onAutoSubmitReturnToDashboard}
-        preventCloseOnClickOutside
-        size="sm"
-      >
-        <ModalAlertContent
-          icon={<DocumentExport size={40} style={{ color: "var(--cds-support-error)" }} />}
-          variant="error"
-          title={t("exam.autoSubmittedHeading")}
-          description={t("exam.autoSubmittedDesc")}
-        >
-          <div className={styles.infoBox} style={{ textAlign: "center" }}>
-            <p className={styles.infoBoxText}>{t("exam.autoSubmittedHint")}</p>
-          </div>
-        </ModalAlertContent>
-      </Modal>
-
-      {/* Fullscreen Exit Confirmation Modal */}
-      <Modal
-        data-testid="exam-fullscreen-exit-modal"
-        open={showFullscreenExitConfirm}
-        modalHeading={t("exam.confirmExitFullscreenAndSubmit")}
-        primaryButtonText={withButtonTestId(
-          "exam-fullscreen-exit-confirm-btn",
-          isSubmittingFromFullscreenExit
-            ? t("exam.submittingExam")
-            : t("exam.confirmSubmitExam")
-        )}
-        secondaryButtonText={withButtonTestId("exam-fullscreen-exit-cancel-btn", tc("button.cancel"))}
-        primaryButtonDisabled={isSubmittingFromFullscreenExit}
-        onRequestSubmit={onFullscreenExitConfirm}
-        onRequestClose={onFullscreenExitCancel}
-        preventCloseOnClickOutside
-        danger
-        size="sm"
-      >
-        <ModalAlertContent
-          icon={<WarningAlt size={40} style={{ color: "var(--cds-support-warning)" }} />}
-          variant="warning"
-          title={t("exam.leavingFullscreen")}
-          description={<>{t("exam.leaveFullscreenWillSubmit")}<br />{t("exam.autoSubmitNoMoreAnswer")}</>}
-        >
-          <div className={styles.warningBox}>
-            <p className={styles.warningBoxText}>{t("exam.cannotUndo")}</p>
-          </div>
-        </ModalAlertContent>
-      </Modal>
     </>
   );
 };

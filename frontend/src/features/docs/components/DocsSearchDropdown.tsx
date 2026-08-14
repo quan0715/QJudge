@@ -76,6 +76,7 @@ const DocsSearchDropdown: React.FC = () => {
       onKeyDown={handleKeyDown}
     >
       <ExpandableSearch
+        style={{ width: "100%" }}
         size="lg"
         placeholder={t("search.placeholder", "搜尋文檔內容...")}
         labelText={t("search.label", "搜尋文檔")}
@@ -149,7 +150,8 @@ const DocsSearchDropdown: React.FC = () => {
                   })}
                 </div>
                 {results.map((result) => (
-                  <button
+              <button
+                type="button"
                     key={result.slug}
                     onClick={() => handleResultClick(result.slug)}
                     style={{

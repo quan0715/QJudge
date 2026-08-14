@@ -1,5 +1,6 @@
+@use "@carbon/layout";
 .tabPanel {
-  padding: 1rem 0 0;
+  padding: layout.$spacing-05 0 0;
   max-height: 60vh;
   overflow-y: auto;
 }

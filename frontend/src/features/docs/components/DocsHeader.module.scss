@@ -1,7 +1,5 @@
-/* DocsHeader styles */
-
-/* Hamburger menu - only show on mobile */
-:global(.cds--header__menu-toggle) {
+@use "@carbon/layout";
+.menuToggle {
   display: none;
 
   @media screen and (max-width: 768px) {
@@ -9,40 +7,56 @@
   }
 }
 
-/* Search wrapper - fills available space */
 .searchWrapper {
-  flex: 1;
   display: flex;
+  width: 100%;
+  max-width: 37.5rem;
+  flex: 1;
   justify-content: flex-end;
-  padding: 0 1rem;
-  max-width: 600px;
   margin-left: auto;
-
-  // Make ExpandableSearch fill width when expanded
-  :global(.cds--search) {
-    width: 100%;
-  }
-
-  :global(.cds--search--expandable) {
-    &:global(.cds--search--expanded) {
-      width: 100%;
-    }
-  }
+  padding-inline: layout.$spacing-05;
 }
 
-/* Side navigation - full height with flex layout */
-:global(.cds--side-nav) {
-  z-index: 8999;
-  top: 3rem;
-  height: calc(100vh - 3rem);
+.sideNav {
   display: flex;
   flex-direction: column;
 }
 
-/* Ensure SideNavItems fills the space with flex layout */
-:global(.cds--side-nav__items) {
-  height: 100%;
+.sideNavItems {
   display: flex;
+  height: 100%;
   flex-direction: column;
   overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+}
+
+.productLabel {
+  margin: 0 0 layout.$spacing-02;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size);
+  line-height: var(--cds-label-01-line-height);
+}
+
+.productTitle {
+  margin: 0;
+  font-size: var(--cds-heading-03-font-size);
+  line-height: var(--cds-heading-03-line-height);
+}
+
+.dashboardLink {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04 layout.$spacing-05;
+  color: var(--cds-link-primary);
+  font-size: var(--cds-body-compact-01-font-size);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
 }

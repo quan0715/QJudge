@@ -27,13 +27,13 @@ import type {
   ExamQuestionDto,
   ScoreboardDto,
 } from "@/infrastructure/api/dto/contest.dto";
-import { mapAnticheatDevicePolicyDto } from "./contest.anticheat.mapper";
+import { mapAnticheatDevicePolicyDto } from "./contestAnticheat.mapper";
 
-export { mapContestAnticheatConfigDto } from "./contest.anticheat.mapper";
+export { mapContestAnticheatConfigDto } from "./contestAnticheat.mapper";
 export {
   mapContestParticipantDto,
   mapParticipantDashboardDto,
-} from "./contest.participant.mapper";
+} from "./contestParticipant.mapper";
 
 function mapContestProblemSummaryDto(
   dto: ContestProblemSummaryDto,
@@ -45,7 +45,6 @@ function mapContestProblemSummaryDto(
     label: dto.label || "",
     title: dto.title || "",
     order: dto.order,
-    score: resolvedMaxScore,
     maxScore: resolvedMaxScore,
     sourceBank: dto.source_bank
       ? {
@@ -69,7 +68,6 @@ export function mapContestDto(dto: ContestDto): Contest {
     startTime: dto.start_time || "",
     endTime: dto.end_time || "",
     status: dto.status || "draft",
-    visibility: dto.visibility || "public",
     attendanceCheckEnabled: !!dto.attendance_check_enabled,
     attendancePhotoPolicy: dto.attendance_photo_policy || "room",
 
@@ -95,21 +93,11 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
     anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
       dto.anticheat_device_policy,
     ),
-    warningTimeoutSeconds:
-      typeof dto.warning_timeout_seconds === "number"
-        ? dto.warning_timeout_seconds
-        : 20,
-    screenShareRecoveryGraceMs:
-      typeof dto.screen_share_recovery_grace_ms === "number"
-        ? dto.screen_share_recovery_grace_ms
-        : undefined,
     scoreboardVisibleDuringContest: !!dto.scoreboard_visible_during_contest,
 
     allowMultipleJoins: !!dto.allow_multiple_joins,
     resultsPublished: !!dto.results_published,
     questionEditLocked: !!dto.question_edit_locked,
-    questionEditLockedAt: dto.question_edit_locked_at ?? null,
-    questionEditLockTrigger: dto.question_edit_lock_trigger ?? null,
     examQuestionsCount: dto.exam_questions_count ?? 0,
 
     hasStarted: !!dto.has_started,
@@ -240,15 +228,26 @@ export function mapExamEventDto(dto: any): ExamEvent {
         })()
       : dto.metadata
     : undefined;
+  const evidenceStatus = typeof dto.evidence_status === "string" ? dto.evidence_status : undefined;
+  const evidenceSources = dto.evidence_sources && typeof dto.evidence_sources === "object"
+    ? dto.evidence_sources : undefined;
 
   return {
     id: dto.id?.toString() || "",
     userId: (dto.user_id || dto.user)?.toString() || "",
     userName: dto.user_username || dto.user?.username || "Unknown",
     eventType: dto.event_type,
-    timestamp: dto.created_at || "",
+    priority: Number.isInteger(dto.priority) ? dto.priority : 3,
+    category: typeof dto.category === "string" ? dto.category : "system",
+    penalized: dto.penalized === true,
+    timestamp: dto.occurred_at || dto.created_at || "",
+    incidentId: dto.incident_id ? String(dto.incident_id) : undefined,
     reason: typeof meta?.reason === "string" ? meta.reason : undefined,
-    metadata: meta,
+    metadata: {
+      ...(meta ?? {}),
+      ...(evidenceStatus ? { integrity_evidence_status: evidenceStatus } : {}),
+      ...(evidenceSources ? { integrity_evidence_sources: evidenceSources } : {}),
+    },
   };
 }
 
@@ -463,17 +462,11 @@ export function mapContestUpdateRequestToDto(
                 enabled:
                   !!request.anticheatDevicePolicy.desktop?.sources?.screenShare
                     ?.enabled,
-                capture_interval_seconds:
-                  request.anticheatDevicePolicy.desktop?.sources?.screenShare
-                    ?.captureIntervalSeconds ?? 5,
               },
               webcam: {
                 enabled:
                   !!request.anticheatDevicePolicy.desktop?.sources?.webcam
                     ?.enabled,
-                capture_interval_seconds:
-                  request.anticheatDevicePolicy.desktop?.sources?.webcam
-                    ?.captureIntervalSeconds ?? 10,
               },
             },
             detectors: {
@@ -498,17 +491,11 @@ export function mapContestUpdateRequestToDto(
                 enabled:
                   !!request.anticheatDevicePolicy.tablet?.sources?.screenShare
                     ?.enabled,
-                capture_interval_seconds:
-                  request.anticheatDevicePolicy.tablet?.sources?.screenShare
-                    ?.captureIntervalSeconds ?? 5,
               },
               webcam: {
                 enabled:
                   !!request.anticheatDevicePolicy.tablet?.sources?.webcam
                     ?.enabled,
-                capture_interval_seconds:
-                  request.anticheatDevicePolicy.tablet?.sources?.webcam
-                    ?.captureIntervalSeconds ?? 10,
               },
             },
             detectors: {
@@ -535,12 +522,10 @@ export function mapContestUpdateRequestToDto(
     start_time: request.startTime,
     end_time: request.endTime,
     status: request.status,
-    visibility: request.visibility,
     attendance_check_enabled: request.attendanceCheckEnabled,
     attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
-    warning_timeout_seconds: request.warningTimeoutSeconds,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     results_published: request.resultsPublished,

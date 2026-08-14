@@ -1,31 +1,18 @@
-"""AI Chat URL configuration."""
+"""Compatibility routes for the AI Service-backed chat API."""
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .artifact_views import AIArtifactInternalViewSet, AIArtifactUserViewSet
-from .views import (
-    AIChatRunViewSet,
-    AISessionViewSet,
-    ModelListView,
-)
+from .artifact_views import ArtifactViewSet
+from .views import ChatRunViewSet, ModelListView, SessionViewSet
+
 
 router = DefaultRouter()
-router.register(r"sessions", AISessionViewSet, basename="ai-session")
-router.register(r"runs", AIChatRunViewSet, basename="ai-run")
-router.register(r"artifacts", AIArtifactUserViewSet, basename="ai-artifact")
-
-internal_router = DefaultRouter()
-internal_router.register(
-    r"artifacts", AIArtifactInternalViewSet, basename="ai-artifact-internal"
-)
+router.register(r"sessions", SessionViewSet, basename="ai-session")
+router.register(r"runs", ChatRunViewSet, basename="ai-run")
+router.register(r"artifacts", ArtifactViewSet, basename="ai-artifact")
 
 urlpatterns = [
-    # Session CRUD and durable run APIs.
     path("", include(router.urls)),
-
     path("models/", ModelListView.as_view(), name="ai-model-list"),
-
-    # Internal ai-service endpoints (HMAC via X-AI-Internal-Token).
-    path("_internal/", include(internal_router.urls)),
 ]

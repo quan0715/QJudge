@@ -1,7 +1,7 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type { AttendancePurpose, ContestAttendanceStatus } from "@/core/entities/contest.entity";
 
-export interface AttendanceQrTokenDto {
+interface AttendanceQrTokenDto {
   purpose: AttendancePurpose;
   token: string;
   manual_code: string;
@@ -21,7 +21,7 @@ export interface AttendanceQrToken {
   expiresAt: string;
 }
 
-export type AttendanceEventPayload =
+type AttendanceEventPayload =
   | {
       mode: "student_self_scan";
       purpose: AttendancePurpose;
@@ -37,7 +37,7 @@ export type AttendanceEventPayload =
       reason: string;
     };
 
-export interface AttendanceEventResponse {
+interface AttendanceEventResponse {
   event_id: number;
   purpose: AttendancePurpose;
   source_module: "attendance";
@@ -85,7 +85,7 @@ export const createAttendanceEvent = async (
   );
 };
 
-export interface ParticipantExamRecordResetResponse {
+interface ParticipantExamRecordResetResponse {
   deleted_answers: number;
   deleted_submissions: number;
   deleted_events: number;
@@ -105,13 +105,13 @@ export const resetParticipantExamRecord = async (
   );
 };
 
-export interface ValidateAttendanceCredentialPayload {
+interface ValidateAttendanceCredentialPayload {
   purpose: AttendancePurpose;
   token?: string;
   manualCode?: string;
 }
 
-export interface ValidateAttendanceCredentialResponse {
+interface ValidateAttendanceCredentialResponse {
   valid: boolean;
   purpose: AttendancePurpose;
   credential_source: "qr_token" | "manual_code";

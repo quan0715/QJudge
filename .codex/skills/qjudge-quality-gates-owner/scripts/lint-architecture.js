@@ -24,17 +24,29 @@ if (hasFlag("--help")) {
 Options:
   --root <path>       Root directory to scan (default: frontend/src)
   --ext <list>        Comma-separated extensions (default: ts,tsx,js,jsx)
-  --policy <mode>     Boundary policy (compat|strict, default: compat)
   --ignore <path>     Ignore file with repo-relative paths
   --help              Show this help
 `);
   process.exit(0);
 }
 
+const valueFlags = new Set(["--root", "--ext", "--ignore"]);
+for (let index = 0; index < args.length; index += 1) {
+  const argument = args[index];
+  if (!valueFlags.has(argument)) {
+    console.error(`Unknown option: ${argument}`);
+    process.exit(2);
+  }
+  if (index + 1 >= args.length || args[index + 1].startsWith("--")) {
+    console.error(`Missing value for option: ${argument}`);
+    process.exit(2);
+  }
+  index += 1;
+}
+
 const rootArg = getArg("--root", "frontend/src");
 const root = path.resolve(process.cwd(), rootArg);
 const extArg = getArg("--ext", "ts,tsx,js,jsx");
-const policy = getArg("--policy", "compat");
 const extensions = new Set(
   extArg
     .split(",")
@@ -76,98 +88,7 @@ const ignoredDirNames = new Set([
   ".opencode",
 ]);
 
-if (policy !== "compat" && policy !== "strict") {
-  console.error(`Invalid --policy: ${policy} (allowed: compat|strict)`);
-  process.exit(2);
-}
-
-const compatRules = [
-  // Core layer - usecases can use repositories directly (pragmatic approach for frontend)
-  {
-    match: "core/usecases",
-    allow: [
-      "core/usecases",
-      "core/ports",
-      "core/entities",
-      "core/types",
-      "infrastructure/api/repositories",
-    ],
-  },
-  {
-    match: "core/ports",
-    allow: ["core/ports", "core/entities", "core/types"],
-  },
-  { match: "core/entities", allow: ["core/entities", "core/types"] },
-  { match: "core/types", allow: ["core/types"] },
-  { match: "core/config", allow: ["core/config", "core/types", "core/entities"] },
-  { match: "core", allow: ["core"] },
-
-  // Infrastructure layer
-  {
-    match: "infrastructure/mappers",
-    allow: ["infrastructure/mappers", "core/entities", "core/types"],
-  },
-  {
-    match: "infrastructure/api/repositories",
-    allow: [
-      "infrastructure/api/repositories",
-      "infrastructure/mappers",
-      "infrastructure/api",
-      "core/ports",
-      "core/entities",
-      "core/types",
-    ],
-  },
-  {
-    match: "infrastructure/api",
-    allow: ["infrastructure/api", "core/types", "core/entities"],
-  },
-  { match: "infrastructure", allow: ["infrastructure", "core"] },
-
-  // Legacy services layer (kept for compatibility/integration tests)
-  {
-    match: "services",
-    allow: ["services", "core", "infrastructure", "test", "assets", "i18n"],
-  },
-
-  // Shared layer - can use app/contexts for global state
-  {
-    match: "shared",
-    allow: ["shared", "core", "app/contexts", "styles", "assets", "i18n"],
-  },
-
-  // Features layer - can use app/contexts for global state
-  {
-    match: "features",
-    allow: [
-      "features",
-      "shared",
-      "core",
-      "infrastructure",
-      "app/contexts",
-      "styles",
-      "assets",
-      "i18n",
-    ],
-  },
-
-  // App layer (composition root)
-  {
-    match: "app",
-    allow: [
-      "app",
-      "features",
-      "shared",
-      "core",
-      "infrastructure",
-      "styles",
-      "assets",
-      "i18n",
-    ],
-  },
-];
-
-const strictRules = [
+const rules = [
   // Core layer - usecases depend only on core contracts/models
   {
     match: "core/usecases",
@@ -191,7 +112,12 @@ const strictRules = [
   // Infrastructure layer
   {
     match: "infrastructure/mappers",
-    allow: ["infrastructure/mappers", "core/entities", "core/types"],
+    allow: [
+      "infrastructure/mappers",
+      "infrastructure/api/dto",
+      "core/entities",
+      "core/types",
+    ],
   },
   {
     match: "infrastructure/api/repositories",
@@ -203,6 +129,10 @@ const strictRules = [
       "core/entities",
       "core/types",
     ],
+  },
+  {
+    match: "infrastructure/api/__tests__",
+    allow: ["infrastructure", "core", "test"],
   },
   {
     match: "infrastructure/api",
@@ -221,9 +151,22 @@ const strictRules = [
     match: "features",
     allow: ["features", "shared", "core", "infrastructure", "styles", "assets", "i18n"],
   },
-];
 
-const rules = policy === "strict" ? strictRules : compatRules;
+  // App layer is the composition root.
+  {
+    match: "app",
+    allow: [
+      "app",
+      "features",
+      "shared",
+      "core",
+      "infrastructure",
+      "styles",
+      "assets",
+      "i18n",
+    ],
+  },
+];
 
 function toPosix(value) {
   return value.split(path.sep).join("/");
@@ -272,8 +215,8 @@ function resolveImport(sourceFile, specifier) {
 }
 
 function resolvePath(basePath) {
-  if (path.extname(basePath)) {
-    return fs.existsSync(basePath) ? basePath : null;
+  if (fs.existsSync(basePath) && fs.statSync(basePath).isFile()) {
+    return basePath;
   }
 
   for (const ext of extensions) {

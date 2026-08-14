@@ -1,9 +1,10 @@
+@use "@carbon/layout";
 /* ============ Root layout — single column ============ */
 .root {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 0.5rem 1rem;
+  gap: layout.$spacing-06;
+  padding: layout.$spacing-03 layout.$spacing-05;
 }
 
 .embeddedRoot {
@@ -19,13 +20,13 @@
   }
 
   .feedHeader {
-    padding: 0.75rem 1rem;
+    padding: layout.$spacing-04 layout.$spacing-05;
     margin-bottom: 0;
     border-bottom: 1px solid var(--cds-border-subtle);
   }
 
   .embeddedFeedHeader {
-    padding-inline: 1rem;
+    padding-inline: layout.$spacing-05;
     border-bottom: 1px solid var(--cds-border-subtle);
   }
 
@@ -36,7 +37,7 @@
   }
 
   .statusFooter {
-    padding-inline: 1rem;
+    padding-inline: layout.$spacing-05;
     border-top: 1px solid var(--cds-border-subtle);
   }
 }
@@ -45,7 +46,7 @@
 .kpiStrip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  gap: layout.$spacing-05;
 
   @media (max-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
@@ -53,7 +54,7 @@
 }
 
 .kpiSkeletonCard {
-  padding: 1rem;
+  padding: layout.$spacing-05;
 }
 
 /* ============ Feed section ============ */
@@ -63,14 +64,14 @@
 }
 
 .skeletonFeed {
-  padding: 0.75rem 1rem 1rem;
+  padding: layout.$spacing-04 layout.$spacing-05 layout.$spacing-05;
 }
 
 .feedHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: layout.$spacing-04;
 }
 
 .feedTitle {
@@ -85,7 +86,7 @@
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 /* ============ Toolbar ============ */
@@ -93,7 +94,7 @@
   display: flex;
   align-items: stretch;
   gap: 0;
-  margin: 0.75rem 0 1rem;
+  margin: layout.$spacing-04 0 layout.$spacing-05;
 }
 
 .searchWrapper {
@@ -104,7 +105,7 @@
 .searchInput {
   width: 100%;
   height: 100%;
-  padding: 0 0.75rem;
+  padding: 0 layout.$spacing-04;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   background: var(--cds-field);
   border: none;
@@ -136,7 +137,7 @@
 }
 
 .feedEmpty {
-  padding: 3rem 1rem;
+  padding: layout.$spacing-09 layout.$spacing-05;
   text-align: center;
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
@@ -146,7 +147,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 0.5rem 1rem;
+  padding: layout.$spacing-03 layout.$spacing-05;
   background: var(--cds-layer-02, var(--cds-background));
   font-size: var(--cds-label-01-font-size, 0.75rem);
   font-weight: 600;
@@ -160,7 +161,7 @@
 }
 
 .statusFooter {
-  padding: 0.75rem 0;
+  padding: layout.$spacing-04 0;
   font-size: var(--cds-label-01-font-size, 0.75rem);
   color: var(--cds-text-secondary);
   text-align: center;

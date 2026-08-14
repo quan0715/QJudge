@@ -1,6 +1,8 @@
 """
 Serializers for contests app.
 """
+from datetime import datetime, timezone as datetime_timezone
+
 from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 from django.utils import timezone
@@ -22,6 +24,7 @@ from django.db.models import Sum
 from .permissions import can_manage_contest, get_contest_permissions, get_contest_scope_role
 from .services.attendance import build_attendance_status
 from .services.open_answer_document import validate_open_answer_document
+from .services.question_edit_lock import is_contest_question_edit_locked
 from apps.users.serializers import UserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
@@ -40,9 +43,6 @@ class ContestListSerializer(serializers.ModelSerializer):
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
     is_registered = serializers.SerializerMethodField()
-    question_edit_locked = serializers.BooleanField(read_only=True)
-    question_edit_locked_at = serializers.DateTimeField(read_only=True)
-    question_edit_lock_trigger = serializers.CharField(read_only=True)
     attendance_status = serializers.SerializerMethodField()
     
     class Meta:
@@ -53,16 +53,12 @@ class ContestListSerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'status',
-            'visibility',
             'attendance_check_enabled',
             'attendance_photo_policy',
             'owner_username',
             'participant_count',
             'is_registered',
             'attendance_status',
-            'question_edit_locked',
-            'question_edit_locked_at',
-            'question_edit_lock_trigger',
             'created_at',
         ]
     
@@ -108,9 +104,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     is_classroom_bound = serializers.SerializerMethodField()
     bound_classroom_id = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
-    question_edit_locked = serializers.BooleanField(read_only=True)
-    question_edit_locked_at = serializers.DateTimeField(read_only=True)
-    question_edit_lock_trigger = serializers.CharField(read_only=True)
+    question_edit_locked = serializers.SerializerMethodField()
 
     # SSoT computed flags — frontend should consume these instead of deriving from examStatus
     is_exam_monitored = serializers.SerializerMethodField()
@@ -131,14 +125,11 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'status',
-            'visibility',
             'attendance_check_enabled',
             'attendance_photo_policy',
             'contest_type',
             'cheat_detection_enabled',
             'anticheat_device_policy',
-            'warning_timeout_seconds',
-            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'owner_username',
             'created_at',
@@ -163,8 +154,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'results_published',
             'exam_questions_count',
             'question_edit_locked',
-            'question_edit_locked_at',
-            'question_edit_lock_trigger',
             'attendance_status',
             'is_exam_monitored',
             'requires_fullscreen',
@@ -177,6 +166,9 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if not user or not user.is_authenticated:
             return None
         return user
+
+    def get_question_edit_locked(self, obj):
+        return is_contest_question_edit_locked(obj)
 
     def _get_current_registration(self, obj):
         user = self._get_request_user()
@@ -361,14 +353,11 @@ class ContestCreateUpdateSerializer(serializers.ModelSerializer):
             'rules',
             'start_time',
             'end_time',
-            'visibility',
             'attendance_check_enabled',
             'attendance_photo_policy',
             'contest_type',
             'cheat_detection_enabled',
             'anticheat_device_policy',
-            'warning_timeout_seconds',
-            'screen_share_recovery_grace_ms',
             'scoreboard_visible_during_contest',
             'allow_multiple_joins',
             'status',
@@ -631,6 +620,11 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
     binding_id = serializers.SerializerMethodField()
     group_id = serializers.UUIDField(required=False, allow_null=True)
     effective_max_score = serializers.SerializerMethodField()
+    existing_grades_action = serializers.ChoiceField(
+        choices=("regrade", "keep", "mark_pending"),
+        required=False,
+        write_only=True,
+    )
 
     class Meta:
         model = ExamQuestion
@@ -648,6 +642,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
             'score_policy',
             'score_policy_config',
             'effective_max_score',
+            'existing_grades_action',
             'order',
             'group_id',
             'order_in_group',
@@ -882,6 +877,54 @@ class ExamEventSerializer(serializers.ModelSerializer):
     Serializer for exam events.
     """
     user_username = serializers.CharField(source='user.username', read_only=True)
+    evidence_status = serializers.SerializerMethodField()
+    evidence_sources = serializers.SerializerMethodField()
+    occurred_at = serializers.SerializerMethodField()
+    priority = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    penalized = serializers.SerializerMethodField()
+
+    def _evidence_summary(self, obj):
+        from apps.contests.services.integrity_evidence import evidence_status_for_event
+
+        lookup = self.context.get("evidence_status_by_event")
+        if type(lookup) is dict and obj.id in lookup:
+            return lookup[obj.id]
+        if not hasattr(obj, "_integrity_evidence_summary"):
+            obj._integrity_evidence_summary = evidence_status_for_event(obj)
+        return obj._integrity_evidence_summary
+
+    def get_evidence_status(self, obj):
+        return self._evidence_summary(obj)["evidence_status"]
+
+    def get_evidence_sources(self, obj):
+        return self._evidence_summary(obj)["evidence_sources"]
+
+    def get_occurred_at(self, obj):
+        if obj.client_occurred_at_ms is None:
+            return obj.created_at
+        return datetime.fromtimestamp(
+            obj.client_occurred_at_ms / 1000,
+            tz=datetime_timezone.utc,
+        )
+
+    def get_priority(self, obj):
+        from apps.contests.services.integrity_event_projection import event_priority
+
+        return event_priority(obj)
+
+    def get_category(self, obj):
+        from apps.contests.services.integrity_event_projection import (
+            event_priority,
+            priority_category,
+        )
+
+        return priority_category(event_priority(obj))
+
+    def get_penalized(self, obj):
+        from apps.contests.services.integrity_event_projection import event_penalized
+
+        return event_penalized(obj)
     
     class Meta:
         model = ExamEvent
@@ -891,54 +934,18 @@ class ExamEventSerializer(serializers.ModelSerializer):
             'user',
             'user_username',
             'event_type',
+            'incident_id',
+            'client_occurred_at_ms',
+            'occurred_at',
             'metadata',
+            'evidence_status',
+            'evidence_sources',
+            'priority',
+            'category',
+            'penalized',
             'created_at',
         ]
         read_only_fields = ['created_at', 'user_username']
-
-
-class ExamEventCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating exam events."""
-    DEFAULT_METADATA_MAX_SIZE = 8192  # bytes
-    CLIPBOARD_METADATA_MAX_SIZE = 65536  # bytes
-
-    client_observed_at_ms = serializers.IntegerField(required=False, min_value=0)
-    server_time_offset_ms = serializers.IntegerField(required=False)
-    evidence_anchor_at_ms = serializers.IntegerField(required=False, min_value=0)
-    evidence_mode = serializers.ChoiceField(
-        required=False,
-        choices=ExamEvidenceFrame.EvidenceMode.choices,
-    )
-    event_idempotency_key = serializers.CharField(required=False, allow_blank=True, max_length=160)
-
-    class Meta:
-        model = ExamEvent
-        fields = [
-            'event_type',
-            'metadata',
-            'client_observed_at_ms',
-            'server_time_offset_ms',
-            'evidence_anchor_at_ms',
-            'evidence_mode',
-            'event_idempotency_key',
-        ]
-
-    def validate(self, attrs):
-        metadata = attrs.get('metadata')
-        if metadata is not None:
-            import json
-            event_type = attrs.get('event_type')
-            max_size = (
-                self.CLIPBOARD_METADATA_MAX_SIZE
-                if event_type == 'clipboard_action'
-                else self.DEFAULT_METADATA_MAX_SIZE
-            )
-            serialized = json.dumps(metadata, ensure_ascii=False)
-            if len(serialized.encode('utf-8')) > max_size:
-                raise serializers.ValidationError(
-                    {'metadata': f"Metadata exceeds maximum size of {max_size} bytes."}
-                )
-        return attrs
 
 
 class EvidenceUploadIntentFrameSerializer(serializers.Serializer):
@@ -1015,7 +1022,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     connection_status = serializers.SerializerMethodField()
-    last_heartbeat_at = serializers.SerializerMethodField()
+    last_checkpoint_at = serializers.SerializerMethodField()
     live_monitoring_online = serializers.SerializerMethodField()
     live_monitoring_sources = serializers.SerializerMethodField()
     
@@ -1026,16 +1033,16 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'joined_at', 'exam_status',
             'lock_reason', 'violation_count', 'submit_reason',
             'display_name', 'account_role', 'auth_provider',
-            'connection_status', 'last_heartbeat_at', 'live_monitoring_online', 'live_monitoring_sources',
+            'connection_status', 'last_checkpoint_at', 'live_monitoring_online', 'live_monitoring_sources',
         ]
 
-    def _get_last_heartbeat(self, obj):
-        if hasattr(obj, '_last_heartbeat_cached'):
-            return obj._last_heartbeat_cached
-        from apps.contests.services.anti_cheat_session import get_last_heartbeat
+    def _get_last_checkpoint(self, obj):
+        if hasattr(obj, '_last_checkpoint_cached'):
+            return obj._last_checkpoint_cached
+        from apps.contests.services.integrity_presence import get_last_checkpoint
 
-        obj._last_heartbeat_cached = get_last_heartbeat(obj.contest_id, obj.user_id)
-        return obj._last_heartbeat_cached
+        obj._last_checkpoint_cached = get_last_checkpoint(obj.contest_id, obj.user_id)
+        return obj._last_checkpoint_cached
 
     def _get_live_publisher(self, obj):
         if hasattr(obj, '_live_publisher_cached'):
@@ -1060,12 +1067,12 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     def get_connection_status(self, obj):
         if self._get_live_publisher(obj):
             return 'live'
-        if self._get_last_heartbeat(obj):
+        if self._get_last_checkpoint(obj):
             return 'online'
         return 'offline'
 
-    def get_last_heartbeat_at(self, obj):
-        return self._get_last_heartbeat(obj)
+    def get_last_checkpoint_at(self, obj):
+        return self._get_last_checkpoint(obj)
 
     def get_live_monitoring_online(self, obj):
         return bool(self._get_live_publisher(obj))
@@ -1148,9 +1155,7 @@ class ExamAnswerSerializer(serializers.ModelSerializer):
 
 
 class ExamAnswerDetailSerializer(serializers.ModelSerializer):
-    """Read serializer with grading info (for results / TA view).
-    優先從 question_snapshot 讀取題目資料，fallback 到 question.*。
-    """
+    """Read serializer with grading info (for results / TA view)."""
     question_id = serializers.UUIDField(source='question.id', read_only=True)
     question_prompt = serializers.SerializerMethodField()
     question_type = serializers.SerializerMethodField()
@@ -1170,7 +1175,6 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
             'id', 'question_id', 'question_prompt', 'question_type',
             'question_options', 'question_explanation', 'max_score',
             'answer', 'is_correct', 'score', 'feedback',
-            'question_snapshot',
             'graded_by_username', 'graded_at',
             'participant_user_id', 'participant_username', 'participant_display_name',
             'created_at', 'updated_at',
@@ -1178,28 +1182,18 @@ class ExamAnswerDetailSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_question_prompt(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('prompt', '')
         return obj.question.prompt
 
     def get_question_type(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('question_type', '')
         return obj.question.question_type
 
     def get_question_explanation(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('explanation', '')
         return obj.question.explanation
 
     def get_max_score(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('score', 0)
         return obj.question.score
 
     def get_question_options(self, obj):
-        if obj.question_snapshot:
-            return obj.question_snapshot.get('options', [])
         return obj.question.options
 
     def get_participant_user_id(self, obj):
@@ -1217,7 +1211,7 @@ class ExamAnswerGradingSerializer(serializers.ModelSerializer):
     """Slim serializer for grading screens.
 
     Drops redundant per-row duplicates (question_prompt/type/options/explanation/
-    max_score/question_snapshot and participant_username/display_name). Consumers
+    max_score and participant_username/display_name). Consumers
     should join question info via GET /exam-questions/ and participant info via
     contest participants list — both are O(题数) / O(学生数) rather than
     O(answers)."""

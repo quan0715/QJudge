@@ -15,12 +15,10 @@ import {
   FlagFilled,
 } from "@carbon/icons-react";
 import { usePaperExamFlow } from "./usePaperExamFlow";
-import { useInterval } from "@/shared/hooks/useInterval";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
 import {
-  useCountdownTo,
   usePaperExamAutoSave,
   usePaperExamQuestions,
   usePaperExamSaveOnLeave,
@@ -40,18 +38,15 @@ import {
   getClassroomContestPrecheckPath,
   shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { recordExamEventWithForcedCapture } from "@/features/contest/anticheat/forcedCapture";
-import { exitFullscreen, isFullscreen } from "@/core/usecases/exam";
+import {
+  exitFullscreen,
+  isFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
-import {
-  buildExamEntryDeviceMetadata,
-  detectAnticheatCapability,
-  resolveEvidenceCaptureStrategy,
-  resolveDeviceMonitoringPlan,
-} from "@/features/contest/domain/anticheatModulePolicy";
+import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import type {
   ExamQuestionAnswerFormat,
   ExamQuestionType,
@@ -65,7 +60,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId?: string;
   }>();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, submitExam, refreshContest, loading } = usePaperExamFlow();
+  const { contestId, contest, submitExam, loading } = usePaperExamFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
     classroomId && routeContestId
@@ -91,19 +86,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         : effectiveClassroomId
           ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
           : "";
-  const capability = useMemo(() => detectAnticheatCapability(), []);
-  const monitoringPlan = useMemo(
-    () => resolveDeviceMonitoringPlan(capability, contest?.anticheatDevicePolicy),
-    [capability, contest?.anticheatDevicePolicy]
-  );
-  const examEntryDeviceMetadata = useMemo(
-    () => buildExamEntryDeviceMetadata(capability, monitoringPlan),
-    [capability, monitoringPlan]
-  );
-  const evidenceCaptureStrategy = useMemo(
-    () => resolveEvidenceCaptureStrategy(monitoringPlan),
-    [monitoringPlan]
-  );
+  const integrity = useIntegritySignalEmitter();
   const submitProgress = useExamSubmissionProgress();
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
@@ -149,7 +132,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const isInProgress = contest?.examStatus === "in_progress";
   const isSubmitted = contest?.examStatus === "submitted";
-  const countdown = useCountdownTo(contest?.endTime);
   const precheckPassed = contestId ? hasExamPrecheckPassed(contestId) : false;
   const {
     uploadSessionId: anticheatUploadSessionId,
@@ -202,12 +184,8 @@ const PaperExamAnsweringScreen: React.FC = () => {
     [items, saveIfDirty],
   );
 
-  useInterval(() => {
-    refreshContest().catch(() => {});
-  }, isInProgress ? 30000 : null);
-
-  const [autoSubmitted, setAutoSubmitted] = useState(false);
   const hasLoggedExamEntryRef = useRef(false);
+  const isLoggingExamEntryRef = useRef(false);
 
   const runSubmitWithProgress = useCallback(async () => {
     const success = await submitProgress.run({
@@ -251,20 +229,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (countdown.remaining !== null && countdown.remaining === 0 && isInProgress && contestId) {
-      void runSubmitWithProgress().then((success) => {
-        if (!success) return;
-        setAutoSubmitted(true);
-      });
-    }
-  }, [
-    countdown.remaining,
-    isInProgress,
-    contestId,
-    runSubmitWithProgress,
-  ]);
-
-  useEffect(() => {
     if (!contestId || !contest || contest.contestType !== "paper_exam") return;
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
 
@@ -296,31 +260,36 @@ const PaperExamAnsweringScreen: React.FC = () => {
       !contest.cheatDetectionEnabled ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
-      hasLoggedExamEntryRef.current
+      hasLoggedExamEntryRef.current ||
+      isLoggingExamEntryRef.current
     ) {
       return;
     }
 
-    hasLoggedExamEntryRef.current = true;
-    void recordExamEventWithForcedCapture(contestId, "exam_entered", {
-      reason: "Student entered paper exam answering screen",
-      source: "paper_exam:answering_screen",
-      forceCaptureReason: "exam_entered:paper_exam_answering",
-      captureOptions: {
-        eventType: "exam_entered",
-        modules: evidenceCaptureStrategy.enabledCaptureModules,
+    isLoggingExamEntryRef.current = true;
+    const clientOccurredAtMs = Date.now();
+    void integrity.emit({
+      eventType: "exam_entered",
+      clientOccurredAtMs,
+      payload: {
+        source: "paper_exam:answering_screen",
+        ...(anticheatUploadSessionId
+          ? { upload_session_id: anticheatUploadSessionId }
+          : {}),
       },
-      metadata: {
-        upload_session_id: anticheatUploadSessionId || undefined,
-        ...examEntryDeviceMetadata,
+    }).then(
+      () => {
+        hasLoggedExamEntryRef.current = true;
       },
-    }).catch(() => null);
+      () => {
+        isLoggingExamEntryRef.current = false;
+      },
+    );
   }, [
     anticheatUploadSessionId,
     contest,
     contestId,
-    evidenceCaptureStrategy.enabledCaptureModules,
-    examEntryDeviceMetadata,
+    integrity,
     precheckPassed,
   ]);
 
@@ -379,7 +348,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   }, [flushAll]);
 
   const shouldUseHeaderActions =
-    isRuntime && !autoSubmitted && !isSubmitted && !loadingQuestions && items.length > 0;
+    isRuntime && !isSubmitted && !loadingQuestions && items.length > 0;
 
   useEffect(() => {
     if (!shouldUseHeaderActions) {
@@ -440,12 +409,12 @@ const PaperExamAnsweringScreen: React.FC = () => {
     runSubmitWithProgress,
   ]);
 
-  if (autoSubmitted || isSubmitted) {
+  if (isSubmitted) {
     return (
       <div className={styles.centered}>
         <CheckmarkFilled size={48} style={{ color: "var(--cds-support-success)" }} />
         <span style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-          {autoSubmitted ? t("answering.finish.autoSubmitted") : t("answering.finish.submitted")}
+          {t("answering.finish.submitted")}
         </span>
         <Button
           kind="primary"
@@ -462,7 +431,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
   if (loadingQuestions) {
     return (
       <div className={styles.centered}>
-        <Loading withOverlay={false} small />
+        <Loading
+          withOverlay={false}
+          small
+          description={t("answering.loading")}
+        />
         <span>{t("answering.loading")}</span>
       </div>
     );

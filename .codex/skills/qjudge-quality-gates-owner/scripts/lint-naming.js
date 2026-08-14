@@ -87,7 +87,13 @@ const allowedSuffixes = new Set([
   "config",
   "client",
   "mock",
+  "mocks",
   "fixture",
+  "integration",
+  "model",
+  "transform",
+  "utils",
+  "dto",
   "d",
 ]);
 
@@ -98,7 +104,7 @@ const kebabCaseRe = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
 const dotNotationRules = [
   // core
-  { path: "core/entities", suffix: "entity", base: "camel" },
+  { path: "core/entities", suffix: "entity", base: "kebabOrCamel" },
   { path: "core/ports", suffix: "repository", base: "camel" },
   { path: "core/usecases", suffix: "usecase", base: "camel" },
   { path: "core/config", suffix: "config", base: "camel" },
@@ -106,7 +112,7 @@ const dotNotationRules = [
   // infrastructure
   { path: "infrastructure/mappers", suffix: "mapper", base: "camel" },
   { path: "infrastructure/api/repositories", suffix: "repository", base: "camel" },
-  { path: "infrastructure/api", suffix: "client", base: "camel" },
+  { path: "infrastructure/api/dto", suffix: "dto", base: "kebabOrCamel" },
 ];
 
 function toPosix(value) {
@@ -183,8 +189,51 @@ function checkFileName(fileName, relPath) {
     return;
   }
 
+  if (suffixes.includes("mocks") && isKebabCase(baseName)) {
+    return;
+  }
+
   const posixRel = toPosix(relPath);
+  const parentDir = path.posix.basename(path.posix.dirname(posixRel));
+
+  if (parentDir === "hooks") {
+    if (!isCamelCase(baseName)) {
+      recordViolation(relPath, `Not camelCase: ${baseName}`);
+      return;
+    }
+    if (!baseName.startsWith("use")) {
+      recordViolation(relPath, "Hook file must start with use");
+      return;
+    }
+    return;
+  }
+
   const dotRule = dotNotationRules.find((entry) => isUnderPath(posixRel, entry.path));
+
+  if (parentDir === "contexts") {
+    if (isPascalCase(baseName)) {
+      if (
+        !baseName.endsWith("Context") &&
+        !baseName.endsWith("Provider")
+      ) {
+        recordViolation(relPath, "Context file must end with Context or Provider");
+      }
+      return;
+    }
+    if (!isCamelCase(baseName)) {
+      recordViolation(relPath, `Not camelCase: ${baseName}`);
+    }
+    return;
+  }
+
+  if (
+    ext === "ts" &&
+    suffixes.includes("test") &&
+    baseName.endsWith("Screen") &&
+    isPascalCase(baseName)
+  ) {
+    return;
+  }
 
   if (ext === "tsx") {
     if (baseName === "main" || baseName.endsWith("-main")) {
@@ -196,19 +245,22 @@ function checkFileName(fileName, relPath) {
     }
     if (isUnderPath(posixRel, "features") || isUnderPath(posixRel, "shared") || isUnderPath(posixRel, "app")) {
       if (
-        posixRel.includes("/screens/") &&
-        !posixRel.includes("/section/") &&
+        parentDir === "screens" &&
         !baseName.endsWith("Screen")
       ) {
         recordViolation(relPath, "Screen file must end with Screen");
         return;
       }
-      if (posixRel.includes("/section/") && !baseName.endsWith("Section")) {
+      if (parentDir === "section" && !baseName.endsWith("Section")) {
         recordViolation(relPath, "Section file must end with Section");
         return;
       }
-      if (posixRel.includes("/contexts/") && !baseName.endsWith("Context")) {
-        recordViolation(relPath, "Context file must end with Context");
+      if (
+        parentDir === "contexts" &&
+        !baseName.endsWith("Context") &&
+        !baseName.endsWith("Provider")
+      ) {
+        recordViolation(relPath, "Context file must end with Context or Provider");
         return;
       }
     }
@@ -225,18 +277,6 @@ function checkFileName(fileName, relPath) {
     }
     if (!isValidDotBase(dotRule, baseName)) {
       recordViolation(relPath, `Invalid base name: ${baseName}`);
-    }
-    return;
-  }
-
-  if (posixRel.includes("/hooks/")) {
-    if (!isCamelCase(baseName)) {
-      recordViolation(relPath, `Not camelCase: ${baseName}`);
-      return;
-    }
-    if (!baseName.startsWith("use")) {
-      recordViolation(relPath, "Hook file must start with use");
-      return;
     }
     return;
   }
@@ -261,7 +301,7 @@ function checkDirName(dirName, relPath) {
     }
     return;
   }
-  if (!camelCaseRe.test(dirName)) {
+  if (!camelCaseRe.test(dirName) && !kebabCaseRe.test(dirName)) {
     recordViolation(relPath, `Not camelCase: ${dirName}`);
   }
 }

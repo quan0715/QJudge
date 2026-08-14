@@ -61,7 +61,6 @@ class BoundContestSerializer(serializers.ModelSerializer):
     contest_name = serializers.CharField(source='contest.name', read_only=True)
     contest_description = serializers.CharField(source='contest.description', read_only=True)
     contest_status = serializers.CharField(source='contest.status', read_only=True)
-    contest_visibility = serializers.CharField(source='contest.visibility', read_only=True)
     attendance_check_enabled = serializers.BooleanField(source='contest.attendance_check_enabled', read_only=True)
     contest_type = serializers.CharField(source='contest.contest_type', read_only=True)
     contest_start_time = serializers.DateTimeField(source='contest.start_time', read_only=True)
@@ -77,7 +76,6 @@ class BoundContestSerializer(serializers.ModelSerializer):
             'contest_name',
             'contest_description',
             'contest_status',
-            'contest_visibility',
             'attendance_check_enabled',
             'contest_type',
             'contest_start_time',
@@ -216,7 +214,6 @@ class CreateClassroomContestSerializer(serializers.Serializer):
     contest_type = serializers.ChoiceField(choices=['coding', 'paper_exam'])
     start_time = serializers.DateTimeField(required=False, allow_null=True)
     end_time = serializers.DateTimeField(required=False, allow_null=True)
-    visibility = serializers.ChoiceField(choices=['public', 'private'], required=False, default='public')
     attendance_check_enabled = serializers.BooleanField(required=False, default=False)
     cheat_detection_enabled = serializers.BooleanField(required=False, default=False)
     allow_multiple_joins = serializers.BooleanField(required=False, default=False)

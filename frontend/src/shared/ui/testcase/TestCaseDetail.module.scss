@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .container {
   display: flex;
   flex-direction: column;
@@ -18,14 +19,14 @@
   justify-content: center;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--cds-spacing-04) var(--cds-spacing-05);
+  padding: layout.$spacing-04 layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
   background-color: var(--cds-layer-02);
 }
@@ -48,17 +49,18 @@
 }
 
 .content {
-  padding: var(--cds-spacing-05);
+  padding: layout.$spacing-05;
   overflow-y: auto;
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--cds-spacing-03);
+  gap: layout.$spacing-03;
 }
 
 .sectionLabel {
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--cds-text-secondary);
@@ -69,24 +71,11 @@
 .textarea {
   width: 100%;
   font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-
-  :global(.cds--text-area) {
-    font-family: inherit;
-    font-size: 0.875rem;
-  }
 }
 
 .codeSnippet {
   width: 100%;
   max-width: 100%;
-
-  :global(.cds--snippet) {
-    max-width: 100%;
-  }
-
-  :global(.cds--snippet-container) {
-    min-height: 80px;
-  }
 }
 
 .hiddenContent {
@@ -95,8 +84,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--cds-spacing-04);
-  padding: var(--cds-spacing-07);
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-07;
   color: var(--cds-text-secondary);
   
   svg {

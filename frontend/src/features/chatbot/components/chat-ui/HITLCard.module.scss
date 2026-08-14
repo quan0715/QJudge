@@ -1,59 +1,85 @@
+@use "@carbon/layout";
 .wrapper {
-  padding: 0.5rem 1rem;
-  max-width: min(80%, 640px);
+  width: 100%;
+  max-width: 42rem;
+  padding: layout.$spacing-03 layout.$spacing-05;
 }
 
 .card {
   overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid var(--cds-border-subtle, #393939);
-  background: var(--cds-layer-01, #262626);
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 0.5rem;
+  background: var(--cds-layer-01);
 }
 
-// ── Header ──────────────────────────────────────
 .cardHeader {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--cds-border-subtle, #393939);
-  background: var(--cds-layer-02, #2d2d2d);
+  align-items: flex-start;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-05;
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-accent-01);
+}
+
+.headerIcon {
+  flex: 0 0 auto;
+  margin-top: layout.$spacing-01;
+  color: var(--cds-icon-primary);
+}
+
+.headerCopy {
+  display: grid;
+  gap: layout.$spacing-01;
+  min-width: 0;
+}
+
+.headerEyebrow {
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-weight: var(--cds-label-01-font-weight, 400);
+  line-height: var(--cds-label-01-line-height, 1rem);
 }
 
 .headerLabel {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--cds-text-secondary, #c6c6c6);
+  color: var(--cds-text-primary);
+  font-size: var(--cds-heading-compact-01-font-size, 1rem);
+  font-weight: var(--cds-heading-compact-01-font-weight, 600);
+  line-height: var(--cds-heading-compact-01-line-height, 1.25rem);
 }
 
-// ── Actions list ─────────────────────────────────
+.actionCount {
+  margin-inline-start: auto;
+}
+
 .actionsContainer {
   display: flex;
   flex-direction: column;
 }
 
 .actionItem {
-  padding: 0.875rem 1rem;
+  padding: layout.$spacing-05;
 
   & + & {
-    border-top: 1px solid var(--cds-border-subtle, #393939);
+    border-top: 1px solid var(--cds-border-subtle);
   }
 }
 
 .actionHeader {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.625rem;
+  gap: layout.$spacing-03;
+  min-width: 0;
 }
 
 .toolName {
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-  color: var(--cds-text-primary, #f4f4f4);
+  overflow: hidden;
+  color: var(--cds-text-primary);
+  font-family: var(--cds-code-01-font-family);
+  font-size: var(--cds-code-01-font-size);
+  font-weight: var(--cds-code-01-font-weight);
+  line-height: var(--cds-code-01-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actionTag {
@@ -61,52 +87,96 @@
 }
 
 .actionBody {
-  // let custom renderers & fallback stretch
+  margin-top: layout.$spacing-04;
 }
 
-// ── JSON fallback ─────────────────────────────────
+.actionSummary {
+  display: grid;
+  gap: 0;
+  margin: layout.$spacing-04 0 0;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 0.25rem;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+  gap: layout.$spacing-03;
+  align-items: baseline;
+  padding: layout.$spacing-03 layout.$spacing-04;
+
+  & + & {
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  dt {
+    overflow: hidden;
+    color: var(--cds-text-secondary);
+    font-family: var(--cds-code-01-font-family);
+    font-size: var(--cds-code-01-font-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--cds-text-primary);
+    font-size: var(--cds-body-compact-01-font-size);
+    line-height: var(--cds-body-compact-01-line-height);
+    text-align: end;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.technicalDetails {
+  margin-top: layout.$spacing-03;
+}
+
 .jsonFallback {
-  font-size: 0.75rem;
-  line-height: 1.5;
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-  background: var(--cds-layer-02, #1e1e1e);
-  border: 1px solid var(--cds-border-subtle, #393939);
-  border-radius: 4px;
-  padding: 0.625rem 0.75rem;
+  max-height: 15rem;
   margin: 0;
-  overflow-x: auto;
-  max-height: 200px;
-  overflow-y: auto;
-  color: var(--cds-text-secondary, #c6c6c6);
+  padding: layout.$spacing-04;
+  overflow: auto;
+  border: 1px solid var(--cds-border-subtle);
+  border-radius: 4px;
+  background: var(--cds-layer-02);
+  color: var(--cds-text-secondary);
+  font-family: var(--cds-code-01-font-family);
+  font-size: var(--cds-code-01-font-size);
+  line-height: var(--cds-code-01-line-height);
   white-space: pre;
 }
 
 .jsonKey {
-  color: #79c0ff; // blue-ish, readable on dark bg
+  color: var(--cds-link-primary);
 }
 
-// ── Footer ────────────────────────────────────────
 .footer {
   display: flex;
-  border-top: 1px solid var(--cds-border-subtle, #393939);
+  justify-content: flex-end;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
 }
 
 .footerBtn {
-  flex: 1 1 0;
-  max-width: none;
-  min-height: 4rem; // Carbon modal lg button height
-  border-radius: 0;
-  justify-content: center;
-
-  // kill the gap Carbon puts between adjacent buttons
-  & + & {
-    margin-inline-start: 0;
-  }
+  min-inline-size: 8rem;
 }
 
-.loadingFooter {
-  display: flex;
-  justify-content: center;
-  padding: 0.875rem 1rem;
-  border-top: 1px solid var(--cds-border-subtle, #393939);
+@media (max-width: 42rem) {
+  .wrapper {
+    padding-inline: layout.$spacing-03;
+  }
+
+  .footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .footerBtn {
+    inline-size: 100%;
+  }
 }

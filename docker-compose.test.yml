@@ -1,3 +1,44 @@
+x-ai-database-environment: &ai_test_database_environment
+  AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:qjudge_ai@postgres-test:5432/qjudge_ai_test
+  AI_DB_USER: qjudge_ai
+  AI_DB_NAME: qjudge_ai_test
+x-ai-queue-environment: &ai_test_queue_environment
+  AI_REDIS_URL: redis://redis-test:6379/2
+  AI_QUEUE_NAME: qjudge-ai
+  AI_QUEUE_KEY_PREFIX: "qjudge-ai:"
+x-ai-api-environment: &ai_test_api_environment
+  <<: [*ai_test_database_environment, *ai_test_queue_environment]
+  CREDENTIAL_LEASE_SECRET: test-credential-lease-secret-long-enough
+  MCP_SERVER_ID: qjudge-test
+  MCP_TOKEN_EXCHANGE_URL: http://fake-ai-adapters:8080/token-exchange
+  QJUDGE_MCP_URL: http://fake-ai-adapters:8080/mcp
+  AI_OAUTH_ISSUER: http://fake-ai-adapters:8080
+  AI_OAUTH_JWKS_URL: http://fake-ai-adapters:8080/.well-known/jwks.json
+  AI_ARTIFACT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
+  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
+  AI_ARTIFACT_STORAGE_REGION: test
+  AI_ARTIFACT_STORAGE_ACCESS_KEY: fake-test-storage-key
+  AI_ARTIFACT_STORAGE_SECRET_KEY: fake-test-storage-secret
+  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: "false"
+  AI_ARTIFACT_S3_BUCKET: ai-artifacts-test
+x-ai-worker-environment: &ai_test_worker_environment
+  <<: [*ai_test_database_environment, *ai_test_queue_environment]
+  CREDENTIAL_LEASE_SECRET: test-credential-lease-secret-long-enough
+  MCP_SERVER_ID: qjudge-test
+  MCP_TOKEN_EXCHANGE_URL: http://fake-ai-adapters:8080/token-exchange
+  QJUDGE_MCP_URL: http://fake-ai-adapters:8080/mcp
+  DEEPSEEK_API_KEY: fake-test-provider-key
+  OPENAI_API_KEY: fake-test-provider-key
+  DEEPSEEK_BASE_URL: http://fake-ai-adapters:8080/v1
+  OPENAI_BASE_URL: http://fake-ai-adapters:8080/v1
+  AI_ARTIFACT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
+  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
+  AI_ARTIFACT_STORAGE_REGION: test
+  AI_ARTIFACT_STORAGE_ACCESS_KEY: fake-test-storage-key
+  AI_ARTIFACT_STORAGE_SECRET_KEY: fake-test-storage-secret
+  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: "false"
+  AI_ARTIFACT_S3_BUCKET: ai-artifacts-test
+
 services:
   judge-image-test:
     image: ${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
@@ -10,21 +51,43 @@ services:
 
   postgres-test:
     image: postgres:15-alpine
-    container_name: oj_postgres_test
     command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
-      POSTGRES_DB: test_oj_e2e
-      POSTGRES_USER: oj_user
-      POSTGRES_PASSWORD: oj_password
+      POSTGRES_DB: postgres
+      POSTGRES_USER: qjudge_test_admin
+      POSTGRES_PASSWORD: qjudge_test_admin_password
     ports:
-      - "5433:5432"
+      - "${TEST_POSTGRES_PORT:-5433}:5432"
     networks:
       - test-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oj_user -d test_oj_e2e"]
+      test: ["CMD-SHELL", "pg_isready -U qjudge_test_admin -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  ai-db-bootstrap:
+    image: postgres:15-alpine
+    restart: "no"
+    command: ["/bin/sh", "/bootstrap/bootstrap-ai-database.sh"]
+    environment:
+      POSTGRES_HOST: postgres-test
+      POSTGRES_PORT: "5432"
+      POSTGRES_ADMIN_USER: qjudge_test_admin
+      POSTGRES_ADMIN_PASSWORD: qjudge_test_admin_password
+      DB_NAME: test_oj_e2e
+      DB_USER: qjudge_web
+      DB_PASSWORD: qjudge_web
+      AI_DB_NAME: qjudge_ai_test
+      AI_DB_USER: qjudge_ai
+      AI_DB_PASSWORD: qjudge_ai
+    volumes:
+      - ./scripts/db/bootstrap-ai-database.sh:/bootstrap/bootstrap-ai-database.sh:ro
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - test-network
 
   pgbouncer-test:
     image: edoburu/pgbouncer:v1.24.1-p1
@@ -33,8 +96,8 @@ services:
       DB_HOST: postgres-test
       DB_PORT: "5432"
       DB_NAME: "*"
-      DB_USER: oj_user
-      DB_PASSWORD: oj_password
+      DB_USER: qjudge_web
+      DB_PASSWORD: qjudge_web
       AUTH_TYPE: plain
       POOL_MODE: session
       MAX_CLIENT_CONN: "500"
@@ -55,19 +118,18 @@ services:
     networks:
       - test-network
     depends_on:
-      postgres-test:
-        condition: service_healthy
+      ai-db-bootstrap:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U oj_user"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U qjudge_web"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis-test:
     image: redis:7-alpine
-    container_name: oj_redis_test
     ports:
-      - "6380:6379"
+      - "${TEST_REDIS_PORT:-6380}:6379"
     networks:
       - test-network
     healthcheck:
@@ -75,6 +137,108 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # Protocol-correct fake OAuth, MCP and OpenAI-compatible model endpoints.
+  fake-ai-adapters:
+    build: &ai_test_build
+      context: ./ai-service
+      dockerfile: Dockerfile
+    image: oj_ai_service_test_img
+    command: ["uvicorn", "tests.fakes.fake_ai_adapters:app", "--host", "0.0.0.0", "--port", "8080"]
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  ai-migrate:
+    build: *ai_test_build
+    image: oj_ai_service_test_img
+    restart: "no"
+    healthcheck:
+      disable: true
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup"]
+    environment:
+      <<: *ai_test_database_environment
+    depends_on:
+      ai-db-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - test-network
+
+  ai-service:
+    build: *ai_test_build
+    image: oj_ai_service_test_img
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment: *ai_test_api_environment
+    ports:
+      - "${AI_TEST_PORT:-8001}:8001"
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+      fake-ai-adapters:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8001/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  ai-worker:
+    build: *ai_test_build
+    image: oj_ai_service_test_img
+    healthcheck:
+      disable: true
+    # Solo avoids prefork event-loop teardown hiding protocol failures in tests.
+    command: ["celery", "-A", "worker.celery_app:celery_app", "worker", "--pool=solo", "--concurrency=1", "--queues=qjudge-ai", "--loglevel=INFO"]
+    environment: *ai_test_worker_environment
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+      fake-ai-adapters:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  ai-scheduler:
+    build: *ai_test_build
+    image: oj_ai_service_test_img
+    healthcheck:
+      disable: true
+    command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    environment: *ai_test_queue_environment
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+      fake-ai-adapters:
+        condition: service_started
+    networks:
+      - test-network
+
+  ai-oauth-bootstrap:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        DJANGO_ENV: development
+    image: oj_backend_test_img
+    restart: "no"
+    command:
+      - python
+      - /bootstrap/bootstrap_ai_oauth_keys.py
+      - --private-key
+      - /oauth-secrets/ai-oauth-ed25519-private.pem
+      - --public-key
+      - /oauth-secrets/ai-oauth-ed25519-public.pem
+    volumes:
+      - ./scripts/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
+      - ai-oauth-test-secrets:/oauth-secrets
+    networks:
+      - test-network
 
   backend-test:
     build: &backend_test_build
@@ -93,8 +257,8 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=oj_user
-      - POSTGRES_PASSWORD=oj_password
+      - POSTGRES_USER=qjudge_web
+      - POSTGRES_PASSWORD=qjudge_web
       - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
       - DB_CONN_MAX_AGE=0
@@ -104,8 +268,14 @@ services:
       - SECRET_KEY=test-secret-key-for-ci-only
       - DEBUG=True
       - ALLOWED_HOSTS=*
+      - AI_SERVICE_URL=http://ai-service:8001
+      - AI_OAUTH_SIGNING_PRIVATE_KEY_FILE=/run-secrets/ai-oauth/ai-oauth-ed25519-private.pem
       - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
       - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+      - INTEGRITY_CONTROLLER_URL=http://integrity-controller:8010
+      - INTEGRITY_CONTROLLER_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
     ports:
       - "8002:8000"
     depends_on:
@@ -115,9 +285,62 @@ services:
         condition: service_healthy
       redis-test:
         condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      ai-oauth-bootstrap:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
+      - ai-oauth-test-secrets:/run-secrets/ai-oauth:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
+    networks:
+      - test-network
+
+  # Tests provide only temporary key files through INTEGRITY_TEST_SECRETS_DIR;
+  # raw Controller tokens and signing keys are never Compose environment values.
+  integrity-controller:
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.controller
+    image: oj-integrity-controller:test
+    container_name: oj_integrity_controller_test
+    restart: unless-stopped
+    environment:
+      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_NETWORK=${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}
+      - BACKEND_INTERNAL_URL=http://backend-test:8000
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
+    group_add:
+      - "${DOCKER_GID:-0}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    privileged: false
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  integrity-worker-image:
+    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.worker
+    command: ["python", "-c", "print('integrity worker image ready')"]
+    restart: "no"
+    profiles: ["build"]
     networks:
       - test-network
 
@@ -125,12 +348,12 @@ services:
     build: *backend_test_build
     image: oj_backend_test_img
     container_name: oj_celery_test
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info -Q default
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=oj_user
-      - POSTGRES_PASSWORD=oj_password
+      - POSTGRES_USER=qjudge_web
+      - POSTGRES_PASSWORD=qjudge_web
       - POSTGRES_HOST=postgres-test
       - POSTGRES_PORT=5432
       - DB_CONN_MAX_AGE=0
@@ -158,6 +381,12 @@ services:
     networks:
       - test-network
 
+  celery-high-test:
+    extends:
+      service: celery-test
+    container_name: oj_celery_high_test
+    command: celery -A config worker -l info -Q high_priority --concurrency=2
+
   frontend-test:
     build:
       context: ./frontend
@@ -172,6 +401,7 @@ services:
       - backend-test
     volumes:
       - ./frontend:/app
+      - ./backend:/backend:ro
       - /app/node_modules
     networks:
       - test-network
@@ -179,6 +409,8 @@ services:
 networks:
   test-network:
     driver: bridge
+    name: ${TEST_NETWORK_NAME:-${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}}
 
 volumes:
   judge-tmp-test:
+  ai-oauth-test-secrets:

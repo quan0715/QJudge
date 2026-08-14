@@ -16,22 +16,32 @@
   "nav": {
     "back": "戻る",
     "items": {
+      "admin-account": "管理者アカウントを作成",
       "admin-overview": "管理者機能",
       "classroom-management": "クラスルーム管理",
+      "classroom-roster": "学生名簿を管理",
+      "classroom-setup": "クラスルームを作成",
       "common-errors": "よくあるエラー",
       "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
       "contests": "コンテストに参加",
       "contributing": "コントリビュート",
       "create-exam": "試験と問題の作成",
+      "deployment": "1台のホストからデプロイ",
+      "deployment-options": "オプション機能を追加",
+      "deployment-storage": "ファイルストレージを準備",
+      "deployment-troubleshooting": "デプロイのトラブルシューティング",
       "dev-setup": "開発環境セットアップ",
       "e2e-testing": "E2Eテストガイド",
       "exam-grading": "試験の採点と結果公開",
       "exam-precheck-anticheat": "Exam Pre-check と不正防止シーケンス",
+      "exam-preparation": "試験を準備",
       "exam-proctoring": "試験監督と手動介入",
+      "exam-review": "試験内容を確認",
       "exam-statistics": "試験統計と確認",
       "identity-auth-extension": "認証モジュールの保守と拡張",
       "judge-system": "ジャッジシステム",
       "mcp-setup": "MCP AI ツール接続",
+      "nycu-login-showcase": "NYCU Login Showcase",
       "overview": "プラットフォーム概要",
       "question-bank": "問題バンク管理",
       "quick-start": "クイックスタート",
@@ -43,7 +53,8 @@
       "teacher-exam-workflow": "正式試験の導入フロー",
       "teacher-first-class-setup": "初回授業前の設定",
       "teacher-grading-feedback": "採点、分析、フィードバック",
-      "teacher-overview": "教師機能概要"
+      "teacher-overview": "教師機能概要",
+      "teacher-qualification": "教員資格を管理"
     },
     "lastUpdated": "最終更新日",
     "onThisPage": "このページの内容",
@@ -52,6 +63,8 @@
     "sections": {
       "admin-guide": "管理者ガイド",
       "developer-guide": "開発者ガイド",
+      "deployment": "構築とデプロイ",
+      "first-exam": "最初の試験を準備",
       "getting-started": "はじめに",
       "reference": "リファレンス",
       "teacher-guide": "教師ガイド",
@@ -63,6 +76,11 @@
     "title": "ドキュメント"
   },
   "quickLinks": {
+    "administration": {
+      "description": "最初の管理者アカウントを作成し、教員機能を利用できるアカウントを決めます",
+      "tag": "ステップ 2",
+      "title": "管理者と教員資格を設定"
+    },
     "admin": {
       "description": "ユーザー、権限設定、システム構成の管理",
       "tag": "管理者",
@@ -73,10 +91,25 @@
       "tag": "コンテスト",
       "title": "プログラミングコンテストに参加"
     },
+    "classroom": {
+      "description": "教員アカウントでクラスルームを作成し、今学期の学生名簿を追加またはインポートします",
+      "tag": "ステップ 3",
+      "title": "クラスルームと名簿を準備"
+    },
+    "deployment": {
+      "description": "1台の Ubuntu ホストに最小構成でデプロイし、必要に応じて HTTPS と外部サービスを追加します",
+      "tag": "ステップ 1",
+      "title": "構築とデプロイ"
+    },
     "developer": {
       "description": "開発環境の設定、プロジェクト構造の理解、貢献手順",
       "tag": "開発者",
       "title": "コード貢献"
+    },
+    "exam": {
+      "description": "試験を作成して問題と日程を設定し、公開前にチェックリストを項目ごとに確認します",
+      "tag": "ステップ 4",
+      "title": "最初の試験を準備"
     },
     "student": {
       "description": "問題を閲覧し、コードを書き、解答を提出する方法を学びます",

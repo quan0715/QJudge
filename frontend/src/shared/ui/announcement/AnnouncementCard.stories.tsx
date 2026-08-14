@@ -2,9 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "@carbon/react";
 import { Edit } from "@carbon/icons-react";
 import { AnnouncementCard } from "./AnnouncementCard";
-import type { Announcement } from "@/core/entities/announcement.entity";
 
-const mockAnnouncement: Announcement = {
+const mockAnnouncement = {
   id: 1,
   title: "\u7cfb\u7d71\u7dad\u8b77\u516c\u544a",
   content: "\u89aa\u611b\u7684\u4f7f\u7528\u8005\uff0c\u7cfb\u7d71\u5c07\u65bc 2024/01/15 00:00 \u81f3 06:00 \u9032\u884c\u4f8b\u884c\u7dad\u8b77\uff0c\u5c46\u6642\u670d\u52d9\u5c07\u66ab\u6642\u505c\u6b62\u3002\u7dad\u8b77\u5b8c\u6210\u5f8c\u5c07\u81ea\u52d5\u5fa9\u5fa9\u670d\u52d9\uff0c\u9020\u6210\u4e0d\u4fbf\u656c\u8acb\u898b\u8ad2\u3002",
@@ -14,7 +13,7 @@ const mockAnnouncement: Announcement = {
   updated_at: "2024-01-10T10:00:00Z",
 };
 
-const longContentAnnouncement: Announcement = {
+const longContentAnnouncement = {
   ...mockAnnouncement,
   id: 2,
   title: "\u91cd\u8981\uff1a\u7af6\u8cfd\u898f\u5247\u66f4\u65b0",

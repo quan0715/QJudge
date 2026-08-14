@@ -51,13 +51,8 @@ export default function EventIncidentCard({
       <span className={styles.metaRow}>
         {primaryMeta ? <span>{primaryMeta}</span> : null}
         {incident.count > 1 ? <span>×{incident.count}</span> : null}
-        {incident.evidenceCount > 0 ? (
-          <span>
-            {t("logs.evidenceCompact", {
-              defaultValue: "證據 {{count}}",
-              count: incident.evidenceCount,
-            })}
-          </span>
+        {incident.hasEvidence ? (
+          <span>{t("logs.evidenceAvailable", "有證據")}</span>
         ) : null}
       </span>
     </button>

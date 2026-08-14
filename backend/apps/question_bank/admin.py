@@ -5,7 +5,6 @@ from .models import (
     QuestionAsset,
     QuestionBank,
     QuestionBankMembership,
-    QuestionBankSubscription,
     QuestionVersion,
 )
 
@@ -17,12 +16,10 @@ class QuestionBankAdmin(admin.ModelAdmin):
         "name",
         "owner",
         "category",
-        "visibility",
-        "verified",
         "is_archived",
         "updated_at",
     )
-    list_filter = ("category", "visibility", "verified", "is_archived")
+    list_filter = ("category", "is_archived")
     search_fields = ("name", "owner__username")
 
 
@@ -33,12 +30,9 @@ class QuestionAssetAdmin(admin.ModelAdmin):
         "asset_type",
         "title",
         "owner",
-        "status",
-        "visibility",
-        "version_state",
         "updated_at",
     )
-    list_filter = ("asset_type", "status", "visibility", "version_state")
+    list_filter = ("asset_type",)
     search_fields = ("title", "owner__username")
 
 
@@ -61,9 +55,3 @@ class ContestQuestionBindingAdmin(admin.ModelAdmin):
     list_display = ("id", "contest", "binding_type", "question_asset", "coding_problem", "exam_question", "order")
     list_filter = ("binding_type", "source_mode")
     search_fields = ("contest__name", "question_asset__title")
-
-
-@admin.register(QuestionBankSubscription)
-class QuestionBankSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "bank", "created_at")
-    search_fields = ("user__username", "bank__name")

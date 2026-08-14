@@ -31,7 +31,6 @@ export interface BoundContest {
   contestName: string;
   contestDescription: string;
   contestStatus: "draft" | "published" | "archived";
-  contestVisibility: "public" | "private";
   attendanceCheckEnabled?: boolean;
   contestType: "coding" | "paper_exam";
   contestStartTime: string;

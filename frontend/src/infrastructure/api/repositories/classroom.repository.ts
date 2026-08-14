@@ -59,17 +59,17 @@ export const deleteClassroom = async (id: string): Promise<void> => {
   await ensureOk(httpClient.delete(`/api/v1/classrooms/${id}/`), "Failed to delete classroom");
 };
 
-export interface RegenerateInviteCodeResponse {
+interface RegenerateInviteCodeResponse {
   invite_code: string;
 }
 
-export interface AddClassroomMembersResponse {
+interface AddClassroomMembersResponse {
   added: string[];
   already_exists: string[];
   not_found: string[];
 }
 
-export interface UpdateMemberRoleResponse {
+interface UpdateMemberRoleResponse {
   detail: string;
 }
 
@@ -115,13 +115,6 @@ export const uploadClassroomCover = async (id: string, file: File): Promise<stri
 };
 
 // Announcement operations
-export const getAnnouncements = async (classroomId: string): Promise<ClassroomAnnouncement[]> => {
-  const data = await requestJson<ClassroomAnnouncementDto[]>(
-    httpClient.get(`/api/v1/classrooms/${classroomId}/announcements/`)
-  );
-  return data.map(mapClassroomAnnouncementDto);
-};
-
 export const createAnnouncement = async (classroomId: string, data: { title: string; content: string; is_pinned?: boolean }): Promise<ClassroomAnnouncement> => {
   const responseData = await requestJson<ClassroomAnnouncementDto>(
     httpClient.post(`/api/v1/classrooms/${classroomId}/announcements/`, data),
@@ -146,11 +139,6 @@ export const deleteAnnouncement = async (classroomId: string, announcementId: st
 };
 
 // Contest operations
-export const getClassroomContests = async (id: string): Promise<BoundContest[]> => {
-  const data = await requestJson<BoundContestDto[]>(httpClient.get(`/api/v1/classrooms/${id}/contests/`));
-  return data.map(mapBoundContestDto);
-};
-
 export const createClassroomContest = async (
   id: string,
   data: {
@@ -171,28 +159,3 @@ export const createClassroomContest = async (
   );
   return mapBoundContestDto(responseData);
 };
-
-// ============================================================================
-// Repository Export
-// ============================================================================
-
-export const classroomRepository = {
-  getClassrooms,
-  getClassroom,
-  createClassroom,
-  updateClassroom,
-  deleteClassroom,
-  regenerateCode,
-  addMembers,
-  removeMember,
-  updateMemberRole,
-  uploadClassroomCover,
-  getAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
-  getClassroomContests,
-  createClassroomContest,
-};
-
-export default classroomRepository;

@@ -1,5 +1,5 @@
 import { ClickableTile, Tile } from "@carbon/react";
-import { CheckmarkFilled, Download } from "@carbon/icons-react";
+import { Document } from "@carbon/icons-react";
 import type { BankCategory } from "@/core/entities/question-bank.entity";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
 import styles from "./BankGalleryCard.module.scss";
@@ -13,8 +13,7 @@ export interface BankGalleryCardProps {
   title: string;
   provider: string;
   category: BankCategory;
-  providerVerified?: boolean;
-  downloads?: string;
+  questionCount?: string;
   coverUrl?: string;
   icon?: string;
   onClick?: () => void;
@@ -23,8 +22,7 @@ export interface BankGalleryCardProps {
 export const BankGalleryCard = ({
   title,
   provider,
-  providerVerified = false,
-  downloads = "0",
+  questionCount = "0",
   coverUrl,
   icon,
   onClick,
@@ -44,13 +42,10 @@ export const BankGalleryCard = ({
       <div className={styles.body}>
         <p className={styles.description}>
           by {provider}
-          {providerVerified && (
-            <CheckmarkFilled size={14} className={styles.verifiedIcon} />
-          )}
         </p>
         <p className={styles.meta}>
-          <Download size={14} aria-hidden />
-          {downloads}
+          <Document size={14} aria-hidden />
+          {questionCount}
         </p>
       </div>
 
@@ -63,9 +58,8 @@ export const BankGalleryCard = ({
           <h4>{title}</h4>
           <p>
             by {provider}
-            {providerVerified && <CheckmarkFilled size={12} className={styles.verifiedIcon} />}
             {" · "}
-            <Download size={12} aria-hidden /> {downloads}
+            <Document size={12} aria-hidden /> {questionCount}
           </p>
         </div>
       </div>

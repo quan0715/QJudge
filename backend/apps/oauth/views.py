@@ -2,24 +2,46 @@ import json
 import secrets
 import string
 from datetime import timedelta
-from urllib.parse import urlencode, urlparse, quote
+from urllib.parse import urlencode, urlparse
 
+import jwt
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 from drf_spectacular.utils import extend_schema, inline_serializer
 from oauth2_provider.models import Application, Grant
 from rest_framework import serializers as drf_serializers
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
+from apps.users.permissions import IsTeacherOrAdmin
+
+from .resource_tokens import (
+    canonical_oauth_issuer,
+    decode_resource_token,
+    issue_resource_token,
+    resource_jwks,
+)
+
 User = get_user_model()
+
+OAUTH_AUTHORIZATION_QUERY_FIELDS = (
+    "client_id",
+    "code_challenge",
+    "code_challenge_method",
+    "redirect_uri",
+    "response_type",
+    "scope",
+    "state",
+)
 
 
 def _supported_oauth_scopes() -> list[str]:
@@ -32,7 +54,7 @@ def _supported_oauth_scopes() -> list[str]:
 @require_GET
 def oauth_authorization_server_metadata(request):
     """RFC 8414 — OAuth 2.0 Authorization Server Metadata."""
-    issuer = settings.OAUTH_ISSUER_URL
+    issuer = canonical_oauth_issuer()
     return JsonResponse(
         {
             "issuer": issuer,
@@ -47,6 +69,11 @@ def oauth_authorization_server_metadata(request):
             "token_endpoint_auth_methods_supported": ["none"],
         }
     )
+
+
+@require_GET
+def oauth_jwks(request):
+    return JsonResponse(resource_jwks())
 
 
 @require_GET
@@ -91,6 +118,46 @@ def _get_user_from_jwt_cookie(request):
         return User.objects.get(pk=user_id)
     except Exception:
         return None
+
+
+def _authorization_query(request) -> dict[str, str]:
+    """Copy only fields consumed by the QJudge OAuth consent screen."""
+    return {
+        field: request.GET[field]
+        for field in OAUTH_AUTHORIZATION_QUERY_FIELDS
+        if field in request.GET
+    }
+
+
+def _frontend_redirect(path: str, query: dict[str, str]):
+    """Build and validate a redirect constrained to the configured frontend origin."""
+    frontend_url = getattr(settings, "FRONTEND_URL", settings.OAUTH_ISSUER_URL)
+    parsed_frontend = urlparse(frontend_url)
+    if (
+        parsed_frontend.scheme not in {"http", "https"}
+        or not parsed_frontend.netloc
+        or parsed_frontend.username
+        or parsed_frontend.password
+        or parsed_frontend.query
+        or parsed_frontend.fragment
+    ):
+        raise ImproperlyConfigured("FRONTEND_URL must be an HTTP(S) origin or path prefix")
+
+    prefix = parsed_frontend.path.rstrip("/")
+    target_path = f"{prefix}/{path.lstrip('/')}"
+    target = parsed_frontend._replace(
+        path=target_path,
+        params="",
+        query=urlencode(query),
+        fragment="",
+    ).geturl()
+    if not url_has_allowed_host_and_scheme(
+        target,
+        allowed_hosts={parsed_frontend.netloc},
+        require_https=parsed_frontend.scheme == "https",
+    ):
+        raise ImproperlyConfigured("FRONTEND_URL produced an unsafe redirect target")
+    return redirect(target)
 
 
 @csrf_exempt
@@ -190,25 +257,24 @@ def dynamic_client_registration(request):
 @require_GET
 def authorize_redirect(request):
     """Redirect to frontend OAuth authorize page, using JWT cookie for auth."""
-    frontend_url = getattr(settings, "FRONTEND_URL", settings.OAUTH_ISSUER_URL)
     user = _get_user_from_jwt_cookie(request)
+    params = _authorization_query(request)
 
     if not user:
-        # Not logged in — redirect to frontend login with next= relative path
-        # Use relative path so the frontend open-redirect guard accepts it
-        full_url = request.get_full_path()
-        return redirect(f"{frontend_url}/login?next={quote(full_url, safe='')}")
+        next_path = request.path
+        if params:
+            next_path = f"{next_path}?{urlencode(params)}"
+        return _frontend_redirect("/login", {"next": next_path})
 
-    params = request.GET.urlencode()
     # Look up client name from Application for the consent page
-    client_id = request.GET.get("client_id")
+    client_id = params.get("client_id")
     if client_id:
         try:
             app = Application.objects.get(client_id=client_id)
-            params += f"&client_name={quote(app.name, safe='')}"
+            params["client_name"] = app.name
         except Application.DoesNotExist:
             pass
-    return redirect(f"{frontend_url}/oauth/authorize?{params}")
+    return _frontend_redirect("/oauth/authorize", params)
 
 
 class ApproveAuthorizationView(APIView):
@@ -328,3 +394,98 @@ class ApproveAuthorizationView(APIView):
         if state:
             params["state"] = state
         return Response({"redirect_uri": f"{redirect_uri}?{urlencode(params)}"})
+
+
+class ResourceTokenView(APIView):
+    permission_classes = [IsTeacherOrAdmin]
+
+    def post(self, request):
+        if request.data.get("audience") != "ai-service" or request.data.get(
+            "scope"
+        ) != "ai:chat":
+            return Response(
+                {
+                    "error": "invalid_target",
+                    "error_description": "Unsupported resource token target",
+                },
+                status=400,
+            )
+        token = issue_resource_token(
+            request.user,
+            "ai-service",
+            frozenset({"ai:chat"}),
+        )
+        return Response(
+            {
+                "access_token": token,
+                "token_type": "Bearer",
+                "expires_in": 300,
+                "scope": "ai:chat",
+            },
+            headers={
+                "Cache-Control": "no-store",
+                "Pragma": "no-cache",
+            },
+        )
+
+
+class TokenExchangeView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        if request.data.get("audience") != "qjudge-mcp" or request.data.get(
+            "scope"
+        ) != "mcp":
+            return Response(
+                {
+                    "error": "invalid_target",
+                    "error_description": "Unsupported resource token target",
+                },
+                status=400,
+            )
+        authorization = request.headers.get("Authorization", "")
+        scheme, separator, token = authorization.partition(" ")
+        if separator != " " or scheme.lower() != "bearer" or not token:
+            return Response(
+                {
+                    "error": "invalid_token",
+                    "error_description": "AI resource token is required",
+                },
+                status=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            claims = decode_resource_token(
+                token,
+                audience="ai-service",
+                required_scopes=frozenset({"ai:chat"}),
+            )
+            user = User.objects.get(pk=claims["sub"], is_active=True)
+        except (jwt.PyJWTError, User.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {
+                    "error": "invalid_token",
+                    "error_description": "Invalid AI resource token",
+                },
+                status=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        resource_token = issue_resource_token(
+            user,
+            "qjudge-mcp",
+            frozenset({"mcp"}),
+        )
+        return Response(
+            {
+                "access_token": resource_token,
+                "token_type": "Bearer",
+                "expires_in": 300,
+                "scope": "mcp",
+            },
+            headers={
+                "Cache-Control": "no-store",
+                "Pragma": "no-cache",
+            },
+        )

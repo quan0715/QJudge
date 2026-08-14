@@ -8,6 +8,8 @@ from pathlib import Path
 from datetime import timedelta
 from urllib.parse import urlparse
 
+from config.deployment import parse_public_origin
+
 
 def _endpoint_is_r2(url: str) -> bool:
     """True iff the hostname is on cloudflarestorage.com (R2)."""
@@ -46,11 +48,9 @@ INSTALLED_APPS = [
     "apps.problems",
     "apps.submissions",
     "apps.contests",
-    "apps.announcements",
     "apps.classrooms",
     "apps.ai",  # AI Chat
     "apps.question_bank",
-    "apps.subscriptions",
     "apps.oauth",
     "drf_spectacular",
 ]
@@ -164,7 +164,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # MCP OAuth (first: returns None for non-OAuth tokens)
+        "apps.oauth.authentication.ResourceTokenAuthentication",
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # Existing opaque MCP OAuth tokens
         "apps.users.authentication.CookieJWTAuthentication",  # Cookie-based JWT (more secure)
         "rest_framework_simplejwt.authentication.JWTAuthentication",  # Header-based JWT (fallback for API clients)
     ],
@@ -216,6 +217,7 @@ JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 OAUTH2_PROVIDER = {
     "SCOPES": {
         "mcp": "Access QJudge via MCP",
+        "ai:chat": "Access the QJudge AI chat service",
         "qjudge.paper": "Access QJudge paper exam workflows from QJudge Paper CLI",
     },
     "DEFAULT_SCOPES": ["mcp"],
@@ -226,9 +228,24 @@ OAUTH2_PROVIDER = {
     "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https", "cursor", "vscode"],
 }
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+_QJUDGE_PUBLIC_ORIGIN_RAW = os.environ.get("QJUDGE_PUBLIC_ORIGIN", "")
+_QJUDGE_PUBLIC_ORIGIN = (
+    parse_public_origin(_QJUDGE_PUBLIC_ORIGIN_RAW)
+    if _QJUDGE_PUBLIC_ORIGIN_RAW
+    else None
+)
+FRONTEND_URL = os.environ.get(
+    "FRONTEND_URL",
+    _QJUDGE_PUBLIC_ORIGIN.url if _QJUDGE_PUBLIC_ORIGIN else "http://localhost:5173",
+)
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
-OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL)
+OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
+AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
+    os.environ.get(
+        "AI_OAUTH_SIGNING_PRIVATE_KEY_FILE",
+        BASE_DIR.parent / "secrets" / "ai-oauth-ed25519-private.pem",
+    )
+)
 # MCP server public URL (served at /mcp via streamable-http transport)
 MCP_PUBLIC_URL = os.environ.get("MCP_PUBLIC_URL", "http://localhost:9000")
 
@@ -245,6 +262,7 @@ SPECTACULAR_SETTINGS = {
             "tokenUrl": "/api/oauth/token/",
             "scopes": {
                 "mcp": "MCP server access",
+                "ai:chat": "QJudge AI chat access",
                 "qjudge.paper": "QJudge Paper CLI access",
             },
         }
@@ -332,26 +350,9 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
-# Celery Beat Schedule (for periodic tasks)
-# Only effective when celery-beat service is running
-CELERY_BEAT_SCHEDULE = {
-    "check-contest-end-every-minute": {
-        "task": "apps.contests.tasks.check_contest_end",
-        "schedule": 60.0,  # Every 60 seconds
-    },
-    "check-force-submit-locked-every-30-seconds": {
-        "task": "apps.contests.tasks.check_force_submit_locked",
-        "schedule": 30.0,  # Every 30 seconds
-    },
-    "check-heartbeat-timeout-every-30-seconds": {
-        "task": "apps.contests.tasks.check_heartbeat_timeout",
-        "schedule": 30.0,
-    },
-    "sweep-stale-ai-runs-every-60-seconds": {
-        "task": "apps.ai.tasks.sweep_stale_ai_runs",
-        "schedule": 60.0,
-    },
-}
+# Periodic work is registered by the services that own it.  AI recovery and
+# artifact maintenance run in the independent AI scheduler.
+CELERY_BEAT_SCHEDULE = {}
 
 # NYCU OAuth settings
 NYCU_OAUTH_CLIENT_ID = os.getenv("NYCU_OAUTH_CLIENT_ID", "")
@@ -408,13 +409,43 @@ if os.getenv("DOCKER_SECCOMP_PROFILE") == "":
 # AI Service settings
 # URL for the AI Service container (LangChain DeepAgent)
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
-AI_SERVICE_INTERNAL_TOKEN = os.getenv(
-    "AI_SERVICE_INTERNAL_TOKEN",
-    os.getenv("AI_INTERNAL_TOKEN", ""),  # backward-compatible fallback
+AI_ACCESS_TOKEN_SECONDS = int(os.getenv("AI_ACCESS_TOKEN_SECONDS", "300"))
+AI_SERVICE_CONNECT_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_CONNECT_TIMEOUT_SECONDS", "3")
 )
-# AI Credit 換算：1 credit = SCALE_PER_CREDIT 份「美分 × 10⁻⁶」的模型成本
-# 預設 400_000 ≙ 0.4 美分/credit（Pro $20/月、~2000 credits 對應 ~$8 AI 成本、毛利 ~60%）
-AI_CREDIT_SCALE_PER_CREDIT = int(os.getenv("AI_CREDIT_SCALE_PER_CREDIT", "400000"))
+AI_SERVICE_READ_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_READ_TIMEOUT_SECONDS", "30")
+)
+AI_SERVICE_WRITE_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_WRITE_TIMEOUT_SECONDS", "10")
+)
+AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
+    os.getenv("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
+)
+# Exam integrity lifecycle services. Backend owns database state while the
+# dedicated Controller is the only service allowed to own the Docker socket.
+INTEGRITY_CONTROLLER_URL = os.getenv(
+    "INTEGRITY_CONTROLLER_URL", "http://integrity-controller:8010"
+)
+INTEGRITY_CONTROLLER_TOKEN_FILE = os.getenv(
+    "INTEGRITY_CONTROLLER_TOKEN_FILE", "/run-secrets/controller-token"
+)
+INTEGRITY_WORKER_IMAGE = os.getenv(
+    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:local"
+)
+INTEGRITY_WORKER_NETWORK = os.getenv(
+    "INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"
+)
+INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
+    "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
+    "/run-secrets/integrity-worker-signing-key",
+)
+INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")
+)
+INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = float(
+    os.getenv("INTEGRITY_WORKER_READ_TIMEOUT_SECONDS", "5.0")
+)
 
 # ---------------------------------------------------------------------------
 # S3-compatible object storage connection settings.
@@ -452,6 +483,16 @@ MARKDOWN_IMAGE_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
 
 # Per-feature bucket / size settings
 ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+INTEGRITY_ARCHIVE_BUCKET = os.getenv(
+    "INTEGRITY_ARCHIVE_BUCKET",
+    ANTICHEAT_RAW_BUCKET,
+)
+INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = int(
+    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES", "1073741824")
+)
+INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = int(
+    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES", "268435456")
+)
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
@@ -482,13 +523,3 @@ MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
     "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
     os.getenv("FRONTEND_URL", ""),
 ).strip()
-
-AI_ARTIFACT_S3_BUCKET = os.getenv("AI_ARTIFACT_S3_BUCKET", "ai-artifacts")
-AI_ARTIFACT_MAX_BYTES = int(os.getenv("AI_ARTIFACT_MAX_BYTES", "10485760"))  # 10 MB
-
-# Recur Payment settings
-RECUR_PUBLISHABLE_KEY = os.getenv("RECUR_PUBLISHABLE_KEY", "")
-RECUR_SECRET_KEY = os.getenv("RECUR_SECRET_KEY", "")
-RECUR_WEBHOOK_SECRET = os.getenv("RECUR_WEBHOOK_SECRET", "")
-RECUR_PRODUCT_PRO_ID = os.getenv("RECUR_PRODUCT_PRO_ID", "")
-RECUR_PRODUCT_TEAM_ID = os.getenv("RECUR_PRODUCT_TEAM_ID", "")

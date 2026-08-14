@@ -1,235 +1,104 @@
-QJudge 支援透過 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 讓 AI 工具直接管理您的考試題目與批改作業。連線後，您可以用自然語言請 AI 助手幫您出題、改卷、查看統計，無需手動操作網頁介面。
+# 讓 AI 工具連接 QJudge
 
-## 支援的 AI 工具
+MCP（Model Context Protocol）是一種讓 AI 工具呼叫外部系統功能的連線方式。對老師與助教而言，它的用途很直接：在熟悉的 AI 工具裡查詢教室、準備題目或協助批改，不必每次都切回 QJudge 網頁。
 
-| 工具 | 支援狀態 |
-|------|---------|
-| 支援 remote MCP 的 AI 工具 | 完整支援，直接貼上 `https://mcp.q-judge.com/mcp` |
-| [Claude Code](https://claude.ai/claude-code) | 完整支援（Streamable HTTP） |
-| [Cursor](https://cursor.com) | 完整支援 |
-| [Codex CLI](https://github.com/openai/codex) | 完整支援 |
-| [ChatGPT](https://chatgpt.com/) / Claude Desktop / VS Code 等支援 remote MCP 的工具 | 應可使用，流程類似 Notion 官方 MCP onboarding |
-| 其他 MCP 相容工具 | 應可使用（需支援 remote MCP 或 Streamable HTTP transport） |
+MCP 是選用功能。只使用 QJudge 網頁、提交與評測時，不需要設定它。
 
-## 前置條件
+## 開始前先確認兩件事
 
-- QJudge 帳號，且具有 **教師** 或 **助教** 權限
-- 已安裝上述任一 AI 工具
+第一，你的帳號需要有相對應的教室或競賽管理權限。MCP 不會繞過 QJudge 原本的權限檢查。
 
-MCP Server 將使用 OAuth 2.1 自動進行授權，無需手動產生 Token。
-
-## 快速連接
-
-如果您的 AI 工具有內建 MCP、Connectors 或 Integrations 設定頁，請優先使用這種方式，流程和 Notion 官方的「Connect through your AI tool」類似：
-
-1. 在工具設定中新增 custom / remote MCP server
-2. 貼上 QJudge MCP server URL
-3. 儲存設定並重新載入工具
-4. 第一次呼叫 QJudge 工具時，在瀏覽器完成 OAuth 登入與授權
+第二，向站台管理者取得 **QJudge MCP URL**。網址由每個部署單位決定，不一定是 QJudge 官方網域，通常會長得像：
 
 ```text
-https://mcp.q-judge.com/mcp
+https://mcp.example.edu/mcp
 ```
 
-這類流程通常適用於 ChatGPT、Claude Desktop、VS Code，以及其他支援 remote MCP 的客戶端。
+若你就是站台管理者，請先完成[加入選用功能](#/docs/deployment-options)中的「Remote MCP」與 HTTPS 設定。只在 QJudge 內部讓 AI Service 呼叫 MCP 時，不需要公開 HTTPS；要讓校外的 AI 工具連進來時，才需要可公開存取的 HTTPS 網址。
 
-## 安裝指南
+## 在 AI 工具中加入連線
 
-### Claude Code
+不同 AI 工具會把入口稱為 MCP、Connectors、Integrations 或 Tools，但設定流程大致相同：
 
-在終端機執行：
+1. 打開工具的 MCP 或整合設定。
+2. 新增一個 remote HTTP MCP server。
+3. 名稱填入 `qjudge`，網址填入管理者提供的 MCP URL。
+4. 儲存後重新載入工具。
+5. 第一次使用時，依瀏覽器畫面登入 QJudge 並同意授權。
 
-```bash
-claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
-```
-
-重啟 Claude Code 後，輸入 `/mcp` 確認 `qjudge` 出現在伺服器列表中。
-
-### Cursor
-
-在專案根目錄建立 `.cursor/mcp.json`：
+若工具使用 JSON 設定，常見的形式如下。實際欄位名稱仍以該工具當前版本的說明為準：
 
 ```json
 {
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "https://mcp.q-judge.com/mcp"
+      "url": "YOUR_QJUDGE_MCP_URL"
     }
   }
 }
 ```
 
-重啟 Cursor 後，在 Agent 模式中即可使用 QJudge 工具。
+不要把帳號密碼、access token 或 OAuth client secret 寫進這份設定。正常的 remote MCP 流程會在瀏覽器完成 OAuth 授權，再由 AI 工具管理自己的連線憑證。
 
-### Codex CLI
+## 第一次先做唯讀確認
 
-在終端機執行：
+連線完成後，不要一開始就請 AI 修改整場考試。先用一個容易核對的查詢確認帳號與權限：
 
-```bash
-codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
-```
+> 列出我可以管理的教室。
 
-## 如果你的工具不支援 remote MCP
+接著選一個測試教室，再問：
 
-若您的 AI 工具只能讀取本地 JSON 設定或 CLI 命令，請使用本頁提供的 Claude Code、Cursor、Codex CLI 範例。核心原則不變：所有客戶端最終都應指向同一個遠端 server URL：
+> 列出這個教室中的競賽，先不要修改任何內容。
 
-```text
-https://mcp.q-judge.com/mcp
-```
+如果看到的範圍正確，再開始新增題目或批改。這樣比較容易在真正變更資料前發現登入錯帳號、選錯站台或權限不足。
 
-## 自動授權流程
+## AI 可以使用哪些 QJudge 工具
 
-加入 MCP Server 後，您在第一次呼叫工具時，瀏覽器會自動開啟 QJudge 登入頁面。完成授權後，您的身份令牌將由 AI 工具安全保存；後續使用通常無需重複授權。
+實際工具清單會由 MCP Server 回傳。目前常用工具如下：
 
-## 可用工具
+| 工具 | 用途 |
+| --- | --- |
+| `qjudge_browse` | 尋找教室、競賽與工具說明 |
+| `qjudge_contest_manager` | 查看競賽、列出場內題目與調整順序 |
+| `qjudge_exam` | 新增、修改、刪除或匯入紙筆題 |
+| `preview_exam_problem` | 在修改前預覽紙筆題 |
+| `qjudge_coding_problems` | 新增、修改或刪除程式題 |
+| `qjudge_code_runner` | 使用題目已保存的測資執行程式碼 |
+| `qjudge_grading` | 查詢作答、查看統計與執行批改 |
 
-連線成功後，您的 AI 工具會看到多個 QJudge MCP 工具。實際工具名稱以 MCP 工具列表為準；目前常用工具如下：
+`qjudge_bank` 目前沒有開放成 MCP 工具。需要從題庫匯入紙筆題時，使用 `qjudge_exam` 的 `import_from_bank`。
 
-| 工具 | 用途 | 何時使用 |
-|------|------|----------|
-| `qjudge_browse` | 查詢教室、競賽與取得工具說明 | 還不知道 `classroom_id` 或 `contest_id` 時 |
-| `qjudge_contest_manager` | 查看競賽詳情、列出場內題目、重排題目 | 已知道 `contest_id`，要操作整場競賽時 |
-| `qjudge_exam` | 管理紙筆題考試題目 | 紙筆題單題新增、修改、刪除、批次新增、從題庫匯入 |
-| `qjudge_coding_problems` | 管理程式題題目資料 | 程式題單題新增、修改、刪除 |
-| `qjudge_code_runner` | 執行程式題測試 | 要用某段程式碼跑該題在系統內儲存的全部測資時 |
-| `qjudge_grading` | 查看作答與批改 | 查詢作答、看單題統計、批改、批量批改、撤銷批改 |
-| `preview_exam_problem` | 預覽紙筆題顯示效果 | 修改紙筆題前，想先確認學生看到的題目畫面 |
+## 用自然語言交代工作
 
-> 注意：`qjudge_bank` 目前沒有開放成 MCP 工具。題庫匯入目前走 `qjudge_exam` 的 `import_from_bank`，而不是直接用 MCP 管理題庫本身。
+你不必背工具名稱。先把範圍、目標與限制說清楚，AI 工具會依情況選擇 MCP 操作。例如：
 
-### 查詢教室與競賽：`qjudge_browse`
+- 「列出我管理的教室，只查詢，不要修改。」
+- 「找出演算法課的期中考，列出所有題目。」
+- 「先預覽一題 5 分的二元樹是非題，不要立刻新增。」
+- 「查看第五題尚未批改的作答，先整理常見答案。」
+- 「用這題系統內已有的測資執行這段 Python 程式。」
 
-常用 action：
+要新增、刪除或批量批改時，最好明確要求 AI 先整理預計變更，等你確認後再執行。MCP 仍會受 QJudge 權限與題目狀態限制，但最後的內容判斷仍由授課者負責。
 
-- `list_classrooms`：列出您管理的教室。
-- `get_classroom`：取得單一教室資訊。
-- `list_classroom_contests`：列出某個教室中的競賽或考試。
-- `list_contests`：列出您可管理的競賽。
-- `get_contest`：取得單一競賽資訊。
-- `get_help`：取得 MCP 工具使用說明。
+## 常見問題
 
-### 競賽層操作：`qjudge_contest_manager`
+### 找不到 MCP 設定
 
-常用 action：
+先確認目前使用的 AI 工具與版本是否支援 remote HTTP MCP。若只支援本機程序，就不能直接使用這個遠端連線方式；請改用支援 remote MCP 的客戶端，或向工具供應商查詢目前的設定方法。
 
-- `get_detail`：取得競賽詳情。
-- `list_problems`：列出競賽內的所有題目。
-- `reorder`：重排競賽題目順序。
+### 瀏覽器沒有出現登入頁
 
-如果您只是要「找某場考試」或「找某個教室」，請先用 `qjudge_browse`；已經知道 `contest_id` 後，再用 `qjudge_contest_manager`。
+重新載入 MCP 連線，確認網址包含正確的 `/mcp` 路徑，而且可以從你目前的網路開啟。若站台使用校園網路或 VPN，也要先連上相同網路。
 
-### 紙筆題管理：`qjudge_exam`
+### 出現 401、403 或授權失敗
 
-`qjudge_exam` 只用於 `paper_exam` 類型的競賽。場內題目列表與重排請改用 `qjudge_contest_manager`。
+401 通常表示登入或授權已失效，可以移除連線後重新授權。403 表示帳號已登入，但沒有操作該教室或競賽的權限；請向課程管理者確認，而不是把 token 貼到設定檔裡。
 
-常用 action：
+### AI 選錯工具
 
-- `get`：查看單一紙筆題。
-- `create`：新增單一紙筆題。
-- `update`：修改單一紙筆題。
-- `delete`：刪除單一紙筆題。
-- `batch_create`：批次新增紙筆題。
-- `import_from_bank`：從題庫匯入紙筆題。
+找教室或競賽時先用 `qjudge_browse`；列出場內題目用 `qjudge_contest_manager`；執行程式碼用 `qjudge_code_runner`。你也可以直接在提示中說明「先查詢競賽，再修改紙筆題」，讓步驟更清楚。
 
-支援題型包含是非、單選、多選、簡答與問答。選項請傳純文字，畫面會自動處理選項標號。
+### 我是站台管理者，連線仍失敗
 
-### 程式題管理：`qjudge_coding_problems`
-
-`qjudge_coding_problems` 只用於 `coding` 類型的競賽。這個工具只管理題目資料，不執行學生程式碼。
-
-常用 action：
-
-- `get`：查看單一程式題。
-- `create`：新增單一程式題。
-- `update`：修改單一程式題。
-- `delete`：刪除單一程式題。
-
-若要列出某場競賽的全部程式題，請用 `qjudge_contest_manager` 的 `list_problems`。
-
-### 程式碼執行：`qjudge_code_runner`
-
-`qjudge_code_runner` 用於對某一道程式題執行程式碼。它會跑該題在系統中儲存的全部測資，不是只跑 sample，也不支援傳入自訂測資。
-
-必要參數：
-
-- `problem_id`
-- `language`
-- `code`
-
-目前支援語言：
-
-- `cpp`
-- `c`
-- `python`
-- `java`
-
-### 作答查看與批改：`qjudge_grading`
-
-常用 action：
-
-- `list_answers`：列出學生作答，可依題目或參賽者篩選。
-- `question_detail`：查看單題作答分析與分布。
-- `dashboard`：查看整場考試的批改總覽。
-- `grade`：批改單一作答。
-- `batch_grade`：批量批改多份作答。
-- `ungrade`：撤銷批改結果。
-
-## 使用範例
-
-以下是一些您可以直接對 AI 說的指令：
-
-**查詢與瀏覽**
-- 「列出我的所有教室」
-- 「找到演算法這門課的期中考」
-- 「看一下第三題的內容」
-- 「列出這場考試的所有題目」
-
-**出題**
-- 「幫我在期中考新增一題關於二元樹的是非題，配分 5 分」
-- 「新增一題多選題，問 TCP 三向交握的步驟，選項有四個」
-- 「從題庫匯入 A+B Problem 到這場競賽」
-
-**程式題**
-- 「列出這場競賽的所有程式題」
-- 「新增一題程式題，題目是輸入兩個整數並輸出總和」
-- 「幫我跑一下這段 Python 程式，用這題系統內的測資測試」
-- 「把第二題的時間限制改成 2 秒」
-
-**批改**
-- 「看一下第五題的作答情況」
-- 「第五題的簡答題，答對關鍵字『遞迴』的給 8 分，其他給 4 分」
-- 「幫我批改所有還沒改的申論題」
-
-## 安全性說明
-
-- MCP 連線使用 **OAuth 2.1 with PKCE** 標準授權，無需手動產生或儲存 Token
-- 存取令牌由您的 AI 工具自動儲存與管理；實際儲存位置依工具而定
-- 存取令牌（Access Token）有效期為 1 小時，過期後會自動更新
-- 更新令牌（Refresh Token）有效期為 30 天，需重新授權
-- AI 工具只能存取您有管理權限的教室與競賽
-- 所有操作（出題、批改等）都會記錄在競賽活動日誌中
-
-## 疑難排解
-
-### 連線失敗
-
-- 確認 MCP Server URL 正確且可存取（應為 `https://mcp.q-judge.com/mcp`）
-- 確認您的帳號具有教師或助教權限
-- 若授權過期（Refresh Token 逾期），請重新執行安裝指令以重新授權
-
-### 權限被拒絕 (403)
-
-- 確認您是該競賽的擁有者或管理員
-- 如果題目已鎖定（學生已開始作答），部分修改操作會被禁止
-
-### 回應過大
-
-- 使用 `question_id` 參數篩選特定題目的作答，避免一次載入整場考試
-- 批量批改時使用 `batch_grade` 而非逐一呼叫 `grade`
-
-### 工具用錯
-
-- 如果 AI 嘗試用 `qjudge_exam` 列出全部題目，請改用 `qjudge_contest_manager` 的 `list_problems`。
-- 如果 AI 嘗試用 `qjudge_coding_problems` 執行程式碼，請改用 `qjudge_code_runner`。
-- 如果 AI 想直接管理題庫，請注意目前 `qjudge_bank` 未開放成 MCP 工具。
+依序確認公開 HTTPS、MCP URL、OAuth issuer 與 callback 是否一致，再查看服務日誌。部署端的檢查順序請見[部署故障排除](#/docs/deployment-troubleshooting)。

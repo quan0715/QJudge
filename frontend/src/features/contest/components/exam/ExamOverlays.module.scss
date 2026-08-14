@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .lockBackdrop {
   position: fixed;
   inset: 0;
@@ -5,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: layout.$spacing-07 layout.$spacing-05;
   background:
     radial-gradient(circle at 20% 20%, rgb(15 98 254 / 8%) 0%, transparent 38%),
     radial-gradient(circle at 80% 80%, rgb(218 30 40 / 8%) 0%, transparent 34%),
@@ -15,7 +16,7 @@
 
 .lockPanel {
   width: min(34rem, 100%);
-  padding: 2rem;
+  padding: layout.$spacing-07;
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-layer);
   box-shadow: 0 1.5rem 3rem rgb(0 0 0 / 26%);
@@ -24,7 +25,7 @@
 .lockHeader {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: layout.$spacing-05;
 }
 
 .lockIconWrap {
@@ -51,7 +52,7 @@
 }
 
 .lockReason {
-  margin: 0.5rem 0 0;
+  margin: layout.$spacing-03 0 0;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
@@ -59,7 +60,7 @@
 
 .countdownSection {
   margin-top: 1.75rem;
-  padding: 1.25rem 1rem;
+  padding: 1.25rem layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-layer-accent-01);
 }
@@ -73,7 +74,7 @@
 }
 
 .countdownValue {
-  margin: 0.5rem 0 0;
+  margin: layout.$spacing-03 0 0;
   color: var(--cds-support-success);
   font-size: 2rem;
   font-family: "IBM Plex Mono", monospace;
@@ -83,7 +84,7 @@
 
 .noticeSection {
   margin-top: 1.75rem;
-  padding: 1rem;
+  padding: layout.$spacing-05;
   border-left: 0.25rem solid var(--cds-border-interactive);
   background: var(--cds-layer-accent-01);
 }
@@ -105,7 +106,7 @@
 }
 
 .actionHint {
-  margin: 0.75rem 0 0;
+  margin: layout.$spacing-04 0 0;
   color: var(--cds-text-secondary);
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -113,7 +114,7 @@
 
 @media (max-width: 42rem) {
   .lockPanel {
-    padding: 1.5rem;
+    padding: layout.$spacing-06;
   }
 
   .lockTitle {

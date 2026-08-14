@@ -16,6 +16,7 @@ import { httpClient } from "@/infrastructure/api/http.client";
 
 const BASE_URL = "/api/v1/ai/sessions";
 const AI_BASE = "/api/v1/ai";
+const OPTIONAL_AI_READ_OPTIONS = { suppressGlobalError: true } as const;
 
 // ===== v2 SSE event shape from ai-service =====
 interface V2StreamEvent {
@@ -42,7 +43,6 @@ interface V2StreamEvent {
 
   // run_started
   run_id?: string;
-  thread_id?: string;
 
   // agent_message_delta
   content?: string;
@@ -65,7 +65,6 @@ interface V2StreamEvent {
   // usage_report
   input_tokens?: number;
   output_tokens?: number;
-  cost_cents?: number;
   model_used?: string;
 
   // run_failed
@@ -90,7 +89,9 @@ interface V2StreamEvent {
 
 // ===== Backend response types =====
 interface BackendMessage {
-  id: number;
+  id?: string | number;
+  session_id?: string;
+  ordinal?: number;
   role: string;
   content: string;
   message_type: string;
@@ -120,7 +121,7 @@ interface BackendSession {
   title: string;
   messages: BackendMessage[];
   // 後端 AISessionSerializer 會帶 context（含 task_manifest）。沒 pipe 過來的話，
-  // useChatbot.init 背景 lazy-load 會用沒 context 的 detail 覆寫 sessions list 裡
+  // session detail 背景 lazy-load 會用沒 context 的 detail 覆寫 sessions list 裡
   // 帶 task_manifest 的項目，useTaskSession.findLatestTaskSession 就找不到匹配 →
   // AI Grading auto-bind 永遠失敗。
   context?: Record<string, unknown> | null;
@@ -144,8 +145,8 @@ interface BackendRun {
     options?: string[];
     input_type?: string;
   };
-  user_message_id?: number;
-  assistant_message_id?: number;
+  user_message_id?: string | number;
+  assistant_message_id?: string | number;
   error?: string;
 }
 
@@ -389,7 +390,23 @@ function extractTodoItemsFromEvent(event: V2StreamEvent): RunTodoItem[] | undefi
   );
 }
 
-function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
+function toMessageId(backendMsg: BackendMessage, sessionId: string): string {
+  const ordinal =
+    backendMsg.ordinal ??
+    (typeof backendMsg.id === "number"
+      ? backendMsg.id
+      : typeof backendMsg.id === "string" && /^\d+$/.test(backendMsg.id)
+        ? Number(backendMsg.id)
+        : undefined);
+  if (ordinal !== undefined) return `${sessionId}:${ordinal}`;
+  if (backendMsg.id !== undefined) return String(backendMsg.id);
+  throw new Error("AI message is missing its aggregate identity");
+}
+
+function convertBackendMessage(
+  backendMsg: BackendMessage,
+  sessionId: string,
+): ChatMessage {
   const metadata = backendMsg.metadata ?? {};
   const thinking =
     typeof metadata.thinking === "string" ? metadata.thinking : undefined;
@@ -438,7 +455,7 @@ function convertBackendMessage(backendMsg: BackendMessage): ChatMessage {
     .map((o) => ({ label: String(o.label), message: String(o.message) }));
 
   return {
-    id: backendMsg.id.toString(),
+    id: toMessageId(backendMsg, sessionId),
     role: backendMsg.role as "user" | "assistant",
     content: backendMsg.content,
     timestamp: new Date(backendMsg.created_at),
@@ -478,20 +495,50 @@ async function requestJson<T>(
   try {
     const response = await fetchPromise;
     if (!response.ok) {
-      const error = new Error(errorMessage) as Error & { response?: Response };
+      let envelope: unknown;
+      try {
+        envelope = await response.clone().json();
+      } catch {
+        envelope = undefined;
+      }
+      const upstreamMessage =
+        envelope &&
+        typeof envelope === "object" &&
+        "error" in envelope &&
+        envelope.error &&
+        typeof envelope.error === "object" &&
+        "message" in envelope.error &&
+        typeof envelope.error.message === "string"
+          ? envelope.error.message
+          : undefined;
+      const error = new Error(upstreamMessage ?? errorMessage) as Error & {
+        response?: Response;
+        envelope?: unknown;
+      };
       error.response = response;
+      error.envelope = envelope;
       throw error;
     }
     return response.json();
   } catch (error: unknown) {
     const httpError = error as Error & { response?: Response };
-    if (httpError.response?.status === 401)
-      throw new Error("請先登入以使用 AI 助教功能");
-    if (httpError.response?.status === 403) throw new Error("無權存取此對話");
-    if (httpError.response?.status === 404)
-      throw new Error("對話不存在或已被刪除");
-    if (httpError.response?.status === 426)
-      throw new Error("請更新前端版本以使用 AI 助教功能");
+    const status = httpError.response?.status;
+    const localizedMessage =
+      status === 401
+        ? "請先登入以使用 AI 助教功能"
+        : status === 403
+          ? "無權存取此對話"
+          : status === 404
+            ? "對話不存在或已被刪除"
+            : status === 426
+              ? "請更新前端版本以使用 AI 助教功能"
+              : undefined;
+    if (localizedMessage) {
+      throw Object.assign(new Error(localizedMessage), { status });
+    }
+    if (status !== undefined) {
+      Object.assign(httpError, { status });
+    }
     throw error;
   }
 }
@@ -504,7 +551,7 @@ const chatbotRepository: ChatbotRepository = {
 
     while (nextUrl) {
       const response: PaginatedResponse<BackendSessionListItem> = await requestJson(
-        httpClient.get(nextUrl),
+        httpClient.get(nextUrl, OPTIONAL_AI_READ_OPTIONS),
         "無法載入對話列表"
       );
       sessions.push(...(response.results || []));
@@ -532,10 +579,15 @@ const chatbotRepository: ChatbotRepository = {
 
   async getSession(sessionId: string | number): Promise<ChatSession> {
     const data = await requestJson<BackendSession>(
-      httpClient.get(`${BASE_URL}/${sessionId.toString()}/`),
+      httpClient.get(
+        `${BASE_URL}/${sessionId.toString()}/`,
+        OPTIONAL_AI_READ_OPTIONS,
+      ),
       "無法載入對話"
     );
-    const messages: ChatMessage[] = (data.messages || []).map(convertBackendMessage);
+    const messages: ChatMessage[] = (data.messages || []).map((message) =>
+      convertBackendMessage(message, data.session_id),
+    );
     return {
       id: data.session_id,
       title: data.title,
@@ -606,7 +658,7 @@ const chatbotRepository: ChatbotRepository = {
 
   async getModels(): Promise<ModelInfo[]> {
     const data = await requestJson<{ models: ModelInfo[] }>(
-      httpClient.get(`${AI_BASE}/models/`),
+      httpClient.get(`${AI_BASE}/models/`, OPTIONAL_AI_READ_OPTIONS),
       "無法載入模型列表"
     );
     return data.models;
@@ -618,10 +670,16 @@ const chatbotRepository: ChatbotRepository = {
     options?: SendMessageOptions
   ): Promise<ChatRun> {
     const data = await requestJson<BackendRun>(
-      httpClient.post(`${BASE_URL}/${sessionId.toString()}/runs/`, {
-        content,
-        model_id: options?.modelOverride,
-      }),
+      httpClient.post(
+        `${BASE_URL}/${sessionId.toString()}/runs/`,
+        {
+          content,
+          model_id: options?.modelOverride,
+        },
+        options?.idempotencyKey
+          ? { headers: { "Idempotency-Key": options.idempotencyKey } }
+          : undefined,
+      ),
       "無法建立 AI 任務"
     );
     return convertBackendRun(data);
@@ -629,7 +687,10 @@ const chatbotRepository: ChatbotRepository = {
 
   async getActiveRuns(): Promise<ChatRun[]> {
     const response = await requestJson<PaginatedResponse<BackendRun>>(
-      httpClient.get(`${AI_BASE}/runs/?status=active`),
+      httpClient.get(
+        `${AI_BASE}/runs/?status=active`,
+        OPTIONAL_AI_READ_OPTIONS,
+      ),
       "無法載入進行中的 AI 任務"
     );
     return (response.results || []).map(convertBackendRun);
@@ -693,7 +754,6 @@ const chatbotRepository: ChatbotRepository = {
               currentMessage,
               callbacks,
               run.sessionId,
-              () => {}
             );
           } catch (e) {
             console.debug("Failed to parse run event:", e);
@@ -711,7 +771,6 @@ const chatbotRepository: ChatbotRepository = {
             currentMessage,
             callbacks,
             run.sessionId,
-            () => {}
           );
         } catch (e) {
           console.debug("Failed to parse final run event:", e);
@@ -755,37 +814,40 @@ const chatbotRepository: ChatbotRepository = {
     currentMessage: Partial<ChatMessage>,
     callbacks: StreamCallbacks,
     resolvedSessionId: string,
-    setResolvedId: (id: string) => void
   ) {
-    if (typeof event.seq === "number") {
-      currentMessage.lastEventSeq = event.seq;
-    }
+    const resumeSequence =
+      typeof event.seq === "number" ? event.seq : undefined;
+    if (resumeSequence !== undefined) currentMessage.lastEventSeq = resumeSequence;
+    const notify = <Value>(
+      callback:
+        | ((value: Value, callbackResumeSequence?: number) => void)
+        | undefined,
+      value: Value,
+    ) => {
+      if (resumeSequence === undefined) callback?.(value);
+      else callback?.(value, resumeSequence);
+    };
     applyRunStatusToCurrentMessage(event, currentMessage);
 
     const todoItems = extractTodoItemsFromEvent(event);
     if (todoItems) {
       currentMessage.todoItems = todoItems;
-      callbacks.onTodoItemsUpdate?.(todoItems);
+      notify(callbacks.onTodoItemsUpdate, todoItems);
     }
 
     switch (event.type) {
       // ===== v2 Events =====
       case "run_started":
-        console.debug("SSE: run_started", { runId: event.run_id, threadId: event.thread_id });
-        // DeepAgent v2 uses thread_id as the canonical session id.
-        // For newly created chats, this replaces the temporary backend session id.
-        if (event.thread_id) {
-          setResolvedId(event.thread_id);
-        }
+        console.debug("SSE: run_started", { runId: event.run_id });
         break;
 
       case "summarization_started": {
-        callbacks.onSessionNotice?.("對話過長，截取摘要中");
+        notify(callbacks.onSessionNotice, "對話過長，截取摘要中");
         break;
       }
 
       case "summarization_ended": {
-        callbacks.onSessionNotice?.(null);
+        notify(callbacks.onSessionNotice, null);
         break;
       }
 
@@ -805,13 +867,13 @@ const chatbotRepository: ChatbotRepository = {
           currentMessage.content = commandResult.displayText;
           if (commandResult.todoItems) {
             currentMessage.todoItems = commandResult.todoItems;
-            callbacks.onTodoItemsUpdate?.(commandResult.todoItems);
+            notify(callbacks.onTodoItemsUpdate, commandResult.todoItems);
           }
           const messageUpdate = { ...currentMessage } as Partial<ChatMessage> & {
             rawAgentContent?: string;
           };
           delete messageUpdate.rawAgentContent;
-          callbacks.onMessageUpdate?.(messageUpdate);
+          notify(callbacks.onMessageUpdate, messageUpdate);
         }
         break;
 
@@ -822,7 +884,7 @@ const chatbotRepository: ChatbotRepository = {
             thinking: prevThinking + event.content,
             signature: "",
           };
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
         break;
 
@@ -837,8 +899,8 @@ const chatbotRepository: ChatbotRepository = {
           ...(currentMessage.verificationReports || []),
           report,
         ];
-        callbacks.onVerificationReport?.(report);
-        callbacks.onMessageUpdate?.({ ...currentMessage });
+        notify(callbacks.onVerificationReport, report);
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
         break;
       }
 
@@ -858,7 +920,12 @@ const chatbotRepository: ChatbotRepository = {
           }
 
           currentMessage.toolName = displayToolName;
-          callbacks.onMessageUpdate?.({ ...currentMessage });
+          notify(callbacks.onToolStarted, {
+            toolName: displayToolName,
+            ...(event.tool_call_id ? { toolCallId: event.tool_call_id } : {}),
+            ...(event.input_data ? { inputData: event.input_data } : {}),
+          });
+          notify(callbacks.onMessageUpdate, { ...currentMessage });
         }
         break;
 
@@ -901,7 +968,7 @@ const chatbotRepository: ChatbotRepository = {
           toolInfo,
         ];
         currentMessage.toolName = undefined;
-        callbacks.onMessageUpdate?.({ ...currentMessage });
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
         break;
       }
 
@@ -909,70 +976,85 @@ const chatbotRepository: ChatbotRepository = {
         console.debug("SSE: usage_report", {
           inputTokens: event.input_tokens,
           outputTokens: event.output_tokens,
-          costCents: event.cost_cents,
           modelUsed: event.model_used,
         });
         break;
 
       case "run_completed": {
         console.debug("SSE: run_completed", { runId: event.run_id });
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        notify(callbacks.onRunStatus, "completed");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         if (event.next_turn_options?.length) {
-          callbacks.onNextTurnOptions?.(
+          notify(
+            callbacks.onNextTurnOptions,
             event.next_turn_options.map((o) => ({
               label: o.label,
               message: o.message,
-            }))
+            })),
           );
         }
         // Fetch fresh session
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_completed:", err);
-            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
         break;
       }
 
       case "run_cancelled": {
         console.debug("SSE: run_cancelled", { runId: event.run_id });
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        notify(callbacks.onRunStatus, "cancelled");
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_cancelled:", err);
-            callbacks.onError?.("對話同步失敗，請重新整理後再試");
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
         break;
       }
 
-      case "run_failed":
+      case "run_failed": {
         console.debug("SSE: run_failed", {
           errorCode: event.error_code,
           message: event.message,
         });
+        const runFailureMessage = toRunFailureMessage(
+          event.error_code,
+          event.message,
+        );
         currentMessage.runStatus = "failed";
+        notify(callbacks.onRunStatus, "failed");
         currentMessage.isThinking = false;
-        currentMessage.runError = toRunFailureMessage(event.error_code, event.message);
-        callbacks.onMessageUpdate?.({ ...currentMessage });
-        callbacks.onSessionNotice?.(null);
-        callbacks.onTodoItemsUpdate?.(null);
+        currentMessage.runError = runFailureMessage;
+        notify(callbacks.onMessageUpdate, { ...currentMessage });
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onTodoItemsUpdate, null);
         this.getSession(resolvedSessionId)
-          .then((freshSession: ChatSession) => callbacks.onComplete?.(freshSession))
+          .then((freshSession: ChatSession) =>
+            notify(callbacks.onComplete, freshSession),
+          )
           .catch((err: Error) => {
             console.warn("Failed to fetch session after run_failed:", err);
+            notify(callbacks.onError, "對話同步失敗，請重新整理後再試");
           });
-        callbacks.onError?.(toRunFailureMessage(event.error_code, event.message));
         break;
+      }
 
       case "awaiting_approval": {
         // Run may pause for a long time before run_completed; clear transient notices (e.g. summarization).
-        callbacks.onSessionNotice?.(null);
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onRunStatus, "awaiting_approval");
         if (event.action_requests?.length) {
-          callbacks.onAwaitingApproval?.({
+          notify(callbacks.onAwaitingApproval, {
             actionRequests: event.action_requests.map((a) => ({
               name: a.name,
               args: a.args,
@@ -987,9 +1069,10 @@ const chatbotRepository: ChatbotRepository = {
       }
 
       case "awaiting_user_answer": {
-        callbacks.onSessionNotice?.(null);
+        notify(callbacks.onSessionNotice, null);
+        notify(callbacks.onRunStatus, "awaiting_user_answer");
         if (event.question) {
-          callbacks.onAwaitingUserAnswer?.({
+          notify(callbacks.onAwaitingUserAnswer, {
             question: event.question,
             options: event.options,
             inputType: (event.input_type as "text" | "choice") ?? "text",
@@ -1010,7 +1093,6 @@ const chatbotRepository: ChatbotRepository = {
     currentMessage: Partial<ChatMessage>,
     callbacks: StreamCallbacks,
     resolvedSessionId: string,
-    setResolvedId: (id: string) => void
   ) => void;
 };
 

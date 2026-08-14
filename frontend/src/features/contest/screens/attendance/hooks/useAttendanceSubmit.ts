@@ -7,8 +7,8 @@ import type {
 import { getAttendanceErrorMessage } from "@/features/contest/attendance/attendanceErrorMessages";
 import { createAttendanceEvent } from "@/infrastructure/api/repositories/attendance.repository";
 import {
-  confirmEvidenceUpload,
-  createEvidenceUploadIntent,
+  confirmAttendanceEvidence,
+  createAttendanceEvidenceIntent,
 } from "@/infrastructure/api/repositories/exam.repository";
 
 import type { AttendancePhotoRequirement, AttendanceTranslate } from "../lib/photoRequirements";
@@ -93,7 +93,7 @@ export function useAttendanceSubmit({
               },
         );
         const capturedAt = Date.now();
-        const intent = await createEvidenceUploadIntent(contestId, {
+        const intent = await createAttendanceEvidenceIntent(contestId, {
           event_id: event.event_id,
           evidence_cluster_id: event.evidence_cluster_id,
           source_module: "attendance",
@@ -139,7 +139,7 @@ export function useAttendanceSubmit({
             byte_size: photo.blob.size,
           });
         }
-        await confirmEvidenceUpload(contestId, {
+        await confirmAttendanceEvidence(contestId, {
           event_id: event.event_id,
           upload_session_id: intent.upload_session_id,
           frames: confirmed,

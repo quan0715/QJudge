@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button, Dropdown } from "@carbon/react";
 import { Send, Play, Add } from "@carbon/icons-react";
 import { QJudgeEditor } from "@/shared/ui/editor/QJudgeEditor";
-import { TestCaseList } from "@/features/problems/components/common/TestCaseList";
+import { ProblemTestCaseEditor } from "@/features/problems/components/common/ProblemTestCaseEditor";
 import { type TestCaseItem } from "@/core/entities/testcase.entity";
 import { type LanguageConfig } from "@/core/entities/problem.entity";
 import ContainerCard from "@/shared/layout/ContainerCard";
@@ -138,7 +138,7 @@ const ProblemCodingTab: React.FC<ProblemCodingTabProps> = ({
         padding="none"
       >
         <div className="problem-coding-tab__test-cases-container">
-          <TestCaseList
+          <ProblemTestCaseEditor
             mode="solver"
             items={testCases}
             onAdd={(input, output) => onAddTestCase(input, output)}

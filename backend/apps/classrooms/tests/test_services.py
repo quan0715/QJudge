@@ -155,7 +155,6 @@ def test_create_classroom_contest_binds_and_registers_members(
             "contest_type": "paper_exam",
             "start_time": None,
             "end_time": None,
-            "visibility": "private",
             "attendance_check_enabled": True,
             "cheat_detection_enabled": True,
             "allow_multiple_joins": False,

@@ -79,7 +79,7 @@ export const buildCodingProgressSummary = (
   const totalItems = contest.problems?.length || 0;
   const maxScore =
     contest.problems?.reduce(
-      (sum, problem) => sum + (problem.maxScore ?? problem.score ?? 0),
+      (sum, problem) => sum + (problem.maxScore ?? 0),
       0,
     ) ||
     0;

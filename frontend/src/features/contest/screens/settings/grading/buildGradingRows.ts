@@ -6,9 +6,12 @@
  * (backend `?projection=grading`) so this now joins question info via
  * `questions` and participant names via `participantMap`.
  */
-import type { ExamQuestion } from "@/core/entities/contest.entity";
+import type {
+  ExamQuestion,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import type { ExamAnswerGrading } from "@/infrastructure/api/repositories/examAnswers.repository";
-import type { GradingAnswerRow, QuestionType } from "./gradingTypes";
+import type { GradingAnswerRow } from "./gradingTypes";
 
 export function buildGradingRows(
   allAnswers: ExamAnswerGrading[],
@@ -23,7 +26,7 @@ export function buildGradingRows(
   return allAnswers.map((a) => {
     const q = questionsMap.get(a.questionId);
     const qIdx = q ? q.order : 0;
-    const qType = (q?.questionType ?? "short_answer") as QuestionType;
+    const qType: ExamQuestionType = q?.questionType ?? "short_answer";
     const isAuto =
       qType === "true_false" ||
       qType === "single_choice" ||

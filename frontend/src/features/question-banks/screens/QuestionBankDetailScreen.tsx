@@ -9,7 +9,6 @@ import {
   FluidDropdown,
   Loading,
   Stack,
-  Tag,
   Tile,
 } from "@carbon/react";
 import {
@@ -17,14 +16,12 @@ import {
   ArrowLeft,
   Document,
   Download,
-  Microscope,
   Settings,
   Tag as TagIcon,
 } from "@carbon/icons-react";
 import { FilterPopover } from "@/shared/ui/filter/FilterPopover";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { SettingsModal } from "@/shared/ui/modal/SettingsModal";
-import { Section, FieldRow } from "@/shared/layout/SettingsPanel";
 import { useToast } from "@/shared/contexts";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import type { UpsertBankQuestionPayload } from "@/core/ports/questionBank.repository";
@@ -32,25 +29,21 @@ import {
   createQuestion,
   deleteQuestion,
   getBank,
-  listMine,
   listQuestions,
-  review as reviewQuestionBank,
-  submitForReview,
 } from "@/infrastructure/api/repositories/questionBank.repository";
 import { getClassroomIcon } from "@/features/classroom/constants/classroomIcons";
-import { useAuth } from "@/features/auth";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
 import { QuestionBankSettingsGeneralPanel } from "@/features/question-banks/components/QuestionBankSettingsGeneralPanel";
 import { ImportInboxModal } from "@/features/question-banks/components/ImportInboxModal";
-import QuestionBankProblemManagementPanel from "./QuestionBankProblemManagementPanel";
-import QuestionEditModal from "./QuestionEditModal";
+import QuestionBankProblemManagementPanel from "@/features/question-banks/components/QuestionBankProblemManagementPanel";
+import QuestionEditModal from "@/features/question-banks/components/QuestionEditModal";
 import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import {
   resolveExamQuestionType,
   toExamBankPayload,
   type QuestionFilterState,
   type QuestionSortKey,
-} from "./questionBankProblemManagement.utils";
+} from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import styles from "./QuestionBankDetailScreen.module.scss";
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
@@ -62,15 +55,10 @@ const QuestionBankDetailScreen = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("common");
   const { showToast } = useToast();
-  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [bank, setBank] = useState<QuestionBank | null>(null);
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
-  const [isExplore, setIsExplore] = useState(false);
-
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewing, setReviewing] = useState<"approve" | "reject" | null>(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const [filterState, setFilterState] = useState<QuestionFilterState>({
@@ -119,18 +107,12 @@ const QuestionBankDetailScreen = () => {
     () => t("examEditor.questionList", "題目列表"),
     [t]
   );
-  const isAdmin = user?.role === "admin";
-  const canEditSettings = !isExplore || isAdmin;
-
   const loadData = useCallback(async () => {
     if (!bankId) return;
     try {
       setLoading(true);
-      const [target, mine] = await Promise.all([getBank(bankId), listMine()]);
+      const target = await getBank(bankId);
       setBank(target);
-
-      const owned = mine.some((item) => item.id === bankId);
-      setIsExplore(!owned);
 
       const rows = await listQuestions(target.id);
       setQuestions(rows);
@@ -297,53 +279,6 @@ const QuestionBankDetailScreen = () => {
     }
   }, [bankId]);
 
-  const handleSubmitForReview = async () => {
-    if (!bank) return;
-    try {
-      setSubmittingReview(true);
-      const updated = await submitForReview(bank.id);
-      setBank(updated);
-      showToast({
-        kind: "success",
-        title: t("message.success"),
-        subtitle: t("questionBank.submitForReviewSuccess", "已送出審核"),
-      });
-    } catch (error: unknown) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: getErrorMessage(error, t("message.error")),
-      });
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const handleAdminReview = async (decision: "approve" | "reject") => {
-    if (!bank || !isAdmin) return;
-    try {
-      setReviewing(decision);
-      const updated = await reviewQuestionBank(bank.id, { decision });
-      setBank(updated);
-      showToast({
-        kind: "success",
-        title: t("message.success"),
-        subtitle:
-          decision === "approve"
-            ? t("questionBank.reviewApproved", "已核准上架")
-            : t("questionBank.reviewRejected", "已退回題庫"),
-      });
-    } catch (error: unknown) {
-      showToast({
-        kind: "error",
-        title: t("message.error"),
-        subtitle: getErrorMessage(error, t("message.error")),
-      });
-    } finally {
-      setReviewing(null);
-    }
-  };
-
   if (loading && !bank) {
     return (
       <div className={styles.loadingWrap}>
@@ -388,7 +323,7 @@ const QuestionBankDetailScreen = () => {
           <div className={styles.localToolbarLeft}>
             <Breadcrumb noTrailingSlash className={styles.breadcrumb}>
               <BreadcrumbItem>
-                <Link to="/marketplace">{t("nav.marketplace", "Marketplace")}</Link>
+                <Link to="/dashboard">{t("nav.dashboard", "首頁")}</Link>
               </BreadcrumbItem>
               <BreadcrumbItem isCurrentPage>
                 {bank.name}
@@ -471,51 +406,45 @@ const QuestionBankDetailScreen = () => {
                 }
               />
             </FilterPopover>
-            {canEditSettings && (
-              <Button
-                kind="ghost"
-                size="md"
-                hasIconOnly
-                renderIcon={Download}
-                iconDescription={t("questionBank.importFromInbox", "匯入草稿")}
-                tooltipPosition="bottom"
-                tooltipAlignment="center"
-                onClick={() => setImportInboxOpen(true)}
-                className={styles.localToolbarIconButton}
-              />
-            )}
-            {canEditSettings && (
-              <Button
-                kind="ghost"
-                size="md"
-                hasIconOnly
-                renderIcon={Add}
-                iconDescription={t("questionBank.addQuestion", "新增題目")}
-                tooltipPosition="bottom"
-                tooltipAlignment="center"
-                onClick={() => {
-                  if (bank.category === "exam") {
-                    setExamTypePickerOpen(true);
-                  } else {
-                    void handleCreateCodingQuestionFromHeader();
-                  }
-                }}
-                className={styles.localToolbarIconButton}
-              />
-            )}
-            {canEditSettings && (
-              <Button
-                kind="ghost"
-                size="md"
-                hasIconOnly
-                renderIcon={Settings}
-                iconDescription={t("tab.settings", "設定")}
-                tooltipPosition="bottom"
-                tooltipAlignment="center"
-                onClick={() => setSettingsModalOpen(true)}
-                className={styles.localToolbarIconButton}
-              />
-            )}
+            <Button
+              kind="ghost"
+              size="md"
+              hasIconOnly
+              renderIcon={Download}
+              iconDescription={t("questionBank.importFromInbox", "匯入草稿")}
+              tooltipPosition="bottom"
+              tooltipAlignment="center"
+              onClick={() => setImportInboxOpen(true)}
+              className={styles.localToolbarIconButton}
+            />
+            <Button
+              kind="ghost"
+              size="md"
+              hasIconOnly
+              renderIcon={Add}
+              iconDescription={t("questionBank.addQuestion", "新增題目")}
+              tooltipPosition="bottom"
+              tooltipAlignment="center"
+              onClick={() => {
+                if (bank.category === "exam") {
+                  setExamTypePickerOpen(true);
+                } else {
+                  void handleCreateCodingQuestionFromHeader();
+                }
+              }}
+              className={styles.localToolbarIconButton}
+            />
+            <Button
+              kind="ghost"
+              size="md"
+              hasIconOnly
+              renderIcon={Settings}
+              iconDescription={t("tab.settings", "設定")}
+              tooltipPosition="bottom"
+              tooltipAlignment="center"
+              onClick={() => setSettingsModalOpen(true)}
+              className={styles.localToolbarIconButton}
+            />
           </div>
         )}
       />
@@ -526,11 +455,6 @@ const QuestionBankDetailScreen = () => {
           description={bank.description || t("message.noData", "暫無資料")}
           icon={HeroWidgetIcon}
           coverUrl={bank.coverUrl || undefined}
-          badges={
-            isExplore ? (
-              <Tag type="blue">{t("questionBank.tabs.explore", "探索題庫")}</Tag>
-            ) : undefined
-          }
           kpiCards={
             <>
               <KpiCard
@@ -566,106 +490,26 @@ const QuestionBankDetailScreen = () => {
         />
 
         {/* Settings Modal */}
-        {canEditSettings && (
-          <SettingsModal
-            open={settingsModalOpen}
-            onRequestClose={() => setSettingsModalOpen(false)}
-            modalHeading={t("tab.settings", "設定")}
-            navItems={[
-              { id: "general", label: t("questionBank.basicInfo", "基本資訊"), icon: Settings },
-              { id: "review", label: t("questionBank.publishReview", "上架審核"), icon: Microscope },
-            ]}
-            renderPanel={(activeId) => {
-              if (activeId === "general") {
-                return (
-                  <QuestionBankSettingsGeneralPanel
-                    bank={bank}
-                    onRefresh={handleRefreshBank}
-                  />
-                );
-              }
-              if (activeId === "review") {
-                return (
-                  <Section title={t("questionBank.publishReview", "上架審核")}>
-                    <FieldRow
-                      label={t("questionBank.currentReviewStatus", "目前狀態")}
-                      description={t("questionBank.reviewHint", "教師送審後由 Admin 核准上架 Marketplace")}
-                    >
-                      <Tag
-                        type={
-                          bank.reviewStatus === "approved"
-                            ? "green"
-                            : bank.reviewStatus === "pending"
-                            ? "purple"
-                            : "gray"
-                        }
-                      >
-                        {bank.reviewStatus === "approved"
-                          ? t("questionBank.reviewStatus.approved", "已核准")
-                          : bank.reviewStatus === "pending"
-                          ? t("questionBank.reviewStatus.pending", "審核中")
-                          : bank.reviewStatus === "rejected"
-                          ? t("questionBank.reviewStatus.rejected", "已退回")
-                          : t("questionBank.reviewStatus.draft", "草稿")}
-                      </Tag>
-                    </FieldRow>
-                    {!isAdmin && (
-                      <Button
-                        kind="tertiary"
-                        disabled={submittingReview || bank.reviewStatus === "pending"}
-                        onClick={() => {
-                          void handleSubmitForReview();
-                        }}
-                      >
-                        {submittingReview
-                          ? t("questionBank.submittingReview", "送審中...")
-                          : t("questionBank.submitForReview", "送審上架")}
-                      </Button>
-                    )}
-                    {isAdmin && bank.reviewStatus === "pending" && (
-                      <div style={{ display: "flex", gap: "0.75rem" }}>
-                        <Button
-                          kind="primary"
-                          disabled={reviewing !== null}
-                          onClick={() => {
-                            void handleAdminReview("approve");
-                          }}
-                        >
-                          {reviewing === "approve"
-                            ? t("questionBank.approving", "核准中...")
-                            : t("questionBank.approve", "核准上架")}
-                        </Button>
-                        <Button
-                          kind="danger--tertiary"
-                          disabled={reviewing !== null}
-                          onClick={() => {
-                            void handleAdminReview("reject");
-                          }}
-                        >
-                          {reviewing === "reject"
-                            ? t("questionBank.rejecting", "退回中...")
-                            : t("questionBank.reject", "退回")}
-                        </Button>
-                      </div>
-                    )}
-                  </Section>
-                );
-              }
-              return null;
-            }}
-          />
-        )}
+        <SettingsModal
+          open={settingsModalOpen}
+          onRequestClose={() => setSettingsModalOpen(false)}
+          modalHeading={t("tab.settings", "設定")}
+          navItems={[
+            { id: "general", label: t("questionBank.basicInfo", "基本資訊"), icon: Settings },
+          ]}
+          renderPanel={() => (
+            <QuestionBankSettingsGeneralPanel bank={bank} onRefresh={handleRefreshBank} />
+          )}
+        />
 
         {/* Import Inbox Modal (controlled from header) */}
-        {canEditSettings && (
-          <ImportInboxModal
-            open={importInboxOpen}
-            onClose={() => setImportInboxOpen(false)}
-            bankId={bank.id}
-            bankCategory={bank.category}
-            onIngested={() => void loadData()}
-          />
-        )}
+        <ImportInboxModal
+          open={importInboxOpen}
+          onClose={() => setImportInboxOpen(false)}
+          bankId={bank.id}
+          bankCategory={bank.category}
+          onIngested={() => void loadData()}
+        />
       </main>
 
       {/* Question Edit Modal */}

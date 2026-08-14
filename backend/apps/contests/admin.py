@@ -10,6 +10,8 @@ from .models import (
     ExamQuestion,
     ExamQuestionGroup,
     ExamAnswer,
+    ExamEvidenceChunk,
+    ExamIntegrityRun,
 )
 
 
@@ -22,8 +24,8 @@ class ContestParticipantInline(admin.TabularInline):
 
 @admin.register(Contest)
 class ContestAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_time', 'end_time', 'owner', 'visibility', 'status']
-    list_filter = ['visibility', 'status', 'start_time']
+    list_display = ['name', 'start_time', 'end_time', 'owner', 'status']
+    list_filter = ['status', 'start_time']
     search_fields = ['name', 'description']
     inlines = [ContestParticipantInline]
 
@@ -40,6 +42,22 @@ class ExamEventAdmin(admin.ModelAdmin):
     list_display = ['event_type', 'contest', 'user', 'created_at']
     list_filter = ['event_type', 'contest']
     search_fields = ['user__username', 'metadata']
+
+
+@admin.register(ExamIntegrityRun)
+class ExamIntegrityRunAdmin(admin.ModelAdmin):
+    list_display = ['id', 'contest', 'compute_state', 'health', 'data_state', 'created_at']
+    list_filter = ['compute_state', 'health', 'data_state']
+    search_fields = ['contest__name', 'container_id', 'container_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(ExamEvidenceChunk)
+class ExamEvidenceChunkAdmin(admin.ModelAdmin):
+    list_display = ['id', 'integrity_run', 'participant', 'source', 'chunk_seq', 'status']
+    list_filter = ['source', 'status']
+    search_fields = ['object_key', 'sha256', 'incident_id']
+    readonly_fields = ['requested_at', 'uploaded_at', 'verified_at']
 
 
 @admin.register(ExamQuestionGroup)

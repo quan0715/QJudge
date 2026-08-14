@@ -9,6 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
+from django.db import transaction
 from django.db.models import QuerySet
 
 from .models import (
@@ -164,7 +165,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
         """
         serializer.save(created_by=self.request.user)
 
-    def _get_locking_contests(self, problem: CodingProblem) -> QuerySet:
+    def _get_bound_contests(self, problem: CodingProblem) -> QuerySet:
         from apps.contests.models import Contest
         from apps.question_bank.models import ContestQuestionBinding
 
@@ -177,31 +178,21 @@ class ProblemViewSet(viewsets.ModelViewSet):
         if not contest_ids:
             return Contest.objects.none()
 
-        return Contest.objects.filter(id__in=contest_ids, question_edit_locked=True)
+        return Contest.objects.filter(id__in=contest_ids)
 
-    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem, action: str) -> None:
-        locked_contest = self._get_locking_contests(problem).order_by("question_edit_locked_at").first()
-        if not locked_contest:
-            return
-        ensure_contest_question_editable(
-            contest=locked_contest,
-            actor_id=getattr(self.request.user, "id", None),
-            action=action,
-        )
+    def _ensure_problem_editable_under_contest_lock(self, problem: CodingProblem) -> None:
+        for contest in self._get_bound_contests(problem).select_for_update().order_by("id"):
+            ensure_contest_question_editable(contest=contest)
 
+    @transaction.atomic
     def perform_update(self, serializer):
-        self._ensure_problem_editable_under_contest_lock(
-            serializer.instance,
-            action="problem.update",
-        )
+        self._ensure_problem_editable_under_contest_lock(serializer.instance)
         # Asset update is handled inside ProblemService.update_problem_adapter.
         serializer.save()
 
+    @transaction.atomic
     def perform_destroy(self, instance):
-        self._ensure_problem_editable_under_contest_lock(
-            instance,
-            action="problem.destroy",
-        )
+        self._ensure_problem_editable_under_contest_lock(instance)
         instance.delete()
 
     @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
@@ -285,14 +276,16 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 source_code=serializer.validated_data["code"],
             )
         except TestRunSetupError as exc:
-            error_text = str(exc)
-            logger.warning("Test run setup error: %s", error_text)
-            if error_text.startswith("Judge system error:"):
+            logger.warning("Test run setup failed with code=%s", exc.code)
+            if exc.code == "judge_unavailable":
                 return Response(
                     {"error": "Judge system error"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
-            return Response({"error": error_text}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Unsupported language"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(result)
     

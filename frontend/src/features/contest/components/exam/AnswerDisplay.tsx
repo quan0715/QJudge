@@ -12,6 +12,7 @@ import {
   OpenAnswerDocumentRenderer,
 } from "@/shared/ui/editor";
 import MarkdownContent from "@/shared/ui/markdown/MarkdownContent";
+import ExamQuestionPreviewSection from "./ExamQuestionPreviewSection";
 
 import styles from "./AnswerDisplay.module.scss";
 
@@ -27,7 +28,10 @@ export interface AnswerDisplayProps {
   showCorrectness?: boolean;
 }
 
-function isSelected(answerContent: Record<string, unknown>, idx: number): boolean {
+function isSelected(
+  answerContent: Record<string, unknown>,
+  idx: number,
+): boolean {
   const selected = answerContent.selected;
   if (Array.isArray(selected)) return selected.includes(idx);
   return selected === idx;
@@ -91,43 +95,50 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
         : MarkdownContent.Rich;
     return (
       <div className={styles.root}>
-        <div className={styles.group}>
-          <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
+        <ExamQuestionPreviewSection
+          label={t("grading.answerContent", "作答內容")}
+        >
           {openDocumentAnswer ? (
             <OpenAnswerDocumentRenderer document={openDocumentAnswer} />
           ) : text ? (
             <Content>{text}</Content>
           ) : (
-            <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
+            <span className={styles.noAnswer}>
+              {t("dashboard.noAnswer", "未作答")}
+            </span>
           )}
-        </div>
+        </ExamQuestionPreviewSection>
         {referenceAnswerDocument ? (
-          <div className={`${styles.group} ${styles.reference}`}>
-            <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
+          <ExamQuestionPreviewSection
+            label={t("grading.referenceAnswer", "參考答案")}
+          >
             <OpenAnswerDocumentRenderer document={referenceAnswerDocument} />
-          </div>
+          </ExamQuestionPreviewSection>
         ) : null}
-        {!referenceAnswerDocument && correctAnswer != null && typeof correctAnswer === "string" && (
-          <div className={`${styles.group} ${styles.reference}`}>
-            <span className={styles.label}>{t("grading.referenceAnswer", "參考答案")}</span>
-            <div className={styles.referenceText}>
-              <MarkdownContent.Problem>{correctAnswer}</MarkdownContent.Problem>
-            </div>
-          </div>
-        )}
+        {!referenceAnswerDocument &&
+          correctAnswer != null &&
+          typeof correctAnswer === "string" && (
+            <ExamQuestionPreviewSection
+              label={t("grading.referenceAnswer", "參考答案")}
+            >
+              <div className={styles.referenceText}>
+                <MarkdownContent.Problem>
+                  {correctAnswer}
+                </MarkdownContent.Problem>
+              </div>
+            </ExamQuestionPreviewSection>
+          )}
         {explanationDocument ? (
-          <div className={`${styles.group} ${styles.reference}`}>
-            <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+          <ExamQuestionPreviewSection label={t("grading.explanation", "詳解")}>
             <OpenAnswerDocumentRenderer document={explanationDocument} />
-          </div>
+          </ExamQuestionPreviewSection>
         ) : null}
         {!explanationDocument && explanation?.trim() ? (
-          <div className={`${styles.group} ${styles.reference}`}>
-            <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+          <ExamQuestionPreviewSection label={t("grading.explanation", "詳解")}>
             <div className={styles.referenceText}>
               <MarkdownContent.Problem>{explanation}</MarkdownContent.Problem>
             </div>
-          </div>
+          </ExamQuestionPreviewSection>
         ) : null}
       </div>
     );
@@ -136,74 +147,87 @@ const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   if (!hasOptions) {
     return (
       <div className={styles.root}>
-        <span className={styles.noAnswer}>{t("dashboard.noAnswer", "未作答")}</span>
+        <span className={styles.noAnswer}>
+          {t("dashboard.noAnswer", "未作答")}
+        </span>
       </div>
     );
   }
 
   return (
     <div className={styles.root}>
-      <span className={styles.label}>{t("grading.answerContent", "作答內容")}</span>
-      <div className={styles.optionsList}>
-        {effectiveOptions.map((opt, i) => {
-          const selected = isSelected(answerContent, i);
-          const correct = showCorrectness && isCorrect(correctAnswer, i);
-          const classNames = [
-            styles.optionItem,
-            selected && !showCorrectness ? styles.optionSelected : "",
-            selected && showCorrectness && correct ? styles.optionSelectedCorrect : "",
-            selected && showCorrectness && !correct ? styles.optionSelectedWrong : "",
-            !selected && showCorrectness && correct ? styles.optionCorrect : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
+      <ExamQuestionPreviewSection
+        label={t("grading.answerContent", "作答內容")}
+      >
+        <div className={styles.optionsList}>
+          {effectiveOptions.map((opt, i) => {
+            const selected = isSelected(answerContent, i);
+            const correct = showCorrectness && isCorrect(correctAnswer, i);
+            const classNames = [
+              styles.optionItem,
+              selected && !showCorrectness ? styles.optionSelected : "",
+              selected && showCorrectness && correct
+                ? styles.optionSelectedCorrect
+                : "",
+              selected && showCorrectness && !correct
+                ? styles.optionSelectedWrong
+                : "",
+              !selected && showCorrectness && correct
+                ? styles.optionCorrect
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
 
-          return (
-            <div key={i} className={classNames}>
-              <span className={styles.optionLabel}>
-                <span className={styles.optionText}>
-                  <span className={styles.optionLetter}>{String.fromCharCode(65 + i)}.</span>
-                  <MarkdownContent.Problem className={styles.optionMarkdown}>
-                    {opt}
-                  </MarkdownContent.Problem>
+            return (
+              <div key={i} className={classNames}>
+                <span className={styles.optionLabel}>
+                  <span className={styles.optionText}>
+                    <span className={styles.optionLetter}>
+                      {String.fromCharCode(65 + i)}.
+                    </span>
+                    <MarkdownContent.Problem className={styles.optionMarkdown}>
+                      {opt}
+                    </MarkdownContent.Problem>
+                  </span>
+                  {selected ? (
+                    <DotMark
+                      size={16}
+                      className={styles.selectedIcon}
+                      aria-label="Your answer"
+                    />
+                  ) : null}
                 </span>
-                {selected ? (
-                  <DotMark
-                    size={16}
-                    className={styles.selectedIcon}
-                    aria-label="Your answer"
-                  />
-                ) : null}
-              </span>
-              {correct && <Checkmark size={16} className={styles.correctIcon} />}
-            </div>
-          );
-        })}
-      </div>
+                {correct && (
+                  <Checkmark size={16} className={styles.correctIcon} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </ExamQuestionPreviewSection>
       {showCorrectness && correctAnswer != null && (
-        <div className={styles.correctSummary}>
-          <span className={styles.correctLabel}>
-            {t("grading.correctAnswer", "正確答案")}:
-          </span>
+        <ExamQuestionPreviewSection label={t("grading.correctAnswer", "正確答案")}>
           <span className={styles.correctValues}>
             {getCorrectIndexes(correctAnswer).map((index) => (
               <span key={index} className={styles.correctValue}>
-                <span className={styles.optionLetter}>{String.fromCharCode(65 + index)}.</span>
+                <span className={styles.optionLetter}>
+                  {String.fromCharCode(65 + index)}.
+                </span>
                 <MarkdownContent.Problem className={styles.optionMarkdown}>
                   {effectiveOptions[index] ?? ""}
                 </MarkdownContent.Problem>
               </span>
             ))}
           </span>
-        </div>
+        </ExamQuestionPreviewSection>
       )}
       {explanation?.trim() ? (
-        <div className={`${styles.group} ${styles.reference}`}>
-          <span className={styles.label}>{t("grading.explanation", "詳解")}</span>
+        <ExamQuestionPreviewSection label={t("grading.explanation", "詳解")}>
           <div className={styles.referenceText}>
             <MarkdownContent.Problem>{explanation}</MarkdownContent.Problem>
           </div>
-        </div>
+        </ExamQuestionPreviewSection>
       ) : null}
     </div>
   );

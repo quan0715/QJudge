@@ -1,205 +1,143 @@
 # 200 人考試壓力測試
 
-Locust-based 壓力測試，模擬 200 名學生同時考試（含事件觸發證據上傳）。
+這套壓測使用 Locust 模擬學生登入、進入考試、作答、送出程式與結束考試。它目前不模擬瀏覽器端的 Exam Integrity checkpoint、螢幕分享或 Webcam 證據上傳，因此結果不能代表完整監考流量。
 
-## 環境隔離
+## 先隔離測試環境
 
-壓測使用 `docker-compose.test.yml` + `loadtest/docker-compose.loadtest.yml`，與 dev/prod 完全隔離：
+壓測會合併 `docker-compose.test.yml` 與 `loadtest/docker-compose.loadtest.yml`。資料庫、Redis、backend port 與 Docker network 都和 dev／production 分開；object storage 也必須使用專用 credential 與 bucket，不能共用正式資料。
 
-| 資源 | Dev | Loadtest | 衝突 |
-|------|-----|----------|------|
-| DB | postgres:5432 | postgres-test:5433 | 無 |
-| Redis | redis:6379 | redis-test:6380 | 無 |
-| Object storage | dev configured target | loadtest configured target | 建議使用獨立 bucket |
-| Backend | backend:8000 | backend-test:8002 | 無 |
-| Network | oj_network_dev | test-network | 無 |
+先參考 `docs/examples/loadtest.env.example` 準備以下變數：
 
-> backend-test 使用 port 8002，與 dev 環境不衝突，可同時運行。
+```text
+LOADTEST_OBJECT_STORAGE_ENDPOINT_URL
+LOADTEST_OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
+LOADTEST_OBJECT_STORAGE_ACCESS_KEY
+LOADTEST_OBJECT_STORAGE_SECRET_KEY
+LOADTEST_ANTICHEAT_RAW_BUCKET
+```
 
-## A. 本地驗證（5-10 人）
-
-目的：確認腳本正確性，不測效能。
+不要提交實際 credential。所有變數備妥後，先確認 Compose 可以解析：
 
 ```bash
-# 1. 啟動壓測環境（使用 LOADTEST_OBJECT_STORAGE_*，port 8002 不衝突 dev）
-docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml up -d --build
-
-# 3. 種子資料（200 帳號 + 考試）
-docker compose -f docker-compose.test.yml \
+docker compose \
+  -f docker-compose.test.yml \
   -f loadtest/docker-compose.loadtest.yml \
-  exec backend-test python manage.py seed_loadtest_data
+  config --quiet
+```
 
-# 4. 安裝 Locust（首次）
-pip install -r loadtest/requirements.txt
+## 第一次以 5 人驗證
 
-# 5. Smoke test（5 人，2 分鐘）
+先啟動隔離環境：
+
+```bash
+docker compose \
+  -f docker-compose.test.yml \
+  -f loadtest/docker-compose.loadtest.yml \
+  up -d --build
+```
+
+確認服務狀態後建立 200 組測試帳號與考試資料：
+
+```bash
+docker compose \
+  -f docker-compose.test.yml \
+  -f loadtest/docker-compose.loadtest.yml \
+  exec -T backend-test python manage.py seed_loadtest_data
+```
+
+Locust 在主機端使用獨立 Python environment：
+
+```bash
+python3 -m venv .venv-loadtest
+source .venv-loadtest/bin/activate
+python -m pip install -r loadtest/requirements.txt
+```
+
+先跑 5 人、2 分鐘的 smoke test。這一步的目的是確認帳號、資料與 API 流程，不是測量容量：
+
+```bash
 cd loadtest
 locust -f locustfile.py \
-  --users 5 --spawn-rate 5 --run-time 2m \
-  --headless --host http://localhost:8002
-
-# 可調整節流參數（預設已安全）
-# export LT_HEARTBEAT_INTERVAL_SECONDS=5
-
-# 6. 或用 Web UI 即時觀察
-locust -f locustfile.py --host http://localhost:8002
-# → http://localhost:8089
-
-# 7. Grafana 監控
-# → http://localhost:3001/d/qjudge-loadtest/
-
-# 8. 測完清理
-docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml down
+  --users 5 \
+  --spawn-rate 5 \
+  --run-time 2m \
+  --headless \
+  --host http://localhost:8002
 ```
 
-## B. 遠端 200 人壓測（q-judge.com）
+若需要互動介面，改用：
 
 ```bash
-# ===== 在遠端機器上執行 =====
-
-# 1. 啟動壓測環境
-LOADTEST_OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://<loadtest-public-object-storage-endpoint> \
-  docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml up -d --build
-
-# 2. 種子資料
-docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  exec backend-test python manage.py seed_loadtest_data
-
-# 3. 重置 participant 狀態（非首次需要）
-docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  exec backend-test python manage.py shell -c "
-from apps.contests.models import ContestParticipant, Contest, ExamEvent
-c = Contest.objects.get(name='Load Test Exam')
-ContestParticipant.objects.filter(contest=c).update(
-    exam_status='not_started', violation_count=0, started_at=None,
-    left_at=None, locked_at=None, lock_reason='', submit_reason=''
-)
-ExamEvent.objects.filter(contest=c).delete()
-print('Reset done')
-"
-
-# 4. 執行壓測（擇一）
-
-# 方案 A：Stepped ramp-up（推薦首次）
-#   先取消 locustfile.py 中 SteppedLoadShape 的註解
 locust -f locustfile.py --host http://localhost:8002
+```
 
-# 方案 B：直接 200 人
+瀏覽器開啟 `http://localhost:8089`。壓測專用 Grafana 位於 `http://localhost:3001`；它只屬於這套 test Compose，不是 QJudge production 的部署需求。
+
+## 逐步增加到 200 人
+
+Smoke test 沒有登入或資料錯誤後，再從 repository root 執行較長的 headless run：
+
+```bash
+cd loadtest
 locust -f locustfile.py \
-  --users 200 --spawn-rate 10 --run-time 30m \
-  --headless --host http://localhost:8002
+  --users 200 \
+  --spawn-rate 10 \
+  --run-time 30m \
+  --headless \
+  --host http://localhost:8002
+```
 
-# 方案 C：Burst test（200 人同時開考）
-#   需顯式確認高風險模式，避免誤觸打爆服務
+需要固定的 50、100、150、200 人階段時，先在 `loadtest/locustfile.py` 啟用 `SteppedLoadShape` import。`loadtest/shapes.py` 會用四分鐘升到 200 人，再維持十分鐘。
+
+Burst 測試會讓大量使用者同時開始、提交或結束考試。只在專用測試環境執行，並用安全旗標明確確認：
+
+```bash
 LT_ALLOW_HIGH_RISK_BURST=1 \
-locust -f locustfile.py --tags burst-start \
-  --users 200 --spawn-rate 200 \
-  --headless --host http://localhost:8002
-
-# 5. 監控
-#   Grafana: https://grafana.q-judge.com/d/qjudge-loadtest/
-#   Locust:  http://<remote-ip>:8089（或 SSH tunnel）
-
-# 6. 壓測完畢清理（test 環境可安全 -v）
-docker compose -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml down -v
+locust -f locustfile.py \
+  --tags burst-start \
+  --users 200 \
+  --spawn-rate 200 \
+  --headless \
+  --host http://localhost:8002
 ```
 
-## C. 壓測階段
+## 判讀結果
 
-| 階段 | 時間 | 用戶數 | 觀察重點 |
-|------|------|--------|----------|
-| 1. Ramp-up | 15 min | 0→50→100→150→200 | 哪個階段開始劣化 |
-| 2. Steady state | 15 min | 200 | p95 是否穩定在 Pass 範圍 |
-| 3. Burst start | 1 min | 200 同時 | exam/start 是否 deadlock |
-| 4. Burst submit | 1 min | 200 同時 | submissions 是否塞爆 queue |
-| 5. Endurance | 60 min | 200 | Memory leak、queue 堆積 |
+至少記錄：
 
-## 成功指標
+- QJudge commit SHA 與 Compose image 版本。
+- 測試主機 CPU、memory 與 disk。
+- 使用者數、spawn rate 與執行時間。
+- request failure rate 與常用 API 的 p95 latency。
+- PostgreSQL connections／deadlocks、Redis memory、Celery queue 與 container CPU。
+- 測試過程中使用的 object storage endpoint 與 bucket 名稱，但不記錄 credential。
 
-| 指標 | Pass | Warning | Fail |
-|------|------|---------|------|
-| p95 一般 API | < 1s | 1-2s | > 2s |
-| p95 exam/start (burst) | < 2s | 2-5s | > 5s |
-| p95 exam/events | < 500ms | 500ms-1s | > 1s |
-| HTTP 5xx 比率 | < 0.1% | 0.1-1% | > 1% |
-| PG active connections | < 80 | 80-95 | > 95 |
-| PG deadlocks | 0 | 1-2 | > 2 |
-| Redis memory | < 256MB | 256-512MB | > 512MB |
-| Object storage PUT p95 | < 200ms | 200-500ms | > 500ms |
-| Object storage PUT error rate | < 0.1% | 0.1-1% | > 1% |
-| Container CPU | < 80% | 80-95% | > 95% |
+Locust 目前主要覆蓋 `ExamStudentUser`，流程是登入、進入考試、開始考試、儲存答案、提交程式、查看排行榜與結束考試。`BurstStartUser`、`BurstSubmitUser` 與 `BurstEndUser` 只測單一高峰動作。
 
-## 測試場景說明
+## 停止與清理
 
-### ExamStudentUser（主要場景）
+一般停止會保留 test volumes，方便檢查結果：
 
-每個虛擬用戶的完整流程：
-1. `POST /api/v1/auth/login/password` → JWT 登入
-2. `POST /contests/{id}/enter/` → 進入考試
-3. `POST /contests/{id}/exam/start/` → 開始考試
-4. **考試循環**（持續到結束）：
-   - 每 2-5s: 上報 anticheat event
-   - 事件發生時: 取得 presigned URL + PUT bounded evidence window 到 object storage
-   - 每 2-5s: 儲存筆試答案
-   - 偶爾: 提交程式碼、查看排行榜
-5. `POST /contests/{id}/exam/end/` → 結束考試
-
-### BurstUser（爆發場景）
-
-- **BurstStartUser**: 全員同時 `/exam/start/`
-- **BurstSubmitUser**: 全員同時 `/submissions/`
-- **BurstEndUser**: 全員同時 `/exam/end/`
-
-用 `--tags burst-start` / `burst-submit` / `burst-end` 選擇。
-
-## 已知瓶頸（壓測中重點觀察）
-
-1. **Object storage PUT burst**: 事件集中發生時會形成短時間 PUT 尖峰
-2. **Presigned URL 生成**: `anticheat_storage.py:get_s3_client()` 每次建立新 boto3 client
-3. **Scoreboard N+1**: submissions 迭代未 select_related
-4. **單 Celery worker**: burst 提交會塞爆 queue
-5. **Redis 單實例**: broker + cache + channels 共用
-6. **ExamEvent 寫入量**: 200 人 x 15 events/min ≈ 3000 inserts/min
-
-## 檔案結構
-
-```
-loadtest/
-├── locustfile.py                     # Locust 入口
-├── users/
-│   ├── exam_student.py               # 完整考試生命週期 User
-│   └── burst.py                      # Burst 測試 User
-├── helpers/
-│   ├── auth.py                       # JWT login helper
-│   └── data.py                       # 常數 + payload builder
-├── shapes.py                         # LoadTestShape (ramp-up 策略)
-├── docker-compose.loadtest.yml       # test compose override
-├── prometheus/prometheus.yml          # 壓測用 scrape config (5s)
-├── grafana/provisioning/             # 壓測用 Grafana dashboard
-├── fixtures/fake_frame.webp          # ~49KB 假截圖
-└── requirements.txt
-
-backend/config/settings/loadtest.py   # 壓測 Django settings
-backend/apps/core/management/commands/
-└── seed_loadtest_data.py             # 200 帳號 + 考試種子資料
+```bash
+docker compose \
+  -f docker-compose.test.yml \
+  -f loadtest/docker-compose.loadtest.yml \
+  down
 ```
 
-## FAQ
+只有在確認目標是這套隔離測試環境、且不需要保留任何測試資料時，才加入 `-v`。不要對 dev 或 production Compose 使用這個清理方式。
 
-**Q: 壓測和 dev 可以同時跑嗎？**
-可以。backend-test 用 port 8002，不再與 ai-service (8001) 衝突。
+## 目前的程式位置
 
-**Q: 壓測環境會影響 dev 資料庫嗎？**
-不會。壓測用獨立的 `postgres-test`（port 5433）和 `test-network`。
-
-**Q: 遠端壓測後要清理嗎？**
-`docker compose ... down -v` 即可。test 環境可安全 `-v`。
-
-**Q: 壓測跑一半 participant 狀態卡住？**
-用上面「重置 participant 狀態」的指令清除後重跑。
+```text
+loadtest/locustfile.py
+loadtest/users/exam_student.py
+loadtest/users/burst.py
+loadtest/shapes.py
+loadtest/safety.py
+loadtest/docker-compose.loadtest.yml
+loadtest/prometheus/prometheus.yml
+loadtest/grafana/provisioning/
+backend/apps/core/management/commands/seed_loadtest_data.py
+backend/config/settings/loadtest.py
+```

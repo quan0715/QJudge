@@ -24,7 +24,7 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 40rem) minmax(0, 1fr);
-  gap: clamp(2rem, 4vw, 5rem);
+  gap: clamp(layout.$spacing-07, 4vw, layout.$spacing-11);
   align-items: start;
 
   @media (max-width: 1055px) {
@@ -44,7 +44,7 @@
   max-width: 40rem;
   position: relative;
   z-index: 1;
-  padding-top: clamp(1rem, 5vw, 6rem);
+  padding-top: clamp(layout.$spacing-05, 5vw, layout.$spacing-12);
 
   @media (max-width: 1055px) {
     max-width: 100%;
@@ -55,7 +55,7 @@
 .landing-hero-section__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
   @include type.type-style("label-02");
   color: var(--cds-text-secondary);
   text-transform: uppercase;
@@ -160,7 +160,7 @@
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  margin-top: clamp(0rem, 1.5vw, 1rem);
+  margin-top: clamp(0rem, 1.5vw, layout.$spacing-05);
 
   @media (max-width: 1055px) {
     width: min(34rem, 100%);
@@ -241,7 +241,7 @@
     align-items: stretch;
   }
 
-  .landing-hero-section__actions .cds--btn {
+  .landing-hero-section__action {
     inline-size: 100%;
     max-inline-size: 20rem;
   }

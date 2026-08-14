@@ -2,7 +2,7 @@
 ExamStudentUser — simulates a full exam lifecycle for one student.
 
 Flow:
-  login → enter → start → (heartbeat + answers + submissions) → end
+  login → enter → start → (answers + submissions) → end
 """
 import random
 import time
@@ -47,7 +47,6 @@ class ExamStudentUser(HttpUser):
         self.exam_questions: list[dict] = []
         self.upload_session_id: str = uuid.uuid4().hex
         self.exam_started = False
-        self._last_heartbeat_at: float = 0.0
 
         # Login
         result = login_student(self.client, self.email, D.STUDENT_PASSWORD)
@@ -192,29 +191,6 @@ class ExamStudentUser(HttpUser):
             resp.failure(f"start failed: {resp.status_code} {msg}")
 
     # ---- Exam tasks ----
-
-    @task(10)
-    def heartbeat(self):
-        """Send a benign event periodically (simulates anticheat telemetry)."""
-        if not self.exam_started:
-            return
-        now = time.time()
-        if now - self._last_heartbeat_at < D.HEARTBEAT_INTERVAL_SECONDS:
-            return
-        self._last_heartbeat_at = now
-        # Use valid event types that won't penalize/lock the student
-        event_type = random.choice(["mouse_leave", "capture_upload_degraded"])
-        self.client.post(
-            f"/api/v1/contests/{self.contest_id}/exam/events/",
-            json={
-                "event_type": event_type,
-                "metadata": {
-                    "upload_session_id": self.upload_session_id,
-                    "phase": "RESPONDING",
-                },
-            },
-            name="/api/v1/contests/[id]/exam/events/",
-        )
 
     @task(3)
     def save_exam_answer(self):

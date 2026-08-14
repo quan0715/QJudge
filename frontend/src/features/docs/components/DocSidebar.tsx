@@ -102,7 +102,8 @@ const DocSidebar: React.FC<DocSidebarProps> = ({
             return (
               <div key={section.id} style={{ marginBottom: "0.25rem" }}>
                 {/* Section Header */}
-                <button
+                  <button
+                    type="button"
                   onClick={() => toggleSection(section.id)}
                   style={{
                     width: "100%",
@@ -152,7 +153,8 @@ const DocSidebar: React.FC<DocSidebarProps> = ({
                       const isActive = currentSlug === item;
 
                       return (
-                        <button
+                      <button
+                        type="button"
                           key={item}
                           onClick={() => handleNavigation(item)}
                           style={{

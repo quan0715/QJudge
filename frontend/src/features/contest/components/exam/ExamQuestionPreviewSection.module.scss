@@ -1,0 +1,21 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.section {
+  padding-top: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+}
+
+.label {
+  margin: 0 0 layout.$spacing-04;
+  color: var(--cds-text-helper);
+  letter-spacing: 0.32px;
+  text-transform: uppercase;
+  @include type.type-style("label-01");
+}
+
+.content {
+  color: var(--cds-text-primary);
+  white-space: pre-wrap;
+  @include type.type-style("body-compact-01");
+}

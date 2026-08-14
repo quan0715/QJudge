@@ -71,6 +71,7 @@ const DocsHeader: React.FC = () => {
       render={() => (
         <Header aria-label="Documentation">
           <HeaderMenuButton
+            className={styles.menuToggle}
             aria-label={tDocs("nav.menu", "選單")}
             onClick={() => setIsSideNavExpanded(!isSideNavExpanded)}
             isActive={isSideNavExpanded}
@@ -92,23 +93,21 @@ const DocsHeader: React.FC = () => {
             aria-label={tDocs("nav.productLabel", "使用說明")}
             expanded={isSideNavExpanded}
             isPersistent={false}
+            className={styles.sideNav}
+            style={{
+              zIndex: 8999,
+              top: "3rem",
+              height: "calc(100dvh - 3rem)",
+            }}
             onSideNavBlur={() => setIsSideNavExpanded(false)}
           >
-            <SideNavItems>
+            <SideNavItems className={styles.sideNavItems}>
               {/* Sidebar Header */}
-              <div
-                style={{
-                  padding: "1rem",
-                  borderBottom: "1px solid var(--cds-border-subtle-01)",
-                }}
-              >
-                <p className="cds--label" style={{ marginBottom: "0.25rem" }}>
+              <div className={styles.sidebarHeader}>
+                <p className={styles.productLabel}>
                   {tDocs("nav.productLabel", "使用說明")}
                 </p>
-                <h2
-                  className="cds--type-productive-heading-03"
-                  style={{ margin: 0 }}
-                >
+                <h2 className={styles.productTitle}>
                   <BrandLockup size={22} />
                 </h2>
               </div>
@@ -154,23 +153,7 @@ const DocsHeader: React.FC = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsSideNavExpanded(false)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  padding: "0.75rem 1rem",
-                  color: "var(--cds-link-primary)",
-                  textDecoration: "none",
-                  fontSize: "0.875rem",
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "var(--cds-layer-hover-01)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
+                className={styles.dashboardLink}
               >
                 <Launch size={16} />
                 <span>QJudge</span>

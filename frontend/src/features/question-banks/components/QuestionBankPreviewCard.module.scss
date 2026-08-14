@@ -6,22 +6,16 @@
   border-radius: 0;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
-}
-
-// Override Carbon ClickableTile hover with high specificity.
-// Carbon's --cds-layer-hover can fallback to light-theme #e8e8e8
-// if layer tokens aren't resolved yet, so we use --cds-layer-hover-01 directly.
-.card:global(.cds--tile--clickable) {
   background-color: var(--cds-layer-01, var(--cds-layer));
-}
 
-.card:global(.cds--tile--clickable):hover {
-  background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
-  border-color: var(--cds-border-interactive);
-}
+  &:hover {
+    background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
+    border-color: var(--cds-border-interactive);
+  }
 
-.card:global(.cds--tile--clickable):active {
-  background-color: var(--cds-layer-active-01, var(--cds-layer-active));
+  &:active {
+    background-color: var(--cds-layer-active-01, var(--cds-layer-active));
+  }
 }
 
 .cardSelectable {

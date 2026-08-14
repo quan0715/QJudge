@@ -134,11 +134,6 @@
     "locale": "ja-JP"
   },
   "dashboard": {
-    "announcements": {
-      "noAnnouncements": "お知らせはありません",
-      "subtitle": "最新のお知らせ",
-      "title": "お知らせ"
-    },
     "classroomHub": {
       "emptyDesc": "クラスルームを作成するか、招待リンクで参加してください。",
       "emptyTitle": "まだクラスルームに参加していません",
@@ -214,7 +209,6 @@
   },
   "header": {
     "adminNavigation": "管理ナビゲーション",
-    "announcements": "お知らせ管理",
     "contestManagement": "コンテスト管理",
     "contestNavigation": "コンテストナビゲーション",
     "createContest": "コンテスト作成",
@@ -224,7 +218,6 @@
     "platform": "プログラミング評価プラットフォーム",
     "prefix": "システム",
     "problemManagement": "問題管理",
-    "reviewQueue": "審査待ち",
     "sideNav": "サイドナビゲーション",
     "systemSettings": "システム設定",
     "teacherDashboard": "教師ダッシュボード",
@@ -312,17 +305,14 @@
   },
   "nav": {
     "back": "戻る",
-    "changelog": "変更履歴",
     "chat": "Chat",
     "classrooms": "クラスルーム",
     "contests": "コンテスト",
     "dashboard": "ダッシュボード",
     "documentation": "ドキュメント",
-    "marketplace": "問題集マーケット",
     "problemList": "問題一覧",
     "problems": "問題",
     "questionBanks": "問題集",
-    "ranking": "ランキング",
     "submissions": "提出履歴"
   },
   "oauth": {
@@ -337,7 +327,6 @@
     }
   },
   "page": {
-    "announcements": "お知らせ管理",
     "contestDetail": "コンテスト詳細",
     "contestManagement": "コンテスト管理",
     "contests": "コンテスト一覧",
@@ -400,7 +389,6 @@
   "questionBank": {
     "addQuestion": "問題を追加",
     "allTypes": "全ての題型",
-    "applyToMarketplace": "掲載を申請",
     "bankCreated": "問題集が作成されました",
     "bankDeleted": "問題集が削除されました",
     "bankNotFound": "問題集が見つかりません",
@@ -411,7 +399,6 @@
     "categoryExam": "筆記試験",
     "clone": "マイ問題集にコピー",
     "cloneSuccess": "マイ問題集にコピーされました",
-    "communityTag": "QJudge Community",
     "createBank": "問題集を作成",
     "deleteBank": "問題集を削除",
     "deleteBankConfirmBody": "問題集「{{name}}」を削除してもよろしいですか？",
@@ -421,10 +408,7 @@
     "difficulty": "難易度",
     "editBank": "問題集を編集",
     "editQuestion": "問題を編集",
-    "emptyExplore": "探索可能な問題集はありません。",
     "emptyQuestions": "この問題バンクにはまだ問題がありません。",
-    "exploreOnlyPlatform": "探索は現在 QJudge Community のみ対応しています",
-    "exploreOnlyPlatformDesc": "Phase1 では教員間の共有は含まれず、Community の検証済み問題集が中心となります。",
     "importFromInbox": "下書きをインポート",
     "inbox": {
       "clearSelection": "選択を解除",
@@ -436,40 +420,14 @@
       "selectedCount": "{{count}} 件選択済み"
     },
     "loadQuestions": "問題を見る",
-    "marketplace": "マーケットプレイス",
     "memoryLimit": "メモリ制限(MB)",
-    "mockGalleryDesc": "UI モックのプレビューです。QJudge Community のカード例を示します。",
-    "mockGalleryTitle": "Mock Card Gallery",
-    "mockOfficialBank1Desc": "再帰と基礎的な探索から、思考力を養います。",
-    "mockOfficialBank1Name": "アルゴリズム入門 - 再帰",
-    "mockOfficialBank2Desc": "学習の進捗に合わせたデータ構造の実装問題。",
-    "mockOfficialBank2Name": "データ構造実装問題集",
-    "mockOfficialTag": "Community セレクト",
-    "mockOwnerLabel": "所有者",
-    "mockOwnerPlatform": "QJudge Community",
-    "mockOwnerTeacherA": "陳先生",
-    "mockOwnerTeacherB": "林先生",
-    "mockQuestionCount": "{{count}} 問",
-    "mockUserBank1Desc": "APCS の概念とよくある間違いに焦点を当てた演習。",
-    "mockUserBank1Name": "陳先生の APCS 演習",
-    "mockUserBank2Desc": "校内定期試験の過去問。評価ポイントと難易度付き。",
-    "mockUserBank2Name": "林先生の定期試験問題集",
-    "mockUserPublicTag": "ユーザー公開",
-    "mockVerifiedTag": "認証済み",
-    "needQuestionsToApply": "申請には1問以上が必要です",
     "notFound": "問題バンクが見つかりません",
     "openBank": "問題集を開く",
-    "pendingReview": "審査中",
     "prompt": "問題文",
-    "published": "掲載中",
     "questionCountLabel": "{{count}} 問",
     "questionCreated": "問題が作成されました",
     "questionDeleted": "問題が削除されました",
     "questionUpdated": "問題が更新されました",
-    "reapply": "再申請",
-    "rejected": "差し戻し",
-    "reviewNoteLabel": "審査コメント",
-    "reviewStatusLabel": "掲載ステータス",
     "saveToBank": {
       "desc": "「{{title}}」保存先:",
       "success": "保存完了",
@@ -481,24 +439,11 @@
     "sortOldest": "最古更新順",
     "sortOrder": "デフォルト順",
     "sortType": "題型別",
-    "submitForReviewSuccess": "審査申請を送信しました",
-    "subscribeBtn": "購読",
-    "subscribed": "購読しました",
-    "subscribedBtn": "購読中",
-    "subscribedLabel": "購読中",
-    "tabs": {
-      "explore": "探索"
-    },
     "tagMine": "マイ問題集",
-    "tagPrivate": "プライベート",
-    "tagPublic": "公開",
-    "tagUserPublic": "ユーザー公開",
     "timeLimit": "時間制限(ms)",
     "type": "タイプ",
-    "unsubscribed": "購読を解除しました",
     "untitled": "無題",
-    "usedInContests": "{{count}} 件の試験",
-    "verified": "認証済み"
+    "usedInContests": "{{count}} 件の試験"
   },
   "questionType": {
     "description": {
@@ -524,17 +469,7 @@
     "teacher": "教員"
   },
   "settings": {
-    "aiUsage": {
-      "inputTokens": "入力 Tokens",
-      "lastUpdated": "最終更新",
-      "loadError": "使用量データを読み込めません",
-      "noData": "データなし",
-      "outputTokens": "出力 Tokens",
-      "title": "AI 使用量",
-      "totalCost": "累計費用",
-      "totalRequests": "総リクエスト数"
-    },
-    "description": "プロフィール、環境設定、プラン、利用状況を管理します。",
+    "description": "プロフィールと環境設定を管理します。",
     "descriptionStudent": "設定を管理します",
     "loginRecords": {
       "current": "現在のデバイス",
@@ -549,68 +484,10 @@
       "now": "現在",
       "title": "デバイス管理"
     },
-    "plans": {
-      "contactUs": "お問い合わせ",
-      "description": "すべてのプランでフル機能をご利用いただけます。違いは制限値のみです。",
-      "enterpriseCustom": "カスタムエンタープライズプランをご案内します。",
-      "enterpriseTitle": "より大規模な利用をお考えですか？",
-      "features": {
-        "pro": [
-          "試験あたり最大 200 人",
-          "500 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "1 年間のデータ保持",
-          "10 GB のストレージ容量"
-        ],
-        "team": [
-          "試験あたり最大 500 人",
-          "2,000 AI Credits / 月",
-          "無制限の問題集ストレージ",
-          "最大 10 人の管理者",
-          "50 GB のストレージ容量"
-        ]
-      },
-      "freeTrial": "30日間無料",
-      "month": "月",
-      "openCheckoutFailed": "チェックアウトページの起動に失敗しました。後でもう一度お試しください。",
-      "processing": "処理中...",
-      "startingTrial": "無料試用を開始",
-      "subscribeNow": "今すぐ購読",
-      "title": "プランを見る"
-    },
-    "subscription": {
-      "desc": {
-        "free": "現在は無料プランです。いつでもアップグレード可能です。",
-        "pro": "安定した試験環境を求める個人ユーザー向け",
-        "team": "学校、学部、トレーニング機関向け"
-      },
-      "manage": "購読を管理",
-      "manageDesc": "支払い方法の変更、解約、請求書の確認",
-      "openPortalFailed": "管理ページの起動に失敗しました",
-      "periodEndDate": "現在の期間終了",
-      "status": {
-        "active": "有効",
-        "canceled": "解約済み",
-        "expired": "期限切れ",
-        "past_due": "支払い遅延",
-        "trialing": "試用中"
-      },
-      "tier": {
-        "enterprise": "エンタープライズ",
-        "free": "無料プラン",
-        "pro": "プロプラン",
-        "team": "チームプラン"
-      },
-      "trialEndDate": "試用終了日"
-    },
     "tabs": {
-      "aiUsage": "AI 使用量",
       "mcp": "MCP 接続",
-      "plans": "プラン",
       "preferences": "基本設定",
-      "profile": "プロフィール",
-      "subscription": "購読状況",
-      "usage": "利用統計"
+      "profile": "プロフィール"
     },
     "title": "設定"
   },

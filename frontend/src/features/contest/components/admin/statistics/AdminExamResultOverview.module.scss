@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .root {
   display: grid;
   border-bottom: 1px solid var(--cds-border-subtle);
@@ -32,7 +33,7 @@
 
 .chartColumn {
   display: grid;
-  gap: 1rem;
+  gap: layout.$spacing-05;
 }
 
 .emptyState {

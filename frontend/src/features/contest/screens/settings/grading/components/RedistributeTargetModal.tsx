@@ -130,7 +130,7 @@ export default function RedistributeTargetModal({
           kind="info"
           lowContrast
           hideCloseButton
-          title=""
+          title={t("grading.scorePolicy.redistributeNoteTitle", "分數如何重分配")}
           subtitle={t("grading.scorePolicy.redistributeNote", {
             defaultValue: "此題不再計分，分數按目標題目原始配分比例重新分配。學生在目標題目的得分會等比放大。可隨時「恢復正常計分」撤銷。",
           })}
@@ -141,7 +141,7 @@ export default function RedistributeTargetModal({
           kind="warning"
           lowContrast
           hideCloseButton
-          title=""
+          title={t("grading.scorePolicy.redistributeStackWarningTitle", "重複目標提醒")}
           subtitle={t("grading.scorePolicy.redistributeStackWarning", {
             defaultValue: "若多題同時重分配到相同目標，分數會疊加累計。",
           })}

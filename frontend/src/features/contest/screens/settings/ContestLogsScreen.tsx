@@ -11,28 +11,20 @@ import {
   Tabs,
 } from "@carbon/react";
 import {
-  ImageSearch,
   Policy,
   Renew,
   WarningAlt,
   WarningFilled,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
 import type { EventFeedItem } from "@/core/entities/contest.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
 import { useContestAdmin } from "@/features/contest/contexts";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import { KpiCard } from "@/shared/ui/dataCard/KpiCard";
-import {
-  getEventPriority,
-  getEventCategory,
-  getEventTypeLabel,
-} from "@/features/contest/constants/eventTaxonomy";
+import { getEventTypeLabel } from "@/features/contest/constants/eventTaxonomy";
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentCard from "@/features/contest/components/admin/IncidentCard";
-import { getIncidentEvidenceFrameCount } from "@/features/contest/components/admin/incidentEvidence";
-import { useContestAnticheatConfig } from "@/features/contest/hooks/useContestAnticheatConfig";
 import styles from "./ContestLogsScreen.module.scss";
 
 const CATEGORY_FILTER_OPTIONS = [
@@ -46,177 +38,6 @@ const PAGE_SIZE = 50;
 const TAB_DEFAULT_CATEGORIES: Record<number, string[]> = {
   0: ["critical", "violation", "info"],
   1: ["system"],
-};
-
-const buildActorAggregationKey = (event: {
-  eventType: string;
-  userId?: string;
-  userName?: string;
-  id?: string;
-  timestamp?: string;
-}) => {
-  const actorKey =
-    event.userId ||
-    event.userName ||
-    `${event.id || event.timestamp || "unknown"}`;
-  return `${event.eventType}:${actorKey}`;
-};
-
-const buildClipboardActionEntry = (metadata?: Record<string, unknown>) => {
-  const meta = metadata || {};
-  const entry: Record<string, unknown> = {
-    action: meta.action,
-    content_captured: !!meta.content_captured,
-    content_truncated: !!meta.content_truncated,
-    text_length: meta.text_length,
-    line_count: meta.line_count,
-    sha256: meta.sha256,
-  };
-  if (typeof meta.content === "string") entry.content = meta.content;
-  if (meta.original_text_length != null)
-    entry.original_text_length = meta.original_text_length;
-  if (meta.captured_text_length != null)
-    entry.captured_text_length = meta.captured_text_length;
-  return Object.fromEntries(
-    Object.entries(entry).filter(([, value]) => value != null),
-  );
-};
-
-const normalizeClipboardMetadata = (metadata?: Record<string, unknown>) => {
-  const meta = { ...(metadata || {}) };
-  if (!Array.isArray(meta.clipboard_actions)) {
-    meta.clipboard_actions = [buildClipboardActionEntry(meta)];
-  }
-  return meta;
-};
-
-const mergeClipboardMetadata = (
-  current?: Record<string, unknown>,
-  incoming?: Record<string, unknown>,
-) => {
-  const base = normalizeClipboardMetadata(current);
-  const next = normalizeClipboardMetadata(incoming);
-  const incomingActions = Array.isArray(next.clipboard_actions)
-    ? next.clipboard_actions
-    : [buildClipboardActionEntry(next)];
-  return {
-    ...base,
-    ...next,
-    clipboard_actions: [
-      ...(Array.isArray(base.clipboard_actions) ? base.clipboard_actions : []),
-      ...incomingActions,
-    ],
-    content_captured: !!base.content_captured || !!next.content_captured,
-    content_truncated: !!base.content_truncated || !!next.content_truncated,
-  };
-};
-
-/**
- * Enforce UI contract for external feeds:
- * - activity: never aggregated (always single rows)
- * - exam_event: always aggregated by actor+eventType within window
- */
-const normalizeExternalEventFeed = (
-  feed: EventFeedItem[],
-  aggregationWindowMs: number,
-): EventFeedItem[] => {
-  const incidents: EventFeedItem[] = [];
-  const openIncidents = new Map<string, number>();
-
-  const examEventSorted = [...feed]
-    .filter((item) => item.source === "exam_event")
-    .sort(
-      (a, b) => new Date(a.firstAt).getTime() - new Date(b.firstAt).getTime(),
-    );
-
-  for (const item of examEventSorted) {
-    const itemCount = Number.isFinite(item.count) ? Math.max(1, item.count) : 1;
-    const itemEvidenceCount = Number.isFinite(item.evidenceCount)
-      ? Math.max(0, item.evidenceCount)
-      : 0;
-    const aggregateKey = buildActorAggregationKey({
-      eventType: item.eventType,
-      userId: item.userId,
-      userName: item.userName,
-      id: item.incidentKey,
-      timestamp: item.firstAt,
-    });
-    const idx = openIncidents.get(aggregateKey);
-    const firstTs = new Date(item.firstAt).getTime();
-    const lastTs = new Date(item.lastAt || item.firstAt).getTime();
-
-    if (idx !== undefined) {
-      const incident = incidents[idx];
-      const incidentLastTs = new Date(incident.lastAt).getTime();
-      if (firstTs - incidentLastTs <= aggregationWindowMs) {
-        incident.count += itemCount;
-        incident.evidenceCount += itemEvidenceCount;
-        incident.lastAt =
-          incidentLastTs >= lastTs
-            ? incident.lastAt
-            : item.lastAt || item.firstAt;
-        if (item.eventType === "clipboard_action") {
-          incident.metadata = mergeClipboardMetadata(
-            incident.metadata,
-            item.metadata,
-          );
-          incident.eventId = item.eventId;
-        }
-        if (item.summary) incident.summary = item.summary;
-        continue;
-      }
-    }
-
-    const priority = Number.isFinite(item.priority)
-      ? item.priority
-      : getEventPriority(item.eventType);
-    incidents.push({
-      incidentKey: `${aggregateKey}:${item.firstAt}`,
-      eventId: item.eventId,
-      eventType: item.eventType,
-      priority,
-      category: item.category || getEventCategory(item.eventType),
-      penalized: priority <= 1 && priority >= 0,
-      firstAt: item.firstAt,
-      lastAt: item.lastAt || item.firstAt,
-      count: itemCount,
-      evidenceCount: itemEvidenceCount,
-      summary: item.summary || "",
-      source: "exam_event",
-      userName: item.userName,
-      userId: item.userId,
-      metadata:
-        item.eventType === "clipboard_action"
-          ? normalizeClipboardMetadata(item.metadata)
-          : item.metadata,
-    });
-    openIncidents.set(aggregateKey, incidents.length - 1);
-  }
-
-  const activityExpanded = feed
-    .filter((item) => item.source === "activity")
-    .flatMap((item) => {
-      const expandedCount = Number.isFinite(item.count)
-        ? Math.max(1, item.count)
-        : 1;
-      return Array.from({ length: expandedCount }, (_, idx) => ({
-        ...item,
-        incidentKey:
-          expandedCount > 1
-            ? `${item.incidentKey}:${idx + 1}`
-            : item.incidentKey,
-        count: 1,
-        penalized: false,
-        evidenceCount: 0,
-        source: "activity" as const,
-      }));
-    });
-
-  incidents.push(...activityExpanded);
-  incidents.sort(
-    (a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime(),
-  );
-  return incidents;
 };
 
 /** Group incidents by date label (e.g. "03/09") */
@@ -268,126 +89,21 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
   eventFeed: externalEventFeed,
   onRefresh,
 }) => {
-  const { contestId } = useParams<{ contestId: string }>();
   const {
     examEvents,
+    eventFeed: contestEventFeed,
     examEventsLoading,
     isRefreshing,
     refreshAdminData,
   } = useContestAdmin();
   const { t } = useTranslation("contest");
-  const {
-    config: antiCheatConfig,
-    loading: antiCheatConfigLoading,
-    refresh: refreshAntiCheatConfig,
-  } = useContestAnticheatConfig(contestId);
 
-  const sourceEvents = useMemo(() => {
-    if (!userIdFilter) return examEvents;
-    return examEvents.filter((event) => String(event.userId) === userIdFilter);
-  }, [examEvents, userIdFilter]);
-
-  const aggregationWindowMs = antiCheatConfig
-    ? Math.max(1, antiCheatConfig.effective.eventFeedAggregationWindowSeconds) *
-      1000
-    : null;
-
-  // Build event feed from examEvents if not provided externally
   const eventFeed = useMemo(() => {
-    if (aggregationWindowMs == null) return [];
-    if (externalEventFeed)
-      return normalizeExternalEventFeed(externalEventFeed, aggregationWindowMs);
-    const isActivityEvent = (event: { metadata?: Record<string, unknown> }) =>
-      event.metadata?.source === "activity";
-
-    const examEventSorted = [...sourceEvents]
-      .filter((e) => !isActivityEvent(e) && e.eventType !== "heartbeat")
-      .sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
-    const activityEventSorted = [...sourceEvents]
-      .filter((e) => isActivityEvent(e))
-      .sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
-
-    const incidents: EventFeedItem[] = [];
-    const openIncidents = new Map<string, number>();
-
-    for (const event of examEventSorted) {
-      const et = event.eventType;
-      const ts = new Date(event.timestamp).getTime();
-      const aggregateKey = buildActorAggregationKey(event);
-      const idx = openIncidents.get(aggregateKey);
-      const evidenceCount = getIncidentEvidenceFrameCount(event.metadata);
-
-      if (idx !== undefined) {
-        const inc = incidents[idx];
-        const lastTs = new Date(inc.lastAt).getTime();
-        if (ts - lastTs <= aggregationWindowMs) {
-          inc.count += 1;
-          inc.lastAt = event.timestamp;
-          inc.evidenceCount += evidenceCount;
-          if (et === "clipboard_action") {
-            inc.metadata = mergeClipboardMetadata(inc.metadata, event.metadata);
-            inc.eventId = event.id;
-          }
-          if (event.reason) inc.summary = event.reason;
-          continue;
-        }
-      }
-
-      const priority = getEventPriority(et);
-      incidents.push({
-        incidentKey: `${aggregateKey}:${event.timestamp}`,
-        eventId: event.id,
-        eventType: et,
-        priority,
-        category: getEventCategory(et),
-        penalized: priority <= 1 && priority >= 0,
-        firstAt: event.timestamp,
-        lastAt: event.timestamp,
-        count: 1,
-        evidenceCount,
-        summary: event.reason || "",
-        source: "exam_event",
-        userName: event.userName,
-        userId: event.userId,
-        metadata:
-          et === "clipboard_action"
-            ? normalizeClipboardMetadata(event.metadata)
-            : event.metadata,
-      });
-      openIncidents.set(aggregateKey, incidents.length - 1);
-    }
-
-    for (const event of activityEventSorted) {
-      const priority = getEventPriority(event.eventType);
-      incidents.push({
-        incidentKey: `activity:${event.id || `${event.userId}:${event.timestamp}:${event.eventType}`}`,
-        eventType: event.eventType,
-        priority,
-        category: getEventCategory(event.eventType),
-        penalized: false,
-        firstAt: event.timestamp,
-        lastAt: event.timestamp,
-        count: 1,
-        evidenceCount: 0,
-        summary: event.reason || "",
-        source: "activity",
-        userName: event.userName,
-        userId: event.userId,
-        metadata: event.metadata,
-      });
-    }
-
-    incidents.sort(
-      (a, b) => new Date(b.firstAt).getTime() - new Date(a.firstAt).getTime(),
-    );
-    return incidents;
-  }, [aggregationWindowMs, sourceEvents, externalEventFeed]);
+    const source = externalEventFeed ?? contestEventFeed;
+    return source
+      .filter((item) => !userIdFilter || String(item.userId) === userIdFilter)
+      .sort((left, right) => Date.parse(right.firstAt) - Date.parse(left.firstAt));
+  }, [contestEventFeed, externalEventFeed, userIdFilter]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
@@ -407,14 +123,12 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     const counts = {
       critical: 0,
       violation: 0,
-      heartbeatTimeout: 0,
-      degraded: 0,
+      connectivityTimeout: 0,
     };
     for (const inc of eventFeed) {
       if (inc.priority === 0) counts.critical++;
       if (inc.priority === 1) counts.violation++;
-      if (inc.eventType === "heartbeat_timeout") counts.heartbeatTimeout++;
-      if (inc.eventType === "capture_upload_degraded") counts.degraded++;
+      if (inc.eventType === "connectivity_timeout") counts.connectivityTimeout++;
     }
     return counts;
   }, [eventFeed]);
@@ -480,32 +194,26 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     return () => observer.disconnect();
   }, [embedded, hasMore, handleLoadMore]);
 
-  const loading =
-    antiCheatConfigLoading ||
-    (sourceEvents.length === 0 && (isRefreshing || examEventsLoading));
-  const isConfigUnavailable = !antiCheatConfig && !antiCheatConfigLoading;
+  const loading = examEvents.length === 0 && (isRefreshing || examEventsLoading);
 
   const handleRefresh = useCallback(async () => {
-    if (isRefreshing || isRefreshPending || antiCheatConfigLoading) return;
+    if (isRefreshing || isRefreshPending) return;
     setIsRefreshPending(true);
     const tasks: Promise<unknown>[] = [];
     try {
       if (!externalEventFeed) tasks.push(Promise.resolve(refreshAdminData()));
       if (onRefresh) tasks.push(Promise.resolve(onRefresh()));
-      tasks.push(Promise.resolve(refreshAntiCheatConfig()));
       if (tasks.length === 0) tasks.push(Promise.resolve(refreshAdminData()));
       await Promise.allSettled(tasks);
     } finally {
       setIsRefreshPending(false);
     }
   }, [
-    antiCheatConfigLoading,
     externalEventFeed,
     isRefreshPending,
     isRefreshing,
     onRefresh,
     refreshAdminData,
-    refreshAntiCheatConfig,
   ]);
 
 
@@ -537,51 +245,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
     );
   }
 
-  if (isConfigUnavailable) {
-    const errorContent = (
-      <div className={styles.root}>
-        <div className={styles.feedSection}>
-          <div className={styles.feedHeader}>
-            <h4 className={styles.feedTitle}>
-              {t("logs.eventRecords", "事件紀錄")}
-            </h4>
-            {embedded ? (
-              <Button
-                kind="ghost"
-                renderIcon={Renew}
-                onClick={() => {
-                  void handleRefresh();
-                }}
-                hasIconOnly
-                iconDescription={t("action.refresh", "重新整理")}
-                disabled={isRefreshPending}
-                size="sm"
-              />
-            ) : null}
-          </div>
-          <div className={styles.feedEmpty}>
-            {t(
-              "logs.anticheatConfigUnavailable",
-              "無法載入防作弊策略設定，請稍後重新整理。",
-            )}
-          </div>
-        </div>
-      </div>
-    );
-
-    if (embedded)
-      return <div className={styles.embeddedRoot}>{errorContent}</div>;
-    return (
-      <SurfaceSection
-        maxWidth="1400px"
-        style={{ height: "100%", overflowY: "auto" }}
-      >
-        {errorContent}
-      </SurfaceSection>
-    );
-  }
-  const effectiveConfig = antiCheatConfig!.effective;
-
   const kpiItems = [
     {
       key: "critical",
@@ -600,19 +263,11 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
       filterable: true,
     },
     {
-      key: "heartbeatTimeout",
+      key: "connectivityTimeout",
       icon: WarningFilled,
       color: "#0f62fe",
-      label: t("logs.kpi.heartbeatTimeout", "心跳逾時"),
-      count: kpiCounts.heartbeatTimeout,
-      filterable: false,
-    },
-    {
-      key: "degraded",
-      icon: ImageSearch,
-      color: "#8a3ffc",
-      label: t("logs.kpi.degraded", "證據異常"),
-      count: kpiCounts.degraded,
+      label: t("logs.kpi.connectivityTimeout", "心跳逾時"),
+      count: kpiCounts.connectivityTimeout,
       filterable: false,
     },
   ] as const;
@@ -657,6 +312,10 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
               <input
                 className={styles.searchInput}
                 type="text"
+                aria-label={t(
+                  "logs.searchPlaceholder",
+                  "搜尋使用者、事件類型、原因…",
+                )}
                 placeholder={t(
                   "logs.searchPlaceholder",
                   "搜尋使用者、事件類型、原因…",
@@ -710,18 +369,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
                         <IncidentCard
                           key={incident.incidentKey}
                           incident={incident}
-                          screenshotWindowBeforeMs={
-                            effectiveConfig.incidentScreenshotWindowBeforeMs
-                          }
-                          screenshotWindowAfterMs={
-                            effectiveConfig.incidentScreenshotWindowAfterMs
-                          }
-                          screenshotPreviewLimit={
-                            effectiveConfig.incidentScreenshotPreviewLimit
-                          }
-                          screenshotCategories={
-                            effectiveConfig.incidentScreenshotCategories
-                          }
                         />
                       ))}
                 </div>
@@ -769,9 +416,7 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
                   }}
                   hasIconOnly
                   iconDescription={t("action.refresh", "重新整理")}
-                  disabled={
-                    isRefreshing || isRefreshPending || antiCheatConfigLoading
-                  }
+                  disabled={isRefreshing || isRefreshPending}
                   size="sm"
                 />
               </div>
@@ -812,18 +457,6 @@ const ContestLogsScreen: React.FC<ContestLogsScreenProps> = ({
           <div className={styles.eventDetailModalBody}>
             <IncidentCard
               incident={selectedIncident}
-              screenshotWindowBeforeMs={
-                effectiveConfig.incidentScreenshotWindowBeforeMs
-              }
-              screenshotWindowAfterMs={
-                effectiveConfig.incidentScreenshotWindowAfterMs
-              }
-              screenshotPreviewLimit={
-                effectiveConfig.incidentScreenshotPreviewLimit
-              }
-              screenshotCategories={
-                effectiveConfig.incidentScreenshotCategories
-              }
               initialExpanded
               collapsible={false}
             />

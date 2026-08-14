@@ -136,7 +136,10 @@ export const ImportInboxModal = ({
       size="md"
     >
       {loading ? (
-        <Loading withOverlay={false} />
+        <Loading
+          withOverlay={false}
+          description={t("message.loading", "載入草稿")}
+        />
       ) : items.length === 0 ? (
         <p className={styles.emptyText}>
           {t("questionBank.inbox.empty", "目前沒有可收編的題目。")}
@@ -185,6 +188,8 @@ export const ImportInboxModal = ({
                     type="checkbox"
                     checked={checked}
                     readOnly
+                    aria-hidden="true"
+                    tabIndex={-1}
                     className={styles.inboxCheck}
                   />
                   <div className={styles.inboxCardBody}>

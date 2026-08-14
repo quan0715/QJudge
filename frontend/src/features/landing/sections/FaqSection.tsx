@@ -25,6 +25,7 @@ const FaqItem: FC<{
   return (
     <div className={`landing-faq-section__item${isOpen ? " landing-faq-section__item--open" : ""}`}>
       <button
+        type="button"
         ref={buttonRef}
         className="landing-faq-section__question"
         onClick={onToggle}

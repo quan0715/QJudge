@@ -40,8 +40,7 @@ describe("question bank repository integration", () => {
     const created = await create({ 
       name, 
       description: "Test Description",
-      category: "coding",
-      visibility: "private"
+      category: "coding"
     });
     
     expect(created.id).toBeDefined();

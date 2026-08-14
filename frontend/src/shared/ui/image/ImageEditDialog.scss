@@ -92,9 +92,29 @@
 }
 
 .image-edit-gallery__item {
-  padding: 0 !important;
-  min-height: 0 !important;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 0;
   overflow: hidden;
+}
+
+.image-edit-gallery__select {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 
   img {
     width: 100%;
@@ -174,4 +194,3 @@
     align-items: stretch;
   }
 }
-

@@ -273,6 +273,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                 </div>
                 <Toggle
                   id="contest-exam-mode"
+                  className={styles.questionToggle}
                   aria-labelledby="contest-exam-mode-label"
                   labelText=""
                   hideLabel
@@ -296,6 +297,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                 </div>
                 <Toggle
                   id="contest-allow-multiple-joins"
+                  className={styles.questionToggle}
                   aria-labelledby="contest-rejoin-label"
                   labelText=""
                   hideLabel
@@ -322,6 +324,7 @@ const CreateContestModal: React.FC<CreateContestModalProps> = ({
                 </div>
                 <Toggle
                   id="contest-attendance-check"
+                  className={styles.questionToggle}
                   aria-labelledby="contest-attendance-toggle-label"
                   labelText=""
                   hideLabel

@@ -1,19 +1,20 @@
+@use "@carbon/layout";
 .container {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .addBar {
   display: flex;
   justify-content: flex-end;
-  padding-bottom: 0.25rem;
+  padding-bottom: layout.$spacing-02;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .list {
   display: flex;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .vertical {
@@ -24,7 +25,7 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 0.25rem;
+  padding-bottom: layout.$spacing-02;
 
   scrollbar-width: thin;
   scrollbar-color: var(--cds-border-subtle) transparent;
@@ -46,7 +47,7 @@
 .group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .groupHeader {
@@ -58,12 +59,12 @@
   color: var(--cds-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 0.25rem 0;
+  padding: layout.$spacing-02 0;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
 .empty {
-  padding: 1rem;
+  padding: layout.$spacing-05;
   text-align: center;
   color: var(--cds-text-helper);
   font-size: 0.875rem;

@@ -15,6 +15,7 @@ from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
+from apps.submissions.models import Submission
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
@@ -43,7 +44,6 @@ def _create_coding_bank_item(
         asset_type=QuestionAsset.AssetType.CODING,
         title=title,
         prompt=prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": score,
             "order": 0,
@@ -120,10 +120,27 @@ def contest(owner: User) -> Contest:
         name="Contest View Actions",
         owner=owner,
         status="published",
-        visibility="public",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )
+
+
+@pytest.mark.django_db
+def test_global_contest_create_requires_classroom_context(
+    api_client: APIClient,
+    owner: User,
+) -> None:
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(
+        "/api/v1/contests/",
+        {"name": "Unbound contest", "contest_type": "paper_exam"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["error"]["code"] == "contest_requires_classroom_binding"
+    assert not Contest.objects.filter(name="Unbound contest").exists()
 
 
 @pytest.mark.django_db
@@ -150,7 +167,7 @@ def test_partial_update_logs_activity(
     ).exists()
 
 @pytest.mark.django_db
-def test_retrieve_auto_submits_when_contest_ended(
+def test_retrieve_does_not_submit_when_contest_ended(
     api_client: APIClient,
     contest: Contest,
     student: User,
@@ -169,8 +186,8 @@ def test_retrieve_auto_submits_when_contest_ended(
 
     assert response.status_code == status.HTTP_200_OK
     participant.refresh_from_db()
-    assert participant.exam_status == ExamStatus.SUBMITTED
-    assert participant.left_at is not None
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
+    assert participant.left_at is None
 
 
 @pytest.mark.django_db
@@ -203,7 +220,6 @@ def test_toggle_status_rejects_publish_without_schedule(
         name="Draft Without Schedule",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=owner)
 
@@ -463,7 +479,6 @@ def test_register_rejects_non_published_contest(
         name="Draft Contest For Register",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=student)
 
@@ -542,23 +557,14 @@ def test_import_from_bank_creates_problem_copy(
     contest: Contest,
 ) -> None:
     """ContestProblemViewSet: POST /problems/import-from-bank/ with items array (binding-based)."""
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_bank_import",
-        email="platform_admin_for_bank_import@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank",
+        owner=owner,
+        name="Coding Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     _asset, membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Bank Coding Question",
         prompt="Use source problem",
         score=100,
@@ -602,26 +608,16 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
     owner: User,
     contest: Contest,
 ) -> None:
-    platform_admin = User.objects.create_user(
-        username="platform_admin_asset_only_bank_import",
-        email="platform_admin_asset_only_bank_import@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
+        owner=owner,
         name="Asset Only Coding Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     asset, _version = create_question_asset(
-        owner=platform_admin,
+        owner=owner,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Asset Only Coding Question",
         prompt="desc",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -639,13 +635,13 @@ def test_import_from_asset_only_bank_creates_problem_from_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=platform_admin,
+        actor=owner,
     )
     membership = ensure_question_bank_membership(
         bank=bank,
         question_asset=asset,
         order=0,
-        actor=platform_admin,
+        actor=owner,
     )
 
     api_client.force_authenticate(user=owner)
@@ -682,23 +678,14 @@ def test_import_from_bank_materializes_coding_ext(
     contest: Contest,
 ) -> None:
     """ContestProblemViewSet: POST /problems/import-from-bank/ materializes coding extension data (binding-based)."""
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_materialize",
-        email="platform_admin_for_materialize@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank Materialize",
+        owner=owner,
+        name="Coding Bank Materialize",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     _asset, membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Materialized Coding Question",
         prompt="prompt",
         difficulty="easy",
@@ -741,23 +728,14 @@ def test_import_from_bank_rejects_non_membership_question_id(
     owner: User,
     contest: Contest,
 ) -> None:
-    platform_admin = User.objects.create_user(
-        username="platform_admin_for_non_membership_id_reject",
-        email="platform_admin_for_non_membership_id_reject@example.com",
-        password="testpass123",
-        role="admin",
-        is_staff=True,
-    )
     bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Official Coding Bank Non Membership Reject",
+        owner=owner,
+        name="Coding Bank Non Membership Reject",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
     )
     asset, _membership = _create_coding_bank_item(
         bank=bank,
-        owner=platform_admin,
+        owner=owner,
         title="Non Membership ID Reject",
         prompt="non-membership",
         score=100,
@@ -927,20 +905,19 @@ def test_contest_problem_destroy_keeps_asset_when_in_bank(
 def test_contest_question_mutations_blocked_when_question_edit_locked(
     api_client: APIClient,
     owner: User,
+    student: User,
     contest: Contest,
 ) -> None:
-    contest.question_edit_locked = True
-    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-    contest.question_edit_locked_at = timezone.now()
-    contest.save(
-        update_fields=[
-            "question_edit_locked",
-            "question_edit_lock_trigger",
-            "question_edit_locked_at",
-        ]
-    )
     problem = _create_problem("Locked Contest Problem", owner)
     binding = bind_problem_to_contest(contest, problem, order=0, score=20)
+    Submission.objects.create(
+        user=student,
+        contest=contest,
+        problem=problem,
+        source_type="contest",
+        language="python",
+        code="print(1)",
+    )
 
     api_client.force_authenticate(user=owner)
 
@@ -1018,29 +995,46 @@ def test_reorder_problems_updates_and_normalizes_order(
 
 
 @pytest.mark.django_db
-def test_contest_detail_exposes_question_edit_lock_fields(
+def test_contest_detail_computes_question_edit_lock_from_submission(
     api_client: APIClient,
     owner: User,
+    student: User,
     contest: Contest,
 ) -> None:
-    locked_at = timezone.now()
-    contest.question_edit_locked = True
-    contest.question_edit_locked_at = locked_at
-    contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-    contest.save(
-        update_fields=[
-            "question_edit_locked",
-            "question_edit_locked_at",
-            "question_edit_lock_trigger",
-        ]
+    problem = _create_problem("Detail Lock Evidence", owner)
+    Submission.objects.create(
+        user=student,
+        contest=contest,
+        problem=problem,
+        source_type="contest",
+        language="python",
+        code="print(1)",
     )
 
     api_client.force_authenticate(user=owner)
     response = api_client.get(f"/api/v1/contests/{contest.id}/")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["question_edit_locked"] is True
-    assert response.data["question_edit_lock_trigger"] == "coding_submission"
-    assert response.data["question_edit_locked_at"] is not None
+    assert "question_edit_lock_trigger" not in response.data
+    assert "question_edit_locked_at" not in response.data
+
+
+@pytest.mark.django_db
+def test_contest_list_omits_question_edit_lock_metadata(
+    api_client: APIClient,
+    owner: User,
+    contest: Contest,
+) -> None:
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.get("/api/v1/contests/")
+
+    assert response.status_code == status.HTTP_200_OK
+    rows = response.data.get("results", response.data)
+    row = next(item for item in rows if str(item["id"]) == str(contest.id))
+    assert "question_edit_locked" not in row
+    assert "question_edit_lock_trigger" not in row
+    assert "question_edit_locked_at" not in row
 
 
 @pytest.mark.django_db
@@ -1434,7 +1428,7 @@ def test_remove_participant_allowed_without_evidence(
 
 
 @pytest.mark.django_db
-def test_overview_metrics_uses_heartbeat_as_primary_online_count(
+def test_overview_metrics_uses_checkpoint_as_primary_online_count(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -1447,11 +1441,11 @@ def test_overview_metrics_uses_heartbeat_as_primary_online_count(
         exam_status=ExamStatus.IN_PROGRESS,
     )
 
-    recent_heartbeat = (timezone.now() - timedelta(seconds=20)).isoformat()
+    recent_checkpoint = (timezone.now() - timedelta(seconds=20)).isoformat()
     monkeypatch.setattr(
         contest_view_module,
-        "get_last_heartbeat",
-        lambda contest_id, user_id: recent_heartbeat if user_id == student.id else None,
+        "get_last_checkpoint",
+        lambda contest_id, user_id: recent_checkpoint if user_id == student.id else None,
     )
     monkeypatch.setattr(
         contest_view_module,
@@ -1470,7 +1464,7 @@ def test_overview_metrics_uses_heartbeat_as_primary_online_count(
 
 
 @pytest.mark.django_db
-def test_overview_metrics_allows_active_session_without_recent_heartbeat(
+def test_overview_metrics_allows_active_session_without_recent_checkpoint(
     api_client: APIClient,
     owner: User,
     contest: Contest,
@@ -1483,11 +1477,11 @@ def test_overview_metrics_allows_active_session_without_recent_heartbeat(
         exam_status=ExamStatus.PAUSED,
     )
 
-    stale_heartbeat = (timezone.now() - timedelta(minutes=5)).isoformat()
+    stale_checkpoint = (timezone.now() - timedelta(minutes=5)).isoformat()
     monkeypatch.setattr(
         contest_view_module,
-        "get_last_heartbeat",
-        lambda contest_id, user_id: stale_heartbeat if user_id == student.id else None,
+        "get_last_checkpoint",
+        lambda contest_id, user_id: stale_checkpoint if user_id == student.id else None,
     )
     monkeypatch.setattr(
         contest_view_module,
@@ -1510,7 +1504,7 @@ def test_overview_metrics_handles_exam_status_and_time_progress_boundaries(
     contest: Contest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(contest_view_module, "get_last_heartbeat", lambda *args, **kwargs: None)
+    monkeypatch.setattr(contest_view_module, "get_last_checkpoint", lambda *args, **kwargs: None)
     monkeypatch.setattr(contest_view_module, "get_active_session", lambda *args, **kwargs: None)
 
     api_client.force_authenticate(user=owner)

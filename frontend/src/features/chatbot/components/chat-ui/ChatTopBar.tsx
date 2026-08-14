@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { IconButton, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import {
+  IconButton,
+  OverflowMenu,
+  OverflowMenuItem,
+  SkeletonText,
+} from "@carbon/react";
 import { Add, Close, ChevronDown, Chat as ChatIcon, RecentlyViewed } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolBar } from "@/features/app/components/WorkspaceToolBar";
-import type { ChatSession } from "@/core/types/chatbot.types";
+import type { CopilotSessionSummary } from "@copilot";
 import { formatRelativeTime } from "@/shared/utils/relativeTime";
 import styles from "./ChatTopBar.module.scss";
 
@@ -14,8 +19,9 @@ interface ChatTopBarFullProps {
    * 隱藏 WorkspaceToolBar 內建的展開/關閉 app sidebar 按鈕。
    */
   hideSidebarControl?: boolean;
+  loading?: boolean;
   title?: string;
-  sessions: ChatSession[];
+  sessions: readonly CopilotSessionSummary[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
@@ -26,6 +32,7 @@ interface ChatTopBarFullProps {
 
 interface ChatTopBarSidebarProps {
   mode?: "sidebar";
+  loading?: boolean;
   title?: string;
   historyOpen?: boolean;
   onToggleHistory?: () => void;
@@ -108,6 +115,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
   const {
     title,
     hideSidebarControl = false,
+    loading = false,
     sessions,
     currentSessionId,
     onSelectSession,
@@ -116,9 +124,9 @@ export function ChatTopBar(props: ChatTopBarProps) {
     onDeleteSession,
     onClose,
   } = props as ChatTopBarFullProps;
-  const displayTitle = title || t("ui.newChat");
+  const displayTitle = title || t("ui.newTask");
 
-  const startRename = (session: ChatSession) => {
+  const startRename = (session: CopilotSessionSummary) => {
     setRenamingId(session.id);
     setRenameValue(session.title || "");
     setDropdownOpen(false);
@@ -132,11 +140,16 @@ export function ChatTopBar(props: ChatTopBarProps) {
     setRenameValue("");
   };
 
-  const titleSlot = (
+  const titleSlot = loading ? (
+    <div className={styles.titleArea} data-testid="chat-title-skeleton">
+      <SkeletonText width="10rem" />
+    </div>
+  ) : (
     <div className={styles.titleArea} ref={dropdownRef}>
-        {renamingId === currentSessionId ? (
+        {renamingId !== null && renamingId === currentSessionId ? (
           <input
             className={styles.renameInput}
+            aria-label={t("ui.renameTask", "重新命名工作")}
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             onBlur={commitRename}
@@ -181,7 +194,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
               >
                 <ChatIcon size={14} className={styles.dropdownItemIcon} />
                 <span className={styles.dropdownItemTitle}>
-                  {s.title || t("ui.newChat")}
+                  {s.title || t("ui.newTask")}
                 </span>
                 <span className={styles.dropdownItemTime}>
                   {formatRelativeTime(s.updatedAt)}
@@ -208,7 +221,7 @@ export function ChatTopBar(props: ChatTopBarProps) {
           >
             <Add size={20} />
           </IconButton>
-          {currentSessionId && (
+          {!loading && currentSessionId && (
             <OverflowMenu flipped size="md" align="bottom" iconDescription={t("ui.moreOptions")}>
               <OverflowMenuItem
                 itemText={t("ui.rename")}

@@ -1,4 +1,4 @@
-"""Unit tests for services.tpm_gate."""
+"""Unit tests for infrastructure.agent.tpm_gate."""
 from __future__ import annotations
 
 import asyncio
@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from services.tpm_gate import (
+from infrastructure.agent.tpm_gate import (
     TpmBudget,
     estimate_input_tokens,
     get_or_create_budget,
@@ -72,7 +72,7 @@ async def test_budget_blocks_when_over_safety(monkeypatch):
         # Fast-forward by manually pruning the first entry so the loop exits.
         budget._usage.clear()
 
-    monkeypatch.setattr("services.tpm_gate.asyncio.sleep", fake_sleep)
+    monkeypatch.setattr("infrastructure.agent.tpm_gate.asyncio.sleep", fake_sleep)
     await budget.wait(50_000)
     assert slept, "budget.wait did not sleep when over the safety budget"
 

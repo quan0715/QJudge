@@ -1,14 +1,15 @@
+@use "@carbon/layout";
 .root {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: layout.$spacing-05;
   flex-wrap: wrap;
 }
 
 .text {
   display: grid;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
   min-width: 0;
 }
 
@@ -22,6 +23,6 @@
 .actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   flex: 0 0 auto;
 }

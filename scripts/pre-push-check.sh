@@ -55,21 +55,10 @@ fi
 print_step "檢查 TypeScript 編譯..."
 
 run_typescript_check() {
-    if npx tsc -b --noEmit >/tmp/qjudge-tsc-build.log 2>&1; then
+    if npm run typecheck >/tmp/qjudge-tsc-build.log 2>&1; then
         cat /tmp/qjudge-tsc-build.log
         return 0
     fi
-
-    if grep -q "Unknown build option '--noEmit'" /tmp/qjudge-tsc-build.log; then
-        print_warning "偵測到較舊的 TypeScript build 模式，改用標準 noEmit 檢查"
-        if npx tsc --noEmit >/tmp/qjudge-tsc-plain.log 2>&1; then
-            cat /tmp/qjudge-tsc-plain.log
-            return 0
-        fi
-        cat /tmp/qjudge-tsc-plain.log
-        return 1
-    fi
-
     cat /tmp/qjudge-tsc-build.log
     return 1
 }
@@ -96,7 +85,7 @@ cd "$PROJECT_ROOT"
 # ==================== 4. Docker Compose 配置驗證 ====================
 print_step "驗證 Docker Compose 配置..."
 
-if docker compose config -q 2>/dev/null || docker-compose config -q 2>/dev/null; then
+if bash scripts/check-compose-config.sh; then
     print_success "Docker Compose 配置有效"
 else
     print_error "Docker Compose 配置無效"

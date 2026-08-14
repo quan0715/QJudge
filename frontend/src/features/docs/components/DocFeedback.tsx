@@ -53,10 +53,7 @@ const DocFeedback: React.FC<DocFeedbackProps> = ({ docSlug }) => {
         flexWrap: "wrap",
       }}
     >
-      <span
-        className="cds--type-body-compact-01"
-        style={{ color: "var(--cds-text-secondary)" }}
-      >
+      <span style={{ color: "var(--cds-text-secondary)" }}>
         {t("feedback.title")}
       </span>
 

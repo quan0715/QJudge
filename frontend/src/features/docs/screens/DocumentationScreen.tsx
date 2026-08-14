@@ -8,7 +8,6 @@ import DocSidebar from "../components/DocSidebar";
 import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
-import AIGeneratedBadge from "../components/AIGeneratedBadge";
 import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
@@ -137,10 +136,10 @@ const DocumentationScreen: React.FC = () => {
       <aside className={styles.leftSidebar}>
         {/* Product Title */}
         <div className={styles.sidebarHeader}>
-          <p className="cds--label" style={{ marginBottom: "0.25rem" }}>
+          <p className={styles.eyebrow}>
             {t("nav.productLabel", "使用說明")}
           </p>
-          <h2 className="cds--type-productive-heading-03" style={{ margin: 0 }}>
+          <h2 className={styles.sidebarTitle}>
             <BrandLockup size={22} />
           </h2>
         </div>
@@ -217,16 +216,12 @@ const DocumentationScreen: React.FC = () => {
                   marginBottom: "0.5rem",
                 }}
               >
-                <h1
-                  className="cds--type-productive-heading-05"
-                  style={{ margin: 0 }}
-                >
+                <h1 className={styles.pageTitle}>
                   {currentTitle}
                 </h1>
-                <AIGeneratedBadge />
               </div>
               {lastUpdated && (
-                <p className="cds--label" style={{ margin: 0 }}>
+                <p className={styles.pageMeta}>
                   {t("nav.lastUpdated", "前次更新")} {formatDate(lastUpdated)}
                 </p>
               )}
@@ -256,10 +251,7 @@ const DocumentationScreen: React.FC = () => {
                   height: "40vh",
                 }}
               >
-                <p
-                  className="cds--type-body-long-02"
-                  style={{ color: "var(--cds-text-secondary)" }}
-                >
+                <p className={styles.errorText}>
                   {error}
                 </p>
               </div>

@@ -87,10 +87,6 @@
 
 .landing-mini-judge__editor-controls {
   min-width: 140px;
-
-  .cds--select-input {
-    min-height: 2rem;
-  }
 }
 
 .landing-mini-judge__editor {
@@ -159,7 +155,7 @@
   @include type.type-style("label-01");
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
   color: var(--cds-text-secondary);
 }
 

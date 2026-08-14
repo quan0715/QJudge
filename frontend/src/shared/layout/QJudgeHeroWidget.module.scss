@@ -62,17 +62,6 @@
 
 .breadcrumbRow {
   margin-bottom: layout.$spacing-06;
-
-  .heroDark & {
-    :global(.cds--breadcrumb-item),
-    :global(.cds--breadcrumb-link) {
-      color: rgba(255, 255, 255, 0.7) !important;
-      &:hover { color: #fff !important; }
-    }
-    :global(.cds--breadcrumb-item--current) {
-      color: #fff !important;
-    }
-  }
 }
 
 .mainRow {
@@ -221,42 +210,11 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-  :global(.cds--tabs__nav-item) {
-    background-color: transparent !important;
-    border-block-end-color: transparent !important;
-  }
-
-  :global(.cds--tabs__nav-link) {
-    color: rgba(255, 255, 255, 0.7) !important;
-    background-color: transparent !important;
-    &:hover { color: #fff !important; }
-  }
-
-  :global(.cds--tabs__nav-item--selected) {
-    border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
-    :global(.cds--tabs__nav-link) { color: #fff !important; }
-  }
 }
 
 // Plain variant: standard Carbon tab styling
 .heroPlain .tabsBar {
   background: var(--cds-background);
-
-  :global(.cds--tabs__nav-item) {
-    background-color: transparent !important;
-  }
-
-  :global(.cds--tabs__nav-link) {
-    color: var(--cds-text-secondary) !important;
-    background-color: transparent !important;
-    &:hover { color: var(--cds-text-primary) !important; }
-  }
-
-  :global(.cds--tabs__nav-item--selected) {
-    border-block-end: 2px solid var(--cds-border-interactive) !important;
-    :global(.cds--tabs__nav-link) { color: var(--cds-text-primary) !important; }
-  }
 }
 
 // ── Responsive ──
@@ -282,7 +240,7 @@
   }
 
   .tabsBar .tabsInner {
-    padding: 0 layout.$spacing-05 !important;
+    padding: 0 layout.$spacing-05;
   }
 
   // Hide KPIs on small screens instead of wrapping

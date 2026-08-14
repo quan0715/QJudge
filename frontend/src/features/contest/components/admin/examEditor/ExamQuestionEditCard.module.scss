@@ -4,7 +4,10 @@
 .card {
   max-width: 720px;
   background: var(--cds-layer);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
   border: 1px solid transparent;
 }
 
@@ -68,19 +71,19 @@
 .typeTagContent {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: layout.$spacing-02;
 }
 
 .sourceBankTag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: layout.$spacing-02;
 }
 
 .saveToBankButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: layout.$spacing-02;
   padding: 0;
   border: none;
   background: none;
@@ -111,7 +114,10 @@
     line-height: inherit;
     color: inherit;
 
-    p, li, td, th {
+    p,
+    li,
+    td,
+    th {
       font-size: inherit;
       line-height: inherit;
     }
@@ -125,17 +131,19 @@
   font-style: italic;
 }
 
+// Edit-mode field groups keep their form spacing; preview-mode content uses
+// ExamQuestionPreviewSection as the shared visual owner.
 .answerArea {
   padding-top: layout.$spacing-05;
   border-top: 1px solid var(--cds-border-subtle);
 }
 
 .answerLabel {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  letter-spacing: 0.32px;
-  color: var(--cds-text-helper);
-  text-transform: uppercase;
   margin-bottom: layout.$spacing-04;
+  color: var(--cds-text-helper);
+  letter-spacing: 0.32px;
+  text-transform: uppercase;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
 }
 
 .previewAnswers {
@@ -247,33 +255,12 @@
 }
 
 .scoreNumberInput {
-  :global(.cds--number) {
-    width: 8.5rem;
-    min-width: 8.5rem;
-  }
+  width: 8.5rem;
+  min-width: 8.5rem;
 }
 
 .promptSection {
   margin-bottom: layout.$spacing-06;
-
-  // Monaco injects inline styles with !important on its background;
-  // overriding here requires !important to prevent hover color flash.
-  :global(.markdown-field__editor) {
-    &:hover {
-      :global(.monaco-editor),
-      :global(.monaco-editor .margin),
-      :global(.monaco-editor-background) {
-        background-color: var(--cds-field) !important;
-      }
-    }
-  }
-
-  :global(.markdown-editor__content),
-  :global(.markdown-editor__editor) {
-    &:hover {
-      background-color: var(--cds-field) !important;
-    }
-  }
 }
 
 .editOptionList {

@@ -1,5 +1,11 @@
 import { type ReactNode, useState, useId } from "react";
-import { Popover, PopoverContent, Button, Layer } from "@carbon/react";
+import {
+  Button,
+  ButtonSet,
+  Layer,
+  Popover,
+  PopoverContent,
+} from "@carbon/react";
 import { Filter } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import styles from "./FilterPopover.module.scss";
@@ -58,8 +64,6 @@ export const FilterPopover = ({
   };
 
   const triggerClass = [
-    "cds--toolbar-action",
-    "cds--overflow-menu",
     styles.trigger,
     hasActiveFilters ? styles.triggerActive : "",
     className,
@@ -75,20 +79,21 @@ export const FilterPopover = ({
         onRequestClose={() => setIsOpen(false)}
         align={align}
       >
-        <button
-          aria-label={triggerLabel ?? t("filter", "篩選")}
-          type="button"
+        <Button
+          kind="ghost"
+          size="md"
+          hasIconOnly
+          renderIcon={Filter}
+          iconDescription={triggerLabel ?? t("filter", "篩選")}
           aria-expanded={isOpen}
+          aria-controls={popoverId}
           onClick={() => setIsOpen(!isOpen)}
           className={triggerClass}
-        >
-          <Filter />
-          {hasActiveFilters && <span className={styles.activeIndicator} />}
-        </button>
+        />
         <PopoverContent id={popoverId}>
           <div className={styles.content}>
             <div className={styles.fields}>{children}</div>
-            <div className={styles.actions}>
+            <ButtonSet className={styles.actions}>
               <Button kind="secondary" onClick={handleReset}>
                 {t("button.reset", "重設")}
               </Button>
@@ -101,7 +106,7 @@ export const FilterPopover = ({
                   {t("button.done", "完成")}
                 </Button>
               )}
-            </div>
+            </ButtonSet>
           </div>
         </PopoverContent>
       </Popover>

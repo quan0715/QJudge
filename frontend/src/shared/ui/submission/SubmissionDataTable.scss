@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .submission-data-table {
   display: flex;
   flex-direction: column;
@@ -52,11 +53,7 @@
 
   // Loading state
   &--loading {
-    .cds--data-table {
-      tbody tr {
-        pointer-events: none;
-      }
-    }
+    pointer-events: none;
   }
 
   // Empty message inside table
@@ -66,9 +63,9 @@
     align-items: center;
     justify-content: center;
     min-height: 200px;
-    padding: 3rem 1rem;
+    padding: layout.$spacing-09 layout.$spacing-05;
     text-align: center;
-    gap: 0.5rem;
+    gap: layout.$spacing-03;
   }
 
   &__empty-title {

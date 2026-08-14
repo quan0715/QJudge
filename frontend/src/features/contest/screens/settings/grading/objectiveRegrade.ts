@@ -1,5 +1,6 @@
+import type { ExamQuestionType } from "@/core/entities/contest.entity";
 import { isSubjectiveType } from "./gradingTypes";
-import type { GradingAnswerRow, QuestionType } from "./gradingTypes";
+import type { GradingAnswerRow } from "./gradingTypes";
 
 function normalizeString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -22,7 +23,7 @@ function normalizeTrueFalseIndex(value: unknown): number | null {
 function normalizeChoiceIndex(
   value: unknown,
   options: string[],
-  questionType: QuestionType,
+  questionType: ExamQuestionType,
 ): number | null {
   if (questionType === "true_false") {
     return normalizeTrueFalseIndex(value);
@@ -91,4 +92,3 @@ export function calculateObjectiveExpectedScore(
 
   return selected === correct ? row.maxScore : 0;
 }
-

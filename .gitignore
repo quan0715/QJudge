@@ -80,6 +80,7 @@ coverage.xml
 # Docker
 *.env
 !.env.example
+.env.next
 
 # Celery
 celerybeat-schedule
@@ -168,9 +169,13 @@ running/
 .claude/
 .opencode/
 .superpowers/
+.worktrees/
 .agents/
 .playwright-mcp/
 .mcp.json
 
 # Generated media experiments
 qjudge-promo-abstract/
+
+# Local-only Integrity Controller credentials.
+secrets/

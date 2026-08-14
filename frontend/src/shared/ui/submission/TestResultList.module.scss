@@ -1,24 +1,25 @@
+@use "@carbon/layout";
 .container {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .filterBar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding-bottom: 0.25rem;
+  gap: layout.$spacing-03;
+  padding-bottom: layout.$spacing-02;
 }
 
 .list {
   display: flex;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
 }
 
 .emptyState {
-  padding: 1rem 1.5rem;
+  padding: layout.$spacing-05 layout.$spacing-06;
   color: var(--cds-text-secondary);
   font-size: 0.875rem;
   text-align: center;
@@ -31,7 +32,7 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding-bottom: 0.25rem; // Space for scrollbar
+  padding-bottom: layout.$spacing-02; // Space for scrollbar
 
   // Hide scrollbar but keep functionality
   scrollbar-width: thin;
@@ -69,7 +70,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns, 4), 1fr);
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 
   // Responsive breakpoints
   @media (max-width: 768px) {

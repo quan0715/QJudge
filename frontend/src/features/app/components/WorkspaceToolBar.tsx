@@ -1,7 +1,7 @@
 import { IconButton } from "@carbon/react";
 import { OpenPanelLeft } from "@carbon/icons-react";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { useRegisterPageToolbar } from "@/features/app/contexts/WorkspaceToolbarSlot";
+import { useRegisterPageToolbar } from "@/features/app/contexts/WorkspaceToolbarSlotContext";
 import styles from "./WorkspaceToolBar.module.scss";
 
 export interface WorkspaceToolBarProps {

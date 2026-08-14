@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { ScaleTypes } from "@carbon/charts";
 import { LollipopChart } from "@carbon/charts-react";
 import "@carbon/charts-react/styles.css";
@@ -126,6 +134,7 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
 };
 
 const PASSING_SCORE_THRESHOLD_PERCENT = 60;
+const CONTEST_STATE_REFRESH_INTERVAL_MS = 30_000;
 
 // 公告 block 暫時隱藏（資料拉取與渲染邏輯保留，flip 為 true 即可恢復）
 const SHOW_ANNOUNCEMENTS = false;
@@ -211,6 +220,7 @@ export default function StudentContestDashboard({
   const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
     () => getMarkedQuestionIds(contest.id),
   );
+  const contestRefreshInFlight = useRef(false);
   const showMobileActionFooter = useMediaQuery("(max-width: 672px)");
 
   const phase = resolveStudentContestPhase(contest, nowMs);
@@ -234,6 +244,48 @@ export default function StudentContestDashboard({
     phase !== "before";
 
   useInterval(() => setNowMs(Date.now()), phase !== "after" ? 1000 : null);
+
+  const refreshContestState = useCallback(async () => {
+    if (
+      !onRefreshContest ||
+      document.visibilityState === "hidden" ||
+      contestRefreshInFlight.current
+    ) {
+      return;
+    }
+
+    contestRefreshInFlight.current = true;
+    try {
+      await onRefreshContest();
+    } catch {
+      // Keep the current dashboard usable when a background refresh fails.
+    } finally {
+      contestRefreshInFlight.current = false;
+    }
+  }, [onRefreshContest]);
+
+  useInterval(
+    () => {
+      void refreshContestState();
+    },
+    participant && phase !== "before" && onRefreshContest
+      ? CONTEST_STATE_REFRESH_INTERVAL_MS
+      : null,
+  );
+
+  useEffect(() => {
+    if (!participant || phase === "before" || !onRefreshContest) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshContestState();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [onRefreshContest, participant, phase, refreshContestState]);
 
   useEffect(() => {
     if (!shouldLoadPaperData) {
@@ -692,7 +744,7 @@ export default function StudentContestDashboard({
       problemId: problem.problemId,
       title: problem.title,
       order: problem.order ?? index,
-      score: problem.maxScore ?? problem.score ?? 0,
+      score: problem.maxScore ?? 0,
       userStatus: problem.userStatus,
     }));
 
@@ -780,11 +832,10 @@ export default function StudentContestDashboard({
           const answered = !!answerPayload;
           const questionType = (
             result?.questionType ??
-            result?.questionSnapshot?.questionType ??
             question.questionType
           ) as ExamQuestionType;
           const maxScore =
-            question.score ?? result?.maxScore ?? result?.questionSnapshot?.score ?? 0;
+            question.score ?? result?.maxScore ?? 0;
           const status =
             marked
               ? {
@@ -831,7 +882,6 @@ export default function StudentContestDashboard({
                       };
           const prompt =
             result?.questionPrompt ??
-            result?.questionSnapshot?.prompt ??
             question.prompt;
 
           return (
@@ -856,22 +906,13 @@ export default function StudentContestDashboard({
               maxScore={maxScore}
               gradedByUsername={result?.gradedByUsername}
               feedback={result?.feedback}
-              correctAnswer={
-                result?.questionSnapshot?.correctAnswer ?? question.correctAnswer
-              }
-              referenceAnswerDocument={
-                result?.questionSnapshot?.referenceAnswerDocument ??
-                question.referenceAnswerDocument
-              }
+              correctAnswer={question.correctAnswer}
+              referenceAnswerDocument={question.referenceAnswerDocument}
               explanation={
                 result?.questionExplanation ??
-                result?.questionSnapshot?.explanation ??
                 question.explanation
               }
-              explanationDocument={
-                result?.questionSnapshot?.explanationDocument ??
-                question.explanationDocument
-              }
+              explanationDocument={question.explanationDocument}
               scorePolicy={question.scorePolicy}
             />
           );
@@ -1069,7 +1110,7 @@ export default function StudentContestDashboard({
                       )}
                       subtitle={t(
                         "studentDashboard.monitoring.subtitle",
-                        "進入作答後會啟用全螢幕、分頁切換與裝置監控。",
+                        "進入作答後會啟用全螢幕、裝置與證據來源監控。",
                       )}
                     />
                   ) : null}

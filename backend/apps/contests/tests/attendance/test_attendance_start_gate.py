@@ -25,7 +25,6 @@ def make_contest(**overrides) -> Contest:
     defaults = {
         "name": "Attendance Start Gate",
         "status": "published",
-        "visibility": "public",
         "start_time": now - timedelta(minutes=5),
         "end_time": now + timedelta(hours=1),
         "attendance_check_enabled": True,
@@ -130,7 +129,7 @@ def test_attendance_evidence_confirm_allows_not_started_participant() -> None:
             "ETag": '"attendance-etag"',
         }
         response = api_client.post(
-            f"/api/v1/contests/{contest.id}/exam/evidence/upload-confirm/",
+            f"/api/v1/contests/{contest.id}/exam/attendance/evidence/confirm/",
             {
                 "event_id": event.id,
                 "upload_session_id": "attendance-upload-1",

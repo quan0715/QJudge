@@ -121,7 +121,7 @@ const CodingProblemListPanel: React.FC<CodingProblemListPanelProps> = ({
   );
 
   const totalScore = problems.reduce(
-    (sum, p) => sum + (p.maxScore ?? p.score ?? 0),
+    (sum, problem) => sum + (problem.maxScore ?? 0),
     0,
   );
 

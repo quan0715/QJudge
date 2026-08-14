@@ -73,7 +73,7 @@ export const deleteContest = async (id: string): Promise<void> => {
   );
 };
 
-export const toggleStatus = async (
+const toggleStatus = async (
   id: string
 ): Promise<{ status: string }> => {
   return requestJson<{ status: string }>(
@@ -92,7 +92,7 @@ export const registerContest = async (
   );
 };
 
-export const enterContest = async (
+const enterContest = async (
   id: string,
   data?: Record<string, never>,
 ): Promise<void> => {
@@ -160,5 +160,3 @@ export const contestRepository: IContestRepository = {
   getContestAnticheatConfig,
   getContestOverviewMetrics,
 };
-
-export default contestRepository;

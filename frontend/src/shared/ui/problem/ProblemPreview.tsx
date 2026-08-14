@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Tag, Tile, IconButton } from "@carbon/react";
 import { Copy, Checkmark } from "@carbon/icons-react";
 import { useState } from "react";
-import "@/styles/markdown.css";
+import "@/styles/markdown.scss";
 import styles from "./ProblemPreview.module.scss";
 
 export interface ProblemPreviewProps {

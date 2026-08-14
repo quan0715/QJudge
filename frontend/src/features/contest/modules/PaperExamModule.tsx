@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import {
   canAccessExamContent,
@@ -13,9 +14,12 @@ import type {
   ContestStudentTabContentKind,
   ContestTypeModule,
 } from "@/features/contest/modules/types";
-import ExamEditorLayout from "@/features/contest/components/admin/examEditor/ExamEditorLayout";
 import PaperExamAnsweringScreen from "@/features/contest/screens/paperExam/PaperExamAnsweringScreen";
 import { getClassroomContestSolvePath } from "@/features/contest/domain/contestRoutePolicy";
+
+const ExamEditorLayout = lazy(
+  () => import("@/features/contest/components/admin/examEditor/ExamEditorLayout"),
+);
 
 const getPaperExamTabs = (contest?: ContestDetail | null) => {
   const keyToContentKind: Record<ContestTabKey, ContestStudentTabContentKind> =

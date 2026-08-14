@@ -35,7 +35,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility='public',
             status='published'
         )
         
@@ -45,7 +44,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility='private',
             status='published'
         )
         self.client.force_authenticate(user=self.user)
@@ -87,7 +85,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now() - timedelta(hours=2),
             end_time=timezone.now() - timedelta(hours=1),
             owner=self.admin,
-            visibility='public',
             status='published',
         )
         url = reverse('contests:contest-register', args=[ended_contest.id])
@@ -109,7 +106,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility="public",
             status="published",
         )
         classroom = Classroom.objects.create(
@@ -138,7 +134,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility="public",
             status="published",
         )
         ClassroomContest.objects.create(classroom=classroom, contest=contest_b)
@@ -162,7 +157,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility="public",
             status="published",
         )
         ClassroomContest.objects.create(classroom=classroom, contest=contest_c)
@@ -182,7 +176,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.admin,
-            visibility='public',
             status='draft',
         )
         self._bind_user_to_contest(draft_contest)
@@ -212,7 +205,6 @@ class ContestParticipationTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility='public',
             status='published',
             allow_multiple_joins=True,
         )

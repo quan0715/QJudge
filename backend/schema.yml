@@ -35,6 +35,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthApproveResponse'
           description: ''
+  /api/oauth/resource-token/:
+    post:
+      operationId: oauth_resource_token_create
+      tags:
+      - oauth
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/oauth/token-exchange/:
+    post:
+      operationId: oauth_token_exchange_create
+      tags:
+      - oauth
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/v1/action-links:
     post:
       operationId: v1_action_links_create
@@ -99,64 +120,9 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/ai/_internal/artifacts/:
-    get:
-      operationId: v1_ai__internal_artifacts_retrieve
-      description: Internal endpoints for ai-service artifact tools.
-      tags:
-      - v1
-      responses:
-        '200':
-          description: No response body
-    post:
-      operationId: v1_ai__internal_artifacts_create
-      description: Internal endpoints for ai-service artifact tools.
-      tags:
-      - v1
-      responses:
-        '201':
-          description: No response body
-  /api/v1/ai/_internal/artifacts/{id}/:
-    get:
-      operationId: v1_ai__internal_artifacts_retrieve_2
-      description: Internal endpoints for ai-service artifact tools.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      responses:
-        '200':
-          description: No response body
-  /api/v1/ai/_internal/artifacts/{id}/content/:
-    get:
-      operationId: v1_ai__internal_artifacts_content_retrieve
-      description: Internal endpoints for ai-service artifact tools.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      responses:
-        '200':
-          description: No response body
   /api/v1/ai/artifacts/:
     get:
       operationId: v1_ai_artifacts_list
-      description: User-facing read-only artifact view (Artifact Panel).
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
       tags:
       - v1
       security:
@@ -164,15 +130,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAIArtifactList'
-          description: ''
+          description: No response body
   /api/v1/ai/artifacts/{id}/:
     get:
       operationId: v1_ai_artifacts_retrieve
-      description: User-facing read-only artifact view (Artifact Panel).
       parameters:
       - in: path
         name: id
@@ -186,15 +147,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIArtifact'
-          description: ''
+          description: No response body
   /api/v1/ai/artifacts/{id}/content/:
     get:
       operationId: v1_ai_artifacts_content_retrieve
-      description: Inline text preview (csv/md/json) for small artifacts.
       parameters:
       - in: path
         name: id
@@ -208,15 +164,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIArtifact'
-          description: ''
+          description: No response body
   /api/v1/ai/artifacts/{id}/download/:
     get:
       operationId: v1_ai_artifacts_download_retrieve
-      description: User-facing read-only artifact view (Artifact Panel).
       parameters:
       - in: path
         name: id
@@ -230,15 +181,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIArtifact'
-          description: ''
+          description: No response body
   /api/v1/ai/artifacts/upload/:
     post:
       operationId: v1_ai_artifacts_upload_create
-      description: Upload user-provided artifact (csv/md) into current session.
       tags:
       - v1
       security:
@@ -246,15 +192,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIArtifact'
-          description: ''
+          description: No response body
   /api/v1/ai/models/:
     get:
       operationId: v1_ai_models_retrieve
-      description: GET /api/v1/ai/models/ — return available model options.
       tags:
       - v1
       security:
@@ -270,14 +211,6 @@ paths:
   /api/v1/ai/runs/:
     get:
       operationId: v1_ai_runs_list
-      description: ViewSet for durable AI chat runs.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
       tags:
       - v1
       security:
@@ -285,15 +218,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAIChatRunList'
-          description: ''
+          description: No response body
   /api/v1/ai/runs/{id}/:
     get:
       operationId: v1_ai_runs_retrieve
-      description: ViewSet for durable AI chat runs.
       parameters:
       - in: path
         name: id
@@ -307,15 +235,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIChatRun'
-          description: ''
+          description: No response body
   /api/v1/ai/runs/{id}/answer/:
     post:
       operationId: v1_ai_runs_answer_create
-      description: Submit the user's answer for an awaiting-question durable run.
       parameters:
       - in: path
         name: id
@@ -329,15 +252,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIChatRun'
-          description: ''
+          description: No response body
   /api/v1/ai/runs/{id}/approval/:
     post:
       operationId: v1_ai_runs_approval_create
-      description: Submit approval/rejection for an awaiting durable run.
       parameters:
       - in: path
         name: id
@@ -351,15 +269,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIChatRun'
-          description: ''
+          description: No response body
   /api/v1/ai/runs/{id}/cancel/:
     post:
       operationId: v1_ai_runs_cancel_create
-      description: Request cancellation for a durable run.
       parameters:
       - in: path
         name: id
@@ -373,15 +286,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIChatRun'
-          description: ''
+          description: No response body
   /api/v1/ai/runs/{id}/events/:
     get:
       operationId: v1_ai_runs_events_retrieve
-      description: Subscribe to persisted events for a durable run.
       parameters:
       - in: path
         name: id
@@ -395,22 +303,10 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AIChatRun'
-          description: ''
+          description: No response body
   /api/v1/ai/sessions/:
     get:
       operationId: v1_ai_sessions_list
-      description: ViewSet for AI chat sessions.
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
       tags:
       - v1
       security:
@@ -421,24 +317,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedAISessionListList'
+                type: array
+                items:
+                  $ref: '#/components/schemas/CreateSession'
           description: ''
     post:
       operationId: v1_ai_sessions_create
-      description: ViewSet for AI chat sessions.
       tags:
       - v1
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -447,12 +344,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/ai/sessions/{id}/:
     get:
       operationId: v1_ai_sessions_retrieve
-      description: ViewSet for AI chat sessions.
       parameters:
       - in: path
         name: id
@@ -469,11 +365,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
     put:
       operationId: v1_ai_sessions_update
-      description: ViewSet for AI chat sessions.
       parameters:
       - in: path
         name: id
@@ -486,13 +381,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -501,11 +396,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
     patch:
       operationId: v1_ai_sessions_partial_update
-      description: ViewSet for AI chat sessions.
       parameters:
       - in: path
         name: id
@@ -518,13 +412,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedAISessionRequest'
+              $ref: '#/components/schemas/PatchedCreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedAISessionRequest'
+              $ref: '#/components/schemas/PatchedCreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedAISessionRequest'
+              $ref: '#/components/schemas/PatchedCreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -533,12 +427,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
     delete:
       operationId: v1_ai_sessions_destroy
-      description: Delete a session (only authenticated users can delete their own
-        sessions).
       parameters:
       - in: path
         name: id
@@ -556,11 +448,6 @@ paths:
   /api/v1/ai/sessions/{id}/clear/:
     post:
       operationId: v1_ai_sessions_clear_create
-      description: |-
-        Clear all messages in a session and delete the LangGraph checkpoint.
-
-        Deletes both Django messages and the LangGraph checkpoint state so broken
-        threads (e.g. dangling tool_calls) are fully reset on the next message.
       parameters:
       - in: path
         name: id
@@ -573,13 +460,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -588,12 +475,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/ai/sessions/{id}/context/:
     get:
       operationId: v1_ai_sessions_context_retrieve
-      description: Get session context (for debugging/inspection).
       parameters:
       - in: path
         name: id
@@ -610,12 +496,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/ai/sessions/{id}/rename/:
     post:
       operationId: v1_ai_sessions_rename_create
-      description: Rename a session.
       parameters:
       - in: path
         name: id
@@ -628,13 +513,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -643,12 +528,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/ai/sessions/{id}/runs/:
     post:
       operationId: v1_ai_sessions_runs_create
-      description: Create a durable backend-controlled chat run for a session.
       parameters:
       - in: path
         name: id
@@ -661,13 +545,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -676,51 +560,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
-          description: ''
-  /api/v1/ai/sessions/credit/:
-    get:
-      operationId: v1_ai_sessions_credit_retrieve
-      description: GET /api/v1/ai/sessions/credit/ — return current user's AI usage.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/ai/sessions/new_session/:
     post:
       operationId: v1_ai_sessions_new_session_create
-      description: |-
-        Create a new session placeholder before first message.
-
-        此 endpoint 用於前端建立新會話時獲取一個後端 session ID。
-        AISession 會在此時建立，讓前端可以在第一個 run 之前先綁定 artifact。
-
-        Returns:
-            {
-                "id": "backend-session-id",
-                "status": "pending"
-            }
       tags:
       - v1
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AISessionRequest'
+              $ref: '#/components/schemas/CreateSessionRequest'
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -729,7 +586,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AISession'
+                $ref: '#/components/schemas/CreateSession'
           description: ''
   /api/v1/auth/callback/{provider}:
     post:
@@ -1487,17 +1344,6 @@ paths:
           * `draft` - Draft
           * `published` - Published
           * `archived` - Archived
-      - in: query
-        name: visibility
-        schema:
-          type: string
-          title: 可見性
-          enum:
-          - private
-          - public
-        description: |-
-          * `public` - Public
-          * `private` - Private
       tags:
       - v1
       security:
@@ -2777,6 +2623,42 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/contests/{contest_pk}/exam/attendance/evidence/confirm/:
+    post:
+      operationId: v1_contests_exam_attendance_evidence_confirm_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/attendance/evidence/intents/:
+    post:
+      operationId: v1_contests_exam_attendance_evidence_intents_create
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/end/:
     post:
       operationId: v1_contests_exam_end_create
@@ -2791,92 +2673,15 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/events/:
     get:
       operationId: v1_contests_exam_events_retrieve
-      description: |-
-        Handle exam events.
-        POST: Log an event (Student/Participant)
-        GET: List events (Teacher/Admin only)
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-    post:
-      operationId: v1_contests_exam_events_create
-      description: |-
-        Handle exam events.
-        POST: Log an event (Student/Participant)
-        GET: List events (Teacher/Admin only)
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/evidence/upload-confirm/:
-    post:
-      operationId: v1_contests_exam_evidence_upload_confirm_create
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2886,31 +2691,15 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/evidence/upload-intents/:
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/integrity/checkpoints/:
     post:
-      operationId: v1_contests_exam_evidence_upload_intents_create
+      operationId: v1_contests_exam_integrity_checkpoints_create
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2920,32 +2709,16 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
-  /api/v1/contests/{contest_pk}/exam/screenshots/:
+          description: No response body
+  /api/v1/contests/{contest_pk}/exam/integrity/evidence/review/:
     get:
-      operationId: v1_contests_exam_screenshots_retrieve
-      description: Return presigned GET URLs for uploaded manifest frames.
+      operationId: v1_contests_exam_integrity_evidence_review_retrieve
+      description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
         name: contest_pk
@@ -2959,11 +2732,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/config/:
     get:
       operationId: v1_contests_exam_sfu_config_retrieve
@@ -2981,11 +2750,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publisher/heartbeat/:
     post:
       operationId: v1_contests_exam_sfu_publisher_heartbeat_create
@@ -2998,28 +2763,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publisher/stop/:
     post:
       operationId: v1_contests_exam_sfu_publisher_stop_create
@@ -3032,28 +2781,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/publishers/{target_user_id}/:
     get:
       operationId: v1_contests_exam_sfu_publishers_retrieve
@@ -3077,11 +2810,7 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/:
     post:
       operationId: v1_contests_exam_sfu_sessions_create
@@ -3094,28 +2823,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/renegotiate/:
     put:
       operationId: v1_contests_exam_sfu_sessions_renegotiate_update
@@ -3133,28 +2846,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/tracks/new/:
     post:
       operationId: v1_contests_exam_sfu_sessions_tracks_new_create
@@ -3172,28 +2869,12 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
   /api/v1/contests/{contest_pk}/exam/start/:
     post:
       operationId: v1_contests_exam_start_create
@@ -3206,28 +2887,177 @@ paths:
         required: true
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ExamEventCreateRequest'
-        required: true
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExamEventCreate'
-          description: ''
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/:
+    get:
+      operationId: v1_contests_integrity_runs_retrieve
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_contests_integrity_runs_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '201':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/:
+    get:
+      operationId: v1_contests_integrity_runs_retrieve_2
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/destroy/:
+    post:
+      operationId: v1_contests_integrity_runs_destroy_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/purge/:
+    post:
+      operationId: v1_contests_integrity_runs_purge_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/restart/:
+    post:
+      operationId: v1_contests_integrity_runs_restart_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/start/:
+    post:
+      operationId: v1_contests_integrity_runs_start_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/contests/{contest_pk}/integrity-runs/{id}/stop/:
+    post:
+      operationId: v1_contests_integrity_runs_stop_create
+      parameters:
+      - in: path
+        name: contest_pk
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/contests/{contest_pk}/problems/:
     get:
       operationId: v1_contests_problems_list
@@ -3712,8 +3542,7 @@ paths:
   /api/v1/contests/{id}/:
     get:
       operationId: v1_contests_retrieve
-      description: Retrieve contest details. Block access if draft or archived for
-        non-privileged users.
+      description: ViewSet for contests.
       parameters:
       - in: path
         name: id
@@ -4194,76 +4023,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/contests/{id}/manual_proctor_event/:
-    post:
-      operationId: v1_contests_manual_proctor_event_create
-      description: Create a TA-authored manual evidence event for a participant.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/manual_proctor_evidence_urls/:
-    post:
-      operationId: v1_contests_manual_proctor_evidence_urls_create
-      description: Issue admin-side evidence upload URLs for manual proctoring captures.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/my_report/:
     get:
       operationId: v1_contests_my_report_retrieve
@@ -4711,165 +4470,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/management/announcements/:
+  /api/v1/internal/integrity/runs/{run_id}/bootstrap/:
     get:
-      operationId: v1_management_announcements_list
-      description: API endpoint that allows announcements to be viewed or edited.
+      operationId: v1_internal_integrity_runs_bootstrap_retrieve
       parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
+      - in: path
+        name: run_id
         schema:
-          type: integer
+          type: string
+          format: uuid
+        required: true
       tags:
       - v1
       security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
       - {}
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedAnnouncementList'
-          description: ''
+          description: No response body
+  /api/v1/internal/integrity/runs/{run_id}/commands/:
     post:
-      operationId: v1_management_announcements_create
-      description: API endpoint that allows announcements to be viewed or edited.
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-  /api/v1/management/announcements/{id}/:
-    get:
-      operationId: v1_management_announcements_retrieve
-      description: API endpoint that allows announcements to be viewed or edited.
+      operationId: v1_internal_integrity_runs_commands_create
       parameters:
       - in: path
-        name: id
+        name: run_id
         schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
+          type: string
+          format: uuid
         required: true
       tags:
       - v1
       security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
       - {}
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    put:
-      operationId: v1_management_announcements_update
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AnnouncementRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    patch:
-      operationId: v1_management_announcements_partial_update
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedAnnouncementRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Announcement'
-          description: ''
-    delete:
-      operationId: v1_management_announcements_destroy
-      description: API endpoint that allows announcements to be viewed or edited.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this announcement.
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
           description: No response body
   /api/v1/management/problems/:
     get:
@@ -5666,125 +5299,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/QuestionBank'
           description: ''
-  /api/v1/question-banks/{uuid}/review/:
-    post:
-      operationId: v1_question_banks_review_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/{uuid}/submit-for-review/:
-    post:
-      operationId: v1_question_banks_submit_for_review_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/{uuid}/subscribe/:
-    post:
-      operationId: v1_question_banks_subscribe_create
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/QuestionBankRequest'
-        required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-    delete:
-      operationId: v1_question_banks_subscribe_destroy
-      parameters:
-      - in: path
-        name: uuid
-        schema:
-          type: string
-          format: uuid
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/question-banks/{uuid}/upload_cover/:
     post:
       operationId: v1_question_banks_upload_cover_create
@@ -5805,21 +5319,6 @@ paths:
             schema:
               $ref: '#/components/schemas/QuestionBankRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/explore/:
-    get:
-      operationId: v1_question_banks_explore_retrieve
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5862,36 +5361,6 @@ paths:
             schema:
               $ref: '#/components/schemas/QuestionBankRequest'
         required: true
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/review-queue/:
-    get:
-      operationId: v1_question_banks_review_queue_retrieve
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/QuestionBank'
-          description: ''
-  /api/v1/question-banks/subscribed/:
-    get:
-      operationId: v1_question_banks_subscribed_retrieve
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -6050,41 +5519,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
-  /api/v1/subscriptions/checkout/:
-    post:
-      operationId: v1_subscriptions_checkout_create
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/subscriptions/me/:
-    get:
-      operationId: v1_subscriptions_me_retrieve
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/subscriptions/portal/:
-    post:
-      operationId: v1_subscriptions_portal_create
-      description: POST /api/v1/subscriptions/portal/ — create Recur customer portal
-        session.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/users/:
     get:
       operationId: v1_users_retrieve
@@ -6240,327 +5674,6 @@ paths:
           description: ''
 components:
   schemas:
-    AIArtifact:
-      type: object
-      description: Metadata view of an artifact (no content).
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        session_id:
-          type: string
-          readOnly: true
-        run_id:
-          type: string
-          nullable: true
-          readOnly: true
-        step:
-          type: string
-          readOnly: true
-          description: SOP 階段識別（例：rubric、raw_answers、calibration、graded、final_delta）
-        filename:
-          type: string
-          readOnly: true
-        object_key:
-          type: string
-          readOnly: true
-          description: Object storage 物件 key：ai-artifacts/{session_id}/{step}/{filename}
-        content_type:
-          type: string
-          readOnly: true
-        size_bytes:
-          type: integer
-          readOnly: true
-        checksum:
-          type: string
-          readOnly: true
-          description: 內容 sha256，用於完整性檢查
-        metadata:
-          readOnly: true
-          description: 自由欄位：artifact_type、rubric 摘要、評分進度等
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - checksum
-      - content_type
-      - created_at
-      - filename
-      - id
-      - metadata
-      - object_key
-      - run_id
-      - session_id
-      - size_bytes
-      - step
-      - updated_at
-    AIChatRun:
-      type: object
-      description: Serializer for durable AI chat runs.
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        session_id:
-          type: string
-          readOnly: true
-        status:
-          allOf:
-          - $ref: '#/components/schemas/AIChatRunStatusEnum'
-          readOnly: true
-        kind:
-          allOf:
-          - $ref: '#/components/schemas/KindEnum'
-          readOnly: true
-        model_id:
-          type: string
-          readOnly: true
-        thread_id:
-          type: string
-          readOnly: true
-        external_run_id:
-          type: string
-          readOnly: true
-        celery_task_id:
-          type: string
-          readOnly: true
-        error:
-          type: string
-          readOnly: true
-        approval_payload:
-          readOnly: true
-        question_payload:
-          readOnly: true
-        cancel_requested:
-          type: boolean
-          readOnly: true
-        last_event_seq:
-          type: integer
-          readOnly: true
-        user_message_id:
-          type: integer
-          readOnly: true
-        assistant_message_id:
-          type: integer
-          readOnly: true
-        started_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        completed_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - approval_payload
-      - assistant_message_id
-      - cancel_requested
-      - celery_task_id
-      - completed_at
-      - created_at
-      - error
-      - external_run_id
-      - id
-      - kind
-      - last_event_seq
-      - model_id
-      - question_payload
-      - session_id
-      - started_at
-      - status
-      - thread_id
-      - updated_at
-      - user_message_id
-    AIChatRunStatusEnum:
-      enum:
-      - queued
-      - running
-      - awaiting_approval
-      - awaiting_user_answer
-      - completed
-      - failed
-      - cancelled
-      type: string
-      description: |-
-        * `queued` - Queued
-        * `running` - Running
-        * `awaiting_approval` - Awaiting approval
-        * `awaiting_user_answer` - Awaiting user answer
-        * `completed` - Completed
-        * `failed` - Failed
-        * `cancelled` - Cancelled
-    AIMessage:
-      type: object
-      description: Serializer for AI messages.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        role:
-          allOf:
-          - $ref: '#/components/schemas/AIMessageRoleEnum'
-          title: 角色
-        content:
-          type: string
-          title: 訊息內容
-        message_type:
-          allOf:
-          - $ref: '#/components/schemas/MessageTypeEnum'
-          title: 訊息類型
-        metadata:
-          title: 元資料
-          description: 存儲選項、預覽資料等額外資訊
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 創建時間
-      required:
-      - content
-      - created_at
-      - id
-      - role
-    AIMessageRequest:
-      type: object
-      description: Serializer for AI messages.
-      properties:
-        role:
-          allOf:
-          - $ref: '#/components/schemas/AIMessageRoleEnum'
-          title: 角色
-        content:
-          type: string
-          minLength: 1
-          title: 訊息內容
-        message_type:
-          allOf:
-          - $ref: '#/components/schemas/MessageTypeEnum'
-          title: 訊息類型
-        metadata:
-          title: 元資料
-          description: 存儲選項、預覽資料等額外資訊
-      required:
-      - content
-      - role
-    AIMessageRoleEnum:
-      enum:
-      - user
-      - assistant
-      - system
-      type: string
-      description: |-
-        * `user` - 用戶
-        * `assistant` - AI 助手
-        * `system` - 系統
-    AISession:
-      type: object
-      description: Serializer for AI sessions.
-      properties:
-        session_id:
-          type: string
-          readOnly: true
-          title: Claude SDK Session ID
-          description: 由 Claude Agent SDK 返回的唯一會話 ID
-        user:
-          type: integer
-          readOnly: true
-          title: 用戶
-          description: 該會話所屬的用戶
-        context:
-          title: 上下文資料
-          description: 存儲額外的會話元數據（如標題、自定義數據等）
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 創建時間
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 更新時間
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIMessage'
-          readOnly: true
-        message_count:
-          type: string
-          readOnly: true
-        title:
-          type: string
-          readOnly: true
-      required:
-      - created_at
-      - message_count
-      - messages
-      - session_id
-      - title
-      - updated_at
-      - user
-    AISessionList:
-      type: object
-      description: Lightweight serializer for session list.
-      properties:
-        session_id:
-          type: string
-          title: Claude SDK Session ID
-          description: 由 Claude Agent SDK 返回的唯一會話 ID
-          maxLength: 36
-        user:
-          type: integer
-          title: 用戶
-          description: 該會話所屬的用戶
-        context:
-          title: 上下文資料
-          description: 存儲額外的會話元數據（如標題、自定義數據等）
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 創建時間
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-          title: 更新時間
-        message_count:
-          type: string
-          readOnly: true
-        title:
-          type: string
-          readOnly: true
-      required:
-      - created_at
-      - message_count
-      - session_id
-      - title
-      - updated_at
-      - user
-    AISessionRequest:
-      type: object
-      description: Serializer for AI sessions.
-      properties:
-        context:
-          title: 上下文資料
-          description: 存儲額外的會話元數據（如標題、自定義數據等）
     ActionLinkIssue:
       type: object
       description: Serializer for issuing a scoped action link.
@@ -6614,6 +5727,7 @@ components:
       - reopen_exam
       - reset_exam_record
       - concurrent_login_detected
+      - other_devices_logged_out
       - announce
       - other
       type: string
@@ -6635,55 +5749,9 @@ components:
         * `reopen_exam` - Reopen Exam
         * `reset_exam_record` - Reset Exam Record
         * `concurrent_login_detected` - Concurrent Login Detected
+        * `other_devices_logged_out` - Other Devices Logged Out
         * `announce` - Announce
         * `other` - Other
-    Announcement:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        title:
-          type: string
-          maxLength: 255
-        content:
-          type: string
-        author:
-          allOf:
-          - $ref: '#/components/schemas/User'
-          readOnly: true
-        visible:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - author
-      - content
-      - created_at
-      - id
-      - title
-      - updated_at
-    AnnouncementRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        content:
-          type: string
-          minLength: 1
-        visible:
-          type: boolean
-      required:
-      - content
-      - title
     AttendancePhotoPolicyEnum:
       enum:
       - room
@@ -7181,10 +6249,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7214,18 +6278,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7275,10 +6327,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7308,18 +6356,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7384,10 +6420,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7417,18 +6449,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7502,13 +6522,6 @@ components:
           type: string
           readOnly: true
         question_edit_locked:
-          type: boolean
-          readOnly: true
-        question_edit_locked_at:
-          type: string
-          format: date-time
-          readOnly: true
-        question_edit_lock_trigger:
           type: string
           readOnly: true
         attendance_status:
@@ -7544,9 +6557,7 @@ components:
       - participant_count
       - permissions
       - problems
-      - question_edit_lock_trigger
       - question_edit_locked
-      - question_edit_locked_at
       - requires_fullscreen
       - rule
       - started_at
@@ -7588,10 +6599,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7621,18 +6628,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7678,10 +6673,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -7707,16 +6698,6 @@ components:
         attendance_status:
           type: string
           readOnly: true
-        question_edit_locked:
-          type: boolean
-          readOnly: true
-        question_edit_locked_at:
-          type: string
-          format: date-time
-          readOnly: true
-        question_edit_lock_trigger:
-          type: string
-          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -7729,9 +6710,6 @@ components:
       - is_registered
       - owner_username
       - participant_count
-      - question_edit_lock_trigger
-      - question_edit_locked
-      - question_edit_locked_at
     ContestProblem:
       type: object
       description: |-
@@ -7830,6 +6808,14 @@ components:
       description: |-
         * `coding` - Coding Test
         * `paper_exam` - Paper Exam
+    CreateSession:
+      type: object
+      properties:
+        context: {}
+    CreateSessionRequest:
+      type: object
+      properties:
+        context: {}
     CreateSubmission:
       type: object
       description: Serializer for creating a submission.
@@ -7913,160 +6899,20 @@ components:
       - code
       - language
       - problem
-    EvidenceModeEnum:
+    EventTypeEnum:
       enum:
-      - anchor_window
-      - pre_loss
-      - audit
+      - blur
+      - focus
+      - copy
+      - paste
+      - fullscreen_exit
       type: string
       description: |-
-        * `anchor_window` - Anchor Window
-        * `pre_loss` - Pre Loss
-        * `audit` - Audit
-    ExamEventCreate:
-      type: object
-      description: Serializer for creating exam events.
-      properties:
-        event_type:
-          allOf:
-          - $ref: '#/components/schemas/ExamEventCreateEventTypeEnum'
-          title: 事件類型
-        metadata:
-          nullable: true
-          title: 額外資訊
-          description: JSON 格式的額外事件資訊
-        client_observed_at_ms:
-          type: integer
-          minimum: 0
-        server_time_offset_ms:
-          type: integer
-        evidence_anchor_at_ms:
-          type: integer
-          minimum: 0
-        evidence_mode:
-          $ref: '#/components/schemas/EvidenceModeEnum'
-        event_idempotency_key:
-          type: string
-          maxLength: 160
-      required:
-      - event_type
-    ExamEventCreateEventTypeEnum:
-      enum:
-      - tab_hidden
-      - window_blur
-      - exit_fullscreen
-      - forbidden_focus_event
-      - forbidden_action
-      - multiple_displays
-      - mouse_leave
-      - warning_timeout
-      - force_submit_locked
-      - screen_share_stopped
-      - screen_share_interrupted
-      - screen_share_restored
-      - screen_share_invalid_surface
-      - webcam_interrupted
-      - webcam_restored
-      - webcam_stopped
-      - webcam_quality_degraded
-      - viewport_interrupted
-      - viewport_restored
-      - viewport_stopped
-      - split_view_detected
-      - capture_upload_degraded
-      - exam_entered
-      - exam_submit_initiated
-      - concurrent_login_detected
-      - other_devices_logged_out
-      - end_exam_device_mismatch
-      - heartbeat
-      - heartbeat_timeout
-      - listener_tampered
-      - exit_fullscreen_triggered
-      - mouse_leave_triggered
-      - tab_hidden_triggered
-      - tab_hidden_restored
-      - window_blur_triggered
-      - window_blur_restored
-      - multi_display_triggered
-      - multi_display_restored
-      - display_api_degraded
-      - clipboard_action
-      - manual_proctor_note
-      - attendance_check_in
-      - attendance_check_out
-      type: string
-      description: |-
-        * `tab_hidden` - Tab Hidden
-        * `window_blur` - Window Blur
-        * `exit_fullscreen` - Exit Fullscreen
-        * `forbidden_focus_event` - Forbidden Focus Event
-        * `forbidden_action` - Forbidden Action
-        * `multiple_displays` - Multiple Displays
-        * `mouse_leave` - Mouse Leave
-        * `warning_timeout` - Warning Timeout
-        * `force_submit_locked` - Force Submit Locked
-        * `screen_share_stopped` - Screen Share Stopped
-        * `screen_share_interrupted` - Screen Share Interrupted
-        * `screen_share_restored` - Screen Share Restored
-        * `screen_share_invalid_surface` - Screen Share Invalid Surface
-        * `webcam_interrupted` - Webcam Interrupted
-        * `webcam_restored` - Webcam Restored
-        * `webcam_stopped` - Webcam Stopped
-        * `webcam_quality_degraded` - Webcam Quality Degraded
-        * `viewport_interrupted` - Viewport Interrupted
-        * `viewport_restored` - Viewport Restored
-        * `viewport_stopped` - Viewport Stopped
-        * `split_view_detected` - Split View Detected
-        * `capture_upload_degraded` - Capture Upload Degraded
-        * `exam_entered` - Exam Entered
-        * `exam_submit_initiated` - Exam Submit Initiated
-        * `concurrent_login_detected` - Concurrent Login Detected
-        * `other_devices_logged_out` - Other Devices Logged Out
-        * `end_exam_device_mismatch` - End Exam Device Mismatch
-        * `heartbeat` - Heartbeat
-        * `heartbeat_timeout` - Heartbeat Timeout
-        * `listener_tampered` - Listener Tampered
-        * `exit_fullscreen_triggered` - Exit Fullscreen Triggered
-        * `mouse_leave_triggered` - Mouse Leave Triggered
-        * `tab_hidden_triggered` - Tab Hidden Triggered
-        * `tab_hidden_restored` - Tab Hidden Restored
-        * `window_blur_triggered` - Window Blur Triggered
-        * `window_blur_restored` - Window Blur Restored
-        * `multi_display_triggered` - Multi Display Triggered
-        * `multi_display_restored` - Multi Display Restored
-        * `display_api_degraded` - Display API Degraded
-        * `clipboard_action` - Clipboard Action
-        * `manual_proctor_note` - Manual Proctor Note
-        * `attendance_check_in` - Attendance Check-in
-        * `attendance_check_out` - Attendance Check-out
-    ExamEventCreateRequest:
-      type: object
-      description: Serializer for creating exam events.
-      properties:
-        event_type:
-          allOf:
-          - $ref: '#/components/schemas/ExamEventCreateEventTypeEnum'
-          title: 事件類型
-        metadata:
-          nullable: true
-          title: 額外資訊
-          description: JSON 格式的額外事件資訊
-        client_observed_at_ms:
-          type: integer
-          minimum: 0
-        server_time_offset_ms:
-          type: integer
-        evidence_anchor_at_ms:
-          type: integer
-          minimum: 0
-        evidence_mode:
-          $ref: '#/components/schemas/EvidenceModeEnum'
-        event_idempotency_key:
-          type: string
-          maxLength: 160
-      required:
-      - event_type
+        * `blur` - 視窗失焦
+        * `focus` - 視窗聚焦
+        * `copy` - 複製
+        * `paste` - 貼上
+        * `fullscreen_exit` - 退出全螢幕
     ExamQuestionGroup:
       type: object
       description: Serializer for contest-local question groups.
@@ -8109,14 +6955,6 @@ components:
           maximum: 2147483647
           minimum: -2147483648
           title: 排序
-    KindEnum:
-      enum:
-      - chat
-      - resume
-      type: string
-      description: |-
-        * `chat` - Chat
-        * `resume` - Resume
     Language040Enum:
       enum:
       - python
@@ -8204,21 +7042,8 @@ components:
       required:
       - identifier
       - password
-    MessageTypeEnum:
-      enum:
-      - text
-      - options
-      - preview
-      - error
-      type: string
-      description: |-
-        * `text` - 文字
-        * `options` - 選項
-        * `preview` - 預覽
-        * `error` - 錯誤
     ModelInfo:
       type: object
-      description: Serializer for model info.
       properties:
         model_id:
           type: string
@@ -8301,98 +7126,6 @@ components:
       required:
       - code
       - redirect_uri
-    PaginatedAIArtifactList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIArtifact'
-    PaginatedAIChatRunList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/AIChatRun'
-    PaginatedAISessionListList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/AISessionList'
-    PaginatedAnnouncementList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Announcement'
     PaginatedClarificationList:
       type: object
       required:
@@ -8554,25 +7287,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
-    PatchedAISessionRequest:
-      type: object
-      description: Serializer for AI sessions.
-      properties:
-        context:
-          title: 上下文資料
-          description: 存儲額外的會話元數據（如標題、自定義數據等）
-    PatchedAnnouncementRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          minLength: 1
-          maxLength: 255
-        content:
-          type: string
-          minLength: 1
-        visible:
-          type: boolean
     PatchedClarificationRequest:
       type: object
       description: Serializer for clarifications/Q&A.
@@ -8693,10 +7407,6 @@ components:
           format: date-time
           nullable: true
           title: 結束時間
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -8726,18 +7436,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -8795,10 +7493,6 @@ components:
             * `draft` - Draft
             * `published` - Published
             * `archived` - Archived
-        visibility:
-          allOf:
-          - $ref: '#/components/schemas/VisibilityEnum'
-          title: 可見性
         attendance_check_enabled:
           type: boolean
           title: 啟用 QR 簽到簽退
@@ -8828,18 +7522,6 @@ components:
         anticheat_device_policy:
           title: 防作弊裝置策略
           description: 依裝置定義 sources/detectors 的監考策略
-        warning_timeout_seconds:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 警告框冷卻秒數
-          description: 警告框顯示後，需等待幾秒才可手動關閉
-        screen_share_recovery_grace_ms:
-          type: integer
-          maximum: 2147483647
-          minimum: 0
-          title: 螢幕共享恢復寬限時間 (毫秒)
-          description: 螢幕共享中斷後，允許學生重新分享的寬限時間
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -8861,6 +7543,10 @@ components:
           type: integer
           maximum: 2147483647
           minimum: -2147483648
+    PatchedCreateSessionRequest:
+      type: object
+      properties:
+        context: {}
     PatchedExamQuestionGroupRequest:
       type: object
       description: Serializer for contest-local question groups.
@@ -8960,8 +7646,6 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
     PatchedTagRequest:
       type: object
       description: Serializer for tags.
@@ -9366,44 +8050,14 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
-        verified:
-          type: boolean
-          readOnly: true
-        review_status:
-          allOf:
-          - $ref: '#/components/schemas/ReviewStatusEnum'
-          readOnly: true
-        review_note:
-          type: string
-          readOnly: true
-        submitted_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        reviewed_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        reviewed_by_username:
-          type: string
-          readOnly: true
         owner:
           type: integer
           readOnly: true
-          nullable: true
-          description: Null means platform-managed official bank.
         owner_username:
           type: string
           readOnly: true
         question_count:
           type: string
-          readOnly: true
-        is_subscribed:
-          type: boolean
           readOnly: true
         created_at:
           type: string
@@ -9416,18 +8070,11 @@ components:
       required:
       - created_at
       - id
-      - is_subscribed
       - name
       - owner
       - owner_username
       - question_count
-      - review_note
-      - review_status
-      - reviewed_at
-      - reviewed_by_username
-      - submitted_at
       - updated_at
-      - verified
     QuestionBankRequest:
       type: object
       properties:
@@ -9449,8 +8096,6 @@ components:
             maxLength: 0
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visibility:
-          $ref: '#/components/schemas/VisibilityEnum'
       required:
       - name
     Register:
@@ -9491,25 +8136,13 @@ components:
       - password
       - password_confirm
       - username
-    ReviewStatusEnum:
-      enum:
-      - draft
-      - pending
-      - approved
-      - rejected
-      type: string
-      description: |-
-        * `draft` - Draft
-        * `pending` - Pending Review
-        * `approved` - Approved
-        * `rejected` - Rejected
     ScreenEvent:
       type: object
       description: Serializer for screen events.
       properties:
         event_type:
           allOf:
-          - $ref: '#/components/schemas/ScreenEventEventTypeEnum'
+          - $ref: '#/components/schemas/EventTypeEnum'
           title: 事件類型
         timestamp:
           type: string
@@ -9521,20 +8154,6 @@ components:
       required:
       - event_type
       - timestamp
-    ScreenEventEventTypeEnum:
-      enum:
-      - blur
-      - focus
-      - copy
-      - paste
-      - fullscreen_exit
-      type: string
-      description: |-
-        * `blur` - 視窗失焦
-        * `focus` - 視窗聚焦
-        * `copy` - 複製
-        * `paste` - 貼上
-        * `fullscreen_exit` - 退出全螢幕
     SourceBankInfo:
       type: object
       properties:
@@ -9996,9 +8615,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/UserProfile'
           readOnly: true
-        subscription:
-          type: string
-          readOnly: true
       required:
       - auth_provider
       - date_joined
@@ -10006,7 +8622,6 @@ components:
       - id
       - last_login_at
       - profile
-      - subscription
       - username
     UserLoginRecord:
       type: object
@@ -10282,14 +8897,6 @@ components:
         * `student` - student
         * `teacher` - teacher
         * `admin` - admin
-    VisibilityEnum:
-      enum:
-      - public
-      - private
-      type: string
-      description: |-
-        * `public` - Public
-        * `private` - Private
   securitySchemes:
     cookieJwtAuth:
       type: apiKey
@@ -10309,4 +8916,5 @@ components:
           tokenUrl: null
           scopes:
             mcp: Access QJudge via MCP
+            ai:chat: Access the QJudge AI chat service
             qjudge.paper: Access QJudge paper exam workflows from QJudge Paper CLI

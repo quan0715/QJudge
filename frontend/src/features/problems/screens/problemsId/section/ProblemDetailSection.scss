@@ -54,15 +54,6 @@
   }
 }
 
-// Adjust DiscussionList within ContainerCard
-.problem-detail-page .discussion-list {
-  &__header {
-    padding: 0;
-    margin-bottom: $spacing-05;
-    border-bottom: none;
-  }
-}
-
 // Adjust ProblemSubmissionList for single page
 .problem-detail-page .problem-submission-list {
   max-height: 500px;

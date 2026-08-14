@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest
 
 User = get_user_model()
@@ -35,18 +36,26 @@ class ContestRulesTests(APITestCase):
             start_time=timezone.now(),
             end_time=timezone.now() + timedelta(hours=2),
             owner=self.admin,
-            visibility='public',
             status='published'
+        )
+        self.classroom = Classroom.objects.create(
+            name='Rules Classroom',
+            owner=self.admin,
+            invite_code='RULES001',
+        )
+        ClassroomMember.objects.create(
+            classroom=self.classroom,
+            user=self.user,
+            role='student',
+        )
+        ClassroomContest.objects.create(
+            classroom=self.classroom,
+            contest=self.contest,
         )
         
         self.client.force_authenticate(user=self.user)
 
     def test_get_contest_rules(self):
-        # Use the detail URL pattern. Assuming it is 'contests:contest-detail' or similar.
-        # I need to check urls.py to be sure, but standard router usually provides 'contest-detail'
-        # Let's try to construct the url manually if needed or guess 'contest-detail'
-        
-        # Based on typical DRF router:
         url = f'/api/v1/contests/{self.contest.id}/'
         
         response = self.client.get(url)

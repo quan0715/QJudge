@@ -1,33 +1,4 @@
 {
-  "announcement": {
-    "columns": {
-      "actions": "Actions",
-      "author": "Author",
-      "createdAt": "Created At",
-      "status": "Status",
-      "title": "Title"
-    },
-    "confirmDelete": "Are you sure you want to delete the announcement \"{{title}}\"? This action cannot be undone.",
-    "create": "Create Announcement",
-    "delete": "Delete Announcement",
-    "edit": "Edit Announcement",
-    "form": {
-      "content": "Content",
-      "contentPlaceholder": "Enter announcement content",
-      "hidden": "Hidden",
-      "publishLabel": "Publish Status",
-      "published": "Published",
-      "title": "Title",
-      "titlePlaceholder": "Enter announcement title"
-    },
-    "list": "System Announcements",
-    "management": "Announcement Management",
-    "search": "Search Announcements",
-    "status": {
-      "hidden": "Hidden",
-      "published": "Published"
-    }
-  },
   "environment": {
     "cannotSync": "Cannot Sync",
     "cloud": "Cloud",

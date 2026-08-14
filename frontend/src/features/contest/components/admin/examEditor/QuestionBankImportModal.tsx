@@ -8,8 +8,8 @@ import {
   SelectItem,
 } from "@carbon/react";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
-import { listMine, listSubscribed, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
-import { getQuestionDisplayTitle } from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+import { listMine, listQuestions } from "@/infrastructure/api/repositories/questionBank.repository";
+import { getQuestionDisplayTitle } from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import QuestionBankPreviewCard from "@/features/question-banks/components/QuestionBankPreviewCard";
 import styles from "./QuestionBankImportModal.module.scss";
 
@@ -39,9 +39,6 @@ const PLACEHOLDER_BANK: QuestionBank = {
   icon: "",
   coverUrl: "",
   category: "exam",
-  visibility: "private",
-  verified: false,
-  reviewStatus: "draft",
   questionCount: 0,
 };
 
@@ -66,16 +63,11 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
     setLoadingBanks(true);
     setError(null);
     try {
-      const [mine, subscribed] = await Promise.all([listMine(), listSubscribed()]);
-      const filteredMine = mine.filter((bank) => bank.category === category);
-      const filteredSubscribed = subscribed.filter((bank) => bank.category === category);
-      const merged = [
-        ...filteredMine.map((b) => ({ ...b, _source: "mine" as const })),
-        ...filteredSubscribed.map((b) => ({ ...b, _source: "subscribed" as const })),
-      ];
-      setBanks(merged);
-      if (merged.length > 0) {
-        setSelectedBankId((prev) => prev || merged[0].id);
+      const mine = await listMine();
+      const filtered = mine.filter((bank) => bank.category === category);
+      setBanks(filtered);
+      if (filtered.length > 0) {
+        setSelectedBankId((prev) => prev || filtered[0].id);
       } else {
         setSelectedBankId("");
       }
@@ -216,13 +208,7 @@ const QuestionBankImportModal: React.FC<QuestionBankImportModalProps> = ({
                 <SelectItem
                   key={bank.id}
                   value={bank.id}
-                  text={
-                    (bank as any)._source === "subscribed"
-                      ? `${bank.name} (Subscribed)`
-                      : bank.ownerUsername
-                      ? `${bank.name} (${bank.ownerUsername})`
-                      : bank.name
-                  }
+                  text={bank.name}
                 />
               ))
             )}

@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .panel {
   display: flex;
   flex-direction: column;
@@ -14,7 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
   min-height: 3rem;
   padding: 0;
   border-bottom: 1px solid var(--cds-border-subtle);
@@ -33,7 +34,7 @@
 
 .title {
   flex: 1 1 auto;
-  margin: 0 0 0 1rem;
+  margin: 0 0 0 layout.$spacing-05;
   min-width: 0;
   font-size: 1.25rem;
   font-weight: 300;
@@ -42,7 +43,7 @@
 }
 
 .headerError {
-  padding: 0.5rem 1rem;
+  padding: layout.$spacing-03 layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
   font-size: 0.75rem;
   color: var(--cds-support-error);
@@ -51,8 +52,8 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
+  gap: layout.$spacing-03;
+  padding: 0.875rem layout.$spacing-05;
   border-bottom: 1px solid var(--cds-border-subtle);
   background: transparent;
 }
@@ -79,7 +80,7 @@
 .actionRow {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .artifactList {
@@ -96,9 +97,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
   min-height: 3rem;
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 0;
   background: var(--cds-layer-background-01, var(--cds-layer-01));
@@ -133,7 +134,7 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .artifactIcon {
@@ -152,5 +153,5 @@
 .artifactEmpty {
   font-size: 0.75rem;
   color: var(--cds-text-helper);
-  padding: 0.5rem 0;
+  padding: layout.$spacing-03 0;
 }

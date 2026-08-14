@@ -172,7 +172,6 @@ def test_question_bank_question_create_builds_asset_and_membership(
         owner=teacher,
         name="Asset Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     api_client.force_authenticate(user=teacher)
     resp = api_client.post(
@@ -217,14 +216,12 @@ def test_question_bank_question_patch_publishes_new_version_via_write_workflow(
         owner=teacher,
         name="Patch Asset Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Patch Me",
         prompt="prompt v1",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -288,7 +285,6 @@ def test_exam_question_ingest_reuses_existing_question_asset(
         owner=teacher,
         name="Exam Asset Bank",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     api_client.force_authenticate(user=teacher)
 
@@ -331,7 +327,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
         owner=teacher,
         name="Reading Set Bank",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     contest = Contest.objects.create(
         name="Reading Set Contest",
@@ -344,7 +339,6 @@ def test_reading_set_asset_fits_bank_and_contest_binding_shape(teacher: User):
         asset_type=QuestionAsset.AssetType.READING_SET,
         title="Passage 1",
         prompt="A long passage",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "passage": "A long passage",
             "child_items": [
@@ -384,14 +378,12 @@ def test_question_viewset_can_retrieve_canonical_only_membership(
         owner=teacher,
         name="Canonical Only Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Canonical Only Item",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -435,14 +427,12 @@ def test_question_bank_item_route_can_retrieve_canonical_membership(
         owner=teacher,
         name="Canonical Alias Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Alias Item",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -484,14 +474,12 @@ def test_question_viewset_can_patch_canonical_only_membership(
         owner=teacher,
         name="Canonical Patch Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Before Patch",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -550,14 +538,12 @@ def test_question_viewset_can_delete_canonical_only_membership(
         owner=teacher,
         name="Canonical Delete Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Delete Me",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -590,31 +576,30 @@ def test_question_viewset_can_delete_canonical_only_membership(
 
 
 @pytest.mark.django_db
-def test_clone_canonical_membership_reuses_asset_membership(
+def test_clone_owned_canonical_membership_reuses_asset_membership(
     api_client: APIClient,
-    teacher: User,
 ):
-    platform_admin = User.objects.create_user(
-        username="clone_asset_admin",
-        email="clone_asset_admin@example.com",
+    clone_user = User.objects.create_user(
+        username="clone_asset_user",
+        email="clone_asset_user@example.com",
         password="pass123",
-        role="admin",
-        is_staff=True,
+        role="teacher",
     )
-    public_bank = QuestionBank.objects.create(
-        owner=platform_admin,
-        name="Public Asset Bank",
+    source_bank = QuestionBank.objects.create(
+        owner=clone_user,
+        name="Source Asset Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PUBLIC,
-        verified=True,
-        review_status=QuestionBank.ReviewStatus.APPROVED,
+    )
+    target_bank = QuestionBank.objects.create(
+        owner=clone_user,
+        name="Target Asset Bank",
+        category=QuestionBank.Category.CODING,
     )
     asset, _version = create_question_asset(
-        owner=platform_admin,
+        owner=clone_user,
         asset_type=QuestionAsset.AssetType.CODING,
         title="Clone Asset Only",
         prompt="prompt",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "score": 100,
             "order": 0,
@@ -633,30 +618,23 @@ def test_clone_canonical_membership_reuses_asset_membership(
             "forbidden_keywords": [],
             "required_keywords": [],
         },
-        actor=platform_admin,
+        actor=clone_user,
     )
     membership = ensure_question_bank_membership(
-        bank=public_bank,
+        bank=source_bank,
         question_asset=asset,
         order=0,
-        actor=platform_admin,
-    )
-    clone_user = User.objects.create_user(
-        username="clone_asset_user",
-        email="clone_asset_user@example.com",
-        password="pass123",
-        role="teacher",
+        actor=clone_user,
     )
 
     api_client.force_authenticate(user=clone_user)
     resp = api_client.post(
-        f"/api/v1/question-banks/{public_bank.uuid}/questions/{membership.id}/clone-to-my-bank/",
-        {},
+        f"/api/v1/question-banks/{source_bank.uuid}/questions/{membership.id}/clone-to-my-bank/",
+        {"target_bank_id": str(target_bank.uuid)},
         format="json",
     )
 
     assert resp.status_code == status.HTTP_201_CREATED
-    target_bank = QuestionBank.objects.get(owner=clone_user, category=QuestionBank.Category.CODING)
     cloned_membership = QuestionBankMembership.objects.get(bank=target_bank)
     assert cloned_membership.question_asset_id == asset.id
 
@@ -670,7 +648,6 @@ def test_inbox_ingest_problem_creates_asset_membership(
         owner=teacher,
         name="Coding Inbox Asset Bank",
         category=QuestionBank.Category.CODING,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     problem = CodingProblem.objects.create(
         slug="asset-only-inbox-problem",
@@ -708,7 +685,6 @@ def test_inbox_ingest_exam_question_creates_asset_membership(
         owner=teacher,
         name="Exam Inbox Asset Bank",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     exam_question = ExamQuestion.objects.create(
         contest=contest,

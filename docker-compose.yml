@@ -1,3 +1,107 @@
+x-django-environment: &django_prod_environment
+  DJANGO_ENV: production
+  DEBUG: "False"
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  QJUDGE_PUBLIC_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+  DB_NAME: online_judge
+  DB_USER: qjudge_web
+  DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+  DB_HOST: pgbouncer
+  DB_PORT: "5432"
+  DB_SSLMODE: disable
+  DB_CONN_MAX_AGE: "0"
+  REDIS_URL: redis://redis:6379/0
+  OAUTH_ISSUER_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  FRONTEND_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  CORS_ALLOWED_ORIGINS: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  CSRF_TRUSTED_ORIGINS: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  MCP_PUBLIC_URL: ${MCP_PUBLIC_URL:-http://qjudge-mcp:9000}
+  AUTH_EMAIL_PASSWORD_ENABLED: ${AUTH_EMAIL_PASSWORD_ENABLED:-True}
+  QAUTH_PROVIDER_CONNECTIONS_JSON: ${QAUTH_PROVIDER_CONNECTIONS_JSON:-[]}
+  NYCU_OAUTH_CLIENT_ID: ${NYCU_OAUTH_CLIENT_ID:-}
+  NYCU_OAUTH_CLIENT_SECRET: ${NYCU_OAUTH_CLIENT_SECRET:-}
+  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+  GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+  JUDGE_ENGINE_ENABLED: "True"
+  JUDGE_MAX_CPU_TIME: "10"
+  JUDGE_MAX_MEMORY: "256"
+  DOCKER_IMAGE_JUDGE: oj-judge:latest
+  DOCKER_JUDGE_PIDS_LIMIT: "64"
+  DOCKER_JUDGE_TMPFS_SIZE: 100M
+  DOCKER_JUDGE_TIMEOUT: "60"
+  HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
+  OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+  OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+  OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+  OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+  OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: "300"
+  OBJECT_STORAGE_OBJECT_TAGGING_ENABLED: ${OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:-false}
+  OBJECT_STORAGE_AUTO_CREATE_BUCKETS: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
+  ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+  ANTICHEAT_CAPTURE_INTERVAL_SECONDS: "3"
+  MARKDOWN_IMAGE_S3_BUCKET: ${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
+  MARKDOWN_IMAGE_MAX_BYTES: "5242880"
+  MARKDOWN_IMAGE_PUBLIC_BASE_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  INTEGRITY_ARCHIVE_MAX_BYTES: "52428800"
+  LIVE_MONITORING_ENABLED: ${LIVE_MONITORING_ENABLED:-false}
+  LIVE_MONITORING_ROOM_PREFIX: ${LIVE_MONITORING_ROOM_PREFIX:-qjudge-exam}
+  CLOUDFLARE_REALTIME_API_BASE_URL: ${CLOUDFLARE_REALTIME_API_BASE_URL:-https://rtc.live.cloudflare.com/v1}
+  CLOUDFLARE_REALTIME_APP_ID: ${CLOUDFLARE_REALTIME_APP_ID:-}
+  CLOUDFLARE_REALTIME_APP_SECRET: ${CLOUDFLARE_REALTIME_APP_SECRET:-}
+  LIVE_MONITORING_PUBLISHER_TTL_SECONDS: ${LIVE_MONITORING_PUBLISHER_TTL_SECONDS:-60}
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@example.com}
+  EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+  EMAIL_PORT: ${EMAIL_PORT:-587}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+
+x-ai-database-environment: &ai_prod_database_environment
+  AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}@postgres:5432/qjudge_ai
+  AI_DB_USER: qjudge_ai
+  AI_DB_NAME: qjudge_ai
+x-ai-queue-environment: &ai_prod_queue_environment
+  AI_REDIS_URL: redis://redis:6379/2
+  AI_QUEUE_NAME: qjudge-ai
+  AI_QUEUE_KEY_PREFIX: "qjudge-ai:"
+x-ai-api-environment: &ai_prod_api_environment
+  <<: [*ai_prod_database_environment, *ai_prod_queue_environment]
+  CREDENTIAL_LEASE_SECRET: ${CREDENTIAL_LEASE_SECRET:?CREDENTIAL_LEASE_SECRET is required}
+  MCP_SERVER_ID: qjudge
+  MCP_TOKEN_EXCHANGE_URL: http://backend:8000/api/oauth/token-exchange/
+  QJUDGE_MCP_URL: http://qjudge-mcp:9000/mcp
+  AI_OAUTH_ISSUER: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+  AI_OAUTH_JWKS_URL: http://backend:8000/.well-known/jwks.json
+  AI_ARTIFACT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+  AI_ARTIFACT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+  AI_ARTIFACT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+  AI_ARTIFACT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
+  AI_ARTIFACT_S3_BUCKET: ${AI_ARTIFACT_S3_BUCKET:-ai-artifacts}
+  AI_ARTIFACT_MAX_BYTES: "10485760"
+x-ai-worker-environment: &ai_prod_worker_environment
+  <<: [*ai_prod_database_environment, *ai_prod_queue_environment]
+  CREDENTIAL_LEASE_SECRET: ${CREDENTIAL_LEASE_SECRET:?CREDENTIAL_LEASE_SECRET is required}
+  MCP_SERVER_ID: qjudge
+  MCP_TOKEN_EXCHANGE_URL: http://backend:8000/api/oauth/token-exchange/
+  QJUDGE_MCP_URL: http://qjudge-mcp:9000/mcp
+  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  AI_ARTIFACT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+  AI_ARTIFACT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+  AI_ARTIFACT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+  AI_ARTIFACT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: ${OBJECT_STORAGE_AUTO_CREATE_BUCKETS:-false}
+  AI_ARTIFACT_S3_BUCKET: ${AI_ARTIFACT_S3_BUCKET:-ai-artifacts}
+  AI_ARTIFACT_MAX_BYTES: "10485760"
+
 services:
   # PostgreSQL Database
   postgres:
@@ -9,12 +113,11 @@ services:
     # 200 gives headroom for migrations, admin tools, and monitoring.
     command: postgres -c max_connections=200 -c shared_buffers=256MB -c work_mem=4MB
     environment:
-      POSTGRES_DB: ${DB_NAME:-online_judge}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: qjudge_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
@@ -23,11 +126,35 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-online_judge}",
+          "pg_isready -U qjudge_admin -d postgres",
         ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Idempotent for both fresh clusters and volumes created before DB isolation.
+  ai-db-bootstrap:
+    image: postgres:15-alpine
+    restart: "no"
+    command: ["/bin/sh", "/bootstrap/bootstrap-ai-database.sh"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_ADMIN_USER: qjudge_admin
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      DB_NAME: online_judge
+      DB_USER: qjudge_web
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      AI_DB_NAME: qjudge_ai
+      AI_DB_USER: qjudge_ai
+      AI_DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}
+    volumes:
+      - ./scripts/db/bootstrap-ai-database.sh:/bootstrap/bootstrap-ai-database.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - oj_network
 
   # PgBouncer – connection pooler in front of Postgres.
   # Session mode: fully compatible with SELECT FOR UPDATE and transaction.atomic.
@@ -41,9 +168,9 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_NAME: ${DB_NAME:-online_judge}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: online_judge
+      DB_USER: qjudge_web
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       # Use plaintext auth inside Docker network so PgBouncer can authenticate
       # against Postgres even when server-side password hashing is SCRAM.
       AUTH_TYPE: plain
@@ -67,15 +194,15 @@ services:
     ports:
       - "6432:5432"
     depends_on:
-      postgres:
-        condition: service_healthy
+      ai-db-bootstrap:
+        condition: service_completed_successfully
     networks:
       - oj_network
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -h localhost -p 5432 -U ${DB_USER:-postgres}",
+          "pg_isready -h localhost -p 5432 -U qjudge_web",
         ]
       interval: 10s
       timeout: 5s
@@ -96,35 +223,80 @@ services:
       timeout: 5s
       retries: 5
 
-  # AI Service (LangChain DeepAgent)
-  ai-service:
-    build:
+  # One migration owner gates every independently scaled AI runtime.
+  ai-migrate:
+    build: &ai_prod_build
       context: ./ai-service
       dockerfile: Dockerfile
+    image: oj-ai-service:prod
+    restart: "no"
+    healthcheck:
+      disable: true
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup"]
+    environment:
+      <<: *ai_prod_database_environment
+    volumes:
+      - ./ai-service:/app
+    depends_on:
+      ai-db-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - oj_network
+
+  # AI Service (LangChain DeepAgent)
+  ai-service:
+    build: *ai_prod_build
+    image: oj-ai-service:prod
     container_name: oj_ai_service
     restart: always
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2 --timeout-keep-alive 30
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - "8001:8001"
-    env_file:
-      - .env
-    environment:
-      - AI_STATE_POSTGRES_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-online_judge}
-      - AI_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN is required}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    environment: *ai_prod_api_environment
     volumes:
       - ./ai-service:/app
     networks:
       - oj_network
     depends_on:
-      pgbouncer:
-        condition: service_healthy
+      ai-migrate:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "8", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "8", "http://localhost:8001/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  ai-worker:
+    build: *ai_prod_build
+    image: oj-ai-service:prod
+    restart: always
+    healthcheck:
+      disable: true
+    command: ["celery", "-A", "worker.celery_app:celery_app", "worker", "--queues=qjudge-ai", "--loglevel=INFO"]
+    environment: *ai_prod_worker_environment
+    volumes:
+      - ./ai-service:/app
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+    networks:
+      - oj_network
+
+  ai-scheduler:
+    build: *ai_prod_build
+    image: oj-ai-service:prod
+    restart: always
+    healthcheck:
+      disable: true
+    command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    environment: *ai_prod_queue_environment
+    volumes:
+      - ./ai-service:/app
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+    networks:
+      - oj_network
 
   # Django Backend (shared image with all Celery services — single build per compose up --build)
   backend:
@@ -143,36 +315,31 @@ services:
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-      - /var/run/docker.sock:/var/run/docker.sock
       - judge_tmp:/judge_tmp
+      - ./secrets/ai-oauth-ed25519-private.pem:/run-secrets/ai-oauth-ed25519-private.pem:ro
+      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
+      - ./secrets/integrity/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      - DJANGO_ENV=production
-      - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      # Route all Django DB traffic through pgBouncer (overrides .env DB_HOST/PORT).
-      - DB_HOST=pgbouncer
-      - DB_PORT=5432
-      - DB_SSLMODE=${DB_SSLMODE:-disable}
-      - REDIS_URL=redis://redis:6379/0
-      - AI_SERVICE_URL=http://ai-service:8001
-      - AI_SERVICE_INTERNAL_TOKEN=${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN is required}
-      - FRONTEND_URL=${FRONTEND_URL:-https://q-judge.com}
-      - JUDGE_TMP_DIR=/judge_tmp
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
-      - OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
-      - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
-      - OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS=${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
-      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
-      - MARKDOWN_IMAGE_S3_BUCKET=${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
-      - MARKDOWN_IMAGE_MAX_BYTES=${MARKDOWN_IMAGE_MAX_BYTES:-5242880}
-      - MARKDOWN_IMAGE_PUBLIC_BASE_URL=${MARKDOWN_IMAGE_PUBLIC_BASE_URL:-}
-      - AI_ARTIFACT_S3_BUCKET=${AI_ARTIFACT_S3_BUCKET:-ai-artifacts}
+      <<: *django_prod_environment
+      AI_SERVICE_URL: http://ai-service:8001
+      AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
+      JUDGE_TMP_DIR: /judge_tmp
+      OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+      OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+      OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      MARKDOWN_IMAGE_S3_BUCKET: ${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
+      MARKDOWN_IMAGE_MAX_BYTES: ${MARKDOWN_IMAGE_MAX_BYTES:-5242880}
+      MARKDOWN_IMAGE_PUBLIC_BASE_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+      INTEGRITY_CONTROLLER_URL: http://integrity-controller:8010
+      INTEGRITY_CONTROLLER_TOKEN_FILE: /run-secrets/controller-token
+      INTEGRITY_WORKER_IMAGE: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity-worker-signing-key
     depends_on:
       postgres:
         condition: service_healthy
@@ -191,32 +358,74 @@ services:
       retries: 3
       start_period: 30s
 
+  # The Controller is the only non-judge service that can create per-exam
+  # Integrity Worker containers. It runs unprivileged and talks to Docker via
+  # the socket group supplied by the deployment host.
+  integrity-controller:
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.controller
+    image: oj-integrity-controller:prod
+    container_name: oj_integrity_controller
+    restart: unless-stopped
+    environment:
+      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
+      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_WORKER_NETWORK=online_judge_oj_network
+      - BACKEND_INTERNAL_URL=http://backend:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
+    group_add:
+      - "${DOCKER_GID:-0}"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    privileged: false
+    networks:
+      - oj_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Profile-gated helper that makes the Worker image available locally without
+  # starting a Worker. The Controller creates run-scoped Workers on demand.
+  integrity-worker-image:
+    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.worker
+    command: ["python", "-c", "print('integrity worker image ready')"]
+    restart: "no"
+    profiles: ["build"]
+    networks:
+      - oj_network
+
   # Celery Worker - High Priority (Contest submissions)
   celery-high:
     build: *backend_prod_build
     image: oj-backend:prod
     container_name: oj_celery_high
     restart: always
-    command: celery -A config worker -l info -Q high_priority,default --concurrency=2
+    command: celery -A config worker -l info -Q high_priority --concurrency=2
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - judge_tmp:/judge_tmp
-    env_file:
-      - .env
     environment:
-      - JUDGE_TMP_DIR=/judge_tmp
-      - DJANGO_ENV=production
-      - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      - DB_HOST=pgbouncer
-      - DB_PORT=5432
-      - DB_SSLMODE=${DB_SSLMODE:-disable}
-      - REDIS_URL=redis://redis:6379/0
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
-      - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
-      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      <<: *django_prod_environment
+      JUDGE_TMP_DIR: /judge_tmp
+      OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
     depends_on:
       postgres:
         condition: service_healthy
@@ -246,22 +455,14 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - judge_tmp:/judge_tmp
-    env_file:
-      - .env
     environment:
-      - JUDGE_TMP_DIR=/judge_tmp
-      - DJANGO_ENV=production
-      - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      - DB_HOST=pgbouncer
-      - DB_PORT=5432
-      - DB_SSLMODE=${DB_SSLMODE:-disable}
-      - REDIS_URL=redis://redis:6379/0
-      - OBJECT_STORAGE_ENDPOINT_URL=${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
-      - OBJECT_STORAGE_REGION=${OBJECT_STORAGE_REGION:-us-east-1}
-      - OBJECT_STORAGE_ACCESS_KEY=${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
-      - OBJECT_STORAGE_SECRET_KEY=${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
-      - ANTICHEAT_RAW_BUCKET=${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      <<: *django_prod_environment
+      JUDGE_TMP_DIR: /judge_tmp
+      OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
     depends_on:
       postgres:
         condition: service_healthy
@@ -288,16 +489,8 @@ services:
     container_name: oj_celery_beat
     restart: always
     command: celery -A config beat -l info
-    env_file:
-      - .env
     environment:
-      - DJANGO_ENV=production
-      - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      - DB_HOST=pgbouncer
-      - DB_PORT=5432
-      - DB_SSLMODE=${DB_SSLMODE:-disable}
-      - REDIS_URL=redis://redis:6379/0
+      <<: *django_prod_environment
     depends_on:
       postgres:
         condition: service_healthy
@@ -316,8 +509,8 @@ services:
     container_name: oj_mcp
     environment:
       - DJANGO_BASE_URL=http://backend:8000
-      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-https://mcp.q-judge.com}
-      - OAUTH_ISSUER_URL=${FRONTEND_URL:-https://q-judge.com}
+      - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-http://qjudge-mcp:9000}
+      - OAUTH_ISSUER_URL=${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
     depends_on:
       - backend
     networks:
@@ -329,8 +522,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        RECUR_PUBLISHABLE_KEY: ${RECUR_PUBLISHABLE_KEY:-}
     container_name: oj_frontend
     restart: always
     ports:
@@ -345,43 +536,8 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: oj_cloudflared
     restart: always
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:?TUNNEL_TOKEN is required}
-    networks:
-      - oj_network
-
-  # GlitchTip Error Tracking
-  glitchtip:
-    image: glitchtip/glitchtip:latest
-    container_name: oj_glitchtip
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-in-production}
-      REDIS_URL: redis://redis:6379/1
-      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-noreply@qjudge.local}
-      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8080}
-      ENABLE_ORGANIZATION_CREATION: "true"
-    ports:
-      - "8080:8000"
-    networks:
-      - oj_network
-
-  glitchtip-worker:
-    image: glitchtip/glitchtip:latest
-    container_name: oj_glitchtip_worker
-    restart: always
-    command: ./bin/run-celery-with-beat.sh
-    depends_on:
-      - glitchtip
-    environment:
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-in-production}
-      REDIS_URL: redis://redis:6379/1
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:-}
     networks:
       - oj_network
 
@@ -405,3 +561,4 @@ volumes:
 networks:
   oj_network:
     driver: bridge
+    name: online_judge_oj_network

@@ -2,11 +2,11 @@
 
 QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測系統。
 
-## 目前專案現狀（2026-05-04）
+## 專案現況
 
 - Production domain：`q-judge.com`
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
-- 考試系統：Exam V2 已有資料模型、API 與前端流程骨架（註冊/前檢/作答/檢查/評分/結果）
+- 考試系統：支援註冊、前檢、作答、檢查、評分與結果流程
 - CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
 - 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
@@ -24,7 +24,16 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 ## 快速啟動（建議）
 
 ```bash
-cp .env.example .env
+export OBJECT_STORAGE_ENDPOINT_URL=https://ACCOUNT_ID.r2.cloudflarestorage.com
+export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
+read -r -p "R2 access key: " OBJECT_STORAGE_ACCESS_KEY
+read -r -s -p "R2 secret key: " OBJECT_STORAGE_SECRET_KEY
+printf '\n'
+export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
+./scripts/setup-env.sh \
+  --target self-hosted \
+  --storage r2 \
+  --origin http://localhost:5173
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
@@ -40,68 +49,22 @@ cp .env.example .env
 
 ## 目前已知狀態
 
-- `ai-service` 健康檢查可通過（`/health`）
-- 前端/後端仍有部分既有型別與測試環境問題（非單一功能可一次清除）
+- `ai-service` 提供 `/health/live` 與 `/health/ready` 健康檢查
 - compose 矩陣固定為 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.test.yml`
-- 若要跑 backend 測試，使用 `docker-compose.test.yml` 或顯式指定 `config.settings.test`，避免誤連 dev/prod DB
+- backend 測試使用 `docker-compose.test.yml` 的 `backend-test` service，避免誤連 dev/prod DB
 
-## 部署架構
+## 架設與部署
 
-```
-GitHub (push to main)
-  → CI: Unit Tests + Judge System Tests
-  → CD: Tailscale SSH → remote server
-    → git fetch + checkout
-    → docker compose build + up
-    → smoke checks (web + monitoring)
-```
-
-- 生產環境：`~/deploy/QJudge`（Ubuntu 22.04 + Docker Compose）
-- 網路：Cloudflare Tunnel → `q-judge.com`
-- CD workflow：`.github/workflows/cd-prod.yml`
-- Deploy script：`scripts/deploy-prod.sh`
-
-### 環境變數
-
-根目錄 `.env` 不進 git。從範本開始：
-
-```bash
-cp .env.example .env
-```
-
-生產環境 `.env` 由 `scripts/deploy-prod.sh` 做 fail-fast 檢查，至少需包含：
-
-| 變數 | 說明 |
-| --- | --- |
-| `SECRET_KEY` | Django secret key |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE` | PostgreSQL / PgBouncer 設定 |
-| `FRONTEND_URL`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | public URL 與 browser security |
-| `REDIS_URL` | Redis 連線位址，production compose 會覆蓋為 `redis://redis:6379/0` |
-| `AI_SERVICE_INTERNAL_TOKEN` | Backend 與 AI service 內部 token |
-| `OBJECT_STORAGE_*`, `ANTICHEAT_RAW_BUCKET`, `MARKDOWN_IMAGE_S3_BUCKET`, `AI_ARTIFACT_S3_BUCKET` | R2 object storage |
-| `TUNNEL_TOKEN`, `MCP_PUBLIC_URL`, `OAUTH_ISSUER_URL` | Cloudflare Tunnel 與 MCP OAuth |
-| `GLITCHTIP_SECRET_KEY`, `GRAFANA_PASSWORD` | production operations |
-
-完整清單與 production/dev/test compose 掃描見 [`docs/deployment.md`](docs/deployment.md) 與 `.env.example`。
-
-### GitHub Secrets（CD Pipeline）
-
-| Secret | 說明 |
-| --- | --- |
-| `TS_OAUTH_CLIENT_ID` | Tailscale OAuth client ID |
-| `TS_OAUTH_SECRET` | Tailscale OAuth secret |
-| `PROD_SSH_HOST` | 遠端機器 Tailscale hostname |
-| `PROD_SSH_USER` | SSH 使用者 |
-| `PROD_DEPLOY_PATH` | 部署路徑（絕對路徑） |
+正式的最小部署流程、外部服務選擇與驗收方式，請參考
+[QJudge 架設與部署指南](frontend/public/docs/zh-TW/deployment.md)。`frontend/public/docs` 是對外文件的正式來源；論文附錄會從完成實機驗證的 release tag 擷取。
 
 ## 文件導覽
 
-- [使用者與教師手冊](docs/user-guide.md)：教室、題庫、競賽功能說明。
-- [開發者指南](docs/developer-guide.md)：系統架構、環境設定、開發規範。
-- [部署與 Docker Compose 手冊](docs/deployment.md)：production/dev/test compose 矩陣、環境變數、部署與驗證流程。
+- [公開使用說明](frontend/public/docs/zh-TW/overview.md)：學生、教師、管理者與部署者的正式文件入口。
+- [QJudge 架設與部署指南](frontend/public/docs/zh-TW/deployment.md)：從一台主機開始的最小部署、選用服務與驗收流程。
+- [內部技術文件索引](docs/README.md)：API、Exam Integrity、語系、壓測與營運文件。
 - 後端測試指南：`backend/RUN_TESTS.md`
 - 壓力測試說明：`docs/loadtest.md`
-- 監控部署說明：`docs/monitoring.md`
 - 多國語系指南：`docs/i18n.md`
 
 ## 授權

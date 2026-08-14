@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .root {
   min-width: 0;
   display: flex;
@@ -5,11 +6,11 @@
 }
 
 .paddingDefault {
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem layout.$spacing-06;
 }
 
 .paddingCompact {
-  padding: 0.75rem 1rem;
+  padding: layout.$spacing-04 layout.$spacing-05;
 }
 
 .paddingFlush {
@@ -18,6 +19,6 @@
 
 @media (max-width: 672px) {
   .paddingDefault {
-    padding: 1rem;
+    padding: layout.$spacing-05;
   }
 }

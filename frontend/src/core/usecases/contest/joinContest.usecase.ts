@@ -7,8 +7,8 @@
  * 3. Return success/error
  */
 
-import { registerContest } from "@/infrastructure/api/repositories";
 import type { ContestDetail } from "@/core/entities/contest.entity";
+import type { IContestRepository } from "@/core/ports/contest.repository";
 
 // ============================================================================
 // Types
@@ -22,6 +22,8 @@ export interface JoinContestOutput {
   success: boolean;
   error?: string;
 }
+
+export type JoinContestDependencies = Pick<IContestRepository, "registerContest">;
 
 // ============================================================================
 // Validation
@@ -46,12 +48,13 @@ export function validateJoinContest(
 // ============================================================================
 
 export async function joinContestUseCase(
-  input: JoinContestInput
+  input: JoinContestInput,
+  dependencies: JoinContestDependencies,
 ): Promise<JoinContestOutput> {
   const { contestId } = input;
 
   try {
-    await registerContest(contestId);
+    await dependencies.registerContest(contestId);
 
     return {
       success: true,
@@ -63,5 +66,3 @@ export async function joinContestUseCase(
     };
   }
 }
-
-export default joinContestUseCase;

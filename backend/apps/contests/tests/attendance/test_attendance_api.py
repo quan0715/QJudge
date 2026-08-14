@@ -42,7 +42,6 @@ def make_contest(owner: User | None = None, **overrides) -> Contest:
         "name": "Attendance Exam",
         "owner": owner,
         "status": "published",
-        "visibility": "public",
         "start_time": now - timedelta(minutes=5),
         "end_time": now + timedelta(hours=1),
         "attendance_check_enabled": True,
@@ -895,7 +894,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
 
     api_client.force_authenticate(user=teacher)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        f"/api/v1/contests/{contest.id}/exam/attendance/evidence/intents/",
         {
             "event_id": event.id,
             "evidence_cluster_id": "attendance-test",
@@ -928,7 +927,7 @@ def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
     # student_b tries to upload for student_a's event
     api_client.force_authenticate(user=student_b)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        f"/api/v1/contests/{contest.id}/exam/attendance/evidence/intents/",
         {
             "event_id": event.id,
             "source_module": "attendance",
@@ -942,7 +941,7 @@ def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
 
 
 @pytest.mark.django_db
-def test_manager_cannot_use_ta_bypass_for_non_attendance_event() -> None:
+def test_attendance_evidence_rejects_non_attendance_event() -> None:
     """Manager cannot use the TA bypass path for a non-attendance (anti-cheat) event."""
     api_client = APIClient()
     teacher = make_user("ta_bypass_teacher", role="teacher")
@@ -959,7 +958,7 @@ def test_manager_cannot_use_ta_bypass_for_non_attendance_event() -> None:
 
     api_client.force_authenticate(user=teacher)
     response = api_client.post(
-        f"/api/v1/contests/{contest.id}/exam/evidence/upload-intents/",
+        f"/api/v1/contests/{contest.id}/exam/attendance/evidence/intents/",
         {
             "event_id": other_event.id,
             "source_module": "attendance",
@@ -976,4 +975,4 @@ def test_manager_cannot_use_ta_bypass_for_non_attendance_event() -> None:
 
     # Should fail: event is not an attendance type, so TA bypass does not apply.
     # The normal path rejects because event.user != request.user.
-    assert response.status_code == 403
+    assert response.status_code == 400

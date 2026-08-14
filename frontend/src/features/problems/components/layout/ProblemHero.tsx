@@ -1,6 +1,6 @@
 import React from "react";
 import { Tag } from "@carbon/react";
-import { HeroBase } from "@/shared/layout/HeroBase";
+import { QJudgeHeroWidget } from "@/shared/layout/QJudgeHeroWidget";
 import { KpiCard } from "@/shared/ui/dataCard";
 import { Checkmark, Percentage, Document, Trophy } from "@carbon/icons-react";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
@@ -36,7 +36,7 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   const { t } = useTranslation("problem");
 
   if (loading || !problem) {
-    return <HeroBase title="" loading={true} maxWidth={maxWidth} />;
+    return <QJudgeHeroWidget title="" loading maxWidth={maxWidth} />;
   }
 
   // Title with optional label prefix in contest mode
@@ -127,7 +127,7 @@ const ProblemHero: React.FC<ProblemHeroProps> = ({
   );
 
   return (
-    <HeroBase
+    <QJudgeHeroWidget
       title={displayTitle}
       badges={badges}
       metadata={metadata}

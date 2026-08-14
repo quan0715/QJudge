@@ -7,9 +7,7 @@ import type {
   Tag,
 } from "@/core/entities/problem.entity";
 import type {
-  IProblemRepository,
   GetProblemsParams,
-  PaginatedProblems,
   ProblemStatistics,
   TestRunPayload,
   TestRunResult,
@@ -55,38 +53,6 @@ export const getProblems = async (
   return results.map(mapProblemDto);
 };
 
-export const getPaginatedProblems = async (
-  params?: GetProblemsParams
-): Promise<PaginatedProblems> => {
-  const query = params
-    ? buildQuery({
-        scope: params.scope || "manage",
-        search: params.search,
-        difficulty: params.difficulty,
-        tags: params.tags?.length ? params.tags.join(",") : undefined,
-        page: params.page,
-        page_size: params.page_size,
-      })
-    : "?scope=manage";
-
-  const data = await requestJson<{
-    results?: ProblemDto[];
-    count?: number;
-    next?: string | null;
-    previous?: string | null;
-  }>(
-    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${query}`),
-    "Failed to fetch problems"
-  );
-
-  return {
-    results: Array.isArray(data.results) ? data.results.map(mapProblemDto) : [],
-    count: data.count || 0,
-    next: data.next || null,
-    previous: data.previous || null,
-  };
-};
-
 export const getProblem = async (
   id: string,
   scope?: string
@@ -108,17 +74,6 @@ export const createProblem = async (
   const responseData = await requestJson<ProblemDetailDto>(
     httpClient.post(`${MANAGEMENT_PROBLEMS_BASE}/`, data),
     "Failed to create problem"
-  );
-  return mapProblemDetailDto(responseData);
-};
-
-export const updateProblem = async (
-  id: string,
-  data: ProblemUpsertPayload
-): Promise<CodingProblemDetail> => {
-  const responseData = await requestJson<ProblemDetailDto>(
-    httpClient.put(`${MANAGEMENT_PROBLEMS_BASE}/${id}/?scope=manage`, data),
-    "Failed to update problem"
   );
   return mapProblemDetailDto(responseData);
 };
@@ -216,21 +171,3 @@ export const testRun = async (
     "Test run failed"
   );
 };
-
-// ============================================================================
-// Repository Instance (implements IProblemRepository)
-// ============================================================================
-
-export const problemRepository: IProblemRepository = {
-  getProblems,
-  getProblem,
-  createProblem,
-  updateProblem,
-  patchProblem,
-  deleteProblem,
-  getTags,
-  getProblemStatistics,
-  testRun,
-};
-
-export default problemRepository;

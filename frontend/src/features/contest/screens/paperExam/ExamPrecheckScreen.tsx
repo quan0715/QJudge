@@ -17,7 +17,10 @@ import {
   ArrowRight,
   WarningAlt,
 } from "@carbon/icons-react";
-import { requestFullscreen, isFullscreen } from "@/core/usecases/exam";
+import {
+  isFullscreen,
+  requestFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
 import { usePaperExamFlow } from "./usePaperExamFlow";
 import {
@@ -76,7 +79,9 @@ const ExamPrecheckScreen: React.FC = () => {
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
     capability,
-    anticheatConfig?.devicePolicy ?? contest?.anticheatDevicePolicy
+    anticheatConfig?.integrityRun?.devicePolicy ??
+      anticheatConfig?.devicePolicy ??
+      contest?.anticheatDevicePolicy
   );
   const entryDeviceMetadata = buildExamEntryDeviceMetadata(capability, monitoringPlan);
   const skipFullscreenCheck = !monitoringPlan.precheck.requireFullscreen;
@@ -741,7 +746,6 @@ const ExamPrecheckScreen: React.FC = () => {
               <Tile>
                 <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>{t("precheck.instruction.title")}</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.noSwitch") }} />
                   <li
                     dangerouslySetInnerHTML={{
                       __html: skipFullscreenCheck

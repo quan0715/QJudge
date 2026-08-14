@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APIRequestFactory
 
-from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamStatus
+from apps.contests.models import Contest, ContestActivity, ContestParticipant, ExamStatus
 from apps.contests.services.anti_cheat_session import (
     active_session_key,
 )
@@ -45,7 +45,6 @@ def published_contest(teacher: User) -> Contest:
         name="Published Service Boundary Contest",
         owner=teacher,
         status="published",
-        visibility="public",
         start_time=now - timedelta(minutes=5),
         end_time=now + timedelta(hours=1),
         contest_type="paper_exam",
@@ -61,7 +60,6 @@ def test_validate_exam_operation_raises_drf_exceptions_instead_of_returning_resp
         name="Draft Service Boundary Contest",
         owner=teacher,
         status="draft",
-        visibility="private",
         contest_type="paper_exam",
     )
 
@@ -141,7 +139,6 @@ def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
         name="Draft View Adapter Contest",
         owner=teacher,
         status="draft",
-        visibility="private",
         contest_type="paper_exam",
     )
 
@@ -202,13 +199,13 @@ def test_device_conflict_service_returns_payload_not_response(
         },
     }
     assert not hasattr(payload, "status_code")
-    assert ExamEvent.objects.filter(
+    activity = ContestActivity.objects.get(
         contest=published_contest,
         user=student,
-        event_type="concurrent_login_detected",
-        metadata__existing_device_id="existing-device",
-        metadata__incoming_device_id="incoming-device",
-    ).exists()
+        action_type="concurrent_login_detected",
+    )
+    assert "existing_device_id=existing-device" in activity.details
+    assert "incoming_device_id=incoming-device" in activity.details
 
 
 @pytest.mark.django_db

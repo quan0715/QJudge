@@ -32,13 +32,6 @@ class ExamAnswer(models.Model):
         verbose_name='作答內容',
         help_text='選擇題: {"selected": "A"}, 多選: {"selected": ["A","B"]}, 簡答/問答: {"text": "..."}'
     )
-    question_snapshot = models.JSONField(
-        null=True,
-        blank=True,
-        verbose_name='題目快照',
-        help_text='首次作答時記錄的題目狀態，用於確保批改時參照學生作答時的題目'
-    )
-
     # Auto-grading result (for objective questions)
     is_correct = models.BooleanField(
         null=True,
@@ -89,17 +82,10 @@ class ExamAnswer(models.Model):
         return f"Answer by P#{self.participant_id} for Q#{self.question_id}"
 
     def auto_grade(self):
-        """Auto-grade objective questions (true_false, single_choice, multiple_choice).
-        優先使用 question_snapshot 中的資料，確保評分基準與學生作答時一致。
-        """
-        if self.question_snapshot:
-            q_type = self.question_snapshot.get('question_type')
-            correct = self.question_snapshot.get('correct_answer')
-            q_score = self.question_snapshot.get('score', 0)
-        else:
-            q_type = self.question.question_type
-            correct = self.question.correct_answer
-            q_score = self.question.score
+        """Auto-grade objective questions against the current grading rules."""
+        q_type = self.question.question_type
+        correct = self.question.correct_answer
+        q_score = self.question.score
 
         if correct is None:
             return

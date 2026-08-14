@@ -11,7 +11,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.runtime.checkpoint_recovery_manager import CheckpointRecoveryManager
+from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 
 
 class _Checkpointer:

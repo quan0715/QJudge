@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 @use "@carbon/react/scss/theme" as *;
 @use "@carbon/react/scss/spacing" as *;
 @use "@carbon/react/scss/type";
@@ -81,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(6rem, 12vh, 8rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
+  padding: clamp(layout.$spacing-12, 12vh, 8rem) clamp($spacing-06, 5vw, $spacing-09) clamp($spacing-07, 8vh, $spacing-09);
   background-color: $layer-01;
   border: 0;
   border-radius: 0;

@@ -11,24 +11,13 @@
     "actions": {
       "back": "뒤로",
       "delete": "삭제",
-      "export": "내보내기",
       "preview": "미리보기",
       "save": "저장"
-    },
-    "exportModal": {
-      "cancel": "취소",
-      "description": "백업이나 다른 시스템으로 가져오기 위해 문제 데이터를 YAML 형식으로 내보냅니다.",
-      "scaleLabel": "비율",
-      "scalePlaceholder": "비율 선택",
-      "submit": "내보내기",
-      "title": "문제 내보내기"
     },
     "messages": {
       "deleteFailed": "삭제 실패",
       "deleteSuccess": "삭제 성공",
       "deleteSuccessDetail": "리다이렉트 중...",
-      "exportSuccess": "YAML 내보내기 성공",
-      "exportSuccessDetail": "파일이 다운로드되었습니다",
       "loadFailed": "문제 데이터를 불러오는 데 실패했습니다",
       "noPermission": "이 문제를 편집할 권한이 없습니다",
       "noPermissionTitle": "권한 없음",

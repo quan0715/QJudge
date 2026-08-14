@@ -2,7 +2,6 @@ import type { SubmissionStatus } from "./submission.entity";
 import type { Difficulty } from "./problem.entity";
 
 export type ContestStatus = "draft" | "published" | "archived";
-export type ContestVisibility = "public" | "private";
 export type ContestType = "coding" | "paper_exam";
 export type ContestScopeRole =
   | "platform_admin"
@@ -18,65 +17,8 @@ export function isContestManagerScopeRole(
   return role === "platform_admin" || role === "owner" || role === "co_owner";
 }
 
-// Violation events (from ExamEvent model)
-export type ExamViolationType =
-  | "tab_hidden"
-  | "window_blur"
-  | "exit_fullscreen"
-  | "forbidden_focus_event"
-  | "forbidden_action"
-  | "multiple_displays"
-  | "mouse_leave"
-  | "warning_timeout"
-  | "force_submit_locked"
-  | "screen_share_stopped"
-  | "screen_share_interrupted"
-  | "screen_share_restored"
-  | "screen_share_invalid_surface"
-  | "webcam_interrupted"
-  | "webcam_restored"
-  | "webcam_stopped"
-  | "webcam_quality_degraded"
-  | "viewport_interrupted"
-  | "viewport_restored"
-  | "viewport_stopped"
-  | "split_view_detected"
-  | "capture_upload_degraded"
-  | "clipboard_action"
-  | "exam_entered"
-  | "exam_submit_initiated"
-  | "concurrent_login_detected"
-  | "other_devices_logged_out"
-  | "end_exam_device_mismatch"
-  | "heartbeat"
-  | "heartbeat_timeout"
-  | "listener_tampered"
-  | "manual_proctor_note";
-
-// Activity events (from ContestActivity model)
-export type ContestActivityType =
-  | "register"
-  | "enter_contest"
-  | "start_exam"
-  | "resume_exam"
-  | "end_exam"
-  | "auto_submit"
-  | "lock_user"
-  | "unlock_user"
-  | "submit_code"
-  | "ask_question"
-  | "reply_question"
-  | "update_contest"
-  | "update_problem"
-  | "update_participant"
-  | "reopen_exam"
-  | "reset_exam_record"
-  | "concurrent_login_detected"
-  | "announce"
-  | "other";
-
-// Combined event type for unified display
-export type ExamEventType = ExamViolationType | ContestActivityType;
+// Event ids are defined by each run's frozen registry, not a frontend union.
+export type ExamEventType = string;
 
 export interface ContestPermissions {
   canSwitchView: boolean;
@@ -98,7 +40,6 @@ export interface ContestProblemSummary {
   label: string; // A, B, C...
   title: string;
   order?: number;
-  score?: number; // Backward-compatible alias (same as maxScore)
   maxScore?: number; // Contest-level score/points
   sourceBank?: {
     id: string;
@@ -118,7 +59,7 @@ export interface ContestParticipant {
   accountRole?: string;
   authProvider?: string;
   connectionStatus?: "offline" | "online" | "live";
-  lastHeartbeatAt?: string | null;
+  lastCheckpointAt?: string | null;
   liveMonitoringOnline?: boolean;
   liveMonitoringSources?: Array<"screen_share" | "webcam">;
   score: number;
@@ -253,7 +194,7 @@ export interface EventFeedItem {
   firstAt: string;
   lastAt: string;
   count: number;
-  evidenceCount: number;
+  hasEvidence: boolean;
   summary: string;
   source: "exam_event" | "activity";
   userName?: string;
@@ -295,7 +236,6 @@ export interface Contest {
   startTime: string;
   endTime: string;
   status: ContestStatus;
-  visibility: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   organizer?: string;
@@ -330,8 +270,6 @@ export interface ContestDetail extends Contest {
   // Cheat detection
   cheatDetectionEnabled: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
-  warningTimeoutSeconds?: number;
-  screenShareRecoveryGraceMs?: number;
   scoreboardVisibleDuringContest: boolean;
 
   // Advanced settings
@@ -342,8 +280,6 @@ export interface ContestDetail extends Contest {
 
   // Contest-level question edit lock
   questionEditLocked?: boolean;
-  questionEditLockedAt?: string | null;
-  questionEditLockTrigger?: "coding_submission" | "exam_answer" | null;
 
   examQuestionsCount: number;
 
@@ -388,11 +324,6 @@ export interface ContestOverviewMetrics {
   };
 }
 
-export interface AnticheatConfigSettingDescriptor {
-  key: string;
-  description: string;
-}
-
 export type AnticheatDeviceKind = "desktop" | "tablet";
 export type AnticheatSourceKind = "screenShare" | "webcam";
 export type AnticheatDetectorKind =
@@ -404,7 +335,6 @@ export type AnticheatDetectorKind =
 
 export interface ContestAnticheatSourcePolicy {
   enabled: boolean;
-  captureIntervalSeconds: number;
 }
 
 export interface ContestAnticheatDetectorPolicy {
@@ -435,11 +365,9 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     sources: {
       screenShare: {
         enabled: true,
-        captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: false,
-        captureIntervalSeconds: 10,
       },
     },
     detectors: {
@@ -455,11 +383,9 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
     sources: {
       screenShare: {
         enabled: false,
-        captureIntervalSeconds: 5,
       },
       webcam: {
         enabled: true,
-        captureIntervalSeconds: 10,
       },
     },
     detectors: {
@@ -472,54 +398,25 @@ export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
   },
 };
 
-export interface ContestAnticheatEffectiveConfig {
-  captureIntervalSeconds: number;
-  warningTimeoutSeconds: number;
-  screenShareRecoveryGraceMs: number;
-  forcedCaptureCooldownMs: number;
-  forcedCaptureP1CooldownMs: number;
-  eventFeedAggregationWindowSeconds: number;
-  incidentScreenshotWindowBeforeMs: number;
-  incidentScreenshotWindowAfterMs: number;
-  incidentScreenshotPreviewLimit: number;
-  incidentScreenshotCategories: string[];
-  monitoringRecoveryGraceMs: number;
-  mouseLeaveCooldownMs: number;
-  webcamRecoveryGraceMs: number;
-  webcamCaptureIntervalSeconds: number;
-  multiDisplayCheckIntervalMs: number;
-  multiDisplayReportCooldownMs: number;
-  presignedUrlTtlSeconds: number;
-  cheatDetectionEnabled: boolean;
-  allowMultipleJoins: boolean;
-  contestType: ContestType;
-  anticheatDevicePolicy: ContestAnticheatDevicePolicy;
+export interface IntegrityRegistrySnapshot {
+  version: string;
+  definitions: Record<string, unknown>;
+}
+
+export interface ContestIntegrityRun {
+  id: string;
+  computeState: string;
+  health: string;
+  participantId: number | null;
+  policySnapshot: Record<string, unknown>;
+  devicePolicy: ContestAnticheatDevicePolicy;
+  registrySnapshot: IntegrityRegistrySnapshot;
 }
 
 export interface ContestAnticheatConfig {
   version: number;
-  globalDefaults: Omit<
-    ContestAnticheatEffectiveConfig,
-    | "cheatDetectionEnabled"
-    | "allowMultipleJoins"
-    | "contestType"
-    | "anticheatDevicePolicy"
-  >;
-  contestSettings: Pick<
-    ContestAnticheatEffectiveConfig,
-    | "cheatDetectionEnabled"
-    | "allowMultipleJoins"
-    | "contestType"
-    | "warningTimeoutSeconds"
-    | "screenShareRecoveryGraceMs"
-    | "anticheatDevicePolicy"
-  >;
-  effective: ContestAnticheatEffectiveConfig;
   devicePolicy: ContestAnticheatDevicePolicy;
-  frontendControlledSettings: {
-    global: AnticheatConfigSettingDescriptor[];
-    contest: AnticheatConfigSettingDescriptor[];
-  };
+  integrityRun?: ContestIntegrityRun;
 }
 
 // Scoreboard Types
@@ -562,7 +459,11 @@ export interface ExamEvent {
   userId: string;
   userName: string;
   eventType: ExamEventType;
+  priority: number;
+  category: string;
+  penalized: boolean;
   timestamp: string;
+  incidentId?: string;
   reason?: string;
   metadata?: Record<string, unknown>;
 }
@@ -689,12 +590,10 @@ export interface ContestUpdateRequest {
   startTime?: string;
   endTime?: string;
   status?: ContestStatus;
-  visibility?: ContestVisibility;
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
-  warningTimeoutSeconds?: number;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   resultsPublished?: boolean;

@@ -1,15 +1,16 @@
+import { lazy } from "react";
 import { Route } from "react-router-dom";
-import QuestionBankDetailScreen from "./screens/QuestionBankDetailScreen";
-import QuestionBankMarketplaceScreen from "./screens/QuestionBankMarketplaceScreen";
-import MarketplaceBankPreviewScreen from "./screens/MarketplaceBankPreviewScreen";
+import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
-export const questionBankMarketplaceRoute = (
-  <>
-    <Route path="/marketplace" element={<QuestionBankMarketplaceScreen />} />
-    <Route path="/marketplace/:bankId" element={<MarketplaceBankPreviewScreen />} />
-  </>
-);
+const QuestionBankDetailScreen = lazy(() => import("./screens/QuestionBankDetailScreen"));
 
 export const questionBankDetailRoute = (
-  <Route path="/question-banks/:bankId" element={<QuestionBankDetailScreen />} />
+  <Route
+    path="/question-banks/:bankId"
+    element={
+      <RouteLoadingBoundary>
+        <QuestionBankDetailScreen />
+      </RouteLoadingBoundary>
+    }
+  />
 );

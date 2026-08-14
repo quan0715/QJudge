@@ -1,6 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
-import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
+import {
+  useContentLanguage,
+  type ContentLanguage,
+} from "@/shared/contexts/ContentLanguageContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
   getPreferences as getUserPreferences,
@@ -15,6 +18,7 @@ import type {
   UpdatePreferencesRequest,
   UpdateAccountProfileRequest,
 } from "@/core/entities/auth.entity";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 
 // Module-level state to prevent multiple instances from loading simultaneously
 let globalLoadedForUserId: number | null = null;
@@ -89,37 +93,39 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const effectiveTheme: "light" | "dark" =
     theme === "g100" || theme === "g90" ? "dark" : "light";
 
-  // Store setContentLanguage in a ref to avoid dependency issues
-  const setContentLanguageRef = useRef(setContentLanguage);
-  setContentLanguageRef.current = setContentLanguage;
-
   const applyPreferencesToState = useCallback(
     (nextPreferences: UserPreferences) => {
       setPreferences(nextPreferences);
       // Sync backend preference into ThemeContext (single source of truth)
       setPreference(nextPreferences.preferred_theme);
-      setContentLanguageRef.current(
-        nextPreferences.preferred_language as typeof contentLanguage
-      );
+      setContentLanguage(nextPreferences.preferred_language as ContentLanguage);
     },
-    [setPreference]
+    [setContentLanguage, setPreference]
   );
 
   const syncAuthUserProfile = useCallback(
     (nextProfile: Partial<UserProfile>) => {
       if (!user) return;
+      const currentProfile: UserProfile = user.profile ?? {
+        solved_count: 0,
+        submission_count: 0,
+        accept_rate: 0,
+        preferred_language: contentLanguage,
+        preferred_theme: preference,
+        editor_font_size: preferences?.editor_font_size ?? 12,
+        editor_tab_size: preferences?.editor_tab_size ?? 4,
+      };
       const nextUser = {
         ...user,
         profile: {
-          ...(user.profile || {}),
+          ...currentProfile,
           ...nextProfile,
         },
       };
-      setUser(nextUser as any);
-      localStorage.setItem("user", JSON.stringify(nextUser));
-      window.dispatchEvent(new Event("storage"));
+      setUser(nextUser);
+      notifyAuthSessionChanged();
     },
-    [user, setUser]
+    [contentLanguage, preference, preferences, user, setUser]
   );
 
   // Load preferences from backend when user is logged in
@@ -240,7 +246,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
         }
         return next;
       });
-      setContentLanguage(lang as typeof contentLanguage);
+      setContentLanguage(lang as ContentLanguage);
 
       if (user) {
         try {
@@ -402,8 +408,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       const response = await updateCurrentUserProfile(data);
       const nextUser = response.data;
       setUser(nextUser);
-      localStorage.setItem("user", JSON.stringify(nextUser));
-      window.dispatchEvent(new Event("storage"));
+      notifyAuthSessionChanged();
     },
     [user, setUser]
   );

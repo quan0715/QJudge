@@ -1,10 +1,27 @@
+import { useState, type ComponentProps } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { ComposerBar } from "../ComposerBar";
 
+function StatefulComposerBar(props: ComponentProps<typeof ComposerBar>) {
+  const [value, setValue] = useState(props.value);
+
+  return (
+    <ComposerBar
+      {...props}
+      value={value}
+      onValueChange={(nextValue) => {
+        setValue(nextValue);
+        props.onValueChange(nextValue);
+      }}
+    />
+  );
+}
+
 const meta: Meta<typeof ComposerBar> = {
   title: "features/chatbot/chat-ui/ComposerBar",
   component: ComposerBar,
+  render: (args) => <StatefulComposerBar {...args} />,
   parameters: {
     docs: {
       description: {
@@ -13,13 +30,19 @@ const meta: Meta<typeof ComposerBar> = {
     },
   },
   args: {
-    onSend: () => true,
+    value: "",
+    onValueChange: () => {},
+    attachments: [],
+    onAddAttachments: () => {},
+    onRemoveAttachment: () => {},
+    onSend: async () => true,
+    canSend: true,
     models: [
-      { model_id: "openai-nano", display_name: "gpt-5-nano", description: "fast", is_default: true },
-      { model_id: "openai-mini", display_name: "gpt-5.4-mini (low)", description: "reasoning low", is_default: false },
-      { model_id: "openai-mini-medium", display_name: "gpt-5.4-mini (medium)", description: "reasoning medium", is_default: false },
-      { model_id: "deepseek-v4", display_name: "deepseek-v4", description: "balanced", is_default: false },
-      { model_id: "deepseek-v4-thinking", display_name: "deepseek-v4 (thinking)", description: "reasoning", is_default: false },
+      { id: "openai-nano", displayName: "gpt-5-nano", description: "fast", isDefault: true },
+      { id: "openai-mini", displayName: "gpt-5.4-mini (low)", description: "reasoning low" },
+      { id: "openai-mini-medium", displayName: "gpt-5.4-mini (medium)", description: "reasoning medium" },
+      { id: "deepseek-v4-flash", displayName: "deepseek-v4-flash", description: "reasoning flash" },
+      { id: "deepseek-v4-pro", displayName: "deepseek-v4-pro", description: "reasoning pro" },
     ],
     selectedModelId: "openai-nano",
     onModelChange: () => {},

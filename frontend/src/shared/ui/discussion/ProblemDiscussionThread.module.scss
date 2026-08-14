@@ -172,7 +172,7 @@
   border-radius: 50%;
   background-color: var(--cds-background);
   border: 2px solid var(--cds-border-subtle);
-  margin-top: 8px;
+  margin-top: layout.$spacing-03;
   z-index: 1;
 }
 

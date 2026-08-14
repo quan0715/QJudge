@@ -8,6 +8,8 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    maxWorkers: 4,
+    testTimeout: 15_000,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["src/infrastructure/api/__tests__/integration/**/*.integration.test.ts"],
     coverage: {
@@ -24,6 +26,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@copilot/testing": path.resolve(__dirname, "./src/shared/copilot/testing/index.ts"),
+      "@copilot": path.resolve(__dirname, "./src/shared/copilot/index.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },

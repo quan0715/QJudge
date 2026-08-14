@@ -1,22 +1,30 @@
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 import { Route } from "react-router";
+import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
-const AnnouncementManagementScreen = lazy(() => import("./screens/AnnouncementManagementScreen"));
-const ReviewQueueScreen = lazy(() => import("./screens/ReviewQueueScreen"));
 const UserManagementScreen = lazy(() => import("./screens/UserManagementScreen"));
 const DraftProblemsScreen = lazy(() => import("./screens/DraftProblemsScreen"));
 
 export const draftProblemsRoute = (
-  <Route path="/drafts" element={<Suspense fallback={null}><DraftProblemsScreen /></Suspense>} />
+  <Route
+    path="/drafts"
+    element={
+      <RouteLoadingBoundary>
+        <DraftProblemsScreen />
+      </RouteLoadingBoundary>
+    }
+  />
 );
 
 export const adminRoutes = (
   <>
-    <Route path="/system/users" element={<Suspense fallback={null}><UserManagementScreen /></Suspense>} />
     <Route
-      path="/management/announcements"
-      element={<Suspense fallback={null}><AnnouncementManagementScreen /></Suspense>}
+      path="/system/users"
+      element={
+        <RouteLoadingBoundary>
+          <UserManagementScreen />
+        </RouteLoadingBoundary>
+      }
     />
-    <Route path="/admin/review-queue" element={<Suspense fallback={null}><ReviewQueueScreen /></Suspense>} />
   </>
 );

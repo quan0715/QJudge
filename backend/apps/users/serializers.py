@@ -39,15 +39,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for user model."""
     profile = UserProfileSerializer(read_only=True)
-    subscription = serializers.SerializerMethodField()
-
-    def get_subscription(self, obj):
-        try:
-            sub = obj.subscription
-            return {"tier": sub.tier, "status": sub.status}
-        except Exception:
-            return {"tier": "free", "status": "active"}
-
     class Meta:
         model = User
         fields = [
@@ -60,7 +51,6 @@ class UserSerializer(serializers.ModelSerializer):
             'date_joined',
             'last_login_at',
             'profile',
-            'subscription',
         ]
         read_only_fields = [
             'id',

@@ -90,11 +90,6 @@ const ContestExamGradingScreen: React.FC = () => {
     });
   }, [setSearchParams, startTransition]);
 
-  const published = !!contest?.resultsPublished;
-  const publishStateLabel = published
-    ? t("grading.published", "已發布")
-    : t("grading.unpublished", "未發布");
-
   const {
     answers,
     answersByQuestion,
@@ -124,11 +119,6 @@ const ContestExamGradingScreen: React.FC = () => {
     [students, studentOnlyIds],
   );
 
-  const filteredAnswers = useMemo(
-    () => (studentOnlyIds ? answers.filter((a) => studentOnlyIds.has(a.studentId)) : answers),
-    [answers, studentOnlyIds],
-  );
-
   const filteredAnswersByQuestion = useMemo(() => {
     if (!studentOnlyIds) return answersByQuestion;
     const map = new Map<string, typeof answers>();
@@ -146,18 +136,6 @@ const ContestExamGradingScreen: React.FC = () => {
     }
     return map;
   }, [answersByStudent, studentOnlyIds]);
-  const ungradedCount = useMemo(
-    () => filteredAnswers.filter((row) => row.score === null).length,
-    [filteredAnswers],
-  );
-  const gradedCount = useMemo(
-    () => filteredAnswers.length - ungradedCount,
-    [filteredAnswers.length, ungradedCount],
-  );
-  const gradingProgress = useMemo(
-    () => `${Math.round((gradedCount / Math.max(filteredAnswers.length, 1)) * 100)}%`,
-    [gradedCount, filteredAnswers.length],
-  );
   const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all" || studentsOnly;
   const filterOptions = useMemo<GlobalFilterOption[]>(
     () => [
@@ -263,24 +241,6 @@ const ContestExamGradingScreen: React.FC = () => {
             className={styles.modeSwitcher}
             tooltipPosition="bottom"
           />
-          <div className={styles.globalMeta}>
-            {isCodingContest
-              ? t("grading.globalSummaryResults", "題目 {{questions}} 題 · 學生 {{students}} 人 · 最後提交 {{total}} 筆 · {{status}}", {
-                  questions: questionProgress.length,
-                  students: filteredStudents.length,
-                  total: filteredAnswers.length,
-                  status: publishStateLabel,
-                })
-              : t("grading.globalSummary", "題目 {{questions}} 題 · 學生 {{students}} 人 · 批改進度 {{graded}}/{{total}} ({{progress}}) · {{status}}", {
-                  questions: questionProgress.length,
-                  students: filteredStudents.length,
-                  graded: gradedCount,
-                  total: filteredAnswers.length,
-                  progress: gradingProgress,
-                  status: publishStateLabel,
-                })}
-          </div>
-
           {viewMode !== "matrix" ? (
             <Layer>
               <Popover

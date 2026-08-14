@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Layer } from "@carbon/react";
+import { Button, Layer } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import GithubSlugger from "github-slugger";
 
@@ -93,11 +93,11 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ content }) => {
         <nav>
           {/* Title */}
           <p
-            className="cds--label"
             style={{
               padding: "0.75rem 1rem",
               margin: 0,
               fontWeight: 600,
+              fontSize: "var(--cds-label-01-font-size)",
               borderBottom: "1px solid var(--cds-border-subtle-01)",
             }}
           >
@@ -116,7 +116,9 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ content }) => {
               const isH3 = heading.level === 3;
 
               return (
-                <div
+                <Button
+                  type="button"
+                  kind="ghost"
                   key={heading.id}
                   onClick={() => scrollToHeading(heading.id)}
                   style={{
@@ -137,6 +139,11 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ content }) => {
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                     wordBreak: "break-word",
+                    width: "100%",
+                    maxWidth: "none",
+                    minHeight: "auto",
+                    justifyContent: "flex-start",
+                    textAlign: "left",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
@@ -161,7 +168,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ content }) => {
                     />
                   )}
                   <span>{heading.text}</span>
-                </div>
+                </Button>
               );
             })}
           </div>

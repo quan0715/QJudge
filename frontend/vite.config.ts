@@ -8,13 +8,6 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const storybookTarget = env.VITE_STORYBOOK_TARGET || process.env.VITE_STORYBOOK_TARGET || 'http://localhost:6006'
-  const recurPublishableKey =
-    process.env.VITE_RECUR_PUBLISHABLE_KEY ||
-    process.env.RECUR_PUBLISHABLE_KEY ||
-    env.VITE_RECUR_PUBLISHABLE_KEY ||
-    env.RECUR_PUBLISHABLE_KEY ||
-    ''
-
   return {
     plugins: [
       react(),
@@ -75,13 +68,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     ],
-    define: {
-      // Forward VITE_ env vars from Docker env_file into import.meta.env
-      // (Vite only reads .env files by default, not process.env)
-      ...(recurPublishableKey && {
-        'import.meta.env.VITE_RECUR_PUBLISHABLE_KEY': JSON.stringify(recurPublishableKey),
-      }),
-    },
     build: {
       rollupOptions: {
         input: {
@@ -209,6 +195,8 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
+        '@copilot/testing': path.resolve(__dirname, './src/shared/copilot/testing/index.ts'),
+        '@copilot': path.resolve(__dirname, './src/shared/copilot/index.ts'),
         '@': path.resolve(__dirname, './src'),
         '~': path.resolve(__dirname, './node_modules'),
 

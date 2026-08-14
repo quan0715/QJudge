@@ -12,10 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveIndex(
-            model_name="aisession",
-            name="ai_aisessio_user_id_3156dc_idx",
-        ),
         migrations.RenameIndex(
             model_name="aipendingaction",
             new_name="ai_aipendin_session_1a6cec_idx",

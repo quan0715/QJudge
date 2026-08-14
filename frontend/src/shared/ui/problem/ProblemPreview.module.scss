@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 // ProblemPreview - Carbon Design System styled problem content
 // Uses Carbon spacing tokens and typography
 
@@ -12,8 +13,8 @@
   font-size: var(--cds-productive-heading-05-font-size, 2rem);
   font-weight: var(--cds-productive-heading-05-font-weight, 400);
   line-height: var(--cds-productive-heading-05-line-height, 1.25);
-  margin: 0 0 2rem 0;
-  padding-bottom: 0.75rem;
+  margin: 0 0 layout.$spacing-07 0;
+  padding-bottom: layout.$spacing-04;
   border-bottom: 2px solid var(--cds-border-strong-01);
   color: var(--cds-text-primary);
 }
@@ -22,7 +23,7 @@
 .sections {
   display: flex;
   flex-direction: column;
-  gap: 2rem; // Carbon spacing-07 equivalent
+  gap: layout.$spacing-07; // Carbon spacing-07 equivalent
 }
 
 // Individual section
@@ -36,8 +37,8 @@
   font-weight: 600;
   line-height: var(--cds-productive-heading-03-line-height, 1.4);
   color: var(--cds-text-primary);
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
+  margin: 0 0 layout.$spacing-05 0;
+  padding-bottom: layout.$spacing-03;
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
@@ -45,12 +46,12 @@
 .sampleCases {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: layout.$spacing-05;
 }
 
 // Individual Sample Case Card (using Carbon Tile)
 .sampleCase {
-  padding: 0 !important;
+  padding: 0;
   overflow: hidden;
   border: 1px solid var(--cds-border-subtle-01);
   background-color: var(--cds-layer-01);
@@ -60,7 +61,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: layout.$spacing-04 layout.$spacing-05;
   background-color: var(--cds-layer-accent-01);
   border-bottom: 1px solid var(--cds-border-subtle-01);
 }
@@ -81,7 +82,7 @@
 }
 
 .sampleCaseColumn {
-  padding: 1rem;
+  padding: layout.$spacing-05;
   
   &:first-child {
     border-right: 1px solid var(--cds-border-subtle-01);
@@ -97,7 +98,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: layout.$spacing-03;
 }
 
 .sampleCaseLabel {
@@ -109,9 +110,6 @@
 }
 
 .copyButton {
-  min-height: 1.5rem !important;
-  padding: 0.25rem !important;
-  
   svg {
     fill: var(--cds-icon-secondary);
   }
@@ -123,7 +121,7 @@
 
 .sampleCaseCode {
   background-color: var(--cds-field-01);
-  padding: 0.75rem 1rem;
+  padding: layout.$spacing-04 layout.$spacing-05;
   border-radius: 4px;
   margin: 0;
   overflow-x: auto;
@@ -138,7 +136,7 @@
 
 // Keyword Groups
 .keywordGroup {
-  margin-bottom: 1.5rem;
+  margin-bottom: layout.$spacing-06;
   
   &:last-child {
     margin-bottom: 0;
@@ -151,13 +149,13 @@
   color: var(--cds-text-secondary);
   text-transform: uppercase;
   letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 layout.$spacing-04 0;
 }
 
 .keywordTags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   
   code {
     font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
@@ -170,7 +168,7 @@
 
 // Empty State
 .emptyState {
-  padding: 3rem 2rem;
+  padding: layout.$spacing-09 layout.$spacing-07;
   text-align: center;
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-long-01-font-size, 0.875rem);

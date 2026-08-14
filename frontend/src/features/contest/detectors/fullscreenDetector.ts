@@ -1,4 +1,4 @@
-import { isFullscreen } from "@/core/usecases/exam";
+import { isFullscreen } from "@/infrastructure/browser/fullscreen";
 import type { ExamDetector, ViolationEvent, CheckResult } from "./types";
 
 const FULLSCREEN_SETTLEMENT_MS = 100;
@@ -28,6 +28,7 @@ export class FullscreenDetector implements ExamDetector {
           this.onViolation?.({
             detectorId: this.id,
             eventType: "exit_fullscreen_triggered",
+            clientOccurredAtMs: Date.now(),
             message: "Fullscreen exited",
             severity: "info",
           });

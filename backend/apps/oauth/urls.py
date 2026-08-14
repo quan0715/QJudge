@@ -9,6 +9,11 @@ urlpatterns = [
         name="oauth-as-metadata",
     ),
     path(
+        ".well-known/jwks.json",
+        views.oauth_jwks,
+        name="oauth-jwks",
+    ),
+    path(
         ".well-known/mcp/server-card.json",
         views.mcp_server_card,
         name="mcp-server-card",
@@ -27,5 +32,15 @@ urlpatterns = [
         "api/oauth/approve/",
         views.ApproveAuthorizationView.as_view(),
         name="oauth-approve",
+    ),
+    path(
+        "api/oauth/resource-token/",
+        views.ResourceTokenView.as_view(),
+        name="oauth-resource-token",
+    ),
+    path(
+        "api/oauth/token-exchange/",
+        views.TokenExchangeView.as_view(),
+        name="oauth-token-exchange",
     ),
 ]

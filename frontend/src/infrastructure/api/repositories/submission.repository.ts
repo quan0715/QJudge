@@ -2,7 +2,6 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import { buildQuery } from "@/infrastructure/api/utils/buildQuery.client";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
 import type {
-  ISubmissionRepository,
   GetSubmissionsParams,
   GetSubmissionsResult,
   SubmitSolutionPayload,
@@ -65,15 +64,3 @@ export const getSubmission = async (id: string): Promise<SubmissionDetail> => {
   const data = await res.json() as SubmissionDetailDto;
   return mapSubmissionDetailDto(data);
 };
-
-// ============================================================================
-// Repository Instance (implements ISubmissionRepository)
-// ============================================================================
-
-export const submissionRepository: ISubmissionRepository = {
-  getSubmissions,
-  getSubmission,
-  submitSolution,
-};
-
-export default submissionRepository;

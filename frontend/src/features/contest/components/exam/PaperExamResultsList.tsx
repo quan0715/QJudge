@@ -282,20 +282,13 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                             answerFormat={question.answerFormat}
                             answerContent={result.answer}
                             options={question.options}
-                            correctAnswer={result.questionSnapshot?.correctAnswer ?? question.correctAnswer}
-                            referenceAnswerDocument={
-                              result.questionSnapshot?.referenceAnswerDocument ??
-                              question.referenceAnswerDocument
-                            }
+                            correctAnswer={question.correctAnswer}
+                            referenceAnswerDocument={question.referenceAnswerDocument}
                             explanation={
                               result.questionExplanation ??
-                              result.questionSnapshot?.explanation ??
                               question.explanation
                             }
-                            explanationDocument={
-                              result.questionSnapshot?.explanationDocument ??
-                              question.explanationDocument
-                            }
+                            explanationDocument={question.explanationDocument}
                           />
                           {result.feedback ? (
                             <div style={{ marginTop: "0.75rem" }}>

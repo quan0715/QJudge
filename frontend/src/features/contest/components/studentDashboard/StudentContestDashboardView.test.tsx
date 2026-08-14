@@ -1,7 +1,12 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ChangeEventHandler, ComponentProps, ReactNode } from "react";
+import {
+  useState,
+  type ChangeEventHandler,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import type {
   ContestDetail,
 } from "@/core/entities/contest.entity";
@@ -208,7 +213,6 @@ const createContest = (
     startTime: "2099-05-05T10:00:00.000Z",
     endTime: "2099-05-05T12:00:00.000Z",
     status: "published",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",
@@ -276,6 +280,8 @@ const renderDashboardAtContestRoute = (
 describe("StudentContestDashboard", () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    Reflect.deleteProperty(document, "visibilityState");
   });
 
   beforeEach(() => {
@@ -415,7 +421,9 @@ describe("StudentContestDashboard", () => {
 
     expect(screen.queryByRole("button", { name: /重新簽退/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /前往簽退/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /下載作答證明/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
   });
 
@@ -514,6 +522,84 @@ describe("StudentContestDashboard", () => {
     expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
   });
 
+  it("refreshes submitted contest state while the student dashboard stays open", async () => {
+    vi.useFakeTimers();
+    const onRefreshContest = vi.fn().mockResolvedValue(undefined);
+    const submittedContest = createContest({
+      startTime: "2000-05-05T10:00:00.000Z",
+      endTime: "2099-05-05T12:00:00.000Z",
+      examStatus: "submitted",
+      allowMultipleJoins: true,
+    });
+    const ResetAwareDashboard = () => {
+      const [contest, setContest] = useState(submittedContest);
+      return (
+        <StudentContestDashboard
+          contest={contest}
+          onRefreshContest={async () => {
+            await onRefreshContest();
+            setContest({
+              ...contest,
+              examStatus: "not_started",
+              hasStarted: false,
+              startedAt: undefined,
+            });
+          }}
+        />
+      );
+    };
+
+    render(
+      <MemoryRouter>
+        <ResetAwareDashboard />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: /下載作答證明/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /重新加入/ })).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(onRefreshContest).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("button", { name: /下載作答證明/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /重新加入/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /開始作答/ })).toBeInTheDocument();
+  });
+
+  it("refreshes submitted contest state immediately when the dashboard becomes visible", async () => {
+    const onRefreshContest = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+
+    renderDashboard(
+      createContest({
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        allowMultipleJoins: true,
+      }),
+      { onRefreshContest },
+    );
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(onRefreshContest).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves admin panel action when the action list is capped", () => {
     renderDashboard(
       createContest({
@@ -539,7 +625,7 @@ describe("StudentContestDashboard", () => {
         id: "question-1",
         contestId: "contest-1",
         questionType: "short_answer",
-        prompt: "Explain",
+        prompt: "Current prompt",
         options: [],
         explanation: "",
         score: 10,
@@ -578,6 +664,7 @@ describe("StudentContestDashboard", () => {
     expect(await screen.findAllByText("8.00 / 10.00")).not.toHaveLength(0);
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
+    expect(screen.getByText("Current prompt")).toBeInTheDocument();
     expect(screen.getByText("作答紀錄與成績")).toBeInTheDocument();
     expect(screen.queryByText("相關頁面")).not.toBeInTheDocument();
   });

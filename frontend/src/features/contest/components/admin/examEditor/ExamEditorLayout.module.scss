@@ -24,13 +24,13 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 24px;
+  padding: layout.$spacing-06;
   background: var(--cds-background);
 }
 
 /** While Reorder drag: reduce nested scroll + auto-scroll fighting Motion layout. */
 .reorderPointerScrollLock {
-  overflow-y: hidden !important;
+  overflow-y: hidden;
   overscroll-behavior: none;
 }
 
@@ -142,7 +142,7 @@
 .typePickerInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: layout.$spacing-01;
 }
 
 .typePickerLabel {

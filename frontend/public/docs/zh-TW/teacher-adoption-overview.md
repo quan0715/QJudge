@@ -77,7 +77,7 @@
 - 「期中考模擬測驗」
 - 「115-1 資料結構期中考」
 
-相關文件：[建立考試與題目](#/docs/create-exam)
+相關文件：[準備考試](#/docs/exam-preparation)
 
 ### 第四步：加入題目
 
@@ -195,7 +195,9 @@
 
 如果您正在準備第一場考試，建議接著閱讀：
 
-1. [第一堂課前設定](#/docs/teacher-first-class-setup)
-2. [建立考試與題目](#/docs/create-exam)
-3. [正式考試導入流程](#/docs/teacher-exam-workflow)
-4. [監考與人工介入處理](#/docs/exam-proctoring)
+1. [建立教室](#/docs/classroom-setup)
+2. [管理學生名冊](#/docs/classroom-roster)
+3. [準備考試](#/docs/exam-preparation)
+4. [確認考試內容](#/docs/exam-review)
+5. [正式考試導入流程](#/docs/teacher-exam-workflow)
+6. [監考與人工介入處理](#/docs/exam-proctoring)

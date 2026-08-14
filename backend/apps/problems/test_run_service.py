@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import logging
+from typing import Literal
+
 from apps.judge import judge_factory
 from apps.problems.models import CodingProblem, TestCase
 
 HARD_FAILURE_STATUSES = {"CE", "SE"}
+logger = logging.getLogger(__name__)
+
+TestRunSetupErrorCode = Literal["unsupported_language", "judge_unavailable"]
 
 
 class TestRunSetupError(Exception):
     """Raised when the test-run environment cannot be prepared."""
+
+    def __init__(self, code: TestRunSetupErrorCode) -> None:
+        self.code = code
+        super().__init__(code)
 
 
 class ProblemTestRunService:
@@ -49,9 +59,9 @@ class ProblemTestRunService:
         try:
             judge = judge_factory.get_judge(language)
         except ValueError as exc:
-            raise TestRunSetupError(str(exc)) from exc
+            raise TestRunSetupError("unsupported_language") from exc
         except Exception as exc:  # pragma: no cover - safety net
-            raise TestRunSetupError(f"Judge system error: {exc}") from exc
+            raise TestRunSetupError("judge_unavailable") from exc
 
         results = []
         max_exec_time = 0
@@ -67,13 +77,14 @@ class ProblemTestRunService:
                     time_limit=problem.time_limit,
                     memory_limit=problem.memory_limit,
                 )
-            except Exception as exc:  # pragma: no cover - safety net
+            except Exception:  # pragma: no cover - safety net
+                logger.exception("Unexpected judge execution failure")
                 exec_result = {
                     "status": "SE",
                     "time": 0,
                     "memory": 0,
                     "output": "",
-                    "error": str(exc),
+                    "error": "Judge execution failed.",
                 }
 
             case_result = cls._build_case_result(tc, exec_result)

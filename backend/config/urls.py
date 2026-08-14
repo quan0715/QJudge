@@ -31,12 +31,14 @@ urlpatterns = [
         include(('apps.problems.urls', 'problems'), namespace='management-problems'),
     ),
     path('api/v1/submissions/', include('apps.submissions.urls')),
+    path(
+        'api/v1/internal/integrity/',
+        include('apps.contests.integrity_internal_urls'),
+    ),
     path('api/v1/contests/', include('apps.contests.urls')),
     path('api/v1/classrooms/', include('apps.classrooms.urls')),
     path('api/v1/question-banks/', include('apps.question_bank.urls')),
-    path('api/v1/management/announcements/', include('apps.announcements.urls')),
     path('api/v1/ai/', include('apps.ai.urls')),
-    path('api/v1/subscriptions/', include('apps.subscriptions.urls')),
     # OpenAPI Schema
     path('api/schema/', SpectacularAPIView.as_view(**schema_view_kwargs), name='schema'),
     # Optional UI:

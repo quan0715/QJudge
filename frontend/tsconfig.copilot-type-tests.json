@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["type-tests/**/*.typecheck.ts"],
+  "exclude": []
+}

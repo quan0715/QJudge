@@ -26,7 +26,6 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail => 
   startTime: "2026-01-01T10:00:00Z",
   endTime: "2026-01-01T12:00:00Z",
   status: "draft",
-  visibility: "private",
   hasJoined: false,
   isRegistered: false,
   contestType: "coding",
@@ -172,6 +171,31 @@ describe("ContestExportDialog", () => {
         "zh-TW",
         1,
         true
+      );
+    });
+  });
+
+  it("exports a question PDF without an answer area when the option is cleared", async () => {
+    render(
+      <ContestExportDialog
+        open
+        onClose={vi.fn()}
+        contest={buildContest({ contestType: "paper_exam", problems: [] })}
+        contestId="contest-1"
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("題目卷 — 僅包含題目與選項"));
+    fireEvent.click(screen.getByLabelText("download.includeAnswerArea"));
+    fireEvent.click(screen.getByRole("button", { name: "匯出" }));
+
+    await waitFor(() => {
+      expect(downloadExamPaperFileMock).toHaveBeenCalledWith(
+        "contest-1",
+        "question",
+        "zh-TW",
+        1,
+        false
       );
     });
   });

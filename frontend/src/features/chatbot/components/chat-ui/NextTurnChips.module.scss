@@ -1,8 +1,9 @@
+@use "@carbon/layout";
 .wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-05;
   max-width: min(90%, 720px);
 }
 

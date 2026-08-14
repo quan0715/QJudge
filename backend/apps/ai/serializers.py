@@ -1,212 +1,185 @@
-"""AI Chat serializers."""
+"""Compatibility request validation and AI Service response mapping."""
+
+from __future__ import annotations
+
+from typing import Any
 
 from rest_framework import serializers
 
-from .models import AIArtifact, AIChatRun, AIMessage, AISession
 
-
-class AIMessageSerializer(serializers.ModelSerializer):
-    """Serializer for AI messages."""
-
-    class Meta:
-        model = AIMessage
-        fields = [
-            "id",
-            "role",
-            "content",
-            "message_type",
-            "metadata",
-            "created_at",
-        ]
-        read_only_fields = ["id", "created_at"]
-
-
-class AISessionSerializer(serializers.ModelSerializer):
-    """Serializer for AI sessions."""
-
-    messages = AIMessageSerializer(many=True, read_only=True)
-    message_count = serializers.SerializerMethodField()
-    title = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AISession
-        fields = [
-            "session_id",
-            "user",
-            "context",
-            "created_at",
-            "updated_at",
-            "messages",
-            "message_count",
-            "title",
-        ]
-        read_only_fields = ["session_id", "user", "created_at", "updated_at", "messages"]
-
-    def get_message_count(self, obj):
-        return obj.messages.count()
-
-    def get_title(self, obj):
-        """Generate a title from context or first user message."""
-        if obj.context and obj.context.get("title"):
-            return obj.context["title"]
-        first_user_msg = obj.messages.filter(role="user").first()
-        if first_user_msg:
-            content = first_user_msg.content
-            return content[:30] + "..." if len(content) > 30 else content
-        return f"對話 {obj.session_id[:8]}..."
-
-
-class AISessionListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for session list."""
-
-    message_count = serializers.SerializerMethodField()
-    title = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AISession
-        fields = [
-            "session_id",
-            "user",
-            "context",
-            "created_at",
-            "updated_at",
-            "message_count",
-            "title",
-        ]
-
-    def get_message_count(self, obj):
-        return obj.messages.count()
-
-    def get_title(self, obj):
-        """Generate a title from context or first user message."""
-        if obj.context and obj.context.get("title"):
-            return obj.context["title"]
-        first_user_msg = obj.messages.filter(role="user").first()
-        if first_user_msg:
-            content = first_user_msg.content
-            return content[:30] + "..." if len(content) > 30 else content
-        return f"對話 {obj.session_id[:8]}..."
+class CreateSessionSerializer(serializers.Serializer):
+    context = serializers.JSONField(required=False, default=dict)
 
 
 class RenameSessionSerializer(serializers.Serializer):
-    """Serializer for renaming a session."""
-
     title = serializers.CharField(max_length=100)
 
 
-class StartRunSerializer(serializers.Serializer):
-    """Serializer for creating a durable AI chat run."""
+class UpdateSessionSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=100, required=False)
+    context = serializers.JSONField(required=False)
+    context_mode = serializers.ChoiceField(
+        choices=["merge", "replace"], required=False, default="merge"
+    )
 
-    content = serializers.CharField(max_length=10000)
-    model_id = serializers.ChoiceField(
-        choices=[
-            "openai-nano",
-            "openai-mini",
-            "openai-mini-medium",
-            "deepseek-v4",
-            "deepseek-v4-flash",
-            "deepseek-v4-pro",
-            "deepseek-v4-thinking",
-        ],
+    def validate(self, attrs):
+        if "title" not in attrs and "context" not in attrs:
+            raise serializers.ValidationError("title or context is required")
+        if "context" in attrs and not isinstance(attrs["context"], dict):
+            raise serializers.ValidationError({"context": "Must be an object."})
+        return attrs
+
+
+class StartRunSerializer(serializers.Serializer):
+    content = serializers.CharField(max_length=100_000)
+    # The independent AI service owns the live model registry and performs
+    # authoritative validation. Keeping a second enum here caused the BFF,
+    # model picker, and runtime to drift apart.
+    model_id = serializers.CharField(
+        max_length=50,
         required=False,
         default="openai-nano",
     )
 
 
 class RunApprovalSerializer(serializers.Serializer):
-    """Serializer for resuming an approval-gated run."""
-
     decision = serializers.ChoiceField(choices=["approve", "reject"])
 
 
 class RunAnswerSerializer(serializers.Serializer):
-    """Serializer for answering an agent's question."""
-
-    answer = serializers.CharField(max_length=10000)
-
-
-class AIChatRunSerializer(serializers.ModelSerializer):
-    """Serializer for durable AI chat runs."""
-
-    session_id = serializers.CharField(source="session.session_id", read_only=True)
-    user_message_id = serializers.IntegerField(read_only=True)
-    assistant_message_id = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = AIChatRun
-        fields = [
-            "id",
-            "session_id",
-            "status",
-            "kind",
-            "model_id",
-            "thread_id",
-            "external_run_id",
-            "celery_task_id",
-            "error",
-            "approval_payload",
-            "question_payload",
-            "cancel_requested",
-            "last_event_seq",
-            "user_message_id",
-            "assistant_message_id",
-            "started_at",
-            "completed_at",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = fields
+    answer = serializers.CharField(max_length=100_000)
 
 
 class ModelInfoSerializer(serializers.Serializer):
-    """Serializer for model info."""
-
     model_id = serializers.CharField()
     display_name = serializers.CharField()
     description = serializers.CharField()
     is_default = serializers.BooleanField()
 
 
-class AIArtifactSerializer(serializers.ModelSerializer):
-    """Metadata view of an artifact (no content)."""
-
-    session_id = serializers.CharField(source="session.session_id", read_only=True)
-    run_id = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AIArtifact
-        fields = [
-            "id",
-            "session_id",
-            "run_id",
-            "step",
-            "filename",
-            "object_key",
-            "content_type",
-            "size_bytes",
-            "checksum",
-            "metadata",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = fields
-
-    def get_run_id(self, obj) -> str | None:
-        return str(obj.run_id) if obj.run_id else None
-
-
-class AIArtifactWriteSerializer(serializers.Serializer):
-    """Accepts text content + metadata for internal artifact writes."""
-
-    session_id = serializers.CharField(max_length=36)
-    run_id = serializers.UUIDField(required=False, allow_null=True)
-    step = serializers.RegexField(regex=r"^[A-Za-z0-9_\-]{1,64}$")
-    filename = serializers.RegexField(regex=r"^[A-Za-z0-9._\-]{1,255}$")
-    content = serializers.CharField(allow_blank=True, trim_whitespace=False)
-    content_type = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        max_length=100,
-        default="text/plain; charset=utf-8",
+class ArtifactUploadSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField()
+    step = serializers.RegexField(
+        regex=r"^[A-Za-z0-9_\-]{1,64}$", required=False, default="user_upload"
     )
-    metadata = serializers.JSONField(required=False, default=dict)
+    file = serializers.FileField()
+
+
+def message_to_legacy(data: dict[str, Any]) -> dict[str, Any]:
+    metadata = dict(data.get("metadata") or {})
+    if run_id := data.get("run_id"):
+        metadata.setdefault("run_id", str(run_id))
+    return {
+        "id": data.get("ordinal"),
+        "role": data.get("role"),
+        "content": data.get("content", ""),
+        "message_type": "text",
+        "metadata": metadata,
+        "created_at": data.get("created_at"),
+    }
+
+
+def session_to_legacy(
+    data: dict[str, Any],
+    *,
+    user_id: object,
+    include_messages: bool,
+) -> dict[str, Any]:
+    messages = [
+        message_to_legacy(message)
+        for message in data.get("messages", [])
+        if isinstance(message, dict)
+    ]
+    result = {
+        "session_id": str(data["session_id"]),
+        "user": user_id,
+        "title": data.get("title") or "新對話",
+        "context": data.get("context") or {},
+        "created_at": data.get("created_at"),
+        "updated_at": data.get("updated_at"),
+        "message_count": int(data["message_count"]),
+    }
+    if include_messages:
+        result["messages"] = messages
+    return result
+
+
+def session_list_to_legacy(data: dict[str, Any], *, user_id: object) -> dict[str, Any]:
+    return {
+        "count": int(data.get("count", 0)),
+        "next": data.get("next"),
+        "previous": data.get("previous"),
+        "results": [
+            session_to_legacy(item, user_id=user_id, include_messages=False)
+            for item in data.get("results", [])
+            if isinstance(item, dict)
+        ],
+    }
+
+
+def run_to_legacy(data: dict[str, Any]) -> dict[str, Any]:
+    pause_payload = data.get("pause_payload") or {}
+    status_value = data.get("status")
+    return {
+        "id": str(data["run_id"]),
+        "session_id": str(data["session_id"]),
+        "status": status_value,
+        "kind": data.get("kind"),
+        "model_id": data.get("model_id"),
+        "last_event_seq": int(data.get("last_sequence", 0)),
+        "approval_payload": pause_payload
+        if status_value == "awaiting_approval"
+        else {},
+        "question_payload": (
+            pause_payload if status_value == "awaiting_user_answer" else {}
+        ),
+        "cancel_requested": bool(data.get("cancel_requested", False)),
+        "error": data.get("error_message"),
+        "error_code": data.get("error_code"),
+        "input_tokens": int(data.get("input_tokens", 0)),
+        "output_tokens": int(data.get("output_tokens", 0)),
+    }
+
+
+def run_list_to_legacy(data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "count": int(data.get("count", 0)),
+        "next": data.get("next"),
+        "previous": data.get("previous"),
+        "results": [
+            run_to_legacy(item)
+            for item in data.get("results", [])
+            if isinstance(item, dict)
+        ],
+    }
+
+
+def artifact_to_legacy(data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": str(data["artifact_id"]),
+        "session_id": str(data["session_id"]),
+        "run_id": (
+            str(data["produced_by_run_id"]) if data.get("produced_by_run_id") else None
+        ),
+        "step": data.get("step"),
+        "filename": data.get("filename"),
+        "content_type": data.get("content_type"),
+        "size_bytes": int(data.get("size_bytes", 0)),
+        "checksum": data.get("checksum"),
+        "metadata": data.get("metadata") or {},
+        "created_at": data.get("created_at"),
+        "updated_at": data.get("updated_at"),
+    }
+
+
+def artifact_list_to_legacy(data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "count": int(data.get("count", 0)),
+        "next": data.get("next"),
+        "previous": data.get("previous"),
+        "results": [
+            artifact_to_legacy(item)
+            for item in data.get("results", [])
+            if isinstance(item, dict)
+        ],
+    }

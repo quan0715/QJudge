@@ -36,7 +36,6 @@ class ContestExamViewsSmokeTests(APITestCase):
             start_time=timezone.now() - timedelta(minutes=5),
             end_time=timezone.now() + timedelta(hours=1),
             owner=self.owner,
-            visibility="public",
             status="published",
             contest_type="paper_exam",
             cheat_detection_enabled=True,
@@ -66,19 +65,3 @@ class ContestExamViewsSmokeTests(APITestCase):
         )
         self.assertEqual(repeat_response.status_code, status.HTTP_200_OK)
         self.assertEqual(repeat_response.data["exam_status"], ExamStatus.SUBMITTED)
-
-    def test_exam_screenshot_evidence_route_resolves_and_enforces_permissions(self):
-        self.client.force_authenticate(user=self.student)
-        self.client.post(
-            reverse("contests:contest-exam-end-exam", args=[self.contest.id]),
-            {"upload_session_id": "session-smoke-2"},
-            format="json",
-        )
-
-        self.client.force_authenticate(user=self.teacher)
-
-        screenshots_response = self.client.get(
-            reverse("contests:contest-exam-screenshots", args=[self.contest.id]),
-            {"user_id": self.student.id, "upload_session_id": "session-smoke-2"},
-        )
-        self.assertEqual(screenshots_response.status_code, status.HTTP_200_OK)

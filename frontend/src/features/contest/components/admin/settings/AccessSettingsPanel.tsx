@@ -5,14 +5,14 @@ import {
   Button,
 } from "@carbon/react";
 import type { ContestStatus } from "@/core/entities/contest.entity";
+import { ActionRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import {
-  TITLE_STYLE,
   DESC_STYLE,
   Section,
-  ActionRow,
-} from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import { settingsPanelStyles as s } from "@/shared/layout/SettingsPanel";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+  TITLE_STYLE,
+  settingsPanelStyles as s,
+} from "@/shared/layout/SettingsPanel";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 const STATUS_LABELS: Record<ContestStatus, string> = {
   draft: "Draft",

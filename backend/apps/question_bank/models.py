@@ -13,24 +13,11 @@ class QuestionBank(models.Model):
         CODING = "coding", "Coding"
         EXAM = "exam", "Exam"
 
-    class Visibility(models.TextChoices):
-        PRIVATE = "private", "Private"
-        PUBLIC = "public", "Public"
-
-    class ReviewStatus(models.TextChoices):
-        DRAFT = "draft", "Draft"
-        PENDING = "pending", "Pending Review"
-        APPROVED = "approved", "Approved"
-        REJECTED = "rejected", "Rejected"
-
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="question_banks",
-        null=True,
-        blank=True,
-        help_text="Null means platform-managed official bank.",
     )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
@@ -42,29 +29,6 @@ class QuestionBank(models.Model):
         default=Category.CODING,
         db_index=True,
     )
-    visibility = models.CharField(
-        max_length=20,
-        choices=Visibility.choices,
-        default=Visibility.PRIVATE,
-        db_index=True,
-    )
-    verified = models.BooleanField(default=False, db_index=True)
-    review_status = models.CharField(
-        max_length=20,
-        choices=ReviewStatus.choices,
-        default=ReviewStatus.DRAFT,
-        db_index=True,
-    )
-    review_note = models.TextField(blank=True, default="")
-    submitted_at = models.DateTimeField(null=True, blank=True)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="reviewed_question_banks",
-    )
     is_archived = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -74,13 +38,10 @@ class QuestionBank(models.Model):
         ordering = ["-updated_at", "id"]
         indexes = [
             models.Index(fields=["owner", "category"]),
-            models.Index(fields=["visibility", "verified"]),
-            models.Index(fields=["review_status", "visibility", "verified"]),
         ]
 
     def __str__(self):
-        owner = self.owner.username if self.owner else "platform"
-        return f"{self.name} ({owner})"
+        return f"{self.name} ({self.owner.username})"
 
 
 class QuestionAsset(models.Model):
@@ -92,19 +53,6 @@ class QuestionAsset(models.Model):
         SHORT_ANSWER = "short_answer", "Short Answer"
         ESSAY = "essay", "Essay"
         READING_SET = "reading_set", "Reading Set"
-
-    class Status(models.TextChoices):
-        DRAFT = "draft", "Draft"
-        ACTIVE = "active", "Active"
-        ARCHIVED = "archived", "Archived"
-
-    class Visibility(models.TextChoices):
-        PRIVATE = "private", "Private"
-        PUBLIC = "public", "Public"
-
-    class VersionState(models.TextChoices):
-        DRAFT = "draft", "Draft"
-        PUBLISHED = "published", "Published"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(
@@ -119,24 +67,6 @@ class QuestionAsset(models.Model):
     )
     title = models.CharField(max_length=255, blank=True, default="")
     prompt = models.TextField(blank=True, default="")
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.ACTIVE,
-        db_index=True,
-    )
-    visibility = models.CharField(
-        max_length=20,
-        choices=Visibility.choices,
-        default=Visibility.PRIVATE,
-        db_index=True,
-    )
-    version_state = models.CharField(
-        max_length=20,
-        choices=VersionState.choices,
-        default=VersionState.PUBLISHED,
-        db_index=True,
-    )
     payload = models.JSONField(default=dict, blank=True)
     latest_version = models.ForeignKey(
         "QuestionVersion",
@@ -153,7 +83,6 @@ class QuestionAsset(models.Model):
         ordering = ["-updated_at", "id"]
         indexes = [
             models.Index(fields=["owner", "asset_type"]),
-            models.Index(fields=["status", "visibility"]),
         ]
 
     def __str__(self):
@@ -313,28 +242,3 @@ class ContestQuestionBinding(models.Model):
 
     def __str__(self):
         return f"{self.contest_id}:{self.question_asset_id}"
-class QuestionBankSubscription(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="bank_subscriptions",
-    )
-    bank = models.ForeignKey(
-        QuestionBank,
-        on_delete=models.CASCADE,
-        related_name="subscriptions",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "question_bank_subscriptions"
-        constraints = [
-            UniqueConstraint(
-                fields=["user", "bank"],
-                name="unique_subscription_per_user_bank",
-            ),
-        ]
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.user_id}:{self.bank_id}"

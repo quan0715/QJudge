@@ -8,7 +8,10 @@ import {
   WarningAlt,
 } from "@carbon/icons-react";
 
-import { requestFullscreen, isFullscreen } from "@/core/usecases/exam";
+import {
+  isFullscreen,
+  requestFullscreen,
+} from "@/infrastructure/browser/fullscreen";
 import { DisplayCheckService } from "@/features/contest/detectors/displayCheckService";
 import {
   clearPrecheckScreenShareHandoff,

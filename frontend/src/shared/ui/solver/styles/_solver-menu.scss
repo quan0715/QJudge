@@ -66,15 +66,10 @@
   --solver-menu-indicator-width: #{layout.$spacing-02};
   --solver-menu-header-height: 0; // No header - items start from top
 
-  // ContainedList overrides - remove default padding
-  .cds--contained-list {
-    padding: 0;
-  }
+}
 
-  // Override ContainedListItem internal padding
-  .cds--contained-list-item__content {
-    padding: 0;
-  }
+.solver-menu__list {
+  padding: 0;
 }
 
 // Selection Indicator
@@ -94,14 +89,6 @@
   height: var(--solver-menu-row-height);
   border-left: var(--solver-menu-indicator-width) solid transparent;
   position: relative;
-
-  // Ensure Carbon's internal wrapper fills the height
-  .cds--contained-list-item__content {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 
   &[data-active="true"] {
     background-color: var(--cds-layer-02);

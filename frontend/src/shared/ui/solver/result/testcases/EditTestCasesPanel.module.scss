@@ -1,0 +1,25 @@
+.panel {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 10rem;
+  min-width: 10rem;
+  border-right: 1px solid var(--cds-border-subtle);
+  overflow-y: auto;
+}
+
+.detail {
+  min-width: 0;
+  flex: 1;
+  overflow: auto;
+}

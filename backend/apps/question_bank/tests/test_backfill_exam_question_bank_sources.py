@@ -16,7 +16,6 @@ def _create_exam_membership(*, bank: QuestionBank, teacher: User, exam_question:
         asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
         title=exam_question.prompt,
         prompt=exam_question.prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": exam_question.question_type,
             "options": exam_question.options,
@@ -49,7 +48,6 @@ def test_backfill_exam_question_bank_sources_updates_canonical_membership_linked
         owner=teacher,
         name="Exam Bank Backfill",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     contest = Contest.objects.create(
         name="Backfill Exam Contest",
@@ -92,7 +90,6 @@ def test_backfill_exam_question_bank_sources_skips_when_duplicate_memberships_ex
         owner=teacher,
         name="Exam Bank First",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     first_bank.is_archived = True
     first_bank.save(update_fields=["is_archived"])
@@ -100,7 +97,6 @@ def test_backfill_exam_question_bank_sources_skips_when_duplicate_memberships_ex
         owner=teacher,
         name="Exam Bank Second",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     contest = Contest.objects.create(
         name="Backfill Exam Contest Duplicate",

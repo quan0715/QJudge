@@ -68,7 +68,7 @@ import { normalizeMarkdownText } from "@/shared/utils/markdownText";
 
 import "katex/dist/katex.min.css";
 import "highlight.js/styles/github-dark.css";
-import "@/styles/markdown.css";
+import "@/styles/markdown.scss";
 
 // Language display names
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -266,7 +266,7 @@ const CodeBlock: React.FC<{
       {/* Header with language label and copy button */}
       <div className="code-block-header">
         {displayLanguage && (
-          <Tag type="gray" size="sm">
+          <Tag type="gray" size="sm" className="code-language-tag">
             {displayLanguage}
           </Tag>
         )}

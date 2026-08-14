@@ -25,7 +25,6 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     startTime: "",
     endTime: "",
     status: "draft",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",

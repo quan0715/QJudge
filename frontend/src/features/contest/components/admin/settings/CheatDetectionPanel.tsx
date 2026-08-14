@@ -1,10 +1,10 @@
 import { Toggle } from "@carbon/react";
 import {
-  Section,
   ActionRow,
   FieldRow,
 } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import { Section } from "@/shared/layout/SettingsPanel";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import {
   getAccessPolicyView,
   getEvidencePolicyView,

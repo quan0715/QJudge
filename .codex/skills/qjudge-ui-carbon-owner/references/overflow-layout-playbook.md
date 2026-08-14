@@ -10,6 +10,7 @@
 .layout {
   position: fixed;
   inset: 0;
+  min-height: 100dvh;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
@@ -127,6 +128,7 @@ useEffect(() => {
 4. 用 `margin/padding` 模擬 header 高度，卻沒鎖定內容區邊界
 5. 在 `.cds--*` 內部 class 硬改 overflow，造成 Carbon 行為不可預期
 6. **`position: fixed; inset: 0` 的 shell 沒有鎖定 body scroll** → Carbon Toggle 的 `focus()` 呼叫觸發瀏覽器 `scrollIntoView()`，移動 `window.scrollY` 並造成版面位移
+7. Mobile shell 只使用 `100vh`，瀏覽器 chrome、safe area 或虛擬鍵盤改變可視高度後造成 footer 跳動
 
 ## DevTools 快速定位
 
@@ -146,3 +148,4 @@ useEffect(() => {
 - 僅保留預期的一條垂直捲軸。
 - 內容切換時，捲動行為穩定不跳動。
 - Light/Dark 下沒有層次錯位或裁切。
+- `390x844`、`393x852`、`1366x768` 與 200% zoom 下都能抵達最後一個 focusable element。

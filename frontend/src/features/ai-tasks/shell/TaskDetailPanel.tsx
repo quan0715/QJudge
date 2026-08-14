@@ -4,7 +4,7 @@ import { ModelSelect } from "@/shared/ai/ModelSelect";
 import { TodoList } from "@/shared/ai/TodoList";
 import { InitPromptEditor } from "./InitPromptEditor";
 import { ProgressCard, SecondaryProgressBar } from "./ProgressCard";
-import { ArtifactFileIcon } from "./artifactIcon";
+import { ArtifactFileIcon } from "./ArtifactFileIcon";
 import type {
   ArtifactRecord,
   ModelInfo,
@@ -107,7 +107,10 @@ export function TaskDetailPanel(props: TaskDetailPanelProps) {
           <span className={styles.sectionLabel}>{t("aiTaskShell.modelLabel", "批改模型")}</span>
         </div>
         <ModelSelect
-          models={models}
+          models={models.map((model) => ({
+            id: model.model_id,
+            label: model.display_name,
+          }))}
           selectedModelId={selectedModelId}
           onChange={onModelChange}
           disabled={running}

@@ -2,7 +2,7 @@ import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
-} from "@/core/usecases/exam";
+} from "@/infrastructure/browser/fullscreen";
 
 const DEFAULT_COOLDOWN_MS = 600;
 

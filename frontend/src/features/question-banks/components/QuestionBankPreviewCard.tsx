@@ -1,6 +1,6 @@
 import React from "react";
 import { ClickableTile, Tag } from "@carbon/react";
-import { CheckmarkFilled, Download, EventSchedule } from "@carbon/icons-react";
+import { Download, EventSchedule } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { BankQuestion, QuestionBank } from "@/core/entities/question-bank.entity";
 import { AcrBadge } from "@/shared/ui/tag";
@@ -11,7 +11,7 @@ import {
   formatDownloadCount,
   getQuestionDisplayTitle,
   resolveExamQuestionType,
-} from "@/features/question-banks/screens/questionBankProblemManagement.utils";
+} from "@/features/question-banks/components/questionBankProblemManagement.utils";
 import styles from "./QuestionBankPreviewCard.module.scss";
 
 const DIFFICULTY_LABEL_KEY = {
@@ -87,7 +87,6 @@ export const QuestionBankPreviewCard: React.FC<QuestionBankPreviewCardProps> = (
             </span>
             <span className={styles.typeLabel}>{questionTypeLabel}</span>
           </div>
-          {meta.isVerified ? <CheckmarkFilled size={16} className={styles.verifiedIcon} /> : null}
         </div>
 
         <h4 className={styles.title} title={displayTitle}>

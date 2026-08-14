@@ -17,12 +17,10 @@ import {
   useAiQuestionGrading,
 } from "./grading/useAiQuestionGrading";
 import { useTaskSession } from "@/features/ai-tasks/hooks/useTaskSession";
-import { useChatSessionContext } from "@/features/chatbot/contexts/ChatSessionContext";
-import { useChatbotContext } from "@/features/chatbot/contexts/ChatbotProvider";
-import { useAiSessionParam } from "@/features/chatbot/lib/aiSessionUrl";
+import { useCopilotModels, useCopilotRun, useCopilotSessions } from "@copilot";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
-import { pickLatestTodos } from "@/shared/ai/TodoList";
+import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import { AITaskShell } from "@/features/ai-tasks/shell/AITaskShell";
 import type { TaskShellSessionOption, TaskStatus } from "@/features/ai-tasks/shell/types";
@@ -37,10 +35,17 @@ import {
   RegradeChoiceModal,
   RetryGradingModal,
 } from "./grading/components/GradingModals";
+import { selectEffectiveGradingRun } from "./copilotGradingSelectors";
 import styles from "./ContestAiGradingScreen.module.scss";
 
 const EXCLUDED_MODEL_IDS = new Set(["openai-nano"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
+const ACTIVE_GRADING_RUN_STATUSES = new Set([
+  "queued",
+  "running",
+  "awaiting-approval",
+  "awaiting-answer",
+]);
 
 function toSingleLineLabel(value: string | undefined): string {
   return (value ?? "")
@@ -81,16 +86,21 @@ const ContestAiGradingScreen: React.FC = () => {
     refreshSuggestions,
     clear,
   } = useAiQuestionGrading();
-  const { sessions, isLoadingSessions } = useChatSessionContext();
-  const { setAiSessionId } = useAiSessionParam();
   const {
-    availableModels,
-    currentSession,
-    activeRuns,
-    createSession,
-    refreshSessions,
-    setSelectedModelId,
-  } = useChatbotContext();
+    sessions,
+    listStatus: sessionListStatus,
+    activeSession,
+    create: createSession,
+    select: selectSession,
+    refresh: refreshSessions,
+  } = useCopilotSessions();
+  const { models, select: selectModel } = useCopilotModels();
+  const { state: runState } = useCopilotRun();
+  const isLoadingSessions = sessionListStatus === "loading";
+  const currentSession =
+    activeSession.status === "ready"
+      ? activeSession.data
+      : null;
   const artifactPanel = useArtifactPanel();
   const { right } = useWorkspace();
 
@@ -138,8 +148,16 @@ const ContestAiGradingScreen: React.FC = () => {
 
   // Filter down to models the grading task supports.
   const gradingModels = useMemo(
-    () => availableModels.filter((m) => !EXCLUDED_MODEL_IDS.has(m.model_id)),
-    [availableModels],
+    () =>
+      models
+        .filter((model) => !EXCLUDED_MODEL_IDS.has(model.id))
+        .map((model) => ({
+          model_id: model.id,
+          display_name: model.displayName,
+          description: model.description ?? "",
+          is_default: model.isDefault ?? false,
+        })),
+    [models],
   );
 
   // Ensure model state defaults to the first supported grading model once available.
@@ -207,7 +225,14 @@ const ContestAiGradingScreen: React.FC = () => {
     },
     [contest?.id, restore, rows, selectedQuestion],
   );
-  const handleEmptySession = useCallback(async () => createSession(), [createSession]);
+  const handleEmptySession = useCallback(
+    async () => createSession(),
+    [createSession],
+  );
+  const taskSessions = useMemo(
+    () => sessions.map((session) => ({ id: session.id, context: session.metadata })),
+    [sessions],
+  );
   const {
     pendingBindSessionId,
     setPendingBindSessionId,
@@ -215,7 +240,7 @@ const ContestAiGradingScreen: React.FC = () => {
   } = useTaskSession({
     taskType: AI_GRADING_TASK_TYPE,
     taskContext,
-    sessions,
+    sessions: taskSessions,
     isLoadingSessions,
     boundSessionId: sessionId ?? null,
     isBoundForCurrentContext:
@@ -224,7 +249,9 @@ const ContestAiGradingScreen: React.FC = () => {
     resolveKey,
     onMatch: handleMatchedSession,
     onEmpty: handleEmptySession,
-    onSessionResolved: setAiSessionId,
+    onSessionResolved: (id) => {
+      void selectSession(id);
+    },
   });
 
   useEffect(() => {
@@ -248,7 +275,7 @@ const ContestAiGradingScreen: React.FC = () => {
     setStartingAiGrading(true);
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
     const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · Q${selectedQuestion.questionIndex}`;
-    setSelectedModelId(modelId);
+    selectModel(modelId);
     try {
       const newSessionId = await start(contest.id, selectedQuestion.questionId, rows, {
         prompt: effectivePrompt,
@@ -259,9 +286,9 @@ const ContestAiGradingScreen: React.FC = () => {
         setPreparingSessionId(newSessionId);
         setPendingBindSessionId(newSessionId);
         right.open();
-        setAiSessionId(newSessionId);
-        // Grading hook calls startRun directly on the repository, bypassing useChatbot's
-        // activeRuns state. Refresh so the chat panel subscribes to the new run and streams.
+        await selectSession(newSessionId);
+        // Grading starts the run directly, then selects the session so the
+        // public runtime discovers and subscribes to that active run.
         void refreshSessions();
       }
     } finally {
@@ -273,30 +300,31 @@ const ContestAiGradingScreen: React.FC = () => {
     modelId,
     promptDraft,
     refreshSessions,
-    setAiSessionId,
+    selectSession,
     right,
     rows,
     selectedQuestion,
     setPendingBindSessionId,
-    setSelectedModelId,
+    selectModel,
     start,
     t,
   ]);
 
-  // Subscribe task detail to ChatbotProvider's active run state. This keeps
-  // model/running UI aligned with the right chat panel after a task session is
-  // injected from this screen.
+  // Only the globally active session owns a live subscription. Background
+  // grading sessions read validated list metadata instead.
   const taskActiveRun = useMemo(() => {
     if (!sessionId) return null;
-    return (
-      activeRuns.find(
-        (run) =>
-          run.sessionId === sessionId &&
-          ["queued", "running", "awaiting_approval"].includes(run.status),
-      ) ?? null
-    );
-  }, [activeRuns, sessionId]);
-  const sessionRunning = Boolean(taskActiveRun);
+    const activeRun = runState.status === "ready" ? null : runState.run;
+    return selectEffectiveGradingRun({
+      sessions,
+      sessionId,
+      activeSessionId: activeSession.id,
+      activeRun,
+    });
+  }, [activeSession.id, runState, sessionId, sessions]);
+  const sessionRunning = Boolean(
+    taskActiveRun && ACTIVE_GRADING_RUN_STATUSES.has(taskActiveRun.status),
+  );
   const effectiveModelId = taskActiveRun?.modelId ?? modelId;
 
   useEffect(() => {
@@ -445,11 +473,11 @@ const ContestAiGradingScreen: React.FC = () => {
         note: retryNote,
       });
       if (started) {
-        setSelectedModelId(modelId);
+        selectModel(modelId);
         closeRetryModal();
         setSelectedAnswerIds(new Set());
         right.open();
-        setAiSessionId(sessionId);
+        await selectSession(sessionId);
         void refreshSessions();
       }
     },
@@ -458,13 +486,13 @@ const ContestAiGradingScreen: React.FC = () => {
       contest?.id,
       modelId,
       refreshSessions,
-      setAiSessionId,
+      selectSession,
       retryAnswers,
       retryModalRows,
       retryNote,
       right,
       selectedQuestion,
-      setSelectedModelId,
+      selectModel,
       sessionId,
     ],
   );
@@ -587,13 +615,13 @@ const ContestAiGradingScreen: React.FC = () => {
     void bindSession(sid, contest.id, selectedQuestion.questionId, rows).then((bound) => {
       if (!bound) return;
       right.open();
-      setAiSessionId(sid);
+      void selectSession(sid);
     });
   }, [
     bindSession,
     contest?.id,
     pendingBindSessionId,
-    setAiSessionId,
+    selectSession,
     right,
     rows,
     selectedQuestion,
@@ -680,7 +708,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const todoItems = useMemo(() => {
     if (!sessionId) return undefined;
     if (currentSession?.id !== sessionId) return undefined;
-    return pickLatestTodos(currentSession?.messages ?? []);
+    return [...selectLatestTodoItems(currentSession.messages)];
   }, [currentSession?.id, currentSession?.messages, sessionId]);
 
   const artifactProgressSignature = useMemo(
@@ -952,7 +980,7 @@ const ContestAiGradingScreen: React.FC = () => {
         selectedModelId={effectiveModelId}
         onModelChange={(nextModelId) => {
           setModelId(nextModelId);
-          setSelectedModelId(nextModelId);
+          selectModel(nextModelId);
         }}
         selectBlock={{
           label: t("grading.selectQuestion", "選擇題目"),

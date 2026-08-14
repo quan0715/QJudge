@@ -265,12 +265,9 @@ def test_base_permissions_participant() -> None:
 
 def test_base_permissions_outsider_minimal() -> None:
     perms = BASE_ROLE_PERMISSIONS['outsider']
-    assert 'view_public_contest' in perms
-    assert 'submit' not in perms
-    assert 'create_clarification' not in perms
+    assert perms == set()
 
 
 def test_base_permissions_anonymous_minimal() -> None:
     perms = BASE_ROLE_PERMISSIONS['anonymous']
-    assert 'view_public_contest' in perms
-    assert 'submit' not in perms
+    assert perms == set()

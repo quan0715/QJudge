@@ -1,6 +1,4 @@
 export type BankCategory = "coding" | "exam";
-export type BankVisibility = "private" | "public";
-export type BankReviewStatus = "draft" | "pending" | "approved" | "rejected";
 
 export interface CodingQuestionExt {
   translations: Array<{
@@ -60,22 +58,10 @@ export interface QuestionBank {
   icon: string;
   coverUrl: string;
   category: BankCategory;
-  visibility: BankVisibility;
-  verified: boolean;
-  reviewStatus: BankReviewStatus;
-  reviewNote?: string;
-  submittedAt?: string;
-  reviewedAt?: string;
-  reviewedByUsername?: string;
   ownerUsername?: string;
   questionCount: number;
-  isSubscribed?: boolean;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export interface ExploreBankItem extends QuestionBank {
-  source: "platform";
 }
 
 export type QuestionInboxSourceType = "problem" | "exam_question";

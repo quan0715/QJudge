@@ -10,11 +10,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from uuid import UUID
 
-from django.db.models import Q
-
 from apps.contests.models import ExamQuestion
 
-from .bank_workflows import is_publicly_accessible_bank
 from .models import ContestQuestionBinding, QuestionAsset, QuestionBank, QuestionBankMembership
 
 QUESTION_TYPE_CODING = "coding"
@@ -91,7 +88,7 @@ def get_bank_for_read(*, bank_uuid, user) -> QuestionBank | None:
     bank = QuestionBank.objects.filter(uuid=bank_uuid, is_archived=False).first()
     if not bank:
         return None
-    if bank.owner_id != user.id and not is_publicly_accessible_bank(bank):
+    if bank.owner_id != user.id:
         return None
     return bank
 
@@ -223,7 +220,7 @@ def get_bank_questions_payload(*, bank: QuestionBank) -> list[BankQuestionReadRo
     return sorted(rows, key=lambda row: (row.order, row.id))
 
 
-def get_membership_queryset_for_user(*, user, allow_cloneable=False):
+def get_membership_queryset_for_user(*, user):
     base = QuestionBankMembership.objects.select_related(
         "bank",
         "bank__owner",
@@ -233,31 +230,11 @@ def get_membership_queryset_for_user(*, user, allow_cloneable=False):
         "added_by",
     ).filter(bank__is_archived=False)
 
-    if allow_cloneable:
-        return (
-            base.filter(
-                Q(bank__owner=user)
-                | Q(
-                    bank__visibility=QuestionBank.Visibility.PUBLIC,
-                    bank__verified=True,
-                )
-            )
-            .filter(
-                Q(bank__owner=user)
-                | Q(bank__owner__isnull=True)
-                | Q(bank__owner__is_staff=True)
-                | Q(bank__owner__role="admin")
-            )
-        )
-
     return base.filter(bank__owner=user)
 
 
-def resolve_bank_question_target_for_user(*, user, raw_id, allow_cloneable=False) -> ResolvedBankQuestionTarget | None:
-    membership = get_membership_queryset_for_user(
-        user=user,
-        allow_cloneable=allow_cloneable,
-    ).filter(id=raw_id).first()
+def resolve_bank_question_target_for_user(*, user, raw_id) -> ResolvedBankQuestionTarget | None:
+    membership = get_membership_queryset_for_user(user=user).filter(id=raw_id).first()
     if membership:
         return ResolvedBankQuestionTarget(
             bank=membership.bank,

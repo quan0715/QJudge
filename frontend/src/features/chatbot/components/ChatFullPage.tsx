@@ -1,7 +1,7 @@
 // frontend/src/features/chatbot/components/ChatFullPage.tsx
-import { ChatContainer } from "./chat-ui/ChatContainer";
+import { QJudgeChatPanel } from "./chat-ui/QJudgeChatPanel";
 import styles from "./ChatFullPage.module.scss";
 
 export default function ChatFullPage() {
-  return <ChatContainer mode="full" className={styles.fullPage} />;
+  return <QJudgeChatPanel mode="full" className={styles.fullPage} />;
 }

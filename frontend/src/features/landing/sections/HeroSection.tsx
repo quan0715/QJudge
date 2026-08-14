@@ -30,10 +30,10 @@ const HeroSection: FC<HeroSectionProps> = ({ content, onPrimary, onSecondary }) 
           <p>{content.subtitle}</p>
 
           <div className="landing-hero-section__actions">
-            <Button kind="primary" size="xl" renderIcon={ArrowRight} onClick={onPrimary}>
+            <Button className="landing-hero-section__action" kind="primary" size="xl" renderIcon={ArrowRight} onClick={onPrimary}>
               {content.primaryCta}
             </Button>
-            <Button kind="tertiary" size="xl" renderIcon={ArrowDownRight} onClick={onSecondary}>
+            <Button className="landing-hero-section__action" kind="tertiary" size="xl" renderIcon={ArrowDownRight} onClick={onSecondary}>
               {content.secondaryCta}
             </Button>
           </div>

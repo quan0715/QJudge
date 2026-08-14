@@ -13,6 +13,7 @@ import {
   getOAuthUrl,
   login,
 } from "@/infrastructure/api/repositories/auth.repository";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 import { useAuthOptions } from "@/features/auth/hooks";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
 import { AuthProviderButton } from "@/features/auth/components/AuthProviderButton";
@@ -47,9 +48,8 @@ const LoginPage = () => {
     try {
       const response = await login({ identifier, password });
       if (response.success) {
-        const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
-        localStorage.setItem("user", JSON.stringify(safeData.user));
-        window.location.href = getAuthedLandingPath(safeData.user);
+        notifyAuthSessionChanged();
+        window.location.href = getAuthedLandingPath(response.data.user);
       } else {
         setError(t("auth.login.failed"));
       }

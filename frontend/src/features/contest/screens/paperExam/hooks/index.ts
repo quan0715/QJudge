@@ -8,7 +8,7 @@ export { usePaperExamSaveOnLeave, type SaveStatus } from "./usePaperExamSaveOnLe
 export {
   getMarkedQuestionIds,
   saveMarkedQuestionIds,
-} from "./markedQuestionStorage";
+} from "../markedQuestionStorage";
 export {
   hasExamPrecheckPassed,
   markExamPrecheckPassed,

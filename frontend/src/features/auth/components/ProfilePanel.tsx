@@ -2,14 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { TextInput, Tag, Button, SkeletonText } from "@carbon/react";
 import { Laptop, Tablet } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useCustomer } from "recur-tw";
 import { ImageEditDialog } from "@/shared/ui/image";
 import { Section, ActionRow } from "@/shared/layout/SettingsPanel";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useUserPreferences } from "@/features/auth/hooks/useUserPreferences";
-import { useEntitlement } from "@/features/pricing/hooks/useEntitlement";
 import { useToast } from "@/shared/contexts";
-import { createPortalSession } from "@/infrastructure/api/repositories/subscription.repository";
 import {
   getAuthSessions,
   logoutOtherSessions,
@@ -60,15 +57,6 @@ const DEVICE_ICON = {
   tablet: Tablet,
   desktop: Laptop,
 } as const;
-
-function formatDate(dateStr: string | null | undefined, locale: string): string {
-  if (!dateStr) return "-";
-  return new Date(dateStr).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 function formatDateTime(dateStr: string, locale: string): string {
   return new Date(dateStr).toLocaleString(locale, {
@@ -211,34 +199,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
     catch { setAvatarState("error"); }
   };
 
-  // ── Subscription ──
-  const { tier, status, isPaid, isTrialing, isLoading: subLoading } = useEntitlement();
-  const { subscription } = useCustomer();
-  const [portalLoading, setPortalLoading] = useState(false);
-
-  const statusMap: Record<string, { text: string; type: "green" | "blue" | "red" | "gray" }> = {
-    active: { text: t("settings.subscription.status.active", "啟用中"), type: "green" },
-    trialing: { text: t("settings.subscription.status.trialing", "試用中"), type: "blue" },
-    past_due: { text: t("settings.subscription.status.past_due", "付款逾期"), type: "red" },
-    canceled: { text: t("settings.subscription.status.canceled", "已取消"), type: "gray" },
-    cancelled: { text: t("settings.subscription.status.canceled", "已取消"), type: "gray" },
-    expired: { text: t("settings.subscription.status.expired", "已到期"), type: "gray" },
-  };
-
-  const statusInfo = statusMap[status ?? "active"] ?? statusMap.active;
-  const canManage = isPaid && status !== "canceled" && status !== "cancelled" && status !== "expired";
-
-  const handlePortal = async () => {
-    setPortalLoading(true);
-    try {
-      const res = await createPortalSession();
-      window.location.href = res.data.url;
-    } catch {
-      showToast({ kind: "error", title: t("settings.subscription.openPortalFailed", "無法開啟訂閱管理頁面") });
-      setPortalLoading(false);
-    }
-  };
-
   // ── Devices ──
   const [records, setRecords] = useState<UserLoginRecord[]>([]);
   const [devLoading, setDevLoading] = useState(true);
@@ -333,45 +293,6 @@ export const ProfilePanel: React.FC<ProfilePanelProps> = ({ hideDevices = false 
           </ActionRow>
         </div>
 
-      </Section>
-
-      {/* ── Section: Subscription ── */}
-      <Section title={t("settings.tabs.subscription", "訂閱狀態")}>
-        {subLoading ? (
-          <SkeletonText paragraph lineCount={2} />
-        ) : (
-          <>
-            <div className="profile-panel__sub-row">
-              <span className="profile-panel__sub-tier">{t(`settings.subscription.tier.${tier}`, tier)}</span>
-              <Tag type={statusInfo.type} size="sm">{statusInfo.text}</Tag>
-            </div>
-            <p className="profile-panel__sub-desc">
-              {tier === "free" && t("settings.subscription.desc.free", "目前使用免費方案，可隨時升級取得更高額度")}
-              {tier === "pro" && t("settings.subscription.desc.pro", "有穩定考試需求的個人用戶")}
-              {tier === "team" && t("settings.subscription.desc.team", "學校、科系、培訓機構")}
-            </p>
-            {isTrialing && subscription?.currentPeriodEnd && (
-              <ActionRow label={t("settings.subscription.trialEndDate", "試用到期日")}>
-                <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
-              </ActionRow>
-            )}
-            {!isTrialing && subscription?.currentPeriodEnd && (
-              <ActionRow label={t("settings.subscription.periodEndDate", "目前週期結束")}>
-                <span>{formatDate(subscription.currentPeriodEnd, locale)}</span>
-              </ActionRow>
-            )}
-            {canManage && (
-              <ActionRow
-                label={t("settings.subscription.manage", "管理訂閱")}
-                description={t("settings.subscription.manageDesc", "變更付款方式、取消訂閱或查看發票")}
-              >
-                <Button kind="ghost" size="sm" onClick={handlePortal} disabled={portalLoading}>
-                  {portalLoading ? t("action.processing", "處理中...") : t("settings.subscription.manage", "管理訂閱")}
-                </Button>
-              </ActionRow>
-            )}
-          </>
-        )}
       </Section>
 
       {/* ── Section: Devices ── */}

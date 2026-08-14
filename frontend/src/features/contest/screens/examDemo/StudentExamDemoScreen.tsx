@@ -153,8 +153,8 @@ const StudentExamDemoScreen: FC = () => {
               {heading}
               <Tag size="sm" type="green">程式題</Tag>
             </span>
-            {item.data.score != null && (
-              <span className={styles.codingScore}>{formatScore(item.data.score)} 分</span>
+            {item.data.maxScore != null && (
+              <span className={styles.codingScore}>{formatScore(item.data.maxScore)} 分</span>
             )}
           </div>
 
@@ -181,7 +181,7 @@ const StudentExamDemoScreen: FC = () => {
   if (contestLoading || loadingQuestions) {
     return (
       <div className={styles.centered}>
-        <Loading withOverlay={false} small />
+        <Loading withOverlay={false} small description="載入考試資料中" />
         <span>載入考試資料中...</span>
       </div>
     );

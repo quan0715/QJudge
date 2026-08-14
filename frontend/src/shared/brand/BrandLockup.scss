@@ -1,7 +1,8 @@
+@use "@carbon/layout";
 .brand-lockup {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   min-width: 0;
   color: inherit;
 }

@@ -1,33 +1,4 @@
 {
-  "announcement": {
-    "columns": {
-      "actions": "操作",
-      "author": "作成者",
-      "createdAt": "作成日時",
-      "status": "状態",
-      "title": "タイトル"
-    },
-    "confirmDelete": "お知らせ「{{title}}」を削除してもよろしいですか？この操作は取り消せません。",
-    "create": "お知らせ作成",
-    "delete": "お知らせ削除",
-    "edit": "お知らせ編集",
-    "form": {
-      "content": "内容",
-      "contentPlaceholder": "お知らせの内容を入力",
-      "hidden": "非公開",
-      "publishLabel": "公開するか",
-      "published": "公開",
-      "title": "タイトル",
-      "titlePlaceholder": "お知らせのタイトルを入力"
-    },
-    "list": "システムお知らせ一覧",
-    "management": "お知らせ管理",
-    "search": "お知らせ検索",
-    "status": {
-      "hidden": "非公開",
-      "published": "公開中"
-    }
-  },
   "environment": {
     "cannotSync": "同期できません",
     "cloud": "クラウド",

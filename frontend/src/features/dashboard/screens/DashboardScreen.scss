@@ -8,13 +8,6 @@ $dashboard-padding-inline: layout.$spacing-10;
   padding-bottom: layout.$spacing-08;
 }
 
-// ── Hero action buttons ──
-.dashboard-hero__actions {
-  display: flex;
-  gap: layout.$spacing-03;
-  flex-wrap: wrap;
-}
-
 // ── Main content area ──
 .dashboard-classroom__main {
   min-width: 0;
@@ -37,7 +30,8 @@ $dashboard-padding-inline: layout.$spacing-10;
 .dashboard-classroom__section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: layout.$spacing-05;
 
   h4 {
     margin: 0;
@@ -63,7 +57,11 @@ $dashboard-padding-inline: layout.$spacing-10;
 .dashboard-classroom__grid {
   display: grid;
   gap: layout.$spacing-04;
-  grid-template-columns: repeat(auto-fill, minmax(layout.rem(260px), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, layout.rem(260px)), layout.rem(320px))
+  );
+  justify-content: start;
 }
 
 .dashboard-classroom__skeleton {
@@ -188,7 +186,11 @@ $dashboard-padding-inline: layout.$spacing-10;
 .dashboard-classroom__bank-grid {
   display: grid;
   gap: layout.$spacing-04;
-  grid-template-columns: repeat(auto-fill, minmax(layout.rem(260px), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, layout.rem(260px)), layout.rem(320px))
+  );
+  justify-content: start;
 }
 
 .dashboard-classroom__bank-empty {
@@ -289,15 +291,6 @@ $dashboard-padding-inline: layout.$spacing-10;
     align-items: flex-start;
   }
 
-  // Hero action buttons: full-width vertical stack
-  .dashboard-hero__actions {
-    flex-direction: column;
-
-    :global(.cds--btn) {
-      width: 100%;
-      max-width: none;
-    }
-  }
 }
 
 // Match QJudgeHeroWidget .inner padding at ≤1056px breakpoint

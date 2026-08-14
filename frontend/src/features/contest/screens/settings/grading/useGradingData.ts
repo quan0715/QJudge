@@ -18,7 +18,12 @@ import {
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
-import type { ContestParticipant, ExamQuestion, ExamQuestionScorePolicy } from "@/core/entities/contest.entity";
+import type {
+  ContestParticipant,
+  ExamQuestion,
+  ExamQuestionScorePolicy,
+  ExamQuestionType,
+} from "@/core/entities/contest.entity";
 import ContestAdminContext from "@/features/contest/contexts/ContestAdminContext";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { isSubjectiveType } from "./gradingTypes";
@@ -28,7 +33,6 @@ import type {
   GradingAnswerRow,
   QuestionProgress,
   GlobalStats,
-  QuestionType,
 } from "./gradingTypes";
 
 interface UseGradingDataOptions {
@@ -106,7 +110,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
           id: canonicalId,
           order: problem.order ?? idx + 1,
           title: problem.title || `P${idx + 1}`,
-          maxScore: Number(problem.maxScore ?? problem.score ?? 0),
+          maxScore: Number(problem.maxScore ?? 0),
           label: problem.label,
         });
       }
@@ -376,7 +380,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
       {
         questionId: string;
         questionIndex: number;
-        questionType: QuestionType;
+        questionType: ExamQuestionType;
         prompt: string;
         maxScore: number;
         effectiveMaxScore?: number;
@@ -412,7 +416,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
       }
     }
 
-    // Backfill orphan answer rows (defensive: stale/deleted question snapshots).
+    // Backfill orphan answer rows defensively if a question was deleted outside the editor contract.
     for (const a of answers) {
       if (map.has(a.questionId)) continue;
       map.set(a.questionId, {

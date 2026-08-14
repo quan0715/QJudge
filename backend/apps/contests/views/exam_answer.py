@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.utils import timezone
 from django.core.cache import cache
+from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -29,7 +30,6 @@ from ..serializers import (
 from ..services.exam_scoring import ExamScoringService
 from ..permissions import can_manage_contest
 from apps.core.api.envelope import envelope
-from ..services.question_edit_lock import maybe_lock_from_exam_answer
 from ..services.open_answer_document import validate_open_answer_document
 from .exam_validation_response import (
     build_device_conflict_response_for_view,
@@ -210,39 +210,38 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
 
         question_id = serializer.validated_data['question_id']
-        try:
-            question = ExamQuestion.objects.get(
-                id=question_id, contest=contest
-            )
-        except ExamQuestion.DoesNotExist:
-            return Response(
-                {'error': 'Question not found in this contest.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
         answer = serializer.validated_data['answer']
-        if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
-            document = answer.get('document')
-            validate_open_answer_document(document)
-            serialized = json.dumps(document, ensure_ascii=False)
-            if len(serialized.encode('utf-8')) > 32 * 1024:
+
+        with transaction.atomic():
+            contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            try:
+                question = ExamQuestion.objects.get(
+                    id=question_id, contest=contest
+                )
+            except ExamQuestion.DoesNotExist:
                 return Response(
-                    {'answer': ['open answer document exceeds 32 KB']},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {'error': 'Question not found in this contest.'},
+                    status=status.HTTP_404_NOT_FOUND
                 )
 
-        answer_obj, created = ExamAnswer.objects.update_or_create(
-            participant=participant,
-            question=question,
-            defaults={'answer': answer}
-        )
-        # 首次建立時記錄題目快照（後續更新答案不覆蓋快照）
-        if created:
-            answer_obj.question_snapshot = question.to_snapshot()
-        # Auto-grade objective questions
-        answer_obj.auto_grade()
-        answer_obj.save()
-        maybe_lock_from_exam_answer(exam_answer=answer_obj)
+            if question.answer_format == ExamQuestionAnswerFormat.OPEN_DOCUMENT:
+                document = answer.get('document')
+                validate_open_answer_document(document)
+                serialized = json.dumps(document, ensure_ascii=False)
+                if len(serialized.encode('utf-8')) > 32 * 1024:
+                    return Response(
+                        {'answer': ['open answer document exceeds 32 KB']},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            answer_obj, created = ExamAnswer.objects.update_or_create(
+                participant=participant,
+                question=question,
+                defaults={'answer': answer}
+            )
+            answer_obj.auto_grade()
+            answer_obj.save()
+
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
         return Response(

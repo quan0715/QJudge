@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .card {
   position: relative;
   background: var(--cds-layer-01);
@@ -37,8 +38,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
+  gap: layout.$spacing-03;
+  padding: 0.625rem layout.$spacing-05;
   min-height: 2.5rem;
 }
 
@@ -80,14 +81,14 @@
 .right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   flex-shrink: 0;
 }
 
 .badges {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
 }
 
 .eventType {
@@ -107,7 +108,7 @@
 
   &::before {
     content: "·";
-    margin-right: 0.25rem;
+    margin-right: layout.$spacing-02;
     color: var(--cds-text-placeholder);
   }
 }

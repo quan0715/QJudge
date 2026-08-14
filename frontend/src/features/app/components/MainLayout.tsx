@@ -18,14 +18,7 @@ const MainLayout = () => {
             </div>
           ) : (
             <Content
-              style={{
-                height: "100%",
-                minHeight: 0,
-                overflow: "auto",
-                marginTop: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}
+              className={styles.content}
             >
               <Outlet context={outletContext} />
             </Content>

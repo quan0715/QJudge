@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { I18nextProvider } from "react-i18next";
 
+import i18n from "@/i18n";
 import { HITLCard } from "../HITLCard";
 import { mockApprovalRequest } from "./chat-ui.mocks";
 
@@ -14,13 +16,15 @@ const meta: Meta<typeof HITLCard> = {
     },
   },
   args: {
-    onDecision: () => {},
+    onSubmit: () => {},
   },
   decorators: [
     (Story) => (
-      <div style={{ maxWidth: 700, padding: "1rem" }}>
-        <Story />
-      </div>
+      <I18nextProvider i18n={i18n}>
+        <div style={{ maxWidth: 700, padding: "1rem" }}>
+          <Story />
+        </div>
+      </I18nextProvider>
     ),
   ],
 };
@@ -38,7 +42,30 @@ export const NoArgs: Story = {
   name: "無參數",
   args: {
     request: {
-      actionRequests: [{ name: "qjudge_discover", args: {} }],
+      actions: [{ name: "qjudge_discover", arguments: {} }],
+      allowedDecisions: ["approve", "reject"],
+    },
+  },
+};
+
+export const NestedArguments: Story = {
+  name: "巢狀與列表參數",
+  args: {
+    request: {
+      actions: [
+        {
+          name: "qjudge_grading",
+          arguments: {
+            action: "batch_grade",
+            grades: [
+              { exam_answer_id: "164488", score: 2 },
+              { exam_answer_id: "164489", score: 3 },
+            ],
+            options: { notify_students: false },
+          },
+        },
+      ],
+      allowedDecisions: ["approve", "reject"],
     },
   },
 };

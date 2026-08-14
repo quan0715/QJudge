@@ -133,7 +133,6 @@ def test_publish_requires_schedule_window(
         name="Draft Without Schedule",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=owner)
 
@@ -157,7 +156,6 @@ def test_publish_with_valid_schedule_succeeds(
         name="Draft With Schedule",
         owner=owner,
         status="draft",
-        visibility="public",
     )
     api_client.force_authenticate(user=owner)
     start_time = timezone.now() + timedelta(hours=1)
@@ -191,7 +189,6 @@ def test_revert_to_draft_keeps_schedule_but_unpublishes_results(
         name="Published Contest",
         owner=owner,
         status="published",
-        visibility="public",
         start_time=start_time,
         end_time=end_time,
         results_published=True,

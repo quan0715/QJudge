@@ -1,10 +1,11 @@
+@use "@carbon/layout";
 .root {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: layout.$spacing-02;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 999px;
-  padding: 0.125rem;
+  padding: layout.$spacing-01;
   background: var(--cds-layer-01);
 }
 
@@ -24,20 +25,20 @@
   position: relative;
   z-index: 1;
   border-radius: 999px;
+  color: var(--cds-icon-secondary);
+  background: transparent;
 
-  &:global(.cds--btn--ghost) {
-    color: var(--cds-icon-secondary);
-    background: transparent;
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
   }
 }
 
 .iconBtnActive {
-  &:global(.cds--btn--ghost) {
-    color: var(--cds-interactive);
-    background: transparent;
-  }
+  color: var(--cds-interactive);
+  background: transparent;
 
-  &:global(.cds--btn--ghost:hover) {
+  &:hover {
     background: transparent;
   }
 }

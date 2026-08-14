@@ -1,7 +1,6 @@
 """
 Serializers for question bank API.
 """
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import QuestionBank
@@ -99,9 +98,7 @@ class QuestionBankItemReadSerializer(serializers.Serializer):
 class QuestionBankSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="uuid", read_only=True)
     owner_username = serializers.CharField(source="owner.username", read_only=True)
-    reviewed_by_username = serializers.CharField(source="reviewed_by.username", read_only=True)
     question_count = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = QuestionBank
@@ -112,17 +109,9 @@ class QuestionBankSerializer(serializers.ModelSerializer):
             "icon",
             "cover_url",
             "category",
-            "visibility",
-            "verified",
-            "review_status",
-            "review_note",
-            "submitted_at",
-            "reviewed_at",
-            "reviewed_by_username",
             "owner",
             "owner_username",
             "question_count",
-            "is_subscribed",
             "created_at",
             "updated_at",
         ]
@@ -130,14 +119,7 @@ class QuestionBankSerializer(serializers.ModelSerializer):
             "id",
             "owner",
             "owner_username",
-            "verified",
-            "review_status",
-            "review_note",
-            "submitted_at",
-            "reviewed_at",
-            "reviewed_by_username",
             "question_count",
-            "is_subscribed",
             "created_at",
             "updated_at",
         ]
@@ -147,67 +129,6 @@ class QuestionBankSerializer(serializers.ModelSerializer):
         if hasattr(obj, "question_count"):
             return obj.question_count
         return obj.asset_memberships.count()
-
-    @extend_schema_field(serializers.BooleanField())
-    def get_is_subscribed(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user or not request.user.is_authenticated:
-            return False
-        if hasattr(obj, "_is_subscribed"):
-            return obj._is_subscribed
-        from .models import QuestionBankSubscription
-        return QuestionBankSubscription.objects.filter(
-            user=request.user, bank=obj
-        ).exists()
-
-
-class ExploreBankItemSerializer(serializers.ModelSerializer):
-    id = serializers.UUIDField(source="uuid", read_only=True)
-    owner_username = serializers.CharField(source="owner.username", read_only=True)
-    reviewed_by_username = serializers.CharField(source="reviewed_by.username", read_only=True)
-    question_count = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()
-    source = serializers.CharField(default="platform", read_only=True)
-
-    class Meta:
-        model = QuestionBank
-        fields = [
-            "id",
-            "name",
-            "description",
-            "icon",
-            "cover_url",
-            "category",
-            "visibility",
-            "verified",
-            "review_status",
-            "reviewed_at",
-            "reviewed_by_username",
-            "owner_username",
-            "question_count",
-            "is_subscribed",
-            "source",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_question_count(self, obj):
-        if hasattr(obj, "question_count"):
-            return obj.question_count
-        return obj.asset_memberships.count()
-
-    @extend_schema_field(serializers.BooleanField())
-    def get_is_subscribed(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user or not request.user.is_authenticated:
-            return False
-        if hasattr(obj, "_is_subscribed"):
-            return obj._is_subscribed
-        from .models import QuestionBankSubscription
-        return QuestionBankSubscription.objects.filter(
-            user=request.user, bank=obj
-        ).exists()
-
 
 class QuestionCloneSerializer(serializers.Serializer):
     target_bank_id = serializers.UUIDField(required=False)

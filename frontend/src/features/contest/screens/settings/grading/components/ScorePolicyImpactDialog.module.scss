@@ -1,8 +1,9 @@
+@use "@carbon/layout";
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
-  margin-top: 1rem;
+  margin-top: layout.$spacing-05;
 }
 
 .column {
@@ -49,11 +50,11 @@
 .divider {
   border: none;
   border-top: 1px solid var(--cds-border-subtle-01);
-  margin: 1rem 0 0;
+  margin: layout.$spacing-05 0 0;
 }
 
 .backLink {
-  margin-top: 0.75rem;
+  margin-top: layout.$spacing-04;
   display: flex;
   align-items: center;
 }

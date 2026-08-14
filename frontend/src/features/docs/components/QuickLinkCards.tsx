@@ -2,11 +2,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ClickableTile, Tag } from "@carbon/react";
 import {
-  Education,
-  Trophy,
-  UserAdmin,
+  BareMetalServer,
   Settings,
-  Code,
+  UserMultiple,
+  Document,
   ArrowRight,
 } from "@carbon/icons-react";
 
@@ -19,34 +18,28 @@ interface QuickLink {
 
 const quickLinks: QuickLink[] = [
   {
-    id: "student",
-    icon: Education,
+    id: "deployment",
+    icon: BareMetalServer,
     tagType: "blue",
-    links: ["quick-start", "submission"],
+    links: ["deployment", "deployment-storage"],
   },
   {
-    id: "contestant",
-    icon: Trophy,
-    tagType: "green",
-    links: ["contests", "common-errors"],
-  },
-  {
-    id: "teacher",
-    icon: UserAdmin,
-    tagType: "purple",
-    links: ["teacher-overview"],
-  },
-  {
-    id: "admin",
+    id: "administration",
     icon: Settings,
-    tagType: "magenta",
-    links: ["admin-overview"],
+    tagType: "purple",
+    links: ["admin-account", "teacher-qualification"],
   },
   {
-    id: "developer",
-    icon: Code,
-    tagType: "cyan",
-    links: ["dev-setup", "contributing"],
+    id: "classroom",
+    icon: UserMultiple,
+    tagType: "green",
+    links: ["classroom-setup", "classroom-roster"],
+  },
+  {
+    id: "exam",
+    icon: Document,
+    tagType: "magenta",
+    links: ["exam-preparation", "exam-review"],
   },
 ];
 
@@ -94,16 +87,12 @@ const QuickLinkCards: React.FC = () => {
             </div>
 
             {/* Title */}
-            <h4
-              className="cds--type-productive-heading-02"
-              style={{ margin: 0 }}
-            >
+            <h4 style={{ margin: 0 }}>
               {t(`quickLinks.${link.id}.title`, link.id)}
             </h4>
 
             {/* Description */}
             <p
-              className="cds--type-body-compact-01"
               style={{
                 margin: 0,
                 color: "var(--cds-text-secondary)",

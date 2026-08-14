@@ -1,5 +1,4 @@
 import React, { useId, useRef, useState } from "react";
-import ReactDOM from "react-dom";
 import {
   Button,
   Modal,
@@ -9,10 +8,11 @@ import {
   TabPanels,
   Tabs,
   TextInput,
+  Tile,
 } from "@carbon/react";
 import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
+import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
-import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
 import type { PresetCoverImage } from "./presetCoverImages";
 import "./ImageEditDialog.scss";
 
@@ -40,6 +40,22 @@ interface ImageEditDialogProps {
   triggerDataTestId?: string;
   fileInputDataTestId?: string;
 }
+
+const normalizeRemoteImageUrl = (value: string): string | null => {
+  try {
+    const sanitizedValue = DOMPurify.sanitize(value, {
+      ALLOWED_TAGS: [],
+      ALLOWED_ATTR: [],
+    });
+    const parsed = new URL(sanitizedValue.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.href;
+  } catch {
+    return null;
+  }
+};
 
 export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   previewUrl,
@@ -70,6 +86,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasGallery = Boolean(galleryImages && galleryImages.length > 0);
+  const normalizedUrlInput = normalizeRemoteImageUrl(urlInput);
 
   const closeModal = () => {
     setOpen(false);
@@ -83,9 +100,8 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   };
 
   const handleApplyUrl = () => {
-    const nextUrl = urlInput.trim();
-    if (!nextUrl) return;
-    void Promise.resolve(onApplyUrl(nextUrl)).finally(closeModal);
+    if (!normalizedUrlInput) return;
+    void Promise.resolve(onApplyUrl(normalizedUrlInput)).finally(closeModal);
   };
 
   const handleGallerySelect = (image: PresetCoverImage) => {
@@ -100,15 +116,17 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
   const galleryPanel = (
     <div className="image-edit-gallery">
       {galleryImages?.map((image, galleryIndex) => (
-        <button
-          type="button"
-          key={image.url}
-          data-testid={`image-edit-gallery-${galleryIndex}`}
-          className="cds--tile cds--tile--clickable image-edit-gallery__item"
-          onClick={() => handleGallerySelect(image)}
-          disabled={disabled}
-        >
-          <img src={image.url} alt={image.label} loading="lazy" />
+        <Tile key={image.url} className="image-edit-gallery__item">
+          <button
+            type="button"
+            data-testid={`image-edit-gallery-${galleryIndex}`}
+            className="image-edit-gallery__select"
+            aria-label={image.label}
+            onClick={() => handleGallerySelect(image)}
+            disabled={disabled}
+          >
+            <img src={image.url} alt="" loading="lazy" />
+          </button>
           <span className="image-edit-gallery__attribution">
             by{" "}
             <a
@@ -120,7 +138,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
               {image.photographer}
             </a>
           </span>
-        </button>
+        </Tile>
       ))}
     </div>
   );
@@ -156,7 +174,7 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
           if (e.key === "Enter") handleApplyUrl();
         }}
       />
-      <Button type="button" kind="primary" size="md" disabled={!urlInput.trim() || disabled} onClick={handleApplyUrl}>
+      <Button type="button" kind="primary" size="md" disabled={!normalizedUrlInput || disabled} onClick={handleApplyUrl}>
         {applyLabel}
       </Button>
     </div>
@@ -197,44 +215,41 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         </div>
       </button>
 
-      {ReactDOM.createPortal(
-        <Modal
-          open={open}
-          data-testid="image-edit-dialog"
-          size={hasGallery ? "md" : "sm"}
-          modalHeading={modalHeading}
-          passiveModal
-          onRequestClose={closeModal}
-        >
-          <div className="image-edit-dialog__modal-body">
-            {hasGallery ? (
-              <Tabs>
-                <TabList aria-label="image source tabs">
-                  <Tab data-testid="image-edit-tab-gallery">{t("image.galleryTab", "圖庫")}</Tab>
-                  <Tab data-testid="image-edit-tab-upload">{t("image.uploadTab", "上傳")}</Tab>
-                  <Tab data-testid="image-edit-tab-link">{t("image.linkTab", "連結")}</Tab>
-                </TabList>
-                <TabPanels>
-                  <TabPanel>{galleryPanel}</TabPanel>
-                  <TabPanel>{uploadPanel}</TabPanel>
-                  <TabPanel>{linkPanel}</TabPanel>
-                </TabPanels>
-              </Tabs>
-            ) : (
-              <>
-                {uploadPanel}
-                {linkPanel}
-              </>
-            )}
-            {previewUrl && onRemove ? (
-              <Button type="button" kind="danger--ghost" size="md" renderIcon={TrashCan} disabled={disabled} onClick={handleRemove}>
-                {removeLabel}
-              </Button>
-            ) : null}
-          </div>
-        </Modal>,
-        getModalPortalRoot(),
-      )}
+      <Modal
+        open={open}
+        data-testid="image-edit-dialog"
+        size={hasGallery ? "md" : "sm"}
+        modalHeading={modalHeading}
+        passiveModal
+        onRequestClose={closeModal}
+      >
+        <div className="image-edit-dialog__modal-body">
+          {hasGallery ? (
+            <Tabs>
+              <TabList aria-label="image source tabs">
+                <Tab data-testid="image-edit-tab-gallery">{t("image.galleryTab", "圖庫")}</Tab>
+                <Tab data-testid="image-edit-tab-upload">{t("image.uploadTab", "上傳")}</Tab>
+                <Tab data-testid="image-edit-tab-link">{t("image.linkTab", "連結")}</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel>{galleryPanel}</TabPanel>
+                <TabPanel>{uploadPanel}</TabPanel>
+                <TabPanel>{linkPanel}</TabPanel>
+              </TabPanels>
+            </Tabs>
+          ) : (
+            <>
+              {uploadPanel}
+              {linkPanel}
+            </>
+          )}
+          {previewUrl && onRemove ? (
+            <Button type="button" kind="danger--ghost" size="md" renderIcon={TrashCan} disabled={disabled} onClick={handleRemove}>
+              {removeLabel}
+            </Button>
+          ) : null}
+        </div>
+      </Modal>
     </>
   );
 };

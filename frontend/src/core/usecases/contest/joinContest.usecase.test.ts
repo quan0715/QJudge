@@ -2,11 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { joinContestUseCase, validateJoinContest } from "./joinContest.usecase";
 
-vi.mock("@/infrastructure/api/repositories", () => ({
-  registerContest: vi.fn(),
-}));
-
-import { registerContest } from "@/infrastructure/api/repositories";
+const registerContest = vi.fn();
 
 describe("joinContest.usecase", () => {
   beforeEach(() => {
@@ -21,7 +17,6 @@ describe("joinContest.usecase", () => {
         startTime: "",
         endTime: "",
         status: "published",
-        visibility: "public",
         hasJoined: true,
         isRegistered: true,
       },
@@ -40,7 +35,6 @@ describe("joinContest.usecase", () => {
         startTime: "",
         endTime: "",
         status: "published",
-        visibility: "public",
         hasJoined: false,
         isRegistered: false,
       },
@@ -55,7 +49,7 @@ describe("joinContest.usecase", () => {
 
     const result = await joinContestUseCase({
       contestId: "c1",
-    });
+    }, { registerContest });
 
     expect(registerContest).toHaveBeenCalledWith("c1");
     expect(result).toEqual({ success: true });
@@ -66,7 +60,7 @@ describe("joinContest.usecase", () => {
 
     const result = await joinContestUseCase({
       contestId: "c1",
-    });
+    }, { registerContest });
 
     expect(result).toEqual({ success: false, error: "join failed" });
   });

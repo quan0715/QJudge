@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .modelSelectWrap {
   position: relative;
   display: inline-flex;
@@ -6,7 +7,7 @@
   border-radius: 999px;
   background: transparent;
   border: 1px solid transparent;
-  padding-left: 0.5rem;
+  padding-left: layout.$spacing-03;
   transition: background-color 120ms ease, border-color 120ms ease;
 
   &:hover,
@@ -77,7 +78,7 @@
   border-radius: 12px;
   border: 1px solid var(--cds-border-subtle-01, #525252);
   background: var(--cds-layer-03, #393939);
-  padding: 0.25rem;
+  padding: layout.$spacing-02;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;

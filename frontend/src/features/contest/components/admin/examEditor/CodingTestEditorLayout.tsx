@@ -134,7 +134,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
   const questionEditLocked = !!contest.questionEditLocked;
   const lockedReason = t(
     "examEditor.questionLockedReason",
-    "已有學生正式作答，競賽題目已鎖定"
+    "已有考生開始作答，競賽內容已鎖定"
   );
 
   useEffect(() => {
@@ -503,7 +503,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
                 sourceBank: cp.sourceBank ?? null,
                 sourceMode: cp.sourceMode,
               }}
-              score={cp.maxScore ?? cp.score}
+              score={cp.maxScore}
               frozen={questionEditLocked}
               onDuplicate={
                 questionEditLocked

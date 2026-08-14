@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from django.db import transaction
-from django.utils import timezone
 
 from apps.contests.models import (
     ContestParticipant,
@@ -14,12 +13,11 @@ from apps.contests.models import (
 )
 
 from .activity_log import log_contest_activity
-from .exam_submission import finalize_submission
 from .anti_cheat_session import (
     clear_active_session,
     clear_exam_allowed_jti,
-    clear_heartbeat,
 )
+from .integrity_presence import clear_checkpoint
 
 ACTIVE_EXAM_STATUSES = {
     ExamStatus.IN_PROGRESS,
@@ -108,7 +106,7 @@ def admin_update_participant(
         participant.save(update_fields=update_fields)
         if exam_status is not None and exam_status not in ACTIVE_EXAM_STATUSES:
             clear_active_session(participant.contest_id, participant.user_id)
-            clear_heartbeat(participant.contest_id, participant.user_id)
+            clear_checkpoint(participant.contest_id, participant.user_id)
             clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
     log_contest_activity(
@@ -208,7 +206,7 @@ def reset_participant_exam_record(
         )
 
     clear_active_session(participant.contest_id, participant.user_id)
-    clear_heartbeat(participant.contest_id, participant.user_id)
+    clear_checkpoint(participant.contest_id, participant.user_id)
     clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)
 
     return {
@@ -217,35 +215,3 @@ def reset_participant_exam_record(
         "deleted_events": deleted_events,
         "deleted_evidence": deleted_evidence,
     }
-
-
-def reconcile_participant_on_contest_access(
-    participant: ContestParticipant,
-    *,
-    activity_user=None,
-    now=None,
-) -> ContestParticipant:
-    """
-    Apply access-time transitions that keep participant state coherent.
-
-    This keeps the read path thin while reusing the same transition rules in
-    one service boundary.
-    """
-    now = now or timezone.now()
-    contest = participant.contest
-    if (
-        contest.status == "published"
-        and contest.end_time
-        and now >= contest.end_time
-        and participant.exam_status in ACTIVE_EXAM_STATUSES
-    ):
-        finalize_submission(
-            participant,
-            submit_reason="Auto-submitted: contest ended",
-            activity_user=activity_user,
-            activity_action_type="auto_submit",
-            activity_details="Auto-submitted: contest ended",
-        )
-        participant.refresh_from_db()
-
-    return participant

@@ -19,7 +19,6 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     startTime: "",
     endTime: "",
     status: "published",
-    visibility: "public",
     hasJoined: true,
     isRegistered: true,
     contestType: "coding",

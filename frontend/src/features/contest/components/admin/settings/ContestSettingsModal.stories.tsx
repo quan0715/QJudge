@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@carbon/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMockContest, stubT } from "@/shared/mocks/contest.mock";
-import type { ContestSettingsPanelProps } from "./ContestSettingsPanelProps";
+import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
 import DisplaySettingsPanel from "./DisplaySettingsPanel";
@@ -27,8 +27,6 @@ function useFormState() {
     attendanceCheckEnabled: mockContest.attendanceCheckEnabled,
     cheatDetectionEnabled: mockContest.cheatDetectionEnabled,
     anticheatDevicePolicy: mockContest.anticheatDevicePolicy,
-    warningTimeoutSeconds: mockContest.warningTimeoutSeconds,
-    screenShareRecoveryGraceMs: mockContest.screenShareRecoveryGraceMs,
     scoreboardVisibleDuringContest: mockContest.scoreboardVisibleDuringContest,
     allowMultipleJoins: mockContest.allowMultipleJoins,
   });
@@ -63,7 +61,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "競賽設定 Modal 及其 4 個 panel：基本資訊、狀態與權限、顯示設定、作弊檢查。使用 SettingsModal (shared) + AdminSettingsPanelLayout 組合。",
+          "競賽設定 Modal 及其 5 個 panel：基本資訊、狀態與權限、顯示設定、作弊檢查與 Integrity Worker。使用 SettingsModal (shared) + AdminSettingsPanelLayout 組合。",
       },
     },
   },
@@ -78,7 +76,7 @@ export const FullModal: Story = {
   parameters: {
     docs: {
       description: {
-        story: "完整的 ContestSettingsModal，包含 4 個 tab 可互動切換。",
+        story: "完整的 ContestSettingsModal，包含 5 個 tab 可互動切換。",
       },
     },
   },

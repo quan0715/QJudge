@@ -13,7 +13,7 @@
 .titleBlock {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
   min-width: 0;
 }
 
@@ -21,32 +21,8 @@
   display: inline-flex;
   align-items: center;
   height: 2.5rem;
-  padding: 0 0.25rem;
+  padding: 0 layout.$spacing-02;
   margin: 0;
-
-  :global(.cds--breadcrumb-item) {
-    margin-right: 0;
-  }
-
-  :global(.cds--link) {
-    color: var(--cds-text-secondary);
-    font-size: 0.875rem;
-    text-decoration: none;
-
-    &:hover {
-      color: var(--cds-link-primary-hover);
-    }
-  }
-
-  :global(.cds--breadcrumb-item--current) {
-    color: var(--cds-text-primary);
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-}
-
-.shell :global(.cds--header__global) {
-  margin-left: 0;
 }
 
 .content {
@@ -113,7 +89,7 @@
   height: 100%;
 }
 
-.localToolbarSearch :global(.cds--search) {
+.localToolbarSearch {
   width: 14rem;
   height: 2.5rem;
 }
@@ -134,12 +110,6 @@
   background: var(--cds-layer-selected-hover);
 }
 
-.localToolbar :global(.cds--tooltip),
-.localToolbar :global(.cds--tooltip-container),
-.localToolbar :global(.cds--popover-container) {
-  z-index: 9000;
-}
-
 /* ── Filter Popover ── */
 
 .filterPopoverContent {
@@ -149,15 +119,15 @@
 .filterPopoverFields {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
 }
 
 .filterPopoverActions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem 0.75rem;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 layout.$spacing-04 layout.$spacing-04;
   border-top: 1px solid var(--cds-border-subtle-01);
 }
 
@@ -205,7 +175,7 @@
     flex-wrap: wrap;
   }
 
-  .localToolbarSearch :global(.cds--search) {
+  .localToolbarSearch {
     width: 100%;
   }
 }

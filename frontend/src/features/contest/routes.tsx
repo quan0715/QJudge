@@ -1,10 +1,11 @@
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 import { Route } from "react-router";
+import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 import RuntimeRouteWrapper from "./components/layout/RuntimeRouteWrapper";
 import { ContestProvider } from "./contexts/ContestContext";
-import ContestDashboardScreen from "./screens/ContestDashboardScreen";
-import ContestSolveScreen from "./screens/ContestSolveScreen";
 
+const ContestDashboardScreen = lazy(() => import("./screens/ContestDashboardScreen"));
+const ContestSolveScreen = lazy(() => import("./screens/ContestSolveScreen"));
 const AdminDashboardScreen = lazy(() => import("./screens/admin/AdminDashboardScreen"));
 const AttendanceProjectionScreen = lazy(() => import("./screens/admin/attendance/AttendanceProjectionScreen"));
 const StudentAttendanceScanScreen = lazy(() => import("./screens/attendance/StudentAttendanceScanScreen"));
@@ -20,12 +21,21 @@ const ExamPrecheckScreen = lazy(() => import("./screens/paperExam/ExamPrecheckSc
  */
 export const classroomContestRouteChildren = (
   <>
-    <Route index element={<ContestDashboardScreen />} />
+    <Route
+      index
+      element={
+        <RouteLoadingBoundary>
+          <ContestDashboardScreen />
+        </RouteLoadingBoundary>
+      }
+    />
     <Route
       path="solve"
       element={
         <RuntimeRouteWrapper>
-          <ContestSolveScreen />
+          <RouteLoadingBoundary>
+            <ContestSolveScreen />
+          </RouteLoadingBoundary>
         </RuntimeRouteWrapper>
       }
     />
@@ -33,7 +43,9 @@ export const classroomContestRouteChildren = (
       path="solve/:problemId"
       element={
         <RuntimeRouteWrapper>
-          <ContestSolveScreen />
+          <RouteLoadingBoundary>
+            <ContestSolveScreen />
+          </RouteLoadingBoundary>
         </RuntimeRouteWrapper>
       }
     />
@@ -46,7 +58,11 @@ export const classroomContestRouteChildren = (
 export const classroomContestAdminRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/admin"
-    element={<Suspense fallback={null}><AdminDashboardScreen /></Suspense>}
+    element={
+      <RouteLoadingBoundary>
+        <AdminDashboardScreen />
+      </RouteLoadingBoundary>
+    }
   />
 );
 
@@ -55,7 +71,9 @@ export const classroomContestAttendanceProjectionRoute = (
     path="/classrooms/:classroomId/contest/:contestId/admin/attendance/projection"
     element={
       <ContestProvider>
-        <Suspense fallback={null}><AttendanceProjectionScreen /></Suspense>
+        <RouteLoadingBoundary>
+          <AttendanceProjectionScreen />
+        </RouteLoadingBoundary>
       </ContestProvider>
     }
   />
@@ -64,7 +82,11 @@ export const classroomContestAttendanceProjectionRoute = (
 export const classroomContestAttendanceScanRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/attendance/scan"
-    element={<Suspense fallback={null}><StudentAttendanceScanScreen /></Suspense>}
+    element={
+      <RouteLoadingBoundary>
+        <StudentAttendanceScanScreen />
+      </RouteLoadingBoundary>
+    }
   />
 );
 
@@ -74,7 +96,11 @@ export const classroomContestAttendanceScanRoute = (
 export const classroomExamPreviewRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/exam-preview"
-    element={<Suspense fallback={null}><StudentExamDemoScreen /></Suspense>}
+    element={
+      <RouteLoadingBoundary>
+        <StudentExamDemoScreen />
+      </RouteLoadingBoundary>
+    }
   />
 );
 
@@ -86,7 +112,9 @@ export const classroomExamPrecheckRoute = (
     path="/classrooms/:classroomId/contest/:contestId/exam-precheck"
     element={
       <ContestProvider>
-        <Suspense fallback={null}><ExamPrecheckScreen /></Suspense>
+        <RouteLoadingBoundary>
+          <ExamPrecheckScreen />
+        </RouteLoadingBoundary>
       </ContestProvider>
     }
   />

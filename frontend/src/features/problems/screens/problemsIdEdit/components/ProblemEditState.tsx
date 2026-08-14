@@ -18,11 +18,13 @@ interface ProblemEditPermissionDeniedProps extends ProblemEditStateProps {
 export const ProblemEditLoading: React.FC<ProblemEditStateProps> = ({
   header,
 }) => {
+  const { t } = useTranslation("problem");
+
   return (
     <div className="problem-edit-page">
       {header}
       <div className="problem-edit-page__loading">
-        <Loading />
+        <Loading description={t("edit.messages.loading", "載入題目資料")} />
       </div>
     </div>
   );

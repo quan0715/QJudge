@@ -1,15 +1,22 @@
 import { Checkmark, Warning, InProgress } from "@carbon/icons-react";
-import type { RunTodoItem } from "@/core/types/chatbot.types";
 import styles from "./TodoList.module.scss";
 
-export function TodoStatusIcon({ status }: { status: RunTodoItem["status"] }) {
+export type TodoListItemStatus = "pending" | "in_progress" | "success" | "fail";
+
+export interface TodoListItem {
+  id: string;
+  label: string;
+  status: TodoListItemStatus;
+}
+
+export function TodoStatusIcon({ status }: { status: TodoListItemStatus }) {
   if (status === "success") return <Checkmark size={14} className={styles.iconSuccess} />;
   if (status === "fail") return <Warning size={14} className={styles.iconFail} />;
   if (status === "in_progress") return <InProgress size={14} className={styles.iconProgress} />;
   return <InProgress size={14} className={styles.iconPending} />;
 }
 
-export function summarizeTodos(todos: RunTodoItem[]) {
+export function summarizeTodos(todos: readonly TodoListItem[]) {
   let done = 0;
   let inProgress = 0;
   let failed = 0;
@@ -21,7 +28,9 @@ export function summarizeTodos(todos: RunTodoItem[]) {
   return { total: todos.length, done, inProgress, failed };
 }
 
-export function pickLatestTodos<T extends { todoItems?: RunTodoItem[] }>(messages: T[]): RunTodoItem[] {
+export function pickLatestTodos<T extends { todoItems?: TodoListItem[] }>(
+  messages: readonly T[],
+): TodoListItem[] {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const todos = messages[i]?.todoItems;
     if (todos && todos.length > 0) return todos;
@@ -30,7 +39,7 @@ export function pickLatestTodos<T extends { todoItems?: RunTodoItem[] }>(message
 }
 
 interface TodoListProps {
-  items: RunTodoItem[];
+  items: readonly TodoListItem[];
   className?: string;
 }
 

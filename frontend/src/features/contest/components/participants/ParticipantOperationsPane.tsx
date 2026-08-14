@@ -186,10 +186,10 @@ const ParticipantOperationsPane = ({
     {
       icon: Login,
       label: t("dashboard.examConnection", "考試連線"),
-      value: participant.lastHeartbeatAt
+      value: participant.lastCheckpointAt
         ? t("participants.connection.online", "在線")
         : t("participants.connection.offline", "離線"),
-      tone: participant.lastHeartbeatAt ? "success" : "muted",
+      tone: participant.lastCheckpointAt ? "success" : "muted",
     },
     {
       icon: View,

@@ -41,7 +41,10 @@ export const ClassroomSettingsGeneralPanel: React.FC<ClassroomSettingsGeneralPan
 
   // Keep a ref of the latest values for auto-save to avoid stale closures
   const latestRef = useRef({ name: settingName, description: settingDescription, icon: settingIcon });
-  latestRef.current = { name: settingName, description: settingDescription, icon: settingIcon };
+
+  useEffect(() => {
+    latestRef.current = { name: settingName, description: settingDescription, icon: settingIcon };
+  }, [settingDescription, settingIcon, settingName]);
 
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import GradingSplitPanelScreen from "./GradingSplitPanelScreen";
 import type { GradingAnswerRow } from "./gradingTypes";
@@ -11,14 +13,16 @@ vi.mock("react-i18next", () => ({
       fallbackOrParams?: string | Record<string, unknown>,
       maybeParams?: Record<string, unknown>,
     ) => {
-      const fallback = typeof fallbackOrParams === "string" ? fallbackOrParams : key;
+      const fallback =
+        typeof fallbackOrParams === "string" ? fallbackOrParams : key;
       const params =
         typeof fallbackOrParams === "string" ? maybeParams : fallbackOrParams;
       if (!params) {
         return fallback;
       }
       return Object.entries(params).reduce(
-        (acc, [paramKey, value]) => acc.replace(`{{${paramKey}}}`, String(value)),
+        (acc, [paramKey, value]) =>
+          acc.replace(`{{${paramKey}}}`, String(value)),
         fallback,
       );
     },
@@ -63,6 +67,75 @@ const nextAnswer: GradingAnswerRow = {
 };
 
 describe("GradingSplitPanelScreen", () => {
+  it("keeps the header focused on the current question", () => {
+    render(
+      <GradingSplitPanelScreen
+        answer={answer}
+        onGrade={vi.fn()}
+        flowMode="byStudent"
+      />,
+    );
+
+    const header = screen.getByRole("banner", { name: "目前批改題目" });
+    expect(within(header).getByText("Q1")).toBeInTheDocument();
+    expect(within(header).queryByText("short_answer")).not.toBeInTheDocument();
+    expect(within(header).queryByText(/Student One/)).not.toBeInTheDocument();
+    expect(within(header).queryByText(/10.00/)).not.toBeInTheDocument();
+  });
+
+  it("uses one vertical reading flow for evidence and grading controls", () => {
+    const scss = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/features/contest/screens/settings/grading/GradingPanel.module.scss",
+      ),
+      "utf8",
+    );
+    const bodyRule = scss.match(/\.panelBodyContent\s*\{([^}]*)\}/)?.[1];
+
+    expect(bodyRule).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(bodyRule).not.toMatch(/minmax\(18rem, 20rem\)/);
+  });
+
+  it("separates grading evidence from score controls", () => {
+    render(
+      <GradingSplitPanelScreen
+        answer={answer}
+        onGrade={vi.fn()}
+        flowMode="byStudent"
+      />,
+    );
+
+    const evidence = screen.getByRole("article", { name: "批改內容" });
+    const inspector = screen.getByRole("complementary", { name: "評分控制" });
+
+    expect(evidence).toHaveTextContent("Question prompt");
+    expect(evidence).toHaveTextContent("answer-display");
+    expect(
+      within(evidence).getByRole("region", { name: "題目" }),
+    ).toBeInTheDocument();
+    expect(inspector).toContainElement(screen.getByLabelText("評語（選填）"));
+  });
+
+  it("keeps keyboard shortcuts behind an explicit disclosure", () => {
+    render(
+      <GradingSplitPanelScreen
+        answer={answer}
+        onGrade={vi.fn()}
+        flowMode="byStudent"
+      />,
+    );
+
+    const shortcutButton = screen.getByRole("button", { name: "鍵盤快捷鍵" });
+    expect(shortcutButton).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(shortcutButton);
+
+    expect(shortcutButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("調整分數")).toBeVisible();
+    expect(screen.getByText("直接輸入")).toBeVisible();
+  });
+
   it("grades and advances without switching button label to saved in save-next flow", () => {
     const onGrade = vi.fn();
     const onNextStudent = vi.fn();
@@ -81,7 +154,9 @@ describe("GradingSplitPanelScreen", () => {
 
     expect(onGrade).toHaveBeenCalledWith("a-1", 3, "");
     expect(onNextStudent).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: "已儲存" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "已儲存" }),
+    ).not.toBeInTheDocument();
   });
 
   it("smoothly scrolls the answer pane back to top when switching students", () => {

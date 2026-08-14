@@ -76,4 +76,50 @@ describe("httpClient auth refresh", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/login/password");
   });
+
+  it("returns the final 401 for optional session bootstrap without redirecting", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: false }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ success: false }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    const response = await httpClient.get("/api/v1/users/me", {
+      allowUnauthenticated: true,
+    });
+
+    expect(response.status).toBe(401);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(window.location.pathname).toBe("/dashboard");
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("allowUnauthenticated");
+  });
+
+  it("can suppress global server-error toasts for optional background reads", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: false }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const onServerError = vi.fn();
+    window.addEventListener("server-error", onServerError);
+
+    const response = await httpClient.get(
+      "/api/v1/ai/models/",
+      { suppressGlobalError: true },
+    );
+
+    expect(response.status).toBe(503);
+    expect(onServerError).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty("suppressGlobalError");
+    window.removeEventListener("server-error", onServerError);
+  });
 });

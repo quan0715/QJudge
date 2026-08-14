@@ -8,9 +8,6 @@ import { EditTestCasesPanel } from "./testcases";
 import { ResultsPanel } from "./execution";
 import "./ResultPanel.scss";
 
-// Re-export for backward compatibility
-export type { ResultMode };
-
 interface ResultPanelProps {
   // Mode control
   mode: ResultMode;

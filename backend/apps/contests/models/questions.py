@@ -197,19 +197,3 @@ class ExamQuestion(models.Model):
 
     def __str__(self):
         return f"{self.contest_id}#{self.id}({self.question_type})"
-
-    def to_snapshot(self):
-        """產生題目快照，用於凍結學生作答時的題目狀態"""
-        return {
-            'prompt': self.prompt,
-            'options': self.options,
-            'correct_answer': self.correct_answer,
-            'reference_answer_document': self.reference_answer_document,
-            'explanation': self.explanation,
-            'explanation_document': self.explanation_document,
-            'question_type': self.question_type,
-            'score': self.score,
-            'answer_format': self.answer_format,
-            'group_id': str(self.group_id) if self.group_id else None,
-            'order_in_group': self.order_in_group,
-        }

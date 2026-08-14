@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 // PanelToolbar — align with Carbon md action button height (3rem).
 // Left side: title + meta. Right side: icon-only action buttons.
 // The last child can be primary (filled) — all others are ghost.
@@ -21,7 +22,7 @@
 .left {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
   min-width: 0;
   margin-left: 0;
 }
@@ -29,7 +30,7 @@
 /* When the first child is the title (no leftActions), add left padding.
    If leftActions is present (e.g. a button), the button's own padding is enough. */
 .leftWithTitle {
-  padding-left: 1rem;
+  padding-left: layout.$spacing-05;
 }
 
 .title {

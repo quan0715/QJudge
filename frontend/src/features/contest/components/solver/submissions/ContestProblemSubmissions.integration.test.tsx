@@ -32,6 +32,10 @@ vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({
   getSubmissions: vi.fn().mockResolvedValue({ results: [], count: 0 }),
 }));
 
+vi.mock("@/features/auth/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: 42 } }),
+}));
+
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 
 const CONTEST_ID = "contest-uuid";
@@ -85,9 +89,6 @@ function renderWithProviders(node: React.ReactElement) {
 describe("ContestProblemSubmissions integration — coding-problem id wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Component reads currentUser from localStorage; provide one so userId filter
-    // also lands in the outgoing params (extra assertion value).
-    localStorage.setItem("user", JSON.stringify({ id: 42 }));
   });
 
   it("forwards CodingProblem.id (not ContestQuestionBinding.id) to the submissions repository", async () => {

@@ -9,8 +9,11 @@ import type {
 
 export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
   return requestJson<CurrentUserResponseDto>(
-    httpClient.get("/api/v1/users/me"),
-    "Failed to fetch user data",
+    httpClient.get("/api/v1/users/me", {
+      allowUnauthenticated: true,
+      suppressGlobalError: true,
+    }),
+    "Failed to fetch current user",
   );
 };
 
@@ -75,15 +78,3 @@ export const updateUserRole = async (id: number | string, role: string): Promise
     "Failed to update user role",
   );
 };
-
-export const userRepository = {
-  getCurrentUser,
-  updateAccountProfile,
-  getPreferences,
-  updatePreferences,
-  uploadAvatar,
-  searchUsers,
-  updateUserRole,
-};
-
-export default userRepository;

@@ -29,8 +29,10 @@ import {
   updateExamPaperBlock,
   type ExamPaperQuestionPayload,
   type ExamQuestionUpsertPayload,
+  type ExistingGradesAction,
 } from "@/infrastructure/api/repositories";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
+import { useContest } from "@/features/contest/contexts/ContestContext";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useToast } from "@/shared/contexts";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
@@ -193,6 +195,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const { confirm, modalProps } = useConfirmModal();
   const toolbarSave = useToolbarSaveStatus();
   const { right } = useWorkspace();
+  const { refreshContest } = useContest();
   const defaultSidePanelsExpanded = !right.isOpen;
 
   const [blocks, setBlocks] = useState<ExamPaperBlock[]>([]);
@@ -212,7 +215,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const frozen = !!contest.questionEditLocked;
-  const lockedReason = "已有學生正式作答，競賽題目已鎖定";
+  const lockedReason = "已有考生開始作答，競賽內容已鎖定";
   const isCompactScreen = useCompactScreen();
 
   const questions = useMemo(() => flattenQuestions(blocks), [blocks]);
@@ -416,25 +419,41 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
   );
 
   const handleQuestionAutoSave = useCallback(
-    async (payload: ExamQuestionUpsertPayload, questionId?: string) => {
+    async (
+      payload: ExamQuestionUpsertPayload,
+      questionId?: string,
+      action?: ExistingGradesAction,
+    ) => {
       if (!questionId) return;
       try {
         const updated = await toolbarSave.track(() =>
           updateExamPaperBlock(contestId, questionId, {
             kind: "question",
-            question: payload,
+            question: {
+              ...payload,
+              ...(action ? { existing_grades_action: action } : {}),
+            },
           }),
         );
         if (updated.kind === "question") {
           setBlocks((prev) => replaceQuestionInBlocks(prev, updated.question));
+        }
+        if (action === "regrade" || action === "mark_pending") {
+          await refreshContest().catch((error: unknown) => {
+            console.error("Failed to refresh contest after grading update", error);
+          });
         }
       } catch (error) {
         console.error("Failed to save exam question", error);
         throw error;
       }
     },
-    [contestId, toolbarSave],
+    [contestId, refreshContest, toolbarSave],
   );
+
+  const handleScorePolicyChanged = useCallback(() => {
+    void Promise.allSettled([loadPaper(), refreshContest()]);
+  }, [loadPaper, refreshContest]);
 
   const handleGroupAutoSave = useCallback(
     async (
@@ -783,7 +802,13 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                 <ExamQuestionEditCard
                   question={block.question}
                   index={getQuestionDisplayIndex(block.question)}
-                  frozen={frozen}
+                  contentLocked={frozen}
+                  gradedAnswerCount={
+                    editorImpactContext?.questions.find(
+                      (item) => item.questionId === block.question.id,
+                    )?.gradedCount ?? 0
+                  }
+                  resultsPublished={contest.resultsPublished === true}
                   allQuestions={allQuestionsForPolicy}
                   editorImpactContext={editorImpactContext}
                   onMenuOpen={ensureImpactLoaded}
@@ -792,7 +817,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                   onDuplicate={handleDuplicate}
                   onSaveToBank={(question) => setSaveToBankQuestion(question)}
                   onPointerDownDrag={dragHandleProps?.onPointerDown}
-                  onScorePolicyChanged={loadPaper}
+                  onScorePolicyChanged={handleScorePolicyChanged}
                 />
               );
             }
@@ -816,7 +841,13 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                         question={child}
                         index={getQuestionDisplayIndex(child)}
                         showScoreField
-                        frozen={frozen}
+                        contentLocked={frozen}
+                        gradedAnswerCount={
+                          editorImpactContext?.questions.find(
+                            (item) => item.questionId === child.id,
+                          )?.gradedCount ?? 0
+                        }
+                        resultsPublished={contest.resultsPublished === true}
                         allQuestions={allQuestionsForPolicy}
                         editorImpactContext={editorImpactContext}
                         onMenuOpen={ensureImpactLoaded}
@@ -824,7 +855,7 @@ const ExamEditorLayout: React.FC<ExamEditorLayoutProps> = ({
                         onDelete={handleDelete}
                         onDuplicate={handleDuplicate}
                         onSaveToBank={(question) => setSaveToBankQuestion(question)}
-                        onScorePolicyChanged={loadPaper}
+                        onScorePolicyChanged={handleScorePolicyChanged}
                       />
                     </div>
                   ))}

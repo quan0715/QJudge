@@ -15,7 +15,6 @@ export const ClassroomContestCard: React.FC<ClassroomContestCardProps> = ({ cont
     startTime: contest.contestStartTime || contest.boundAt,
     endTime: contest.contestEndTime || contest.boundAt,
     status: contest.contestStatus,
-    visibility: contest.contestVisibility,
     attendanceCheckEnabled: contest.attendanceCheckEnabled,
     resultsPublished: contest.resultsPublished,
     organizer: undefined,

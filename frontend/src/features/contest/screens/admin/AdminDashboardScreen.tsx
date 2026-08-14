@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 
 import {
   ContestProvider,
@@ -8,17 +9,23 @@ import {
   AdminPanelRefreshProvider,
   useContest,
 } from "@/features/contest/contexts";
-import ContestExportDialog from "@/features/contest/components/admin/ContestExportDialog";
-
 import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
-import { ContestSettingsOverlay } from "@/features/contest/screens/admin/panels/AdminContestSettingsScreen";
 // import { useWorkspacePanelMode } from "@/features/app/contexts/useWorkspacePanelMode";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
 import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
+
+const ContestExportDialog = lazy(
+  () => import("@/features/contest/components/admin/ContestExportDialog"),
+);
+const ContestSettingsOverlay = lazy(() =>
+  import("@/features/contest/screens/admin/panels/AdminContestSettingsScreen").then(
+    ({ ContestSettingsOverlay: Overlay }) => ({ default: Overlay }),
+  ),
+);
 
 /** Dynamic panel dispatch — registry pattern requires runtime lookup; state is stable because
  *  each panelId maps to a fixed component reference within a given contestModule. */
@@ -27,13 +34,29 @@ const AdminPanelSlot = ({
   contestModule,
   ...rest
 }: AdminPanelProps & { panelId: AdminPanelId; contestModule: ContestTypeModule }) => {
+  const { t } = useTranslation("common");
   /* eslint-disable react-hooks/static-components */
   const Renderer = getAdminPanelRenderer(panelId, contestModule);
-  return <Renderer {...rest} />;
+  return (
+    <Suspense
+      fallback={(
+        <div className={styles.loadingState}>
+          <Loading
+            small
+            withOverlay={false}
+            description={t("message.loading")}
+          />
+        </div>
+      )}
+    >
+      <Renderer {...rest} />
+    </Suspense>
+  );
   /* eslint-enable react-hooks/static-components */
 };
 
 const AdminDashboardInner = () => {
+  const { t } = useTranslation("common");
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,23 +93,30 @@ const AdminDashboardInner = () => {
     () => contestModule.admin.getAvailablePanels(contest),
     [contestModule, contest],
   );
+  const routablePanels = useMemo(
+    () => availablePanels.includes("settings")
+      ? availablePanels
+      : [...availablePanels, "settings" as const],
+    [availablePanels],
+  );
   const { activeKey: activePanel } = useTabWithUrlParam({
     param: "panel",
-    keys: availablePanels,
+    keys: routablePanels,
     defaultKey: "overview",
   });
 
   const panelParam = searchParams.get("panel");
-
-  useEffect(() => {
-    if (panelParam !== "settings") return;
-    setSettingsOpen(true);
+  const settingsRequestedByUrl = panelParam === "settings";
+  const isSettingsOpen = settingsOpen || settingsRequestedByUrl;
+  const closeSettings = () => {
+    setSettingsOpen(false);
+    if (!settingsRequestedByUrl) return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set("panel", "overview");
       return next;
     }, { replace: true });
-  }, [panelParam, setSearchParams]);
+  };
 
   const handlePreview = () => {
     const previewPath = effectiveClassroomId
@@ -97,15 +127,11 @@ const AdminDashboardInner = () => {
 
   if (loading && !contest) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <Loading withOverlay={false} />
+      <div className={styles.loadingState}>
+        <Loading
+          withOverlay={false}
+          description="載入競賽管理資料"
+        />
       </div>
     );
   }
@@ -124,19 +150,25 @@ const AdminDashboardInner = () => {
         />
       </div>
 
-      {contest && contestId && (
-        <ContestExportDialog
-          open={exportOpen}
-          onClose={() => setExportOpen(false)}
-          contest={contest}
-          contestId={contestId}
-        />
+      {exportOpen && contest && contestId && (
+        <Suspense fallback={<Loading description={t("message.loading")} />}>
+          <ContestExportDialog
+            open
+            onClose={() => setExportOpen(false)}
+            contest={contest}
+            contestId={contestId}
+          />
+        </Suspense>
       )}
 
-      <ContestSettingsOverlay
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
+      {isSettingsOpen && (
+        <Suspense fallback={<Loading description={t("message.loading")} />}>
+          <ContestSettingsOverlay
+            open
+            onClose={closeSettings}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

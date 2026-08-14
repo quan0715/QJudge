@@ -2,7 +2,7 @@
 
 ## Locations
 - Story file: colocate with component, `<Component>.stories.tsx`
-- Registry: `frontend/src/features/storybook/registry/index.ts`
+- Discovery: Storybook automatically loads `frontend/src/**/*.stories.tsx` from `.storybook/main.ts`; there is no manual registry.
 
 ## Minimum story set
 - `Playground` (required)
@@ -12,7 +12,7 @@
 ## Checklist
 - Component props mapped in `argTypes`
 - Story count kept lean (usually 2~4)
-- Registry entry updated in same PR when adding/changing stories
+- Story title follows the component's real layer/path and remains unique
 
 ## Anti-patterns
 - Duplicate one-prop-per-story noise

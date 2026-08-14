@@ -17,6 +17,8 @@ const config: StorybookConfig = {
     config.resolve ??= {};
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string>),
+      "@copilot/testing": path.resolve(__dirname, "../src/shared/copilot/testing/index.ts"),
+      "@copilot": path.resolve(__dirname, "../src/shared/copilot/index.ts"),
       "@": path.resolve(__dirname, "../src"),
       "~": path.resolve(__dirname, "../node_modules"),
     };

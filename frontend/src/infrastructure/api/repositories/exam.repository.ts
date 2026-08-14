@@ -1,49 +1,23 @@
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type {
+  EventFeedItem,
   ExamEvent,
-  ExamStatusType,
 } from "@/core/entities/contest.entity";
+import type {
+  EndExamPayload,
+  ExamSessionResponse,
+  IExamSessionRepository,
+} from "@/core/ports/examSession.repository";
+import type { EventFeedItemDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
-
-export interface ExamSessionResponse {
-  status: string;
-  exam_status?: ExamStatusType;
-  submit_reason?: string;
-  already_submitted?: boolean;
-  error?: string;
-}
+import { mapEventFeedItemDto } from "@/infrastructure/mappers/contestParticipant.mapper";
 
 export const isSubmittedExamSessionResponse = (
   response: ExamSessionResponse | null | undefined
 ): boolean => response?.exam_status === "submitted";
 
-export interface ExamEventResponse {
-  status?: string;
-  message?: string;
-  error?: string;
-  event_id?: number | string;
-  evidence_cluster_id?: string;
-  evidence_window_start?: string;
-  evidence_window_end?: string;
-  evidence_mode?: EvidenceMode;
-  evidence_anchor_at_ms?: number;
-  violation_count?: number;
-  exam_status?: ExamStatusType;
-  submit_reason?: string;
-  locked?: boolean;
-  bypass?: boolean;
-}
-
-export type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
-export type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
-
-export interface RecordExamEventOptions {
-  reason?: string;
-  metadata?: Record<string, unknown>;
-  source?: string;
-  phase?: string;
-  eventIdempotencyKey?: string;
-}
+type EvidenceMode = "anchor_window" | "pre_loss" | "audit";
+type EvidenceSourceModule = "screen_share" | "webcam" | "attendance";
 
 export interface ExamAnswerDto {
   id: string;
@@ -65,7 +39,7 @@ export interface ExamAnswerDto {
   updated_at: string;
 }
 
-export interface ExamDashboardQuestionSummaryDto {
+interface ExamDashboardQuestionSummaryDto {
   question_id: string;
   order: number;
   title: string;
@@ -178,18 +152,18 @@ export interface RealtimeSfuPublisherDto {
   updated_at: string;
 }
 
-export interface RealtimeSfuPublisherResponse {
+interface RealtimeSfuPublisherResponse {
   active: boolean;
   publisher: RealtimeSfuPublisherDto | null;
   publishers?: RealtimeSfuPublisherDto[];
 }
 
-export interface RealtimeSfuTrackRequest {
+interface RealtimeSfuTrackRequest {
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
 }
 
-export interface RealtimeSfuTrackResponse {
+interface RealtimeSfuTrackResponse {
   requiresImmediateRenegotiation?: boolean;
   sessionDescription?: RtcSessionDescriptionDto;
   tracks?: Array<Record<string, unknown>>;
@@ -287,9 +261,6 @@ export const stopRealtimeSfuPublisher = async (
   );
 };
 
-const RETRYABLE_EVENT_STATUSES = new Set([502, 503, 504]);
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
 interface ContestActivityDto {
   id?: string | number;
   user?: string | number;
@@ -312,7 +283,7 @@ export const startExam = async (contestId: string): Promise<ExamSessionResponse>
 
 export const endExam = async (
   contestId: string,
-  payload?: { submit_reason?: string; upload_session_id?: string; source_module?: "screen_share" | "webcam" }
+  payload?: EndExamPayload,
 ): Promise<ExamSessionResponse> => {
   return requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
@@ -320,62 +291,64 @@ export const endExam = async (
   );
 };
 
-export const recordExamEvent = async (
-  contestId: string,
-  eventType: string,
-  reasonOrOptions?: string | RecordExamEventOptions
-): Promise<ExamEventResponse | null> => {
-  const options: RecordExamEventOptions =
-    typeof reasonOrOptions === "string"
-      ? { reason: reasonOrOptions }
-      : reasonOrOptions || {};
-
-  const metadata = {
-    ...(options.metadata || {}),
-    ...(options.reason ? { reason: options.reason } : {}),
-    ...(options.source ? { source: options.source } : {}),
-    ...(options.phase ? { phase: options.phase } : {}),
-    ...(options.eventIdempotencyKey
-      ? { event_idempotency_key: options.eventIdempotencyKey }
-      : {}),
-  };
-
-  const payload = {
-    event_type: eventType,
-    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-  };
-
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      const res = await httpClient.post(
-        `/api/v1/contests/${contestId}/exam/events/`,
-        payload
-      );
-      if (res.ok) {
-        return (await res.json()) as ExamEventResponse;
-      }
-      if (!RETRYABLE_EVENT_STATUSES.has(res.status) || attempt === maxAttempts) {
-        return null;
-      }
-    } catch {
-      if (attempt === maxAttempts) {
-        return null;
-      }
-    }
-    await sleep(150 * attempt);
-  }
-  return null;
+export const examSessionRepository: IExamSessionRepository = {
+  startExam,
+  endExam,
 };
 
 export const getExamEvents = async (
   contestId: string
-): Promise<ExamEvent[]> => {
-  const data = await requestJson<unknown>(
+): Promise<{ events: ExamEvent[]; eventFeed: EventFeedItem[] }> => {
+  const data = await requestJson<{
+    events?: unknown[];
+    event_feed?: EventFeedItemDto[];
+  }>(
     httpClient.get(`/api/v1/contests/${contestId}/exam/events/`),
     "Failed to fetch exam events"
   );
-  return Array.isArray(data) ? data.map(mapExamEventDto) : [];
+  return {
+    events: Array.isArray(data.events) ? data.events.map(mapExamEventDto) : [],
+    eventFeed: Array.isArray(data.event_feed)
+      ? data.event_feed.map(mapEventFeedItemDto)
+      : [],
+  };
+};
+
+export interface IntegrityEvidenceReviewItem {
+  chunkId: string;
+  source: "screen_share" | "webcam";
+  status: "requested" | "uploaded" | "verified" | "failed" | "unavailable";
+  startAtMs: number;
+  endAtMs: number;
+  byteSize: number;
+  codec: string;
+  contentType: string;
+  url: string | null;
+}
+
+export interface IntegrityEvidenceReview {
+  evidenceStatus: "pending" | "available" | "unavailable";
+  evidenceSources: Record<string, { status: string; chunks: number }>;
+  items: IntegrityEvidenceReviewItem[];
+}
+
+export const getIntegrityEvidenceReview = async (
+  contestId: string,
+  eventId: string,
+): Promise<IntegrityEvidenceReview> => {
+  const data = await requestJson<any>(
+    httpClient.get(`/api/v1/contests/${contestId}/exam/integrity/evidence/review/?event_id=${encodeURIComponent(eventId)}`),
+    "Failed to fetch integrity evidence",
+  );
+  return {
+    evidenceStatus: data.evidence_status,
+    evidenceSources: data.evidence_sources ?? {},
+    items: Array.isArray(data.items) ? data.items.map((item: any) => ({
+      chunkId: String(item.chunk_id), source: item.source, status: item.status,
+      startAtMs: item.start_at_ms, endAtMs: item.end_at_ms, byteSize: item.byte_size,
+      codec: item.codec, contentType: item.content_type, url: item.url ?? null,
+    })) : [],
+  };
 };
 
 /**
@@ -386,6 +359,9 @@ const mapActivityToExamEvent = (item: ContestActivityDto): ExamEvent => ({
   userId: item.user?.toString() || "",
   userName: item.username || "Unknown",
   eventType: (item.action_type as ExamEvent["eventType"]) || "other",
+  priority: 3,
+  category: "system",
+  penalized: false,
   timestamp: item.created_at || "",
   reason: item.details || "",
   metadata: {
@@ -414,15 +390,6 @@ export const getContestActivities = async (
   return results.map(mapActivityToExamEvent);
 };
 
-export const getAllExamAnswers = async (
-  contestId: string,
-): Promise<ExamAnswerDto[]> => {
-  return requestJson<ExamAnswerDto[]>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam-answers/all-answers/`),
-    "Failed to fetch all exam answers",
-  );
-};
-
 export const getExamDashboardSummary = async (
   contestId: string,
   opts: { kind?: string } = {},
@@ -448,59 +415,22 @@ export const getExamDashboardQuestionDetail = async (
   );
 };
 
-export interface AnticheatUploadItem {
-  seq: number;
-  object_key: string;
-  module?: "screen_share" | "webcam";
-  put_url: string;
-  required_headers?: Record<string, string>;
-}
-
-export interface AnticheatUploadBatchItem {
-  blob: Blob;
-  put_url: string;
-  required_headers?: Record<string, string>;
-}
-
-export const uploadAnticheatBatch = async (
-  items: AnticheatUploadBatchItem[]
-): Promise<void> => {
-  if (!items.length) return;
-
-  await Promise.all(
-    items.map(async (item) => {
-      const response = await fetch(item.put_url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": item.blob.type || "image/webp",
-          ...(item.required_headers || {}),
-        },
-        body: item.blob,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload anticheat frame (${response.status})`);
-      }
-    })
-  );
-};
-
-export interface EvidenceUploadIntentFrame {
+interface AttendanceEvidenceIntentFrame {
   client_captured_at_ms: number;
   seq: number;
 }
 
-export interface EvidenceUploadIntentRequest {
+interface AttendanceEvidenceIntentRequest {
   event_id: number | string;
   evidence_cluster_id?: string;
   source_module: EvidenceSourceModule;
   evidence_mode: EvidenceMode;
   upload_session_id?: string;
-  frames: EvidenceUploadIntentFrame[];
+  frames: AttendanceEvidenceIntentFrame[];
   unavailable_reason?: string;
 }
 
-export interface EvidenceUploadIntentItem {
+interface AttendanceEvidenceIntentItem {
   evidence_frame_id: number;
   seq: number;
   object_key: string;
@@ -510,85 +440,43 @@ export interface EvidenceUploadIntentItem {
   required_headers?: Record<string, string>;
 }
 
-export interface EvidenceUploadIntentResponse {
+interface AttendanceEvidenceIntentResponse {
   upload_session_id: string;
   evidence_cluster_id?: string;
   evidence_mode?: EvidenceMode;
   expires_at?: string;
   unavailable?: boolean;
   unavailable_frame_id?: number;
-  items: EvidenceUploadIntentItem[];
+  items: AttendanceEvidenceIntentItem[];
 }
 
-export interface EvidenceUploadConfirmFrame {
+interface AttendanceEvidenceConfirmFrame {
   evidence_frame_id: number;
   object_key: string;
   byte_size?: number;
   sha256?: string;
 }
 
-export const createEvidenceUploadIntent = async (
+export const createAttendanceEvidenceIntent = async (
   contestId: string,
-  payload: EvidenceUploadIntentRequest
-): Promise<EvidenceUploadIntentResponse> => {
-  return requestJson<EvidenceUploadIntentResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam/evidence/upload-intents/`, payload),
-    "Failed to create evidence upload intent"
+  payload: AttendanceEvidenceIntentRequest
+): Promise<AttendanceEvidenceIntentResponse> => {
+  return requestJson<AttendanceEvidenceIntentResponse>(
+    httpClient.post(`/api/v1/contests/${contestId}/exam/attendance/evidence/intents/`, payload),
+    "Failed to create attendance evidence intent"
   );
 };
 
-export const confirmEvidenceUpload = async (
+export const confirmAttendanceEvidence = async (
   contestId: string,
   payload: {
     event_id?: number | string;
     upload_session_id?: string;
-    frames: EvidenceUploadConfirmFrame[];
+    frames: AttendanceEvidenceConfirmFrame[];
   }
 ): Promise<{ confirmed_count: number }> => {
   return requestJson<{ confirmed_count: number }>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam/evidence/upload-confirm/`, payload),
-    "Failed to confirm evidence upload"
-  );
-};
-
-export interface ScreenshotFrame {
-  url: string;
-  ts_ms: number;
-  seq: number;
-  source_module?: EvidenceSourceModule;
-  evidence_frame_id?: number;
-  evidence_mode?: EvidenceMode;
-  expires_in: number;
-}
-
-export const fetchScreenshots = async (
-  contestId: string,
-  params: {
-    user_id: string;
-    ts_from?: number;
-    ts_to?: number;
-    event_id?: string | number;
-    evidence_cluster_id?: string;
-    upload_session_id?: string;
-    source_module?: EvidenceSourceModule;
-    object_keys?: string[];
-    limit?: number;
-  }
-): Promise<{ items: ScreenshotFrame[]; total_raw_count: number }> => {
-  const search = new URLSearchParams();
-  search.set("user_id", params.user_id);
-  if (params.ts_from != null) search.set("ts_from", String(params.ts_from));
-  if (params.ts_to != null) search.set("ts_to", String(params.ts_to));
-  if (params.event_id != null) search.set("event_id", String(params.event_id));
-  if (params.evidence_cluster_id) search.set("evidence_cluster_id", params.evidence_cluster_id);
-  if (params.upload_session_id) search.set("upload_session_id", params.upload_session_id);
-  if (params.source_module) search.set("source_module", params.source_module);
-  if (params.object_keys?.length) {
-    params.object_keys.forEach((key) => search.append("object_key", key));
-  }
-  if (params.limit != null) search.set("limit", String(params.limit));
-  return requestJson<{ items: ScreenshotFrame[]; total_raw_count: number }>(
-    httpClient.get(`/api/v1/contests/${contestId}/exam/screenshots/?${search.toString()}`),
-    "Failed to fetch screenshots"
+    httpClient.post(`/api/v1/contests/${contestId}/exam/attendance/evidence/confirm/`, payload),
+    "Failed to confirm attendance evidence"
   );
 };

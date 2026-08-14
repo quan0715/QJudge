@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .section {
   display: flex;
   flex-direction: column;
@@ -8,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .grid {
@@ -26,7 +27,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
-  padding: 0.75rem;
+  padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
 }
 
@@ -45,7 +46,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
-  padding: 0.75rem;
+  padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
 }
 
@@ -75,13 +76,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .progressTitleRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   min-width: 0;
 }
 
@@ -106,21 +107,11 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .progressBar {
-  :global(.cds--progress-bar) {
-    margin-block-end: 0;
-  }
-
-  :global(.cds--progress-bar__track) {
-    background: color-mix(
-      in srgb,
-      var(--cds-interactive, #0f62fe) 18%,
-      var(--cds-layer-01, #f4f4f4)
-    );
-  }
+  margin-block-end: 0;
 }
 
 .progressFooter {
@@ -136,7 +127,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .ticketStop {
@@ -188,11 +179,11 @@
 }
 
 .progressActionRow {
-  margin-top: 0.25rem;
+  margin-top: layout.$spacing-02;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   color: var(--cds-text-secondary);
   font-size: var(--cds-label-01-font-size, 0.75rem);
 }

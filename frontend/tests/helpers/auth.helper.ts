@@ -5,7 +5,7 @@
  */
 
 import { Page, expect } from "@playwright/test";
-import { API_ENDPOINTS, TEST_USERS } from "./data.helper";
+import { TEST_USERS } from "./data.helper";
 
 export type UserRole = keyof typeof TEST_USERS;
 
@@ -315,7 +315,10 @@ export async function loginViaAPI(page: Page, role: UserRole = "student") {
   const userData = dataNode?.user;
 
   // Set token in localStorage
-  await page.goto("/");
+  // Authentication only needs a same-origin document before writing storage.
+  // Waiting for the full landing-page media payload makes API login needlessly
+  // slow and can exhaust a test timeout on resource-constrained CI runners.
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   if (token) {
     await setAuthToken(page, token);
   }

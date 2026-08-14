@@ -17,7 +17,7 @@ import {
   getClassroomContestPrecheckPath,
   shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { isFullscreen as isFullscreenMode } from "@/core/usecases/exam";
+import { isFullscreen as isFullscreenMode } from "@/infrastructure/browser/fullscreen";
 import { useInterval } from "@/shared/hooks/useInterval";
 
 const CONTEST_POLL_INTERVAL_MS = 15_000;
@@ -56,7 +56,10 @@ export function useContestLayoutState() {
       : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
-  const totalMaxScore = contest?.problems?.reduce((sum, p) => sum + (p.score || 0), 0) ?? 0;
+  const totalMaxScore = contest?.problems?.reduce(
+    (sum, problem) => sum + (problem.maxScore || 0),
+    0,
+  ) ?? 0;
 
   const refreshContest = useCallback(async () => {
     if (contestId) {
@@ -150,7 +153,7 @@ export function useContestLayoutState() {
     if (!shouldWarnOnExit) return;
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "考試進行中，離開或刷新頁面將自動交卷。";
+      e.returnValue = "";
       return e.returnValue;
     };
     window.addEventListener("beforeunload", handleBeforeUnload);

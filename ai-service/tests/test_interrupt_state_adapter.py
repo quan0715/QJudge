@@ -11,7 +11,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
-from services.adapters.interrupt_state_adapter import extract_approval_payload
+from infrastructure.agent.interrupt_state_adapter import extract_approval_payload
 
 
 def test_extract_approval_payload_returns_empty_when_no_interrupts():

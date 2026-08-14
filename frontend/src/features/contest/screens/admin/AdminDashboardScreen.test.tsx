@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -78,8 +78,10 @@ vi.mock("@/features/contest/components/admin/ContestExportDialog", () => ({
 }));
 
 vi.mock("@/features/contest/screens/admin/panels/AdminContestSettingsScreen", () => ({
-  ContestSettingsOverlay: ({ open }: { open: boolean }) => (
-    <div data-testid="settings-overlay">{open ? "open" : "closed"}</div>
+  ContestSettingsOverlay: ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+    <button data-testid="settings-overlay" type="button" onClick={onClose}>
+      {open ? "open" : "closed"}
+    </button>
   ),
 }));
 
@@ -107,7 +109,7 @@ describe("AdminDashboardScreen", () => {
     expect(screen.queryByTestId("toolbar-actions")).not.toBeInTheDocument();
   });
 
-  it("maps ?panel=settings to open overlay and rewrites panel query to overview", async () => {
+  it("keeps ?panel=settings as the overlay source until the overlay closes", async () => {
     render(
       <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=settings"]}>
         <Routes>
@@ -127,6 +129,9 @@ describe("AdminDashboardScreen", () => {
     await waitFor(() => {
       expect(screen.getByTestId("settings-overlay")).toHaveTextContent("open");
     });
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent("panel=settings");
+    fireEvent.click(screen.getByTestId("settings-overlay"));
 
     await waitFor(() => {
       expect(screen.getByTestId("location-search").textContent ?? "").not.toContain("panel=settings");

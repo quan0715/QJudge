@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@carbon/react";
 import { Add, Locked } from "@carbon/icons-react";
 import type { TestCaseStatus } from "@/core/entities/submission.entity";
 import styles from "./TestCaseSidebarList.module.scss";
@@ -16,13 +17,7 @@ export interface TestCaseGroup {
 }
 
 export interface TestCaseSidebarListLabels {
-  list?: string;
-  sample: string;
-  custom: string;
-  emptyCustom: string;
   addAction: string;
-  addNewLabel: string;
-  addNewTag: string;
 }
 
 interface TestCaseSidebarListProps {
@@ -30,18 +25,11 @@ interface TestCaseSidebarListProps {
   onSelect: (index: number) => void;
   groupedCases: TestCaseGroup;
   onAdd?: () => void;
-  isAddingNew?: boolean;
   labels?: Partial<TestCaseSidebarListLabels>;
 }
 
 const DEFAULT_LABELS: TestCaseSidebarListLabels = {
-  list: "Test Cases",
-  sample: "Sample Cases",
-  custom: "Custom Cases",
-  emptyCustom: "No custom cases",
   addAction: "Add test case",
-  addNewLabel: "New test case",
-  addNewTag: "New",
 };
 
 export const TestCaseSidebarList: React.FC<TestCaseSidebarListProps> = ({
@@ -59,7 +47,10 @@ export const TestCaseSidebarList: React.FC<TestCaseSidebarListProps> = ({
     const isPublic = c.label.toLowerCase().includes("sample") || c.isHidden === false;
 
     return (
-      <div
+      <Button
+        type="button"
+        kind="ghost"
+        size="sm"
         key={c.id}
         onClick={() => onSelect(idx)}
         className={`${styles.item} ${isActive ? styles["item--active"] : ""}`}
@@ -68,7 +59,7 @@ export const TestCaseSidebarList: React.FC<TestCaseSidebarListProps> = ({
         <span title={c.label} className={styles.itemLabel}>
           {c.label}
         </span>
-      </div>
+      </Button>
     );
   };
 
@@ -77,10 +68,16 @@ export const TestCaseSidebarList: React.FC<TestCaseSidebarListProps> = ({
       {allCases.map((c, idx) => renderCaseItem(c, idx, selectedIndex === idx))}
       
       {onAdd && (
-        <div onClick={onAdd} className={styles.addItem}>
-          <Add size={16} />
-          <span>{resolvedLabels.addAction}</span>
-        </div>
+        <Button
+          type="button"
+          kind="ghost"
+          size="sm"
+          renderIcon={Add}
+          onClick={onAdd}
+          className={styles.addItem}
+        >
+          {resolvedLabels.addAction}
+        </Button>
       )}
     </div>
   );

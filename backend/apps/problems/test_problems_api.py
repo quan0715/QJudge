@@ -408,18 +408,30 @@ class ProblemContestLockGuardTests(TestCase):
             password="password",
             role="teacher",
         )
+        self.student = User.objects.create_user(
+            username="lock_student",
+            email="lock_student@example.com",
+            password="password",
+            role="student",
+        )
         self.contest = Contest.objects.create(
             name="Locked Contest",
             owner=self.owner,
             status="published",
-            question_edit_locked=True,
-            question_edit_lock_trigger=Contest.QuestionEditLockTrigger.CODING_SUBMISSION,
         )
         self.problem = CodingProblem.objects.create(
             slug="locked-contest-problem",
             created_by=self.owner,
         )
         bind_problem_to_contest(self.contest, self.problem, order=0, score=10)
+        Submission.objects.create(
+            user=self.student,
+            contest=self.contest,
+            problem=self.problem,
+            source_type="contest",
+            language="python",
+            code="print(1)",
+        )
 
     def test_patch_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
@@ -430,14 +442,14 @@ class ProblemContestLockGuardTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
-        self.assertEqual(response.data["error"]["details"]["message"], "已有學生正式作答，競賽題目已鎖定")
+        self.assertEqual(response.data["error"]["details"]["message"], "已有考生開始作答，競賽內容已鎖定")
 
     def test_delete_problem_blocked_when_linked_contest_locked(self):
         self.client.force_authenticate(user=self.owner)
         response = self.client.delete(f"/api/v1/management/problems/{self.problem.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("CONTEST_QUESTION_EDIT_LOCKED", str(response.data))
-        self.assertEqual(response.data["error"]["details"]["message"], "已有學生正式作答，競賽題目已鎖定")
+        self.assertEqual(response.data["error"]["details"]["message"], "已有考生開始作答，競賽內容已鎖定")
 
 
 class ProblemTestRunTests(TestCase):
@@ -635,7 +647,7 @@ class ProblemTestRunContestAccessTests(TestCase):
             name='Active', owner=self.teacher,
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=2),
-            visibility='public', status='published',
+            status='published',
         )
         bind_problem_to_contest(self.active_contest, self.problem)
         ContestParticipant.objects.create(
@@ -695,7 +707,7 @@ class ProblemTestRunContestAccessTests(TestCase):
             name='Future', owner=future_owner,
             start_time=now + timedelta(hours=1),
             end_time=now + timedelta(hours=3),
-            visibility='public', status='published',
+            status='published',
         )
         bind_problem_to_contest(future_contest, self.problem)
         ContestParticipant.objects.create(

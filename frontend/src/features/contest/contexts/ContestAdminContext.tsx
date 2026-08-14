@@ -17,12 +17,14 @@ import {
 import type {
   ContestParticipant,
   ContestOverviewMetrics,
+  EventFeedItem,
   ExamEvent,
 } from "@/core/entities/contest.entity";
 
 interface ContestAdminContextType {
   participants: ContestParticipant[];
   examEvents: ExamEvent[];
+  eventFeed: EventFeedItem[];
   overviewMetrics: ContestOverviewMetrics | null;
   /** True only during the first automatic load; false once data has arrived at least once. */
   initialLoading: boolean;
@@ -100,6 +102,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
   const [participants, setParticipants] = useState<ContestParticipant[]>([]);
   const [examEvents, setExamEvents] = useState<ExamEvent[]>([]);
+  const [eventFeed, setEventFeed] = useState<EventFeedItem[]>([]);
   const [overviewMetrics, setOverviewMetrics] =
     useState<ContestOverviewMetrics | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -125,15 +128,16 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
 
     setExamEventsLoading(true);
     try {
-      const [examEventsData, activitiesData] = await Promise.all([
+      const [examEventResponse, activitiesData] = await Promise.all([
         getExamEvents(contestId),
         getContestActivities(contestId),
       ]);
-      const allEvents = [...examEventsData, ...activitiesData].sort(
+      const allEvents = [...examEventResponse.events, ...activitiesData].sort(
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
       setExamEvents(allEvents);
+      setEventFeed(examEventResponse.eventFeed);
     } catch (err) {
       console.error("Failed to fetch contest exam events:", err);
     } finally {
@@ -194,6 +198,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
     () => ({
       participants,
       examEvents,
+      eventFeed,
       overviewMetrics,
       initialLoading,
       examEventsLoading,
@@ -208,6 +213,7 @@ export const ContestAdminProvider: React.FC<ContestAdminProviderProps> = ({
     [
       participants,
       examEvents,
+      eventFeed,
       overviewMetrics,
       initialLoading,
       examEventsLoading,

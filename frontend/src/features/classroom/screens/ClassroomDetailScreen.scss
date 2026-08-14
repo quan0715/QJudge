@@ -11,19 +11,6 @@
   padding: 0;
   min-height: 0;
   align-content: start;
-
-  // Force Carbon Tile backgrounds to follow the current theme.
-  .cds--tile {
-    background-color: var(--cds-layer) !important;
-  }
-
-  .cds--tile:hover {
-    background-color: var(--cds-layer-hover) !important;
-  }
-
-  .cds--tile:active {
-    background-color: var(--cds-layer-active) !important;
-  }
 }
 
 .classroom-admin-loading,
@@ -39,193 +26,6 @@
 
 .classroom-admin-empty__icon {
   color: var(--cds-icon-disabled);
-}
-
-// ── Hero with cover background ──
-.classroom-hero-wrapper {
-  width: 100%;
-  position: relative;
-}
-
-// Overlay lives on .classroom-hero-and-tabs (covers hero + tabs)
-.classroom-hero-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.2) 0%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  pointer-events: none;
-}
-
-.classroom-hero-content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: layout.$spacing-06;
-  max-width: 84rem;
-  margin: 0 auto;
-  padding: layout.$spacing-07 layout.$spacing-10 layout.$spacing-05;
-}
-
-// Left column: icon → title → description (vertical)
-.classroom-hero-left {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
-}
-
-.classroom-hero-icon {
-  line-height: 1;
-  color: #fff;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  user-select: none;
-
-  svg {
-    fill: #fff;
-  }
-}
-
-.classroom-hero-title {
-  font-size: 1.75rem;
-  font-weight: 400;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  color: #fff;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-}
-
-.classroom-hero-desc {
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.5;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.7);
-  max-width: 36rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-// KpiCard on dark hero — override default theme colors
-.classroom-hero-kpi {
-  background: transparent !important;
-  border: none !important;
-  color: #fff !important;
-  flex-shrink: 0;
-
-  [class*="kpiIcon"] {
-    color: rgba(255, 255, 255, 0.5);
-  }
-  [class*="kpiValue"] {
-    color: #fff;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  }
-  [class*="kpiLabel"] {
-    color: rgba(255, 255, 255, 0.55);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-}
-
-// ── Hero + Tabs wrapper ──
-// The tabs sit at the bottom of the hero visually, sharing the same
-// background. When the user scrolls, the tab bar sticks below the navbar.
-.classroom-hero-and-tabs {
-  position: relative;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-color: var(--cds-background);
-
-  // Soft shadow at the bottom edge to ease the transition into content
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.08) 0%,
-      transparent 100%
-    );
-    pointer-events: none;
-    z-index: 4;
-  }
-}
-
-// ── Tab bar ──
-// Sits inside the hero cover — all backgrounds must be transparent so the
-// cover image shows through. We override every Carbon state (default,
-// hover, selected, focus, disabled) to avoid any opaque surface leaking.
-.classroom-tabs-bar {
-  position: sticky;
-  top: 3rem;
-  z-index: 3;
-  padding: 0 layout.$spacing-10;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-
-  .cds--tabs {
-    max-width: 84rem;
-    margin: 0 auto;
-  }
-
-  .cds--tab--list {
-    background: transparent !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  }
-
-  // Reset every nav-item + link to transparent
-  .cds--tabs__nav-item,
-  .cds--tabs__nav-item:hover,
-  .cds--tabs__nav-item--selected,
-  .cds--tabs__nav-item--selected:hover {
-    background-color: transparent !important;
-    border-block-end-color: transparent !important;
-  }
-
-  .cds--tabs__nav-link {
-    color: rgba(255, 255, 255, 0.7) !important;
-    background-color: transparent !important;
-
-    svg {
-      fill: currentColor;
-    }
-
-    &:hover {
-      color: #fff !important;
-    }
-
-    &:focus,
-    &:active {
-      outline-color: rgba(255, 255, 255, 0.6);
-    }
-  }
-
-  // Selected indicator — blue bottom border (theme-aware)
-  .cds--tabs__nav-item--selected {
-    border-block-end: 2px solid var(--cds-link-inverse, #78a9ff) !important;
-  }
-
-  .cds--tabs__nav-item--selected .cds--tabs__nav-link,
-  .cds--tabs__nav-item--selected .cds--tabs__nav-link:hover {
-    color: #fff !important;
-    background-color: transparent !important;
-  }
-
-  .cds--tab-content {
-    display: none;
-  }
 }
 
 // ── Panel content ──
@@ -369,7 +169,7 @@
 }
 
 .classroom-admin-announcement-card {
-  @include card.interactive($override-tile: true);
+  @include card.interactive;
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-03;
@@ -663,39 +463,12 @@
 }
 
 @media (max-width: 1056px) {
-  .classroom-hero-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .classroom-admin-overview-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 672px) {
-  .classroom-tabs-bar {
-    padding: 0 layout.$spacing-05;
-  }
-
-  .classroom-hero-content {
-    padding: layout.$spacing-05 layout.$spacing-05 layout.$spacing-04;
-    gap: layout.$spacing-03;
-  }
-
-  .classroom-hero-icon svg {
-    width: layout.rem(36px);
-    height: layout.rem(36px);
-  }
-
-  .classroom-hero-title {
-    font-size: 1.75rem;
-  }
-
-  .classroom-hero-desc {
-    font-size: 1rem;
-  }
-
   .classroom-admin-page {
     padding: 0;
   }

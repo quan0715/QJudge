@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, TextArea, FormLabel, NumberInput, Toggle } from "@carbon/react";
+import { Modal, TextArea, NumberInput, Toggle } from "@carbon/react";
 import type { TestCaseMode } from "./TestCaseTypes";
 
 interface TestCaseAddModalProps {
@@ -62,9 +62,9 @@ const TestCaseAddModal: React.FC<TestCaseAddModalProps> = ({
       size="md"
     >
       <div style={{ marginBottom: "1rem" }}>
-        <FormLabel>輸入 (Input) *</FormLabel>
         <TextArea
-          labelText=""
+          id="new-tc-input"
+          labelText="輸入 (Input) *"
           rows={4}
           value={newInput}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -77,9 +77,9 @@ const TestCaseAddModal: React.FC<TestCaseAddModalProps> = ({
         />
       </div>
       <div style={{ marginBottom: "1rem" }}>
-        <FormLabel>預期輸出 (Expected Output) *</FormLabel>
         <TextArea
-          labelText=""
+          id="new-tc-output"
+          labelText="預期輸出 (Expected Output) *"
           rows={4}
           value={newOutput}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {

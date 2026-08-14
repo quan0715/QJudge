@@ -36,11 +36,6 @@ export const Processing: Story = {
   name: "執行中",
   args: {
     steps: [mockToolSteps[0]],
-    todoItems: [
-      { id: "todo-1", label: "讀取題目資料", status: "success" },
-      { id: "todo-2", label: "建立測試案例", status: "in_progress" },
-      { id: "todo-3", label: "產生參考解答", status: "pending" },
-    ],
     isProcessing: true,
     currentToolName: "qjudge_browse",
   },
@@ -51,7 +46,16 @@ export const WithError: Story = {
   args: {
     steps: [
       mockToolSteps[0],
-      { ...mockToolSteps[1], isError: true, result: "Permission denied" },
+      {
+        ...mockToolSteps[1],
+        state: "error",
+        error: {
+          code: "run-failed",
+          operation: "subscribe-run",
+          message: "Permission denied",
+          recoverable: false,
+        },
+      },
     ],
     isProcessing: false,
   },

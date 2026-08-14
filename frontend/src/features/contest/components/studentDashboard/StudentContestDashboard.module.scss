@@ -1,11 +1,12 @@
+@use "@carbon/layout";
 // 此 module 只保留 student dashboard 內部 list / chart / tab content 的局部樣式。
 // 頁面層級 layout、title、metric、time 已改用 @/shared/components/dashboard 元件。
 
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  gap: layout.$spacing-03;
+  margin-top: layout.$spacing-02;
 }
 
 .tabPanel {
@@ -14,20 +15,20 @@
 
 .tabContent {
   display: grid;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: layout.$spacing-05;
+  padding: layout.$spacing-06;
 }
 
 .actionStack,
 .modalStack {
   display: grid;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .headerActions {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .actionStackItem {
@@ -37,7 +38,7 @@
 .progressTrack {
   position: relative;
   block-size: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: layout.$spacing-04;
   overflow: hidden;
   background: var(--cds-layer-accent-01);
 }
@@ -50,7 +51,7 @@
 
 .scoreDistributionChart {
   min-height: 11.25rem;
-  margin-top: 0.75rem;
+  margin-top: layout.$spacing-04;
   overflow: hidden;
 }
 
@@ -65,14 +66,14 @@
 
 .announcementList {
   display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: layout.$spacing-05;
+  margin-top: layout.$spacing-05;
 }
 
 .announcementItem {
   display: grid;
-  gap: 0.75rem;
-  padding-top: 1rem;
+  gap: layout.$spacing-04;
+  padding-top: layout.$spacing-05;
   border-top: 1px solid var(--cds-border-subtle);
 }
 
@@ -106,7 +107,7 @@
 }
 
 .recordMeta {
-  margin-top: 0.25rem;
+  margin-top: layout.$spacing-02;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
 }
 
@@ -126,15 +127,15 @@
 
 .problemReportList {
   display: grid;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .problemReportItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
+  gap: layout.$spacing-05;
   align-items: center;
-  padding: 1rem;
+  padding: layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
 }
 
@@ -142,17 +143,17 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .questionList {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: layout.$spacing-04;
 }
 
 .errorText {
-  margin: 1rem 0 0;
+  margin: layout.$spacing-05 0 0;
   color: var(--cds-text-error);
 }
 
@@ -162,14 +163,14 @@
 
 .studentQrModal {
   display: grid;
-  gap: 1rem;
+  gap: layout.$spacing-05;
   justify-items: center;
   color: var(--cds-text-secondary);
   text-align: center;
 }
 
 .studentQrFrame {
-  padding: 1rem;
+  padding: layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
   background: #fff;
 }
@@ -180,7 +181,7 @@
 
 @media (max-width: 672px) {
   .tabContent {
-    padding: 1rem;
+    padding: layout.$spacing-05;
   }
 
   .problemReportItem {

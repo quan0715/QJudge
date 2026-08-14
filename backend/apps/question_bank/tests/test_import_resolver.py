@@ -29,14 +29,12 @@ def test_resolve_bank_question_for_import_resolves_membership_and_enforces_type(
         owner=teacher,
         name="Exam Bank",
         category=QuestionBank.Category.EXAM,
-        visibility=QuestionBank.Visibility.PRIVATE,
     )
     asset, _version = create_question_asset(
         owner=teacher,
         asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
         title="Short answer",
         prompt="Explain the result.",
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": "single_choice",
             "options": ["A", "B"],

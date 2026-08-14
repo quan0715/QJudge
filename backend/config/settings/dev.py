@@ -40,6 +40,7 @@ REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = [
 # The frontend uses HttpOnly cookies and does not attach Authorization header.
 # Removing CookieJWTAuthentication causes every authenticated API call to return 401.
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
+    'apps.oauth.authentication.ResourceTokenAuthentication',
     'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # MCP OAuth
     'apps.users.authentication.CookieJWTAuthentication',
     'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -95,6 +96,12 @@ if os.getenv('FRONTEND_URL'):
 CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
 if os.getenv('FRONTEND_URL'):
     CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+# Dev may expose the same backend through a public tunnel while the frontend is
+# still exercised directly through Vite. Keep both local Vite origins trusted
+# even when FRONTEND_URL points at the tunnel hostname.
+for _origin in ('http://localhost:5173', 'http://127.0.0.1:5173'):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 # Cloudflare Tunnel dev domains
 for _host in os.getenv('ALLOWED_HOSTS', '').split(','):
     _host = _host.strip()

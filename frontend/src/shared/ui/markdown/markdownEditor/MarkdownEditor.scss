@@ -1,3 +1,4 @@
+@use "@carbon/layout";
 .markdown-editor {
   display: flex;
   flex-direction: column;
@@ -19,7 +20,7 @@
 
   &__label {
     flex-shrink: 0;
-    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    padding: layout.$spacing-03 layout.$spacing-05;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--cds-text-secondary);
@@ -48,31 +49,8 @@
   }
 
   &__tab-btn {
-    all: unset;
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--cds-text-secondary);
-    cursor: pointer;
+    max-inline-size: none;
     border-right: 1px solid var(--cds-border-subtle-01);
-
-    &:hover {
-      color: var(--cds-text-primary);
-    }
-
-    &--active {
-      background: var(--cds-layer-01);
-      color: var(--cds-text-primary);
-      font-weight: 600;
-    }
-
-    svg {
-      flex-shrink: 0;
-    }
   }
 
   &__topbar-toolbar {
@@ -83,10 +61,10 @@
   }
 
   &__topbar .markdown-toolbar {
-    padding: 0 var(--cds-spacing-03);
+    padding: 0 layout.$spacing-03;
     border-bottom: 0;
     background: transparent;
-    gap: var(--cds-spacing-02);
+    gap: layout.$spacing-02;
   }
 
   &__image-input {
@@ -96,8 +74,8 @@
   &__status {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-03);
-    padding: var(--cds-spacing-03) var(--cds-spacing-05);
+    gap: layout.$spacing-03;
+    padding: layout.$spacing-03 layout.$spacing-05;
     border-bottom: 1px solid var(--cds-border-subtle-01);
     background: var(--cds-layer-02);
   }
@@ -141,12 +119,12 @@
   &__preview-content {
     flex: 1;
     min-height: 0;
-    padding: 1rem; // explicit padding
+    padding: layout.$spacing-05; // explicit padding
     overflow: auto;
 
     .markdown-body {
       > *:not(:last-child) {
-        margin-bottom: 0.75rem;
+        margin-bottom: layout.$spacing-04;
       }
     }
   }
@@ -157,15 +135,10 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--cds-spacing-02);
-  padding: 0 var(--cds-spacing-03);
+  gap: layout.$spacing-02;
+  padding: 0 layout.$spacing-03;
   background: var(--cds-layer-02);
   border-bottom: 1px solid var(--cds-border-subtle-01);
-
-  .cds--btn {
-    border: none;
-  }
-
 
   &__group {
     display: flex;
@@ -177,7 +150,7 @@
     width: 1px;
     height: 1rem;
     background: var(--cds-border-subtle-01);
-    margin: 0 var(--cds-spacing-03);
+    margin: 0 layout.$spacing-03;
   }
 }
 
@@ -197,7 +170,7 @@
 
   &__label {
     display: block;
-    margin-bottom: var(--cds-spacing-02);
+    margin-bottom: layout.$spacing-02;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--cds-text-secondary);
@@ -206,7 +179,7 @@
   &__content {
     min-height: 80px;
     max-height: 200px;
-    padding: var(--cds-spacing-05);
+    padding: layout.$spacing-05;
     overflow: auto;
     background: var(--cds-field-01);
     border: 1px solid var(--cds-border-subtle-01);
@@ -216,7 +189,7 @@
 
       // Space between markdown elements
       > *:not(:last-child) {
-        margin-bottom: var(--cds-spacing-04);
+        margin-bottom: layout.$spacing-04;
       }
     }
   }
@@ -230,8 +203,8 @@
   &__edit-hint {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-02);
-    margin-top: var(--cds-spacing-02);
+    gap: layout.$spacing-02;
+    margin-top: layout.$spacing-02;
     font-size: 0.75rem;
     color: var(--cds-text-helper);
   }
@@ -254,7 +227,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem; // spacing-03
+    margin-bottom: layout.$spacing-03; // spacing-03
   }
 
   &__label {
@@ -265,13 +238,13 @@
 
   &__actions {
     display: flex;
-    gap: var(--cds-spacing-02);
+    gap: layout.$spacing-02;
   }
 
   &__edit-hint {
     display: flex;
     align-items: center;
-    gap: var(--cds-spacing-02);
+    gap: layout.$spacing-02;
     font-size: 0.75rem;
     color: var(--cds-text-helper);
   }
@@ -279,7 +252,7 @@
   &__content {
     min-height: 80px;
     max-height: 300px;
-    padding: 1rem; // explicit padding
+    padding: layout.$spacing-05; // explicit padding
     overflow: auto;
     background: var(--cds-field-01);
     border: 1px solid var(--cds-border-subtle-01);
@@ -288,7 +261,7 @@
       font-size: 0.875rem;
 
       > *:not(:last-child) {
-        margin-bottom: 0.75rem;
+        margin-bottom: layout.$spacing-04;
       }
     }
   }
@@ -304,41 +277,12 @@
   }
 }
 
-// Modal styles
-.markdown-editor-modal {
-  .cds--modal-container {
-    max-width: 90vw;
-    width: 90vw;
-    max-height: 90vh;
-    height: 90vh;
-  }
-
-  .cds--modal-content {
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__body {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-
-    .markdown-editor {
-      flex: 1;
-      min-height: 0;
-    }
-  }
-}
-
 // MarkdownField - Always-visible editor for forms (Carbon-style)
 .markdown-field {
   // Label - matches Carbon's .cds--label
   &__label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: layout.$spacing-03;
     font-size: 0.75rem;
     font-weight: 400;
     line-height: 1rem;
@@ -351,7 +295,7 @@
     position: relative;
     border: none;
     border-bottom: 1px solid var(--cds-border-strong);
-    padding: var(--cds-spacing-02);
+    padding: layout.$spacing-02;
     background-color: var(--cds-field);
     transition: outline 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
 
@@ -383,26 +327,11 @@
       }
     }
 
-    // Monaco editor background
-    .monaco-editor,
-    .monaco-editor .margin,
-    .monaco-editor-background {
-      background-color: var(--cds-field) !important;
-    }
-
-    // Monaco editor on hover
-    &:hover {
-      .monaco-editor,
-      .monaco-editor .margin,
-      .monaco-editor-background {
-        background-color: var(--cds-field-hover) !important;
-      }
-    }
   }
 
   // Helper text - matches Carbon's .cds--form__helper-text
   &__helper-text {
-    margin-top: 0.25rem;
+    margin-top: layout.$spacing-02;
     font-size: 0.75rem;
     line-height: 1rem;
     letter-spacing: 0.32px;

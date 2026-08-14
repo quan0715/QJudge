@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Search,
@@ -53,12 +53,7 @@ const UserManagementScreen = () => {
   const [latestInviteExpiresAt, setLatestInviteExpiresAt] = useState<string | null>(null);
   const { isCopied, copy } = useCopyText();
 
-  // Load all users on mount
-  useEffect(() => {
-    loadAllUsers();
-  }, []);
-
-  const loadAllUsers = async () => {
+  const loadAllUsers = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -78,7 +73,12 @@ const UserManagementScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  // Load all users on mount and when the translated error copy changes.
+  useEffect(() => {
+    void loadAllUsers();
+  }, [loadAllUsers]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {

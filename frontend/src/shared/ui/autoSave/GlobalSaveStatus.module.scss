@@ -10,10 +10,7 @@
 
 .loading {
   min-block-size: auto;
-
-  :global(.cds--inline-loading__text) {
-    color: var(--cds-text-secondary);
-  }
+  color: var(--cds-text-secondary);
 }
 
 .saved {

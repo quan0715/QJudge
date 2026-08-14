@@ -1,12 +1,19 @@
-/**
- * Clear auth storage (for logout or token expiry)
- * Note: JWT tokens are now stored in HttpOnly cookies (more secure),
- * but we keep localStorage for user info cache.
- */
-export const clearAuthStorage = () => {
-  localStorage.removeItem("user");
-  window.dispatchEvent(new Event("storage"));
+const AUTH_SESSION_EVENT_KEY = "qjudge.auth.session_changed_at";
+
+/** Notify other tabs that the cookie-backed session state changed. */
+export const notifyAuthSessionChanged = () => {
+  localStorage.setItem(AUTH_SESSION_EVENT_KEY, String(Date.now()));
 };
+
+/** Clear client-side authentication state after logout or token expiry. */
+export const clearAuthStorage = () => {
+  // Remove data written by older builds. Identity is never restored from it.
+  localStorage.removeItem("user");
+  notifyAuthSessionChanged();
+};
+
+export const isAuthSessionStorageEvent = (event: StorageEvent): boolean =>
+  event.key === AUTH_SESSION_EVENT_KEY;
 
 /**
  * Get CSRF token from cookie.
@@ -31,6 +38,13 @@ const getCsrfToken = (): string | null => {
 const DEVICE_ID_KEY = "qjudge.device_id.v1";
 const AUTH_REFRESH_ENDPOINT = "/api/v1/auth/refresh";
 
+export interface HttpClientRequestInit extends RequestInit {
+  /** Keep an error local to a feature that already renders its own fallback UI. */
+  suppressGlobalError?: boolean;
+  /** Return the final 401 response without redirecting, after one refresh attempt. */
+  allowUnauthenticated?: boolean;
+}
+
 const ensureDeviceId = (): string => {
   if (typeof window === "undefined") return "server";
   const existing = window.localStorage.getItem(DEVICE_ID_KEY);
@@ -44,6 +58,9 @@ const ensureDeviceId = (): string => {
   window.localStorage.setItem(DEVICE_ID_KEY, nextId);
   return nextId;
 };
+
+/** Shared browser device identity for the HTTP and durable integrity protocols. */
+export const getDeviceId = (): string => ensureDeviceId();
 
 const redirectToLogin = () => {
   if (typeof window === "undefined") return;
@@ -100,19 +117,16 @@ const dispatchServerError = (statusCode: number, message?: string) => {
   );
 };
 
-const shouldDispatchServerError = (endpoint: string): boolean => {
-  // Anti-cheat telemetry endpoints are noisy and transient failures (e.g. 502)
-  // should not hard-redirect users away from exam screens.
-  if (endpoint.includes("/exam/events/")) return false;
+const shouldDispatchServerError = (): boolean => {
   return true;
 };
 
 /**
  * Handle server errors (5xx) - dispatch event for global handling
  */
-const handleServerError = (endpoint: string, response: Response): boolean => {
+const handleServerError = (response: Response): boolean => {
   if (response.status >= 500 && response.status < 600) {
-    if (shouldDispatchServerError(endpoint)) {
+    if (shouldDispatchServerError()) {
       dispatchServerError(response.status, `伺服器錯誤 (${response.status})`);
     }
     return true;
@@ -160,12 +174,27 @@ const buildHeaders = (init: RequestInit = {}): Headers => {
   return headers;
 };
 
-const performFetch = (endpoint: string, init: RequestInit = {}) =>
-  fetch(endpoint, {
-    ...init,
-    headers: buildHeaders(init),
+const performFetch = (endpoint: string, init: HttpClientRequestInit = {}) => {
+  const {
+    suppressGlobalError: _suppressGlobalError,
+    allowUnauthenticated: _allowUnauthenticated,
+    ...requestInit
+  } = init;
+  return fetch(endpoint, {
+    ...requestInit,
+    headers: buildHeaders(requestInit),
     credentials: "include",
   });
+};
+
+/**
+ * One-shot request path for protocols whose POST identity must never be
+ * replayed by the generic authentication flow. It deliberately keeps the
+ * shared cookie, CSRF, and device headers, but does not refresh, redirect, or
+ * otherwise issue a second request.
+ */
+const performSingleFetch = (endpoint: string, init: HttpClientRequestInit = {}) =>
+  performFetch(endpoint, { ...init, redirect: "error" });
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -241,7 +270,7 @@ export const ensureOk = async (
  * - CSRF token is included in X-CSRFToken header for state-changing requests
  * - The `credentials: 'include'` option ensures cookies are sent with requests
  */
-const customFetch = async (endpoint: string, init: RequestInit = {}) => {
+const customFetch = async (endpoint: string, init: HttpClientRequestInit = {}) => {
   let response = await performFetch(endpoint, init);
 
   if (response.status === 401 && shouldAttemptTokenRefresh(endpoint)) {
@@ -251,14 +280,14 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && !init.allowUnauthenticated) {
     handleUnauthorized();
     throw new Error("Unauthorized");
   }
 
   // Handle server errors (5xx) - dispatch event but don't throw
   // This allows components to still handle the error if needed
-  if (handleServerError(endpoint, response)) {
+  if (!init.suppressGlobalError && handleServerError(response)) {
     // Don't throw - let calling code decide how to handle
   }
 
@@ -267,29 +296,30 @@ const customFetch = async (endpoint: string, init: RequestInit = {}) => {
 
 export const httpClient = {
   request: customFetch,
-  get: (url: string, init?: RequestInit) =>
+  requestOnce: performSingleFetch,
+  get: (url: string, init?: HttpClientRequestInit) =>
     customFetch(url, { ...init, method: "GET" }),
-  post: (url: string, body?: any, init?: RequestInit) =>
+  post: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "POST",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  put: (url: string, body?: any, init?: RequestInit) =>
+  put: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "PUT",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  patch: (url: string, body?: any, init?: RequestInit) =>
+  patch: (url: string, body?: any, init?: HttpClientRequestInit) =>
     customFetch(url, {
       ...init,
       method: "PATCH",
       body: JSON.stringify(body),
       headers: { ...init?.headers, "Content-Type": "application/json" },
     }),
-  delete: (url: string, init?: RequestInit) =>
+  delete: (url: string, init?: HttpClientRequestInit) =>
     customFetch(url, { ...init, method: "DELETE" }),
 };

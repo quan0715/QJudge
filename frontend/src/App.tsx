@@ -1,64 +1,65 @@
 import { BrowserRouter } from "react-router-dom";
 import { Routes, Route } from "react-router";
+import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
 import { HelmetProvider } from "react-helmet-async";
+
 import i18n from "@/i18n";
 import MainLayout from "@/features/app/components/MainLayout";
 import ErrorBoundary from "@/features/app/components/ErrorBoundary";
-
-// Feature imports - modular routes
 import {
   guestRoutes,
   oauthCallbackRoute,
   onboardingRoute,
   inviteLinkRoute,
   oauthAuthorizeRoute,
-  AuthLayout,
-  AuthProvider,
+} from "@/features/auth/routes";
+import AuthLayout from "@/features/auth/components/layout/AuthLayout";
+import { AuthProvider } from "@/features/auth/contexts/AuthContext";
+import {
   RequireAuth,
   RequireGuest,
   RequireAdmin,
   RequireTeacherOrAdmin,
   RequirePendingOnboarding,
   RequireCompletedOnboarding,
-  SettingsDialogProvider,
-  SettingsDialog,
-  UserPreferencesHydrator,
-} from "@/features/auth";
-import { problemDetailRoutes, problemSolveRoutes } from "@/features/problems";
+} from "@/features/auth/components/RouteGuards";
+import { SettingsDialogProvider } from "@/features/auth/contexts/SettingsDialogContext";
+import SettingsDialogHost from "@/features/auth/components/SettingsDialogHost";
+import UserPreferencesHydrator from "@/features/auth/components/UserPreferencesHydrator";
+import {
+  problemDetailRoutes,
+  problemSolveRoutes,
+} from "@/features/problems/routes";
 import {
   classroomContestRouteChildren,
-  ContestWorkspaceLayout,
   classroomContestAdminRoute,
   classroomContestAttendanceProjectionRoute,
   classroomContestAttendanceScanRoute,
   classroomExamPreviewRoute,
   classroomExamPrecheckRoute,
-} from "@/features/contest";
-import { dashboardRoute } from "@/features/dashboard";
-import { docsRoutes, DocsLayout } from "@/features/docs";
-import { changelogRoutes } from "@/features/changelog";
-import { errorRoutes, fallbackRoute } from "@/features/app";
-import { adminRoutes, draftProblemsRoute } from "@/features/admin";
-import { landingRoute } from "@/features/landing";
-import { checkoutSuccessRoute, pricingRoute } from "@/features/pricing";
-import RecurProviderBridge from "@/features/pricing/components/RecurProviderBridge";
-import { classroomDetailRoute } from "@/features/classroom";
-import { questionBankMarketplaceRoute, questionBankDetailRoute } from "@/features/question-banks";
-import { lazy, Suspense } from "react";
+} from "@/features/contest/routes";
+import ContestWorkspaceLayout from "@/features/contest/components/layout/ContestWorkspaceLayout";
+import { dashboardRoute } from "@/features/dashboard/routes";
+import { docsRoutes } from "@/features/docs/routes";
+import DocsLayout from "@/features/docs/components/DocsLayout";
+import { errorRoutes, fallbackRoute } from "@/features/app/routes";
+import { adminRoutes, draftProblemsRoute } from "@/features/admin/routes";
+import { landingRoute } from "@/features/landing/routes";
+import { classroomDetailRoute } from "@/features/classroom/routes";
+import { questionBankDetailRoute } from "@/features/question-banks/routes";
 
 const ChatStandalonePage = lazy(() => import("@/features/chatbot/components/ChatStandalonePage"));
 
 // Context providers
 import { ApiErrorProvider, ToastProvider, ContentLanguageProvider } from "@/shared/contexts";
 import { PageHeaderActionsProvider } from "@/features/app/contexts/PageHeaderActionsContext";
-import { ChatbotProvider } from "@/features/chatbot/contexts/ChatbotProvider";
+import { QJudgeCopilotProvider } from "@/features/chatbot/contexts/QJudgeCopilotProvider";
 import { WorkspaceProvider } from "@/features/app/contexts/WorkspaceContext";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
-import {
-  MarkdownImageUploadProvider,
-} from "@/shared/ui/markdown/markdownEditor";
+import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
+import { MarkdownImageUploadProvider } from "@/shared/ui/markdown/markdownEditor/MarkdownImageUploadContext";
 import { uploadMarkdownImage } from "@/infrastructure/api/repositories/markdown.repository";
 
 
@@ -74,17 +75,17 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
-  const markdownImageUploader = async (file: File) => {
-    const result = await uploadMarkdownImage(file);
-    return {
-      url: result.url,
-      markdown: result.markdown,
-      contentType: result.content_type,
-      size: result.size,
-    };
+async function markdownImageUploader(file: File) {
+  const result = await uploadMarkdownImage(file);
+  return {
+    url: result.url,
+    markdown: result.markdown,
+    contentType: result.content_type,
+    size: result.size,
   };
+}
 
+function App() {
   return (
     <HelmetProvider>
       <ErrorBoundary>
@@ -97,10 +98,9 @@ function App() {
                   <AuthProvider>
                     <UserPreferencesHydrator />
                     <SettingsDialogProvider>
-                    <RecurProviderBridge>
                     <BrowserRouter>
-                      <ChatbotProvider>
                       <WorkspaceProvider>
+                      <QJudgeCopilotProvider>
                       <PageHeaderActionsProvider>
                       <ApiErrorProvider>
                       <Routes>
@@ -122,25 +122,16 @@ function App() {
                         {/* Public Documentation Routes - no login required, custom layout */}
                         <Route element={<DocsLayout />}>
                           {docsRoutes}
-                          {changelogRoutes}
                         </Route>
 
                         {/* Public Landing Page */}
                         {landingRoute}
-                        {pricingRoute}
-
-                        {/* Public Checkout Success */}
-                        {checkoutSuccessRoute}
 
                         {/* Protected Routes (Dashboard, Problems, etc.) */}
                         <Route element={<RequireAuth />}>
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {dashboardRoute}
-                              <Route
-                                path="/ranking"
-                                element={<div>Ranking Page (Coming Soon)</div>}
-                              />
                               {/* Classroom Detail - inside MainLayout for shared sidebar */}
                               {classroomDetailRoute}
                             </Route>
@@ -172,7 +163,6 @@ function App() {
                         <Route element={<RequireTeacherOrAdmin />}>
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
-                              {questionBankMarketplaceRoute}
                               {questionBankDetailRoute}
                               {draftProblemsRoute}
                               {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
@@ -180,9 +170,9 @@ function App() {
                               <Route
                                 path="/chat"
                                 element={
-                                  <Suspense fallback={null}>
+                                  <RouteLoadingBoundary>
                                     <ChatStandalonePage />
-                                  </Suspense>
+                                  </RouteLoadingBoundary>
                                 }
                               />
                             </Route>
@@ -209,11 +199,10 @@ function App() {
                       </Routes>
                       </ApiErrorProvider>
                       </PageHeaderActionsProvider>
+                      </QJudgeCopilotProvider>
                       </WorkspaceProvider>
-                      </ChatbotProvider>
                     </BrowserRouter>
-                    <SettingsDialog />
-                    </RecurProviderBridge>
+                    <SettingsDialogHost />
                     </SettingsDialogProvider>
                   </AuthProvider>
                 </MarkdownImageUploadProvider>

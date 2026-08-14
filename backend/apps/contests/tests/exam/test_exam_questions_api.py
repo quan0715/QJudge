@@ -14,16 +14,19 @@ Covers:
 from datetime import timedelta
 
 import pytest
+from django.db import connection
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.contests.models import Contest, ContestParticipant, ExamQuestion
+from apps.contests.models import Contest, ContestParticipant, ExamQuestion, ExamStatus
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionBank
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.contests import views as contest_views
 from apps.contests.views import exam_question as exam_question_view_module
+from apps.contests.services.question_edit_lock import lock_contest_for_question_edit
+from apps.users.models import User
 
 
 @pytest.fixture
@@ -64,6 +67,7 @@ def contest(teacher):
     return Contest.objects.create(
         name="EQ Test Contest",
         owner=teacher,
+        contest_type="paper_exam",
         status="published",
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=2),
@@ -111,7 +115,6 @@ def _create_exam_bank_item(
         asset_type=asset_type,
         title=prompt,
         prompt=prompt,
-        visibility=QuestionAsset.Visibility.PRIVATE,
         payload={
             "question_type": question_type,
             "options": options or ["3", "4"],
@@ -653,8 +656,6 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Exam Bank",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         _asset, membership = _create_exam_bank_item(
             bank=bank,
@@ -690,15 +691,12 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Asset Only Exam Bank",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         asset, _version = create_question_asset(
             owner=teacher,
             asset_type=QuestionAsset.AssetType.SINGLE_CHOICE,
             title="2+2 = ?",
             prompt="2+2 = ?",
-            visibility=QuestionAsset.Visibility.PRIVATE,
             payload={
                 "question_type": "single_choice",
                 "options": ["3", "4"],
@@ -748,8 +746,6 @@ class TestImportFromQuestionBank:
             owner=teacher,
             name="Teacher Exam Bank Non Membership Reject",
             category=QuestionBank.Category.EXAM,
-            visibility=QuestionBank.Visibility.PRIVATE,
-            verified=False,
         )
         asset, _membership = _create_exam_bank_item(
             bank=bank,
@@ -801,16 +797,68 @@ class TestImportFromQuestionBank:
 
 @pytest.mark.django_db
 class TestQuestionEditLockGuard:
+    def test_create_checks_lock_while_contest_row_transaction_is_open(
+        self,
+        api_client,
+        teacher,
+        contest,
+        monkeypatch,
+    ):
+        def assert_atomic_guard(**kwargs):
+            assert connection.in_atomic_block is True
+            return lock_contest_for_question_edit(**kwargs)
+
+        monkeypatch.setattr(
+            exam_question_view_module,
+            "lock_contest_for_question_edit",
+            assert_atomic_guard,
+        )
+        api_client.force_authenticate(user=teacher)
+
+        response = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "transaction protected",
+            "score": 1,
+        }, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_started_participant_blocks_content_edits_when_legacy_flag_is_false(
+        self,
+        api_client,
+        teacher,
+        student,
+        contest,
+    ):
+        ContestParticipant.objects.create(
+            contest=contest,
+            user=student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
+        )
+        api_client.force_authenticate(user=teacher)
+
+        create_res = api_client.post(url(contest.id), {
+            "question_type": "essay",
+            "prompt": "blocked",
+            "score": 1,
+        }, format="json")
+
+        assert create_res.status_code == status.HTTP_409_CONFLICT
+        assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
+
     def test_blocks_exam_question_create_update_delete_reorder_and_import(self, api_client, teacher, contest):
-        contest.question_edit_locked = True
-        contest.question_edit_locked_at = timezone.now()
-        contest.question_edit_lock_trigger = Contest.QuestionEditLockTrigger.CODING_SUBMISSION
-        contest.save(
-            update_fields=[
-                "question_edit_locked",
-                "question_edit_locked_at",
-                "question_edit_lock_trigger",
-            ]
+        student = User.objects.create_user(
+            username="locked-question-student",
+            email="locked-question-student@example.com",
+            password="pass123",
+            role="student",
+        )
+        ContestParticipant.objects.create(
+            contest=contest,
+            user=student,
+            exam_status=ExamStatus.IN_PROGRESS,
+            started_at=timezone.now(),
         )
 
         api_client.force_authenticate(user=teacher)
@@ -822,7 +870,7 @@ class TestQuestionEditLockGuard:
         }, format="json")
         assert create_res.status_code == status.HTTP_409_CONFLICT
         assert create_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert create_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert create_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         q = ExamQuestion.objects.create(
             contest=contest, question_type="essay", prompt="Q", score=1, order=0,
@@ -830,12 +878,12 @@ class TestQuestionEditLockGuard:
         update_res = api_client.patch(url(contest.id, q.id), {"prompt": "new"}, format="json")
         assert update_res.status_code == status.HTTP_409_CONFLICT
         assert update_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert update_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert update_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         delete_res = api_client.delete(url(contest.id, q.id))
         assert delete_res.status_code == status.HTTP_409_CONFLICT
         assert delete_res.data["error"]["code"] == "CONTEST_QUESTION_EDIT_LOCKED"
-        assert delete_res.data["error"]["details"]["message"] == "已有學生正式作答，競賽題目已鎖定"
+        assert delete_res.data["error"]["details"]["message"] == "已有考生開始作答，競賽內容已鎖定"
 
         reorder_res = api_client.post(
             url(contest.id) + "reorder/",

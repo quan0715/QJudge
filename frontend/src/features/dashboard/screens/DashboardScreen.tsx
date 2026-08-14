@@ -266,8 +266,7 @@ const DashboardScreen = () => {
                   title={bank.name}
                   category={bank.category}
                   provider={bank.ownerUsername || welcomeName}
-                  providerVerified={bank.verified}
-                  downloads={String(bank.questionCount)}
+                  questionCount={String(bank.questionCount)}
                   coverUrl={bank.coverUrl || undefined}
                   icon={bank.icon || undefined}
                   onClick={() => navigate(`/question-banks/${bank.id}`)}

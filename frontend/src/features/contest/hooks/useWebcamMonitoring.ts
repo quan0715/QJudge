@@ -1,88 +1,67 @@
-/**
- * useWebcamMonitoring
- *
- * Webcam stream loss / recovery handling.
- * Detection (onStreamLost/onStreamRestored/streamActive auto-restore) lives here.
- * Timer/countdown/event-recording/force-submit is delegated to useViolationPipeline.
- */
-import { useCallback, useEffect } from "react";
-import { VIOLATION_ROUTES_MAP } from "@/features/contest/domain/violationRoutes";
-import { useViolationPipeline } from "./useViolationPipeline";
-import type { ForceSubmitRequest } from "./useForceSubmitArbiter";
-import type { ForcedCaptureModule } from "@/features/contest/anticheat/forcedCapture";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { IntegrityJsonValue } from "@/core/entities/examIntegrity.entity";
+import type { IntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 
 export interface UseWebcamMonitoringConfig {
-  contestId: string;
   enabled: boolean;
   examSubmitted: boolean;
-  isPrimary: boolean;
   moduleRole: string;
-  recoveryGraceMs?: number;
-  evidenceCaptureModules?: ForcedCaptureModule[];
   streamActive: boolean;
-  requestForceSubmit: (req: ForceSubmitRequest) => Promise<void>;
-  onViolation: (eventType: string, reason: string) => void;
+  emitter: IntegritySignalEmitter;
 }
 
 export interface UseWebcamMonitoringReturn {
-  recoveryCountdown: number | null;
+  interrupted: boolean;
   onStreamLost: () => void;
   onStreamRestored: (reason?: "user_reauthorized" | "stream_recovered") => void;
 }
 
-const webcamRoute = VIOLATION_ROUTES_MAP["webcam"];
-
 export function useWebcamMonitoring({
-  contestId,
   enabled,
   examSubmitted,
-  isPrimary,
   moduleRole,
-  recoveryGraceMs,
-  evidenceCaptureModules,
   streamActive,
-  requestForceSubmit,
-  onViolation,
+  emitter,
 }: UseWebcamMonitoringConfig): UseWebcamMonitoringReturn {
-  const pipeline = useViolationPipeline({
-    route: webcamRoute,
-    contestId,
-    enabled,
-    examSubmitted,
-    recoveryGraceMs,
-    escalationOverride: isPrimary ? undefined : "log_only",
-    moduleRole,
-    requestForceSubmit,
-    onViolation,
-    forceSubmitExtras: {
-      sourceModule: "webcam",
-      evidenceCaptureModules,
-      stopCaptureKey: "manual",
-      stopWebcamFirst: true,
-    },
-  });
+  const [interrupted, setInterrupted] = useState(false);
+  const emitterRef = useRef(emitter);
+  const moduleRoleRef = useRef(moduleRole);
 
+  useEffect(() => {
+    emitterRef.current = emitter;
+  }, [emitter]);
+  useEffect(() => {
+    moduleRoleRef.current = moduleRole;
+  }, [moduleRole]);
+  const emit = useCallback((eventType: string, payload: Record<string, IntegrityJsonValue>) => {
+    void emitterRef.current.emit({ eventType, clientOccurredAtMs: Date.now(), payload });
+  }, []);
   const onStreamLost = useCallback(() => {
-    pipeline.trigger({ reason: "stream_ended" });
-  }, [pipeline]);
-
+    if (!enabled || examSubmitted) return;
+    setInterrupted(true);
+    emit("webcam_interrupted", {
+      reason: "stream_ended",
+      module: "webcam",
+      module_role: moduleRoleRef.current,
+    });
+  }, [emit, enabled, examSubmitted]);
   const onStreamRestored = useCallback(
     (reason: "user_reauthorized" | "stream_recovered" = "stream_recovered") => {
-      pipeline.recover(reason);
+      setInterrupted(false);
+      emit("webcam_restored", {
+        reason,
+        module: "webcam",
+        module_role: moduleRoleRef.current,
+      });
     },
-    [pipeline],
+    [emit],
   );
-
-  // Auto-detect restore when stream becomes active again
   useEffect(() => {
-    if (!pipeline.isInterrupted) return;
-    if (!streamActive) return;
-    onStreamRestored("stream_recovered");
-  }, [streamActive, pipeline.isInterrupted, onStreamRestored]);
+    if (interrupted && streamActive) onStreamRestored("stream_recovered");
+  }, [interrupted, onStreamRestored, streamActive]);
+  useEffect(() => {
+    if (!enabled || examSubmitted) setInterrupted(false);
+  }, [enabled, examSubmitted]);
 
-  return {
-    recoveryCountdown: pipeline.recoveryCountdown,
-    onStreamLost,
-    onStreamRestored,
-  };
+  return { interrupted, onStreamLost, onStreamRestored };
 }

@@ -1,55 +1,64 @@
-// Infrastructure API Repositories
-// Implementations of core port interfaces
-
-// Core Repositories
-export * from "./problem.repository";
-export * from "./submission.repository";
-export * from "./contest.repository";
-export * from "./attendance.repository";
-export * from "./discussion.repository";
-export * from "./auth.repository";
-export * from "./user.repository";
-export * from "./announcement.repository";
-export * from "./chatbot.repository";
-export * from "./markdown.repository";
-export * from "./questionBank.repository";
-export * from "./subscription.repository";
-
-// Classroom Repository (exclude announcement names that conflict with global announcement.repository)
+export { resetParticipantExamRecord } from "./attendance.repository";
 export {
-  getClassrooms,
-  getClassroom,
-  createClassroom,
-  updateClassroom,
-  deleteClassroom,
-  addMembers,
-  removeMember,
-  regenerateCode,
-  getClassroomContests,
-  createClassroomContest,
-  getAnnouncements as getClassroomAnnouncements,
-  createAnnouncement as createClassroomAnnouncement,
-  updateAnnouncement as updateClassroomAnnouncement,
-  deleteAnnouncement as deleteClassroomAnnouncement,
-} from "./classroom.repository";
-
-// Contest Sub-Repositories
-export * from "./contestProblems.repository";
-export * from "./contestParticipants.repository";
-export * from "./exam.repository";
-export * from "./examQuestions.repository";
-export * from "./examPaper.repository";
-export * from "./clarification.repository";
-export * from "./contestAnnouncements.repository";
-export * from "./contestExports.repository";
-
-// Repository Instances
-export { default as problemRepository } from "./problem.repository";
-export { default as submissionRepository } from "./submission.repository";
-export { default as contestRepository } from "./contest.repository";
-export { default as discussionRepository } from "./discussion.repository";
-export { default as authRepository } from "./auth.repository";
-export { default as userRepository } from "./user.repository";
-export { default as announcementRepository } from "./announcement.repository";
-export { default as chatbotRepository } from "./chatbot.repository";
-export { default as questionBankRepository } from "./questionBank.repository";
+  createClarification,
+  deleteClarification,
+  getClarifications,
+  replyClarification,
+} from "./clarification.repository";
+export {
+  archiveContest,
+  deleteContest,
+  getContest,
+  getContestOverviewMetrics,
+  getContestStandings,
+  registerContest,
+  updateContest,
+} from "./contest.repository";
+export {
+  createContestAnnouncement,
+  deleteContestAnnouncement,
+  getContestAnnouncements,
+} from "./contestAnnouncements.repository";
+export {
+  downloadContestFile,
+  downloadExamPaperFile,
+  downloadMyReport,
+} from "./contestExports.repository";
+export {
+  addContestParticipant,
+  downloadParticipantReport,
+  getContestParticipants,
+  getParticipantDashboard,
+  removeParticipant,
+  reopenExam,
+  unlockParticipant,
+  updateParticipant,
+} from "./contestParticipants.repository";
+export {
+  createContestProblem,
+  duplicateContestProblem,
+  getContestProblem,
+  importContestProblemsFromBank,
+  removeContestProblem,
+  reorderContestProblems,
+} from "./contestProblems.repository";
+export {
+  endExam,
+  getContestActivities,
+  getExamEvents,
+  isSubmittedExamSessionResponse,
+  startExam,
+} from "./exam.repository";
+export {
+  createExamPaperBlock,
+  deleteExamPaperBlock,
+  getExamPaper,
+  reorderExamPaperBlocks,
+  updateExamPaperBlock,
+} from "./examPaper.repository";
+export type { ExamPaperQuestionPayload } from "./examPaper.repository";
+export { importExamQuestionsFromBank } from "./examQuestions.repository";
+export type {
+  ExamQuestionUpsertPayload,
+  ExistingGradesAction,
+} from "./examQuestions.repository";

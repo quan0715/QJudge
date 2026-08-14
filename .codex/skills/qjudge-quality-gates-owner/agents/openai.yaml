@@ -1,4 +1,4 @@
 interface:
   display_name: "QJudge Quality Gates Owner"
-  short_description: "Owner of naming/architecture/style lint gates and CI quality profiles"
-  default_prompt: "Run and enforce QJudge quality gates with naming lint, architecture lint, Carbon style checks, and compat-to-strict rollout policy."
+  short_description: "Naming, architecture, and full Carbon audit quality gates"
+  default_prompt: "Run QJudge naming and architecture checks plus the full Carbon practices audit; classify blockers, review candidates, and exceptions before applying staged or strict gates."

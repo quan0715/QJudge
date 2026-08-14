@@ -103,31 +103,6 @@ QJudge connects to your favorite AI tools via MCP (Model Context Protocol) to ge
 
 ---
 
-## Pricing
-
-### Free — NT$0
-For teachers and courses trying online exams for the first time.
-- Create online exams
-- Basic anti-cheat features
-- Automatic grading and basic analytics
-- Ideal for individual teachers getting started
-
-### Pro — NT$990 / month *(Trial available upon registration)*
-For teachers with regular online exam needs who want higher question-creation efficiency and deeper analytics.
-- AI question generation and higher usage quotas
-- Advanced data analytics
-- Larger question bank capacity
-- Higher concurrent exam capacity
-
-### Enterprise — Custom Pricing
-For schools, departments, and teams requiring data governance, integration, or dedicated deployment.
-- Dedicated deployment and data governance
-- Higher-scale concurrent exams
-- Custom workflows and integration requirements
-- Dedicated support and onboarding assistance
-
----
-
 ## Frequently Asked Questions
 
 **How is QJudge different from Google Forms or other survey tools?**
@@ -143,7 +118,7 @@ The system records window-switching, answering behavior, and exam environment ev
 AI generates drafts and accelerates the process; teachers retain full review and fine-tuning authority — final quality is always teacher-controlled.
 
 **How do I get started?**
-Register and start with the free plan, then decide whether to upgrade based on class size and requirements.
+Register, choose the student or teacher role, and start using QJudge.
 
 **Is my data and question bank secure?**
 Teachers retain control over question and grade data; the platform provides a secure exam process and data management capability.

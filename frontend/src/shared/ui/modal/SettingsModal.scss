@@ -3,32 +3,11 @@
 @use "@carbon/react/scss/colors" as *;
 @use "@carbon/react/scss/theme" as *;
 
-// Modals opened from within a settings modal need a higher z-index
-.settings-nested-modal {
-  z-index: 9200 !important;
-}
-
-
 .settings-modal {
-  // Expand modal to near-fullscreen
-  .cds--modal-container {
-    width: 900px;
-    max-width: 90vw;
-    height: 80vh;
-    max-height: 80vh;
-  }
-
-  .cds--modal-content {
-    padding: 0;
-    overflow: hidden;
-    height: 100%;
-  }
-
   // Two-column layout
   &__layout {
     display: flex;
-    height: 100%;
-    min-height: 0;
+    height: clamp(20rem, 70vh, 48rem);
   }
 
   // Left sidebar nav
@@ -44,30 +23,8 @@
   }
 
   &__nav-item {
-    display: flex;
-    align-items: center;
-    gap: $spacing-03;
-    padding: $spacing-03 $spacing-04;
-    background: none;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    @include type-style("body-compact-01");
-    color: $text-secondary;
-    text-align: left;
     width: 100%;
-    transition: background 0.1s ease, color 0.1s ease;
-
-    &:hover {
-      background: $layer-hover-01;
-      color: $text-primary;
-    }
-
-    &--active {
-      background: $layer-selected-01;
-      color: $text-primary;
-      font-weight: 600;
-    }
+    max-width: none;
   }
 
   // Right content area
@@ -88,20 +45,10 @@
     min-height: 0;
   }
 
-  // Mobile: fullscreen, no sidebar, all panels stacked
+  // Mobile: hide sidebar and render the mobile panel content.
   @media (max-width: 672px) {
-    &.cds--modal {
-      // Override Carbon's modal positioning
-      .cds--modal-container {
-        width: 100vw;
-        max-width: 100vw;
-        height: 100vh;
-        max-height: 100vh;
-        margin: 0;
-        border-radius: 0;
-        inset: 0;
-        transform: none;
-      }
+    &__layout {
+      height: min(75vh, 40rem);
     }
 
     &__nav {

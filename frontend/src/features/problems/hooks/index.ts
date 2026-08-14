@@ -10,13 +10,6 @@ export { useProblemSolver } from "./useProblemSolver";
 // Re-export solver types from core
 export type { ExecutionState, ResultMode } from "@/core/types/solver.types";
 
-// Discussion hooks
-export {
-  useDiscussionList,
-  useDiscussionDetail,
-  discussionKeys,
-} from "./useProblemDiscussions";
-
 // Auto-save hook
 export {
   useAutoSave,
@@ -26,11 +19,3 @@ export {
   type UseAutoSaveOptions,
   type UseAutoSaveReturn,
 } from "./useAutoSave";
-
-// Scroll-spy hook - Re-export from shared for backward compatibility
-export {
-  useScrollSpy,
-  type ScrollSpySection,
-  type UseScrollSpyOptions,
-  type UseScrollSpyReturn,
-} from "@/shared/hooks/useScrollSpy";
