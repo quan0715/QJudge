@@ -12,6 +12,7 @@ import { getProblem, getProblemStatistics } from "@/infrastructure/api/repositor
 import { getSubmissions } from "@/infrastructure/api/repositories/submission.repository";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { Submission } from "@/core/entities/submission.entity";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 
 // ============================================================================
 // Types
@@ -108,19 +109,7 @@ export const ProblemProvider: React.FC<ProblemProviderProps> = ({
   const params = useParams<{ problemId: string }>();
   const problemId = propProblemId || params.problemId;
 
-  // Get current user for "only mine" filter
-  const currentUser = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }, []);
+  const { user: currentUser } = useAuth();
 
   // Submissions params state
   const [submissionsParams, setSubmissionsParamsState] =

@@ -4,6 +4,7 @@ import { Button } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { oauthCallback } from "@/infrastructure/api/repositories/auth.repository";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 import { useAuthLayoutMetadata } from '../contexts/AuthLayoutContext';
 import { AuthLoadingSkeleton } from '../components/AuthLoadingSkeleton';
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
@@ -56,9 +57,8 @@ const OAuthCallbackPage = () => {
         const response = await oauthCallback(provider, code);
 
         if (response.success) {
-          const { access_token: _a, refresh_token: _r, ...safeData } = response.data;
-          localStorage.setItem('user', JSON.stringify(safeData.user));
-          const nextPath = getAuthedLandingPath(safeData.user);
+          notifyAuthSessionChanged();
+          const nextPath = getAuthedLandingPath(response.data.user);
 
           const elapsedTime = Date.now() - startTime;
           const remainingTime = Math.max(0, MIN_ANIMATION_TIME - elapsedTime);

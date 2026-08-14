@@ -23,6 +23,10 @@ vi.mock("@/infrastructure/api/repositories/submission.repository", () => ({
   getSubmissions: vi.fn(),
 }));
 
+vi.mock("@/features/auth/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 // Mock react-router-dom
 vi.mock("react-router-dom", () => ({
   useParams: vi.fn(() => ({})),
@@ -105,8 +109,6 @@ const createWrapper = (problemId?: string, contestId?: string) => {
 describe("useProblem", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    // Reset localStorage mock
-    vi.mocked(window.localStorage.getItem).mockReturnValue(null);
   });
 
   describe("useProblem hook", () => {

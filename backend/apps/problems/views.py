@@ -276,14 +276,16 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 source_code=serializer.validated_data["code"],
             )
         except TestRunSetupError as exc:
-            error_text = str(exc)
-            logger.warning("Test run setup error: %s", error_text)
-            if error_text.startswith("Judge system error:"):
+            logger.warning("Test run setup failed with code=%s", exc.code)
+            if exc.code == "judge_unavailable":
                 return Response(
                     {"error": "Judge system error"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
-            return Response({"error": error_text}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Unsupported language"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(result)
     

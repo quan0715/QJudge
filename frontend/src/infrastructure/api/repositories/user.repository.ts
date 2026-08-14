@@ -7,6 +7,16 @@ import type {
   UserSearchResponseDto,
 } from "@/infrastructure/api/dto/auth.dto";
 
+export const getCurrentUser = async (): Promise<CurrentUserResponseDto> => {
+  return requestJson<CurrentUserResponseDto>(
+    httpClient.get("/api/v1/users/me", {
+      allowUnauthenticated: true,
+      suppressGlobalError: true,
+    }),
+    "Failed to fetch current user",
+  );
+};
+
 export const updateAccountProfile = async (
   data: { username?: string; email?: string },
 ): Promise<CurrentUserResponseDto> => {

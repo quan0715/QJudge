@@ -1,5 +1,4 @@
 import React, { useId, useRef, useState } from "react";
-import ReactDOM from "react-dom";
 import {
   Button,
   Modal,
@@ -13,7 +12,6 @@ import {
 } from "@carbon/react";
 import { CloudUpload, Edit, TrashCan, UserAvatar } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { getModalPortalRoot } from "@/shared/ui/theme/portalRoot";
 import type { PresetCoverImage } from "./presetCoverImages";
 import "./ImageEditDialog.scss";
 
@@ -200,44 +198,41 @@ export const ImageEditDialog: React.FC<ImageEditDialogProps> = ({
         </div>
       </button>
 
-      {ReactDOM.createPortal(
-        <Modal
-          open={open}
-          data-testid="image-edit-dialog"
-          size={hasGallery ? "md" : "sm"}
-          modalHeading={modalHeading}
-          passiveModal
-          onRequestClose={closeModal}
-        >
-          <div className="image-edit-dialog__modal-body">
-            {hasGallery ? (
-              <Tabs>
-                <TabList aria-label="image source tabs">
-                  <Tab data-testid="image-edit-tab-gallery">{t("image.galleryTab", "圖庫")}</Tab>
-                  <Tab data-testid="image-edit-tab-upload">{t("image.uploadTab", "上傳")}</Tab>
-                  <Tab data-testid="image-edit-tab-link">{t("image.linkTab", "連結")}</Tab>
-                </TabList>
-                <TabPanels>
-                  <TabPanel>{galleryPanel}</TabPanel>
-                  <TabPanel>{uploadPanel}</TabPanel>
-                  <TabPanel>{linkPanel}</TabPanel>
-                </TabPanels>
-              </Tabs>
-            ) : (
-              <>
-                {uploadPanel}
-                {linkPanel}
-              </>
-            )}
-            {previewUrl && onRemove ? (
-              <Button type="button" kind="danger--ghost" size="md" renderIcon={TrashCan} disabled={disabled} onClick={handleRemove}>
-                {removeLabel}
-              </Button>
-            ) : null}
-          </div>
-        </Modal>,
-        getModalPortalRoot(),
-      )}
+      <Modal
+        open={open}
+        data-testid="image-edit-dialog"
+        size={hasGallery ? "md" : "sm"}
+        modalHeading={modalHeading}
+        passiveModal
+        onRequestClose={closeModal}
+      >
+        <div className="image-edit-dialog__modal-body">
+          {hasGallery ? (
+            <Tabs>
+              <TabList aria-label="image source tabs">
+                <Tab data-testid="image-edit-tab-gallery">{t("image.galleryTab", "圖庫")}</Tab>
+                <Tab data-testid="image-edit-tab-upload">{t("image.uploadTab", "上傳")}</Tab>
+                <Tab data-testid="image-edit-tab-link">{t("image.linkTab", "連結")}</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel>{galleryPanel}</TabPanel>
+                <TabPanel>{uploadPanel}</TabPanel>
+                <TabPanel>{linkPanel}</TabPanel>
+              </TabPanels>
+            </Tabs>
+          ) : (
+            <>
+              {uploadPanel}
+              {linkPanel}
+            </>
+          )}
+          {previewUrl && onRemove ? (
+            <Button type="button" kind="danger--ghost" size="md" renderIcon={TrashCan} disabled={disabled} onClick={handleRemove}>
+              {removeLabel}
+            </Button>
+          ) : null}
+        </div>
+      </Modal>
     </>
   );
 };

@@ -11,12 +11,12 @@ from ..permissions import can_manage_contest
 from ..services.attendance import (
     ATTENDANCE_EVENT_TYPES,
     ATTENDANCE_REFRESH_SECONDS,
+    AttendanceValidationError,
     validate_self_scan_credential,
     build_attendance_error_payload,
     build_attendance_qr_value,
     create_attendance_credential,
     create_attendance_event,
-    normalize_attendance_error_code,
     reset_participant_exam_records,
 )
 
@@ -84,9 +84,13 @@ def _attendance_disabled_response(contest: Contest) -> Response | None:
     )
 
 
-def _value_error_response(exc: ValueError, *, http_status: int = status.HTTP_400_BAD_REQUEST) -> Response:
+def _validation_error_response(
+    exc: AttendanceValidationError,
+    *,
+    http_status: int = status.HTTP_400_BAD_REQUEST,
+) -> Response:
     return Response(
-        build_attendance_error_payload(normalize_attendance_error_code(exc)),
+        build_attendance_error_payload(exc.code),
         status=http_status,
     )
 
@@ -153,8 +157,8 @@ class AttendanceMixin:
             credential_source = validate_self_scan_credential(
                 contest, purpose, token, manual_code
             )
-        except ValueError as exc:
-            return _value_error_response(exc)
+        except AttendanceValidationError as exc:
+            return _validation_error_response(exc)
 
         return Response({
             "valid": True,
@@ -183,14 +187,13 @@ class AttendanceMixin:
                 data=serializer.validated_data,
                 ensure_participant=self._ensure_classroom_bound_participant,
             )
-        except ValueError as exc:
-            code = normalize_attendance_error_code(exc)
+        except AttendanceValidationError as exc:
             http_status = (
                 status.HTTP_403_FORBIDDEN
-                if code == "attendance_teacher_permission_required"
+                if exc.code == "attendance_teacher_permission_required"
                 else status.HTTP_400_BAD_REQUEST
             )
-            return _value_error_response(exc, http_status=http_status)
+            return _validation_error_response(exc, http_status=http_status)
 
         error_response = result.get("error_response")
         if error_response is not None:
@@ -224,6 +227,6 @@ class AttendanceMixin:
                 serializer.validated_data["user_id"],
                 activity_user=request.user,
             )
-        except ValueError as exc:
-            return _value_error_response(exc)
+        except AttendanceValidationError as exc:
+            return _validation_error_response(exc)
         return Response(result)

@@ -360,6 +360,8 @@ jobs:
     needs: static-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4

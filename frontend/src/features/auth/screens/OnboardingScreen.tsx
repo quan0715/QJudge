@@ -16,6 +16,7 @@ import { useContentLanguage } from "@/shared/contexts/ContentLanguageContext";
 import { LanguageSwitch, ThemeSwitch } from "@/shared/ui/config";
 import { updatePreferences } from "@/infrastructure/api/repositories/user.repository";
 import { getAuthedLandingPath } from "@/features/auth/utils/onboarding";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 import type { SupportedLanguage } from "@/i18n";
 
 const OnboardingScreen = () => {
@@ -74,8 +75,7 @@ const OnboardingScreen = () => {
       setPreference(preferences.preferred_theme);
       setContentLanguage(preferences.preferred_language as SupportedLanguage);
       setUser(nextUser);
-      localStorage.setItem("user", JSON.stringify(nextUser));
-      window.dispatchEvent(new Event("storage"));
+      notifyAuthSessionChanged();
       navigate(getAuthedLandingPath(nextUser), { replace: true });
     } catch (err: any) {
       setError(

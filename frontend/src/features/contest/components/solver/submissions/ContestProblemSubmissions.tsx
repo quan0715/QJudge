@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -7,7 +7,7 @@ import {
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
-import type { User } from "@/core/entities/user.entity";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal, SubmissionTable, type SubmissionRow } from "@/features/submissions/components";
 // Styles loaded via globals.scss (Sass Partials)
 
@@ -27,23 +27,14 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   codingProblemId,
 }) => {
   const skeletonWidths = [
-    "calc(var(--cds-spacing-07) + var(--cds-spacing-06) + var(--cds-spacing-02))",
-    "var(--cds-spacing-08)",
-    "calc(var(--cds-spacing-07) + var(--cds-spacing-05) + var(--cds-spacing-01))",
-    "calc(var(--cds-spacing-07) + var(--cds-spacing-06) + var(--cds-spacing-02))",
-    "calc(var(--cds-spacing-09) + var(--cds-spacing-07))",
+    "3.75rem",
+    "2.5rem",
+    "3.125rem",
+    "3.75rem",
+    "5rem",
   ];
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentUser] = useState<User | null>(() => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr);
-    } catch (e) {
-      console.error("Failed to parse user", e);
-      return null;
-    }
-  });
+  const { user: currentUser } = useAuth();
 
   // Fetch submissions for this problem, filtered by current user
   const { data, isLoading, isFetching, refetch } = useContestSubmissions({

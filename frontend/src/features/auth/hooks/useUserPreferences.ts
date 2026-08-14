@@ -18,6 +18,7 @@ import type {
   UpdatePreferencesRequest,
   UpdateAccountProfileRequest,
 } from "@/core/entities/auth.entity";
+import { notifyAuthSessionChanged } from "@/infrastructure/api/http.client";
 
 // Module-level state to prevent multiple instances from loading simultaneously
 let globalLoadedForUserId: number | null = null;
@@ -105,18 +106,26 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
   const syncAuthUserProfile = useCallback(
     (nextProfile: Partial<UserProfile>) => {
       if (!user) return;
+      const currentProfile: UserProfile = user.profile ?? {
+        solved_count: 0,
+        submission_count: 0,
+        accept_rate: 0,
+        preferred_language: contentLanguage,
+        preferred_theme: preference,
+        editor_font_size: preferences?.editor_font_size ?? 12,
+        editor_tab_size: preferences?.editor_tab_size ?? 4,
+      };
       const nextUser = {
         ...user,
         profile: {
-          ...(user.profile || {}),
+          ...currentProfile,
           ...nextProfile,
         },
       };
-      setUser(nextUser as any);
-      localStorage.setItem("user", JSON.stringify(nextUser));
-      window.dispatchEvent(new Event("storage"));
+      setUser(nextUser);
+      notifyAuthSessionChanged();
     },
-    [user, setUser]
+    [contentLanguage, preference, preferences, user, setUser]
   );
 
   // Load preferences from backend when user is logged in
@@ -399,8 +408,7 @@ export const useUserPreferences = (): UseUserPreferencesReturn => {
       const response = await updateCurrentUserProfile(data);
       const nextUser = response.data;
       setUser(nextUser);
-      localStorage.setItem("user", JSON.stringify(nextUser));
-      window.dispatchEvent(new Event("storage"));
+      notifyAuthSessionChanged();
     },
     [user, setUser]
   );

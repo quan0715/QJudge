@@ -39,11 +39,11 @@ class IntegrityRunViewSet(viewsets.ViewSet):
     def _transition_response(operation):
         try:
             run = operation()
-        except InvalidRunTransition as exc:
+        except InvalidRunTransition:
             return Response(
                 {
                     "code": "invalid_integrity_run_transition",
-                    "detail": str(exc),
+                    "detail": "Integrity run cannot perform the requested transition.",
                 },
                 status=status.HTTP_409_CONFLICT,
             )
