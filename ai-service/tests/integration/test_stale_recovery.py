@@ -82,7 +82,7 @@ async def add_run(session_factory, session_id, status, *, heartbeat=None):
                 session_id=session_id,
                 status=status.value,
                 kind="chat",
-                model_id="deepseek-v4",
+                model_id="deepseek-v4-flash",
                 idempotency_key=str(run_id),
                 heartbeat_at=heartbeat,
             )

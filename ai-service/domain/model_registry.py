@@ -24,18 +24,17 @@ MODEL_INFO: tuple[dict[str, Any], ...] = (
         "is_default": False,
     },
     {
-        "model_id": "deepseek-v4",
-        "display_name": "deepseek-v4",
-        "description": "1M context、快速、低成本，適合日常對話與 summarization（非推理模式）",
+        "model_id": "deepseek-v4-flash",
+        "display_name": "deepseek-v4-flash",
+        "description": "DeepSeek V4 Flash，1M context，thinking enabled，適合大量批改與日常推理",
         "is_default": False,
     },
     {
-        "model_id": "deepseek-v4-thinking",
-        "display_name": "deepseek-v4 (thinking)",
-        "description": "1M context、推理模式（reasoning_effort=low），適合複雜批改與測資生成",
+        "model_id": "deepseek-v4-pro",
+        "display_name": "deepseek-v4-pro",
+        "description": "DeepSeek V4 Pro，1M context，thinking enabled，適合高品質批改與複雜推理",
         "is_default": False,
     },
 )
 
-ADVERTISED_MODEL_IDS = frozenset(str(model["model_id"]) for model in MODEL_INFO)
-
+MODEL_IDS = frozenset(str(model["model_id"]) for model in MODEL_INFO)

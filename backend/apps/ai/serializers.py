@@ -32,16 +32,11 @@ class UpdateSessionSerializer(serializers.Serializer):
 
 class StartRunSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=100_000)
-    model_id = serializers.ChoiceField(
-        choices=[
-            "openai-nano",
-            "openai-mini",
-            "openai-mini-medium",
-            "deepseek-v4",
-            "deepseek-v4-flash",
-            "deepseek-v4-pro",
-            "deepseek-v4-thinking",
-        ],
+    # The independent AI service owns the live model registry and performs
+    # authoritative validation. Keeping a second enum here caused the BFF,
+    # model picker, and runtime to drift apart.
+    model_id = serializers.CharField(
+        max_length=50,
         required=False,
         default="openai-nano",
     )

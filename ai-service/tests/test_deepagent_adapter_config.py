@@ -119,7 +119,7 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     runner = _build_adapter()
 
     runner._runner._build_agent(
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         system_prompt=None,
         tools=[],
         event_queue=None,
@@ -143,7 +143,7 @@ def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     runner = _build_adapter()
 
     runner._runner._build_agent(
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         system_prompt=None,
         tools=[],
         event_queue=None,
@@ -164,7 +164,7 @@ def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
     )
 
     runner._runner._build_agent(
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         system_prompt="custom-prompt",
         tools=[],
         event_queue=None,
@@ -188,7 +188,7 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
 
     with caplog.at_level(logging.WARNING, logger=runner_mod.__name__):
         runner._runner._build_agent(
-            model_id="deepseek-v4",
+            model_id="deepseek-v4-flash",
             system_prompt=None,
             tools=[],
             event_queue=None,

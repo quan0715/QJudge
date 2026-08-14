@@ -136,7 +136,7 @@ class FakeSessionService:
 class FakeRunService:
     def __init__(self) -> None:
         self.run = Run(
-            RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-v4"
+            RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-v4-flash"
         )
         self.start_token = None
         self.approval_calls = 0
@@ -172,7 +172,7 @@ class FakeEventReader:
         if run_id != RUN_ID:
             raise RunNotFound(run_id)
         return Run(
-            RUN_ID, SESSION_ID, RunStatus.COMPLETED, RunKind.CHAT, "deepseek-v4", 0
+            RUN_ID, SESSION_ID, RunStatus.COMPLETED, RunKind.CHAT, "deepseek-v4-flash", 0
         )
 
     async def list_after(self, principal, run_id, after):
@@ -259,7 +259,7 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
     started = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
         headers={"Idempotency-Key": "browser-message-1"},
-        json={"message": "hello", "model_id": "deepseek-v4"},
+        json={"message": "hello", "model_id": "deepseek-v4-flash"},
     )
     assert started.status_code == 202
     assert started.json()["run_id"] == str(RUN_ID)
@@ -267,7 +267,7 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
 
     missing_key = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
-        json={"message": "hello", "model_id": "deepseek-v4"},
+        json={"message": "hello", "model_id": "deepseek-v4-flash"},
     )
     assert missing_key.status_code == 422
     assert missing_key.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -367,22 +367,32 @@ def test_session_update_requires_a_title_or_context() -> None:
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-def test_invalid_model_and_approval_are_rejected_before_command_service() -> None:
+@pytest.mark.parametrize(
+    "model_id",
+    ["invented-model", "deepseek-v4", "deepseek-v4-thinking"],
+)
+def test_invalid_model_is_rejected_before_command_service(model_id: str) -> None:
     client, runs = make_client()
 
     invalid_model = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
         headers={"Idempotency-Key": "unknown-model"},
-        json={"message": "hello", "model_id": "invented-model"},
-    )
-    invalid_decision = client.post(
-        f"/v1/runs/{RUN_ID}/approve",
-        json={"decision": "maybe"},
+        json={"message": "hello", "model_id": model_id},
     )
 
     assert invalid_model.status_code == 422
     assert invalid_model.json()["error"]["code"] == "VALIDATION_ERROR"
     assert runs.start_token is None
+
+
+def test_invalid_approval_is_rejected_before_command_service() -> None:
+    client, runs = make_client()
+
+    invalid_decision = client.post(
+        f"/v1/runs/{RUN_ID}/approve",
+        json={"decision": "maybe"},
+    )
+
     assert invalid_decision.status_code == 422
     assert invalid_decision.json()["error"]["code"] == "VALIDATION_ERROR"
     assert runs.approval_calls == 0
@@ -417,6 +427,13 @@ def test_usage_and_models_never_expose_price_cost_or_credit() -> None:
     }
     models = client.get("/v1/models")
     assert models.status_code == 200
+    assert [model["model_id"] for model in models.json()["models"]] == [
+        "openai-nano",
+        "openai-mini",
+        "openai-mini-medium",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+    ]
     forbidden = {"price", "pricing", "cost", "credits", "entitlement"}
     assert all(forbidden.isdisjoint(model) for model in models.json()["models"])
 

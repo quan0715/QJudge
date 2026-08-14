@@ -34,9 +34,8 @@ class ReasoningPreservingChatDeepSeek(ChatDeepSeek):
     - LangGraph checkpoint restoration, SummarizationMiddleware, DeepAgent
       sub-agents, and any code path that reconstructs an ``AIMessage``
       from content only will leave ``additional_kwargs`` empty.
-    - A non-thinking model turn (e.g. when the user previously ran the
-      session on ``deepseek-v4`` without thinking) produces assistant
-      messages with no reasoning_content at all.
+    - A prior non-thinking model turn produces assistant messages with no
+      reasoning_content at all.
 
     For those cases a blank ``reasoning_content=""`` is accepted by the
     DeepSeek API (verified empirically) and preserves the turn; without
@@ -97,10 +96,8 @@ _MODEL_MAP: dict[str, str] = {
     "openai-nano": "gpt-5-nano",
     "openai-mini": "gpt-5.4-mini",
     "openai-mini-medium": "gpt-5.4-mini",
-    "deepseek-v4": "deepseek-v4-flash",
     "deepseek-v4-flash": "deepseek-v4-flash",
     "deepseek-v4-pro": "deepseek-v4-pro",
-    "deepseek-v4-thinking": "deepseek-v4-flash",
 }
 
 # Canonical model ID -> OpenAI reasoning_effort override (None = no override).
@@ -138,7 +135,6 @@ _OPENAI_MAX_RETRIES: dict[str, int] = {
 }
 
 _DEFAULT_MODEL_ID = "openai-nano"
-_SUMMARIZATION_MODEL_ID = "deepseek-v4"
 
 # Canonical model ID -> known max input tokens.
 # Keep this table in-code so summarization thresholds do not depend on
@@ -147,10 +143,8 @@ MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
     "openai-nano": 400_000,
     "openai-mini": 272_000,
     "openai-mini-medium": 272_000,
-    "deepseek-v4": 1_000_000,
     "deepseek-v4-flash": 1_000_000,
     "deepseek-v4-pro": 1_000_000,
-    "deepseek-v4-thinking": 1_000_000,
 }
 
 # Summarization controls derived from model table.
@@ -159,42 +153,32 @@ MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "openai-nano": 12_000,
     "openai-mini": 12_000,
     "openai-mini-medium": 12_000,
-    "deepseek-v4": 12_000,
     "deepseek-v4-flash": 12_000,
     "deepseek-v4-pro": 12_000,
-    "deepseek-v4-thinking": 12_000,
 }
+
+_DEEPSEEK_THINKING_MODEL_IDS = frozenset(
+    {
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+    }
+)
+
 
 class ModelFactory:
     """Factory for creating LLM model instances."""
 
     @staticmethod
-    def canonicalize_model_id(model_id: str) -> str:
-        """Return a safe canonical id that is guaranteed present in ``_MODEL_MAP``.
-
-        Unknown id → default. Callers must branch on the canonicalized id
-        (provider selection, thinking toggle) so a stale / typo id can't
-        leak the wrong provider string into the wrong SDK.
-        """
-        if model_id in _MODEL_MAP:
-            return model_id
-        logger.warning(
-            "Unknown model_id '%s', falling back to default '%s'",
-            model_id,
-            _DEFAULT_MODEL_ID,
-        )
-        return _DEFAULT_MODEL_ID
-
-    @staticmethod
     def resolve_model_string(model_id: str) -> str:
-        canonical = ModelFactory.canonicalize_model_id(model_id)
-        return _MODEL_MAP[canonical]
+        try:
+            return _MODEL_MAP[model_id]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported model_id: {model_id}") from exc
 
     @staticmethod
     def create_model(model_id: str = _DEFAULT_MODEL_ID):
         """Create an LLM client instance based on canonical model_id."""
-        model_id = ModelFactory.canonicalize_model_id(model_id)
-        model_string = _MODEL_MAP[model_id]
+        model_string = ModelFactory.resolve_model_string(model_id)
         settings = get_settings()
 
         model = None
@@ -254,20 +238,16 @@ class ModelFactory:
                 )
         else:
             api_key = settings.deepseek_api_key
-            thinking = model_id == "deepseek-v4-thinking"
+            thinking = model_id in _DEEPSEEK_THINKING_MODEL_IDS
             logger.info(
                 "Creating ChatDeepSeek model=%s (from '%s', thinking=%s)",
                 model_string,
                 model_id,
                 thinking,
             )
-            # V4 ships with thinking ON by default. The API requires each
-            # prior assistant turn to echo its own reasoning_content back;
-            # plain ChatDeepSeek strips that field so multi-turn fails with
-            # 400. For the explicit thinking variant we use
-            # ``ReasoningPreservingChatDeepSeek`` which re-attaches it at
-            # request time. For the default "deepseek-v4" we disable
-            # thinking entirely (V3-style fast chat).
+            # V4 Flash and Pro default to thinking mode. Thinking requests
+            # must echo prior reasoning_content, so route both canonical IDs
+            # through the preserving client.
             deepseek_cls = ReasoningPreservingChatDeepSeek if thinking else ChatDeepSeek
             deepseek_kwargs: dict[str, Any] = {
                 "model": model_string,
@@ -280,7 +260,7 @@ class ModelFactory:
             if settings.deepseek_base_url:
                 deepseek_kwargs["api_base"] = settings.deepseek_base_url
             if thinking:
-                deepseek_kwargs["reasoning_effort"] = "low"
+                deepseek_kwargs["reasoning_effort"] = "high"
             model = deepseek_cls(**deepseek_kwargs)
             # ChatDeepSeek ships with profile=None. DeepAgent's
             # compute_summarization_defaults uses fraction-based policies
@@ -305,9 +285,9 @@ class ModelFactory:
         return model
 
     @staticmethod
-    def get_model_max_input_tokens(model_id: str) -> int | None:
-        return MODEL_MAX_INPUT_TOKENS.get(model_id)
+    def get_model_max_input_tokens(model_id: str) -> int:
+        return MODEL_MAX_INPUT_TOKENS[model_id]
 
     @staticmethod
     def get_summary_trim_tokens(model_id: str) -> int:
-        return MODEL_SUMMARY_TRIM_TOKENS.get(model_id, 12_000)
+        return MODEL_SUMMARY_TRIM_TOKENS[model_id]

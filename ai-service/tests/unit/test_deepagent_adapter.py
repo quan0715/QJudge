@@ -71,7 +71,7 @@ def command_for(operation: AgentOperation) -> AgentCommand:
         session_id=SESSION_ID,
         operation=operation,
         prompt="hello" if operation is AgentOperation.START else None,
-        model_id="deepseek-v4",
+        model_id="deepseek-v4-flash",
         mcp_token="mcp-token",
         approval={"decisions": [{"type": "approve"}]}
         if operation in {AgentOperation.APPROVE, AgentOperation.RESUME}

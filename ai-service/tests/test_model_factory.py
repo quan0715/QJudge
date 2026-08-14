@@ -12,6 +12,10 @@ class _ChatDeepSeekStub:
         self.kwargs = kwargs
 
 
+class _ReasoningPreservingChatDeepSeekStub(_ChatDeepSeekStub):
+    pass
+
+
 class _ChatOpenAIStub:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -24,7 +28,7 @@ def _stub_provider_models(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         model_factory_mod,
         "ReasoningPreservingChatDeepSeek",
-        _ChatDeepSeekStub,
+        _ReasoningPreservingChatDeepSeekStub,
     )
 
 
@@ -79,39 +83,39 @@ def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
     assert rate_limiter.requests_per_second == 2.0
 
 
-def test_create_model_deepseek_v4(monkeypatch):
+@pytest.mark.parametrize(
+    ("model_id", "provider_model"),
+    [
+        ("deepseek-v4-flash", "deepseek-v4-flash"),
+        ("deepseek-v4-pro", "deepseek-v4-pro"),
+    ],
+)
+def test_create_model_canonical_deepseek_v4_uses_thinking_client(
+    monkeypatch,
+    model_id,
+    provider_model,
+):
     monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("deepseek-v4")
-    assert isinstance(model, _ChatDeepSeekStub)
-    assert model.kwargs["model"] == "deepseek-v4-flash"
-    assert model.kwargs["api_key"] == "deepseek-key"
-    assert model.kwargs["streaming"] is True
-    # V4 thinking is ON by default upstream, but multi-turn requires echoing
-    # reasoning_content back in history, which LangChain strips. Default
-    # deepseek-v4 runs as a V3-style fast chat: thinking disabled.
-    assert model.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
-    assert "reasoning_effort" not in model.kwargs
+    model = model_factory_mod.ModelFactory.create_model(model_id)
 
-
-def test_create_model_deepseek_v4_thinking(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("deepseek-v4-thinking")
-    # Uses the reasoning-preserving subclass, which still inherits from the
-    # stubbed ChatDeepSeek so isinstance passes against the stub.
-    assert isinstance(model, _ChatDeepSeekStub)
-    assert model.kwargs["model"] == "deepseek-v4-flash"
+    assert isinstance(model, _ReasoningPreservingChatDeepSeekStub)
+    assert model.kwargs["model"] == provider_model
     assert model.kwargs["extra_body"] == {"thinking": {"type": "enabled"}}
-    assert model.kwargs["reasoning_effort"] == "low"
+    assert model.kwargs["reasoning_effort"] == "high"
 
 
-def test_unknown_model_falls_back_to_default():
-    assert model_factory_mod.ModelFactory.resolve_model_string("missing-model") == "gpt-5-nano"
+def test_model_ids_match_factory_registry():
+    from domain.model_registry import MODEL_IDS
+
+    assert MODEL_IDS == frozenset(model_factory_mod._MODEL_MAP)
 
 
-def test_unknown_model_does_not_leak_across_providers(monkeypatch):
-    """Unknown id → default canonical id → OpenAI branch + OpenAI provider
-    string. Must never drop an OpenAI model string into the DeepSeek branch."""
+def test_unknown_model_is_rejected():
+    with pytest.raises(ValueError, match="Unsupported model_id: missing-model"):
+        model_factory_mod.ModelFactory.resolve_model_string("missing-model")
+
+
+def test_create_model_rejects_legacy_model_id(monkeypatch):
     monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("deepseek-r1")  # stale
-    assert isinstance(model, _ChatOpenAIStub)
-    assert model.kwargs["model"] == "gpt-5-nano"
+    with pytest.raises(ValueError, match="Unsupported model_id: deepseek-v4"):
+        model_factory_mod.ModelFactory.create_model("deepseek-v4")
