@@ -38,7 +38,12 @@ if GLITCHTIP_DSN:
 _PUBLIC_ORIGIN_VALUE = os.getenv("QJUDGE_PUBLIC_ORIGIN", "")
 if _PUBLIC_ORIGIN_VALUE:
     _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
-    ALLOWED_HOSTS = [_PUBLIC_ORIGIN.hostname]
+    ALLOWED_HOSTS = [
+        _PUBLIC_ORIGIN.hostname,
+        "localhost",
+        "127.0.0.1",
+        "backend",
+    ]
 else:
     _PUBLIC_ORIGIN = None
     ALLOWED_HOSTS = [
