@@ -107,3 +107,16 @@ def test_mcp_ci_jobs_respect_the_server_major_version_constraint() -> None:
     for step in install_steps:
         assert step["working-directory"] == "mcp-server"
         assert '"mcp[cli]>=1.9.0,<2.0"' in step["run"]
+
+
+def test_workflows_use_node24_action_runtimes_without_force_flag() -> None:
+    workflow_directory = REPOSITORY_ROOT / ".github" / "workflows"
+    workflow_text = "\n".join(
+        path.read_text() for path in sorted(workflow_directory.glob("*.yml"))
+    )
+
+    assert "actions/checkout@v4" not in workflow_text
+    assert "actions/setup-node@v4" not in workflow_text
+    assert "actions/setup-python@v5" not in workflow_text
+    assert "actions/upload-artifact@v4" not in workflow_text
+    assert "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24" not in workflow_text

@@ -28,9 +28,6 @@ concurrency:
   group: e2e-manual-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   e2e-auth:
     name: "E2E: Auth & Pending Actions"
@@ -38,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -57,7 +54,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml logs --no-color > e2e-auth.log
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-auth-artifacts
           path: |
@@ -75,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -94,7 +91,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml logs --no-color > e2e-exam.log
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-exam-artifacts
           path: |
@@ -112,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -131,7 +128,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml logs --no-color > e2e-contest.log
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-contest-artifacts
           path: |
@@ -149,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -168,7 +165,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml logs --no-color > e2e-coding.log
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-coding-artifacts
           path: |
@@ -186,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -205,7 +202,7 @@ jobs:
         run: docker compose -f docker-compose.test.yml logs --no-color > e2e-settings.log
       - name: Upload artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-settings-artifacts
           path: |

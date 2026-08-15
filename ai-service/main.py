@@ -40,6 +40,7 @@ from infrastructure.database.models import RunRow, SessionRow
 from infrastructure.database.uow import SqlAlchemyUnitOfWork
 from infrastructure.mcp.credential_lease import RedisCredentialLeaseStore
 from infrastructure.mcp.token_exchange import McpTokenExchangeClient
+from infrastructure.oauth.backend_transport import backend_auth_headers
 from infrastructure.oauth.jwt_verifier import AuthError, JwtVerifier
 from infrastructure.queue import CeleryRunDispatcher
 from worker.celery_app import celery_app
@@ -234,6 +235,10 @@ def _oauth_locations(settings: Settings) -> tuple[str, str]:
     return issuer, jwks_url
 
 
+def _jwks_client(jwks_url: str) -> PyJWKClient:
+    return PyJWKClient(jwks_url, headers=backend_auth_headers())
+
+
 def _artifact_store(settings: Settings) -> S3ArtifactStore:
     return S3ArtifactStore(
         bucket=settings.artifact_s3_bucket,
@@ -252,7 +257,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     issuer, jwks_url = _oauth_locations(settings)
     app.state.jwt_verifier = (
-        JwtVerifier(issuer, PyJWKClient(jwks_url))
+        JwtVerifier(issuer, _jwks_client(jwks_url))
         if issuer and jwks_url
         else _RejectingVerifier()
     )

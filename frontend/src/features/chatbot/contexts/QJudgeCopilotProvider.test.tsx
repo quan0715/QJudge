@@ -196,8 +196,10 @@ describe("QJudgeCopilotProvider", () => {
       act(() => result.current.workspace.right.open());
       await waitFor(() => expect(listModels).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
-      expect(result.current.sessions.activeSession.status).toBe("empty");
-      expect(result.current.sessions.sessions).toHaveLength(0);
+      await waitFor(() => {
+        expect(result.current.sessions.activeSession.status).toBe("empty");
+        expect(result.current.sessions.sessions).toHaveLength(0);
+      });
     },
   );
 
