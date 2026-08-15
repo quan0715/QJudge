@@ -62,7 +62,10 @@ class QJudgeTokenVerifier(TokenVerifier):
         opaque_fallback: TokenVerifier | None = None,
     ) -> None:
         self._issuer = issuer.rstrip("/")
-        self._jwks_client = jwks_client or PyJWKClient(OAUTH_JWKS_URL)
+        self._jwks_client = jwks_client or PyJWKClient(
+            OAUTH_JWKS_URL,
+            headers={"X-Forwarded-Proto": DJANGO_FORWARDED_PROTO},
+        )
         self._opaque_fallback = opaque_fallback or DjangoTokenVerifier()
 
     async def verify_token(self, token: str) -> AccessToken | None:

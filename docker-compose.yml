@@ -511,6 +511,7 @@ services:
       - DJANGO_BASE_URL=http://backend:8000
       - MCP_PUBLIC_URL=${MCP_PUBLIC_URL:-http://qjudge-mcp:9000}
       - OAUTH_ISSUER_URL=${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
+      - OAUTH_JWKS_URL=http://backend:8000/.well-known/jwks.json
     depends_on:
       - backend
     networks:
