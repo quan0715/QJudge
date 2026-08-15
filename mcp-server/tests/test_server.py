@@ -1383,6 +1383,24 @@ def test_auth_settings_configured():
     assert isinstance(server.mcp._token_verifier, server.QJudgeTokenVerifier)
 
 
+def test_qjudge_verifier_fetches_jwks_with_the_backend_transport_headers(monkeypatch):
+    created = {}
+
+    class RecordingJwksClient:
+        def __init__(self, url, *, headers=None):
+            created["url"] = url
+            created["headers"] = headers
+
+    monkeypatch.setattr(server, "PyJWKClient", RecordingJwksClient)
+
+    server.QJudgeTokenVerifier()
+
+    assert created == {
+        "url": server.OAUTH_JWKS_URL,
+        "headers": {"X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO},
+    }
+
+
 def test_qjudge_verifier_accepts_local_mcp_jwt_without_remote_call():
     private_key = Ed25519PrivateKey.generate()
     token = jwt.encode(
