@@ -334,6 +334,7 @@ async def test_exchange_failure_is_mapped_and_never_preflighted(
 async def test_http_token_exchange_returns_bounded_mcp_token() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Authorization"] == "Bearer ai-token"
+        assert request.headers["X-Forwarded-Proto"] == "https"
         assert request.read() == b'{"audience":"qjudge-mcp","scope":"mcp"}'
         return httpx.Response(
             200,

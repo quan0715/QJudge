@@ -13,9 +13,6 @@ concurrency:
   group: cd-prod
   cancel-in-progress: false
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && inputs.confirm_production
@@ -34,7 +31,7 @@ jobs:
           echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.sha.outputs.sha }}
 

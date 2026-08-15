@@ -28,9 +28,6 @@ concurrency:
   group: e2e-manual-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   e2e-auth:
     name: "E2E: Auth & Pending Actions"
@@ -38,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -75,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -112,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -149,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures
@@ -186,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start test stack
         run: |
           docker compose -f docker-compose.test.yml pull --ignore-pull-failures

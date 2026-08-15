@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from domain.ports import ExchangedToken, McpAuthFailed
+from infrastructure.oauth.backend_transport import backend_auth_headers
 
 
 class McpTokenExchangeClient:
@@ -44,8 +45,10 @@ class McpTokenExchangeClient:
         )
 
     async def _post(self, subject_token: str) -> httpx.Response:
+        headers = backend_auth_headers()
+        headers["Authorization"] = f"Bearer {subject_token}"
         kwargs = {
-            "headers": {"Authorization": f"Bearer {subject_token}"},
+            "headers": headers,
             "json": {"audience": "qjudge-mcp", "scope": "mcp"},
             "timeout": self._timeout_seconds,
         }
