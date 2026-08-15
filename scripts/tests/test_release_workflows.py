@@ -118,4 +118,5 @@ def test_workflows_use_node24_action_runtimes_without_force_flag() -> None:
     assert "actions/checkout@v4" not in workflow_text
     assert "actions/setup-node@v4" not in workflow_text
     assert "actions/setup-python@v5" not in workflow_text
+    assert "actions/upload-artifact@v4" not in workflow_text
     assert "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24" not in workflow_text
