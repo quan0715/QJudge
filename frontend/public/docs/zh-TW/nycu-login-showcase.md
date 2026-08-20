@@ -65,12 +65,6 @@ NYCU 的 service class 在 `backend/apps/users/auth/providers/nycu.py`：
 ```python
 class NYCUOAuthService(BaseOAuthService):
     provider_key = "nycu"
-    authorize_url_setting = "NYCU_OAUTH_AUTHORIZE_URL"
-    token_url_setting = "NYCU_OAUTH_TOKEN_URL"
-    userinfo_url_setting = "NYCU_OAUTH_USERINFO_URL"
-    client_id_setting = "NYCU_OAUTH_CLIENT_ID"
-    client_secret_setting = "NYCU_OAUTH_CLIENT_SECRET"
-    default_scope = "profile"
 ```
 
 Provider service 的欄位意義：
@@ -78,12 +72,6 @@ Provider service 的欄位意義：
 | 欄位 | 核心功能 |
 | --- | --- |
 | `provider_key` | 對應 provider key；`BaseOAuthService` 用它讀取 `QAUTH_PROVIDER_CONNECTIONS_JSON`，並寫入 `ExternalIdentity.provider_key` |
-| `authorize_url_setting` | connection settings 沒提供 URL 時，回讀 Django settings 的欄位名 |
-| `token_url_setting` | token endpoint 的 settings fallback 欄位名 |
-| `userinfo_url_setting` | userinfo endpoint 的 settings fallback 欄位名 |
-| `client_id_setting` | client id 的 settings fallback 欄位名 |
-| `client_secret_setting` | client secret 的 settings fallback 欄位名 |
-| `default_scope` | connection settings 沒提供 scope 時使用的 scope |
 
 新增 provider 時，選定一個 `provider_key`，例如 `example-university`，並讓 metadata、registry、connection、API path 都使用同一個值。NYCU 舊資料中的 `nycu-oauth` 會由 migration 收斂成 `nycu`。
 
@@ -213,9 +201,9 @@ Connection 參數：
 | `load_provider_connections(raw=None)` | 解析 `QAUTH_PROVIDER_CONNECTIONS_JSON`，回傳以 `key` 索引的 connection map |
 | `resolve_provider_credentials(connection)` | 依 `client_id_env`、`client_secret_env` 從環境變數讀取 credential |
 | `BaseOAuthService._provider_connection()` | 依 provider service 的 `provider_key` 找 connection |
-| `BaseOAuthService._provider_url()` | 優先讀 connection URL，再回讀 Django settings |
-| `BaseOAuthService._client_credentials()` | 優先讀 connection credential env，再回讀 Django settings |
-| `BaseOAuthService._scope()` | 優先讀 connection scope，再使用 service `default_scope` |
+| `BaseOAuthService._provider_url()` | 讀取 connection URL，缺少時拒絕啟動登入流程 |
+| `BaseOAuthService._client_credentials()` | 讀取 connection 指定的 credential env，任一缺少時拒絕啟動登入流程 |
+| `BaseOAuthService._scope()` | 讀取 connection scope，缺少時拒絕啟動登入流程 |
 
 ### 步驟 5：前端載入 options 並渲染 NYCU 入口
 

@@ -78,7 +78,7 @@ http://localhost:5173/auth/school/callback
 
 ### 2. 建立後端 provider service
 
-在 `backend/apps/users/auth/providers/` 新增 provider class，繼承 `BaseOAuthService`。至少要設定穩定的 `provider_key`、預設 scope 與 settings 名稱，並把 provider profile 轉成共同欄位：
+在 `backend/apps/users/auth/providers/` 新增 provider class，繼承 `BaseOAuthService`。至少要設定穩定的 `provider_key`，並把 provider profile 轉成共同欄位：
 
 - `oauth_id`：穩定且不可變的 subject
 - `username`
@@ -102,7 +102,7 @@ class 的 `provider_key` 必須和 registry key 完全相同。路由不必為�
 
 在部署環境的 `QAUTH_PROVIDER_CONNECTIONS_JSON` 加入同一個 key，並用 `client_id_env`、`client_secret_env` 指向另外兩個環境變數。credential 本身只放進 secret 管理或 `.env`，不要直接放進 JSON。
 
-若 endpoint 可以沿用 Django settings 的既有預設，connection 可只覆寫必要欄位。設定完成後先用 Compose config 檢查 JSON 與環境變數，再啟動服務。
+connection 必須明確提供 authorization、token、userinfo endpoint、scope 與兩個 credential env 名稱；未完整設定的 provider 不會出現在公開登入選項，也無法啟動 OAuth 流程。設定完成後先用 Compose config 檢查 JSON 與環境變數，再啟動服務。
 
 ### 5. 補上前端顯示文字
 

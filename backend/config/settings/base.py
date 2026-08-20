@@ -354,29 +354,7 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 # artifact maintenance run in the independent AI scheduler.
 CELERY_BEAT_SCHEDULE = {}
 
-# NYCU OAuth settings
-NYCU_OAUTH_CLIENT_ID = os.getenv("NYCU_OAUTH_CLIENT_ID", "")
-NYCU_OAUTH_CLIENT_SECRET = os.getenv("NYCU_OAUTH_CLIENT_SECRET", "")
-NYCU_OAUTH_AUTHORIZE_URL = "https://id.nycu.edu.tw/o/authorize/"
-NYCU_OAUTH_TOKEN_URL = "https://id.nycu.edu.tw/o/token/"
-NYCU_OAUTH_USERINFO_URL = "https://id.nycu.edu.tw/api/profile/"
-
-# GitHub OAuth settings
-GITHUB_OAUTH_CLIENT_ID = os.getenv("GITHUB_OAUTH_CLIENT_ID", "")
-GITHUB_OAUTH_CLIENT_SECRET = os.getenv("GITHUB_OAUTH_CLIENT_SECRET", "")
-GITHUB_OAUTH_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
-GITHUB_OAUTH_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_OAUTH_USERINFO_URL = "https://api.github.com/user"
-GITHUB_OAUTH_USER_EMAILS_URL = "https://api.github.com/user/emails"
-
-# Google OAuth settings
-GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
-GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_OAUTH_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
-
-# Public login method settings. Provider metadata is registered in apps.users.auth.provider_registry.
+# Public login method settings. OAuth connections are configured through QAuth.
 AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
 QAUTH_PROVIDER_CONNECTIONS_JSON = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "[]")
 

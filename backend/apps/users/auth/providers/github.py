@@ -3,22 +3,16 @@
 import logging
 
 import requests
-from django.conf import settings
 
 from .base import BaseOAuthService
 from .profile import extract_avatar_url
 
 logger = logging.getLogger(__name__)
+GITHUB_USER_EMAILS_URL = "https://api.github.com/user/emails"
 
 
 class GitHubOAuthService(BaseOAuthService):
     provider_key = "github"
-    authorize_url_setting = "GITHUB_OAUTH_AUTHORIZE_URL"
-    token_url_setting = "GITHUB_OAUTH_TOKEN_URL"
-    userinfo_url_setting = "GITHUB_OAUTH_USERINFO_URL"
-    client_id_setting = "GITHUB_OAUTH_CLIENT_ID"
-    client_secret_setting = "GITHUB_OAUTH_CLIENT_SECRET"
-    default_scope = "read:user user:email"
 
     @classmethod
     def _default_avatar_url(cls, user_info: dict) -> str:
@@ -43,11 +37,7 @@ class GitHubOAuthService(BaseOAuthService):
         if not info.get("email"):
             try:
                 resp = requests.get(
-                    getattr(
-                        settings,
-                        "GITHUB_OAUTH_USER_EMAILS_URL",
-                        "https://api.github.com/user/emails",
-                    ),
+                    GITHUB_USER_EMAILS_URL,
                     headers={
                         "Authorization": f"Bearer {access_token}",
                         "Accept": "application/json",

@@ -16,12 +16,6 @@ logger = logging.getLogger(__name__)
 
 class GoogleOAuthService(BaseOAuthService):
     provider_key = "google"
-    authorize_url_setting = "GOOGLE_OAUTH_AUTHORIZE_URL"
-    token_url_setting = "GOOGLE_OAUTH_TOKEN_URL"
-    userinfo_url_setting = "GOOGLE_OAUTH_USERINFO_URL"
-    client_id_setting = "GOOGLE_OAUTH_CLIENT_ID"
-    client_secret_setting = "GOOGLE_OAUTH_CLIENT_SECRET"
-    default_scope = "openid email profile"
 
     @classmethod
     def exchange_code(cls, code: str, redirect_uri: str) -> dict:

@@ -17,6 +17,49 @@ from apps.users.models import User, UserProfile
 from apps.users.services import EmailAuthService, JWTService
 
 
+NYCU_CONNECTION = json.dumps(
+    [{
+        "key": "nycu",
+        "type": "oidc",
+        "authorization_url": "https://oauth.example.com/authorize",
+        "token_url": "https://oauth.example.com/token",
+        "userinfo_url": "https://oauth.example.com/userinfo",
+        "scope": "profile",
+        "client_id_env": "NYCU_OAUTH_CLIENT_ID",
+        "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET",
+    }],
+)
+GITHUB_CONNECTION = json.dumps(
+    [{
+        "key": "github",
+        "type": "oauth2",
+        "authorization_url": "https://github.com/login/oauth/authorize",
+        "token_url": "https://github.com/login/oauth/access_token",
+        "userinfo_url": "https://api.github.com/user",
+        "scope": "read:user user:email",
+        "client_id_env": "GITHUB_OAUTH_CLIENT_ID",
+        "client_secret_env": "GITHUB_OAUTH_CLIENT_SECRET",
+    }],
+)
+GOOGLE_CONNECTION = json.dumps(
+    [{
+        "key": "google",
+        "type": "oidc",
+        "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
+        "scope": "openid email profile",
+        "client_id_env": "GOOGLE_OAUTH_CLIENT_ID",
+        "client_secret_env": "GOOGLE_OAUTH_CLIENT_SECRET",
+    }],
+)
+ALL_PROVIDER_CONNECTIONS = json.dumps([
+    *json.loads(NYCU_CONNECTION),
+    *json.loads(GITHUB_CONNECTION),
+    *json.loads(GOOGLE_CONNECTION),
+])
+
+
 def link_oauth_user(service, user_info, access_token=""):
     oauth_data = {"access_token": access_token, "user_info": user_info}
     return link_qauth_identity(
@@ -106,24 +149,18 @@ class AuthOptionsTests(SimpleTestCase):
 
     @override_settings(
         AUTH_EMAIL_PASSWORD_ENABLED=False,
-        AUTH_PROVIDER_OPTIONS=[
-            {
-                "key": "nycu",
-                "type": "oidc",
-                "category": "campus",
-                "display_name": "NYCU 國立陽明交通大學",
-                "display_name_i18n_key": "auth.providers.nycu",
-                "logo_url": "/auth-providers/nycu.svg",
-                "issuer": "https://id.nycu.edu.tw",
-                "token_url": "https://id.nycu.edu.tw/o/token/",
-                "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET",
-            },
-            {
-                "key": "missing",
-                "category": "campus",
-                "display_name": "Missing University",
-            },
-        ],
+        QAUTH_PROVIDER_CONNECTIONS_JSON=ALL_PROVIDER_CONNECTIONS,
+    )
+    @patch.dict(
+        os.environ,
+        {
+            "NYCU_OAUTH_CLIENT_ID": "nycu-client-id",
+            "NYCU_OAUTH_CLIENT_SECRET": "nycu-secret",
+            "GITHUB_OAUTH_CLIENT_ID": "github-client-id",
+            "GITHUB_OAUTH_CLIENT_SECRET": "github-secret",
+            "GOOGLE_OAUTH_CLIENT_ID": "google-client-id",
+            "GOOGLE_OAUTH_CLIENT_SECRET": "google-secret",
+        },
     )
     def test_get_auth_options_returns_public_known_providers(self):
         options = get_auth_options()
@@ -189,6 +226,14 @@ class AuthOptionsTests(SimpleTestCase):
         self.assertEqual(nycu.claim_mapping["email"], "email")
         self.assertEqual(resolve_provider_credentials(nycu), ("client-id", "client-secret"))
 
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GITHUB_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GITHUB_OAUTH_CLIENT_ID": "github-client-id",
+            "GITHUB_OAUTH_CLIENT_SECRET": "github-secret",
+        },
+    )
     def test_auth_options_never_exposes_provider_connection_details(self):
         options = get_auth_options()
         provider = next(item for item in options["providers"] if item["key"] == "github")
@@ -206,9 +251,13 @@ class AuthOptionsTests(SimpleTestCase):
 
 
 class NYCUOAuthServiceTests(TestCase):
-    @override_settings(
-        NYCU_OAUTH_CLIENT_ID="client-id",
-        NYCU_OAUTH_AUTHORIZE_URL="https://oauth.example.com/authorize",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=NYCU_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "NYCU_OAUTH_CLIENT_ID": "client-id",
+            "NYCU_OAUTH_CLIENT_SECRET": "client-secret",
+        },
     )
     def test_get_authorization_url(self):
         url = NYCUOAuthService.get_authorization_url(
@@ -219,11 +268,13 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertIn("client_id=client-id", url)
         self.assertIn("state=state-123", url)
 
-    @override_settings(
-        NYCU_OAUTH_TOKEN_URL="https://oauth.example.com/token",
-        NYCU_OAUTH_CLIENT_ID="client-id",
-        NYCU_OAUTH_CLIENT_SECRET="client-secret",
-        NYCU_OAUTH_USERINFO_URL="https://oauth.example.com/userinfo",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=NYCU_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "NYCU_OAUTH_CLIENT_ID": "client-id",
+            "NYCU_OAUTH_CLIENT_SECRET": "client-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.get")
     @patch("apps.users.auth.providers.base.requests.post")
@@ -247,11 +298,13 @@ class NYCUOAuthServiceTests(TestCase):
         self.assertEqual(data["user_info"]["oauth_id"], "oauth-sub-1")
         self.assertEqual(data["user_info"]["avatar_url"], "https://id.nycu.edu.tw/avatar.png")
 
-    @override_settings(
-        NYCU_OAUTH_TOKEN_URL="https://oauth.example.com/token",
-        NYCU_OAUTH_CLIENT_ID="client-id",
-        NYCU_OAUTH_CLIENT_SECRET="client-secret",
-        NYCU_OAUTH_USERINFO_URL="https://oauth.example.com/userinfo",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=NYCU_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "NYCU_OAUTH_CLIENT_ID": "client-id",
+            "NYCU_OAUTH_CLIENT_SECRET": "client-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.post")
     def test_exchange_code_raises_on_token_exchange_failure(self, mock_post):
@@ -495,9 +548,13 @@ class OAuthProviderRegistryTests(TestCase):
 
 
 class GitHubOAuthServiceTests(TestCase):
-    @override_settings(
-        GITHUB_OAUTH_CLIENT_ID="gh-client-id",
-        GITHUB_OAUTH_AUTHORIZE_URL="https://github.com/login/oauth/authorize",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GITHUB_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GITHUB_OAUTH_CLIENT_ID": "gh-client-id",
+            "GITHUB_OAUTH_CLIENT_SECRET": "gh-secret",
+        },
     )
     def test_get_authorization_url(self):
         url = GitHubOAuthService.get_authorization_url(
@@ -508,12 +565,13 @@ class GitHubOAuthServiceTests(TestCase):
         self.assertIn("state=state-gh", url)
         self.assertIn("scope=read", url)
 
-    @override_settings(
-        GITHUB_OAUTH_TOKEN_URL="https://github.com/login/oauth/access_token",
-        GITHUB_OAUTH_CLIENT_ID="gh-client-id",
-        GITHUB_OAUTH_CLIENT_SECRET="gh-secret",
-        GITHUB_OAUTH_USERINFO_URL="https://api.github.com/user",
-        GITHUB_OAUTH_USER_EMAILS_URL="https://api.github.com/user/emails",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GITHUB_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GITHUB_OAUTH_CLIENT_ID": "gh-client-id",
+            "GITHUB_OAUTH_CLIENT_SECRET": "gh-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.get")
     @patch("apps.users.auth.providers.base.requests.post")
@@ -553,9 +611,13 @@ class GoogleOAuthServiceTests(TestCase):
         p = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
         return f"{h}.{p}."
 
-    @override_settings(
-        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
-        GOOGLE_OAUTH_AUTHORIZE_URL="https://accounts.google.com/o/oauth2/v2/auth",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GOOGLE_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GOOGLE_OAUTH_CLIENT_ID": "google-client-id",
+            "GOOGLE_OAUTH_CLIENT_SECRET": "google-secret",
+        },
     )
     def test_get_authorization_url(self):
         url = GoogleOAuthService.get_authorization_url(
@@ -565,11 +627,13 @@ class GoogleOAuthServiceTests(TestCase):
         self.assertIn("client_id=google-client-id", url)
         self.assertIn("scope=openid", url)
 
-    @override_settings(
-        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
-        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
-        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
-        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GOOGLE_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GOOGLE_OAUTH_CLIENT_ID": "google-client-id",
+            "GOOGLE_OAUTH_CLIENT_SECRET": "google-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.get")
     @patch("apps.users.auth.providers.base.requests.post")
@@ -597,11 +661,13 @@ class GoogleOAuthServiceTests(TestCase):
             "https://lh3.googleusercontent.com/avatar",
         )
 
-    @override_settings(
-        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
-        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
-        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
-        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GOOGLE_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GOOGLE_OAUTH_CLIENT_ID": "google-client-id",
+            "GOOGLE_OAUTH_CLIENT_SECRET": "google-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.get")
     @patch("apps.users.auth.providers.base.requests.post")
@@ -639,11 +705,13 @@ class GoogleOAuthServiceTests(TestCase):
             "https://lh3.googleusercontent.com/fallback-avatar",
         )
 
-    @override_settings(
-        GOOGLE_OAUTH_TOKEN_URL="https://oauth2.googleapis.com/token",
-        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
-        GOOGLE_OAUTH_CLIENT_SECRET="google-secret",
-        GOOGLE_OAUTH_USERINFO_URL="https://www.googleapis.com/oauth2/v3/userinfo",
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON=GOOGLE_CONNECTION)
+    @patch.dict(
+        os.environ,
+        {
+            "GOOGLE_OAUTH_CLIENT_ID": "google-client-id",
+            "GOOGLE_OAUTH_CLIENT_SECRET": "google-secret",
+        },
     )
     @patch("apps.users.auth.providers.base.requests.get")
     @patch("apps.users.auth.providers.base.requests.post")
