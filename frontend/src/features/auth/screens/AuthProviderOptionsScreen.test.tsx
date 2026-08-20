@@ -122,6 +122,21 @@ describe("auth provider options", () => {
     mockGetOAuthUrl.mockResolvedValue("#campus-sso");
   });
 
+  it("shows a recoverable error instead of presenting password-only login when auth options fail", async () => {
+    mockGetAuthOptions
+      .mockRejectedValueOnce(new Error("auth options unavailable"))
+      .mockResolvedValueOnce(authOptions);
+
+    renderWithRouter(<LoginScreen />);
+
+    expect(await screen.findByTestId("auth-options-load-error")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-options-retry")).toBeEnabled();
+    expect(screen.queryByTestId("auth-login-form")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("auth-options-retry"));
+    expect(await screen.findByText("GitHub")).toBeInTheDocument();
+  });
+
   it("hides email/password login when disabled and renders dynamic social providers", async () => {
     const { container } = renderWithRouter(<LoginScreen />);
 

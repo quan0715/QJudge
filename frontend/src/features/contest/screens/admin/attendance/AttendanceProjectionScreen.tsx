@@ -11,7 +11,7 @@ import {
 } from "@carbon/icons-react";
 import { QRCodeSVG } from "@rc-component/qrcode";
 import { Button, InlineNotification } from "@carbon/react";
-import { Link, useParams } from "react-router";
+import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import type { AttendancePurpose, ContestDetail } from "@/core/entities/contest.entity";

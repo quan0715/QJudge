@@ -1,4 +1,4 @@
-import { cloneElement, useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useLocation, useOutlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Light, Asleep, ArrowLeft } from '@carbon/icons-react';
@@ -182,7 +182,7 @@ const AuthLayout = () => {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.15, ease: 'easeInOut' }}
                   >
-                    {outlet && cloneElement(outlet, { key: location.pathname })}
+                    {outlet}
                   </motion.div>
                 </AnimatePresence>
               </div>

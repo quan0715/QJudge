@@ -30,7 +30,12 @@ const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { buildAuthLink } = usePendingActions();
-  const { options, loading: authOptionsLoading } = useAuthOptions();
+  const {
+    options,
+    loading: authOptionsLoading,
+    error: authOptionsError,
+    retry: retryAuthOptions,
+  } = useAuthOptions();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,6 +82,27 @@ const LoginPage = () => {
       setOauthLoadingProvider(null);
     }
   };
+
+  if (authOptionsError) {
+    return (
+      <div className="auth-form">
+        <PendingActionBanner />
+        <div className="auth-options-error" data-testid="auth-options-load-error">
+          <p className="auth-error" role="alert">
+            {t("auth.optionsUnavailable", "無法載入可用的登入方式，請重試。")}
+          </p>
+          <Button
+            kind="tertiary"
+            type="button"
+            onClick={retryAuthOptions}
+            data-testid="auth-options-retry"
+          >
+            {t("common.retry", "重試")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Route } from "react-router";
+import { Route } from "react-router-dom";
 import { RouteLoadingBoundary } from "@/shared/ui/RouteLoadingBoundary";
 
 const DashboardScreen = lazy(() => import("./screens/DashboardScreen"));

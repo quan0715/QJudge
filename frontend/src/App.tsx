@@ -1,5 +1,4 @@
-import { BrowserRouter } from "react-router-dom";
-import { Routes, Route } from "react-router";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";

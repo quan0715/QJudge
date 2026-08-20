@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from urllib.parse import urlencode
 
 import requests
-from django.conf import settings
 
 from ..contracts import NormalizedQAuthIdentity, ProviderTokenSet
 from ..provider_connections import load_provider_connections, resolve_provider_credentials
@@ -13,16 +12,14 @@ from ..provider_connections import load_provider_connections, resolve_provider_c
 logger = logging.getLogger(__name__)
 
 
+class OAuthProviderConfigurationError(RuntimeError):
+    """Raised when a registered OAuth provider has no complete QAuth connection."""
+
+
 class BaseOAuthService(ABC):
     """Abstract base for OAuth provider services."""
 
     provider_key: str = ""
-    authorize_url_setting: str = ""
-    token_url_setting: str = ""
-    userinfo_url_setting: str = ""
-    client_id_setting: str = ""
-    client_secret_setting: str = ""
-    default_scope: str = ""
 
     @classmethod
     def get_authorization_url(cls, redirect_uri: str, state: str) -> str:
@@ -34,7 +31,7 @@ class BaseOAuthService(ABC):
             "state": state,
             "scope": cls._scope(),
         }
-        base = cls._provider_url("authorization_url", cls.authorize_url_setting)
+        base = cls._provider_url("authorization_url")
         return f"{base}?{urlencode(params)}"
 
     @classmethod
@@ -87,7 +84,7 @@ class BaseOAuthService(ABC):
         client_id, client_secret = cls._client_credentials()
         try:
             resp = requests.post(
-                cls._provider_url("token_url", cls.token_url_setting),
+                cls._provider_url("token_url"),
                 data={
                     "grant_type": "authorization_code",
                     "code": code,
@@ -113,7 +110,7 @@ class BaseOAuthService(ABC):
     def _fetch_user_info(cls, access_token: str) -> dict:
         try:
             resp = requests.get(
-                cls._provider_url("userinfo_url", cls.userinfo_url_setting),
+                cls._provider_url("userinfo_url"),
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=(5, 15),
             )
@@ -133,35 +130,50 @@ class BaseOAuthService(ABC):
 
     @classmethod
     def _provider_connection(cls):
-        return load_provider_connections().get(cls.provider_key)
+        connection = load_provider_connections().get(cls.provider_key)
+        if connection is None:
+            raise OAuthProviderConfigurationError(
+                f"OAuth provider {cls.provider_key!r} is not configured",
+            )
+        return connection
 
     @classmethod
-    def _provider_url(cls, connection_attr: str, setting_name: str) -> str:
-        connection = cls._provider_connection()
-        if connection is not None:
-            value = getattr(connection, connection_attr, "")
-            if value:
-                return value
-        return getattr(settings, setting_name)
+    def _provider_url(cls, connection_attr: str) -> str:
+        value = getattr(cls._provider_connection(), connection_attr, "")
+        if not value:
+            raise OAuthProviderConfigurationError(
+                f"OAuth provider {cls.provider_key!r} requires {connection_attr}",
+            )
+        return value
 
     @classmethod
     def _client_credentials(cls) -> tuple[str, str]:
         connection = cls._provider_connection()
-        if connection is not None:
-            client_id, client_secret = resolve_provider_credentials(connection)
-            if client_id or client_secret:
-                return (
-                    client_id or getattr(settings, cls.client_id_setting),
-                    client_secret or getattr(settings, cls.client_secret_setting),
-                )
-        return (
-            getattr(settings, cls.client_id_setting),
-            getattr(settings, cls.client_secret_setting),
-        )
+        client_id, client_secret = resolve_provider_credentials(connection)
+        if not client_id or not client_secret:
+            raise OAuthProviderConfigurationError(
+                f"OAuth provider {cls.provider_key!r} requires client credentials",
+            )
+        return client_id, client_secret
 
     @classmethod
     def _scope(cls) -> str:
-        connection = cls._provider_connection()
-        if connection is not None and connection.scope:
-            return connection.scope
-        return cls.default_scope
+        scope = cls._provider_connection().scope
+        if not scope:
+            raise OAuthProviderConfigurationError(
+                f"OAuth provider {cls.provider_key!r} requires scope",
+            )
+        return scope
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Return whether this provider can complete a server-side OAuth flow."""
+        try:
+            cls._provider_url("authorization_url")
+            cls._provider_url("token_url")
+            cls._provider_url("userinfo_url")
+            cls._client_credentials()
+            cls._scope()
+        except OAuthProviderConfigurationError:
+            return False
+        return True

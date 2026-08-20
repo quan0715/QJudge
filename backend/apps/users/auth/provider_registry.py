@@ -97,7 +97,11 @@ def get_oauth_service(provider: str) -> type[BaseOAuthService] | None:
 
 
 def get_oauth_provider_options() -> list[dict]:
-    return [registration.public_option() for registration in REGISTERED_OAUTH_PROVIDERS.values()]
+    return [
+        registration.public_option()
+        for registration in REGISTERED_OAUTH_PROVIDERS.values()
+        if registration.service.is_configured()
+    ]
 
 
 def is_registered_auth_provider(provider: str) -> bool:

@@ -79,33 +79,18 @@ class EnhancedAuthTests(APITestCase):
             response.data["data"],
             {
                 "password_enabled": False,
-                "providers": [
-                    {
-                        "key": "nycu",
-                        "type": "oidc",
-                        "category": "campus",
-                        "display_name": "NYCU 國立陽明交通大學",
-                        "display_name_i18n_key": "auth.providers.nycu",
-                        "logo_url": "/illustrations/nycu-logo.png",
-                    },
-                    {
-                        "key": "github",
-                        "type": "oauth2",
-                        "category": "social",
-                        "display_name": "GitHub",
-                        "display_name_i18n_key": "auth.providers.github",
-                    },
-                    {
-                        "key": "google",
-                        "type": "oidc",
-                        "category": "social",
-                        "display_name": "Google",
-                        "display_name_i18n_key": "auth.providers.google",
-                        "logo_url": "/illustrations/google-icon.svg",
-                    },
-                ],
+                "providers": [],
             },
         )
+
+    @override_settings(QAUTH_PROVIDER_CONNECTIONS_JSON="[]")
+    def test_oauth_login_rejects_a_registered_provider_without_a_connection(self):
+        url = reverse("auth:provider-login", kwargs={"provider": "nycu"})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["error"]["code"], "OAUTH_PROVIDER_NOT_CONFIGURED")
 
     @override_settings(AUTH_EMAIL_PASSWORD_ENABLED=False)
     def test_password_register_is_rejected_when_disabled(self):

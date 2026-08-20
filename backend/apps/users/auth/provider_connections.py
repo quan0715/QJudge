@@ -28,13 +28,13 @@ def load_provider_connections(raw: str | None = None) -> dict[str, QAuthProvider
     return {
         item["key"]: QAuthProviderConnection(
             key=item["key"],
-            type=item.get("type", "oauth2"),
+            type=item.get("type", ""),
             issuer_url=item.get("issuer_url", ""),
             authorization_url=item.get("authorization_url", ""),
             token_url=item.get("token_url", ""),
             userinfo_url=item.get("userinfo_url", ""),
             jwks_url=item.get("jwks_url", ""),
-            scope=item.get("scope", "openid email profile"),
+            scope=item.get("scope", ""),
             client_id_env=item.get("client_id_env", ""),
             client_secret_env=item.get("client_secret_env", ""),
             claim_mapping=item.get("claim_mapping", {}),
