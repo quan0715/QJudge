@@ -18,6 +18,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from ..auth.account_linking import link_qauth_identity
 from ..auth.options import get_auth_options, is_password_auth_enabled
+from ..auth.providers.base import OAuthProviderConfigurationError
 from ..auth.provider_registry import get_oauth_service
 from ..serializers import LoginSerializer, OAuthCallbackSerializer, RegisterSerializer
 from ..services import (
@@ -233,7 +234,20 @@ class ProviderLoginView(SchemaAPIView):
             )
         redirect_uri = f"{settings.FRONTEND_URL}/auth/{provider}/callback"
         state = secrets.token_urlsafe(16)
-        auth_url = service.get_authorization_url(redirect_uri, state)
+        try:
+            auth_url = service.get_authorization_url(redirect_uri, state)
+        except OAuthProviderConfigurationError:
+            logger.error("OAuth provider is not configured provider=%s", provider)
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "OAUTH_PROVIDER_NOT_CONFIGURED",
+                        "message": f"OAuth provider is not configured: {provider}",
+                    },
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return Response({"success": True, "data": {"authorization_url": auth_url}})
 
     @extend_schema(request=LoginSerializer)
@@ -309,6 +323,18 @@ class OAuthCallbackView(SchemaAPIView):
             access_jti = str(AccessToken(tokens["access"]).get("jti", ""))
             record_login(user, request, login_method=provider, jti=access_jti)
             return token_cookie_response(user, tokens)
+        except OAuthProviderConfigurationError:
+            logger.error("OAuth provider is not configured provider=%s", provider)
+            return Response(
+                {
+                    "success": False,
+                    "error": {
+                        "code": "OAUTH_PROVIDER_NOT_CONFIGURED",
+                        "message": f"OAuth provider is not configured: {provider}",
+                    },
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         except Exception as exc:
             logger.exception("%s OAuth callback failed: %s", provider, exc)
             return Response(

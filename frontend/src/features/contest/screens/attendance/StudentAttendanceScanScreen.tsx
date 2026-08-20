@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, InlineLoading } from "@carbon/react";
 import { ArrowRight } from "@carbon/icons-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import type { AttendancePhotoPolicy, AttendancePurpose } from "@/core/entities/contest.entity";

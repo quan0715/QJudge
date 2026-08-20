@@ -28,7 +28,11 @@ const CampusSsoScreen = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { options } = useAuthOptions();
+  const {
+    options,
+    error: authOptionsError,
+    retry: retryAuthOptions,
+  } = useAuthOptions();
   // Auto-syncs query params (e.g. action_link_token) → sessionStorage
   const { buildAuthLink } = usePendingActions();
   const [loading, setLoading] = useState<string | null>(null);
@@ -64,6 +68,27 @@ const CampusSsoScreen = () => {
     if (!selectedProvider || isAuthenticating) return;
     void handleSsoLogin(selectedProvider.key);
   };
+
+  if (authOptionsError) {
+    return (
+      <div className="auth-form">
+        <PendingActionBanner />
+        <div className="auth-options-error" data-testid="auth-options-load-error">
+          <p className="auth-error" role="alert">
+            {t("auth.optionsUnavailable", "無法載入可用的登入方式，請重試。")}
+          </p>
+          <Button
+            kind="tertiary"
+            type="button"
+            onClick={retryAuthOptions}
+            data-testid="auth-options-retry"
+          >
+            {t("common.retry", "重試")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
