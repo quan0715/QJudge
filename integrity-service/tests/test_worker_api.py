@@ -1644,6 +1644,21 @@ def test_stop_archive_failure_remains_stopping_without_success_result(tmp_path):
     assert runtime.accepting is False
 
 
+def test_backend_client_marks_internal_requests_as_https_for_django_proxy():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["X-Forwarded-Proto"] == "https"
+        return httpx.Response(200, json={"run_id": str(RUN_ID)})
+
+    client = BackendClient(
+        base_url="http://backend:8000",
+        run_id=RUN_ID,
+        token="scoped-token",
+        transport=httpx.MockTransport(handler),
+    )
+
+    client.fetch_bootstrap()
+
+
 def test_backend_client_retries_only_retryable_status_with_identical_command_bytes():
     bodies: list[bytes] = []
 

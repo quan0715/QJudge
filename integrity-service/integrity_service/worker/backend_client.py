@@ -47,7 +47,10 @@ class BackendClient:
         )
         client = httpx.Client(
             base_url=base_url.rstrip("/"),
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Forwarded-Proto": "https",
+            },
             timeout=timeout,
             transport=transport,
         )
