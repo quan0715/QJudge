@@ -48,6 +48,7 @@ import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveM
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import { IntegrityRuntimeProvider } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { useIntegrityRuntime } from "@/features/contest/anticheat/integrity/useIntegrityRuntime";
+import { useIntegrityCaptureRegistration, useIntegrityUploadOwner } from "../contexts/IntegrityUploadProvider";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
 
 interface ExamModeWrapperProps {
@@ -97,6 +98,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [fullscreenAdapter] = useState(createFullscreenAdapter);
   const { showToast } = useToast();
   const [streamAdapter] = useState(createStreamAdapter);
+  const uploadOwner = useIntegrityUploadOwner();
   const { t } = useTranslation("contest");
   const policyConfigRequired = requiresAnticheatPolicyConfig(cheatDetectionEnabled);
   const policyRequired =
@@ -173,7 +175,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     policyConfigRequired &&
     isIntegrityAttemptActive(examStatus) &&
     anticheatConfig?.version === 3 &&
-    anticheatConfig.integrityRun?.computeState === "running" &&
+    (uploadOwner?.resident || anticheatConfig.integrityRun?.computeState === "running") &&
+    !!anticheatConfig.integrityRun &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&
     !!anticheatConfig.integrityRun.policySnapshot &&
@@ -254,7 +257,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const setEvidenceCoordinator = useCallback((controller: { flushPendingUploads: () => Promise<void> } | null) => {
     evidenceCoordinatorRef.current = controller;
   }, []);
-  const integrity = useIntegrityRuntime({
+  const runtimeOptions = {
     enabled: integrityRuntimeEnabled,
     contestId,
     integrityRun: anticheatConfig?.integrityRun,
@@ -271,15 +274,21 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       webcam: webcamCapture.stream,
     },
     onEvidenceControllerChange: setEvidenceCoordinator,
+  };
+  useIntegrityCaptureRegistration(runtimeOptions);
+  const legacyIntegrity = useIntegrityRuntime({ ...runtimeOptions,
+    enabled: integrityRuntimeEnabled && !uploadOwner?.resident && (!uploadOwner || uploadOwner.capabilityKnown),
   });
+  const integrity = uploadOwner?.resident ? uploadOwner.emitter : legacyIntegrity;
   const examCaptureContextValue = useMemo(
     () => ({
       ...capture,
       flushPendingUploads: async () => {
+        if (uploadOwner?.resident) { await uploadOwner.flush(); return; }
         await evidenceCoordinatorRef.current?.flushPendingUploads();
       },
     }),
-    [capture],
+    [capture, uploadOwner],
   );
   // --- Domain monitoring hooks ---
   const screenShare = useScreenShareMonitoring({

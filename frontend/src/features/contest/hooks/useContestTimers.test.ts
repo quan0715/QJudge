@@ -21,6 +21,19 @@ const baseContest = {
 };
 
 describe("useContestTimers", () => {
+  it("uses server clock offset and rearms expiry after an extension", async () => {
+    const refreshContest = vi.fn();
+    const initial = { ...baseContest, endTime: "2024-01-01T00:00:02Z", serverTimeOffsetMs: 60000 };
+    const { result, rerender } = renderHook(({ contest }) => useContestTimers({ contest, contestId: "1", refreshContest }), { initialProps: { contest: initial } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.timeLeft).toBe("00:00:00");
+    expect(refreshContest).toHaveBeenCalledTimes(1);
+    rerender({ contest: { ...initial, endTime: "2024-01-01T00:01:02Z" } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.timeLeft).toBe("00:00:02");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(refreshContest).toHaveBeenCalledTimes(2);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));

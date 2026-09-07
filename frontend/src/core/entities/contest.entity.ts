@@ -230,6 +230,8 @@ export interface ParticipantDashboard {
 }
 
 export interface Contest {
+  scheduleRevision?: number;
+  serverTimeOffsetMs?: number;
   id: string;
   name: string;
   description: string;
@@ -404,6 +406,7 @@ export interface IntegrityRegistrySnapshot {
 }
 
 export interface ContestIntegrityRun {
+  executionBackend?: "legacy" | "resident";
   id: string;
   computeState: string;
   health: string;
@@ -411,6 +414,29 @@ export interface ContestIntegrityRun {
   policySnapshot: Record<string, unknown>;
   devicePolicy: ContestAnticheatDevicePolicy;
   registrySnapshot: IntegrityRegistrySnapshot;
+}
+
+/** Self-scoped authoritative runtime wire state; no problem/answer tree. */
+export interface ExamRuntimeState {
+  server_now: string;
+  start_time: string | null;
+  end_time: string | null;
+  schedule_revision: number;
+  exam_status: ExamStatusType;
+  participant_id: number;
+  integrity_run: null | {
+    id: string; execution_backend: "legacy" | "resident";
+    session_state: string; schedule_revision: number; health: string; accept_until: string | null;
+  };
+  session_identity: {
+    active_device_matches: boolean; device_id: string | null;
+    attempt_id: string | null; next_sequence: number | null;
+  };
+  integrity_upload: null | {
+    upload_status: "pending" | "complete" | "expired"; accept_until: string;
+    final_seq: number | null; received_seq: number; processed_seq: number; commands_drained: boolean;
+  };
+  serverOffsetMs?: number;
 }
 
 export interface ContestAnticheatConfig {

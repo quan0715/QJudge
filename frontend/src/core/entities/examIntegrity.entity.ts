@@ -105,6 +105,8 @@ export interface EvidenceRetainCommand {
 }
 
 export interface ExamIntegrityBatchAck {
+  uploadStatus?: "pending" | "complete" | "expired";
+  processedThroughSeq?: number;
   ackedThroughSeq: number;
   pendingCommands: EvidenceRetainCommand[];
   releaseEvidenceBeforeMs: number;
@@ -144,9 +146,17 @@ export type EvidenceUnavailableReport =
     };
 
 export interface EvidenceCheckpointRequest {
+  uploadScope?: IntegrityUploadScope;
   manifests: EvidenceManifestRequest[];
   completions: string[];
   unavailable: EvidenceUnavailableReport[];
+}
+
+export interface IntegrityUploadScope {
+  run_id: string;
+  participant_id: number;
+  device_id: string;
+  attempt_id: string;
 }
 
 export interface EvidenceCheckpointResponse {

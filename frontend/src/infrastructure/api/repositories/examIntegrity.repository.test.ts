@@ -29,6 +29,35 @@ const batch = {
 };
 
 describe("examIntegrityRepository", () => {
+  it("keeps resident evidence authentication failures local without refresh or replay", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: "scope expired" }), { status: 401 }));
+    await expect(examIntegrityRepository.submitEvidenceCheckpoint("contest-a", {
+      uploadScope: { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" },
+      manifests: [], completions: [], unavailable: [],
+    })).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it.each([0, 19])("accepts resident stream ACK %i and sends the trusted scope", async (cursor) => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      acked_through_seq: cursor, processed_through_seq: 0,
+      pending_commands: [], release_evidence_before_ms: 0, upload_status: "pending",
+    }), { status: 200 }));
+    const scope = { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" };
+    const ack = await examIntegrityRepository.sendBatch("contest-a", batch, undefined, scope);
+    expect(ack.ackedThroughSeq).toBe(cursor);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).upload_scope).toEqual(scope);
+  });
+
+  it("sends scope and a zero final marker on an empty control poll", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      acked_through_seq: 0, processed_through_seq: 0,
+      pending_commands: [], release_evidence_before_ms: 0, upload_status: "complete",
+    }), { status: 200 }));
+    const scope = { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" };
+    const result = await examIntegrityRepository.pollUpload("contest-a", scope, 0);
+    expect(result.uploadStatus).toBe("complete");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ upload_scope: scope, final_seq: 0 });
+  });
   const fetchMock = vi.fn();
 
   beforeEach(() => {

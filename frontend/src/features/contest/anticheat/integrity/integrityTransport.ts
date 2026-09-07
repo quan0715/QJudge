@@ -26,6 +26,10 @@ interface HttpFailure extends Error {
 }
 
 export interface IntegrityTransportOptions {
+  mode?: "capture" | "drain";
+  controlPoll?: (signal: AbortSignal) => Promise<ExamIntegrityBatchAck>;
+  onGap?: (error: Error) => void;
+  onProgress?: (ack: ExamIntegrityBatchAck) => void;
   contestId: string;
   outbox: ExamIntegrityOutbox;
   repository: Pick<ExamIntegrityRepository, "sendBatch">;
@@ -140,28 +144,29 @@ export class IntegrityTransport {
     this.tickInFlight = true;
     const generation = this.generation;
     try {
-      let providedDescriptors: ExamIntegrityEvidenceDescriptor[];
-      try {
-        providedDescriptors = await this.options.evidenceDescriptorsProvider?.() ?? [];
-      } catch (error) {
-        // An owner can stop while a storage-backed descriptor lookup is in
-        // flight. Once stopped, that lookup is no longer relevant to a batch.
+      if (this.options.mode !== "drain") {
+        let providedDescriptors: ExamIntegrityEvidenceDescriptor[];
+        try {
+          providedDescriptors = await this.options.evidenceDescriptorsProvider?.() ?? [];
+        } catch (error) {
+          // Once stopped, an in-flight descriptor lookup is no longer relevant.
+          if (!this.isActive(generation)) return;
+          throw error;
+        }
         if (!this.isActive(generation)) return;
-        throw error;
+        const snapshot = {
+          ...this.options.snapshotProvider(),
+          activeSourceDescriptors: providedDescriptors,
+        };
+        const record = await this.options.outbox.append({
+          eventType: "health_snapshot",
+          clientOccurredAtMs: this.now(),
+          payload: snapshot,
+          evidenceDescriptors: providedDescriptors,
+        });
+        if (!this.isActive(generation)) return;
+        await this.options.onSnapshotPersisted?.(providedDescriptors, record.seq);
       }
-      if (!this.isActive(generation)) return;
-      const snapshot = {
-        ...this.options.snapshotProvider(),
-        activeSourceDescriptors: providedDescriptors,
-      };
-      const record = await this.options.outbox.append({
-        eventType: "health_snapshot",
-        clientOccurredAtMs: this.now(),
-        payload: snapshot,
-        evidenceDescriptors: providedDescriptors,
-      });
-      if (!this.isActive(generation)) return;
-      await this.options.onSnapshotPersisted?.(providedDescriptors, record.seq);
       if (!this.isActive(generation)) return;
       if (!this.isOnline() || this.now() < this.nextEligibleAtMs) return;
 
@@ -170,7 +175,13 @@ export class IntegrityTransport {
         maxBytes: MAX_BATCH_BYTES,
       });
       if (!this.isActive(generation)) return;
-      if (!batch) return;
+      if (!batch) {
+        if (this.options.mode === "drain" && this.options.controlPoll) {
+          const ack = await this.withDeadline(this.options.controlPoll);
+          if (this.isActive(generation)) await this.applyAckCallbacks(ack, generation);
+        }
+        return;
+      }
 
       try {
         const ack = await this.sendBatchWithDeadline(batch);
@@ -184,6 +195,14 @@ export class IntegrityTransport {
         if (!this.isActive(generation)) return;
         await this.handleSendFailure(batch.batchId, error, generation);
       }
+    } catch (error) {
+      if (this.isActive(generation)) {
+        this.options.onGap?.(asError(error));
+        if (statusOf(error) === 401 || statusOf(error) === 403) {
+          this.stop();
+          await this.options.onAuthenticationFailure?.(asError(error));
+        }
+      }
     } finally {
       this.tickInFlight = false;
     }
@@ -192,6 +211,10 @@ export class IntegrityTransport {
   private async sendBatchWithDeadline(
     batch: Parameters<ExamIntegrityRepository["sendBatch"]>[1],
   ): Promise<ExamIntegrityBatchAck> {
+    return this.withDeadline((signal) => this.options.repository.sendBatch(this.options.contestId, batch, signal));
+  }
+
+  private async withDeadline(send: (signal: AbortSignal) => Promise<ExamIntegrityBatchAck>): Promise<ExamIntegrityBatchAck> {
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let rejectCancellation: ((error: Error) => void) | null = null;
@@ -210,7 +233,7 @@ export class IntegrityTransport {
     });
     try {
       return await Promise.race([
-        this.options.repository.sendBatch(this.options.contestId, batch, controller.signal),
+        send(controller.signal),
         deadline,
         cancellation,
       ]);
@@ -221,6 +244,7 @@ export class IntegrityTransport {
   }
 
   private async applyAckCallbacks(ack: ExamIntegrityBatchAck, generation: number): Promise<void> {
+    this.options.onProgress?.(ack);
     await Promise.all(ack.pendingCommands.map(async (command) => {
       try {
         await this.options.onPendingCommand?.(command);
@@ -238,6 +262,7 @@ export class IntegrityTransport {
   }
 
   private async handleSendFailure(batchId: string, error: unknown, generation: number): Promise<void> {
+    this.options.onGap?.(asError(error));
     const status = statusOf(error);
     if (status === 401 || status === 403) {
       this.stop();

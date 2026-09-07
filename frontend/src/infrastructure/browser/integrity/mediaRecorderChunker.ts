@@ -73,6 +73,7 @@ export class MediaRecorderChunker {
   private segmentStartedAtMs = 0;
   private lastEndedAtMs: number | null = null;
   private data: Blob[] = [];
+  private readonly pendingSegments = new Set<Promise<void>>();
   private readonly visibilityTarget: Pick<EventTarget, "addEventListener" | "removeEventListener"> | undefined;
   private readonly visibilityHandler = () => this.rotate();
 
@@ -143,6 +144,12 @@ export class MediaRecorderChunker {
     if (recorder && recorder.state !== "inactive") recorder.stop();
   }
 
+  /** Call after stop: the browser's final dataavailable/stop and durable write
+   * complete asynchronously, so owners must not close the store immediately. */
+  async whenIdle(): Promise<void> {
+    await Promise.all(this.pendingSegments);
+  }
+
   private get segmentDurationMs(): number {
     return this.options.segmentDurationMs ?? EVIDENCE_CHUNK_MS;
   }
@@ -168,8 +175,14 @@ export class MediaRecorderChunker {
     recorder.addEventListener("error", () => {
       void this.degraded("encoder_failure");
     });
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    this.pendingSegments.add(pending);
     recorder.addEventListener("stop", () => {
-      void this.finishSegment(recorder);
+      void this.finishSegment(recorder).finally(() => {
+        this.pendingSegments.delete(pending);
+        finish();
+      });
     });
     this.recorder = recorder;
     recorder.start();

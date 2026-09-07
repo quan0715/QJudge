@@ -732,6 +732,8 @@
     "monitoringDeviceUnsupported": "現在のデバイスはこの試験の監視設定に適合しません。ダッシュボードに戻って環境チェックを再実行してください。",
     "monitoringHint": "試験監視中 - 詳細はクリック",
     "monitoringIssueHint": "案内に従って監視状態を復旧してください。イベント証跡は保存されています。",
+    "integrityUploadPending": "監視データの送信は未完了です。解答と提出は続けられます。ページを離れると送信は停止し、保存済みのローカルデータは保持されます。",
+    "integrityUploadExpired": "監視データの送信期限が過ぎ、未完了のデータがあります。提出結果に影響はなく、保存済みのローカルデータは保持されます。",
     "monitoringReminder": {
       "fullscreen": "全画面に戻る",
       "mouse_leave": "マウス離脱",

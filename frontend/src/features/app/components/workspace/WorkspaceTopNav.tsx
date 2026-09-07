@@ -331,12 +331,12 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
 function RuntimeNavExtras() {
   const { t } = useTranslation("contest");
   const [monitoringOpen, setMonitoringOpen] = useState(false);
-  const { contest, refreshContest } = useContest();
+  const { contest, runtime } = useContest();
   const monitoringReminder = useExamMonitoringStatus();
   const { timeLeft, isCountdownToStart } = useContestTimers({
     contest,
     contestId: contest?.id,
-    refreshContest,
+    refreshContest: runtime.refresh,
   });
 
   if (!contest) return null;
@@ -375,7 +375,7 @@ function RuntimeNavExtras() {
           <MonitoringIcon size={20} />
         </button>
       ) : null}
-      <div className={styles.runtimeTimer}>
+      <div className={styles.runtimeTimer} data-testid="exam-deadline" data-end-time={contest.endTime}>
         <TimeDisplay
           variant="header"
           value={

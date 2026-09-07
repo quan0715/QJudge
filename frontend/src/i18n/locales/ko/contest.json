@@ -732,6 +732,8 @@
     "monitoringDeviceUnsupported": "현재 기기는 이 시험의 감독 설정과 맞지 않습니다. 대시보드로 돌아가 환경 검사를 다시 실행하세요.",
     "monitoringHint": "시험 모니터링 중 - 자세한 내용은 클릭",
     "monitoringIssueHint": "안내에 따라 모니터링 상태를 복구하세요. 이벤트 증거는 보존되었습니다.",
+    "integrityUploadPending": "모니터링 데이터 전송이 완료되지 않았습니다. 답안 작성과 제출은 계속할 수 있습니다. 페이지를 떠나면 전송이 중단되며, 로컬에 저장된 데이터는 보존됩니다.",
+    "integrityUploadExpired": "미완료 데이터가 남은 상태로 모니터링 업로드 기한이 지났습니다. 제출 결과에는 영향이 없으며, 로컬에 저장된 데이터는 보존됩니다.",
     "monitoringReminder": {
       "fullscreen": "전체 화면 복귀",
       "mouse_leave": "마우스 이탈",

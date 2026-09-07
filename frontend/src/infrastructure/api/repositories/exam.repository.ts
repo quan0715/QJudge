@@ -2,6 +2,7 @@ import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 import type {
   EventFeedItem,
   ExamEvent,
+  ExamRuntimeState,
 } from "@/core/entities/contest.entity";
 import type {
   EndExamPayload,
@@ -11,6 +12,11 @@ import type {
 import type { EventFeedItemDto } from "@/infrastructure/api/dto/contest.dto";
 import { mapExamEventDto } from "@/infrastructure/mappers/contest.mapper";
 import { mapEventFeedItemDto } from "@/infrastructure/mappers/contestParticipant.mapper";
+
+export const getRuntimeState = (contestId: string, signal?: AbortSignal): Promise<ExamRuntimeState> =>
+  requestJson<ExamRuntimeState>(httpClient.requestOnce(
+    `/api/v1/contests/${encodeURIComponent(contestId)}/exam/runtime-state/`, { method: "GET", signal },
+  ), "Failed to refresh exam runtime state");
 
 export const isSubmittedExamSessionResponse = (
   response: ExamSessionResponse | null | undefined
@@ -285,11 +291,17 @@ export const endExam = async (
   contestId: string,
   payload?: EndExamPayload,
 ): Promise<ExamSessionResponse> => {
-  return requestJson<ExamSessionResponse>(
+  const response = await requestJson<ExamSessionResponse>(
     httpClient.post(`/api/v1/contests/${contestId}/exam/end/`, payload ?? {}),
     "Failed to end exam"
   );
+  if (response.exam_status === "submitted" && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(EXAM_SUBMITTED_EVENT, { detail: { contestId } }));
+  }
+  return response;
 };
+
+export const EXAM_SUBMITTED_EVENT = "qjudge:exam-submitted";
 
 export const examSessionRepository: IExamSessionRepository = {
   startExam,

@@ -66,7 +66,7 @@ export interface UseIntegrityRuntimeOptions {
   onEvidenceControllerChange?: (controller: EvidenceCoordinator | null) => void;
 }
 
-const sourceTargets = (policy: Record<string, unknown> | undefined) => {
+export const sourceTargets = (policy: Record<string, unknown> | undefined) => {
   const evidence = policy?.evidence as Record<string, unknown> | undefined;
   const source = (name: "screen" | "webcam", fallback: { width: number; height: number; fps: number; bitrate: number }) => {
     const value = evidence?.[name];
@@ -85,7 +85,7 @@ const sourceTargets = (policy: Record<string, unknown> | undefined) => {
   };
 };
 
-const evidenceBufferPolicy = (policy: Record<string, unknown> | undefined) => {
+export const evidenceBufferPolicy = (policy: Record<string, unknown> | undefined) => {
   const evidence = policy?.evidence as Record<string, unknown> | undefined;
   return {
     minimumLocalBufferMs: typeof evidence?.minimum_local_buffer_ms === "number"
@@ -98,7 +98,7 @@ const evidenceBufferPolicy = (policy: Record<string, unknown> | undefined) => {
 
 // Device classification is browser supplied. Use the frozen policy's enabled
 // union so it can never narrow a source requirement without server attestation.
-const enabledEvidenceSources = (policy: Record<string, unknown> | undefined): Set<"screen_share" | "webcam"> => {
+export const enabledEvidenceSources = (policy: Record<string, unknown> | undefined): Set<"screen_share" | "webcam"> => {
   const devicePolicy = policy?.device_policy;
   if (!devicePolicy || typeof devicePolicy !== "object") return new Set();
   const enabled = new Set<"screen_share" | "webcam">();
@@ -121,7 +121,7 @@ const inactiveEmitter: IntegritySignalEmitter = {
   updateHealth: () => undefined,
 };
 
-const initialHealthSnapshot = (): ExamIntegrityHealthSnapshot => ({
+export const initialHealthSnapshot = (): ExamIntegrityHealthSnapshot => ({
   displayApi: { status: "initializing" },
   evidenceSources: {
     screen_share: { status: "disabled" },

@@ -8,6 +8,7 @@ import type {
   ExamIntegrityRecord,
   EvidenceRetainCommand,
   ExamIntegrityRun,
+  IntegrityUploadScope,
 } from "@/core/entities/examIntegrity.entity";
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
@@ -24,7 +25,9 @@ export interface ExamIntegrityRepository {
     contestId: string,
     batch: ExamIntegrityBatch,
     signal?: AbortSignal,
+    uploadScope?: IntegrityUploadScope,
   ): Promise<ExamIntegrityBatchAck>;
+  pollUpload(contestId: string, scope: IntegrityUploadScope, finalSeq?: number, signal?: AbortSignal): Promise<ExamIntegrityBatchAck>;
   submitEvidenceCheckpoint(
     contestId: string,
     request: EvidenceCheckpointRequest,
@@ -89,16 +92,18 @@ const mapCommand = (command: {
 });
 
 interface WireBatchAck {
+  processed_through_seq?: number;
+  upload_status?: "pending" | "complete" | "expired";
   acked_through_seq: number;
   pending_commands: Array<Parameters<typeof mapCommand>[0]>;
   release_evidence_before_ms: number;
 }
 
-const mapAck = (ack: WireBatchAck, batch: ExamIntegrityBatch): ExamIntegrityBatchAck => {
+const mapAck = (ack: WireBatchAck, batch?: ExamIntegrityBatch): ExamIntegrityBatchAck => {
   if (
     !Number.isSafeInteger(ack.acked_through_seq)
-    || ack.acked_through_seq < batch.firstSeq
-    || ack.acked_through_seq > batch.lastSeq
+    || ack.acked_through_seq < 0
+    || (batch && (ack.acked_through_seq < batch.firstSeq || ack.acked_through_seq > batch.lastSeq))
     || !Array.isArray(ack.pending_commands)
     || !Number.isSafeInteger(ack.release_evidence_before_ms)
     || ack.release_evidence_before_ms < 0
@@ -106,6 +111,7 @@ const mapAck = (ack: WireBatchAck, batch: ExamIntegrityBatch): ExamIntegrityBatc
     throw new Error("Invalid integrity batch acknowledgement");
   }
   return {
+    ...(ack.upload_status ? { uploadStatus: ack.upload_status, processedThroughSeq: ack.processed_through_seq } : {}),
     ackedThroughSeq: ack.acked_through_seq,
     pendingCommands: ack.pending_commands.map(mapCommand),
     releaseEvidenceBeforeMs: ack.release_evidence_before_ms,
@@ -272,7 +278,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     ));
   },
 
-  async sendBatch(contestId, batch, signal) {
+  async sendBatch(contestId, batch, signal, uploadScope) {
     const response = await requestJson<{
       acked_through_seq: number;
       pending_commands: Array<Parameters<typeof mapCommand>[0]>;
@@ -281,6 +287,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       httpClient.requestOnce(apiPath(contestId, "checkpoints"), {
         method: "POST",
         body: JSON.stringify({
+          ...(uploadScope ? { upload_scope: uploadScope } : {}),
           observations: mapBatch(batch),
           evidence: {
             manifests: [],
@@ -293,10 +300,26 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       }),
       "Failed to send integrity batch",
     );
-    return mapAck(response, batch);
+    return mapAck(response, uploadScope ? undefined : batch);
+  },
+
+  async pollUpload(contestId, scope, finalSeq, signal) {
+    return mapAck(await requestJson<WireBatchAck>(httpClient.requestOnce(apiPath(contestId, "checkpoints"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal,
+      body: JSON.stringify({ upload_scope: scope, observations: null,
+        ...(finalSeq !== undefined ? { final_seq: finalSeq } : {}),
+        evidence: { manifests: [], completions: [], unavailable: [] } }),
+    }), "Failed to poll integrity upload"));
   },
 
   async submitEvidenceCheckpoint(contestId, request) {
+    const post = request.uploadScope
+      ? (url: string, body: unknown) => httpClient.requestOnce(url, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+        })
+      : httpClient.post;
     const response = await requestJson<{
       uploads: Array<{
         chunk_id: string;
@@ -312,7 +335,8 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
         status: string;
       }>;
     }>(
-      httpClient.post(apiPath(contestId, "checkpoints"), {
+      post(apiPath(contestId, "checkpoints"), {
+        ...(request.uploadScope ? { upload_scope: request.uploadScope } : {}),
         evidence: {
           manifests: request.manifests.map((manifest) => ({
             run_id: manifest.runId,

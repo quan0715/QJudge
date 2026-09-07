@@ -732,6 +732,8 @@
     "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "考試監控中 - 點擊查看詳情",
     "monitoringIssueHint": "請依提示恢復監控狀態；系統已保留事件採證。",
+    "integrityUploadPending": "監考資料尚未完成傳送；可繼續作答與交卷。離開頁面後傳送會停止，已保存的本機資料會保留。",
+    "integrityUploadExpired": "監考資料補傳期限已到，仍有未完成的資料；交卷結果不受影響，已保存的本機資料會保留。",
     "monitoringReminder": {
       "fullscreen": "請回全螢幕",
       "mouse_leave": "滑鼠離開",

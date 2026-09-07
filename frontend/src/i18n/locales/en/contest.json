@@ -732,6 +732,8 @@
     "monitoringDeviceUnsupported": "This device does not meet the monitoring policy for this exam. Return to the dashboard and run the environment check again.",
     "monitoringHint": "Exam monitoring - Click for details",
     "monitoringIssueHint": "Restore monitoring from the prompt; event evidence has been preserved.",
+    "integrityUploadPending": "Monitoring data is not fully uploaded. You can keep answering and submit. Leaving this page stops uploads; data already saved locally is retained.",
+    "integrityUploadExpired": "The monitoring upload deadline has passed with data still incomplete. Your submission is unaffected; data already saved locally is retained.",
     "monitoringReminder": {
       "fullscreen": "Return fullscreen",
       "mouse_leave": "Mouse left",
