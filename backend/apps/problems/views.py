@@ -234,7 +234,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied(exc.message) from exc
 
         try:
-            result = ProblemTestRunService.run(
+            result = ProblemTestRunService.run_via_worker(
                 problem=problem,
                 language=serializer.validated_data["language"],
                 source_code=serializer.validated_data["code"],

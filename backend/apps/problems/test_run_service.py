@@ -5,6 +5,9 @@ from __future__ import annotations
 import logging
 from typing import Literal
 
+from celery.exceptions import TimeoutError as CeleryTimeoutError
+from django.conf import settings
+
 from apps.judge import judge_factory
 from apps.problems.models import CodingProblem, TestCase
 
@@ -12,6 +15,7 @@ HARD_FAILURE_STATUSES = {"CE", "SE"}
 logger = logging.getLogger(__name__)
 
 TestRunSetupErrorCode = Literal["unsupported_language", "judge_unavailable"]
+SETUP_ERROR_CODES = frozenset({"unsupported_language", "judge_unavailable"})
 
 
 class TestRunSetupError(Exception):
@@ -24,6 +28,54 @@ class TestRunSetupError(Exception):
 
 class ProblemTestRunService:
     """Runs all stored test cases without creating submissions."""
+
+    @classmethod
+    def run_via_worker(
+        cls,
+        *,
+        problem: CodingProblem,
+        language: str,
+        source_code: str,
+    ) -> dict:
+        """Run the test cases in a judge worker and wait for the verdict.
+
+        Only the judge workers can reach the Docker daemon, so the web process
+        must not call :meth:`run` directly. The HTTP contract stays synchronous:
+        this blocks until the worker reports back, or raises
+        :class:`TestRunSetupError` so the caller can map it to a response.
+        """
+        from apps.problems.tasks import run_problem_test_run
+
+        async_result = run_problem_test_run.apply_async(
+            args=[str(problem.id), language, source_code],
+            queue=settings.JUDGE_TEST_RUN_QUEUE,
+        )
+
+        try:
+            payload = async_result.get(timeout=settings.JUDGE_TEST_RUN_TIMEOUT)
+        except CeleryTimeoutError as exc:
+            logger.error(
+                "Test run timed out after %ss for problem_id=%s",
+                settings.JUDGE_TEST_RUN_TIMEOUT,
+                problem.id,
+            )
+            raise TestRunSetupError("judge_unavailable") from exc
+        except Exception as exc:
+            logger.exception("Test run worker failed for problem_id=%s", problem.id)
+            raise TestRunSetupError("judge_unavailable") from exc
+        finally:
+            try:
+                async_result.forget()
+            except Exception:  # pragma: no cover - result backend best effort
+                logger.debug("Could not forget test run result", exc_info=True)
+
+        if not isinstance(payload, dict) or not payload.get("ok"):
+            code = payload.get("code") if isinstance(payload, dict) else None
+            if code not in SETUP_ERROR_CODES:
+                code = "judge_unavailable"
+            raise TestRunSetupError(code)
+
+        return payload["result"]
 
     @staticmethod
     def _build_test_cases(problem: CodingProblem) -> list[TestCase]:

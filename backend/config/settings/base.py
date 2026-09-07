@@ -370,6 +370,11 @@ DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv("DOCKER_JUDGE_PIDS_LIMIT", "64"))
 DOCKER_JUDGE_TMPFS_SIZE = os.getenv("DOCKER_JUDGE_TMPFS_SIZE", "100M")
 DOCKER_JUDGE_TIMEOUT = int(os.getenv("DOCKER_JUDGE_TIMEOUT", "60"))  # seconds
 
+# Ad-hoc test runs are executed by the judge workers (the only processes with
+# Docker access) while the HTTP request waits for the result.
+JUDGE_TEST_RUN_QUEUE = os.getenv("JUDGE_TEST_RUN_QUEUE", "default")
+JUDGE_TEST_RUN_TIMEOUT = int(os.getenv("JUDGE_TEST_RUN_TIMEOUT", "120"))  # seconds
+
 # Seccomp profile path (set to None to disable)
 # 優先使用 HOST_PROJECT_ROOT (解決 Docker Socket Binding 路徑問題)
 HOST_PROJECT_ROOT = os.getenv("HOST_PROJECT_ROOT")
