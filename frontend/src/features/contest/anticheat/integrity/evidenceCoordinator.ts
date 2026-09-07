@@ -12,12 +12,13 @@ import {
 } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
 
 export interface EvidenceCoordinatorOptions {
+  canRelease?: () => boolean;
   contestId: string;
   runId: string;
   store: Pick<OpfsEvidenceStore,
     "listDescriptors" | "getBlob" | "protect" | "releaseProtection" | "markRequested" |
     "markVerified" | "markUnavailable" | "deleteDescriptor" | "pendingDescriptorSummaries" |
-    "markReported" | "reconcile">;
+    "markReported" | "reconcile"> & Partial<Pick<OpfsEvidenceStore, "retainedOtherAttemptUsage">>;
   repository: Pick<ExamIntegrityRepository, "submitEvidenceCheckpoint">;
   fetchFn?: typeof fetch;
   now?: () => number;
@@ -101,6 +102,7 @@ export class EvidenceCoordinator {
   }
 
   async releaseBefore(releaseBeforeMs: number): Promise<void> {
+    if (this.options.canRelease?.() === false) return;
     this.releaseBeforeMs = Math.max(this.releaseBeforeMs, releaseBeforeMs);
     const descriptors = await this.options.store.listDescriptors();
     for (const descriptor of descriptors) {
@@ -108,6 +110,7 @@ export class EvidenceCoordinator {
       const uploadTerminal = descriptor.uploadStatus === "local" ||
         descriptor.uploadStatus === "verified" || descriptor.uploadStatus === "unavailable";
       if (
+        this.options.canRelease?.() !== false &&
         descriptor.endAtMs < releaseBeforeMs &&
         !retained &&
         uploadTerminal &&
@@ -173,21 +176,23 @@ export class EvidenceCoordinator {
    * without deleting protected, unacknowledged, or not-yet-released evidence.
    */
   async enforceCapacity(source: IntegrityEvidenceSource, policy: EvidenceBufferPolicy): Promise<boolean> {
+    const other = await this.options.store.retainedOtherAttemptUsage?.(source) ?? { bytes: 0, durationMs: 0 };
     const descriptors = (await this.options.store.listDescriptors())
       .filter((item) => item.source === source && item.localAvailability === "available")
       .sort((left, right) => left.endAtMs - right.endAtMs || left.chunkSeq - right.chunkSeq);
     const newestEndAtMs = descriptors.at(-1)?.endAtMs ?? 0;
     const minimumCutoffMs = newestEndAtMs - policy.minimumLocalBufferMs;
-    let byteSize = descriptors.reduce((total, descriptor) => total + descriptor.byteSize, 0);
+    let byteSize = descriptors.reduce((total, descriptor) => total + descriptor.byteSize, other.bytes);
     let recordedMs = descriptors.reduce(
       (total, descriptor) => total + Math.max(0, descriptor.endAtMs - descriptor.startAtMs),
-      0,
+      other.durationMs,
     );
     for (const descriptor of descriptors) {
       if (byteSize <= policy.localCapBytesPerSource && recordedMs <= policy.localCapMs) break;
       const uploadTerminal = descriptor.uploadStatus === "local" ||
         descriptor.uploadStatus === "verified" || descriptor.uploadStatus === "unavailable";
       if (
+        this.options.canRelease?.() === false ||
         descriptor.endAtMs >= minimumCutoffMs ||
         descriptor.endAtMs >= this.releaseBeforeMs ||
         descriptor.retainCommandIds.length > 0 ||
@@ -203,10 +208,10 @@ export class EvidenceCoordinator {
     const remaining = (await this.options.store.listDescriptors())
       .filter((item) => item.source === source && item.localAvailability === "available")
       .sort((left, right) => left.startAtMs - right.startAtMs);
-    const remainingBytes = remaining.reduce((total, descriptor) => total + descriptor.byteSize, 0);
+    const remainingBytes = remaining.reduce((total, descriptor) => total + descriptor.byteSize, other.bytes);
     const remainingDuration = remaining.reduce(
       (total, descriptor) => total + Math.max(0, descriptor.endAtMs - descriptor.startAtMs),
-      0,
+      other.durationMs,
     );
     return remainingBytes <= policy.localCapBytesPerSource && remainingDuration <= policy.localCapMs;
   }

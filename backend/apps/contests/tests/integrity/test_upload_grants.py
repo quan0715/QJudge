@@ -52,6 +52,7 @@ def resident_http(worker_server, monkeypatch):
                         k: state[k]
                         for k in ("received_seq", "processed_seq", "commands_drained")
                     },
+                    **({"evidence_fence_version": "resident-evidence-fence-v1", "release_evidence_before_ms": state["release"]} if "release" in state else {}),
                 },
                 headers={"X-QJudge-Protocol": "resident-v1"},
             )
@@ -85,6 +86,36 @@ def send(client, run, participant, batch=None, **extra):
         format="json",
         HTTP_X_DEVICE_ID="device-a",
     )
+
+
+@pytest.mark.django_db
+def test_active_fence_release_and_trusted_attempt(resident, participant, api_client, resident_http):
+    api_client.force_authenticate(participant.user)
+    resident_http.update(received_seq=1, processed_seq=1, release=123000)
+    batch = make_batch(run_id=resident.pk, participant_id=participant.pk)
+    record = batch["records"][0]
+    record.update(kind="health_snapshot", event_type="health_snapshot", payload={"evidence_fence": {
+        "version": "resident-evidence-fence-v1", "attempt_id": str(participant.integrity_attempt_id),
+        "through_seq": 1, "before_client_ms": 123000}})
+    response = send(api_client, resident, participant, batch)
+    assert response.status_code == 200
+    assert response.json()["release_evidence_before_ms"] == 123000
+    assert resident_http["requests"][-1][1]["attempt_id"] == str(participant.integrity_attempt_id)
+    assert resident_http["requests"][0][1]["attempt_id"] == str(participant.integrity_attempt_id)
+    record["payload"]["evidence_fence"]["attempt_id"] = str(uuid4())
+    assert send(api_client, resident, participant, batch).status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("field,value", [("version", "unknown"), ("through_seq", 2), ("before_client_ms", -1)])
+def test_gateway_rejects_invalid_fence(resident, participant, api_client, resident_http, field, value):
+    api_client.force_authenticate(participant.user)
+    batch = make_batch(run_id=resident.pk, participant_id=participant.pk)
+    record = batch["records"][0]
+    fence = {"version": "resident-evidence-fence-v1", "attempt_id": str(participant.integrity_attempt_id), "through_seq": 1, "before_client_ms": 123000}
+    fence[field] = value
+    record.update(kind="health_snapshot", event_type="health_snapshot", payload={"evidence_fence": fence})
+    assert send(api_client, resident, participant, batch).status_code == 400
 
 
 @pytest.mark.django_db

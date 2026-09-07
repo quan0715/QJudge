@@ -41,6 +41,19 @@ const baseSignal = (eventType: string, clientOccurredAtMs: number) => ({
 });
 
 describe("resident immutable outbox", () => {
+  it("allocates the fence and health sequence atomically and keeps it through partial ACK and reload", async () => {
+    const options = { databaseName: `fence-proof-${sequence++}`, attemptId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", nextSequence: 1 };
+    const first = await openTestOutbox(options);
+    await first.append(baseSignal("focus_lost", 900));
+    const record = await first.append({ eventType: "health_snapshot", clientOccurredAtMs: 1000, payload: {}, evidenceFenceBeforeMs: 800 });
+    const batch = await first.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await first.ackThrough(RUN_ID, DEVICE_ID, 1);
+    await first.close();
+    const second = await openTestOutbox(options);
+    expect(await second.claimBatch({ maxRecords: 200, maxBytes: 1048576 })).toEqual(batch);
+    await second.close();
+    expect(record.payload.evidence_fence).toEqual({ version: "resident-evidence-fence-v1", attempt_id: options.attemptId, through_seq: 2, before_client_ms: 800 });
+  });
   it("fences a still-open prior attempt after another owner rotates an empty stream", async () => {
     const databaseName = `resident-fence-${sequence++}`;
     const first = await openTestOutbox({ databaseName, attemptId: "attempt-a", nextSequence: 1 });
@@ -136,12 +149,14 @@ const evidenceDescriptor = (): ExamIntegrityEvidenceDescriptor => ({
 const storeDescriptor = async (
   databaseName: string,
   descriptor: ExamIntegrityEvidenceDescriptor,
+  owner?: { attemptId: string; participantId: number },
 ): Promise<void> => {
   const database = await openDatabase(databaseName);
   try {
     const transaction = database.transaction("evidenceDescriptors", "readwrite");
     transaction.objectStore("evidenceDescriptors").put({
       ...descriptor,
+      ...owner,
       runId: RUN_ID,
       deviceId: DEVICE_ID,
       batchAcked: false,
@@ -294,7 +309,7 @@ describe("IndexedDbIntegrityOutbox", () => {
     const outbox = await openTestOutbox(resident ? { attemptId: "attempt-a", nextSequence: 1 } : {});
     const databaseName = [...databaseNames][0]!;
     const descriptor = evidenceDescriptor();
-    await storeDescriptor(databaseName, descriptor);
+    await storeDescriptor(databaseName, descriptor, resident ? { attemptId: "attempt-a", participantId: 44 } : undefined);
     await outbox.append({
       ...baseSignal("health_snapshot", 1_000),
       evidenceDescriptors: [descriptor],
@@ -309,6 +324,18 @@ describe("IndexedDbIntegrityOutbox", () => {
       batchAcked: true,
     });
     await outbox.close();
+  });
+
+  it("never ACK-marks media owned by a prior attempt even when a summary names it", async () => {
+    const outbox = await openTestOutbox({ attemptId: "attempt-new", nextSequence: 1 });
+    const databaseName = [...databaseNames][0]!;
+    const descriptor = evidenceDescriptor();
+    await storeDescriptor(databaseName, descriptor, { attemptId: "attempt-old", participantId: 44 });
+    await outbox.append({ ...baseSignal("health_snapshot", 1000), evidenceDescriptors: [descriptor] });
+    const batch = await outbox.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await outbox.ackThrough(RUN_ID, DEVICE_ID, batch!.lastSeq);
+    await outbox.close();
+    expect(await readStoredDescriptor(databaseName, descriptor.localDescriptorId)).toMatchObject({ batchAcked: false });
   });
 
   it("keeps offline records with their original occurrence timestamps", async () => {

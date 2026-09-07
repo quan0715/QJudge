@@ -67,6 +67,33 @@ def test_resident_commands_require_trusted_current_attempt_receipt(resident, par
         assert participant.violation_count == 0
 
 
+def test_late_beyond_fence_keeps_genuine_policy_time_and_auditable_evidence_gap(resident, participant):
+    from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
+    resident.policy_snapshot = build_integrity_policy_snapshot(resident.contest)
+    resident.save()
+    from uuid import uuid4
+    from apps.contests.models import IntegrityBatchAdmission, ExamEvent
+    from apps.contests.services.integrity_evidence import build_evidence_delivery, evidence_status_for_event
+    command = bind_run(record_event_command(participant), resident)
+    receipt = uuid4()
+    command["metadata"].update(receipt_batch_id=str(receipt), evidence_gap={
+        "reason": "late_beyond_fence", "before_client_ms": command["client_occurred_at_ms"] + 60000,
+        "version": "resident-evidence-fence-v1"})
+    IntegrityBatchAdmission.objects.create(run=resident, participant=participant, batch_id=receipt,
+        attempt_id=participant.integrity_attempt_id, device_id=command["device_id"], body_sha256="a" * 64,
+        first_seq=1, last_seq=1, first_received_at=timezone.now())
+    client = APIClient()
+    path = f"/api/v1/internal/integrity/runs/{resident.id}/commands/"
+    for _ in range(2):
+        assert client.post(path, {"commands": [command]}, format="json", HTTP_AUTHORIZATION="Resident temporary-test-service-token").status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    assert event.client_occurred_at_ms == command["client_occurred_at_ms"]
+    assert event.metadata["integrity"]["action"] == "pause"
+    assert event.metadata["integrity"]["evidence_gap"]["reason"] == "late_beyond_fence"
+    assert not build_evidence_delivery(resident, participant, 9999999999999).pending_commands
+    assert evidence_status_for_event(event)["evidence_status"] == "unavailable"
+
+
 def test_locked_command_scope_rejects_changed_owner_closed_run_and_rotated_credential(resident, participant, settings, tmp_path):
     command = bind_run(record_event_command(participant), resident)
     digest = hashlib.sha256(b"temporary-test-service-token").hexdigest()

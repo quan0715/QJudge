@@ -93,6 +93,7 @@ const mapCommand = (command: {
 });
 
 interface WireBatchAck {
+  evidence_fence_version?: string;
   processed_through_seq?: number;
   upload_status?: "pending" | "complete" | "expired";
   acked_through_seq: number;
@@ -100,7 +101,7 @@ interface WireBatchAck {
   release_evidence_before_ms: number;
 }
 
-const mapAck = (ack: WireBatchAck, batch?: ExamIntegrityBatch): ExamIntegrityBatchAck => {
+const mapAck = (ack: WireBatchAck, batch?: ExamIntegrityBatch, resident = false): ExamIntegrityBatchAck => {
   if (
     !Number.isSafeInteger(ack.acked_through_seq)
     || ack.acked_through_seq < 0
@@ -115,7 +116,7 @@ const mapAck = (ack: WireBatchAck, batch?: ExamIntegrityBatch): ExamIntegrityBat
     ...(ack.upload_status ? { uploadStatus: ack.upload_status, processedThroughSeq: ack.processed_through_seq } : {}),
     ackedThroughSeq: ack.acked_through_seq,
     pendingCommands: ack.pending_commands.map(mapCommand),
-    releaseEvidenceBeforeMs: ack.release_evidence_before_ms,
+    releaseEvidenceBeforeMs: resident && ack.evidence_fence_version !== "resident-evidence-fence-v1" ? 0 : ack.release_evidence_before_ms,
   };
 };
 
@@ -301,7 +302,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       }),
       "Failed to send integrity batch",
     );
-    return mapAck(response, uploadScope ? undefined : batch);
+    return mapAck(response, uploadScope ? undefined : batch, Boolean(uploadScope));
   },
 
   async pollUpload(contestId, scope, finalSeq, signal) {
@@ -312,7 +313,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       body: JSON.stringify({ upload_scope: scope, observations: null,
         ...(finalSeq !== undefined ? { final_seq: finalSeq } : {}),
         evidence: { manifests: [], completions: [], unavailable: [] } }),
-    }), "Failed to poll integrity upload"));
+    }), "Failed to poll integrity upload"), undefined, true);
   },
 
   async submitEvidenceCheckpoint(contestId, request, signal) {

@@ -35,8 +35,59 @@ class MemoryDirectory implements OpfsDirectory {
   }
 }
 
+class TreeDirectory extends MemoryDirectory {
+  readonly children = new Map<string, TreeDirectory>();
+  async getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<TreeDirectory> {
+    if (!this.children.has(name)) {
+      if (!options?.create) throw new DOMException("missing", "NotFoundError");
+      this.children.set(name, new TreeDirectory());
+    }
+    return this.children.get(name)!;
+  }
+  async *values() {
+    for (const name of this.children.keys()) yield { kind: "directory", name };
+    for (const name of this.files.keys()) yield { kind: "file", name };
+  }
+}
+
 describe("OpfsEvidenceStore", () => {
   const names: string[] = [];
+
+  it("preserves startup OPFS orphans and blocks only their source before new capture", async () => {
+    const databaseName = `orphan-${crypto.randomUUID()}`; names.push(databaseName);
+    const root = new TreeDirectory();
+    const store = await OpfsEvidenceStore.open({ runId: "run", deviceId: "device", participantId: 1, attemptId: "attempt", databaseName, opfs: root });
+    try {
+      await store.putChunk({ source: "screen_share", recordingSessionId: "session", epochId: "epoch", chunkSeq: 1,
+        isInitChunk: true, previousSha256: "", startAtMs: 100, endAtMs: 200, codec: "video/webm", bytes: new NodeBlob(["known"]) as unknown as Blob });
+      await store.reconcile();
+      expect(store.blockedCaptureSources).toEqual([]);
+      const source = root.children.get("exam-integrity")!.children.get("run")!.children.get("device")!.children.get("screen_share")!;
+      source.files.set("orphan.webm", new NodeBlob(["unindexed bytes"]) as unknown as Blob);
+      await store.reconcile();
+      expect(store.blockedCaptureSources).toEqual(["screen_share"]);
+      expect(source.files.has("orphan.webm")).toBe(true);
+      expect(await store.listDescriptors()).toHaveLength(1);
+    } finally { await store.close(); }
+  });
+
+  it.each(["entry-bound", "missing-during-enumeration"])("blocks capture when startup accounting fails: %s", async (failure) => {
+    const databaseName = `accounting-${crypto.randomUUID()}`; names.push(databaseName);
+    const root = new TreeDirectory();
+    let source = root;
+    for (const piece of ["exam-integrity", "run", "device", "screen_share"]) source = await source.getDirectoryHandle(piece, { create: true });
+    source.values = async function* () {
+      if (failure === "missing-during-enumeration") throw new DOMException("disappeared", "NotFoundError");
+      for (let i = 0; i <= 10000; i++) {
+        this.children.set(String(i), new TreeDirectory());
+        yield { kind: "directory", name: String(i) };
+      }
+    };
+    const store = await OpfsEvidenceStore.open({ runId: "run", deviceId: "device", participantId: 1, attemptId: "attempt", databaseName, opfs: root });
+    try { await store.reconcile(); expect(store.blockedCaptureSources).toEqual(["screen_share"]); }
+    finally { await store.close(); }
+  });
+
 
   afterEach(async () => {
     await Promise.all(names.splice(0).map((name) => new Promise<void>((resolve, reject) => {

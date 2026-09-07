@@ -150,6 +150,14 @@ export class MediaRecorderChunker {
     await Promise.all(this.pendingSegments);
   }
 
+  /** Flush the current encoder and await every segment admitted before this
+   * barrier. The replacement segment starts after its predecessor is stored. */
+  async evidenceBarrier(): Promise<void> {
+    const pending = [...this.pendingSegments];
+    this.rotate();
+    await Promise.all(pending);
+  }
+
   private get segmentDurationMs(): number {
     return this.options.segmentDurationMs ?? EVIDENCE_CHUNK_MS;
   }

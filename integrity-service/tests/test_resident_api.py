@@ -196,6 +196,23 @@ def test_signed_student_progress_distinguishes_receipt_from_decision(setup):
     assert client.post(path, content=scope + b" ", headers=headers).status_code == 401
 
 
+def test_signed_fence_scope_and_progress(setup):
+    from test_evidence_fence import fenced, ATTEMPT
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    path = f"/v1/runs/{d.bootstrap.run_id}/batches"
+    body = json.dumps({"batch": fenced(1, 123000), "late_unverified": False, "attempt_id": str(ATTEMPT)}).encode()
+    response = client.post(path, content=body, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, body))
+    assert response.status_code == 200
+    registry.get(d.bootstrap.run_id).process_pending(1)
+    path = f"/v1/runs/{d.bootstrap.run_id}/progress"
+    body = json.dumps({"participant_id": 101, "device_id": "device-a", "attempt_id": str(ATTEMPT)}).encode()
+    response = client.post(path, content=body, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, body))
+    assert response.status_code == 200
+    assert response.json()["release_evidence_before_ms"] == 123000
+    assert response.json()["evidence_fence_version"] == "resident-evidence-fence-v1"
+
+
 def test_late_envelope_is_durable_raw_only_and_retry_keeps_original_disposition(setup):
     key, d, registry, client = setup
     assert put(client, key, d).status_code == 200

@@ -356,8 +356,10 @@ class IntegrityWorkerClient:
             raise IntegrityWorkerProtocolError("invalid Worker ACK") from None
         return WorkerBatchAck.model_validate(payload)
 
-    def student_progress(self, run, *, participant_id, device_id):
+    def student_progress(self, run, *, participant_id, device_id, attempt_id=None):
         scope = {"participant_id": participant_id, "device_id": device_id}
+        if attempt_id is not None:
+            scope["attempt_id"] = str(attempt_id)
         response = self._signed_post(run, path=f"/v1/runs/{run.pk}/progress",
             body=json.dumps(scope, separators=(",", ":")).encode())
         self._validate_status(response, rejection_statuses=frozenset({409, 422}))
@@ -365,7 +367,7 @@ class IntegrityWorkerClient:
             value = response.json()
         except ValueError:
             raise IntegrityWorkerProtocolError("invalid progress") from None
-        if (type(value) is not dict or set(value) != {*scope, "received_seq", "processed_seq", "commands_drained"}
+        if (type(value) is not dict or set(value) - {"evidence_fence_version", "release_evidence_before_ms"} != {*scope, "received_seq", "processed_seq", "commands_drained"}
                 or any(value.get(key) != val for key, val in scope.items())
                 or type(value.get("commands_drained")) is not bool):
             raise IntegrityWorkerProtocolError("invalid progress scope")
@@ -373,6 +375,12 @@ class IntegrityWorkerClient:
         processed = _strict_nonnegative_int(value, "processed_seq")
         if processed > received:
             raise IntegrityWorkerProtocolError("decision cursor exceeds receipt")
+        if "evidence_fence_version" in value:
+            if attempt_id is None or value["evidence_fence_version"] != "resident-evidence-fence-v1":
+                raise IntegrityWorkerProtocolError("unsupported evidence fence")
+            _strict_nonnegative_int(value, "release_evidence_before_ms")
+        else:
+            value["release_evidence_before_ms"] = 0
         return value
 
     def request_stop(self, run: ExamIntegrityRun) -> dict:

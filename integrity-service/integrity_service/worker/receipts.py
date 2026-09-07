@@ -27,6 +27,7 @@ class PendingReceipt:
     received_at_ms: int
     batch: EventBatch
     late_unverified: bool = False
+    attempt_id: UUID | None = None
 
 
 class ReceiptStore:
@@ -42,7 +43,7 @@ class ReceiptStore:
         try:
             for record in self._log.records:
                 if record.get("kind") == "received":
-                    if set(record) not in ({"kind", "ordinal", "received_at_ms", "batch"}, {"kind", "ordinal", "received_at_ms", "batch", "late_unverified"}):
+                    if set(record) - {"attempt_id"} not in ({"kind", "ordinal", "received_at_ms", "batch"}, {"kind", "ordinal", "received_at_ms", "batch", "late_unverified"}):
                         raise ValueError("malformed receipt")
                     batch = EventBatch.model_validate(record["batch"])
                     timestamp = record["received_at_ms"]
@@ -59,7 +60,8 @@ class ReceiptStore:
                     late = record.get("late_unverified", False)
                     if type(late) is not bool:
                         raise ValueError("invalid receipt disposition")
-                    receipt = PendingReceipt(record["ordinal"], timestamp, batch, late)
+                    attempt = UUID(record["attempt_id"]) if "attempt_id" in record else None
+                    receipt = PendingReceipt(record["ordinal"], timestamp, batch, late, attempt)
                     self._sequencer.accept(batch)
                     self._receipts.append(receipt)
                     self._by_batch[batch.batch_id] = receipt
@@ -92,7 +94,7 @@ class ReceiptStore:
     def pending(self, limit: int = 1) -> tuple[PendingReceipt, ...]:
         # Return snapshots so callers cannot mutate future decisions or duplicate identity.
         return tuple(
-            PendingReceipt(r.ordinal, r.received_at_ms, r.batch.model_copy(deep=True), r.late_unverified)
+            PendingReceipt(r.ordinal, r.received_at_ms, r.batch.model_copy(deep=True), r.late_unverified, r.attempt_id)
             for r in self._receipts[self.processed_cursor : self.processed_cursor + limit]
         )
 
@@ -101,16 +103,20 @@ class ReceiptStore:
             raise DurableLogCorruption("decision references missing receipt")
         receipt = self._receipts[ordinal - 1]
         return PendingReceipt(
-            receipt.ordinal, receipt.received_at_ms, receipt.batch.model_copy(deep=True), receipt.late_unverified
+            receipt.ordinal, receipt.received_at_ms, receipt.batch.model_copy(deep=True), receipt.late_unverified, receipt.attempt_id
         )
 
-    def append_durable(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False) -> DurableReceipt:
+    def append_durable(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False, attempt_id: UUID | None = None) -> DurableReceipt:
         self._require_available()
         batch = EventBatch.model_validate(batch.model_dump(mode="json"))
         if batch.run_id != self._run_id:
             raise ValueError("receipt belongs to another run")
+        for record in batch.records:
+            fence = record.payload.get("evidence_fence")
+            if fence is not None and UUID(fence["attempt_id"]) != attempt_id:
+                raise ValueError("fence attempt does not match trusted receipt")
         prior = self._by_batch.get(batch.batch_id)
-        if prior is not None and prior.batch != batch:
+        if prior is not None and (prior.batch != batch or (prior.attempt_id is not None and prior.attempt_id != attempt_id)):
             raise BatchIdentityConflict(str(batch.batch_id))
         accepted = self._sequencer.accept(batch, commit=False)
         if prior is None:
@@ -120,7 +126,7 @@ class ReceiptStore:
                 or (self._receipts and received_at_ms < self._receipts[-1].received_at_ms)
             ):
                 raise ValueError("receipt time cannot move backwards")
-            receipt = PendingReceipt(len(self._receipts) + 1, received_at_ms, batch, late_unverified)
+            receipt = PendingReceipt(len(self._receipts) + 1, received_at_ms, batch, late_unverified, attempt_id)
             try:
                 self._journal.check_capacity()
                 self._log.append({
@@ -128,6 +134,7 @@ class ReceiptStore:
                     "received_at_ms": received_at_ms,
                     "batch": batch.model_dump(mode="json"),
                     "late_unverified": late_unverified,
+                    **({"attempt_id": str(attempt_id)} if attempt_id is not None else {}),
                 })
                 self._journal.append_batch_once(batch)
             except BaseException:
@@ -140,6 +147,15 @@ class ReceiptStore:
 
     def received_cursor(self, participant_id: int, device_id: str) -> int:
         return self._sequencer.contiguous_cursor(self._run_id, participant_id, device_id)
+
+    def command_attempt(self, command: dict) -> UUID | None:
+        try:
+            receipt = self._by_batch.get(UUID(command.get("metadata", {}).get("receipt_batch_id", "")))
+        except (ValueError, TypeError, AttributeError):
+            return None
+        if receipt is None or receipt.batch.participant_id != command.get("participant_id") or receipt.batch.device_id != command.get("device_id"):
+            return None
+        return receipt.attempt_id
 
     @property
     def last_received_at_ms(self) -> int | None:

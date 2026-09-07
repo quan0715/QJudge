@@ -26,6 +26,7 @@ interface HttpFailure extends Error {
 }
 
 export interface IntegrityTransportOptions {
+  persistCaptureSnapshot?: () => Promise<void>;
   mode?: "capture" | "drain";
   controlPoll?: (signal: AbortSignal) => Promise<ExamIntegrityBatchAck>;
   onGap?: (error: Error) => void;
@@ -145,7 +146,9 @@ export class IntegrityTransport {
     this.tickInFlight = true;
     const generation = this.generation;
     try {
-      if (this.options.mode !== "drain") {
+      if (this.options.mode !== "drain" && this.options.persistCaptureSnapshot) {
+        await this.options.persistCaptureSnapshot();
+      } else if (this.options.mode !== "drain") {
         let providedDescriptors: ExamIntegrityEvidenceDescriptor[];
         try {
           providedDescriptors = await this.options.evidenceDescriptorsProvider?.() ?? [];

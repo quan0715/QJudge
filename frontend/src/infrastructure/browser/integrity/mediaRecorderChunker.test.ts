@@ -3,6 +3,32 @@ import { describe, expect, it, vi } from "vitest";
 import { MediaRecorderChunker } from "./mediaRecorderChunker";
 
 describe("MediaRecorderChunker", () => {
+  it("does not confirm an active evidence barrier before delayed data and storage complete", async () => {
+    const listeners = new Map<string, (event: Event) => void>();
+    let resolveWrite!: (value: unknown) => void;
+    const recorder = { mimeType: "video/webm", state: "inactive", addEventListener: (type: string, callback: (event: Event) => void) => listeners.set(type, callback),
+      start: () => { recorder.state = "recording"; }, stop: () => { recorder.state = "inactive"; } };
+    const stream = { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener: () => {}, getSettings: () => ({}) }] } as unknown as MediaStream;
+    const chunker = new MediaRecorderChunker({ source: "screen_share", stream,
+      store: { putChunk: (() => new Promise(resolve => { resolveWrite = resolve; })) as never },
+      target: { width: 640, height: 480, fps: 5, bitrate: 100000 }, recorderFactory: () => recorder });
+    chunker.start();
+    await vi.waitFor(() => expect(recorder.state).toBe("recording"));
+    let settled = false;
+    try {
+      const barrier = chunker.evidenceBarrier().then(() => { settled = true; });
+      await Promise.resolve();
+      expect(settled).toBe(false);
+      listeners.get("dataavailable")?.({ data: new Blob(["last chunk"]) } as Event);
+      chunker.stop();
+      listeners.get("stop")?.(new Event("stop"));
+      await Promise.resolve();
+      expect(settled).toBe(false);
+      resolveWrite({ sha256: "stored" });
+      await barrier;
+      expect(settled).toBe(true);
+    } finally { chunker.stop(); }
+  });
   it("settles drain when recorder start throws without emitting stop", async () => {
     const degraded = vi.fn();
     const recorder = { mimeType: "video/webm", state: "inactive", addEventListener: vi.fn(),

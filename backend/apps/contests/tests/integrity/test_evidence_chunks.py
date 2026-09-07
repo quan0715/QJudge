@@ -323,6 +323,18 @@ def trusted_evidence_scope(run, participant, event):
         "device_id": "bound-device", "attempt_id": participant.integrity_attempt_id}
 
 
+@pytest.mark.django_db
+def test_active_release_is_capped_by_own_unresolved_retain_only(resident_evidence, participant, incident_event, api_client, resident_http):
+    run, scope, _ = resident_evidence
+    resident_http.update(received_seq=1, processed_seq=1, commands_drained=True, release=2000000)
+    response = api_client.post(manifest_url(incident_event), {"upload_scope": scope}, format="json", HTTP_X_DEVICE_ID="bound-device")
+    assert response.status_code == 200
+    expected = build_evidence_delivery(run, participant, 9999999999, upload_scope=scope)
+    assert response.data["release_evidence_before_ms"] == min(c["start_at_ms"] for c in expected.pending_commands)
+    foreign = {**scope, "attempt_id": uuid4()}
+    assert not build_evidence_delivery(run, participant, 9999999999, upload_scope=foreign).pending_commands
+
+
 def resident_operation(event, chunk, operation):
     if operation == "manifest":
         return {"manifests": [{"run_id": event.integrity_run_id, "incident_id": event.incident_id,

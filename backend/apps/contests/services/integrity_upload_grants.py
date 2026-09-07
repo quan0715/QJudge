@@ -183,6 +183,11 @@ def admit_checkpoint(
             raise PermissionDenied("Observation scope mismatch.")
         from apps.contests.integrity_serializers import canonical_integrity_batch_bytes
 
+        for record in observations["records"]:
+            fence = record["payload"].get("evidence_fence")
+            if fence is not None and str(scope["attempt_id"]) != fence["attempt_id"]:
+                raise PermissionDenied("Evidence fence attempt scope mismatch.")
+
         raw = canonical_integrity_batch_bytes(observations)
         fingerprint = hashlib.sha256(raw).hexdigest()
         existing = IntegrityBatchAdmission.objects.filter(
@@ -236,7 +241,8 @@ def admit_checkpoint(
                 late_unverified=participant.exam_status == ExamStatus.SUBMITTED,
             )
         body = json.dumps(
-            {"batch": json.loads(raw), "late_unverified": existing.late_unverified},
+            {"batch": json.loads(raw), "late_unverified": existing.late_unverified,
+             "attempt_id": str(existing.attempt_id)},
             separators=(",", ":"),
             sort_keys=True,
         ).encode()

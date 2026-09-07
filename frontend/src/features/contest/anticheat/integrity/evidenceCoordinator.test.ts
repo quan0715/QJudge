@@ -79,6 +79,16 @@ const coordinatorStore = (descriptors: StoredEvidenceDescriptor[]) => ({
 });
 
 describe("EvidenceCoordinator", () => {
+  it("never releases or evicts after the resident owner loses its clock or storage boundary", async () => {
+    const store = coordinatorStore([storedDescriptor({ startAtMs: 0, endAtMs: 301000 })]);
+    const coordinator = new EvidenceCoordinator({ contestId: "1", runId: "run-a", store: store as never,
+      repository: {} as never, canRelease: () => false });
+    await coordinator.releaseBefore(1000000);
+    expect(store.deleteDescriptor).not.toHaveBeenCalled();
+    expect(await coordinator.enforceCapacity("screen_share", { minimumLocalBufferMs: 60000,
+      localCapMs: 300000, localCapBytesPerSource: 100000000 })).toBe(false);
+    expect(store.deleteDescriptor).not.toHaveBeenCalled();
+  });
   it("cancels a future evidence window before any network work", async () => {
     const checkpoint = vi.fn();
     const coordinator = new EvidenceCoordinator({ contestId: "1", runId: "run-a", store: coordinatorStore([]) as never,

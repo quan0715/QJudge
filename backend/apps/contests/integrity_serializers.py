@@ -232,6 +232,19 @@ class ExamIntegrityBatchSerializer(_StrictSerializer):
         records = attrs["records"]
         expected_seq = attrs["first_seq"]
         for record in records:
+            if "evidence_fence" in record["payload"]:
+                fence = record["payload"]["evidence_fence"]
+                if (type(fence) is not dict or set(fence) != {"version", "attempt_id", "through_seq", "before_client_ms"}
+                        or fence["version"] != "resident-evidence-fence-v1"
+                        or record["kind"] != "health_snapshot" or record["event_type"] != "health_snapshot"
+                        or type(fence["through_seq"]) is not int or fence["through_seq"] != record["seq"]
+                        or not 1 <= fence["through_seq"] <= 10_000_000
+                        or type(fence["before_client_ms"]) is not int or not 0 <= fence["before_client_ms"] <= MAX_EVIDENCE_TIMESTAMP_MS):
+                    raise serializers.ValidationError("Invalid evidence fence boundary.")
+                try:
+                    UUID(fence["attempt_id"])
+                except (ValueError, TypeError, AttributeError):
+                    raise serializers.ValidationError("Invalid evidence fence attempt.") from None
             if record["seq"] != expected_seq:
                 raise serializers.ValidationError(
                     {

@@ -23,7 +23,7 @@ from integrity_service.core.commands import (
 from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import AdmittedEventRecord, snapshot_event_record
-from integrity_service.core.registry import Registry
+from integrity_service.core.registry import Registry, UnknownSignal
 from integrity_service.core.scheduler import DeadlineScheduler
 from integrity_service.core.schemas import BatchAck, EventBatch, EventRecord
 from integrity_service.core.sequencer import AcceptResult, SessionSequencer
@@ -105,6 +105,11 @@ class WorkerRuntime:
         self.backend = backend
         self.resident_mode = resident_mode
         self.receipts: ReceiptStore | None = None
+        # Rebuilt in durable receipt order. No wall-clock progress authority.
+        self._evidence_fences: dict[tuple[int, str, UUID], int] = {}
+        self._pending_evidence_fences: list[tuple[tuple[int, str, UUID], int, int]] = []
+        self._event_receipts: dict[tuple[int, str, UUID], tuple[UUID, UUID | None]] = {}
+        self._late_evidence_events: dict[tuple[int, str, UUID], int] = {}
         self._policy_snapshot = json_projection(bootstrap.policy_snapshot)
         self._registry_snapshot = json_projection(bootstrap.registry_snapshot)
         assert isinstance(self._policy_snapshot, dict)
@@ -283,7 +288,7 @@ class WorkerRuntime:
                 gap_affected_participant_count=affected,
             )
 
-    def accept_batch(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False) -> BatchAck:
+    def accept_batch(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False, attempt_id: UUID | None = None) -> BatchAck:
         """Durable resident intake only; caller authenticates the batch's signed scope."""
         with self._lock:
             if self.receipts is None:
@@ -297,7 +302,7 @@ class WorkerRuntime:
             if type(received_at_ms) is not int or received_at_ms < self._clock_server_ms:
                 raise ValueError("receipt time cannot precede decision time")
             try:
-                receipt = self.receipts.append_durable(batch, received_at_ms, late_unverified=late_unverified)
+                receipt = self.receipts.append_durable(batch, received_at_ms, late_unverified=late_unverified, attempt_id=attempt_id)
                 # Bound individual archive allocations during live collection;
                 # rotation is local durable I/O, never compression or upload.
                 self.journal.rotate_if_due(received_at_ms)
@@ -756,13 +761,29 @@ class WorkerRuntime:
         entry: BatchReceiptEntry,
         delayed_event_ids: frozenset[UUID],
     ) -> None:
-        if self.receipts is not None and self.receipts.receipt_at(entry.timeline_seq).late_unverified:
+        receipt = self.receipts.receipt_at(entry.timeline_seq) if self.receipts is not None else None
+        if receipt is not None and receipt.late_unverified:
             # Raw receipt remains durable, but never enters stateful detectors:
             # otherwise a later trusted batch could escalate its stale incident.
             self._remember_cursor(batch, accepted)
             self._timeline_seq = entry.timeline_seq
             self._clock_server_ms = entry.server_ms
             return
+        if receipt is not None:
+            floor = self._evidence_fences.get((batch.participant_id, batch.device_id, receipt.attempt_id), 0)
+            for record in accepted.new_records:
+                event_key = (batch.participant_id, batch.device_id, record.event_id)
+                self._event_receipts[event_key] = (batch.batch_id, receipt.attempt_id)
+                fence = record.payload.get("evidence_fence")
+                if fence is not None and record.seq <= accepted.acked_through_seq:
+                    floor = max(floor, fence["before_client_ms"])
+                if record.kind == "event":
+                    try:
+                        definition, _ = self.registry.resolve(record.event_type)
+                    except UnknownSignal:
+                        continue
+                    if definition.evidence_sources and max(0, record.client_occurred_at_ms - definition.evidence_before_ms) < floor:
+                        self._late_evidence_events[event_key] = floor
         plan = self.timeline.plan_receipt(records=accepted.new_records)
         commands = self._warning_commands(
             batch, plan, received_at_server_ms=entry.server_ms
@@ -778,8 +799,21 @@ class WorkerRuntime:
         self._clock_server_ms = entry.server_ms
         if self.receipts is not None:
             from dataclasses import replace
-            commands = tuple(replace(command, metadata={**dict(command.metadata),
-                "receipt_batch_id": str(batch.batch_id)}) for command in commands)
+            scoped_commands = []
+            for command in commands:
+                # Opted-in receipts correct provenance for future escalations;
+                # pre-contract replay retains its already committed fingerprint.
+                event_key = (command.participant_id, command.device_id, command.source_event_id)
+                origin = self._event_receipts.get(event_key) if receipt.attempt_id is not None else None
+                metadata = {**dict(command.metadata), "receipt_batch_id": str(origin[0] if origin else batch.batch_id)}
+                if receipt.attempt_id is not None:
+                    metadata.pop("evidence_gap", None)
+                gap_floor = self._late_evidence_events.get(event_key)
+                if gap_floor is not None:
+                    metadata["evidence_gap"] = {"reason": "late_beyond_fence", "before_client_ms": gap_floor,
+                        "version": "resident-evidence-fence-v1"}
+                scoped_commands.append(replace(command, metadata=metadata))
+            commands = tuple(scoped_commands)
         if self.resident_mode:
             admitted = []
             for command in commands:
@@ -790,7 +824,21 @@ class WorkerRuntime:
             commands = tuple(admitted)
         self.outbox.append(commands)
 
-    def student_progress(self, participant_id: int, device_id: str) -> dict:
+        if receipt is not None and receipt.attempt_id is not None:
+            scope = (batch.participant_id, batch.device_id, receipt.attempt_id)
+            for record in accepted.new_records:
+                fence = record.payload.get("evidence_fence")
+                if fence is not None:
+                    self._pending_evidence_fences.append((scope, record.seq, fence["before_client_ms"]))
+            pending = []
+            for scope, through, before in self._pending_evidence_fences:
+                if through <= self.sequencer.contiguous_cursor(self.run_id, scope[0], scope[1]):
+                    self._evidence_fences[scope] = max(self._evidence_fences.get(scope, 0), before)
+                else:
+                    pending.append((scope, through, before))
+            self._pending_evidence_fences = pending
+
+    def student_progress(self, participant_id: int, device_id: str, attempt_id: UUID | None = None) -> dict:
         with self._lock:
             if self.receipts is None or self._closed or not self.healthy:
                 raise OSError("resident progress unavailable")
@@ -800,7 +848,23 @@ class WorkerRuntime:
                 "processed_seq": self.sequencer.contiguous_cursor(self.run_id, participant_id, device_id)}
             progress.update(participant_id=participant_id, device_id=device_id,
                 commands_drained=not any(command.get("participant_id") == participant_id
-                    and command.get("device_id") == device_id for command in self.outbox.pending_commands))
+                    and command.get("device_id") == device_id
+                    and (attempt_id is None or self.receipts.command_attempt(command) == attempt_id)
+                    for command in self.outbox.pending_commands))
+            if attempt_id is not None:
+                release = self._evidence_fences.get((participant_id, device_id, attempt_id), 0)
+                anchors = [anchor for event_id, anchor in self.incidents.evidence_anchors(participant_id, device_id)
+                    if (participant_id, device_id, event_id) not in self._late_evidence_events
+                    and self._event_receipts.get((participant_id, device_id, event_id), (None, None))[1] == attempt_id]
+                for command in self.outbox.pending_commands:
+                    if (command.get("participant_id") != participant_id or command.get("device_id") != device_id
+                            or self.receipts.command_attempt(command) != attempt_id):
+                        continue
+                    evidence = command.get("evidence", {})
+                    if evidence.get("sources") and not command.get("metadata", {}).get("evidence_gap"):
+                        anchors.append(max(0, command["client_occurred_at_ms"] - evidence.get("before_ms", 0)))
+                progress.update(attempt_id=str(attempt_id), evidence_fence_version="resident-evidence-fence-v1",
+                    release_evidence_before_ms=min([release, *anchors]))
             return progress
 
     def _warning_commands(

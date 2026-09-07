@@ -141,6 +141,8 @@ class IntegrityCommand:
     delayed_delivery: bool
     evidence: Mapping[str, object]
     metadata: Mapping[str, object]
+    # Internal provenance, reconstructed from inputs; excluded from wire identity.
+    source_event_id: UUID | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "evidence", freeze_json(self.evidence, "$.evidence"))
@@ -191,6 +193,7 @@ def make_command(
     metadata: Mapping[str, object] | None = None,
 ) -> IntegrityCommand:
     return IntegrityCommand(
+        source_event_id=event_id,
         command_id=deterministic_uuid(
             context.run_id,
             participant_id,

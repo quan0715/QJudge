@@ -155,22 +155,21 @@ class ExamIntegrityMixin:
             evidence_response = self._apply_checkpoint_evidence(contest, participant, evidence, upload_scope=scope)
             if isinstance(evidence_response, Response):
                 return evidence_response
-            progress = client.student_progress(run, participant_id=participant.pk, device_id=scope["device_id"])
+            progress = client.student_progress(run, participant_id=participant.pk, device_id=scope["device_id"], attempt_id=scope["attempt_id"])
         except IntegrityWorkerRejected as error:
             return Response(error.payload, status=error.status_code)
         except IntegrityWorkerUnavailable:
             return Response({"detail": "Integrity resident unavailable."}, status=503)
         except IntegrityWorkerProtocolError:
             return Response({"detail": "Integrity resident response was invalid."}, status=502)
-        delivery = build_evidence_delivery(run, participant, now_ms=int(time.time() * 1000))
+        delivery = build_evidence_delivery(run, participant, now_ms=int(time.time() * 1000), upload_scope=scope)
         state = save_upload_progress(run, participant, scope, progress)
-        # No resident evidence-decision watermark exists before final drain.
-        # Equal cursors (including zero with a gap) cannot authorize release.
-        release = delivery.release_before_ms if state == "complete" else 0
+        release = min(delivery.release_before_ms, progress.get("release_evidence_before_ms", 0))
         return Response({**evidence_response, "acked_through_seq": progress["received_seq"],
             "processed_through_seq": progress["processed_seq"],
             "pending_commands": list(delivery.pending_commands),
-            "release_evidence_before_ms": release, "upload_status": state})
+            "release_evidence_before_ms": release, "upload_status": state,
+            **({"evidence_fence_version": progress["evidence_fence_version"]} if "evidence_fence_version" in progress else {})})
 
     def _proxy_integrity_observations(self, contest, participant, observations):
         if participant.exam_status not in ACTIVE_INTEGRITY_EXAM_STATUSES:

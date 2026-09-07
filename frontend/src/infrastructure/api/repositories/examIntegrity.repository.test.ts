@@ -29,6 +29,13 @@ const batch = {
 };
 
 describe("examIntegrityRepository", () => {
+  it.each([undefined, "unknown", "resident-evidence-fence-v1"])("requires explicit fence capability %s before releasing resident media", async (version) => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ acked_through_seq: 8, processed_through_seq: 8,
+      pending_commands: [], release_evidence_before_ms: 999000, evidence_fence_version: version }), { status: 200 }));
+    const result = await examIntegrityRepository.sendBatch("1", batch, undefined,
+      { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted" });
+    expect(result.releaseEvidenceBeforeMs).toBe(version === "resident-evidence-fence-v1" ? 999000 : 0);
+  });
   it("keeps resident evidence authentication failures local without refresh or replay", async () => {
     const controller = new AbortController();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: "scope expired" }), { status: 401 }));

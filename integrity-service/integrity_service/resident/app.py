@@ -143,7 +143,7 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         app.state.archives.submit(run_id, job)
         return {"protocol": PROTOCOL, "run_id": str(run_id), "schedule_revision": revision, "accepted": True}
 
-    def accept(run_id, revision, batch, size, received_at_ms, late_unverified=False, service_gap=None):
+    def accept(run_id, revision, batch, size, received_at_ms, late_unverified=False, service_gap=None, attempt_id=None):
         # Serialize schedule authorization with ensure; never wait for delivery.
         with registry._run_lock(run_id):
             runtime = registry.get(run_id)
@@ -160,7 +160,7 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
                     raise OSError("Run storage capacity reached")
                 if service_gap is not None:
                     registry.apply_trusted_gap(runtime, service_gap)
-                return runtime.accept_batch(batch, received_at_ms, late_unverified=late_unverified)
+                return runtime.accept_batch(batch, received_at_ms, late_unverified=late_unverified, attempt_id=attempt_id)
 
     @app.post("/v1/runs/{run_id}/batches")
     async def batch(run_id: UUID, request: Request):
@@ -170,16 +170,22 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             payload = json.loads(body)
             late = False
             gap = None
+            attempt = None
             if isinstance(payload, dict) and "batch" in payload:
-                if set(payload) - {"service_gap"} != {"batch", "late_unverified"} or type(payload["late_unverified"]) is not bool:
+                if set(payload) - {"service_gap", "attempt_id"} != {"batch", "late_unverified"} or type(payload["late_unverified"]) is not bool:
                     raise HTTPException(422, "invalid admission envelope")
                 late = payload["late_unverified"]
                 gap = payload.get("service_gap")
+                if "attempt_id" in payload:
+                    try:
+                        attempt = UUID(payload["attempt_id"])
+                    except (ValueError, TypeError, AttributeError) as error:
+                        raise HTTPException(422, "invalid attempt scope") from error
                 payload = payload["batch"]
             value = EventBatch.model_validate(payload)
             if value.run_id != run_id:
                 raise RunMismatch("batch scope conflict")
-            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock(), late, gap)
+            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock(), late, gap, attempt)
         except KeyError as error:
             raise HTTPException(404, "Run not loaded") from error
         except ValidationError as error:
@@ -196,14 +202,15 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         body, revision = await authenticate(request, run_id)
         try:
             scope = json.loads(body)
-            if (type(scope) is not dict or set(scope) != {"participant_id", "device_id"}
+            if (type(scope) is not dict or set(scope) - {"attempt_id"} != {"participant_id", "device_id"}
                     or type(scope["participant_id"]) is not int or scope["participant_id"] < 1
                     or type(scope["device_id"]) is not str or not 1 <= len(scope["device_id"]) <= 128):
                 raise HTTPException(422, "invalid progress scope")
             runtime = registry.get(run_id)
             if registry.descriptor(run_id).schedule_revision != revision:
                 raise HTTPException(409, "stale progress schedule")
-            result = await app.state.receipts.run(run_id, runtime.student_progress, scope["participant_id"], scope["device_id"])
+            attempt = UUID(scope["attempt_id"]) if "attempt_id" in scope else None
+            result = await app.state.receipts.run(run_id, runtime.student_progress, scope["participant_id"], scope["device_id"], attempt)
         except KeyError as error:
             raise HTTPException(404, "Run unavailable") from error
         except (ValueError, OSError) as error:

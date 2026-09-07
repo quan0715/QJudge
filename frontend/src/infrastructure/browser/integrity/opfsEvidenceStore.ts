@@ -14,6 +14,8 @@ export type EvidenceLocalAvailability = "available" | "missing" | "evicted" | "u
 export type EvidenceUploadStatus = "local" | "requested" | "verified" | "unavailable";
 
 export interface StoredEvidenceDescriptor extends ExamIntegrityEvidenceDescriptor {
+  participantId?: number;
+  attemptId?: string;
   runId: string;
   deviceId: string;
   epochId: string;
@@ -76,6 +78,8 @@ export interface OpfsDirectory {
 }
 
 export interface OpfsEvidenceStoreOptions {
+  participantId?: number;
+  attemptId?: string;
   runId: string;
   deviceId: string;
   databaseName?: string;
@@ -186,14 +190,15 @@ const wireDescriptor = (descriptor: StoredEvidenceDescriptor): ExamIntegrityEvid
  * IndexedDB contains searchable descriptors and durable upload/retention state.
  */
 export class OpfsEvidenceStore {
+  private readonly captureBlocked = new Set<IntegrityEvidenceSource>();
   private readonly database: IDBDatabase;
   private readonly options: Required<Pick<OpfsEvidenceStoreOptions, "runId" | "deviceId">> &
-    Pick<OpfsEvidenceStoreOptions, "now" | "createId"> & { opfs: OpfsDirectory | null };
+    Pick<OpfsEvidenceStoreOptions, "now" | "createId" | "participantId" | "attemptId"> & { opfs: OpfsDirectory | null };
 
   private constructor(
     database: IDBDatabase,
     options: Required<Pick<OpfsEvidenceStoreOptions, "runId" | "deviceId">> &
-      Pick<OpfsEvidenceStoreOptions, "now" | "createId"> & { opfs: OpfsDirectory | null },
+      Pick<OpfsEvidenceStoreOptions, "now" | "createId" | "participantId" | "attemptId"> & { opfs: OpfsDirectory | null },
   ) {
     this.database = database;
     this.options = options;
@@ -215,6 +220,8 @@ export class OpfsEvidenceStore {
     return new OpfsEvidenceStore(database, {
       runId: options.runId,
       deviceId: options.deviceId,
+      participantId: options.participantId,
+      attemptId: options.attemptId,
       opfs,
       now: options.now ?? Date.now,
       createId: options.createId ?? defaultId,
@@ -227,6 +234,7 @@ export class OpfsEvidenceStore {
     }
     const path = evidencePath(input, this.options.runId, this.options.deviceId);
     const descriptor: StoredEvidenceDescriptor = {
+      ...(this.options.attemptId ? { attemptId: this.options.attemptId, participantId: this.options.participantId } : {}),
       runId: this.options.runId,
       deviceId: this.options.deviceId,
       source: input.source,
@@ -288,17 +296,33 @@ export class OpfsEvidenceStore {
   }
 
   async listDescriptors(): Promise<StoredEvidenceDescriptor[]> {
+    return (await this.allDescriptors()).filter(item => this.owns(item));
+  }
+
+  /** Preserved prior/unknown owners still consume the same source budget. */
+  async retainedOtherAttemptUsage(source: IntegrityEvidenceSource): Promise<{ bytes: number; durationMs: number }> {
+    const retained = (await this.allDescriptors()).filter(item => item.source === source && !this.owns(item));
+    return { bytes: retained.reduce((sum, item) => sum + item.byteSize, 0),
+      durationMs: retained.reduce((sum, item) => sum + Math.max(0, item.endAtMs - item.startAtMs), 0) };
+  }
+
+  private async allDescriptors(): Promise<StoredEvidenceDescriptor[]> {
     const transaction = this.database.transaction(EVIDENCE_DESCRIPTORS_STORE, "readonly");
     const all = await requestResult(
       transaction.objectStore(EVIDENCE_DESCRIPTORS_STORE).getAll(),
     ) as StoredEvidenceDescriptor[];
     await transactionDone(transaction);
     return all
-      .filter((item) => item.runId === this.options.runId && item.deviceId === this.options.deviceId)
+      .filter(item => item.runId === this.options.runId && item.deviceId === this.options.deviceId)
       .sort((left, right) => left.createdAtMs - right.createdAtMs || left.chunkSeq - right.chunkSeq);
   }
 
+  get blockedCaptureSources(): readonly IntegrityEvidenceSource[] {
+    return [...this.captureBlocked];
+  }
+
   async getBlob(descriptor: StoredEvidenceDescriptor): Promise<Blob | null> {
+    if (!this.owns(descriptor)) throw new Error("Evidence ownership mismatch");
     try {
       if (!this.options.opfs) {
         const transaction = this.database.transaction(EVIDENCE_BLOBS_STORE, "readonly");
@@ -364,6 +388,7 @@ export class OpfsEvidenceStore {
   }
 
   async deleteDescriptor(descriptor: StoredEvidenceDescriptor): Promise<void> {
+    if (!this.owns(descriptor)) throw new Error("Evidence ownership mismatch");
     if (this.options.opfs) {
       const pieces = descriptor.opfsPath.split("/");
       try {
@@ -393,14 +418,52 @@ export class OpfsEvidenceStore {
       const blob = await this.getBlob(descriptor);
       if (!blob) await this.update(descriptor.localDescriptorId, { localAvailability: "missing" });
     }
-    if (this.options.opfs) {
+    if (this.options.opfs && !this.options.attemptId) {
       const expectedPaths = new Set(descriptors.map((descriptor) => descriptor.opfsPath.split("/").slice(3).join("/")));
       await this.deleteUnreferencedFiles(expectedPaths);
+    } else if (this.options.opfs && this.options.attemptId) {
+      // Called before this owner's capture starts. Preserve other attempts and
+      // crash-written files; unknown duration must not create a fresh budget.
+      const known = new Map((await this.allDescriptors()).map(item => [item.opfsPath, item.byteSize]));
+      for (const source of ["screen_share", "webcam"] as const) {
+        let foundSource = false;
+        try {
+          let directory = this.options.opfs;
+          const path = ["exam-integrity", this.options.runId, this.options.deviceId, source];
+          for (const piece of path) directory = await directory.getDirectoryHandle(piece);
+          foundSource = true;
+          await this.verifyAccountedFiles(directory, path.join("/"), known, { entries: 0 }, 0);
+        } catch (error) {
+          if (foundSource || (error as { name?: string }).name !== "NotFoundError") this.captureBlocked.add(source);
+        }
+      }
+    }
+  }
+
+  private async verifyAccountedFiles(directory: OpfsDirectory, path: string, known: Map<string, number>, budget: { entries: number }, depth: number): Promise<void> {
+    if (!directory.values || depth > 8) throw new Error("Evidence source accounting unavailable");
+    for await (const entry of directory.values()) {
+      if (++budget.entries > 10000) throw new Error("Evidence source accounting capacity reached");
+      const child = entry as { kind?: string; name?: string };
+      if (!child.name) throw new Error("Unknown evidence file");
+      const childPath = `${path}/${child.name}`;
+      if (child.kind === "directory") {
+        await this.verifyAccountedFiles(await directory.getDirectoryHandle(child.name), childPath, known, budget, depth + 1);
+      } else if (child.kind === "file") {
+        if (!known.has(childPath) || (await (await directory.getFileHandle(child.name)).getFile()).size !== known.get(childPath)) {
+          throw new Error("Unaccounted evidence bytes preserved");
+        }
+      } else throw new Error("Unknown evidence entry");
     }
   }
 
   async close(): Promise<void> {
     this.database.close();
+  }
+
+  private owns(descriptor: StoredEvidenceDescriptor): boolean {
+    return descriptor.runId === this.options.runId && descriptor.deviceId === this.options.deviceId &&
+      (!this.options.attemptId || (descriptor.attemptId === this.options.attemptId && descriptor.participantId === this.options.participantId));
   }
 
   private async update(
@@ -422,6 +485,7 @@ export class OpfsEvidenceStore {
         const existing = await requestResult(store.get(
           descriptorKey(this.options.runId, this.options.deviceId, localDescriptorId),
         )) as StoredEvidenceDescriptor | undefined;
+        if (existing && !this.owns(existing)) throw new Error("Evidence ownership mismatch");
         if (existing) store.put({ ...existing, ...patch(existing) });
       }
       await transactionDone(transaction);

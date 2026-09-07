@@ -235,6 +235,8 @@ def _raw_window(
     integrity = event.metadata.get("integrity", {}) if isinstance(event.metadata, dict) else {}
     if isinstance(integrity, dict) and integrity.get("late_unverified") is True:
         return ()
+    if run.execution_backend == "resident" and isinstance(integrity, dict) and integrity.get("evidence_gap"):
+        return ()
     if (
         event.incident_id is None
         or event.client_occurred_at_ms is None
@@ -509,12 +511,14 @@ def build_evidence_delivery(
     run: ExamIntegrityRun,
     participant: ContestParticipant,
     now_ms: int,
+    upload_scope=None,
 ) -> EvidenceDelivery:
     """Return the replay-safe pending retain projection and release watermark."""
 
     if type(now_ms) is not int or now_ms < 0:
         raise ValueError("now_ms must be a nonnegative integer")
-    events = list(_participant_incident_events(run, participant))
+    events = (_owned_evidence_events(run, participant, upload_scope) if upload_scope is not None
+        else list(_participant_incident_events(run, participant)))
     windows = _evidence_retain_windows_for_events(
         run,
         events,
@@ -527,6 +531,9 @@ def build_evidence_delivery(
             participant=participant,
         )
     )
+    if upload_scope is not None:
+        event_ids = {event.pk for event in events}
+        chunks = [chunk for chunk in chunks if chunk.exam_event_id in event_ids]
     unresolved = []
     for window in windows:
         unresolved_sources = tuple(

@@ -1,10 +1,95 @@
 import "fake-indexeddb/auto";
+import { Blob as NodeBlob } from "node:buffer";
 import { afterEach, expect, it, vi } from "vitest";
 import { ResidentIntegritySession } from "./residentIntegritySession";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it("keeps event upload alive but never starts a capture writer after startup storage failure", async () => {
+  const start = vi.fn();
+  vi.stubGlobal("MediaRecorder", class extends EventTarget {
+    static isTypeSupported() { return true; }
+    state = "inactive";
+    start() { start(); this.state = "recording"; }
+    stop() { this.state = "inactive"; this.dispatchEvent(new Event("stop")); }
+  });
+  vi.spyOn(OpfsEvidenceStore.prototype, "reconcile").mockRejectedValue(new Error("storage unavailable"));
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ acked_through_seq: 0, processed_through_seq: 0, pending_commands: [] }), { status: 200 })));
+  const onLocalLoss = vi.fn();
+  const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device", attempt_id: crypto.randomUUID() };
+  const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
+    run: { id: scope.run_id, participantId: 44, computeState: "stopped", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
+      policySnapshot: { device_policy: { desktop: { enabled: true, sources: { screen_share: { enabled: true } } } } }, devicePolicy: {} as never },
+    onGap: vi.fn(), onLocalLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
+      fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+  await session.start();
+  session.setSources({ screen_share: { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener() {}, getSettings: () => ({}) }] } as unknown as MediaStream });
+  await session.emitter.emit({ eventType: "focus_lost", clientOccurredAtMs: 100, payload: {} });
+  await session.close();
+  expect(onLocalLoss).toHaveBeenCalled();
+  expect(start).not.toHaveBeenCalled();
+});
+
+it("orders admitted signals before drain while the final recorder callback and storage delay the fence", async () => {
+  const stopped: Recorder[] = [];
+  const started: Recorder[] = [];
+  class Recorder extends EventTarget {
+    static isTypeSupported() { return true; }
+    state = "inactive";
+    mimeType = "video/webm";
+    start() { this.state = "recording"; started.push(this); }
+    stop() { this.state = "inactive"; stopped.push(this); }
+    finish() {
+      const data = new Event("dataavailable");
+      Object.assign(data, { data: new NodeBlob(["final video"]) });
+      this.dispatchEvent(data); this.dispatchEvent(new Event("stop"));
+    }
+  }
+  vi.stubGlobal("MediaRecorder", Recorder);
+  let releaseStorage!: () => void;
+  const storageGate = new Promise<void>(resolve => { releaseStorage = resolve; });
+  const putChunk = OpfsEvidenceStore.prototype.putChunk;
+  vi.spyOn(OpfsEvidenceStore.prototype, "putChunk").mockImplementation(async function(input) {
+    await storageGate; return putChunk.call(this, input);
+  });
+  const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };
+  const bodies: any[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+    const body = JSON.parse(init.body); bodies.push(body);
+    return new Response(JSON.stringify({ acked_through_seq: body.observations?.last_seq ?? 3,
+      processed_through_seq: 0, pending_commands: [], release_evidence_before_ms: 0, upload_status: "pending" }), { status: 200 });
+  }));
+  const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
+    run: { id: scope.run_id, participantId: 44, computeState: "stopped", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
+      policySnapshot: { device_policy: { desktop: { enabled: true, sources: { screen_share: { enabled: true } } } } }, devicePolicy: {} as never },
+    onGap: vi.fn(), onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
+      fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+  await session.start();
+  await vi.waitFor(() => expect(bodies).toHaveLength(1));
+  expect(bodies[0].observations.records[0].payload.evidence_fence.through_seq).toBe(1);
+  session.setSources({ screen_share: { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener: () => {}, getSettings: () => ({}) }] } as unknown as MediaStream });
+  await vi.waitFor(() => expect(started).toHaveLength(1));
+  await session.emitter.emit({ eventType: "focus_lost", clientOccurredAtMs: 100, payload: {} });
+  const flushing = session.flush();
+  await vi.waitFor(() => expect(stopped).toHaveLength(1));
+  // Admitted while encoder is waiting: it must remain durable and ordered.
+  await session.emitter.emit({ eventType: "focus_restored", clientOccurredAtMs: 101, payload: {} });
+  let drained = false;
+  const draining = session.setMode("drain").then(() => { drained = true; });
+  stopped[0].finish();
+  await Promise.resolve();
+  expect(drained).toBe(false);
+  expect(bodies.some(body => body.final_seq !== undefined)).toBe(false);
+  releaseStorage();
+  await Promise.all([draining, flushing]);
+  await session.flush(); await session.flush();
+  await session.close();
+  const records = bodies.flatMap(body => body.observations?.records ?? []);
+  expect(records.map(record => [record.seq, record.event_type])).toEqual([[1, "health_snapshot"], [2, "focus_lost"], [3, "focus_restored"]]);
+  expect(bodies.find(body => body.final_seq !== undefined)?.final_seq).toBe(3);
+});
 
 it("cancels stuck evidence PUTs through submit drain and expiry cleanup without deleting durable evidence", async () => {
   const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };

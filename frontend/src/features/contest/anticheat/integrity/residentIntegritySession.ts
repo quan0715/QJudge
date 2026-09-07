@@ -31,10 +31,13 @@ export class ResidentIntegritySession {
   private outbox: IndexedDbIntegrityOutbox | null = null;
   private store: OpfsEvidenceStore | null = null;
   private coordinator: EvidenceCoordinator | null = null;
+  private captureStorageReady = false;
   private transport: IntegrityTransport | null = null;
   private ready: Promise<void> | null = null;
   private writes: Promise<void> = Promise.resolve();
   private queuedWrites = 0;
+  private evidenceFenceDisabled = false;
+  private lastCaptureBoundaryMs = 0;
   private transitions: Promise<void> = Promise.resolve();
   private finalSeq: number | undefined;
   private health = initialHealthSnapshot();
@@ -88,14 +91,26 @@ export class ResidentIntegritySession {
         nextSequence: this.options.nextSequence, registryVersion: run.registrySnapshot.version, clientBuild: "frontend" });
       if (this.closed) return;
       try {
-        this.store = await OpfsEvidenceStore.open({ runId: scope.run_id, deviceId: scope.device_id });
+        this.store = await OpfsEvidenceStore.open({ runId: scope.run_id, deviceId: scope.device_id,
+          participantId: scope.participant_id, attemptId: scope.attempt_id });
         this.coordinator = new EvidenceCoordinator({ contestId: this.options.contestId,
           runId: scope.run_id, store: this.store,
+          canRelease: () => {
+            if (Date.now() < this.lastCaptureBoundaryMs && !this.evidenceFenceDisabled) {
+              this.localLoss(new Error("Evidence clock regressed; release suspended"));
+            }
+            return !this.evidenceFenceDisabled;
+          },
           requestTimeoutMs: 10_000,
           onRetryableFailure: (error) => this.gap(error),
           repository: { submitEvidenceCheckpoint: (id, request, signal) => examIntegrityRepository.submitEvidenceCheckpoint(id, { ...request, uploadScope: scope }, signal) },
         });
         await this.coordinator.start();
+        for (const source of this.store.blockedCaptureSources ?? []) {
+          this.localLoss(new Error(`Evidence ${source}: unaccounted local bytes preserved; capture stopped`));
+        }
+        this.lastCaptureBoundaryMs = (await this.store.listDescriptors()).reduce((latest, item) => Math.max(latest, item.endAtMs), 0);
+        this.captureStorageReady = true;
       } catch (error) { this.localLoss(error); }
       if (this.closed) return;
       this.syncSources();
@@ -116,21 +131,25 @@ export class ResidentIntegritySession {
       void idle.finally(() => this.stoppingMedia.delete(idle));
     }
     this.chunkers.clear();
-    if (this.closed || this.mode !== "capture" || !this.store || !this.coordinator) return;
+    if (this.closed || this.mode !== "capture" || !this.captureStorageReady || !this.store || !this.coordinator) return;
     const targets = sourceTargets(this.options.run.policySnapshot);
     const policy = evidenceBufferPolicy(this.options.run.policySnapshot);
     for (const source of enabledEvidenceSources(this.options.run.policySnapshot)) {
+      if (this.store.blockedCaptureSources?.includes(source)) continue;
       const stream = this.sources[source];
       if (!stream) continue;
       const coordinator = this.coordinator;
       const chunker = new MediaRecorderChunker({ source, stream, store: this.store,
         target: targets[source],
-        onDegraded: (reason) => { this.localLoss(new Error(`Evidence ${source}: ${reason}`)); },
+        onDegraded: (reason) => { chunker.stop(); this.localLoss(new Error(`Evidence ${source}: ${reason}`)); },
         onStoredChunk: async () => {
-          if (!await coordinator.enforceCapacity(source, policy)) {
-            chunker.stop();
-            this.localLoss(new Error(`Evidence ${source}: capacity_protected_evidence`));
+          try {
+            if (await coordinator.enforceCapacity(source, policy)) return;
+          } catch (error) {
+            this.localLoss(error);
           }
+          chunker.stop();
+          this.localLoss(new Error(`Evidence ${source}: capacity_protected_evidence`));
         },
       });
       this.chunkers.set(source, chunker);
@@ -162,12 +181,14 @@ export class ResidentIntegritySession {
     if (this.closed || this.mode === "off" || !this.outbox) return;
     const { scope, contestId } = this.options;
     this.transport = new IntegrityTransport({ contestId, outbox: this.outbox, mode: this.mode,
+      persistCaptureSnapshot: () => this.persistCaptureSnapshot(),
       repository: { sendBatch: (id, batch, signal) => examIntegrityRepository.sendBatch(id, batch, signal, scope) },
       snapshotProvider: () => ({ ...this.options.snapshotProvider(), health: this.health }),
       evidenceDescriptorsProvider: () => this.coordinator?.pendingDescriptorSummaries() ?? Promise.resolve([]),
       onSnapshotPersisted: (descriptors, sequence) => this.coordinator?.markSnapshotPersisted(descriptors, sequence),
       onPendingCommand: (command) => this.coordinator?.retain(command),
-      onReleaseEvidenceBeforeMs: (watermark) => this.coordinator?.releaseBefore(watermark),
+      onReleaseEvidenceBeforeMs: (watermark) => this.coordinator?.releaseBefore(Math.min(watermark,
+        Math.max(0, Date.now() - evidenceBufferPolicy(this.options.run.policySnapshot).minimumLocalBufferMs))),
       onProgress: this.options.onProgress,
       onGap: (error) => this.gap(error),
       onLocalLoss: (error) => this.localLoss(error),
@@ -178,6 +199,34 @@ export class ResidentIntegritySession {
       eventTarget: window,
     });
     this.transport.start();
+  }
+
+  private async persistCaptureSnapshot(): Promise<void> {
+    const boundaryTime = Date.now();
+    if (boundaryTime < this.lastCaptureBoundaryMs) this.localLoss(new Error("Evidence clock regressed; release suspended"));
+    this.lastCaptureBoundaryMs = Math.max(this.lastCaptureBoundaryMs, boundaryTime);
+    // This wait holds no emitter queue or answer request. Signals admitted
+    // while the encoder flushes join the serial queue before the snapshot.
+    await Promise.all([
+      ...[...this.chunkers.values()].map(chunker => chunker.evidenceBarrier()),
+      ...this.stoppingMedia,
+    ]);
+    if (this.closed || this.mode !== "capture" || !this.outbox) return;
+    const snapshot = this.writes.then(async () => {
+      const descriptors = await this.coordinator?.pendingDescriptorSummaries() ?? [];
+      if (this.closed || this.mode !== "capture" || !this.outbox) return;
+      const policy = evidenceBufferPolicy(this.options.run.policySnapshot);
+      const lookback = Math.max(policy.minimumLocalBufferMs, ...Object.values(this.options.run.registrySnapshot.definitions)
+        .map(definition => Number((definition as { evidence?: { before_ms?: number } }).evidence?.before_ms ?? 0)));
+      const record = await this.outbox.append({ eventType: "health_snapshot", clientOccurredAtMs: Date.now(),
+        payload: { ...this.options.snapshotProvider(), health: this.health, activeSourceDescriptors: descriptors },
+        evidenceDescriptors: descriptors,
+        ...(!this.evidenceFenceDisabled ? { evidenceFenceBeforeMs: Math.max(0, boundaryTime - lookback) } : {}),
+      });
+      await this.coordinator?.markSnapshotPersisted(descriptors, record.seq);
+    }).catch(error => this.localLoss(error));
+    this.writes = snapshot;
+    await snapshot;
   }
 
   async flush(): Promise<void> {
@@ -211,6 +260,7 @@ export class ResidentIntegritySession {
   }
 
   private localLoss(error: unknown): void {
+    this.evidenceFenceDisabled = true;
     this.options.onLocalLoss?.(error instanceof Error ? error : new Error("Monitoring data could not be saved"));
     this.gap(error);
   }

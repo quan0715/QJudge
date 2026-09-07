@@ -762,6 +762,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "requested_action": command.action,
         "command_fingerprint": command.command_fingerprint,
         **({"late_unverified": late_unverified} if run.execution_backend == "resident" else {}),
+        **({"evidence_gap": command.metadata["evidence_gap"]} if run.execution_backend == "resident" and command.metadata.get("evidence_gap") else {}),
         **({"suppressed_reason": "platform_gap"} if platform_gap else {}),
     }
     event = ExamEvent.objects.create(

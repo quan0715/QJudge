@@ -376,6 +376,17 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       const monotonicMs = this.options.monotonicNow!();
       assertFiniteNonNegative(monotonicMs, "monotonicMs");
       assertJsonValue(signal.payload);
+      let payload = signal.payload;
+      if (signal.evidenceFenceBeforeMs !== undefined) {
+        assertSafeInteger(signal.evidenceFenceBeforeMs, "evidenceFenceBeforeMs");
+        if (!this.options.attemptId || signal.eventType !== "health_snapshot" || signal.evidenceFenceBeforeMs < 0) {
+          throw new Error("Evidence fence requires a resident health snapshot");
+        }
+        payload = { ...signal.payload, evidence_fence: {
+          version: "resident-evidence-fence-v1", attempt_id: this.options.attemptId,
+          through_seq: meta.nextSeq, before_client_ms: signal.evidenceFenceBeforeMs,
+        } };
+      }
       const eventId = this.options.createId!();
       assertUuid(eventId, "eventId");
       const stored: StoredRecord = {
@@ -389,7 +400,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         clientOccurredAtMs: signal.clientOccurredAtMs,
         clientRecordedAtMs: now,
         monotonicMs,
-        payload: signal.payload,
+        payload,
         evidenceDescriptors: signal.evidenceDescriptors ?? [],
         acked: false,
       };
@@ -545,8 +556,10 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
             for (const summary of record.evidenceDescriptors) {
               const descriptor = await requestResult(descriptorStore.get([
                 runId, deviceId, summary.localDescriptorId,
-              ])) as { batchAcked?: boolean } | undefined;
-              if (descriptor) descriptorStore.put({ ...descriptor, batchAcked: true });
+              ])) as { batchAcked?: boolean; attemptId?: string; participantId?: number } | undefined;
+              if (descriptor?.attemptId === this.options.attemptId && descriptor.participantId === this.options.participantId) {
+                descriptorStore.put({ ...descriptor, batchAcked: true });
+              }
             }
           }
           delete meta.inflightBatch;
