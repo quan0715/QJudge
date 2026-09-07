@@ -115,7 +115,7 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             raise HTTPException(507, "Run recovery failed") from error
         return {"protocol": PROTOCOL, "run_id": str(run_id), "schedule_revision": revision}
 
-    def accept(run_id, revision, batch, size, received_at_ms):
+    def accept(run_id, revision, batch, size, received_at_ms, late_unverified=False):
         # Serialize schedule authorization with ensure; never wait for delivery.
         with registry._run_lock(run_id):
             runtime = registry.get(run_id)
@@ -130,17 +130,24 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
                 usage = sum(p.stat().st_size for p in (registry.root / str(run_id)).rglob("*") if p.is_file())
                 if usage + size * 4 + 4096 > settings.max_run_bytes:
                     raise OSError("Run storage capacity reached")
-                return runtime.accept_batch(batch, received_at_ms)
+                return runtime.accept_batch(batch, received_at_ms, late_unverified=late_unverified)
 
     @app.post("/v1/runs/{run_id}/batches")
     async def batch(run_id: UUID, request: Request):
         body, revision = await authenticate(request, run_id)
         try:
             registry.get(run_id)
-            value = EventBatch.model_validate_json(body)
+            payload = json.loads(body)
+            late = False
+            if isinstance(payload, dict) and "batch" in payload:
+                if set(payload) != {"batch", "late_unverified"} or type(payload["late_unverified"]) is not bool:
+                    raise HTTPException(422, "invalid admission envelope")
+                late = payload["late_unverified"]
+                payload = payload["batch"]
+            value = EventBatch.model_validate(payload)
             if value.run_id != run_id:
                 raise RunMismatch("batch scope conflict")
-            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock())
+            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock(), late)
         except KeyError as error:
             raise HTTPException(404, "Run not loaded") from error
         except ValidationError as error:
@@ -150,6 +157,25 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         except (ValueError, OSError) as error:
             raise HTTPException(507, "durable receipt unavailable") from error
         return JSONResponse(ack.model_dump(mode="json"), headers={"X-QJudge-Protocol": PROTOCOL})
+
+    @app.post("/v1/runs/{run_id}/progress")
+    async def student_progress(run_id: UUID, request: Request):
+        body, revision = await authenticate(request, run_id)
+        try:
+            scope = json.loads(body)
+            if (type(scope) is not dict or set(scope) != {"participant_id", "device_id"}
+                    or type(scope["participant_id"]) is not int or scope["participant_id"] < 1
+                    or type(scope["device_id"]) is not str or not 1 <= len(scope["device_id"]) <= 128):
+                raise HTTPException(422, "invalid progress scope")
+            runtime = registry.get(run_id)
+            if registry.descriptor(run_id).schedule_revision != revision:
+                raise HTTPException(409, "stale progress schedule")
+            result = await app.state.receipts.run(run_id, runtime.student_progress, scope["participant_id"], scope["device_id"])
+        except KeyError as error:
+            raise HTTPException(404, "Run unavailable") from error
+        except (ValueError, OSError) as error:
+            raise HTTPException(503, "progress unavailable") from error
+        return JSONResponse(result, headers={"X-QJudge-Protocol": PROTOCOL})
 
     @app.get("/live")
     async def live():

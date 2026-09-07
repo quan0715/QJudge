@@ -264,7 +264,7 @@ class WorkerRuntime:
                 last_scheduler_error=self._last_scheduler_error,
             )
 
-    def accept_batch(self, batch: EventBatch, received_at_ms: int) -> BatchAck:
+    def accept_batch(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False) -> BatchAck:
         """Durable resident intake only; caller authenticates the batch's signed scope."""
         with self._lock:
             if self.receipts is None:
@@ -278,7 +278,7 @@ class WorkerRuntime:
             if type(received_at_ms) is not int or received_at_ms < self._clock_server_ms:
                 raise ValueError("receipt time cannot precede decision time")
             try:
-                receipt = self.receipts.append_durable(batch, received_at_ms)
+                receipt = self.receipts.append_durable(batch, received_at_ms, late_unverified=late_unverified)
             except (OSError, RuntimeError):
                 self._mark_unhealthy("durable_write_failed")
                 raise
@@ -694,6 +694,13 @@ class WorkerRuntime:
         entry: BatchReceiptEntry,
         delayed_event_ids: frozenset[UUID],
     ) -> None:
+        if self.receipts is not None and self.receipts.receipt_at(entry.timeline_seq).late_unverified:
+            # Raw receipt remains durable, but never enters stateful detectors:
+            # otherwise a later trusted batch could escalate its stale incident.
+            self._remember_cursor(batch, accepted)
+            self._timeline_seq = entry.timeline_seq
+            self._clock_server_ms = entry.server_ms
+            return
         plan = self.timeline.plan_receipt(records=accepted.new_records)
         commands = self._warning_commands(
             batch, plan, received_at_server_ms=entry.server_ms
@@ -707,7 +714,24 @@ class WorkerRuntime:
         self._remember_cursor(batch, accepted)
         self._timeline_seq = entry.timeline_seq
         self._clock_server_ms = entry.server_ms
+        if self.receipts is not None:
+            from dataclasses import replace
+            commands = tuple(replace(command, metadata={**dict(command.metadata),
+                "receipt_batch_id": str(batch.batch_id)}) for command in commands)
         self.outbox.append(commands)
+
+    def student_progress(self, participant_id: int, device_id: str) -> dict:
+        with self._lock:
+            if self.receipts is None or self._closed or not self.healthy:
+                raise OSError("resident progress unavailable")
+            # Healthy + the runtime lock guarantees the decision sequencer has
+            # committed mark_processed, including replay recovery, before reads.
+            progress = {"received_seq": self.receipts.received_cursor(participant_id, device_id),
+                "processed_seq": self.sequencer.contiguous_cursor(self.run_id, participant_id, device_id)}
+            progress.update(participant_id=participant_id, device_id=device_id,
+                commands_drained=not any(command.get("participant_id") == participant_id
+                    and command.get("device_id") == device_id for command in self.outbox.pending_commands))
+            return progress
 
     def _warning_commands(
         self,

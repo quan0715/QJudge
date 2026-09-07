@@ -255,7 +255,8 @@ def test_migration_forward_backward(legacy_fixtures):
             run = RunModel.objects.get(pk=pk)
             assert (run.compute_state, run.data_state) == (compute, data)
     finally:
-        MigrationExecutor(connection).migrate(new)
+        cleanup = MigrationExecutor(connection)
+        cleanup.migrate(cleanup.loader.graph.leaf_nodes())
 
 
 @pytest.mark.django_db(transaction=True)
@@ -264,7 +265,11 @@ def test_migration_reverse_refuses_to_erase_resident_ownership(contest):
     historical.session_state = "archived"
     historical.save(update_fields=["session_state"])
     live = ensure_resident_session(contest.pk)
-    with pytest.raises(RuntimeError, match="resident-owned runs"):
-        MigrationExecutor(connection).migrate([("contests", "0096_remove_contest_visibility")])
-    assert ExamIntegrityRun.objects.filter(execution_backend="resident").count() == 2
-    assert ExamIntegrityRun.objects.get(pk=live.pk).session_state == "prepared"
+    try:
+        with pytest.raises(RuntimeError, match="resident-owned runs"):
+            MigrationExecutor(connection).migrate([("contests", "0096_remove_contest_visibility")])
+        assert ExamIntegrityRun.objects.filter(execution_backend="resident").count() == 2
+        assert ExamIntegrityRun.objects.get(pk=live.pk).session_state == "prepared"
+    finally:
+        cleanup = MigrationExecutor(connection)
+        cleanup.migrate(cleanup.loader.graph.leaf_nodes())

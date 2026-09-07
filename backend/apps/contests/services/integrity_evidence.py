@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamEvidenceChunk,
     ExamEvent,
@@ -229,6 +230,9 @@ def _raw_window(
     event: ExamEvent,
     enabled_sources: frozenset[str],
 ) -> tuple[_RawWindow, ...]:
+    integrity = event.metadata.get("integrity", {}) if isinstance(event.metadata, dict) else {}
+    if isinstance(integrity, dict) and integrity.get("late_unverified") is True:
+        return ()
     if (
         event.incident_id is None
         or event.client_occurred_at_ms is None
@@ -844,17 +848,21 @@ def create_evidence_manifest(
         for descriptor in descriptors
     }
     with transaction.atomic():
+        Contest.objects.select_for_update().get(pk=run.contest_id)
+        from .exam_schedule import lock_exam_runs
+        lock_exam_runs(run.contest_id)
         locked_run = (
-            ExamIntegrityRun.objects.select_for_update()
+            ExamIntegrityRun.objects.select_for_update(of=("self",))
             .select_related("contest")
             .get(pk=run.pk)
         )
         if (
-            locked_run.compute_state
+            (locked_run.execution_backend == "legacy" and locked_run.compute_state
             not in {
                 ExamIntegrityRun.ComputeState.RUNNING,
                 ExamIntegrityRun.ComputeState.STOPPING,
-            }
+            })
+            or (locked_run.execution_backend == "resident" and locked_run.session_state not in {"active", "draining"})
             or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
         ):
             raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")
@@ -1128,13 +1136,17 @@ def report_evidence_unavailable_projection(
     if type(reason) is not str or not 1 <= len(reason) <= 256:
         raise IntegrityEvidenceRejected("invalid_evidence_unavailable_reason")
     with transaction.atomic():
+        Contest.objects.select_for_update().get(pk=run.contest_id)
+        from .exam_schedule import lock_exam_runs
+        lock_exam_runs(run.contest_id)
         locked_run = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
         if (
-            locked_run.compute_state
+            (locked_run.execution_backend == "legacy" and locked_run.compute_state
             not in {
                 ExamIntegrityRun.ComputeState.RUNNING,
                 ExamIntegrityRun.ComputeState.STOPPING,
-            }
+            })
+            or (locked_run.execution_backend == "resident" and locked_run.session_state not in {"active", "draining"})
             or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
         ):
             raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")

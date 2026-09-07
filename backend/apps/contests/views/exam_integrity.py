@@ -30,7 +30,7 @@ from ..models import (
     ExamIntegrityRun,
     ExamStatus,
 )
-from ..services.anti_cheat_session import get_active_session
+from ..services.anti_cheat_session import get_active_session, get_device_id
 from ..services.integrity_presence import record_checkpoint
 from ..services.integrity_evidence import (
     IntegrityEvidenceRejected,
@@ -82,6 +82,25 @@ class ExamIntegrityMixin:
         if participant is None:
             raise PermissionDenied("Only contest participants may submit checkpoints.")
 
+        upload_scope = serializer.validated_data.get("upload_scope")
+        if upload_scope:
+            return self._resident_checkpoint(request, contest, participant, serializer.validated_data)
+        evidence = serializer.validated_data["evidence"]
+        operations = [*evidence.get("manifests", ()), *evidence.get("completions", ()), *evidence.get("unavailable", ())]
+        targets = {operation["run_id"] for operation in operations if "run_id" in operation}
+        if serializer.validated_data.get("observations"):
+            targets.add(serializer.validated_data["observations"]["run_id"])
+        chunk_ids = [operation["chunk_id"] for operation in operations if "chunk_id" in operation]
+        if (ExamIntegrityRun.objects.filter(contest=contest, pk__in=targets, execution_backend="resident").exists()
+                or ExamEvidenceChunk.objects.filter(pk__in=chunk_ids, participant=participant,
+                    integrity_run__execution_backend="resident").exists()):
+            raise PermissionDenied("Resident evidence requires the trusted upload scope.")
+        if ExamIntegrityRun.objects.filter(contest=contest, execution_backend="resident",
+                session_state__in=("prepared", "active", "draining")).exists():
+            raise PermissionDenied("Resident checkpoint requires the trusted upload scope.")
+        if "final_seq" in serializer.validated_data:
+            raise serializers.ValidationError("Legacy checkpoints do not accept final sequence markers.")
+
         response_data = {
             "uploads": [],
             "completions": [],
@@ -107,6 +126,51 @@ class ExamIntegrityMixin:
             return evidence_response
         response_data.update(evidence_response)
         return Response(response_data, status=status.HTTP_200_OK)
+
+    def _resident_checkpoint(self, request, contest, participant, data):
+        from ..services.integrity_upload_grants import admit_checkpoint, save_upload_progress
+        scope = data["upload_scope"]
+        run, participant, body = admit_checkpoint(contest, participant, scope, data.get("observations"),
+            request_device=get_device_id(request), final_seq=data.get("final_seq"), has_evidence=any(data["evidence"].values()))
+        # Evidence-only operations receive the same scope authorization as events.
+        evidence = data["evidence"]
+        for manifest in evidence.get("manifests", ()):
+            if manifest["run_id"] != run.pk:
+                raise PermissionDenied("Evidence Run scope mismatch.")
+        for operation in (*evidence.get("completions", ()), *evidence.get("unavailable", ())):
+            if "chunk_id" in operation:
+                if not ExamEvidenceChunk.objects.filter(pk=operation["chunk_id"], integrity_run=run,
+                        participant=participant).exists():
+                    raise PermissionDenied("Evidence chunk scope mismatch.")
+            elif operation.get("run_id") != run.pk:
+                raise PermissionDenied("Evidence Run scope mismatch.")
+        try:
+            client = build_integrity_worker_client()
+            if body is not None:
+                if len(body) > MAX_INTEGRITY_BATCH_BYTES:
+                    raise serializers.ValidationError("Encoded batch must not exceed 1 MiB.")
+                client.post_batch(run, body)
+                if participant.exam_status in ACTIVE_INTEGRITY_EXAM_STATUSES:
+                    record_checkpoint(contest.pk, participant.user_id)
+            evidence_response = self._apply_checkpoint_evidence(contest, participant, evidence)
+            if isinstance(evidence_response, Response):
+                return evidence_response
+            progress = client.student_progress(run, participant_id=participant.pk, device_id=scope["device_id"])
+        except IntegrityWorkerRejected as error:
+            return Response(error.payload, status=error.status_code)
+        except IntegrityWorkerUnavailable:
+            return Response({"detail": "Integrity resident unavailable."}, status=503)
+        except IntegrityWorkerProtocolError:
+            return Response({"detail": "Integrity resident response was invalid."}, status=502)
+        delivery = build_evidence_delivery(run, participant, now_ms=int(time.time() * 1000))
+        state = save_upload_progress(run, participant, scope, progress)
+        # No resident evidence-decision watermark exists before final drain.
+        # Equal cursors (including zero with a gap) cannot authorize release.
+        release = delivery.release_before_ms if state == "complete" else 0
+        return Response({**evidence_response, "acked_through_seq": progress["received_seq"],
+            "processed_through_seq": progress["processed_seq"],
+            "pending_commands": list(delivery.pending_commands),
+            "release_evidence_before_ms": release, "upload_status": state})
 
     def _proxy_integrity_observations(self, contest, participant, observations):
         if participant.exam_status not in ACTIVE_INTEGRITY_EXAM_STATUSES:

@@ -146,6 +146,45 @@ class ExamIntegrityRun(models.Model):
         ]
 
 
+class IntegrityBatchAdmission(models.Model):
+    """Compact gateway identity ledger; raw records remain resident-owned."""
+    run = models.ForeignKey(ExamIntegrityRun, on_delete=models.CASCADE)
+    participant = models.ForeignKey("contests.ContestParticipant", on_delete=models.CASCADE)
+    batch_id = models.UUIDField()
+    attempt_id = models.UUIDField()
+    device_id = models.CharField(max_length=128)
+    body_sha256 = models.CharField(max_length=64)
+    first_seq = models.PositiveBigIntegerField()
+    last_seq = models.PositiveBigIntegerField()
+    first_received_at = models.DateTimeField()
+    late_unverified = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["run", "batch_id"], name="uniq_integrity_batch_admission")]
+        indexes = [models.Index(fields=["run", "participant", "device_id"], name="integrity_admission_scope_idx")]
+
+
+class IntegrityUploadGrant(models.Model):
+    run = models.ForeignKey(ExamIntegrityRun, on_delete=models.CASCADE)
+    participant = models.ForeignKey("contests.ContestParticipant", on_delete=models.CASCADE)
+    device_id = models.CharField(max_length=128)
+    attempt_id = models.UUIDField()
+    submitted_at = models.DateTimeField()
+    accept_until = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    final_seq = models.PositiveBigIntegerField(null=True, blank=True)
+    received_seq = models.PositiveBigIntegerField(default=0)
+    processed_seq = models.PositiveBigIntegerField(default=0)
+    commands_drained = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["run", "participant", "attempt_id", "device_id"],
+            name="uniq_integrity_upload_grant_scope",
+        )]
+
+
 class ExamEvidenceChunk(models.Model):
     class Source(models.TextChoices):
         SCREEN = "screen_share", "Screen share"

@@ -96,6 +96,45 @@ def test_terminal_session_stops_receipts(setup):
     assert response.json()["accepting"] is False
 
 
+def test_signed_student_progress_distinguishes_receipt_from_decision(setup):
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    batch = batch_payload()
+    path = f"/v1/runs/{d.bootstrap.run_id}/batches"
+    body = json.dumps(batch).encode()
+    assert client.post(path, content=body, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, body)).status_code == 200
+    path = f"/v1/runs/{d.bootstrap.run_id}/progress"
+    scope = json.dumps({"participant_id": batch["participant_id"], "device_id": batch["device_id"]}).encode()
+    headers = sign(key, "POST", path, d.bootstrap.run_id, 1, scope)
+    response = client.post(path, content=scope, headers=headers)
+    assert response.status_code == 200
+    assert response.json()["received_seq"] == 1
+    assert response.json()["processed_seq"] == 0
+    registry.get(d.bootstrap.run_id).process_pending(10)
+    response = client.post(path, content=scope, headers=headers)
+    assert response.json()["processed_seq"] == 1
+    assert response.json()["participant_id"] == batch["participant_id"]
+    assert client.post(path, content=scope + b" ", headers=headers).status_code == 401
+
+
+def test_late_envelope_is_durable_raw_only_and_retry_keeps_original_disposition(setup):
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    batch = batch_payload()
+    path = f"/v1/runs/{d.bootstrap.run_id}/batches"
+    body = json.dumps({"batch": batch, "late_unverified": True}).encode()
+    response = client.post(path, content=body, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, body))
+    assert response.status_code == 200
+    runtime = registry.get(d.bootstrap.run_id)
+    original = runtime.receipts.receipt_at(1)
+    assert original.late_unverified
+    runtime.process_pending(10)
+    assert runtime.outbox.pending_commands == ()
+    body = json.dumps({"batch": batch, "late_unverified": False}).encode()
+    assert client.post(path, content=body, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, body)).status_code == 200
+    assert runtime.receipts.receipt_at(1) == original
+
+
 def test_backend_client_verifies_recovery_descriptors_and_rotates_file_credential():
     from integrity_service.worker.backend_client import BackendClient, BackendProtocolError
     key = Ed25519PrivateKey.generate()
@@ -129,10 +168,10 @@ def test_http_admission_is_per_run_and_retryable_without_unbounded_queue(setup, 
     entered, release = threading.Event(), threading.Event()
     runtime = registry.get(d.bootstrap.run_id)
     accept = runtime.accept_batch
-    def blocked(*args):
+    def blocked(*args, **kwargs):
         entered.set()
         assert release.wait(5)
-        return accept(*args)
+        return accept(*args, **kwargs)
     monkeypatch.setattr(runtime, "accept_batch", blocked)
     def send(descriptor):
         path = f"/v1/runs/{descriptor.bootstrap.run_id}/batches"

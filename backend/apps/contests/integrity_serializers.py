@@ -447,13 +447,22 @@ class IntegrityCheckpointEvidenceSerializer(_StrictSerializer):
         return attrs
 
 
+class IntegrityUploadScopeSerializer(_StrictSerializer):
+    run_id = serializers.UUIDField()
+    participant_id = serializers.IntegerField(min_value=1)
+    device_id = serializers.CharField(min_length=1, max_length=128, trim_whitespace=False)
+    attempt_id = serializers.UUIDField()
+
+
 class IntegrityCheckpointSerializer(_StrictSerializer):
-    observations = ExamIntegrityBatchSerializer(required=False)
+    observations = ExamIntegrityBatchSerializer(required=False, allow_null=True)
+    upload_scope = IntegrityUploadScopeSerializer(required=False)
+    final_seq = serializers.IntegerField(required=False, min_value=0, max_value=10_000_000)
     evidence = IntegrityCheckpointEvidenceSerializer(required=False, default=dict)
 
     def validate(self, attrs):
         evidence = attrs["evidence"]
-        if "observations" not in attrs and not any(evidence.values()):
+        if not attrs.get("observations") and not any(evidence.values()) and "upload_scope" not in attrs:
             raise serializers.ValidationError(
                 "A checkpoint must contain observations or evidence operations."
             )

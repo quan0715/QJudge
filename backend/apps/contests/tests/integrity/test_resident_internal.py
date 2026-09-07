@@ -41,6 +41,32 @@ def test_resident_callbacks_authenticate_without_legacy_run_token(resident, part
     assert response.data["accepted_command_ids"] == [command["command_id"]]
 
 
+@pytest.mark.parametrize("disposition", ["unknown", "late", "prior_attempt", "trusted"])
+def test_resident_commands_require_trusted_current_attempt_receipt(resident, participant, disposition):
+    from uuid import uuid4
+    from apps.contests.models import IntegrityBatchAdmission, ExamEvent
+    command = bind_run(record_event_command(participant), resident)
+    batch_id = uuid4()
+    command["metadata"]["receipt_batch_id"] = str(batch_id)
+    if disposition != "unknown":
+        IntegrityBatchAdmission.objects.create(run=resident, participant=participant,
+            batch_id=batch_id, attempt_id=uuid4() if disposition == "prior_attempt" else participant.integrity_attempt_id,
+            device_id=command["device_id"], body_sha256="a" * 64,
+            first_seq=1, last_seq=1, first_received_at=timezone.now(), late_unverified=disposition == "late")
+    response = APIClient().post(f"/api/v1/internal/integrity/runs/{resident.id}/commands/",
+        {"commands": [command]}, format="json", HTTP_AUTHORIZATION="Resident temporary-test-service-token")
+    assert response.status_code == 200
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    if disposition == "trusted":
+        assert event.metadata["integrity"]["action"] == "pause"
+    else:
+        assert event.metadata["integrity"]["action"] == "audit"
+        assert event.metadata["integrity"]["late_unverified"] is True
+        participant.refresh_from_db()
+        assert participant.exam_status == "in_progress"
+        assert participant.violation_count == 0
+
+
 def test_locked_command_scope_rejects_changed_owner_closed_run_and_rotated_credential(resident, participant, settings, tmp_path):
     command = bind_run(record_event_command(participant), resident)
     digest = hashlib.sha256(b"temporary-test-service-token").hexdigest()

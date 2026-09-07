@@ -52,6 +52,11 @@ def update_exam_schedule(contest_id, *, start_time, end_time, actor, pending_upd
                 run.session_state = "active" if start_time <= now else "prepared"
             fields += ["health", "last_error", "session_state"]
         run.save(update_fields=fields)
+        if run.execution_backend == "resident" and run.accept_until is not None:
+            from apps.contests.models import IntegrityUploadGrant
+            # A shortened schedule permanently narrows existing grants. A later
+            # extension cannot resurrect an expired/revoked/completed scope.
+            IntegrityUploadGrant.objects.filter(run=run, accept_until__gt=run.accept_until).update(accept_until=run.accept_until)
     return contest
 
 

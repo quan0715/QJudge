@@ -26,6 +26,7 @@ class PendingReceipt:
     ordinal: int
     received_at_ms: int
     batch: EventBatch
+    late_unverified: bool = False
 
 
 class ReceiptStore:
@@ -41,7 +42,7 @@ class ReceiptStore:
         try:
             for record in self._log.records:
                 if record.get("kind") == "received":
-                    if set(record) != {"kind", "ordinal", "received_at_ms", "batch"}:
+                    if set(record) not in ({"kind", "ordinal", "received_at_ms", "batch"}, {"kind", "ordinal", "received_at_ms", "batch", "late_unverified"}):
                         raise ValueError("malformed receipt")
                     batch = EventBatch.model_validate(record["batch"])
                     timestamp = record["received_at_ms"]
@@ -55,7 +56,10 @@ class ReceiptStore:
                         or (self._receipts and timestamp < self._receipts[-1].received_at_ms)
                     ):
                         raise ValueError("invalid receipt order or identity")
-                    receipt = PendingReceipt(record["ordinal"], timestamp, batch)
+                    late = record.get("late_unverified", False)
+                    if type(late) is not bool:
+                        raise ValueError("invalid receipt disposition")
+                    receipt = PendingReceipt(record["ordinal"], timestamp, batch, late)
                     self._sequencer.accept(batch)
                     self._receipts.append(receipt)
                     self._by_batch[batch.batch_id] = receipt
@@ -88,7 +92,7 @@ class ReceiptStore:
     def pending(self, limit: int = 1) -> tuple[PendingReceipt, ...]:
         # Return snapshots so callers cannot mutate future decisions or duplicate identity.
         return tuple(
-            PendingReceipt(r.ordinal, r.received_at_ms, r.batch.model_copy(deep=True))
+            PendingReceipt(r.ordinal, r.received_at_ms, r.batch.model_copy(deep=True), r.late_unverified)
             for r in self._receipts[self.processed_cursor : self.processed_cursor + limit]
         )
 
@@ -97,10 +101,10 @@ class ReceiptStore:
             raise DurableLogCorruption("decision references missing receipt")
         receipt = self._receipts[ordinal - 1]
         return PendingReceipt(
-            receipt.ordinal, receipt.received_at_ms, receipt.batch.model_copy(deep=True)
+            receipt.ordinal, receipt.received_at_ms, receipt.batch.model_copy(deep=True), receipt.late_unverified
         )
 
-    def append_durable(self, batch: EventBatch, received_at_ms: int) -> DurableReceipt:
+    def append_durable(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False) -> DurableReceipt:
         self._require_available()
         batch = EventBatch.model_validate(batch.model_dump(mode="json"))
         if batch.run_id != self._run_id:
@@ -116,13 +120,14 @@ class ReceiptStore:
                 or (self._receipts and received_at_ms < self._receipts[-1].received_at_ms)
             ):
                 raise ValueError("receipt time cannot move backwards")
-            receipt = PendingReceipt(len(self._receipts) + 1, received_at_ms, batch)
+            receipt = PendingReceipt(len(self._receipts) + 1, received_at_ms, batch, late_unverified)
             try:
                 self._journal.check_capacity()
                 self._log.append({
                     "kind": "received", "ordinal": receipt.ordinal,
                     "received_at_ms": received_at_ms,
                     "batch": batch.model_dump(mode="json"),
+                    "late_unverified": late_unverified,
                 })
                 self._journal.append_batch_once(batch)
             except BaseException:
@@ -132,6 +137,9 @@ class ReceiptStore:
             self._by_batch[batch.batch_id] = receipt
             self._sequencer.accept(batch)
         return DurableReceipt(accepted.acked_through_seq)
+
+    def received_cursor(self, participant_id: int, device_id: str) -> int:
+        return self._sequencer.contiguous_cursor(self._run_id, participant_id, device_id)
 
     def mark_processed(self, ordinal: int) -> None:
         self._require_available()

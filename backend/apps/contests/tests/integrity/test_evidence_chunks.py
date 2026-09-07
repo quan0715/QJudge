@@ -314,6 +314,110 @@ def test_manifest_uploads_only_chunks_overlapping_incident_window(
     }
 
 
+@pytest.mark.django_db(transaction=True)
+def test_manifest_serializes_behind_schedule_and_submission(incident_event, participant, object_store):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from django.db import close_old_connections, transaction
+    from apps.contests.services.exam_schedule import update_exam_schedule, lock_exam_runs
+    from apps.contests.services.exam_submission import finalize_submission
+    from apps.contests.services.integrity_evidence import create_evidence_manifest
+    run = incident_event.integrity_run
+    run.execution_backend, run.session_state, run.compute_state = "resident", "active", "stopped"
+    run.accept_until = participant.contest.end_time + timedelta(seconds=300)
+    run.save()
+    entered = Event()
+    descriptor_serializer = EvidenceChunkDescriptorSerializer(data=descriptor(seq=2, start=995_000, end=1_000_000))
+    descriptor_serializer.is_valid(raise_exception=True)
+    def upload():
+        close_old_connections()
+        try:
+            entered.set()
+            return create_evidence_manifest(run, participant, incident_event, [descriptor_serializer.validated_data])
+        finally:
+            close_old_connections()
+    with ThreadPoolExecutor(1) as pool:
+        with transaction.atomic():
+            Contest.objects.select_for_update().get(pk=participant.contest_id)
+            pending = pool.submit(upload)
+            assert entered.wait(2)
+            # Schedule and submission share their real Contest -> Run -> Participant
+            # transaction while the evidence request is competing for that scope.
+            update_exam_schedule(participant.contest_id, start_time=participant.contest.start_time,
+                end_time=participant.contest.end_time + timedelta(minutes=10), actor=participant.contest.owner)
+            lock_exam_runs(participant.contest_id)
+            current = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+            finalize_submission(current, submit_reason="manual")
+        assert len(pending.result(timeout=5)) == 1
+    participant.refresh_from_db()
+    run.refresh_from_db()
+    assert participant.exam_status == "submitted"
+    assert run.schedule_revision == 2
+    assert ExamEvidenceChunk.objects.filter(integrity_run=run, participant=participant).count() == 1
+
+
+@pytest.mark.django_db
+def test_resident_unavailable_evidence_terminates_without_worker_compute(incident_event, participant):
+    from apps.contests.services.integrity_evidence import report_evidence_unavailable_projection, build_evidence_delivery
+    run = incident_event.integrity_run
+    run.execution_backend, run.session_state, run.compute_state = "resident", "draining", "stopped"
+    run.save()
+    for source in ("screen_share", "webcam"):
+        report_evidence_unavailable_projection(run, participant, incident_event, source=source, reason="local_gap")
+    assert not build_evidence_delivery(run, participant, now_ms=2_000_000).pending_commands
+
+
+@pytest.mark.django_db
+def test_unverified_late_event_creates_no_new_evidence_demand(incident_event, participant):
+    from apps.contests.services.integrity_evidence import build_evidence_delivery
+    incident_event.metadata["integrity"]["late_unverified"] = True
+    incident_event.save()
+    assert not build_evidence_delivery(incident_event.integrity_run, participant, now_ms=2_000_000).pending_commands
+
+
+@pytest.mark.django_db
+def test_final_sequence_waits_for_own_evidence_termination(incident_event, participant, another_participant):
+    from apps.contests.models import IntegrityUploadGrant
+    from apps.contests.services.exam_submission import finalize_submission
+    from apps.contests.services.integrity_upload_grants import save_upload_progress
+    from apps.contests.services.integrity_evidence import report_evidence_unavailable_projection
+    run = incident_event.integrity_run
+    run.execution_backend, run.session_state = "resident", "active"
+    run.accept_until = participant.contest.end_time + timedelta(seconds=300)
+    run.save()
+    bind_active_device(participant, "desktop")
+    finalize_submission(participant, submit_reason="manual")
+    grant = IntegrityUploadGrant.objects.get(participant=participant)
+    grant.final_seq = 0
+    grant.save()
+    scope = {"attempt_id": grant.attempt_id, "device_id": grant.device_id}
+    progress = {"received_seq": 0, "processed_seq": 0, "commands_drained": True}
+    assert save_upload_progress(run, participant, scope, progress) == "pending"
+    report_evidence_unavailable_projection(run, participant, incident_event, source="screen_share", reason="local_gap")
+    assert save_upload_progress(run, participant, scope, progress) == "pending"
+    report_evidence_unavailable_projection(run, participant, incident_event, source="webcam", reason="local_gap")
+    ExamEvent.objects.create(contest=participant.contest, user=another_participant.user, integrity_run=run,
+        incident_id=uuid4(), event_type="exit_fullscreen", client_occurred_at_ms=1_005_000,
+        metadata={"integrity": {"definition_id": "fullscreen_integrity", "phase": "escalated"}})
+    assert save_upload_progress(run, participant, scope, progress) == "complete"
+
+
+@pytest.mark.django_db
+def test_closed_resident_evidence_cannot_bypass_upload_scope(api_client, incident_event, participant, object_store):
+    api_client.force_authenticate(participant.user)
+    response = post_manifest(api_client, incident_event, [descriptor(seq=2, start=995_000, end=1_000_000)])
+    assert response.status_code == 200
+    chunk = ExamEvidenceChunk.objects.get()
+    run = incident_event.integrity_run
+    run.execution_backend, run.session_state = "resident", "closed"
+    run.save()
+    response = api_client.post(manifest_url(incident_event), {"evidence": {"unavailable": [
+        {"chunk_id": str(chunk.pk), "reason": "local_gap"}]}}, format="json")
+    assert response.status_code == 403
+    chunk.refresh_from_db()
+    assert chunk.status == "requested"
+
+
 @pytest.mark.django_db
 def test_spoofed_event_device_kind_cannot_suppress_bound_desktop_source(
     integrity_run,

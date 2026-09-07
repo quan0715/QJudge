@@ -37,6 +37,9 @@ class SessionSequencer:
             tuple[UUID, int, str], dict[UUID, int]
         ] = defaultdict(dict)
 
+    def contiguous_cursor(self, run_id: UUID, participant_id: int, device_id: str) -> int:
+        return self._acked.get((run_id, participant_id, device_id), 0)
+
     def accept(self, batch: EventBatch, *, commit: bool = True) -> AcceptResult:
         """Validate atomically; ``commit=False`` previews admission before durable I/O."""
         session_key = (batch.run_id, batch.participant_id, batch.device_id)

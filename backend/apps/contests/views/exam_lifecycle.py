@@ -91,7 +91,10 @@ class ExamLifecycleMixin:
                 if contest.allow_multiple_joins:
                     # Re-entry keeps historical violations as the backend source of truth.
                     participant.exam_status = ExamStatus.IN_PROGRESS
-                    participant.save(update_fields=["exam_status"])
+                    from ..services.integrity_upload_grants import rotate_integrity_attempt
+                    participant.left_at = None
+                    participant.submit_reason = ""
+                    participant.save(update_fields=["exam_status", "left_at", "submit_reason", rotate_integrity_attempt(participant)])
                 else:
                     return Response(
                         {'error': 'You have already finished this exam.'},

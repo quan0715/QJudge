@@ -4,6 +4,7 @@ import base64
 import binascii
 import re
 import time
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -261,6 +262,20 @@ class IntegrityWorkerClient:
         path: str,
         body: bytes,
     ) -> httpx.Response:
+        if run.execution_backend == "resident":
+            headers = sign_resident_request(method="POST", path=path, run_id=run.pk,
+                revision=run.schedule_revision, body=body)
+            try:
+                response = self.http.post(settings.INTEGRITY_RESIDENT_URL.rstrip("/") + path,
+                    content=body, headers={**headers, "Content-Type": "application/json"},
+                    timeout=httpx.Timeout(5.0, connect=2.0))
+            except (httpx.TimeoutException, httpx.ConnectError):
+                raise IntegrityWorkerUnavailable("Integrity resident unavailable") from None
+            if response.status_code in {404, 429, 502, 503, 504, 507}:
+                raise IntegrityWorkerUnavailable("Integrity resident unavailable")
+            if response.status_code == 200 and response.headers.get("X-QJudge-Protocol") != "resident-v1":
+                raise IntegrityWorkerProtocolError("resident capability not confirmed")
+            return response
         timestamp = str(int(time.time()))
         message = (
             str(run.id).encode("ascii")
@@ -327,6 +342,25 @@ class IntegrityWorkerClient:
         except (ValueError, TypeError):
             raise IntegrityWorkerProtocolError("invalid Worker ACK") from None
         return WorkerBatchAck.model_validate(payload)
+
+    def student_progress(self, run, *, participant_id, device_id):
+        scope = {"participant_id": participant_id, "device_id": device_id}
+        response = self._signed_post(run, path=f"/v1/runs/{run.pk}/progress",
+            body=json.dumps(scope, separators=(",", ":")).encode())
+        self._validate_status(response, rejection_statuses=frozenset({409, 422}))
+        try:
+            value = response.json()
+        except ValueError:
+            raise IntegrityWorkerProtocolError("invalid progress") from None
+        if (type(value) is not dict or set(value) != {*scope, "received_seq", "processed_seq", "commands_drained"}
+                or any(value.get(key) != val for key, val in scope.items())
+                or type(value.get("commands_drained")) is not bool):
+            raise IntegrityWorkerProtocolError("invalid progress scope")
+        received = _strict_nonnegative_int(value, "received_seq")
+        processed = _strict_nonnegative_int(value, "processed_seq")
+        if processed > received:
+            raise IntegrityWorkerProtocolError("decision cursor exceeds receipt")
+        return value
 
     def request_stop(self, run: ExamIntegrityRun) -> dict:
         response = self._signed_post(

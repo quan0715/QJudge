@@ -729,10 +729,22 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     if existing is not None:
         return existing
 
+    late_unverified = False
+    if run.execution_backend == "resident":
+        from apps.contests.models import IntegrityBatchAdmission
+        try:
+            receipt_id = UUID(str(command.metadata.get("receipt_batch_id")))
+        except (ValueError, TypeError, AttributeError):
+            receipt_id = None
+        late_unverified = not IntegrityBatchAdmission.objects.filter(
+            run=run, participant=participant, device_id=command.device_id,
+            attempt_id=participant.integrity_attempt_id, batch_id=receipt_id,
+            late_unverified=False).exists()
     effective_action = (
         "audit"
         if (
             command.delayed_delivery
+            or late_unverified
             or participant.exam_status == ExamStatus.SUBMITTED
         )
         else command.action
@@ -746,6 +758,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "phase": phase,
         "requested_action": command.action,
         "command_fingerprint": command.command_fingerprint,
+        **({"late_unverified": late_unverified} if run.execution_backend == "resident" else {}),
     }
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -767,6 +780,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     )
     if (
         not command.delayed_delivery
+        and not late_unverified
         and participant.exam_status != ExamStatus.SUBMITTED
     ):
         _apply_registry_action(
