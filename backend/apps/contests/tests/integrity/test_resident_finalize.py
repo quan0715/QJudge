@@ -211,6 +211,50 @@ def test_reconciler_dispatches_signed_finalize_and_persists_gaps_without_clobber
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("status,html", [(502, False), (502, True), (503, False), (503, True), (504, True)])
+def test_reconciler_health_gateway_outage_is_handed_off_on_recovery(resident, status, html):
+    from apps.contests.services.exam_schedule import _sync_resident
+    sent = []
+    def put(url, **kwargs):
+        payload = json.loads(kwargs["content"])
+        sent.append(payload)
+        return httpx.Response(200, request=httpx.Request("PUT", url),
+            headers={"X-QJudge-Gap-Generation": "1"},
+            json={"protocol": "resident-v1", "run_id": str(resident.pk), "schedule_revision": 1})
+    bad = httpx.Response(status, request=httpx.Request("GET", "http://resident/health"),
+        **({"text": "<html>Gateway unavailable</html>"} if html else {"json": {"detail": "unavailable"}}))
+    with patch("httpx.put", side_effect=put), patch("httpx.get", return_value=bad):
+        with pytest.raises(Exception):
+            _sync_resident(resident.pk, timezone.now())
+    resident.refresh_from_db()
+    assert resident.metrics["service_outage"]["generation"] == 1
+    good = httpx.Response(200, request=bad.request, json={"healthy": True, "schedule_revision": 1})
+    with patch("httpx.put", side_effect=put), patch("httpx.get", return_value=good):
+        assert _sync_resident(resident.pk, timezone.now())
+    resident.refresh_from_db()
+    assert sent[-1]["service_gap"]["generation"] == 1
+    assert "service_outage" not in resident.metrics
+    assert resident.metrics["observed_service_gaps"] == [sent[-1]["service_gap"]]
+
+
+def test_reconciler_valid_unhealthy_503_is_not_a_network_outage(resident):
+    from apps.contests.services.exam_schedule import _sync_resident
+    gaps = {"count": 0, "last_ended_ms": None, "suppressed_connectivity_commands": 0, "affected_participant_count": 0}
+    put = httpx.Response(200, request=httpx.Request("PUT", "http://resident/run"),
+        json={"protocol": "resident-v1", "run_id": str(resident.pk), "schedule_revision": 1})
+    health = httpx.Response(503, request=httpx.Request("GET", "http://resident/health"), json={
+        "healthy": False, "accepting": True, "schedule_revision": 1, "warnings": [],
+        "service_gaps": gaps, "maintenance_errors": {"archive": "HTTPStatusError"}})
+    with patch("httpx.put", return_value=put), patch("httpx.get", return_value=health):
+        with pytest.raises(ValueError, match="resident health unavailable"):
+            _sync_resident(resident.pk, timezone.now())
+    resident.refresh_from_db()
+    assert "service_outage" not in resident.metrics
+    assert resident.metrics["service_gaps"] == gaps
+    assert resident.health == "unhealthy"
+
+
+@pytest.mark.django_db(transaction=True)
 def test_segment_presigning_uses_immutable_digest_key_outside_row_transaction(resident):
     due(resident)
     auth = call(resident, {"phase": "authorize", "revision": 1})

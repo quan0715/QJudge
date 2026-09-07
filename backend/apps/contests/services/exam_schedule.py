@@ -128,7 +128,26 @@ def _sync_resident(run_id, now):
             response = httpx.get(base_url + health_path,
                                 headers=sign_resident_request(method="GET", path=health_path,
                                     run_id=run.pk, revision=run.schedule_revision, body=b""), timeout=timeout)
-            health = response.json()
+            # Only a scoped resident maintenance projection may use HTTP 503.
+            # Gateway errors must retain HTTPStatusError classification instead
+            # of becoming JSON/scope errors that bypass observed outage history.
+            if response.status_code != 503:
+                response.raise_for_status()
+            try:
+                health = response.json()
+            except ValueError:
+                response.raise_for_status()
+                raise
+            if response.status_code == 503 and not (
+                    isinstance(health, dict)
+                    and type(health.get("schedule_revision")) is int
+                    and health["schedule_revision"] == run.schedule_revision
+                    and health.get("healthy") is False
+                    and type(health.get("accepting")) is bool
+                    and isinstance(health.get("warnings"), list)
+                    and isinstance(health.get("maintenance_errors"), dict)
+                    and isinstance(health.get("service_gaps"), dict)):
+                response.raise_for_status()
             if health.get("schedule_revision") != run.schedule_revision:
                 raise ValueError("resident health scope conflict")
             synchronized = _persist_resident_health(guard, health, now)
