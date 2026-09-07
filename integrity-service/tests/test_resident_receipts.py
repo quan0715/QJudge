@@ -10,7 +10,9 @@ import pytest
 from integrity_service.core.schemas import EventBatch
 from integrity_service.core.sequencer import SequenceConflict
 from integrity_service.journal.writer import BatchIdentityConflict
-from integrity_service.worker.runtime import WorkerRuntime, RunMismatch, WorkerNotAccepting
+from integrity_service.worker.runtime import (
+    WorkerRuntime, RunMismatch, WorkerNotAccepting, SchedulerFailed,
+)
 from test_worker_api import bootstrap, batch_payload, FakeBackend, VALID_PUBLIC_KEY_B64, NOW_MS
 
 
@@ -76,6 +78,45 @@ def test_multiple_receipts_replay_in_receive_order_and_keep_contiguous_ack(tmp_p
         assert second.process_pending(limit=2) == 0
     finally:
         second.close()
+
+
+def test_resident_tick_cannot_deliver_after_backlog_drains_or_block_next_intake(tmp_path):
+    backend = FakeBackend()
+    backend.failures_remaining = 100
+    first = runtime(tmp_path, backend)
+    try:
+        assert first.accept_batch(batch(), NOW_MS).acked_through_seq == 1
+        assert first.process_pending(10) == 1
+        assert first.process_pending(10) == 0
+        commands = first.outbox.pending_commands
+        assert commands
+
+        # Even with a drained receipt queue, legacy tick must not enter backend
+        # delivery while holding the same Run lock as the next durable intake.
+        first.tick(NOW_MS + 100_000)
+
+        assert backend.command_batches == []
+        assert first.outbox.pending_commands == commands
+        assert first.accept_batch(batch(2), NOW_MS + 1).acked_through_seq == 2
+    finally:
+        first.close()
+
+
+@pytest.mark.asyncio
+async def test_resident_cannot_start_legacy_scheduler_delivery(tmp_path):
+    backend = FakeBackend()
+    backend.failures_remaining = 100
+    first = runtime(tmp_path, backend)
+    try:
+        first.accept_batch(batch(), NOW_MS)
+        assert first.process_pending(1) == 1
+        with pytest.raises(SchedulerFailed):
+            await first.start_scheduler()
+        assert backend.command_batches == []
+        assert first.accept_batch(batch(2), NOW_MS + 1).acked_through_seq == 2
+    finally:
+        await first.stop_scheduler()
+        first.close()
 
 
 def test_conflicts_do_not_poison_durable_intake(tmp_path):

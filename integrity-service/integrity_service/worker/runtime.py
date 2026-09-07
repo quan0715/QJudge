@@ -382,11 +382,13 @@ class WorkerRuntime:
             )
 
     def tick(self, now_ms: int | None = None) -> None:
+        # Legacy tick delivers commands and archives while holding the intake lock.
+        # Resident maintenance needs its separate bounded delivery path; until then
+        # disable this path even after process_pending has drained the receipt queue.
+        if self.resident_mode:
+            return
         with self._lock:
             if self._state != "RUNNING":
-                return
-            # Never move the decision clock past data awaiting its original receive time.
-            if self.receipts is not None and self.receipts.pending():
                 return
             target = self._clock_ms() if now_ms is None else now_ms
             self._drain_pending()
@@ -441,6 +443,8 @@ class WorkerRuntime:
             return result
 
     async def start_scheduler(self) -> None:
+        if self.resident_mode:
+            raise SchedulerFailed("resident maintenance requires a separate delivery scheduler")
         with self._lock:
             if self._last_scheduler_error is not None or not self.healthy:
                 raise SchedulerFailed("scheduler failed; process recovery required")
