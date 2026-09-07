@@ -29,6 +29,17 @@ class IntegrityWorkerError(RuntimeError):
     pass
 
 
+def sign_resident_request(*, method: str, path: str, run_id: UUID,
+                          revision: int, body: bytes, timestamp: int | None = None) -> dict[str, str]:
+    """Shared signature contract for resident control, receipts and recovery."""
+    timestamp = int(time.time()) if timestamp is None else timestamp
+    key = load_integrity_worker_private_key(settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE)
+    message = f"resident-v1\n{method}\n{path}\n{run_id}\n{revision}\n{timestamp}\n".encode("ascii") + body
+    return {"X-QJudge-Protocol": "resident-v1", "X-QJudge-Run-Id": str(run_id),
+            "X-QJudge-Revision": str(revision), "X-QJudge-Timestamp": str(timestamp),
+            "X-QJudge-Signature": base64.b64encode(key.sign(message)).decode("ascii")}
+
+
 class IntegrityWorkerUnavailable(IntegrityWorkerError):
     pass
 

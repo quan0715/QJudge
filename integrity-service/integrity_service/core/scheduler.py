@@ -15,17 +15,20 @@ class DeadlineScheduler:
         self,
         scheduled_end_ms: int,
         context: EngineContext,
+        *,
+        authoritative_deadline: bool = True,
     ):
         if scheduled_end_ms < 0:
             raise ValueError("scheduled_end_ms must not be negative")
         self.scheduled_end_ms = scheduled_end_ms
         self._context = context
+        self._authoritative_deadline = authoritative_deadline
         self._emitted_participant_ids: set[int] = set()
 
     def tick(
         self, now_ms: int, active_participant_ids: set[int]
     ) -> tuple[IntegrityCommand, ...]:
-        if now_ms < self.scheduled_end_ms:
+        if not self._authoritative_deadline or now_ms < self.scheduled_end_ms:
             return ()
         commands = []
         for participant_id in sorted(active_participant_ids):

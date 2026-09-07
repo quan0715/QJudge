@@ -279,6 +279,7 @@ class CommandOutbox:
     def __init__(self, root: Path) -> None:
         self._log = DurableJsonLog(root / "commands.log")
         self._lock = threading.RLock()
+        self._delivery_lock = threading.Lock()
         self._commands: dict[str, dict[str, object]] = {}
         self._command_bytes: dict[str, bytes] = {}
         self._delivered: set[str] = set()
@@ -334,26 +335,33 @@ class CommandOutbox:
                 self._commands[command_id] = command
             return True
 
-    def deliver_pending(self, backend: CommandBackend) -> dict[str, object]:
-        with self._lock:
+    def deliver_pending(self, backend: CommandBackend, *, max_batches: int | None = None) -> dict[str, object]:
+        # Serialize deliveries, never appenders: network I/O must not transitively
+        # hold a runtime receipt lock through process_pending -> outbox.append.
+        with self._delivery_lock:
             delivered_ids: list[object] = []
             archive_uploads: list[object] = []
+            batches = 0
             while pending := self.pending_commands[:MAX_COMMANDS_PER_DELIVERY]:
+                if max_batches is not None and batches >= max_batches:
+                    break
                 response = backend.send_commands(pending)
                 command_ids = [str(command["command_id"]) for command in pending]
                 validated_response = _validate_delivery_response(response, pending)
-                self._log.append(
-                    {
-                        "kind": "delivered",
-                        "command_ids": command_ids,
-                        "response": validated_response,
-                    }
-                )
-                for command_id in command_ids:
-                    self._delivered.add(command_id)
-                    self._responses[command_id] = json.loads(
-                        _canonical_json(validated_response)
+                with self._lock:
+                    self._log.append(
+                        {
+                            "kind": "delivered",
+                            "command_ids": command_ids,
+                            "response": validated_response,
+                        }
                     )
+                    for command_id in command_ids:
+                        self._delivered.add(command_id)
+                        self._responses[command_id] = json.loads(
+                            _canonical_json(validated_response)
+                        )
+                batches += 1
                 delivered_ids.extend(validated_response["accepted_command_ids"])
                 archive_uploads.extend(validated_response["archive_uploads"])
             if not delivered_ids:

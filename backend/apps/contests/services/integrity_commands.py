@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import re
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone as datetime_timezone
 from uuid import UUID
@@ -114,6 +115,7 @@ def authenticate_integrity_run(
     now = timezone.now()
     valid = bool(
         run is not None
+        and run.execution_backend == ExamIntegrityRun.ExecutionBackend.LEGACY
         and digest_matches
         and run.compute_state in _ALLOWED_COMPUTE_STATES
         and run.token_revoked_at is None
@@ -121,6 +123,37 @@ def authenticate_integrity_run(
         and run.token_expires_at > now
     )
     return (run if valid else None, actual_digest)
+
+
+def resident_service_digest() -> str:
+    token = Path(settings.INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE).read_text().strip()
+    if not token or not token.isascii() or any(c.isspace() for c in token):
+        raise ValueError("resident credential unavailable")
+    return hashlib.sha256(token.encode("ascii")).hexdigest()
+
+
+def authenticate_resident_service(token: str) -> str | None:
+    if not token or not token.isascii() or any(c.isspace() for c in token):
+        return None
+    digest = hashlib.sha256(token.encode("ascii")).hexdigest()
+    return digest if hmac.compare_digest(digest, resident_service_digest()) else None
+
+
+def resident_run_scope(run) -> bool:
+    return bool(run is not None and run.execution_backend == "resident"
+                and run.session_state in {"prepared", "active", "draining"}
+                and run.data_state == "open")
+
+
+def build_resident_descriptor(run) -> dict:
+    if not resident_run_scope(run) or run.scheduled_start_at is None or run.accept_until is None:
+        raise IntegrityCommandRejected("invalid_integrity_run_scope")
+    return {"protocol": "resident-v1", "bootstrap": build_integrity_bootstrap(run),
+            "schedule_revision": run.schedule_revision,
+            "scheduled_start_ms": int(run.scheduled_start_at.timestamp() * 1000),
+            "scheduled_end_ms": int(run.scheduled_end_at.timestamp() * 1000),
+            "accept_until_ms": int(run.accept_until.timestamp() * 1000),
+            "session_state": run.session_state}
 
 
 def backend_signing_public_key_b64() -> str:
@@ -1303,6 +1336,7 @@ def execute_integrity_command(
     raw_command: object,
     *,
     authenticated_token_digest: str,
+    authenticated_service_digest: str | None = None,
 ) -> CommandOutcome:
     command, command_id = _normalize_command(raw_command, run_id)
     run = (
@@ -1311,8 +1345,16 @@ def execute_integrity_command(
         .filter(pk=run_id)
         .first()
     )
-    if (
+    if authenticated_service_digest is not None:
+        # Recheck the service identity after acquiring the Run lock, including
+        # credential rotation and immutable execution ownership. Never treat an
+        # empty legacy digest as authorization for a resident callback.
+        if (not resident_run_scope(run)
+                or not hmac.compare_digest(resident_service_digest(), authenticated_service_digest)):
+            raise IntegrityCommandRejected("invalid_integrity_run_scope")
+    elif (
         run is None
+        or run.execution_backend != ExamIntegrityRun.ExecutionBackend.LEGACY
         or run.compute_state not in _ALLOWED_COMPUTE_STATES
         or run.token_revoked_at is not None
         or run.token_expires_at is None

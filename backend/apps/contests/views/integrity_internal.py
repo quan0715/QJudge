@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from uuid import UUID
+import json
 
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -12,7 +13,12 @@ from apps.contests.services.integrity_commands import (
     build_integrity_bootstrap,
     execute_integrity_command,
     validate_command_envelope,
+    authenticate_resident_service,
+    resident_run_scope,
+    build_resident_descriptor,
 )
+from apps.contests.models import ExamIntegrityRun
+from apps.contests.infrastructure.integrity_worker_client import sign_resident_request
 
 
 class _IntegrityRunTokenView(APIView):
@@ -86,11 +92,22 @@ class IntegrityBootstrapView(_IntegrityRunTokenView):
 
 class IntegrityCommandsView(_IntegrityRunTokenView):
     def post(self, request, run_id: UUID):
-        _run, token_digest, error = self._authenticate(
-            request,
-            run_id,
-            unavailable_code="integrity_command_temporarily_unavailable",
-        )
+        service_digest = None
+        authorization = request.META.get("HTTP_AUTHORIZATION", "")
+        if authorization.startswith("Resident "):
+            token_digest = ""
+            try:
+                service_digest = authenticate_resident_service(authorization[9:])
+                scoped = service_digest is not None and resident_run_scope(ExamIntegrityRun.objects.filter(pk=run_id).first())
+                error = None if scoped else Response({"code": "invalid_integrity_run_scope"}, status=403)
+            except Exception:
+                error = Response({"code": "integrity_command_temporarily_unavailable"}, status=503)
+        else:
+            _run, token_digest, error = self._authenticate(
+                request,
+                run_id,
+                unavailable_code="integrity_command_temporarily_unavailable",
+            )
         if error is not None:
             return error
 
@@ -124,6 +141,7 @@ class IntegrityCommandsView(_IntegrityRunTokenView):
                     run_id,
                     command,
                     authenticated_token_digest=token_digest,
+                    **({"authenticated_service_digest": service_digest} if service_digest is not None else {}),
                 )
             except IntegrityCommandRejected as exc:
                 if exc.code == "invalid_integrity_run_scope":
@@ -156,3 +174,33 @@ class IntegrityCommandsView(_IntegrityRunTokenView):
                 "archive_uploads": archive_uploads,
             }
         )
+
+
+class IntegrityResidentDescriptorsView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        authorization = request.META.get("HTTP_AUTHORIZATION", "")
+        if not authorization.startswith("Resident "):
+            return Response({"code": "invalid_resident_service_identity"}, status=401)
+        try:
+            if authenticate_resident_service(authorization[9:]) is None:
+                return Response({"code": "invalid_resident_service_identity"}, status=403)
+            runs = list(ExamIntegrityRun.objects.select_related("contest").filter(
+                execution_backend="resident", session_state__in=["prepared", "active", "draining"], data_state="open"
+            ).order_by("id")[:257])
+            if len(runs) > 256:
+                return Response({"code": "resident_run_capacity_exceeded"}, status=503)
+            descriptors, unavailable = [], []
+            for run in runs:
+                try:
+                    descriptor = build_resident_descriptor(run)
+                    body = json.dumps(descriptor, sort_keys=True, separators=(",", ":"), allow_nan=False)
+                    headers = sign_resident_request(method="PUT", path=f"/v1/runs/{run.id}", run_id=run.id, revision=run.schedule_revision, body=body.encode())
+                    descriptors.append({"body": body, "headers": headers})
+                except Exception:
+                    unavailable.append(str(run.id))
+            return Response({"descriptors": descriptors, "unavailable_run_ids": unavailable})
+        except Exception:
+            return Response({"code": "resident_descriptors_unavailable"}, status=503)

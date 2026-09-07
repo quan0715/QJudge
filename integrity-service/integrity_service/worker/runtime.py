@@ -184,6 +184,7 @@ class WorkerRuntime:
             self.scheduler = DeadlineScheduler(
                 bootstrap.scheduled_end_ms,
                 context,
+                authoritative_deadline=not resident_mode,
             )
             self.timeline = DecisionTimeline(
                 baseline=baseline,
