@@ -6,6 +6,17 @@ from django.db.models import Q
 
 
 class ExamIntegrityRun(models.Model):
+    class ExecutionBackend(models.TextChoices):
+        LEGACY = "legacy", "Legacy"
+        RESIDENT = "resident", "Resident"
+
+    class SessionState(models.TextChoices):
+        PREPARED = "prepared", "Prepared"
+        ACTIVE = "active", "Active"
+        DRAINING = "draining", "Draining"
+        ARCHIVED = "archived", "Archived"
+        CLOSED = "closed", "Closed"
+
     class ComputeState(models.TextChoices):
         STOPPED = "stopped", "Stopped"
         STARTING = "starting", "Starting"
@@ -36,6 +47,14 @@ class ExamIntegrityRun(models.Model):
     compute_state = models.CharField(
         max_length=16, choices=ComputeState.choices, default=ComputeState.STOPPED,
     )
+    execution_backend = models.CharField(
+        max_length=16, choices=ExecutionBackend.choices, default=ExecutionBackend.LEGACY,
+    )
+    session_state = models.CharField(
+        max_length=16, choices=SessionState.choices, default=SessionState.PREPARED,
+    )
+    schedule_revision = models.PositiveIntegerField(default=1)
+    accept_until = models.DateTimeField(null=True, blank=True)
     health = models.CharField(
         max_length=16, choices=Health.choices, default=Health.HEALTHY,
     )
@@ -87,6 +106,27 @@ class ExamIntegrityRun(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        # Legacy still owns its compute lifecycle. Keep its logical state coherent
+        # for every existing model-save caller, including partial updates.
+        update_fields = kwargs.get("update_fields")
+        if self.execution_backend == self.ExecutionBackend.LEGACY and (
+            update_fields is None or {"compute_state", "data_state"}.intersection(update_fields)
+        ):
+            if self.compute_state == self.ComputeState.DESTROYED:
+                self.session_state = self.SessionState.CLOSED
+            elif self.data_state in (self.DataState.ARCHIVED, self.DataState.PURGED):
+                self.session_state = self.SessionState.ARCHIVED
+            elif self.compute_state == self.ComputeState.STOPPING:
+                self.session_state = self.SessionState.DRAINING
+            elif self.compute_state == self.ComputeState.RUNNING:
+                self.session_state = self.SessionState.ACTIVE
+            else:
+                self.session_state = self.SessionState.PREPARED
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"session_state"}
+        super().save(*args, **kwargs)
+
     class Meta:
         db_table = "exam_integrity_runs"
         ordering = ["-created_at"]
@@ -97,7 +137,10 @@ class ExamIntegrityRun(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["contest"],
-                condition=~Q(compute_state="destroyed"),
+                condition=(
+                    Q(session_state__in=("prepared", "active", "draining"))
+                    | Q(execution_backend="legacy", session_state="archived")
+                ),
                 name="uniq_live_integrity_run_per_contest",
             ),
         ]

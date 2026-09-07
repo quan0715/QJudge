@@ -461,6 +461,8 @@ class IntegrityCheckpointSerializer(_StrictSerializer):
 
 
 class IntegrityRunSerializer(serializers.ModelSerializer):
+    """Expose session ownership and schedule alongside legacy fields, all read-only."""
+
     class Meta:
         model = ExamIntegrityRun
         exclude = ("token_digest",)

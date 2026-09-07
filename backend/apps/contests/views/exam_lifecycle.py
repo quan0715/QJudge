@@ -22,6 +22,7 @@ from ..services.anti_cheat_session import (
     set_active_session,
 )
 from ..services.integrity_presence import clear_checkpoint
+from ..services.integrity_sessions import prepare_integrity_session
 from ..services.exam_submission import finalize_submission
 from ..services.attendance import (
     AttendanceValidationError,
@@ -77,6 +78,7 @@ class ExamLifecycleMixin:
 
         with transaction.atomic():
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            prepare_integrity_session(contest.id, actor_id=contest.owner_id)
             participant = ContestParticipant.objects.select_for_update().get(
                 pk=participant.pk,
             )

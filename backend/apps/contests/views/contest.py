@@ -44,6 +44,7 @@ from ..services.participant_state import (
 )
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
+from ..services.integrity_sessions import prepare_integrity_session
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
@@ -237,6 +238,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         Override to log contest update activity.
         """
         instance = serializer.save()
+        prepare_integrity_session(instance.id, actor_id=self.request.user.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
@@ -315,6 +317,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 )
             contest.status = 'published'
         contest.save(update_fields=['status', 'results_published'])
+        prepare_integrity_session(contest.id, actor_id=request.user.id)
 
         # Log activity
         log_contest_activity(

@@ -13,7 +13,8 @@ from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
 
 from apps.contests.integrity.registry import REGISTRY_VERSION, build_registry_snapshot
-from apps.contests.models import ExamIntegrityRun
+from apps.contests.models import Contest, ExamIntegrityRun
+from apps.contests.services.integrity_sessions import ensure_resident_session
 from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.contests.services.integrity_tokens import issue_run_token
 
@@ -183,6 +184,15 @@ def create_run(
 ) -> ExamIntegrityRun:
     try:
         with transaction.atomic():
+            contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            if settings.INTEGRITY_EXECUTION_BACKEND == "resident":
+                existing_ids = set(contest.integrity_runs.values_list("id", flat=True))
+                run = ensure_resident_session(contest.pk, actor_id=actor.pk)
+                if run is None:
+                    raise InvalidRunTransition("contest is not eligible for resident preparation")
+                if run.pk in existing_ids:
+                    raise LiveIntegrityRunExists("live integrity run already exists")
+                return run
             return ExamIntegrityRun.objects.create(
                 contest=contest,
                 created_by=actor,
@@ -535,7 +545,13 @@ def _start_run_serialized(
     )
 
 
+def _require_legacy_backend(run_id):
+    if ExamIntegrityRun.objects.only("execution_backend").get(pk=run_id).execution_backend != "legacy":
+        raise InvalidRunTransition("resident sessions do not support legacy Worker operations")
+
+
 def start_run(run_id, *, controller=None) -> ExamIntegrityRun:
+    _require_legacy_backend(run_id)
     controller = controller or _build_controller_client()
     error_guard = LifecycleErrorGuard()
     try:
@@ -555,6 +571,7 @@ def start_run(run_id, *, controller=None) -> ExamIntegrityRun:
 def restart_run(run_id, *, controller=None) -> ExamIntegrityRun:
     """Recover an existing unhealthy Worker while retaining its run data."""
 
+    _require_legacy_backend(run_id)
     error_guard = LifecycleErrorGuard()
     try:
         with _serialized_run_operation(run_id):
@@ -843,6 +860,7 @@ def stop_run(
     worker: WorkerStopClient | None = None,
     controller=None,
 ) -> ExamIntegrityRun:
+    _require_legacy_backend(run_id)
     error_guard = LifecycleErrorGuard()
     try:
         with _serialized_run_operation(run_id):
@@ -880,6 +898,7 @@ def stop_run(
 
 
 def destroy_run(run_id, *, actor, controller=None) -> ExamIntegrityRun:
+    _require_legacy_backend(run_id)
     error_guard = LifecycleErrorGuard()
     try:
         with transaction.atomic():
@@ -919,6 +938,7 @@ def purge_run(
     purger: PurgeRunData | None = None,
     controller=None,
 ) -> ExamIntegrityRun:
+    _require_legacy_backend(run_id)
     error_guard = LifecycleErrorGuard()
     try:
         with _serialized_run_operation(run_id):
