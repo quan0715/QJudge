@@ -19,6 +19,14 @@ const retiredRoutes = [
   { role: "teacher" as const, route: "/marketplace" },
   { role: "teacher" as const, route: "/pricing" },
   { role: "admin" as const, route: "/system/review-queue" },
+  {
+    role: "student" as const,
+    route: "/problems/00000000-0000-0000-0000-000000000000",
+  },
+  {
+    role: "student" as const,
+    route: "/problems/00000000-0000-0000-0000-000000000000/solve",
+  },
 ];
 
 const profiles: RuntimeProfile[] = [
@@ -45,7 +53,6 @@ const protectedRoutes: Array<{
   route: string;
 }> = [
   { role: "student", route: "/dashboard" },
-  { role: "teacher", route: "/drafts" },
   { role: "teacher", route: "/chat" },
   { role: "admin", route: "/system/users" },
   { role: "admin", route: "/management/announcements" },

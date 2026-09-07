@@ -16,18 +16,6 @@ export interface GetProblemsParams {
 }
 
 // ============================================================================
-// Statistics Types
-// ============================================================================
-
-export interface ProblemStatistics {
-  submissionCount: number;
-  acceptedCount: number;
-  acRate: number;
-  statusCounts: Record<string, number>;
-  trend: Array<{ date: string; count: number }>;
-}
-
-// ============================================================================
 // Test Run Types
 // ============================================================================
 
@@ -35,6 +23,7 @@ export interface TestRunPayload {
   language: string;
   code: string;
   contest_id?: string;
+  asynchronous?: boolean;
 }
 
 interface TestRunResultItem {
@@ -48,6 +37,9 @@ interface TestRunResultItem {
 }
 
 export interface TestRunResult {
+  run_id?: string;
+  execution_status?: "pending" | "judging" | "complete";
+  total?: number;
   status: string;
   results: TestRunResultItem[];
 }

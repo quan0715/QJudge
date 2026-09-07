@@ -317,7 +317,7 @@ services:
       - media_volume:/app/media
       - judge_tmp:/judge_tmp
       - ./secrets/ai-oauth-ed25519-private.pem:/run-secrets/ai-oauth-ed25519-private.pem:ro
-      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
+      - ./secrets/integrity/resident-service-token:/run-secrets/resident-service-token:ro
       - ./secrets/integrity/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
     ports:
       - "8000:8000"
@@ -336,9 +336,8 @@ services:
       MARKDOWN_IMAGE_S3_BUCKET: ${MARKDOWN_IMAGE_S3_BUCKET:-markdown-images}
       MARKDOWN_IMAGE_MAX_BYTES: ${MARKDOWN_IMAGE_MAX_BYTES:-5242880}
       MARKDOWN_IMAGE_PUBLIC_BASE_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
-      INTEGRITY_CONTROLLER_URL: http://integrity-controller:8010
-      INTEGRITY_CONTROLLER_TOKEN_FILE: /run-secrets/controller-token
-      INTEGRITY_WORKER_IMAGE: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      INTEGRITY_RESIDENT_URL: http://integrity-resident:8011
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
       INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity-worker-signing-key
     depends_on:
       postgres:
@@ -357,57 +356,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-
-  # The Controller is the only non-judge service that can create per-exam
-  # Integrity Worker containers. It runs unprivileged and talks to Docker via
-  # the socket group supplied by the deployment host.
-  integrity-controller:
-    build:
-      context: ./integrity-service
-      dockerfile: Dockerfile.controller
-    image: oj-integrity-controller:prod
-    container_name: oj_integrity_controller
-    restart: unless-stopped
-    environment:
-      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
-      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-      - INTEGRITY_WORKER_NETWORK=online_judge_oj_network
-      - BACKEND_INTERNAL_URL=http://backend:8000
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
-    group_add:
-      - "${DOCKER_GID:-0}"
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    privileged: false
-    networks:
-      - oj_network
-    healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # Profile-gated helper that makes the Worker image available locally without
-  # starting a Worker. The Controller creates run-scoped Workers on demand.
-  integrity-worker-image:
-    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-    build:
-      context: ./integrity-service
-      dockerfile: Dockerfile.worker
-    command: ["python", "-c", "print('integrity worker image ready')"]
-    restart: "no"
-    profiles: ["build"]
-    networks:
-      - oj_network
-
   # Celery Worker - High Priority (Contest submissions)
   celery-high:
     build: *backend_prod_build
@@ -553,11 +501,106 @@ services:
     networks:
       - oj_network
 
+  # Durable per-Run integrity storage. The resident owns every Run's journal in
+  # one process, so exactly one writer holds this volume at a time.
+  integrity-resident-data-init:
+    image: ${INTEGRITY_RESIDENT_IMAGE:-oj-integrity-resident:prod}
+    build: &integrity_resident_build
+      context: ./integrity-service
+      dockerfile: Dockerfile.resident
+    user: "0:0"
+    restart: "no"
+    read_only: true
+    command: ["sh", "-c", "chown 10001:10001 /run-data && chmod 0700 /run-data"]
+    volumes:
+      - integrity_resident_data:/run-data
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: ["no-new-privileges:true"]
+
+  integrity-resident:
+    image: ${INTEGRITY_RESIDENT_IMAGE:-oj-integrity-resident:prod}
+    build: *integrity_resident_build
+    container_name: oj_integrity_resident
+    user: "10001:10001"
+    restart: always
+    read_only: true
+    command: ["uvicorn", "integrity_service.resident.app:app", "--host", "0.0.0.0", "--port", "8011", "--workers", "1"]
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      INTEGRITY_RESIDENT_DATA_ROOT: /run-data
+      INTEGRITY_RESIDENT_PUBLIC_KEY_FILE: /run-secrets/backend-public-key
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
+    volumes:
+      - integrity_resident_data:/run-data
+      - type: bind
+        source: ./secrets/integrity/backend-public-key
+        target: /run-secrets/backend-public-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./secrets/integrity/resident-service-token
+        target: /run-secrets/resident-service-token
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      integrity-resident-data-init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - oj_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # The exam backend is the deadline and schedule authority; the reconciler is
+  # what pushes descriptors to the resident and finalizes due exams.
+  integrity-reconciler:
+    build: *backend_prod_build
+    image: oj-backend:prod
+    container_name: oj_integrity_reconciler
+    restart: always
+    command: ["python", "manage.py", "reconcile_integrity"]
+    volumes:
+      - ./secrets/integrity/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
+      - ./secrets/integrity/resident-service-token:/run-secrets/resident-service-token:ro
+    environment:
+      <<: *django_prod_environment
+      OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL:?OBJECT_STORAGE_ENDPOINT_URL is required}
+      OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL:?OBJECT_STORAGE_PUBLIC_ENDPOINT_URL is required}
+      OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-auto}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?OBJECT_STORAGE_ACCESS_KEY is required}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?OBJECT_STORAGE_SECRET_KEY is required}
+      OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      INTEGRITY_RESIDENT_URL: http://integrity-resident:8011
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
+      INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity-worker-signing-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      integrity-resident:
+        condition: service_healthy
+    networks:
+      - oj_network
+
 volumes:
   postgres_data:
   static_volume:
   media_volume:
   judge_tmp:
+  integrity_resident_data:
 
 networks:
   oj_network:

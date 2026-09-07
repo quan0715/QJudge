@@ -165,6 +165,11 @@ class IncidentEngine:
             (self._event_command(received, phase, definition, action, incident_id),)
         )
 
+    def stop_participant(self, participant_id: int) -> None:
+        for key in tuple(self._open):
+            if key[0] == participant_id:
+                del self._open[key]
+
     def tick(self, now_server_ms: int) -> IncidentResult:
         commands = []
         for key in sorted(self._open):
@@ -190,6 +195,14 @@ class IncidentEngine:
             if not opened.escalated
         ]
         return min(deadlines, default=None)
+
+    def evidence_anchors(self, participant_id: int, device_id: str) -> tuple[tuple[UUID, int], ...]:
+        """Original trigger windows remain protected until the lifecycle closes."""
+        return tuple((opened.trigger_event_id,
+            max(0, opened.trigger_client_occurred_at_ms - opened.definition.evidence_before_ms))
+            for opened in self._open.values()
+            if opened.participant_id == participant_id and opened.device_id == device_id
+            and opened.definition.evidence_sources)
 
     def _escalate(self, opened: _OpenIncident) -> IntegrityCommand:
         opened.escalated = True

@@ -38,6 +38,7 @@ class JournalWriter:
         self._failed = False
 
         root_lock_fd = _acquire_journal_lock(self.active_path)
+        journal_fd: int | None = None
         try:
             recovered = recover_journal(self.active_path, _lock_fd=root_lock_fd)
             batch_digests = _rebuild_batch_index(recovered.records)
@@ -46,7 +47,17 @@ class JournalWriter:
                 os.O_APPEND | os.O_CREAT | os.O_WRONLY,
                 0o600,
             )
+            # A previous process may have written complete bytes but failed fsync.
+            # Re-establish durability before recovered identities can return an ACK.
+            while True:
+                try:
+                    os.fsync(journal_fd)
+                    break
+                except InterruptedError:
+                    continue
         except BaseException:
+            if journal_fd is not None:
+                os.close(journal_fd)
             _release_journal_lock(root_lock_fd)
             raise
 

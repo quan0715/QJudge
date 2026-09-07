@@ -13,6 +13,13 @@ export type AdminPanelId =
   | "statistics"
   | "settings";
 
+export type ContestSettingsSectionId =
+  | "general"
+  | "access"
+  | "display"
+  | "cheatDetection"
+  | "integrity";
+
 export type ContestAdminEditorKind = "coding" | "paper_exam";
 export type ContestStudentTabContentKind =
   | "overview"
@@ -52,7 +59,7 @@ export interface AdminPanelProps {
   contest: ContestDetail | null;
   onExport?: () => void;
   onPreview?: () => void;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (section?: ContestSettingsSectionId) => void;
 }
 
 export type AdminPanelRenderer = React.ComponentType<AdminPanelProps>;

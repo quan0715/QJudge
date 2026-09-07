@@ -80,20 +80,6 @@ export default function GeneralSettingsPanel({
       </FieldRow>
 
       <FieldRow
-        label={t("settings.contestRules")}
-        description={t("settings.rulesHelperText")}
-        saveState={getState("rules")}
-        onRetry={() => onRetry("rules")}
-      >
-        <MarkdownField
-          id="settings-rules"
-          value={(form.rules as string) || ""}
-          onChange={(value) => onChange("rules", value)}
-          minHeight="180px"
-        />
-      </FieldRow>
-
-      <FieldRow
         label={tc("form.startDate")}
         description="競賽開始時間，學生只能在此時間後進入作答"
         saveState={getState("startTime")}
@@ -171,6 +157,20 @@ export default function GeneralSettingsPanel({
             </TimePickerSelect>
           </TimePicker>
         </div>
+      </FieldRow>
+
+      <FieldRow
+        label={t("settings.contestRules")}
+        description={t("settings.rulesHelperText")}
+        saveState={getState("rules")}
+        onRetry={() => onRetry("rules")}
+      >
+        <MarkdownField
+          id="settings-rules"
+          value={(form.rules as string) || ""}
+          onChange={(value) => onChange("rules", value)}
+          minHeight="180px"
+        />
       </FieldRow>
     </Section>
   );

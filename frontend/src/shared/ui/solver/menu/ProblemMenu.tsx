@@ -1,7 +1,6 @@
 import React from "react";
-import { Layer } from "@carbon/react";
-import { ContainedList, ContainedListItem } from "@carbon/react";
-import { CheckmarkFilled } from "@carbon/icons-react";
+import { Button, Layer, Tooltip } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 // Import solver styles
 import "../styles/_solver-menu.scss";
 
@@ -19,7 +18,7 @@ interface ProblemMenuProps {
 }
 
 /**
- * ProblemMenu - Displays a list of problems with sliding indicator
+ * ProblemMenu - Displays problem selectors with the active label highlighted
  * Uses Carbon Layer for theming and BEM classes for styles
  */
 export const ProblemMenu: React.FC<ProblemMenuProps> = ({
@@ -27,47 +26,29 @@ export const ProblemMenu: React.FC<ProblemMenuProps> = ({
   selectedProblemId,
   onSelect,
 }) => {
-  // Find index for indicator calculation
-  const selectedIndex = problems.findIndex((p) => p.id === selectedProblemId);
-
-  // Calculate sliding indicator position (header height is 0)
-  const indicatorTop =
-    selectedIndex >= 0
-      ? `calc(var(--solver-menu-row-height) * ${selectedIndex})`
-      : "0px";
-
+  const { t } = useTranslation("common");
   return (
-    <Layer className="solver-menu">
-      {/* Sliding Indicator */}
-      {selectedIndex >= 0 && (
-        <div className="solver-menu__indicator" style={{ top: indicatorTop }} />
-      )}
-
-      <ContainedList isInset size="lg" className="solver-menu__list">
+    <Layer className="solver-menu" role="navigation" aria-label="題目列表">
+      <div className="solver-menu__list">
         {problems.map((p) => {
           const isActive = p.id === selectedProblemId;
 
           return (
-            <ContainedListItem
-              key={p.id}
-              className="solver-menu__item"
-              data-active={isActive}
-              onClick={() => onSelect(p.id)}
-            >
-              <div className="solver-item-content">
-                {p.isSolved ? (
-                  <CheckmarkFilled
-                    size={20}
-                    fill="var(--cds-support-success)"
-                  />
-                ) : (
-                  <span className="solver-menu__label">{p.label}</span>
-                )}
-              </div>
-            </ContainedListItem>
+            <Tooltip key={p.id} label={`${p.label}. ${p.title}${p.isSolved ? ` — ${t("status.solved")}` : ""}`} align="right">
+              <Button
+                kind="ghost"
+                className="solver-menu__item"
+                data-active={isActive}
+                data-solved={p.isSolved}
+                aria-current={isActive ? "true" : undefined}
+                onClick={() => onSelect(p.id)}
+              >
+                <span className="solver-menu__label">{p.label}</span>
+              </Button>
+            </Tooltip>
           );
         })}
-      </ContainedList>
+      </div>
     </Layer>
   );
 };

@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import AdminOverviewCommandCenter from "@/features/contest/components/admin/AdminOverviewCommandCenter";
+import AdminPreparationCommandCenter from "@/features/contest/components/admin/AdminPreparationCommandCenter";
 import AdminExamResultOverview from "@/features/contest/components/admin/statistics/AdminExamResultOverview";
 import AdminQuestionStatsGallery from "@/features/contest/components/admin/statistics/AdminQuestionStatsGallery";
 import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
@@ -21,24 +22,31 @@ import {
   useContest,
   useContestAdmin,
 } from "@/features/contest/contexts";
+import { getContestState } from "@/core/entities/contest.entity";
 import type {
   AdminPanelId,
   AdminPanelProps,
+  ContestSettingsSectionId,
 } from "@/features/contest/modules/types";
 import { useGradingData } from "@/features/contest/screens/settings/grading";
 import { addContestParticipant, updateContest } from "@/infrastructure/api/repositories";
 import { exportContestResults } from "@/infrastructure/api/repositories/contestExports.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
+import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import {
   buildAdminOverviewDashboard,
+  buildAdminPreparationOverview,
   type DashboardText,
+  type PreparationItemKey,
 } from "./adminOverviewDashboard.model";
 import styles from "./AdminOverviewScreen.module.scss";
 
 export default function AdminOverviewScreen({
   onOpenSettings,
+  onPreview,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const tr = useCallback<DashboardText>(
     (key, defaultValue, values) => {
       const translated = values
@@ -52,6 +60,7 @@ export default function AdminOverviewScreen({
     [t],
   );
   const { showToast } = useToast();
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest, refreshContest } = useContest();
   const {
     participants,
@@ -65,6 +74,7 @@ export default function AdminOverviewScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [publishingResults, setPublishingResults] = useState(false);
+  const [publishingContest, setPublishingContest] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -84,6 +94,13 @@ export default function AdminOverviewScreen({
     if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
     return currentTimeMs >= startMs && currentTimeMs < endMs;
   }, [contest, currentTimeMs]);
+  const isPreparationPhase = useMemo(() => {
+    if (!contest) return false;
+    if (contest.status === "draft") return true;
+    if (contest.status === "archived") return false;
+    return getContestState(contest, currentTimeMs) === "upcoming";
+  }, [contest, currentTimeMs]);
+
   const handleAddParticipant = useCallback(
     async (username: string) => {
       if (!contest?.id) return;
@@ -135,6 +152,16 @@ export default function AdminOverviewScreen({
     });
   }, [contest, participants, examEvents, overviewMetrics, globalStats, tr]);
 
+  const preparationData = useMemo(() => {
+    if (!contest || !isPreparationPhase) return null;
+    return buildAdminPreparationOverview({
+      contest,
+      participants,
+      nowMs: currentTimeMs,
+      tr,
+    });
+  }, [contest, isPreparationPhase, participants, currentTimeMs, tr]);
+
   const openPanel = useCallback(
     (panel: AdminPanelId) => {
       setSearchParams((prev) => {
@@ -146,17 +173,20 @@ export default function AdminOverviewScreen({
     [setSearchParams],
   );
 
-  const openSettings = useCallback(() => {
-    if (onOpenSettings) {
-      onOpenSettings();
-      return;
-    }
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("panel", "settings");
-      return next;
-    });
-  }, [onOpenSettings, setSearchParams]);
+  const openSettings = useCallback(
+    (section?: ContestSettingsSectionId) => {
+      if (onOpenSettings) {
+        onOpenSettings(section);
+        return;
+      }
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("panel", "settings");
+        return next;
+      });
+    },
+    [onOpenSettings, setSearchParams],
+  );
 
   const handleRefresh = useCallback(async () => {
     if (refreshing) return;
@@ -229,6 +259,125 @@ export default function AdminOverviewScreen({
     t,
   ]);
 
+  const handlePublishContest = useCallback(async () => {
+    if (!contest?.id || publishingContest || !preparationData) return;
+
+    if (!preparationData.canPublish) {
+      showToast({
+        kind: "warning",
+        title: t("adminOverview.actions.publishContestFailed", "發布失敗"),
+        subtitle: t(
+          "adminOverview.preparation.blockedBySchedule",
+          "發布前會先請你設定考試時間",
+        ),
+      });
+      openSettings("general");
+      return;
+    }
+
+    const hasProblems = preparationData.checklist.some(
+      (item) => item.key === "problems" && item.level === "done",
+    );
+    if (!hasProblems) {
+      const confirmed = await confirm({
+        title: t(
+          "adminOverview.preparation.confirm.publishWithoutProblemsTitle",
+          "這場競賽還沒有題目",
+        ),
+        body: t(
+          "adminOverview.preparation.confirm.publishWithoutProblemsBody",
+          "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+        ),
+        confirmLabel: t(
+          "adminOverview.preparation.confirm.publishAnyway",
+          "仍要發布",
+        ),
+        cancelLabel: tc("button.cancel"),
+      });
+      if (!confirmed) return;
+    }
+
+    setPublishingContest(true);
+    try {
+      await updateContest(contest.id, { status: "published" });
+      await refreshContest();
+      showToast({
+        kind: "success",
+        title: t("adminOverview.actions.publishContestSuccess", "競賽已發布"),
+      });
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("adminOverview.actions.publishContestFailed", "發布失敗"),
+        subtitle: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPublishingContest(false);
+    }
+  }, [
+    confirm,
+    contest?.id,
+    openSettings,
+    preparationData,
+    publishingContest,
+    refreshContest,
+    showToast,
+    t,
+    tc,
+  ]);
+
+  const handleRevertToDraft = useCallback(async () => {
+    if (!contest?.id || publishingContest) return;
+
+    const confirmed = await confirm({
+      title: t(
+        "adminOverview.preparation.confirm.revertToDraftTitle",
+        "確定要退回草稿嗎？",
+      ),
+      body: t(
+        "adminOverview.preparation.confirm.revertToDraftBody",
+        "退回後學生會立刻看不到這場競賽。",
+      ),
+      confirmLabel: t("adminOverview.actions.revertToDraft", "退回草稿"),
+      cancelLabel: tc("button.cancel"),
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setPublishingContest(true);
+    try {
+      await updateContest(contest.id, { status: "draft" });
+      await refreshContest();
+    } catch (error) {
+      showToast({
+        kind: "error",
+        title: t("adminOverview.actions.publishContestFailed", "發布失敗"),
+        subtitle: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setPublishingContest(false);
+    }
+  }, [
+    confirm,
+    contest?.id,
+    publishingContest,
+    refreshContest,
+    showToast,
+    t,
+    tc,
+  ]);
+
+  const handleChecklistAction = useCallback(
+    (key: PreparationItemKey) => {
+      if (key === "problems") {
+        openPanel("problem_editor");
+        return;
+      }
+      openSettings("general");
+    },
+    [openPanel, openSettings],
+  );
+
   useEffect(() => {
     return registerPanelRefresh("overview", handleRefresh);
   }, [handleRefresh, registerPanelRefresh]);
@@ -241,6 +390,21 @@ export default function AdminOverviewScreen({
   const attendanceProjectionPath = contest.boundClassroomId
     ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}/admin/attendance/projection`
     : null;
+  const openContestHome = () => {
+    if (!contestHomePath) return;
+    window.open(contestHomePath, "_blank", "noopener,noreferrer");
+  };
+  const openAttendanceProjection = () => {
+    if (!attendanceProjectionPath || !contest.attendanceCheckEnabled) return;
+    window.open(attendanceProjectionPath, "_blank", "noopener,noreferrer");
+  };
+  const openStudentPreview = () => {
+    if (onPreview) {
+      onPreview();
+      return;
+    }
+    openContestHome();
+  };
   const contestTypeLabel =
     contest.contestType === "paper_exam"
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
@@ -264,7 +428,7 @@ export default function AdminOverviewScreen({
                 "adminOverview.screen.actions.settings",
                 "競賽設定",
               )}
-              onClick={openSettings}
+              onClick={() => openSettings()}
             />
             <Button
               kind="ghost"
@@ -275,10 +439,7 @@ export default function AdminOverviewScreen({
                 "競賽主頁",
               )}
               disabled={!contestHomePath}
-              onClick={() => {
-                if (!contestHomePath) return;
-                window.open(contestHomePath, "_blank", "noopener,noreferrer");
-              }}
+              onClick={openContestHome}
             />
             <Button
               kind="ghost"
@@ -289,10 +450,7 @@ export default function AdminOverviewScreen({
                 "開啟簽到投屏",
               )}
               disabled={!attendanceProjectionPath || !contest.attendanceCheckEnabled}
-              onClick={() => {
-                if (!attendanceProjectionPath || !contest.attendanceCheckEnabled) return;
-                window.open(attendanceProjectionPath, "_blank", "noopener,noreferrer");
-              }}
+              onClick={openAttendanceProjection}
             />
             {classroomBound ? null : (
               <Button
@@ -339,52 +497,67 @@ export default function AdminOverviewScreen({
   return (
     <div className={styles.page}>
       <div className={styles.content}>
-        {dashboardData && (
-          <AdminOverviewCommandCenter
+        {isPreparationPhase && preparationData ? (
+          <AdminPreparationCommandCenter
             header={renderContestHeader()}
-            data={dashboardData}
-            adminLoading={adminInitialLoading}
-            gradingLoading={gradingLoading}
-            contestId={contest.id}
-            antiCheatEnabled={contest.cheatDetectionEnabled}
-            classroomBound={classroomBound}
-            contestInProgress={contestInProgress}
-            onOpenPanel={openPanel}
-            participants={participants}
-            primary={null}
-            overviewInfo={{
-              contestTypeLabel,
-            }}
-            gradingAction={{
-              label: contest.resultsPublished
-                ? t("adminOverview.actions.revokeResults", "撤回發布")
-                : t("adminOverview.actions.publishResults", "發布成績"),
-              loadingLabel: t("action.processing", "處理中..."),
-              onClick: () => void handleToggleResultsPublished(),
-              disabled: !contest.id,
-              loading: publishingResults,
-              kind: contest.resultsPublished ? "danger--tertiary" : "primary",
-            }}
-            resultOverview={
-              <AdminExamResultOverview
-                contest={contest}
-                dashboard={resultDashboard}
-                loading={resultDashboardLoading}
-                error={resultDashboardError}
-              />
-            }
-            questionStatsGallery={
-              <AdminQuestionStatsGallery
-                contest={contest}
-                dashboard={resultDashboard}
-                loading={resultDashboardLoading}
-                error={resultDashboardError}
-                loadQuestionDetail={loadResultQuestionDetail}
-                detailLoadingIds={resultDetailLoadingIds}
-                detailErrors={resultDetailErrors}
-              />
-            }
+            data={preparationData}
+            publishing={publishingContest}
+            attendanceCheckEnabled={Boolean(contest.attendanceCheckEnabled)}
+            onItemAction={handleChecklistAction}
+            onPublishContest={() => void handlePublishContest()}
+            onRevertToDraft={() => void handleRevertToDraft()}
+            onPreviewAsStudent={openStudentPreview}
+            onOpenContestHome={openContestHome}
+            onOpenAttendanceProjection={openAttendanceProjection}
           />
+        ) : (
+          dashboardData && (
+            <AdminOverviewCommandCenter
+              header={renderContestHeader()}
+              data={dashboardData}
+              adminLoading={adminInitialLoading}
+              gradingLoading={gradingLoading}
+              contestId={contest.id}
+              antiCheatEnabled={contest.cheatDetectionEnabled}
+              classroomBound={classroomBound}
+              contestInProgress={contestInProgress}
+              onOpenPanel={openPanel}
+              participants={participants}
+              primary={null}
+              overviewInfo={{
+                contestTypeLabel,
+              }}
+              gradingAction={{
+                label: contest.resultsPublished
+                  ? t("adminOverview.actions.revokeResults", "撤回發布")
+                  : t("adminOverview.actions.publishResults", "發布成績"),
+                loadingLabel: t("action.processing", "處理中..."),
+                onClick: () => void handleToggleResultsPublished(),
+                disabled: !contest.id,
+                loading: publishingResults,
+                kind: contest.resultsPublished ? "danger--tertiary" : "primary",
+              }}
+              resultOverview={
+                <AdminExamResultOverview
+                  contest={contest}
+                  dashboard={resultDashboard}
+                  loading={resultDashboardLoading}
+                  error={resultDashboardError}
+                />
+              }
+              questionStatsGallery={
+                <AdminQuestionStatsGallery
+                  contest={contest}
+                  dashboard={resultDashboard}
+                  loading={resultDashboardLoading}
+                  error={resultDashboardError}
+                  loadQuestionDetail={loadResultQuestionDetail}
+                  detailLoadingIds={resultDetailLoadingIds}
+                  detailErrors={resultDetailErrors}
+                />
+              }
+            />
+          )
         )}
       </div>
       {classroomBound ? null : (
@@ -397,6 +570,7 @@ export default function AdminOverviewScreen({
           }}
         />
       )}
+      <ConfirmModal {...confirmModalProps} />
     </div>
   );
 }

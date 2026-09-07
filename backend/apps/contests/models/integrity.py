@@ -6,12 +6,12 @@ from django.db.models import Q
 
 
 class ExamIntegrityRun(models.Model):
-    class ComputeState(models.TextChoices):
-        STOPPED = "stopped", "Stopped"
-        STARTING = "starting", "Starting"
-        RUNNING = "running", "Running"
-        STOPPING = "stopping", "Stopping"
-        DESTROYED = "destroyed", "Destroyed"
+    class SessionState(models.TextChoices):
+        PREPARED = "prepared", "Prepared"
+        ACTIVE = "active", "Active"
+        DRAINING = "draining", "Draining"
+        ARCHIVED = "archived", "Archived"
+        CLOSED = "closed", "Closed"
 
     class Health(models.TextChoices):
         HEALTHY = "healthy", "Healthy"
@@ -33,9 +33,11 @@ class ExamIntegrityRun(models.Model):
         on_delete=models.SET_NULL,
         related_name="created_exam_integrity_runs",
     )
-    compute_state = models.CharField(
-        max_length=16, choices=ComputeState.choices, default=ComputeState.STOPPED,
+    session_state = models.CharField(
+        max_length=16, choices=SessionState.choices, default=SessionState.PREPARED,
     )
+    schedule_revision = models.PositiveIntegerField(default=1)
+    accept_until = models.DateTimeField(null=True, blank=True)
     health = models.CharField(
         max_length=16, choices=Health.choices, default=Health.HEALTHY,
     )
@@ -49,15 +51,7 @@ class ExamIntegrityRun(models.Model):
     policy_snapshot = models.JSONField(default=dict)
     registry_snapshot = models.JSONField(default=dict)
     registry_version = models.CharField(max_length=64)
-    worker_image = models.CharField(max_length=255)
-    worker_image_digest = models.CharField(max_length=255, blank=True, default="")
     worker_version = models.CharField(max_length=64, blank=True, default="")
-    container_id = models.CharField(max_length=128, blank=True, default="")
-    container_name = models.CharField(max_length=128, blank=True, default="")
-    worker_url = models.URLField(max_length=512, blank=True, default="")
-    token_digest = models.CharField(max_length=64, blank=True, default="")
-    token_expires_at = models.DateTimeField(null=True, blank=True)
-    token_revoked_at = models.DateTimeField(null=True, blank=True)
     archive_generation = models.PositiveIntegerField(default=0)
     archive_manifest_key = models.TextField(blank=True, default="")
     archive_manifest_sha256 = models.CharField(max_length=64, blank=True, default="")
@@ -91,16 +85,55 @@ class ExamIntegrityRun(models.Model):
         db_table = "exam_integrity_runs"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["contest", "compute_state"]),
+            models.Index(fields=["contest", "session_state"]),
             models.Index(fields=["data_state", "updated_at"]),
         ]
         constraints = [
             models.UniqueConstraint(
                 fields=["contest"],
-                condition=~Q(compute_state="destroyed"),
+                condition=Q(session_state__in=("prepared", "active", "draining")),
                 name="uniq_live_integrity_run_per_contest",
             ),
         ]
+
+
+class IntegrityBatchAdmission(models.Model):
+    """Compact gateway identity ledger; raw records remain resident-owned."""
+    run = models.ForeignKey(ExamIntegrityRun, on_delete=models.CASCADE)
+    participant = models.ForeignKey("contests.ContestParticipant", on_delete=models.CASCADE)
+    batch_id = models.UUIDField()
+    attempt_id = models.UUIDField()
+    device_id = models.CharField(max_length=128)
+    body_sha256 = models.CharField(max_length=64)
+    first_seq = models.PositiveBigIntegerField()
+    last_seq = models.PositiveBigIntegerField()
+    first_received_at = models.DateTimeField()
+    late_unverified = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["run", "batch_id"], name="uniq_integrity_batch_admission")]
+        indexes = [models.Index(fields=["run", "participant", "device_id"], name="integrity_admission_scope_idx")]
+
+
+class IntegrityUploadGrant(models.Model):
+    run = models.ForeignKey(ExamIntegrityRun, on_delete=models.CASCADE)
+    participant = models.ForeignKey("contests.ContestParticipant", on_delete=models.CASCADE)
+    device_id = models.CharField(max_length=128)
+    attempt_id = models.UUIDField()
+    submitted_at = models.DateTimeField()
+    accept_until = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    final_seq = models.PositiveBigIntegerField(null=True, blank=True)
+    received_seq = models.PositiveBigIntegerField(default=0)
+    processed_seq = models.PositiveBigIntegerField(default=0)
+    commands_drained = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["run", "participant", "attempt_id", "device_id"],
+            name="uniq_integrity_upload_grant_scope",
+        )]
 
 
 class ExamEvidenceChunk(models.Model):

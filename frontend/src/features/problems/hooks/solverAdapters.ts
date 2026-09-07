@@ -5,6 +5,7 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
   const cases = results.map((r: any, idx: number) => ({
     id: r.case_id?.toString() || r.id?.toString() || `case_${idx}`,
     passed: r.status === "AC",
+    status: r.status,
     input: r.input,
     expectedOutput: r.expected_output,
     actualOutput: r.output,
@@ -12,7 +13,6 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
     executionTime: r.exec_time,
     memoryUsage: r.memory_usage,
     isHidden: Boolean(r.is_hidden),
-    status: r.status,
   }));
 
   const passed = cases.filter((r: any) => r.status === "AC").length;
@@ -23,7 +23,7 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
     type: "run",
     passed,
     failed,
-    total: results.length,
+    total: data.total ?? results.length,
     cases,
     error: data.error_message,
   };
@@ -35,6 +35,7 @@ export const transformSubmissionToResult = (data: any): SubmissionResult => {
   const cases = results.map((r: any, idx: number) => ({
     id: r.id?.toString() || `case_${idx}`,
     passed: r.status === "AC",
+    status: r.status,
     input: r.input,
     expectedOutput: r.expectedOutput,
     actualOutput: r.output,

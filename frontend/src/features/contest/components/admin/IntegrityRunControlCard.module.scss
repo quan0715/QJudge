@@ -10,24 +10,10 @@
   align-items: center;
 }
 
-.description,
-.restartConfirmation p {
+.description {
   margin: 0;
 }
 
 .description {
   color: var(--cds-text-secondary);
-}
-
-.restartConfirmation {
-  display: grid;
-  gap: layout.$spacing-04;
-  padding-top: layout.$spacing-03;
-  border-top: 1px solid var(--cds-border-subtle-01);
-}
-
-.confirmationActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
 }

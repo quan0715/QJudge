@@ -61,6 +61,7 @@ test.describe("Exam full lifecycle E2E", () => {
     const classroomId = teacherPage.url().match(/\/classrooms\/([^/?#]+)/)?.[1];
     expect(classroomId).toBeTruthy();
 
+    await teacherPage.getByRole("tab", { name: "競賽列表", exact: true }).click();
     await teacherPage.getByTestId("classroom-create-contest-btn").click();
     await expect(teacherPage.getByTestId("create-contest-modal")).toBeVisible({ timeout: 10000 });
     await teacherPage.getByTestId("create-contest-type-exam").click();

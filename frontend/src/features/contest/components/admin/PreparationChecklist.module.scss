@@ -1,0 +1,49 @@
+@use "@carbon/layout";
+@use "@carbon/type";
+
+.list {
+  display: grid;
+  gap: layout.$spacing-03;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-05;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+@media (max-width: 42rem) {
+  .row {
+    gap: layout.$spacing-02;
+    padding: layout.$spacing-04;
+  }
+}
+
+.text {
+  display: grid;
+  gap: layout.$spacing-01;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+}
+
+.description {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.number {
+  @include type.type-style("heading-03");
+  color: var(--cds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}

@@ -4768,24 +4768,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
           description: ''
-  /api/v1/management/problems/drafts/:
-    get:
-      operationId: v1_management_problems_drafts_retrieve
-      description: |-
-        List CodingProblems not in any question bank.
-        Teachers see their own asset-backed drafts; admins also see unresolved orphans.
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-          description: ''
   /api/v1/management/problems/tags/:
     get:
       operationId: v1_management_problems_tags_list

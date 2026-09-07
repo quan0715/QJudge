@@ -11,7 +11,7 @@ import { SaveToBankModal } from "@/features/question-banks/components/SaveToBank
 import { ProblemPreview } from "@/shared/ui/problem";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
-import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
+import { formSchemaToPreview } from "@/features/problems/forms/problemPreviewAdapter";
 import ContentSection from "@/features/problems/components/edit/problemForm/sections/ContentSection";
 import TestCasesSection from "@/features/problems/components/edit/problemForm/sections/TestCasesSection";
 import BasicInfoSection from "@/features/problems/components/edit/problemForm/sections/BasicInfoSection";

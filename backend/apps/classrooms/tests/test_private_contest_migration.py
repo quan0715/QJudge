@@ -7,8 +7,10 @@ from django.utils import timezone
 
 
 @pytest.mark.django_db(transaction=True)
-def test_private_contest_migration_deletes_orphans_and_deduplicates_bindings() -> None:
+def test_private_contest_migration_deletes_orphans_and_deduplicates_bindings(request) -> None:
     executor = MigrationExecutor(connection)
+    latest = executor.loader.graph.leaf_nodes()
+    request.addfinalizer(lambda: MigrationExecutor(connection).migrate(latest))
     migrate_from = []
     for app_label, migration_name in executor.loader.graph.leaf_nodes():
         if app_label == "classrooms":

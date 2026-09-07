@@ -1,9 +1,10 @@
-"""Run-token-scoped HTTP client for the Backend private integrity API."""
+"""Resident-credential HTTP client for the Backend private integrity API."""
 
 from __future__ import annotations
 
 import base64
 import json
+import time
 from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
@@ -37,17 +38,22 @@ class BackendClient:
         request_timeout_seconds: float = 5.0,
         transport: httpx.BaseTransport | None = None,
         upload_transport: httpx.BaseTransport | None = None,
+        credential_provider=None,
     ) -> None:
         if retry_attempts < 1:
             raise ValueError("retry_attempts must be positive")
         self._run_id = run_id
+        self._credential_provider = credential_provider
         self._retry_attempts = retry_attempts
         timeout = httpx.Timeout(
             request_timeout_seconds, connect=connect_timeout_seconds
         )
         client = httpx.Client(
             base_url=base_url.rstrip("/"),
-            headers={"Authorization": f"Bearer {token}"},
+            headers={
+                "Authorization": f"Resident {token}",
+                "X-Forwarded-Proto": "https",
+            },
             timeout=timeout,
             transport=transport,
         )
@@ -63,10 +69,32 @@ class BackendClient:
         self._upload_client = upload_client
         self._closed = False
 
-    def fetch_bootstrap(self) -> dict[str, object]:
-        path = f"/api/v1/internal/integrity/runs/{self._run_id}/bootstrap/"
-        response = self._request("GET", path)
-        return self._response_json(response)
+    def fetch_resident_descriptors(self, public_key, *, now_seconds=None):
+        from integrity_service.worker.auth import verify_resident_request
+        response = self._request("GET", "/api/v1/internal/integrity/resident/descriptors/")
+        payload = self._response_json(response)
+        descriptors = payload.get("descriptors")
+        if not isinstance(descriptors, list) or len(descriptors) > 256:
+            raise BackendProtocolError("invalid descriptor list")
+        verified = []
+        for envelope in descriptors:
+            try:
+                body = envelope["body"].encode("utf-8")
+                if len(body) > 1024 * 1024:
+                    raise ValueError("descriptor exceeds limit")
+                descriptor = json.loads(body)
+                run_id = UUID(descriptor["bootstrap"]["run_id"])
+                h = envelope["headers"]
+                verify_resident_request(public_key, method="PUT", path=f"/v1/runs/{run_id}", run_id=run_id,
+                    revision=h["X-QJudge-Revision"], protocol=h["X-QJudge-Protocol"], timestamp=h["X-QJudge-Timestamp"],
+                    header_run_id=h["X-QJudge-Run-Id"], signature_b64=h["X-QJudge-Signature"], body=body,
+                    now_seconds=int(time.time()) if now_seconds is None else now_seconds)
+                if str(descriptor["schedule_revision"]) != h["X-QJudge-Revision"]:
+                    raise ValueError("descriptor revision mismatch")
+                verified.append(descriptor)
+            except (KeyError, ValueError, TypeError, AttributeError) as error:
+                raise BackendProtocolError("unauthenticated recovery descriptor") from error
+        return verified
 
     def send_commands(
         self, commands: tuple[dict[str, object], ...]
@@ -87,6 +115,15 @@ class BackendClient:
         response = self._request(
             "POST", path, content=body, headers={"Content-Type": "application/json"}
         )
+        return self._response_json(response)
+
+    def finalize_control(self, body):
+        from integrity_service.resident.lifecycle import StaleSchedule
+        path = f"/api/v1/internal/integrity/runs/{self._run_id}/finalize/"
+        try:
+            response = self._request("POST", path, json=body)
+        except BackendProtocolError as error:
+            raise StaleSchedule("backend finalization not authorized") from error
         return self._response_json(response)
 
     def upload_presigned(
@@ -130,6 +167,11 @@ class BackendClient:
             self._upload_client.close()
 
     def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
+        if self._credential_provider is not None:
+            token = self._credential_provider()
+            headers = dict(kwargs.pop("headers", {}))
+            headers["Authorization"] = f"Resident {token}"
+            kwargs["headers"] = headers
         for attempt in range(self._retry_attempts):
             try:
                 response = self._client.request(method, path, **kwargs)

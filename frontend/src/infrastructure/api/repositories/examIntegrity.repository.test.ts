@@ -29,6 +29,44 @@ const batch = {
 };
 
 describe("examIntegrityRepository", () => {
+  it.each([undefined, "unknown", "resident-evidence-fence-v1"])("requires explicit fence capability %s before releasing resident media", async (version) => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ acked_through_seq: 8, processed_through_seq: 8,
+      pending_commands: [], release_evidence_before_ms: 999000, evidence_fence_version: version }), { status: 200 }));
+    const result = await examIntegrityRepository.sendBatch("1", batch, undefined,
+      { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted" });
+    expect(result.releaseEvidenceBeforeMs).toBe(version === "resident-evidence-fence-v1" ? 999000 : 0);
+  });
+  it("keeps resident evidence authentication failures local without refresh or replay", async () => {
+    const controller = new AbortController();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: "scope expired" }), { status: 401 }));
+    await expect(examIntegrityRepository.submitEvidenceCheckpoint("contest-a", {
+      uploadScope: { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" },
+      manifests: [], completions: [], unavailable: [],
+    }, controller.signal)).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal);
+  });
+  it.each([0, 19])("accepts resident stream ACK %i and sends the trusted scope", async (cursor) => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      acked_through_seq: cursor, processed_through_seq: 0,
+      pending_commands: [], release_evidence_before_ms: 0, upload_status: "pending",
+    }), { status: 200 }));
+    const scope = { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" };
+    const ack = await examIntegrityRepository.sendBatch("contest-a", batch, undefined, scope);
+    expect(ack.ackedThroughSeq).toBe(cursor);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).upload_scope).toEqual(scope);
+  });
+
+  it("sends scope and a zero final marker on an empty control poll", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      acked_through_seq: 0, processed_through_seq: 0,
+      pending_commands: [], release_evidence_before_ms: 0, upload_status: "complete",
+    }), { status: 200 }));
+    const scope = { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" };
+    const result = await examIntegrityRepository.pollUpload("contest-a", scope, 0);
+    expect(result.uploadStatus).toBe("complete");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ upload_scope: scope, final_seq: 0 });
+  });
   const fetchMock = vi.fn();
 
   beforeEach(() => {
@@ -42,24 +80,25 @@ describe("examIntegrityRepository", () => {
     document.cookie = "csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
   });
 
-  it("restarts a Worker through the manager recovery endpoint", async () => {
+  it("reads the resident session state without a lifecycle action", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({
         id: "run-1",
-        compute_state: "running",
+        session_state: "active",
         health: "healthy",
         data_state: "open",
         registry_version: "2026-07-26.3",
       }), { status: 200, headers: { "Content-Type": "application/json" } }),
     );
 
-    const restarted = await examIntegrityRepository.restartRun("contest-a", "run-1");
+    const run = await examIntegrityRepository.getRun("contest-a", "run-1");
 
-    expect(restarted.health).toBe("healthy");
+    expect(run.health).toBe("healthy");
+    expect(run.sessionState).toBe("active");
     expect(fetchMock.mock.calls[0][0]).toBe(
-      "/api/v1/contests/contest-a/integrity-runs/run-1/restart/",
+      "/api/v1/contests/contest-a/integrity-runs/run-1/",
     );
-    expect(fetchMock.mock.calls[0][1].method).toBe("POST");
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
   });
 
   it("submits observations through the single checkpoint endpoint", async () => {

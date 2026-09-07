@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { InlineNotification } from "@carbon/react";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
@@ -8,38 +8,42 @@ import { SolverLayout } from "@/shared/layout/SolverLayout";
 // Import solver sub-components from shared UI
 import { StatementPanel, EditorContent, ResultPanel } from "@/shared/ui/solver";
 
-// Import feature-specific submission list
-import { ProblemSubmissionList } from "@/features/problems/components/solve/submissions";
-
 import "./ProblemFullPageSolve.scss";
 
 interface ProblemFullPageSolveProps {
   /** The problem to solve */
   problem: CodingProblemDetail;
+  statementNavigation?: {
+    activeTabIndex: number;
+    selectTab: (index: number) => void;
+    collapsed: boolean;
+    setCollapsed: (collapsed: boolean) => void;
+  };
+  onAccepted?: (problemId: string) => void;
   /** Problem label (e.g. "A" for contest) */
   problemLabel?: string;
-  /** Optional contest ID for contest mode */
-  contestId?: string;
+  /** Contest that owns this problem session */
+  contestId: string;
   /** Optional menu panel (for contest mode with ProblemMenu) */
   menuPanel?: React.ReactNode;
   /** Disable text selection/copy for exam mode */
   disableCopy?: boolean;
   /** Disable submission button */
   submissionDisabled?: boolean;
-  /** Optional render function for submissions tab content (for contest mode) */
-  renderSubmissions?: () => React.ReactNode;
+  /** Contest-scoped submissions tab content */
+  renderSubmissions: () => React.ReactNode;
 }
 
 /**
  * ProblemFullPageSolve - Full-screen IDE-style problem solving interface
  *
- * This is the core reusable component for solving problems.
- * - Contest mode: Uses renderSubmissions prop passed from parent
- * - Standalone mode: Uses built-in ProblemSubmissionList
+ * Contest-scoped full-screen interface for solving coding problems.
  */
 export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
   problem,
   problemLabel = "",
+  statementNavigation,
+  onAccepted,
   contestId,
   menuPanel,
   disableCopy = false,
@@ -53,12 +57,23 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     problemLabel,
   });
 
+  useEffect(() => {
+    if (solver.executionState.type === "submit" &&
+        solver.executionState.status === "complete" &&
+        solver.executionState.result?.type === "submit" &&
+        solver.executionState.result.status === "AC") {
+      onAccepted?.(problem.id);
+    }
+  }, [solver.executionState, problem.id, onAccepted]);
+
   // Get editor settings from user preferences
   const { editorFontSize, editorTabSize, updateEditorSettings } =
     useUserPreferences();
 
   // Statement panel collapsed state (controlled by this component)
-  const [statementCollapsed, setStatementCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const statementCollapsed = statementNavigation?.collapsed ?? internalCollapsed;
+  const setStatementCollapsed = statementNavigation?.setCollapsed ?? setInternalCollapsed;
 
   // Collapse all panels (one-click to maximize editor space)
   const handleCollapseAll = useCallback(() => {
@@ -67,7 +82,7 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     if (solver.resultOpen) {
       solver.toggleResult();
     }
-  }, [solver]);
+  }, [solver, setStatementCollapsed]);
 
   // Handle editor settings change
   const handleEditorSettingsChange = useCallback(
@@ -77,24 +92,17 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     [updateEditorSettings]
   );
 
-  // Determine mode
-  const isContestMode = !!contestId;
-
   // Render statement content based on activeTabIndex
   const renderStatementContent = useCallback(
     (activeTabIndex: number) => (
       <StatementPanel
         problem={problem}
         activeTabIndex={activeTabIndex}
-        disableCopy={isContestMode && disableCopy}
-        renderSubmissions={
-          isContestMode
-            ? renderSubmissions
-            : () => <ProblemSubmissionList problemId={problem.id} />
-        }
+        disableCopy={disableCopy}
+        renderSubmissions={renderSubmissions}
       />
     ),
-    [problem, disableCopy, isContestMode, renderSubmissions]
+    [problem, disableCopy, renderSubmissions]
   );
 
   return (
@@ -112,6 +120,9 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
       )}
 
       <SolverLayout
+        externalStatementNavigation={!!statementNavigation}
+        activeTabIndex={statementNavigation?.activeTabIndex}
+        onActiveTabChange={statementNavigation?.selectTab}
         menuPanel={menuPanel}
         renderStatementContent={renderStatementContent}
         editorPanel={

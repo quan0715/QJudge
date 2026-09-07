@@ -22,7 +22,9 @@ from ..services.anti_cheat_session import (
     set_active_session,
 )
 from ..services.integrity_presence import clear_checkpoint
+from ..services.integrity_sessions import prepare_integrity_session
 from ..services.exam_submission import finalize_submission
+from ..services.exam_schedule import lock_exam_runs
 from ..services.attendance import (
     AttendanceValidationError,
     assert_attendance_allows_start,
@@ -41,11 +43,13 @@ class ExamLifecycleMixin:
     """Mixin for exam start/end lifecycle."""
 
     @action(detail=False, methods=['post'], url_path='start')
+    @transaction.atomic
     def start_exam(self, request, contest_pk=None):
         """
         Signal that user is starting the exam (entering full screen).
         """
-        contest = get_object_or_404(Contest, id=contest_pk)
+        contest = get_object_or_404(Contest.objects.select_for_update(), id=contest_pk)
+        lock_exam_runs(contest.pk)
 
         # 3-layer permission check (don't require in_progress for start)
         participant, error_response = validate_exam_operation_for_view(
@@ -77,6 +81,7 @@ class ExamLifecycleMixin:
 
         with transaction.atomic():
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            prepare_integrity_session(contest.id, actor_id=contest.owner_id)
             participant = ContestParticipant.objects.select_for_update().get(
                 pk=participant.pk,
             )
@@ -86,7 +91,10 @@ class ExamLifecycleMixin:
                 if contest.allow_multiple_joins:
                     # Re-entry keeps historical violations as the backend source of truth.
                     participant.exam_status = ExamStatus.IN_PROGRESS
-                    participant.save(update_fields=["exam_status"])
+                    from ..services.integrity_upload_grants import rotate_integrity_attempt
+                    participant.left_at = None
+                    participant.submit_reason = ""
+                    participant.save(update_fields=["exam_status", "left_at", "submit_reason", rotate_integrity_attempt(participant)])
                 else:
                     return Response(
                         {'error': 'You have already finished this exam.'},
@@ -143,12 +151,14 @@ class ExamLifecycleMixin:
         return Response({'status': 'started', 'exam_status': ExamStatus.IN_PROGRESS})
 
     @action(detail=False, methods=['post'], url_path='end')
+    @transaction.atomic
     def end_exam(self, request, contest_pk=None):
         """
         User manually finishes the exam.
         Allowed in: in_progress, locked, paused states.
         """
-        contest = get_object_or_404(Contest, id=contest_pk)
+        contest = get_object_or_404(Contest.objects.select_for_update(), id=contest_pk)
+        lock_exam_runs(contest.pk)
 
         # Don't require in_progress - allow submission from in_progress, locked, or paused
         participant, error_response = validate_exam_operation_for_view(
@@ -159,6 +169,7 @@ class ExamLifecycleMixin:
         if participant is None:
             return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
 
+        participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
         if participant.exam_status == ExamStatus.SUBMITTED:
             return Response({
                 'status': 'finished',

@@ -27,6 +27,7 @@ class Contest(models.Model):
     # Time settings - nullable for MVP creation flow (can be set later)
     start_time = models.DateTimeField(null=True, blank=True, verbose_name='開始時間')
     end_time = models.DateTimeField(null=True, blank=True, verbose_name='結束時間')
+    schedule_revision = models.PositiveIntegerField(default=1)
 
     # Owner/creator
     owner = models.ForeignKey(

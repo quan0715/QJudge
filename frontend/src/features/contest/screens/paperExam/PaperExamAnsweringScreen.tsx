@@ -46,7 +46,7 @@ import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStor
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
-import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { useIntegrityUploadOwner } from "@/features/contest/contexts/IntegrityUploadProvider";
 import type {
   ExamQuestionAnswerFormat,
   ExamQuestionType,
@@ -86,7 +86,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
         : effectiveClassroomId
           ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
           : "";
-  const integrity = useIntegritySignalEmitter();
+  const integrityOwner = useIntegrityUploadOwner();
   const submitProgress = useExamSubmissionProgress();
   const setPageHeaderActions = usePageHeaderActions();
   const { isRuntime } = useContestRuntimeMode();
@@ -136,6 +136,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const {
     uploadSessionId: anticheatUploadSessionId,
     flushPendingUploads,
+    deferMonitoringUploads,
     forceStopCapture,
   } = useExamCapture();
 
@@ -189,6 +190,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const runSubmitWithProgress = useCallback(async () => {
     const success = await submitProgress.run({
+      skipSteps: deferMonitoringUploads ? ["uploading"] : undefined,
       handlers: {
         checking: async () => {
           await flushAll();
@@ -222,6 +224,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId,
     flushAll,
     flushPendingUploads,
+    deferMonitoringUploads,
     forceStopCapture,
     submitExam,
     submitProgress,
@@ -260,6 +263,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
       !contest.cheatDetectionEnabled ||
       contest.examStatus !== "in_progress" ||
       !precheckPassed ||
+      !integrityOwner?.captureReady ||
       hasLoggedExamEntryRef.current ||
       isLoggingExamEntryRef.current
     ) {
@@ -268,7 +272,9 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
     isLoggingExamEntryRef.current = true;
     const clientOccurredAtMs = Date.now();
-    void integrity.emit({
+    // Contest data can arrive before runtime admission. Wait only for event
+    // ownership, never gate answering on monitoring readiness or delivery.
+    void integrityOwner.emitter.emit({
       eventType: "exam_entered",
       clientOccurredAtMs,
       payload: {
@@ -289,7 +295,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     anticheatUploadSessionId,
     contest,
     contestId,
-    integrity,
+    integrityOwner,
     precheckPassed,
   ]);
 

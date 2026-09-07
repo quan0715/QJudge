@@ -2,6 +2,7 @@ import type { ChangeEvent } from "react";
 import { BareMetalServer, Information, Locked, View, Security } from "@carbon/icons-react";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal/SettingsModal";
 import IntegrityRunControlCard from "@/features/contest/components/admin/IntegrityRunControlCard";
+import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
@@ -11,6 +12,7 @@ import CheatDetectionPanel from "./CheatDetectionPanel";
 interface ContestSettingsModalProps extends ContestSettingsPanelProps {
   open: boolean;
   onRequestClose: () => void;
+  initialActiveId?: ContestSettingsSectionId;
   // General panel date/time props
   startDateInput: Date | null;
   endDateInput: Date | null;
@@ -40,6 +42,7 @@ const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { labelKey: string; 
 export default function ContestSettingsModal({
   open,
   onRequestClose,
+  initialActiveId,
   t,
   tc,
   contest,
@@ -120,6 +123,7 @@ export default function ContestSettingsModal({
       onRequestClose={onRequestClose}
       modalHeading={t("settings.title", "競賽設定")}
       navItems={navItems}
+      initialActiveId={initialActiveId}
       renderPanel={renderPanel}
     />
   );

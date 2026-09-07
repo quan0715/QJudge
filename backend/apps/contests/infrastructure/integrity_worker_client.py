@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import base64
 import binascii
-import re
 import time
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,15 +18,23 @@ from django.conf import settings
 from apps.contests.models import ExamIntegrityRun
 
 
-_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
-
-
 class _HttpClient(Protocol):
     def post(self, url: str, **kwargs) -> httpx.Response: ...
 
 
 class IntegrityWorkerError(RuntimeError):
     pass
+
+
+def sign_resident_request(*, method: str, path: str, run_id: UUID,
+                          revision: int, body: bytes, timestamp: int | None = None) -> dict[str, str]:
+    """Shared signature contract for resident control, receipts and recovery."""
+    timestamp = int(time.time()) if timestamp is None else timestamp
+    key = load_integrity_worker_private_key(settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE)
+    message = f"resident-v1\n{method}\n{path}\n{run_id}\n{revision}\n{timestamp}\n".encode("ascii") + body
+    return {"X-QJudge-Protocol": "resident-v1", "X-QJudge-Run-Id": str(run_id),
+            "X-QJudge-Revision": str(revision), "X-QJudge-Timestamp": str(timestamp),
+            "X-QJudge-Signature": base64.b64encode(key.sign(message)).decode("ascii")}
 
 
 class IntegrityWorkerUnavailable(IntegrityWorkerError):
@@ -144,50 +152,6 @@ class WorkerBatchAck:
         }
 
 
-@dataclass(frozen=True)
-class WorkerStopResult:
-    archived: bool
-    manifest_key: str
-    manifest_sha256: str
-
-    @classmethod
-    def model_validate(
-        cls,
-        payload,
-        *,
-        expected_manifest_key: str,
-    ) -> "WorkerStopResult":
-        if type(payload) is not dict or set(payload) != {
-            "archived",
-            "manifest_key",
-            "manifest_sha256",
-        }:
-            raise IntegrityWorkerProtocolError("invalid Worker Stop response")
-        archived = payload.get("archived")
-        manifest_key = payload.get("manifest_key")
-        manifest_sha256 = payload.get("manifest_sha256")
-        if (
-            archived is not True
-            or type(manifest_key) is not str
-            or manifest_key != expected_manifest_key
-            or type(manifest_sha256) is not str
-            or not _SHA256_RE.fullmatch(manifest_sha256)
-        ):
-            raise IntegrityWorkerProtocolError("invalid Worker Stop response")
-        return cls(
-            archived=True,
-            manifest_key=manifest_key,
-            manifest_sha256=manifest_sha256,
-        )
-
-    def as_dict(self) -> dict:
-        return {
-            "archived": self.archived,
-            "manifest_key": self.manifest_key,
-            "manifest_sha256": self.manifest_sha256,
-        }
-
-
 def load_integrity_worker_private_key(path: str) -> Ed25519PrivateKey:
     try:
         encoded = Path(path).read_bytes()
@@ -250,34 +214,39 @@ class IntegrityWorkerClient:
         path: str,
         body: bytes,
     ) -> httpx.Response:
-        timestamp = str(int(time.time()))
-        message = (
-            str(run.id).encode("ascii")
-            + b"\n"
-            + timestamp.encode("ascii")
-            + b"\n"
-            + body
+        from apps.contests.services.integrity_availability import (
+            acknowledge_outage,
+            outage_handoff,
+            record_outage,
         )
-        signature = base64.b64encode(
-            self.private_key.sign(message)
-        ).decode("ascii")
+
+        started_ms = time.time_ns() // 1_000_000
+        gap = outage_handoff(run.pk) if path.endswith("/batches") else None
+        if gap:
+            payload = json.loads(body)
+            envelope = payload if "batch" in payload else {"batch": payload, "late_unverified": False}
+            body = json.dumps({**envelope, "service_gap": gap}, separators=(",", ":"), sort_keys=True).encode()
+        headers = sign_resident_request(method="POST", path=path, run_id=run.pk,
+            revision=run.schedule_revision, body=body)
         try:
-            response = self.http.post(
-                f"{run.worker_url.rstrip('/')}{path}",
-                content=body,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-QJudge-Run-Id": str(run.id),
-                    "X-QJudge-Timestamp": timestamp,
-                    "X-QJudge-Signature": signature,
-                },
+            response = self.http.post(settings.INTEGRITY_RESIDENT_URL.rstrip("/") + path,
+                content=body, headers={**headers, "Content-Type": "application/json"},
                 timeout=httpx.Timeout(
                     self.read_timeout_seconds,
                     connect=self.connect_timeout_seconds,
-                ),
-            )
-        except (httpx.TimeoutException, httpx.ConnectError):
-            raise IntegrityWorkerUnavailable("Integrity Worker unavailable") from None
+                ))
+        except httpx.TransportError:
+            record_outage(run.pk, started_ms=started_ms)
+            raise IntegrityWorkerUnavailable("Integrity resident unavailable") from None
+        if response.status_code in {404, 429, 502, 503, 504, 507}:
+            record_outage(run.pk, started_ms=started_ms)
+            raise IntegrityWorkerUnavailable("Integrity resident unavailable")
+        if response.status_code == 200 and response.headers.get("X-QJudge-Protocol") != "resident-v1":
+            raise IntegrityWorkerProtocolError("resident capability not confirmed")
+        if gap and response.status_code == 200:
+            if response.headers.get("X-QJudge-Gap-Generation") != str(gap["generation"]):
+                raise IntegrityWorkerProtocolError("resident gap handoff not acknowledged")
+            acknowledge_outage(run.pk, gap["generation"])
         return response
 
     @staticmethod
@@ -317,30 +286,59 @@ class IntegrityWorkerClient:
             raise IntegrityWorkerProtocolError("invalid Worker ACK") from None
         return WorkerBatchAck.model_validate(payload)
 
-    def request_stop(self, run: ExamIntegrityRun) -> dict:
+    def student_progress(self, run, *, participant_id, device_id, attempt_id=None):
+        scope = {"participant_id": participant_id, "device_id": device_id}
+        if attempt_id is not None:
+            scope["attempt_id"] = str(attempt_id)
+        response = self._signed_post(run, path=f"/v1/runs/{run.pk}/progress",
+            body=json.dumps(scope, separators=(",", ":")).encode())
+        self._validate_status(response, rejection_statuses=frozenset({409, 422}))
+        try:
+            value = response.json()
+        except ValueError:
+            raise IntegrityWorkerProtocolError("invalid progress") from None
+        if (type(value) is not dict or set(value) - {"evidence_fence_version", "release_evidence_before_ms"} != {*scope, "received_seq", "processed_seq", "commands_drained"}
+                or any(value.get(key) != val for key, val in scope.items())
+                or type(value.get("commands_drained")) is not bool):
+            raise IntegrityWorkerProtocolError("invalid progress scope")
+        received = _strict_nonnegative_int(value, "received_seq")
+        processed = _strict_nonnegative_int(value, "processed_seq")
+        if processed > received:
+            raise IntegrityWorkerProtocolError("decision cursor exceeds receipt")
+        if "evidence_fence_version" in value:
+            if attempt_id is None or value["evidence_fence_version"] != "resident-evidence-fence-v1":
+                raise IntegrityWorkerProtocolError("unsupported evidence fence")
+            _strict_nonnegative_int(value, "release_evidence_before_ms")
+        else:
+            value["release_evidence_before_ms"] = 0
+        return value
+
+    def purge_run_data(self, run: ExamIntegrityRun) -> dict:
+        """Delete the retired Run's local resident storage.
+
+        Purge is only terminal once this succeeds: finalization retires a Run
+        from the registry but leaves its journal on the resident volume.
+        """
+        body = json.dumps(
+            {"expected_revision": run.schedule_revision}, separators=(",", ":")
+        ).encode()
         response = self._signed_post(
             run,
-            path=f"/v1/runs/{run.id}/control/stop",
-            body=b"",
+            path=f"/v1/runs/{run.id}/control/purge",
+            body=body,
         )
-        self._validate_status(
-            response,
-            rejection_statuses=frozenset({409, 422, 507}),
-        )
+        self._validate_status(response, rejection_statuses=frozenset({409, 422}))
         try:
             payload = response.json()
         except (ValueError, TypeError):
-            raise IntegrityWorkerProtocolError(
-                "invalid Worker Stop response"
-            ) from None
-        generation = max(1, run.archive_generation)
-        expected_manifest_key = (
-            f"runs/{run.id}/generation-{generation}/manifest.json"
-        )
-        return WorkerStopResult.model_validate(
-            payload,
-            expected_manifest_key=expected_manifest_key,
-        ).as_dict()
+            raise IntegrityWorkerProtocolError("invalid resident purge response") from None
+        if (
+            type(payload) is not dict
+            or payload.get("run_id") != str(run.id)
+            or payload.get("purged") is not True
+        ):
+            raise IntegrityWorkerProtocolError("resident purge not confirmed")
+        return payload
 
 
 def build_integrity_worker_client() -> IntegrityWorkerClient:

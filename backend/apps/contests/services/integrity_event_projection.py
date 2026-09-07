@@ -37,9 +37,17 @@ def event_penalized(event: ExamEvent) -> bool:
     integrity = metadata.get("integrity")
     if not isinstance(integrity, dict):
         return False
-    phase = integrity.get("phase")
-    action = integrity.get("action")
-    signals = event_definition(event).get("signals")
+    return registry_action_is_penalty(
+        integrity.get("phase"), integrity.get("action"), event_definition(event),
+    )
+
+
+def registry_action_is_penalty(phase, action, definition: dict) -> bool:
+    # System lifecycle records (entry/submission) are evidence of normal use,
+    # not violations. Explicit pause/lock/submit actions remain actionable.
+    if action == "record" and definition.get("priority") == 3:
+        return False
+    signals = definition.get("signals")
     incident_opening = bool(
         phase == "triggered"
         and action == "record"

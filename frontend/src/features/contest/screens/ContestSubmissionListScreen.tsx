@@ -476,7 +476,6 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
         submissionId={searchParams.get("submission_id")}
         isOpen={!!searchParams.get("submission_id")}
         onClose={handleCloseModal}
-        contestId={contestId}
       />
     </SurfaceSection>
   );

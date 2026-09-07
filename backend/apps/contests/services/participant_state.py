@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.db import transaction
 
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamAnswer,
     ExamEvent,
@@ -65,7 +66,8 @@ def _clear_lock_metadata(participant: ContestParticipant) -> list[str]:
 
 def _clear_attempt_metadata(participant: ContestParticipant) -> list[str]:
     """Clear lifecycle fields when resetting to not_started-like states."""
-    changed = []
+    from .integrity_upload_grants import rotate_integrity_attempt
+    changed = [rotate_integrity_attempt(participant)]
     if participant.started_at is not None:
         participant.started_at = None
         changed.append("started_at")
@@ -78,6 +80,14 @@ def _clear_attempt_metadata(participant: ContestParticipant) -> list[str]:
     return changed
 
 
+def _lock_attempt_transition(participant):
+    from .exam_schedule import lock_exam_runs
+    Contest.objects.select_for_update().get(pk=participant.contest_id)
+    lock_exam_runs(participant.contest_id)
+    return ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+
+
+@transaction.atomic
 def admin_update_participant(
     participant: ContestParticipant,
     *,
@@ -87,9 +97,14 @@ def admin_update_participant(
     activity_details: str,
 ) -> ContestParticipant:
     """Admin-driven participant field update with consistent lock metadata cleanup."""
+    participant = _lock_attempt_transition(participant)
     update_fields: list[str] = []
 
     if exam_status is not None:
+        if participant.exam_status == ExamStatus.SUBMITTED and exam_status in ACTIVE_EXAM_STATUSES:
+            from .integrity_upload_grants import rotate_integrity_attempt
+            participant.left_at, participant.submit_reason = None, ""
+            update_fields.extend([rotate_integrity_attempt(participant), "left_at", "submit_reason"])
         participant.exam_status = exam_status
         update_fields.append("exam_status")
         # If transitioning away from a locked state, clear lock metadata
@@ -119,6 +134,7 @@ def admin_update_participant(
     return participant
 
 
+@transaction.atomic
 def reopen_participant_exam(
     participant: ContestParticipant,
     *,
@@ -126,9 +142,12 @@ def reopen_participant_exam(
     activity_details: str,
 ) -> ContestParticipant:
     """Reopen a submitted exam back to PAUSED so the student can continue."""
+    participant = _lock_attempt_transition(participant)
     participant.exam_status = ExamStatus.PAUSED
     participant.submit_reason = ""
-    update_fields = ["exam_status", "submit_reason"]
+    from .integrity_upload_grants import rotate_integrity_attempt
+    participant.left_at = None
+    update_fields = ["exam_status", "submit_reason", "left_at", rotate_integrity_attempt(participant)]
     update_fields.extend(_clear_lock_metadata(participant))
     participant.save(update_fields=update_fields)
 
@@ -152,6 +171,7 @@ def reset_participant_exam_record(
     from apps.submissions.models import Submission
 
     with transaction.atomic():
+        participant = _lock_attempt_transition(participant)
         answer_qs = ExamAnswer.objects.filter(participant=participant)
         deleted_answers = answer_qs.count()
         answer_qs.delete()
@@ -175,6 +195,8 @@ def reset_participant_exam_record(
         ).count()
         event_qs.delete()
 
+        from .integrity_upload_grants import rotate_integrity_attempt
+        rotate_integrity_attempt(participant)
         participant.exam_status = ExamStatus.NOT_STARTED
         participant.score = 0
         participant.rank = None
@@ -195,6 +217,7 @@ def reset_participant_exam_record(
                 "lock_reason",
                 "violation_count",
                 "submit_reason",
+                "integrity_attempt_id",
             ]
         )
 

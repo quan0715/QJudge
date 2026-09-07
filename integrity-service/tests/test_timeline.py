@@ -7,7 +7,6 @@ from integrity_service.core.connectivity import ConnectivityMonitor
 from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import snapshot_event_record
 from integrity_service.core.registry import Registry
-from integrity_service.core.scheduler import DeadlineScheduler
 from integrity_service.core.schemas import EventBatch, EventRecord
 from integrity_service.core.sequencer import SessionSequencer
 from integrity_service.core.timeline import (
@@ -98,7 +97,7 @@ def test_health_snapshot_stays_in_raw_journal_without_becoming_a_semantic_event(
     assert subject._connectivity.next_transition_server_ms() == 16_000
 
 
-def test_exam_submission_closes_connectivity_and_scheduled_end_tracking():
+def test_exam_submission_closes_connectivity_tracking():
     registry = registry_snapshot()
     registry["definitions"]["exam_submit_initiated"] = {
         "id": "exam_submit_initiated",
@@ -125,7 +124,6 @@ def test_exam_submission_closes_connectivity_and_scheduled_end_tracking():
     }
     subject = timeline(
         TimelineBaseline(0, 0, (101,)),
-        scheduled_end_ms=100_000,
         snapshot=registry,
     )
     submitted = admitted_record(
@@ -145,16 +143,20 @@ def test_exam_submission_closes_connectivity_and_scheduled_end_tracking():
         ),
         records=(submitted,),
     )
+    # Evidence-drain receipts after submit do not restart an exam's timer.
+    drained = subject.apply(BatchReceiptEntry(
+        2, 2_000, UUID("00000000-0000-0000-0000-000000000710"), 101, "device-1",
+    ))
     later = subject.advance_to(100_000)
 
     assert [command.event_type for command in received] == ["exam_submit_initiated"]
+    assert drained == ()
     assert later == ()
 
 
 def timeline(
     baseline: TimelineBaseline,
     *,
-    scheduled_end_ms: int = 100_000,
     snapshot: dict | None = None,
 ) -> DecisionTimeline:
     registry = Registry(snapshot or registry_snapshot())
@@ -163,7 +165,6 @@ def timeline(
         baseline=baseline,
         incidents=IncidentEngine(registry, context),
         connectivity=ConnectivityMonitor(POLICY, registry, context),
-        scheduler=DeadlineScheduler(scheduled_end_ms, context),
     )
 
 
@@ -189,10 +190,9 @@ def test_timeline_contract_projects_durable_baseline_and_receipt_entries():
     assert received.to_json()["kind"] == "batch_receipt"
 
 
-def test_scheduled_end_wins_equal_time_tie_with_connectivity_timeout():
+def test_receipt_clock_advances_connectivity_without_submission_authority():
     subject = timeline(
         TimelineBaseline(0, 0, (101,)),
-        scheduled_end_ms=61_000,
     )
     forged_server_signal = admitted_record(
         seq=1,
@@ -215,7 +215,6 @@ def test_scheduled_end_wins_equal_time_tie_with_connectivity_timeout():
 
     assert [(command.event_type, command.action) for command in commands] == [
         ("connectivity_suspect", "record"),
-        ("scheduled_end", "submit"),
         ("connectivity_timeout", "pause"),
     ]
 

@@ -1,9 +1,5 @@
 // Problem Hooks - Main exports
 
-// Problem detail hooks
-export { ProblemProvider, useProblem } from "./useProblem";
-export { useProblemDetail } from "./useProblemDetail";
-
 // Solver hooks
 export { useProblemSolver } from "./useProblemSolver";
 

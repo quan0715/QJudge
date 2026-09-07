@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
-import re
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone as datetime_timezone
 from uuid import UUID
@@ -18,6 +18,7 @@ from apps.contests.infrastructure.integrity_worker_client import (
     load_integrity_worker_private_key,
 )
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamEvent,
     ExamIntegrityRun,
@@ -26,15 +27,9 @@ from apps.contests.models import (
 from apps.contests.services.activity_log import log_contest_activity
 from apps.contests.services.anticheat_storage import get_s3_client
 from apps.contests.services.exam_submission import finalize_submission
+from apps.contests.services.integrity_event_projection import registry_action_is_penalty
 
 
-_ALLOWED_COMPUTE_STATES = frozenset(
-    {
-        ExamIntegrityRun.ComputeState.STARTING,
-        ExamIntegrityRun.ComputeState.RUNNING,
-        ExamIntegrityRun.ComputeState.STOPPING,
-    }
-)
 _ACTIONS = frozenset({"audit", "record", "pause", "lock", "submit"})
 _REGISTRY_ACTIONS = {
     "audit": "audit",
@@ -51,15 +46,6 @@ _CONNECTIVITY_TRANSITIONS = frozenset(
         "connectivity_restored",
     }
 )
-_ARCHIVE_CONTENT_TYPES = frozenset(
-    {
-        "application/gzip",
-        "application/json",
-    }
-)
-_SHA256_RE = re.compile(r"[0-9a-fA-F]{64}\Z")
-_SEGMENT_SUFFIX_RE = re.compile(r"segments/[0-9]{8}\.journal\.gz\Z")
-_DUMMY_TOKEN_DIGEST = "0" * 64
 class IntegrityCommandRejected(ValueError):
     def __init__(self, code: str, *, command_id: str = "") -> None:
         super().__init__(code)
@@ -93,34 +79,35 @@ class RecordIntegrityEvent:
     command_semantics: dict[str, object]
 
 
-def authenticate_integrity_run(
-    run_id: UUID,
-    token_bytes: bytes,
-) -> tuple[ExamIntegrityRun | None, str]:
-    """Resolve one URL-scoped run without exposing whether that run exists."""
+def resident_service_digest() -> str:
+    token = Path(settings.INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE).read_text().strip()
+    if not token or not token.isascii() or any(c.isspace() for c in token):
+        raise ValueError("resident credential unavailable")
+    return hashlib.sha256(token.encode("ascii")).hexdigest()
 
-    actual_digest = hashlib.sha256(token_bytes).hexdigest()
-    run = (
-        ExamIntegrityRun.objects.select_related("contest")
-        .filter(pk=run_id)
-        .first()
-    )
-    expected_digest = (
-        run.token_digest
-        if run is not None and _SHA256_RE.fullmatch(run.token_digest or "")
-        else _DUMMY_TOKEN_DIGEST
-    )
-    digest_matches = hmac.compare_digest(actual_digest, expected_digest)
-    now = timezone.now()
-    valid = bool(
-        run is not None
-        and digest_matches
-        and run.compute_state in _ALLOWED_COMPUTE_STATES
-        and run.token_revoked_at is None
-        and run.token_expires_at is not None
-        and run.token_expires_at > now
-    )
-    return (run if valid else None, actual_digest)
+
+def authenticate_resident_service(token: str) -> str | None:
+    if not token or not token.isascii() or any(c.isspace() for c in token):
+        return None
+    digest = hashlib.sha256(token.encode("ascii")).hexdigest()
+    return digest if hmac.compare_digest(digest, resident_service_digest()) else None
+
+
+def resident_run_scope(run) -> bool:
+    return bool(run is not None
+                and run.session_state in {"prepared", "active", "draining"}
+                and run.data_state == "open")
+
+
+def build_resident_descriptor(run) -> dict:
+    if not resident_run_scope(run) or run.scheduled_start_at is None or run.accept_until is None:
+        raise IntegrityCommandRejected("invalid_integrity_run_scope")
+    return {"protocol": "resident-v1", "bootstrap": build_integrity_bootstrap(run),
+            "schedule_revision": run.schedule_revision,
+            "scheduled_start_ms": int(run.scheduled_start_at.timestamp() * 1000),
+            "scheduled_end_ms": int(run.scheduled_end_at.timestamp() * 1000),
+            "accept_until_ms": int(run.accept_until.timestamp() * 1000),
+            "session_state": run.session_state}
 
 
 def backend_signing_public_key_b64() -> str:
@@ -355,10 +342,7 @@ def _normalize_command(raw: object, run_id: UUID) -> tuple[dict[str, object], st
     kind = command.get("kind")
     if kind not in {
         "record_event",
-        "auto_submit",
         "update_run_checkpoint",
-        "create_archive_upload",
-        "publish_archive_manifest",
     }:
         raise IntegrityCommandRejected(
             "unsupported_command_kind",
@@ -422,12 +406,7 @@ def _normalize_command(raw: object, run_id: UUID) -> tuple[dict[str, object], st
         "evidence",
         "metadata",
     }
-    allowed_fields = (
-        {"command_id", "run_id", "kind", "metadata"}
-        if kind in {"create_archive_upload", "publish_archive_manifest"}
-        else common_fields
-    )
-    if set(command) - allowed_fields:
+    if set(command) - common_fields:
         raise IntegrityCommandRejected(
             "invalid_command_fields",
             command_id=command_id,
@@ -593,17 +572,7 @@ def _apply_registry_action(
     signals = definition.get("signals")
     if type(signals) is not dict:
         raise IntegrityCommandRejected("invalid_frozen_registry")
-    is_incident_opening_record = bool(
-        phase == "triggered"
-        and action == "record"
-        and (signals.get("escalated") or signals.get("restored"))
-    )
-    is_actionable_violation = bool(
-        phase in {"triggered", "escalated"}
-        and action in {"record", "pause", "lock", "submit"}
-        and not is_incident_opening_record
-    )
-    if is_actionable_violation:
+    if registry_action_is_penalty(phase, action, definition):
         participant.violation_count += 1
         update_fields.append("violation_count")
 
@@ -650,8 +619,10 @@ def _apply_registry_action(
 
 @transaction.atomic
 def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
+    contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=command.run_id)
+    Contest.objects.select_for_update().get(pk=contest_id)
     run = (
-        ExamIntegrityRun.objects.select_for_update()
+        ExamIntegrityRun.objects.select_for_update(of=("self",))
         .select_related("contest")
         .get(pk=command.run_id)
     )
@@ -693,10 +664,24 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
     if existing is not None:
         return existing
 
+    late_unverified = False
+    from .integrity_availability import connectivity_overlaps_observed_gap
+    platform_gap = connectivity_overlaps_observed_gap(run, command)
+    from apps.contests.models import IntegrityBatchAdmission
+    try:
+        receipt_id = UUID(str(command.metadata.get("receipt_batch_id")))
+    except (ValueError, TypeError, AttributeError):
+        receipt_id = None
+    late_unverified = not IntegrityBatchAdmission.objects.filter(
+        run=run, participant=participant, device_id=command.device_id,
+        attempt_id=participant.integrity_attempt_id, batch_id=receipt_id,
+        late_unverified=False).exists()
     effective_action = (
         "audit"
         if (
             command.delayed_delivery
+            or late_unverified
+            or platform_gap
             or participant.exam_status == ExamStatus.SUBMITTED
         )
         else command.action
@@ -710,6 +695,9 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "phase": phase,
         "requested_action": command.action,
         "command_fingerprint": command.command_fingerprint,
+        "late_unverified": late_unverified,
+        **({"evidence_gap": command.metadata["evidence_gap"]} if command.metadata.get("evidence_gap") else {}),
+        **({"suppressed_reason": "platform_gap"} if platform_gap else {}),
     }
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -729,8 +717,13 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         delayed_delivery=command.delayed_delivery,
         metadata=metadata,
     )
+    if platform_gap:
+        run.metrics = {**run.metrics, "backend_suppressed_connectivity_commands":
+                       run.metrics.get("backend_suppressed_connectivity_commands", 0) + 1}
+        run.save(update_fields=["metrics", "updated_at"])
     if (
         not command.delayed_delivery
+        and not late_unverified
         and participant.exam_status != ExamStatus.SUBMITTED
     ):
         _apply_registry_action(
@@ -861,136 +854,6 @@ def _record_event_command(
         status="already_applied" if before else "applied",
         result={},
     )
-
-
-def _auto_submit_command(
-    run: ExamIntegrityRun,
-    command: dict[str, object],
-    command_id: str,
-) -> CommandOutcome:
-    participant_id = _positive_int(
-        command.get("participant_id"),
-        "invalid_participant_id",
-    )
-    participant = (
-        ContestParticipant.objects.select_for_update()
-        .select_related("contest", "user")
-        .filter(pk=participant_id, contest_id=run.contest_id)
-        .first()
-    )
-    if participant is None:
-        raise IntegrityCommandRejected("participant_run_scope_mismatch")
-    if command.get("event_type") not in {None, "scheduled_end"}:
-        raise IntegrityCommandRejected("invalid_auto_submit_event")
-    if command.get("action") not in {None, "submit"}:
-        raise IntegrityCommandRejected("invalid_command_action")
-    metadata = _json_object(command.get("metadata", {}), "invalid_command_metadata")
-    if set(metadata) != {"scheduled_end_ms"}:
-        raise IntegrityCommandRejected("invalid_auto_submit_metadata")
-    scheduled_end_ms = _nonnegative_int(
-        metadata.get("scheduled_end_ms"),
-        "invalid_command_timestamp",
-    )
-    if run.scheduled_end_at is not None and abs(
-        scheduled_end_ms - int(run.scheduled_end_at.timestamp() * 1000)
-    ) > 1:
-        raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
-    client_ms = _nonnegative_int(
-        command.get("client_occurred_at_ms", scheduled_end_ms),
-        "invalid_command_timestamp",
-    )
-    if abs(client_ms - scheduled_end_ms) > 1:
-        raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
-    raw_received_ms = command.get("received_at_server_ms")
-    received_ms = _nonnegative_int(
-        command.get("received_at_server_ms", scheduled_end_ms),
-        "invalid_command_timestamp",
-    )
-    processed_ms = command.get("worker_processed_at_ms")
-    worker_processed_at = (
-        timezone.now()
-        if processed_ms is None
-        else _milliseconds_datetime(
-            _nonnegative_int(processed_ms, "invalid_command_timestamp")
-        )
-    )
-    delayed_delivery = command.get("delayed_delivery", False)
-    if delayed_delivery is not False:
-        raise IntegrityCommandRejected("invalid_delayed_delivery")
-    incident_id = _optional_uuid(
-        command.get("incident_id"),
-        "invalid_incident_id",
-    )
-    if incident_id is not None:
-        raise IntegrityCommandRejected("invalid_auto_submit_incident")
-    evidence = _json_object(
-        command.get("evidence", {}),
-        "invalid_event_evidence",
-    )
-    if evidence:
-        raise IntegrityCommandRejected("invalid_auto_submit_evidence")
-    device_id = _strict_string(
-        command.get("device_id", "scheduler"),
-        "invalid_device_id",
-        max_length=128,
-    )
-    command_semantics = {
-        "kind": "auto_submit",
-        "run_id": str(run.id),
-        "participant_id": participant.id,
-        "device_id": device_id,
-        "incident_id": None,
-        "event_type": "scheduled_end",
-        "action": "submit",
-        "client_occurred_at_ms": client_ms,
-        "received_at_server_ms": raw_received_ms,
-        "worker_processed_at_ms": processed_ms,
-        "delayed_delivery": False,
-        "evidence": evidence,
-        "metadata": metadata,
-    }
-    command_fingerprint = _command_fingerprint(command_semantics)
-    existing = _existing_command_event(
-        command_id=UUID(command_id),
-        run_id=run.id,
-        participant_id=participant.id,
-        event_type="scheduled_end",
-        command_fingerprint=command_fingerprint,
-        command_semantics=command_semantics,
-    )
-    if existing is not None:
-        return CommandOutcome(command_id, "already_applied", {})
-
-    event = ExamEvent.objects.create(
-        contest=run.contest,
-        user=participant.user,
-        integrity_run=run,
-        integrity_command_id=UUID(command_id),
-        event_type="scheduled_end",
-        event_definition_version=run.registry_version,
-        event_schema_version=1,
-        client_occurred_at_ms=client_ms,
-        server_received_at=_milliseconds_datetime(received_ms),
-        worker_processed_at=worker_processed_at,
-        delayed_delivery=False,
-        metadata={
-            **metadata,
-            "integrity": {
-                "action": "submit",
-                "device_id": device_id,
-                "command_fingerprint": command_fingerprint,
-            },
-        },
-    )
-    if participant.exam_status != ExamStatus.SUBMITTED:
-        finalize_submission(
-            participant,
-            submit_reason="Auto-submitted: scheduled exam end",
-            activity_user=participant.user,
-            activity_action_type="auto_submit",
-            activity_details="Auto-submitted: scheduled exam end",
-        )
-    return CommandOutcome(command_id, "applied", {"event_id": event.id})
 
 
 def _monotonic_counts(
@@ -1141,198 +1004,32 @@ def _checkpoint_command(
     return CommandOutcome(command_id, "applied", {})
 
 
-def _validate_archive_object_key(
-    run: ExamIntegrityRun,
-    *,
-    object_key: object,
-    generation: int,
-    manifest: bool,
-) -> str:
-    object_key = _strict_string(
-        object_key,
-        "invalid_archive_object_key",
-        max_length=2048,
-    )
-    prefix = f"runs/{run.id}/generation-{generation}/"
-    if not object_key.startswith(prefix):
-        raise IntegrityCommandRejected("archive_run_scope_mismatch")
-    suffix = object_key[len(prefix):]
-    if manifest:
-        valid = suffix == "manifest.json"
-    else:
-        valid = bool(_SEGMENT_SUFFIX_RE.fullmatch(suffix)) or suffix == "manifest.json"
-    if not valid:
-        raise IntegrityCommandRejected("invalid_archive_object_key")
-    return object_key
-
-
-def _archive_upload_command(
-    run: ExamIntegrityRun,
-    command: dict[str, object],
-    command_id: str,
-) -> CommandOutcome:
-    metadata = _json_object(command.get("metadata"), "invalid_command_metadata")
-    if set(metadata) != {
-        "object_key",
-        "sha256",
-        "byte_length",
-        "content_type",
-        "generation",
-    }:
-        raise IntegrityCommandRejected("invalid_archive_upload_metadata")
-    generation = _positive_int(
-        metadata.get("generation"),
-        "invalid_archive_generation",
-    )
-    if generation != _expected_archive_generation(run):
-        raise IntegrityCommandRejected("archive_generation_mismatch")
-    object_key = _validate_archive_object_key(
-        run,
-        object_key=metadata.get("object_key"),
-        generation=generation,
-        manifest=False,
-    )
-    sha256 = _strict_string(
-        metadata.get("sha256"),
-        "invalid_archive_sha256",
-        max_length=64,
-    ).lower()
-    if not _SHA256_RE.fullmatch(sha256):
-        raise IntegrityCommandRejected("invalid_archive_sha256")
-    byte_length = _positive_int(
-        metadata.get("byte_length"),
-        "invalid_archive_byte_length",
-    )
-    content_type = metadata.get("content_type")
-    if content_type not in _ARCHIVE_CONTENT_TYPES:
-        raise IntegrityCommandRejected("invalid_archive_content_type")
-    upload_url = generate_archive_put_url(
-        bucket=_archive_bucket(),
-        object_key=object_key,
-        content_type=str(content_type),
-        sha256=sha256,
-        byte_length=byte_length,
-    )
-    return CommandOutcome(
-        command_id,
-        "applied",
-        {
-            "command_id": command_id,
-            "object_key": object_key,
-            "upload_url": upload_url,
-            "checksum_sha256": sha256,
-            "checksum_enforced": True,
-        },
-    )
-
-
-def _publish_manifest_command(
-    run: ExamIntegrityRun,
-    command: dict[str, object],
-    command_id: str,
-) -> CommandOutcome:
-    metadata = _json_object(command.get("metadata"), "invalid_command_metadata")
-    if set(metadata) - {
-        "object_key",
-        "sha256",
-        "generation",
-        "archived_counts",
-    } or not {"object_key", "sha256", "generation"}.issubset(metadata):
-        raise IntegrityCommandRejected("invalid_archive_manifest_metadata")
-    generation = _positive_int(
-        metadata.get("generation"),
-        "invalid_archive_generation",
-    )
-    object_key = _validate_archive_object_key(
-        run,
-        object_key=metadata.get("object_key"),
-        generation=generation,
-        manifest=True,
-    )
-    sha256 = _strict_string(
-        metadata.get("sha256"),
-        "invalid_archive_sha256",
-        max_length=64,
-    ).lower()
-    if not _SHA256_RE.fullmatch(sha256):
-        raise IntegrityCommandRejected("invalid_archive_sha256")
-
-    if run.archive_manifest_key:
-        if (
-            generation == run.archive_generation
-            and object_key == run.archive_manifest_key
-            and hmac.compare_digest(sha256, run.archive_manifest_sha256)
-        ):
-            return CommandOutcome(command_id, "already_applied", {})
-    expected_generation = _expected_archive_generation(run)
-    if generation != expected_generation:
-        raise IntegrityCommandRejected(
-            "stale_archive_generation"
-            if generation < expected_generation
-            else "archive_generation_mismatch"
-        )
-
-    archived_counts = metadata.get("archived_counts")
-    if archived_counts is not None:
-        run.archived_counts = _monotonic_counts(
-            run.archived_counts,
-            archived_counts,
-            "invalid_archived_counts",
-        )
-    run.archive_generation = generation
-    run.archive_manifest_key = object_key
-    run.archive_manifest_sha256 = sha256
-    update_fields = [
-        "archive_generation",
-        "archive_manifest_key",
-        "archive_manifest_sha256",
-        "updated_at",
-    ]
-    if archived_counts is not None:
-        update_fields.append("archived_counts")
-    if run.compute_state == ExamIntegrityRun.ComputeState.STOPPING:
-        run.data_state = ExamIntegrityRun.DataState.ARCHIVED
-        update_fields.append("data_state")
-    run.save(update_fields=update_fields)
-    return CommandOutcome(command_id, "applied", {})
-
-
 @transaction.atomic
 def execute_integrity_command(
     run_id: UUID,
     raw_command: object,
     *,
-    authenticated_token_digest: str,
+    authenticated_service_digest: str,
 ) -> CommandOutcome:
     command, command_id = _normalize_command(raw_command, run_id)
+    contest_id = ExamIntegrityRun.objects.filter(pk=run_id).values_list("contest_id", flat=True).first()
+    if contest_id is not None:
+        Contest.objects.select_for_update().get(pk=contest_id)
     run = (
-        ExamIntegrityRun.objects.select_for_update()
+        ExamIntegrityRun.objects.select_for_update(of=("self",))
         .select_related("contest")
         .filter(pk=run_id)
         .first()
     )
-    if (
-        run is None
-        or run.compute_state not in _ALLOWED_COMPUTE_STATES
-        or run.token_revoked_at is not None
-        or run.token_expires_at is None
-        or run.token_expires_at <= timezone.now()
-        or not hmac.compare_digest(
-            run.token_digest or _DUMMY_TOKEN_DIGEST,
-            authenticated_token_digest,
-        )
-    ):
+    # Recheck the service identity after acquiring the Run lock, including
+    # credential rotation and immutable execution ownership.
+    if (not resident_run_scope(run)
+            or not hmac.compare_digest(resident_service_digest(), authenticated_service_digest)):
         raise IntegrityCommandRejected("invalid_integrity_run_scope")
 
     kind = command["kind"]
     if kind == "record_event":
         return _record_event_command(run, command, command_id)
-    if kind == "auto_submit":
-        return _auto_submit_command(run, command, command_id)
     if kind == "update_run_checkpoint":
         return _checkpoint_command(run, command, command_id)
-    if kind == "create_archive_upload":
-        return _archive_upload_command(run, command, command_id)
-    if kind == "publish_archive_manifest":
-        return _publish_manifest_command(run, command, command_id)
     raise AssertionError("validated command kind is not handled")

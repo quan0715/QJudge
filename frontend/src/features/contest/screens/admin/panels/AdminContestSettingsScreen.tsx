@@ -16,6 +16,7 @@ import {
 } from "@/infrastructure/api/repositories";
 import { sanitizeAnticheatPolicy } from "@/features/contest/components/admin/settings/anticheatPolicyUtils";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
+import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 
 const isValidDate = (date: Date | null | undefined): date is Date =>
   !!date && !Number.isNaN(date.getTime());
@@ -81,9 +82,14 @@ const isValueEqual = (left: unknown, right: unknown): boolean => {
 interface ContestSettingsOverlayProps {
   open: boolean;
   onClose: () => void;
+  initialSection?: ContestSettingsSectionId;
 }
 
-const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) => {
+const ContestSettingsOverlay = ({
+  open,
+  onClose,
+  initialSection,
+}: ContestSettingsOverlayProps) => {
   const { contestId } = useParams<{ contestId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation("contest");
@@ -273,6 +279,7 @@ const ContestSettingsOverlay = ({ open, onClose }: ContestSettingsOverlayProps) 
       <ContestSettingsModal
         open={open}
         onRequestClose={onClose}
+        initialActiveId={initialSection}
         t={t}
         tc={tc}
         contest={contest}

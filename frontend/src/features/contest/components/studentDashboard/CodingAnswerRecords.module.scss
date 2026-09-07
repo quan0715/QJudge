@@ -1,0 +1,30 @@
+@use "@carbon/layout";
+.root { min-width: 0; }
+.columns, .summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem 7rem 5rem;
+  gap: layout.$spacing-05;
+  align-items: center;
+}
+.columns {
+  padding: layout.$spacing-04 layout.$spacing-07 layout.$spacing-04 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+.summary { width: 100%; min-width: 0; padding-block: layout.$spacing-03; }
+.title { overflow-wrap: anywhere; font-weight: 600; }
+.mobileLabel { display: none; }
+@media (max-width: 672px) {
+  .columns { display: none; }
+  .mobileLabel { display: inline; }
+  .summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: layout.$spacing-03;
+  }
+}
+
+.summary .badge {
+  justify-self: start;
+  width: fit-content;
+  margin: 0;
+}

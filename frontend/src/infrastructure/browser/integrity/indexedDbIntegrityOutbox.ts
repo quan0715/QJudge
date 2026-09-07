@@ -32,6 +32,7 @@ interface StoredRecord extends ExamIntegrityRecord {
 }
 
 interface StoredMeta {
+  attemptId?: string;
   runId: string;
   deviceId: string;
   nextSeq: number;
@@ -52,6 +53,8 @@ interface StoredBatchHeaders {
 }
 
 export interface IndexedDbIntegrityOutboxOptions {
+  attemptId?: string;
+  nextSequence?: number;
   runId: string;
   participantId: number;
   deviceId: string;
@@ -293,22 +296,46 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
   private readonly options: Required<
       Pick<IndexedDbIntegrityOutboxOptions, "runId" | "participantId" | "deviceId" | "registryVersion" | "clientBuild">
     > &
-      Pick<IndexedDbIntegrityOutboxOptions, "now" | "monotonicNow" | "createId">;
+      Pick<IndexedDbIntegrityOutboxOptions, "now" | "monotonicNow" | "createId" | "attemptId" | "nextSequence">;
 
   private constructor(
     database: IDBDatabase,
     options: Required<
       Pick<IndexedDbIntegrityOutboxOptions, "runId" | "participantId" | "deviceId" | "registryVersion" | "clientBuild">
     > &
-      Pick<IndexedDbIntegrityOutboxOptions, "now" | "monotonicNow" | "createId">,
+      Pick<IndexedDbIntegrityOutboxOptions, "now" | "monotonicNow" | "createId" | "attemptId" | "nextSequence">,
   ) {
     this.database = database;
     this.options = options;
   }
 
   static async open(options: IndexedDbIntegrityOutboxOptions): Promise<IndexedDbIntegrityOutbox> {
+    if (options.attemptId && (!Number.isSafeInteger(options.nextSequence) || options.nextSequence! < 1)) {
+      throw new Error("Resident outbox requires an authoritative next sequence");
+    }
     const database = await openDatabase(options.databaseName ?? DATABASE_NAME);
+    if (options.attemptId) {
+      const transaction = database.transaction([META_STORE, RECORDS_STORE], "readwrite");
+      const done = transactionDone(transaction);
+      const store = transaction.objectStore(META_STORE);
+      const key = [options.runId, options.deviceId];
+      const meta = await requestResult(store.get(key)) as StoredMeta | undefined;
+      const count = await requestResult(transaction.objectStore(RECORDS_STORE).count(recordRange(options.runId, options.deviceId)));
+      if (meta && meta.attemptId !== options.attemptId && count > 0) {
+        await done;
+        database.close();
+        throw new Error("Unresolved records belong to a previous integrity attempt; local data preserved");
+      }
+      const nextSeq = Math.max(meta?.nextSeq ?? 1, options.nextSequence!);
+      store.put(meta?.attemptId === options.attemptId && count > 0 ? meta : {
+        runId: options.runId, deviceId: options.deviceId, attemptId: options.attemptId,
+        nextSeq, ackedThroughSeq: nextSeq - 1,
+      });
+      await done;
+    }
     return new IndexedDbIntegrityOutbox(database, {
+      attemptId: options.attemptId,
+      nextSequence: options.nextSequence,
       runId: options.runId,
       participantId: options.participantId,
       deviceId: options.deviceId,
@@ -335,6 +362,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         nextSeq: 1,
         ackedThroughSeq: 0,
       };
+      this.assertAttempt(meta);
       const now = this.options.now!();
       assertSafeInteger(signal.clientOccurredAtMs, "clientOccurredAtMs");
       if (signal.clientOccurredAtMs < 0) {
@@ -348,6 +376,17 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       const monotonicMs = this.options.monotonicNow!();
       assertFiniteNonNegative(monotonicMs, "monotonicMs");
       assertJsonValue(signal.payload);
+      let payload = signal.payload;
+      if (signal.evidenceFenceBeforeMs !== undefined) {
+        assertSafeInteger(signal.evidenceFenceBeforeMs, "evidenceFenceBeforeMs");
+        if (!this.options.attemptId || signal.eventType !== "health_snapshot" || signal.evidenceFenceBeforeMs < 0) {
+          throw new Error("Evidence fence requires a resident health snapshot");
+        }
+        payload = { ...signal.payload, evidence_fence: {
+          version: "resident-evidence-fence-v1", attempt_id: this.options.attemptId,
+          through_seq: meta.nextSeq, before_client_ms: signal.evidenceFenceBeforeMs,
+        } };
+      }
       const eventId = this.options.createId!();
       assertUuid(eventId, "eventId");
       const stored: StoredRecord = {
@@ -361,7 +400,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         clientOccurredAtMs: signal.clientOccurredAtMs,
         clientRecordedAtMs: now,
         monotonicMs,
-        payload: signal.payload,
+        payload,
         evidenceDescriptors: signal.evidenceDescriptors ?? [],
         acked: false,
       };
@@ -412,6 +451,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         await done;
         return null;
       }
+      this.assertAttempt(meta);
       const allRecords = sortBySeq(
         (await requestResult(recordsStore.getAll(recordRange(this.options.runId, this.options.deviceId)))) as StoredRecord[],
       );
@@ -430,7 +470,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         }
       } else {
         selected = [];
-        let expectedSeq = meta.ackedThroughSeq + 1;
+        let expectedSeq = this.options.attemptId ? allRecords[0]?.seq : meta.ackedThroughSeq + 1;
         const candidateBatchId = this.options.createId!();
         assertUuid(candidateBatchId, "batchId");
         headers = {
@@ -490,6 +530,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         metaStore.get([this.options.runId, this.options.deviceId]),
       ) as StoredMeta | undefined;
       const headers = meta?.inflightBatch;
+      this.assertAttempt(meta);
       if (!meta || !headers) {
         throw new Error("ACK received without a claimed integrity batch");
       }
@@ -504,6 +545,30 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
       );
       const firstClaimedSeq = claimed[0]?.seq;
       const lastClaimedSeq = claimed[claimed.length - 1]?.seq;
+      if (this.options.attemptId) {
+        if (seq < 0) throw new Error("ACK cursor must be nonnegative");
+        // A stream cursor can lag a gapped batch or pass it after an earlier
+        // hole closes. Preserve the full leased body until wholly acknowledged;
+        // never prune records that were not part of this admitted batch.
+        if (lastClaimedSeq !== undefined && seq >= lastClaimedSeq) {
+          for (const record of claimed) {
+            recordsStore.delete([runId, deviceId, record.seq]);
+            for (const summary of record.evidenceDescriptors) {
+              const descriptor = await requestResult(descriptorStore.get([
+                runId, deviceId, summary.localDescriptorId,
+              ])) as { batchAcked?: boolean; attemptId?: string; participantId?: number } | undefined;
+              if (descriptor?.attemptId === this.options.attemptId && descriptor.participantId === this.options.participantId) {
+                descriptorStore.put({ ...descriptor, batchAcked: true });
+              }
+            }
+          }
+          delete meta.inflightBatch;
+        }
+        meta.ackedThroughSeq = Math.max(meta.ackedThroughSeq, seq);
+        metaStore.put(meta);
+        await done;
+        return;
+      }
       if (
         firstClaimedSeq === undefined
         || lastClaimedSeq === undefined
@@ -564,6 +629,7 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
         await done;
         return;
       }
+      this.assertAttempt(meta);
       const allRecords = await requestResult(
         recordsStore.getAll(recordRange(this.options.runId, this.options.deviceId)),
       ) as StoredRecord[];
@@ -599,5 +665,22 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
 
   async close(): Promise<void> {
     this.database.close();
+  }
+
+  async lastSequence(): Promise<number> {
+    const transaction = this.database.transaction(META_STORE, "readonly");
+    const done = transactionDone(transaction);
+    const meta = await requestResult(transaction.objectStore(META_STORE).get([
+      this.options.runId, this.options.deviceId,
+    ])) as StoredMeta | undefined;
+    await done;
+    this.assertAttempt(meta);
+    return (meta?.nextSeq ?? 1) - 1;
+  }
+
+  private assertAttempt(meta: StoredMeta | undefined): void {
+    if (this.options.attemptId && meta?.attemptId !== this.options.attemptId) {
+      throw new Error("Integrity attempt changed; local records remain under their original owner");
+    }
   }
 }

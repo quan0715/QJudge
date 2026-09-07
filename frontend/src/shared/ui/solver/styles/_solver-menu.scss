@@ -11,17 +11,6 @@
 }
 
 // ==============================================
-// Shared Item Content - 正方形置中容器
-// ==============================================
-.solver-item-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--solver-item-size);
-  height: var(--solver-item-size);
-}
-
-// ==============================================
 // Resize Handle - 用於 react-resizable-panels
 // ==============================================
 .solver-resize-handle {
@@ -60,42 +49,42 @@
   width: 100%;
   height: 100%;
   position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   // Use shared item size
   --solver-menu-row-height: var(--solver-item-size);
-  --solver-menu-indicator-width: #{layout.$spacing-02};
-  --solver-menu-header-height: 0; // No header - items start from top
 
 }
 
 .solver-menu__list {
-  padding: 0;
-}
-
-// Selection Indicator
-.solver-menu__indicator {
-  position: absolute;
-  left: 0;
-  width: var(--solver-menu-indicator-width);
-  height: var(--solver-menu-row-height);
-  background-color: var(--cds-interactive);
-  z-index: 10;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
 }
 
 // Problem Item
 .solver-menu__item {
+  display: flex;
+  align-items: center;
+  color: var(--cds-text-primary);
   cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: var(--solver-menu-row-height);
-  border-left: var(--solver-menu-indicator-width) solid transparent;
+  min-height: var(--solver-menu-row-height);
+  padding: 0;
   position: relative;
+  justify-content: center;
+
+  &[data-solved="true"] {
+    color: var(--cds-support-success);
+  }
 
   &[data-active="true"] {
-    background-color: var(--cds-layer-02);
-
-    .solver-menu__label {
-      color: var(--cds-interactive);
-    }
+    color: var(--cds-interactive);
   }
 
   &:hover {
@@ -109,5 +98,5 @@
   font-size: var(--cds-body-compact-02-font-size);
   font-weight: var(--cds-body-compact-02-font-weight);
   line-height: var(--cds-body-compact-02-line-height);
-  color: var(--cds-text-primary);
+  color: inherit;
 }

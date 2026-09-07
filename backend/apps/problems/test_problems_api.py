@@ -1,8 +1,9 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.contrib.auth import get_user_model
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -11,6 +12,11 @@ from apps.submissions.models import Submission
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 
+
+class RetiredProblemRoutesTests(SimpleTestCase):
+    def test_drafts_collection_endpoint_is_retired(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse('management-problems:problem-drafts')
 
 
 class ProblemPermissionTests(TestCase):

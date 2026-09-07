@@ -1,3 +1,4 @@
+import { SubmissionVerdictTag } from "@/shared/ui/submission/SubmissionVerdictTag";
 import React from "react";
 import {
   DataTable,
@@ -10,7 +11,6 @@ import {
   TableContainer,
   TableToolbar,
   TableToolbarContent,
-  Tag,
   Button,
   Dropdown,
   Toggle,
@@ -79,27 +79,7 @@ export const SubmissionTable: React.FC<SubmissionTableProps> = ({
   onRefresh,
   isRefreshing = false,
 }) => {
-  const getStatusTag = (status: string) => {
-    // ... (existing helper) ...
-    const statusConfig: Record<string, { type: any; label: string }> = {
-      AC: { type: "green", label: "AC" },
-      WA: { type: "red", label: "WA" },
-      TLE: { type: "magenta", label: "TLE" },
-      MLE: { type: "magenta", label: "MLE" },
-      RE: { type: "red", label: "RE" },
-      CE: { type: "gray", label: "CE" },
-      pending: { type: "gray", label: "Pending" },
-      judging: { type: "blue", label: "Judging" },
-      SE: { type: "red", label: "SE" },
-    };
 
-    const config = statusConfig[status] || { type: "gray", label: status };
-    return (
-      <Tag type={config.type} size="sm">
-        {config.label}
-      </Tag>
-    );
-  };
 
   const getLanguageLabel = (lang: string) => {
     const langMap: Record<string, string> = {
@@ -160,7 +140,7 @@ export const SubmissionTable: React.FC<SubmissionTableProps> = ({
   const rows = submissions.map((sub) => {
     const row: Record<string, any> = {
       id: sub.id,
-      status: getStatusTag(sub.status),
+      status: <SubmissionVerdictTag status={sub.status} />,
       language: getLanguageLabel(sub.language),
       time: `${sub.exec_time} ms`,
       created_at: formatDate(sub.created_at),

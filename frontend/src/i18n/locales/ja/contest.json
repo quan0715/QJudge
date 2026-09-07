@@ -278,6 +278,71 @@
         "paperExam": "試験問題"
       }
     },
+    "preparation": {
+      "ariaLabel": "コンテスト準備の概要",
+      "steps": {
+        "title": "コンテスト準備手順",
+        "information": "コンテスト情報の設定",
+        "informationDescription": "ルールと日時",
+        "problems": "問題の設定",
+        "review": "確認して公開",
+        "reviewDescription": "設定を確認して学生に公開します",
+        "reviewBlocked": "公開する前にコンテスト情報を設定してください。",
+        "published": "公開済み",
+        "back": "戻る"
+      },
+      "checklistTitle": "未完了",
+      "participantsTitle": "受験者リスト",
+      "nextStep": "次のステップ",
+      "studentView": "学生に見える表示",
+      "previewAsStudent": "受験者視点でプレビュー",
+      "draftHiddenNote": "下書きは学生のコンテスト一覧に表示されません",
+      "blockedBySchedule": "公開する前に試験時間を設定してください",
+      "startsIn": "開始まで {{value}}",
+      "dangerAction": "危険な操作",
+      "level": {
+        "pending": "未完了",
+        "done": "完了",
+        "warning": "推奨",
+        "blocking": "公開に必須"
+      },
+      "info": {
+        "contestType": "問題形式",
+        "problems": "問題数",
+        "participants": "受験者数"
+      },
+      "schedule": {
+        "title": "試験時間",
+        "done": "{{start}} - {{end}}",
+        "missing": "未設定です。公開前に必要です",
+        "action": "時間を設定"
+      },
+      "problems": {
+        "title": "問題の準備",
+        "done": "{{count}} 問を設定済み",
+        "missing": "問題がまだ追加されていません",
+        "action": "問題管理へ"
+      },
+      "participants": {
+        "title": "受験者リスト",
+        "done": "{{count}} 人が参加済み",
+        "missing": "受験者がまだ追加されていません",
+        "action": "リストを管理"
+      },
+      "rules": {
+        "title": "コンテスト規則",
+        "done": "規則が設定済みです",
+        "missing": "試験規則と注意事項の追加を推奨します",
+        "action": "設定を開く"
+      },
+      "confirm": {
+        "publishWithoutProblemsTitle": "このコンテストにはまだ問題がありません",
+        "publishWithoutProblemsBody": "学生には空の問題一覧が表示されます。先に公開して、後から問題を追加できます。",
+        "publishAnyway": "このまま公開",
+        "revertToDraftTitle": "下書きに戻しますか？",
+        "revertToDraftBody": "戻すと学生はすぐにこのコンテストを見られなくなります。"
+      }
+    },
     "screen": {
       "actions": {
         "addParticipant": "受験者を追加",
@@ -699,6 +764,7 @@
     "startExamFailed": "試験を開始できませんでした。後でもう一度お試しくささい"
   },
   "exam": {
+    "integrityLocalDataLoss": "一部の監視イベントや映像・音声を記録または保存できず、復元できない可能性があります。送信待ちとは異なり、送信完了後も欠落は解消されません。解答と提出は続けられます。",
     "abnormalBehavior": "異常な操作が検出されました",
     "accumulatedViolations": "累積違反回数",
     "alreadyLocked": "0 - ロック済み",
@@ -732,6 +798,8 @@
     "monitoringDeviceUnsupported": "現在のデバイスはこの試験の監視設定に適合しません。ダッシュボードに戻って環境チェックを再実行してください。",
     "monitoringHint": "試験監視中 - 詳細はクリック",
     "monitoringIssueHint": "案内に従って監視状態を復旧してください。イベント証跡は保存されています。",
+    "integrityUploadPending": "監視データの送信は未完了です。解答と提出は続けられます。ページを離れると送信は停止し、保存済みのローカルデータは保持されます。",
+    "integrityUploadExpired": "監視データの送信期限が過ぎ、未完了のデータがあります。提出結果に影響はなく、保存済みのローカルデータは保持されます。",
     "monitoringReminder": {
       "fullscreen": "全画面に戻る",
       "mouse_leave": "マウス離脱",
@@ -1189,7 +1257,6 @@
       "multiple_displays": "マルチディスプレイ検出",
       "other": "その他",
       "pause_exam": "試験一時停止",
-      "publish_problem_to_practice": "練習に公開",
       "register": "登録",
       "reopen_exam": "試験再開放",
       "reply_question": "質問回答",
@@ -1564,8 +1631,23 @@
     "title": "問題管理"
   },
   "problems": "問題数",
-  "integrityRun": {
-    "title": "Integrity Worker", "description": "試験イベントと証拠処理はシステムが自動管理します。", "waiting": "システム起動待ち", "waitingDescription": "試験時間に合わせてシステムが Worker を管理します。", "workerUnhealthy": "Worker 異常", "workerUnhealthyDescription": "試験イベントを安定して受信できません。Worker を再起動してください。", "healthy": "正常稼働", "healthyDescription": "Worker は試験イベントを受信して処理しています。", "starting": "起動中", "stopping": "終了処理中", "transitionDescription": "システムが Worker の状態を更新しています。", "archived": "アーカイブ済み", "archivedDescription": "試験データはアーカイブされました。", "completed": "完了", "completedDescription": "この試験の Worker ライフサイクルは終了しました。", "ready": "試験開始待ち", "readyDescription": "必要な時点でシステムが Worker を起動します。", "restart": "Worker を再起動", "restartPreservesData": "イベントと証拠データは保持されます。", "confirmRestart": "再起動を確認", "restartComplete": "Worker を再起動しました", "restartFailed": "Worker を再起動できません", "loadFailed": "Worker の状態を取得できません"
+  "integrityStatus": {
+    "unavailable": "監督状況を更新できません",
+    "unavailableDescription": "自動的に再試行します。解答や提出には影響しません。",
+    "purged": "データ削除済み",
+    "purgedDescription": "この試験の監督データは完全に削除されました。",
+    "archived": "保存済み",
+    "archivedDescription": "試験記録は保存済みです。証拠の完全性は各イベントの状態を確認してください。",
+    "interrupted": "監督が一時中断",
+    "interruptedDescription": "監督記録に遅延や欠落の可能性があります。解答や提出には影響しません。",
+    "draining": "試験記録を整理中",
+    "drainingDescription": "試験が終了し、受信したイベントと証拠を整理しています。",
+    "active": "監督中",
+    "activeDescription": "試験記録は自動収集されます。イベントと証拠を手動で確認してください。",
+    "closed": "監督終了",
+    "closedDescription": "この試験の監督記録の受付は終了しました。",
+    "waiting": "試験開始待ち",
+    "waitingDescription": "試験時間に合わせて自動で監督します。手動で開始する必要はありません。"
   },
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
@@ -1708,15 +1790,6 @@
     "exportSuccess": "結果が正常にエクスポートされました",
     "joinPassword": "参加パスワード",
     "noPassword": "パスワード不要",
-    "publishPracticeFailed": "公開に失敗しました",
-    "publishPracticeSuccess": "コンテスト問題を練習題庫に公開しました",
-    "publishToPractice": "問題を練習用に公開",
-    "publishToPracticeConfirm": "公開する",
-    "publishToPracticeConfirmDesc": "コンテストの全問題をLab向けの公開練習題庫に複製します。アーカイブ済みのコンテスト自体は読み取り専用のままです。",
-    "publishToPracticeConfirmTitle": "コンテスト問題を練習に公開しますか？",
-    "publishToPracticeDesc": "アーカイブ後に利用可能。コンテストの問題を公開練習題庫へ複製します。",
-    "publishToPracticeHint": "公開するには先にアーカイブしてください",
-    "publishToPracticeIrreversible": "この操作は取り消せません。",
     "requiresPassword": "パスワード必須",
     "requiresPasswordHelp": "有効にすると、学生は参加時にパスワード入力が必要です",
     "requiresPasswordShort": "パスワード",
@@ -1798,6 +1871,12 @@
     "viewSubmissionSamples": "提出サンプルを見る"
   },
   "studentDashboard": {
+    "codingRecords": {
+      "problem": "問題",
+      "score": "得点／満点",
+      "status": "状態",
+      "count": "提出回数"
+    },
     "actions": {
       "adminPanel": "管理ダッシュボード",
       "backToAnswering": "回答に戻る",

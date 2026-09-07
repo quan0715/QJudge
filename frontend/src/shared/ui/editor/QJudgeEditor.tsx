@@ -136,7 +136,7 @@ export const QJudgeEditor: React.FC<QJudgeEditorProps> = ({
       <Editor
         height="100%"
         theme={theme === "white" ? "vs" : "my-dark"}
-        defaultValue={value}
+        value={value}
         language={language}
         beforeMount={(monaco) => {
           monaco.editor.defineTheme("my-dark", {

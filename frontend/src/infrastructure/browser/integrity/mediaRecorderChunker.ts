@@ -27,7 +27,9 @@ export interface MediaRecorderChunkerOptions {
    * dashboard. Flush the current native recording on that transition instead
    * of relying solely on a timer which browsers may throttle in background.
   */
-  visibilityTarget?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
+  visibilityTarget?: Pick<EventTarget, "addEventListener" | "removeEventListener"> & {
+    readonly visibilityState?: DocumentVisibilityState;
+  };
   onStoredChunk?: (input: Awaited<ReturnType<OpfsEvidenceStore["putChunk"]>>) => void | Promise<void>;
   onDegraded?: (reason: "unsupported" | "encoder_failure" | "stream_ended" | "restart_failure") => void | Promise<void>;
 }
@@ -73,8 +75,11 @@ export class MediaRecorderChunker {
   private segmentStartedAtMs = 0;
   private lastEndedAtMs: number | null = null;
   private data: Blob[] = [];
-  private readonly visibilityTarget: Pick<EventTarget, "addEventListener" | "removeEventListener"> | undefined;
-  private readonly visibilityHandler = () => this.rotate();
+  private readonly pendingSegments = new Set<Promise<void>>();
+  private readonly visibilityTarget: MediaRecorderChunkerOptions["visibilityTarget"];
+  private readonly visibilityHandler = () => {
+    if (this.visibilityTarget?.visibilityState === "hidden") this.rotate();
+  };
 
   constructor(options: MediaRecorderChunkerOptions) {
     this.options = options;
@@ -143,6 +148,20 @@ export class MediaRecorderChunker {
     if (recorder && recorder.state !== "inactive") recorder.stop();
   }
 
+  /** Call after stop: the browser's final dataavailable/stop and durable write
+   * complete asynchronously, so owners must not close the store immediately. */
+  async whenIdle(): Promise<void> {
+    await Promise.all(this.pendingSegments);
+  }
+
+  /** Flush the current encoder and await every segment admitted before this
+   * barrier. The replacement segment starts after its predecessor is stored. */
+  async evidenceBarrier(): Promise<void> {
+    const pending = [...this.pendingSegments];
+    this.rotate();
+    await Promise.all(pending);
+  }
+
   private get segmentDurationMs(): number {
     return this.options.segmentDurationMs ?? EVIDENCE_CHUNK_MS;
   }
@@ -168,11 +187,25 @@ export class MediaRecorderChunker {
     recorder.addEventListener("error", () => {
       void this.degraded("encoder_failure");
     });
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    this.pendingSegments.add(pending);
     recorder.addEventListener("stop", () => {
-      void this.finishSegment(recorder);
+      void this.finishSegment(recorder).finally(() => {
+        this.pendingSegments.delete(pending);
+        finish();
+      });
     });
     this.recorder = recorder;
-    recorder.start();
+    try {
+      recorder.start();
+    } catch (error) {
+      // A failed start never emits stop; do not leave drain waiting on it.
+      this.pendingSegments.delete(pending);
+      finish();
+      this.recorder = null;
+      throw error;
+    }
   }
 
   private async finishSegment(recorder: MediaRecorderLike): Promise<void> {

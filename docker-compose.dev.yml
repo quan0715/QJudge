@@ -52,6 +52,11 @@ x-django-environment: &django_dev_environment
   CLOUDFLARE_REALTIME_APP_SECRET: ${CLOUDFLARE_REALTIME_APP_SECRET:-}
   LIVE_MONITORING_PUBLISHER_TTL_SECONDS: ${LIVE_MONITORING_PUBLISHER_TTL_SECONDS:-60}
 
+x-integrity-environment: &integrity_dev_environment
+  INTEGRITY_RESIDENT_URL: http://integrity-resident:8011
+  INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/integrity/resident-service-token
+  INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity/integrity-worker-signing-key
+
 x-ai-database-environment: &ai_dev_database_environment
   AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD:-qjudge_ai_dev}@postgres:5432/qjudge_ai
   AI_DB_USER: qjudge_ai
@@ -297,7 +302,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      <<: *django_dev_environment
+      <<: [*django_dev_environment, *integrity_dev_environment]
       HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
       AI_SERVICE_URL: http://ai-service:8001
       AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
@@ -310,10 +315,6 @@ services:
       ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
       DOCKER_IMAGE_JUDGE: ${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
       DOCKER_JUDGE_PLATFORM: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
-      INTEGRITY_CONTROLLER_URL: http://integrity-controller:8010
-      INTEGRITY_CONTROLLER_TOKEN_FILE: /run-secrets/controller-token
-      INTEGRITY_WORKER_IMAGE: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-      INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity-worker-signing-key
     depends_on:
       judge-image:
         condition: service_started
@@ -326,6 +327,8 @@ services:
       ai-service:
         condition: service_healthy
       ai-oauth-bootstrap:
+        condition: service_completed_successfully
+      integrity-bootstrap:
         condition: service_completed_successfully
     networks:
       - oj_network_dev
@@ -347,57 +350,101 @@ services:
     networks:
       - oj_network_dev
 
-  # The Controller alone receives Docker access. Backend communicates with it
-  # through its internal API and read-only signing/token files.
-  integrity-controller:
-    build:
-      context: ./integrity-service
-      dockerfile: Dockerfile.controller
-    image: oj-integrity-controller:dev
-    container_name: oj_integrity_controller_dev
-    restart: unless-stopped
-    environment:
-      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
-      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-      - INTEGRITY_WORKER_NETWORK=online_judge_oj_network_dev
-      - BACKEND_INTERNAL_URL=http://backend:8000
+  integrity-bootstrap:
+    build: *backend_dev_build
+    image: oj_backend_dev_img
+    user: "0:0"
+    restart: "no"
+    command: ["python", "/bootstrap/bootstrap_integrity_secrets.py", "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./secrets/integrity/controller-token:/run-secrets/controller-token:ro
-    group_add:
-      - "${DOCKER_GID:-0}"
-    # Docker Desktop commonly exposes a user-owned socket (for example UID 501
-    # on macOS), unlike Linux's root:docker 0660 socket.  Production and test
-    # keep the image's non-root UID; dev explicitly adopts the local owner.
-    user: "${DOCKER_SOCKET_UID:?Set DOCKER_SOCKET_UID to the UID owning the host Docker socket}"
+      - ./scripts/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
+      - ./secrets/integrity:/bootstrap-secrets
+    network_mode: none
+
+  integrity-resident-data-init:
+    image: ${INTEGRITY_RESIDENT_IMAGE:-oj-integrity-resident:dev}
+    build: &integrity_resident_build
+      context: ./integrity-service
+      dockerfile: Dockerfile.resident
+    user: "0:0"
+    restart: "no"
     read_only: true
+    command: ["sh", "-c", "chown 10001:10001 /run-data && chmod 0700 /run-data"]
+    volumes:
+      - integrity_resident_data:/run-data
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: ["no-new-privileges:true"]
+
+  integrity-resident:
+    image: ${INTEGRITY_RESIDENT_IMAGE:-oj-integrity-resident:dev}
+    build: *integrity_resident_build
+    user: "10001:10001"
+    restart: unless-stopped
+    read_only: true
+    command: ["uvicorn", "integrity_service.resident.app:app", "--host", "0.0.0.0", "--port", "8011", "--workers", "1"]
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      INTEGRITY_RESIDENT_DATA_ROOT: /run-data
+      INTEGRITY_RESIDENT_PUBLIC_KEY_FILE: /run-secrets/backend-public-key
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
+    volumes:
+      - integrity_resident_data:/run-data
+      - type: bind
+        source: ./secrets/integrity/backend-public-key
+        target: /run-secrets/backend-public-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./secrets/integrity/resident-service-token
+        target: /run-secrets/resident-service-token
+        read_only: true
+        bind:
+          create_host_path: false
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    privileged: false
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      integrity-bootstrap:
+        condition: service_completed_successfully
+      integrity-resident-data-init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
     networks:
       - oj_network_dev
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
-      interval: 30s
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"]
+      interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
-  integrity-worker-image:
-    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-    build:
-      context: ./integrity-service
-      dockerfile: Dockerfile.worker
-    command: ["python", "-c", "print('integrity worker image ready')"]
-    restart: "no"
-    profiles: ["build"]
+  integrity-reconciler:
+    build: *backend_dev_build
+    image: oj_backend_dev_img
+    restart: unless-stopped
+    command: ["python", "manage.py", "reconcile_integrity"]
+    volumes:
+      - ./backend:/app
+      - ./secrets:/run-secrets:ro
+    environment:
+      <<: [*django_dev_environment, *integrity_dev_environment]
+      DB_HOST: postgres
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      integrity-bootstrap:
+        condition: service_completed_successfully
+      integrity-resident:
+        condition: service_healthy
     networks:
       - oj_network_dev
-
   # Celery Worker (Dev Mode)
   celery:
     build: *backend_dev_build
@@ -531,6 +578,7 @@ services:
 volumes:
   postgres_data:
   judge_tmp:
+  integrity_resident_data:
 
 networks:
   oj_network_dev:

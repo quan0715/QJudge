@@ -77,7 +77,7 @@ export async function addClassroomStudentMembers(
   usernames: string[] = [TEST_USERS.student.username],
 ): Promise<void> {
   const headers = await authHeaders(teacherPage);
-  const resp = await teacherPage.request.post(`/api/v1/classrooms/${classroomId}/add_members/`, {
+  const resp = await teacherPage.request.post(`/api/v1/classrooms/${classroomId}/members/`, {
     headers,
     data: { usernames, role: "student" },
   });
@@ -200,7 +200,7 @@ export async function submitPaperExamFromAnswering(studentPage: Page, contestId:
 export async function clickCreateContestModalPrimary(page: Page): Promise<void> {
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
-  const primary = dialog.locator("button.cds--btn--primary").last();
+  const primary = dialog.getByRole("button", { name: /^(下一步|新增|Next|Create)$/ });
   await expect(primary).toBeEnabled({ timeout: 8000 });
   await primary.click();
 }

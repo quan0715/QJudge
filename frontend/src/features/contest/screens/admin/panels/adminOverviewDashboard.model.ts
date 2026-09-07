@@ -139,57 +139,6 @@ export interface AdminOverviewDashboardData {
   nextActions: NextActionItem[];
 }
 
-export type PreparationSummaryKey =
-  | "status"
-  | "schedule"
-  | "work_items"
-  | "participants"
-  | "grading"
-  | "results";
-
-export type PreparationReadinessState = "done" | "warning" | "missing";
-
-export interface PreparationSummaryItem {
-  key: PreparationSummaryKey;
-  label: string;
-  value: string;
-  description: string;
-  tone: "neutral" | "warning" | "danger";
-}
-
-export interface PreparationChecklistItem {
-  key:
-    | "publish"
-    | "work_items"
-    | "schedule"
-    | "participants"
-    | "rules"
-    | "anti_cheat";
-  label: string;
-  status: PreparationReadinessState;
-  statusLabel: string;
-  description: string;
-}
-
-export interface PreparationGradingSummary {
-  totalAnswers: number;
-  gradedAnswers: number;
-  ungradedAnswers: number;
-  progressPercent: number;
-  progressLabel: string;
-  resultsLabel: string;
-  resultsTone: "neutral" | "warning" | "danger";
-}
-
-export interface AdminPreparationDashboardData {
-  timeline: DashboardTimelineSummary;
-  railItems: DashboardRailItem[];
-  insightCards: DashboardInsightCard[];
-  summaryItems: PreparationSummaryItem[];
-  checklistItems: PreparationChecklistItem[];
-  grading: PreparationGradingSummary;
-}
-
 const studentParticipants = (participants: ContestParticipant[]) =>
   participants.filter(
     (participant) =>
@@ -851,301 +800,161 @@ export const buildAdminOverviewDashboard = ({
   };
 };
 
-const contestStatusLabel = (
-  status: ContestDetail["status"],
-  tr: DashboardText = defaultDashboardText,
-) => {
-  if (status === "draft") {
-    return tr("adminOverview.model.contestStatus.draft", "草稿");
-  }
-  if (status === "archived") {
-    return tr("adminOverview.model.contestStatus.archived", "已封存");
-  }
-  return tr("adminOverview.model.contestStatus.published", "已發布");
+export type PreparationPhase = "draft" | "upcoming";
+
+export type PreparationItemLevel = "done" | "warning" | "blocking";
+
+export type PreparationItemKey =
+  | "schedule"
+  | "problems"
+  | "rules"
+  | "review";
+
+export interface PreparationChecklistItem {
+  key: PreparationItemKey;
+  level: PreparationItemLevel;
+  title: string;
+  description: string;
+  actionLabel: string;
+}
+
+export interface PreparationInfoCell {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface PreparationParticipantRow {
+  userId: string;
+  displayName: string;
+  username: string;
+}
+
+export interface AdminPreparationOverviewData {
+  phase: PreparationPhase;
+  infoCells: PreparationInfoCell[];
+  checklist: PreparationChecklistItem[];
+  blockingKeys: PreparationItemKey[];
+  canPublish: boolean;
+  countdownMs: number | null;
+  participants: PreparationParticipantRow[];
+}
+
+const PREPARATION_LEVEL_ORDER: Record<PreparationItemLevel, number> = {
+  blocking: 0,
+  warning: 1,
+  done: 2,
 };
 
-const readinessLabel = (
-  status: PreparationReadinessState,
-  tr: DashboardText = defaultDashboardText,
-) => {
-  if (status === "done") {
-    return tr("adminOverview.model.readiness.done", "完成");
-  }
-  if (status === "missing") {
-    return tr("adminOverview.model.readiness.missing", "缺少");
-  }
-  return tr("adminOverview.model.readiness.warning", "待確認");
-};
-
-export const buildAdminPreparationDashboard = ({
+export const buildAdminPreparationOverview = ({
   contest,
   participants,
-  gradingStats,
-  now = new Date(),
+  nowMs = Date.now(),
   tr = defaultDashboardText,
 }: {
   contest: ContestDetail;
   participants: ContestParticipant[];
-  gradingStats?: GlobalStats;
-  now?: Date;
+  nowMs?: number;
   tr?: DashboardText;
-}): AdminPreparationDashboardData => {
+}): AdminPreparationOverviewData => {
   const students = studentParticipants(participants);
-  const participantTotal = Math.max(
-    students.length,
-    contest.participantCount || 0,
-  );
-  const workItemCount = getWorkItemCount(contest);
-  const scheduleReady = isValidSchedule(contest);
-  const hasRules = Boolean(contest.rules?.trim());
-  const totalAnswers = gradingStats?.totalAnswers ?? 0;
-  const gradedAnswers = gradingStats?.gradedAnswers ?? 0;
-  const ungradedAnswers =
-    gradingStats?.ungradedAnswers ?? Math.max(totalAnswers - gradedAnswers, 0);
-  const gradingPercent = percentage(gradedAnswers, totalAnswers);
-  const gradingLabel =
-    totalAnswers > 0
-      ? `${gradingPercent}%`
-      : tr("adminOverview.model.common.noData", "尚無資料");
-  const workItemLabel =
-    contest.contestType === "paper_exam"
-      ? tr("adminOverview.model.workItems.paperExam", "考卷題目")
-      : tr("adminOverview.model.workItems.coding", "程式題目");
-  const publishState: PreparationReadinessState =
-    contest.status === "published" ? "done" : "warning";
+  const scheduled = isValidSchedule(contest);
+  const problemCount = getWorkItemCount(contest);
+  const hasRules = (contest.rules ?? "").trim().length > 0;
+  const phase: PreparationPhase =
+    contest.status === "draft" ? "draft" : "upcoming";
 
-  const checklistItems: PreparationChecklistItem[] = [
-    {
-      key: "publish",
-      label: tr("adminOverview.model.preparation.publish", "競賽發布"),
-      status: publishState,
-      statusLabel: readinessLabel(publishState, tr),
-      description:
-        contest.status === "published"
-          ? tr(
-              "adminOverview.model.preparation.publishedDescription",
-              "參賽者可依權限進入競賽",
-            )
-          : tr(
-              "adminOverview.model.preparation.currentStatus",
-              "目前狀態：{{status}}",
-              { status: contestStatusLabel(contest.status, tr) },
-            ),
-    },
-    {
-      key: "work_items",
-      label: workItemLabel,
-      status: workItemCount > 0 ? "done" : "missing",
-      statusLabel: readinessLabel(workItemCount > 0 ? "done" : "missing", tr),
-      description:
-        workItemCount > 0
-          ? tr("adminOverview.model.preparation.workItemsReady", "已設定 {{count}} 題", {
-              count: workItemCount,
-            })
-          : tr(
-              "adminOverview.model.preparation.workItemsMissing",
-              "尚未建立可作答的題目",
-            ),
-    },
+  const items: PreparationChecklistItem[] = [
     {
       key: "schedule",
-      label: tr("adminOverview.model.preparation.schedule", "考試時段"),
-      status: scheduleReady ? "done" : "missing",
-      statusLabel: readinessLabel(scheduleReady ? "done" : "missing", tr),
-      description: scheduleReady
-        ? formatWindow(contest, tr)
+      level: scheduled ? "done" : "blocking",
+      title: tr("adminOverview.preparation.schedule.title", "考試時間"),
+      description: scheduled
+        ? tr("adminOverview.preparation.schedule.done", "{{start}} - {{end}}", {
+            start: DATE_TIME_FORMATTER.format(new Date(contest.startTime)),
+            end: DATE_TIME_FORMATTER.format(new Date(contest.endTime)),
+          })
         : tr(
-            "adminOverview.model.preparation.scheduleMissing",
-            "開始與結束時間未完整設定",
+            "adminOverview.preparation.schedule.missing",
+            "尚未設定，發布前必填",
           ),
+      actionLabel: tr("adminOverview.preparation.schedule.action", "設定時間"),
     },
     {
-      key: "participants",
-      label: tr("adminOverview.model.preparation.participantList", "參賽者名單"),
-      status: participantTotal > 0 ? "done" : "warning",
-      statusLabel: readinessLabel(participantTotal > 0 ? "done" : "warning", tr),
+      key: "problems",
+      level: problemCount > 0 ? "done" : "warning",
+      title: tr("adminOverview.preparation.problems.title", "題目準備"),
       description:
-        participantTotal > 0
+        problemCount > 0
           ? tr(
-              "adminOverview.model.preparation.participantCount",
-              "{{count}} 位參賽者",
-              { count: participantTotal },
+              "adminOverview.preparation.problems.done",
+              "已設定 {{count}} 題",
+              { count: problemCount },
             )
-          : tr(
-              "adminOverview.model.preparation.participantsMissing",
-              "尚未看到參賽者資料",
-            ),
+          : tr("adminOverview.preparation.problems.missing", "尚未新增題目"),
+      actionLabel: tr(
+        "adminOverview.preparation.problems.action",
+        "前往題目管理",
+      ),
     },
     {
       key: "rules",
-      label: tr("adminOverview.model.preparation.rules", "作答規則"),
-      status: hasRules ? "done" : "warning",
-      statusLabel: readinessLabel(hasRules ? "done" : "warning", tr),
+      level: hasRules ? "done" : "warning",
+      title: tr("adminOverview.preparation.rules.title", "競賽規則"),
       description: hasRules
-        ? tr("adminOverview.model.preparation.rulesReady", "已填寫規則說明")
+        ? tr("adminOverview.preparation.rules.done", "已設定規則內容")
         : tr(
-            "adminOverview.model.preparation.rulesMissing",
-            "可補上考試規則與注意事項",
+            "adminOverview.preparation.rules.missing",
+            "建議補上考試規則與注意事項",
           ),
-    },
-    {
-      key: "anti_cheat",
-      label: tr("adminOverview.model.preparation.antiCheat", "防作弊設定"),
-      status: contest.cheatDetectionEnabled ? "done" : "warning",
-      statusLabel: readinessLabel(
-        contest.cheatDetectionEnabled ? "done" : "warning",
-        tr,
-      ),
-      description: contest.cheatDetectionEnabled
-        ? tr(
-            "adminOverview.model.preparation.antiCheatEnabled",
-            "防作弊監控已啟用",
-          )
-        : tr(
-            "adminOverview.model.preparation.antiCheatOptional",
-            "可依考試需求啟用",
-          ),
+      actionLabel: tr("adminOverview.preparation.rules.action", "開啟設定"),
     },
   ];
 
+  const checklist = [...items].sort(
+    (a, b) =>
+      PREPARATION_LEVEL_ORDER[a.level] - PREPARATION_LEVEL_ORDER[b.level],
+  );
+  const blockingKeys = checklist
+    .filter((item) => item.level === "blocking")
+    .map((item) => item.key);
+
+  const startMs = Date.parse(contest.startTime ?? "");
+  const countdownMs =
+    phase === "upcoming" && Number.isFinite(startMs) && startMs > nowMs
+      ? startMs - nowMs
+      : null;
+
   return {
-    timeline: buildTimelineSummary({
-      contest,
-      now,
-      tr,
-    }),
-    railItems: [
+    phase,
+    infoCells: [
       {
-        key: "status",
-        label: tr("adminOverview.model.summary.status", "競賽狀態"),
-        value: contestStatusLabel(contest.status, tr),
-        tone: contest.status === "published" ? "neutral" : "warning",
+        key: "contestType",
+        label: tr("adminOverview.preparation.info.contestType", "考卷題型"),
+        value:
+          contest.contestType === "paper_exam"
+            ? tr("adminOverview.examType.paper_exam", "考卷")
+            : tr("adminOverview.examType.coding", "Coding Test"),
       },
       {
-        key: "work_items",
-        label: workItemLabel,
-        value: String(workItemCount),
-        tone: workItemCount > 0 ? "neutral" : "danger",
+        key: "problems",
+        label: tr("adminOverview.preparation.info.problems", "題目數量"),
+        value: String(problemCount),
       },
       {
         key: "participants",
-        label: tr("adminOverview.model.summary.participants", "參賽者"),
-        value: String(participantTotal),
-        tone: participantTotal > 0 ? "neutral" : "warning",
-      },
-      {
-        key: "anti_cheat",
-        label: tr("adminOverview.model.summary.antiCheat", "防作弊"),
-        value: contest.cheatDetectionEnabled
-          ? tr("adminOverview.model.common.enabled", "已啟用")
-          : tr("adminOverview.model.common.disabled", "未啟用"),
-        tone: contest.cheatDetectionEnabled ? "neutral" : "warning",
-      },
-      {
-        key: "results",
-        label: tr("adminOverview.model.summary.results", "成績"),
-        value: contest.resultsPublished
-          ? tr("adminOverview.model.results.published", "已發布")
-          : tr("adminOverview.model.results.unpublished", "未發布"),
-        tone: contest.resultsPublished ? "neutral" : "warning",
+        label: tr("adminOverview.preparation.info.participants", "考生人數"),
+        value: String(students.length),
       },
     ],
-    insightCards: buildInsightCards({
-      gradingPercent,
-      gradingLabel,
-      examProgressPercent: buildTimelineSummary({ contest, now, tr })
-        .progressPercent,
-      examEvents: [],
-      tr,
-    }),
-    summaryItems: [
-      {
-        key: "status",
-        label: tr("adminOverview.model.summary.status", "競賽狀態"),
-        value: contestStatusLabel(contest.status, tr),
-        description:
-          contest.status === "published"
-            ? tr("adminOverview.model.summary.statusOpen", "已開放給參賽者")
-            : tr("adminOverview.model.summary.statusClosed", "尚未正式開放"),
-        tone: contest.status === "published" ? "neutral" : "warning",
-      },
-      {
-        key: "schedule",
-        label: tr("adminOverview.model.preparation.schedule", "考試時段"),
-        value: formatWindow(contest, tr),
-        description: scheduleReady
-          ? tr("adminOverview.model.summary.scheduleReady", "時間設定完整")
-          : tr("adminOverview.model.summary.scheduleMissing", "需要補齊時間"),
-        tone: scheduleReady ? "neutral" : "danger",
-      },
-      {
-        key: "work_items",
-        label: workItemLabel,
-        value: String(workItemCount),
-        description:
-          workItemCount > 0
-            ? tr("adminOverview.model.summary.workItemsReady", "內容已建立")
-            : tr("adminOverview.model.summary.workItemsMissing", "尚未建立內容"),
-        tone: workItemCount > 0 ? "neutral" : "danger",
-      },
-      {
-        key: "participants",
-        label: tr("adminOverview.model.summary.participants", "參賽者"),
-        value: String(participantTotal),
-        description:
-          participantTotal > 0
-            ? tr("adminOverview.model.summary.participantsReady", "名單可供管理")
-            : tr(
-                "adminOverview.model.summary.participantsMissing",
-                "尚無參賽者資料",
-              ),
-        tone: participantTotal > 0 ? "neutral" : "warning",
-      },
-      {
-        key: "grading",
-        label: tr("adminOverview.model.insights.gradingProgress", "批改進度"),
-        value: gradingLabel,
-        description:
-          totalAnswers > 0
-            ? tr("adminOverview.model.summary.gradingCount", "{{graded}} / {{total}} 份", {
-                graded: gradedAnswers,
-                total: totalAnswers,
-              })
-            : tr(
-                "adminOverview.model.summary.gradingAfterExam",
-                "考後才會產生批改資料",
-              ),
-        tone: ungradedAnswers > 0 ? "warning" : "neutral",
-      },
-      {
-        key: "results",
-        label: tr("adminOverview.model.summary.results", "成績"),
-        value: contest.resultsPublished
-          ? tr("adminOverview.model.results.published", "已發布")
-          : tr("adminOverview.model.results.unpublished", "未發布"),
-        description: contest.resultsPublished
-          ? tr("adminOverview.model.summary.resultsVisible", "參賽者可查看")
-          : tr(
-              "adminOverview.model.nextActions.results.readyToPublish",
-              "確認批改後發布",
-            ),
-        tone: contest.resultsPublished ? "neutral" : "warning",
-      },
-    ],
-    checklistItems,
-    grading: {
-      totalAnswers,
-      gradedAnswers,
-      ungradedAnswers,
-      progressPercent: gradingPercent,
-      progressLabel:
-        totalAnswers > 0
-          ? `${gradedAnswers} / ${totalAnswers}`
-          : tr("adminOverview.model.grading.noAnswers", "尚無作答資料"),
-      resultsLabel: contest.resultsPublished
-        ? tr("adminOverview.model.results.published", "已發布")
-        : tr("adminOverview.model.results.unpublished", "未發布"),
-      resultsTone: contest.resultsPublished ? "neutral" : "warning",
-    },
+    checklist,
+    blockingKeys,
+    canPublish: blockingKeys.length === 0,
+    countdownMs,
+    participants: students.map((participant) => ({
+      userId: participant.userId,
+      displayName: getProfileDisplayName(participant),
+      username: participant.username,
+    })),
   };
 };

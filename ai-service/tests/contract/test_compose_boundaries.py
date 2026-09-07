@@ -417,6 +417,7 @@ exit 0
         '#!/bin/sh\nprintf "curl %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\nexit 0\n',
     )
     _write_executable(fake_bin / "stat", "#!/bin/sh\nprintf '138\\n'\n")
+    _write_executable(fake_bin / "id", "#!/bin/sh\nprintf '0\\n'\n")
 
     environment = os.environ.copy()
     environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
@@ -552,11 +553,11 @@ def test_production_deploy_prepares_integrity_runtime_before_start(
 
     assert result.returncode == 0, result.stderr
     integrity_bootstrap = commands.index(
-        "python3 scripts/bootstrap_integrity_secrets.py"
+        "python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001"
     )
     compose_start = commands.index("up -d --remove-orphans")
     assert integrity_bootstrap < compose_start
-    assert "--profile build build integrity-worker-image" in commands
+    assert "integrity-worker-image" not in commands
     assert "DOCKER_GID=138 docker compose" in commands
 
 
@@ -591,9 +592,9 @@ def test_production_deploy_checks_each_critical_http_boundary(tmp_path: Path) ->
     assert "http://localhost:80" in commands
     assert "http://localhost:8000/api/health/" in commands
     assert "http://localhost:8001/health/ready" in commands
-    assert "http://localhost:8010/health" in commands
-    assert "exec -T integrity-controller python -c" in commands
+    assert "http://localhost:8011/ready" in commands
+    assert "exec -T integrity-resident python -c" in commands
     assert (
         "curl --fail --silent --show-error --max-time 8 "
-        "http://localhost:8010/health"
+        "http://localhost:8011/ready"
     ) not in commands

@@ -1,0 +1,49 @@
+@use "@carbon/colors";
+
+.contest-runtime-problem {
+  --problem-current: var(--problem-ink);
+  --problem-ink: var(--cds-tag-color-gray);
+  --problem-solid: var(--cds-tag-color-gray);
+  --problem-on-solid: var(--cds-text-inverse);
+
+  &[data-status="done"] {
+    --problem-ink: var(--cds-tag-color-green);
+    --problem-solid: var(--cds-tag-color-green);
+  }
+
+  &[data-status="partial"] {
+    --problem-ink: #{colors.$yellow-80};
+    --problem-solid: #{colors.$yellow-30};
+    --problem-on-solid: #{colors.$gray-100};
+  }
+
+  &,
+  &:hover {
+    background-color: color-mix(in srgb, var(--problem-solid) 7%, transparent);
+    color: var(--problem-ink);
+  }
+
+  &[aria-current="page"] {
+    --problem-current: var(--problem-on-solid);
+    background-color: var(--problem-solid);
+    color: var(--problem-on-solid);
+  }
+
+  &[data-status]:not(:disabled) svg {
+    color: var(--problem-current);
+    fill: var(--problem-current);
+    flex-shrink: 0;
+  }
+}
+
+.contest-runtime-nav-action {
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  color: var(--cds-text-primary);
+
+  &[aria-pressed="true"] {
+    background-color: var(--cds-layer-selected);
+    color: var(--cds-text-primary);
+  }
+}

@@ -12,15 +12,19 @@ import {
 } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
 
 export interface EvidenceCoordinatorOptions {
+  canRelease?: () => boolean;
   contestId: string;
   runId: string;
   store: Pick<OpfsEvidenceStore,
     "listDescriptors" | "getBlob" | "protect" | "releaseProtection" | "markRequested" |
     "markVerified" | "markUnavailable" | "deleteDescriptor" | "pendingDescriptorSummaries" |
-    "markReported" | "reconcile">;
+    "markReported" | "reconcile"> & Partial<Pick<OpfsEvidenceStore, "retainedOtherAttemptUsage">>;
   repository: Pick<ExamIntegrityRepository, "submitEvidenceCheckpoint">;
   fetchFn?: typeof fetch;
   now?: () => number;
+  /** Resident only: bound each network request; legacy retains its existing behavior. */
+  requestTimeoutMs?: number;
+  onRetryableFailure?: (error: Error) => void;
 }
 
 export interface EvidenceBufferPolicy {
@@ -55,6 +59,7 @@ export class EvidenceCoordinator {
   private readonly queued = new Map<string, QueuedRetain>();
   private retainDrainScheduled = false;
   private releaseBeforeMs = 0;
+  private lifecycle = new AbortController();
   private readonly options: EvidenceCoordinatorOptions;
 
   constructor(options: EvidenceCoordinatorOptions) {
@@ -97,6 +102,7 @@ export class EvidenceCoordinator {
   }
 
   async releaseBefore(releaseBeforeMs: number): Promise<void> {
+    if (this.options.canRelease?.() === false) return;
     this.releaseBeforeMs = Math.max(this.releaseBeforeMs, releaseBeforeMs);
     const descriptors = await this.options.store.listDescriptors();
     for (const descriptor of descriptors) {
@@ -104,6 +110,7 @@ export class EvidenceCoordinator {
       const uploadTerminal = descriptor.uploadStatus === "local" ||
         descriptor.uploadStatus === "verified" || descriptor.uploadStatus === "unavailable";
       if (
+        this.options.canRelease?.() !== false &&
         descriptor.endAtMs < releaseBeforeMs &&
         !retained &&
         uploadTerminal &&
@@ -119,6 +126,34 @@ export class EvidenceCoordinator {
       ...new Set(this.inFlight.values()),
       ...[...this.queued.values()].map((entry) => entry.promise),
     ]);
+  }
+
+  cancelPending(): void {
+    this.lifecycle.abort();
+    this.lifecycle = new AbortController();
+    for (const entry of this.queued.values()) entry.reject(new Error("Evidence upload stopped"));
+    this.queued.clear();
+  }
+
+  private async request<T>(send: (signal?: AbortSignal) => Promise<T>, lifecycle: AbortSignal): Promise<T> {
+    if (!this.options.requestTimeoutMs) return send();
+    lifecycle.throwIfAborted();
+    const controller = new AbortController();
+    let cancel!: () => void;
+    const cancelled = new Promise<never>((_resolve, reject) => {
+      cancel = () => { controller.abort(); reject(new Error("Evidence request cancelled or timed out")); };
+    });
+    lifecycle.addEventListener("abort", cancel, { once: true });
+    const timer = setTimeout(cancel, this.options.requestTimeoutMs);
+    try {
+      const result = await Promise.race([send(controller.signal), cancelled]);
+      lifecycle.throwIfAborted();
+      return result;
+    } catch (error) {
+      this.options.onRetryableFailure?.(error instanceof Error ? error : new Error("Evidence upload pending"));
+      throw error;
+    }
+    finally { clearTimeout(timer); lifecycle.removeEventListener("abort", cancel); }
   }
 
   private drainRetainQueue(): void {
@@ -141,21 +176,23 @@ export class EvidenceCoordinator {
    * without deleting protected, unacknowledged, or not-yet-released evidence.
    */
   async enforceCapacity(source: IntegrityEvidenceSource, policy: EvidenceBufferPolicy): Promise<boolean> {
+    const other = await this.options.store.retainedOtherAttemptUsage?.(source) ?? { bytes: 0, durationMs: 0 };
     const descriptors = (await this.options.store.listDescriptors())
       .filter((item) => item.source === source && item.localAvailability === "available")
       .sort((left, right) => left.endAtMs - right.endAtMs || left.chunkSeq - right.chunkSeq);
     const newestEndAtMs = descriptors.at(-1)?.endAtMs ?? 0;
     const minimumCutoffMs = newestEndAtMs - policy.minimumLocalBufferMs;
-    let byteSize = descriptors.reduce((total, descriptor) => total + descriptor.byteSize, 0);
+    let byteSize = descriptors.reduce((total, descriptor) => total + descriptor.byteSize, other.bytes);
     let recordedMs = descriptors.reduce(
       (total, descriptor) => total + Math.max(0, descriptor.endAtMs - descriptor.startAtMs),
-      0,
+      other.durationMs,
     );
     for (const descriptor of descriptors) {
       if (byteSize <= policy.localCapBytesPerSource && recordedMs <= policy.localCapMs) break;
       const uploadTerminal = descriptor.uploadStatus === "local" ||
         descriptor.uploadStatus === "verified" || descriptor.uploadStatus === "unavailable";
       if (
+        this.options.canRelease?.() === false ||
         descriptor.endAtMs >= minimumCutoffMs ||
         descriptor.endAtMs >= this.releaseBeforeMs ||
         descriptor.retainCommandIds.length > 0 ||
@@ -171,23 +208,25 @@ export class EvidenceCoordinator {
     const remaining = (await this.options.store.listDescriptors())
       .filter((item) => item.source === source && item.localAvailability === "available")
       .sort((left, right) => left.startAtMs - right.startAtMs);
-    const remainingBytes = remaining.reduce((total, descriptor) => total + descriptor.byteSize, 0);
+    const remainingBytes = remaining.reduce((total, descriptor) => total + descriptor.byteSize, other.bytes);
     const remainingDuration = remaining.reduce(
       (total, descriptor) => total + Math.max(0, descriptor.endAtMs - descriptor.startAtMs),
-      0,
+      other.durationMs,
     );
     return remainingBytes <= policy.localCapBytesPerSource && remainingDuration <= policy.localCapMs;
   }
 
   private async retainMany(commands: EvidenceRetainCommand[]): Promise<void> {
+    const lifecycle = this.lifecycle.signal;
     for (let index = 0; index < commands.length; index += MAX_COMMANDS_PER_CHECKPOINT) {
-      await this.retainGroup(commands.slice(index, index + MAX_COMMANDS_PER_CHECKPOINT));
+      lifecycle.throwIfAborted();
+      await this.retainGroup(commands.slice(index, index + MAX_COMMANDS_PER_CHECKPOINT), lifecycle);
     }
   }
 
-  private async retainGroup(commands: EvidenceRetainCommand[]): Promise<void> {
+  private async retainGroup(commands: EvidenceRetainCommand[], lifecycle: AbortSignal): Promise<void> {
     if (commands.length === 0) return;
-    await this.waitForEvidenceWindow(Math.max(...commands.map((command) => command.endAtMs)));
+    await this.waitForEvidenceWindow(Math.max(...commands.map((command) => command.endAtMs)), lifecycle);
     const all = await this.options.store.listDescriptors();
     const selectedByCommand = new Map<string, StoredEvidenceDescriptor[]>();
     const manifestChunksByIncident = new Map<string, Map<string, StoredEvidenceDescriptor>>();
@@ -232,11 +271,11 @@ export class EvidenceCoordinator {
 
     if (manifestChunksByIncident.size === 0) {
       if (unavailableReports.length > 0) {
-        await this.options.repository.submitEvidenceCheckpoint(this.options.contestId, {
+        await this.request((signal) => this.options.repository.submitEvidenceCheckpoint(this.options.contestId, {
           manifests: [],
           completions: [],
           unavailable: unavailableReports,
-        });
+        }, ...(signal ? [signal] : [])), lifecycle);
       }
       return;
     }
@@ -257,11 +296,11 @@ export class EvidenceCoordinator {
           .flatMap((chunks) => [...chunks.values()])
           .map((descriptor) => [descriptor.localDescriptorId, descriptor]),
       ).values()];
-      const response = await this.options.repository.submitEvidenceCheckpoint(this.options.contestId, {
+      const response = await this.request((signal) => this.options.repository.submitEvidenceCheckpoint(this.options.contestId, {
         manifests,
         completions: [],
         unavailable: unavailableReports,
-      });
+      }, ...(signal ? [signal] : [])), lifecycle);
       const uploadByIdentity = new Map<string, StoredEvidenceDescriptor>();
       for (const descriptor of selected) {
         uploadByIdentity.set(`${descriptor.source}:${descriptor.chunkSeq}`, descriptor);
@@ -302,11 +341,12 @@ export class EvidenceCoordinator {
           continue;
         }
         await this.options.store.markRequested([descriptor.localDescriptorId]);
-        const uploadResponse = await (this.options.fetchFn ?? fetch)(upload.putUrl, {
+        const uploadResponse = await this.request((signal) => (this.options.fetchFn ?? fetch)(upload.putUrl!, {
           method: "PUT",
           headers: upload.requiredHeaders,
           body: blob,
-        });
+          ...(signal ? { signal } : {}),
+        }), lifecycle);
         if (!uploadResponse.ok) {
           throw new Error(`Evidence upload failed with ${uploadResponse.status}`);
         }
@@ -325,14 +365,15 @@ export class EvidenceCoordinator {
       }
 
       if (completedChunkIds.size > 0 || unavailableChunkReports.length > 0) {
-        const terminalResponse = await this.options.repository.submitEvidenceCheckpoint(
+        const terminalResponse = await this.request((signal) => this.options.repository.submitEvidenceCheckpoint(
           this.options.contestId,
           {
             manifests: [],
             completions: [...completedChunkIds],
             unavailable: unavailableChunkReports,
           },
-        );
+          ...(signal ? [signal] : []),
+        ), lifecycle);
         const verifiedChunkIds = new Set(
           terminalResponse.completions
             .filter((completion) => completion.status === "verified")
@@ -388,9 +429,14 @@ export class EvidenceCoordinator {
     };
   }
 
-  private async waitForEvidenceWindow(endAtMs: number): Promise<void> {
+  private async waitForEvidenceWindow(endAtMs: number, lifecycle: AbortSignal): Promise<void> {
     const delayMs = endAtMs - (this.options.now ?? Date.now)();
     if (delayMs <= 0) return;
-    await new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
+    lifecycle.throwIfAborted();
+    await new Promise<void>((resolve, reject) => {
+      const cancel = () => { clearTimeout(timer); reject(new Error("Evidence window wait stopped")); };
+      const timer = window.setTimeout(() => { lifecycle.removeEventListener("abort", cancel); resolve(); }, delayMs);
+      lifecycle.addEventListener("abort", cancel, { once: true });
+    });
   }
 }

@@ -1,7 +1,6 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import {
   getProblem,
-  getProblemStatistics,
   getProblems,
   testRun,
 } from "@/infrastructure/api/repositories/problem.repository";
@@ -45,9 +44,8 @@ describe("problem repository integration", () => {
     expect(hasTargetProblem).toBe(true);
   });
 
-  it("loads problem detail and statistics", async () => {
+  it("loads problem detail", async () => {
     const detail = await getProblem(problemId);
-    const stats = await getProblemStatistics(problemId);
 
     if (!detail) {
       throw new Error("Problem detail request returned empty response");
@@ -56,10 +54,6 @@ describe("problem repository integration", () => {
     expect(detail.id).toBe(problemId);
     expect(detail.title).toBe(problemTitle);
     expect(detail.testCases.length).toBeGreaterThan(0);
-
-    expect(stats.submissionCount).toBeGreaterThanOrEqual(0);
-    expect(stats.acceptedCount).toBeGreaterThanOrEqual(0);
-    expect(stats.trend.length).toBeGreaterThanOrEqual(0);
   });
 
   it("runs server-side test cases", async () => {

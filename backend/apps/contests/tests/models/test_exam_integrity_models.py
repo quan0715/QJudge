@@ -17,7 +17,6 @@ def _integrity_run(contest: Contest, **overrides: object) -> ExamIntegrityRun:
     values = {
         "contest": contest,
         "registry_version": "registry-v1",
-        "worker_image": "registry.example/integrity:1",
     }
     values.update(overrides)
     return ExamIntegrityRun.objects.create(**values)
@@ -51,9 +50,10 @@ def _evidence_chunk(
 
 
 def test_integrity_run_metadata_contract():
-    assert set(ExamIntegrityRun.ComputeState.values) == {
-        "stopped", "starting", "running", "stopping", "destroyed",
+    assert set(ExamIntegrityRun.SessionState.values) == {
+        "prepared", "active", "draining", "archived", "closed",
     }
+    assert not hasattr(ExamIntegrityRun, "ComputeState")
     assert set(ExamIntegrityRun.Health.values) == {"healthy", "unhealthy"}
     assert set(ExamIntegrityRun.DataState.values) == {"open", "archived", "purged"}
     assert ExamIntegrityRun._meta.db_table == "exam_integrity_runs"
@@ -77,7 +77,7 @@ def test_integrity_run_metadata_contract():
     assert created_by_field.remote_field.on_delete is models.SET_NULL
 
     for field_name, expected_default in {
-        "compute_state": ExamIntegrityRun.ComputeState.STOPPED,
+        "session_state": ExamIntegrityRun.SessionState.PREPARED,
         "health": ExamIntegrityRun.Health.HEALTHY,
         "data_state": ExamIntegrityRun.DataState.OPEN,
         "warnings": list,
@@ -86,12 +86,7 @@ def test_integrity_run_metadata_contract():
         "last_correlation_id": "",
         "policy_snapshot": dict,
         "registry_snapshot": dict,
-        "worker_image_digest": "",
         "worker_version": "",
-        "container_id": "",
-        "container_name": "",
-        "worker_url": "",
-        "token_digest": "",
         "archive_generation": 0,
         "archive_manifest_key": "",
         "archive_manifest_sha256": "",
@@ -101,14 +96,12 @@ def test_integrity_run_metadata_contract():
     }.items():
         assert ExamIntegrityRun._meta.get_field(field_name).default == expected_default
 
-    for field_name in ("registry_version", "worker_image", "policy_snapshot", "registry_snapshot"):
+    for field_name in ("registry_version", "policy_snapshot", "registry_snapshot"):
         field = ExamIntegrityRun._meta.get_field(field_name)
         assert field.null is False
         assert field.blank is False
 
     for field_name in (
-        "token_expires_at",
-        "token_revoked_at",
         "last_worker_heartbeat_at",
         "scheduled_start_at",
         "scheduled_end_at",
@@ -131,7 +124,7 @@ def test_integrity_run_metadata_contract():
     assert {
         tuple(index.fields) for index in ExamIntegrityRun._meta.indexes
     } == {
-        ("contest", "compute_state"),
+        ("contest", "session_state"),
         ("data_state", "updated_at"),
     }
     constraint = next(
@@ -140,7 +133,9 @@ def test_integrity_run_metadata_contract():
         if constraint.name == "uniq_live_integrity_run_per_contest"
     )
     assert constraint.fields == ("contest",)
-    assert constraint.condition == ~models.Q(compute_state="destroyed")
+    assert constraint.condition == models.Q(
+        session_state__in=("prepared", "active", "draining")
+    )
 
 
 def test_evidence_chunk_metadata_contract():
@@ -250,19 +245,36 @@ def test_normalized_exam_event_metadata_contract():
 
 
 @pytest.mark.django_db
-def test_live_integrity_run_constraint_allows_replacement_after_destroying_run():
+def test_live_integrity_run_constraint_allows_replacement_after_the_session_ends():
     contest = Contest.objects.create(name="Integrity constraint contest")
     live_run = _integrity_run(contest)
 
     with pytest.raises(IntegrityError), transaction.atomic():
-        _integrity_run(contest, compute_state=ExamIntegrityRun.ComputeState.RUNNING)
+        _integrity_run(contest, session_state=ExamIntegrityRun.SessionState.ACTIVE)
 
-    live_run.compute_state = ExamIntegrityRun.ComputeState.DESTROYED
-    live_run.save(update_fields=["compute_state"])
+    live_run.session_state = ExamIntegrityRun.SessionState.CLOSED
+    live_run.save(update_fields=["session_state"])
     replacement = _integrity_run(contest)
 
     assert replacement.contest_id == contest.id
-    assert replacement.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+    assert replacement.session_state == ExamIntegrityRun.SessionState.PREPARED
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("state", ["prepared", "active", "draining"])
+def test_a_live_session_reserves_the_only_slot_for_its_contest(state):
+    contest = Contest.objects.create(name="Resident logical ownership")
+    _integrity_run(contest, session_state=state)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        _integrity_run(contest, session_state="prepared")
+
+
+@pytest.mark.django_db
+def test_archived_session_releases_the_slot_for_a_new_one():
+    contest = Contest.objects.create(name="Archived ownership")
+    archived = _integrity_run(contest, session_state="archived", data_state="archived")
+    assert _integrity_run(contest).session_state == "prepared"
+    assert archived.session_state == "archived"
 
 
 @pytest.mark.django_db

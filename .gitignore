@@ -177,5 +177,7 @@ running/
 # Generated media experiments
 qjudge-promo-abstract/
 
-# Local-only Integrity Controller credentials.
+# Local-only Integrity credentials.
 secrets/
+# Local-only credentials for the isolated Resident test stack.
+.tmp/integrity-test-secrets/

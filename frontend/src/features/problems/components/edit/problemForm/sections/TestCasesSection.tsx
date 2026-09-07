@@ -15,16 +15,32 @@ import {
   Modal,
   TextArea,
   NumberInput,
-  Toggle,
+  RadioButtonGroup,
+  RadioButton,
   Tag,
   IconButton,
-  Layer,
 } from "@carbon/react";
 import { Add, Edit, TrashCan, Checkmark, Warning } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import { Section } from "@/shared/layout/SettingsPanel";
 import styles from "./TestCasesSection.module.scss";
+
+type TestCaseVisibility = "sample" | "public" | "hidden";
+
+/** The two flags are mutually exclusive, so they read as one three-way choice. */
+const testCaseVisibility = (tc: { isSample: boolean; isHidden: boolean }): TestCaseVisibility => {
+  if (tc.isSample) return "sample";
+  if (tc.isHidden) return "hidden";
+  return "public";
+};
+
+const renderVisibilityLabel = (name: string, hint: string) => (
+  <span className={styles.radioLabel}>
+    <span>{name}</span>
+    <span className={styles.radioLabelHint}>{hint}</span>
+  </span>
+);
 
 interface TestCaseRow {
   id: string;
@@ -71,7 +87,8 @@ const TestCasesSection: React.FC = () => {
   const rows: TestCaseRow[] = useMemo(() => {
     return fields.map((field, index) => {
       const tc = testCases[index];
-      const hasError = !tc?.input?.trim() || !tc?.output?.trim();
+      // Input may legitimately be empty (problems that read no stdin).
+      const hasError = !tc?.output?.trim();
       return {
         id: field.id,
         index,
@@ -263,7 +280,7 @@ const TestCasesSection: React.FC = () => {
         size="lg"
         className={styles.modal}
       >
-        <Layer className={styles.modalContent}>
+        <div className={styles.modalContent}>
           <div className={styles.ioGrid}>
             <TextArea
               id="tc-input"
@@ -271,9 +288,8 @@ const TestCasesSection: React.FC = () => {
               placeholder="輸入測試資料..."
               value={editForm.input}
               onChange={(e) => setEditForm((prev) => ({ ...prev, input: e.target.value }))}
-              rows={6}
-              invalid={!editForm.input.trim()}
-              invalidText="Input 為必填欄位"
+              rows={8}
+              helperText="可留空（此題不需要標準輸入）"
             />
             <TextArea
               id="tc-output"
@@ -281,9 +297,10 @@ const TestCasesSection: React.FC = () => {
               placeholder="輸入預期輸出..."
               value={editForm.output}
               onChange={(e) => setEditForm((prev) => ({ ...prev, output: e.target.value }))}
-              rows={6}
+              rows={8}
               invalid={!editForm.output.trim()}
               invalidText="Output 為必填欄位"
+              helperText="逐行比對，行尾空白會被忽略"
             />
           </div>
 
@@ -291,7 +308,7 @@ const TestCasesSection: React.FC = () => {
             <NumberInput
               id="tc-score"
               label="佔比 (%)"
-              helperText="此測試案例佔題目總分的百分比"
+              helperText="佔題目總分的百分比"
               value={editForm.score}
               min={0}
               step={10}
@@ -302,36 +319,47 @@ const TestCasesSection: React.FC = () => {
                 }));
               }}
             />
-            <Toggle
-              id="tc-sample"
-              labelText="範例測資"
-              labelA="否"
-              labelB="是"
-              toggled={editForm.isSample}
-              onToggle={(checked) => {
+            <RadioButtonGroup
+              name="tc-visibility"
+              legendText="測資類型"
+              helperText="三種都會在正式提交時計分"
+              orientation="vertical"
+              valueSelected={testCaseVisibility(editForm)}
+              onChange={(value) => {
                 setEditForm((prev) => ({
                   ...prev,
-                  isSample: checked,
-                  isHidden: checked ? false : prev.isHidden,
+                  isSample: value === "sample",
+                  isHidden: value === "hidden",
                 }));
               }}
-            />
-            <Toggle
-              id="tc-hidden"
-              labelText="隱藏測資"
-              labelA="否"
-              labelB="是"
-              toggled={editForm.isHidden}
-              onToggle={(checked) => {
-                setEditForm((prev) => ({
-                  ...prev,
-                  isHidden: checked,
-                  isSample: checked ? false : prev.isSample,
-                }));
-              }}
-            />
+            >
+              <RadioButton
+                id="tc-visibility-sample"
+                labelText={renderVisibilityLabel(
+                  "範例測資",
+                  "顯示在題目敘述，學生按「測試執行」時只跑這些",
+                )}
+                value="sample"
+              />
+              <RadioButton
+                id="tc-visibility-public"
+                labelText={renderVisibilityLabel(
+                  "公開測資",
+                  "只在正式提交時執行，學生可在結果中看到測資內容",
+                )}
+                value="public"
+              />
+              <RadioButton
+                id="tc-visibility-hidden"
+                labelText={renderVisibilityLabel(
+                  "隱藏測資",
+                  "只在正式提交時執行，學生看不到輸入與預期輸出",
+                )}
+                value="hidden"
+              />
+            </RadioButtonGroup>
           </div>
-        </Layer>
+        </div>
       </Modal>
       </div>
     </Section>

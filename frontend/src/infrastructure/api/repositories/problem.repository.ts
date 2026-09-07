@@ -8,7 +8,6 @@ import type {
 } from "@/core/entities/problem.entity";
 import type {
   GetProblemsParams,
-  ProblemStatistics,
   TestRunPayload,
   TestRunResult,
 } from "@/core/ports/problem.repository";
@@ -89,13 +88,6 @@ export const patchProblem = async (
   return mapProblemDetailDto(responseData);
 };
 
-export const deleteProblem = async (id: string): Promise<void> => {
-  await ensureOk(
-    httpClient.delete(`${MANAGEMENT_PROBLEMS_BASE}/${id}/`),
-    "Failed to delete problem"
-  );
-};
-
 export const getTags = async (): Promise<Tag[]> => {
   try {
     const data = await requestJson<{ results?: TagDto[]; tags?: TagDto[] } | TagDto[]>(
@@ -138,30 +130,6 @@ export const deleteTag = async (slug: string): Promise<void> => {
   );
 };
 
-export const getProblemStatistics = async (
-  problemId: string,
-  params?: { contest?: string; limit?: number }
-): Promise<ProblemStatistics> => {
-  const query = buildQuery(params as Record<string, unknown>);
-  const data = await requestJson<{
-    submission_count?: number;
-    accepted_count?: number;
-    ac_rate?: number;
-    status_counts?: Record<string, number>;
-    trend?: any[];
-  }>(
-    httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/statistics/${query}`),
-    "Failed to fetch problem statistics"
-  );
-  return {
-    submissionCount: data.submission_count || 0,
-    acceptedCount: data.accepted_count || 0,
-    acRate: data.ac_rate || 0,
-    statusCounts: data.status_counts || {},
-    trend: Array.isArray(data.trend) ? data.trend : [],
-  };
-};
-
 export const testRun = async (
   problemId: string,
   payload: TestRunPayload
@@ -171,3 +139,6 @@ export const testRun = async (
     "Test run failed"
   );
 };
+
+export const getTestRunProgress = (problemId: string, runId: string): Promise<TestRunResult> =>
+  requestJson<TestRunResult>(httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/test_run_status/?run_id=${encodeURIComponent(runId)}`), "Test run progress failed");

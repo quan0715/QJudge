@@ -126,32 +126,33 @@ Container endpoint 必須能從 QJudge services 連線，public endpoint 則必�
 接著查看實際處理 request 的 service：
 
 ```bash
-docker compose logs --tail=200 backend ai-worker integrity-controller
+docker compose logs --tail=200 backend ai-worker integrity-resident integrity-reconciler
 ```
 
 Presigned URL 在有效時間內可能帶有存取權限，不要貼到公開 issue。
 
 ## 7. Judge 與 Integrity
 
-**症狀：** 程式提交沒有結果、Judge image 不存在，或 Integrity controller 無法啟動 Worker。
+**症狀：** 程式提交沒有結果、Judge image 不存在，或監考事件未出現在管理畫面。
 
 先確認 image、Docker socket 與 secret files，不輸出 secret 內容：
 
 ```bash
 docker image inspect oj-judge:latest >/dev/null
 stat -c '%u:%g %a %n' /var/run/docker.sock
-stat -c '%F %a %n' secrets/integrity/controller-token secrets/integrity/integrity-worker-signing-key
+stat -c '%F %u:%g %a %n' secrets/integrity/backend-public-key secrets/integrity/resident-service-token secrets/integrity/integrity-worker-signing-key
 ```
 
-Judge image 應存在；Docker socket 的 group 要和 `.env` 產生的設定一致；兩個 integrity path 應是 regular file，不是 directory。
+Judge image 應存在；Docker socket 只供 Judge 使用，group 要和 `.env` 產生的設定一致。Integrity 不使用 Docker socket。三個 credential path 應是 regular file；Resident 的 public key 與 service token 應為 group 10001、權限 640，簽章私鑰保持 600。
 
 再查看相關 services：
 
 ```bash
-docker compose logs --tail=200 celery celery-high integrity-controller
+docker compose logs --tail=200 celery celery-high integrity-resident integrity-reconciler
+docker compose exec -T integrity-resident python -c "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"
 ```
 
-如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認目錄沒有要保留的資料，再以可恢復方式移走，重新執行 `python3 scripts/bootstrap_integrity_secrets.py`。不要直接覆寫仍被 container 使用的路徑。
+如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認是空目錄再移除，重新執行 `sudo python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001`。不要覆寫現有有效憑證。Resident 與 reconciler 常駐運作，老師不需手動啟動或重啟每場考試的 Worker。
 
 ## 8. Tunnel 與 OAuth
 

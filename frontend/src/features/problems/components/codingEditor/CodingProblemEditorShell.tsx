@@ -5,11 +5,11 @@ import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSch
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import { GlobalSaveStatus } from "@/shared/ui/autoSave";
 import { TriggerModal, type TriggerModalHandle } from "@/shared/ui/modal";
-import ProblemEditHeader from "@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader";
-import ProblemEditSections from "@/features/problems/screens/problemsIdEdit/components/ProblemEditSections";
-import ProblemEditPreviewModal from "@/features/problems/screens/problemsIdEdit/components/ProblemEditPreviewModal";
-import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
-import "@/features/problems/screens/problemsIdEdit/screen.scss";
+import ProblemEditHeader from "./ProblemEditHeader";
+import ProblemEditSections from "./ProblemEditSections";
+import ProblemEditPreviewModal from "./ProblemEditPreviewModal";
+import { formSchemaToPreview } from "@/features/problems/forms/problemPreviewAdapter";
+import "./CodingProblemEditorShell.scss";
 import styles from "./CodingProblemEditorShell.module.scss";
 
 interface CodingProblemEditorShellProps {

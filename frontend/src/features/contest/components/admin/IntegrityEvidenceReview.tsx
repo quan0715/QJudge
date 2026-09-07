@@ -5,6 +5,7 @@ import { getIntegrityEvidenceReview, type IntegrityEvidenceReview } from "@/infr
 import { formatContestClockTime } from "@/features/contest/utils/contestTimeFormat";
 import {
   buildEvidenceTimeSlices,
+  filterEvidenceReviewItems,
   formatEvidenceRelativeRange,
 } from "./integrityEvidenceTimeline";
 import styles from "./IntegrityEvidenceReview.module.scss";
@@ -42,11 +43,12 @@ export default function IntegrityEvidenceReview({
   if (!review && !failed) return <InlineLoading description={String(t("logs.detail.loadingEvidence", "載入證據狀態中…"))} />;
   if (failed) return <span>{t("logs.detail.evidenceLoadFailed", "無法載入證據狀態")}</span>;
   if (!review) return null;
-  const slices = buildEvidenceTimeSlices(review.items);
+  const visibleItems = filterEvidenceReviewItems(review.items);
+  const slices = buildEvidenceTimeSlices(visibleItems);
   const occurredAtMs = Date.parse(occurredAt);
   const sourceItems = {
-    screen_share: review.items.filter((item) => item.source === "screen_share"),
-    webcam: review.items.filter((item) => item.source === "webcam"),
+    screen_share: visibleItems.filter((item) => item.source === "screen_share"),
+    webcam: visibleItems.filter((item) => item.source === "webcam"),
   };
   return (
     <section className={styles.section}>

@@ -39,7 +39,6 @@
     "management": {
       "allProblems": "All Problems",
       "contestProblems": "Contest Problems",
-      "practiceProblems": "Practice Problems",
       "title": "Problem Management"
     }
   },

@@ -30,6 +30,8 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@carbon/react", () => ({
+  Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  AccordionItem: ({ title, children }: { title: ReactNode; children: ReactNode }) => <div>{title}{children}</div>,
   Button: ({
     children,
     disabled,
@@ -129,6 +131,11 @@ vi.mock("@carbon/icons-react", () => {
   return {
     ArrowRight: Icon,
     Checkmark: Icon,
+    CheckmarkFilled: Icon,
+    CloseFilled: Icon,
+    InProgress: Icon,
+    InformationFilled: Icon,
+    Warning: Icon,
     Document: Icon,
     Flag: Icon,
     Launch: Icon,

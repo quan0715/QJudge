@@ -7,7 +7,7 @@ Follow these steps to complete your first submission:
 | Step | Task                     | Details                                              |
 | ---- | ------------------------ | ---------------------------------------------------- |
 | 1    | Login to QJudge          | [Step 1: Login](#step-1-login)                       |
-| 2    | Find a suitable problem  | [Step 2: Browse Problems](#step-2-browse-problems)   |
+| 2    | Open an assigned contest | [Step 2: Open a Contest](#step-2-open-a-contest)     |
 | 3    | Write and submit code    | [Step 3: Solve and Submit](#step-3-solve-and-submit) |
 | 4    | Check evaluation results | [Step 4: View Results](#step-4-view-results)         |
 
@@ -26,26 +26,18 @@ You can login through:
 
 ---
 
-## Step 2: Browse Problems
+## Step 2: Open a Contest
 
-After logging in, click "**Problems**" in the navigation bar to enter the problem list page.
+After logging in, open your classroom and select a contest that your teacher has made available. Programming problems are provided inside contests rather than through a separate practice-problem page.
 
-### Filter and Search Features
-
-| Feature              | How to Use                                      |
-| -------------------- | ----------------------------------------------- |
-| Filter by difficulty | Click Easy/Medium/Hard tags                     |
-| Keyword search       | Enter problem name or ID in search box          |
-| View acceptance rate | AC ratio displayed on the right of each problem |
-
-> **Beginner tip**: Start with problems marked as `Easy`.
+> If no contest is available, confirm that you joined the correct classroom and ask your teacher whether the contest has been published.
 
 ---
 
 ## Step 3: Solve and Submit
 
 ```
-1. Click a problem → Enter detail page
+1. Open the contest → Select a programming problem
         ↓
 2. Read description and examples
         ↓

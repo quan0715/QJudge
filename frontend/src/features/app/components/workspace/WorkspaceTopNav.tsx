@@ -1,6 +1,6 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { IconButton } from "@carbon/react";
+import { IconButton, Tag } from "@carbon/react";
 import {
   ChevronDown,
   Education,
@@ -49,9 +49,10 @@ const getContestRouteContext = (
 
 interface WorkspaceTopNavProps {
   showSidebarControl: boolean;
+  previewMode?: boolean;
 }
 
-export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
+export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: WorkspaceTopNavProps) {
   const { t } = useTranslation("common");
   const { left } = useWorkspace();
   const pageHeaderActions = usePageHeaderActionsSlot();
@@ -167,7 +168,8 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
     navigate(getClassroomContestAdminPath(classroomId, contestRouteId));
   }, [classroomId, contestRouteId, navigate]);
 
-  const { isRuntime } = useContestRuntimeMode();
+  const { isRuntime: isRuntimeRoute, isPreview } = useContestRuntimeMode();
+  const isRuntime = isRuntimeRoute || previewMode;
   const contestData = useOptionalContest();
   const contestNavigationReadOnly =
     isRuntime || shouldLockContestWorkspaceNavigation(contestData?.contest);
@@ -248,7 +250,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
                   onClick={() => toggleMenu("contest")}
                 >
                   <span>
-                    {currentContest?.contestName ??
+                    {contestData?.contest?.name ?? currentContest?.contestName ??
                       t("workspaceTopNav.contestFallback", "Contest")}
                   </span>
                   {!contestNavigationReadOnly ? <ChevronDown size={14} /> : null}
@@ -320,6 +322,7 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
       </div>
 
       <div className={styles.actions}>
+        {(previewMode || isPreview) && <Tag type="cool-gray" size="sm">{t("workspaceTopNav.previewMode", "預覽模式")}</Tag>}
         {isRuntime && <RuntimeNavExtras />}
         {pageHeaderActions}
         {!isRuntime ? <UserMenu /> : null}
@@ -331,12 +334,12 @@ export function WorkspaceTopNav({ showSidebarControl }: WorkspaceTopNavProps) {
 function RuntimeNavExtras() {
   const { t } = useTranslation("contest");
   const [monitoringOpen, setMonitoringOpen] = useState(false);
-  const { contest, refreshContest } = useContest();
+  const { contest, runtime } = useContest();
   const monitoringReminder = useExamMonitoringStatus();
   const { timeLeft, isCountdownToStart } = useContestTimers({
     contest,
     contestId: contest?.id,
-    refreshContest,
+    refreshContest: runtime.refresh,
   });
 
   if (!contest) return null;
@@ -375,7 +378,7 @@ function RuntimeNavExtras() {
           <MonitoringIcon size={20} />
         </button>
       ) : null}
-      <div className={styles.runtimeTimer}>
+      <div className={styles.runtimeTimer} data-testid="exam-deadline" data-end-time={contest.endTime}>
         <TimeDisplay
           variant="header"
           value={

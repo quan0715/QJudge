@@ -12,7 +12,6 @@ import {
   CaretUp,
   CaretDown,
 } from "@carbon/icons-react";
-import { Link } from "react-router-dom";
 import { DifficultyBadge } from "@/shared/ui/tag";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import ProblemTagList from "./ProblemTagList";
@@ -132,18 +131,14 @@ const ProblemTableRow: React.FC<ProblemTableRowProps> = ({
                   <CheckmarkOutline size={16} />
                 </div>
               )}
-              <Link
-                to={`/problems/${problem.id}`}
+              <span
                 style={{
-                  textDecoration: "none",
-                  color: "var(--cds-link-primary)",
                   fontWeight: 500,
                   fontSize: "1rem",
                 }}
-                onClick={(e) => e.stopPropagation()}
               >
                 {problem.title}
-              </Link>
+              </span>
             </div>
           </TableCell>
           <TableCell>

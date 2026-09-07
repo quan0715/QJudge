@@ -370,6 +370,11 @@ DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv("DOCKER_JUDGE_PIDS_LIMIT", "64"))
 DOCKER_JUDGE_TMPFS_SIZE = os.getenv("DOCKER_JUDGE_TMPFS_SIZE", "100M")
 DOCKER_JUDGE_TIMEOUT = int(os.getenv("DOCKER_JUDGE_TIMEOUT", "60"))  # seconds
 
+# Ad-hoc test runs are executed by the judge workers (the only processes with
+# Docker access) while the HTTP request waits for the result.
+JUDGE_TEST_RUN_QUEUE = os.getenv("JUDGE_TEST_RUN_QUEUE", "default")
+JUDGE_TEST_RUN_TIMEOUT = int(os.getenv("JUDGE_TEST_RUN_TIMEOUT", "120"))  # seconds
+
 # Seccomp profile path (set to None to disable)
 # 優先使用 HOST_PROJECT_ROOT (解決 Docker Socket Binding 路徑問題)
 HOST_PROJECT_ROOT = os.getenv("HOST_PROJECT_ROOT")
@@ -400,23 +405,18 @@ AI_SERVICE_WRITE_TIMEOUT_SECONDS = float(
 AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
     os.getenv("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
 )
-# Exam integrity lifecycle services. Backend owns database state while the
-# dedicated Controller is the only service allowed to own the Docker socket.
-INTEGRITY_CONTROLLER_URL = os.getenv(
-    "INTEGRITY_CONTROLLER_URL", "http://integrity-controller:8010"
-)
-INTEGRITY_CONTROLLER_TOKEN_FILE = os.getenv(
-    "INTEGRITY_CONTROLLER_TOKEN_FILE", "/run-secrets/controller-token"
-)
-INTEGRITY_WORKER_IMAGE = os.getenv(
-    "INTEGRITY_WORKER_IMAGE", "oj-integrity-worker:local"
-)
-INTEGRITY_WORKER_NETWORK = os.getenv(
-    "INTEGRITY_WORKER_NETWORK", "online_judge_oj_network"
-)
+# Exam integrity. The backend owns schedule and deadline authority; the
+# resident service owns every Run's journal in one process, with no Docker
+# socket and no per-exam container.
+INTEGRITY_RESIDENT_URL = os.getenv("INTEGRITY_RESIDENT_URL", "http://integrity-resident:8011")
+INTEGRITY_ACCEPT_GRACE_SECONDS = int(os.getenv("INTEGRITY_ACCEPT_GRACE_SECONDS", "300"))
+
 INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
     "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
     "/run-secrets/integrity-worker-signing-key",
+)
+INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE = os.getenv(
+    "INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE", "/run-secrets/resident-service-token"
 )
 INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = float(
     os.getenv("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")

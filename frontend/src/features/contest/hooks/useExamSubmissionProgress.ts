@@ -30,6 +30,7 @@ interface RunExamSubmissionProgressOptions {
   handlers?: Partial<Record<ExamSubmissionStepId, () => Promise<void>>>;
   minStepMs?: number;
   closeOnSuccess?: boolean;
+  skipSteps?: ExamSubmissionStepId[];
 }
 
 const sleep = (ms: number) =>
@@ -118,16 +119,18 @@ export const useExamSubmissionProgress = () => {
       handlers,
       minStepMs = DEFAULT_MIN_STEP_MS,
       closeOnSuccess = true,
+      skipSteps = [],
     }: RunExamSubmissionProgressOptions = {}) => {
       setState({
         open: true,
         running: true,
-        steps: createSteps(),
+        steps: createSteps().filter((step) => !skipSteps.includes(step.id)),
         errorMessage: null,
       });
 
       try {
         for (const stepId of STEP_IDS) {
+          if (skipSteps.includes(stepId)) continue;
           updateStep(stepId, "active");
 
           const startedAt = Date.now();

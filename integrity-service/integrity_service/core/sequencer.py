@@ -37,7 +37,11 @@ class SessionSequencer:
             tuple[UUID, int, str], dict[UUID, int]
         ] = defaultdict(dict)
 
-    def accept(self, batch: EventBatch) -> AcceptResult:
+    def contiguous_cursor(self, run_id: UUID, participant_id: int, device_id: str) -> int:
+        return self._acked.get((run_id, participant_id, device_id), 0)
+
+    def accept(self, batch: EventBatch, *, commit: bool = True) -> AcceptResult:
+        """Validate atomically; ``commit=False`` previews admission before durable I/O."""
         session_key = (batch.run_id, batch.participant_id, batch.device_id)
         seen = self._records.get(session_key, {})
         event_sequences = self._event_sequences.get(session_key, {})
@@ -71,9 +75,13 @@ class SessionSequencer:
         new_records = tuple(
             prospective_seen[sequence].record for sequence in new_sequences
         )
-        self._records[session_key] = prospective_seen
-        self._event_sequences[session_key] = prospective_event_sequences
-        cursor = self._advance(session_key)
+        cursor = self._acked.get(session_key, 0)
+        while cursor + 1 in prospective_seen:
+            cursor += 1
+        if commit:
+            self._records[session_key] = prospective_seen
+            self._event_sequences[session_key] = prospective_event_sequences
+            self._acked[session_key] = cursor
         return AcceptResult(cursor, not new_records, new_records)
 
     def restore(

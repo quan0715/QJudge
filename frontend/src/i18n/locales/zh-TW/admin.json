@@ -39,7 +39,6 @@
     "management": {
       "allProblems": "所有題目",
       "contestProblems": "競賽題目",
-      "practiceProblems": "練習題目",
       "title": "題目管理"
     }
   },

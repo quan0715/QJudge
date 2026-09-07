@@ -6,6 +6,24 @@ export interface EvidenceTimeSlice {
   items: IntegrityEvidenceReviewItem[];
 }
 
+const MIN_REVIEW_CLIP_MS = 1_000;
+
+export const filterEvidenceReviewItems = (
+  items: IntegrityEvidenceReviewItem[],
+): IntegrityEvidenceReviewItem[] => {
+  const unique = [...new Map(items.map((item) => [item.chunkId, item])).values()];
+  const sourcesWithNormalClip = new Set(
+    unique
+      .filter((item) => item.endAtMs - item.startAtMs >= MIN_REVIEW_CLIP_MS)
+      .map((item) => item.source),
+  );
+  return unique.filter(
+    (item) =>
+      !sourcesWithNormalClip.has(item.source) ||
+      item.endAtMs - item.startAtMs >= MIN_REVIEW_CLIP_MS,
+  );
+};
+
 export const buildEvidenceTimeSlices = (
   items: IntegrityEvidenceReviewItem[],
 ): EvidenceTimeSlice[] => {

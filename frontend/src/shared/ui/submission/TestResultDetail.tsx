@@ -10,7 +10,6 @@ import {
 import { Close, Time, DataBase } from "@carbon/icons-react";
 import {
   SubmissionStatusBadge,
-  SubmissionStatusIcon,
 } from "@/shared/ui/tag/SubmissionStatusBadge";
 import { TestResultDiff } from "./TestResultDiff";
 import type { TestResult } from "@/core/entities/submission.entity";
@@ -87,7 +86,6 @@ export const TestResultDetail: React.FC<TestResultDetailProps> = ({
       {/* Header */}
       <div className={styles.header}>
         <Stack orientation="horizontal" gap={4} className={styles.titleRow}>
-          <SubmissionStatusIcon status={status} size={24} />
           <h3 className={styles.title}>Test Case #{index}</h3>
           <SubmissionStatusBadge status={status} size="md" />
           {isHidden && (

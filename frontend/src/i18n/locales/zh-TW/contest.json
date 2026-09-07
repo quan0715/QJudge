@@ -278,6 +278,71 @@
         "paperExam": "考卷題目"
       }
     },
+    "preparation": {
+      "ariaLabel": "競賽準備總覽",
+      "steps": {
+        "title": "競賽準備步驟",
+        "information": "競賽資訊設定",
+        "informationDescription": "規則與時間",
+        "problems": "競賽題目設定",
+        "review": "確認資訊並發布競賽",
+        "reviewDescription": "確認設定後發布給學生",
+        "reviewBlocked": "請先完成競賽資訊設定，再發布競賽。",
+        "published": "競賽已發布",
+        "back": "返回"
+      },
+      "checklistTitle": "待完成",
+      "participantsTitle": "考生名單",
+      "nextStep": "下一步",
+      "studentView": "學生看到的樣子",
+      "previewAsStudent": "預覽考生視角",
+      "draftHiddenNote": "草稿不會出現在學生的競賽列表",
+      "blockedBySchedule": "發布前會先請你設定考試時間",
+      "startsIn": "距離開考 {{value}}",
+      "dangerAction": "危險操作",
+      "level": {
+        "pending": "待完成",
+        "done": "已完成",
+        "warning": "建議設定",
+        "blocking": "發布前必填"
+      },
+      "info": {
+        "contestType": "考卷題型",
+        "problems": "題目數量",
+        "participants": "考生人數"
+      },
+      "schedule": {
+        "title": "考試時間",
+        "done": "{{start}} - {{end}}",
+        "missing": "尚未設定，發布前必填",
+        "action": "設定時間"
+      },
+      "problems": {
+        "title": "題目準備",
+        "done": "已設定 {{count}} 題",
+        "missing": "尚未新增題目",
+        "action": "前往題目管理"
+      },
+      "participants": {
+        "title": "考生名單",
+        "done": "已加入 {{count}} 人",
+        "missing": "尚未加入任何考生",
+        "action": "管理名單"
+      },
+      "rules": {
+        "title": "競賽規則",
+        "done": "已設定規則內容",
+        "missing": "建議補上考試規則與注意事項",
+        "action": "開啟設定"
+      },
+      "confirm": {
+        "publishWithoutProblemsTitle": "這場競賽還沒有題目",
+        "publishWithoutProblemsBody": "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+        "publishAnyway": "仍要發布",
+        "revertToDraftTitle": "確定要退回草稿嗎？",
+        "revertToDraftBody": "退回後學生會立刻看不到這場競賽。"
+      }
+    },
     "screen": {
       "actions": {
         "addParticipant": "新增參賽者",
@@ -699,6 +764,7 @@
     "startExamFailed": "無法開始考試，請稍後再試"
   },
   "exam": {
+    "integrityLocalDataLoss": "部分監考事件或影音未能錄製或保存，可能無法補傳；這不同於待傳送資料，完成上傳也不代表缺漏已恢復。可繼續作答與交卷。",
     "abnormalBehavior": "檢測到異常操作",
     "accumulatedViolations": "累積違規次數",
     "alreadyLocked": "0 - 已鎖定",
@@ -732,6 +798,8 @@
     "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "考試監控中 - 點擊查看詳情",
     "monitoringIssueHint": "請依提示恢復監控狀態；系統已保留事件採證。",
+    "integrityUploadPending": "監考資料尚未完成傳送；可繼續作答與交卷。離開頁面後傳送會停止，已保存的本機資料會保留。",
+    "integrityUploadExpired": "監考資料補傳期限已到，仍有未完成的資料；交卷結果不受影響，已保存的本機資料會保留。",
     "monitoringReminder": {
       "fullscreen": "請回全螢幕",
       "mouse_leave": "滑鼠離開",
@@ -1189,7 +1257,6 @@
       "multiple_displays": "多螢幕偵測",
       "other": "其他",
       "pause_exam": "暫停考試",
-      "publish_problem_to_practice": "發布到練習區",
       "register": "註冊",
       "reopen_exam": "重新開放考試",
       "reply_question": "回覆提問",
@@ -1564,8 +1631,23 @@
     "title": "題目管理"
   },
   "problems": "題目數",
-  "integrityRun": {
-    "title": "Integrity Worker", "description": "系統自動管理考試事件與證據處理。", "waiting": "等待系統啟動", "waitingDescription": "系統會依考試時段自動管理 Worker。", "workerUnhealthy": "Worker 異常", "workerUnhealthyDescription": "目前無法穩定接收考試事件，可嘗試重新啟動。", "healthy": "正常運作", "healthyDescription": "Worker 正在接收並處理考試事件。", "starting": "啟動中", "stopping": "收尾中", "transitionDescription": "系統正在更新 Worker 狀態。", "archived": "已封存", "archivedDescription": "考試資料已完成封存。", "completed": "已完成", "completedDescription": "此考試的 Worker 生命週期已結束。", "ready": "等待考試開始", "readyDescription": "系統會在需要時自動啟動 Worker。", "restart": "重新啟動 Worker", "restartPreservesData": "事件與證據資料會保留。", "confirmRestart": "確認重啟", "restartComplete": "Worker 已重新啟動", "restartFailed": "無法重新啟動 Worker", "loadFailed": "無法讀取 Worker 狀態"
+  "integrityStatus": {
+    "unavailable": "暫時無法更新監考狀態",
+    "unavailableDescription": "系統會自動重試，不影響學生作答與交卷。",
+    "purged": "資料已清除",
+    "purgedDescription": "此場考試的監考資料已永久清除。",
+    "archived": "已封存",
+    "archivedDescription": "考試紀錄已封存；證據是否完整請以各事件的證據狀態為準。",
+    "interrupted": "監考暫時中斷",
+    "interruptedDescription": "監考紀錄可能延遲或缺漏，不影響學生作答與交卷。",
+    "draining": "整理考試紀錄中",
+    "drainingDescription": "考試已結束，系統正在整理已收到的事件與證據。",
+    "active": "監考中",
+    "activeDescription": "系統自動接收考試紀錄；請在事件與證據中進行人工判讀。",
+    "closed": "監考已結束",
+    "closedDescription": "此場考試已停止接收監考紀錄。",
+    "waiting": "等待考試開始",
+    "waitingDescription": "系統依考試時間自動管理監考，無需手動啟動。"
   },
   "proctoringPanel": {
     "backToRoster": "返回列表",
@@ -1708,15 +1790,6 @@
     "exportSuccess": "成績匯出成功",
     "joinPassword": "加入密碼",
     "noPassword": "免密碼",
-    "publishPracticeFailed": "發布失敗，請稍後再試",
-    "publishPracticeSuccess": "已將競賽題目發布到練習題庫",
-    "publishToPractice": "公開競賽題目到練習",
-    "publishToPracticeConfirm": "確認發布",
-    "publishToPracticeConfirmDesc": "會複製所有競賽題目到公開練習題庫，封存的競賽本身仍維持唯讀。",
-    "publishToPracticeConfirmTitle": "確認公開競賽題目到練習？",
-    "publishToPracticeDesc": "僅封存後可用。會複製題目到公開練習題庫。",
-    "publishToPracticeHint": "需先封存才能發布",
-    "publishToPracticeIrreversible": "此動作無法復原。",
     "requiresPassword": "需要密碼",
     "requiresPasswordHelp": "開啟後，學生加入時需要輸入密碼",
     "requiresPasswordShort": "密碼",
@@ -1798,6 +1871,12 @@
     "viewSubmissionSamples": "查看提交樣本"
   },
   "studentDashboard": {
+    "codingRecords": {
+      "problem": "題目",
+      "score": "得分／滿分",
+      "status": "解題狀態",
+      "count": "繳交次數"
+    },
     "actions": {
       "adminPanel": "管理後台",
       "backToAnswering": "回到作答",

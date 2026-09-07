@@ -12,8 +12,8 @@ import {
 } from "@/features/problems/forms/problemFormSchema";
 import { problemFormSchema } from "@/features/problems/forms/problemFormValidation";
 import { problemDetailToFormSchema } from "@/features/problems/forms/problemFormAdapters";
-import { formSchemaToPreview } from "@/features/problems/screens/problemsIdEdit/utils/previewAdapter";
-import "@/features/problems/screens/problemsIdEdit/screen.scss";
+import { formSchemaToPreview } from "@/features/problems/forms/problemPreviewAdapter";
+import "@/features/problems/components/codingEditor/CodingProblemEditorShell.scss";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import CodingProblemPreviewCard from "./CodingProblemPreviewCard";
 import CodingProblemTabbedEditor from "./CodingProblemTabbedEditor";

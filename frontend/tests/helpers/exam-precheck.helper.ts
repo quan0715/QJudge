@@ -55,7 +55,8 @@ export async function gotoExamAnsweringThroughPrecheck(
   contestId: string
 ): Promise<void> {
   const classroomId = await getContestClassroomId(page, contestId);
-  await page.goto(`/classrooms/${classroomId}/contest/${contestId}/exam-precheck`);
-  await page.waitForLoadState("networkidle");
+  await page.goto(`/classrooms/${classroomId}/contest/${contestId}/exam-precheck`, { waitUntil: "domcontentloaded" });
+  // Runtime/checkpoint polling is expected to continue throughout an exam.
+  // The next helper waits for the actual precheck controls, not network silence.
   await runPrecheckToAnswering(page);
 }

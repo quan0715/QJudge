@@ -115,7 +115,7 @@ const mapIntegrityRun = (value: unknown): ContestIntegrityRun => {
   );
   return {
     id: ensureString(run, "id", "integrity_run"),
-    computeState: ensureString(run, "compute_state", "integrity_run"),
+     sessionState: ensureString(run, "session_state", "integrity_run"),
     health: ensureString(run, "health", "integrity_run"),
     participantId:
       participantId === null || participantId === undefined

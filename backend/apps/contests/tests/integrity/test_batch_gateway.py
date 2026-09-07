@@ -35,7 +35,7 @@ from apps.users.models import User
 
 @pytest.fixture
 def api_client():
-    return APIClient()
+    return APIClient(HTTP_X_DEVICE_ID="device-a")
 
 
 def make_batch(
@@ -76,7 +76,14 @@ def make_batch(
 
 
 def checkpoint(observations):
+    participant = ContestParticipant.objects.get(user__username="gateway-student")
     return {
+        "upload_scope": {
+            "run_id": observations["run_id"],
+            "participant_id": participant.pk,
+            "device_id": "device-a",
+            "attempt_id": str(participant.integrity_attempt_id),
+        },
         "observations": observations,
         "evidence": {
             "manifests": [],
@@ -117,26 +124,32 @@ class WorkerServer:
         if self.timeout:
             raise httpx.ReadTimeout("worker timed out", request=request)
 
-        assert urlparse(url).path == self.expected_path
+        path = urlparse(url).path
+        assert path in (self.expected_path, self.expected_path.replace("/batches", "/progress"))
         assert headers["Content-Type"] == "application/json"
         timestamp = headers["X-QJudge-Timestamp"]
         run_id = headers["X-QJudge-Run-Id"]
-        message = (
-            run_id.encode("ascii")
-            + b"\n"
-            + timestamp.encode("ascii")
-            + b"\n"
-            + content
-        )
+        revision = headers["X-QJudge-Revision"]
+        message = f"resident-v1\nPOST\n{path}\n{run_id}\n{revision}\n{timestamp}\n".encode("ascii") + content
         self.private_key.public_key().verify(
             base64.b64decode(headers["X-QJudge-Signature"], validate=True),
             message,
         )
         self.verified_signature = True
+        if path.endswith("/progress"):
+            return httpx.Response(200, json={
+                **json.loads(content),
+                "received_seq": self.response_payload["acked_through_seq"],
+                "processed_seq": self.response_payload["acked_through_seq"],
+                "commands_drained": True,
+                "evidence_fence_version": "resident-evidence-fence-v1",
+                "release_evidence_before_ms": self.response_payload.get("release_evidence_before_ms", 0),
+            }, headers={"X-QJudge-Protocol": "resident-v1"}, request=request)
         self.received_body = content
         return httpx.Response(
             self.response_status,
             json=self.response_payload,
+            headers={"X-QJudge-Protocol": "resident-v1"},
             request=request,
         )
 
@@ -200,15 +213,17 @@ def another_participant(participant):
 
 @pytest.fixture
 def running_integrity_run(participant):
+    contest = participant.contest
     return ExamIntegrityRun.objects.create(
-        contest=participant.contest,
-        created_by=participant.contest.owner,
-        compute_state=ExamIntegrityRun.ComputeState.RUNNING,
+        contest=contest,
+        created_by=contest.owner,
+        session_state=ExamIntegrityRun.SessionState.ACTIVE,
         policy_snapshot={},
         registry_snapshot={"version": "registry-v1", "definitions": {}},
         registry_version="registry-v1",
-        worker_image="integrity-worker:test",
-        worker_url="http://integrity-worker.test",
+        scheduled_start_at=contest.start_time,
+        scheduled_end_at=contest.end_time,
+        accept_until=contest.end_time,
     )
 
 
@@ -268,20 +283,16 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
             f"/api/v1/contests/{running_integrity_run.contest_id}"
             "/exam/integrity/checkpoints/"
         ),
-        {
-            "observations": batch,
-            "evidence": {
-                "manifests": [],
-                "completions": [],
-                "unavailable": [],
-            },
-        },
+        checkpoint(batch),
         format="json",
     )
 
     assert response.status_code == 200
     assert response.json() == {
         "acked_through_seq": 42,
+        "processed_through_seq": 42,
+        "upload_status": "pending",
+        "evidence_fence_version": "resident-evidence-fence-v1",
         "pending_commands": [],
         "release_evidence_before_ms": 1_785_000_000_000,
         "uploads": [],
@@ -290,7 +301,8 @@ def test_batch_gateway_signs_exact_body_and_returns_worker_ack(
     }
     assert worker_server.verified_signature is True
     assert worker_server.received_body == json.dumps(
-        batch,
+        {"batch": batch, "late_unverified": False,
+         "attempt_id": str(participant.integrity_attempt_id)},
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
@@ -327,13 +339,7 @@ def test_batch_gateway_does_not_forward_events_after_submission(
         format="json",
     )
 
-    assert response.status_code == 409
-    assert response.json() == {
-        "error": {
-            "code": "exam_not_in_progress",
-            "message": "Exam is not currently accepting integrity events.",
-        }
-    }
+    assert response.status_code == 403
     assert worker_server.request_count == 0
 
 
@@ -379,7 +385,7 @@ def test_batch_gateway_forwards_events_for_active_monitored_statuses(
     )
 
     assert response.status_code == 200
-    assert worker_server.request_count == 1
+    assert worker_server.request_count == 2
 
 
 @pytest.mark.django_db
@@ -442,6 +448,9 @@ def test_batch_gateway_enriches_only_after_durable_worker_ack(
     assert response.status_code == 200
     assert response.json() == {
         "acked_through_seq": 1,
+        "processed_through_seq": 1,
+        "upload_status": "pending",
+        "evidence_fence_version": "resident-evidence-fence-v1",
         "pending_commands": list(projection.pending_commands),
         "release_evidence_before_ms": 900,
         "uploads": [],
@@ -485,109 +494,6 @@ def test_batch_gateway_does_not_project_evidence_without_worker_ack(
 
     assert response.status_code == 503
     build_delivery.assert_not_called()
-
-
-@pytest.mark.django_db
-def test_worker_stop_signs_exact_empty_body_and_validates_manifest(
-    running_integrity_run,
-    worker_server,
-):
-    manifest = {
-        "archived": True,
-        "manifest_key": (
-            f"runs/{running_integrity_run.id}/generation-1/manifest.json"
-        ),
-        "manifest_sha256": "ab" * 32,
-    }
-    worker_server.expect_signed_post(
-        f"/v1/runs/{running_integrity_run.id}/control/stop",
-        response=manifest,
-    )
-
-    result = build_integrity_worker_client().request_stop(running_integrity_run)
-
-    assert result == manifest
-    assert worker_server.verified_signature is True
-    assert worker_server.received_body == b""
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "payload",
-    (
-        {
-            "archived": True,
-            "manifest_key": "manifest.json",
-            "manifest_sha256": "a" * 64,
-            "extra": True,
-        },
-        {
-            "archived": False,
-            "manifest_key": "manifest.json",
-            "manifest_sha256": "a" * 64,
-        },
-        {
-            "archived": True,
-            "manifest_key": " ",
-            "manifest_sha256": "a" * 64,
-        },
-        {
-            "archived": True,
-            "manifest_key": "manifest.json",
-            "manifest_sha256": "not-a-sha256",
-        },
-    ),
-)
-def test_worker_stop_rejects_non_exact_success_envelopes(
-    running_integrity_run,
-    worker_server,
-    payload,
-):
-    worker_server.expect_signed_post(
-        f"/v1/runs/{running_integrity_run.id}/control/stop",
-        response=payload,
-    )
-
-    with pytest.raises(IntegrityWorkerProtocolError):
-        build_integrity_worker_client().request_stop(running_integrity_run)
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("worker_status", (502, 503, 504))
-def test_worker_stop_maps_retryable_failures_to_unavailable(
-    running_integrity_run,
-    worker_server,
-    worker_status,
-):
-    worker_server.expect_signed_post(
-        f"/v1/runs/{running_integrity_run.id}/control/stop",
-        response={"detail": "temporarily unavailable"},
-        status_code=worker_status,
-    )
-
-    with pytest.raises(IntegrityWorkerUnavailable):
-        build_integrity_worker_client().request_stop(running_integrity_run)
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("worker_status", (409, 422, 507))
-def test_worker_stop_preserves_valid_worker_rejections(
-    running_integrity_run,
-    worker_server,
-    worker_status,
-):
-    payload = {"detail": "stop rejected"}
-    worker_server.expect_signed_post(
-        f"/v1/runs/{running_integrity_run.id}/control/stop",
-        response=payload,
-        status_code=worker_status,
-    )
-
-    with pytest.raises(IntegrityWorkerRejected) as caught:
-        build_integrity_worker_client().request_stop(running_integrity_run)
-
-    assert caught.value.status_code == worker_status
-    assert caught.value.payload == payload
 
 
 @pytest.mark.django_db

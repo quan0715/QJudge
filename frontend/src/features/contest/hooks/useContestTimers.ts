@@ -44,7 +44,7 @@ export const useContestTimers = ({
       return;
     }
 
-    const now = Date.now();
+    const now = Date.now() + (contest.serverTimeOffsetMs ?? 0);
     const start = new Date(contest.startTime).getTime();
     const end = new Date(contest.endTime).getTime();
     const contestNotStartedYet = now < start;
@@ -69,7 +69,7 @@ export const useContestTimers = ({
 
   useEffect(() => {
     hasRefreshedForTimerExpiration.current = false;
-  }, [contestId]);
+  }, [contestId, contest?.scheduleRevision, contest?.endTime]);
 
   useEffect(() => {
     const timerId = setTimeout(updateContestCountdown, 0);

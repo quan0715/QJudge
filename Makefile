@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build dev-down integrity-secrets integrity-worker-build test test-down monitor monitor-down loadtest loadtest-down judge-build
+.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down monitor monitor-down loadtest loadtest-down judge-build
 
 # Default target
 help:
@@ -29,24 +29,24 @@ help:
 	@echo "Judge System:"
 	@echo "  judge-build     Build the oj-judge Docker image locally"
 	@echo "  integrity-secrets       Create missing local Integrity credentials"
-	@echo "  integrity-worker-build  Build the Integrity Worker image for local exam runs"
+	@echo "  integrity-resident-build  Build the resident Integrity service"
 	@echo ""
 
 # --- Development ---
-dev: integrity-secrets integrity-worker-build
+dev: integrity-secrets integrity-resident-build
 	docker compose -f docker-compose.dev.yml up -d
 
-dev-build: integrity-secrets integrity-worker-build
+dev-build: integrity-secrets integrity-resident-build
 	docker compose -f docker-compose.dev.yml up -d --build
 
 dev-down:
 	docker compose -f docker-compose.dev.yml down
 
 integrity-secrets:
-	python3 scripts/bootstrap_integrity_secrets.py
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm --no-deps --build integrity-bootstrap
 
-integrity-worker-build:
-	docker compose --profile build -f docker-compose.dev.yml build integrity-worker-image
+integrity-resident-build:
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build integrity-resident
 
 # --- Testing ---
 test:

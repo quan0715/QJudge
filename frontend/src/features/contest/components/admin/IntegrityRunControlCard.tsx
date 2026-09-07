@@ -1,4 +1,4 @@
-import { Button, SkeletonText, Tag, Tile } from "@carbon/react";
+import { SkeletonText, Tag, Tile } from "@carbon/react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,90 +7,48 @@ import {
   examIntegrityRepository,
   type ExamIntegrityRepository,
 } from "@/infrastructure/api/repositories/examIntegrity.repository";
-import { useToast } from "@/shared/contexts/ToastContext";
 
 import styles from "./IntegrityRunControlCard.module.scss";
 
-type Translate = (key: string, fallback: string) => string;
-type TagType = "blue" | "cool-gray" | "green" | "purple" | "red";
-type RunPresentation = {
-  label: string;
-  description: string;
-  tagType: TagType;
-};
-
 export interface IntegrityRunControlCardProps {
   contestId: string;
-  repository?: Pick<ExamIntegrityRepository, "listRuns" | "restartRun">;
+  repository?: Pick<ExamIntegrityRepository, "listRuns">;
 }
 
-const getRunPresentation = (
-  run: ExamIntegrityRun | null,
-  t: Translate,
-): RunPresentation => {
-  if (!run) {
-    return {
-      label: t("integrityRun.waiting", "等待系統啟動"),
-      description: t(
-        "integrityRun.waitingDescription",
-        "系統會依考試時段自動管理 Worker。",
-      ),
-      tagType: "cool-gray",
-    };
-  }
+type Translate = (key: string, fallback: string) => string;
 
-  if (run.computeState === "running" && run.health === "unhealthy") {
-    return {
-      label: t("integrityRun.workerUnhealthy", "Worker 異常"),
-      description: t(
-        "integrityRun.workerUnhealthyDescription",
-        "目前無法穩定接收考試事件，可嘗試重新啟動。",
-      ),
-      tagType: "red",
-    };
-  }
-
-  if (run.computeState === "running") {
-    return {
-      label: t("integrityRun.healthy", "正常運作"),
-      description: t(
-        "integrityRun.healthyDescription",
-        "Worker 正在接收並處理考試事件。",
-      ),
-      tagType: "green",
-    };
-  }
-
-  if (run.computeState === "starting" || run.computeState === "stopping") {
-    return {
-      label: run.computeState === "starting"
-        ? t("integrityRun.starting", "啟動中")
-        : t("integrityRun.stopping", "收尾中"),
-      description: t("integrityRun.transitionDescription", "系統正在更新 Worker 狀態。"),
-      tagType: "blue",
-    };
-  }
-
-  if (run.dataState === "archived") {
-    return {
-      label: t("integrityRun.archived", "已封存"),
-      description: t("integrityRun.archivedDescription", "考試資料已完成封存。"),
-      tagType: "purple",
-    };
-  }
-
-  if (run.dataState === "purged") {
-    return {
-      label: t("integrityRun.completed", "已完成"),
-      description: t("integrityRun.completedDescription", "此考試的 Worker 生命週期已結束。"),
-      tagType: "cool-gray",
-    };
-  }
-
+const getPresentation = (run: ExamIntegrityRun | null, unavailable: boolean, t: Translate) => {
+  if (unavailable) return {
+    label: t("integrityStatus.unavailable", "暫時無法更新監考狀態"),
+    description: t("integrityStatus.unavailableDescription", "系統會自動重試，不影響學生作答與交卷。"),
+  };
+  if (run?.dataState === "purged") return {
+    label: t("integrityStatus.purged", "資料已清除"),
+    description: t("integrityStatus.purgedDescription", "此場考試的監考資料已永久清除。"),
+  };
+  if (run?.dataState === "archived") return {
+    label: t("integrityStatus.archived", "已封存"),
+    description: t("integrityStatus.archivedDescription", "考試紀錄已封存；證據是否完整請以各事件的證據狀態為準。"),
+  };
+  if (run?.health === "unhealthy") return {
+    label: t("integrityStatus.interrupted", "監考暫時中斷"),
+    description: t("integrityStatus.interruptedDescription", "監考紀錄可能延遲或缺漏，不影響學生作答與交卷。"),
+  };
+  if (run?.sessionState === "draining") return {
+    label: t("integrityStatus.draining", "整理考試紀錄中"),
+    description: t("integrityStatus.drainingDescription", "考試已結束，系統正在整理已收到的事件與證據。"),
+  };
+  if (run?.sessionState === "active") return {
+    label: t("integrityStatus.active", "監考中"),
+    description: t("integrityStatus.activeDescription", "系統自動接收考試紀錄；請在事件與證據中進行人工判讀。"),
+  };
+  if (run?.sessionState === "closed") return {
+    label: t("integrityStatus.closed", "監考已結束"),
+    description: t("integrityStatus.closedDescription", "此場考試已停止接收監考紀錄。"),
+  };
   return {
-    label: t("integrityRun.ready", "等待考試開始"),
-    description: t("integrityRun.readyDescription", "系統會在需要時自動啟動 Worker。"),
-    tagType: "cool-gray",
+    label: t("integrityStatus.waiting", "等待考試開始"),
+    description: t("integrityStatus.waitingDescription", "系統依考試時間自動管理監考，無需手動啟動。"),
   };
 };
 
@@ -99,27 +57,29 @@ export function IntegrityRunControlCard({
   repository = examIntegrityRepository,
 }: IntegrityRunControlCardProps) {
   const { t } = useTranslation("contest");
-  const { showToast } = useToast();
   const [run, setRun] = useState<ExamIntegrityRun | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [restartPending, setRestartPending] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
+    setLoading(true);
+    setRun(null);
+    setUnavailable(false);
     const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
         const runs = await repository.listRuns(contestId);
-        if (!cancelled) setRun(runs[0] ?? null);
-      } catch (error) {
         if (!cancelled) {
-          showToast({
-            kind: "error",
-            title: t("integrityRun.loadFailed", "無法讀取 Worker 狀態"),
-            subtitle: error instanceof Error ? error.message : undefined,
-          });
+          setRun(runs[0] ?? null);
+          setUnavailable(false);
         }
+      } catch {
+        if (!cancelled) setUnavailable(true);
       } finally {
+        inFlight = false;
         if (!cancelled) setLoading(false);
       }
     };
@@ -132,60 +92,17 @@ export function IntegrityRunControlCard({
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [contestId, repository, showToast, t]);
-
-  const restart = async () => {
-    if (!run || run.computeState !== "running" || run.health !== "unhealthy") return;
-    setBusy(true);
-    try {
-      setRun(await repository.restartRun(contestId, run.id));
-      showToast({
-        kind: "success",
-        title: t("integrityRun.restartComplete", "Worker 已重新啟動"),
-      });
-    } catch (error) {
-      showToast({
-        kind: "error",
-        title: t("integrityRun.restartFailed", "無法重新啟動 Worker"),
-        subtitle: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setBusy(false);
-      setRestartPending(false);
-    }
-  };
+  }, [contestId, repository]);
 
   if (loading) return <Tile><SkeletonText paragraph lineCount={2} /></Tile>;
-
-  const presentation = getRunPresentation(run, t);
-  const canRestart = run?.computeState === "running" && run.health === "unhealthy";
+  const presentation = getPresentation(run, unavailable, t);
 
   return (
     <Tile className={styles.card}>
-      <div className={styles.status}>
-        <Tag type={presentation.tagType}>{presentation.label}</Tag>
+      <div className={styles.status} role="status">
+        <Tag type="cool-gray">{presentation.label}</Tag>
       </div>
       <p className={styles.description}>{presentation.description}</p>
-
-      {canRestart && !restartPending ? (
-        <Button kind="secondary" disabled={busy} onClick={() => setRestartPending(true)}>
-          {t("integrityRun.restart", "重新啟動 Worker")}
-        </Button>
-      ) : null}
-
-      {canRestart && restartPending ? (
-        <div className={styles.restartConfirmation}>
-          <p>{t("integrityRun.restartPreservesData", "事件與證據資料會保留。")}</p>
-          <div className={styles.confirmationActions}>
-            <Button kind="secondary" disabled={busy} onClick={() => setRestartPending(false)}>
-              {t("button.cancel", "取消")}
-            </Button>
-            <Button kind="primary" disabled={busy} onClick={() => void restart()}>
-              {t("integrityRun.confirmRestart", "確認重啟")}
-            </Button>
-          </div>
-        </div>
-      ) : null}
     </Tile>
   );
 }

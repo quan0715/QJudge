@@ -39,7 +39,6 @@
     "management": {
       "allProblems": "모든 문제",
       "contestProblems": "대회 문제",
-      "practiceProblems": "연습 문제",
       "title": "문제 관리"
     }
   },

@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import uuid
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -21,7 +22,122 @@ from apps.contests.models import (
 )
 
 
-TOKEN = "run-scoped-opaque-token"
+TOKEN = "resident-service-token-for-tests"
+RECEIPT_BATCH_ID = uuid.UUID("9f7f1f2e-0000-4000-8000-00000000ba01")
+
+
+@pytest.fixture(autouse=True)
+def resident_service_credential(tmp_path, settings):
+    """Internal callbacks authenticate as the resident service, not per-Run."""
+    token_file = tmp_path / "resident-service-token"
+    token_file.write_text(TOKEN)
+    settings.INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE = str(token_file)
+    return token_file
+
+
+@pytest.fixture
+def due_schedule(running_integrity_run, participant):
+    end = timezone.now() - timedelta(seconds=1)
+    Contest.objects.filter(pk=participant.contest_id).update(end_time=end)
+    participant.contest.end_time = end
+    running_integrity_run.scheduled_end_at = end
+    running_integrity_run.save(update_fields=["scheduled_end_at"])
+
+
+@pytest.mark.django_db
+def test_retired_end_command_is_rejected_after_extension(internal_client, running_integrity_run, participant):
+    from apps.contests.services.exam_schedule import update_exam_schedule
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    update_exam_schedule(participant.contest_id, start_time=participant.contest.start_time,
+                         end_time=participant.contest.end_time + timedelta(minutes=20), actor=participant.contest.owner)
+    response = internal_client.post_commands(running_integrity_run, [command])
+    assert response.status_code == 422, response.json()
+    assert response.json()["code"] == "unsupported_command_kind"
+    assert "accepted_command_ids" not in response.json()
+    participant.refresh_from_db()
+    assert participant.exam_status == "in_progress"
+    assert not ExamEvent.objects.filter(integrity_command_id=command["command_id"]).exists()
+
+
+@pytest.mark.django_db
+def test_retired_early_end_command_is_rejected(internal_client, running_integrity_run, participant):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    response = internal_client.post_commands(running_integrity_run, [command])
+    assert response.status_code == 422
+    assert response.json()["code"] == "unsupported_command_kind"
+    participant.refresh_from_db()
+    assert participant.exam_status == "in_progress"
+
+
+@pytest.mark.django_db
+def test_retired_run_local_auto_submit_is_rejected_even_when_exam_is_due(
+    internal_client,
+    running_integrity_run,
+    participant,
+    due_schedule,
+    mocker,
+):
+    """Only the backend's own due-exam sweep owns schedule submission."""
+    finalizer = mocker.patch(
+        "apps.contests.services.integrity_commands.finalize_submission",
+    )
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+
+    first = internal_client.post_commands(running_integrity_run, [command])
+    second = internal_client.post_commands(running_integrity_run, [command])
+
+    assert first.status_code == second.status_code == 422
+    assert first.json() == second.json()
+    assert first.json()["code"] == "unsupported_command_kind"
+    assert "accepted_command_ids" not in first.json()
+    finalizer.assert_not_called()
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
+    assert not ExamEvent.objects.filter(
+        integrity_command_id=command["command_id"],
+    ).exists()
+    assert not ContestActivity.objects.filter(
+        contest=participant.contest,
+        user=participant.user,
+        action_type="auto_submit",
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_backend_due_exam_sweep_still_auto_submits(participant, due_schedule):
+    """Removing Run-local deadlines must not remove auto-submission itself."""
+    from apps.contests.services.exam_schedule import finalize_due_exam
+
+    assert finalize_due_exam(participant.contest_id, now=timezone.now()) == 1
+
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.SUBMITTED
+    assert participant.submit_reason == "Auto-submitted: scheduled exam end"
+
+
+@pytest.mark.django_db
+def test_explicit_registry_submit_action_still_finalizes_once(
+    internal_client, running_integrity_run, participant,
+):
+    """Retire only the scheduler command, not a frozen registry's submit action."""
+    running_integrity_run.registry_snapshot["definitions"]["listener_integrity"]["action"] = "submit"
+    running_integrity_run.save(update_fields=["registry_snapshot"])
+    admit_receipt_batch(running_integrity_run, participant)
+    command = bind_run(record_event_command(
+        participant, event_type="listener_tampered", action="submit",
+    ), running_integrity_run)
+
+    first = internal_client.post_commands(running_integrity_run, [command])
+    second = internal_client.post_commands(running_integrity_run, [command])
+
+    assert first.status_code == second.status_code == 200
+    assert first.json() == second.json() == {"accepted_command_ids": [command["command_id"]]}
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.SUBMITTED
+    assert participant.submit_reason == "Auto-submitted: listener_tampered"
+    assert ContestActivity.objects.filter(
+        contest=participant.contest, user=participant.user, action_type="auto_submit",
+    ).count() == 1
 
 
 @pytest.fixture
@@ -92,7 +208,7 @@ def running_integrity_run(contest, owner):
     return ExamIntegrityRun.objects.create(
         contest=contest,
         created_by=owner,
-        compute_state=ExamIntegrityRun.ComputeState.RUNNING,
+        session_state=ExamIntegrityRun.SessionState.ACTIVE,
         registry_version=REGISTRY_VERSION,
         registry_snapshot=build_registry_snapshot(),
         policy_snapshot={
@@ -100,11 +216,9 @@ def running_integrity_run(contest, owner):
             "suspect_after_ms": 15_000,
             "disconnected_after_ms": 60_000,
         },
-        worker_image="registry.example/integrity:1",
-        token_digest=hashlib.sha256(TOKEN.encode("utf-8")).hexdigest(),
-        token_expires_at=timezone.now() + timedelta(hours=1),
         scheduled_start_at=contest.start_time,
         scheduled_end_at=contest.end_time,
+        accept_until=contest.end_time,
     )
 
 
@@ -114,28 +228,15 @@ class InternalClient:
         self.token = token
 
     @staticmethod
-    def bootstrap_url(run):
-        return f"/api/v1/internal/integrity/runs/{run.id}/bootstrap/"
-
-    @staticmethod
     def commands_url(run):
         return f"/api/v1/internal/integrity/runs/{run.id}/commands/"
-
-    def get_bootstrap(self, run, *, token=None):
-        selected_token = self.token if token is None else token
-        headers = (
-            {}
-            if selected_token is False
-            else {"HTTP_AUTHORIZATION": f"Bearer {selected_token}"}
-        )
-        return self.client.get(self.bootstrap_url(run), **headers)
 
     def post_commands(self, run, commands, *, token=None):
         selected_token = self.token if token is None else token
         headers = (
             {}
             if selected_token is False
-            else {"HTTP_AUTHORIZATION": f"Bearer {selected_token}"}
+            else {"HTTP_AUTHORIZATION": f"Resident {selected_token}"}
         )
         return self.client.post(
             self.commands_url(run),
@@ -175,8 +276,30 @@ def record_event_command(
             "before_ms": 10_000,
             "after_ms": 10_000,
         },
-        "metadata": {"module": "screen_share"},
+        "metadata": {"module": "screen_share", "receipt_batch_id": str(RECEIPT_BATCH_ID)},
     }
+
+
+def admit_receipt_batch(run, participant, *, device_id="device-a", batch_id=None):
+    """Record the gateway admission a trusted resident command refers back to.
+
+    Without it the command is late/unverified and is downgraded to audit, which
+    is the contract: a decision may not act on a receipt the backend never saw.
+    """
+    from apps.contests.models import IntegrityBatchAdmission
+
+    return IntegrityBatchAdmission.objects.create(
+        run=run,
+        participant=participant,
+        batch_id=batch_id or RECEIPT_BATCH_ID,
+        attempt_id=participant.integrity_attempt_id,
+        device_id=device_id,
+        body_sha256="b" * 64,
+        first_seq=1,
+        last_seq=1,
+        first_received_at=timezone.now(),
+        late_unverified=False,
+    )
 
 
 def auto_submit_command(
@@ -212,6 +335,7 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
     running_integrity_run,
     participant,
 ):
+    admit_receipt_batch(running_integrity_run, participant)
     command = bind_run(record_event_command(participant), running_integrity_run)
 
     first = internal_client.post_commands(running_integrity_run, [command])
@@ -219,7 +343,6 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
 
     expected = {
         "accepted_command_ids": [command["command_id"]],
-        "archive_uploads": [],
     }
     assert first.status_code == second.status_code == 200
     assert first.json() == second.json() == expected
@@ -229,6 +352,7 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
     event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
     assert event.metadata == {
         "module": "screen_share",
+        "receipt_batch_id": str(RECEIPT_BATCH_ID),
         "integrity": {
             "action": "pause",
             "definition_id": "fullscreen_integrity",
@@ -240,6 +364,7 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
             },
             "phase": "escalated",
             "requested_action": "pause",
+            "late_unverified": False,
             "command_fingerprint": event.metadata["integrity"]["command_fingerprint"],
         },
     }
@@ -254,6 +379,7 @@ def test_record_event_replay_rejects_every_changed_command_semantic(
     running_integrity_run,
     participant,
 ):
+    admit_receipt_batch(running_integrity_run, participant)
     command = bind_run(record_event_command(participant), running_integrity_run)
     assert internal_client.post_commands(
         running_integrity_run,
@@ -345,6 +471,8 @@ def test_replay_without_command_fingerprint_is_rejected(
         ("listener_tampered", "pause", 1),
         ("clipboard_action", "record", 1),
         ("exit_fullscreen_triggered", "record", 0),
+        ("exam_entered", "record", 0),
+        ("exam_submit_initiated", "record", 0),
     ),
 )
 def test_violation_count_distinguishes_direct_actions_from_incident_opening(
@@ -355,6 +483,7 @@ def test_violation_count_distinguishes_direct_actions_from_incident_opening(
     action,
     expected_violations,
 ):
+    admit_receipt_batch(running_integrity_run, participant)
     command = bind_run(
         record_event_command(
             participant,
@@ -370,6 +499,9 @@ def test_violation_count_distinguishes_direct_actions_from_incident_opening(
     assert response.status_code == 200
     participant.refresh_from_db()
     assert participant.violation_count == expected_violations
+    from apps.contests.services.integrity_event_projection import event_penalized
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    assert event_penalized(event) is bool(expected_violations)
 
 
 @pytest.mark.django_db
@@ -434,353 +566,10 @@ def test_submitted_participant_does_not_receive_later_connectivity_transitions(
     assert response.status_code == 200
     assert response.json() == {
         "accepted_command_ids": [command["command_id"]],
-        "archive_uploads": [],
     }
     assert not ExamEvent.objects.filter(
         integrity_command_id=command["command_id"],
     ).exists()
-
-
-@pytest.mark.django_db
-def test_auto_submit_uses_existing_finalizer_once_and_never_stops_run(
-    internal_client,
-    running_integrity_run,
-    participant,
-    mocker,
-):
-    from apps.contests.services import integrity_commands
-
-    original = integrity_commands.finalize_submission
-    finalizer = mocker.patch(
-        "apps.contests.services.integrity_commands.finalize_submission",
-        wraps=original,
-    )
-    command = bind_run(auto_submit_command(participant), running_integrity_run)
-
-    first = internal_client.post_commands(running_integrity_run, [command])
-    second = internal_client.post_commands(running_integrity_run, [command])
-
-    assert first.status_code == second.status_code == 200
-    finalizer.assert_called_once()
-    participant.refresh_from_db()
-    running_integrity_run.refresh_from_db()
-    assert participant.exam_status == ExamStatus.SUBMITTED
-    assert participant.submit_reason == "Auto-submitted: scheduled exam end"
-    assert running_integrity_run.compute_state == ExamIntegrityRun.ComputeState.RUNNING
-    assert ExamEvent.objects.filter(
-        integrity_command_id=command["command_id"],
-        event_type="scheduled_end",
-    ).count() == 1
-    assert ContestActivity.objects.filter(
-        contest=participant.contest,
-        user=participant.user,
-        action_type="auto_submit",
-    ).count() == 1
-
-
-@pytest.mark.django_db
-def test_new_auto_submit_defaults_omitted_received_timestamp(
-    internal_client,
-    running_integrity_run,
-    participant,
-):
-    command = bind_run(auto_submit_command(participant), running_integrity_run)
-    command.pop("received_at_server_ms")
-
-    first = internal_client.post_commands(running_integrity_run, [command])
-    second = internal_client.post_commands(running_integrity_run, [command])
-
-    assert first.status_code == second.status_code == 200
-    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
-    assert int(event.server_received_at.timestamp() * 1000) == (
-        command["metadata"]["scheduled_end_ms"]
-    )
-    assert ExamEvent.objects.filter(
-        integrity_command_id=command["command_id"],
-    ).count() == 1
-
-
-@pytest.mark.django_db
-def test_auto_submit_replay_rejects_changed_timestamps_metadata_and_device(
-    internal_client,
-    running_integrity_run,
-    participant,
-):
-    command = bind_run(auto_submit_command(participant), running_integrity_run)
-    assert internal_client.post_commands(
-        running_integrity_run,
-        [command],
-    ).status_code == 200
-
-    changed_commands = [
-        {
-            **command,
-            "received_at_server_ms": command["received_at_server_ms"] + 1,
-        },
-        {**command, "device_id": "different-scheduler"},
-        {
-            **command,
-            "metadata": {
-                "scheduled_end_ms": command["metadata"]["scheduled_end_ms"] + 1,
-            },
-        },
-    ]
-    for changed in changed_commands:
-        response = internal_client.post_commands(
-            running_integrity_run,
-            [changed],
-        )
-        assert response.status_code == 422
-        assert response.json() == {
-            "code": "command_id_conflict",
-            "command_id": command["command_id"],
-        }
-
-    assert ExamEvent.objects.filter(
-        integrity_command_id=command["command_id"],
-    ).count() == 1
-
-
-@pytest.mark.django_db
-def test_auto_submit_replay_without_command_fingerprint_is_rejected(
-    internal_client,
-    running_integrity_run,
-    participant,
-):
-    command = bind_run(auto_submit_command(participant), running_integrity_run)
-    assert "worker_processed_at_ms" not in command
-    assert internal_client.post_commands(
-        running_integrity_run,
-        [command],
-    ).status_code == 200
-    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
-    assert event.worker_processed_at is not None
-    metadata = dict(event.metadata)
-    integrity = dict(metadata["integrity"])
-    integrity.pop("command_fingerprint")
-    metadata["integrity"] = integrity
-    event.metadata = metadata
-    event.save(update_fields=["metadata"])
-
-    response = internal_client.post_commands(
-        running_integrity_run,
-        [command],
-    )
-
-    assert response.status_code == 422
-    assert response.json() == {
-        "code": "command_id_conflict",
-        "command_id": command["command_id"],
-    }
-    assert ExamEvent.objects.filter(
-        integrity_command_id=command["command_id"],
-    ).count() == 1
-
-
-@pytest.mark.django_db
-def test_bootstrap_returns_only_frozen_run_scope_with_uuid_contest_id(
-    internal_client,
-    running_integrity_run,
-    participant,
-    submitted_participant,
-    settings,
-    tmp_path,
-):
-    private_key = Ed25519PrivateKey.generate()
-    private_key_path = tmp_path / "backend-ed25519"
-    private_key_path.write_bytes(
-        private_key.private_bytes(
-            serialization.Encoding.Raw,
-            serialization.PrivateFormat.Raw,
-            serialization.NoEncryption(),
-        )
-    )
-    settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = str(private_key_path)
-    settings.INTEGRITY_ARCHIVE_BUCKET = "integrity-archive"
-
-    response = internal_client.get_bootstrap(running_integrity_run)
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["run_id"] == str(running_integrity_run.id)
-    assert payload["contest_id"] == str(running_integrity_run.contest_id)
-    assert payload["scheduled_end_ms"] == int(
-        running_integrity_run.scheduled_end_at.timestamp() * 1000
-    )
-    assert payload["participants"] == [
-        {"participant_id": participant.id, "status": "active"},
-    ]
-    assert payload["policy_snapshot"] == running_integrity_run.policy_snapshot
-    assert payload["registry_snapshot"] == running_integrity_run.registry_snapshot
-    assert payload["archive_policy"]["bucket"] == "integrity-archive"
-    assert payload["archive_policy"]["key_prefix"] == (
-        f"runs/{running_integrity_run.id}/generation-1/"
-    )
-    assert payload["archive_policy"]["capacity_warning_bytes"] == 1_073_741_824
-    assert payload["archive_policy"]["capacity_reserve_bytes"] == 268_435_456
-    assert payload["generation"] == 1
-    assert payload["previous_manifest"] is None
-    expected_public = private_key.public_key().public_bytes(
-        serialization.Encoding.Raw,
-        serialization.PublicFormat.Raw,
-    )
-    assert base64.b64decode(
-        payload["backend_signing_public_key_b64"],
-        validate=True,
-    ) == expected_public
-    assert "token_digest" not in payload
-    assert "cheat_detection_enabled" not in payload
-
-
-@pytest.mark.django_db
-def test_bootstrap_propagates_configured_archive_capacity_thresholds(
-    internal_client,
-    running_integrity_run,
-    settings,
-    tmp_path,
-):
-    private_key = Ed25519PrivateKey.generate()
-    private_key_path = tmp_path / "backend-ed25519"
-    private_key_path.write_bytes(
-        private_key.private_bytes(
-            serialization.Encoding.Raw,
-            serialization.PrivateFormat.Raw,
-            serialization.NoEncryption(),
-        )
-    )
-    settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = str(private_key_path)
-    settings.INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = 8_388_608
-    settings.INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = 2_097_152
-
-    response = internal_client.get_bootstrap(running_integrity_run)
-
-    assert response.status_code == 200
-    assert response.json()["archive_policy"][
-        "capacity_warning_bytes"
-    ] == 8_388_608
-    assert response.json()["archive_policy"][
-        "capacity_reserve_bytes"
-    ] == 2_097_152
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "setting_name",
-    (
-        "INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES",
-        "INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES",
-    ),
-)
-def test_bootstrap_rejects_negative_archive_capacity_thresholds(
-    internal_client,
-    running_integrity_run,
-    settings,
-    tmp_path,
-    setting_name,
-):
-    private_key = Ed25519PrivateKey.generate()
-    private_key_path = tmp_path / "backend-ed25519"
-    private_key_path.write_bytes(
-        private_key.private_bytes(
-            serialization.Encoding.Raw,
-            serialization.PrivateFormat.Raw,
-            serialization.NoEncryption(),
-        )
-    )
-    settings.INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = str(private_key_path)
-    setattr(settings, setting_name, -1)
-
-    response = internal_client.get_bootstrap(running_integrity_run)
-
-    assert response.status_code == 409
-    assert response.json() == {"code": "invalid_archive_capacity_policy"}
-
-
-@pytest.mark.django_db
-def test_missing_malformed_and_invalid_scoped_tokens_do_not_reveal_run_existence(
-    internal_client,
-    running_integrity_run,
-):
-    missing_id = uuid4()
-    malformed = internal_client.client.get(
-        InternalClient.bootstrap_url(running_integrity_run),
-        HTTP_AUTHORIZATION="Basic nope",
-    )
-    missing = internal_client.get_bootstrap(running_integrity_run, token=False)
-    wrong = internal_client.get_bootstrap(running_integrity_run, token="wrong")
-    absent = internal_client.client.get(
-        f"/api/v1/internal/integrity/runs/{missing_id}/bootstrap/",
-        HTTP_AUTHORIZATION="Bearer wrong",
-    )
-
-    assert missing.status_code == malformed.status_code == 401
-    assert missing.json() == malformed.json() == {
-        "code": "invalid_integrity_run_token",
-    }
-    assert wrong.status_code == absent.status_code == 403
-    assert wrong.json() == absent.json() == {
-        "code": "invalid_integrity_run_scope",
-    }
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("invalidity", ["expired", "revoked", "inactive"])
-def test_expired_revoked_and_inactive_runs_have_same_scope_failure(
-    invalidity,
-    internal_client,
-    running_integrity_run,
-):
-    if invalidity == "expired":
-        running_integrity_run.token_expires_at = timezone.now() - timedelta(seconds=1)
-        fields = ["token_expires_at"]
-    elif invalidity == "revoked":
-        running_integrity_run.token_revoked_at = timezone.now()
-        fields = ["token_revoked_at"]
-    else:
-        running_integrity_run.compute_state = ExamIntegrityRun.ComputeState.STOPPED
-        fields = ["compute_state"]
-    running_integrity_run.save(update_fields=fields)
-
-    response = internal_client.get_bootstrap(running_integrity_run)
-
-    assert response.status_code == 403
-    assert response.json() == {"code": "invalid_integrity_run_scope"}
-
-
-@pytest.mark.django_db
-def test_token_for_another_run_cannot_access_url_run(
-    internal_client,
-    running_integrity_run,
-    owner,
-):
-    now = timezone.now()
-    other_contest = Contest.objects.create(
-        name="Other scoped run",
-        owner=owner,
-        start_time=now - timedelta(hours=1),
-        end_time=now + timedelta(hours=1),
-        status="published",
-    )
-    other_token = "other-run-token"
-    ExamIntegrityRun.objects.create(
-        contest=other_contest,
-        created_by=owner,
-        compute_state=ExamIntegrityRun.ComputeState.RUNNING,
-        registry_version=REGISTRY_VERSION,
-        registry_snapshot=build_registry_snapshot(),
-        policy_snapshot={},
-        worker_image="registry.example/integrity:1",
-        token_digest=hashlib.sha256(other_token.encode()).hexdigest(),
-        token_expires_at=timezone.now() + timedelta(hours=1),
-    )
-
-    response = internal_client.get_bootstrap(
-        running_integrity_run,
-        token=other_token,
-    )
-
-    assert response.status_code == 403
-    assert response.json() == {"code": "invalid_integrity_run_scope"}
 
 
 @pytest.mark.django_db
@@ -930,52 +719,16 @@ def test_warning_checkpoint_from_current_worker_command_shape_is_accepted(
 
 
 @pytest.mark.django_db
-def test_archive_upload_uses_deterministic_run_prefix_and_exact_worker_schema(
-    internal_client,
-    running_integrity_run,
-    mocker,
+def test_retired_archive_upload_command_is_not_accepted(
+    internal_client, running_integrity_run, mocker,
 ):
-    digest = "a" * 64
-    object_key = (
-        f"runs/{running_integrity_run.id}/generation-1/"
-        "segments/00000001.journal.gz"
-    )
-    command = {
-        "command_id": str(uuid4()),
-        "run_id": str(running_integrity_run.id),
-        "kind": "create_archive_upload",
-        "metadata": {
-            "object_key": object_key,
-            "sha256": digest,
-            "byte_length": 1234,
-            "content_type": "application/gzip",
-            "generation": 1,
-        },
-    }
-    presign = mocker.patch(
-        "apps.contests.services.integrity_commands.generate_archive_put_url",
-        return_value="https://r2.example/presigned",
-    )
-
-    first = internal_client.post_commands(running_integrity_run, [command])
-    second = internal_client.post_commands(running_integrity_run, [command])
-
-    expected_upload = {
-        "command_id": command["command_id"],
-        "object_key": object_key,
-        "upload_url": "https://r2.example/presigned",
-        "checksum_sha256": digest,
-        "checksum_enforced": True,
-    }
-    assert first.status_code == second.status_code == 200
-    assert first.json() == second.json() == {
-        "accepted_command_ids": [command["command_id"]],
-        "archive_uploads": [expected_upload],
-    }
-    assert presign.call_count == 2
-    assert ExamEvent.objects.filter(
-        integrity_command_id=command["command_id"],
-    ).count() == 0
+    presign = mocker.patch("apps.contests.services.integrity_commands.generate_archive_put_url")
+    command = {"command_id": str(uuid4()), "run_id": str(running_integrity_run.pk),
+        "kind": "create_archive_upload", "metadata": {}}
+    response = internal_client.post_commands(running_integrity_run, [command])
+    assert response.status_code == 422
+    assert response.json()["code"] == "unsupported_command_kind"
+    presign.assert_not_called()
 
 
 def test_r2_presign_signs_base64_sha256_checksum_header(settings, mocker):
@@ -1014,16 +767,16 @@ def test_r2_presign_signs_base64_sha256_checksum_header(settings, mocker):
 
 
 @pytest.mark.django_db
-def test_manifest_publish_is_monotonic_idempotent_and_archives_stopping_run(
+def test_manifest_publish_command_is_refused_for_resident_archiving(
     internal_client,
     running_integrity_run,
 ):
-    running_integrity_run.compute_state = ExamIntegrityRun.ComputeState.STOPPING
-    running_integrity_run.archive_generation = 2
-    running_integrity_run.archived_counts = {"segments": 2}
-    running_integrity_run.save(
-        update_fields=["compute_state", "archive_generation", "archived_counts"]
-    )
+    """Archiving commits through the signed /finalize control phases.
+
+    A replayable outbox command cannot carry the revision compare-and-set that
+    an extension race requires, so the backend refuses the command outright
+    rather than letting a stale manifest land.
+    """
     object_key = f"runs/{running_integrity_run.id}/generation-2/manifest.json"
     command = {
         "command_id": str(uuid4()),
@@ -1037,29 +790,13 @@ def test_manifest_publish_is_monotonic_idempotent_and_archives_stopping_run(
         },
     }
 
-    first = internal_client.post_commands(running_integrity_run, [command])
-    second = internal_client.post_commands(running_integrity_run, [command])
+    response = internal_client.post_commands(running_integrity_run, [command])
 
-    assert first.status_code == second.status_code == 200
+    assert response.status_code == 422
+    assert response.json()["code"] == "unsupported_command_kind"
     running_integrity_run.refresh_from_db()
-    assert running_integrity_run.archive_generation == 2
-    assert running_integrity_run.archive_manifest_key == object_key
-    assert running_integrity_run.archive_manifest_sha256 == "b" * 64
-    assert running_integrity_run.archived_counts == {"segments": 3, "records": 40}
-    assert running_integrity_run.data_state == ExamIntegrityRun.DataState.ARCHIVED
-
-    stale = {
-        **command,
-        "command_id": str(uuid4()),
-        "metadata": {
-            **command["metadata"],
-            "generation": 1,
-            "object_key": f"runs/{running_integrity_run.id}/generation-1/manifest.json",
-        },
-    }
-    stale_response = internal_client.post_commands(running_integrity_run, [stale])
-    assert stale_response.status_code == 422
-    assert stale_response.json()["code"] == "stale_archive_generation"
+    assert running_integrity_run.archive_manifest_key == ""
+    assert running_integrity_run.data_state == ExamIntegrityRun.DataState.OPEN
 
 
 @pytest.mark.django_db
@@ -1069,6 +806,7 @@ def test_database_failure_returns_503_for_unchanged_worker_retry(
     participant,
     mocker,
 ):
+    admit_receipt_batch(running_integrity_run, participant)
     command = bind_run(record_event_command(participant), running_integrity_run)
     mocker.patch(
         "apps.contests.views.integrity_internal.execute_integrity_command",
@@ -1083,31 +821,13 @@ def test_database_failure_returns_503_for_unchanged_worker_retry(
 
 
 @pytest.mark.django_db
-def test_bootstrap_auth_query_failure_returns_retryable_503(
-    internal_client,
-    running_integrity_run,
-    mocker,
-):
-    mocker.patch(
-        "apps.contests.views.integrity_internal.authenticate_integrity_run",
-        side_effect=OperationalError("database credentials must not leak"),
-    )
-
-    response = internal_client.get_bootstrap(running_integrity_run)
-
-    assert response.status_code == 503
-    assert response.json() == {"code": "integrity_bootstrap_temporarily_unavailable"}
-    assert "database" not in response.content.decode("utf-8").lower()
-
-
-@pytest.mark.django_db
 def test_commands_auth_query_failure_returns_retryable_503(
     internal_client,
     running_integrity_run,
     mocker,
 ):
     mocker.patch(
-        "apps.contests.views.integrity_internal.authenticate_integrity_run",
+        "apps.contests.views.integrity_internal.authenticate_resident_service",
         side_effect=OperationalError("database credentials must not leak"),
     )
 
@@ -1116,6 +836,20 @@ def test_commands_auth_query_failure_returns_retryable_503(
     assert response.status_code == 503
     assert response.json() == {"code": "integrity_command_temporarily_unavailable"}
     assert "database" not in response.content.decode("utf-8").lower()
+
+
+@pytest.mark.django_db
+def test_commands_reject_a_legacy_bearer_token(internal_client, running_integrity_run):
+    """Per-Run bearer tokens are gone; only the resident service identity works."""
+    response = internal_client.client.post(
+        InternalClient.commands_url(running_integrity_run),
+        {"commands": []},
+        format="json",
+        HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"code": "invalid_integrity_run_token"}
 
 
 def test_command_helpers_never_import_worker_database_clients():

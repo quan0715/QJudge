@@ -8,6 +8,7 @@ import type {
   ExamIntegrityRecord,
   EvidenceRetainCommand,
   ExamIntegrityRun,
+  IntegrityUploadScope,
 } from "@/core/entities/examIntegrity.entity";
 import { httpClient, requestJson } from "@/infrastructure/api/http.client";
 
@@ -15,19 +16,18 @@ export interface ExamIntegrityRepository {
   listRuns(contestId: string): Promise<ExamIntegrityRun[]>;
   getRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   createRun(contestId: string): Promise<ExamIntegrityRun>;
-  startRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
-  restartRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
-  stopRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
-  destroyRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   purgeRun(contestId: string, runId: string): Promise<ExamIntegrityRun>;
   sendBatch(
     contestId: string,
     batch: ExamIntegrityBatch,
     signal?: AbortSignal,
+    uploadScope?: IntegrityUploadScope,
   ): Promise<ExamIntegrityBatchAck>;
+  pollUpload(contestId: string, scope: IntegrityUploadScope, finalSeq?: number, signal?: AbortSignal): Promise<ExamIntegrityBatchAck>;
   submitEvidenceCheckpoint(
     contestId: string,
     request: EvidenceCheckpointRequest,
+    signal?: AbortSignal,
   ): Promise<EvidenceCheckpointResponse>;
 }
 
@@ -89,16 +89,19 @@ const mapCommand = (command: {
 });
 
 interface WireBatchAck {
+  evidence_fence_version?: string;
+  processed_through_seq?: number;
+  upload_status?: "pending" | "complete" | "expired";
   acked_through_seq: number;
   pending_commands: Array<Parameters<typeof mapCommand>[0]>;
   release_evidence_before_ms: number;
 }
 
-const mapAck = (ack: WireBatchAck, batch: ExamIntegrityBatch): ExamIntegrityBatchAck => {
+const mapAck = (ack: WireBatchAck, batch?: ExamIntegrityBatch, resident = false): ExamIntegrityBatchAck => {
   if (
     !Number.isSafeInteger(ack.acked_through_seq)
-    || ack.acked_through_seq < batch.firstSeq
-    || ack.acked_through_seq > batch.lastSeq
+    || ack.acked_through_seq < 0
+    || (batch && (ack.acked_through_seq < batch.firstSeq || ack.acked_through_seq > batch.lastSeq))
     || !Array.isArray(ack.pending_commands)
     || !Number.isSafeInteger(ack.release_evidence_before_ms)
     || ack.release_evidence_before_ms < 0
@@ -106,9 +109,10 @@ const mapAck = (ack: WireBatchAck, batch: ExamIntegrityBatch): ExamIntegrityBatc
     throw new Error("Invalid integrity batch acknowledgement");
   }
   return {
+    ...(ack.upload_status ? { uploadStatus: ack.upload_status, processedThroughSeq: ack.processed_through_seq } : {}),
     ackedThroughSeq: ack.acked_through_seq,
     pendingCommands: ack.pending_commands.map(mapCommand),
-    releaseEvidenceBeforeMs: ack.release_evidence_before_ms,
+    releaseEvidenceBeforeMs: resident && ack.evidence_fence_version !== "resident-evidence-fence-v1" ? 0 : ack.release_evidence_before_ms,
   };
 };
 
@@ -120,7 +124,7 @@ const managerApiPath = (contestId: string, suffix = ""): string =>
 
 type WireIntegrityRun = {
   id: string;
-  compute_state: ExamIntegrityRun["computeState"];
+  session_state: ExamIntegrityRun["sessionState"];
   health: ExamIntegrityRun["health"];
   data_state: ExamIntegrityRun["dataState"];
   warnings?: unknown;
@@ -128,15 +132,10 @@ type WireIntegrityRun = {
   last_error?: unknown;
   last_correlation_id?: unknown;
   registry_version: unknown;
-  worker_image?: unknown;
-  worker_image_digest?: unknown;
   worker_version?: unknown;
   last_worker_heartbeat_at?: unknown;
   scheduled_start_at?: unknown;
   scheduled_end_at?: unknown;
-  started_at?: unknown;
-  stopped_at?: unknown;
-  destroyed_at?: unknown;
   purged_at?: unknown;
   retention_until?: unknown;
   archive_generation?: unknown;
@@ -166,7 +165,7 @@ const mapRun = (run: WireIntegrityRun): ExamIntegrityRun => {
   if (!run || typeof run.id !== "string") throw new Error("Invalid integrity run response");
   return {
     id: run.id,
-    computeState: run.compute_state,
+    sessionState: run.session_state,
     health: run.health,
     dataState: run.data_state,
     warnings: stringList(run.warnings),
@@ -174,15 +173,10 @@ const mapRun = (run: WireIntegrityRun): ExamIntegrityRun => {
     lastError: stringOrEmpty(run.last_error),
     lastCorrelationId: stringOrEmpty(run.last_correlation_id),
     registryVersion: stringOrEmpty(run.registry_version),
-    workerImage: stringOrEmpty(run.worker_image),
-    workerImageDigest: stringOrEmpty(run.worker_image_digest),
     workerVersion: stringOrEmpty(run.worker_version),
     lastWorkerHeartbeatAt: nullableString(run.last_worker_heartbeat_at),
     scheduledStartAt: nullableString(run.scheduled_start_at),
     scheduledEndAt: nullableString(run.scheduled_end_at),
-    startedAt: nullableString(run.started_at),
-    stoppedAt: nullableString(run.stopped_at),
-    destroyedAt: nullableString(run.destroyed_at),
     purgedAt: nullableString(run.purged_at),
     retentionUntil: nullableString(run.retention_until),
     archiveGeneration: numberOrZero(run.archive_generation),
@@ -237,34 +231,6 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     ));
   },
 
-  async startRun(contestId, runId) {
-    return mapRun(await requestJson<WireIntegrityRun>(
-      httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/start/`), {}),
-      "Failed to start integrity run",
-    ));
-  },
-
-  async restartRun(contestId, runId) {
-    return mapRun(await requestJson<WireIntegrityRun>(
-      httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/restart/`), {}),
-      "Failed to restart integrity Worker",
-    ));
-  },
-
-  async stopRun(contestId, runId) {
-    return mapRun(await requestJson<WireIntegrityRun>(
-      httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/stop/`), {}),
-      "Failed to stop integrity run",
-    ));
-  },
-
-  async destroyRun(contestId, runId) {
-    return mapRun(await requestJson<WireIntegrityRun>(
-      httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/destroy/`), {}),
-      "Failed to destroy integrity run",
-    ));
-  },
-
   async purgeRun(contestId, runId) {
     return mapRun(await requestJson<WireIntegrityRun>(
       httpClient.post(managerApiPath(contestId, `${encodeURIComponent(runId)}/purge/`), {}),
@@ -272,7 +238,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     ));
   },
 
-  async sendBatch(contestId, batch, signal) {
+  async sendBatch(contestId, batch, signal, uploadScope) {
     const response = await requestJson<{
       acked_through_seq: number;
       pending_commands: Array<Parameters<typeof mapCommand>[0]>;
@@ -281,6 +247,7 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       httpClient.requestOnce(apiPath(contestId, "checkpoints"), {
         method: "POST",
         body: JSON.stringify({
+          ...(uploadScope ? { upload_scope: uploadScope } : {}),
           observations: mapBatch(batch),
           evidence: {
             manifests: [],
@@ -293,10 +260,26 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
       }),
       "Failed to send integrity batch",
     );
-    return mapAck(response, batch);
+    return mapAck(response, uploadScope ? undefined : batch, Boolean(uploadScope));
   },
 
-  async submitEvidenceCheckpoint(contestId, request) {
+  async pollUpload(contestId, scope, finalSeq, signal) {
+    return mapAck(await requestJson<WireBatchAck>(httpClient.requestOnce(apiPath(contestId, "checkpoints"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal,
+      body: JSON.stringify({ upload_scope: scope, observations: null,
+        ...(finalSeq !== undefined ? { final_seq: finalSeq } : {}),
+        evidence: { manifests: [], completions: [], unavailable: [] } }),
+    }), "Failed to poll integrity upload"), undefined, true);
+  },
+
+  async submitEvidenceCheckpoint(contestId, request, signal) {
+    const post = request.uploadScope
+      ? (url: string, body: unknown) => httpClient.requestOnce(url, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
+        })
+      : httpClient.post;
     const response = await requestJson<{
       uploads: Array<{
         chunk_id: string;
@@ -312,7 +295,8 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
         status: string;
       }>;
     }>(
-      httpClient.post(apiPath(contestId, "checkpoints"), {
+      post(apiPath(contestId, "checkpoints"), {
+        ...(request.uploadScope ? { upload_scope: request.uploadScope } : {}),
         evidence: {
           manifests: request.manifests.map((manifest) => ({
             run_id: manifest.runId,

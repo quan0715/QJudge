@@ -20,7 +20,6 @@ from .serializers import (
     ProblemListSerializer,
     ProblemDetailSerializer,
     ProblemAdminSerializer,
-    OrphanProblemSerializer,
     TagSerializer,
     TestRunSerializer,
 )
@@ -195,41 +194,6 @@ class ProblemViewSet(viewsets.ModelViewSet):
         self._ensure_problem_editable_under_contest_lock(instance)
         instance.delete()
 
-    @action(detail=False, methods=['get'], permission_classes=[IsProblemManager], url_path='drafts')
-    def drafts(self, request):
-        """
-        List CodingProblems not in any question bank.
-        Teachers see their own asset-backed drafts; admins also see unresolved orphans.
-        """
-        from apps.question_bank.models import QuestionBankMembership
-        from django.db.models import Q
-
-        banked_asset_ids = QuestionBankMembership.objects.values_list(
-            'question_asset_id', flat=True
-        )
-
-        user = request.user
-        is_admin = user.is_staff or getattr(user, 'role', '') == 'admin'
-
-        draft_filter = Q(question_asset__isnull=False) & ~Q(question_asset_id__in=banked_asset_ids)
-        orphan_filter = Q(question_asset__isnull=True, created_by__isnull=True)
-
-        qs = CodingProblem.objects.filter(
-            draft_filter | orphan_filter if is_admin else draft_filter
-        ).select_related(
-            'created_by',
-            'question_asset',
-        ).prefetch_related(
-            'contest_bindings__contest',
-            'contestproblem_set__contest',
-        ).order_by('-created_at')
-
-        if not is_admin:
-            qs = qs.filter(created_by=user)
-
-        serializer = OrphanProblemSerializer(qs, many=True)
-        return Response(serializer.data)
-
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
         """
@@ -269,8 +233,21 @@ class ProblemViewSet(viewsets.ModelViewSet):
             except SubmissionAccessError as exc:
                 raise PermissionDenied(exc.message) from exc
 
+        if serializer.validated_data["asynchronous"]:
+            from django.conf import settings
+            from django.core import signing
+            from .tasks import run_problem_test_run
+
+            task = run_problem_test_run.apply_async(
+                args=[str(problem.id), serializer.validated_data["language"], serializer.validated_data["code"]],
+                kwargs={"report_progress": True}, queue=settings.JUDGE_TEST_RUN_QUEUE,
+            )
+            token = signing.dumps({"task": task.id, "user": str(request.user.pk), "problem": str(problem.pk)}, salt="test-run")
+            return Response({"run_id": token, "execution_status": "pending", "status": "pending",
+                             "total": problem.test_cases.count(), "results": []}, status=202)
+
         try:
-            result = ProblemTestRunService.run(
+            result = ProblemTestRunService.run_via_worker(
                 problem=problem,
                 language=serializer.validated_data["language"],
                 source_code=serializer.validated_data["code"],
@@ -289,6 +266,32 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         return Response(result)
     
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def test_run_status(self, request, id=None):
+        from celery.result import AsyncResult
+        from django.conf import settings
+        from django.core import signing
+        from rest_framework.exceptions import NotFound
+
+        try:
+            token = signing.loads(request.query_params.get("run_id", ""), salt="test-run",
+                                  max_age=settings.JUDGE_TEST_RUN_TIMEOUT + 60)
+        except signing.BadSignature:
+            raise NotFound("Test run expired or unavailable")
+        if token.get("user") != str(request.user.pk) or token.get("problem") != str(id):
+            raise NotFound("Test run unavailable")
+        task = AsyncResult(token["task"])
+        if task.state == "SUCCESS":
+            payload = task.result
+            if not isinstance(payload, dict) or not payload.get("ok"):
+                return Response({"error": "Test run failed"}, status=500)
+            return Response({**payload["result"], "execution_status": "complete"})
+        if task.state in {"FAILURE", "REVOKED"}:
+            return Response({"error": "Test run failed"}, status=500)
+        progress = task.info if task.state == "PROGRESS" and isinstance(task.info, dict) else {}
+        return Response({**progress, "status": "pending", "execution_status": "judging",
+                         "results": progress.get("results", [])})
+
     @action(detail=True, methods=['get'])
     def statistics(self, request, id=None):
         """

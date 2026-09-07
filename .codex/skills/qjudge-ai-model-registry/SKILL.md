@@ -1,89 +1,55 @@
 ---
 name: qjudge-ai-model-registry
-description: 新增 / 更新 / 下架 AI 模型（ai-service + backend + frontend 全域）的操作 skill。涵蓋 canonical id、provider string、pricing、token 限制、預設值、migration、tests 與前端 fallback / 預設的一次性落點。
+description: Use when adding, updating, removing, renaming, or changing the default of a QJudge AI model across the AI service, Django compatibility BFF, and frontend model consumers.
 ---
 
 # QJudge AI Model Registry Owner
 
-## Quick start
+## Current ownership
 
-1. 決定操作類型：**ADD** / **UPDATE**（pricing、context、display）/ **REMOVE**。
-2. 對照 `references/touch-points.md` 全部 touch point 逐一檢查。
-3. 依 `references/cost-math.md` 驗算 credits / USD。
-4. 驗證：pricing contract test、ai-service 端對端 smoke、前端 tsc、migration 套用。
+The AI service owns the live model catalog and validation.
 
-## 責任邊界（Owner Scope）
+| Concern | Source of truth |
+| --- | --- |
+| Public IDs and display metadata | `ai-service/domain/model_registry.py` |
+| Provider string, SDK options, context limits | `ai-service/infrastructure/agent/model_factory.py` |
+| Request validation | `ai-service/api/schemas.py` using `MODEL_IDS` |
+| Public catalog | AI service `GET /v1/models` |
+| Django compatibility API | `backend/apps/ai/serializers.py` and `backend/apps/ai/views.py` |
+| Frontend catalog | `QJudgeCopilotModelCatalog` loads the API dynamically |
+| Grading eligibility/default | `ContestAiGradingScreen.tsx` and `useAiQuestionGrading.ts` |
 
-- ✅ Canonical model id（`openai-nano` / `deepseek-v4` 等）。
-- ✅ `ai-service/services/model_factory.py` 所有 lookup table（`_MODEL_MAP`、`PRICING`、`MODEL_MAX_INPUT_TOKENS`、`MODEL_SUMMARY_TRIM_TOKENS`、`MODEL_INFO`）。
-- ✅ `backend/apps/ai/credits.py::DEFAULT_MODEL_PRICING`（與 ai-service `PRICING` 有 CI contract test 把關）。
-- ✅ Backend `serializers.StartRunSerializer` choices、`ModelListView.MODELS`、`models.py` 預設、對應 Django migration。
-- ✅ Frontend `FALLBACK_MODELS`、grading 預設、stories、ModelSelect label。
-- ✅ 更動預設模型時的 deepagent_runner 介面 `model_id=` 預設。
-- ❌ 不負責 credits 換算公式（`usage_to_credits`）本身；只負責 pricing 餵料。
-- ❌ 不負責 provider SDK 整合細節（`ChatOpenAI` / `ChatDeepSeek` 初始化選項只動該 model 專用欄位）。
-- ❌ 不負責 UI 視覺（交 `qjudge-ui-carbon-owner`）；只動 `MODEL_INFO.display_name` / `description`。
+The backend intentionally does not duplicate the model enum or display metadata. It defers authoritative model validation to the AI Service. The frontend has no production fallback model registry.
 
-## 核心規則
+## Change contract
 
-- Canonical id 是前後端與 SDK 邊界的唯一識別；**provider model string 只出現在 `_MODEL_MAP` 一個地方**，其他檔案一律用 canonical id。
-- `ai-service::PRICING` 與 `backend::DEFAULT_MODEL_PRICING` **永遠一致**，由 `backend/apps/ai/tests/test_pricing_alignment.py` AST 比對。兩邊要同一次 commit 改完。
-- Pricing 單位：**cents per 1M tokens**（亦即 USD/1M × 100）。cache-hit input 目前未在 PRICING 表中追蹤（僅以 cache-miss 結算）。
-- 變更 `backend/apps/ai/models.py` 的 `default=` 字串 **必須跟一支 Django migration**。
-- 新模型顯示名稱：以 canonical id 為底（例：`deepseek-v4`、`gpt-5-nano`）；後端 `MODEL_INFO` / `ModelListView.MODELS` 與前端 `FALLBACK_MODELS` 三份 metadata **欄位一字不差**（`model_id` / `display_name` / `description` / `is_default`）。
-- Frontend `ModelSelect.normalizeModelLabel` 會 trim 並 fallback 到 `gpt-5-nano`，**不會修改 display_name**。要在 label 直接顯示 thinking / variant（例：`deepseek-v4 (thinking)`）是預期做法。
-- **DeepSeek V4 thinking mode 與多輪對話的接法**：thinking ON 時 API 要求每輪 assistant 訊息都把上一輪的 `reasoning_content` 回傳，LangChain 的 `AIMessage` 序列化預設會丟掉。解法已內建在 `model_factory.py::ReasoningPreservingChatDeepSeek`：覆寫 `_get_request_payload` 在送出前從 `additional_kwargs["reasoning_content"]` 讀回並填入對應的 assistant message dict。新增需 thinking 的 DeepSeek 模型（例如 `deepseek-v4-pro`）時**必須**使用該子類別；純聊天模型用原生 `ChatDeepSeek` 並以 `extra_body={"thinking": {"type": "disabled"}}` 關閉即可。
+1. Update `MODEL_INFO`. Keep exactly one `is_default: True` entry; `MODEL_IDS` is derived from it.
+2. Update the matching factory entries: `_MODEL_MAP`, provider-specific settings, `MODEL_MAX_INPUT_TOKENS`, `MODEL_SUMMARY_TRIM_TOKENS`, and `_DEEPSEEK_THINKING_MODEL_IDS` when applicable.
+3. Keep `_DEFAULT_MODEL_ID`, the default row in `MODEL_INFO`, and Django `StartRunSerializer.model_id.default` aligned.
+4. Review `recursion_failure_handler.py`; change its independent summarization fallback only when that policy changes.
+5. Update frontend grading exclusions/defaults and Storybook fixtures when the changed ID appears there. Runtime model options continue to come from the API.
 
-## 操作流程
+Provider strings live only in `_MODEL_MAP`. Application, API, and UI boundaries use canonical IDs.
 
-### ADD 新模型
+Removing or renaming an ID is not an alias operation: `ModelFactory.resolve_model_string()` rejects unknown IDs. Inspect stored AI-service runs before removal and add an Alembic data migration when historical rows need rewriting.
 
-按 `references/touch-points.md` 的「ADD」欄逐項補齊，最後跑 `references/verify.sh` 的四個驗證。
+QJudge currently records raw token usage but has no active model pricing or credit-conversion registry. Do not recreate removed Django pricing tables as part of a model change. Read `references/cost-math.md` only for this cost-accounting boundary.
 
-### UPDATE 既有模型
+## Verification
 
-只有 pricing / context / display 變動時：
+```bash
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T ai-service \
+  pytest tests/test_model_factory.py tests/test_api.py tests/unit/test_provider_endpoint_config.py
 
-1. `ai-service::PRICING` + `backend::DEFAULT_MODEL_PRICING` 同步更新。
-2. 若 context 改變：`MODEL_MAX_INPUT_TOKENS`、必要時 `MODEL_SUMMARY_TRIM_TOKENS`。
-3. `MODEL_INFO` / `ModelListView.MODELS` / `FALLBACK_MODELS` 三份 metadata 同步。
-4. Pricing 變動必跑 `apps/ai/tests/test_pricing_alignment.py` 與 `apps/ai/tests/test_credits.py`；credits 預期值可能需要重算。
-5. 不需要 migration（field default 字串沒變）。
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test \
+  pytest apps/ai/tests/test_model_contract.py apps/ai/tests/test_bff_contract.py
 
-### REMOVE / 下架模型
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test \
+  npm run typecheck
+```
 
-1. 先決定 **「誰要取代它」** 作為預設 fallback：
-   - 原本是 system default（`_DEFAULT_MODEL_ID`、`models.py::default=`、`deepagent_runner` 3 個介面的 `model_id=` 預設）—改指向取代者並寫 migration。
-   - 原本是 grading 預設（`AI_GRADING_DEFAULT_MODEL_ID`）—改指向合理的推理模型。
-   - 歷史 session 若 DB 中有 `model_id="<舊>"` row，讀回時會 fallback 到 `_DEFAULT_MODEL_ID`（`ModelFactory.resolve_model_string` 含 warning log），不會壞；若要優雅 alias，在 `_MODEL_MAP` 加一行 `"<舊>": "<新 provider string>"` 當相容層。
-2. 從所有 touch point 移除 entry（見 `references/touch-points.md` 的「REMOVE」欄）。
-3. 相關 tests 裡硬編的 `model_id="<舊>"` 要換成 **仍存在的模型 id**，並重算 credits 期望值。
-4. 跑 `references/verify.sh`。
+For a new provider model or changed provider string, run a real provider smoke test only with explicit authorization and available credentials.
 
-## 驗證清單（照序）
+## Reference
 
-1. `backend pytest apps/ai/tests/test_credits.py test_model_contract.py test_pricing_alignment.py` — pricing 契約與 credits 數學。
-2. `ai-service pytest tests/test_model_factory.py` （**isolated run**，避免 stub 污染）— 每個 canonical id 的創建 kwargs。
-3. `ai-service pytest tests/test_api.py` — `/api/models` 端點回傳順序與欄位。
-4. `frontend tsc --noEmit` — 前端 types。
-5. **真實 API smoke**（ADD 或 provider 變動時必跑）：
-   ```bash
-   bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service \
-     python -c "
-   import asyncio
-   from services.model_factory import ModelFactory
-   m = ModelFactory.create_model('<new-canonical-id>')
-   asyncio.run(m.ainvoke('Reply only: OK'))
-   "
-   ```
-6. 若動過 `backend/apps/ai/models.py::default=`：
-   ```bash
-   bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-     python manage.py makemigrations ai --name="<desc>" && \
-     python manage.py migrate ai
-   ```
-
-## 參考
-
-- `references/touch-points.md` — 每個檔案、每個 symbol 的欄位對照表（ADD/UPDATE/REMOVE 三欄）。
-- `references/cost-math.md` — credits 計算公式、典型輪次對照、常見 pricing table。
+Read `references/touch-points.md` for add, update, and remove paths.

@@ -7,7 +7,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import {
   buildAdminOverviewDashboard,
-  buildAdminPreparationDashboard,
+  buildAdminPreparationOverview,
   getTeacherAttentionRows,
 } from "./adminOverviewDashboard.model";
 
@@ -230,75 +230,101 @@ describe("adminOverviewDashboard.model", () => {
       "not_started",
     ]);
   });
+});
 
-  it("builds a preparation dashboard for non-exam-time management", () => {
-    const data = buildAdminPreparationDashboard({
+describe("buildAdminPreparationOverview", () => {
+  const build = (
+    contestOverrides: Partial<ContestDetail> = {},
+    participants: ContestParticipant[] = [participant("u1", "not_started")],
+  ) =>
+    buildAdminPreparationOverview({
       contest: contest({
-        contestType: "paper_exam",
-        examQuestionsCount: 12,
-        problems: [],
-        rules: "",
+        status: "draft",
+        startTime: "",
+        endTime: "",
+        ...contestOverrides,
       }),
-      participants: [
-        participant("1", "submitted"),
-        participant("2", "submitted"),
-        participant("3", "not_started"),
-      ],
-      gradingStats: {
-        totalAnswers: 12,
-        gradedAnswers: 8,
-        ungradedAnswers: 4,
-      } as any,
+      participants,
+      nowMs: Date.parse("2026-09-07T00:00:00Z"),
     });
 
-    expect(data.summaryItems.map((item) => item.key)).toEqual([
-      "status",
-      "schedule",
-      "work_items",
-      "participants",
-      "grading",
-      "results",
-    ]);
+  const scheduled = {
+    startTime: "2026-09-08T01:00:00Z",
+    endTime: "2026-09-08T03:00:00Z",
+  };
+
+  it("blocks publishing when the schedule is missing", () => {
+    const data = build();
+
     expect(
-      data.summaryItems.find((item) => item.key === "work_items")?.value,
-    ).toBe("12");
-    expect(
-      data.checklistItems.find((item) => item.key === "rules")?.status,
-    ).toBe("warning");
-    expect(data.grading.progressPercent).toBe(67);
-    expect(JSON.stringify(data)).not.toMatch(/監控來源|提交趨勢|submission/);
+      data.checklist.find((item) => item.key === "schedule")?.level,
+    ).toBe("blocking");
+    expect(data.blockingKeys).toEqual(["schedule"]);
+    expect(data.canPublish).toBe(false);
   });
 
-  it("builds preparation timeline states before, during, and after the exam", () => {
-    const base = {
-      contest: contest(),
-      participants: [],
-      gradingStats: { totalAnswers: 0, gradedAnswers: 0 } as any,
-    };
+  it("warns but still allows publishing when there are no problems", () => {
+    const data = build({ ...scheduled, problems: [] });
 
-    const before = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T08:00:00+08:00"),
-    });
-    const during = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T10:00:00+08:00"),
-    });
-    const after = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T12:00:00+08:00"),
+    expect(
+      data.checklist.find((item) => item.key === "problems")?.level,
+    ).toBe("warning");
+    expect(data.blockingKeys).toEqual([]);
+    expect(data.canPublish).toBe(true);
+  });
+
+  it("sorts blocking items above warnings and warnings above done", () => {
+    const data = build({ rules: "  " });
+
+    expect(data.checklist.map((item) => item.key)).toEqual([
+      "schedule",
+      "rules",
+      "problems",
+    ]);
+    expect(data.checklist.map((item) => item.level)).toEqual([
+      "blocking",
+      "warning",
+      "done",
+    ]);
+  });
+
+  it("marks every item done when the contest is fully prepared", () => {
+    const data = build({ ...scheduled, rules: "禁止攜帶手機" });
+
+    expect(data.checklist.every((item) => item.level === "done")).toBe(true);
+    expect(data.canPublish).toBe(true);
+  });
+
+  it("reports the upcoming phase and a countdown once published", () => {
+    const data = build({
+      status: "published",
+      startTime: "2026-09-07T02:00:00Z",
+      endTime: "2026-09-07T04:00:00Z",
+      rules: "禁止攜帶手機",
     });
 
-    expect(before.timeline.phaseLabel).toBe("尚未開始");
-    expect(before.timeline.primaryTimeLabel).toBe("距離開始 1:00:00");
-    expect(before.timeline.progressPercent).toBe(0);
-    expect(during.timeline.phaseLabel).toBe("進行中");
-    expect(during.timeline.primaryTimeLabel).toBe("剩餘 1:00:00");
-    expect(during.timeline.startDateTimeLabel).toBe("09:00");
-    expect(during.timeline.endDateTimeLabel).toBe("11:00");
-    expect(during.timeline.progressPercent).toBe(50);
-    expect(after.timeline.phaseLabel).toBe("已結束");
-    expect(after.timeline.primaryTimeLabel).toBe("考試已結束");
-    expect(after.timeline.progressPercent).toBe(100);
+    expect(data.phase).toBe("upcoming");
+    expect(data.countdownMs).toBe(2 * 60 * 60 * 1000);
+  });
+
+  it("counts paper exam questions instead of coding problems", () => {
+    const data = build({
+      contestType: "paper_exam",
+      problems: [],
+      examQuestionsCount: 5,
+    });
+
+    expect(
+      data.checklist.find((item) => item.key === "problems")?.level,
+    ).toBe("done");
+  });
+
+  it("excludes non-student participants from the roster", () => {
+    const data = build({}, [
+      participant("u1", "not_started"),
+      participant("u2", "not_started", { accountRole: "teacher" }),
+    ]);
+
+    expect(data.participants.map((row) => row.userId)).toEqual(["u1"]);
   });
 });

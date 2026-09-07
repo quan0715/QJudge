@@ -1,0 +1,91 @@
+@use "@carbon/layout";
+
+.participantList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.participantRow {
+  display: flex;
+  align-items: baseline;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.participantName {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+}
+
+.participantHandle {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.emptyState {
+  margin: 0;
+  padding: layout.$spacing-03 0;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-secondary);
+}
+
+.sideBlock {
+  display: grid;
+  gap: layout.$spacing-03;
+  justify-items: start;
+}
+
+.sideLabel {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.sideNote {
+  margin: 0;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.countdown {
+  margin: 0;
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
+  color: var(--cds-text-primary);
+}
+
+.reviewList {
+  margin: 0;
+
+  > div {
+    display: grid;
+    gap: layout.$spacing-02;
+    padding-block: layout.$spacing-04;
+    border-bottom: 1px solid var(--cds-border-subtle);
+  }
+
+  dt {
+    color: var(--cds-text-secondary);
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.reviewBlocked {
+  margin: 0 0 layout.$spacing-05;
+  color: var(--cds-text-secondary);
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+
+  &:focus {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: 2px;
+  }
+}

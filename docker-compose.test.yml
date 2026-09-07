@@ -254,7 +254,7 @@ services:
         bash /app/scripts/setup_e2e_env.sh &&
         python manage.py runserver 0.0.0.0:8000
       "
-    environment:
+    environment: &backend_test_environment
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=qjudge_web
@@ -272,9 +272,8 @@ services:
       - AI_OAUTH_SIGNING_PRIVATE_KEY_FILE=/run-secrets/ai-oauth/ai-oauth-ed25519-private.pem
       - DOCKER_IMAGE_JUDGE=${DOCKER_IMAGE_JUDGE:-ghcr.io/quan0715/qjudge/judge:latest}
       - DOCKER_JUDGE_PLATFORM=${DOCKER_JUDGE_PLATFORM:-linux/amd64}
-      - INTEGRITY_CONTROLLER_URL=http://integrity-controller:8010
-      - INTEGRITY_CONTROLLER_TOKEN_FILE=/run-secrets/controller-token
-      - INTEGRITY_WORKER_IMAGE=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
+      - INTEGRITY_RESIDENT_URL=http://integrity-resident:8011
+      - INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE=/run-secrets/resident-service-token
       - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
     ports:
       - "8002:8000"
@@ -292,57 +291,94 @@ services:
     volumes:
       - ./backend:/app
       - ai-oauth-test-secrets:/run-secrets/ai-oauth:ro
-      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/resident-service-token:/run-secrets/resident-service-token:ro
       - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
     networks:
       - test-network
-
-  # Tests provide only temporary key files through INTEGRITY_TEST_SECRETS_DIR;
-  # raw Controller tokens and signing keys are never Compose environment values.
-  integrity-controller:
-    build:
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8000/api/health/').status == 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+  integrity-resident-data-init:
+    image: oj-integrity-resident:test
+    build: &integrity_resident_test_build
       context: ./integrity-service
-      dockerfile: Dockerfile.controller
-    image: oj-integrity-controller:test
-    container_name: oj_integrity_controller_test
-    restart: unless-stopped
-    environment:
-      - INTEGRITY_CONTROLLER_INTERNAL_TOKEN_FILE=/run-secrets/controller-token
-      - INTEGRITY_WORKER_IMAGE_ALLOWLIST=${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-      - INTEGRITY_WORKER_NETWORK=${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}
-      - BACKEND_INTERNAL_URL=http://backend-test:8000
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/controller-token:/run-secrets/controller-token:ro
-    group_add:
-      - "${DOCKER_GID:-0}"
+      dockerfile: Dockerfile.resident
+    user: "0:0"
+    restart: "no"
     read_only: true
+    command: ["sh", "-c", "chown 10001:10001 /run-data && chmod 0700 /run-data"]
+    volumes:
+      - integrity-resident-test-data:/run-data
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: ["no-new-privileges:true"]
+
+  integrity-resident:
+    image: oj-integrity-resident:test
+    build: *integrity_resident_test_build
+    container_name: oj_integrity_resident_test
+    user: "10001:10001"
+    read_only: true
+    command: ["uvicorn", "integrity_service.resident.app:app", "--host", "0.0.0.0", "--port", "8011", "--workers", "1"]
+    environment:
+      BACKEND_INTERNAL_URL: http://backend-test:8000
+      INTEGRITY_RESIDENT_DATA_ROOT: /run-data
+      INTEGRITY_RESIDENT_PUBLIC_KEY_FILE: /run-secrets/backend-public-key
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
+    volumes:
+      - integrity-resident-test-data:/run-data
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/backend-public-key:/run-secrets/backend-public-key:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/resident-service-token:/run-secrets/resident-service-token:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    privileged: false
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      integrity-resident-data-init:
+        condition: service_completed_successfully
     networks:
       - test-network
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8010/health').status == 200"]
-      interval: 30s
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"]
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
       start_period: 10s
 
-  integrity-worker-image:
-    image: ${INTEGRITY_WORKER_IMAGE:-oj-integrity-worker:local}
-    build:
-      context: ./integrity-service
-      dockerfile: Dockerfile.worker
-    command: ["python", "-c", "print('integrity worker image ready')"]
-    restart: "no"
-    profiles: ["build"]
+  integrity-reconciler:
+    build: *backend_test_build
+    image: oj_backend_test_img
+    container_name: oj_integrity_reconciler_test
+    command: ["python", "manage.py", "reconcile_integrity"]
+    environment: *backend_test_environment
+    volumes:
+      - ./backend:/app:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/resident-service-token:/run-secrets/resident-service-token:ro
+      - ${INTEGRITY_TEST_SECRETS_DIR:-./.tmp/integrity-test-secrets}/integrity-worker-signing-key:/run-secrets/integrity-worker-signing-key:ro
+    depends_on:
+      backend-test:
+        condition: service_healthy
+      integrity-resident:
+        condition: service_healthy
     networks:
       - test-network
+
+  integrity-unit-test:
+    profiles: [unit]
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.test
+    working_dir: /app
+    volumes:
+      - ./integrity-service/integrity_service:/app/integrity_service:ro
+      - ./integrity-service/tests:/app/tests:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 
   celery-test:
     build: *backend_test_build
@@ -412,5 +448,6 @@ networks:
     name: ${TEST_NETWORK_NAME:-${INTEGRITY_WORKER_NETWORK_TEST:-online_judge_test-network}}
 
 volumes:
+  integrity-resident-test-data:
   judge-tmp-test:
   ai-oauth-test-secrets:

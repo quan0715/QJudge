@@ -112,6 +112,11 @@ class SubmissionService:
         with transaction.atomic():
             if contest is not None:
                 contest = Contest.objects.select_for_update().get(pk=contest.pk)
+                from apps.contests.services.exam_schedule import lock_exam_runs
+                from apps.contests.models import ContestParticipant
+                lock_exam_runs(contest.pk)
+                list(ContestParticipant.objects.select_for_update().filter(contest=contest, user=user))
+                SubmissionAccessPolicy.enforce_contest_submission(user, contest)
                 create_payload["contest"] = contest
 
             if violation_message:

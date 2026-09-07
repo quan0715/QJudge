@@ -1,6 +1,5 @@
 .root {
   overflow: hidden;
-  border: 1px solid var(--cds-border-subtle);
 }
 
 .headerRow {
@@ -11,6 +10,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
   border-bottom: 1px solid var(--cds-border-subtle);
+
+  // Without a tabs panel below it, that divider would be a dangling rule.
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 
 .primaryPanel,

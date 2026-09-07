@@ -28,6 +28,24 @@ def load_public_key(value_b64: str) -> Ed25519PublicKey:
     return key
 
 
+def verify_resident_request(public_key, *, method, path, run_id, revision, protocol,
+                            timestamp, header_run_id, signature_b64, body, now_seconds):
+    """Domain-separated resident signature, deliberately incompatible with legacy."""
+    if protocol != "resident-v1" or header_run_id != str(run_id):
+        raise RequestAuthenticationError("invalid resident scope")
+    if (not revision.isascii() or not revision.isdigit() or len(revision) > 20
+            or int(revision) < 1 or str(int(revision)) != revision):
+        raise RequestAuthenticationError("invalid revision")
+    if (not timestamp.isascii() or not timestamp.isdigit() or len(timestamp) > 20
+            or str(int(timestamp)) != timestamp or abs(now_seconds - int(timestamp)) > 30):
+        raise RequestAuthenticationError("invalid timestamp")
+    message = f"resident-v1\n{method}\n{path}\n{run_id}\n{revision}\n{timestamp}\n".encode("ascii") + body
+    try:
+        public_key.verify(base64.b64decode(signature_b64, validate=True), message)
+    except (InvalidSignature, ValueError, binascii.Error) as error:
+        raise RequestAuthenticationError("invalid signature") from error
+
+
 def verify_backend_request(
     public_key: Ed25519PublicKey,
     *,

@@ -14,6 +14,7 @@ from .views import (
 )
 from .views.exam_question_group import ContestExamQuestionGroupViewSet
 from .views.integrity_runs import IntegrityRunViewSet
+from .views.exam_runtime_state import ExamRuntimeStateView
 from apps.submissions.views import SubmissionViewSet
 
 app_name = 'contests'
@@ -35,6 +36,7 @@ contest_router.register(r'exam-question-groups', ContestExamQuestionGroupViewSet
 contest_router.register(r'integrity-runs', IntegrityRunViewSet, basename='contest-integrity-runs')
 
 urlpatterns = [
+    path('<uuid:contest_pk>/exam/runtime-state/', ExamRuntimeStateView.as_view(), name='exam-runtime-state'),
     path('', include(router.urls)),
     path(
         '<uuid:contest_pk>/exam-paper/',
