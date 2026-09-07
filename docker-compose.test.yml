@@ -344,6 +344,18 @@ services:
     networks:
       - test-network
 
+  integrity-unit-test:
+    build:
+      context: ./integrity-service
+      dockerfile: Dockerfile.test
+    working_dir: /app
+    volumes:
+      - ./integrity-service/integrity_service:/app/integrity_service:ro
+      - ./integrity-service/tests:/app/tests:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
+
   celery-test:
     build: *backend_test_build
     image: oj_backend_test_img
