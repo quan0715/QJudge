@@ -7,7 +7,6 @@ import type {
 } from "@/core/entities/contest.entity";
 import {
   buildAdminOverviewDashboard,
-  buildAdminPreparationDashboard,
   buildAdminPreparationOverview,
   getTeacherAttentionRows,
 } from "./adminOverviewDashboard.model";
@@ -230,77 +229,6 @@ describe("adminOverviewDashboard.model", () => {
       "offline",
       "not_started",
     ]);
-  });
-
-  it("builds a preparation dashboard for non-exam-time management", () => {
-    const data = buildAdminPreparationDashboard({
-      contest: contest({
-        contestType: "paper_exam",
-        examQuestionsCount: 12,
-        problems: [],
-        rules: "",
-      }),
-      participants: [
-        participant("1", "submitted"),
-        participant("2", "submitted"),
-        participant("3", "not_started"),
-      ],
-      gradingStats: {
-        totalAnswers: 12,
-        gradedAnswers: 8,
-        ungradedAnswers: 4,
-      } as any,
-    });
-
-    expect(data.summaryItems.map((item) => item.key)).toEqual([
-      "status",
-      "schedule",
-      "work_items",
-      "participants",
-      "grading",
-      "results",
-    ]);
-    expect(
-      data.summaryItems.find((item) => item.key === "work_items")?.value,
-    ).toBe("12");
-    expect(
-      data.checklistItems.find((item) => item.key === "rules")?.status,
-    ).toBe("warning");
-    expect(data.grading.progressPercent).toBe(67);
-    expect(JSON.stringify(data)).not.toMatch(/監控來源|提交趨勢|submission/);
-  });
-
-  it("builds preparation timeline states before, during, and after the exam", () => {
-    const base = {
-      contest: contest(),
-      participants: [],
-      gradingStats: { totalAnswers: 0, gradedAnswers: 0 } as any,
-    };
-
-    const before = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T08:00:00+08:00"),
-    });
-    const during = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T10:00:00+08:00"),
-    });
-    const after = buildAdminPreparationDashboard({
-      ...base,
-      now: new Date("2026-05-03T12:00:00+08:00"),
-    });
-
-    expect(before.timeline.phaseLabel).toBe("尚未開始");
-    expect(before.timeline.primaryTimeLabel).toBe("距離開始 1:00:00");
-    expect(before.timeline.progressPercent).toBe(0);
-    expect(during.timeline.phaseLabel).toBe("進行中");
-    expect(during.timeline.primaryTimeLabel).toBe("剩餘 1:00:00");
-    expect(during.timeline.startDateTimeLabel).toBe("09:00");
-    expect(during.timeline.endDateTimeLabel).toBe("11:00");
-    expect(during.timeline.progressPercent).toBe(50);
-    expect(after.timeline.phaseLabel).toBe("已結束");
-    expect(after.timeline.primaryTimeLabel).toBe("考試已結束");
-    expect(after.timeline.progressPercent).toBe(100);
   });
 });
 

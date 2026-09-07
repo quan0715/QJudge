@@ -1,0 +1,46 @@
+@use "@carbon/layout";
+
+.list {
+  display: grid;
+  gap: layout.$spacing-03;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
+  border: 1px solid var(--cds-border-subtle);
+}
+
+.text {
+  display: grid;
+  gap: layout.$spacing-01;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+}
+
+.description {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.done {
+  fill: var(--cds-support-success);
+}
+
+.warning {
+  fill: var(--cds-support-warning);
+}
+
+.blocking {
+  fill: var(--cds-support-error);
+}
