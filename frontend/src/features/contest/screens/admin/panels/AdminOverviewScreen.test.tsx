@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { updateContest } from "@/infrastructure/api/repositories";
 import type {
   ContestDetail,
   ContestOverviewMetrics,
@@ -55,6 +57,11 @@ vi.mock(
 
 vi.mock("@/infrastructure/api/repositories/contestExports.repository", () => ({
   exportContestResults: vi.fn(),
+}));
+
+vi.mock("@/infrastructure/api/repositories", () => ({
+  addContestParticipant: vi.fn(),
+  updateContest: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/shared/contexts/ToastContext", () => ({
@@ -137,15 +144,31 @@ function LocationProbe() {
   return <div data-testid="location-search">{location.search}</div>;
 }
 
-const renderScreen = (initialEntry: string) =>
+const renderScreen = (
+  initialEntry: string,
+  props: { onOpenSettings?: (section?: string) => void } = {},
+) =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <AdminOverviewScreen contestId="contest-1" contest={mockState.contest} />
+      <AdminOverviewScreen
+        contestId="contest-1"
+        contest={mockState.contest}
+        {...props}
+      />
       <LocationProbe />
     </MemoryRouter>,
   );
 
+const scheduled = {
+  startTime: new Date(Date.now() + 3_600_000).toISOString(),
+  endTime: new Date(Date.now() + 7_200_000).toISOString(),
+};
+
 describe("AdminOverviewScreen", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("renders a single overview dashboard and ignores the legacy view query param", () => {
     mockState.contest = contest();
 
@@ -201,5 +224,72 @@ describe("AdminOverviewScreen", () => {
     expect(
       screen.getByRole("button", { name: "開啟簽到投屏" }),
     ).toBeDisabled();
+  });
+
+  it("renders the preparation view for a draft contest", () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+
+    expect(
+      screen.getByRole("button", { name: "發布競賽" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("live-dashboard")).not.toBeInTheDocument();
+  });
+
+  it("keeps the command center once the contest is running", () => {
+    mockState.contest = contest({
+      status: "published",
+      startTime: new Date(Date.now() - 60_000).toISOString(),
+      endTime: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+
+    expect(screen.getByTestId("live-dashboard")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "發布競賽" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the schedule settings instead of publishing when time is missing", async () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+    const onOpenSettings = vi.fn();
+
+    renderScreen("/contest/contest-1/admin?panel=overview", { onOpenSettings });
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(onOpenSettings).toHaveBeenCalledWith("general");
+    expect(updateContest).not.toHaveBeenCalled();
+  });
+
+  it("publishes when the schedule is set", async () => {
+    mockState.contest = contest({ status: "draft", ...scheduled });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(updateContest).toHaveBeenCalledWith("contest-1", {
+      status: "published",
+    });
+  });
+
+  it("asks for confirmation before publishing without problems", async () => {
+    mockState.contest = contest({
+      status: "draft",
+      ...scheduled,
+      problems: [],
+    });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(updateContest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: /仍要發布/ }));
+
+    expect(updateContest).toHaveBeenCalledWith("contest-1", {
+      status: "published",
+    });
   });
 });
