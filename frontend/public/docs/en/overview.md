@@ -6,7 +6,6 @@ Select a guide based on what you want to achieve:
 
 | Goal                         | Target Audience      | Quick Links                                                             |
 | ---------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| **Solve Problems**           | Students, Learners   | [Quick Start](/docs/quick-start) → [Submission Guide](/docs/submission) |
 | **Join Contests**            | Contest Participants | [Contest Guide](/docs/contests) → [Common Errors](/docs/common-errors)  |
 | **Create & Manage Contests** | Teachers, TAs        | [Teacher Guide](/docs/teacher-overview)                                 |
 | **System Administration**    | Administrators       | [Admin Guide](/docs/admin-overview)                                     |
@@ -16,23 +15,12 @@ Select a guide based on what you want to achieve:
 
 ## What is QJudge?
 
-QJudge is an online judge system designed for programming education and practice. It provides a complete environment where you can:
+QJudge is an online judge system designed for programming education and assessment. It provides a complete environment where you can:
 
-- **Practice Problems** - Browse and solve programming problems of various difficulties
 - **Join Contests** - Compete with other participants in programming contests
 - **Track Progress** - View your solving statistics and submission history
 
 ## Main Features
-
-### Problem Practice
-
-The system offers a rich problem set covering different difficulty levels:
-
-| Difficulty | Description                                            |
-| ---------- | ------------------------------------------------------ |
-| Easy       | Suitable for beginners, basic syntax practice          |
-| Medium     | Requires programming foundation, common algorithms     |
-| Hard       | Advanced problems requiring deeper algorithm knowledge |
 
 ### Online Contests
 
@@ -50,7 +38,7 @@ QJudge supports multiple user roles with different capabilities:
 
 | Role    | Available Features                                    | Details                                      |
 | ------- | ----------------------------------------------------- | -------------------------------------------- |
-| Student | Browse problems, submit code, join contests           | Default role                                 |
+| Student | Join contests and submit code                         | Default role                                 |
 | Teacher | Create contests, manage problems, view student scores | [View Teacher Guide](/docs/teacher-overview) |
 | Admin   | Manage users, system settings, permission control     | [View Admin Guide](/docs/admin-overview)     |
 

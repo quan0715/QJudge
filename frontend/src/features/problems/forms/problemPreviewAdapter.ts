@@ -2,7 +2,7 @@ import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 
 /**
- * Convert form schema to preview format
+ * Convert the coding editor form schema to preview data.
  */
 export const formSchemaToPreview = (
   formData: Partial<ProblemFormSchema>

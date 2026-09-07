@@ -1,31 +1,41 @@
 ---
 name: qjudge-env-compose-owner
-description: QJudge 環境全責技能（main/dev/test Docker Compose）。當任務涉及 migrate、pytest、npm、manage.py、celery、容器除錯時使用。強制 exec-first。
+description: Use when QJudge work involves Docker Compose environments, migrations, pytest, npm, Django management commands, Celery, service health, or container diagnostics.
 ---
 
 # QJudge Env Compose Owner
 
-## Quick start
-- 先選環境：`main | dev | test`。
-- 一律用：`.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <env> ...`（容器內執行優先）。
-- 先 `up -d --build`，再 `exec -T <service> <cmd...>`。
+## Environment choice
 
-## 責任邊界（Owner Scope）
-- ✅ compose file 選擇、service 名稱、exec-first 命令標準。
-- ✅ backend/frontend 測試與 migrate 的容器內執行流程。
-- ✅ logs/ps/health 檢查與容器除錯。
-- ❌ 不定義 architecture 規則（交給 `qjudge-architecture-owner`）。
-- ❌ 不定義 PR 策略（交給 `qjudge-github-workflow-owner`）。
+- `dev`: interactive development, Storybook, and manual runtime inspection.
+- `test`: automated backend/frontend/AI tests and isolated E2E dependencies.
+- `main`: production-shaped local or deployment operations; use only when the task explicitly targets it.
 
-## 核心規則
-- backend 命令（`manage.py`/`pytest`）在 backend 容器執行。
-- frontend 命令（`npm run`）優先在 frontend 容器執行。
-- 非使用者明確要求，不在 host 直接跑專案腳本。
+Use the repository wrapper:
 
-## 參考文件
-- 環境矩陣：`references/environment-matrix.md`
-- 腳本：`.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh`
+```bash
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <main|dev|test> <compose arguments>
+```
 
-## Portable notes
-- 可移植核心：env selector + compose wrapper + exec-first discipline。
-- 換專案時僅需更新 compose file 對照與 service map。
+Run project commands inside the owning service. Do not run Django, pytest, or npm directly on the host unless the user explicitly requests a host-only diagnostic.
+
+For tests, prefer the `test` environment. The development backend goes through development infrastructure such as PgBouncer and is not the canonical test runner.
+
+## Common flow
+
+1. Inspect status with `<env> ps`.
+2. Start only the required services, or use `<env> up -d --build` for the complete environment.
+3. Run non-interactive commands with `exec -T`.
+4. Inspect the exact service logs and readiness endpoint when a command fails.
+
+The wrapper accepts test aliases such as `backend`, `frontend`, and `celery`, but documentation uses actual service names such as `backend-test` to make the selected environment explicit.
+
+The running `backend-test` service uses the least-privileged `qjudge_web` role and cannot create Django's temporary test database. For a pytest run, override only that process with the isolated test PostgreSQL administrator as documented in `references/environment-matrix.md`; do not grant `CREATEDB` to the application role.
+
+## Boundaries
+
+- This skill owns Compose selection, service names, execution location, logs, health, and readiness.
+- Use `qjudge-architecture-owner` for import/layer decisions.
+- Use `qjudge-github-workflow-owner` for Git and PR policy.
+
+Read `references/environment-matrix.md` before choosing a service or test command.

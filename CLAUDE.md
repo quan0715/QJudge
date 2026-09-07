@@ -1,75 +1,51 @@
-# 專案協作備忘（QJudge）
+# QJudge 專案代理指引
 
-本文件提供在本專案協作時的快速上下文，內容已對齊 `ta-agent` 分支現狀。
+本文件只提供穩定的入口與責任分工。分支、PR、部署與服務狀態會變動，執行前必須讀取目前 Git／Compose 狀態，不以本文件保存歷史快照。
 
-## 目前狀態摘要
+## Canonical skills
 
-- 主要工作分支：`dev`
-- ta-agent PR（#51）：已於 2026-02-24 merge 至 main
-- AI 助教流程：已切換為 DeepAgent（LangGraph）架構，HMAC 保護內部端點已上線
-- SSE 串流：前後端事件流已可完整傳遞與保存 metadata
+QJudge 維護中的技能位於 `.codex/skills/`：
 
-## 常用命令
+- 架構、分層、import 與檔案歸屬：`qjudge-architecture-owner`
+- main／dev／test Compose、migrate、測試與服務診斷：`qjudge-env-compose-owner`
+- branch、commit、PR 與 dev-to-main release：`qjudge-github-workflow-owner`
+- naming、architecture、exports 與 Carbon gates：`qjudge-quality-gates-owner`
+- Carbon 元件、版面、Storybook 與 accessibility：`qjudge-ui-carbon-owner`
+- AI model catalog：`qjudge-ai-model-registry`
 
-### Docker 開發環境（推薦）
+`.claude/skills/` 只保留舊工具相容入口；規則若有差異，以對應的 `.codex/skills/qjudge-*-owner` 為準。`.agents/skills/` 目前沒有 QJudge 專用政策。
 
-```bash
-bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
-bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
-./scripts/dev/check-dev-services.sh
-```
+## 執行環境
 
-### Frontend
+先讀 `qjudge-env-compose-owner/references/environment-matrix.md`，並一律從 repository wrapper 選擇環境：
 
 ```bash
-cd frontend
-npm run dev
-npm run lint
-npm run test:api
-npm run sync:i18n   # 同步多國語系 Key
-npm run check:i18n  # 檢查語系同步狀態
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <main|dev|test> <compose arguments>
 ```
 
-### Storybook
+- `dev`：互動式開發、Storybook、實際畫面檢查。
+- `test`：backend、frontend、AI service 與隔離式 E2E 測試。
+- `main`：只有任務明確要求 production-shaped 操作時使用。
+
+Django、pytest、npm、Celery 等命令應以 `exec -T` 在所屬服務內執行；除非使用者明確要求 host-only 診斷，不直接在 host 執行。
+
+## 最低 quality gates
 
 ```bash
-bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
+node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
+node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src
+node .codex/skills/qjudge-quality-gates-owner/scripts/lint-repository-exports.js
+bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all
 ```
 
-- Story 檔案使用 CSF3 格式：`Meta<typeof Component>` / `StoryObj<typeof meta>`（from `@storybook/react`）
-- Mock 資料統一放置於 `frontend/src/shared/mocks/`
-- `.storybook/main.ts`：已設定 `disableTelemetry: true` 及 `@/` alias
-- dev compose 會同時啟動 `frontend`（5173）與 `storybook`（6006）；前端選單按鈕會透過 `/dev/storybook/` proxy 開啟 Storybook
+`--staged` 是本機快速檢查；CI hard gate 是 `--all`。視覺修改還要做實際 desktop／mobile rendered QA，不能只以 lint 判定完成。
 
-### Backend
+## AI 助教
 
-```bash
-cd backend
-python manage.py runserver
-pytest
-```
+`ai-service/.deepagents/AGENTS.md` 定義老師端助教的角色與回覆範圍；評分、MCP 操作、CSV 與 scratch/artifact 規則由同目錄下的對應 skills 負責。
 
-- 佈署前可執行 `python manage.py audit_contest_classroom_bindings`：若有競賽未綁定課堂會以非零退出碼失敗。
+## 協作原則
 
-## 測試執行原則（重點）
-
-- backend 測試建議用 `config.settings.test` + 明確 `DATABASE_URL` 指向 docker postgres
-- 若僅做功能驗證，先用 `PYTEST_ADDOPTS='--no-cov'`，避免 coverage gate 造成噪音
-- frontend `test:api` 依賴本地授權測試帳號/種子資料，失敗時先確認測試資料而非直接判定程式壞掉
-
-## 專案路徑重點
-
-- `frontend/src/features/`：主要業務模組（chatbot/contest/problems/auth 等）
-- `frontend/src/infrastructure/`：API repository 與 mapper
-- `backend/apps/ai/`：AI session、串流、內部動作與核准流程
-- `ai-service/`：DeepAgent runner、工具註冊、SSE 事件轉接
-
-## 技能（Skills）路徑
-
-本專案技能位於 `.codex/skills/`，不是 `.claude/skills/`。
-
-常用：
-
-- `.codex/skills/qjudge-clean-arch-workflow/`
-- `.codex/skills/qjudge-pr-workflow/`
-- `.codex/skills/vercel-react-best-practices/`
+- 保留使用者與其他工作中的未提交變更，不替未完成的重構更新 policy baseline。
+- 先確認當前 source、runtime 與 Git 狀態，再宣稱功能、部署或 release 已完成。
+- 需要跨責任域時載入多個 owner skill，不把 UI、架構、環境或 PR 規則混寫進單一相容文件。

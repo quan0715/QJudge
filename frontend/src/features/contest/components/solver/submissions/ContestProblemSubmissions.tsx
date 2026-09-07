@@ -141,7 +141,6 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
         submissionId={submissionIdFromUrl}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        contestId={contestId}
       />
     </div>
   );

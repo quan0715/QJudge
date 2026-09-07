@@ -9,14 +9,14 @@ vi.mock("@/features/problems/contexts/ProblemEditContext", () => ({
   }),
 }));
 
-vi.mock("@/features/problems/screens/problemsIdEdit/components/ProblemEditHeader", () => ({
+vi.mock("@/features/problems/components/codingEditor/ProblemEditHeader", () => ({
   default: (props: any) => {
     headerSpy(props);
     return <div data-testid="problem-edit-header">{props.title}</div>;
   },
 }));
 
-vi.mock("@/features/problems/screens/problemsIdEdit/components/ProblemEditSections", () => ({
+vi.mock("@/features/problems/components/codingEditor/ProblemEditSections", () => ({
   default: () => <div data-testid="problem-edit-sections" />,
 }));
 

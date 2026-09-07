@@ -15,12 +15,12 @@ metadata:
 - 先讀：`references/carbon-policy.md`。
 - Carbon component、icon、Charts 或 Labs API 不確定時，套用 `carbon-builder` 的 MCP Discover → Canonicalize → Target 流程；QJudge 專案規則仍以本 skill 為準。
 - 若是捲動/裁切問題，再讀：`references/overflow-layout-playbook.md`。
-- 變更 shared/component 時同步更新 stories 與 registry。
+- 變更 shared/component 時同步更新 colocated stories；`.storybook/main.ts` 會自動探索，沒有 manual registry。
 - 若 Carbon API、variant 或 accessibility 規則可能變動，先用 IBM Carbon MCP 查 `docs_search`，再用 `code_search` 取得目前 React 範例；Carbon Charts 只用 `get_charts`。
 
 ## 責任邊界（Owner Scope）
 - ✅ Carbon-first 樣式規範與 UI 實作落地。
-- ✅ Storybook 撰寫規範、registry 同步策略。
+- ✅ Storybook 撰寫規範與自動探索契約。
 - ✅ overflow / split pane / full-bleed 版面修復。
 - ❌ 不定義 git/PR 流程（交給 `qjudge-github-workflow-owner`）。
 - ❌ 不定義 layer/import rule（交給 `qjudge-architecture-owner`）。
@@ -57,7 +57,7 @@ metadata:
 
 ## 參考文件
 - Carbon 規範：`references/carbon-policy.md`
-- Storybook：`references/storybook-registry.md`
+- Storybook：`references/storybook.md`
 - Overflow 修復：`references/overflow-layout-playbook.md`
 
 ## Cross-skill handoff
@@ -66,4 +66,4 @@ metadata:
 
 ## Portable notes
 - 可移植核心：Design-system-first、單 scroll owner、stories 與元件同演進。
-- 若換 design system，只替換 token/class 禁止策略與 story registry 位置。
+- 若換 design system，只替換 token/class 禁止策略與 Storybook discovery 設定。

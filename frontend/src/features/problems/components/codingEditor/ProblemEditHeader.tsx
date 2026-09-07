@@ -18,7 +18,7 @@ const ProblemEditHeader: React.FC<ProblemEditHeaderProps> = ({
   actions,
 }) => {
   return (
-    <Header aria-label="Problem Editor" className="problem-edit-page__header">
+    <Header aria-label="Coding Problem Editor" className="problem-edit-page__header">
       {!hideBackButton && (
         <Button
           kind="ghost"

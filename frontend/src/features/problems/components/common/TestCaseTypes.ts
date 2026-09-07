@@ -21,7 +21,7 @@ export interface TestCaseItem {
 
 /**
  * TestCaseList Modes:
- * - 'solver': For ProblemCodingTab - shows public test cases (readonly) + custom test cases (editable/deletable)
+ * - 'solver': For the contest solver - shows public test cases (readonly) + custom test cases (editable/deletable)
  * - 'problem': For ProblemForm - all test cases editable, with public/hidden toggle
  * - 'result': For SubmissionDetailModal - readonly display with execution results
  */

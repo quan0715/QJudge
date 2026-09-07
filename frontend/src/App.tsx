@@ -28,10 +28,6 @@ import { SettingsDialogProvider } from "@/features/auth/contexts/SettingsDialogC
 import SettingsDialogHost from "@/features/auth/components/SettingsDialogHost";
 import UserPreferencesHydrator from "@/features/auth/components/UserPreferencesHydrator";
 import {
-  problemDetailRoutes,
-  problemSolveRoutes,
-} from "@/features/problems/routes";
-import {
   classroomContestRouteChildren,
   classroomContestAdminRoute,
   classroomContestAttendanceProjectionRoute,
@@ -44,7 +40,7 @@ import { dashboardRoute } from "@/features/dashboard/routes";
 import { docsRoutes } from "@/features/docs/routes";
 import DocsLayout from "@/features/docs/components/DocsLayout";
 import { errorRoutes, fallbackRoute } from "@/features/app/routes";
-import { adminRoutes, draftProblemsRoute } from "@/features/admin/routes";
+import { adminRoutes } from "@/features/admin/routes";
 import { landingRoute } from "@/features/landing/routes";
 import { classroomDetailRoute } from "@/features/classroom/routes";
 import { questionBankDetailRoute } from "@/features/question-banks/routes";
@@ -145,12 +141,6 @@ function App() {
                               </Route>
                             </Route>
 
-                            {/* Problem Detail - Outside MainLayout with Custom ProblemLayout */}
-                            {problemDetailRoutes}
-
-                            {/* Problem Solve - Full-screen IDE-style solver */}
-                            {problemSolveRoutes}
-
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
                             {classroomContestAttendanceScanRoute}
@@ -163,7 +153,6 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankDetailRoute}
-                              {draftProblemsRoute}
                               {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
                               {classroomContestAdminRoute}
                               <Route

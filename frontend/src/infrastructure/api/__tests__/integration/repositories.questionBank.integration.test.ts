@@ -4,11 +4,13 @@ import {
   create,
   getBank,
 } from "@/infrastructure/api/repositories/questionBank.repository";
+import { ensureOk, httpClient } from "@/infrastructure/api/http.client";
 import { loginAndSetToken, setAuthToken, setupApiTestEnv } from "./helpers/apiTestEnv";
 import { TEST_QUESTION_BANKS, TEST_USERS } from "@/tests/helpers/data.helper";
 
 describe("question bank repository integration", () => {
   let restoreFetch: (() => void) | undefined;
+  let createdBankId: string | undefined;
 
   beforeAll(async () => {
     const env = setupApiTestEnv();
@@ -20,9 +22,18 @@ describe("question bank repository integration", () => {
     });
   });
 
-  afterAll(() => {
-    setAuthToken();
-    restoreFetch?.();
+  afterAll(async () => {
+    try {
+      if (createdBankId) {
+        await ensureOk(
+          httpClient.delete(`/api/v1/question-banks/${createdBankId}/`),
+          "Failed to clean up integration test question bank"
+        );
+      }
+    } finally {
+      setAuthToken();
+      restoreFetch?.();
+    }
   });
 
   it("loads question bank list", async () => {
@@ -42,6 +53,7 @@ describe("question bank repository integration", () => {
       description: "Test Description",
       category: "coding"
     });
+    createdBankId = created.id;
     
     expect(created.id).toBeDefined();
     expect(created.name).toBe(name);

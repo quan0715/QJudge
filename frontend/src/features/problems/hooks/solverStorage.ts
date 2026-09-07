@@ -3,25 +3,16 @@ import type { TestCaseItem } from "@/core/entities/testcase.entity";
 export const getCodeKey = (
   problemId: string,
   language: string,
-  contestId?: string
-) => {
-  if (contestId) {
-    return `qjudge:contest:${contestId}:problem:${problemId}:code:${language}`;
-  }
-  return `qjudge:problem:${problemId}:code:${language}`;
-};
+  contestId: string
+) => `qjudge:contest:${contestId}:problem:${problemId}:code:${language}`;
 
-export const getCustomCasesKey = (problemId: string, contestId?: string) => {
-  if (contestId) {
-    return `qjudge:contest:${contestId}:problem:${problemId}:custom_test_cases`;
-  }
-  return `qjudge:problem:${problemId}:custom_test_cases`;
-};
+export const getCustomCasesKey = (problemId: string, contestId: string) =>
+  `qjudge:contest:${contestId}:problem:${problemId}:custom_test_cases`;
 
 export const loadCode = (
   problemId: string,
   language: string,
-  contestId?: string
+  contestId: string
 ) => {
   return localStorage.getItem(getCodeKey(problemId, language, contestId));
 };
@@ -30,14 +21,14 @@ export const saveCode = (
   problemId: string,
   language: string,
   code: string,
-  contestId?: string
+  contestId: string
 ) => {
   localStorage.setItem(getCodeKey(problemId, language, contestId), code);
 };
 
 export const loadCustomCases = (
   problemId: string,
-  contestId?: string
+  contestId: string
 ): TestCaseItem[] => {
   try {
     const saved = localStorage.getItem(getCustomCasesKey(problemId, contestId));
@@ -53,7 +44,7 @@ export const loadCustomCases = (
 export const saveCustomCases = (
   problemId: string,
   cases: TestCaseItem[],
-  contestId?: string
+  contestId: string
 ) => {
   localStorage.setItem(
     getCustomCasesKey(problemId, contestId),

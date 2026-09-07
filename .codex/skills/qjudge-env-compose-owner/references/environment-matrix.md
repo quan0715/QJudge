@@ -1,76 +1,57 @@
-# QJudge Environment Matrix (main / dev / test)
+# QJudge Environment Matrix
 
-## Compose file 對照
-- `main` -> `docker-compose.yml`
-- `dev` -> `docker-compose.dev.yml`
-- `test` -> `docker-compose.test.yml`
+## Compose files
 
-## 主要 service 對照
+| Environment | File | Intended use |
+| --- | --- | --- |
+| `main` | `docker-compose.yml` | production-shaped runtime |
+| `dev` | `docker-compose.dev.yml` | interactive development and Storybook |
+| `test` | `docker-compose.test.yml` | isolated tests and E2E |
 
-| env | backend | frontend | storybook | ai-service | postgres | redis | celery |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| main | `backend` | `frontend` | N/A | `ai-service` | `postgres` | `redis` | `celery` / `celery-high` / `celery-beat` |
-| dev | `backend` | `frontend` | `storybook` | `ai-service` | `postgres` | `redis` | `celery` / `celery-beat` |
-| test | `backend-test` | `frontend-test` | N/A | N/A | `postgres-test` | `redis-test` | `celery-test` |
+## Current services
 
-> 注意：compose `exec` 請用 **service 名稱**（例如 `backend-test`），不是 container name。
+| Environment | Web/API | AI runtime | Data | Workers | UI |
+| --- | --- | --- | --- | --- | --- |
+| `main` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend` |
+| `dev` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend`, `storybook` |
+| `test` | `backend-test` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres-test`, `redis-test` | `celery-test`, `celery-high-test` | `frontend-test` |
 
-## 啟動
+The test stack also contains bootstrap, fake-adapter, migration, and integrity services. Inspect `docker-compose.test.yml` before diagnosing those dependencies.
+
+## Canonical commands
 
 ```bash
-# main
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh main up -d --build
-
-# dev
+# Development runtime
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
 
-# test
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d --build
-```
+# Backend tests
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d backend-test
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
+  -e POSTGRES_DB=postgres \
+  -e POSTGRES_USER=qjudge_test_admin \
+  -e POSTGRES_PASSWORD=qjudge_test_admin_password \
+  backend-test pytest -q
 
-## 常用 exec（exec-first）
+# AI-service tests
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d ai-service
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T ai-service pytest -q
 
-### Backend / Django
-```bash
-# migrate
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend python manage.py migrate
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh main exec -T backend python manage.py migrate
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test python manage.py migrate
+# Frontend checks
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d frontend-test
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test npm run lint
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test npm run typecheck
 
-# backend tests
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend pytest
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test pytest -q
-```
-
-### Frontend
-```bash
-# lint
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run lint
-
-# storybook build
+# Storybook belongs to dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T storybook npm run build-storybook
-
-# unit tests
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run test
-
-# e2e (test env)
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test npm run test:e2e
 ```
 
-### Logs / status
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f backend
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test logs -f backend-test
-```
+## Operational notes
 
-## 測試環境注意事項
-- `test` 環境 backend service 是 `backend-test`，Django settings 由 compose 注入 `config.settings.test`。
-- `backend-test` 啟動 command 內會做 `migrate` + `scripts/setup_e2e_env.sh`。
-- test frontend 對 backend URL 使用 `backend-test:8000`。
-
-## 何時可以不用 exec
-- 只在使用者明確要求 host 執行、或操作本身是 compose 管理命令（`up/down/ps/logs/config`）時。
+- `backend-test` runs with `config.settings.test` and prepares E2E state on startup.
+- The backend application process uses the least-privileged `qjudge_web` role. Django pytest needs to create and drop a separate temporary database, so the canonical pytest command overrides only the test process with the administrator of the isolated `postgres-test` instance.
+- The test frontend reaches Django at `backend-test:8000`; the backend reaches AI at `ai-service:8001`.
+- Judge and integrity coverage may require Docker socket access and the relevant worker/controller services. A passing Celery-eager unit test is not evidence of a live Docker judge or integrity worker lifecycle.
+- Use service names, not container names, with Compose.
+- Compose management commands such as `up`, `down`, `ps`, `logs`, and `config` run through the wrapper; application commands run through `exec -T`.

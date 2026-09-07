@@ -175,7 +175,7 @@ const ContestProblemScreen = () => {
         key={problemSelection.selectedProblemId} // Reset state when problem changes
         problem={problemSelection.selectedProblem}
         problemLabel={problemSelection.selectedProblemLabel}
-        contestId={contestId}
+        contestId={contestId!}
         menuPanel={
           <ProblemMenu
             problems={problemSelection.problems}

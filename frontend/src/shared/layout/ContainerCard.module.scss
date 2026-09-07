@@ -26,7 +26,7 @@
 }
 
 // When headerStretch is enabled, revert to stretch alignment so action
-// children fill the full header height (used by ProblemCodingTab etc.)
+// children fill the full header height.
 .headerStretch {
   align-items: stretch;
 }

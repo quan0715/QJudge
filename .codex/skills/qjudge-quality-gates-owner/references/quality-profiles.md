@@ -7,18 +7,17 @@
 - disposition：`blocker`、`review`、`policy-reviewed`、`exception-review`。
 - `policy-reviewed` 必須來自 `carbon-audit-decisions.json` 的精確路徑與元件類型決策，且包含理由、owner 與移除條件。
 
-## compat (default)
-- 目標：不讓新違規進入，容許已知歷史債先存在。
-- 適用：正在重構中、需保持交付速度。
+## staged (local fast path)
+- 目標：快速檢查已暫存檔案是否新增 blocker。
+- 適用：本機迭代；不可取代合併前的全量檢查。
 - Carbon 命令：`bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged`。
 
-## strict
+## strict (CI hard gate)
 - 目標：完整 root 沒有 Carbon internal selector 或 `!important` blocker。
-- 適用：模組已完成收斂、準備硬阻擋。
+- 適用：目前 CI 與合併前驗證。
 - Carbon 命令：`bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`。
 
-## Recommended rollout
-1. 先產生 `audit` 基線，將 test/editor/copilot 例外逐項確認。
-2. PR gate 強制 `compat`，禁止新增 blocker。
-3. CI 定期跑 `strict` 並保存完整報告；歷史債未清完前可不阻擋 release。
-4. blocker 歸零後，將 `strict` 改成必要 gate。
+## Current workflow
+1. 先用 `audit` 取得包含 review disposition 的完整清冊。
+2. 開發中可跑 `staged` 縮短回饋時間。
+3. 合併前與 CI 必跑 `strict`；任何 blocker 都會阻擋。

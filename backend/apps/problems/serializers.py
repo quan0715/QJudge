@@ -261,65 +261,6 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
         return TestCaseSerializer(samples, many=True).data
 
 
-class OrphanProblemSerializer(serializers.ModelSerializer):
-    question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
-    created_by_username = serializers.CharField(source='created_by.username', read_only=True, default=None)
-    contests = serializers.SerializerMethodField()
-    draft_state = serializers.SerializerMethodField()
-    title = serializers.SerializerMethodField()
-    difficulty = serializers.SerializerMethodField()
-
-    class Meta:
-        model = CodingProblem
-        fields = [
-            'id',
-            'title',
-            'slug',
-            'difficulty',
-            'created_by',
-            'created_by_username',
-            'question_asset_id',
-            'submission_count',
-            'accepted_count',
-            'created_at',
-            'updated_at',
-            'draft_state',
-            'contests',
-        ]
-
-    def get_title(self, obj):
-        if obj.question_asset_id:
-            try:
-                return obj.question_asset.title or f"Problem {obj.id}"
-            except Exception:
-                pass
-        return getattr(obj, 'title', None) or f"Problem {obj.id}"
-
-    def get_difficulty(self, obj):
-        if obj.question_asset_id:
-            try:
-                return (obj.question_asset.payload or {}).get("difficulty", "medium")
-            except Exception:
-                pass
-        return getattr(obj, 'difficulty', 'medium')
-
-    def get_draft_state(self, obj):
-        return "draft" if obj.question_asset_id else "orphan"
-
-    def get_contests(self, obj):
-        seen = {}
-
-        for binding in obj.contest_bindings.select_related("contest").all():
-            contest = binding.contest
-            seen[str(contest.id)] = {
-                "id": str(contest.id),
-                "name": contest.name,
-                "status": contest.status,
-            }
-
-        return list(seen.values())
-
-
 class ProblemAdminSerializer(serializers.ModelSerializer):
     """Serializer for admin/teacher to manage problems."""
     title = serializers.CharField(required=False, default='')

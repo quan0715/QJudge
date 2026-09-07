@@ -12,7 +12,7 @@ Envs:
 Examples:
   qjudge-dc.sh dev up -d --build
   qjudge-dc.sh dev exec -T backend python manage.py migrate
-  qjudge-dc.sh test exec -T backend-test pytest -q
+  qjudge-dc.sh test exec -T -e POSTGRES_DB=postgres -e POSTGRES_USER=qjudge_test_admin -e POSTGRES_PASSWORD=qjudge_test_admin_password backend-test pytest -q
 USAGE
 }
 

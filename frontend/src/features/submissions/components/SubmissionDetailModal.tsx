@@ -17,7 +17,6 @@ import Editor from "@monaco-editor/react";
 import { getSubmission } from "@/infrastructure/api/repositories/submission.repository";
 import { useCopyText } from "@/shared/hooks/useCopyText";
 import { useInterval } from "@/shared/hooks/useInterval";
-import ProblemLink from "@/features/problems/components/ProblemLink";
 import { formatDate } from "@/shared/utils/format";
 import type { SubmissionDetail, TestResult } from "@/core/entities/submission.entity";
 import { DifficultyBadge } from "@/shared/ui/tag";
@@ -29,14 +28,12 @@ interface SubmissionDetailModalProps {
   submissionId: string | null;
   isOpen: boolean;
   onClose: () => void;
-  contestId?: string;
 }
 
 const SubmissionDetailModal = ({
   submissionId,
   isOpen,
   onClose,
-  contestId,
 }: SubmissionDetailModalProps) => {
   const { t } = useTranslation();
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
@@ -230,15 +227,7 @@ const SubmissionDetailModal = ({
                     marginBottom: "0.5rem",
                   }}
                 >
-                  {submission.problem ? (
-                    <ProblemLink
-                      problemId={submission.problem.id}
-                      title={submission.problem.title}
-                      contestId={contestId}
-                    />
-                  ) : (
-                    submission.problemId
-                  )}
+                  {submission.problem?.title || submission.problemId}
                 </h2>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   {submission.problem && (

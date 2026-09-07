@@ -8,9 +8,6 @@ import { SolverLayout } from "@/shared/layout/SolverLayout";
 // Import solver sub-components from shared UI
 import { StatementPanel, EditorContent, ResultPanel } from "@/shared/ui/solver";
 
-// Import feature-specific submission list
-import { ProblemSubmissionList } from "@/features/problems/components/solve/submissions";
-
 import "./ProblemFullPageSolve.scss";
 
 interface ProblemFullPageSolveProps {
@@ -18,24 +15,22 @@ interface ProblemFullPageSolveProps {
   problem: CodingProblemDetail;
   /** Problem label (e.g. "A" for contest) */
   problemLabel?: string;
-  /** Optional contest ID for contest mode */
-  contestId?: string;
+  /** Contest that owns this problem session */
+  contestId: string;
   /** Optional menu panel (for contest mode with ProblemMenu) */
   menuPanel?: React.ReactNode;
   /** Disable text selection/copy for exam mode */
   disableCopy?: boolean;
   /** Disable submission button */
   submissionDisabled?: boolean;
-  /** Optional render function for submissions tab content (for contest mode) */
-  renderSubmissions?: () => React.ReactNode;
+  /** Contest-scoped submissions tab content */
+  renderSubmissions: () => React.ReactNode;
 }
 
 /**
  * ProblemFullPageSolve - Full-screen IDE-style problem solving interface
  *
- * This is the core reusable component for solving problems.
- * - Contest mode: Uses renderSubmissions prop passed from parent
- * - Standalone mode: Uses built-in ProblemSubmissionList
+ * Contest-scoped full-screen interface for solving coding problems.
  */
 export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
   problem,
@@ -77,24 +72,17 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     [updateEditorSettings]
   );
 
-  // Determine mode
-  const isContestMode = !!contestId;
-
   // Render statement content based on activeTabIndex
   const renderStatementContent = useCallback(
     (activeTabIndex: number) => (
       <StatementPanel
         problem={problem}
         activeTabIndex={activeTabIndex}
-        disableCopy={isContestMode && disableCopy}
-        renderSubmissions={
-          isContestMode
-            ? renderSubmissions
-            : () => <ProblemSubmissionList problemId={problem.id} />
-        }
+        disableCopy={disableCopy}
+        renderSubmissions={renderSubmissions}
       />
     ),
-    [problem, disableCopy, isContestMode, renderSubmissions]
+    [problem, disableCopy, renderSubmissions]
   );
 
   return (

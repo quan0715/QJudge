@@ -16,18 +16,6 @@ export interface GetProblemsParams {
 }
 
 // ============================================================================
-// Statistics Types
-// ============================================================================
-
-export interface ProblemStatistics {
-  submissionCount: number;
-  acceptedCount: number;
-  acRate: number;
-  statusCounts: Record<string, number>;
-  trend: Array<{ date: string; count: number }>;
-}
-
-// ============================================================================
 // Test Run Types
 // ============================================================================
 

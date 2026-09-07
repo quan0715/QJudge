@@ -28,8 +28,8 @@ export type TestResult = TestRunResult;
 interface UseProblemSolverProps {
   /** The problem to solve - can be provided directly or loaded */
   problem: CodingProblemDetail | null;
-  /** Optional contest ID for contest mode */
-  contestId?: string;
+  /** Contest that owns this solve session */
+  contestId: string;
   /** Problem label (e.g. "A") for contest mode */
   problemLabel?: string;
 }
@@ -70,8 +70,7 @@ interface UseProblemSolverReturn {
 /**
  * useProblemSolver - Core hook for problem solving UI
  * 
- * Supports both standalone problem mode and contest mode.
- * Manages code state, test cases, and execution.
+ * Manages code state, test cases, and execution for a contest-bound problem.
  */
 export function useProblemSolver({
   problem,
@@ -265,7 +264,7 @@ export function useProblemSolver({
       const result = await testRun(problem.id, {
         language,
         code,
-        ...(contestId ? { contest_id: contestId } : {}),
+        contest_id: contestId,
       });
 
       // Test run returns immediately (no polling needed)
@@ -300,17 +299,13 @@ export function useProblemSolver({
         problem_id: string;
         language: string;
         code: string;
-        contest_id?: string;
+        contest_id: string;
       } = {
         problem_id: problem.id,
         language,
         code,
+        contest_id: contestId,
       };
-
-      // Add contest_id if in contest mode
-      if (contestId) {
-        payload.contest_id = contestId;
-      }
 
       const result = await submitSolution(payload);
 

@@ -28,8 +28,8 @@ const pngBytes = new Uint8Array([
 const makePngFile = (name = "test.png") =>
   new File([pngBytes], name, { type: "image/png" });
 
-/** Fetch a resource UUID from a list endpoint by matching a name field. */
-async function fetchUuidByName(
+/** Fetch a resource identifier from a list endpoint by matching a name field. */
+async function fetchIdByName(
   listPath: string,
   name: string,
   nameField = "name",
@@ -44,7 +44,7 @@ async function fetchUuidByName(
   const items = body.results ?? body;
   if (!Array.isArray(items)) return null;
   const match = items.find((item: Record<string, unknown>) => item[nameField] === name);
-  return (match?.uuid as string) ?? null;
+  return ((match?.id ?? match?.uuid) as string) ?? null;
 }
 
 describe("Upload endpoints (multipart)", () => {
@@ -81,7 +81,7 @@ describe("Upload endpoints (multipart)", () => {
   });
 
   it("uploadClassroomCover sends file as multipart FormData", async () => {
-    const uuid = await fetchUuidByName("/api/v1/classrooms/", "E2E Test Classroom");
+    const uuid = await fetchIdByName("/api/v1/classrooms/", "E2E Test Classroom");
     if (!uuid) {
       console.warn("Skipping: E2E Test Classroom not seeded");
       return;
@@ -97,11 +97,9 @@ describe("Upload endpoints (multipart)", () => {
   });
 
   it("uploadBankCover sends file as multipart FormData", async () => {
-    const uuid = await fetchUuidByName("/api/v1/question-banks/", "E2E Test Bank");
-    if (!uuid) {
-      console.warn("Skipping: E2E Test Bank not seeded");
-      return;
-    }
+    const uuid = await fetchIdByName("/api/v1/question-banks/", "E2E Test Bank");
+    expect(uuid, "E2E Test Bank should be available to the upload test").not.toBeNull();
+    if (!uuid) throw new Error("E2E Test Bank not seeded");
     const file = makePngFile("cover.png");
     try {
       await uploadBankCover(uuid, file);

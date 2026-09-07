@@ -19,16 +19,16 @@ metadata:
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-repository-exports.js`
 - 跑 Carbon 全量 audit（不因 review findings 失敗）：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/audit-carbon-practices.js --root frontend/src`
-- 檢查 staged hard blockers：
+- 本機快速檢查 staged hard blockers：
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged`
-- 需要確認歷史債是否歸零時跑 strict：
+- 執行與 CI 相同的 Carbon strict hard gate：
   - `bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`
 - 修復無效的 `var(--cds-spacing-*)` 與可精確映射的 spacing（先 dry-run）：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src`
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/fix-carbon-spacing-tokens.js --root frontend/src --write`
 
 ## 責任邊界（Owner Scope）
-- ✅ lint 規則、Carbon quality profile（compat/strict）、CI gate 定義。
+- ✅ lint 規則、Carbon audit/staged/strict profile、CI gate 定義。
 - ✅ 架構/命名/Carbon public API/樣式禁則的可執行檢查腳本。
 - ✅ 違規分類與遷移節奏（先報告再阻擋）。
 - ❌ 不做 feature 架構決策（交給 `qjudge-architecture-owner`）。
@@ -36,8 +36,8 @@ metadata:
 
 ## Policy
 - `audit`：全量掃描，將每個檔案標成 `clean`、`findings`、`policy-reviewed`、`exception-review` 或 `not-applicable`；review 類不阻擋。
-- `compat`：以 `--staged` 防止新的 Carbon internal selector、`!important` 與無效 `var(--cds-spacing-*)` 進入（預設 PR gate）。
-- `strict`：以 `--all` 掃整個 root；只要仍有 blocker 就失敗，作為歷史債收斂目標。
+- `staged`：以 `--staged` 快速檢查已暫存檔案，供本機迭代使用；它不是 CI 的完整替代。
+- `strict`：以 `--all` 掃整個 root；只要仍有 blocker 就失敗。這是目前 `.github/workflows/ci.yml` 的 CI hard gate。
 
 ## Carbon audit contract
 
