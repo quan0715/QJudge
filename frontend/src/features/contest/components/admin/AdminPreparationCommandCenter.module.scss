@@ -1,0 +1,95 @@
+@use "@carbon/layout";
+
+.primaryColumn {
+  display: grid;
+  gap: layout.$spacing-06;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: layout.$spacing-03;
+}
+
+.infoCell {
+  display: grid;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-04;
+  background: var(--cds-layer-01);
+}
+
+.infoLabel {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.infoValue {
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
+  color: var(--cds-text-primary);
+}
+
+.participantList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.participantRow {
+  display: flex;
+  align-items: baseline;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 0;
+  border-bottom: 1px solid var(--cds-border-subtle);
+}
+
+.participantName {
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-primary);
+}
+
+.participantHandle {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.emptyState {
+  padding: layout.$spacing-05 0;
+  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  color: var(--cds-text-secondary);
+}
+
+.sideColumn {
+  display: grid;
+  gap: layout.$spacing-06;
+}
+
+.sideBlock {
+  display: grid;
+  gap: layout.$spacing-03;
+  justify-items: start;
+  padding-top: layout.$spacing-05;
+  border-top: 1px solid var(--cds-border-subtle);
+
+  &:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
+.sideLabel {
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.sideNote {
+  margin: 0;
+  font-size: var(--cds-label-01-font-size, 0.75rem);
+  color: var(--cds-text-secondary);
+}
+
+.countdown {
+  margin: 0;
+  font-size: var(--cds-heading-03-font-size, 1.25rem);
+  color: var(--cds-text-primary);
+}
