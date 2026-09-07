@@ -71,7 +71,8 @@ const TestCasesSection: React.FC = () => {
   const rows: TestCaseRow[] = useMemo(() => {
     return fields.map((field, index) => {
       const tc = testCases[index];
-      const hasError = !tc?.input?.trim() || !tc?.output?.trim();
+      // Input may legitimately be empty (problems that read no stdin).
+      const hasError = !tc?.output?.trim();
       return {
         id: field.id,
         index,
@@ -272,8 +273,7 @@ const TestCasesSection: React.FC = () => {
               value={editForm.input}
               onChange={(e) => setEditForm((prev) => ({ ...prev, input: e.target.value }))}
               rows={6}
-              invalid={!editForm.input.trim()}
-              invalidText="Input 為必填欄位"
+              helperText="可留空（此題不需要標準輸入）"
             />
             <TextArea
               id="tc-output"
