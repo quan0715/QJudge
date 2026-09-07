@@ -56,6 +56,8 @@ function mapContestProblemSummaryDto(
       dto.source_question_id != null ? dto.source_question_id.toString() : null,
     sourceMode: dto.source_mode || "manual",
     userStatus: dto.user_status,
+    userScore: dto.user_score,
+    submissionCount: dto.submission_count,
     difficulty: dto.difficulty as any,
   };
 }

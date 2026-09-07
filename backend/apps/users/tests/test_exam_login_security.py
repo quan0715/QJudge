@@ -13,6 +13,7 @@ from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.services.anti_cheat_session import (
     clear_active_session,
     is_access_token_allowed,
+    set_exam_allowed_jti,
     set_active_session,
 )
 from apps.users.services import JWTService
@@ -90,6 +91,28 @@ class ExamLoginBlockedByOtherDeviceTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertTrue(resp.data.get("success", False))
         self.assertIn("access_token", resp.data.get("data", {}))
+
+    def test_unmonitored_active_exam_does_not_block_login_from_other_device(self):
+        self.contest.cheat_detection_enabled = False
+        self.contest.save(update_fields=["cheat_detection_enabled"])
+
+        resp = self.client.post(
+            self.login_url,
+            {"identifier": "sec_student@test.com", "password": "pass12345"},
+            format="json",
+            HTTP_X_DEVICE_ID="device-exam-room-b",
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data.get("success", False))
+        self.assertIn("access_token", resp.data.get("data", {}))
+
+    def test_disabling_monitoring_releases_exam_token_pin(self):
+        set_exam_allowed_jti(self.student.id, self.contest.id, "exam-device-jti")
+        self.contest.cheat_detection_enabled = False
+        self.contest.save(update_fields=["cheat_detection_enabled"])
+
+        self.assertTrue(is_access_token_allowed(self.student.id, "qadmin-jti"))
 
     def test_blocked_login_does_not_pause_exam_or_invalidate_existing_session(self):
         blocked = self.client.post(

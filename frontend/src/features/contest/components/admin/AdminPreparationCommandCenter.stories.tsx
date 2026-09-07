@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Theme } from "@carbon/react";
 
 import type { AdminPreparationOverviewData } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 
@@ -33,13 +34,6 @@ const draftData: AdminPreparationOverviewData = {
       description: "已設定 1 題",
       actionLabel: "前往題目管理",
     },
-    {
-      key: "participants",
-      level: "done",
-      title: "考生名單",
-      description: "已加入 3 人",
-      actionLabel: "管理名單",
-    },
   ],
   blockingKeys: ["schedule"],
   canPublish: false,
@@ -54,6 +48,7 @@ const draftData: AdminPreparationOverviewData = {
 const meta = {
   title: "features/contest/admin/AdminPreparationCommandCenter",
   component: AdminPreparationCommandCenter,
+  decorators: [(Story) => <Theme theme="white"><Story /></Theme>],
   parameters: { layout: "fullscreen" },
   args: {
     header: <div style={{ padding: "1rem 1.5rem" }}>管理總覽</div>,
@@ -103,15 +98,6 @@ export const NoParticipants: Story = {
     data: {
       ...draftData,
       participants: [],
-      checklist: draftData.checklist.map((item) =>
-        item.key === "participants"
-          ? {
-              ...item,
-              level: "warning" as const,
-              description: "尚未加入任何考生",
-            }
-          : item,
-      ),
     },
   },
 };

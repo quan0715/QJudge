@@ -46,9 +46,9 @@ class ExamEventAdmin(admin.ModelAdmin):
 
 @admin.register(ExamIntegrityRun)
 class ExamIntegrityRunAdmin(admin.ModelAdmin):
-    list_display = ['id', 'contest', 'compute_state', 'health', 'data_state', 'created_at']
-    list_filter = ['compute_state', 'health', 'data_state']
-    search_fields = ['contest__name', 'container_id', 'container_name']
+    list_display = ['id', 'contest', 'session_state', 'health', 'data_state', 'created_at']
+    list_filter = ['session_state', 'health', 'data_state']
+    search_fields = ['contest__name']
     readonly_fields = ['created_at', 'updated_at']
 
 

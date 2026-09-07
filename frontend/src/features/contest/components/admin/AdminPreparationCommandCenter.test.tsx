@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -77,19 +77,21 @@ const renderCenter = (overrides: Partial<AdminPreparationOverviewData> = {}) => 
 };
 
 describe("AdminPreparationCommandCenter", () => {
-  it("shows the publish action as the primary next step in draft", () => {
+  it("shows the review step in draft", () => {
     renderCenter();
 
-    expect(screen.getByRole("button", { name: "發布競賽" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /確認資訊並發布競賽/ })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /退回草稿/ }),
     ).not.toBeInTheDocument();
   });
 
-  it("publishes when the primary action is used", async () => {
-    const handlers = renderCenter();
+  it("publishes only after confirming a ready exam in the review dialog", async () => {
+    const handlers = renderCenter({ canPublish: true, blockingKeys: [] });
 
-    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+    await userEvent.click(screen.getByRole("button", { name: /確認資訊並發布競賽/ }));
+    expect(handlers.onPublishContest).not.toHaveBeenCalled();
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "發布競賽" }));
 
     expect(handlers.onPublishContest).toHaveBeenCalledTimes(1);
   });
@@ -125,11 +127,14 @@ describe("AdminPreparationCommandCenter", () => {
     expect(screen.getByText("尚未加入任何考生")).toBeInTheDocument();
   });
 
-  it("explains why publishing is blocked", () => {
-    renderCenter();
-
-    expect(
-      screen.getByText("發布前會先請你設定考試時間"),
-    ).toBeInTheDocument();
+  it("keeps publication disabled while required settings are missing", async () => {
+    const handlers = renderCenter();
+    await userEvent.click(screen.getByRole("button", { name: /確認資訊並發布競賽/ }));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("請先完成競賽資訊設定，再發布競賽。")).toBeVisible();
+    const publish = dialog.getByRole("button", { name: "發布競賽" });
+    expect(publish).toBeDisabled();
+    await userEvent.click(publish);
+    expect(handlers.onPublishContest).not.toHaveBeenCalled();
   });
 });

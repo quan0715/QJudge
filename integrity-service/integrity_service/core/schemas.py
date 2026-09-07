@@ -34,6 +34,16 @@ def _validate_json_value(value: object, path: str = "$") -> object:
     raise ValueError(f"{path} must contain only JSON-compatible values")
 
 
+EVIDENCE_FENCE_VERSION = "resident-evidence-fence-v1"
+
+
+class EvidenceFence(WireModel):
+    version: Literal["resident-evidence-fence-v1"]
+    attempt_id: UUID
+    through_seq: int = Field(strict=True, ge=1, le=10_000_000)
+    before_client_ms: int = Field(strict=True, ge=0, le=9_007_199_254_740_991)
+
+
 class EventRecord(WireModel):
     event_id: UUID
     seq: int = Field(strict=True, ge=1)
@@ -50,6 +60,14 @@ class EventRecord(WireModel):
     @classmethod
     def validate_json_values(cls, value: object) -> object:
         return _validate_json_value(value)
+
+    @model_validator(mode="after")
+    def validate_evidence_fence(self) -> "EventRecord":
+        if "evidence_fence" in self.payload:
+            fence = EvidenceFence.model_validate(self.payload["evidence_fence"])
+            if self.kind != "health_snapshot" or self.event_type != "health_snapshot" or fence.through_seq != self.seq:
+                raise ValueError("evidence fence must be the atomic health snapshot boundary")
+        return self
 
 
 class EventBatch(WireModel):

@@ -46,8 +46,8 @@ import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShar
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
-import { IntegrityRuntimeProvider } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
-import { useIntegrityRuntime } from "@/features/contest/anticheat/integrity/useIntegrityRuntime";
+import { IntegrityRuntimeProvider, useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { useIntegrityCaptureRegistration, useIntegrityUploadOwner } from "../contexts/IntegrityUploadProvider";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
 
 interface ExamModeWrapperProps {
@@ -97,6 +97,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [fullscreenAdapter] = useState(createFullscreenAdapter);
   const { showToast } = useToast();
   const [streamAdapter] = useState(createStreamAdapter);
+  const uploadOwner = useIntegrityUploadOwner();
+  const signalRelay = useIntegritySignalEmitter();
   const { t } = useTranslation("contest");
   const policyConfigRequired = requiresAnticheatPolicyConfig(cheatDetectionEnabled);
   const policyRequired =
@@ -173,7 +175,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     policyConfigRequired &&
     isIntegrityAttemptActive(examStatus) &&
     anticheatConfig?.version === 3 &&
-    anticheatConfig.integrityRun?.computeState === "running" &&
+    !!uploadOwner?.resident &&
+    !!anticheatConfig.integrityRun &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&
     !!anticheatConfig.integrityRun.policySnapshot &&
@@ -250,11 +253,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       ? (webcamCapture.streamActive ? "active" : "inactive")
       : "disabled";
   }, [webcamCapture.streamActive, webcamCaptureEnabled]);
-  const evidenceCoordinatorRef = useRef<{ flushPendingUploads: () => Promise<void> } | null>(null);
-  const setEvidenceCoordinator = useCallback((controller: { flushPendingUploads: () => Promise<void> } | null) => {
-    evidenceCoordinatorRef.current = controller;
-  }, []);
-  const integrity = useIntegrityRuntime({
+  const runtimeOptions = {
     enabled: integrityRuntimeEnabled,
     contestId,
     integrityRun: anticheatConfig?.integrityRun,
@@ -270,16 +269,18 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       screen_share: capture.stream,
       webcam: webcamCapture.stream,
     },
-    onEvidenceControllerChange: setEvidenceCoordinator,
-  });
+  };
+  useIntegrityCaptureRegistration(runtimeOptions);
+  const integrity = uploadOwner?.emitter ?? signalRelay;
   const examCaptureContextValue = useMemo(
     () => ({
       ...capture,
+      deferMonitoringUploads: !!uploadOwner?.resident,
       flushPendingUploads: async () => {
-        await evidenceCoordinatorRef.current?.flushPendingUploads();
+        await uploadOwner?.flush();
       },
     }),
-    [capture],
+    [capture, uploadOwner],
   );
   // --- Domain monitoring hooks ---
   const screenShare = useScreenShareMonitoring({

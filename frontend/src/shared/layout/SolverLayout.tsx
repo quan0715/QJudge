@@ -16,6 +16,9 @@ export interface StatementTab {
 
 interface SolverLayoutProps {
   menuPanel?: React.ReactNode;
+  externalStatementNavigation?: boolean;
+  activeTabIndex?: number;
+  onActiveTabChange?: (index: number) => void;
   /** Render function for statement content, receives activeTabIndex */
   renderStatementContent: (activeTabIndex: number) => React.ReactNode;
   /** Custom tabs configuration, defaults to 題目/繳交記錄 */
@@ -58,6 +61,9 @@ const DEFAULT_STATEMENT_TABS: StatementTab[] = [
  */
 export const SolverLayout: React.FC<SolverLayoutProps> = ({
   menuPanel,
+  externalStatementNavigation = false,
+  activeTabIndex: controlledTabIndex,
+  onActiveTabChange,
   renderStatementContent,
   statementTabs = DEFAULT_STATEMENT_TABS,
   editorPanel,
@@ -68,7 +74,9 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
 }) => {
   // Internal state for uncontrolled mode
   const [statementCollapsedInternal, setStatementCollapsedInternal] = useState(false);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [internalTabIndex, setInternalTabIndex] = useState(0);
+  const activeTabIndex = controlledTabIndex ?? internalTabIndex;
+  const setActiveTabIndex = onActiveTabChange ?? setInternalTabIndex;
 
   // Use controlled state if provided, otherwise use internal state
   const isControlled = statementCollapsedProp !== undefined;
@@ -224,6 +232,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
           statementCollapsed ? "solver-layout__statement--collapsed" : ""
         }`}
         style={{
+          display: externalStatementNavigation && statementCollapsed ? "none" : undefined,
           width: statementCollapsed
             ? `${COLLAPSED_SIZE_PX}px`
             : `${statementWidth}px`,
@@ -231,7 +240,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
       >
         {statementCollapsed ? (
           // Collapsed: show icon entries vertically (no selection state)
-          <div className="solver-layout__collapsed-bar">
+          !externalStatementNavigation && <div className="solver-layout__collapsed-bar">
             {statementTabs.map((tab, index) => {
               const Icon = tab.icon;
               return (
@@ -249,7 +258,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         ) : (
           // Expanded: show tabs header and content
           <div className="solver-layout__statement-content">
-            <div className="solver-layout__statement-header">
+            {!externalStatementNavigation && <div className="solver-layout__statement-header">
               <div className="solver-layout__statement-tabs">
                 {statementTabs.map((tab, index) => {
                   const Icon = tab.icon;
@@ -273,7 +282,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
                 iconDescription="收合"
                 onClick={() => setStatementCollapsed(true)}
               />
-            </div>
+            </div>}
             <div className="solver-layout__statement-body">
               {renderStatementContent(activeTabIndex)}
             </div>

@@ -78,8 +78,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         run = ExamIntegrityRun.objects.create(
             contest=self.contest,
             registry_version="frozen-registry",
-            worker_image="registry.example/integrity:1",
-            compute_state=ExamIntegrityRun.ComputeState.RUNNING,
+            session_state="active",
             health=ExamIntegrityRun.Health.HEALTHY,
             policy_snapshot=policy_snapshot,
             registry_snapshot=registry_snapshot,
@@ -93,7 +92,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             resp.data["integrity_run"],
             {
                 "id": str(run.id),
-                "compute_state": "running",
+                "session_state": "active",
                 "health": "healthy",
                 "participant_id": str(participant.id),
                 "policy_snapshot": policy_snapshot,
@@ -101,12 +100,11 @@ class ContestAntiCheatConfigApiTests(APITestCase):
             },
         )
 
-    def test_destroyed_integrity_run_is_not_exposed(self):
+    def test_closed_integrity_run_is_not_exposed(self):
         ExamIntegrityRun.objects.create(
             contest=self.contest,
             registry_version="registry-v1",
-            worker_image="registry.example/integrity:1",
-            compute_state=ExamIntegrityRun.ComputeState.DESTROYED,
+            session_state="closed",
         )
 
         self.client.force_authenticate(user=self.student)

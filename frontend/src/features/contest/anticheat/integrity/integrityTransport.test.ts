@@ -79,6 +79,27 @@ class MemoryOutbox implements ExamIntegrityOutbox {
 }
 
 describe("IntegrityTransport", () => {
+  it("drains existing records and polls final sequence without new capture", async () => {
+    await outbox.append({ eventType: "focus_lost", clientOccurredAtMs: 1000, payload: {} });
+    sendBatch.mockResolvedValue({ ackedThroughSeq: 1, pendingCommands: [], releaseEvidenceBeforeMs: 0 });
+    const pollUpload = vi.fn().mockResolvedValue({ ackedThroughSeq: 1, pendingCommands: [], releaseEvidenceBeforeMs: 0, uploadStatus: "complete" });
+    const transport = createTransport({ mode: "drain", controlPoll: pollUpload });
+    transport.start();
+    await transport.whenIdle();
+    transport.requestTick();
+    await transport.whenIdle();
+    expect(outbox.appendedRecords).toHaveLength(1);
+    expect(await outbox.listPending()).toHaveLength(0);
+    expect(pollUpload).toHaveBeenCalledTimes(1);
+    transport.stop();
+  });
+  it("does not create a new health snapshot while draining", async () => {
+    const transport = createTransport({ mode: "drain" });
+    transport.start();
+    await transport.whenIdle();
+    expect(outbox.appendedRecords).toHaveLength(0);
+    transport.stop();
+  });
   let now = 1_000;
   let online = true;
   let outbox: MemoryOutbox;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getContest, getContestStandings } from "@/infrastructure/api/repositories";
 import type { ContestDetail, ScoreboardData } from "@/core/entities/contest.entity";
@@ -18,16 +18,16 @@ import {
   shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
 import { isFullscreen as isFullscreenMode } from "@/infrastructure/browser/fullscreen";
-import { useInterval } from "@/shared/hooks/useInterval";
-
-const CONTEST_POLL_INTERVAL_MS = 15_000;
+import { useExamRuntimeState, mergeExamRuntimeState } from "./useExamRuntimeState";
 
 export function useContestLayoutState() {
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [contest, setContest] = useState<ContestDetail | null>(null);
+  const [loadedContest, setContest] = useState<ContestDetail | null>(null);
+  const runtime = useExamRuntimeState(loadedContest?.hasJoined ? contestId : undefined);
+  const contest = useMemo(() => mergeExamRuntimeState(loadedContest, runtime.state), [loadedContest, runtime.state]);
   const [contestLoading, setContestLoading] = useState(true);
   const [contestNotFound, setContestNotFound] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -35,10 +35,12 @@ export function useContestLayoutState() {
   const [scoreboardData, setScoreboardData] = useState<ScoreboardData | null>(null);
 
   const isSolvePage = /\/solve(?:\/|$)/.test(location.pathname);
-  const isAdminRoute = /\/admin(?:\/|$)/.test(location.pathname);
   const isPaperExamPage = isSolvePage && contest?.contestType === "paper_exam";
   const isExamActive = isExamMonitoringActive(contest);
-  const hasEnded = !!contest && isContestEnded(contest);
+  const hasEnded = !!contest && (runtime.state
+    ? !["in_progress", "paused", "locked"].includes(runtime.state.exam_status) &&
+      Date.now() + (runtime.state.serverOffsetMs ?? 0) > Date.parse(contest.endTime)
+    : isContestEnded(contest));
   const contestState = contest ? getContestState(contest) : null;
   const isUpcoming = contestState === "upcoming";
   const hasManagementRole = isContestManagerScopeRole(contest?.currentUserRole);
@@ -71,11 +73,12 @@ export function useContestLayoutState() {
         if (c) {
           setContest(c);
         }
+        void runtime.refresh();
       } finally {
         setIsRefreshing(false);
       }
     }
-  }, [contestId]);
+  }, [contestId, runtime.refresh]);
 
   const fetchStandings = useCallback(async () => {
     if (!contestId) return;
@@ -137,10 +140,6 @@ export function useContestLayoutState() {
     }
   }, [isSolvePage, contest?.id, fetchStandings]);
 
-  // Poll contest data periodically while exam is active (backend is source of truth)
-  useInterval(() => {
-    refreshContest().catch(() => {});
-  }, isExamActive && !isAdminRoute ? CONTEST_POLL_INTERVAL_MS : null);
 
   // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
   useEffect(() => {
@@ -219,6 +218,7 @@ export function useContestLayoutState() {
   }, []);
 
   return {
+    runtime,
     contestId,
     contest,
     contestLoading,

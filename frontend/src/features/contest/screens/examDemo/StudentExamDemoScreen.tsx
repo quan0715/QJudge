@@ -6,15 +6,14 @@ import {
   Tag,
   Loading,
 } from "@carbon/react";
-import {
-  Time,
-  Recording,
-} from "@carbon/icons-react";
 import { getContest } from "@/infrastructure/api/repositories";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import { getContestProblem } from "@/infrastructure/api/repositories/contestProblems.repository";
 import { ProblemPreview, ProblemHeaderCard } from "@/shared/ui/problem";
+import { useCodingRuntimeNavigator } from "@/features/contest/hooks/useCodingRuntimeNavigator";
 import { formatScore } from "@/shared/utils/scoreFormat";
+import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
+import ContestProblemSubmissions from "../../components/solver/submissions/ContestProblemSubmissions";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import type { ExamItem } from "../../types/exam.types";
@@ -23,21 +22,6 @@ import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import styles from "./StudentExamDemoScreen.module.scss";
 
-const MOCK_DURATION_SEC = 90 * 60;
-
-function useCountdown(totalSec: number) {
-  const [remaining, setRemaining] = useState(totalSec);
-
-  useEffect(() => {
-    const id = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
-  const ss = String(remaining % 60).padStart(2, "0");
-  return { remaining, display: `${mm}:${ss}`, total: totalSec };
-}
-
 const StudentExamDemoScreen: FC = () => {
   const navigate = useNavigate();
   const { contestId } = useParams<{ contestId: string }>();
@@ -45,12 +29,16 @@ const StudentExamDemoScreen: FC = () => {
   const [contest, setContest] = useState<ContestDetail | null>(null);
   const [contestLoading, setContestLoading] = useState(true);
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [problemDetails, setProblemDetails] = useState<Record<string, CodingProblemDetail>>({});
+  const [selectedCodingProblemId, setSelectedCodingProblemId] = useState<string | null>(null);
   const loadingProblemIdsRef = useRef<Set<string>>(new Set());
 
-  const countdown = useCountdown(MOCK_DURATION_SEC);
+  const [acceptedProblemIds, setAcceptedProblemIds] = useState<Set<string>>(new Set());
+  const handleAccepted = useCallback((id: string) => {
+    setAcceptedProblemIds((previous) => previous.has(id) ? previous : new Set([...previous, id]));
+  }, []);
 
   const items: ExamItem[] = useMemo(() => {
     const codingItems: ExamItem[] = (contest?.problems ?? []).map((p) => ({
@@ -91,13 +79,13 @@ const StudentExamDemoScreen: FC = () => {
   }, [contestId]);
 
   useEffect(() => {
-    if (!contestId) return;
+    if (!contestId || contest?.contestType !== "paper_exam") return;
     setLoadingQuestions(true);
     getExamQuestions(contestId)
       .then(setExamQuestions)
       .catch(() => setExamQuestions([]))
       .finally(() => setLoadingQuestions(false));
-  }, [contestId]);
+  }, [contestId, contest?.contestType]);
 
   useEffect(() => {
     if (!contestId || items.length === 0) return;
@@ -126,6 +114,20 @@ const StudentExamDemoScreen: FC = () => {
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
+
+  const codingProblems = useMemo(
+    () => [...(contest?.problems ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [contest?.problems],
+  );
+  const activeCodingProblem = codingProblems.find(
+    (problem) => problem.id === selectedCodingProblemId,
+  ) ?? codingProblems[0];
+  const activeCodingProblemDetail = activeCodingProblem
+    ? problemDetails[activeCodingProblem.problemId]
+    : undefined;
+
+  const solvedIds = useMemo(() => new Set(codingProblems.filter((p) => acceptedProblemIds.has(p.problemId) || problemDetails[p.problemId]?.isSolved).map((p) => p.id)), [codingProblems, acceptedProblemIds, problemDetails]);
+  const statementNavigation = useCodingRuntimeNavigator(contest?.contestType === "coding" ? codingProblems : [], activeCodingProblem?.id, solvedIds, setSelectedCodingProblemId);
 
   const renderItem = useCallback(
     (item: ExamItem, index: number, mode: "single" | "all") => {
@@ -195,6 +197,48 @@ const StudentExamDemoScreen: FC = () => {
     );
   }
 
+  if (contest.contestType === "coding") {
+    if (codingProblems.length === 0) {
+      return (
+        <div className={styles.centered}>
+          <span>此考試尚未設定任何程式題目</span>
+          <Button kind="ghost" onClick={handleBack}>返回</Button>
+        </div>
+      );
+    }
+
+    if (!activeCodingProblem || !activeCodingProblemDetail) {
+      return (
+        <div className={styles.centered}>
+          <Loading withOverlay={false} small description="載入程式題目中..." />
+          <span>載入程式題目中...</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.codingPreview}>
+        <main className={styles.codingWorkspace}>
+          <ProblemFullPageSolve
+        statementNavigation={statementNavigation}
+            key={activeCodingProblem.id}
+            onAccepted={handleAccepted}
+            problem={activeCodingProblemDetail}
+            problemLabel={activeCodingProblem.label}
+            contestId={contest.id}
+            disableCopy={contest.cheatDetectionEnabled}
+            renderSubmissions={() => (
+              <ContestProblemSubmissions
+                contestId={contest.id}
+                codingProblemId={activeCodingProblem.problemId}
+              />
+            )}
+          />
+        </main>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className={styles.centered}>
@@ -210,19 +254,8 @@ const StudentExamDemoScreen: FC = () => {
       answeredIds={answeredIds}
       styles={styles}
       renderItem={renderItem}
-      toolbarLeft={(
-        <>
-          <span className={styles.title}>{contest.name}</span>
-          <Tag size="sm" type="cool-gray">Demo 模式</Tag>
-          <Tag size="sm" type="cool-gray" renderIcon={Recording}>監控中</Tag>
-        </>
-      )}
-      toolbarCenter={(
-        <div className={styles.timer}>
-          <Time size={16} />
-          <span className={styles.timerText}>{countdown.display}</span>
-        </div>
-      )}
+      showToolbar={false}
+      externalNavigator
     />
   );
 };

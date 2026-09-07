@@ -30,6 +30,7 @@ async function createClassroomAndOpen(page: import("@playwright/test").Page): Pr
   const created = await createClassroomResp;
   expect(created.ok(), await created.text().catch(() => "")).toBeTruthy();
   await expect(page).toHaveURL(/\/classrooms\/[0-9a-f-]+/i, { timeout: 20000 });
+  await page.getByRole("tab", { name: "競賽列表", exact: true }).click();
 }
 
 test.describe("Contest create E2E", () => {

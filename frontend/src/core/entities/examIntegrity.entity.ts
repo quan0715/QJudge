@@ -105,6 +105,8 @@ export interface EvidenceRetainCommand {
 }
 
 export interface ExamIntegrityBatchAck {
+  uploadStatus?: "pending" | "complete" | "expired";
+  processedThroughSeq?: number;
   ackedThroughSeq: number;
   pendingCommands: EvidenceRetainCommand[];
   releaseEvidenceBeforeMs: number;
@@ -144,9 +146,17 @@ export type EvidenceUnavailableReport =
     };
 
 export interface EvidenceCheckpointRequest {
+  uploadScope?: IntegrityUploadScope;
   manifests: EvidenceManifestRequest[];
   completions: string[];
   unavailable: EvidenceUnavailableReport[];
+}
+
+export interface IntegrityUploadScope {
+  run_id: string;
+  participant_id: number;
+  device_id: string;
+  attempt_id: string;
 }
 
 export interface EvidenceCheckpointResponse {
@@ -157,7 +167,7 @@ export interface EvidenceCheckpointResponse {
 /** Manager-facing projection of one system-managed Integrity Worker run. */
 export interface ExamIntegrityRun {
   id: string;
-  computeState: "stopped" | "starting" | "running" | "stopping" | "destroyed";
+  sessionState: "prepared" | "active" | "draining" | "archived" | "closed";
   health: "healthy" | "unhealthy";
   dataState: "open" | "archived" | "purged";
   warnings: string[];
@@ -165,15 +175,10 @@ export interface ExamIntegrityRun {
   lastError: string;
   lastCorrelationId: string;
   registryVersion: string;
-  workerImage: string;
-  workerImageDigest: string;
   workerVersion: string;
   lastWorkerHeartbeatAt: string | null;
   scheduledStartAt: string | null;
   scheduledEndAt: string | null;
-  startedAt: string | null;
-  stoppedAt: string | null;
-  destroyedAt: string | null;
   purgedAt: string | null;
   retentionUntil: string | null;
   archiveGeneration: number;

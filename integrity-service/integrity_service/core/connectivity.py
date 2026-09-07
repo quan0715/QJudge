@@ -25,6 +25,19 @@ _REGISTRY_ACTIONS: dict[str, CommandAction] = {
 }
 
 
+def connectivity_effect_overlaps_gap(command: IntegrityCommand, started_ms: int, ended_ms: int) -> bool:
+    """Only an unavailable interval in the observed silence can mask a sanction."""
+    return (
+        command.kind == "record_event"
+        and command.event_type in {"connectivity_suspect", "connectivity_timeout"}
+        and command.action in {"record", "pause", "lock", "submit"}
+        and command.metadata.get("timing_basis") == "server_receipt"
+        and started_ms < ended_ms
+        and command.metadata.get("last_received_at_server_ms", ended_ms) < ended_ms
+        and command.metadata.get("transition_at_server_ms", started_ms) > started_ms
+    )
+
+
 @dataclass(slots=True)
 class _DeviceState:
     last_received_at_server_ms: int

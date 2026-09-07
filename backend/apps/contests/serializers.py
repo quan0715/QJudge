@@ -431,6 +431,8 @@ class ContestProblemSerializer(serializers.ModelSerializer):
     source_question_id = serializers.UUIDField(read_only=True)
     source_mode = serializers.CharField(read_only=True)
     user_status = serializers.SerializerMethodField()
+    user_score = serializers.SerializerMethodField()
+    submission_count = serializers.SerializerMethodField()
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
     question_version_id = serializers.UUIDField(source='question_version.id', read_only=True)
     binding_id = serializers.SerializerMethodField()
@@ -455,6 +457,8 @@ class ContestProblemSerializer(serializers.ModelSerializer):
             'binding_id',
             'difficulty',
             'user_status',
+            'user_score',
+            'submission_count',
             'in_question_bank',
         ]
 
@@ -492,39 +496,51 @@ class ContestProblemSerializer(serializers.ModelSerializer):
                 pass
         return "medium"
 
+    def _submission_summary(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated or not obj.coding_problem_id:
+            return {'count': 0, 'score': None, 'accepted': 0}
+        if not hasattr(self, '_submission_summaries'):
+            self._submission_summaries = {}
+        key = (obj.contest_id, request.user.pk)
+        if key not in self._submission_summaries:
+            from apps.submissions.models import Submission
+            from django.db.models import Count, Max, Q, OuterRef, Subquery
+
+            rows = Submission.objects.filter(
+                contest_id=obj.contest_id,
+                user=request.user,
+                source_type='contest',
+                is_test=False,
+            ).values('problem_id').annotate(
+                count=Count('id'), score=Max('score'),
+                accepted=Count('id', filter=Q(status='AC')),
+                latest_status=Subquery(Submission.objects.filter(
+                    contest_id=obj.contest_id, user=request.user,
+                    source_type='contest', is_test=False,
+                    problem_id=OuterRef('problem_id'),
+                ).order_by('-created_at', '-id').values('status')[:1]),
+            )
+            self._submission_summaries[key] = {row['problem_id']: row for row in rows}
+        return self._submission_summaries[key].get(
+            obj.coding_problem_id, {'count': 0, 'score': 0, 'accepted': 0}
+        )
+
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_user_status(self, obj):
-        """Get submission status for current user."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-        if not obj.coding_problem_id:
-            return None
-
-        from apps.submissions.models import Submission
-
-        has_ac = Submission.objects.filter(
-            contest=obj.contest,
-            problem_id=obj.coding_problem_id,
-            user=request.user,
-            status='AC',
-            source_type='contest'
-        ).exists()
-
-        if has_ac:
+        summary = self._submission_summary(obj)
+        if summary['accepted']:
             return 'AC'
+        return summary.get('latest_status') if summary['count'] else None
 
-        has_attempt = Submission.objects.filter(
-            contest=obj.contest,
-            problem_id=obj.coding_problem_id,
-            user=request.user,
-            source_type='contest'
-        ).exists()
+    @extend_schema_field(serializers.FloatField(allow_null=True))
+    def get_user_score(self, obj):
+        score = self._submission_summary(obj)['score']
+        return float(score) if score is not None else None
 
-        if has_attempt:
-            return 'attempted'
-
-        return None
+    @extend_schema_field(serializers.IntegerField())
+    def get_submission_count(self, obj):
+        return self._submission_summary(obj)['count']
 
     @extend_schema_field(serializers.IntegerField())
     def get_score(self, obj):

@@ -280,8 +280,18 @@
     },
     "preparation": {
       "ariaLabel": "Contest preparation overview",
-      "checklistTitle": "Before you publish",
-      "checklistDescription": "Fill in what's missing, then publish the contest to students.",
+      "steps": {
+        "title": "Contest setup steps",
+        "information": "Contest information",
+        "informationDescription": "Rules and schedule",
+        "problems": "Contest problems",
+        "review": "Review and publish",
+        "reviewDescription": "Review the settings before publishing to students",
+        "reviewBlocked": "Complete the contest information before publishing.",
+        "published": "Contest published",
+        "back": "Back"
+      },
+      "checklistTitle": "To do",
       "participantsTitle": "Participants",
       "nextStep": "Next step",
       "studentView": "What students see",
@@ -291,6 +301,7 @@
       "startsIn": "Starts in {{value}}",
       "dangerAction": "Destructive action",
       "level": {
+        "pending": "To do",
         "done": "Done",
         "warning": "Suggested",
         "blocking": "Required to publish"
@@ -753,6 +764,7 @@
     "startExamFailed": "Failed to start exam, please try again later"
   },
   "exam": {
+    "integrityLocalDataLoss": "Some monitoring events or media could not be recorded or saved and may not be recoverable. This is different from queued uploads; upload completion does not restore missing data. You can keep answering and submit.",
     "abnormalBehavior": "Abnormal behavior detected",
     "accumulatedViolations": "Accumulated Violations",
     "alreadyLocked": "0 - Locked",
@@ -786,6 +798,8 @@
     "monitoringDeviceUnsupported": "This device does not meet the monitoring policy for this exam. Return to the dashboard and run the environment check again.",
     "monitoringHint": "Exam monitoring - Click for details",
     "monitoringIssueHint": "Restore monitoring from the prompt; event evidence has been preserved.",
+    "integrityUploadPending": "Monitoring data is not fully uploaded. You can keep answering and submit. Leaving this page stops uploads; data already saved locally is retained.",
+    "integrityUploadExpired": "The monitoring upload deadline has passed with data still incomplete. Your submission is unaffected; data already saved locally is retained.",
     "monitoringReminder": {
       "fullscreen": "Return fullscreen",
       "mouse_leave": "Mouse left",
@@ -1617,30 +1631,23 @@
     "title": "Problem Management"
   },
   "problems": "Problems",
-  "integrityRun": {
-    "title": "Integrity Worker",
-    "description": "The system manages exam event and evidence processing automatically.",
-    "waiting": "Waiting for system",
-    "waitingDescription": "The system manages the Worker according to the exam schedule.",
-    "workerUnhealthy": "Worker unhealthy",
-    "workerUnhealthyDescription": "Exam events cannot be received reliably. Try restarting the Worker.",
-    "healthy": "Operating normally",
-    "healthyDescription": "The Worker is receiving and processing exam events.",
-    "starting": "Starting",
-    "stopping": "Wrapping up",
-    "transitionDescription": "The system is updating the Worker state.",
+  "integrityStatus": {
+    "unavailable": "Monitoring status unavailable",
+    "unavailableDescription": "The system will retry automatically. Answering and submission are unaffected.",
+    "purged": "Data cleared",
+    "purgedDescription": "Monitoring data for this exam has been permanently deleted.",
     "archived": "Archived",
-    "archivedDescription": "Exam data has been archived.",
-    "completed": "Completed",
-    "completedDescription": "The Worker lifecycle for this exam has ended.",
-    "ready": "Waiting for exam",
-    "readyDescription": "The system will start the Worker when needed.",
-    "restart": "Restart Worker",
-    "restartPreservesData": "Events and evidence will be retained.",
-    "confirmRestart": "Confirm restart",
-    "restartComplete": "Worker restarted",
-    "restartFailed": "Unable to restart Worker",
-    "loadFailed": "Unable to load Worker status"
+    "archivedDescription": "Exam records are archived. Check each event’s evidence status for completeness.",
+    "interrupted": "Monitoring interrupted",
+    "interruptedDescription": "Monitoring records may be delayed or missing. Answering and submission are unaffected.",
+    "draining": "Processing exam records",
+    "drainingDescription": "The exam has ended. Received events and evidence are being processed.",
+    "active": "Monitoring active",
+    "activeDescription": "Exam records are collected automatically. Review events and evidence manually.",
+    "closed": "Monitoring ended",
+    "closedDescription": "This exam is no longer accepting monitoring records.",
+    "waiting": "Waiting for the exam",
+    "waitingDescription": "Monitoring follows the exam schedule automatically. No manual start is needed."
   },
   "proctoringPanel": {
     "backToRoster": "Back to list",
@@ -1864,6 +1871,12 @@
     "viewSubmissionSamples": "View submission samples"
   },
   "studentDashboard": {
+    "codingRecords": {
+      "problem": "Problem",
+      "score": "Score / maximum",
+      "status": "Status",
+      "count": "Submissions"
+    },
     "actions": {
       "adminPanel": "Admin dashboard",
       "backToAnswering": "Back to answering",

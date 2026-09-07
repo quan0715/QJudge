@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@carbon/react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { createMockContest, stubT } from "@/shared/mocks/contest.mock";
+import { ThemeProvider } from "@/shared/ui/theme/ThemeContext";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import GeneralSettingsPanel from "./GeneralSettingsPanel";
 import AccessSettingsPanel from "./AccessSettingsPanel";
@@ -57,6 +58,13 @@ function useFormState() {
 
 const meta: Meta = {
   title: "features/contest/admin/ContestSettings",
+  decorators: [
+    (Story) => (
+      <ThemeProvider>
+        <Story />
+      </ThemeProvider>
+    ),
+  ],
   parameters: {
     docs: {
       description: {

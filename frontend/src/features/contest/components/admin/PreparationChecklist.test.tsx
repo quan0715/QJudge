@@ -39,6 +39,15 @@ describe("PreparationChecklist", () => {
     expect(onItemAction).toHaveBeenCalledWith("schedule");
   });
 
+  it("supports keyboard activation of the whole card", async () => {
+    const onItemAction = vi.fn();
+    render(<PreparationChecklist items={items} onItemAction={onItemAction} />);
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "設定時間" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(onItemAction).toHaveBeenCalledWith("schedule");
+  });
+
   it("marks blocking rows for assistive technology", () => {
     render(<PreparationChecklist items={items} onItemAction={vi.fn()} />);
 
@@ -51,7 +60,20 @@ describe("PreparationChecklist", () => {
   it("labels each row with its readiness level", () => {
     render(<PreparationChecklist items={items} onItemAction={vi.fn()} />);
 
-    expect(screen.getByText("發布前必填")).toBeInTheDocument();
+    expect(screen.getByText("待完成")).toBeInTheDocument();
     expect(screen.getByText("已完成")).toBeInTheDocument();
+  });
+
+  it("keeps the status on each card for visual state styling", () => {
+    render(<PreparationChecklist items={items} onItemAction={vi.fn()} />);
+
+    expect(screen.getByText("待完成").closest("[data-level]")).toHaveAttribute(
+      "data-level",
+      "blocking",
+    );
+    expect(screen.getByText("已完成").closest("[data-level]")).toHaveAttribute(
+      "data-level",
+      "done",
+    );
   });
 });

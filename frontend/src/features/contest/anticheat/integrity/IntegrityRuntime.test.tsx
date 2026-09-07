@@ -1,390 +1,156 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { ExamIntegrityOutbox } from "@/core/ports/examIntegrity.repository";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
-import {
-  contestIntegritySourceFiles,
-  createIntegrityRuntime,
-  createQueuedIntegritySignalEmitter,
-  useIntegrityRuntime,
-} from "./useIntegrityRuntime";
+import { applyIntegrityHealthUpdate, contestIntegritySourceFiles, initialHealthSnapshot } from "./useIntegrityRuntime";
+import { ResidentIntegritySession } from "./residentIntegritySession";
 import { IntegrityTransport } from "./integrityTransport";
 import integrityRuntimeSource from "./useIntegrityRuntime.ts?raw";
-import {
-  assertFrontendSignalsInRegistry,
-  FRONTEND_INTEGRITY_SIGNAL_IDS,
-} from "./frontendIntegritySignals";
-
-const createOutboxMock = (): Pick<ExamIntegrityOutbox, "append"> => ({
-  append: vi.fn().mockResolvedValue({}),
-});
+import { assertFrontendSignalsInRegistry, FRONTEND_INTEGRITY_SIGNAL_IDS } from "./frontendIntegritySignals";
 
 const frontendRegistryDefinitions = Object.fromEntries(
-  FRONTEND_INTEGRITY_SIGNAL_IDS.map((signal) => [
-    signal,
-    { signals: { triggered: signal, escalated: "", restored: "" } },
+  FRONTEND_INTEGRITY_SIGNAL_IDS.map(signal => [
+    signal, { signals: { triggered: signal, escalated: "", restored: "" } },
   ]),
 );
 
-describe("IntegrityRuntime", () => {
-  it("persists a detector signal before resolving emit", async () => {
-    const outbox = createOutboxMock();
-    const runtime = createIntegrityRuntime({ outbox });
+const outboxMock = () => ({
+  append: vi.fn().mockResolvedValue({ seq: 1 }),
+  lastSequence: vi.fn().mockResolvedValue(1),
+  close: vi.fn().mockResolvedValue(undefined),
+});
+const evidenceMock = () => ({
+  close: vi.fn().mockResolvedValue(undefined),
+  reconcile: vi.fn().mockResolvedValue(undefined),
+  listDescriptors: vi.fn().mockResolvedValue([]),
+  pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
+  markReported: vi.fn().mockResolvedValue(undefined),
+});
+const createSession = () => new ResidentIntegritySession({
+  contestId: "contest-a", nextSequence: 1,
+  scope: { run_id: "33333333-3333-3333-3333-333333333333",
+    participant_id: 44, device_id: "device-a", attempt_id: "44444444-4444-4444-4444-444444444444" },
+  run: { id: "33333333-3333-3333-3333-333333333333", participantId: 44,
+    sessionState: "active", health: "healthy", policySnapshot: {},
+    registrySnapshot: { version: "test", definitions: frontendRegistryDefinitions } },
+  snapshotProvider: () => ({ pageVisible: true, online: true, fullscreen: true,
+    screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }),
+  onGap: vi.fn(), onLocalLoss: vi.fn(), onProgress: vi.fn(),
+});
+const signal = (eventType = "exam_entered", clientOccurredAtMs = 2_000) => ({
+  eventType, clientOccurredAtMs, payload: { source: "answering_screen" },
+});
 
-    await runtime.emit({
-      eventType: "exit_fullscreen_triggered",
-      clientOccurredAtMs: 1_000,
-      payload: { fullscreen: false },
-    });
+beforeEach(() => {
+  vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
+  vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceMock() as unknown as OpfsEvidenceStore);
+});
+afterEach(() => vi.restoreAllMocks());
 
-    expect(outbox.append).toHaveBeenCalledWith({
-      eventType: "exit_fullscreen_triggered",
-      clientOccurredAtMs: 1_000,
-      payload: { fullscreen: false },
-    });
+describe("Resident integrity emitter and shared contract", () => {
+  it("resolves an admitted signal only after the durable append", async () => {
+    const outbox = outboxMock();
+    let persisted!: () => void;
+    outbox.append.mockImplementation(() => new Promise<void>(resolve => { persisted = resolve; }));
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
+    const session = createSession();
+    try {
+      await session.start();
+      let resolved = false;
+      const completion = session.emitter.emit(signal()).then(() => { resolved = true; });
+      await vi.waitFor(() => expect(outbox.append).toHaveBeenCalledOnce());
+      expect(resolved).toBe(false);
+      persisted();
+      await completion;
+      expect(outbox.append).toHaveBeenCalledWith(signal());
+    } finally { await session.close(); }
   });
 
-  it("does not add timers, dedupe, priority, grace, or actions in detector runtime", async () => {
-    const outbox = createOutboxMock();
-    const runtime = createIntegrityRuntime({ outbox });
-
-    await runtime.emit({
-      eventType: "mouse_leave_triggered",
-      clientOccurredAtMs: 1_000,
-      payload: {},
-    });
-    await runtime.emit({
-      eventType: "mouse_leave_triggered",
-      clientOccurredAtMs: 1_001,
-      payload: {},
-    });
-
-    expect(outbox.append).toHaveBeenCalledTimes(2);
+  it("preserves repeated detector events and source order without browser policy decisions", async () => {
+    const outbox = outboxMock();
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
+    const session = createSession();
+    try {
+      await session.start();
+      await Promise.all([
+        session.emitter.emit(signal("mouse_leave_triggered", 1_000)),
+        session.emitter.emit(signal("mouse_leave_triggered", 1_001)),
+      ]);
+      expect(outbox.append.mock.calls.map(([event]) => event)).toEqual([
+        signal("mouse_leave_triggered", 1_000), signal("mouse_leave_triggered", 1_001),
+      ]);
+    } finally { await session.close(); }
   });
 
   it("accepts a registry-only event without changing transport core", async () => {
-    const outbox = createOutboxMock();
-    const runtime = createIntegrityRuntime({
-      outbox,
-      registry: {
-        version: "registry-v2",
-        definitions: {
-          ...frontendRegistryDefinitions,
-          head_pose: {
-            signals: {
-              triggered: "head_pose_changed",
-              escalated: "",
-              restored: "",
-            },
-            emission: "sample",
-          },
-        },
-      },
-    });
-
-    await runtime.emit({
-      eventType: "head_pose_changed",
-      clientOccurredAtMs: 2_000,
-      payload: {},
-    });
-
-    expect(outbox.append).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: "head_pose_changed" }),
-    );
+    const outbox = outboxMock();
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
+    assertFrontendSignalsInRegistry({ version: "registry-v2", definitions: {
+      ...frontendRegistryDefinitions,
+      head_pose: { signals: { triggered: "head_pose_changed", escalated: "", restored: "" }, emission: "sample" },
+    } });
+    const session = createSession();
+    try {
+      await session.start();
+      await session.emitter.emit(signal("head_pose_changed"));
+      expect(outbox.append).toHaveBeenCalledWith(signal("head_pose_changed"));
+    } finally { await session.close(); }
   });
 
-  it("queues an exam entry until delayed runtime startup then persists it once", async () => {
-    const outbox = createOutboxMock();
-    const queued = createQueuedIntegritySignalEmitter();
-    const completion = queued.emitter.emit({
-      eventType: "exam_entered",
-      clientOccurredAtMs: 2_000,
-      payload: { source: "answering_screen" },
-    });
-
-    expect(outbox.append).not.toHaveBeenCalled();
-    queued.activate(createIntegrityRuntime({ outbox }));
-    await completion;
-
-    expect(outbox.append).toHaveBeenCalledTimes(1);
-    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: "exam_entered",
-      clientOccurredAtMs: 2_000,
-    }));
-  });
-
-  it("updates checkpoint health without appending a semantic event", () => {
-    const onHealthUpdate = vi.fn();
-    const queued = createQueuedIntegritySignalEmitter(onHealthUpdate);
-
-    queued.emitter.updateHealth?.({
-      component: "evidence_source",
-      source: "webcam",
-      status: "degraded",
-      reason: "recorder_failed",
-    });
-
-    expect(onHealthUpdate).toHaveBeenCalledWith({
-      component: "evidence_source",
-      source: "webcam",
-      status: "degraded",
-      reason: "recorder_failed",
-    });
-  });
-
-  it("persists exactly one exam entry after a delayed IndexedDB open", async () => {
-    let resolveOpen!: (outbox: IndexedDbIntegrityOutbox) => void;
-    const open = new Promise<IndexedDbIntegrityOutbox>((resolve) => {
-      resolveOpen = resolve;
-    });
-    const outbox = {
-      append: vi.fn().mockResolvedValue({}),
-      close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as IndexedDbIntegrityOutbox;
-    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockReturnValue(open);
-    const evidenceStore = {
-      close: vi.fn().mockResolvedValue(undefined),
-      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
-      markReported: vi.fn().mockResolvedValue(undefined),
-      listDescriptors: vi.fn().mockResolvedValue([]),
-      getBlob: vi.fn(),
-      protect: vi.fn(),
-      releaseProtection: vi.fn(),
-      markRequested: vi.fn(),
-      markVerified: vi.fn(),
-      markUnavailable: vi.fn(),
-      deleteDescriptor: vi.fn(),
-      reconcile: vi.fn().mockResolvedValue(undefined),
-    } as unknown as OpfsEvidenceStore;
-    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceStore);
-    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
-    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
-    const { result, unmount } = renderHook(() => useIntegrityRuntime({
-      enabled: true,
-      contestId: "contest-a",
-      integrityRun: {
-        id: "33333333-3333-3333-3333-333333333333",
-        computeState: "running",
-        health: "healthy",
-        participantId: 44,
-        policySnapshot: {},
-        registrySnapshot: {
-          version: "test",
-          definitions: frontendRegistryDefinitions,
-        },
-      },
-      snapshotProvider: () => ({
-        pageVisible: true,
-        online: true,
-        fullscreen: true,
-        screenCapture: "active",
-        webcamCapture: "disabled",
-        activeSourceDescriptors: [],
-      }),
-    }));
-    const completion = result.current.emit({
-      eventType: "exam_entered",
-      clientOccurredAtMs: 2_000,
-      payload: { source: "answering_screen" },
-    });
-
-    expect(outbox.append).not.toHaveBeenCalled();
-    await act(async () => {
-      resolveOpen(outbox);
-      await completion;
-    });
-
-    expect(outbox.append).toHaveBeenCalledTimes(1);
-    expect(transportStartSpy).toHaveBeenCalledTimes(1);
-    unmount();
-    expect(transportStopSpy).toHaveBeenCalledTimes(1);
-    openSpy.mockRestore();
-    evidenceOpenSpy.mockRestore();
-    transportStartSpy.mockRestore();
-    transportStopSpy.mockRestore();
+  it("persists exactly one exam entry queued during delayed IndexedDB startup", async () => {
+    const outbox = outboxMock();
+    let resolveOpen!: (value: IndexedDbIntegrityOutbox) => void;
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockReturnValue(new Promise(resolve => { resolveOpen = resolve; }));
+    const session = createSession();
+    try {
+      const starting = session.start();
+      const completion = session.emitter.emit(signal());
+      expect(outbox.append).not.toHaveBeenCalled();
+      resolveOpen(outbox as unknown as IndexedDbIntegrityOutbox);
+      await Promise.all([starting, completion]);
+      expect(outbox.append).toHaveBeenCalledOnce();
+      expect(IntegrityTransport.prototype.start).toHaveBeenCalledOnce();
+    } finally { await session.close(); }
   });
 
   it("keeps event delivery active when OPFS evidence storage is unavailable", async () => {
-    const outbox = {
-      append: vi.fn().mockResolvedValue({}),
-      close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as IndexedDbIntegrityOutbox;
-    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
-    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockRejectedValue(
-      new Error("OPFS is unavailable for integrity evidence"),
-    );
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
-    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
-    const { result, unmount } = renderHook(() => useIntegrityRuntime({
-      enabled: true,
-      contestId: "contest-a",
-      integrityRun: {
-        id: "33333333-3333-3333-3333-333333333333",
-        computeState: "running",
-        health: "healthy",
-        participantId: 44,
-        policySnapshot: {},
-        registrySnapshot: {
-          version: "test",
-          definitions: frontendRegistryDefinitions,
-        },
-      },
-      snapshotProvider: () => ({
-        pageVisible: true,
-        online: true,
-        fullscreen: true,
-        screenCapture: "active",
-        webcamCapture: "disabled",
-        activeSourceDescriptors: [],
-      }),
-    }));
-
-    await result.current.emit({
-      eventType: "exam_entered",
-      clientOccurredAtMs: 2_000,
-      payload: { source: "answering_screen" },
-    });
-
-    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: "exam_entered",
-    }));
-    expect(transportStartSpy).toHaveBeenCalledTimes(1);
-
-    unmount();
-    openSpy.mockRestore();
-    evidenceOpenSpy.mockRestore();
-    warnSpy.mockRestore();
-    transportStartSpy.mockRestore();
-    transportStopSpy.mockRestore();
+    const outbox = outboxMock();
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
+    vi.mocked(OpfsEvidenceStore.open).mockRejectedValue(new Error("OPFS unavailable"));
+    const session = createSession();
+    try {
+      await session.start();
+      await session.emitter.emit(signal());
+      expect(outbox.append).toHaveBeenCalledWith(signal());
+      expect(IntegrityTransport.prototype.start).toHaveBeenCalledOnce();
+      expect(outbox.append).toHaveBeenCalledTimes(1);
+    } finally { await session.close(); }
   });
 
   it("starts event delivery while evidence storage is still initializing", async () => {
-    let resolveEvidenceStore!: (store: OpfsEvidenceStore) => void;
-    const evidenceStoreOpen = new Promise<OpfsEvidenceStore>((resolve) => {
-      resolveEvidenceStore = resolve;
-    });
-    const outbox = {
-      append: vi.fn().mockResolvedValue({}),
-      close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as IndexedDbIntegrityOutbox;
-    const evidenceStore = {
-      close: vi.fn().mockResolvedValue(undefined),
-      reconcile: vi.fn().mockResolvedValue(undefined),
-      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
-      markReported: vi.fn().mockResolvedValue(undefined),
-      listDescriptors: vi.fn().mockResolvedValue([]),
-      getBlob: vi.fn(), protect: vi.fn(), releaseProtection: vi.fn(),
-      markRequested: vi.fn(), markVerified: vi.fn(), markUnavailable: vi.fn(),
-      deleteDescriptor: vi.fn(),
-    } as unknown as OpfsEvidenceStore;
-    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
-    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockReturnValue(evidenceStoreOpen);
-    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
-    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
-    const { result, unmount } = renderHook(() => useIntegrityRuntime({
-      enabled: true,
-      contestId: "contest-a",
-      integrityRun: {
-        id: "33333333-3333-3333-3333-333333333333",
-        computeState: "running",
-        health: "healthy",
-        participantId: 44,
-        policySnapshot: {},
-        registrySnapshot: { version: "test", definitions: frontendRegistryDefinitions },
-      },
-      snapshotProvider: () => ({
-        pageVisible: true, online: true, fullscreen: true,
-        screenCapture: "active", webcamCapture: "disabled", activeSourceDescriptors: [],
-      }),
-    }));
-
-    await waitFor(() => expect(evidenceOpenSpy).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(transportStartSpy).toHaveBeenCalledTimes(1));
-
-    const completion = result.current.emit({
-      eventType: "exam_entered",
-      clientOccurredAtMs: 2_000,
-      payload: { source: "answering_screen" },
-    });
-    await completion;
-    expect(outbox.append).toHaveBeenCalledWith(expect.objectContaining({
-      eventType: "exam_entered",
-    }));
-
-    // Let the background evidence initializer settle before unmount cleanup.
-    await act(async () => { resolveEvidenceStore(evidenceStore); });
-
-    unmount();
-    openSpy.mockRestore();
-    evidenceOpenSpy.mockRestore();
-    transportStartSpy.mockRestore();
-    transportStopSpy.mockRestore();
+    const outbox = outboxMock();
+    vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox as unknown as IndexedDbIntegrityOutbox);
+    let resolveEvidence!: (value: OpfsEvidenceStore) => void;
+    vi.mocked(OpfsEvidenceStore.open).mockReturnValue(new Promise(resolve => { resolveEvidence = resolve; }));
+    const session = createSession();
+    const starting = session.start();
+    try {
+      await vi.waitFor(() => expect(OpfsEvidenceStore.open).toHaveBeenCalledOnce());
+      await vi.waitFor(() => expect(IntegrityTransport.prototype.start).toHaveBeenCalledOnce(), { timeout: 500 });
+      await session.emitter.emit(signal());
+      expect(outbox.append).toHaveBeenCalledWith(signal());
+    } finally {
+      resolveEvidence(evidenceMock() as unknown as OpfsEvidenceStore);
+      await starting;
+      await session.close();
+    }
   });
 
-  it("does not record missing evidence infrastructure as a semantic event", async () => {
-    const outbox = {
-      append: vi.fn().mockResolvedValue({}),
-      close: vi.fn().mockResolvedValue(undefined),
-    } as unknown as IndexedDbIntegrityOutbox;
-    const evidenceStore = {
-      close: vi.fn().mockResolvedValue(undefined),
-      reconcile: vi.fn().mockResolvedValue(undefined),
-      pendingDescriptorSummaries: vi.fn().mockResolvedValue([]),
-      markReported: vi.fn().mockResolvedValue(undefined),
-      listDescriptors: vi.fn().mockResolvedValue([]),
-      getBlob: vi.fn(),
-      protect: vi.fn(),
-      releaseProtection: vi.fn(),
-      markRequested: vi.fn(),
-      markVerified: vi.fn(),
-      markUnavailable: vi.fn(),
-      deleteDescriptor: vi.fn(),
-    } as unknown as OpfsEvidenceStore;
-    const openSpy = vi.spyOn(IndexedDbIntegrityOutbox, "open").mockResolvedValue(outbox);
-    const evidenceOpenSpy = vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(evidenceStore);
-    const transportStartSpy = vi.spyOn(IntegrityTransport.prototype, "start").mockImplementation(() => {});
-    const transportStopSpy = vi.spyOn(IntegrityTransport.prototype, "stop").mockImplementation(() => {});
-    const { unmount } = renderHook(() => useIntegrityRuntime({
-      enabled: true,
-      contestId: "contest-a",
-      integrityRun: {
-        id: "33333333-3333-3333-3333-333333333333",
-        computeState: "running",
-        health: "healthy",
-        participantId: 44,
-        policySnapshot: {
-          device_policy: {
-            required_webcam: {
-              enabled: true,
-              sources: { webcam: { enabled: true } },
-            },
-          },
-        },
-        registrySnapshot: {
-          version: "test",
-          definitions: frontendRegistryDefinitions,
-        },
-      },
-      snapshotProvider: () => ({
-        pageVisible: true,
-        online: true,
-        fullscreen: true,
-        screenCapture: "disabled",
-        webcamCapture: "unavailable",
-        activeSourceDescriptors: [],
-      }),
-    }));
-
-    await waitFor(() => expect(evidenceOpenSpy).toHaveBeenCalledTimes(1));
-    unmount();
-    expect(transportStartSpy).toHaveBeenCalledTimes(1);
-    expect(transportStopSpy).toHaveBeenCalledTimes(1);
-    openSpy.mockRestore();
-    evidenceOpenSpy.mockRestore();
-    transportStartSpy.mockRestore();
-    transportStopSpy.mockRestore();
+  it("updates checkpoint health without modifying the prior health snapshot", () => {
+    const before = initialHealthSnapshot();
+    const after = applyIntegrityHealthUpdate(before, { component: "evidence_source",
+      source: "webcam", status: "degraded", reason: "recorder_failed" });
+    expect(before.evidenceSources.webcam.status).toBe("disabled");
+    expect(after.evidenceSources.webcam).toEqual({ status: "degraded", reason: "recorder_failed" });
   });
 
   it("keeps every literal frontend emission in the declared frozen-registry contract", async () => {

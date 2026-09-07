@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ExamIntegrityRun } from "@/core/entities/examIntegrity.entity";
@@ -12,21 +12,19 @@ import {
 type Repository = NonNullable<IntegrityRunControlCardProps["repository"]>;
 
 const run: ExamIntegrityRun = {
-  id: "run-1", computeState: "running", health: "healthy", dataState: "open",
+  id: "run-1", sessionState: "active", health: "healthy", dataState: "open",
   warnings: [], metrics: {}, lastError: "", lastCorrelationId: "", registryVersion: "v1",
-  workerImage: "worker", workerImageDigest: "", workerVersion: "v1",
+  workerVersion: "v1",
   lastWorkerHeartbeatAt: null, scheduledStartAt: null, scheduledEndAt: null,
-  startedAt: null, stoppedAt: null, destroyedAt: null, purgedAt: null,
+  purgedAt: null,
   retentionUntil: null, archiveGeneration: 0, receivedCounts: {}, processedCounts: {}, archivedCounts: {},
 };
 
 const renderCard = (
   currentRun: ExamIntegrityRun | null,
-  restartRun = vi.fn(async () => ({ ...run, health: "healthy" as const })),
 ) => {
   const repository: Repository = {
     listRuns: vi.fn(async () => currentRun ? [currentRun] : []),
-    restartRun,
   };
 
   render(
@@ -35,14 +33,14 @@ const renderCard = (
     </ToastProvider>,
   );
 
-  return { repository, restartRun };
+  return { repository };
 };
 
 describe("IntegrityRunControlCard", () => {
   it("shows healthy lifecycle as system-managed with no manual actions", async () => {
     renderCard(run);
 
-    expect(await screen.findByText("正常運作")).toBeVisible();
+    expect(await screen.findByText("監考中")).toBeVisible();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText(/停止|銷毀|清除|建立 Run/)).not.toBeInTheDocument();
   });
@@ -50,27 +48,33 @@ describe("IntegrityRunControlCard", () => {
   it("shows no action while the system has not created a run", async () => {
     renderCard(null);
 
-    expect(await screen.findByText("等待系統啟動")).toBeVisible();
+    expect(await screen.findByText("等待考試開始")).toBeVisible();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("offers restart only for an unhealthy running Worker", async () => {
+  it("shows interruption without exposing service controls", async () => {
     renderCard({ ...run, health: "unhealthy", lastError: "worker_unavailable" });
 
-    expect(await screen.findByText("Worker 異常")).toBeVisible();
-    expect(screen.getByRole("button", { name: "重新啟動 Worker" })).toBeEnabled();
+    expect(await screen.findByText("監考暫時中斷")).toBeVisible();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText("worker_unavailable")).not.toBeInTheDocument();
   });
 
-  it("uses one inline confirmation and preserves run data", async () => {
-    const restartRun = vi.fn(async () => ({ ...run, health: "healthy" as const }));
-    renderCard({ ...run, health: "unhealthy" }, restartRun);
+  it.each([
+    ["draining", "open", "整理考試紀錄中"],
+    ["archived", "archived", "已封存"],
+    ["closed", "purged", "資料已清除"],
+  ] as const)("shows %s without manual controls", async (sessionState, dataState, label) => {
+    renderCard({ ...run, sessionState, dataState });
+    expect(await screen.findByText(label)).toBeVisible();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(await screen.findByRole("button", { name: "重新啟動 Worker" }));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByText("事件與證據資料會保留。" )).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "確認重啟" }));
-    await waitFor(() => expect(restartRun).toHaveBeenCalledWith("contest", "run-1"));
+  it("shows an unavailable state when polling fails", async () => {
+    render(<IntegrityRunControlCard contestId="contest" repository={{
+      listRuns: vi.fn().mockRejectedValue(new Error("offline")),
+    }} />);
+    expect(await screen.findByText("暫時無法更新監考狀態")).toBeVisible();
+    expect(screen.queryByText("監考中")).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import logging
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.core.cache import cache
+from django.db import transaction
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
@@ -44,6 +45,7 @@ from ..services.participant_state import (
 )
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
+from ..services.integrity_sessions import prepare_integrity_session
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
@@ -236,7 +238,21 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         """
         Override to log contest update activity.
         """
-        instance = serializer.save()
+        from ..services.exam_schedule import update_exam_schedule
+        with transaction.atomic():
+            locked = Contest.objects.select_for_update().get(pk=serializer.instance.pk)
+            serializer.instance = locked
+            # Partial updates must validate against the latest locked counterpart.
+            serializer.validate(serializer.validated_data)
+            serializer.instance = update_exam_schedule(
+                locked.pk,
+                start_time=serializer.validated_data.get("start_time", locked.start_time),
+                end_time=serializer.validated_data.get("end_time", locked.end_time),
+                actor=self.request.user,
+                pending_updates=serializer.validated_data,
+            )
+            instance = serializer.save()
+            prepare_integrity_session(instance.id, actor_id=self.request.user.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed
@@ -267,7 +283,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
             cache.set(cache_key, payload, timeout=ANTICHEAT_CONFIG_CACHE_TTL_SECONDS)
         live_run = (
             ExamIntegrityRun.objects.filter(contest=contest)
-            .exclude(compute_state=ExamIntegrityRun.ComputeState.DESTROYED)
+            .exclude(data_state=ExamIntegrityRun.DataState.PURGED)
+            .exclude(session_state=ExamIntegrityRun.SessionState.CLOSED)
             .first()
         )
         if live_run is not None:
@@ -279,7 +296,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 **payload,
                 "integrity_run": {
                     "id": str(live_run.id),
-                    "compute_state": live_run.compute_state,
+                    "session_state": live_run.session_state,
                     "health": live_run.health,
                     "participant_id": str(participant.id) if participant else None,
                     "policy_snapshot": live_run.policy_snapshot,
@@ -315,6 +332,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 )
             contest.status = 'published'
         contest.save(update_fields=['status', 'results_published'])
+        prepare_integrity_session(contest.id, actor_id=request.user.id)
 
         # Log activity
         log_contest_activity(

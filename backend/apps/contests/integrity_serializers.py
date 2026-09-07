@@ -232,6 +232,19 @@ class ExamIntegrityBatchSerializer(_StrictSerializer):
         records = attrs["records"]
         expected_seq = attrs["first_seq"]
         for record in records:
+            if "evidence_fence" in record["payload"]:
+                fence = record["payload"]["evidence_fence"]
+                if (type(fence) is not dict or set(fence) != {"version", "attempt_id", "through_seq", "before_client_ms"}
+                        or fence["version"] != "resident-evidence-fence-v1"
+                        or record["kind"] != "health_snapshot" or record["event_type"] != "health_snapshot"
+                        or type(fence["through_seq"]) is not int or fence["through_seq"] != record["seq"]
+                        or not 1 <= fence["through_seq"] <= 10_000_000
+                        or type(fence["before_client_ms"]) is not int or not 0 <= fence["before_client_ms"] <= MAX_EVIDENCE_TIMESTAMP_MS):
+                    raise serializers.ValidationError("Invalid evidence fence boundary.")
+                try:
+                    UUID(fence["attempt_id"])
+                except (ValueError, TypeError, AttributeError):
+                    raise serializers.ValidationError("Invalid evidence fence attempt.") from None
             if record["seq"] != expected_seq:
                 raise serializers.ValidationError(
                     {
@@ -447,13 +460,22 @@ class IntegrityCheckpointEvidenceSerializer(_StrictSerializer):
         return attrs
 
 
+class IntegrityUploadScopeSerializer(_StrictSerializer):
+    run_id = serializers.UUIDField()
+    participant_id = serializers.IntegerField(min_value=1)
+    device_id = serializers.CharField(min_length=1, max_length=128, trim_whitespace=False)
+    attempt_id = serializers.UUIDField()
+
+
 class IntegrityCheckpointSerializer(_StrictSerializer):
-    observations = ExamIntegrityBatchSerializer(required=False)
+    observations = ExamIntegrityBatchSerializer(required=False, allow_null=True)
+    upload_scope = IntegrityUploadScopeSerializer(required=False)
+    final_seq = serializers.IntegerField(required=False, min_value=0, max_value=10_000_000)
     evidence = IntegrityCheckpointEvidenceSerializer(required=False, default=dict)
 
     def validate(self, attrs):
         evidence = attrs["evidence"]
-        if "observations" not in attrs and not any(evidence.values()):
+        if not attrs.get("observations") and not any(evidence.values()) and "upload_scope" not in attrs:
             raise serializers.ValidationError(
                 "A checkpoint must contain observations or evidence operations."
             )
@@ -461,27 +483,19 @@ class IntegrityCheckpointSerializer(_StrictSerializer):
 
 
 class IntegrityRunSerializer(serializers.ModelSerializer):
+    """Expose session ownership, schedule and health, all read-only."""
+
     class Meta:
         model = ExamIntegrityRun
-        exclude = ("token_digest",)
-        read_only_fields = tuple(
-            field.name
-            for field in ExamIntegrityRun._meta.fields
-            if field.name != "token_digest"
-        )
+        fields = "__all__"
+        read_only_fields = tuple(field.name for field in ExamIntegrityRun._meta.fields)
 
 
 class IntegrityRunCreateSerializer(serializers.Serializer):
-    worker_image = serializers.CharField(required=False, max_length=255)
-
     def to_internal_value(self, data):
-        unknown = set(data) - {"worker_image"}
-        if unknown:
+        if data:
             raise serializers.ValidationError(
-                {
-                    key: ["This field is not accepted."]
-                    for key in sorted(unknown)
-                }
+                {key: ["This field is not accepted."] for key in sorted(data)}
             )
         return super().to_internal_value(data)
 
@@ -489,5 +503,4 @@ class IntegrityRunCreateSerializer(serializers.Serializer):
         return create_run(
             self.context["contest"],
             actor=self.context["request"].user,
-            worker_image=validated_data.get("worker_image"),
         )

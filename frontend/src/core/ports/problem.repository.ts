@@ -23,6 +23,7 @@ export interface TestRunPayload {
   language: string;
   code: string;
   contest_id?: string;
+  asynchronous?: boolean;
 }
 
 interface TestRunResultItem {
@@ -36,6 +37,9 @@ interface TestRunResultItem {
 }
 
 export interface TestRunResult {
+  run_id?: string;
+  execution_status?: "pending" | "judging" | "complete";
+  total?: number;
   status: string;
   results: TestRunResultItem[];
 }

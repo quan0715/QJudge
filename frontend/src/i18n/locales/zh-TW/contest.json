@@ -280,8 +280,18 @@
     },
     "preparation": {
       "ariaLabel": "競賽準備總覽",
-      "checklistTitle": "發布前檢查",
-      "checklistDescription": "先把缺的補齊，再把競賽發布給學生。",
+      "steps": {
+        "title": "競賽準備步驟",
+        "information": "競賽資訊設定",
+        "informationDescription": "規則與時間",
+        "problems": "競賽題目設定",
+        "review": "確認資訊並發布競賽",
+        "reviewDescription": "確認設定後發布給學生",
+        "reviewBlocked": "請先完成競賽資訊設定，再發布競賽。",
+        "published": "競賽已發布",
+        "back": "返回"
+      },
+      "checklistTitle": "待完成",
       "participantsTitle": "考生名單",
       "nextStep": "下一步",
       "studentView": "學生看到的樣子",
@@ -291,6 +301,7 @@
       "startsIn": "距離開考 {{value}}",
       "dangerAction": "危險操作",
       "level": {
+        "pending": "待完成",
         "done": "已完成",
         "warning": "建議設定",
         "blocking": "發布前必填"
@@ -753,6 +764,7 @@
     "startExamFailed": "無法開始考試，請稍後再試"
   },
   "exam": {
+    "integrityLocalDataLoss": "部分監考事件或影音未能錄製或保存，可能無法補傳；這不同於待傳送資料，完成上傳也不代表缺漏已恢復。可繼續作答與交卷。",
     "abnormalBehavior": "檢測到異常操作",
     "accumulatedViolations": "累積違規次數",
     "alreadyLocked": "0 - 已鎖定",
@@ -786,6 +798,8 @@
     "monitoringDeviceUnsupported": "目前裝置不符合此考試的監考設定，請回到儀表板重新進行環境檢查。",
     "monitoringHint": "考試監控中 - 點擊查看詳情",
     "monitoringIssueHint": "請依提示恢復監控狀態；系統已保留事件採證。",
+    "integrityUploadPending": "監考資料尚未完成傳送；可繼續作答與交卷。離開頁面後傳送會停止，已保存的本機資料會保留。",
+    "integrityUploadExpired": "監考資料補傳期限已到，仍有未完成的資料；交卷結果不受影響，已保存的本機資料會保留。",
     "monitoringReminder": {
       "fullscreen": "請回全螢幕",
       "mouse_leave": "滑鼠離開",
@@ -1617,30 +1631,23 @@
     "title": "題目管理"
   },
   "problems": "題目數",
-  "integrityRun": {
-    "title": "Integrity Worker",
-    "description": "系統自動管理考試事件與證據處理。",
-    "waiting": "等待系統啟動",
-    "waitingDescription": "系統會依考試時段自動管理 Worker。",
-    "workerUnhealthy": "Worker 異常",
-    "workerUnhealthyDescription": "目前無法穩定接收考試事件，可嘗試重新啟動。",
-    "healthy": "正常運作",
-    "healthyDescription": "Worker 正在接收並處理考試事件。",
-    "starting": "啟動中",
-    "stopping": "收尾中",
-    "transitionDescription": "系統正在更新 Worker 狀態。",
+  "integrityStatus": {
+    "unavailable": "暫時無法更新監考狀態",
+    "unavailableDescription": "系統會自動重試，不影響學生作答與交卷。",
+    "purged": "資料已清除",
+    "purgedDescription": "此場考試的監考資料已永久清除。",
     "archived": "已封存",
-    "archivedDescription": "考試資料已完成封存。",
-    "completed": "已完成",
-    "completedDescription": "此考試的 Worker 生命週期已結束。",
-    "ready": "等待考試開始",
-    "readyDescription": "系統會在需要時自動啟動 Worker。",
-    "restart": "重新啟動 Worker",
-    "restartPreservesData": "事件與證據資料會保留。",
-    "confirmRestart": "確認重啟",
-    "restartComplete": "Worker 已重新啟動",
-    "restartFailed": "無法重新啟動 Worker",
-    "loadFailed": "無法讀取 Worker 狀態"
+    "archivedDescription": "考試紀錄已封存；證據是否完整請以各事件的證據狀態為準。",
+    "interrupted": "監考暫時中斷",
+    "interruptedDescription": "監考紀錄可能延遲或缺漏，不影響學生作答與交卷。",
+    "draining": "整理考試紀錄中",
+    "drainingDescription": "考試已結束，系統正在整理已收到的事件與證據。",
+    "active": "監考中",
+    "activeDescription": "系統自動接收考試紀錄；請在事件與證據中進行人工判讀。",
+    "closed": "監考已結束",
+    "closedDescription": "此場考試已停止接收監考紀錄。",
+    "waiting": "等待考試開始",
+    "waitingDescription": "系統依考試時間自動管理監考，無需手動啟動。"
   },
   "proctoringPanel": {
     "backToRoster": "返回列表",
@@ -1864,6 +1871,12 @@
     "viewSubmissionSamples": "查看提交樣本"
   },
   "studentDashboard": {
+    "codingRecords": {
+      "problem": "題目",
+      "score": "得分／滿分",
+      "status": "解題狀態",
+      "count": "繳交次數"
+    },
     "actions": {
       "adminPanel": "管理後台",
       "backToAnswering": "回到作答",

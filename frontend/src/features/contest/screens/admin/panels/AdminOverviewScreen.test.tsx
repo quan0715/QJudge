@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -226,14 +226,15 @@ describe("AdminOverviewScreen", () => {
     ).toBeDisabled();
   });
 
-  it("renders the preparation view for a draft contest", () => {
+  it("renders three preparation steps without a participant checklist step", () => {
     mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
 
     renderScreen("/contest/contest-1/admin?panel=overview");
 
-    expect(
-      screen.getByRole("button", { name: "發布競賽" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "競賽資訊設定" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "競賽題目設定" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "確認資訊並發布競賽" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "考生名單" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("live-dashboard")).not.toBeInTheDocument();
   });
 
@@ -252,21 +253,54 @@ describe("AdminOverviewScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opens the schedule settings instead of publishing when time is missing", async () => {
+  it("opens contest settings from the first preparation card", async () => {
     mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
     const onOpenSettings = vi.fn();
 
     renderScreen("/contest/contest-1/admin?panel=overview", { onOpenSettings });
-    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+    await userEvent.click(screen.getByRole("button", { name: "競賽資訊設定" }));
 
     expect(onOpenSettings).toHaveBeenCalledWith("general");
     expect(updateContest).not.toHaveBeenCalled();
+  });
+
+  it("keeps publishing disabled until the schedule is set", async () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(
+      screen.getByRole("button", { name: "確認資訊並發布競賽" }),
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "確認資訊並發布競賽" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("請先完成競賽資訊設定，再發布競賽。"),
+    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: "發布競賽" })).toBeDisabled();
+  });
+
+  it("returns focus to the review step after closing its dialog", async () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    const reviewStep = screen.getByRole("button", {
+      name: "確認資訊並發布競賽",
+    });
+
+    await userEvent.click(reviewStep);
+    await userEvent.click(screen.getByRole("button", { name: "返回" }));
+
+    await waitFor(() => expect(reviewStep).toHaveFocus());
   });
 
   it("publishes when the schedule is set", async () => {
     mockState.contest = contest({ status: "draft", ...scheduled });
 
     renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "確認資訊並發布競賽" }));
+    expect(updateContest).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
 
     expect(updateContest).toHaveBeenCalledWith("contest-1", {
@@ -282,6 +316,8 @@ describe("AdminOverviewScreen", () => {
     });
 
     renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "確認資訊並發布競賽" }));
+    expect(updateContest).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
 
     expect(updateContest).not.toHaveBeenCalled();

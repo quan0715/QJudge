@@ -220,7 +220,12 @@ echo "[deploy] bootstrap AI OAuth signing key"
 python3 scripts/bootstrap_ai_oauth_keys.py
 
 echo "[deploy] bootstrap Integrity credentials"
-python3 scripts/bootstrap_integrity_secrets.py
+# Resident runs as 10001; only its public key and service token are group-readable.
+if [ "$(id -u)" -eq 0 ]; then
+  python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001
+else
+  sudo -n python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001
+fi
 
 echo "[deploy] validate rendered Compose"
 docker compose "${COMPOSE_FILES[@]}" config --quiet
@@ -298,9 +303,6 @@ fi
 echo "[deploy] build images"
 docker compose "${COMPOSE_FILES[@]}" build
 
-echo "[deploy] build Integrity worker image"
-docker compose "${COMPOSE_FILES[@]}" --profile build build integrity-worker-image
-
 echo "[deploy] start services"
 if ! docker compose "${COMPOSE_FILES[@]}" up -d --remove-orphans; then
   echo "Deployment start failed. Previous SHA: ${previous_git_ref}" >&2
@@ -376,7 +378,7 @@ echo "[deploy] smoke check"
 if ! wait_for_http "frontend" "http://localhost:80" || \
    ! wait_for_http "backend" "http://localhost:8000/api/health/" || \
    ! wait_for_http "AI service" "http://localhost:8001/health/ready" || \
-   ! wait_for_compose_http "Integrity controller" "integrity-controller" "http://localhost:8010/health"; then
+   ! wait_for_compose_http "Integrity resident" "integrity-resident" "http://localhost:8011/ready"; then
   echo "Deployment health checks failed. Previous SHA: ${previous_git_ref}" >&2
   if [ -n "$backup_file" ]; then
     echo "Validated database backup: ${backup_file}" >&2

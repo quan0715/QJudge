@@ -807,8 +807,8 @@ export type PreparationItemLevel = "done" | "warning" | "blocking";
 export type PreparationItemKey =
   | "schedule"
   | "problems"
-  | "participants"
-  | "rules";
+  | "rules"
+  | "review";
 
 export interface PreparationChecklistItem {
   key: PreparationItemKey;
@@ -895,26 +895,6 @@ export const buildAdminPreparationOverview = ({
       actionLabel: tr(
         "adminOverview.preparation.problems.action",
         "前往題目管理",
-      ),
-    },
-    {
-      key: "participants",
-      level: students.length > 0 ? "done" : "warning",
-      title: tr("adminOverview.preparation.participants.title", "考生名單"),
-      description:
-        students.length > 0
-          ? tr(
-              "adminOverview.preparation.participants.done",
-              "已加入 {{count}} 人",
-              { count: students.length },
-            )
-          : tr(
-              "adminOverview.preparation.participants.missing",
-              "尚未加入任何考生",
-            ),
-      actionLabel: tr(
-        "adminOverview.preparation.participants.action",
-        "管理名單",
       ),
     },
     {

@@ -1,11 +1,12 @@
-import type { ReactNode } from "react";
-import { Button } from "@carbon/react";
+import { useRef, useState, type ReactNode } from "react";
+import { Button, Modal } from "@carbon/react";
 import { Launch, QrCode, View } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import AdminSegmentedDashboard from "@/features/contest/components/admin/AdminSegmentedDashboard";
 import PreparationChecklist from "@/features/contest/components/admin/PreparationChecklist";
 import type {
   AdminPreparationOverviewData,
+  PreparationChecklistItem,
   PreparationItemKey,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 import {
@@ -16,12 +17,14 @@ import {
 } from "@/shared/components/dashboard";
 import styles from "./AdminPreparationCommandCenter.module.scss";
 
+type ConfigurablePreparationItemKey = Exclude<PreparationItemKey, "review">;
+
 interface AdminPreparationCommandCenterProps {
   header: ReactNode;
   data: AdminPreparationOverviewData;
   publishing: boolean;
   attendanceCheckEnabled: boolean;
-  onItemAction: (key: PreparationItemKey) => void;
+  onItemAction: (key: ConfigurablePreparationItemKey) => void;
   onPublishContest: () => void;
   onRevertToDraft: () => void;
   onPreviewAsStudent: () => void;
@@ -51,13 +54,73 @@ export default function AdminPreparationCommandCenter({
   onOpenAttendanceProjection,
 }: AdminPreparationCommandCenterProps) {
   const { t } = useTranslation("contest");
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const reviewStepRef = useRef<HTMLAnchorElement>(null);
   const isDraft = data.phase === "draft";
+  const schedule = data.checklist.find((item) => item.key === "schedule");
+  const rules = data.checklist.find((item) => item.key === "rules");
+  const problems = data.checklist.find((item) => item.key === "problems");
+
+  const informationTitle = t(
+    "adminOverview.preparation.steps.information",
+    "競賽資訊設定",
+  );
+  const problemsTitle = t(
+    "adminOverview.preparation.steps.problems",
+    "競賽題目設定",
+  );
+  const reviewTitle = t(
+    "adminOverview.preparation.steps.review",
+    "確認資訊並發布競賽",
+  );
+  const informationLevel =
+    schedule?.level === "blocking"
+      ? "blocking"
+      : schedule?.level === "done" && rules?.level === "done"
+        ? "done"
+        : "warning";
+
+  const steps: PreparationChecklistItem[] = [
+    {
+      key: "schedule",
+      title: informationTitle,
+      description: t(
+        "adminOverview.preparation.steps.informationDescription",
+        "規則與時間",
+      ),
+      actionLabel: informationTitle,
+      level: informationLevel,
+    },
+    {
+      key: "problems",
+      title: problemsTitle,
+      description: problems?.description ?? "",
+      actionLabel: problemsTitle,
+      level: problems?.level ?? "warning",
+    },
+    {
+      key: "review",
+      title: reviewTitle,
+      description: isDraft
+        ? t(
+            "adminOverview.preparation.steps.reviewDescription",
+            "確認設定後發布給學生",
+          )
+        : t("adminOverview.preparation.steps.published", "競賽已發布"),
+      actionLabel: reviewTitle,
+      level: isDraft ? (data.canPublish ? "warning" : "blocking") : "done",
+    },
+  ];
+
+  const closeReview = () => {
+    setReviewOpen(false);
+    window.setTimeout(() => reviewStepRef.current?.focus(), 0);
+  };
 
   const primary = (
     <DashboardContainer layout="stack" dividers="auto">
       <DashboardContainer
-        layout="grid"
-        columns={3}
+        layout="split"
         dividers="auto"
         ariaLabel={t("adminOverview.preparation.infoLabel", "競賽基本資訊")}
       >
@@ -70,15 +133,18 @@ export default function AdminPreparationCommandCenter({
 
       <DashboardBlock>
         <BlockHeader
-          title={t("adminOverview.preparation.checklistTitle", "發布前檢查")}
-          description={t(
-            "adminOverview.preparation.checklistDescription",
-            "先把缺的補齊，再把競賽發布給學生。",
-          )}
+          title={t("adminOverview.preparation.steps.title", "競賽準備步驟")}
         />
         <PreparationChecklist
-          items={data.checklist}
-          onItemAction={onItemAction}
+          items={steps}
+          cardRefs={{ review: reviewStepRef }}
+          onItemAction={(key) => {
+            if (key === "review") {
+              setReviewOpen(true);
+              return;
+            }
+            onItemAction(key);
+          }}
         />
       </DashboardBlock>
 
@@ -113,65 +179,42 @@ export default function AdminPreparationCommandCenter({
 
   const side = (
     <DashboardContainer layout="stack" dividers="auto">
-      <DashboardBlock>
-        <div className={styles.sideBlock}>
-          <span className={styles.sideLabel}>
-            {t("adminOverview.preparation.nextStep", "下一步")}
-          </span>
-          {isDraft ? (
-            <>
-              <Button
-                kind="primary"
-                disabled={publishing}
-                onClick={onPublishContest}
-              >
-                {t("adminOverview.actions.publishContest", "發布競賽")}
-              </Button>
-              <p className={styles.sideNote}>
-                {data.canPublish
-                  ? t(
-                      "adminOverview.actions.publishContestBody",
-                      "發布後學生就可以看到這場競賽。",
-                    )
-                  : t(
-                      "adminOverview.preparation.blockedBySchedule",
-                      "發布前會先請你設定考試時間",
-                    )}
+      {!isDraft && (
+        <DashboardBlock>
+          <div className={styles.sideBlock}>
+            <span className={styles.sideLabel}>
+              {t("adminOverview.preparation.nextStep", "下一步")}
+            </span>
+            {data.countdownMs !== null && (
+              <p className={styles.countdown}>
+                {t("adminOverview.preparation.startsIn", {
+                  defaultValue: "距離開考 {{value}}",
+                  value: formatCountdown(data.countdownMs),
+                })}
               </p>
-            </>
-          ) : (
-            <>
-              {data.countdownMs !== null && (
-                <p className={styles.countdown}>
-                  {t("adminOverview.preparation.startsIn", {
-                    defaultValue: "距離開考 {{value}}",
-                    value: formatCountdown(data.countdownMs),
-                  })}
-                </p>
-              )}
+            )}
+            <Button
+              kind="tertiary"
+              renderIcon={Launch}
+              onClick={onOpenContestHome}
+            >
+              {t("adminOverview.actions.openContestHomepage", "開啟競賽主頁")}
+            </Button>
+            {attendanceCheckEnabled && (
               <Button
-                kind="tertiary"
-                renderIcon={Launch}
-                onClick={onOpenContestHome}
+                kind="ghost"
+                renderIcon={QrCode}
+                onClick={onOpenAttendanceProjection}
               >
-                {t("adminOverview.actions.openContestHomepage", "開啟競賽主頁")}
+                {t(
+                  "adminOverview.screen.actions.attendanceProjection",
+                  "開啟簽到投屏",
+                )}
               </Button>
-              {attendanceCheckEnabled && (
-                <Button
-                  kind="ghost"
-                  renderIcon={QrCode}
-                  onClick={onOpenAttendanceProjection}
-                >
-                  {t(
-                    "adminOverview.screen.actions.attendanceProjection",
-                    "開啟簽到投屏",
-                  )}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-      </DashboardBlock>
+            )}
+          </div>
+        </DashboardBlock>
+      )}
 
       <DashboardBlock>
         <div className={styles.sideBlock}>
@@ -213,11 +256,64 @@ export default function AdminPreparationCommandCenter({
   );
 
   return (
-    <AdminSegmentedDashboard
-      ariaLabel={t("adminOverview.preparation.ariaLabel", "競賽準備總覽")}
-      header={header}
-      primary={primary}
-      side={side}
-    />
+    <>
+      <AdminSegmentedDashboard
+        ariaLabel={t("adminOverview.preparation.ariaLabel", "競賽準備總覽")}
+        header={header}
+        primary={primary}
+        side={side}
+      />
+      <Modal
+        open={reviewOpen}
+        passiveModal={!isDraft}
+        modalHeading={reviewTitle}
+        selectorPrimaryFocus={
+          data.canPublish
+            ? undefined
+            : "[data-qjudge-preparation-review-blocked]"
+        }
+        primaryButtonText={t("adminOverview.actions.publishContest", "發布競賽")}
+        secondaryButtonText={t("adminOverview.preparation.steps.back", "返回")}
+        primaryButtonDisabled={publishing || !data.canPublish}
+        onRequestClose={closeReview}
+        onRequestSubmit={
+          isDraft
+            ? () => {
+                setReviewOpen(false);
+                onPublishContest();
+              }
+            : undefined
+        }
+      >
+        {isDraft && !data.canPublish && (
+          <p
+            className={styles.reviewBlocked}
+            data-qjudge-preparation-review-blocked
+            tabIndex={-1}
+          >
+            {t(
+              "adminOverview.preparation.steps.reviewBlocked",
+              "請先完成競賽資訊設定，再發布競賽。",
+            )}
+          </p>
+        )}
+        <dl className={styles.reviewList}>
+          {data.infoCells.map((cell) => (
+            <div key={cell.key}>
+              <dt>{cell.label}</dt>
+              <dd>{cell.value}</dd>
+            </div>
+          ))}
+          {[schedule, rules, problems].map((item) =>
+            item ? (
+              <div key={item.key}>
+                <dt>{item.title}</dt>
+                <dd>{item.description}</dd>
+              </div>
+            ) : null,
+          )}
+        </dl>
+      </Modal>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import {
   Time,
   Warning,
   InProgress,
+  InformationFilled,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { getStatusConfig } from "@/core/config/status.config";
@@ -70,6 +71,7 @@ const STATUS_ICON_CONFIG: Record<
       size: number;
       className?: string;
       fill?: string;
+      style?: React.CSSProperties;
     }>;
     color: string;
   }
@@ -78,6 +80,7 @@ const STATUS_ICON_CONFIG: Record<
   passed: { icon: CheckmarkFilled, color: "var(--cds-support-success)" },
   failed: { icon: CloseFilled, color: "var(--cds-support-error)" },
   pending: { icon: Time, color: "var(--cds-text-secondary)" },
+  info: { icon: InformationFilled, color: "var(--cds-support-info)" },
   // Submission statuses
   AC: { icon: CheckmarkFilled, color: "var(--cds-support-success)" },
   WA: { icon: CloseFilled, color: "var(--cds-support-error)" },
@@ -104,6 +107,6 @@ export const SubmissionStatusIcon: React.FC<SubmissionStatusIconProps> = ({
   const IconComponent = config.icon;
 
   return (
-    <IconComponent size={size} className={className} fill={config.color} />
+    <IconComponent size={size} className={className} style={{ color: config.color, fill: config.color }} />
   );
 };

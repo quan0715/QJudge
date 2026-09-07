@@ -280,8 +280,18 @@
     },
     "preparation": {
       "ariaLabel": "대회 준비 개요",
-      "checklistTitle": "게시 전 점검",
-      "checklistDescription": "빠진 항목을 채운 뒤 대회를 학생에게 게시하세요.",
+      "steps": {
+        "title": "대회 준비 단계",
+        "information": "대회 정보 설정",
+        "informationDescription": "규칙 및 일정",
+        "problems": "대회 문제 설정",
+        "review": "정보 확인 및 게시",
+        "reviewDescription": "설정을 확인한 후 학생에게 게시하세요",
+        "reviewBlocked": "대회 정보를 완료한 후 게시하세요.",
+        "published": "대회 게시됨",
+        "back": "돌아가기"
+      },
+      "checklistTitle": "완료 필요",
       "participantsTitle": "응시자 명단",
       "nextStep": "다음 단계",
       "studentView": "학생에게 보이는 화면",
@@ -291,6 +301,7 @@
       "startsIn": "시작까지 {{value}}",
       "dangerAction": "위험한 작업",
       "level": {
+        "pending": "완료 필요",
         "done": "완료",
         "warning": "권장",
         "blocking": "게시 필수"
@@ -753,6 +764,7 @@
     "startExamFailed": "시험을 시작할 수 없습니다. 나중에 다시 시도해 주세요"
   },
   "exam": {
+    "integrityLocalDataLoss": "일부 모니터링 이벤트나 영상·음성을 기록 또는 저장하지 못해 복구할 수 없을 수 있습니다. 전송 대기와는 다르며, 업로드가 완료되어도 누락된 데이터는 복원되지 않습니다. 답안 작성과 제출은 계속할 수 있습니다.",
     "abnormalBehavior": "비정상적인 행동이 감지되었습니다",
     "accumulatedViolations": "누적 위반 횟수",
     "alreadyLocked": "0 - 잠김",
@@ -786,6 +798,8 @@
     "monitoringDeviceUnsupported": "현재 기기는 이 시험의 감독 설정과 맞지 않습니다. 대시보드로 돌아가 환경 검사를 다시 실행하세요.",
     "monitoringHint": "시험 모니터링 중 - 자세한 내용은 클릭",
     "monitoringIssueHint": "안내에 따라 모니터링 상태를 복구하세요. 이벤트 증거는 보존되었습니다.",
+    "integrityUploadPending": "모니터링 데이터 전송이 완료되지 않았습니다. 답안 작성과 제출은 계속할 수 있습니다. 페이지를 떠나면 전송이 중단되며, 로컬에 저장된 데이터는 보존됩니다.",
+    "integrityUploadExpired": "미완료 데이터가 남은 상태로 모니터링 업로드 기한이 지났습니다. 제출 결과에는 영향이 없으며, 로컬에 저장된 데이터는 보존됩니다.",
     "monitoringReminder": {
       "fullscreen": "전체 화면 복귀",
       "mouse_leave": "마우스 이탈",
@@ -1617,30 +1631,23 @@
     "title": "문제 관리"
   },
   "problems": "문제 수",
-  "integrityRun": {
-    "title": "Integrity Worker",
-    "description": "시스템이 시험 이벤트와 증거 처리를 자동으로 관리합니다.",
-    "waiting": "시스템 시작 대기",
-    "waitingDescription": "시험 일정에 따라 시스템이 Worker를 관리합니다.",
-    "workerUnhealthy": "Worker 이상",
-    "workerUnhealthyDescription": "시험 이벤트를 안정적으로 받을 수 없습니다. Worker를 다시 시작해 보세요.",
-    "healthy": "정상 작동",
-    "healthyDescription": "Worker가 시험 이벤트를 수신하고 처리하고 있습니다.",
-    "starting": "시작 중",
-    "stopping": "마무리 중",
-    "transitionDescription": "시스템이 Worker 상태를 업데이트하고 있습니다.",
-    "archived": "보관 완료",
-    "archivedDescription": "시험 데이터가 보관되었습니다.",
-    "completed": "완료",
-    "completedDescription": "이 시험의 Worker 수명 주기가 종료되었습니다.",
-    "ready": "시험 시작 대기",
-    "readyDescription": "필요할 때 시스템이 Worker를 자동으로 시작합니다.",
-    "restart": "Worker 다시 시작",
-    "restartPreservesData": "이벤트와 증거 데이터는 유지됩니다.",
-    "confirmRestart": "다시 시작 확인",
-    "restartComplete": "Worker를 다시 시작했습니다",
-    "restartFailed": "Worker를 다시 시작할 수 없습니다",
-    "loadFailed": "Worker 상태를 불러올 수 없습니다"
+  "integrityStatus": {
+    "unavailable": "감독 상태를 업데이트할 수 없습니다",
+    "unavailableDescription": "자동으로 다시 시도합니다. 답안 작성과 제출에는 영향이 없습니다.",
+    "purged": "데이터 삭제됨",
+    "purgedDescription": "이 시험의 감독 데이터가 영구 삭제되었습니다.",
+    "archived": "보관됨",
+    "archivedDescription": "시험 기록이 보관되었습니다. 증거의 완전성은 각 이벤트의 상태를 확인하세요.",
+    "interrupted": "감독 일시 중단",
+    "interruptedDescription": "감독 기록이 지연되거나 누락될 수 있습니다. 답안 작성과 제출에는 영향이 없습니다.",
+    "draining": "시험 기록 정리 중",
+    "drainingDescription": "시험이 종료되어 수신한 이벤트와 증거를 정리하고 있습니다.",
+    "active": "감독 중",
+    "activeDescription": "시험 기록은 자동 수집됩니다. 이벤트와 증거를 직접 검토하세요.",
+    "closed": "감독 종료",
+    "closedDescription": "이 시험의 감독 기록 수신이 종료되었습니다.",
+    "waiting": "시험 시작 대기",
+    "waitingDescription": "시험 일정에 따라 자동으로 감독합니다. 수동 시작은 필요하지 않습니다."
   },
   "proctoringPanel": {
     "backToRoster": "목록으로 돌아가기",
@@ -1864,6 +1871,12 @@
     "viewSubmissionSamples": "제출 샘플 보기"
   },
   "studentDashboard": {
+    "codingRecords": {
+      "problem": "문제",
+      "score": "점수 / 만점",
+      "status": "상태",
+      "count": "제출 횟수"
+    },
     "actions": {
       "adminPanel": "관리 대시보드",
       "backToAnswering": "답안 화면으로 돌아가기",

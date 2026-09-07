@@ -91,14 +91,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     ? testResults.findIndex(r => r.id === selectedResult.id) + 1 
     : 1;
 
-  // Map status for icon display
-  const getIconStatus = (status: string) => {
-    if (status === "AC" || status === "passed") return "passed";
-    if (status === "pending" || status === "judging") return "pending";
-    if (status === "info") return "passed"; // Custom test case executed
-    return "failed";
-  };
-
   // Skeleton for sidebar items
   const renderSidebarSkeleton = () => (
     <div className={styles.sidebarList}>
@@ -165,7 +157,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               {testResults.map((result, idx) => {
                 const isActive = selectedResult?.id === result.id;
                 const formatTime = (ms: number) => ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
-                const iconStatus = getIconStatus(result.status);
                 
                 return (
                   <Button
@@ -176,7 +167,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     onClick={() => setSelectedResult(result)}
                     className={`${styles.resultItem} ${isActive ? styles["resultItem--active"] : ""}`}
                   >
-                    <SubmissionStatusIcon status={iconStatus} size={16} />
+                    <SubmissionStatusIcon status={result.status} size={16} />
                     <span className={styles.resultLabel}>#{idx + 1}</span>
                     <span className={styles.resultMeta}>
                       {result.status !== "pending" && result.execTime !== undefined && result.execTime > 0 && formatTime(result.execTime)}

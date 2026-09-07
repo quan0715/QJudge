@@ -556,6 +556,11 @@
     }
   },
   "workspaceTopNav": {
+    "closeInfoPanel": "정보 패널 닫기",
+    "problemInfo": "문제 정보",
+    "submissions": "제출 기록",
+    "backToContest": "대회로 돌아가기",
+    "previewMode": "미리보기 모드",
     "adminConsole": "管理後台",
     "contestFallback": "競賽",
     "contestHome": "競賽主頁",

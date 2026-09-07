@@ -14,12 +14,15 @@ from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamEvidenceChunk,
     ExamEvent,
     ExamIntegrityRun,
+    IntegrityBatchAdmission,
 )
 from apps.contests.services.anticheat_storage import (
     generate_evidence_chunk_put_url,
@@ -229,6 +232,11 @@ def _raw_window(
     event: ExamEvent,
     enabled_sources: frozenset[str],
 ) -> tuple[_RawWindow, ...]:
+    integrity = event.metadata.get("integrity", {}) if isinstance(event.metadata, dict) else {}
+    if isinstance(integrity, dict) and integrity.get("late_unverified") is True:
+        return ()
+    if isinstance(integrity, dict) and integrity.get("evidence_gap"):
+        return ()
     if (
         event.incident_id is None
         or event.client_occurred_at_ms is None
@@ -503,12 +511,14 @@ def build_evidence_delivery(
     run: ExamIntegrityRun,
     participant: ContestParticipant,
     now_ms: int,
+    upload_scope=None,
 ) -> EvidenceDelivery:
     """Return the replay-safe pending retain projection and release watermark."""
 
     if type(now_ms) is not int or now_ms < 0:
         raise ValueError("now_ms must be a nonnegative integer")
-    events = list(_participant_incident_events(run, participant))
+    events = (_owned_evidence_events(run, participant, upload_scope) if upload_scope is not None
+        else list(_participant_incident_events(run, participant)))
     windows = _evidence_retain_windows_for_events(
         run,
         events,
@@ -521,6 +531,9 @@ def build_evidence_delivery(
             participant=participant,
         )
     )
+    if upload_scope is not None:
+        event_ids = {event.pk for event in events}
+        chunks = [chunk for chunk in chunks if chunk.exam_event_id in event_ids]
     unresolved = []
     for window in windows:
         unresolved_sources = tuple(
@@ -826,11 +839,73 @@ def _chunk_object_key(
     )
 
 
+def _lock_evidence_scope(run, participant, upload_scope):
+    """Caller owns an atomic block; release no authorization lock before writing."""
+    from .exam_schedule import lock_exam_runs
+    from .integrity_upload_grants import admit_checkpoint
+
+    Contest.objects.select_for_update().get(pk=run.contest_id)
+    lock_exam_runs(run.contest_id)
+    run = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
+    participant = ContestParticipant.objects.select_for_update().get(
+        pk=participant.pk, contest_id=run.contest_id)
+    if upload_scope is None:
+        raise PermissionDenied("Resident evidence requires the trusted upload scope.")
+    run, participant, _ = admit_checkpoint(run.contest, participant, upload_scope, None,
+        request_device=upload_scope["device_id"], has_evidence=True)
+    return run, participant
+
+
+def _resident_event_owner(run, participant, event):
+    """Historical ownership comes only from the immutable gateway admission."""
+    if (event.integrity_run_id != run.pk or event.contest_id != run.contest_id
+            or event.user_id != participant.user_id):
+        return None
+    metadata = event.metadata if isinstance(event.metadata, dict) else {}
+    integrity = metadata.get("integrity", {})
+    if not isinstance(integrity, dict) or integrity.get("late_unverified") is True:
+        return None
+    try:
+        batch_id = UUID(str(metadata.get("receipt_batch_id")))
+    except (ValueError, TypeError):
+        return None
+    admission = IntegrityBatchAdmission.objects.filter(run=run, participant=participant,
+        batch_id=batch_id, late_unverified=False).first()
+    if admission is None or integrity.get("device_id") != admission.device_id:
+        return None
+    owner = {"device_id": admission.device_id, "attempt_id": str(admission.attempt_id)}
+    if integrity.get("attempt_id", owner["attempt_id"]) != owner["attempt_id"]:
+        return None
+    return owner
+
+
+def _require_evidence_owner(run, participant, upload_scope, event, chunk=None):
+    owner = _resident_event_owner(run, participant, event)
+    expected = None if upload_scope is None else {
+        "device_id": upload_scope["device_id"], "attempt_id": str(upload_scope["attempt_id"])}
+    if owner is None or owner != expected:
+        raise PermissionDenied("Evidence device or attempt scope mismatch.")
+    if chunk is not None:
+        metadata = chunk.metadata if isinstance(chunk.metadata, dict) else {}
+        if (chunk.integrity_run_id != run.pk or chunk.participant_id != participant.pk
+                or metadata.get("integrity_upload_scope", owner) != owner):
+            raise PermissionDenied("Evidence chunk ownership mismatch.")
+    return owner
+
+
+def _owned_evidence_events(run, participant, upload_scope):
+    events = _participant_incident_events(run, participant)
+    owner = {"device_id": upload_scope["device_id"], "attempt_id": str(upload_scope["attempt_id"])}
+    return [event for event in events if _resident_event_owner(run, participant, event) == owner]
+
+
 def create_evidence_manifest(
     run: ExamIntegrityRun,
     participant: ContestParticipant,
     event: ExamEvent,
     descriptors: list[dict[str, object]],
+    *,
+    upload_scope=None,
 ) -> list[dict[str, object]]:
     """Upsert selected physical chunks and return checksum-bound PUT actions."""
 
@@ -844,17 +919,11 @@ def create_evidence_manifest(
         for descriptor in descriptors
     }
     with transaction.atomic():
-        locked_run = (
-            ExamIntegrityRun.objects.select_for_update()
-            .select_related("contest")
-            .get(pk=run.pk)
-        )
+        locked_run, participant = _lock_evidence_scope(run, participant, upload_scope)
+        event = ExamEvent.objects.select_for_update().get(pk=event.pk)
+        owner = _require_evidence_owner(locked_run, participant, upload_scope, event)
         if (
-            locked_run.compute_state
-            not in {
-                ExamIntegrityRun.ComputeState.RUNNING,
-                ExamIntegrityRun.ComputeState.STOPPING,
-            }
+            locked_run.session_state not in {"active", "draining"}
             or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
         ):
             raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")
@@ -864,9 +933,9 @@ def create_evidence_manifest(
         )
         windows = [
             window
-            for window in evidence_retain_windows(
+            for window in _evidence_retain_windows_for_events(
                 locked_run,
-                participant,
+                _owned_evidence_events(locked_run, participant, upload_scope),
                 after_ms=0,
             )
             if window.incident_id == event.incident_id
@@ -921,6 +990,8 @@ def create_evidence_manifest(
                 "chunk_seq": descriptor["chunk_seq"],
             }
             row = existing_by_identity.get(_descriptor_identity(descriptor))
+            if row is not None:
+                _require_evidence_owner(locked_run, participant, upload_scope, row.exam_event, row)
             if row is not None and not _descriptor_fields_match(
                 row,
                 descriptor,
@@ -946,11 +1017,11 @@ def create_evidence_manifest(
                     byte_size=descriptor["byte_size"],
                     sha256=descriptor["sha256"],
                     previous_sha256=descriptor["previous_sha256"],
-                    metadata=_merged_association_metadata(
+                    metadata={**_merged_association_metadata(
                         None,
                         event,
                         descriptor,
-                    ),
+                    ), **({"integrity_upload_scope": owner} if owner else {})},
                 )
             else:
                 metadata = _merged_association_metadata(
@@ -958,6 +1029,8 @@ def create_evidence_manifest(
                     event,
                     descriptor,
                 )
+                if owner:
+                    metadata["integrity_upload_scope"] = owner
                 if metadata != row.metadata:
                     row.metadata = metadata
                     row.save(update_fields=["metadata"])
@@ -1028,9 +1101,15 @@ def _storage_error_code(error: ClientError) -> str:
 
 def complete_evidence_chunk(
     chunk: ExamEvidenceChunk,
+    *,
+    upload_scope=None,
 ) -> ExamEvidenceChunk:
-    if chunk.status == ExamEvidenceChunk.Status.VERIFIED:
-        return chunk
+    with transaction.atomic():
+        run, participant = _lock_evidence_scope(chunk.integrity_run, chunk.participant, upload_scope)
+        chunk = ExamEvidenceChunk.objects.select_for_update().get(pk=chunk.pk)
+        _require_evidence_owner(run, participant, upload_scope, chunk.exam_event, chunk)
+        if chunk.status == ExamEvidenceChunk.Status.VERIFIED:
+            return chunk
     client = get_s3_client()
     try:
         head = client.head_object(
@@ -1066,7 +1145,9 @@ def complete_evidence_chunk(
     now = timezone.now()
     mismatch = not length_matches or not checksum_matches
     with transaction.atomic():
+        run, participant = _lock_evidence_scope(run, participant, upload_scope)
         locked = ExamEvidenceChunk.objects.select_for_update().get(pk=chunk.pk)
+        owner = _require_evidence_owner(run, participant, upload_scope, locked.exam_event, locked)
         if locked.status == ExamEvidenceChunk.Status.VERIFIED:
             return locked
         if mismatch:
@@ -1077,6 +1158,8 @@ def complete_evidence_chunk(
             locked.uploaded_at = now
             locked.verified_at = now
             metadata = dict(locked.metadata) if type(locked.metadata) is dict else {}
+            if owner:
+                metadata["integrity_upload_scope"] = owner
             metadata["storage_head"] = {
                 "byte_size": locked.byte_size,
                 "checksum_sha256": expected_checksum,
@@ -1099,12 +1182,17 @@ def report_evidence_unavailable(
     chunk: ExamEvidenceChunk,
     *,
     reason: str,
+    upload_scope=None,
 ) -> ExamEvidenceChunk:
     with transaction.atomic():
+        run, participant = _lock_evidence_scope(chunk.integrity_run, chunk.participant, upload_scope)
         locked = ExamEvidenceChunk.objects.select_for_update().get(pk=chunk.pk)
+        owner = _require_evidence_owner(run, participant, upload_scope, locked.exam_event, locked)
         if locked.status == ExamEvidenceChunk.Status.VERIFIED:
             raise IntegrityEvidenceRejected("verified_evidence_cannot_be_unavailable")
         metadata = dict(locked.metadata) if type(locked.metadata) is dict else {}
+        if owner:
+            metadata["integrity_upload_scope"] = owner
         metadata["unavailable_reason"] = reason
         metadata["unavailable_reported_at"] = timezone.now().isoformat()
         locked.status = ExamEvidenceChunk.Status.UNAVAILABLE
@@ -1120,6 +1208,7 @@ def report_evidence_unavailable_projection(
     *,
     source: str,
     reason: str,
+    upload_scope=None,
 ) -> tuple[dict[str, object], ...]:
     """Record server-signed terminal coverage when no media chunk exists."""
 
@@ -1128,13 +1217,9 @@ def report_evidence_unavailable_projection(
     if type(reason) is not str or not 1 <= len(reason) <= 256:
         raise IntegrityEvidenceRejected("invalid_evidence_unavailable_reason")
     with transaction.atomic():
-        locked_run = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
+        locked_run, participant = _lock_evidence_scope(run, participant, upload_scope)
         if (
-            locked_run.compute_state
-            not in {
-                ExamIntegrityRun.ComputeState.RUNNING,
-                ExamIntegrityRun.ComputeState.STOPPING,
-            }
+            locked_run.session_state not in {"active", "draining"}
             or locked_run.data_state != ExamIntegrityRun.DataState.OPEN
         ):
             raise IntegrityEvidenceRejected("evidence_run_not_accepting_uploads")
@@ -1155,7 +1240,8 @@ def report_evidence_unavailable_projection(
         )
         if locked_event is None or locked_event.incident_id is None:
             raise IntegrityEvidenceRejected("evidence_projection_not_found")
-        events = list(_participant_incident_events(locked_run, participant))
+        _require_evidence_owner(locked_run, participant, upload_scope, locked_event)
+        events = list(_owned_evidence_events(locked_run, participant, upload_scope))
         windows = [
             window
             for window in _evidence_retain_windows_for_events(
@@ -1800,7 +1886,10 @@ def _persist_purge_receipt(
     with transaction.atomic():
         locked = ExamIntegrityRun.objects.select_for_update().get(pk=run.pk)
         if (
-            locked.compute_state != ExamIntegrityRun.ComputeState.DESTROYED
+            locked.session_state not in {
+                ExamIntegrityRun.SessionState.ARCHIVED,
+                ExamIntegrityRun.SessionState.CLOSED,
+            }
             or locked.data_state != ExamIntegrityRun.DataState.ARCHIVED
             or locked.archive_manifest_key != run.archive_manifest_key
             or locked.archive_manifest_sha256 != run.archive_manifest_sha256

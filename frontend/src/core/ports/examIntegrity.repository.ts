@@ -11,6 +11,8 @@ export interface AppendIntegritySignal {
   payload: IntegrityPayload;
   /** Descriptor summaries only; media bytes remain in OPFS. */
   evidenceDescriptors?: ExamIntegrityEvidenceDescriptor[];
+  /** Resident owner supplies a completed recorder/emitter barrier boundary. */
+  evidenceFenceBeforeMs?: number;
 }
 
 export interface BatchFailure {

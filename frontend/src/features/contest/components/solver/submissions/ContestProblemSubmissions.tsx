@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   Button,
   SkeletonText,
+  Pagination,
   InlineNotification,
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
@@ -33,14 +34,16 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     "3.75rem",
     "5rem",
   ];
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(20);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: currentUser } = useAuth();
 
   // Fetch submissions for this problem, filtered by current user
   const { data, isLoading, isFetching, refetch } = useContestSubmissions({
     contestId,
-    page: 1,
-    pageSize: 20,
+    page,
+    pageSize,
     problemFilter: codingProblemId,
     userId: currentUser?.id,
   });
@@ -137,6 +140,10 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
         />
       )}
 
+      {(data?.count ?? 0) > 20 && <Pagination
+        page={page} pageSize={pageSize} pageSizes={[20, 50, 100]} totalItems={data?.count ?? 0}
+        onChange={({ page: nextPage, pageSize: nextSize }) => { setPage(nextPage); setPageSize(nextSize); }}
+      />}
       <SubmissionDetailModal
         submissionId={submissionIdFromUrl}
         isOpen={isModalOpen}

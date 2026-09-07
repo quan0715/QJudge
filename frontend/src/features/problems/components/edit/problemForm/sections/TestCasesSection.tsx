@@ -26,14 +26,21 @@ import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext"
 import { Section } from "@/shared/layout/SettingsPanel";
 import styles from "./TestCasesSection.module.scss";
 
-type TestCaseVisibility = "sample" | "normal" | "hidden";
+type TestCaseVisibility = "sample" | "public" | "hidden";
 
 /** The two flags are mutually exclusive, so they read as one three-way choice. */
 const testCaseVisibility = (tc: { isSample: boolean; isHidden: boolean }): TestCaseVisibility => {
   if (tc.isSample) return "sample";
   if (tc.isHidden) return "hidden";
-  return "normal";
+  return "public";
 };
+
+const renderVisibilityLabel = (name: string, hint: string) => (
+  <span className={styles.radioLabel}>
+    <span>{name}</span>
+    <span className={styles.radioLabelHint}>{hint}</span>
+  </span>
+);
 
 interface TestCaseRow {
   id: string;
@@ -315,6 +322,7 @@ const TestCasesSection: React.FC = () => {
             <RadioButtonGroup
               name="tc-visibility"
               legendText="測資類型"
+              helperText="三種都會在正式提交時計分"
               orientation="vertical"
               valueSelected={testCaseVisibility(editForm)}
               onChange={(value) => {
@@ -327,17 +335,26 @@ const TestCasesSection: React.FC = () => {
             >
               <RadioButton
                 id="tc-visibility-sample"
-                labelText="範例測資"
+                labelText={renderVisibilityLabel(
+                  "範例測資",
+                  "顯示在題目敘述，學生按「測試執行」時只跑這些",
+                )}
                 value="sample"
               />
               <RadioButton
-                id="tc-visibility-normal"
-                labelText="一般測資"
-                value="normal"
+                id="tc-visibility-public"
+                labelText={renderVisibilityLabel(
+                  "公開測資",
+                  "只在正式提交時執行，學生可在結果中看到測資內容",
+                )}
+                value="public"
               />
               <RadioButton
                 id="tc-visibility-hidden"
-                labelText="隱藏測資"
+                labelText={renderVisibilityLabel(
+                  "隱藏測資",
+                  "只在正式提交時執行，學生看不到輸入與預期輸出",
+                )}
                 value="hidden"
               />
             </RadioButtonGroup>

@@ -2,11 +2,17 @@
 // 此 module 只保留 student dashboard 內部 list / chart / tab content 的局部樣式。
 // 頁面層級 layout、title、metric、time 已改用 @/shared/components/dashboard 元件。
 
-.tagRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-03;
+.headerDescription {
   margin-top: layout.$spacing-02;
+  color: var(--cds-text-secondary);
+
+  > :first-child {
+    margin-block-start: 0;
+  }
+
+  > :last-child {
+    margin-block-end: 0;
+  }
 }
 
 .tabPanel {
@@ -23,12 +29,6 @@
 .modalStack {
   display: grid;
   gap: layout.$spacing-04;
-}
-
-.headerActions {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-03;
 }
 
 .actionStackItem {

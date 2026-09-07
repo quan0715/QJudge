@@ -18,11 +18,9 @@ import {
   Select,
   SelectItem,
   SkeletonPlaceholder,
-  Tag,
 } from "@carbon/react";
 import {
   ArrowRight,
-  Checkmark,
   Document,
   Flag,
   Launch,
@@ -31,7 +29,6 @@ import {
   QrCode,
   Renew,
   Time,
-  WarningAlt,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -42,11 +39,7 @@ import type {
   ExamQuestion,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
-import {
-  getContestState,
-  getContestStateColor,
-  getContestStateLabel,
-} from "@/core/entities/contest.entity";
+import { getContestState } from "@/core/entities/contest.entity";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
 import {
@@ -69,6 +62,7 @@ import { formatDate } from "@/shared/utils/format";
 import { useInterval } from "@/shared/hooks/useInterval";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import {
   BlockHeader,
   DashboardBlock,
@@ -92,6 +86,7 @@ import {
   resolveStudentContestPhase,
 } from "./studentDashboardState";
 import styles from "./StudentContestDashboard.module.scss";
+import CodingAnswerRecords from "./CodingAnswerRecords";
 
 const ATTENDANCE_READY_STATUSES = new Set(["photo_confirmed", "teacher_assisted"]);
 
@@ -222,6 +217,7 @@ export default function StudentContestDashboard({
   );
   const contestRefreshInFlight = useRef(false);
   const showMobileActionFooter = useMediaQuery("(max-width: 672px)");
+  const setPageHeaderActions = usePageHeaderActions();
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isParticipant(contest);
@@ -244,6 +240,26 @@ export default function StudentContestDashboard({
     phase !== "before";
 
   useInterval(() => setNowMs(Date.now()), phase !== "after" ? 1000 : null);
+
+  const handleManualRefresh = useCallback(() => {
+    setPaperReloadKey((value) => value + 1);
+    void onRefreshContest?.();
+  }, [onRefreshContest]);
+
+  // 重新整理放在 workspace top bar，讓所有競賽狀態共用同一個入口。
+  useEffect(() => {
+    setPageHeaderActions(
+      <Button
+        kind="ghost"
+        size="sm"
+        hasIconOnly
+        renderIcon={Renew}
+        iconDescription={t("studentDashboard.actions.refresh", "重新整理")}
+        onClick={handleManualRefresh}
+      />,
+    );
+    return () => setPageHeaderActions(null);
+  }, [handleManualRefresh, setPageHeaderActions, t]);
 
   const refreshContestState = useCallback(async () => {
     if (
@@ -738,57 +754,7 @@ export default function StudentContestDashboard({
       );
     }
 
-    const problems = contest.problems.map((problem, index) => ({
-      id: problem.id,
-      label: problem.label || String(index + 1),
-      problemId: problem.problemId,
-      title: problem.title,
-      order: problem.order ?? index,
-      score: problem.maxScore ?? 0,
-      userStatus: problem.userStatus,
-    }));
-
-    if (!problems.length) {
-      return (
-        <p className={styles.emptyText}>
-          {t("studentDashboard.empty.noQuestions", "尚無題目資料。")}
-        </p>
-      );
-    }
-
-    return (
-      <div className={styles.problemReportList}>
-        {problems.map((problem) => {
-          const statusText =
-            problem.userStatus ??
-            t("studentDashboard.records.notSubmitted", "尚未提交");
-          return (
-            <div className={styles.problemReportItem} key={problem.id}>
-              <div>
-                <div className={styles.recordTitle}>
-                  {problem.label}. {problem.title || "Untitled"}
-                </div>
-                <div className={styles.recordMeta}>
-                  {tr("studentDashboard.records.fullScore", "滿分 {{score}}", {
-                    score: formatScore(problem.score ?? 0),
-                  })}
-                </div>
-              </div>
-              <div className={styles.problemReportMeta}>
-                <Tag type={problem.userStatus === "AC" ? "green" : "cool-gray"}>
-                  {statusText}
-                </Tag>
-                <span className={styles.recordScore}>
-                  {contest.resultsPublished
-                    ? t("studentDashboard.results.published", "成績已發布")
-                    : t("studentDashboard.results.pendingPublish", "待發布")}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+    return <CodingAnswerRecords contest={contest} />;
   };
 
   const renderPaperRecords = () => {
@@ -963,27 +929,6 @@ export default function StudentContestDashboard({
     );
   };
 
-  const tagRow = (
-    <div className={styles.tagRow}>
-      <Tag type={getContestStateColor(contestState)}>
-        {t(
-          `studentDashboard.contestState.${contestState}`,
-          getContestStateLabel(contestState),
-        )}
-      </Tag>
-      <Tag type={participant ? "green" : "gray"}>
-        {participant
-          ? t("studentDashboard.joinStatus.joined", "已加入")
-          : t("studentDashboard.joinStatus.notJoined", "未加入")}
-      </Tag>
-      {contest.cheatDetectionEnabled ? (
-        <Tag type="red">
-          {t("studentDashboard.monitoring.enabled", "監控中")}
-        </Tag>
-      ) : null}
-    </div>
-  );
-
   return (
     <DashboardPage
       ariaLabel={t("studentDashboard.ariaLabel", "學生競賽首頁")}
@@ -1003,22 +948,14 @@ export default function StudentContestDashboard({
             <BlockHeader
               titleSize="page"
               title={contest.name}
-              description={tagRow}
-              actions={
-                <div className={styles.headerActions}>
-                  {renderStudentQrNavbarAction()}
-                  <Button
-                    kind="ghost"
-                    renderIcon={Renew}
-                    onClick={() => {
-                      setPaperReloadKey((value) => value + 1);
-                      void onRefreshContest?.();
-                    }}
-                  >
-                    {t("studentDashboard.actions.refresh", "重新整理")}
-                  </Button>
-                </div>
+              description={
+                contest.description ? (
+                  <div className={styles.headerDescription}>
+                    <MarkdownRenderer>{contest.description}</MarkdownRenderer>
+                  </div>
+                ) : null
               }
+              actions={renderStudentQrNavbarAction()}
             />
           </DashboardBlock>
 
@@ -1091,13 +1028,7 @@ export default function StudentContestDashboard({
                             "請依照教師公告與考試規則完成作答。",
                           )
                     }
-                    actions={
-                      contest.cheatDetectionEnabled ? (
-                        <WarningAlt size={20} className={styles.warningIcon} />
-                      ) : (
-                        <Checkmark size={20} className={styles.successIcon} />
-                      )
-                    }
+
                   />
                   {contest.cheatDetectionEnabled ? (
                     <InlineNotification
@@ -1113,11 +1044,6 @@ export default function StudentContestDashboard({
                         "進入作答後會啟用全螢幕、裝置與證據來源監控。",
                       )}
                     />
-                  ) : null}
-                  {contest.description ? (
-                    <div className={styles.rulesContent}>
-                      <MarkdownRenderer>{contest.description}</MarkdownRenderer>
-                    </div>
                   ) : null}
                   {contest.rules ? (
                     <div className={styles.rulesContent}>

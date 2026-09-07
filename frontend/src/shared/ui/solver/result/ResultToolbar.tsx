@@ -3,7 +3,7 @@ import { Button, Tooltip } from "@carbon/react";
 import {
   Edit,
   Terminal,
-  PlayFilledAlt,
+  Chemistry,
   SendFilled,
   ChevronUp,
   ChevronDown,
@@ -103,16 +103,14 @@ export const ResultToolbar: React.FC<ResultToolbarProps> = ({
       {/* Right: Actions */}
       <div className="result-toolbar__actions">
         {onRunTest && (
-          <Tooltip label="測試" align="top">
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={PlayFilledAlt}
-              iconDescription="測試"
-              onClick={handleRunTest}
-              disabled={isRunning}
-            />
-          </Tooltip>
+          <Button
+            kind="ghost"
+            renderIcon={Chemistry}
+            onClick={handleRunTest}
+            disabled={isRunning}
+          >
+            測試
+          </Button>
         )}
 
         {onSubmit && (

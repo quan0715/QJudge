@@ -16,8 +16,11 @@ import type {
   ContestDetail,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
+import { useExamRuntimeState, mergeExamRuntimeState } from "../hooks/useExamRuntimeState";
+import { IntegrityUploadProvider } from "./IntegrityUploadProvider";
 
 interface ContestContextType {
+  runtime: ReturnType<typeof useExamRuntimeState>;
   // Core contest data
   contest: ContestDetail | null;
   loading: boolean;
@@ -39,6 +42,7 @@ interface ContestContextType {
 const ContestContext = createContext<ContestContextType | undefined>(undefined);
 
 interface ContestProviderProps {
+  runtime?: ReturnType<typeof useExamRuntimeState>;
   children: ReactNode;
   contestId?: string;
   /** Optional: provide initial contest data to avoid duplicate fetch */
@@ -55,6 +59,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   initialContest,
   initialScoreboardData,
   onRefresh,
+  runtime: externalRuntime,
 }) => {
   const params = useParams<{ contestId?: string }>();
   const contestId = propContestId || params.contestId;
@@ -74,6 +79,9 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
 
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const ownRuntime = useExamRuntimeState(!externalRuntime && contest?.hasJoined ? contestId : undefined);
+  const runtime = externalRuntime ?? ownRuntime;
+  const currentContest = useMemo(() => mergeExamRuntimeState(contest, runtime.state), [contest, runtime.state]);
 
   const fetchContest = useCallback(async () => {
     if (!contestId) {
@@ -118,7 +126,8 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       return;
     }
     await fetchContest();
-  }, [onRefresh, fetchContest]);
+    void runtime.refresh();
+  }, [onRefresh, fetchContest, runtime.refresh]);
 
   const refreshStandings = useCallback(async () => {
     setIsRefreshing(true);
@@ -171,7 +180,8 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
 
   const value = useMemo(
     () => ({
-      contest,
+      contest: currentContest,
+      runtime,
       loading,
       error,
       scoreboardData,
@@ -182,7 +192,8 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
       refreshAll,
     }),
     [
-      contest,
+      currentContest,
+      runtime,
       loading,
       error,
       scoreboardData,
@@ -195,7 +206,9 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   );
 
   return (
-    <ContestContext.Provider value={value}>{children}</ContestContext.Provider>
+    <ContestContext.Provider value={value}>
+      <IntegrityUploadProvider contestId={contestId ?? ""} runtimeState={runtime.state}>{children}</IntegrityUploadProvider>
+    </ContestContext.Provider>
   );
 };
 

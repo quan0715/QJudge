@@ -200,3 +200,37 @@ class TestRunEndpointDelegationTests(DjangoTestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.data, {"error": "Judge system error"})
+
+    def test_async_progress_is_scoped_to_requesting_user(self):
+        task = MagicMock(id="test-task")
+        with patch("apps.problems.tasks.run_problem_test_run.apply_async", return_value=task):
+            response = self.client.post(
+                f"/api/v1/management/problems/{self.problem.id}/test_run/",
+                {"language": "python", "code": "print(1)", "asynchronous": True}, format="json",
+            )
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data["total"], 1)
+        token = response.data["run_id"]
+        url = f"/api/v1/management/problems/{self.problem.id}/test_run_status/"
+        with patch("celery.result.AsyncResult", return_value=SimpleNamespace(
+            state="PROGRESS", info={"total": 4, "results": [{"status": "AC"}]}
+        )):
+            progress = self.client.get(url, {"run_id": token})
+        self.assertEqual(progress.data["execution_status"], "judging")
+        self.assertEqual(len(progress.data["results"]), 1)
+        other = get_user_model().objects.create_user(username="other-run-user", password="password", role="teacher")
+        self.client.force_authenticate(user=other)
+        self.assertEqual(self.client.get(url, {"run_id": token}).status_code, 404)
+
+
+def test_worker_reports_completed_cases_as_they_finish():
+    cases = [SimpleNamespace(id=i, input_data=str(i), output_data=str(i), is_hidden=False) for i in range(4)]
+    problem = SimpleNamespace(test_cases=SimpleNamespace(all=lambda: cases), time_limit=1000, memory_limit=128)
+    judge = MagicMock()
+    judge.execute.return_value = {"status": "AC", "output": "ok"}
+    updates = []
+    with patch("apps.problems.test_run_service.judge_factory.get_judge", return_value=judge):
+        result = ProblemTestRunService.run(problem=problem, language="cpp", source_code="code", on_progress=updates.append)
+    assert [len(update["results"]) for update in updates] == [0, 1, 2, 3, 4]
+    assert all(update["total"] == 4 for update in updates)
+    assert len(result["results"]) == 4

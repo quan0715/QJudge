@@ -13,8 +13,8 @@ from .test_run_service import ProblemTestRunService, TestRunSetupError
 logger = logging.getLogger(__name__)
 
 
-@shared_task
-def run_problem_test_run(problem_id, language, source_code):
+@shared_task(bind=True)
+def run_problem_test_run(self, problem_id, language, source_code, report_progress=False):
     """
     Execute a problem test run inside a judge worker.
 
@@ -30,10 +30,12 @@ def run_problem_test_run(problem_id, language, source_code):
         return {"ok": False, "code": "judge_unavailable"}
 
     try:
+        progress = (lambda data: self.update_state(state="PROGRESS", meta=data)) if report_progress else None
         result = ProblemTestRunService.run(
             problem=problem,
             language=language,
             source_code=source_code,
+            **({"on_progress": progress} if progress else {}),
         )
     except TestRunSetupError as exc:
         return {"ok": False, "code": exc.code}

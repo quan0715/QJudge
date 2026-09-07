@@ -373,17 +373,9 @@ export default function AdminOverviewScreen({
         openPanel("problem_editor");
         return;
       }
-      if (key === "participants") {
-        if (classroomBound) {
-          openPanel("settings");
-          return;
-        }
-        setAddParticipantOpen(true);
-        return;
-      }
       openSettings("general");
     },
-    [classroomBound, openPanel, openSettings],
+    [openPanel, openSettings],
   );
 
   useEffect(() => {

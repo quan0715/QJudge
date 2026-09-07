@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { InlineNotification } from "@carbon/react";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import { useProblemSolver } from "@/features/problems/hooks/useProblemSolver";
@@ -13,6 +13,13 @@ import "./ProblemFullPageSolve.scss";
 interface ProblemFullPageSolveProps {
   /** The problem to solve */
   problem: CodingProblemDetail;
+  statementNavigation?: {
+    activeTabIndex: number;
+    selectTab: (index: number) => void;
+    collapsed: boolean;
+    setCollapsed: (collapsed: boolean) => void;
+  };
+  onAccepted?: (problemId: string) => void;
   /** Problem label (e.g. "A" for contest) */
   problemLabel?: string;
   /** Contest that owns this problem session */
@@ -35,6 +42,8 @@ interface ProblemFullPageSolveProps {
 export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
   problem,
   problemLabel = "",
+  statementNavigation,
+  onAccepted,
   contestId,
   menuPanel,
   disableCopy = false,
@@ -48,12 +57,23 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     problemLabel,
   });
 
+  useEffect(() => {
+    if (solver.executionState.type === "submit" &&
+        solver.executionState.status === "complete" &&
+        solver.executionState.result?.type === "submit" &&
+        solver.executionState.result.status === "AC") {
+      onAccepted?.(problem.id);
+    }
+  }, [solver.executionState, problem.id, onAccepted]);
+
   // Get editor settings from user preferences
   const { editorFontSize, editorTabSize, updateEditorSettings } =
     useUserPreferences();
 
   // Statement panel collapsed state (controlled by this component)
-  const [statementCollapsed, setStatementCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const statementCollapsed = statementNavigation?.collapsed ?? internalCollapsed;
+  const setStatementCollapsed = statementNavigation?.setCollapsed ?? setInternalCollapsed;
 
   // Collapse all panels (one-click to maximize editor space)
   const handleCollapseAll = useCallback(() => {
@@ -62,7 +82,7 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
     if (solver.resultOpen) {
       solver.toggleResult();
     }
-  }, [solver]);
+  }, [solver, setStatementCollapsed]);
 
   // Handle editor settings change
   const handleEditorSettingsChange = useCallback(
@@ -100,6 +120,9 @@ export const ProblemFullPageSolve: React.FC<ProblemFullPageSolveProps> = ({
       )}
 
       <SolverLayout
+        externalStatementNavigation={!!statementNavigation}
+        activeTabIndex={statementNavigation?.activeTabIndex}
+        onActiveTabChange={statementNavigation?.selectTab}
         menuPanel={menuPanel}
         renderStatementContent={renderStatementContent}
         editorPanel={

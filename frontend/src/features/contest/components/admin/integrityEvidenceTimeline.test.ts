@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { IntegrityEvidenceReviewItem } from "@/infrastructure/api/repositories/exam.repository";
 import {
   buildEvidenceTimeSlices,
+  filterEvidenceReviewItems,
   formatEvidenceRelativeRange,
 } from "./integrityEvidenceTimeline";
 
@@ -23,6 +24,19 @@ const chunk = (
 });
 
 describe("integrityEvidenceTimeline", () => {
+  it("deduplicates chunk identities and hides transition fragments when normal evidence exists", () => {
+    const normalScreen = chunk("screen-normal", "screen_share", 1_000, 6_000);
+    const shortScreen = chunk("screen-short", "screen_share", 6_000, 6_200);
+    const onlyWebcam = chunk("webcam-short", "webcam", 2_000, 2_300);
+
+    expect(filterEvidenceReviewItems([
+      normalScreen,
+      normalScreen,
+      shortScreen,
+      onlyWebcam,
+    ])).toEqual([normalScreen, onlyWebcam]);
+  });
+
   it("groups screen and webcam by time and sorts slices chronologically", () => {
     const slices = buildEvidenceTimeSlices([
       chunk("screen-2", "screen_share", 10_000, 15_000),

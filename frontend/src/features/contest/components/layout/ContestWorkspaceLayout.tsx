@@ -28,6 +28,7 @@ const ContestWorkspaceLayout = () => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
   const {
+    runtime,
     contestId,
     contest,
     contestLoading,
@@ -149,6 +150,7 @@ const ContestWorkspaceLayout = () => {
 
   return (
     <ContestProvider
+      runtime={runtime}
       initialContest={contest}
       initialScoreboardData={scoreboardData}
       onRefresh={refreshContest}

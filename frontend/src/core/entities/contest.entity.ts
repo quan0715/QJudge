@@ -48,6 +48,8 @@ export interface ContestProblemSummary {
   sourceQuestionId?: string | null;
   sourceMode?: "manual" | "json" | "copy" | "reference";
   userStatus?: SubmissionStatus;
+  userScore?: number | null;
+  submissionCount?: number;
   difficulty?: Difficulty;
 }
 
@@ -230,6 +232,8 @@ export interface ParticipantDashboard {
 }
 
 export interface Contest {
+  scheduleRevision?: number;
+  serverTimeOffsetMs?: number;
   id: string;
   name: string;
   description: string;
@@ -405,12 +409,35 @@ export interface IntegrityRegistrySnapshot {
 
 export interface ContestIntegrityRun {
   id: string;
-  computeState: string;
+  sessionState: string;
   health: string;
   participantId: number | null;
   policySnapshot: Record<string, unknown>;
   devicePolicy: ContestAnticheatDevicePolicy;
   registrySnapshot: IntegrityRegistrySnapshot;
+}
+
+/** Self-scoped authoritative runtime wire state; no problem/answer tree. */
+export interface ExamRuntimeState {
+  server_now: string;
+  start_time: string | null;
+  end_time: string | null;
+  schedule_revision: number;
+  exam_status: ExamStatusType;
+  participant_id: number;
+  integrity_run: null | {
+    id: string;
+    session_state: string; schedule_revision: number; health: string; accept_until: string | null;
+  };
+  session_identity: {
+    active_device_matches: boolean; device_id: string | null;
+    attempt_id: string | null; next_sequence: number | null;
+  };
+  integrity_upload: null | {
+    upload_status: "pending" | "complete" | "expired"; accept_until: string;
+    final_seq: number | null; received_seq: number; processed_seq: number; commands_drained: boolean;
+  };
+  serverOffsetMs?: number;
 }
 
 export interface ContestAnticheatConfig {

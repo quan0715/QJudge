@@ -139,3 +139,6 @@ export const testRun = async (
     "Test run failed"
   );
 };
+
+export const getTestRunProgress = (problemId: string, runId: string): Promise<TestRunResult> =>
+  requestJson<TestRunResult>(httpClient.get(`${MANAGEMENT_PROBLEMS_BASE}/${problemId}/test_run_status/?run_id=${encodeURIComponent(runId)}`), "Test run progress failed");

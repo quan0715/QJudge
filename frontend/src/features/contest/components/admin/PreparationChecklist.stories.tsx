@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Theme } from "@carbon/react";
 
 import type { PreparationChecklistItem } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
 
@@ -18,6 +19,7 @@ const item = (
 const meta = {
   title: "features/contest/admin/PreparationChecklist",
   component: PreparationChecklist,
+  decorators: [(Story) => <Theme theme="white"><Story /></Theme>],
   args: {
     onItemAction: () => {},
   },
@@ -43,11 +45,11 @@ export const AllLevels: Story = {
         actionLabel: "前往題目管理",
       }),
       item({
-        key: "participants",
+        key: "rules",
         level: "done",
-        title: "考生名單",
-        description: "已加入 3 人",
-        actionLabel: "管理名單",
+        title: "競賽規則",
+        description: "已設定規則內容",
+        actionLabel: "開啟設定",
       }),
     ],
   },

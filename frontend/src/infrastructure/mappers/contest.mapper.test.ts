@@ -169,7 +169,7 @@ describe("contest mapper", () => {
         },
         integrity_run: {
           id: "run-1",
-          compute_state: "running",
+          session_state: "active",
           health: "healthy",
           participant_id: "7",
           policy_snapshot: {

@@ -233,6 +233,19 @@ class ProblemViewSet(viewsets.ModelViewSet):
             except SubmissionAccessError as exc:
                 raise PermissionDenied(exc.message) from exc
 
+        if serializer.validated_data["asynchronous"]:
+            from django.conf import settings
+            from django.core import signing
+            from .tasks import run_problem_test_run
+
+            task = run_problem_test_run.apply_async(
+                args=[str(problem.id), serializer.validated_data["language"], serializer.validated_data["code"]],
+                kwargs={"report_progress": True}, queue=settings.JUDGE_TEST_RUN_QUEUE,
+            )
+            token = signing.dumps({"task": task.id, "user": str(request.user.pk), "problem": str(problem.pk)}, salt="test-run")
+            return Response({"run_id": token, "execution_status": "pending", "status": "pending",
+                             "total": problem.test_cases.count(), "results": []}, status=202)
+
         try:
             result = ProblemTestRunService.run_via_worker(
                 problem=problem,
@@ -253,6 +266,32 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
         return Response(result)
     
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def test_run_status(self, request, id=None):
+        from celery.result import AsyncResult
+        from django.conf import settings
+        from django.core import signing
+        from rest_framework.exceptions import NotFound
+
+        try:
+            token = signing.loads(request.query_params.get("run_id", ""), salt="test-run",
+                                  max_age=settings.JUDGE_TEST_RUN_TIMEOUT + 60)
+        except signing.BadSignature:
+            raise NotFound("Test run expired or unavailable")
+        if token.get("user") != str(request.user.pk) or token.get("problem") != str(id):
+            raise NotFound("Test run unavailable")
+        task = AsyncResult(token["task"])
+        if task.state == "SUCCESS":
+            payload = task.result
+            if not isinstance(payload, dict) or not payload.get("ok"):
+                return Response({"error": "Test run failed"}, status=500)
+            return Response({**payload["result"], "execution_status": "complete"})
+        if task.state in {"FAILURE", "REVOKED"}:
+            return Response({"error": "Test run failed"}, status=500)
+        progress = task.info if task.state == "PROGRESS" and isinstance(task.info, dict) else {}
+        return Response({**progress, "status": "pending", "execution_status": "judging",
+                         "results": progress.get("results", [])})
+
     @action(detail=True, methods=['get'])
     def statistics(self, request, id=None):
         """

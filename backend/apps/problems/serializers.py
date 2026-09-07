@@ -93,6 +93,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class TestRunSerializer(serializers.Serializer):
+    asynchronous = serializers.BooleanField(required=False, default=False)
     """Serializer for test run requests — executes against all problem test cases."""
 
     language = serializers.ChoiceField(

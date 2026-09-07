@@ -1,7 +1,5 @@
+import { useSubmission } from "./useSubmission";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { submitSolution, getSubmission } from "@/infrastructure/api/repositories/submission.repository";
-import { testRun } from "@/infrastructure/api/repositories/problem.repository";
-import { useInterval } from "@/shared/hooks/useInterval";
 import type { CodingProblemDetail } from "@/core/entities/problem.entity";
 import type { TestCaseItem } from "@/core/entities/testcase.entity";
 import {
@@ -18,8 +16,6 @@ import type {
   ExecutionStatus,
   ExecutionType,
 } from "@/core/types/solver.types";
-import { INITIAL_EXECUTION_STATE } from "@/core/types/solver.types";
-import { transformSubmissionToResult, transformTestRunToResult } from "./solverAdapters";
 import { loadCode, loadCustomCases, saveCode, saveCustomCases as persistCustomCases } from "./solverStorage";
 
 export type { ResultMode, ExecutionState, SubmissionResult, TestCaseResult, ExecutionStatus, ExecutionType };
@@ -105,14 +101,13 @@ export function useProblemSolver({
   const [testCases, setTestCases] = useState<TestCaseItem[]>([]);
 
   // Unified Execution State
-  const [executionState, setExecutionState] = useState<ExecutionState>(INITIAL_EXECUTION_STATE);
+  const { executionState, execute } = useSubmission({ problemId: problem?.id, contestId, code, language });
 
   // Initialize when problem changes
   useEffect(() => {
     if (!problem) return;
 
     // Reset execution on problem change
-    setExecutionState(INITIAL_EXECUTION_STATE);
     setError(null);
 
     // Setup language configs
@@ -250,140 +245,17 @@ export function useProblemSolver({
     [saveCustomCases]
   );
 
-  // Execute test run using the dedicated test-run endpoint
-  const executeTestRun = useCallback(async () => {
-    if (!problem?.id) return;
-
-    setExecutionState({
-      type: 'test',
-      status: 'running',
-      result: null
-    });
-
-    try {
-      const result = await testRun(problem.id, {
-        language,
-        code,
-        contest_id: contestId,
-      });
-
-      // Test run returns immediately (no polling needed)
-      const resObj = transformTestRunToResult(result);
-      setExecutionState({
-        type: 'test',
-        status: 'complete',
-        result: resObj
-      });
-    } catch (err: any) {
-      setExecutionState({
-        type: 'test',
-        status: 'error',
-        result: null,
-        error: err.message || "測試執行失敗"
-      });
-    }
-  }, [problem?.id, code, language, contestId]);
-
-  // Execute formal submission
-  const executeSubmit = useCallback(async () => {
-    if (!problem?.id) return;
-
-    setExecutionState({
-      type: 'submit',
-      status: 'running',
-      result: null
-    });
-
-    try {
-      const payload: {
-        problem_id: string;
-        language: string;
-        code: string;
-        contest_id: string;
-      } = {
-        problem_id: problem.id,
-        language,
-        code,
-        contest_id: contestId,
-      };
-
-      const result = await submitSolution(payload);
-
-      if (result) {
-        // Check if pending (using backend lowercase types)
-        const isPending = result.status === "pending" || result.status === "judging";
-        
-        if (isPending) {
-          setExecutionState({
-            type: 'submit',
-            status: 'polling',
-            result: transformSubmissionToResult(result),
-            pollingId: result.id
-          });
-        } else {
-          // Success immediate
-          setExecutionState({
-            type: 'submit',
-            status: 'complete',
-            result: transformSubmissionToResult(result)
-          });
-        }
-      }
-    } catch (err: any) {
-      setExecutionState({
-        type: 'submit',
-        status: 'error',
-        result: null,
-        error: err.message || "提交失敗"
-      });
-    }
-  }, [problem?.id, contestId, code, language]);
-
   const runTest = useCallback(() => {
     setResultOpen(true);
     setResultMode('results');
-    return executeTestRun();
-  }, [executeTestRun]);
-  
+    return execute('test');
+  }, [execute]);
+
   const submit = useCallback(() => {
     setResultOpen(true);
     setResultMode('results');
-    return executeSubmit();
-  }, [executeSubmit]);
-
-  // Polling Effect - only for formal submissions (test runs don't need polling)
-  useInterval(() => {
-    if (executionState.status !== 'polling' || !executionState.pollingId) return;
-    
-    getSubmission(executionState.pollingId)
-      .then((data) => {
-        if (!data) return;
-        const isPending = data.status === "pending" || data.status === "judging";
-        
-        if (!isPending) {
-          setExecutionState(prev => ({
-            ...prev,
-            status: 'complete',
-            pollingId: undefined,
-            result: transformSubmissionToResult(data)
-          }));
-        } else {
-          setExecutionState(prev => ({
-            ...prev,
-            result: transformSubmissionToResult(data)
-          }));
-        }
-      })
-      .catch(err => {
-        setExecutionState(prev => ({
-          ...prev,
-          status: 'error',
-          pollingId: undefined,
-          error: "無法獲取結果: " + (err.message || "Unknown error")
-        }));
-      });
-
-  }, executionState.status === 'polling' ? 2000 : null);
+    return execute('submit');
+  }, [execute]);
 
   return {
     resultOpen,

@@ -11,17 +11,18 @@ export function useContestRuntimeNavigator() {
 
 export function useRegisterContestRuntimeNavigator(
   state: ContestRuntimeNavigatorState | null,
+  enabled = true,
 ) {
   const ctx = useContext(ContestRuntimeNavigatorContext);
   const setNavigator = ctx?.setNavigator;
 
   useEffect(() => {
-    if (!setNavigator) return;
+    if (!setNavigator || !enabled) return;
     setNavigator(state);
-  }, [setNavigator, state]);
+  }, [setNavigator, state, enabled]);
 
   useEffect(() => {
-    if (!setNavigator) return;
+    if (!setNavigator || !enabled) return;
     return () => setNavigator(null);
-  }, [setNavigator]);
+  }, [setNavigator, enabled]);
 }

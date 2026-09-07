@@ -9,7 +9,7 @@ import { isContestEnded } from "@/core/entities/contest.entity";
 import { useContestProblemSelection } from "@/features/contest/hooks/useContestProblemSelection";
 
 // Components
-import { ProblemMenu } from "@/shared/ui/solver/menu/ProblemMenu";
+import { useCodingRuntimeNavigator } from "@/features/contest/hooks/useCodingRuntimeNavigator";
 import { ProblemFullPageSolve } from "@/features/problems/components/solve/editorview/ProblemFullPageSolve";
 import ContestProblemSubmissions from "@/features/contest/components/solver/submissions/ContestProblemSubmissions";
 import {
@@ -27,7 +27,7 @@ const ContestProblemScreen = () => {
   }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { contest, scoreboardData, loading: contestLoading } = useContest();
+  const { contest, scoreboardData, loading: contestLoading, refreshStandings } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext = useMemo(
     () => (classroomId && contestId ? { classroomId, contestId } : null),
@@ -110,6 +110,9 @@ const ContestProblemScreen = () => {
     effectiveClassroomId,
   ]);
 
+  const solvedIds = useMemo(() => new Set(problemSelection.problems.filter((p) => p.isSolved).map((p) => p.id)), [problemSelection.problems]);
+  const statementNavigation = useCodingRuntimeNavigator(contest?.problems ?? [], problemSelection.selectedProblemId, solvedIds, problemSelection.selectProblem);
+
   // Check view permissions
   const canView =
     ((contest?.status === "published" || contest?.status === "archived") &&
@@ -172,17 +175,12 @@ const ContestProblemScreen = () => {
   return (
     <div className="contest-problem-page">
       <ProblemFullPageSolve
+        statementNavigation={statementNavigation}
         key={problemSelection.selectedProblemId} // Reset state when problem changes
+        onAccepted={refreshStandings}
         problem={problemSelection.selectedProblem}
         problemLabel={problemSelection.selectedProblemLabel}
         contestId={contestId!}
-        menuPanel={
-          <ProblemMenu
-            problems={problemSelection.problems}
-            selectedProblemId={problemSelection.selectedProblemId}
-            onSelect={problemSelection.selectProblem}
-          />
-        }
         disableCopy={contest?.cheatDetectionEnabled}
         submissionDisabled={isSubmissionDisabled}
         renderSubmissions={() => (

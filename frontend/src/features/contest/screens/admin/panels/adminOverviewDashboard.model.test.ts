@@ -280,12 +280,10 @@ describe("buildAdminPreparationOverview", () => {
       "schedule",
       "rules",
       "problems",
-      "participants",
     ]);
     expect(data.checklist.map((item) => item.level)).toEqual([
       "blocking",
       "warning",
-      "done",
       "done",
     ]);
   });

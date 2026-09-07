@@ -4,6 +4,7 @@ Submission finalization helpers for exam anti-cheat flows.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import logging
 
 from django.utils import timezone
 
@@ -58,6 +59,13 @@ def finalize_submission(
     if update_fields:
         participant.save(update_fields=update_fields)
 
+    # Optional upload preparation cannot roll back an accepted answer. A nested
+    # savepoint in the helper also prevents a database error poisoning our caller.
+    try:
+        from .integrity_upload_grants import prepare_upload_grant
+        prepare_upload_grant(participant, submitted_at=participant.left_at)
+    except Exception:
+        logging.getLogger(__name__).warning("integrity_upload_grant_unavailable participant_id=%s", participant.pk)
     clear_active_session(participant.contest_id, participant.user_id)
     # Release JTI pin so other devices can work normally after exam ends
     clear_exam_allowed_jti(participant.user_id, contest_id=participant.contest_id)

@@ -1,15 +1,14 @@
 """Pure durable-timeline contract for live and replay decision ordering.
 
-Task 6 must persist one baseline followed by receipt entries with a gap-free,
-run-local ``timeline_seq`` before applying any decision. A receipt references its already durable
-Task 4 batch; Task 6 must replay that batch through SessionSequencer and pass only its immutable
-new-record snapshots here, with delayed event IDs derived from the same frozen policy. Before
+Persist one baseline followed by receipt entries with a gap-free, run-local
+``timeline_seq`` before applying any decision. Each receipt references a durable batch;
+replay passes it through SessionSequencer and supplies its immutable new-record snapshots,
+with delayed event IDs derived from the same frozen policy. Before
 applying an input at ``server_ms=T``, this owner advances
 all earlier and equal-time derived deadlines in chronological order. Equal derived deadlines
-are ordered scheduled end, incident, then connectivity. The durable receipt follows; it
+are ordered incident, then connectivity. The durable receipt follows; it
 observes connectivity, ingests admitted records by sequence, then performs incident/connectivity
-zero-grace ticks. Thus scheduled end wins a tie with a timeout, and equal-time receipts follow
-``timeline_seq``.
+zero-grace ticks. Equal-time receipts follow ``timeline_seq``.
 
 Replay must construct fresh engines from the persisted baseline, apply every entry in sequence,
 and advance to the same final authoritative server time. No engine may be called outside this
@@ -17,8 +16,8 @@ owner in either live or replay execution.
 
 Unknown browser signal IDs and invalid browser payloads remain durable raw-journal input. A
 receipt plan classifies them into immutable bounded warning dispositions before any engine state
-changes; only known-valid admitted records receive semantic handling, and an empty exact-retry
-receipt remains a connectivity observation.
+changes; only known-valid admitted records receive semantic handling. Exact retries are
+deduplicated by the resident receipt store before reaching the timeline.
 """
 
 from __future__ import annotations
@@ -33,14 +32,14 @@ from integrity_service.core.commands import (
     IntegrityCommand,
     ReceivedEvent,
 )
-from integrity_service.core.connectivity import ConnectivityMonitor
+from integrity_service.core.connectivity import ConnectivityMonitor, connectivity_effect_overlaps_gap
 from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import AdmittedEventRecord
 from integrity_service.core.registry import UnknownSignal
-from integrity_service.core.scheduler import DeadlineScheduler
 
 
 SkippedRecordCode = Literal["unknown_signal", "invalid_payload"]
+MAX_SERVICE_GAPS = 10_000
 
 
 class TimelineOrderError(ValueError):
@@ -164,15 +163,37 @@ class DecisionTimeline:
         baseline: TimelineBaseline,
         incidents: IncidentEngine,
         connectivity: ConnectivityMonitor,
-        scheduler: DeadlineScheduler,
     ) -> None:
         self._incidents = incidents
         self._connectivity = connectivity
-        self._scheduler = scheduler
         self._active_participant_ids = set(baseline.active_participant_ids)
         self._last_timeline_seq = baseline.timeline_seq
         self._clock_server_ms = baseline.server_ms
-        self._scheduled_end_advanced = False
+        self._service_gaps: list[tuple[int, int]] = []
+        self._participant_attempts: dict[int, UUID] = {}
+        self._submitted_participants: set[int] = set()
+        self.last_service_gap_ended_ms: int | None = None
+
+    @property
+    def service_gap_count(self) -> int:
+        return len(self._service_gaps)
+
+    def record_service_gap(self, started_ms: int, ended_ms: int) -> None:
+        self.validate_service_gap(started_ms, ended_ms)
+        self._service_gaps.append((started_ms, ended_ms))
+        self.last_service_gap_ended_ms = max(self.last_service_gap_ended_ms or 0, ended_ms)
+
+    def validate_service_gap(self, started_ms: int, ended_ms: int) -> None:
+        _validate_server_ms(started_ms)
+        _validate_server_ms(ended_ms)
+        if started_ms > ended_ms:
+            raise ValueError("service gap ends before it starts")
+        if self.service_gap_count >= MAX_SERVICE_GAPS:
+            raise OSError("service gap metadata capacity reached")
+
+    def service_gap_covers(self, command: IntegrityCommand) -> bool:
+        return any(connectivity_effect_overlaps_gap(command, start, end)
+                   for start, end in self._service_gaps)
 
     def apply(
         self,
@@ -180,23 +201,29 @@ class DecisionTimeline:
         *,
         records: tuple[AdmittedEventRecord, ...] = (),
         delayed_event_ids: frozenset[UUID] = frozenset(),
+        attempt_id: UUID | None = None,
     ) -> tuple[IntegrityCommand, ...]:
         self._validate_entry(entry, records, delayed_event_ids)
         receipt_plan = self.plan_receipt(records=records)
+        if attempt_id is not None:
+            previous = self._participant_attempts.get(entry.participant_id)
+            if previous is not None and previous != attempt_id:
+                # The authenticated receipt starts a new exam attempt. Retire
+                # old detectors before advancing deadlines across the break.
+                self._connectivity.stop_participant(entry.participant_id)
+                self._incidents.stop_participant(entry.participant_id)
+                self._submitted_participants.discard(entry.participant_id)
+            self._participant_attempts[entry.participant_id] = attempt_id
         commands = list(self._advance(entry.server_ms))
-        was_active = entry.participant_id in self._active_participant_ids
-        self._active_participant_ids.add(entry.participant_id)
-        if self._scheduled_end_advanced and not was_active:
+        if entry.participant_id not in self._submitted_participants:
+            self._active_participant_ids.add(entry.participant_id)
             commands.extend(
-                self._scheduler.tick(entry.server_ms, {entry.participant_id})
+                self._connectivity.observe(
+                    participant_id=entry.participant_id,
+                    device_id=entry.device_id,
+                    server_ms=entry.server_ms,
+                )
             )
-        commands.extend(
-            self._connectivity.observe(
-                participant_id=entry.participant_id,
-                device_id=entry.device_id,
-                server_ms=entry.server_ms,
-            )
-        )
         for record in receipt_plan.accepted_records:
             commands.extend(
                 self._incidents.ingest(
@@ -210,12 +237,19 @@ class DecisionTimeline:
                 ).commands
             )
             if record.event_type == "exam_submit_initiated":
+                self._submitted_participants.add(entry.participant_id)
                 self._active_participant_ids.discard(entry.participant_id)
                 self._connectivity.stop_participant(entry.participant_id)
         commands.extend(self._incidents.tick(entry.server_ms).commands)
         commands.extend(self._connectivity.tick(entry.server_ms))
         self._last_timeline_seq = entry.timeline_seq
         return tuple(commands)
+
+    def skip_receipt(self, entry: TimelineEntry) -> None:
+        """Advance durable receipt order without running stateful detectors."""
+        self._validate_entry(entry, (), frozenset())
+        self._last_timeline_seq = entry.timeline_seq
+        self._clock_server_ms = entry.server_ms
 
     def plan_receipt(self, *, records: tuple[AdmittedEventRecord, ...]) -> ReceiptPlan:
         """Classify immutable browser records before any timeline engine is mutated.
@@ -284,11 +318,6 @@ class DecisionTimeline:
             due_times = [
                 deadline
                 for deadline in (
-                    (
-                        None
-                        if self._scheduled_end_advanced
-                        else self._scheduler.scheduled_end_ms
-                    ),
                     self._incidents.next_deadline_server_ms(),
                     self._connectivity.next_transition_server_ms(),
                 )
@@ -299,14 +328,6 @@ class DecisionTimeline:
             due_server_ms = min(due_times)
             if due_server_ms > target_server_ms:
                 break
-            if (
-                not self._scheduled_end_advanced
-                and self._scheduler.scheduled_end_ms == due_server_ms
-            ):
-                commands.extend(
-                    self._scheduler.tick(due_server_ms, self._active_participant_ids)
-                )
-                self._scheduled_end_advanced = True
             commands.extend(self._incidents.tick(due_server_ms).commands)
             commands.extend(self._connectivity.tick(due_server_ms))
         self._clock_server_ms = target_server_ms

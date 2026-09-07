@@ -1,5 +1,6 @@
 """Contest participant state models."""
 from __future__ import annotations
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -30,6 +31,7 @@ class ContestParticipant(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True, verbose_name='加入時間')
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='開始時間')
     left_at = models.DateTimeField(null=True, blank=True, verbose_name='離開時間')
+    integrity_attempt_id = models.UUIDField(default=uuid.uuid4, editable=False)
 
     # Locking metadata (needed for manual proctor action and audit)
     locked_at = models.DateTimeField(

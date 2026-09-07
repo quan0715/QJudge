@@ -7,7 +7,7 @@ describe("Status Config", () => {
     it("should have config for AC status", () => {
       expect(SUBMISSION_STATUS_CONFIG["AC"]).toEqual({
         color: "green",
-        labelKey: "common.status.success",
+        labelKey: "common:status.success",
         type: "green",
       });
     });
@@ -15,7 +15,7 @@ describe("Status Config", () => {
     it("should have config for WA status", () => {
       expect(SUBMISSION_STATUS_CONFIG["WA"]).toEqual({
         color: "red",
-        labelKey: "common.status.notPassed",
+        labelKey: "common:status.notPassed",
         type: "red",
       });
     });
@@ -23,7 +23,7 @@ describe("Status Config", () => {
     it("should have config for TLE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["TLE"]).toEqual({
         color: "purple",
-        labelKey: "common.status.notPassed",
+        labelKey: "common:status.notPassed",
         type: "purple",
       });
     });
@@ -31,7 +31,7 @@ describe("Status Config", () => {
     it("should have config for MLE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["MLE"]).toEqual({
         color: "purple",
-        labelKey: "common.status.notPassed",
+        labelKey: "common:status.notPassed",
         type: "purple",
       });
     });
@@ -39,7 +39,7 @@ describe("Status Config", () => {
     it("should have config for RE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["RE"]).toEqual({
         color: "red",
-        labelKey: "common.status.notPassed",
+        labelKey: "common:status.notPassed",
         type: "red",
       });
     });
@@ -47,7 +47,7 @@ describe("Status Config", () => {
     it("should have config for CE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["CE"]).toEqual({
         color: "red",
-        labelKey: "common.status.failed",
+        labelKey: "common:status.failed",
         type: "red",
       });
     });
@@ -55,7 +55,7 @@ describe("Status Config", () => {
     it("should have config for KR status", () => {
       expect(SUBMISSION_STATUS_CONFIG["KR"]).toEqual({
         color: "red",
-        labelKey: "common.status.notPassed",
+        labelKey: "common:status.notPassed",
         type: "red",
       });
     });
@@ -63,7 +63,7 @@ describe("Status Config", () => {
     it("should have config for pending status", () => {
       expect(SUBMISSION_STATUS_CONFIG["pending"]).toEqual({
         color: "gray",
-        labelKey: "common.status.pending",
+        labelKey: "common:status.pending",
         type: "gray",
       });
     });
@@ -71,7 +71,7 @@ describe("Status Config", () => {
     it("should have config for judging status", () => {
       expect(SUBMISSION_STATUS_CONFIG["judging"]).toEqual({
         color: "blue",
-        labelKey: "common.status.processing",
+        labelKey: "common:action.processing",
         type: "blue",
       });
     });
@@ -79,7 +79,7 @@ describe("Status Config", () => {
     it("should have config for SE status", () => {
       expect(SUBMISSION_STATUS_CONFIG["SE"]).toEqual({
         color: "red",
-        labelKey: "common.status.failed",
+        labelKey: "common:status.failed",
         type: "red",
       });
     });
@@ -87,7 +87,7 @@ describe("Status Config", () => {
     it("should have config for NS status", () => {
       expect(SUBMISSION_STATUS_CONFIG["NS"]).toEqual({
         color: "gray",
-        labelKey: "common.status.draft",
+        labelKey: "common:status.draft",
         type: "gray",
       });
     });

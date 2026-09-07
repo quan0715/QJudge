@@ -40,6 +40,77 @@ const baseSignal = (eventType: string, clientOccurredAtMs: number) => ({
   payload: { eventType },
 });
 
+describe("resident immutable outbox", () => {
+  it("allocates the fence and health sequence atomically and keeps it through partial ACK and reload", async () => {
+    const options = { databaseName: `fence-proof-${sequence++}`, attemptId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", nextSequence: 1 };
+    const first = await openTestOutbox(options);
+    await first.append(baseSignal("focus_lost", 900));
+    const record = await first.append({ eventType: "health_snapshot", clientOccurredAtMs: 1000, payload: {}, evidenceFenceBeforeMs: 800 });
+    const batch = await first.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await first.ackThrough(RUN_ID, DEVICE_ID, 1);
+    await first.close();
+    const second = await openTestOutbox(options);
+    expect(await second.claimBatch({ maxRecords: 200, maxBytes: 1048576 })).toEqual(batch);
+    await second.close();
+    expect(record.payload.evidence_fence).toEqual({ version: "resident-evidence-fence-v1", attempt_id: options.attemptId, through_seq: 2, before_client_ms: 800 });
+  });
+  it("fences a still-open prior attempt after another owner rotates an empty stream", async () => {
+    const databaseName = `resident-fence-${sequence++}`;
+    const first = await openTestOutbox({ databaseName, attemptId: "attempt-a", nextSequence: 1 });
+    const next = await openTestOutbox({ databaseName, attemptId: "attempt-b", nextSequence: 1 });
+    let failure: unknown;
+    try { await first.append(baseSignal("focus_lost", 1000)); } catch (error) { failure = error; }
+    await first.close();
+    await next.close();
+    expect(failure).toBeInstanceOf(Error);
+  });
+  it("uses the server continuation when a same-attempt local stream is empty", async () => {
+    const databaseName = `resident-empty-${sequence++}`;
+    const options = { databaseName, attemptId: "attempt-a", nextSequence: 1 };
+    const first = await openTestOutbox(options);
+    await first.close();
+    const next = await openTestOutbox({ ...options, nextSequence: 9 });
+    const record = await next.append(baseSignal("focus_lost", 1000));
+    await next.close();
+    expect(record.seq).toBe(9);
+  });
+  it("refuses to relabel unresolved previous-attempt data and preserves its original body", async () => {
+    const databaseName = `resident-attempt-${sequence++}`;
+    const options = { databaseName, attemptId: "attempt-a", nextSequence: 1 };
+    const first = await openTestOutbox(options);
+    await first.append(baseSignal("focus_lost", 1000));
+    const original = await first.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await first.close();
+    await expect(openTestOutbox({ ...options, attemptId: "attempt-b", nextSequence: 2 })).rejects.toThrow("previous integrity attempt");
+    const restored = await openTestOutbox(options);
+    const retry = await restored.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await restored.close();
+    expect(retry).toEqual(original);
+  });
+  it("preserves the entire claimed body after gap and partial ACK across reload", async () => {
+    const databaseName = `resident-${sequence++}`;
+    const options = { databaseName, attemptId: "attempt-a", nextSequence: 7 };
+    const box = await openTestOutbox(options);
+    await box.append(baseSignal("focus_lost", 1000));
+    await box.append(baseSignal("focus_lost", 1001));
+    const batch = await box.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await box.close();
+    expect(batch?.firstSeq).toBe(7);
+    const pending = await openTestOutbox(options);
+    try {
+      await pending.ackThrough(RUN_ID, DEVICE_ID, 0);
+      await pending.ackThrough(RUN_ID, DEVICE_ID, 7);
+    } finally { await pending.close(); }
+    const restored = await openTestOutbox(options);
+    expect(await restored.claimBatch({ maxRecords: 200, maxBytes: 1048576 })).toEqual(batch);
+    await restored.append(baseSignal("focus_lost", 1002));
+    await restored.ackThrough(RUN_ID, DEVICE_ID, 30);
+    expect((await restored.listPending()).map((record) => record.seq)).toEqual([9]);
+    expect((await restored.claimBatch({ maxRecords: 200, maxBytes: 1048576 }))?.firstSeq).toBe(9);
+    await restored.close();
+  });
+});
+
 const transactionDone = (transaction: IDBTransaction): Promise<void> =>
   new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
@@ -78,12 +149,14 @@ const evidenceDescriptor = (): ExamIntegrityEvidenceDescriptor => ({
 const storeDescriptor = async (
   databaseName: string,
   descriptor: ExamIntegrityEvidenceDescriptor,
+  owner?: { attemptId: string; participantId: number },
 ): Promise<void> => {
   const database = await openDatabase(databaseName);
   try {
     const transaction = database.transaction("evidenceDescriptors", "readwrite");
     transaction.objectStore("evidenceDescriptors").put({
       ...descriptor,
+      ...owner,
       runId: RUN_ID,
       deviceId: DEVICE_ID,
       batchAcked: false,
@@ -232,11 +305,11 @@ describe("IndexedDbIntegrityOutbox", () => {
     await outbox.close();
   });
 
-  it("ACKs a descriptor-bearing snapshot and marks its local descriptor durable", async () => {
-    const outbox = await openTestOutbox();
+  it.each([false, true])("ACKs a descriptor-bearing snapshot and marks its local descriptor durable (resident=%s)", async (resident) => {
+    const outbox = await openTestOutbox(resident ? { attemptId: "attempt-a", nextSequence: 1 } : {});
     const databaseName = [...databaseNames][0]!;
     const descriptor = evidenceDescriptor();
-    await storeDescriptor(databaseName, descriptor);
+    await storeDescriptor(databaseName, descriptor, resident ? { attemptId: "attempt-a", participantId: 44 } : undefined);
     await outbox.append({
       ...baseSignal("health_snapshot", 1_000),
       evidenceDescriptors: [descriptor],
@@ -246,10 +319,23 @@ describe("IndexedDbIntegrityOutbox", () => {
     await outbox.ackThrough(RUN_ID, DEVICE_ID, batch!.lastSeq);
 
     expect(await outbox.listPending()).toEqual([]);
+    await outbox.close();
     expect(await readStoredDescriptor(databaseName, descriptor.localDescriptorId)).toMatchObject({
       batchAcked: true,
     });
     await outbox.close();
+  });
+
+  it("never ACK-marks media owned by a prior attempt even when a summary names it", async () => {
+    const outbox = await openTestOutbox({ attemptId: "attempt-new", nextSequence: 1 });
+    const databaseName = [...databaseNames][0]!;
+    const descriptor = evidenceDescriptor();
+    await storeDescriptor(databaseName, descriptor, { attemptId: "attempt-old", participantId: 44 });
+    await outbox.append({ ...baseSignal("health_snapshot", 1000), evidenceDescriptors: [descriptor] });
+    const batch = await outbox.claimBatch({ maxRecords: 200, maxBytes: 1048576 });
+    await outbox.ackThrough(RUN_ID, DEVICE_ID, batch!.lastSeq);
+    await outbox.close();
+    expect(await readStoredDescriptor(databaseName, descriptor.localDescriptorId)).toMatchObject({ batchAcked: false });
   });
 
   it("keeps offline records with their original occurrence timestamps", async () => {

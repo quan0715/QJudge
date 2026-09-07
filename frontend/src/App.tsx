@@ -5,6 +5,7 @@ import { I18nextProvider } from "react-i18next";
 import { HelmetProvider } from "react-helmet-async";
 
 import i18n from "@/i18n";
+import ExamPreviewLayout from "@/features/app/components/workspace/ExamPreviewLayout";
 import MainLayout from "@/features/app/components/MainLayout";
 import ErrorBoundary from "@/features/app/components/ErrorBoundary";
 import {
@@ -167,7 +168,9 @@ function App() {
 
                             {/* Classroom Exam Preview - Classroom-scoped */}
                             {classroomContestAttendanceProjectionRoute}
-                            {classroomExamPreviewRoute}
+                            <Route element={<ExamPreviewLayout />}>
+                              {classroomExamPreviewRoute}
+                            </Route>
 
                           </Route>
                         </Route>

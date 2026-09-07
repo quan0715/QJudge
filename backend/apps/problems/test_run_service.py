@@ -107,6 +107,7 @@ class ProblemTestRunService:
         problem: CodingProblem,
         language: str,
         source_code: str,
+        on_progress=None,
     ) -> dict:
         try:
             judge = judge_factory.get_judge(language)
@@ -120,7 +121,10 @@ class ProblemTestRunService:
         max_memory_usage = 0
         final_status = "AC"
 
-        for tc in cls._build_test_cases(problem):
+        test_cases = cls._build_test_cases(problem)
+        if on_progress:
+            on_progress({"total": len(test_cases), "results": []})
+        for tc in test_cases:
             try:
                 exec_result = judge.execute(
                     code=source_code,
@@ -141,6 +145,8 @@ class ProblemTestRunService:
 
             case_result = cls._build_case_result(tc, exec_result)
             results.append(case_result)
+            if on_progress:
+                on_progress({"total": len(test_cases), "results": [dict(case) for case in results]})
 
             max_exec_time = max(max_exec_time, case_result["exec_time"])
             max_memory_usage = max(max_memory_usage, case_result["memory_usage"])

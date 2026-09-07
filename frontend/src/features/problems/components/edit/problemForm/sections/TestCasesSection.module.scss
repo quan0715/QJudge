@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 
 .container {
   width: 100%;
@@ -80,3 +81,13 @@
   }
 }
 
+.radioLabel {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-01;
+}
+
+.radioLabelHint {
+  @include type.type-style("label-01");
+  color: var(--cds-text-secondary);
+}

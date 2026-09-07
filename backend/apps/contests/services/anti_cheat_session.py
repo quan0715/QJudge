@@ -176,6 +176,7 @@ def find_exam_conflict(user, device_id: str) -> SessionConflict | None:
         .filter(
             user=user,
             contest__status="published",
+            contest__cheat_detection_enabled=True,
             contest__start_time__lte=now,
             contest__end_time__gte=now,
             exam_status__in=[
@@ -366,6 +367,7 @@ def is_access_token_allowed(user_id: int, jti: str) -> bool:
         ContestParticipant.objects.filter(
             user_id=user_id,
             contest__status="published",
+            contest__cheat_detection_enabled=True,
             contest__start_time__lte=now,
             contest__end_time__gte=now,
             exam_status__in=[
