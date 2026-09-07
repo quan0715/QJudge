@@ -465,8 +465,10 @@ def _start_run_serialized(
 ) -> ExamIntegrityRun:
     plaintext_token: str | None = None
     with transaction.atomic():
+        contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=run_id)
+        Contest.objects.select_for_update().get(pk=contest_id)
         run = (
-            ExamIntegrityRun.objects.select_for_update()
+            ExamIntegrityRun.objects.select_for_update(of=("self",))
             .select_related("contest")
             .get(pk=run_id)
         )

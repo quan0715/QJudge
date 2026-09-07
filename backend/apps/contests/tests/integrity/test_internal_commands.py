@@ -25,6 +25,37 @@ TOKEN = "run-scoped-opaque-token"
 
 
 @pytest.fixture
+def due_schedule(running_integrity_run, participant):
+    end = timezone.now() - timedelta(seconds=1)
+    Contest.objects.filter(pk=participant.contest_id).update(end_time=end)
+    participant.contest.end_time = end
+    running_integrity_run.scheduled_end_at = end
+    running_integrity_run.save(update_fields=["scheduled_end_at"])
+
+
+@pytest.mark.django_db
+def test_old_end_command_is_terminal_ignored_after_extension(internal_client, running_integrity_run, participant):
+    from apps.contests.services.exam_schedule import update_exam_schedule
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    update_exam_schedule(participant.contest_id, start_time=participant.contest.start_time,
+                         end_time=participant.contest.end_time + timedelta(minutes=20), actor=participant.contest.owner)
+    response = internal_client.post_commands(running_integrity_run, [command])
+    assert response.status_code == 200, response.json()
+    assert command["command_id"] in response.json()["accepted_command_ids"]
+    participant.refresh_from_db()
+    assert participant.exam_status == "in_progress"
+    assert not ExamEvent.objects.filter(integrity_command_id=command["command_id"]).exists()
+
+
+@pytest.mark.django_db
+def test_early_end_command_does_not_submit(internal_client, running_integrity_run, participant):
+    command = bind_run(auto_submit_command(participant), running_integrity_run)
+    assert internal_client.post_commands(running_integrity_run, [command]).status_code == 200
+    participant.refresh_from_db()
+    assert participant.exam_status == "in_progress"
+
+
+@pytest.fixture
 def owner(db, django_user_model):
     return django_user_model.objects.create_user(
         username="integrity-command-owner",
@@ -447,6 +478,7 @@ def test_auto_submit_uses_existing_finalizer_once_and_never_stops_run(
     running_integrity_run,
     participant,
     mocker,
+    due_schedule,
 ):
     from apps.contests.services import integrity_commands
 
@@ -483,6 +515,7 @@ def test_new_auto_submit_defaults_omitted_received_timestamp(
     internal_client,
     running_integrity_run,
     participant,
+    due_schedule,
 ):
     command = bind_run(auto_submit_command(participant), running_integrity_run)
     command.pop("received_at_server_ms")
@@ -505,6 +538,7 @@ def test_auto_submit_replay_rejects_changed_timestamps_metadata_and_device(
     internal_client,
     running_integrity_run,
     participant,
+    due_schedule,
 ):
     command = bind_run(auto_submit_command(participant), running_integrity_run)
     assert internal_client.post_commands(
@@ -546,6 +580,7 @@ def test_auto_submit_replay_without_command_fingerprint_is_rejected(
     internal_client,
     running_integrity_run,
     participant,
+    due_schedule,
 ):
     command = bind_run(auto_submit_command(participant), running_integrity_run)
     assert "worker_processed_at_ms" not in command

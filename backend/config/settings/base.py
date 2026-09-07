@@ -408,6 +408,7 @@ AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
 # Exam integrity lifecycle services. Backend owns database state while the
 # dedicated Controller is the only service allowed to own the Docker socket.
 INTEGRITY_EXECUTION_BACKEND = os.getenv("INTEGRITY_EXECUTION_BACKEND", "legacy")
+INTEGRITY_RESIDENT_URL = os.getenv("INTEGRITY_RESIDENT_URL", "http://integrity-resident:8011")
 INTEGRITY_ACCEPT_GRACE_SECONDS = int(os.getenv("INTEGRITY_ACCEPT_GRACE_SECONDS", "300"))
 
 INTEGRITY_CONTROLLER_URL = os.getenv(

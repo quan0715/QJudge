@@ -19,6 +19,7 @@ from apps.contests.infrastructure.integrity_worker_client import (
     load_integrity_worker_private_key,
 )
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamEvent,
     ExamIntegrityRun,
@@ -683,8 +684,10 @@ def _apply_registry_action(
 
 @transaction.atomic
 def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
+    contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=command.run_id)
+    Contest.objects.select_for_update().get(pk=contest_id)
     run = (
-        ExamIntegrityRun.objects.select_for_update()
+        ExamIntegrityRun.objects.select_for_update(of=("self",))
         .select_related("contest")
         .get(pk=command.run_id)
     )
@@ -924,10 +927,6 @@ def _auto_submit_command(
         metadata.get("scheduled_end_ms"),
         "invalid_command_timestamp",
     )
-    if run.scheduled_end_at is not None and abs(
-        scheduled_end_ms - int(run.scheduled_end_at.timestamp() * 1000)
-    ) > 1:
-        raise IntegrityCommandRejected("scheduled_end_scope_mismatch")
     client_ms = _nonnegative_int(
         command.get("client_occurred_at_ms", scheduled_end_ms),
         "invalid_command_timestamp",
@@ -993,6 +992,12 @@ def _auto_submit_command(
     )
     if existing is not None:
         return CommandOutcome(command_id, "already_applied", {})
+
+    latest_end = run.contest.end_time
+    if (run.execution_backend == "resident" or latest_end is None
+            or abs(scheduled_end_ms - int(latest_end.timestamp() * 1000)) > 1
+            or timezone.now() < latest_end):
+        return CommandOutcome(command_id, "applied", {"ignored": "stale_schedule"})
 
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -1339,8 +1344,11 @@ def execute_integrity_command(
     authenticated_service_digest: str | None = None,
 ) -> CommandOutcome:
     command, command_id = _normalize_command(raw_command, run_id)
+    contest_id = ExamIntegrityRun.objects.filter(pk=run_id).values_list("contest_id", flat=True).first()
+    if contest_id is not None:
+        Contest.objects.select_for_update().get(pk=contest_id)
     run = (
-        ExamIntegrityRun.objects.select_for_update()
+        ExamIntegrityRun.objects.select_for_update(of=("self",))
         .select_related("contest")
         .filter(pk=run_id)
         .first()

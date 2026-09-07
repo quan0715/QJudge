@@ -43,7 +43,7 @@ class SubmissionAccessPolicy:
         now = timezone.now()
         if contest.start_time and now < contest.start_time:
             raise SubmissionAccessError("Contest has not started yet")
-        if contest.end_time and now > contest.end_time:
+        if contest.end_time and now >= contest.end_time:
             raise SubmissionAccessError("Contest has ended")
 
         try:

@@ -214,6 +214,15 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         with transaction.atomic():
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
+            from ..services.exam_schedule import lock_exam_runs
+            lock_exam_runs(contest.pk)
+            if participant is not None:
+                participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+            participant, error_response = validate_exam_operation_for_view(
+                contest, request.user, require_in_progress=True
+            )
+            if error_response is not None:
+                return error_response
             try:
                 question = ExamQuestion.objects.get(
                     id=question_id, contest=contest

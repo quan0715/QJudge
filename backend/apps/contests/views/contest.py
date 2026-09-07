@@ -4,6 +4,7 @@ import logging
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.core.cache import cache
+from django.db import transaction
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError as DRFValidationError
@@ -237,8 +238,20 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         """
         Override to log contest update activity.
         """
-        instance = serializer.save()
-        prepare_integrity_session(instance.id, actor_id=self.request.user.id)
+        from ..services.exam_schedule import update_exam_schedule
+        with transaction.atomic():
+            locked = Contest.objects.select_for_update().get(pk=serializer.instance.pk)
+            serializer.instance = locked
+            # Partial updates must validate against the latest locked counterpart.
+            serializer.validate(serializer.validated_data)
+            serializer.instance = update_exam_schedule(
+                locked.pk,
+                start_time=serializer.validated_data.get("start_time", locked.start_time),
+                end_time=serializer.validated_data.get("end_time", locked.end_time),
+                actor=self.request.user,
+            )
+            instance = serializer.save()
+            prepare_integrity_session(instance.id, actor_id=self.request.user.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
         # Log activity - record what fields were changed

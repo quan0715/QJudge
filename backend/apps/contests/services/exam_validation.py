@@ -40,7 +40,7 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
     now = timezone.now()
     if contest.start_time and now < contest.start_time:
         raise ValidationError('Contest has not started yet. Please wait until the start time.')
-    if contest.end_time and now > contest.end_time:
+    if contest.end_time and now >= contest.end_time:
         raise ValidationError('Contest has ended.')
 
     # Layer 3: Participant status
