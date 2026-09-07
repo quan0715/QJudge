@@ -31,6 +31,7 @@ export interface ExamIntegrityRepository {
   submitEvidenceCheckpoint(
     contestId: string,
     request: EvidenceCheckpointRequest,
+    signal?: AbortSignal,
   ): Promise<EvidenceCheckpointResponse>;
 }
 
@@ -314,10 +315,10 @@ export const examIntegrityRepository: ExamIntegrityRepository = {
     }), "Failed to poll integrity upload"));
   },
 
-  async submitEvidenceCheckpoint(contestId, request) {
+  async submitEvidenceCheckpoint(contestId, request, signal) {
     const post = request.uploadScope
       ? (url: string, body: unknown) => httpClient.requestOnce(url, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
         })
       : httpClient.post;
     const response = await requestJson<{

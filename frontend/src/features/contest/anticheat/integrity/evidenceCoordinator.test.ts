@@ -79,6 +79,56 @@ const coordinatorStore = (descriptors: StoredEvidenceDescriptor[]) => ({
 });
 
 describe("EvidenceCoordinator", () => {
+  it("cancels a future evidence window before any network work", async () => {
+    const checkpoint = vi.fn();
+    const coordinator = new EvidenceCoordinator({ contestId: "1", runId: "run-a", store: coordinatorStore([]) as never,
+      repository: { submitEvidenceCheckpoint: checkpoint }, now: () => 0, requestTimeoutMs: 100 });
+    const result = coordinator.retain(retainCommand()).catch((error) => error);
+    await Promise.resolve();
+    coordinator.cancelPending();
+    await expect(result).resolves.toBeInstanceOf(Error);
+    await coordinator.flushPendingUploads();
+    expect(checkpoint).not.toHaveBeenCalled();
+  });
+  it("bounds a stuck resident evidence checkpoint and leaves protection for retry", async () => {
+    const store = coordinatorStore([storedDescriptor()]);
+    let signal: AbortSignal | undefined;
+    const checkpoint = vi.fn((_id, _body, inputSignal) => new Promise<never>((_resolve, reject) => {
+      signal = inputSignal;
+      signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    const retryable = vi.fn();
+    const coordinator = new EvidenceCoordinator({ contestId: "1", runId: "run-a", store: store as never,
+      repository: { submitEvidenceCheckpoint: checkpoint }, requestTimeoutMs: 50, onRetryableFailure: retryable });
+    await expect(coordinator.retain(retainCommand({ endAtMs: 1_000_000 }))).rejects.toThrow();
+    expect(signal?.aborted).toBe(true);
+    expect(retryable).toHaveBeenCalledOnce();
+    expect(store.releaseProtection).not.toHaveBeenCalled();
+    expect(store.markUnavailable).not.toHaveBeenCalled();
+  });
+  it.each(["timeout", "cancel"])("aborts a stuck resident PUT on %s and preserves retry evidence", async (action) => {
+    const store = coordinatorStore([storedDescriptor()]);
+    let signal: AbortSignal | undefined;
+    const fetchFn = vi.fn((_url, init) => new Promise<Response>((_resolve, reject) => {
+      signal = init?.signal as AbortSignal;
+      signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    const checkpoint = vi.fn().mockResolvedValue({ uploads: [{ chunkId: "chunk-1", source: "screen_share", chunkSeq: 1,
+      objectKey: "integrity/session-a/1.webm", status: "requested", putUrl: "https://upload.test", requiredHeaders: {} }], completions: [] });
+    const coordinator = new EvidenceCoordinator({ contestId: "1", runId: "run-a", store: store as never,
+      repository: { submitEvidenceCheckpoint: checkpoint }, fetchFn, requestTimeoutMs: 100 });
+    const result = coordinator.retain(retainCommand({ endAtMs: 1_000_000 })).catch((error) => error);
+    await vi.waitFor(() => expect(fetchFn).toHaveBeenCalledOnce());
+    if (action === "cancel") coordinator.cancelPending();
+    await expect(result).resolves.toBeInstanceOf(Error);
+    expect(signal?.aborted).toBe(true);
+    expect(store.markUnavailable).not.toHaveBeenCalled();
+    expect(store.markVerified).not.toHaveBeenCalled();
+    expect(store.deleteDescriptor).not.toHaveBeenCalled();
+    expect(store.releaseProtection).not.toHaveBeenCalled();
+    expect(checkpoint).toHaveBeenCalledOnce();
+    await coordinator.flushPendingUploads();
+  });
   it("caps recorded duration without treating time between sessions as video", async () => {
     const coordinator = new EvidenceCoordinator({
       contestId: "contest-a",

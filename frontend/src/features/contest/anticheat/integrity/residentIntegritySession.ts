@@ -91,7 +91,9 @@ export class ResidentIntegritySession {
         this.store = await OpfsEvidenceStore.open({ runId: scope.run_id, deviceId: scope.device_id });
         this.coordinator = new EvidenceCoordinator({ contestId: this.options.contestId,
           runId: scope.run_id, store: this.store,
-          repository: { submitEvidenceCheckpoint: (id, request) => examIntegrityRepository.submitEvidenceCheckpoint(id, { ...request, uploadScope: scope }) },
+          requestTimeoutMs: 10_000,
+          onRetryableFailure: (error) => this.gap(error),
+          repository: { submitEvidenceCheckpoint: (id, request, signal) => examIntegrityRepository.submitEvidenceCheckpoint(id, { ...request, uploadScope: scope }, signal) },
         });
         await this.coordinator.start();
       } catch (error) { this.localLoss(error); }
@@ -141,6 +143,7 @@ export class ResidentIntegritySession {
     this.mode = mode; // Fence emit and collection synchronously, before awaits.
     this.syncSources();
     this.transport?.stop();
+    this.coordinator?.cancelPending();
     const change = async () => {
       await this.ready;
       await this.transport?.whenIdle();
@@ -193,6 +196,7 @@ export class ResidentIntegritySession {
     this.syncSources();
     this.transport?.stop();
     await this.ready;
+    this.coordinator?.cancelPending();
     await this.transitions;
     await this.writes;
     await this.transport?.whenIdle();

@@ -6,6 +6,58 @@ import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEviden
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it("cancels stuck evidence PUTs through submit drain and expiry cleanup without deleting durable evidence", async () => {
+  const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };
+  const descriptor = { source: "screen_share", recordingSessionId: "recording", chunkSeq: 1, localDescriptorId: "saved",
+    startAtMs: 100, endAtMs: 200, localAvailability: "available", uploadStatus: "local", isInitChunk: false, retainCommandIds: [] };
+  const blob = new Blob(["durable original evidence"]);
+  const store = { reconcile: async () => {}, listDescriptors: async () => [descriptor], pendingDescriptorSummaries: async () => [],
+    markReported: async () => {}, protect: vi.fn(), getBlob: vi.fn(async () => blob), markRequested: vi.fn(),
+    markUnavailable: vi.fn(), markVerified: vi.fn(), deleteDescriptor: vi.fn(), releaseProtection: vi.fn(), close: vi.fn() };
+  vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue(store as unknown as OpfsEvidenceStore);
+  const requests: Record<string, any>[] = [];
+  const puts: AbortSignal[] = [];
+  let first = true;
+  const command = { command_id: "retain", incident_id: "incident", event_id: "44", sources: ["screen_share"], start_at_ms: 100, end_at_ms: 200 };
+  vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
+    if (init.method === "PUT") {
+      puts.push(init.signal);
+      return new Promise<Response>((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new Error("aborted PUT")), { once: true }));
+    }
+    const body = JSON.parse(init.body); requests.push(body);
+    if (body.evidence?.manifests.length) return new Response(JSON.stringify({ uploads: [{ chunk_id: "chunk", chunk_seq: 1, source: "screen_share",
+      object_key: "integrity/recording/1.webm", status: "requested", put_url: "https://upload.test", required_headers: {} }], completions: [] }), { status: 200 });
+    const commands = first || body.final_seq !== undefined ? [command] : [];
+    first = false;
+    return new Response(JSON.stringify({ acked_through_seq: 100, processed_through_seq: 100,
+      pending_commands: commands, release_evidence_before_ms: 0, upload_status: "pending" }), { status: 200 });
+  }));
+  const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
+    run: { id: scope.run_id, participantId: 44, computeState: "stopped", health: "unhealthy",
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never },
+    onGap: vi.fn(), onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
+      fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+  await session.start();
+  await vi.waitFor(() => expect(puts).toHaveLength(1));
+  await session.emitter.emit({ eventType: "focus_lost", clientOccurredAtMs: 150, payload: {} });
+  await session.setMode("drain");
+  expect(puts[0].aborted).toBe(true);
+  // Drive subsequent drain tick after the newly saved event is ACKed.
+  const draining = session.flush();
+  await vi.waitFor(() => expect(puts).toHaveLength(2));
+  expect(requests.some((request) => request.final_seq !== undefined)).toBe(true);
+  await session.setMode("off");
+  await draining;
+  await session.close();
+  expect(puts[1].aborted).toBe(true);
+  expect(store.close).toHaveBeenCalledOnce();
+  expect(await store.getBlob()).toBe(blob);
+  expect(store.deleteDescriptor).not.toHaveBeenCalled();
+  expect(store.markUnavailable).not.toHaveBeenCalled();
+  expect(store.markVerified).not.toHaveBeenCalled();
+  expect(requests.filter((request) => request.evidence).every((request) => request.evidence.completions.length === 0)).toBe(true);
+});
+
 it.each(["network", "append", "open", "capacity", "recorder"])("reports local loss separately from retryable %s failure without rejecting answer signals", async (failure) => {
   const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };
   vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue({ reconcile: async () => {},

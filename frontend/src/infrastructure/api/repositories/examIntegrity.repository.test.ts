@@ -30,12 +30,14 @@ const batch = {
 
 describe("examIntegrityRepository", () => {
   it("keeps resident evidence authentication failures local without refresh or replay", async () => {
+    const controller = new AbortController();
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: "scope expired" }), { status: 401 }));
     await expect(examIntegrityRepository.submitEvidenceCheckpoint("contest-a", {
       uploadScope: { run_id: batch.runId, participant_id: 44, device_id: "device-a", attempt_id: "trusted-attempt" },
       manifests: [], completions: [], unavailable: [],
-    })).rejects.toThrow();
+    }, controller.signal)).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal);
   });
   it.each([0, 19])("accepts resident stream ACK %i and sends the trusted scope", async (cursor) => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
