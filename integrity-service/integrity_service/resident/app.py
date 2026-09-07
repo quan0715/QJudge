@@ -200,6 +200,10 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             "accepting": snapshot.accepting and descriptor.session_state in {"active", "draining"} and clock() <= descriptor.accept_until_ms,
             "schedule_revision": descriptor.schedule_revision,
             "warnings": list(snapshot.warning_codes),
+            "service_gaps": {"count": snapshot.service_gap_count,
+                "last_ended_ms": snapshot.last_service_gap_ended_ms,
+                "suppressed_connectivity_commands": snapshot.suppressed_connectivity_commands,
+                "affected_participant_count": snapshot.gap_affected_participant_count},
             "maintenance_errors": errors}, status_code=200 if healthy else 503)
 
     return app

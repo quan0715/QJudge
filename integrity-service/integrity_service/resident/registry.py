@@ -98,6 +98,13 @@ class RunRegistry:
         with self._lock:
             return self._descriptors[run_id]
 
+    def record_service_gap(self, run_id, started_ms, ended_ms, reason):
+        # Internal trusted incident reports only; unknown IDs never allocate a
+        # runtime or consume a registry slot. Runtime serializes with decisions.
+        runtime = self.get(run_id)
+        with self._run_lock(run_id):
+            runtime.record_service_gap(started_ms, ended_ms, reason)
+
     def run_ids(self):
         with self._lock:
             return tuple(self._runtimes)

@@ -141,6 +141,10 @@ class ReceiptStore:
     def received_cursor(self, participant_id: int, device_id: str) -> int:
         return self._sequencer.contiguous_cursor(self._run_id, participant_id, device_id)
 
+    @property
+    def last_received_at_ms(self) -> int | None:
+        return self._receipts[-1].received_at_ms if self._receipts else None
+
     def mark_processed(self, ordinal: int) -> None:
         self._require_available()
         if ordinal <= self.processed_cursor:

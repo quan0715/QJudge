@@ -289,6 +289,8 @@ class CommandOutbox:
         self._command_bytes: dict[str, bytes] = {}
         self._delivered: set[str] = set()
         self._responses: dict[str, dict[str, object]] = {}
+        self._suppressed: dict[str, dict[str, object]] = {}
+        self._suppressed_participants: set[int] = set()
         try:
             self._rebuild()
         except BaseException:
@@ -298,6 +300,49 @@ class CommandOutbox:
     @property
     def pending_commands(self) -> tuple[dict[str, object], ...]:
         return self._pending_snapshot(None)
+
+    @property
+    def suppressed_commands(self) -> tuple[dict[str, object], ...]:
+        with self._lock:
+            return tuple(json.loads(_canonical_json(value)) for value in self._suppressed.values())
+
+    def suppression_counts(self) -> tuple[int, int]:
+        """O(1) observed commands/participants; never infer a whole class."""
+        with self._lock:
+            return len(self._suppressed), len(self._suppressed_participants)
+
+    @staticmethod
+    def _validate_suppression(command: dict[str, object]) -> None:
+        metadata = command.get("metadata")
+        command_id = command.get("command_id")
+        if (str(UUID(str(command_id))) != command_id
+                or command.get("kind") != "record_event"
+                or command.get("event_type") not in {"connectivity_suspect", "connectivity_timeout"}
+                or command.get("action") not in {"record", "pause", "lock", "submit"}
+                or type(command.get("participant_id")) is not int or command["participant_id"] < 1
+                or type(metadata) is not dict or metadata.get("timing_basis") != "server_receipt"
+                or type(metadata.get("last_received_at_server_ms")) is not int
+                or type(metadata.get("transition_at_server_ms")) is not int):
+            raise ValueError("only server connectivity effects may be suppressed")
+
+    def record_suppressed_command(self, command: object, *, reason: str) -> None:
+        if reason != "platform_gap":
+            raise ValueError("unsupported suppression reason")
+        projected = _command_json(command)
+        self._validate_suppression(projected)
+        value = {"kind": "suppressed", "command": projected, "reason": reason}
+        command_id = str(projected["command_id"])
+        with self._lock:
+            if command_id in self._commands:
+                raise CommandConflict("cannot suppress already admitted history")
+            prior = self._suppressed.get(command_id)
+            if prior is not None:
+                if prior != value:
+                    raise CommandConflict(command_id)
+                return
+            self._log.append(value)
+            self._suppressed[command_id] = value
+            self._suppressed_participants.add(projected["participant_id"])
 
     def _pending_snapshot(self, limit: int | None) -> tuple[dict[str, object], ...]:
         with self._lock:
@@ -321,6 +366,8 @@ class CommandOutbox:
                     raise ValueError("command_id must be a UUID") from error
                 if command_id != canonical_id:
                     raise ValueError("command_id must use canonical UUID text")
+                if canonical_id in self._suppressed:
+                    raise CommandConflict("cannot admit suppressed history")
                 encoded = _canonical_json(command)
                 prior = prospective.get(canonical_id)
                 if prior is not None:
@@ -396,13 +443,28 @@ class CommandOutbox:
     def _rebuild(self) -> None:
         for record in self._log.records:
             kind = record.get("kind")
-            if kind == "commands":
+            if kind == "suppressed":
+                command = _command_json(record.get("command"))
+                try:
+                    self._validate_suppression(command)
+                except ValueError as error:
+                    raise DurableLogCorruption("invalid suppressed command") from error
+                command_id = str(command.get("command_id"))
+                if record.get("reason") != "platform_gap" or command_id in self._commands:
+                    raise DurableLogCorruption("invalid suppressed command")
+                if str(UUID(command_id)) != command_id or command_id in self._suppressed:
+                    raise DurableLogCorruption("invalid suppressed identity")
+                self._suppressed[command_id] = record
+                self._suppressed_participants.add(command["participant_id"])
+            elif kind == "commands":
                 commands = record.get("commands")
                 if not isinstance(commands, list):
                     raise DurableLogCorruption("command record is malformed")
                 for source in commands:
                     command = _command_json(source)
                     command_id = str(command.get("command_id"))
+                    if command_id in self._suppressed:
+                        raise DurableLogCorruption("suppressed command was admitted")
                     try:
                         if str(UUID(command_id)) != command_id:
                             raise ValueError
@@ -533,6 +595,12 @@ class TimelineJournal:
                 raise ValueError("timeline advance cannot move backwards")
             self._log.append({"kind": "advance", "server_ms": server_ms})
             self._last_server_ms = server_ms
+
+    def append_service_gap(self, *, started_ms: int, ended_ms: int, reason: str) -> None:
+        with self._lock:
+            self._log.append({"kind": "service_gap", "server_ms": self._last_server_ms,
+                "started_ms": started_ms, "ended_ms": ended_ms, "reason": reason,
+                "classification": "continuity_uncertainty" if reason == "process_recovery" else "observed_unavailability"})
 
     def close(self) -> None:
         try:

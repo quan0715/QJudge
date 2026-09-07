@@ -96,6 +96,19 @@ def test_terminal_session_stops_receipts(setup):
     assert response.json()["accepting"] is False
 
 
+def test_health_exposes_gap_history_separately_from_process_health(setup):
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    runtime = registry.get(d.bootstrap.run_id)
+    runtime.record_service_gap(NOW_MS, NOW_MS + 100, "platform_unavailable")
+    path = f"/v1/runs/{d.bootstrap.run_id}/health"
+    response = client.get(path, headers=sign(key, "GET", path, d.bootstrap.run_id, 1, b""))
+    assert response.status_code == 200
+    assert response.json().get("service_gaps") == {"count": 1,
+        "last_ended_ms": NOW_MS + 100, "suppressed_connectivity_commands": 0,
+        "affected_participant_count": 0}
+
+
 def test_signed_student_progress_distinguishes_receipt_from_decision(setup):
     key, d, registry, client = setup
     assert put(client, key, d).status_code == 200

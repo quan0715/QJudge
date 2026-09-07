@@ -33,7 +33,7 @@ from integrity_service.core.commands import (
     IntegrityCommand,
     ReceivedEvent,
 )
-from integrity_service.core.connectivity import ConnectivityMonitor
+from integrity_service.core.connectivity import ConnectivityMonitor, connectivity_effect_overlaps_gap
 from integrity_service.core.incidents import IncidentEngine
 from integrity_service.core.records import AdmittedEventRecord
 from integrity_service.core.registry import UnknownSignal
@@ -41,6 +41,7 @@ from integrity_service.core.scheduler import DeadlineScheduler
 
 
 SkippedRecordCode = Literal["unknown_signal", "invalid_payload"]
+MAX_SERVICE_GAPS = 10_000
 
 
 class TimelineOrderError(ValueError):
@@ -173,6 +174,29 @@ class DecisionTimeline:
         self._last_timeline_seq = baseline.timeline_seq
         self._clock_server_ms = baseline.server_ms
         self._scheduled_end_advanced = False
+        self._service_gaps: list[tuple[int, int]] = []
+        self.last_service_gap_ended_ms: int | None = None
+
+    @property
+    def service_gap_count(self) -> int:
+        return len(self._service_gaps)
+
+    def record_service_gap(self, started_ms: int, ended_ms: int) -> None:
+        self.validate_service_gap(started_ms, ended_ms)
+        self._service_gaps.append((started_ms, ended_ms))
+        self.last_service_gap_ended_ms = max(self.last_service_gap_ended_ms or 0, ended_ms)
+
+    def validate_service_gap(self, started_ms: int, ended_ms: int) -> None:
+        _validate_server_ms(started_ms)
+        _validate_server_ms(ended_ms)
+        if started_ms > ended_ms:
+            raise ValueError("service gap ends before it starts")
+        if self.service_gap_count >= MAX_SERVICE_GAPS:
+            raise OSError("service gap metadata capacity reached")
+
+    def service_gap_covers(self, command: IntegrityCommand) -> bool:
+        return any(connectivity_effect_overlaps_gap(command, start, end)
+                   for start, end in self._service_gaps)
 
     def apply(
         self,

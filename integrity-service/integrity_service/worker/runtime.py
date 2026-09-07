@@ -78,6 +78,10 @@ class WorkerHealth:
     accepting: bool
     warning_codes: tuple[str, ...]
     last_scheduler_error: str | None
+    service_gap_count: int = 0
+    last_service_gap_ended_ms: int | None = None
+    suppressed_connectivity_commands: int = 0
+    gap_affected_participant_count: int = 0
 
 
 MAX_WARNING_COMMANDS_PER_RECEIPT = 32
@@ -198,6 +202,15 @@ class WorkerRuntime:
                 self.receipts = ReceiptStore(run_root / "receipts", self.journal, self.run_id)
                 ownership.callback(self.receipts.close)
             self._replay_timeline()
+            if self.receipts is not None and self.receipts.last_received_at_ms is not None:
+                # Construction only: routine descriptor refreshes never enter
+                # here. The authenticated fresh bootstrap bounds a conservative
+                # continuity-uncertainty interval, not an exact crash timestamp.
+                # Start at the last WAL receipt, so old buffered decisions are
+                # not reclassified merely because processing resumed later.
+                recovery_start = self.receipts.last_received_at_ms
+                if bootstrap.server_ms > recovery_start:
+                    self.record_service_gap(recovery_start, bootstrap.server_ms, "process_recovery")
 
             digest = lambda value: hashlib.sha256(self._canonical(value)).hexdigest()
             self.archiver = ArchiveManager(
@@ -246,6 +259,7 @@ class WorkerRuntime:
 
     def health_snapshot(self) -> WorkerHealth:
         with self._lock:
+            suppressed, affected = self.outbox.suppression_counts()
             warnings = (
                 frozenset(self._warning_codes)
                 | self.journal.warning_codes
@@ -262,6 +276,10 @@ class WorkerRuntime:
                 accepting=self._accepting,
                 warning_codes=tuple(sorted(warnings)),
                 last_scheduler_error=self._last_scheduler_error,
+                service_gap_count=self.timeline.service_gap_count,
+                last_service_gap_ended_ms=self.timeline.last_service_gap_ended_ms,
+                suppressed_connectivity_commands=suppressed,
+                gap_affected_participant_count=affected,
             )
 
     def accept_batch(self, batch: EventBatch, received_at_ms: int, *, late_unverified: bool = False) -> BatchAck:
@@ -317,6 +335,26 @@ class WorkerRuntime:
                 self._mark_unhealthy("durable_write_failed")
                 raise
             return processed
+
+    def record_service_gap(self, started_ms: int, ended_ms: int, reason: str) -> None:
+        if reason not in {"platform_unavailable", "process_recovery", "storage_unavailable"}:
+            raise ValueError("invalid service gap reason")
+        if type(started_ms) is not int or type(ended_ms) is not int or not 0 <= started_ms <= ended_ms:
+            raise ValueError("invalid service gap interval")
+        with self._lock:
+            if not self.resident_mode or self._closed:
+                raise ValueError("service gaps require an open resident runtime")
+            if not self._healthy:
+                raise OSError("service gap recording requires recovery")
+            # Append before affected decisions. This does not rewrite already
+            # committed history or advance to a recovery wall clock.
+            try:
+                self.timeline.validate_service_gap(started_ms, ended_ms)
+                self.timeline_journal.append_service_gap(started_ms=started_ms, ended_ms=ended_ms, reason=reason)
+                self.timeline.record_service_gap(started_ms, ended_ms)
+            except BaseException:
+                self._mark_unhealthy("service_gap_durability_failed")
+                raise
 
     def ingest(self, batch: EventBatch, received_at_ms: int) -> BatchAck:
         if self.resident_mode:
@@ -610,6 +648,13 @@ class WorkerRuntime:
                     entry=entry,
                     delayed_event_ids=delayed,
                 )
+            elif kind == "service_gap":
+                reason = durable.get("reason")
+                if (reason not in {"platform_unavailable", "process_recovery", "storage_unavailable"}
+                        or set(durable) != {"kind", "server_ms", "started_ms", "ended_ms", "reason", "classification"}
+                        or durable.get("classification") != ("continuity_uncertainty" if reason == "process_recovery" else "observed_unavailability")):
+                    raise DurableLogCorruption("invalid service gap record")
+                self.timeline.record_service_gap(durable["started_ms"], durable["ended_ms"])
             elif kind == "advance":
                 server_ms = int(durable["server_ms"])
                 self.outbox.append(self.timeline.advance_to(server_ms))
@@ -718,6 +763,14 @@ class WorkerRuntime:
             from dataclasses import replace
             commands = tuple(replace(command, metadata={**dict(command.metadata),
                 "receipt_batch_id": str(batch.batch_id)}) for command in commands)
+        if self.resident_mode:
+            admitted = []
+            for command in commands:
+                if self.timeline.service_gap_covers(command):
+                    self.outbox.record_suppressed_command(command, reason="platform_gap")
+                else:
+                    admitted.append(command)
+            commands = tuple(admitted)
         self.outbox.append(commands)
 
     def student_progress(self, participant_id: int, device_id: str) -> dict:
