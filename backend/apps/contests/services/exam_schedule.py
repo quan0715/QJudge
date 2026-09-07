@@ -26,14 +26,16 @@ def lock_exam_runs(contest_id):
 
 
 @transaction.atomic
-def update_exam_schedule(contest_id, *, start_time, end_time, actor):
+def update_exam_schedule(contest_id, *, start_time, end_time, actor, pending_updates=None):
     contest = Contest.objects.select_for_update().get(pk=contest_id)
     if (contest.start_time, contest.end_time) == (start_time, end_time):
         return contest
     # Reuse the ordinary editor's validation and authorization at the caller.
     from apps.contests.serializers import ContestCreateUpdateSerializer
     validator = ContestCreateUpdateSerializer(contest)
-    validator.validate({"start_time": start_time, "end_time": end_time})
+    # A combined PATCH may unpublish and clear dates in the same transaction.
+    # Validate its complete pending context, not only the persisted status.
+    validator.validate({**(pending_updates or {}), "start_time": start_time, "end_time": end_time})
     runs = lock_exam_runs(contest.pk)
     contest.start_time, contest.end_time = start_time, end_time
     contest.schedule_revision += 1
@@ -167,13 +169,29 @@ def reconcile_integrity_once(now):
                 logger.error("integrity_reconcile_database_failed contest_id=%s", contest_id)
                 result["failed"] += 1
         for run_id in ExamIntegrityRun.objects.filter(execution_backend="resident", data_state="open",
-                session_state__in=("prepared", "active", "draining")).values_list("pk", flat=True):
+                session_state__in=("prepared", "active", "draining")).order_by("id").values_list("pk", flat=True):
             try:
                 result["synchronized"] += int(_sync_resident(run_id, now))
             except Exception:
                 logger.warning("integrity_reconcile_sync_failed run_id=%s", run_id)
                 result["failed"] += 1
+            finally:
+                # Each bounded PUT/health unit yields to current deadlines,
+                # including on timeout. A long fair sweep must not postpone
+                # idle students' submission until every remote Run completes.
+                _finalize_intervening_deadlines(ownership, result)
         return result
     finally:
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_advisory_unlock(%s)", [715090705])
+
+
+def _finalize_intervening_deadlines(ownership, result):
+    now = timezone.now()
+    due_ids = Contest.objects.filter(ownership, status="published", end_time__lte=now).distinct().values_list("pk", flat=True)
+    for contest_id in due_ids:
+        try:
+            result["submitted"] += finalize_due_exam(contest_id, now=now)
+        except Exception:
+            logger.error("integrity_reconcile_deadline_failed contest_id=%s", contest_id)
+            result["failed"] += 1

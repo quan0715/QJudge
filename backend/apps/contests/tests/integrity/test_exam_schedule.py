@@ -376,17 +376,21 @@ def test_shortened_schedule_uses_new_deadline_without_extra_time(contest, partic
 
 
 @pytest.mark.django_db
-def test_failed_ordinary_save_rolls_back_schedule_and_run(contest, owner):
+@pytest.mark.parametrize("clear_schedule", [False, True])
+def test_failed_ordinary_save_rolls_back_schedule_and_run(contest, owner, clear_schedule):
     from apps.contests.serializers import ContestCreateUpdateSerializer
     run = ensure_resident_session(contest.pk)
     client = APIClient()
     client.force_authenticate(owner)
+    updates = {"status": "draft", "start_time": None, "end_time": None} if clear_schedule else {"end_time": (contest.end_time + timedelta(minutes=20)).isoformat()}
     with patch.object(ContestCreateUpdateSerializer, "update", side_effect=RuntimeError("ordinary save failed")):
         with pytest.raises(RuntimeError, match="ordinary save failed"):
-            client.patch(f"/api/v1/contests/{contest.pk}/", {"end_time": (contest.end_time + timedelta(minutes=20)).isoformat()}, format="json")
+            client.patch(f"/api/v1/contests/{contest.pk}/", updates, format="json")
     contest.refresh_from_db()
     run.refresh_from_db()
     assert contest.schedule_revision == run.schedule_revision == 1
+    assert contest.status == "published"
+    assert contest.end_time is not None
     assert contest.end_time == run.scheduled_end_at
 
 
@@ -427,3 +431,58 @@ def test_reconciler_releases_database_ownership_after_exception(contest):
             close_old_connections()
     with ThreadPoolExecutor(max_workers=1) as pool:
         assert pool.submit(another_owner).result(timeout=10)
+
+
+@pytest.mark.django_db
+def test_patch_draft_and_clear_times_uses_complete_locked_update_context(contest, owner):
+    run = ensure_resident_session(contest.pk)
+    client = APIClient()
+    client.force_authenticate(owner)
+    response = client.patch(f"/api/v1/contests/{contest.pk}/", {
+        "status": "draft", "start_time": None, "end_time": None,
+        "description": "draft without schedule",
+    }, format="json")
+    assert response.status_code == 200, response.data
+    contest.refresh_from_db()
+    run.refresh_from_db()
+    assert contest.status == "draft"
+    assert contest.start_time is contest.end_time is None
+    assert contest.description == "draft without schedule"
+    assert contest.schedule_revision == run.schedule_revision == 2
+    assert run.scheduled_start_at is run.scheduled_end_at is run.accept_until is None
+
+
+@pytest.mark.django_db(transaction=True)
+def test_recurring_command_finalizes_between_multiple_stalled_resident_requests(contest, participant):
+    import json
+    import httpx
+    from django.core.management import call_command
+    from io import StringIO
+    now = timezone.now()
+    Contest.objects.filter(pk=contest.pk).update(end_time=now + timedelta(seconds=1))
+    ensure_resident_session(contest.pk)
+    for index in range(2):
+        other = Contest.objects.create(name=f"stalled-{index}", owner=contest.owner,
+            status="published", contest_type="paper_exam", cheat_detection_enabled=True,
+            start_time=now - timedelta(minutes=1), end_time=now + timedelta(hours=1))
+        ensure_resident_session(other.pk)
+    backend_clock = [now]
+    states_at_request = []
+    output = StringIO()
+    def stalled_put(*args, **kwargs):
+        # Model each slow external PUT consuming its read timeout. Keep real
+        # command, database scans and finalization; only HTTP/time are controlled.
+        participant.refresh_from_db()
+        states_at_request.append(participant.exam_status)
+        backend_clock[0] += timedelta(seconds=5)
+        raise httpx.ReadTimeout("resident stalled")
+    with patch("httpx.put", side_effect=stalled_put), patch("django.utils.timezone.now", side_effect=lambda: backend_clock[0]), patch(
+        "apps.contests.management.commands.reconcile_integrity.time.sleep", side_effect=KeyboardInterrupt
+    ):
+        call_command("reconcile_integrity", interval=10, stdout=output)
+    assert states_at_request == ["in_progress", "submitted", "submitted"]
+    summary = json.loads(output.getvalue())
+    assert summary["submitted"] == 1
+    assert summary["failed"] == 3
+    participant.refresh_from_db()
+    assert participant.submit_reason == "Auto-submitted: scheduled exam end"

@@ -249,6 +249,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 start_time=serializer.validated_data.get("start_time", locked.start_time),
                 end_time=serializer.validated_data.get("end_time", locked.end_time),
                 actor=self.request.user,
+                pending_updates=serializer.validated_data,
             )
             instance = serializer.save()
             prepare_integrity_session(instance.id, actor_id=self.request.user.id)
