@@ -1,5 +1,4 @@
 @use "@carbon/layout";
-@use "@carbon/type";
 
 .container {
   width: 100%;
@@ -81,19 +80,3 @@
   }
 }
 
-.toggleGroup {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-}
-
-.toggleGroupLabel {
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-07;
-}

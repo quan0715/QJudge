@@ -15,16 +15,25 @@ import {
   Modal,
   TextArea,
   NumberInput,
-  Toggle,
+  RadioButtonGroup,
+  RadioButton,
   Tag,
   IconButton,
-  Layer,
 } from "@carbon/react";
 import { Add, Edit, TrashCan, Checkmark, Warning } from "@carbon/icons-react";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import { Section } from "@/shared/layout/SettingsPanel";
 import styles from "./TestCasesSection.module.scss";
+
+type TestCaseVisibility = "sample" | "normal" | "hidden";
+
+/** The two flags are mutually exclusive, so they read as one three-way choice. */
+const testCaseVisibility = (tc: { isSample: boolean; isHidden: boolean }): TestCaseVisibility => {
+  if (tc.isSample) return "sample";
+  if (tc.isHidden) return "hidden";
+  return "normal";
+};
 
 interface TestCaseRow {
   id: string;
@@ -264,7 +273,7 @@ const TestCasesSection: React.FC = () => {
         size="lg"
         className={styles.modal}
       >
-        <Layer className={styles.modalContent}>
+        <div className={styles.modalContent}>
           <div className={styles.ioGrid}>
             <TextArea
               id="tc-input"
@@ -303,41 +312,37 @@ const TestCasesSection: React.FC = () => {
                 }));
               }}
             />
-            <div className={styles.toggleGroup}>
-              <span className={styles.toggleGroupLabel}>測資類型</span>
-              <div className={styles.toggles}>
-                <Toggle
-                  id="tc-sample"
-                  labelText="範例測資"
-                  labelA="否"
-                  labelB="是"
-                  toggled={editForm.isSample}
-                  onToggle={(checked) => {
-                    setEditForm((prev) => ({
-                      ...prev,
-                      isSample: checked,
-                      isHidden: checked ? false : prev.isHidden,
-                    }));
-                  }}
-                />
-                <Toggle
-                  id="tc-hidden"
-                  labelText="隱藏測資"
-                  labelA="否"
-                  labelB="是"
-                  toggled={editForm.isHidden}
-                  onToggle={(checked) => {
-                    setEditForm((prev) => ({
-                      ...prev,
-                      isHidden: checked,
-                      isSample: checked ? false : prev.isSample,
-                    }));
-                  }}
-                />
-              </div>
-            </div>
+            <RadioButtonGroup
+              name="tc-visibility"
+              legendText="測資類型"
+              orientation="vertical"
+              valueSelected={testCaseVisibility(editForm)}
+              onChange={(value) => {
+                setEditForm((prev) => ({
+                  ...prev,
+                  isSample: value === "sample",
+                  isHidden: value === "hidden",
+                }));
+              }}
+            >
+              <RadioButton
+                id="tc-visibility-sample"
+                labelText="範例測資"
+                value="sample"
+              />
+              <RadioButton
+                id="tc-visibility-normal"
+                labelText="一般測資"
+                value="normal"
+              />
+              <RadioButton
+                id="tc-visibility-hidden"
+                labelText="隱藏測資"
+                value="hidden"
+              />
+            </RadioButtonGroup>
           </div>
-        </Layer>
+        </div>
       </Modal>
       </div>
     </Section>
