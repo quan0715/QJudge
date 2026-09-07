@@ -3,16 +3,18 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-// The global mock in test/setup.ts returns the fallback verbatim, so the
-// countdown assertion needs a mock that interpolates {{value}}.
+// Mirrors the two i18next call shapes this component uses: t(key, fallback)
+// and t(key, { defaultValue, ...values }). The global mock in test/setup.ts
+// does not interpolate, so the countdown assertion needs this one.
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
-    t: (key: string, fallback?: string, options?: Record<string, unknown>) => {
-      if (typeof fallback !== "string") return key;
-      if (!options) return fallback;
-      return fallback.replace(/\{\{(\w+)\}\}/g, (_, name: string) =>
-        String(options[name] ?? ""),
+    t: (key: string, second?: string | Record<string, unknown>) => {
+      if (typeof second === "string") return second;
+      if (!second || typeof second.defaultValue !== "string") return key;
+      return second.defaultValue.replace(
+        /\{\{(\w+)\}\}/g,
+        (_, name: string) => String(second[name] ?? ""),
       );
     },
     i18n: { language: "zh-TW", changeLanguage: vi.fn() },

@@ -8,7 +8,12 @@ import type {
   AdminPreparationOverviewData,
   PreparationItemKey,
 } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
-import { BlockHeader } from "@/shared/components/dashboard";
+import {
+  BlockHeader,
+  DashboardBlock,
+  DashboardContainer,
+  MetricBlock,
+} from "@/shared/components/dashboard";
 import styles from "./AdminPreparationCommandCenter.module.scss";
 
 interface AdminPreparationCommandCenterProps {
@@ -49,17 +54,21 @@ export default function AdminPreparationCommandCenter({
   const isDraft = data.phase === "draft";
 
   const primary = (
-    <div className={styles.primaryColumn}>
-      <div className={styles.infoRow}>
+    <DashboardContainer layout="stack" dividers="auto">
+      <DashboardContainer
+        layout="grid"
+        columns={3}
+        dividers="auto"
+        ariaLabel={t("adminOverview.preparation.infoLabel", "競賽基本資訊")}
+      >
         {data.infoCells.map((cell) => (
-          <div key={cell.key} className={styles.infoCell}>
-            <span className={styles.infoLabel}>{cell.label}</span>
-            <span className={styles.infoValue}>{cell.value}</span>
-          </div>
+          <DashboardBlock key={cell.key}>
+            <MetricBlock label={cell.label} value={cell.value} />
+          </DashboardBlock>
         ))}
-      </div>
+      </DashboardContainer>
 
-      <section>
+      <DashboardBlock>
         <BlockHeader
           title={t("adminOverview.preparation.checklistTitle", "發布前檢查")}
           description={t(
@@ -71,9 +80,9 @@ export default function AdminPreparationCommandCenter({
           items={data.checklist}
           onItemAction={onItemAction}
         />
-      </section>
+      </DashboardBlock>
 
-      <section>
+      <DashboardBlock>
         <BlockHeader
           title={t("adminOverview.preparation.participantsTitle", "考生名單")}
         />
@@ -98,98 +107,109 @@ export default function AdminPreparationCommandCenter({
             ))}
           </ul>
         )}
-      </section>
-    </div>
+      </DashboardBlock>
+    </DashboardContainer>
   );
 
   const side = (
-    <div className={styles.sideColumn}>
-      <section className={styles.sideBlock}>
-        <span className={styles.sideLabel}>
-          {t("adminOverview.preparation.nextStep", "下一步")}
-        </span>
-        {isDraft ? (
-          <>
-            <Button
-              kind="primary"
-              disabled={publishing}
-              onClick={onPublishContest}
-            >
-              {t("adminOverview.actions.publishContest", "發布競賽")}
-            </Button>
-            <p className={styles.sideNote}>
-              {data.canPublish
-                ? t(
-                    "adminOverview.actions.publishContestBody",
-                    "發布後學生就可以看到這場競賽。",
-                  )
-                : t(
-                    "adminOverview.preparation.blockedBySchedule",
-                    "發布前會先請你設定考試時間",
-                  )}
-            </p>
-          </>
-        ) : (
-          <>
-            {data.countdownMs !== null && (
-              <p className={styles.countdown}>
-                {t("adminOverview.preparation.startsIn", "距離開考 {{value}}", {
-                  value: formatCountdown(data.countdownMs),
-                })}
-              </p>
-            )}
-            <Button kind="tertiary" renderIcon={Launch} onClick={onOpenContestHome}>
-              {t("adminOverview.actions.openContestHomepage", "開啟競賽主頁")}
-            </Button>
-            {attendanceCheckEnabled && (
+    <DashboardContainer layout="stack" dividers="auto">
+      <DashboardBlock>
+        <div className={styles.sideBlock}>
+          <span className={styles.sideLabel}>
+            {t("adminOverview.preparation.nextStep", "下一步")}
+          </span>
+          {isDraft ? (
+            <>
               <Button
-                kind="ghost"
-                renderIcon={QrCode}
-                onClick={onOpenAttendanceProjection}
+                kind="primary"
+                disabled={publishing}
+                onClick={onPublishContest}
               >
-                {t(
-                  "adminOverview.screen.actions.attendanceProjection",
-                  "開啟簽到投屏",
-                )}
+                {t("adminOverview.actions.publishContest", "發布競賽")}
               </Button>
-            )}
-          </>
-        )}
-      </section>
+              <p className={styles.sideNote}>
+                {data.canPublish
+                  ? t(
+                      "adminOverview.actions.publishContestBody",
+                      "發布後學生就可以看到這場競賽。",
+                    )
+                  : t(
+                      "adminOverview.preparation.blockedBySchedule",
+                      "發布前會先請你設定考試時間",
+                    )}
+              </p>
+            </>
+          ) : (
+            <>
+              {data.countdownMs !== null && (
+                <p className={styles.countdown}>
+                  {t("adminOverview.preparation.startsIn", {
+                    defaultValue: "距離開考 {{value}}",
+                    value: formatCountdown(data.countdownMs),
+                  })}
+                </p>
+              )}
+              <Button
+                kind="tertiary"
+                renderIcon={Launch}
+                onClick={onOpenContestHome}
+              >
+                {t("adminOverview.actions.openContestHomepage", "開啟競賽主頁")}
+              </Button>
+              {attendanceCheckEnabled && (
+                <Button
+                  kind="ghost"
+                  renderIcon={QrCode}
+                  onClick={onOpenAttendanceProjection}
+                >
+                  {t(
+                    "adminOverview.screen.actions.attendanceProjection",
+                    "開啟簽到投屏",
+                  )}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      </DashboardBlock>
 
-      <section className={styles.sideBlock}>
-        <span className={styles.sideLabel}>
-          {t("adminOverview.preparation.studentView", "學生看到的樣子")}
-        </span>
-        <Button kind="tertiary" renderIcon={View} onClick={onPreviewAsStudent}>
-          {t("adminOverview.preparation.previewAsStudent", "預覽考生視角")}
-        </Button>
-        {isDraft && (
-          <p className={styles.sideNote}>
-            {t(
-              "adminOverview.preparation.draftHiddenNote",
-              "草稿不會出現在學生的競賽列表",
-            )}
-          </p>
-        )}
-      </section>
+      <DashboardBlock>
+        <div className={styles.sideBlock}>
+          <span className={styles.sideLabel}>
+            {t("adminOverview.preparation.studentView", "學生看到的樣子")}
+          </span>
+          <Button kind="tertiary" renderIcon={View} onClick={onPreviewAsStudent}>
+            {t("adminOverview.preparation.previewAsStudent", "預覽考生視角")}
+          </Button>
+          {isDraft && (
+            <p className={styles.sideNote}>
+              {t(
+                "adminOverview.preparation.draftHiddenNote",
+                "草稿不會出現在學生的競賽列表",
+              )}
+            </p>
+          )}
+        </div>
+      </DashboardBlock>
 
       {!isDraft && (
-        <section className={styles.sideBlock}>
-          <Button
-            kind="danger--tertiary"
-            dangerDescription={t(
-              "adminOverview.preparation.dangerAction",
-              "危險操作",
-            )}
-            disabled={publishing}
-            onClick={onRevertToDraft}
-          >
-            {t("adminOverview.actions.revertToDraft", "退回草稿")}
-          </Button>
-        </section>
+        <DashboardBlock>
+          <div className={styles.sideBlock}>
+            <Button
+              kind="danger--tertiary"
+              dangerDescription={t(
+                "adminOverview.preparation.dangerAction",
+                "危險操作",
+              )}
+              disabled={publishing}
+              onClick={onRevertToDraft}
+            >
+              {t("adminOverview.actions.revertToDraft", "退回草稿")}
+            </Button>
+          </div>
+        </DashboardBlock>
       )}
-    </div>
+    </DashboardContainer>
   );
 
   return (
