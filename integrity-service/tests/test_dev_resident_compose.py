@@ -76,3 +76,19 @@ def test_runtime_waits_for_narrow_bootstrap_and_data_ownership(services):
     assert len(initializer["volumes"]) == 1
     assert initializer["volumes"][0]["source"] == "integrity_resident_data"
     assert initializer["volumes"][0]["type"] == "volume"
+
+
+@pytest.mark.parametrize("render_key,bucket,ttl", [
+    ("INTEGRITY_DEV_COMPOSE_JSON", "anticheat-raw", "300"),
+    ("INTEGRITY_DEV_COMPOSE_OVERRIDE_JSON", "qjudge-dev-anticheat-raw", "777"),
+])
+def test_descriptor_archive_settings_match_between_backend_and_reconciler(render_key, bucket, ttl):
+    path = os.environ.get(render_key)
+    if not path:
+        pytest.skip("requires host-rendered dummy default and override Compose JSON")
+    with open(path) as stream:
+        rendered = json.load(stream)["services"]
+    for name in ("backend", "integrity-reconciler"):
+        env = rendered[name]["environment"]
+        assert env["ANTICHEAT_RAW_BUCKET"] == bucket, name
+        assert env["OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS"] == ttl, name

@@ -438,6 +438,8 @@ services:
     environment:
       <<: [*django_dev_environment, *integrity_dev_environment]
       DB_HOST: postgres
+      ANTICHEAT_RAW_BUCKET: ${ANTICHEAT_RAW_BUCKET:-anticheat-raw}
+      OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS: ${OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS:-300}
     depends_on:
       postgres:
         condition: service_healthy
