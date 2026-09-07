@@ -22,6 +22,10 @@ from .registry import RunRegistry, DescriptorConflict, RegistryFull
 from .settings import ResidentSettings
 
 
+class ScheduleSyncPending(Exception):
+    """Signed request and resident descriptor have different schedule snapshots."""
+
+
 def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
                descriptor_loader=None, start_maintenance=True):
     clock = now_ms or (lambda: time.time_ns() // 1_000_000)
@@ -74,6 +78,13 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             await asyncio.to_thread(registry.close)
 
     app = FastAPI(lifespan=lifespan)
+
+    @app.exception_handler(ScheduleSyncPending)
+    async def schedule_sync_pending(_request, _error):
+        # Either side may have advanced first. Reject without accepting/ACKing;
+        # a gateway retry reloads its Run and the reconciler updates our copy.
+        return JSONResponse({"error": {"code": "resident_schedule_sync_pending",
+            "message": "Resident schedule synchronization pending."}}, status_code=409)
 
     @app.exception_handler(Busy)
     @app.exception_handler(RegistryFull)
@@ -149,7 +160,7 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             runtime = registry.get(run_id)
             descriptor = registry.descriptor(run_id)
             if revision != descriptor.schedule_revision:
-                raise DescriptorConflict("stale batch schedule")
+                raise ScheduleSyncPending()
             if descriptor.session_state not in {"active", "draining"} or received_at_ms > descriptor.accept_until_ms:
                 raise WorkerNotAccepting("Run not accepting")
             with runtime._lock:
@@ -197,6 +208,15 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         return JSONResponse(ack.model_dump(mode="json"), headers={"X-QJudge-Protocol": PROTOCOL,
             **({"X-QJudge-Gap-Generation": str(gap["generation"])} if gap else {})})
 
+    def read_progress(run_id, revision, participant_id, device_id, attempt):
+        # Authorize the snapshot in the receipt lane, serialized with ensure,
+        # just as batch intake does; it can change after HTTP authentication.
+        with registry._run_lock(run_id):
+            runtime = registry.get(run_id)
+            if registry.descriptor(run_id).schedule_revision != revision:
+                raise ScheduleSyncPending()
+            return runtime.student_progress(participant_id, device_id, attempt)
+
     @app.post("/v1/runs/{run_id}/progress")
     async def student_progress(run_id: UUID, request: Request):
         body, revision = await authenticate(request, run_id)
@@ -206,11 +226,9 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
                     or type(scope["participant_id"]) is not int or scope["participant_id"] < 1
                     or type(scope["device_id"]) is not str or not 1 <= len(scope["device_id"]) <= 128):
                 raise HTTPException(422, "invalid progress scope")
-            runtime = registry.get(run_id)
-            if registry.descriptor(run_id).schedule_revision != revision:
-                raise HTTPException(409, "stale progress schedule")
             attempt = UUID(scope["attempt_id"]) if "attempt_id" in scope else None
-            result = await app.state.receipts.run(run_id, runtime.student_progress, scope["participant_id"], scope["device_id"], attempt)
+            result = await app.state.receipts.run(run_id, read_progress, run_id, revision,
+                scope["participant_id"], scope["device_id"], attempt)
         except KeyError as error:
             raise HTTPException(404, "Run unavailable") from error
         except (ValueError, OSError) as error:

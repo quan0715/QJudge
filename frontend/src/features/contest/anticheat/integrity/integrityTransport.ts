@@ -276,9 +276,11 @@ export class IntegrityTransport {
       await this.options.onAuthenticationFailure?.(asError(error));
       return;
     }
-    const retryableExamState =
-      status === 409 && errorCodeOf(error) === "exam_not_in_progress";
-    if (!retryableExamState && (status === 400 || status === 409 || status === 422)) {
+    const code = errorCodeOf(error);
+    const retryableConflict = status === 409 && (
+      code === "exam_not_in_progress" || code === "resident_schedule_sync_pending"
+    );
+    if (!retryableConflict && (status === 400 || status === 409 || status === 422)) {
       await this.options.outbox.failBatch(batchId, {
         kind: "permanent",
         status,
