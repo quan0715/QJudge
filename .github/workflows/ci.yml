@@ -360,6 +360,11 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      OBJECT_STORAGE_ENDPOINT_URL: https://storage-contract.invalid
+      OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: https://storage-contract.invalid
+      OBJECT_STORAGE_ACCESS_KEY: contract-access-key
+      OBJECT_STORAGE_SECRET_KEY: contract-secret-key
 
     steps:
       - uses: actions/checkout@v7
