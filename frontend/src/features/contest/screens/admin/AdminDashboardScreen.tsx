@@ -13,7 +13,12 @@ import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { getAdminPanelRenderer } from "@/features/contest/modules/AdminPanelRendererRegistry";
 // import { useWorkspacePanelMode } from "@/features/app/contexts/useWorkspacePanelMode";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
-import type { AdminPanelId, AdminPanelProps, ContestTypeModule } from "@/features/contest/modules/types";
+import type {
+  AdminPanelId,
+  AdminPanelProps,
+  ContestSettingsSectionId,
+  ContestTypeModule,
+} from "@/features/contest/modules/types";
 import { isContestManagerScopeRole } from "@/core/entities/contest.entity";
 import { useTabWithUrlParam } from "@/shared/hooks";
 import styles from "./AdminDashboardScreen.module.scss";
@@ -87,6 +92,9 @@ const AdminDashboardInner = () => {
 
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<
+    ContestSettingsSectionId | undefined
+  >(undefined);
   // Keep mini view infrastructure available, but do not enable it for contest admin for now.
   // useWorkspacePanelMode("mini");
   const availablePanels = useMemo(
@@ -110,6 +118,7 @@ const AdminDashboardInner = () => {
   const isSettingsOpen = settingsOpen || settingsRequestedByUrl;
   const closeSettings = () => {
     setSettingsOpen(false);
+    setSettingsSection(undefined);
     if (!settingsRequestedByUrl) return;
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -146,7 +155,10 @@ const AdminDashboardInner = () => {
           contest={contest}
           onExport={() => setExportOpen(true)}
           onPreview={handlePreview}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={(section?: ContestSettingsSectionId) => {
+            setSettingsSection(section);
+            setSettingsOpen(true);
+          }}
         />
       </div>
 
@@ -166,6 +178,7 @@ const AdminDashboardInner = () => {
           <ContestSettingsOverlay
             open
             onClose={closeSettings}
+            initialSection={settingsSection}
           />
         </Suspense>
       )}
