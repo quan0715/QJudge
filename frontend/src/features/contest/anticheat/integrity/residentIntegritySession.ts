@@ -187,8 +187,16 @@ export class ResidentIntegritySession {
       evidenceDescriptorsProvider: () => this.coordinator?.pendingDescriptorSummaries() ?? Promise.resolve([]),
       onSnapshotPersisted: (descriptors, sequence) => this.coordinator?.markSnapshotPersisted(descriptors, sequence),
       onPendingCommand: (command) => this.coordinator?.retain(command),
-      onReleaseEvidenceBeforeMs: (watermark) => this.coordinator?.releaseBefore(Math.min(watermark,
-        Math.max(0, Date.now() - evidenceBufferPolicy(this.options.run.policySnapshot).minimumLocalBufferMs))),
+      onReleaseEvidenceBeforeMs: async (watermark) => {
+        try {
+          await this.coordinator?.releaseBefore(Math.min(watermark,
+            Math.max(0, Date.now() - evidenceBufferPolicy(this.options.run.policySnapshot).minimumLocalBufferMs)));
+        } catch (error) {
+          this.captureStorageReady = false;
+          this.localLoss(error);
+          this.syncSources();
+        }
+      },
       onProgress: this.options.onProgress,
       onGap: (error) => this.gap(error),
       onLocalLoss: (error) => this.localLoss(error),

@@ -394,8 +394,10 @@ export class OpfsEvidenceStore {
       try {
         const directory = await nestedDirectory(this.options.opfs, pieces.slice(0, -1));
         await directory.removeEntry(pieces.at(-1)!);
-      } catch {
-        // A missing local file is equivalent to an evicted file for retention.
+      } catch (error) {
+        // Only confirmed absence releases accounting. Other failures may leave
+        // physical bytes behind, so retain the descriptor and stop capture.
+        if ((error as { name?: string })?.name !== "NotFoundError") throw error;
       }
     }
     const transaction = this.database.transaction(

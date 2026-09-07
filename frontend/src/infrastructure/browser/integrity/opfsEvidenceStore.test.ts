@@ -53,6 +53,26 @@ class TreeDirectory extends MemoryDirectory {
 describe("OpfsEvidenceStore", () => {
   const names: string[] = [];
 
+  it("preserves accounted bytes across repeated failed OPFS removal and accepts only confirmed absence", async () => {
+    const databaseName = `remove-failure-${crypto.randomUUID()}`; names.push(databaseName);
+    const opfs = new MemoryDirectory();
+    const store = await OpfsEvidenceStore.open({ runId: "run", deviceId: "device", participantId: 1, attemptId: "attempt", databaseName, opfs });
+    try {
+      const descriptor = await store.putChunk({ source: "screen_share", recordingSessionId: "session", epochId: "epoch", chunkSeq: 1,
+        isInitChunk: true, previousSha256: "", startAtMs: 100, endAtMs: 200, codec: "video/webm", bytes: new NodeBlob(["preserved"]) as unknown as Blob });
+      opfs.removeEntry = async () => { throw new DOMException("denied", "NoModificationAllowedError"); };
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await expect(store.deleteDescriptor(descriptor)).rejects.toThrow("denied");
+        expect((await store.listDescriptors()).reduce((sum, item) => sum + item.byteSize, 0)).toBe(9);
+        expect((await store.getBlob(descriptor))?.size).toBe(9);
+      }
+      opfs.files.clear();
+      opfs.removeEntry = async () => { throw new DOMException("missing", "NotFoundError"); };
+      await store.deleteDescriptor(descriptor);
+      expect(await store.listDescriptors()).toEqual([]);
+    } finally { await store.close(); }
+  });
+
   it("preserves startup OPFS orphans and blocks only their source before new capture", async () => {
     const databaseName = `orphan-${crypto.randomUUID()}`; names.push(databaseName);
     const root = new TreeDirectory();

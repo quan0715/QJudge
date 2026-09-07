@@ -7,6 +7,46 @@ import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEviden
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it("stops capture after periodic release storage failure without rejecting answer signals", async () => {
+  const recorders: Recorder[] = [];
+  class Recorder extends EventTarget {
+    static isTypeSupported() { return true; }
+    state = "inactive";
+    mimeType = "video/webm";
+    start() { this.state = "recording"; recorders.push(this); }
+    stop() { this.state = "inactive"; this.dispatchEvent(new Event("stop")); }
+  }
+  vi.stubGlobal("MediaRecorder", Recorder);
+  const descriptor = { endAtMs: 200, startAtMs: 100, batchAcked: true, retainCommandIds: [], uploadStatus: "local" };
+  const remove = vi.fn().mockRejectedValue(new DOMException("remove denied", "NoModificationAllowedError"));
+  vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue({ reconcile: async () => {}, listDescriptors: async () => [descriptor],
+    pendingDescriptorSummaries: async () => [], markReported: async () => {}, deleteDescriptor: remove, close: async () => {},
+  } as unknown as OpfsEvidenceStore);
+  let requests = 0;
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ acked_through_seq: ++requests,
+    processed_through_seq: requests, pending_commands: [], evidence_fence_version: "resident-evidence-fence-v1",
+    release_evidence_before_ms: requests === 1 ? 0 : 100000 }), { status: 200 })));
+  const onLocalLoss = vi.fn();
+  const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device", attempt_id: crypto.randomUUID() };
+  const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
+    run: { id: scope.run_id, participantId: 44, computeState: "stopped", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
+      policySnapshot: { device_policy: { desktop: { enabled: true, sources: { screen_share: { enabled: true } } } } }, devicePolicy: {} as never },
+    onGap: vi.fn(), onLocalLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
+      fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+  try {
+    await session.start(); await vi.waitFor(() => expect(requests).toBe(1));
+    session.setSources({ screen_share: { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener() {}, getSettings: () => ({}) }] } as unknown as MediaStream });
+    await vi.waitFor(() => expect(recorders).toHaveLength(1));
+    await session.flush();
+    expect(remove).toHaveBeenCalledOnce();
+    expect(onLocalLoss).toHaveBeenCalled();
+    expect(recorders.every(recorder => recorder.state === "inactive")).toBe(true);
+    await expect(session.emitter.emit({ eventType: "focus_lost", clientOccurredAtMs: 1000, payload: {} })).resolves.toBeUndefined();
+    await session.flush();
+    expect(remove).toHaveBeenCalledOnce();
+  } finally { await session.close(); }
+});
+
 it("keeps event upload alive but never starts a capture writer after startup storage failure", async () => {
   const start = vi.fn();
   vi.stubGlobal("MediaRecorder", class extends EventTarget {
