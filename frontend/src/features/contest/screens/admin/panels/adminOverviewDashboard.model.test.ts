@@ -8,6 +8,7 @@ import type {
 import {
   buildAdminOverviewDashboard,
   buildAdminPreparationDashboard,
+  buildAdminPreparationOverview,
   getTeacherAttentionRows,
 } from "./adminOverviewDashboard.model";
 
@@ -300,5 +301,104 @@ describe("adminOverviewDashboard.model", () => {
     expect(after.timeline.phaseLabel).toBe("已結束");
     expect(after.timeline.primaryTimeLabel).toBe("考試已結束");
     expect(after.timeline.progressPercent).toBe(100);
+  });
+});
+
+describe("buildAdminPreparationOverview", () => {
+  const build = (
+    contestOverrides: Partial<ContestDetail> = {},
+    participants: ContestParticipant[] = [participant("u1", "not_started")],
+  ) =>
+    buildAdminPreparationOverview({
+      contest: contest({
+        status: "draft",
+        startTime: "",
+        endTime: "",
+        ...contestOverrides,
+      }),
+      participants,
+      nowMs: Date.parse("2026-09-07T00:00:00Z"),
+    });
+
+  const scheduled = {
+    startTime: "2026-09-08T01:00:00Z",
+    endTime: "2026-09-08T03:00:00Z",
+  };
+
+  it("blocks publishing when the schedule is missing", () => {
+    const data = build();
+
+    expect(
+      data.checklist.find((item) => item.key === "schedule")?.level,
+    ).toBe("blocking");
+    expect(data.blockingKeys).toEqual(["schedule"]);
+    expect(data.canPublish).toBe(false);
+  });
+
+  it("warns but still allows publishing when there are no problems", () => {
+    const data = build({ ...scheduled, problems: [] });
+
+    expect(
+      data.checklist.find((item) => item.key === "problems")?.level,
+    ).toBe("warning");
+    expect(data.blockingKeys).toEqual([]);
+    expect(data.canPublish).toBe(true);
+  });
+
+  it("sorts blocking items above warnings and warnings above done", () => {
+    const data = build({ rules: "  " });
+
+    expect(data.checklist.map((item) => item.key)).toEqual([
+      "schedule",
+      "rules",
+      "problems",
+      "participants",
+    ]);
+    expect(data.checklist.map((item) => item.level)).toEqual([
+      "blocking",
+      "warning",
+      "done",
+      "done",
+    ]);
+  });
+
+  it("marks every item done when the contest is fully prepared", () => {
+    const data = build({ ...scheduled, rules: "禁止攜帶手機" });
+
+    expect(data.checklist.every((item) => item.level === "done")).toBe(true);
+    expect(data.canPublish).toBe(true);
+  });
+
+  it("reports the upcoming phase and a countdown once published", () => {
+    const data = build({
+      status: "published",
+      startTime: "2026-09-07T02:00:00Z",
+      endTime: "2026-09-07T04:00:00Z",
+      rules: "禁止攜帶手機",
+    });
+
+    expect(data.phase).toBe("upcoming");
+    expect(data.countdownMs).toBe(2 * 60 * 60 * 1000);
+  });
+
+  it("counts paper exam questions instead of coding problems", () => {
+    const data = build({
+      contestType: "paper_exam",
+      problems: [],
+      examQuestionsCount: 5,
+    });
+
+    expect(
+      data.checklist.find((item) => item.key === "problems")?.level,
+    ).toBe("done");
+  });
+
+  it("excludes non-student participants from the roster", () => {
+    const data = build({}, [
+      participant("u1", "not_started"),
+      participant("u2", "not_started", { accountRole: "teacher" }),
+    ]);
+
+    expect(data.participants.map((row) => row.userId)).toEqual(["u1"]);
   });
 });

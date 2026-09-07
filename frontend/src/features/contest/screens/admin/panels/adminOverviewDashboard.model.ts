@@ -1149,3 +1149,193 @@ export const buildAdminPreparationDashboard = ({
     },
   };
 };
+
+export type PreparationPhase = "draft" | "upcoming";
+
+export type PreparationItemLevel = "done" | "warning" | "blocking";
+
+export type PreparationItemKey =
+  | "schedule"
+  | "problems"
+  | "participants"
+  | "rules";
+
+export interface PreparationChecklistItem {
+  key: PreparationItemKey;
+  level: PreparationItemLevel;
+  title: string;
+  description: string;
+  actionLabel: string;
+}
+
+export interface PreparationInfoCell {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface PreparationParticipantRow {
+  userId: string;
+  displayName: string;
+  username: string;
+}
+
+export interface AdminPreparationOverviewData {
+  phase: PreparationPhase;
+  infoCells: PreparationInfoCell[];
+  checklist: PreparationChecklistItem[];
+  blockingKeys: PreparationItemKey[];
+  canPublish: boolean;
+  countdownMs: number | null;
+  participants: PreparationParticipantRow[];
+}
+
+const PREPARATION_LEVEL_ORDER: Record<PreparationItemLevel, number> = {
+  blocking: 0,
+  warning: 1,
+  done: 2,
+};
+
+const hasValidContestWindow = (contest: ContestDetail) => {
+  const start = Date.parse(contest.startTime ?? "");
+  const end = Date.parse(contest.endTime ?? "");
+  return Number.isFinite(start) && Number.isFinite(end) && end > start;
+};
+
+const preparationWorkItemCount = (contest: ContestDetail) =>
+  contest.contestType === "paper_exam"
+    ? contest.examQuestionsCount
+    : contest.problems.length;
+
+export const buildAdminPreparationOverview = ({
+  contest,
+  participants,
+  nowMs = Date.now(),
+  tr = defaultDashboardText,
+}: {
+  contest: ContestDetail;
+  participants: ContestParticipant[];
+  nowMs?: number;
+  tr?: DashboardText;
+}): AdminPreparationOverviewData => {
+  const students = studentParticipants(participants);
+  const scheduled = hasValidContestWindow(contest);
+  const problemCount = preparationWorkItemCount(contest);
+  const hasRules = (contest.rules ?? "").trim().length > 0;
+  const phase: PreparationPhase =
+    contest.status === "draft" ? "draft" : "upcoming";
+
+  const items: PreparationChecklistItem[] = [
+    {
+      key: "schedule",
+      level: scheduled ? "done" : "blocking",
+      title: tr("adminOverview.preparation.schedule.title", "考試時間"),
+      description: scheduled
+        ? tr("adminOverview.preparation.schedule.done", "{{start}} - {{end}}", {
+            start: DATE_TIME_FORMATTER.format(new Date(contest.startTime)),
+            end: DATE_TIME_FORMATTER.format(new Date(contest.endTime)),
+          })
+        : tr(
+            "adminOverview.preparation.schedule.missing",
+            "尚未設定，發布前必填",
+          ),
+      actionLabel: tr("adminOverview.preparation.schedule.action", "設定時間"),
+    },
+    {
+      key: "problems",
+      level: problemCount > 0 ? "done" : "warning",
+      title: tr("adminOverview.preparation.problems.title", "題目準備"),
+      description:
+        problemCount > 0
+          ? tr(
+              "adminOverview.preparation.problems.done",
+              "已設定 {{count}} 題",
+              { count: problemCount },
+            )
+          : tr("adminOverview.preparation.problems.missing", "尚未新增題目"),
+      actionLabel: tr(
+        "adminOverview.preparation.problems.action",
+        "前往題目管理",
+      ),
+    },
+    {
+      key: "participants",
+      level: students.length > 0 ? "done" : "warning",
+      title: tr("adminOverview.preparation.participants.title", "考生名單"),
+      description:
+        students.length > 0
+          ? tr(
+              "adminOverview.preparation.participants.done",
+              "已加入 {{count}} 人",
+              { count: students.length },
+            )
+          : tr(
+              "adminOverview.preparation.participants.missing",
+              "尚未加入任何考生",
+            ),
+      actionLabel: tr(
+        "adminOverview.preparation.participants.action",
+        "管理名單",
+      ),
+    },
+    {
+      key: "rules",
+      level: hasRules ? "done" : "warning",
+      title: tr("adminOverview.preparation.rules.title", "競賽規則"),
+      description: hasRules
+        ? tr("adminOverview.preparation.rules.done", "已設定規則內容")
+        : tr(
+            "adminOverview.preparation.rules.missing",
+            "建議補上考試規則與注意事項",
+          ),
+      actionLabel: tr("adminOverview.preparation.rules.action", "開啟設定"),
+    },
+  ];
+
+  const checklist = [...items].sort(
+    (a, b) =>
+      PREPARATION_LEVEL_ORDER[a.level] - PREPARATION_LEVEL_ORDER[b.level],
+  );
+  const blockingKeys = checklist
+    .filter((item) => item.level === "blocking")
+    .map((item) => item.key);
+
+  const startMs = Date.parse(contest.startTime ?? "");
+  const countdownMs =
+    phase === "upcoming" && Number.isFinite(startMs) && startMs > nowMs
+      ? startMs - nowMs
+      : null;
+
+  return {
+    phase,
+    infoCells: [
+      {
+        key: "contestType",
+        label: tr("adminOverview.preparation.info.contestType", "考卷題型"),
+        value:
+          contest.contestType === "paper_exam"
+            ? tr("adminOverview.examType.paper_exam", "考卷")
+            : tr("adminOverview.examType.coding", "Coding Test"),
+      },
+      {
+        key: "problems",
+        label: tr("adminOverview.preparation.info.problems", "題目數量"),
+        value: String(problemCount),
+      },
+      {
+        key: "participants",
+        label: tr("adminOverview.preparation.info.participants", "考生人數"),
+        value: String(students.length),
+      },
+    ],
+    checklist,
+    blockingKeys,
+    canPublish: blockingKeys.length === 0,
+    countdownMs,
+    participants: students.map((participant) => ({
+      userId: participant.userId,
+      displayName: getProfileDisplayName(participant),
+      username: participant.username,
+    })),
+  };
+};
