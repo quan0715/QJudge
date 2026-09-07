@@ -71,6 +71,19 @@ class DurableJsonLog:
         self._fd = open_durable_file(
             path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600
         )
+        try:
+            # Complete recovered frames may only be survivors in the page cache
+            # after an earlier failed fsync. Do not publish them as durable yet.
+            while True:
+                try:
+                    os.fsync(self._fd)
+                    break
+                except InterruptedError:
+                    continue
+        except BaseException:
+            os.close(self._fd)
+            self._fd = -1
+            raise
         self._failed = False
 
     @property

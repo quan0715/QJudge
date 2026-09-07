@@ -52,6 +52,7 @@ from integrity_service.worker.backend_client import (
     BackendUnavailable,
 )
 from integrity_service.worker.settings import WorkerBootstrap
+from integrity_service.worker.receipts import ReceiptStore
 
 
 class RunMismatch(ValueError):
@@ -93,10 +94,13 @@ class WorkerRuntime:
         backend: object,
         clock_ms: Callable[[], int] | None = None,
         scheduler_wait: Callable[[], Awaitable[None]] | None = None,
+        resident_mode: bool = False,
     ) -> None:
         self.bootstrap = bootstrap
         self.run_id = bootstrap.run_id
         self.backend = backend
+        self.resident_mode = resident_mode
+        self.receipts: ReceiptStore | None = None
         self._policy_snapshot = json_projection(bootstrap.policy_snapshot)
         self._registry_snapshot = json_projection(bootstrap.registry_snapshot)
         assert isinstance(self._policy_snapshot, dict)
@@ -144,6 +148,8 @@ class WorkerRuntime:
 
         run_root = data_root / str(self.run_id)
         ensure_durable_directory(run_root)
+        if not resident_mode and (run_root / "receipts" / "receipts.log").exists():
+            raise ValueError("resident data requires resident_mode=True")
         ownership = ExitStack()
         try:
             self.journal = SegmentedJournal(
@@ -187,6 +193,9 @@ class WorkerRuntime:
             )
             self._timeline_seq = 0
             self._clock_server_ms = baseline.server_ms
+            if resident_mode:
+                self.receipts = ReceiptStore(run_root / "receipts", self.journal, self.run_id)
+                ownership.callback(self.receipts.close)
             self._replay_timeline()
 
             digest = lambda value: hashlib.sha256(self._canonical(value)).hexdigest()
@@ -254,7 +263,63 @@ class WorkerRuntime:
                 last_scheduler_error=self._last_scheduler_error,
             )
 
+    def accept_batch(self, batch: EventBatch, received_at_ms: int) -> BatchAck:
+        """Durable resident intake only; caller authenticates the batch's signed scope."""
+        with self._lock:
+            if self.receipts is None:
+                raise ValueError("accept_batch requires resident_mode=True")
+            if self._closed or not self.healthy:
+                raise OSError("Worker requires recovery")
+            if not self._accepting:
+                raise WorkerNotAccepting("Worker is not accepting batches")
+            if batch.run_id != self.run_id:
+                raise RunMismatch("batch run does not match Worker run")
+            if type(received_at_ms) is not int or received_at_ms < self._clock_server_ms:
+                raise ValueError("receipt time cannot precede decision time")
+            try:
+                receipt = self.receipts.append_durable(batch, received_at_ms)
+            except (OSError, RuntimeError):
+                self._mark_unhealthy("durable_write_failed")
+                raise
+            return BatchAck(
+                acked_through_seq=receipt.contiguous_seq,
+                pending_commands=[], release_evidence_before_ms=0,
+            )
+
+    def process_pending(self, limit: int) -> int:
+        """Commit ordered resident decisions and outbox entries, without network I/O."""
+        with self._lock:
+            if self.receipts is None:
+                raise ValueError("process_pending requires resident_mode=True")
+            if type(limit) is not int or limit < 0:
+                raise ValueError("limit must be a nonnegative integer")
+            if self._closed or not self.healthy:
+                raise OSError("Worker requires recovery")
+            processed = 0
+            try:
+                for receipt in self.receipts.pending(limit):
+                    batch = receipt.batch
+                    accepted = self.sequencer.accept(batch)
+                    entry = BatchReceiptEntry(
+                        timeline_seq=receipt.ordinal, server_ms=receipt.received_at_ms,
+                        batch_id=batch.batch_id, participant_id=batch.participant_id,
+                        device_id=batch.device_id,
+                    )
+                    delayed = self._delayed_event_ids(accepted.new_records, entry.server_ms)
+                    self.timeline_journal.append_receipt(entry, accepted.new_records, delayed)
+                    self._apply_receipt(
+                        batch=batch, accepted=accepted, entry=entry, delayed_event_ids=delayed,
+                    )
+                    self.receipts.mark_processed(receipt.ordinal)
+                    processed += 1
+            except BaseException:
+                self._mark_unhealthy("durable_write_failed")
+                raise
+            return processed
+
     def ingest(self, batch: EventBatch, received_at_ms: int) -> BatchAck:
+        if self.resident_mode:
+            raise ValueError("resident intake uses accept_batch, not legacy ingest")
         with self._lock:
             if not self.healthy:
                 raise OSError("Worker is unhealthy and requires recovery")
@@ -320,6 +385,9 @@ class WorkerRuntime:
         with self._lock:
             if self._state != "RUNNING":
                 return
+            # Never move the decision clock past data awaiting its original receive time.
+            if self.receipts is not None and self.receipts.pending():
+                return
             target = self._clock_ms() if now_ms is None else now_ms
             self._drain_pending()
             try:
@@ -348,6 +416,8 @@ class WorkerRuntime:
                 self._state = "STOPPING"
 
     def stop(self) -> ArchiveResult:
+        if self.resident_mode:
+            raise WorkerNotAccepting("resident finalization requires its own drain protocol")
         self.begin_stop()
         with self._lock:
             if self._last_scheduler_error is not None:
@@ -448,6 +518,8 @@ class WorkerRuntime:
             cleanup.callback(self.timeline_journal.close)
             cleanup.callback(self.outbox.close)
             cleanup.callback(self.archiver.close)
+            if self.receipts is not None:
+                cleanup.callback(self.receipts.close)
             cleanup.close()
 
     def _load_or_create_baseline(self, bootstrap: WorkerBootstrap) -> TimelineBaseline:
@@ -509,6 +581,14 @@ class WorkerRuntime:
                     participant_id=int(durable["participant_id"]),
                     device_id=str(durable["device_id"]),
                 )
+                if self.receipts is not None:
+                    receipt = self.receipts.receipt_at(entry.timeline_seq)
+                    if (
+                        receipt.batch != batch or receipt.received_at_ms != entry.server_ms
+                        or entry.participant_id != batch.participant_id
+                        or entry.device_id != batch.device_id
+                    ):
+                        raise DurableLogCorruption("decision conflicts with resident receipt")
                 if batch_id not in received_batch_ids:
                     context = contexts.get(batch_id)
                     if context is not None:
@@ -531,6 +611,18 @@ class WorkerRuntime:
                 self._clock_server_ms = server_ms
             else:
                 raise DurableLogCorruption("unknown timeline record")
+
+        if self.receipts is not None:
+            if self.receipts.processed_cursor > self._timeline_seq:
+                raise DurableLogCorruption("processed cursor exceeds durable decisions")
+            # Timeline is the decision intent. Replaying above repairs any missing
+            # outbox write before committing a cursor interrupted by process loss.
+            for ordinal in range(self.receipts.processed_cursor + 1, self._timeline_seq + 1):
+                self.receipts.mark_processed(ordinal)
+            pending = self.receipts.pending()
+            if pending and pending[0].received_at_ms < self._clock_server_ms:
+                raise DurableLogCorruption("decision clock passed pending resident receipt")
+            return
 
         unmatched = [
             batch
