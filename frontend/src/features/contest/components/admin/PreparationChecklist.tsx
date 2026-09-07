@@ -51,15 +51,16 @@ export default function PreparationChecklist({
         const Icon = LEVEL_ICON[item.level];
         return (
           <li key={item.key} className={styles.row} data-level={item.level}>
-            <Icon size={18} className={styles[item.level]} />
+            <Icon size={18} className={`${styles.icon} ${styles[item.level]}`} />
             <div className={styles.text}>
               <span className={styles.title}>{item.title}</span>
               <span className={styles.description}>{item.description}</span>
             </div>
-            <Tag size="sm" type={LEVEL_TAG_TYPE[item.level]}>
+            <Tag className={styles.tag} size="sm" type={LEVEL_TAG_TYPE[item.level]}>
               {levelLabel(item.level)}
             </Tag>
             <Button
+              className={styles.action}
               kind="tertiary"
               size="sm"
               onClick={() => onItemAction(item.key)}

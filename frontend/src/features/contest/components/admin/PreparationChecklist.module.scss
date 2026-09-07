@@ -11,13 +11,46 @@
 .row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "icon text tag action";
   align-items: center;
   gap: layout.$spacing-04;
   padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
 }
 
+.icon {
+  grid-area: icon;
+}
+
+.tag {
+  grid-area: tag;
+}
+
+.action {
+  grid-area: action;
+}
+
+// Below the Carbon md breakpoint the four columns squeeze titles into
+// one-character-per-line, so stack the tag and action instead.
+@media (max-width: 42rem) {
+  .row {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "icon text"
+      "icon tag"
+      "action action";
+    align-items: start;
+    row-gap: layout.$spacing-03;
+  }
+
+  .tag,
+  .action {
+    justify-self: start;
+  }
+}
+
 .text {
+  grid-area: text;
   display: grid;
   gap: layout.$spacing-01;
   min-width: 0;
