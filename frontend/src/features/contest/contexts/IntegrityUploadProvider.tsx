@@ -165,7 +165,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
 export function useIntegrityCaptureRegistration(options: UseIntegrityRuntimeOptions): UploadOwner | null {
   const owner = useIntegrityUploadOwner();
   const latest = useRef(options);
-  latest.current = options;
+  useLayoutEffect(() => { latest.current = options; });
   useLayoutEffect(() => {
     if (!owner?.resident) return;
     owner.configure({ ...latest.current, snapshotProvider: () => latest.current.snapshotProvider() });

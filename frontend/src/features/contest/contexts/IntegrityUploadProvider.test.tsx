@@ -38,7 +38,7 @@ it.each(["storage", "network"])("keeps answer DOM/outbox through submit and comp
     session_identity: { active_device_matches: true, device_id: getDeviceId(), attempt_id: crypto.randomUUID(), next_sequence: 1 }, integrity_upload: null };
   const Answer = () => {
     const owner = useIntegrityUploadOwner();
-    currentOwner = owner;
+    useLayoutEffect(() => { currentOwner = owner; });
     useLayoutEffect(() => { owner?.configure({ enabled: true, contestId: "1", integrityRun: run,
       snapshotProvider: () => ({ pageVisible: true, online: true, fullscreen: false,
         screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
