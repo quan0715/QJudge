@@ -81,7 +81,25 @@
 
 - [ ] **Step 1: 寫失敗的測試**
 
-在 `ContestSettingsModal.test.tsx` 末尾新增（沿用該檔既有的 `renderModal` helper 與 mock；若 helper 名稱不同，改用該檔既有的 render 方式並傳入 `initialActiveId="cheatDetection"`）：
+`ContestSettingsModal.test.tsx` 目前只有一個 `it`，所有 props 都 inline 寫在 `render(...)` 裡。先抽成 helper 再加測試。
+
+在 `describe("ContestSettingsModal", ...)` 上方新增 helper：把既有那個 `it` 裡的整段 `<ContestSettingsModal ... />` JSX 原封不動搬進來，在最後一個 prop 之後補一行 `{...overrides}`：
+
+```tsx
+const renderModal = (
+  overrides: Partial<ComponentProps<typeof ContestSettingsModal>> = {},
+) =>
+  render(
+    <ContestSettingsModal
+      /* 既有那個 it 裡的全部 props，原樣搬過來 */
+      {...overrides}
+    />,
+  );
+```
+
+`ComponentProps` 從 `react` import。把既有那個 Integrity Worker 測試的 `render(...)` 改成呼叫 `renderModal()`，斷言不動。
+
+然後新增測試：
 
 ```tsx
 it("opens the requested section when initialActiveId is given", () => {
@@ -687,9 +705,11 @@ export default function PreparationChecklist({
 `PreparationChecklist.module.scss`：
 
 ```scss
+@use "@carbon/layout";
+
 .list {
   display: grid;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -699,14 +719,14 @@ export default function PreparationChecklist({
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: layout.$spacing-04;
+  padding: layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
 }
 
 .text {
   display: grid;
-  gap: 0.125rem;
+  gap: layout.$spacing-01;
   min-width: 0;
 }
 
@@ -743,12 +763,96 @@ Run:
 
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 加入 colocated story**
+
+`.storybook/main.ts` 自動探索 colocated stories，不需要註冊。建立 `frontend/src/features/contest/components/admin/PreparationChecklist.stories.tsx`：
+
+```tsx
+import type { Meta, StoryObj } from "@storybook/react-vite";
+
+import type { PreparationChecklistItem } from "@/features/contest/screens/admin/panels/adminOverviewDashboard.model";
+
+import PreparationChecklist from "./PreparationChecklist";
+
+const item = (
+  overrides: Partial<PreparationChecklistItem>,
+): PreparationChecklistItem => ({
+  key: "schedule",
+  level: "done",
+  title: "考試時間",
+  description: "2026/09/08 09:00 - 11:00",
+  actionLabel: "設定時間",
+  ...overrides,
+});
+
+const meta = {
+  title: "features/contest/admin/PreparationChecklist",
+  component: PreparationChecklist,
+  args: {
+    onItemAction: () => {},
+  },
+} satisfies Meta<typeof PreparationChecklist>;
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const AllLevels: Story = {
+  args: {
+    items: [
+      item({
+        key: "schedule",
+        level: "blocking",
+        description: "尚未設定，發布前必填",
+      }),
+      item({
+        key: "problems",
+        level: "warning",
+        title: "題目準備",
+        description: "尚未新增題目",
+        actionLabel: "前往題目管理",
+      }),
+      item({
+        key: "participants",
+        level: "done",
+        title: "考生名單",
+        description: "已加入 3 人",
+        actionLabel: "管理名單",
+      }),
+    ],
+  },
+};
+
+export const FullyPrepared: Story = {
+  args: {
+    items: [
+      item({}),
+      item({
+        key: "problems",
+        title: "題目準備",
+        description: "已設定 2 題",
+        actionLabel: "前往題目管理",
+      }),
+    ],
+  },
+};
+```
+
+驗證 story 能編譯：
+
+```bash
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T storybook npm run build-storybook
+```
+
+Expected: build 成功，沒有針對這個 story 的錯誤。
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add frontend/src/features/contest/components/admin/PreparationChecklist.tsx \
   frontend/src/features/contest/components/admin/PreparationChecklist.module.scss \
-  frontend/src/features/contest/components/admin/PreparationChecklist.test.tsx
+  frontend/src/features/contest/components/admin/PreparationChecklist.test.tsx \
+  frontend/src/features/contest/components/admin/PreparationChecklist.stories.tsx
 git commit -m "feat(contest-admin): add preparation checklist component"
 ```
 
@@ -1112,21 +1216,23 @@ export default function AdminPreparationCommandCenter({
 `AdminPreparationCommandCenter.module.scss`：
 
 ```scss
+@use "@carbon/layout";
+
 .primaryColumn {
   display: grid;
-  gap: 1.5rem;
+  gap: layout.$spacing-06;
 }
 
 .infoRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
 }
 
 .infoCell {
   display: grid;
-  gap: 0.25rem;
-  padding: 0.75rem;
+  gap: layout.$spacing-02;
+  padding: layout.$spacing-04;
   background: var(--cds-layer-01);
 }
 
@@ -1150,8 +1256,8 @@ export default function AdminPreparationCommandCenter({
 .participantRow {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+  gap: layout.$spacing-03;
+  padding: layout.$spacing-03 0;
   border-bottom: 1px solid var(--cds-border-subtle);
 }
 
@@ -1166,21 +1272,21 @@ export default function AdminPreparationCommandCenter({
 }
 
 .emptyState {
-  padding: 1rem 0;
+  padding: layout.$spacing-05 0;
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   color: var(--cds-text-secondary);
 }
 
 .sideColumn {
   display: grid;
-  gap: 1.5rem;
+  gap: layout.$spacing-06;
 }
 
 .sideBlock {
   display: grid;
-  gap: 0.5rem;
+  gap: layout.$spacing-03;
   justify-items: start;
-  padding-top: 1rem;
+  padding-top: layout.$spacing-05;
   border-top: 1px solid var(--cds-border-subtle);
 
   &:first-child {
@@ -1236,51 +1342,122 @@ git commit -m "feat(contest-admin): add preparation command center shell"
 
 - [ ] **Step 1: 寫失敗的測試**
 
-在 `AdminOverviewScreen.test.tsx` 新增（沿用該檔既有的 context mock；若檔案不存在，以 `AdminOverviewCommandCenter.test.tsx` 的 mock 樣式建立，並額外 mock `@/infrastructure/api/repositories` 的 `updateContest`）：
+`AdminOverviewScreen.test.tsx` 已經有 `mockState`、`contest()` factory 與 `renderScreen(initialEntry)`。這個 task 需要三處調整再加測試。
+
+先在檔案 mock 區（`vi.mock("@/shared/contexts/ToastContext", ...)` 附近）新增 repository mock，並在 import 區加入 `userEvent` 與 `updateContest`：
 
 ```tsx
-it("renders the preparation view for a draft contest", () => {
-  renderScreen({ status: "draft", startTime: "", endTime: "" });
+import userEvent from "@testing-library/user-event";
+import { beforeEach } from "vitest";
+import { updateContest } from "@/infrastructure/api/repositories";
 
-  expect(screen.getByRole("button", { name: "發布競賽" })).toBeInTheDocument();
-  expect(screen.queryByText("批改進度")).not.toBeInTheDocument();
-});
+vi.mock("@/infrastructure/api/repositories", () => ({
+  addContestParticipant: vi.fn(),
+  updateContest: vi.fn().mockResolvedValue(undefined),
+}));
+```
 
-it("renders the command center once the contest is running", () => {
-  renderScreen({
-    status: "published",
-    startTime: new Date(Date.now() - 60_000).toISOString(),
-    endTime: new Date(Date.now() + 60_000).toISOString(),
+把 `renderScreen` 改成可以注入 props：
+
+```tsx
+const renderScreen = (
+  initialEntry: string,
+  props: { onOpenSettings?: (section?: string) => void } = {},
+) =>
+  render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <AdminOverviewScreen
+        contestId="contest-1"
+        contest={mockState.contest}
+        {...props}
+      />
+      <LocationProbe />
+    </MemoryRouter>,
+  );
+```
+
+在 `describe("AdminOverviewScreen", ...)` 開頭加入：
+
+```tsx
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+```
+
+然後新增測試（`AdminOverviewCommandCenter` 在此檔已被 mock 成帶 `data-testid="live-dashboard"` 的節點，用它判斷走了哪個分支）：
+
+```tsx
+  it("renders the preparation view for a draft contest", () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+
+    expect(
+      screen.getByRole("button", { name: "發布競賽" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("live-dashboard")).not.toBeInTheDocument();
   });
 
-  expect(
-    screen.queryByRole("button", { name: "發布競賽" }),
-  ).not.toBeInTheDocument();
-});
+  it("keeps the command center once the contest is running", () => {
+    mockState.contest = contest({
+      status: "published",
+      startTime: new Date(Date.now() - 60_000).toISOString(),
+      endTime: new Date(Date.now() + 60_000).toISOString(),
+    });
 
-it("opens the schedule settings instead of publishing when time is missing", async () => {
-  const onOpenSettings = vi.fn();
-  renderScreen({ status: "draft", startTime: "", endTime: "" }, { onOpenSettings });
+    renderScreen("/contest/contest-1/admin?panel=overview");
 
-  await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
-
-  expect(onOpenSettings).toHaveBeenCalledWith("general");
-  expect(updateContest).not.toHaveBeenCalled();
-});
-
-it("publishes when the schedule is set", async () => {
-  renderScreen({
-    status: "draft",
-    startTime: new Date(Date.now() + 3_600_000).toISOString(),
-    endTime: new Date(Date.now() + 7_200_000).toISOString(),
+    expect(screen.getByTestId("live-dashboard")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "發布競賽" }),
+    ).not.toBeInTheDocument();
   });
 
-  await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+  it("opens the schedule settings instead of publishing when time is missing", async () => {
+    mockState.contest = contest({ status: "draft", startTime: "", endTime: "" });
+    const onOpenSettings = vi.fn();
 
-  expect(updateContest).toHaveBeenCalledWith("contest-1", {
-    status: "published",
+    renderScreen("/contest/contest-1/admin?panel=overview", { onOpenSettings });
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(onOpenSettings).toHaveBeenCalledWith("general");
+    expect(updateContest).not.toHaveBeenCalled();
   });
-});
+
+  it("publishes when the schedule is set", async () => {
+    mockState.contest = contest({
+      status: "draft",
+      startTime: new Date(Date.now() + 3_600_000).toISOString(),
+      endTime: new Date(Date.now() + 7_200_000).toISOString(),
+    });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(updateContest).toHaveBeenCalledWith("contest-1", {
+      status: "published",
+    });
+  });
+
+  it("asks for confirmation before publishing without problems", async () => {
+    mockState.contest = contest({
+      status: "draft",
+      startTime: new Date(Date.now() + 3_600_000).toISOString(),
+      endTime: new Date(Date.now() + 7_200_000).toISOString(),
+      problems: [],
+    });
+
+    renderScreen("/contest/contest-1/admin?panel=overview");
+    await userEvent.click(screen.getByRole("button", { name: "發布競賽" }));
+
+    expect(updateContest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "仍要發布" }));
+
+    expect(updateContest).toHaveBeenCalledWith("contest-1", {
+      status: "published",
+    });
+  });
 ```
 
 - [ ] **Step 2: 跑測試確認失敗**
@@ -1353,14 +1530,22 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
 
 - [ ] **Step 5: 新增發布與退回草稿 handler**
 
+先在 import 區加入確認對話框：
+
+```tsx
+import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
+```
+
 在 `handleToggleResultsPublished` 附近新增：
 
 ```tsx
   const [publishingContest, setPublishingContest] = useState(false);
+  const { confirm, modalProps: confirmModalProps } = useConfirmModal();
 
   const handlePublishContest = useCallback(async () => {
-    if (!contest?.id || publishingContest) return;
-    if (!preparationData?.canPublish) {
+    if (!contest?.id || publishingContest || !preparationData) return;
+
+    if (!preparationData.canPublish) {
       showToast({
         kind: "warning",
         title: t("adminOverview.actions.publishContestFailed", "發布失敗"),
@@ -1372,6 +1557,28 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
       openSettings("general");
       return;
     }
+
+    const hasProblems = preparationData.checklist.some(
+      (item) => item.key === "problems" && item.level === "done",
+    );
+    if (!hasProblems) {
+      const confirmed = await confirm({
+        title: t(
+          "adminOverview.preparation.confirm.publishWithoutProblemsTitle",
+          "這場競賽還沒有題目",
+        ),
+        body: t(
+          "adminOverview.preparation.confirm.publishWithoutProblemsBody",
+          "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+        ),
+        confirmLabel: t(
+          "adminOverview.preparation.confirm.publishAnyway",
+          "仍要發布",
+        ),
+      });
+      if (!confirmed) return;
+    }
+
     setPublishingContest(true);
     try {
       await updateContest(contest.id, { status: "published" });
@@ -1390,9 +1597,10 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
       setPublishingContest(false);
     }
   }, [
+    confirm,
     contest?.id,
     openSettings,
-    preparationData?.canPublish,
+    preparationData,
     publishingContest,
     refreshContest,
     showToast,
@@ -1401,6 +1609,21 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
 
   const handleRevertToDraft = useCallback(async () => {
     if (!contest?.id || publishingContest) return;
+
+    const confirmed = await confirm({
+      title: t(
+        "adminOverview.preparation.confirm.revertToDraftTitle",
+        "確定要退回草稿嗎？",
+      ),
+      body: t(
+        "adminOverview.preparation.confirm.revertToDraftBody",
+        "退回後學生會立刻看不到這場競賽。",
+      ),
+      confirmLabel: t("adminOverview.actions.revertToDraft", "退回草稿"),
+      danger: true,
+    });
+    if (!confirmed) return;
+
     setPublishingContest(true);
     try {
       await updateContest(contest.id, { status: "draft" });
@@ -1414,7 +1637,7 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
     } finally {
       setPublishingContest(false);
     }
-  }, [contest?.id, publishingContest, refreshContest, showToast, t]);
+  }, [confirm, contest?.id, publishingContest, refreshContest, showToast, t]);
 
   const handleChecklistAction = useCallback(
     (key: PreparationItemKey) => {
@@ -1435,6 +1658,8 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
     [classroomBound, openPanel, openSettings],
   );
 ```
+
+`preparationData.canPublish` 目前只由 schedule 決定，所以 blocking 分支的 toast 直接講時間；日後若增加其他 blocking 項目，這裡要改成依 `blockingKeys` 分派訊息。
 
 - [ ] **Step 6: 分歧 render**
 
@@ -1468,15 +1693,17 @@ header 工具列裡原本的 `onClick={openSettings}` 會把滑鼠事件當成�
             }}
           />
         ) : (
-          dashboardData && (
-            <AdminOverviewCommandCenter
-              /* 既有 props 原封不動保留 */
-            />
-          )
+          dashboardData && <AdminOverviewCommandCenter {...原本那段的全部 props} />
         )}
 ```
 
-`AdminOverviewCommandCenter` 的 props 一個都不要改，只是被移進 else 分支。
+最後一行是示意：實際做法是把原本 `{dashboardData && (<AdminOverviewCommandCenter ... />)}` 那整段 JSX（含 `header`、`data`、`adminLoading`、`gradingLoading`、`contestId`、`antiCheatEnabled`、`classroomBound`、`contestInProgress`、`onOpenPanel`、`participants`、`primary`、`overviewInfo`、`gradingAction`、`resultOverview`、`questionStatsGallery` 全部 props）原封不動剪下、貼到 else 分支，一個 prop 都不要改。
+
+同時在 `<AddParticipantModal ... />` 之後掛上確認對話框：
+
+```tsx
+      <ConfirmModal {...confirmModalProps} />
+```
 
 `preparationData` 為 null 時（例如 contest 尚未載入）維持既有的 loading 行為，不要另外加空畫面。
 
@@ -1526,6 +1753,13 @@ git commit -m "feat(contest-admin): branch overview by contest phase"
   "draftHiddenNote": "草稿不會出現在學生的競賽列表",
   "blockedBySchedule": "發布前會先請你設定考試時間",
   "startsIn": "距離開考 {{value}}",
+  "confirm": {
+    "publishWithoutProblemsTitle": "這場競賽還沒有題目",
+    "publishWithoutProblemsBody": "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+    "publishAnyway": "仍要發布",
+    "revertToDraftTitle": "確定要退回草稿嗎？",
+    "revertToDraftBody": "退回後學生會立刻看不到這場競賽。"
+  },
   "level": {
     "done": "已完成",
     "warning": "建議設定",
@@ -1579,6 +1813,13 @@ git commit -m "feat(contest-admin): branch overview by contest phase"
   "draftHiddenNote": "Drafts don't appear in the student contest list",
   "blockedBySchedule": "Set the exam schedule before publishing",
   "startsIn": "Starts in {{value}}",
+  "confirm": {
+    "publishWithoutProblemsTitle": "This contest has no problems yet",
+    "publishWithoutProblemsBody": "Students will see an empty problem list. You can publish now and add problems later.",
+    "publishAnyway": "Publish anyway",
+    "revertToDraftTitle": "Revert to draft?",
+    "revertToDraftBody": "Students will lose access to this contest immediately."
+  },
   "level": {
     "done": "Done",
     "warning": "Suggested",
@@ -1683,6 +1924,8 @@ git rm frontend/src/features/contest/components/admin/DraftChecklistPanel.tsx \
 
 新的 `PreparationItemLevel`（Task 2）與舊的 `PreparationReadinessState` 是不同型別，不要混用或保留 alias。
 
+`studentParticipants` 與 `getProfileDisplayName` 是 `buildAdminOverviewDashboard` 與 Task 2 的新 model 都在用的共用 helper，不要刪。刪 helper 前先 grep 確認沒有其他呼叫者。
+
 - [ ] **Step 4: 跑完整前端測試**
 
 Run:
@@ -1695,8 +1938,11 @@ Expected: PASS，且沒有「cannot find module」類錯誤。
 
 - [ ] **Step 5: Commit**
 
+`git rm` 已經把刪除 stage 起來，只需要補上 model 的兩個檔案。不要用 `git add -A`：工作區可能有其他人未提交的變更。
+
 ```bash
-git add -A frontend/src/features/contest
+git add frontend/src/features/contest/screens/admin/panels/adminOverviewDashboard.model.ts \
+  frontend/src/features/contest/screens/admin/panels/adminOverviewDashboard.model.test.ts
 git commit -m "refactor(contest-admin): remove superseded preparation widgets"
 ```
 
@@ -1730,7 +1976,51 @@ bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --al
 
 Expected: 皆為 PASS。`check-carbon-style.sh` 若對新 SCSS 的 token 有意見，依它的訊息把硬編碼色值換成 Carbon token，不要加例外。
 
-- [ ] **Step 3: dev 環境 rendered QA**
+- [ ] **Step 3: Carbon 實務稽核**
+
+Run:
+
+```bash
+node .codex/skills/qjudge-quality-gates-owner/scripts/audit-carbon-practices.js --root frontend/src \
+  | grep -E "PreparationChecklist|AdminPreparationCommandCenter"
+```
+
+Expected: 這兩個新元件不出現任何 finding。
+
+這次的 baseline 是全庫 550 `hardcoded-theme-color` / 313 `hardcoded-typography` / 139 `hardcoded-spacing`（皆為 review 等級，沒有 blocker）。新檔案不應該增加任何一項，所以：
+
+- SCSS 的 spacing 一律走 `@use "@carbon/layout";` 與 `layout.$spacing-*`，不要寫死 rem（稽核規則只放行值裡含 `var(` 或 `$` 的宣告）
+- `font-size` 沿用專案既有慣例 `var(--cds-<token>-font-size, <rem fallback>)`，這個形式會被稽核放行
+- 顏色一律 `var(--cds-*)` 語意 token，不要寫死色值
+
+若 finding 出現在別的檔案，那是既有 baseline，不在這次範圍內，不要順手改。
+
+- [ ] **Step 4: Carbon MCP 交叉驗證**
+
+`.codex/skills/qjudge-ui-carbon-owner` 的 policy 要求，在 Carbon API、variant 或 accessibility 規則可能變動時，用 IBM Carbon MCP 的 `docs_search` 查規範、`code_search` 取當前 React 範例。這次要確認的四項：
+
+1. `Button` 的 `kind="danger--tertiary"` 在目前版本仍是有效 kind
+2. `Tag` 的 `type="warm-gray"` 仍是有效 type
+3. `WarningFilled` / `WarningAltFilled` / `CheckmarkFilled` 的 import 路徑與尺寸 prop
+4. 清單列裡 `Button size="sm"` 是否符合當前 Carbon 密度建議（policy 只禁止 header/navbar/toolbar 使用 `sm`，內容區清單不在此限）
+
+若 MCP 回報的 source tag 比 `references/carbon-policy.md` 的驗證快照（Carbon v11、`v11.113.0`、驗證日 2026-08-12）新，或任何一項 API 有變動，依新的 public API 調整程式碼，並在同一個 change 內更新該快照與 `qjudge-ui-carbon-owner/SKILL.md` 的 `carbon_mcp_verified` metadata。
+
+**若這個 session 沒有連上 Carbon MCP**，就不要假裝驗過：改用 `node_modules/@carbon/react` 的實際型別定義確認上述四項，並在 commit message 註明未經 MCP 驗證。
+
+```bash
+grep -rn "danger--tertiary" frontend/node_modules/@carbon/react/lib/components/Button/Button.d.ts
+grep -rn "warm-gray" frontend/node_modules/@carbon/react/lib/components/Tag/Tag.d.ts
+```
+
+第 1、2 項已於撰寫本計畫時用這個方式確認過（`@carbon/react` 1.97.0）：
+
+- `ButtonKinds` 為 `["primary", "secondary", "danger", "ghost", "danger--primary", "danger--ghost", "danger--tertiary", "tertiary"]`，`danger--tertiary` 有效
+- `Tag` 的 type map 含 `warm-gray`，有效
+
+第 3、4 項仍需在實作時確認。
+
+- [ ] **Step 5: dev 環境 rendered QA**
 
 Run:
 
@@ -1748,7 +2038,7 @@ Run:
 
 Expected: 四個情境都符合，且沒有出現 0%、「尚無批改資料」等 runtime 空指標。
 
-- [ ] **Step 4: 停掉 test 環境**
+- [ ] **Step 6: 停掉 test 環境**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test stop \
@@ -1758,11 +2048,11 @@ Expected: 四個情境都符合，且沒有出現 0%、「尚無批改資料」�
 
 不要用 `down`：dev 與 test 共用 project name `online_judge`，`down` 會把 dev 容器一併移除。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
-若 gate 有觸發修正才需要：
+若 gate 有觸發修正才需要。明確列出被修正的檔案，不要用 `git add -A`：
 
 ```bash
-git add -A frontend/src
+git add <實際被 gate 修正的檔案>
 git commit -m "style(contest-admin): satisfy quality gates for preparation overview"
 ```
