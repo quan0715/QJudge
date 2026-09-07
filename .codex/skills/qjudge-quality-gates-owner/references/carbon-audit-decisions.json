@@ -53,8 +53,6 @@
         "features/classroom/screens/panels/ContestPanel.tsx",
         "features/contest/components/admin/AdminOverviewCommandCenter.tsx",
         "features/contest/components/admin/EventIncidentCard.tsx",
-        "features/contest/components/admin/OverviewActionWidgets.tsx",
-        "features/contest/components/admin/OverviewInsightsPanel.tsx",
         "features/contest/components/admin/examEditor/CodingProblemPreviewCard.tsx",
         "features/contest/components/admin/examEditor/CodingProblemTabbedEditor.tsx",
         "features/contest/components/admin/examEditor/ExamEditorLayout.tsx",
@@ -124,7 +122,6 @@
       "rules": ["notification-variant-review"],
       "components": ["InlineNotification"],
       "paths": [
-        "features/admin/screens/DraftProblemsScreen.tsx",
         "features/admin/screens/UserManagementScreen.tsx",
         "features/app/components/ErrorBoundary.tsx",
         "features/auth/components/settings/MCPSetupPanel.tsx",
@@ -138,7 +135,6 @@
         "features/classroom/components/AddMembersModal.tsx",
         "features/classroom/components/CreateContestModal.tsx",
         "features/contest/components/ContestOverview.tsx",
-        "features/contest/components/admin/DraftChecklistPanel.tsx",
         "features/contest/components/exam/PaperExamResultsList.tsx",
         "features/contest/components/modals/ContestRegistrationModal.tsx",
         "features/contest/components/participants/ParticipantDashboardPane.tsx",
@@ -156,7 +152,6 @@
         "features/docs/components/DocFeedback.tsx",
         "features/problems/components/edit/problemForm/sections/BasicInfoSection.tsx",
         "features/problems/components/solve/editorview/ProblemFullPageSolve.tsx",
-        "features/problems/screens/problemsId/section/ProblemDetailSection.tsx",
         "shared/ui/submission/TestResultDetail.tsx"
       ],
       "reason": "Each notification reports state tied to the surrounding task, form, modal, or data panel and therefore follows Carbon inline-notification lifecycle guidance.",
