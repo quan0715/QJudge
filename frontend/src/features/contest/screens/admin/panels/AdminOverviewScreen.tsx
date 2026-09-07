@@ -259,122 +259,6 @@ export default function AdminOverviewScreen({
     t,
   ]);
 
-  useEffect(() => {
-    return registerPanelRefresh("overview", handleRefresh);
-  }, [handleRefresh, registerPanelRefresh]);
-
-  if (!contest) return null;
-
-  const contestHomePath = contest.boundClassroomId
-    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
-    : null;
-  const attendanceProjectionPath = contest.boundClassroomId
-    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}/admin/attendance/projection`
-    : null;
-  const openContestHome = () => {
-    if (!contestHomePath) return;
-    window.open(contestHomePath, "_blank", "noopener,noreferrer");
-  };
-  const openAttendanceProjection = () => {
-    if (!attendanceProjectionPath || !contest.attendanceCheckEnabled) return;
-    window.open(attendanceProjectionPath, "_blank", "noopener,noreferrer");
-  };
-  const openStudentPreview = () => {
-    if (onPreview) {
-      onPreview();
-      return;
-    }
-    openContestHome();
-  };
-  const contestTypeLabel =
-    contest.contestType === "paper_exam"
-      ? t("adminOverview.screen.contestType.paperExam", "考卷")
-      : t("adminOverview.screen.contestType.coding", "Coding Test");
-  const renderContestHeader = () => (
-    <section
-      className={styles.overviewHeader}
-      aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
-    >
-      <h2 className={styles.overviewHeaderTitle}>
-        {t("adminOverview.screen.title", "Overview")}
-      </h2>
-      <div className={styles.overviewHeaderActions}>
-        {
-          <>
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Settings}
-              iconDescription={t(
-                "adminOverview.screen.actions.settings",
-                "競賽設定",
-              )}
-              onClick={() => openSettings()}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Launch}
-              iconDescription={t(
-                "adminOverview.screen.actions.contestHome",
-                "競賽主頁",
-              )}
-              disabled={!contestHomePath}
-              onClick={openContestHome}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={QrCode}
-              iconDescription={t(
-                "adminOverview.screen.actions.attendanceProjection",
-                "開啟簽到投屏",
-              )}
-              disabled={!attendanceProjectionPath || !contest.attendanceCheckEnabled}
-              onClick={openAttendanceProjection}
-            />
-            {classroomBound ? null : (
-              <Button
-                kind="ghost"
-                hasIconOnly
-                renderIcon={UserFollow}
-                iconDescription={t(
-                  "adminOverview.screen.actions.addParticipant",
-                  "新增參賽者",
-                )}
-                onClick={() => setAddParticipantOpen(true)}
-              />
-            )}
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Renew}
-              iconDescription={
-                refreshing
-                  ? t("adminOverview.screen.actions.refreshing", "重新整理中")
-                  : t("adminOverview.screen.actions.refresh", "重新整理")
-              }
-              disabled={refreshing}
-              onClick={() => void handleRefresh()}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
-              renderIcon={Download}
-              iconDescription={
-                exporting
-                  ? t("adminOverview.screen.actions.exporting", "匯出中")
-                  : t("adminOverview.screen.actions.export", "匯出成績")
-              }
-              disabled={exporting || !contest.id}
-              onClick={() => void handleExport()}
-            />
-          </>
-        }
-      </div>
-    </section>
-  );
-
   const handlePublishContest = useCallback(async () => {
     if (!contest?.id || publishingContest || !preparationData) return;
 
@@ -500,6 +384,122 @@ export default function AdminOverviewScreen({
       openSettings("general");
     },
     [classroomBound, openPanel, openSettings],
+  );
+
+  useEffect(() => {
+    return registerPanelRefresh("overview", handleRefresh);
+  }, [handleRefresh, registerPanelRefresh]);
+
+  if (!contest) return null;
+
+  const contestHomePath = contest.boundClassroomId
+    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}`
+    : null;
+  const attendanceProjectionPath = contest.boundClassroomId
+    ? `/classrooms/${contest.boundClassroomId}/contest/${contest.id}/admin/attendance/projection`
+    : null;
+  const openContestHome = () => {
+    if (!contestHomePath) return;
+    window.open(contestHomePath, "_blank", "noopener,noreferrer");
+  };
+  const openAttendanceProjection = () => {
+    if (!attendanceProjectionPath || !contest.attendanceCheckEnabled) return;
+    window.open(attendanceProjectionPath, "_blank", "noopener,noreferrer");
+  };
+  const openStudentPreview = () => {
+    if (onPreview) {
+      onPreview();
+      return;
+    }
+    openContestHome();
+  };
+  const contestTypeLabel =
+    contest.contestType === "paper_exam"
+      ? t("adminOverview.screen.contestType.paperExam", "考卷")
+      : t("adminOverview.screen.contestType.coding", "Coding Test");
+  const renderContestHeader = () => (
+    <section
+      className={styles.overviewHeader}
+      aria-label={t("adminOverview.screen.contestInfoLabel", "競賽資訊")}
+    >
+      <h2 className={styles.overviewHeaderTitle}>
+        {t("adminOverview.screen.title", "Overview")}
+      </h2>
+      <div className={styles.overviewHeaderActions}>
+        {
+          <>
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Settings}
+              iconDescription={t(
+                "adminOverview.screen.actions.settings",
+                "競賽設定",
+              )}
+              onClick={() => openSettings()}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Launch}
+              iconDescription={t(
+                "adminOverview.screen.actions.contestHome",
+                "競賽主頁",
+              )}
+              disabled={!contestHomePath}
+              onClick={openContestHome}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={QrCode}
+              iconDescription={t(
+                "adminOverview.screen.actions.attendanceProjection",
+                "開啟簽到投屏",
+              )}
+              disabled={!attendanceProjectionPath || !contest.attendanceCheckEnabled}
+              onClick={openAttendanceProjection}
+            />
+            {classroomBound ? null : (
+              <Button
+                kind="ghost"
+                hasIconOnly
+                renderIcon={UserFollow}
+                iconDescription={t(
+                  "adminOverview.screen.actions.addParticipant",
+                  "新增參賽者",
+                )}
+                onClick={() => setAddParticipantOpen(true)}
+              />
+            )}
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Renew}
+              iconDescription={
+                refreshing
+                  ? t("adminOverview.screen.actions.refreshing", "重新整理中")
+                  : t("adminOverview.screen.actions.refresh", "重新整理")
+              }
+              disabled={refreshing}
+              onClick={() => void handleRefresh()}
+            />
+            <Button
+              kind="ghost"
+              hasIconOnly
+              renderIcon={Download}
+              iconDescription={
+                exporting
+                  ? t("adminOverview.screen.actions.exporting", "匯出中")
+                  : t("adminOverview.screen.actions.export", "匯出成績")
+              }
+              disabled={exporting || !contest.id}
+              onClick={() => void handleExport()}
+            />
+          </>
+        }
+      </div>
+    </section>
   );
 
   return (
