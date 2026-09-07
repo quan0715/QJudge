@@ -19,6 +19,7 @@ interface SessionOptions {
   mode?: IntegrityUploadMode;
   snapshotProvider: () => Omit<ExamIntegrityStateSnapshot, "health">;
   onGap: (error: Error) => void;
+  onLocalLoss?: (error: Error) => void;
   onProgress: (ack: ExamIntegrityBatchAck) => void;
 }
 
@@ -50,7 +51,7 @@ export class ResidentIntegritySession {
       emit: (signal) => {
         if (this.closed || this.mode !== "capture") return Promise.resolve();
         if (this.queuedWrites >= 128) {
-          this.gap(new Error("Integrity local write queue at capacity"));
+          this.localLoss(new Error("Integrity local write queue at capacity"));
           return Promise.resolve();
         }
         this.queuedWrites += 1;
@@ -58,7 +59,7 @@ export class ResidentIntegritySession {
           await this.ready;
           if (!this.outbox) throw new Error("Integrity local event storage unavailable");
           await this.outbox.append(signal);
-        }).catch((error) => this.gap(error)).finally(() => { this.queuedWrites -= 1; });
+        }).catch((error) => this.localLoss(error)).finally(() => { this.queuedWrites -= 1; });
         this.writes = write;
         return write;
       },
@@ -93,10 +94,10 @@ export class ResidentIntegritySession {
           repository: { submitEvidenceCheckpoint: (id, request) => examIntegrityRepository.submitEvidenceCheckpoint(id, { ...request, uploadScope: scope }) },
         });
         await this.coordinator.start();
-      } catch (error) { this.gap(error); }
+      } catch (error) { this.localLoss(error); }
       if (this.closed) return;
       this.syncSources();
-    } catch (error) { this.gap(error); }
+    } catch (error) { this.localLoss(error); }
   }
 
   setSources(sources: Sources): void {
@@ -122,11 +123,11 @@ export class ResidentIntegritySession {
       const coordinator = this.coordinator;
       const chunker = new MediaRecorderChunker({ source, stream, store: this.store,
         target: targets[source],
-        onDegraded: (reason) => { this.gap(new Error(`Evidence ${source}: ${reason}`)); },
+        onDegraded: (reason) => { this.localLoss(new Error(`Evidence ${source}: ${reason}`)); },
         onStoredChunk: async () => {
           if (!await coordinator.enforceCapacity(source, policy)) {
             chunker.stop();
-            this.gap(new Error(`Evidence ${source}: capacity_protected_evidence`));
+            this.localLoss(new Error(`Evidence ${source}: capacity_protected_evidence`));
           }
         },
       });
@@ -166,6 +167,7 @@ export class ResidentIntegritySession {
       onReleaseEvidenceBeforeMs: (watermark) => this.coordinator?.releaseBefore(watermark),
       onProgress: this.options.onProgress,
       onGap: (error) => this.gap(error),
+      onLocalLoss: (error) => this.localLoss(error),
       controlPoll: async (signal) => {
         this.finalSeq ??= await this.outbox!.lastSequence();
         return examIntegrityRepository.pollUpload(contestId, scope, this.finalSeq, signal);
@@ -202,5 +204,10 @@ export class ResidentIntegritySession {
 
   private gap(error: unknown): void {
     this.options.onGap(error instanceof Error ? error : new Error("Integrity storage or upload unavailable"));
+  }
+
+  private localLoss(error: unknown): void {
+    this.options.onLocalLoss?.(error instanceof Error ? error : new Error("Monitoring data could not be saved"));
+    this.gap(error);
   }
 }

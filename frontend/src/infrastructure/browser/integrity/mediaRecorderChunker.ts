@@ -185,7 +185,15 @@ export class MediaRecorderChunker {
       });
     });
     this.recorder = recorder;
-    recorder.start();
+    try {
+      recorder.start();
+    } catch (error) {
+      // A failed start never emits stop; do not leave drain waiting on it.
+      this.pendingSegments.delete(pending);
+      finish();
+      this.recorder = null;
+      throw error;
+    }
   }
 
   private async finishSegment(recorder: MediaRecorderLike): Promise<void> {

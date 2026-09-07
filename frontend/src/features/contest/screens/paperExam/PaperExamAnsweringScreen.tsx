@@ -136,6 +136,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const {
     uploadSessionId: anticheatUploadSessionId,
     flushPendingUploads,
+    deferMonitoringUploads,
     forceStopCapture,
   } = useExamCapture();
 
@@ -189,6 +190,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const runSubmitWithProgress = useCallback(async () => {
     const success = await submitProgress.run({
+      skipSteps: deferMonitoringUploads ? ["uploading"] : undefined,
       handlers: {
         checking: async () => {
           await flushAll();
@@ -222,6 +224,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId,
     flushAll,
     flushPendingUploads,
+    deferMonitoringUploads,
     forceStopCapture,
     submitExam,
     submitProgress,

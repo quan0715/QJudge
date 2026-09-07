@@ -7,6 +7,7 @@ import type {
 export interface ExamCaptureContextValue {
   uploadSessionId: string | null;
   flushPendingUploads: () => Promise<void>;
+  deferMonitoringUploads?: boolean;
   forceStopCapture: (reason?: CaptureStopReason) => CaptureStopResult;
 }
 

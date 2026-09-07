@@ -699,6 +699,7 @@
     "startExamFailed": "無法開始考試，請稍後再試"
   },
   "exam": {
+    "integrityLocalDataLoss": "部分監考事件或影音未能錄製或保存，可能無法補傳；這不同於待傳送資料，完成上傳也不代表缺漏已恢復。可繼續作答與交卷。",
     "abnormalBehavior": "檢測到異常操作",
     "accumulatedViolations": "累積違規次數",
     "alreadyLocked": "0 - 已鎖定",

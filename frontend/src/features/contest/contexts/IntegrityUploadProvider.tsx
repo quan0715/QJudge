@@ -28,6 +28,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   const owner = useRef<ResidentIntegritySession | null>(null);
   const earlySignals = useRef<Array<Parameters<IntegritySignalEmitter["emit"]>[0]>>([]);
   const [gap, setGap] = useState(false);
+  const [localLoss, setLocalLoss] = useState(false);
   const [complete, setComplete] = useState(false);
   const [submittedAttempt, setSubmittedAttempt] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
@@ -57,7 +58,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       if (modeRef.current !== "capture") return Promise.resolve();
       if (owner.current) return owner.current.emitter.emit(signal);
       if (earlySignals.current.length < 128) earlySignals.current.push(signal);
-      else setGap(true);
+      else { setGap(true); setLocalLoss(true); }
       // Entry must remain usable while persistence is starting. These pending
       // records are not represented as durable until the owner appends them.
       return Promise.resolve();
@@ -94,6 +95,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       snapshotProvider: () => config.current?.snapshotProvider() ?? { pageVisible: document.visibilityState !== "hidden",
         online: navigator.onLine, fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] },
       onGap: () => setGap(true),
+      onLocalLoss: () => setLocalLoss(true),
       onProgress: (ack) => { if (ack.uploadStatus === "complete") setComplete(true); },
     });
     owner.current = session;
@@ -130,6 +132,9 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   const value = useMemo(() => ({ resident, capabilityKnown, emitter, configure, flush }), [resident, capabilityKnown, emitter, configure, flush]);
   return <UploadContext.Provider value={value}>
     {children}
+    {resident && localLoss ? <div role="status" data-testid="integrity-local-data-loss">
+      {t("exam.integrityLocalDataLoss", "部分監考事件或影音未能錄製或保存，可能無法補傳；這不同於待傳送資料，完成上傳也不代表缺漏已恢復。可繼續作答與交卷。")}
+    </div> : null}
     {pending && (gap || !active(runtimeState) || submittedAttempt === attemptId) ? <div role="status" data-testid="integrity-upload-status">
       {grant?.upload_status === "expired" || (grant && now >= Date.parse(grant.accept_until))
         ? t("exam.integrityUploadExpired", "監考資料補傳期限已到，仍有未完成的資料；交卷結果不受影響，已保存的本機資料會保留。")

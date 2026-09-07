@@ -29,6 +29,7 @@ export interface IntegrityTransportOptions {
   mode?: "capture" | "drain";
   controlPoll?: (signal: AbortSignal) => Promise<ExamIntegrityBatchAck>;
   onGap?: (error: Error) => void;
+  onLocalLoss?: (error: Error) => void;
   onProgress?: (ack: ExamIntegrityBatchAck) => void;
   contestId: string;
   outbox: ExamIntegrityOutbox;
@@ -163,6 +164,9 @@ export class IntegrityTransport {
           clientOccurredAtMs: this.now(),
           payload: snapshot,
           evidenceDescriptors: providedDescriptors,
+        }).catch((error) => {
+          this.options.onLocalLoss?.(asError(error));
+          throw error;
         });
         if (!this.isActive(generation)) return;
         await this.options.onSnapshotPersisted?.(providedDescriptors, record.seq);

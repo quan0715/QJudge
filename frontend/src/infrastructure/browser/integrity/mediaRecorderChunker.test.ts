@@ -3,6 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 import { MediaRecorderChunker } from "./mediaRecorderChunker";
 
 describe("MediaRecorderChunker", () => {
+  it("settles drain when recorder start throws without emitting stop", async () => {
+    const degraded = vi.fn();
+    const recorder = { mimeType: "video/webm", state: "inactive", addEventListener: vi.fn(),
+      start: vi.fn(() => { throw new Error("inactive stream"); }), stop: vi.fn() };
+    const stream = { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener: vi.fn(), getSettings: () => ({}) }] } as unknown as MediaStream;
+    const chunker = new MediaRecorderChunker({ source: "screen_share", stream,
+      store: { putChunk: vi.fn() }, target: { width: 640, height: 480, fps: 5, bitrate: 100000 },
+      recorderFactory: () => recorder, onDegraded: degraded });
+    chunker.start();
+    await vi.waitFor(() => expect(degraded).toHaveBeenCalled());
+    chunker.stop();
+    let settled = false;
+    void chunker.whenIdle().then(() => { settled = true; });
+    await vi.waitFor(() => expect(settled).toBe(true));
+    expect(recorder.stop).not.toHaveBeenCalled();
+  });
   it("waits for the final stored segment after stopping and never restarts recording", async () => {
     let resolveWrite!: (value: unknown) => void;
     const putChunk = vi.fn(() => new Promise((resolve) => { resolveWrite = resolve; }));

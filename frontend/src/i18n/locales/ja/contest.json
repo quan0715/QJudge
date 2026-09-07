@@ -699,6 +699,7 @@
     "startExamFailed": "試験を開始できませんでした。後でもう一度お試しくささい"
   },
   "exam": {
+    "integrityLocalDataLoss": "一部の監視イベントや映像・音声を記録または保存できず、復元できない可能性があります。送信待ちとは異なり、送信完了後も欠落は解消されません。解答と提出は続けられます。",
     "abnormalBehavior": "異常な操作が検出されました",
     "accumulatedViolations": "累積違反回数",
     "alreadyLocked": "0 - ロック済み",

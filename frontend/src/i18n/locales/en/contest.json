@@ -699,6 +699,7 @@
     "startExamFailed": "Failed to start exam, please try again later"
   },
   "exam": {
+    "integrityLocalDataLoss": "Some monitoring events or media could not be recorded or saved and may not be recoverable. This is different from queued uploads; upload completion does not restore missing data. You can keep answering and submit.",
     "abnormalBehavior": "Abnormal behavior detected",
     "accumulatedViolations": "Accumulated Violations",
     "alreadyLocked": "0 - Locked",

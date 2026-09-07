@@ -11,7 +11,7 @@ import type { ExamRuntimeState } from "@/core/entities/contest.entity";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it("keeps answer DOM/outbox on extension, stops at accepted submit, drains after answering unmount and honors same-revision completion", async () => {
+it.each(["storage", "network"])("keeps answer DOM/outbox through submit and completion without erasing %s failure semantics", async (failure) => {
   vi.mocked(localStorage.getItem).mockReturnValue("device-a");
   const runId = crypto.randomUUID();
   const run = { id: runId, participantId: 44, computeState: "stopped", health: "unhealthy",
@@ -19,10 +19,14 @@ it("keeps answer DOM/outbox on extension, stops at accepted submit, drains after
   const open = vi.spyOn(IndexedDbIntegrityOutbox, "open");
   const append = vi.spyOn(IndexedDbIntegrityOutbox.prototype, "append");
   let currentOwner: ReturnType<typeof useIntegrityUploadOwner>;
-  vi.spyOn(OpfsEvidenceStore, "open").mockRejectedValue(new Error("local media unavailable"));
+  const mediaOpen = vi.spyOn(OpfsEvidenceStore, "open");
+  if (failure === "storage") mediaOpen.mockRejectedValue(new Error("local media unavailable"));
+  else mediaOpen.mockResolvedValue({ reconcile: async () => {}, listDescriptors: async () => [],
+    pendingDescriptorSummaries: async () => [], markReported: async () => {}, close: async () => {} } as unknown as OpfsEvidenceStore);
   const requests: Record<string, unknown>[] = [];
   vi.stubGlobal("fetch", vi.fn(async (_url, init) => {
     requests.push(JSON.parse(init.body));
+    if (failure === "network" && requests.length === 1) return new Response("unavailable", { status: 503 });
     return new Response(JSON.stringify({ acked_through_seq: 100, processed_through_seq: 100,
       pending_commands: [], release_evidence_before_ms: 0, upload_status: "pending" }), { status: 200 });
   }));
@@ -59,11 +63,16 @@ it("keeps answer DOM/outbox on extension, stops at accepted submit, drains after
     integrity_upload: { upload_status: "pending", accept_until: new Date(Date.now() + 60000).toISOString(), final_seq: null,
       received_seq: 0, processed_seq: 0, commands_drained: false } };
   await act(async () => { rerender(tree(false)); });
-  await waitFor(() => expect(requests.some((body) => body.final_seq !== undefined)).toBe(true));
+  await waitFor(async () => {
+    await currentOwner!.flush();
+    expect(requests.some((body) => body.final_seq !== undefined)).toBe(true);
+  }, { timeout: 5000 });
   expect(open).toHaveBeenCalledTimes(1);
   expect(screen.getByText("Submitted")).toBeTruthy();
   state = { ...state, integrity_upload: { ...state.integrity_upload!, upload_status: "complete" } };
   await act(async () => { rerender(tree(false)); });
   expect(screen.queryByTestId("integrity-upload-status")).toBeNull();
+  if (failure === "storage") expect(screen.getByTestId("integrity-local-data-loss")).toBeTruthy();
+  else expect(screen.queryByTestId("integrity-local-data-loss")).toBeNull();
   unmount();
 });

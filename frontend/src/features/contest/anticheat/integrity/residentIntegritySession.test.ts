@@ -6,6 +6,48 @@ import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEviden
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it.each(["network", "append", "open", "capacity", "recorder"])("reports local loss separately from retryable %s failure without rejecting answer signals", async (failure) => {
+  const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };
+  vi.spyOn(OpfsEvidenceStore, "open").mockResolvedValue({ reconcile: async () => {},
+    listDescriptors: async () => [], pendingDescriptorSummaries: async () => [], markReported: async () => {}, close: async () => {},
+  } as unknown as OpfsEvidenceStore);
+  if (failure === "open") vi.spyOn(IndexedDbIntegrityOutbox, "open").mockRejectedValue(new Error("unavailable"));
+  if (failure === "append") vi.spyOn(IndexedDbIntegrityOutbox.prototype, "append").mockRejectedValue(new Error("quota"));
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+  const recorderStart = vi.fn(() => { throw new Error("inactive stream"); });
+  vi.stubGlobal("MediaRecorder", class {
+    static isTypeSupported() { return true; }
+    mimeType = "video/webm";
+    state = "inactive";
+    addEventListener = vi.fn();
+    start = recorderStart;
+    stop = vi.fn();
+  });
+  const localLoss = vi.fn();
+  const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
+    run: { id: scope.run_id, participantId: 44, computeState: "stopped", health: "unhealthy",
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {
+        device_policy: { desktop: { enabled: true, sources: { screen_share: { enabled: true } } } },
+      }, devicePolicy: {} as never },
+    onGap: vi.fn(), onLocalLoss: localLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
+      fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+  await session.start();
+  if (failure === "recorder") {
+    session.setSources({ screen_share: { active: true, getVideoTracks: () => [{ applyConstraints: async () => {}, addEventListener: vi.fn(), getSettings: () => ({}) }] } as unknown as MediaStream });
+    await vi.waitFor(() => expect(recorderStart).toHaveBeenCalledOnce());
+    await session.setMode("drain");
+  }
+  const writes = Array.from({ length: failure === "capacity" ? 129 : 1 }, () => session.emitter.emit({ eventType: "focus_lost", clientOccurredAtMs: 1000, payload: {} }));
+  await expect(Promise.all(writes)).resolves.toBeDefined();
+  await session.flush();
+  if (failure === "network") {
+    expect(fetch).toHaveBeenCalled();
+    expect(localLoss).not.toHaveBeenCalled();
+  }
+  else expect(localLoss).toHaveBeenCalled();
+  await session.close();
+});
+
 it("retries a gapped original batch through the real repository and scopes late evidence-only requests", async () => {
   const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device-a", attempt_id: crypto.randomUUID() };
   const box = await IndexedDbIntegrityOutbox.open({ runId: scope.run_id, participantId: 44, deviceId: scope.device_id,
