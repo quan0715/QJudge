@@ -46,6 +46,7 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         controls = BoundedPool(settings.control_workers, "resident-control")
         maintenance = Maintenance(registry, settings)
         app.state.receipts, app.state.controls, app.state.maintenance = receipts, controls, maintenance
+        app.state.archives = maintenance.archives
         app.state.ready = True
         app.state.recovery_error = None
         task = None
@@ -102,20 +103,47 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
     async def ensure(run_id: UUID, request: Request):
         body, revision = await authenticate(request, run_id)
         try:
-            descriptor = RunDescriptor.from_payload(json.loads(body))
+            payload = json.loads(body)
+            descriptor = RunDescriptor.from_payload(payload)
         except (KeyError, ValueError, TypeError) as error:
             raise HTTPException(422, "invalid resident descriptor") from error
         if descriptor.bootstrap.run_id != run_id or descriptor.schedule_revision != revision:
             raise HTTPException(409, "descriptor scope conflict")
         try:
-            await app.state.controls.run(run_id, registry.ensure, descriptor)
+            await app.state.controls.run(run_id, registry.ensure, descriptor, payload.get("service_gap"))
         except DescriptorConflict as error:
             raise HTTPException(409, str(error)) from error
         except (ValueError, OSError) as error:
             raise HTTPException(507, "Run recovery failed") from error
-        return {"protocol": PROTOCOL, "run_id": str(run_id), "schedule_revision": revision}
+        return JSONResponse({"protocol": PROTOCOL, "run_id": str(run_id), "schedule_revision": revision},
+            headers={"X-QJudge-Gap-Generation": str(payload["service_gap"]["generation"])} if payload.get("service_gap") else {})
 
-    def accept(run_id, revision, batch, size, received_at_ms, late_unverified=False):
+    @app.post("/v1/runs/{run_id}/control/finalize", status_code=202)
+    async def finalize(run_id: UUID, request: Request):
+        body, revision = await authenticate(request, run_id)
+        try:
+            payload = json.loads(body)
+        except ValueError as error:
+            raise HTTPException(422, "invalid finalize body") from error
+        if (type(payload) is not dict or type(payload.get("expected_revision")) is not int
+                or payload != {"expected_revision": revision}):
+            raise HTTPException(409, "finalize revision conflict")
+        try:
+            registry.get(run_id)
+            if registry.descriptor(run_id).schedule_revision != revision:
+                raise HTTPException(409, "stale finalize schedule")
+        except KeyError as error:
+            raise HTTPException(404, "Run not loaded") from error
+        def job():
+            try:
+                registry.finalize(run_id, revision)
+                app.state.maintenance.errors.pop((run_id, "archive"), None)
+            except Exception as error:
+                app.state.maintenance.errors[(run_id, "archive")] = type(error).__name__
+        app.state.archives.submit(run_id, job)
+        return {"protocol": PROTOCOL, "run_id": str(run_id), "schedule_revision": revision, "accepted": True}
+
+    def accept(run_id, revision, batch, size, received_at_ms, late_unverified=False, service_gap=None):
         # Serialize schedule authorization with ensure; never wait for delivery.
         with registry._run_lock(run_id):
             runtime = registry.get(run_id)
@@ -130,6 +158,8 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
                 usage = sum(p.stat().st_size for p in (registry.root / str(run_id)).rglob("*") if p.is_file())
                 if usage + size * 4 + 4096 > settings.max_run_bytes:
                     raise OSError("Run storage capacity reached")
+                if service_gap is not None:
+                    registry.apply_trusted_gap(runtime, service_gap)
                 return runtime.accept_batch(batch, received_at_ms, late_unverified=late_unverified)
 
     @app.post("/v1/runs/{run_id}/batches")
@@ -139,15 +169,17 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             registry.get(run_id)
             payload = json.loads(body)
             late = False
+            gap = None
             if isinstance(payload, dict) and "batch" in payload:
-                if set(payload) != {"batch", "late_unverified"} or type(payload["late_unverified"]) is not bool:
+                if set(payload) - {"service_gap"} != {"batch", "late_unverified"} or type(payload["late_unverified"]) is not bool:
                     raise HTTPException(422, "invalid admission envelope")
                 late = payload["late_unverified"]
+                gap = payload.get("service_gap")
                 payload = payload["batch"]
             value = EventBatch.model_validate(payload)
             if value.run_id != run_id:
                 raise RunMismatch("batch scope conflict")
-            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock(), late)
+            ack = await app.state.receipts.run(run_id, accept, run_id, revision, value, len(body), clock(), late, gap)
         except KeyError as error:
             raise HTTPException(404, "Run not loaded") from error
         except ValidationError as error:
@@ -156,7 +188,8 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
             raise HTTPException(409, "Run or batch conflict") from error
         except (ValueError, OSError) as error:
             raise HTTPException(507, "durable receipt unavailable") from error
-        return JSONResponse(ack.model_dump(mode="json"), headers={"X-QJudge-Protocol": PROTOCOL})
+        return JSONResponse(ack.model_dump(mode="json"), headers={"X-QJudge-Protocol": PROTOCOL,
+            **({"X-QJudge-Gap-Generation": str(gap["generation"])} if gap else {})})
 
     @app.post("/v1/runs/{run_id}/progress")
     async def student_progress(run_id: UUID, request: Request):
@@ -194,7 +227,8 @@ def create_app(*, registry=None, public_key=None, settings=None, now_ms=None,
         except KeyError as error:
             raise HTTPException(503 if run_id in registry.errors else 404, "Run unavailable") from error
         descriptor = registry.descriptor(run_id)
-        errors = {kind: error for (rid, kind), error in app.state.maintenance.errors.copy().items() if rid == run_id}
+        errors = {kind: error for (rid, kind), error in app.state.maintenance.errors.copy().items()
+                  if rid == run_id and (kind != "archive" or run_id in registry.finalize_requests)}
         healthy = snapshot.healthy and not errors
         return JSONResponse({"healthy": healthy,
             "accepting": snapshot.accepting and descriptor.session_state in {"active", "draining"} and clock() <= descriptor.accept_until_ms,

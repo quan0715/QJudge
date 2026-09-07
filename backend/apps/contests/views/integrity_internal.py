@@ -176,6 +176,30 @@ class IntegrityCommandsView(_IntegrityRunTokenView):
         )
 
 
+class IntegrityResidentFinalizeView(APIView):
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, run_id):
+        from apps.contests.services.integrity_finalize import finalize_control
+        authorization = request.META.get("HTTP_AUTHORIZATION", "")
+        if not authorization.startswith("Resident "):
+            return Response({"code": "invalid_resident_service_identity"}, status=401)
+        try:
+            digest = authenticate_resident_service(authorization[9:])
+            if digest is None:
+                return Response({"code": "invalid_resident_service_identity"}, status=403)
+            return Response(finalize_control(run_id, request.data, digest=digest))
+        except IntegrityCommandRejected as error:
+            return Response({"code": error.code}, status=403 if error.code == "invalid_integrity_run_scope" else 409)
+        except (ValueError, KeyError, TypeError):
+            return Response({"code": "invalid_finalize_request"}, status=422)
+        except ExamIntegrityRun.DoesNotExist:
+            return Response({"code": "invalid_integrity_run_scope"}, status=403)
+        except Exception:
+            return Response({"code": "resident_finalize_unavailable"}, status=503)
+
+
 class IntegrityResidentDescriptorsView(APIView):
     authentication_classes = []
     permission_classes = [permissions.AllowAny]

@@ -119,6 +119,7 @@ class WorkerRuntime:
         self._scheduler_task: asyncio.Task[None] | None = None
         self._last_scheduler_error: str | None = None
         self._final_cursors: dict[str, int] = {}
+        self._reported_gap_generation = 0
         self._closed = False
 
         delayed = self._policy_snapshot.get("delayed_delivery_after_ms")
@@ -297,6 +298,9 @@ class WorkerRuntime:
                 raise ValueError("receipt time cannot precede decision time")
             try:
                 receipt = self.receipts.append_durable(batch, received_at_ms, late_unverified=late_unverified)
+                # Bound individual archive allocations during live collection;
+                # rotation is local durable I/O, never compression or upload.
+                self.journal.rotate_if_due(received_at_ms)
             except (OSError, RuntimeError):
                 self._mark_unhealthy("durable_write_failed")
                 raise
@@ -336,12 +340,17 @@ class WorkerRuntime:
                 raise
             return processed
 
-    def record_service_gap(self, started_ms: int, ended_ms: int, reason: str) -> None:
+    def record_service_gap(self, started_ms: int, ended_ms: int, reason: str, *, generation=None) -> None:
         if reason not in {"platform_unavailable", "process_recovery", "storage_unavailable"}:
             raise ValueError("invalid service gap reason")
         if type(started_ms) is not int or type(ended_ms) is not int or not 0 <= started_ms <= ended_ms:
             raise ValueError("invalid service gap interval")
         with self._lock:
+            if generation is not None:
+                if type(generation) is not int or generation < 1 or reason != "platform_unavailable":
+                    raise ValueError("invalid trusted gap generation")
+                if generation <= self._reported_gap_generation:
+                    return
             if not self.resident_mode or self._closed:
                 raise ValueError("service gaps require an open resident runtime")
             if not self._healthy:
@@ -350,8 +359,11 @@ class WorkerRuntime:
             # committed history or advance to a recovery wall clock.
             try:
                 self.timeline.validate_service_gap(started_ms, ended_ms)
-                self.timeline_journal.append_service_gap(started_ms=started_ms, ended_ms=ended_ms, reason=reason)
+                self.timeline_journal.append_service_gap(started_ms=started_ms, ended_ms=ended_ms, reason=reason,
+                    **({"generation": generation} if generation is not None else {}))
                 self.timeline.record_service_gap(started_ms, ended_ms)
+                if generation is not None:
+                    self._reported_gap_generation = generation
             except BaseException:
                 self._mark_unhealthy("service_gap_durability_failed")
                 raise
@@ -651,10 +663,15 @@ class WorkerRuntime:
             elif kind == "service_gap":
                 reason = durable.get("reason")
                 if (reason not in {"platform_unavailable", "process_recovery", "storage_unavailable"}
-                        or set(durable) != {"kind", "server_ms", "started_ms", "ended_ms", "reason", "classification"}
+                        or set(durable) - {"generation"} != {"kind", "server_ms", "started_ms", "ended_ms", "reason", "classification"}
                         or durable.get("classification") != ("continuity_uncertainty" if reason == "process_recovery" else "observed_unavailability")):
                     raise DurableLogCorruption("invalid service gap record")
                 self.timeline.record_service_gap(durable["started_ms"], durable["ended_ms"])
+                if "generation" in durable:
+                    generation = durable["generation"]
+                    if type(generation) is not int or generation <= self._reported_gap_generation or reason != "platform_unavailable":
+                        raise DurableLogCorruption("invalid trusted gap generation")
+                    self._reported_gap_generation = generation
             elif kind == "advance":
                 server_ms = int(durable["server_ms"])
                 self.outbox.append(self.timeline.advance_to(server_ms))

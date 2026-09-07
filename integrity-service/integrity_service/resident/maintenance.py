@@ -2,6 +2,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import time
 
 
 class Busy(RuntimeError):
@@ -49,6 +50,8 @@ class Maintenance:
         self.registry, self.settings = registry, settings
         self.decisions = BoundedPool(settings.decision_workers, "resident-decision")
         self.deliveries = BoundedPool(settings.delivery_workers, "resident-delivery")
+        self.archives = BoundedPool(settings.archive_workers, "resident-archive")
+        self._archive_retry_at = {}
         self.errors = {}
         self._offset = 0
 
@@ -57,14 +60,26 @@ class Maintenance:
             runtime = self.registry.get(run_id)
             if kind == "decision":
                 runtime.process_pending(self.settings.process_batch_size)
+            elif kind == "archive":
+                revision = self.registry.finalize_requests.get(run_id)
+                if revision is not None:
+                    self.registry.finalize(run_id, revision)
             else:
-                runtime.outbox.deliver_pending(runtime.backend, max_batches=1)
+                with runtime.outbox._delivery_lock:
+                    if not runtime._closed:
+                        runtime.outbox.deliver_pending(runtime.backend, max_batches=1)
             self.errors.pop((run_id, kind), None)
         except Exception as error:
             self.errors[(run_id, kind)] = type(error).__name__
 
     def tick(self):
         ids = self.registry.run_ids()
+        for key in list(self.errors):
+            if key[0] not in ids or (key[1] == "archive" and key[0] not in self.registry.finalize_requests):
+                self.errors.pop(key, None)
+        for run_id in list(self._archive_retry_at):
+            if run_id not in ids:
+                self._archive_retry_at.pop(run_id, None)
         if not ids:
             return
         offset = self._offset % len(ids)
@@ -75,6 +90,12 @@ class Maintenance:
                     pool.submit(run_id, self._job, run_id, kind)
                 except Busy:
                     pass
+            if run_id in self.registry.finalize_requests and time.monotonic() >= self._archive_retry_at.get(run_id, 0):
+                try:
+                    self.archives.submit(run_id, self._job, run_id, "archive")
+                    self._archive_retry_at[run_id] = time.monotonic() + 10
+                except Busy:
+                    pass
 
     async def loop(self):
         while True:
@@ -82,5 +103,6 @@ class Maintenance:
             await asyncio.sleep(self.settings.maintenance_interval)
 
     def close(self):
+        self.archives.close()
         self.decisions.close()
         self.deliveries.close()

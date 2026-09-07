@@ -42,6 +42,72 @@ def put(client, key, d, *, path=None, revision=None):
     return client.put(path, content=body, headers=sign(key, "PUT", path, d.bootstrap.run_id, revision or d.schedule_revision, body))
 
 
+def test_finalize_signed_scope_and_separate_bounded_archive_lane(setup, monkeypatch):
+    from integrity_service.journal.archive import ArchiveResult
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    entered, release = threading.Event(), threading.Event()
+    def finalize(*_):
+        entered.set()
+        assert release.wait(5)
+        return ArchiveResult(False, "", "")
+    monkeypatch.setattr(registry, "finalize", finalize)
+    path = f"/v1/runs/{d.bootstrap.run_id}/control/finalize"
+    body = b'{"expected_revision":1}'
+    headers = sign(key, "POST", path, d.bootstrap.run_id, 1, body)
+    assert client.post(path, content=body + b" ", headers=headers).status_code == 401
+    for invalid in (b"not-json", b'{"expected_revision":true}'):
+        result = client.post(path, content=invalid, headers=sign(key, "POST", path, d.bootstrap.run_id, 1, invalid))
+        assert result.status_code in (409, 422)
+    try:
+        assert client.post(path, content=body, headers=headers).status_code == 202
+        assert entered.wait(2)
+        assert client.post(path, content=body, headers=headers).status_code == 503
+        assert put(client, key, replace(d, schedule_revision=2, scheduled_end_ms=NOW_MS + 20000)).status_code == 200
+    finally:
+        release.set()
+
+
+def test_trusted_gap_precedes_resumed_receipt_and_duplicate_handoff_is_durable(setup):
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    path = f"/v1/runs/{d.bootstrap.run_id}/batches"
+    gap = {"generation": 1, "started_ms": NOW_MS - 10, "ended_ms": NOW_MS, "reason": "platform_unavailable"}
+    body = json.dumps({"batch": batch_payload(), "late_unverified": False, "service_gap": gap}).encode()
+    headers = sign(key, "POST", path, d.bootstrap.run_id, 1, body)
+    response = client.post(path, content=body, headers=headers)
+    assert response.status_code == 200
+    assert response.headers["X-QJudge-Gap-Generation"] == "1"
+    assert client.post(path, content=body, headers=headers).status_code == 200
+    runtime = registry.get(d.bootstrap.run_id)
+    assert runtime.health_snapshot().service_gap_count == 1
+    runtime.process_pending(1)
+    kinds = [r["kind"] for r in runtime.timeline_journal.records]
+    assert kinds.index("service_gap") < kinds.index("batch_receipt")
+
+
+def test_network_recovery_signed_handoff_suppresses_resumed_decision_without_restart(setup, monkeypatch):
+    key, d, registry, client = setup
+    assert put(client, key, d).status_code == 200
+    runtime = registry.get(d.bootstrap.run_id)
+    from integrity_service.core.schemas import EventBatch
+    runtime.accept_batch(EventBatch.model_validate(batch_payload()), NOW_MS)
+    runtime.process_pending(1)
+    old_now = NOW_MS
+    monkeypatch.setattr("test_resident_api.NOW_MS", old_now + 200000)
+    monkeypatch.setattr("test_resident_api.NOW_SECONDS", (old_now + 200000) // 1000)
+    batch = batch_payload()
+    batch["first_seq"] = batch["last_seq"] = batch["records"][0]["seq"] = 2
+    body = json.dumps({"batch": batch, "late_unverified": False,
+        "service_gap": {"generation": 1, "started_ms": old_now + 1, "ended_ms": old_now + 200000,
+                        "reason": "platform_unavailable"}}).encode()
+    path = f"/v1/runs/{d.bootstrap.run_id}/batches"
+    assert client.post(path, content=body, headers=sign(key, "POST", path, runtime.run_id, 1, body)).status_code == 200
+    runtime.process_pending(1)
+    assert len(runtime.outbox.suppressed_commands) == 2
+    assert registry.get(runtime.run_id) is runtime
+
+
 def test_authenticates_before_creating_any_run_and_binds_all_control_fields(setup, tmp_path):
     key, d, registry, client = setup
     path = f"/v1/runs/{d.bootstrap.run_id}"

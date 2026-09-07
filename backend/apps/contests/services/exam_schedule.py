@@ -87,6 +87,7 @@ def finalize_due_exam(contest_id, *, now, expected_revision=None):
 def _sync_resident(run_id, now):
     from apps.contests.infrastructure.integrity_worker_client import sign_resident_request
     from apps.contests.services.integrity_commands import build_resident_descriptor
+    from apps.contests.services.integrity_availability import record_outage, outage_handoff, acknowledge_outage
 
     contest_id = ExamIntegrityRun.objects.values_list("contest_id", flat=True).get(pk=run_id)
     with transaction.atomic():
@@ -101,8 +102,14 @@ def _sync_resident(run_id, now):
         # older same-revision activation/drain, including heartbeat changes.
         guard = {"pk": run.pk, "schedule_revision": run.schedule_revision,
                  "session_state": run.session_state, "updated_at": run.updated_at}
+    gap = outage_handoff(run_id)
+    if gap:
+        guard["updated_at"] = ExamIntegrityRun.objects.values_list("updated_at", flat=True).get(pk=run_id)
+    started_ms = int(timezone.now().timestamp() * 1000)
     try:
         descriptor = build_resident_descriptor(run)
+        if gap:
+            descriptor["service_gap"] = gap
         path = f"/v1/runs/{run.id}"
         body = json.dumps(descriptor, separators=(",", ":")).encode("utf-8")
         headers = sign_resident_request(method="PUT", path=path, run_id=run.id,
@@ -114,19 +121,63 @@ def _sync_resident(run_id, now):
         response.raise_for_status()
         if response.json() != {"protocol": "resident-v1", "run_id": str(run.pk), "schedule_revision": run.schedule_revision}:
             raise ValueError("resident sync scope conflict")
+        if gap and response.headers.get("X-QJudge-Gap-Generation") != str(gap["generation"]):
+            raise ValueError("resident gap handoff not acknowledged")
         health_path = path + "/health"
-        response = httpx.get(base_url + health_path,
-                            headers=sign_resident_request(method="GET", path=health_path,
-                                run_id=run.pk, revision=run.schedule_revision, body=b""), timeout=timeout)
-        response.raise_for_status()
-        health = response.json()
-        if health.get("schedule_revision") != run.schedule_revision or health.get("healthy") is not True:
+        try:
+            response = httpx.get(base_url + health_path,
+                                headers=sign_resident_request(method="GET", path=health_path,
+                                    run_id=run.pk, revision=run.schedule_revision, body=b""), timeout=timeout)
+            health = response.json()
+            if health.get("schedule_revision") != run.schedule_revision:
+                raise ValueError("resident health scope conflict")
+            synchronized = _persist_resident_health(guard, health, now)
+        finally:
+            # Archive failure may itself make health 503. Still retry the archive
+            # lane; health is not authorization, and backend CAS rechecks time.
+            if run.session_state == "draining" and run.accept_until and run.accept_until <= timezone.now():
+                finalize_path = path + "/control/finalize"
+                finalize_body = json.dumps({"expected_revision": run.schedule_revision}, separators=(",", ":")).encode()
+                result = httpx.post(base_url + finalize_path, content=finalize_body,
+                    headers={**sign_resident_request(method="POST", path=finalize_path, run_id=run.pk,
+                        revision=run.schedule_revision, body=finalize_body), "Content-Type": "application/json"}, timeout=timeout)
+                if result.status_code not in (202, 409, 503):
+                    result.raise_for_status()
+                if result.status_code == 202 and result.json() != {"protocol": "resident-v1", "run_id": str(run.pk),
+                        "schedule_revision": run.schedule_revision, "accepted": True}:
+                    raise ValueError("resident finalize scope conflict")
+        if gap:
+            acknowledge_outage(run_id, gap["generation"])
+        if health.get("healthy") is not True:
             raise ValueError("resident health unavailable")
-    except Exception:
+    except Exception as error:
         ExamIntegrityRun.objects.filter(**guard).update(health="unhealthy", last_error="resident_sync_failed")
+        if isinstance(error, httpx.TransportError) or (isinstance(error, httpx.HTTPStatusError)
+                and error.response.status_code in {404, 429, 502, 503, 504, 507}):
+            record_outage(run_id, started_ms=started_ms)
         raise
-    return bool(ExamIntegrityRun.objects.filter(**guard).update(
-        health="healthy", last_error="", last_worker_heartbeat_at=now))
+    return synchronized
+
+
+def _persist_resident_health(guard, health, now):
+    # Merge only the health projection while locked; never replace concurrently
+    # created candidate/outage metadata with the pre-HTTP JSON snapshot.
+    with transaction.atomic():
+        run = ExamIntegrityRun.objects.select_for_update().filter(**guard).first()
+        if run is None:
+            return False
+        gaps = health.get("service_gaps")
+        if gaps is not None:
+            if (type(gaps) is not dict or set(gaps) != {"count", "last_ended_ms", "suppressed_connectivity_commands", "affected_participant_count"}
+                    or any(type(gaps[k]) is not int or gaps[k] < 0 for k in ("count", "suppressed_connectivity_commands", "affected_participant_count"))
+                    or (gaps["last_ended_ms"] is not None and (type(gaps["last_ended_ms"]) is not int or gaps["last_ended_ms"] < 0))):
+                raise ValueError("invalid service gap health")
+            run.metrics = {**run.metrics, "service_gaps": gaps}
+        run.health = "healthy" if health.get("healthy") is True else "unhealthy"
+        run.last_error = "" if run.health == "healthy" else "resident_maintenance_failed"
+        run.last_worker_heartbeat_at = now
+        run.save(update_fields=["metrics", "health", "last_error", "last_worker_heartbeat_at", "updated_at"])
+        return True
 
 
 def reconcile_integrity_once(now):

@@ -17,6 +17,7 @@ class ResidentSettings:
     decision_workers: int = 2
     delivery_workers: int = 2
     control_workers: int = 2
+    archive_workers: int = 1
     max_body_bytes: int = 1024 * 1024
     max_run_bytes: int = 1024 * 1024 * 1024
     max_pending_receipts: int = 10000
@@ -24,7 +25,7 @@ class ResidentSettings:
     maintenance_interval: float = 1.0
 
     def __post_init__(self):
-        for name in ("max_runs", "receipt_workers", "decision_workers", "delivery_workers", "control_workers", "max_body_bytes", "max_run_bytes", "max_pending_receipts", "process_batch_size"):
+        for name in ("max_runs", "receipt_workers", "decision_workers", "delivery_workers", "control_workers", "archive_workers", "max_body_bytes", "max_run_bytes", "max_pending_receipts", "process_batch_size"):
             if type(getattr(self, name)) is not int or getattr(self, name) < 1:
                 raise ValueError(f"invalid resident setting: {name}")
         if self.maintenance_interval <= 0:

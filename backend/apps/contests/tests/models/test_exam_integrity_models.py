@@ -140,7 +140,8 @@ def test_integrity_run_metadata_contract():
         if constraint.name == "uniq_live_integrity_run_per_contest"
     )
     assert constraint.fields == ("contest",)
-    assert constraint.condition == ~models.Q(compute_state="destroyed")
+    assert constraint.condition == (models.Q(session_state__in=("prepared", "active", "draining"))
+                                    | models.Q(execution_backend="legacy", session_state="archived"))
 
 
 def test_evidence_chunk_metadata_contract():
@@ -263,6 +264,28 @@ def test_live_integrity_run_constraint_allows_replacement_after_destroying_run()
 
     assert replacement.contest_id == contest.id
     assert replacement.compute_state == ExamIntegrityRun.ComputeState.STOPPED
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("state", ["prepared", "active", "draining"])
+def test_resident_logical_live_state_reserves_slot_even_if_compute_destroyed(state):
+    contest = Contest.objects.create(name="Resident logical ownership")
+    _integrity_run(contest, execution_backend="resident", session_state=state, compute_state="destroyed")
+    with pytest.raises(IntegrityError), transaction.atomic():
+        _integrity_run(contest, execution_backend="resident", session_state="prepared")
+
+
+@pytest.mark.django_db
+def test_archived_legacy_reserves_slot_but_archived_resident_releases_it():
+    contest = Contest.objects.create(name="Legacy reserved ownership")
+    legacy = _integrity_run(contest, data_state="archived")
+    assert legacy.session_state == "archived"
+    with pytest.raises(IntegrityError), transaction.atomic():
+        _integrity_run(contest, execution_backend="resident")
+    legacy.compute_state = "destroyed"
+    legacy.save(update_fields=["compute_state"])
+    _integrity_run(contest, execution_backend="resident", session_state="archived", data_state="archived")
+    assert _integrity_run(contest, execution_backend="resident").session_state == "prepared"
 
 
 @pytest.mark.django_db

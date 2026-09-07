@@ -730,6 +730,8 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         return existing
 
     late_unverified = False
+    from .integrity_availability import connectivity_overlaps_observed_gap
+    platform_gap = connectivity_overlaps_observed_gap(run, command)
     if run.execution_backend == "resident":
         from apps.contests.models import IntegrityBatchAdmission
         try:
@@ -745,6 +747,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         if (
             command.delayed_delivery
             or late_unverified
+            or platform_gap
             or participant.exam_status == ExamStatus.SUBMITTED
         )
         else command.action
@@ -759,6 +762,7 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         "requested_action": command.action,
         "command_fingerprint": command.command_fingerprint,
         **({"late_unverified": late_unverified} if run.execution_backend == "resident" else {}),
+        **({"suppressed_reason": "platform_gap"} if platform_gap else {}),
     }
     event = ExamEvent.objects.create(
         contest=run.contest,
@@ -778,6 +782,10 @@ def record_integrity_event(command: RecordIntegrityEvent) -> ExamEvent:
         delayed_delivery=command.delayed_delivery,
         metadata=metadata,
     )
+    if platform_gap:
+        run.metrics = {**run.metrics, "backend_suppressed_connectivity_commands":
+                       run.metrics.get("backend_suppressed_connectivity_commands", 0) + 1}
+        run.save(update_fields=["metrics", "updated_at"])
     if (
         not command.delayed_delivery
         and not late_unverified
@@ -1283,6 +1291,8 @@ def _publish_manifest_command(
     command: dict[str, object],
     command_id: str,
 ) -> CommandOutcome:
+    if run.execution_backend == "resident":
+        raise IntegrityCommandRejected("resident_archive_requires_revision_cas")
     metadata = _json_object(command.get("metadata"), "invalid_command_metadata")
     if set(metadata) - {
         "object_key",

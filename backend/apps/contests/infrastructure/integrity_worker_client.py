@@ -263,18 +263,31 @@ class IntegrityWorkerClient:
         body: bytes,
     ) -> httpx.Response:
         if run.execution_backend == "resident":
+            from apps.contests.services.integrity_availability import record_outage, outage_handoff, acknowledge_outage
+            started_ms = time.time_ns() // 1_000_000
+            gap = outage_handoff(run.pk) if path.endswith("/batches") else None
+            if gap:
+                payload = json.loads(body)
+                envelope = payload if "batch" in payload else {"batch": payload, "late_unverified": False}
+                body = json.dumps({**envelope, "service_gap": gap}, separators=(",", ":"), sort_keys=True).encode()
             headers = sign_resident_request(method="POST", path=path, run_id=run.pk,
                 revision=run.schedule_revision, body=body)
             try:
                 response = self.http.post(settings.INTEGRITY_RESIDENT_URL.rstrip("/") + path,
                     content=body, headers={**headers, "Content-Type": "application/json"},
                     timeout=httpx.Timeout(5.0, connect=2.0))
-            except (httpx.TimeoutException, httpx.ConnectError):
+            except httpx.TransportError:
+                record_outage(run.pk, started_ms=started_ms)
                 raise IntegrityWorkerUnavailable("Integrity resident unavailable") from None
             if response.status_code in {404, 429, 502, 503, 504, 507}:
+                record_outage(run.pk, started_ms=started_ms)
                 raise IntegrityWorkerUnavailable("Integrity resident unavailable")
             if response.status_code == 200 and response.headers.get("X-QJudge-Protocol") != "resident-v1":
                 raise IntegrityWorkerProtocolError("resident capability not confirmed")
+            if gap and response.status_code == 200:
+                if response.headers.get("X-QJudge-Gap-Generation") != str(gap["generation"]):
+                    raise IntegrityWorkerProtocolError("resident gap handoff not acknowledged")
+                acknowledge_outage(run.pk, gap["generation"])
             return response
         timestamp = str(int(time.time()))
         message = (

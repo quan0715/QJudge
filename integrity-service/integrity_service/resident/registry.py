@@ -1,5 +1,6 @@
 """Bounded registry with one writer per volume and independent Run locks."""
 import fcntl
+from contextlib import contextmanager
 import threading
 from pathlib import Path
 from uuid import UUID
@@ -30,11 +31,16 @@ class RunRegistry:
             raise RuntimeError("resident volume already has a writer")
         self._lock = threading.RLock()
         self._locks = {}
+        self._references = {}
+        self._retired = set()
+        self._finalizing = set()
+        self.finalize_requests = {}
         self._runtimes = {}
         self._descriptors = {}
         self.errors = {}
         self._closed = False
 
+    @contextmanager
     def _run_lock(self, run_id):
         with self._lock:
             if self._closed:
@@ -43,9 +49,20 @@ class RunRegistry:
                 if len(self._locks) >= self.max_runs:
                     raise RegistryFull("resident run capacity reached")
                 self._locks[run_id] = threading.RLock()
-            return self._locks[run_id]
+            lock = self._locks[run_id]
+            self._references[run_id] = self._references.get(run_id, 0) + 1
+        try:
+            with lock:
+                yield
+        finally:
+            with self._lock:
+                self._references[run_id] -= 1
+                if not self._references[run_id] and run_id in self._retired:
+                    self._locks.pop(run_id, None)
+                    self._references.pop(run_id, None)
+                    self._retired.discard(run_id)
 
-    def ensure(self, descriptor: RunDescriptor) -> WorkerRuntime:
+    def ensure(self, descriptor: RunDescriptor, service_gap=None) -> WorkerRuntime:
         run_id = descriptor.bootstrap.run_id
         with self._run_lock(run_id):
             prior = self._descriptors.get(run_id)
@@ -75,7 +92,15 @@ class RunRegistry:
                 if run_id not in self._runtimes:
                     backend = self.backend_factory(run_id)
                     self._runtimes[run_id] = WorkerRuntime(bootstrap=descriptor.bootstrap, data_root=self.root, backend=backend, resident_mode=True)
+                elif prior and descriptor.schedule_revision > prior.schedule_revision:
+                    self.finalize_requests.pop(run_id, None)
+                    runtime = self._runtimes[run_id]
+                    with runtime._lock:
+                        if runtime.healthy and descriptor.session_state in {"prepared", "active", "draining"}:
+                            runtime._accepting, runtime._state = True, "RUNNING"
                 self._descriptors[run_id] = descriptor
+                if service_gap is not None:
+                    self.apply_trusted_gap(self._runtimes[run_id], service_gap)
                 self.errors.pop(run_id, None)
                 return self._runtimes[run_id]
             except Exception as error:
@@ -83,6 +108,8 @@ class RunRegistry:
                     backend.close()
                 if not isinstance(error, DescriptorConflict):
                     self.errors[run_id] = type(error).__name__
+                elif run_id not in self._runtimes:
+                    self._retired.add(run_id)
                 raise
             finally:
                 if log is not None:
@@ -98,12 +125,37 @@ class RunRegistry:
         with self._lock:
             return self._descriptors[run_id]
 
+    def finalize(self, run_id, expected_revision):
+        from .lifecycle import finalize
+        from .maintenance import Busy
+        with self._lock:
+            self.get(run_id)
+            if run_id in self._finalizing:
+                raise Busy("Run archive already in flight")
+            self._finalizing.add(run_id)
+            if self.descriptor(run_id).schedule_revision == expected_revision:
+                self.finalize_requests[run_id] = expected_revision
+        try:
+            return finalize(self, run_id, expected_revision)
+        except Exception as error:
+            self.errors[run_id] = type(error).__name__
+            raise
+        finally:
+            with self._lock:
+                self._finalizing.discard(run_id)
+
     def record_service_gap(self, run_id, started_ms, ended_ms, reason):
         # Internal trusted incident reports only; unknown IDs never allocate a
         # runtime or consume a registry slot. Runtime serializes with decisions.
         runtime = self.get(run_id)
         with self._run_lock(run_id):
             runtime.record_service_gap(started_ms, ended_ms, reason)
+
+    @staticmethod
+    def apply_trusted_gap(runtime, gap):
+        if type(gap) is not dict or set(gap) != {"generation", "started_ms", "ended_ms", "reason"}:
+            raise ValueError("invalid trusted gap")
+        runtime.record_service_gap(gap["started_ms"], gap["ended_ms"], gap["reason"], generation=gap["generation"])
 
     def run_ids(self):
         with self._lock:
@@ -114,7 +166,7 @@ class RunRegistry:
         # Local files alone never authorize a Run or its latest schedule.
         for payload in payloads:
             try:
-                self.ensure(RunDescriptor.from_payload(payload))
+                self.ensure(RunDescriptor.from_payload(payload), payload.get("service_gap"))
             except Exception:
                 continue
 

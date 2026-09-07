@@ -123,6 +123,17 @@ class BackendClient:
         )
         return self._response_json(response)
 
+    def finalize_control(self, body):
+        if not self._resident_mode:
+            raise BackendProtocolError("resident protocol required")
+        from integrity_service.resident.lifecycle import StaleSchedule
+        path = f"/api/v1/internal/integrity/runs/{self._run_id}/finalize/"
+        try:
+            response = self._request("POST", path, json=body)
+        except BackendProtocolError as error:
+            raise StaleSchedule("backend finalization not authorized") from error
+        return self._response_json(response)
+
     def upload_presigned(
         self,
         url: str,

@@ -281,7 +281,7 @@ class CommandOutbox:
     def __init__(self, root: Path) -> None:
         self._log = DurableJsonLog(root / "commands.log")
         self._lock = threading.RLock()
-        self._delivery_lock = threading.Lock()
+        self._delivery_lock = threading.RLock()
         self._commands: dict[str, dict[str, object]] = {}
         # Linked order avoids rescanning delivered history (including dict
         # tombstones) while snapshotting a small batch after a long outage.
@@ -596,11 +596,12 @@ class TimelineJournal:
             self._log.append({"kind": "advance", "server_ms": server_ms})
             self._last_server_ms = server_ms
 
-    def append_service_gap(self, *, started_ms: int, ended_ms: int, reason: str) -> None:
+    def append_service_gap(self, *, started_ms: int, ended_ms: int, reason: str, generation=None) -> None:
         with self._lock:
             self._log.append({"kind": "service_gap", "server_ms": self._last_server_ms,
                 "started_ms": started_ms, "ended_ms": ended_ms, "reason": reason,
-                "classification": "continuity_uncertainty" if reason == "process_recovery" else "observed_unavailability"})
+                "classification": "continuity_uncertainty" if reason == "process_recovery" else "observed_unavailability",
+                **({"generation": generation} if generation is not None else {})})
 
     def close(self) -> None:
         try:
