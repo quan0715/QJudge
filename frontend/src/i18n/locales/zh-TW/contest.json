@@ -278,6 +278,60 @@
         "paperExam": "考卷題目"
       }
     },
+    "preparation": {
+      "ariaLabel": "競賽準備總覽",
+      "checklistTitle": "發布前檢查",
+      "checklistDescription": "先把缺的補齊，再把競賽發布給學生。",
+      "participantsTitle": "考生名單",
+      "nextStep": "下一步",
+      "studentView": "學生看到的樣子",
+      "previewAsStudent": "預覽考生視角",
+      "draftHiddenNote": "草稿不會出現在學生的競賽列表",
+      "blockedBySchedule": "發布前會先請你設定考試時間",
+      "startsIn": "距離開考 {{value}}",
+      "dangerAction": "危險操作",
+      "level": {
+        "done": "已完成",
+        "warning": "建議設定",
+        "blocking": "發布前必填"
+      },
+      "info": {
+        "contestType": "考卷題型",
+        "problems": "題目數量",
+        "participants": "考生人數"
+      },
+      "schedule": {
+        "title": "考試時間",
+        "done": "{{start}} - {{end}}",
+        "missing": "尚未設定，發布前必填",
+        "action": "設定時間"
+      },
+      "problems": {
+        "title": "題目準備",
+        "done": "已設定 {{count}} 題",
+        "missing": "尚未新增題目",
+        "action": "前往題目管理"
+      },
+      "participants": {
+        "title": "考生名單",
+        "done": "已加入 {{count}} 人",
+        "missing": "尚未加入任何考生",
+        "action": "管理名單"
+      },
+      "rules": {
+        "title": "競賽規則",
+        "done": "已設定規則內容",
+        "missing": "建議補上考試規則與注意事項",
+        "action": "開啟設定"
+      },
+      "confirm": {
+        "publishWithoutProblemsTitle": "這場競賽還沒有題目",
+        "publishWithoutProblemsBody": "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+        "publishAnyway": "仍要發布",
+        "revertToDraftTitle": "確定要退回草稿嗎？",
+        "revertToDraftBody": "退回後學生會立刻看不到這場競賽。"
+      }
+    },
     "screen": {
       "actions": {
         "addParticipant": "新增參賽者",
@@ -1564,7 +1618,29 @@
   },
   "problems": "題目數",
   "integrityRun": {
-    "title": "Integrity Worker", "description": "系統自動管理考試事件與證據處理。", "waiting": "等待系統啟動", "waitingDescription": "系統會依考試時段自動管理 Worker。", "workerUnhealthy": "Worker 異常", "workerUnhealthyDescription": "目前無法穩定接收考試事件，可嘗試重新啟動。", "healthy": "正常運作", "healthyDescription": "Worker 正在接收並處理考試事件。", "starting": "啟動中", "stopping": "收尾中", "transitionDescription": "系統正在更新 Worker 狀態。", "archived": "已封存", "archivedDescription": "考試資料已完成封存。", "completed": "已完成", "completedDescription": "此考試的 Worker 生命週期已結束。", "ready": "等待考試開始", "readyDescription": "系統會在需要時自動啟動 Worker。", "restart": "重新啟動 Worker", "restartPreservesData": "事件與證據資料會保留。", "confirmRestart": "確認重啟", "restartComplete": "Worker 已重新啟動", "restartFailed": "無法重新啟動 Worker", "loadFailed": "無法讀取 Worker 狀態"
+    "title": "Integrity Worker",
+    "description": "系統自動管理考試事件與證據處理。",
+    "waiting": "等待系統啟動",
+    "waitingDescription": "系統會依考試時段自動管理 Worker。",
+    "workerUnhealthy": "Worker 異常",
+    "workerUnhealthyDescription": "目前無法穩定接收考試事件，可嘗試重新啟動。",
+    "healthy": "正常運作",
+    "healthyDescription": "Worker 正在接收並處理考試事件。",
+    "starting": "啟動中",
+    "stopping": "收尾中",
+    "transitionDescription": "系統正在更新 Worker 狀態。",
+    "archived": "已封存",
+    "archivedDescription": "考試資料已完成封存。",
+    "completed": "已完成",
+    "completedDescription": "此考試的 Worker 生命週期已結束。",
+    "ready": "等待考試開始",
+    "readyDescription": "系統會在需要時自動啟動 Worker。",
+    "restart": "重新啟動 Worker",
+    "restartPreservesData": "事件與證據資料會保留。",
+    "confirmRestart": "確認重啟",
+    "restartComplete": "Worker 已重新啟動",
+    "restartFailed": "無法重新啟動 Worker",
+    "loadFailed": "無法讀取 Worker 狀態"
   },
   "proctoringPanel": {
     "backToRoster": "返回列表",

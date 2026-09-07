@@ -278,6 +278,60 @@
         "paperExam": "試験問題"
       }
     },
+    "preparation": {
+      "ariaLabel": "コンテスト準備の概要",
+      "checklistTitle": "公開前チェック",
+      "checklistDescription": "不足している項目を埋めてから、コンテストを学生に公開します。",
+      "participantsTitle": "受験者リスト",
+      "nextStep": "次のステップ",
+      "studentView": "学生に見える表示",
+      "previewAsStudent": "受験者視点でプレビュー",
+      "draftHiddenNote": "下書きは学生のコンテスト一覧に表示されません",
+      "blockedBySchedule": "公開する前に試験時間を設定してください",
+      "startsIn": "開始まで {{value}}",
+      "dangerAction": "危険な操作",
+      "level": {
+        "done": "完了",
+        "warning": "推奨",
+        "blocking": "公開に必須"
+      },
+      "info": {
+        "contestType": "問題形式",
+        "problems": "問題数",
+        "participants": "受験者数"
+      },
+      "schedule": {
+        "title": "試験時間",
+        "done": "{{start}} - {{end}}",
+        "missing": "未設定です。公開前に必要です",
+        "action": "時間を設定"
+      },
+      "problems": {
+        "title": "問題の準備",
+        "done": "{{count}} 問を設定済み",
+        "missing": "問題がまだ追加されていません",
+        "action": "問題管理へ"
+      },
+      "participants": {
+        "title": "受験者リスト",
+        "done": "{{count}} 人が参加済み",
+        "missing": "受験者がまだ追加されていません",
+        "action": "リストを管理"
+      },
+      "rules": {
+        "title": "コンテスト規則",
+        "done": "規則が設定済みです",
+        "missing": "試験規則と注意事項の追加を推奨します",
+        "action": "設定を開く"
+      },
+      "confirm": {
+        "publishWithoutProblemsTitle": "このコンテストにはまだ問題がありません",
+        "publishWithoutProblemsBody": "学生には空の問題一覧が表示されます。先に公開して、後から問題を追加できます。",
+        "publishAnyway": "このまま公開",
+        "revertToDraftTitle": "下書きに戻しますか？",
+        "revertToDraftBody": "戻すと学生はすぐにこのコンテストを見られなくなります。"
+      }
+    },
     "screen": {
       "actions": {
         "addParticipant": "受験者を追加",
@@ -1564,7 +1618,29 @@
   },
   "problems": "問題数",
   "integrityRun": {
-    "title": "Integrity Worker", "description": "試験イベントと証拠処理はシステムが自動管理します。", "waiting": "システム起動待ち", "waitingDescription": "試験時間に合わせてシステムが Worker を管理します。", "workerUnhealthy": "Worker 異常", "workerUnhealthyDescription": "試験イベントを安定して受信できません。Worker を再起動してください。", "healthy": "正常稼働", "healthyDescription": "Worker は試験イベントを受信して処理しています。", "starting": "起動中", "stopping": "終了処理中", "transitionDescription": "システムが Worker の状態を更新しています。", "archived": "アーカイブ済み", "archivedDescription": "試験データはアーカイブされました。", "completed": "完了", "completedDescription": "この試験の Worker ライフサイクルは終了しました。", "ready": "試験開始待ち", "readyDescription": "必要な時点でシステムが Worker を起動します。", "restart": "Worker を再起動", "restartPreservesData": "イベントと証拠データは保持されます。", "confirmRestart": "再起動を確認", "restartComplete": "Worker を再起動しました", "restartFailed": "Worker を再起動できません", "loadFailed": "Worker の状態を取得できません"
+    "title": "Integrity Worker",
+    "description": "試験イベントと証拠処理はシステムが自動管理します。",
+    "waiting": "システム起動待ち",
+    "waitingDescription": "試験時間に合わせてシステムが Worker を管理します。",
+    "workerUnhealthy": "Worker 異常",
+    "workerUnhealthyDescription": "試験イベントを安定して受信できません。Worker を再起動してください。",
+    "healthy": "正常稼働",
+    "healthyDescription": "Worker は試験イベントを受信して処理しています。",
+    "starting": "起動中",
+    "stopping": "終了処理中",
+    "transitionDescription": "システムが Worker の状態を更新しています。",
+    "archived": "アーカイブ済み",
+    "archivedDescription": "試験データはアーカイブされました。",
+    "completed": "完了",
+    "completedDescription": "この試験の Worker ライフサイクルは終了しました。",
+    "ready": "試験開始待ち",
+    "readyDescription": "必要な時点でシステムが Worker を起動します。",
+    "restart": "Worker を再起動",
+    "restartPreservesData": "イベントと証拠データは保持されます。",
+    "confirmRestart": "再起動を確認",
+    "restartComplete": "Worker を再起動しました",
+    "restartFailed": "Worker を再起動できません",
+    "loadFailed": "Worker の状態を取得できません"
   },
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",

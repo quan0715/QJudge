@@ -46,6 +46,7 @@ export default function AdminOverviewScreen({
   onPreview,
 }: AdminPanelProps) {
   const { t } = useTranslation("contest");
+  const { t: tc } = useTranslation("common");
   const tr = useCallback<DashboardText>(
     (key, defaultValue, values) => {
       const translated = values
@@ -407,7 +408,7 @@ export default function AdminOverviewScreen({
           "adminOverview.preparation.confirm.publishAnyway",
           "仍要發布",
         ),
-        cancelLabel: t("action.cancel", "取消"),
+        cancelLabel: tc("button.cancel"),
       });
       if (!confirmed) return;
     }
@@ -438,6 +439,7 @@ export default function AdminOverviewScreen({
     refreshContest,
     showToast,
     t,
+    tc,
   ]);
 
   const handleRevertToDraft = useCallback(async () => {
@@ -453,7 +455,7 @@ export default function AdminOverviewScreen({
         "退回後學生會立刻看不到這場競賽。",
       ),
       confirmLabel: t("adminOverview.actions.revertToDraft", "退回草稿"),
-      cancelLabel: t("action.cancel", "取消"),
+      cancelLabel: tc("button.cancel"),
       danger: true,
     });
     if (!confirmed) return;
@@ -471,7 +473,15 @@ export default function AdminOverviewScreen({
     } finally {
       setPublishingContest(false);
     }
-  }, [confirm, contest?.id, publishingContest, refreshContest, showToast, t]);
+  }, [
+    confirm,
+    contest?.id,
+    publishingContest,
+    refreshContest,
+    showToast,
+    t,
+    tc,
+  ]);
 
   const handleChecklistAction = useCallback(
     (key: PreparationItemKey) => {

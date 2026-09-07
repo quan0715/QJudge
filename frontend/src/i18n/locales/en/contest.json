@@ -278,6 +278,60 @@
         "paperExam": "Paper exam questions"
       }
     },
+    "preparation": {
+      "ariaLabel": "Contest preparation overview",
+      "checklistTitle": "Before you publish",
+      "checklistDescription": "Fill in what's missing, then publish the contest to students.",
+      "participantsTitle": "Participants",
+      "nextStep": "Next step",
+      "studentView": "What students see",
+      "previewAsStudent": "Preview as student",
+      "draftHiddenNote": "Drafts don't appear in the student contest list",
+      "blockedBySchedule": "Set the exam schedule before publishing",
+      "startsIn": "Starts in {{value}}",
+      "dangerAction": "Destructive action",
+      "level": {
+        "done": "Done",
+        "warning": "Suggested",
+        "blocking": "Required to publish"
+      },
+      "info": {
+        "contestType": "Exam type",
+        "problems": "Problems",
+        "participants": "Participants"
+      },
+      "schedule": {
+        "title": "Exam schedule",
+        "done": "{{start}} - {{end}}",
+        "missing": "Not set — required before publishing",
+        "action": "Set schedule"
+      },
+      "problems": {
+        "title": "Problems",
+        "done": "{{count}} problems ready",
+        "missing": "No problems added yet",
+        "action": "Open problem editor"
+      },
+      "participants": {
+        "title": "Participants",
+        "done": "{{count}} participants added",
+        "missing": "No participants added yet",
+        "action": "Manage list"
+      },
+      "rules": {
+        "title": "Contest rules",
+        "done": "Rules are set",
+        "missing": "Consider adding rules and reminders",
+        "action": "Open settings"
+      },
+      "confirm": {
+        "publishWithoutProblemsTitle": "This contest has no problems yet",
+        "publishWithoutProblemsBody": "Students will see an empty problem list. You can publish now and add problems later.",
+        "publishAnyway": "Publish anyway",
+        "revertToDraftTitle": "Revert to draft?",
+        "revertToDraftBody": "Students will lose access to this contest immediately."
+      }
+    },
     "screen": {
       "actions": {
         "addParticipant": "Add participant",
@@ -1564,7 +1618,29 @@
   },
   "problems": "Problems",
   "integrityRun": {
-    "title": "Integrity Worker", "description": "The system manages exam event and evidence processing automatically.", "waiting": "Waiting for system", "waitingDescription": "The system manages the Worker according to the exam schedule.", "workerUnhealthy": "Worker unhealthy", "workerUnhealthyDescription": "Exam events cannot be received reliably. Try restarting the Worker.", "healthy": "Operating normally", "healthyDescription": "The Worker is receiving and processing exam events.", "starting": "Starting", "stopping": "Wrapping up", "transitionDescription": "The system is updating the Worker state.", "archived": "Archived", "archivedDescription": "Exam data has been archived.", "completed": "Completed", "completedDescription": "The Worker lifecycle for this exam has ended.", "ready": "Waiting for exam", "readyDescription": "The system will start the Worker when needed.", "restart": "Restart Worker", "restartPreservesData": "Events and evidence will be retained.", "confirmRestart": "Confirm restart", "restartComplete": "Worker restarted", "restartFailed": "Unable to restart Worker", "loadFailed": "Unable to load Worker status"
+    "title": "Integrity Worker",
+    "description": "The system manages exam event and evidence processing automatically.",
+    "waiting": "Waiting for system",
+    "waitingDescription": "The system manages the Worker according to the exam schedule.",
+    "workerUnhealthy": "Worker unhealthy",
+    "workerUnhealthyDescription": "Exam events cannot be received reliably. Try restarting the Worker.",
+    "healthy": "Operating normally",
+    "healthyDescription": "The Worker is receiving and processing exam events.",
+    "starting": "Starting",
+    "stopping": "Wrapping up",
+    "transitionDescription": "The system is updating the Worker state.",
+    "archived": "Archived",
+    "archivedDescription": "Exam data has been archived.",
+    "completed": "Completed",
+    "completedDescription": "The Worker lifecycle for this exam has ended.",
+    "ready": "Waiting for exam",
+    "readyDescription": "The system will start the Worker when needed.",
+    "restart": "Restart Worker",
+    "restartPreservesData": "Events and evidence will be retained.",
+    "confirmRestart": "Confirm restart",
+    "restartComplete": "Worker restarted",
+    "restartFailed": "Unable to restart Worker",
+    "loadFailed": "Unable to load Worker status"
   },
   "proctoringPanel": {
     "backToRoster": "Back to list",
