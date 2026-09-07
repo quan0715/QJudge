@@ -167,3 +167,44 @@ def test_resident_receipt_processing_never_generates_authoritative_deadline_comm
         runtime = registry.ensure(descriptor())
         runtime.outbox.deliver_pending(runtime.backend, max_batches=1)
         assert not any(command["event_type"] == "scheduled_end" for batch in runtime.backend.command_batches for command in batch)
+
+
+@pytest.mark.parametrize("max_batches,expected_count", [(0, 0), (1, 100)])
+def test_delivery_materializes_only_admitted_batch_from_large_backlog(tmp_path, monkeypatch, max_batches, expected_count):
+    from integrity_service.journal import command_outbox
+    outbox = command_outbox.CommandOutbox(tmp_path)
+    commands = tuple({"command_id": str(uuid4()), "kind": "record_event", "metadata": {"evidence": "x" * 1000}} for _ in range(1000))
+    outbox.append(commands)
+    original = command_outbox._canonical_json
+    materialized = []
+    def canonical(value):
+        if isinstance(value, dict) and "command_id" in value:
+            materialized.append(value["command_id"])
+        return original(value)
+    monkeypatch.setattr(command_outbox, "_canonical_json", canonical)
+    try:
+        response = outbox.deliver_pending(FakeBackend(), max_batches=max_batches)
+        assert materialized == [command["command_id"] for command in commands[:expected_count]]
+        assert response.get("accepted_command_ids", []) == materialized
+    finally:
+        outbox.close()
+
+
+def test_pending_delivery_index_rebuilds_without_resending_delivered_history(tmp_path):
+    from integrity_service.journal.command_outbox import CommandOutbox
+    commands = tuple({"command_id": str(uuid4()), "kind": "record_event"} for _ in range(250))
+    outbox = CommandOutbox(tmp_path)
+    try:
+        outbox.append(commands)
+        assert len(outbox.deliver_pending(FakeBackend(), max_batches=1)["accepted_command_ids"]) == 100
+    finally:
+        outbox.close()
+    outbox = CommandOutbox(tmp_path)
+    try:
+        assert outbox.append(commands) is False
+        assert outbox.pending_commands == commands[100:]
+        response = outbox.deliver_pending(FakeBackend())
+        assert response["accepted_command_ids"] == [command["command_id"] for command in commands[100:]]
+        assert outbox.pending_commands == ()
+    finally:
+        outbox.close()

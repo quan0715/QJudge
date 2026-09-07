@@ -6,7 +6,9 @@ import hashlib
 import json
 import os
 import threading
+from collections import OrderedDict
 from collections.abc import Mapping
+from itertools import islice
 from pathlib import Path
 from typing import Protocol
 from uuid import UUID
@@ -281,6 +283,9 @@ class CommandOutbox:
         self._lock = threading.RLock()
         self._delivery_lock = threading.Lock()
         self._commands: dict[str, dict[str, object]] = {}
+        # Linked order avoids rescanning delivered history (including dict
+        # tombstones) while snapshotting a small batch after a long outage.
+        self._pending: OrderedDict[str, dict[str, object]] = OrderedDict()
         self._command_bytes: dict[str, bytes] = {}
         self._delivered: set[str] = set()
         self._responses: dict[str, dict[str, object]] = {}
@@ -292,11 +297,13 @@ class CommandOutbox:
 
     @property
     def pending_commands(self) -> tuple[dict[str, object], ...]:
+        return self._pending_snapshot(None)
+
+    def _pending_snapshot(self, limit: int | None) -> tuple[dict[str, object], ...]:
         with self._lock:
             return tuple(
                 json.loads(_canonical_json(command))
-                for command_id, command in self._commands.items()
-                if command_id not in self._delivered
+                for command in islice(self._pending.values(), limit)
             )
 
     def append(self, commands: tuple[object, ...]) -> bool:
@@ -333,6 +340,7 @@ class CommandOutbox:
             for command_id, command, encoded in candidates:
                 self._command_bytes[command_id] = encoded
                 self._commands[command_id] = command
+                self._pending[command_id] = command
             return True
 
     def deliver_pending(self, backend: CommandBackend, *, max_batches: int | None = None) -> dict[str, object]:
@@ -342,8 +350,9 @@ class CommandOutbox:
             delivered_ids: list[object] = []
             archive_uploads: list[object] = []
             batches = 0
-            while pending := self.pending_commands[:MAX_COMMANDS_PER_DELIVERY]:
-                if max_batches is not None and batches >= max_batches:
+            while max_batches is None or batches < max_batches:
+                pending = self._pending_snapshot(MAX_COMMANDS_PER_DELIVERY)
+                if not pending:
                     break
                 response = backend.send_commands(pending)
                 command_ids = [str(command["command_id"]) for command in pending]
@@ -358,6 +367,7 @@ class CommandOutbox:
                     )
                     for command_id in command_ids:
                         self._delivered.add(command_id)
+                        self._pending.pop(command_id)
                         self._responses[command_id] = json.loads(
                             _canonical_json(validated_response)
                         )
@@ -404,6 +414,8 @@ class CommandOutbox:
                         raise CommandConflict(command_id)
                     self._commands.setdefault(command_id, command)
                     self._command_bytes.setdefault(command_id, encoded)
+                    if command_id not in self._delivered:
+                        self._pending.setdefault(command_id, command)
             elif kind == "delivered":
                 command_ids = record.get("command_ids")
                 response = record.get("response")
@@ -430,6 +442,7 @@ class CommandOutbox:
                     ) from error
                 for command_id in command_ids:
                     self._delivered.add(str(command_id))
+                    self._pending.pop(str(command_id))
                     self._responses[str(command_id)] = validated
             else:
                 raise DurableLogCorruption("unknown command outbox record")
