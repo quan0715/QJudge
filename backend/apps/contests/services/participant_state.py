@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.db import transaction
 
 from apps.contests.models import (
+    Contest,
     ContestParticipant,
     ExamAnswer,
     ExamEvent,
@@ -79,6 +80,14 @@ def _clear_attempt_metadata(participant: ContestParticipant) -> list[str]:
     return changed
 
 
+def _lock_attempt_transition(participant):
+    from .exam_schedule import lock_exam_runs
+    Contest.objects.select_for_update().get(pk=participant.contest_id)
+    lock_exam_runs(participant.contest_id)
+    return ContestParticipant.objects.select_for_update().get(pk=participant.pk)
+
+
+@transaction.atomic
 def admin_update_participant(
     participant: ContestParticipant,
     *,
@@ -88,6 +97,7 @@ def admin_update_participant(
     activity_details: str,
 ) -> ContestParticipant:
     """Admin-driven participant field update with consistent lock metadata cleanup."""
+    participant = _lock_attempt_transition(participant)
     update_fields: list[str] = []
 
     if exam_status is not None:
@@ -124,6 +134,7 @@ def admin_update_participant(
     return participant
 
 
+@transaction.atomic
 def reopen_participant_exam(
     participant: ContestParticipant,
     *,
@@ -131,6 +142,7 @@ def reopen_participant_exam(
     activity_details: str,
 ) -> ContestParticipant:
     """Reopen a submitted exam back to PAUSED so the student can continue."""
+    participant = _lock_attempt_transition(participant)
     participant.exam_status = ExamStatus.PAUSED
     participant.submit_reason = ""
     from .integrity_upload_grants import rotate_integrity_attempt
@@ -159,6 +171,7 @@ def reset_participant_exam_record(
     from apps.submissions.models import Submission
 
     with transaction.atomic():
+        participant = _lock_attempt_transition(participant)
         answer_qs = ExamAnswer.objects.filter(participant=participant)
         deleted_answers = answer_qs.count()
         answer_qs.delete()

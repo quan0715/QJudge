@@ -152,7 +152,7 @@ class ExamIntegrityMixin:
                 client.post_batch(run, body)
                 if participant.exam_status in ACTIVE_INTEGRITY_EXAM_STATUSES:
                     record_checkpoint(contest.pk, participant.user_id)
-            evidence_response = self._apply_checkpoint_evidence(contest, participant, evidence)
+            evidence_response = self._apply_checkpoint_evidence(contest, participant, evidence, upload_scope=scope)
             if isinstance(evidence_response, Response):
                 return evidence_response
             progress = client.student_progress(run, participant_id=participant.pk, device_id=scope["device_id"])
@@ -253,7 +253,7 @@ class ExamIntegrityMixin:
             "release_evidence_before_ms": delivery.release_before_ms,
         }
 
-    def _apply_checkpoint_evidence(self, contest, participant, evidence):
+    def _apply_checkpoint_evidence(self, contest, participant, evidence, *, upload_scope=None):
         uploads = []
         completions = []
         unavailable = []
@@ -284,6 +284,7 @@ class ExamIntegrityMixin:
                         participant,
                         event,
                         list(manifest["chunks"]),
+                        upload_scope=upload_scope,
                     )
                 )
             except (
@@ -300,7 +301,7 @@ class ExamIntegrityMixin:
                 participant=participant,
             )
             try:
-                chunk = complete_evidence_chunk(chunk)
+                chunk = complete_evidence_chunk(chunk, upload_scope=upload_scope)
             except (
                 IntegrityEvidenceRejected,
                 IntegrityEvidenceStorageError,
@@ -322,6 +323,7 @@ class ExamIntegrityMixin:
                     chunk = report_evidence_unavailable(
                         chunk,
                         reason=report["reason"],
+                        upload_scope=upload_scope,
                     )
                 except IntegrityEvidenceRejected as error:
                     return self._checkpoint_evidence_error(error)
@@ -352,6 +354,7 @@ class ExamIntegrityMixin:
                     event,
                     source=report["source"],
                     reason=report["reason"],
+                    upload_scope=upload_scope,
                 )
             except IntegrityEvidenceRejected as error:
                 return self._checkpoint_evidence_error(error)

@@ -150,7 +150,7 @@ def admit_checkpoint(
         if final_seq is not None:
             raise ValidationError("Final sequence is only accepted after submission.")
     else:
-        grant = IntegrityUploadGrant.objects.filter(
+        grant = IntegrityUploadGrant.objects.select_for_update().filter(
             run=run,
             participant=participant,
             attempt_id=scope["attempt_id"],

@@ -44,6 +44,8 @@ from apps.contests.services.integrity_evidence import (
     purge_integrity_data,
 )
 from apps.users.models import User
+from apps.contests.tests.integrity.test_batch_gateway import worker_server, make_batch
+from apps.contests.tests.integrity.test_upload_grants import resident_http
 
 
 MAX_EVIDENCE_CHUNK_SEQ = 2_147_483_647
@@ -280,6 +282,208 @@ def bind_active_device(participant, device_kind):
     )
 
 
+@pytest.fixture
+def resident_evidence(incident_event, participant, api_client, object_store, resident_http):
+    from apps.contests.models import IntegrityBatchAdmission
+    run = incident_event.integrity_run
+    run.execution_backend, run.session_state = "resident", "active"
+    run.accept_until = participant.contest.end_time + timedelta(seconds=300)
+    run.save()
+    bind_active_device(participant, "desktop")
+    admission = IntegrityBatchAdmission.objects.create(run=run, participant=participant,
+        batch_id=uuid4(), attempt_id=participant.integrity_attempt_id, device_id="bound-device",
+        body_sha256="a" * 64, first_seq=1, last_seq=1, first_received_at=timezone.now())
+    incident_event.metadata["receipt_batch_id"] = str(admission.batch_id)
+    incident_event.metadata["integrity"]["device_id"] = "bound-device"
+    incident_event.save()
+    scope = {"run_id": run.pk, "participant_id": participant.pk,
+        "device_id": "bound-device", "attempt_id": participant.integrity_attempt_id}
+    api_client.force_authenticate(participant.user)
+    response = api_client.post(manifest_url(incident_event), {"upload_scope": scope,
+        "evidence": {"manifests": [{"run_id": run.pk, "incident_id": incident_event.incident_id,
+            "chunks": [descriptor(seq=2, start=995_000, end=1_000_000)]}]}},
+        format="json", HTTP_X_DEVICE_ID="bound-device")
+    assert response.status_code == 200, response.data
+    chunk = ExamEvidenceChunk.objects.get()
+    object_store.head_object.return_value = {"ContentLength": chunk.byte_size,
+        "ChecksumSHA256": base64.b64encode(bytes.fromhex(chunk.sha256)).decode()}
+    return run, scope, chunk
+
+
+def trusted_evidence_scope(run, participant, event):
+    from apps.contests.models import IntegrityBatchAdmission
+    bind_active_device(participant, "desktop")
+    receipt = IntegrityBatchAdmission.objects.create(run=run, participant=participant,
+        batch_id=uuid4(), attempt_id=participant.integrity_attempt_id, device_id="bound-device",
+        body_sha256="b" * 64, first_seq=1, last_seq=1, first_received_at=timezone.now())
+    event.metadata["receipt_batch_id"] = str(receipt.batch_id)
+    event.metadata["integrity"]["device_id"] = "bound-device"
+    event.save()
+    return {"run_id": run.pk, "participant_id": participant.pk,
+        "device_id": "bound-device", "attempt_id": participant.integrity_attempt_id}
+
+
+def resident_operation(event, chunk, operation):
+    if operation == "manifest":
+        return {"manifests": [{"run_id": event.integrity_run_id, "incident_id": event.incident_id,
+            "chunks": [descriptor(seq=3, start=1_000_000, end=1_005_000)]}]}
+    if operation == "completion":
+        return {"completions": [{"chunk_id": chunk.pk}]}
+    if operation == "unavailable":
+        return {"unavailable": [{"chunk_id": chunk.pk, "reason": "local_gap"}]}
+    return {"unavailable": [{"run_id": event.integrity_run_id, "incident_id": event.incident_id,
+        "event_id": event.pk, "source": "webcam", "reason": "local_gap"}]}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_completion_revalidates_after_unlocked_storage_head(resident_evidence, participant,
+        incident_event, object_store):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from django.db import close_old_connections, connection
+    from apps.contests.models import IntegrityUploadGrant
+    from apps.contests.services.exam_submission import finalize_submission
+    run, scope, chunk = resident_evidence
+    finalize_submission(participant, submit_reason="manual")
+    entered, release = Event(), Event()
+    head_result = object_store.head_object.return_value
+    def head(**kwargs):
+        assert not connection.in_atomic_block
+        entered.set()
+        assert release.wait(5)
+        return head_result
+    object_store.head_object.side_effect = head
+    def request():
+        close_old_connections()
+        try:
+            client = APIClient()
+            client.force_authenticate(participant.user)
+            return client.post(manifest_url(incident_event), {"upload_scope": scope,
+                "evidence": resident_operation(incident_event, chunk, "completion")},
+                format="json", HTTP_X_DEVICE_ID=scope["device_id"])
+        finally:
+            close_old_connections()
+    with ThreadPoolExecutor(1) as pool:
+        future = pool.submit(request)
+        try:
+            assert entered.wait(3)
+            IntegrityUploadGrant.objects.filter(participant=participant).update(revoked_at=timezone.now())
+        finally:
+            release.set()
+        assert future.result(timeout=5).status_code == 403
+    chunk.refresh_from_db()
+    assert chunk.status == "requested"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("operation", ["manifest", "completion", "unavailable", "projection"])
+def test_resident_evidence_same_owner_allowed(resident_evidence, incident_event, api_client, operation):
+    run, scope, chunk = resident_evidence
+    assert chunk.metadata["integrity_upload_scope"] == {
+        "device_id": scope["device_id"], "attempt_id": str(scope["attempt_id"])}
+    response = api_client.post(manifest_url(incident_event), {"upload_scope": scope,
+        "evidence": resident_operation(incident_event, chunk, operation)},
+        format="json", HTTP_X_DEVICE_ID=scope["device_id"])
+    assert response.status_code == 200, response.data
+
+
+@pytest.mark.django_db
+def test_resident_unowned_historical_evidence_fails_closed(resident_evidence, incident_event, api_client):
+    run, scope, chunk = resident_evidence
+    incident_event.metadata.pop("receipt_batch_id")
+    incident_event.save()
+    response = api_client.post(manifest_url(incident_event), {"upload_scope": scope,
+        "evidence": resident_operation(incident_event, chunk, "unavailable")},
+        format="json", HTTP_X_DEVICE_ID=scope["device_id"])
+    assert response.status_code == 403
+    chunk.refresh_from_db()
+    assert chunk.status == "requested"
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("wrong_scope", ["device", "attempt"])
+@pytest.mark.parametrize("operation", ["manifest", "completion", "unavailable", "projection"])
+def test_resident_evidence_cannot_cross_device_or_attempt(resident_evidence, incident_event,
+        participant, api_client, object_store, wrong_scope, operation):
+    run, scope, chunk = resident_evidence
+    if wrong_scope == "device":
+        session = get_active_session(participant.contest_id, participant.user_id)
+        session["device_id"] = "device-b"
+        cache.set(active_session_key(participant.contest_id, participant.user_id), session, 300)
+        scope = {**scope, "device_id": "device-b"}
+    else:
+        participant.integrity_attempt_id = uuid4()
+        participant.save(update_fields=["integrity_attempt_id"])
+        scope = {**scope, "attempt_id": participant.integrity_attempt_id}
+    original_metadata = dict(incident_event.metadata)
+    response = api_client.post(manifest_url(incident_event), {"upload_scope": scope,
+        "evidence": resident_operation(incident_event, chunk, operation)},
+        format="json", HTTP_X_DEVICE_ID=scope["device_id"])
+    assert response.status_code == 403, response.data
+    chunk.refresh_from_db()
+    incident_event.refresh_from_db()
+    assert chunk.status == "requested"
+    assert ExamEvidenceChunk.objects.count() == 1
+    assert incident_event.metadata == original_metadata
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("invalidation", ["revoke", "shorten", "reset", "complete"])
+@pytest.mark.parametrize("operation", ["manifest", "completion", "unavailable", "projection"])
+def test_evidence_rechecks_scope_after_admission_barrier(resident_evidence, incident_event,
+        participant, api_client, object_store, monkeypatch, invalidation, operation):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    import httpx
+    from django.db import close_old_connections
+    from apps.contests.models import IntegrityUploadGrant
+    from apps.contests.services.exam_submission import finalize_submission
+    from apps.contests.services.exam_schedule import update_exam_schedule
+    from apps.contests.services.participant_state import admin_update_participant
+    run, scope, chunk = resident_evidence
+    finalize_submission(participant, submit_reason="manual")
+    admitted, release = Event(), Event()
+    original_post = httpx.post
+    def block_after_admission(url, **kwargs):
+        if url.endswith("/batches"):
+            admitted.set()
+            assert release.wait(5)
+        return original_post(url, **kwargs)
+    monkeypatch.setattr(httpx, "post", block_after_admission)
+    def request():
+        close_old_connections()
+        try:
+            client = APIClient()
+            client.force_authenticate(participant.user)
+            return client.post(manifest_url(incident_event), {"upload_scope": scope,
+                "observations": make_batch(run_id=run.pk, participant_id=participant.pk,
+                    device_id=scope["device_id"], first_seq=2, last_seq=2),
+                "evidence": resident_operation(incident_event, chunk, operation)},
+                format="json", HTTP_X_DEVICE_ID=scope["device_id"])
+        finally:
+            close_old_connections()
+    with ThreadPoolExecutor(1) as pool:
+        future = pool.submit(request)
+        try:
+            assert admitted.wait(3)
+            if invalidation == "shorten":
+                update_exam_schedule(participant.contest_id, start_time=participant.contest.start_time,
+                    end_time=timezone.now() - timedelta(seconds=301), actor=participant.contest.owner)
+            elif invalidation == "reset":
+                admin_update_participant(participant, exam_status="not_started",
+                    activity_user=participant.contest.owner, activity_details="reset")
+            else:
+                IntegrityUploadGrant.objects.filter(participant=participant).update(**{
+                    "revoked_at" if invalidation == "revoke" else "completed_at": timezone.now()})
+        finally:
+            release.set()
+        response = future.result(timeout=5)
+    assert response.status_code == 403, response.data
+    chunk.refresh_from_db()
+    assert chunk.status == "requested"
+    assert ExamEvidenceChunk.objects.count() == 1
+
+
 @pytest.mark.django_db
 def test_manifest_uploads_only_chunks_overlapping_incident_window(
     api_client,
@@ -326,6 +530,7 @@ def test_manifest_serializes_behind_schedule_and_submission(incident_event, part
     run.execution_backend, run.session_state, run.compute_state = "resident", "active", "stopped"
     run.accept_until = participant.contest.end_time + timedelta(seconds=300)
     run.save()
+    scope = trusted_evidence_scope(run, participant, incident_event)
     entered = Event()
     descriptor_serializer = EvidenceChunkDescriptorSerializer(data=descriptor(seq=2, start=995_000, end=1_000_000))
     descriptor_serializer.is_valid(raise_exception=True)
@@ -333,7 +538,7 @@ def test_manifest_serializes_behind_schedule_and_submission(incident_event, part
         close_old_connections()
         try:
             entered.set()
-            return create_evidence_manifest(run, participant, incident_event, [descriptor_serializer.validated_data])
+            return create_evidence_manifest(run, participant, incident_event, [descriptor_serializer.validated_data], upload_scope=scope)
         finally:
             close_old_connections()
     with ThreadPoolExecutor(1) as pool:
@@ -361,9 +566,11 @@ def test_resident_unavailable_evidence_terminates_without_worker_compute(inciden
     from apps.contests.services.integrity_evidence import report_evidence_unavailable_projection, build_evidence_delivery
     run = incident_event.integrity_run
     run.execution_backend, run.session_state, run.compute_state = "resident", "draining", "stopped"
+    run.accept_until = participant.contest.end_time + timedelta(seconds=300)
     run.save()
+    scope = trusted_evidence_scope(run, participant, incident_event)
     for source in ("screen_share", "webcam"):
-        report_evidence_unavailable_projection(run, participant, incident_event, source=source, reason="local_gap")
+        report_evidence_unavailable_projection(run, participant, incident_event, source=source, reason="local_gap", upload_scope=scope)
     assert not build_evidence_delivery(run, participant, now_ms=2_000_000).pending_commands
 
 
@@ -385,17 +592,17 @@ def test_final_sequence_waits_for_own_evidence_termination(incident_event, parti
     run.execution_backend, run.session_state = "resident", "active"
     run.accept_until = participant.contest.end_time + timedelta(seconds=300)
     run.save()
+    scope = trusted_evidence_scope(run, participant, incident_event)
     bind_active_device(participant, "desktop")
     finalize_submission(participant, submit_reason="manual")
     grant = IntegrityUploadGrant.objects.get(participant=participant)
     grant.final_seq = 0
     grant.save()
-    scope = {"attempt_id": grant.attempt_id, "device_id": grant.device_id}
     progress = {"received_seq": 0, "processed_seq": 0, "commands_drained": True}
     assert save_upload_progress(run, participant, scope, progress) == "pending"
-    report_evidence_unavailable_projection(run, participant, incident_event, source="screen_share", reason="local_gap")
+    report_evidence_unavailable_projection(run, participant, incident_event, source="screen_share", reason="local_gap", upload_scope=scope)
     assert save_upload_progress(run, participant, scope, progress) == "pending"
-    report_evidence_unavailable_projection(run, participant, incident_event, source="webcam", reason="local_gap")
+    report_evidence_unavailable_projection(run, participant, incident_event, source="webcam", reason="local_gap", upload_scope=scope)
     ExamEvent.objects.create(contest=participant.contest, user=another_participant.user, integrity_run=run,
         incident_id=uuid4(), event_type="exit_fullscreen", client_occurred_at_ms=1_005_000,
         metadata={"integrity": {"definition_id": "fullscreen_integrity", "phase": "escalated"}})
