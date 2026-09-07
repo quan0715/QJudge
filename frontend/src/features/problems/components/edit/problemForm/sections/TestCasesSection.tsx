@@ -272,7 +272,7 @@ const TestCasesSection: React.FC = () => {
               placeholder="輸入測試資料..."
               value={editForm.input}
               onChange={(e) => setEditForm((prev) => ({ ...prev, input: e.target.value }))}
-              rows={6}
+              rows={8}
               helperText="可留空（此題不需要標準輸入）"
             />
             <TextArea
@@ -281,9 +281,10 @@ const TestCasesSection: React.FC = () => {
               placeholder="輸入預期輸出..."
               value={editForm.output}
               onChange={(e) => setEditForm((prev) => ({ ...prev, output: e.target.value }))}
-              rows={6}
+              rows={8}
               invalid={!editForm.output.trim()}
               invalidText="Output 為必填欄位"
+              helperText="逐行比對，行尾空白會被忽略"
             />
           </div>
 
@@ -291,7 +292,7 @@ const TestCasesSection: React.FC = () => {
             <NumberInput
               id="tc-score"
               label="佔比 (%)"
-              helperText="此測試案例佔題目總分的百分比"
+              helperText="佔題目總分的百分比"
               value={editForm.score}
               min={0}
               step={10}
@@ -302,34 +303,39 @@ const TestCasesSection: React.FC = () => {
                 }));
               }}
             />
-            <Toggle
-              id="tc-sample"
-              labelText="範例測資"
-              labelA="否"
-              labelB="是"
-              toggled={editForm.isSample}
-              onToggle={(checked) => {
-                setEditForm((prev) => ({
-                  ...prev,
-                  isSample: checked,
-                  isHidden: checked ? false : prev.isHidden,
-                }));
-              }}
-            />
-            <Toggle
-              id="tc-hidden"
-              labelText="隱藏測資"
-              labelA="否"
-              labelB="是"
-              toggled={editForm.isHidden}
-              onToggle={(checked) => {
-                setEditForm((prev) => ({
-                  ...prev,
-                  isHidden: checked,
-                  isSample: checked ? false : prev.isSample,
-                }));
-              }}
-            />
+            <div className={styles.toggleGroup}>
+              <span className={styles.toggleGroupLabel}>測資類型</span>
+              <div className={styles.toggles}>
+                <Toggle
+                  id="tc-sample"
+                  labelText="範例測資"
+                  labelA="否"
+                  labelB="是"
+                  toggled={editForm.isSample}
+                  onToggle={(checked) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      isSample: checked,
+                      isHidden: checked ? false : prev.isHidden,
+                    }));
+                  }}
+                />
+                <Toggle
+                  id="tc-hidden"
+                  labelText="隱藏測資"
+                  labelA="否"
+                  labelB="是"
+                  toggled={editForm.isHidden}
+                  onToggle={(checked) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      isHidden: checked,
+                      isSample: checked ? false : prev.isSample,
+                    }));
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </Layer>
       </Modal>
