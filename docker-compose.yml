@@ -501,6 +501,20 @@ services:
     networks:
       - oj_network
 
+  # Run credential ownership changes inside Docker so the deployment account
+  # does not need passwordless host sudo. The command only creates or validates
+  # the three files mounted from secrets/integrity.
+  integrity-bootstrap:
+    build: *backend_prod_build
+    image: oj-backend:prod
+    user: "0:0"
+    restart: "no"
+    command: ["python", "/bootstrap/bootstrap_integrity_secrets.py", "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"]
+    volumes:
+      - ./scripts/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
+      - ./secrets/integrity:/bootstrap-secrets
+    network_mode: none
+
   # Durable per-Run integrity storage. The resident owns every Run's journal in
   # one process, so exactly one writer holds this volume at a time.
   integrity-resident-data-init:
@@ -551,6 +565,8 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     depends_on:
+      integrity-bootstrap:
+        condition: service_completed_successfully
       integrity-resident-data-init:
         condition: service_completed_successfully
       backend:
