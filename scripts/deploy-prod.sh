@@ -220,12 +220,9 @@ echo "[deploy] bootstrap AI OAuth signing key"
 python3 scripts/bootstrap_ai_oauth_keys.py
 
 echo "[deploy] bootstrap Integrity credentials"
-# Resident runs as 10001; only its public key and service token are group-readable.
-if [ "$(id -u)" -eq 0 ]; then
-  python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001
-else
-  sudo -n python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001
-fi
+# Resident runs as 10001. Apply group ownership from an isolated root container
+# instead of requiring passwordless sudo for the deployment account.
+docker compose "${COMPOSE_FILES[@]}" run --rm --no-deps --build integrity-bootstrap
 
 echo "[deploy] validate rendered Compose"
 docker compose "${COMPOSE_FILES[@]}" config --quiet

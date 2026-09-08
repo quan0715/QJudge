@@ -369,6 +369,20 @@ def test_default_production_compose_excludes_removed_integrations(tmp_path: Path
     assert "cloudflared" not in services
 
 
+def test_production_integrity_bootstrap_needs_no_host_sudo() -> None:
+    services = _compose("docker-compose.yml")["services"]
+    bootstrap = services["integrity-bootstrap"]
+    assert bootstrap["user"] == "0:0"
+    assert bootstrap["network_mode"] == "none"
+    assert bootstrap["restart"] == "no"
+    assert bootstrap["command"][-4:] == [
+        "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001",
+    ]
+    assert services["integrity-resident"]["depends_on"]["integrity-bootstrap"] == {
+        "condition": "service_completed_successfully",
+    }
+
+
 def test_tunnel_profile_adds_cloudflared(tmp_path: Path) -> None:
     cloudflared = _compose("docker-compose.yml")["services"]["cloudflared"]
     assert "tunnel" in cloudflared["profiles"]
@@ -553,7 +567,7 @@ def test_production_deploy_prepares_integrity_runtime_before_start(
 
     assert result.returncode == 0, result.stderr
     integrity_bootstrap = commands.index(
-        "python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001"
+        "run --rm --no-deps --build integrity-bootstrap"
     )
     compose_start = commands.index("up -d --remove-orphans")
     assert integrity_bootstrap < compose_start
