@@ -21,6 +21,7 @@ import {
   RequireAuth,
   RequireGuest,
   RequireAdmin,
+  RequireClassroomManager,
   RequireTeacherOrAdmin,
   RequirePendingOnboarding,
   RequireCompletedOnboarding,
@@ -145,6 +146,17 @@ function App() {
                             {/* Classroom Exam Precheck - Classroom-scoped */}
                             {classroomExamPrecheckRoute}
                             {classroomContestAttendanceScanRoute}
+
+                            {/* Classroom management follows classroom membership, not platform role. */}
+                            <Route element={<RequireClassroomManager />}>
+                              <Route element={<MainLayout />}>
+                                {classroomContestAdminRoute}
+                              </Route>
+                              {classroomContestAttendanceProjectionRoute}
+                              <Route element={<ExamPreviewLayout />}>
+                                {classroomExamPreviewRoute}
+                              </Route>
+                            </Route>
                           </Route>
 
                         </Route>
@@ -154,8 +166,6 @@ function App() {
                           <Route element={<RequireCompletedOnboarding />}>
                             <Route element={<MainLayout />}>
                               {questionBankDetailRoute}
-                              {/* Classroom Contest Admin - Classroom-scoped, inside shared workspace shell */}
-                              {classroomContestAdminRoute}
                               <Route
                                 path="/chat"
                                 element={
@@ -165,13 +175,6 @@ function App() {
                                 }
                               />
                             </Route>
-
-                            {/* Classroom Exam Preview - Classroom-scoped */}
-                            {classroomContestAttendanceProjectionRoute}
-                            <Route element={<ExamPreviewLayout />}>
-                              {classroomExamPreviewRoute}
-                            </Route>
-
                           </Route>
                         </Route>
 

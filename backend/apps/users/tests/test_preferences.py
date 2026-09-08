@@ -215,7 +215,7 @@ class UserPreferencesViewTestCase(TestCase):
         profile = UserProfile.objects.get(user=self.user)
         self.assertIsNotNone(profile.onboarding_completed_at)
 
-    def test_patch_onboarding_completed_at_rejects_future_time(self):
+    def test_patch_onboarding_completed_at_uses_server_time_when_client_clock_is_ahead(self):
         self.client.force_authenticate(user=self.user)
         future_time = (timezone.now() + timedelta(minutes=5)).isoformat()
 
@@ -225,7 +225,14 @@ class UserPreferencesViewTestCase(TestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertIsNotNone(profile.onboarding_completed_at)
+        self.assertLess(
+            abs((profile.onboarding_completed_at - timezone.now()).total_seconds()),
+            5,
+        )
 
     # ── Incident 2026-04-07 regression tests ──────────────────────────
 
@@ -271,30 +278,6 @@ class UserPreferencesViewTestCase(TestCase):
         self.assertIsNotNone(profile.onboarding_completed_at)
         diff = abs((profile.onboarding_completed_at - timezone.now()).total_seconds())
         self.assertLess(diff, 5, "Server should set onboarding time to ~now()")
-
-    def test_onboarding_completed_at_future_within_buffer(self):
-        """A timestamp within 60s buffer should be accepted."""
-        self.client.force_authenticate(user=self.user)
-        near_future = (timezone.now() + timedelta(seconds=30)).isoformat()
-
-        response = self.client.patch(
-            self.url,
-            {"onboarding_completed_at": near_future},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_onboarding_completed_at_future_beyond_buffer(self):
-        """A timestamp >60s in the future should be rejected."""
-        self.client.force_authenticate(user=self.user)
-        far_future = (timezone.now() + timedelta(minutes=2)).isoformat()
-
-        response = self.client.patch(
-            self.url,
-            {"onboarding_completed_at": far_future},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_preferences_response_shape(self):
         """GET response must contain all expected fields with correct types."""
