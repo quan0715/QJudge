@@ -1,7 +1,6 @@
 """
 Serializers for user authentication and profile management.
 """
-from datetime import timedelta
 from urllib.parse import urlparse
 
 from rest_framework import serializers
@@ -314,12 +313,6 @@ class UserPreferencesUpdateSerializer(serializers.Serializer):
         if not parsed.netloc:
             raise serializers.ValidationError("頭像連結格式無效")
         return value
-
-    def validate_onboarding_completed_at(self, value):
-        if value and value > timezone.now() + timedelta(seconds=60):
-            raise serializers.ValidationError("完成時間不能晚於現在")
-        return value
-
 
 class UserLoginRecordSerializer(serializers.ModelSerializer):
     """Read-only serializer for login history entries."""
