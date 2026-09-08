@@ -152,7 +152,7 @@ docker compose logs --tail=200 celery celery-high integrity-resident integrity-r
 docker compose exec -T integrity-resident python -c "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"
 ```
 
-如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認是空目錄再移除，重新執行 `sudo python3 scripts/bootstrap_integrity_secrets.py --resident-gid 10001`。不要覆寫現有有效憑證。Resident 與 reconciler 常駐運作，老師不需手動啟動或重啟每場考試的 Worker。
+如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認是空目錄再移除，重新執行 `docker compose run --rm --no-deps --build integrity-bootstrap`。不要覆寫現有有效憑證。Resident 與 reconciler 常駐運作，老師不需手動啟動或重啟每場考試的 Worker。
 
 ## 8. Tunnel 與 OAuth
 
