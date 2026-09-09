@@ -566,7 +566,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
   }, [discardOpen, editing, handleCloseOrSave, lockedSaveImpact]);
 
   const handleInlineBlurAutoSave = useCallback(() => {
-    if (!editing || frozen || contentLocked) return;
+    if (!editing || frozen || contentLocked || saving) return;
     if (
       !isFormDirty(
         latestFormRef.current,
@@ -580,16 +580,23 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
       saveDebounceRef.current = null;
     }
     void persistAutoSave(false);
-  }, [contentLocked, editing, frozen, persistAutoSave, showScoreField]);
+  }, [contentLocked, editing, frozen, persistAutoSave, saving, showScoreField]);
 
   useEffect(() => {
-    if (!editing || frozen || contentLocked) return;
+    if (!editing || frozen || contentLocked || saving) return;
     if (!isFormDirty(form, originalFormRef.current, showScoreField)) return;
     if (getValidationError()) return;
     if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
     saveDebounceRef.current = setTimeout(() => {
+      saveDebounceRef.current = null;
       void persistAutoSave(false);
     }, 1000);
+    return () => {
+      if (saveDebounceRef.current) {
+        clearTimeout(saveDebounceRef.current);
+        saveDebounceRef.current = null;
+      }
+    };
   }, [
     contentLocked,
     editing,
@@ -597,6 +604,7 @@ const ExamQuestionEditCard: React.FC<ExamQuestionEditCardProps> = ({
     frozen,
     getValidationError,
     persistAutoSave,
+    saving,
     showScoreField,
   ]);
 

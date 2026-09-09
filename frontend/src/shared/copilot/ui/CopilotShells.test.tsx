@@ -62,4 +62,12 @@ describe("Copilot shells", () => {
     expect(conversation).toContain("min-width: 0");
     expect(conversation).toContain("overflow: hidden");
   });
+
+  it("inherits chat colors from the active Carbon theme", () => {
+    const rootVariables = cssRule(copilotStyles, ".copilot-root");
+
+    expect(rootVariables).toContain("var(--cds-background");
+    expect(rootVariables).toContain("var(--cds-layer-01");
+    expect(rootVariables).toContain("var(--cds-text-primary");
+  });
 });

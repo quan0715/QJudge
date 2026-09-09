@@ -1,14 +1,17 @@
 @use "@carbon/layout";
 .wrapper {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: layout.$spacing-03 layout.$spacing-05;
-  max-width: min(80%, 640px);
+  max-width: 640px;
 }
 
 .card {
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid var(--cds-border-subtle, #393939);
-  background: var(--cds-layer-01, #262626);
+  border: 1px solid var(--cds-border-subtle, #e0e0e0);
+  background: var(--cds-layer-01, #f4f4f4);
 }
 
 // ── Header ──────────────────────────────────────
@@ -17,8 +20,8 @@
   align-items: center;
   gap: layout.$spacing-03;
   padding: layout.$spacing-04 layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle, #393939);
-  background: var(--cds-layer-02, #2d2d2d);
+  border-bottom: 1px solid var(--cds-border-subtle, #e0e0e0);
+  background: var(--cds-layer-02, #ffffff);
 }
 
 .headerIcon {
@@ -31,7 +34,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--cds-text-secondary, #c6c6c6);
+  color: var(--cds-text-secondary, #525252);
 }
 
 // ── Question body ────────────────────────────────
@@ -42,7 +45,7 @@
 .questionText {
   font-size: 0.9375rem;
   line-height: 1.5;
-  color: var(--cds-text-primary, #f4f4f4);
+  color: var(--cds-text-primary, #161616);
   margin-bottom: 0.875rem;
 }
 
@@ -55,7 +58,12 @@
 }
 
 .optionBtn {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   min-height: 2.25rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .optionBtnSelected {
@@ -70,7 +78,7 @@
 // ── Footer ────────────────────────────────────────
 .footer {
   display: flex;
-  border-top: 1px solid var(--cds-border-subtle, #393939);
+  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
 }
 
 .footerBtn {
@@ -89,5 +97,5 @@
   display: flex;
   justify-content: center;
   padding: 0.875rem layout.$spacing-05;
-  border-top: 1px solid var(--cds-border-subtle, #393939);
+  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
 }

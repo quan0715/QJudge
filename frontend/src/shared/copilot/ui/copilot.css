@@ -1,8 +1,8 @@
-:root {
-  --copilot-color-background: #ffffff;
-  --copilot-color-surface: #f4f4f4;
-  --copilot-color-text: #161616;
-  --copilot-color-accent: #0f62fe;
+.copilot-root {
+  --copilot-color-background: var(--cds-background, #ffffff);
+  --copilot-color-surface: var(--cds-layer-01, #f4f4f4);
+  --copilot-color-text: var(--cds-text-primary, #161616);
+  --copilot-color-accent: var(--cds-link-primary, #0f62fe);
   --copilot-space-1: 0.25rem;
   --copilot-space-2: 0.5rem;
   --copilot-space-3: 1rem;
@@ -10,9 +10,6 @@
   --copilot-font-family: system-ui, sans-serif;
   --copilot-panel-width: 24rem;
   --copilot-composer-max-height: 12rem;
-}
-
-.copilot-root {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
