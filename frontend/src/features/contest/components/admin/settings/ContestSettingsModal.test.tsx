@@ -26,14 +26,6 @@ vi.mock("@/shared/ui/modal/SettingsModal", () => ({
   },
 }));
 
-vi.mock("@/features/contest/components/admin/IntegrityRunControlCard", () => ({
-  default: ({ contestId, contestName }: { contestId: string; contestName: string }) => (
-    <div data-testid="integrity-run-control" data-contest-id={contestId}>
-      {contestName}
-    </div>
-  ),
-}));
-
 const contest = { ...createMockContest(), id: "contest-1", name: "Integrity exam" };
 const t = stubT as ContestSettingsPanelProps["t"];
 const tc = stubT as ContestSettingsPanelProps["tc"];
@@ -72,14 +64,16 @@ const renderModal = (
   );
 
 describe("ContestSettingsModal", () => {
-  it("places Integrity Worker lifecycle controls in contest settings", () => {
+  it("keeps contest settings to what a teacher can configure", () => {
     renderModal();
 
-    expect(screen.getByRole("button", { name: "Integrity Worker" })).toBeVisible();
-    expect(screen.getByTestId("integrity-run-control")).toHaveAttribute(
-      "data-contest-id",
-      "contest-1",
-    );
+    // Integrity run state is operational, not configuration. It moved to the
+    // platform service panel once the resident session took over the lifecycle
+    // and left this tab with nothing a teacher could act on.
+    expect(
+      screen.queryByRole("button", { name: "Integrity Worker" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("integrity-run-control")).not.toBeInTheDocument();
   });
 
   it("forwards the requested initial section to the settings modal", () => {
