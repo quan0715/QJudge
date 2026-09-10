@@ -12,6 +12,7 @@
     },
     "mobileTitle": "競賽後台",
     "nav": {
+      "standings": "排行榜",
       "aiGrading": "AI 批改",
       "clarifications": "問答",
       "examAiGrading": "AI 批改",

@@ -27,7 +27,9 @@ describe("admin panel visibility in draft", () => {
       status: "published",
     } as any);
 
-    expect(codingPanels).toContain("grading");
+    expect(codingPanels).toContain("standings");
+    expect(codingPanels).not.toContain("grading");
+    expect(codingPanels).not.toContain("ai-grading");
     expect(codingPanels).toContain("proctoring");
     expect(codingPanels).not.toContain("participants");
     expect(codingPanels).not.toContain("logs");

@@ -12,6 +12,7 @@
     },
     "mobileTitle": "コンテスト管理",
     "nav": {
+      "standings": "ランキング",
       "aiGrading": "AI採点",
       "clarifications": "Q&A",
       "examAiGrading": "AI採点",

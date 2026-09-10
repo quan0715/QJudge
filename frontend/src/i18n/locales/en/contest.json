@@ -12,6 +12,7 @@
     },
     "mobileTitle": "Contest Admin",
     "nav": {
+      "standings": "Leaderboard",
       "aiGrading": "AI Grading",
       "clarifications": "Q&A",
       "examAiGrading": "AI Grading",

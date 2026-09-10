@@ -12,6 +12,7 @@
     },
     "mobileTitle": "대회 관리",
     "nav": {
+      "standings": "순위표",
       "aiGrading": "AI 채점",
       "clarifications": "Q&A",
       "examAiGrading": "AI 채점",

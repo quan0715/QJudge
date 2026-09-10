@@ -185,58 +185,6 @@
   background: var(--cds-icon-disabled);
 }
 
-.participantDrawerLayer {
-  position: fixed;
-  z-index: 8000;
-  inset: 0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.participantDrawerBackdrop {
-  flex: 1 1 auto;
-  border: 0;
-  background: color-mix(in srgb, var(--cds-background) 42%, transparent);
-  cursor: default;
-}
-
-.participantDrawer {
-  display: flex;
-  width: min(44rem, 100vw);
-  min-width: 0;
-  height: 100%;
-  flex-direction: column;
-  overflow: hidden;
-  border-left: 1px solid var(--cds-border-subtle);
-  background: var(--cds-background);
-  box-shadow: 0 0 1rem rgb(0 0 0 / 18%);
-}
-
-.participantDrawerToolbar {
-  display: flex;
-  min-height: 3rem;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: layout.$spacing-05;
-  padding: 0 layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle);
-  background: var(--cds-background);
-}
-
-.participantDrawerToolbar h3 {
-  margin: 0;
-  color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
-  font-weight: 600;
-}
-
-.participantDrawerBody {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-}
-
 .studentQrScanner {
   display: grid;
   gap: layout.$spacing-05;
@@ -263,14 +211,4 @@
   margin: 0;
   color: var(--cds-text-secondary);
   font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-}
-
-@media (max-width: 672px) {
-  .participantDrawerBackdrop {
-    display: none;
-  }
-
-  .participantDrawer {
-    width: 100vw;
-  }
 }

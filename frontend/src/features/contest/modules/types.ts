@@ -9,6 +9,7 @@ export type AdminPanelId =
   | "proctoring"
   | "problem_editor"
   | "grading"
+  | "standings"
   | "ai-grading"
   | "statistics"
   | "settings";

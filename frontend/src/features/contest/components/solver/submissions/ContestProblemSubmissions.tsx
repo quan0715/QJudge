@@ -1,5 +1,5 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   SkeletonText,
@@ -17,6 +17,7 @@ interface ContestProblemSubmissionsProps {
   // Expects CodingProblem.id (NOT ContestQuestionBinding.id) — the /submissions
   // list filter targets Submission.problem FK, which points at CodingProblem.
   codingProblemId: string;
+  userId?: string;
 }
 
 /**
@@ -26,7 +27,9 @@ interface ContestProblemSubmissionsProps {
 const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   contestId,
   codingProblemId,
+  userId,
 }) => {
+  const { t } = useTranslation("contest");
   const skeletonWidths = [
     "3.75rem",
     "2.5rem",
@@ -36,30 +39,28 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   ];
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(20);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedSubmissionId, setSelectedSubmissionId] = React.useState<string | null>(null);
   const { user: currentUser } = useAuth();
 
   // Fetch submissions for this problem, filtered by current user
-  const { data, isLoading, isFetching, refetch } = useContestSubmissions({
+  const { data, isLoading, isFetching, isError, error, refetch } = useContestSubmissions({
     contestId,
     page,
     pageSize,
     problemFilter: codingProblemId,
-    userId: currentUser?.id,
+    userId: userId ?? currentUser?.id,
+    enabled: !!(userId ?? currentUser?.id),
   });
 
   const submissions = data?.results || [];
 
   // Modal state
-  const submissionIdFromUrl = searchParams.get("submission_id");
-  const isModalOpen = !!submissionIdFromUrl;
-
   const handleViewSubmission = (id: string) => {
-    setSearchParams({ submission_id: id });
+    setSelectedSubmissionId(id);
   };
 
   const handleCloseModal = () => {
-    setSearchParams({});
+    setSelectedSubmissionId(null);
   };
 
   // Map submissions to SubmissionRow format for SubmissionTable
@@ -88,7 +89,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
     return (
       <div className="contest-problem-submissions">
         <div className="contest-problem-submissions__header">
-          <h3 className="contest-problem-submissions__title">我的繳交記錄</h3>
+          <h3 className="contest-problem-submissions__title">{t("dashboard.submissionRecords", "提交紀錄")}</h3>
         </div>
         <div className="contest-problem-submissions__skeleton">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -108,7 +109,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   return (
     <div className="contest-problem-submissions">
       <div className="contest-problem-submissions__header">
-        <h3 className="contest-problem-submissions__title">我的繳交記錄</h3>
+        <h3 className="contest-problem-submissions__title">{t("dashboard.submissionRecords", "提交紀錄")}</h3>
         <Button
           kind="ghost"
           size="sm"
@@ -120,7 +121,9 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
         />
       </div>
 
-      {submissions.length === 0 ? (
+      {isError ? (
+        <InlineNotification kind="error" title={t("dashboard.submissionsLoadFailed", "無法載入提交紀錄")} subtitle={error.message} hideCloseButton />
+      ) : submissions.length === 0 ? (
         <InlineNotification
           kind="info"
           title="尚無繳交記錄"
@@ -145,8 +148,8 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
         onChange={({ page: nextPage, pageSize: nextSize }) => { setPage(nextPage); setPageSize(nextSize); }}
       />}
       <SubmissionDetailModal
-        submissionId={submissionIdFromUrl}
-        isOpen={isModalOpen}
+        submissionId={selectedSubmissionId}
+        isOpen={!!selectedSubmissionId}
         onClose={handleCloseModal}
       />
     </div>

@@ -40,6 +40,7 @@ import type {
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import { getContestState } from "@/core/entities/contest.entity";
+import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
 import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
 import {
@@ -194,7 +195,7 @@ export default function StudentContestDashboard({
     [t],
   );
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [infoTab, setInfoTab] = useState<"rules" | "records">("rules");
+  const [infoTab, setInfoTab] = useState<"rules" | "records" | "standings">("rules");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -221,6 +222,10 @@ export default function StudentContestDashboard({
 
   const phase = resolveStudentContestPhase(contest, nowMs);
   const participant = isParticipant(contest);
+  const showStandings = participant && contest.contestType === "coding" && (
+    contest.scoreboardVisibleDuringContest ||
+    (phase === "after" && contest.permissions?.canViewFullScoreboard)
+  );
   const contestState = getContestState({
     status: contest.status,
     startTime: contest.startTime,
@@ -754,7 +759,7 @@ export default function StudentContestDashboard({
       );
     }
 
-    return <CodingAnswerRecords contest={contest} />;
+    return <CodingAnswerRecords contestId={contest.id} problems={contest.problems} />;
   };
 
   const renderPaperRecords = () => {
@@ -996,8 +1001,8 @@ export default function StudentContestDashboard({
 
           <DashboardBlock padding="flush">
             <DashboardTabs
-              activeId={infoTab}
-              onChange={(id) => setInfoTab(id as "rules" | "records")}
+              activeId={infoTab === "standings" && !showStandings ? "rules" : infoTab}
+              onChange={(id) => setInfoTab(id as typeof infoTab)}
             >
               <DashboardTabBar
                 ariaLabel={t("studentDashboard.tabs.ariaLabel", "競賽資訊切換")}
@@ -1010,6 +1015,7 @@ export default function StudentContestDashboard({
                     id: "records",
                     label: t("studentDashboard.tabs.records", "作答紀錄"),
                   },
+                  ...(showStandings ? [{ id: "standings", label: t("standings.title", "排行榜") }] : []),
                 ]}
               />
               <DashboardTabPanel tabId="rules">
@@ -1076,6 +1082,11 @@ export default function StudentContestDashboard({
                     : renderCodingRecords()}
                 </div>
               </DashboardTabPanel>
+              {showStandings && infoTab === "standings" ? (
+                <DashboardTabPanel tabId="standings">
+                  <ContestStandingsScreen />
+                </DashboardTabPanel>
+              ) : null}
             </DashboardTabs>
           </DashboardBlock>
         </DashboardContainer>
