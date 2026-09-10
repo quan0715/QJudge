@@ -1,9 +1,6 @@
 export type ExamDetectorId =
-  | "fullscreen"
   | "multi-display"
-  | "focus"
   | "keyboard-shortcut"
-  | "mouse-leave"
   | "clipboard"
   | "popup-guard";
 
@@ -29,6 +26,4 @@ export interface ExamDetector {
   start(onViolation: (e: ViolationEvent) => void): void;
   stop(): void;
   runCheck(): Promise<CheckResult>;
-  /** Dispatch a synthetic event to verify the listener is still attached. */
-  verifyIntegrity?(token: string): boolean;
 }

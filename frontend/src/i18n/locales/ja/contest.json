@@ -1238,6 +1238,7 @@
       "end_exam": "試験終了",
       "enter_contest": "コンテスト入室",
       "exam_entered": "試験画面に入室",
+      "precheck_passed": "事前環境チェック通過",
       "exam_submit_initiated": "提出開始",
       "exit_fullscreen": "全画面終了",
       "exit_fullscreen_triggered": "全画面終了（発生）",
@@ -1631,24 +1632,6 @@
     "title": "問題管理"
   },
   "problems": "問題数",
-  "integrityStatus": {
-    "unavailable": "監督状況を更新できません",
-    "unavailableDescription": "自動的に再試行します。解答や提出には影響しません。",
-    "purged": "データ削除済み",
-    "purgedDescription": "この試験の監督データは完全に削除されました。",
-    "archived": "保存済み",
-    "archivedDescription": "試験記録は保存済みです。証拠の完全性は各イベントの状態を確認してください。",
-    "interrupted": "監督が一時中断",
-    "interruptedDescription": "監督記録に遅延や欠落の可能性があります。解答や提出には影響しません。",
-    "draining": "試験記録を整理中",
-    "drainingDescription": "試験が終了し、受信したイベントと証拠を整理しています。",
-    "active": "監督中",
-    "activeDescription": "試験記録は自動収集されます。イベントと証拠を手動で確認してください。",
-    "closed": "監督終了",
-    "closedDescription": "この試験の監督記録の受付は終了しました。",
-    "waiting": "試験開始待ち",
-    "waitingDescription": "試験時間に合わせて自動で監督します。手動で開始する必要はありません。"
-  },
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
     "emptyDescription": "左側の一覧から別の参加者の監視画面へすばやく切り替えられます。",

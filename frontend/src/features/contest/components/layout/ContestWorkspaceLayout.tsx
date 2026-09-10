@@ -14,7 +14,7 @@ import {
   getClassroomContestSolvePath,
   shouldRouteToPrecheck,
 } from "@/features/contest/domain/contestRoutePolicy";
-import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
+import { hasExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 
 const PROTECTED_EXAM_STATUSES = new Set([
   "in_progress",

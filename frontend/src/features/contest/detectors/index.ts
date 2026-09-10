@@ -1,4 +1,3 @@
-export { FullscreenDetector } from "./fullscreenDetector";
 export { MultiDisplayDetector } from "./multiDisplayDetector";
 export { ClipboardDetector } from "./clipboardDetector";
 export { KeyboardShortcutDetector } from "./keyboardShortcutDetector";

@@ -534,21 +534,11 @@ def _pause_reason(event_type: str) -> str:
             "Listener tampered: anti-cheat integrity check failed; "
             "pre-check is required to continue"
         ),
-        "exit_fullscreen": (
-            "Fullscreen recovery timed out; pre-check is required to continue"
-        ),
         "screen_share_stopped": (
             "Screen share recovery timed out; pre-check is required to continue"
         ),
         "webcam_stopped": (
             "Webcam recovery timed out; pre-check is required to continue"
-        ),
-        "viewport_stopped": (
-            "Viewport integrity recovery timed out; "
-            "pre-check is required to continue"
-        ),
-        "split_view_detected": (
-            "Split view detected; pre-check is required to continue"
         ),
         "multiple_displays": (
             "Multiple displays detected; pre-check is required to continue"

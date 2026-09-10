@@ -1238,6 +1238,7 @@
       "end_exam": "結束考試",
       "enter_contest": "進入競賽",
       "exam_entered": "進入考試作答",
+      "precheck_passed": "通過考前環境檢測",
       "exam_submit_initiated": "發起交卷",
       "exit_fullscreen": "退出全螢幕",
       "exit_fullscreen_triggered": "退出全螢幕（觸發）",
@@ -1631,24 +1632,6 @@
     "title": "題目管理"
   },
   "problems": "題目數",
-  "integrityStatus": {
-    "unavailable": "暫時無法更新監考狀態",
-    "unavailableDescription": "系統會自動重試，不影響學生作答與交卷。",
-    "purged": "資料已清除",
-    "purgedDescription": "此場考試的監考資料已永久清除。",
-    "archived": "已封存",
-    "archivedDescription": "考試紀錄已封存；證據是否完整請以各事件的證據狀態為準。",
-    "interrupted": "監考暫時中斷",
-    "interruptedDescription": "監考紀錄可能延遲或缺漏，不影響學生作答與交卷。",
-    "draining": "整理考試紀錄中",
-    "drainingDescription": "考試已結束，系統正在整理已收到的事件與證據。",
-    "active": "監考中",
-    "activeDescription": "系統自動接收考試紀錄；請在事件與證據中進行人工判讀。",
-    "closed": "監考已結束",
-    "closedDescription": "此場考試已停止接收監考紀錄。",
-    "waiting": "等待考試開始",
-    "waitingDescription": "系統依考試時間自動管理監考，無需手動啟動。"
-  },
   "proctoringPanel": {
     "backToRoster": "返回列表",
     "emptyDescription": "左側清單可快速切換不同參賽者的監考畫面。",

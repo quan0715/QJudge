@@ -23,6 +23,7 @@ from ..services.anti_cheat_session import (
 )
 from ..services.integrity_presence import clear_checkpoint
 from ..services.integrity_sessions import prepare_integrity_session
+from ..services.precheck_record import record_precheck_passed
 from ..services.exam_submission import finalize_submission
 from ..services.exam_schedule import lock_exam_runs
 from ..services.attendance import (
@@ -81,7 +82,9 @@ class ExamLifecycleMixin:
 
         with transaction.atomic():
             contest = Contest.objects.select_for_update().get(pk=contest.pk)
-            prepare_integrity_session(contest.id, actor_id=contest.owner_id)
+            integrity_run = prepare_integrity_session(
+                contest.id, actor_id=contest.owner_id
+            )
             participant = ContestParticipant.objects.select_for_update().get(
                 pk=participant.pk,
             )
@@ -100,6 +103,19 @@ class ExamLifecycleMixin:
                         {'error': 'You have already finished this exam.'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+
+            # Past every rejection path, so a refused start leaves no record.
+            # The pre-check gate itself lives in the browser; this is the only
+            # durable trace that a start/resume went through pre-check at all.
+            if contest.cheat_detection_enabled:
+                record_precheck_passed(
+                    participant=participant,
+                    payload=request.data.get("precheck"),
+                    integrity_run=integrity_run,
+                    client_occurred_at_ms=request.data.get(
+                        "precheck_client_occurred_at_ms"
+                    ),
+                )
 
             # Handle resume from paused state
             if participant.exam_status == ExamStatus.PAUSED:

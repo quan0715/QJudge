@@ -21,7 +21,7 @@ def test_registry_has_every_active_signal_once():
     assert set(signal_ids) == ACTIVE_SIGNAL_IDS
     assert len(signal_ids) == len(set(signal_ids))
     assert snapshot["version"] == REGISTRY_VERSION
-    assert snapshot["version"] == "2026-07-26.3"
+    assert snapshot["version"] == "2026-09-10.1"
 
 
 def test_registry_definitions_are_data_not_core_switches():
@@ -69,6 +69,7 @@ def test_registry_grace_periods_match_recovery_costs():
         "clipboard": 0,
         "forbidden_action": 0,
         "listener_integrity": 0,
+        "precheck_passed": 0,
         "exam_entered": 0,
         "exam_submit_initiated": 0,
     }
@@ -88,3 +89,51 @@ def test_registry_definitions_are_transitively_immutable():
         definition.metadata_schema["type"] = "array"
 
     assert build_registry_snapshot() == snapshot_before_mutation
+
+
+def test_only_evidence_loss_events_send_the_student_back_to_precheck():
+    """Pre-check runs outside the monitored runtime, so returning to it is a
+    blackout. Reserve it for events that already cost us evidence capture."""
+    snapshot = build_registry_snapshot()
+
+    pausing = {
+        key
+        for key, definition in snapshot["definitions"].items()
+        if definition["action"] == "pause"
+    }
+
+    assert pausing == {
+        "screen_share",
+        "webcam",
+        "connectivity",
+        "multi_display",
+        "listener_integrity",
+    }
+    for recorded in ("fullscreen_integrity", "viewport", "mouse_leave"):
+        assert snapshot["definitions"][recorded]["action"] == "record_event"
+
+
+def test_incident_evidence_asks_the_source_its_device_actually_captures():
+    """viewport only runs on tablets, whose evidence source is the webcam.
+    Asking for screen share there would request a source the policy disables."""
+    definitions = build_registry_snapshot()["definitions"]
+
+    assert definitions["viewport"]["evidence"]["sources"] == ["webcam"]
+    assert definitions["webcam"]["evidence"]["sources"] == ["webcam"]
+    assert definitions["screen_share"]["evidence"]["sources"] == ["screen_share"]
+    assert definitions["multi_display"]["evidence"]["sources"] == ["screen_share"]
+
+
+def test_precheck_passed_is_a_server_written_lifecycle_record():
+    definition = build_registry_snapshot()["definitions"]["precheck_passed"]
+
+    assert definition["origin"] == "server"
+    assert definition["action"] == "record_event"
+    assert definition["incident_family"] == "exam_lifecycle"
+    # priority 3 keeps it out of violation_count, like exam_entered.
+    assert definition["priority"] == 3
+    assert definition["signals"] == {
+        "triggered": "precheck_passed",
+        "escalated": "",
+        "restored": "",
+    }

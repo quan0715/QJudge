@@ -6,11 +6,9 @@ export { default as ContestQAScreen } from "./ContestQAScreen";
 export { default as ContestStandingsScreen } from "./ContestStandingsScreen";
 export { default as ContestSubmissionListScreen } from "./ContestSubmissionListScreen";
 
-// Paper Exam Screens
-export {
-  ExamPrecheckScreen,
-  PaperExamAnsweringScreen,
-} from "./paperExam";
+// Exam Screens
+export { ExamPrecheckScreen } from "./precheck";
+export { PaperExamAnsweringScreen } from "./paperExam";
 
 // Settings Screens
 export { default as ContestLogsScreen } from "./settings/ContestLogsScreen";
