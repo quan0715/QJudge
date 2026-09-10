@@ -1,9 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { usePaperExamFlow } from "./usePaperExamFlow";
+import { useExamSessionFlow } from "./useExamSessionFlow";
 
 const mocks = vi.hoisted(() => ({
   endExam: vi.fn(),
+  startExam: vi.fn(),
   emit: vi.fn(),
   refreshContest: vi.fn(),
   beginAnticheatTermination: vi.fn(),
@@ -31,7 +32,7 @@ vi.mock("@/features/contest/contexts/ContestContext", () => ({
 vi.mock("@/infrastructure/api/repositories", () => ({
   endExam: mocks.endExam,
   registerContest: vi.fn(),
-  startExam: vi.fn(),
+  startExam: mocks.startExam,
   isSubmittedExamSessionResponse: () => true,
 }));
 
@@ -57,7 +58,7 @@ vi.mock("@/features/contest/domain/anticheatModulePolicy", () => ({
   }),
 }));
 
-describe("usePaperExamFlow", () => {
+describe("useExamSessionFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.emit.mockRejectedValue(new Error("IndexedDB unavailable"));
@@ -67,7 +68,7 @@ describe("usePaperExamFlow", () => {
 
   it("submits when the optional integrity lifecycle record cannot be appended", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => usePaperExamFlow());
+    const { result } = renderHook(() => useExamSessionFlow());
 
     await act(async () => {
       expect(await result.current.submitExam()).toBe(true);
@@ -81,5 +82,38 @@ describe("usePaperExamFlow", () => {
       expect.objectContaining({ source_module: "screen_share" }),
     );
     expect(warn).toHaveBeenCalled();
+  });
+});
+
+
+describe("startSession pre-check payload", () => {
+  beforeEach(() => {
+    mocks.startExam.mockReset();
+    mocks.startExam.mockResolvedValue({ status: "started" });
+    mocks.refreshContest.mockResolvedValue(undefined);
+  });
+
+  it("forwards the pre-check observation to the exam start endpoint", async () => {
+    const { result } = renderHook(() => useExamSessionFlow());
+    const precheck = {
+      precheck: { fullscreen: true, screen_count: 1, display_surface: "monitor" },
+      precheck_client_occurred_at_ms: 1_785_000_000_000,
+    };
+
+    await act(async () => {
+      await result.current.startSession(precheck);
+    });
+
+    expect(mocks.startExam).toHaveBeenCalledWith("contest-1", precheck);
+  });
+
+  it("still starts the exam when no pre-check payload is supplied", async () => {
+    const { result } = renderHook(() => useExamSessionFlow());
+
+    await act(async () => {
+      await result.current.startSession();
+    });
+
+    expect(mocks.startExam).toHaveBeenCalledWith("contest-1", undefined);
   });
 });

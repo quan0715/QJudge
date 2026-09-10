@@ -22,12 +22,12 @@ import {
   requestFullscreen,
 } from "@/infrastructure/browser/fullscreen";
 import ExamCountdownOverlay from "@/features/contest/components/exam/ExamCountdownOverlay";
-import { usePaperExamFlow } from "./usePaperExamFlow";
+import { useExamSessionFlow } from "@/features/contest/hooks/useExamSessionFlow";
 import {
   markExamPrecheckPassed,
   hasExamPrecheckPassed,
   syncExamPrecheckGateByStatus,
-} from "./hooks/useExamPrecheckGate";
+} from "@/features/contest/anticheat/examPrecheckGate";
 import {
   clearPrecheckScreenShareHandoff,
   setPrecheckScreenShareHandoff,
@@ -36,10 +36,8 @@ import {
   clearPrecheckWebcamHandoff,
   setPrecheckWebcamHandoff,
 } from "@/features/contest/anticheat/webcamHandoffStore";
-import {
-  getClassroomContestDashboardPath,
-  getClassroomContestSolvePath,
-} from "@/features/contest/domain/contestRoutePolicy";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
+import { getContestTypeModule } from "@/features/contest/modules/registry";
 import { setAnticheatPhase } from "@/features/contest/anticheat/orchestrator";
 import {
   applyPreflightFailureToEnvChecks,
@@ -72,7 +70,7 @@ const ExamPrecheckScreen: React.FC = () => {
   const navigate = useNavigate();
   const { classroomId } = useParams<{ classroomId?: string }>();
   const { contestId, contest, loading, error, clearError, startSession } =
-    usePaperExamFlow();
+    useExamSessionFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const { config: anticheatConfig, refresh: refreshAnticheatConfig } = useContestAnticheatConfig(contestId);
 
@@ -122,11 +120,16 @@ const ExamPrecheckScreen: React.FC = () => {
       : []),
   ];
 
+  // The answering entry differs per contest type (coding needs a problemId,
+  // paper exam does not). Ask the type module instead of hardcoding /solve.
   const getPostPrecheckRoute = useCallback(() => {
-    if (!contestId) return "";
-    return effectiveClassroomId
-      ? getClassroomContestSolvePath(effectiveClassroomId, contestId)
-      : "";
+    if (!contestId || !effectiveClassroomId) return "";
+    return getContestTypeModule(contest?.contestType).student.getAnsweringEntryPath(
+      contestId,
+      // Route param wins over the payload so a contest fetched without
+      // boundClassroomId still resolves inside the classroom we came from.
+      contest ? { ...contest, boundClassroomId: effectiveClassroomId } : contest,
+    );
   }, [contest, contestId, effectiveClassroomId]);
 
   const handleBackToDashboard = useCallback(() => {
@@ -408,7 +411,7 @@ const ExamPrecheckScreen: React.FC = () => {
       setCurrentStep(1);
       return;
     }
-    const validationFailure = await runStartPreflightValidation(t, {
+    const { failure: validationFailure } = await runStartPreflightValidation(t, {
       requireScreenShare: monitoringPlan.precheck.requireScreenShare,
       requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
@@ -451,15 +454,16 @@ const ExamPrecheckScreen: React.FC = () => {
       return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
     }
     (async () => {
-      const validationFailure = await runStartPreflightValidation(t, {
-        requireScreenShare: monitoringPlan.precheck.requireScreenShare,
-        requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
-        requireWebcam: monitoringPlan.precheck.requireWebcam,
-        enableWebcam: monitoringPlan.precheck.enableWebcam,
-        requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
-        isPwaMode: capability.isPwaMode,
-        skipFullscreenCheck,
-      });
+      const { failure: validationFailure, observation } =
+        await runStartPreflightValidation(t, {
+          requireScreenShare: monitoringPlan.precheck.requireScreenShare,
+          requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
+          requireWebcam: monitoringPlan.precheck.requireWebcam,
+          enableWebcam: monitoringPlan.precheck.enableWebcam,
+          requirePwaOnTablet: monitoringPlan.precheck.requirePwaMode,
+          isPwaMode: capability.isPwaMode,
+          skipFullscreenCheck,
+        });
       if (validationFailure) {
         applyPreflightFailureToEnvChecks(
           validationFailure,
@@ -473,7 +477,18 @@ const ExamPrecheckScreen: React.FC = () => {
         setCountdown(null);
         return;
       }
-      const started = await startSession();
+      // Hand the observation to the server so a passed pre-check leaves an
+      // auditable record instead of only a sessionStorage flag.
+      const started = await startSession({
+        precheck: {
+          ...observation,
+          pwa_mode: capability.isPwaMode,
+          policy_version: anticheatConfig?.integrityRun?.registrySnapshot?.version,
+          checks: envChecks.map((item) => ({ id: item.id, status: item.status })),
+          device: entryDeviceMetadata,
+        },
+        precheck_client_occurred_at_ms: Date.now(),
+      });
       if (!started || !contestId) { setCountdown(null); return; }
       if (!skipFullscreenCheck && !isFullscreen()) {
         const enteredFullscreen = await requestFullscreen();
@@ -500,6 +515,9 @@ const ExamPrecheckScreen: React.FC = () => {
     skipFullscreenCheck,
     startSession,
     t,
+    anticheatConfig?.integrityRun?.registrySnapshot?.version,
+    entryDeviceMetadata,
+    envChecks,
   ]);
 
   const renderCheckList = (items: CheckItem[]) => (
