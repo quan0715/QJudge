@@ -14,7 +14,6 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.classrooms.models import Classroom, ClassroomMember
 from apps.classrooms.serializers import ClassroomDetailSerializer
-from apps.classrooms.services import on_member_joined
 
 from ..permissions import IsSuperAdmin
 from ..serializers import (
@@ -327,8 +326,6 @@ class ActionLinkRedeemView(SchemaAPIView):
             user=request.user,
             defaults={"role": "student"},
         )
-        if created:
-            on_member_joined(classroom, request.user)
 
         return Response(
             ClassroomDetailSerializer(classroom, context={"request": request}).data,

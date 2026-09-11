@@ -55,7 +55,7 @@ const buildContest = (
     endTime: "2026-04-01T03:00:00.000Z",
     status: "published",
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     contestType: "paper_exam",
     cheatDetectionEnabled: false,
     scoreboardVisibleDuringContest: false,

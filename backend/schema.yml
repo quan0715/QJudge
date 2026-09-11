@@ -3926,41 +3926,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/contests/{id}/enter/:
-    post:
-      operationId: v1_contests_enter_create
-      description: Enter a contest (check eligibility).
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/export_results/:
     get:
       operationId: v1_contests_export_results_retrieve
@@ -3981,41 +3946,6 @@ paths:
       - cookieJwtAuth: []
       - jwtAuth: []
       - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/leave/:
-    post:
-      operationId: v1_contests_leave_create
-      description: Leave a contest.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
       responses:
         '200':
           content:
@@ -4165,41 +4095,6 @@ paths:
     post:
       operationId: v1_contests_participants_reset_exam_record_create
       description: ViewSet for contests.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/register/:
-    post:
-      operationId: v1_contests_register_create
-      description: Register for a contest.
       parameters:
       - in: path
         name: id

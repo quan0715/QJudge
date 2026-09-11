@@ -7,11 +7,17 @@ export interface AnticheatAccessPolicyView {
   allowDesktopMultiDisplay: boolean;
 }
 
+export type TabletEvidenceAdvisory = "noEvidence" | "webcamOnly" | null;
+
 export interface AnticheatEvidencePolicyView {
-  enabled: boolean;
-  desktopScreenShare: boolean;
-  desktopWebcamAssist: boolean;
-  tabletWebcam: boolean;
+  /** Desktop screen share — tablets cannot share their screen. */
+  screenShare: boolean;
+  /** Webcam is required on at least one allowed device. */
+  webcam: boolean;
+  /** Set when both devices are allowed but only one of them requires a webcam. */
+  webcamOnlyOn: "desktop" | "tablet" | null;
+  /** Why an allowed tablet falls short of the configured evidence. */
+  tabletAdvisory: TabletEvidenceAdvisory;
 }
 
 export const getAccessPolicyView = (
@@ -28,15 +34,27 @@ export const getAccessPolicyView = (
 export const getEvidencePolicyView = (
   rawPolicy: unknown,
 ): AnticheatEvidencePolicyView => {
-  const policy = sanitizeAnticheatPolicy(rawPolicy);
+  const { desktop, tablet } = sanitizeAnticheatPolicy(rawPolicy);
+  const desktopWebcam = desktop.sources.webcam.enabled;
+  const tabletWebcam = tablet.sources.webcam.enabled;
+  const screenShare = desktop.sources.screenShare.enabled;
+  const noDeviceAllowed = !desktop.enabled && !tablet.enabled;
+  const webcam =
+    (desktopWebcam && (desktop.enabled || noDeviceAllowed)) ||
+    (tabletWebcam && (tablet.enabled || noDeviceAllowed));
+
+  let tabletAdvisory: TabletEvidenceAdvisory = null;
+  if (tablet.enabled && !tabletWebcam) tabletAdvisory = "noEvidence";
+  else if (tablet.enabled && screenShare) tabletAdvisory = "webcamOnly";
+
   return {
-    enabled:
-      policy.desktop.sources.screenShare.enabled ||
-      policy.desktop.sources.webcam.enabled ||
-      policy.tablet.sources.webcam.enabled,
-    desktopScreenShare: policy.desktop.sources.screenShare.enabled,
-    desktopWebcamAssist: policy.desktop.sources.webcam.enabled,
-    tabletWebcam: policy.tablet.sources.webcam.enabled,
+    screenShare,
+    webcam,
+    webcamOnlyOn:
+      desktop.enabled && tablet.enabled && desktopWebcam !== tabletWebcam
+        ? desktopWebcam ? "desktop" : "tablet"
+        : null,
+    tabletAdvisory,
   };
 };
 
@@ -63,30 +81,21 @@ export const updateDesktopMultiDisplayAllowance = (
   return sanitizeAnticheatPolicy(next);
 };
 
-export const updateEvidenceTracking = (
+/**
+ * Screen share only exists on desktop; the webcam toggle applies to every
+ * device so one switch means the same thing for desktop and tablet students.
+ */
+export const updateEvidenceSource = (
   rawPolicy: unknown,
+  source: "screenShare" | "webcam",
   enabled: boolean,
 ): ContestAnticheatDevicePolicy => {
   const next = clonePolicy(rawPolicy);
-
-  if (!enabled) {
-    next.desktop.sources.screenShare.enabled = false;
-    next.desktop.sources.webcam.enabled = false;
-    next.tablet.sources.screenShare.enabled = false;
-    next.tablet.sources.webcam.enabled = false;
-    return sanitizeAnticheatPolicy(next);
+  if (source === "screenShare") {
+    next.desktop.sources.screenShare.enabled = enabled;
+  } else {
+    next.desktop.sources.webcam.enabled = enabled;
+    next.tablet.sources.webcam.enabled = enabled;
   }
-
-  next.desktop.sources.screenShare.enabled = true;
-  next.tablet.sources.webcam.enabled = true;
-  return sanitizeAnticheatPolicy(next);
-};
-
-export const updateDesktopWebcamAssist = (
-  rawPolicy: unknown,
-  enabled: boolean,
-): ContestAnticheatDevicePolicy => {
-  const next = clonePolicy(rawPolicy);
-  next.desktop.sources.webcam.enabled = enabled;
   return sanitizeAnticheatPolicy(next);
 };

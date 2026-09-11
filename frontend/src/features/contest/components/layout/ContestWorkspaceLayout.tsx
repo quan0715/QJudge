@@ -78,7 +78,6 @@ const ContestWorkspaceLayout = () => {
   };
 
   const {
-    handleJoin,
     handleStartExam,
     handleEndExam,
     submissionProgress,
@@ -89,7 +88,6 @@ const ContestWorkspaceLayout = () => {
     refreshContest,
     navigate,
     messages: {
-      joinError: t("error.joinFailed"),
       startError: t("error.startExamFailed"),
       endError: t("error.endExamFailed"),
       exitError: t("error.exitFailed"),
@@ -101,7 +99,6 @@ const ContestWorkspaceLayout = () => {
     <Outlet
       context={{
         refreshContest,
-        onJoin: handleJoin,
         onStartExam: handleStartExam,
         onEndExam: handleEndExam,
         onGoToAnswering: handleGoToAnswering,

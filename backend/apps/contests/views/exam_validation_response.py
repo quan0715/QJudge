@@ -22,16 +22,21 @@ def _error_detail_to_message(detail) -> str:
     return str(detail)
 
 
+def exam_operation_error_response(exc: APIException) -> Response:
+    """Serialize an exam-operation exception into the exam endpoints' shape."""
+    message = _error_detail_to_message(getattr(exc, "detail", str(exc)))
+    return Response(
+        {"error": message},
+        status=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
+    )
+
+
 def validate_exam_operation_for_view(*args, **kwargs):
     """Return ``(participant, error_response)`` for view actions."""
     try:
         return validate_exam_operation(*args, **kwargs), None
     except APIException as exc:
-        message = _error_detail_to_message(getattr(exc, "detail", str(exc)))
-        return None, Response(
-            {"error": message},
-            status=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
-        )
+        return None, exam_operation_error_response(exc)
 
 
 def build_device_conflict_response_for_view(contest, participant, request) -> Response | None:

@@ -25,6 +25,7 @@ from ..services.realtime_sfu_registry import (
     remove_publisher,
 )
 from .exam_validation_response import validate_exam_operation_for_view
+from ..services.participation import NO_ATTEMPT_MESSAGE
 
 
 logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ class ExamSfuMixin:
             if error_response is not None:
                 return error_response
             if participant is None:
-                return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
             room_id = build_room_id(contest.id, participant.user_id)
 
         try:
@@ -151,7 +152,7 @@ class ExamSfuMixin:
             if error_response is not None:
                 return error_response
             if participant is None:
-                return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             response_payload = RealtimeSfuClient().add_tracks(str(session_id), payload)
@@ -240,7 +241,7 @@ class ExamSfuMixin:
         if error_response is not None:
             return error_response
         if participant is None:
-            return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
         source_module = str(request.data.get("source_module") or "").strip()
         publisher = refresh_publisher(
             contest.id,
@@ -260,7 +261,7 @@ class ExamSfuMixin:
         contest = get_object_or_404(Contest, id=contest_pk)
         participant = ContestParticipant.objects.filter(contest=contest, user=request.user).first()
         if not participant:
-            return Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
         session_id = request.data.get("session_id")
         source_module = str(request.data.get("source_module") or "").strip()
         remaining = remove_publisher(

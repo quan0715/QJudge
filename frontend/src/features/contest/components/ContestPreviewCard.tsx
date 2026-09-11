@@ -1,6 +1,6 @@
 import React from "react";
 import { ClickableTile, Stack, Tag } from "@carbon/react";
-import { Calendar, Time, CheckmarkFilled } from "@carbon/icons-react";
+import { Calendar, Time } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { formatDateTime, DATE_FORMATS } from "@/i18n/dateUtils";
 import type { Contest } from "@/core/entities/contest.entity";
@@ -65,24 +65,6 @@ export const ContestPreviewCard: React.FC<ContestPreviewCardProps> = ({
           </span>
         </div>
 
-        <div className="contest-preview-card__meta">
-          <span className="contest-preview-card__meta-item">
-            <Tag type={contest.isRegistered ? "green" : "gray"} size="sm">
-              {contest.isRegistered
-                ? t("hero.registered")
-                : t("hero.register")}
-            </Tag>
-          </span>
-          {contest.isRegistered && (
-            <span className="contest-preview-card__meta-item">
-              <CheckmarkFilled
-                size={16}
-                className="contest-preview-card__status-icon--success"
-                aria-label={t("hero.registered")}
-              />
-            </span>
-          )}
-        </div>
       </Stack>
     </ClickableTile>
   );

@@ -37,6 +37,7 @@ from ..services.integrity_evidence import (
     evidence_status_for_event,
 )
 from .exam_validation_response import validate_exam_operation_for_view
+from ..services.participation import NO_ATTEMPT_MESSAGE
 
 # Attendance event types that a TA may create on behalf of a student.
 _TEACHER_ASSISTED_ATTENDANCE_EVENT_TYPES = frozenset(ATTENDANCE_EVENT_TYPES.values())
@@ -234,7 +235,7 @@ class ExamEvidenceMixin:
         if error_response is not None:
             return None, error_response
         if participant is None:
-            return None, Response({"error": "Not registered"}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({"error": NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
         if participant.exam_status not in {ExamStatus.NOT_STARTED, ExamStatus.SUBMITTED}:
             return None, Response(
                 {"error": f"Evidence upload is not accepted in current state: {participant.exam_status}"},

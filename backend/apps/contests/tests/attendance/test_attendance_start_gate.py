@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamEvidenceFrame, ExamStatus
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 def make_user(username: str, *, role: str = "student") -> User:
@@ -38,6 +39,7 @@ def test_start_exam_requires_confirmed_attendance_check_in() -> None:
     api_client = APIClient()
     student = make_user("attendance_start_blocked")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=student)
 
@@ -57,6 +59,7 @@ def test_start_exam_allows_teacher_assisted_check_in() -> None:
     student = make_user("attendance_start_allowed")
     teacher = make_user("attendance_start_teacher", role="teacher")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -95,6 +98,7 @@ def test_attendance_evidence_confirm_allows_not_started_participant() -> None:
     api_client = APIClient()
     student = make_user("attendance_confirm_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     event = ExamEvent.objects.create(
         contest=contest,

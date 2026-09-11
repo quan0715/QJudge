@@ -1,35 +1,39 @@
 import { Toggle } from "@carbon/react";
-import { ActionRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import { Section } from "@/shared/layout/SettingsPanel";
+import { SectionSaveIndicator } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { ActionRow, Section } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 
 export default function DisplaySettingsPanel({
   t,
-  tc,
   form,
   getState,
   onRetry,
   onChange,
 }: ContestSettingsPanelProps) {
   return (
-    <Section title="顯示設定">
+    <Section
+      title={t("settings.contestOptions", "競賽設定")}
+      action={
+        <SectionSaveIndicator
+          fields={["scoreboardVisibleDuringContest"]}
+          getState={getState}
+          onRetry={onRetry}
+        />
+      }
+    >
       <ActionRow
         label={t("settings.showDuringContest")}
+        labelId="settings-scoreboard-label"
         description={t("settings.showDuringContestHelp")}
-        saveState={getState("scoreboardVisibleDuringContest")}
-        onRetry={() => onRetry("scoreboardVisibleDuringContest")}
       >
         <Toggle
           id="settings-scoreboard"
-          labelText=""
+          aria-labelledby="settings-scoreboard-label"
           hideLabel
-          labelA={tc("toggle.hide")}
-          labelB={tc("toggle.show")}
           toggled={(form.scoreboardVisibleDuringContest as boolean) ?? false}
           onToggle={(checked) => onChange("scoreboardVisibleDuringContest", checked)}
         />
       </ActionRow>
-
     </Section>
   );
 }

@@ -74,7 +74,7 @@ export function mapContestDto(dto: ContestDto): Contest {
     attendancePhotoPolicy: dto.attendance_photo_policy || "room",
 
     hasJoined: !!dto.has_joined,
-    isRegistered: !!dto.is_registered,
+    canParticipate: !!dto.can_participate,
     currentUserRole: dto.current_user_role,
     participantCount: dto.participant_count,
   };
