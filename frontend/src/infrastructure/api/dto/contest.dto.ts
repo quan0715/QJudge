@@ -97,7 +97,7 @@ export interface ContestDto {
   attendance_check_enabled?: boolean;
   attendance_photo_policy?: "room" | "room_and_selfie";
   has_joined?: boolean;
-  is_registered?: boolean;
+  can_participate?: boolean;
   current_user_role?: ContestScopeRole;
   participant_count?: number;
 }

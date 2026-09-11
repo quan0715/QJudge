@@ -5,14 +5,22 @@ import {
   Button,
 } from "@carbon/react";
 import type { ContestStatus } from "@/core/entities/contest.entity";
-import { ActionRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { SectionSaveIndicator } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
 import {
+  ActionRow,
   DESC_STYLE,
   Section,
   TITLE_STYLE,
   settingsPanelStyles as s,
 } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
+
+const SAVE_FIELDS = [
+  "status",
+  "attendanceCheckEnabled",
+  "attendancePhotoPolicy",
+  "allowMultipleJoins",
+] as const;
 
 const STATUS_LABELS: Record<ContestStatus, string> = {
   draft: "Draft",
@@ -73,16 +81,17 @@ export default function AccessSettingsPanel({
 }: AccessSettingsPanelProps) {
   return (
     <>
-      <Section title="狀態與權限">
+      <Section
+        title={t("settings.accessControl", "存取控制與權限")}
+        action={<SectionSaveIndicator fields={SAVE_FIELDS} getState={getState} onRetry={onRetry} />}
+      >
         <ActionRow
           label={t("settings.statusLabel")}
           description="Draft 狀態僅管理員可見；Published 後學生即可加入"
-          saveState={getState("status")}
-          onRetry={() => onRetry("status")}
         >
           <Select
             id="settings-status"
-            labelText=""
+            labelText={t("settings.statusLabel")}
             hideLabel
             value={(form.status as string) || "draft"}
             disabled={form.status === "archived" || !contest?.permissions?.canToggleStatus}
@@ -109,19 +118,16 @@ export default function AccessSettingsPanel({
 
         <ActionRow
           label={t("settings.attendanceCheck.label", "QR 簽到簽退")}
+          labelId="settings-attendance-check-label"
           description={t(
             "settings.attendanceCheck.description",
             "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。",
           )}
-          saveState={getState("attendanceCheckEnabled")}
-          onRetry={() => onRetry("attendanceCheckEnabled")}
         >
           <Toggle
             id="settings-attendance-check"
-            labelText=""
+            aria-labelledby="settings-attendance-check-label"
             hideLabel
-            labelA={tc("toggle.off")}
-            labelB={tc("toggle.on")}
             toggled={!!form.attendanceCheckEnabled}
             onToggle={(checked) => onChange("attendanceCheckEnabled", checked)}
           />
@@ -133,12 +139,10 @@ export default function AccessSettingsPanel({
             "settings.attendancePhotoPolicy.description",
             "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
           )}
-          saveState={getState("attendancePhotoPolicy")}
-          onRetry={() => onRetry("attendancePhotoPolicy")}
         >
           <Select
             id="settings-attendance-photo-policy"
-            labelText=""
+            labelText={t("settings.attendancePhotoPolicy.label", "簽到佐證照片")}
             hideLabel
             value={(form.attendancePhotoPolicy as string) || "room"}
             disabled={!form.attendanceCheckEnabled}
@@ -161,16 +165,16 @@ export default function AccessSettingsPanel({
 
         <ActionRow
           label={t("settings.allowMultipleJoins")}
-          description="允許同一學生多次加入考試（例如斷線重連）"
-          saveState={getState("allowMultipleJoins")}
-          onRetry={() => onRetry("allowMultipleJoins")}
+          labelId="settings-multi-join-label"
+          description={t(
+            "settings.allowMultipleJoinsDesc",
+            "允許學生在離開後重新進入考試，並接管原有的作答進度。",
+          )}
         >
           <Toggle
             id="settings-multi-join"
-            labelText=""
+            aria-labelledby="settings-multi-join-label"
             hideLabel
-            labelA={tc("toggle.forbid")}
-            labelB={tc("toggle.allow")}
             toggled={(form.allowMultipleJoins as boolean) ?? false}
             onToggle={(checked) => onChange("allowMultipleJoins", checked)}
           />

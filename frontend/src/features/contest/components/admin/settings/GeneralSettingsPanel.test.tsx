@@ -12,6 +12,7 @@ vi.mock("@carbon/react", () => ({
   SelectItem: ({ value, text }: { value: string; text: string }) => (
     <option value={value}>{text}</option>
   ),
+  Tag: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   TextInput: ({ id }: { id: string }) => <div id={id} />,
   TimePicker: ({ id, children }: { id: string; children: ReactNode }) => (
     <div>

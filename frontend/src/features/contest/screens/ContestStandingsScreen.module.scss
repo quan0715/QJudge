@@ -1,0 +1,18 @@
+@use "@carbon/layout";
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  min-width: 0;
+}
+
+.fill {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fillBoard {
+  flex: 1 1 auto;
+  min-height: 0;
+}

@@ -1,0 +1,28 @@
+@use "@carbon/layout";
+
+// The admin shell clips its viewport. The panel keeps the title fixed and
+// hands both scroll axes to the scoreboard, so wide boards keep their
+// horizontal scrollbar and header row in view.
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: layout.$spacing-07 layout.$spacing-07 layout.$spacing-05;
+
+  @media (max-width: 671px) {
+    padding: layout.$spacing-05 layout.$spacing-03 layout.$spacing-03;
+  }
+}
+
+.inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 0;
+  margin: 0 auto;
+}

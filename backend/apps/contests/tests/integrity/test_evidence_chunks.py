@@ -47,6 +47,7 @@ from apps.contests.services.integrity_evidence import (
 from apps.users.models import User
 from apps.contests.tests.integrity.test_batch_gateway import worker_server, make_batch
 from apps.contests.tests.integrity.test_upload_grants import resident_http
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 MAX_EVIDENCE_CHUNK_SEQ = 2_147_483_647
@@ -82,6 +83,7 @@ def participant(db):
         start_time=now - timedelta(hours=1),
         end_time=now + timedelta(hours=1),
     )
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -101,6 +103,7 @@ def another_participant(participant):
         password="password",
         role="student",
     )
+    enrol_candidates(participant.contest, user)
     other = ContestParticipant.objects.create(
         contest=participant.contest,
         user=user,

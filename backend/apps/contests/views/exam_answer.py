@@ -35,6 +35,7 @@ from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
 )
+from ..services.participation import NO_ATTEMPT_MESSAGE
 
 
 class ExamAnswerViewSet(viewsets.GenericViewSet):
@@ -269,7 +270,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             return error_response
         if participant is None:
             return Response(
-                {'error': 'Not registered for this contest.'},
+                {'error': NO_ATTEMPT_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -303,7 +304,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             )
         except ContestParticipant.DoesNotExist:
             return Response(
-                {'error': 'Not registered for this contest.'},
+                {'error': NO_ATTEMPT_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
