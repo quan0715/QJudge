@@ -1,8 +1,14 @@
+import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { CopilotError, CopilotQuestionRequest } from "@copilot";
 
 import { QuestionCard } from "./QuestionCard";
+
+const styles = readFileSync(
+  "src/features/chatbot/components/chat-ui/QuestionCard.module.scss",
+  "utf8",
+);
 
 describe("QuestionCard", () => {
   it("disables answer choices while a submission is pending", () => {
@@ -53,5 +59,11 @@ describe("QuestionCard", () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expect(onSubmit).toHaveBeenNthCalledWith(1, "staging");
     expect(onSubmit).toHaveBeenNthCalledWith(2, "staging");
+  });
+
+  it("contains long Ask User content inside narrow chat panels", () => {
+    expect(styles).toMatch(/\.wrapper\s*\{[^}]*width:\s*100%/s);
+    expect(styles).toMatch(/\.wrapper\s*\{[^}]*min-width:\s*0/s);
+    expect(styles).toMatch(/\.optionBtn\s*\{[^}]*overflow-wrap:\s*anywhere/s);
   });
 });

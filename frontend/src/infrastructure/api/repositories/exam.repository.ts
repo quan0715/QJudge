@@ -280,9 +280,19 @@ interface PaginatedActivitiesDto {
   results?: ContestActivityDto[];
 }
 
-export const startExam = async (contestId: string): Promise<ExamSessionResponse> => {
+export interface StartExamPrecheckPayload {
+  /** What the browser observed while running the environment test. The server
+   *  stores it as a client assertion; it is a record, not an attestation. */
+  precheck: Record<string, unknown>;
+  precheck_client_occurred_at_ms?: number;
+}
+
+export const startExam = async (
+  contestId: string,
+  payload?: StartExamPrecheckPayload,
+): Promise<ExamSessionResponse> => {
   return requestJson<ExamSessionResponse>(
-    httpClient.post(`/api/v1/contests/${contestId}/exam/start/`),
+    httpClient.post(`/api/v1/contests/${contestId}/exam/start/`, payload ?? {}),
     "Failed to start exam"
   );
 };

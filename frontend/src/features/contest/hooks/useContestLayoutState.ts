@@ -7,16 +7,15 @@ import {
   getContestState,
   isContestManagerScopeRole,
 } from "@/core/entities/contest.entity";
-import { syncExamPrecheckGateByStatus } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
 import {
   isExamMonitoringActive,
   shouldWarnOnExit as shouldWarnOnExitByPolicy,
 } from "@/features/contest/domain/contestRuntimePolicy";
 import {
   getClassroomContestDashboardPath,
-  getClassroomContestPrecheckPath,
   shouldRedirectToOverviewOnStrictSubmitted,
 } from "@/features/contest/domain/contestRoutePolicy";
+import { syncExamPrecheckGateByStatus } from "@/features/contest/anticheat/examPrecheckGate";
 import { isFullscreen as isFullscreenMode } from "@/infrastructure/browser/fullscreen";
 import { useExamRuntimeState, mergeExamRuntimeState } from "./useExamRuntimeState";
 
@@ -51,10 +50,6 @@ export function useContestLayoutState() {
   const dashboardPath =
     effectiveClassroomId && contestId
       ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
-      : "/dashboard";
-  const precheckPath =
-    effectiveClassroomId && contestId
-      ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
       : "/dashboard";
 
   const userScore = scoreboardData?.rows?.[0]?.totalScore ?? 0;
@@ -140,12 +135,15 @@ export function useContestLayoutState() {
     }
   }, [isSolvePage, contest?.id, fetchStandings]);
 
-
-  // Keep paper-exam precheck gate synced from contest dashboard lifecycle.
+  // Gate-lifecycle only — routing to precheck is owned by RuntimeRouteWrapper.
+  // ExamPrecheckScreen keeps its own call because that route sits outside this
+  // layout; both go through the same shared function.
   useEffect(() => {
     if (!contestId) return;
     syncExamPrecheckGateByStatus(contestId, contest?.examStatus);
   }, [contest?.examStatus, contestId]);
+
+
 
   // Beforeunload warning for exam mode
   useEffect(() => {
@@ -159,18 +157,6 @@ export function useContestLayoutState() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [shouldWarnOnExit]);
 
-  // Treat paused state as a strict gate only for answering-related routes.
-  // Keep dashboard root accessible so users can return from precheck without redirect loop.
-  useEffect(() => {
-    if (!contestId || !contest?.cheatDetectionEnabled) return;
-    if (contest.examStatus !== "paused") return;
-
-    const normalizedPath = location.pathname.replace(/\/+$/, "");
-    const isDashboardHome = normalizedPath === dashboardPath;
-    if (!isDashboardHome && location.pathname !== precheckPath) {
-      navigate(precheckPath, { replace: true });
-    }
-  }, [contest?.cheatDetectionEnabled, contest?.examStatus, dashboardPath, precheckPath, contestId, location.pathname, navigate]);
 
   // Strict mode anti-leak: submitted before contest end can only stay on dashboard overview.
   useEffect(() => {

@@ -15,11 +15,13 @@ const ContestAiGradingScreen = lazy(
   () => import("../screens/settings/ContestAiGradingScreen"),
 );
 const renderNothing: AdminPanelRenderer = () => null;
+const AdminStandingsScreen = lazy(() => import("../screens/admin/panels/AdminStandingsScreen"));
 
 const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
   overview: AdminOverviewScreen,
   clarifications: AdminClarificationsScreen,
   proctoring: AdminProctoringPanel,
+  standings: AdminStandingsScreen,
   grading: ContestExamGradingScreen,
   "ai-grading": ContestAiGradingScreen,
   settings: renderNothing,

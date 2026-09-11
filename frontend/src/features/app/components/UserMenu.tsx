@@ -11,6 +11,7 @@ import {
   Book,
   Settings,
   UserMultiple,
+  BareMetalServer,
 } from "@carbon/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -240,6 +241,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({
               >
                 <UserMultiple size={16} />
                 {t("header.userManagement", "用戶管理")}
+              </button>
+              <button
+                type="button"
+                className="user-menu-link"
+                onClick={() => {
+                  navigate("/system/service-status");
+                  setIsExpandedInternal(false);
+                  onExpandedChange?.(false);
+                }}
+              >
+                <BareMetalServer size={16} />
+                {t("header.serviceStatus", "服務狀態")}
               </button>
             </>
           )}

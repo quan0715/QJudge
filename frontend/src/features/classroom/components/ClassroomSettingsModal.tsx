@@ -70,7 +70,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
   return (
     <>
       <SettingsModal
-        open={open}
+        open={open && !addMembersOpen && !confirmDeleteOpen}
         onRequestClose={onClose}
         modalHeading={t("sideMenu.settings", "教室設定")}
         navItems={navItems}

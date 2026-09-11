@@ -81,5 +81,36 @@
       "student": "學生",
       "teacher": "教師"
     }
+  },
+  "service": {
+    "title": "服務狀態",
+    "subtitle": "平台自身服務的即時探測結果。開啟或按下重新探測時才會探測，不會持續輪詢。",
+    "refresh": "重新探測",
+    "loadFailed": "無法讀取服務狀態",
+    "allUp": "全部服務正常",
+    "someDown": "{{count}} 項服務異常",
+    "generatedAt": "探測時間",
+    "component": "服務",
+    "status": "狀態",
+    "latency": "延遲",
+    "detail": "細節",
+    "integrityTitle": "監考 Run",
+    "liveRuns": "進行中",
+    "unhealthyRuns": "unhealthy",
+    "staleHeartbeats": "心跳逾時",
+    "neverReported": "從未回報",
+    "staleHint": "心跳超過 {{seconds}} 秒未更新視為逾時。",
+    "contest": "競賽",
+    "runState": "狀態",
+    "worker": "Worker",
+    "lastError": "最後錯誤",
+    "noHeartbeat": "無心跳",
+    "components": {
+      "database": "資料庫",
+      "cache": "快取 (Redis)",
+      "celery": "Celery Worker",
+      "ai_service": "AI Service",
+      "integrity_resident": "Integrity Resident"
+    }
   }
 }

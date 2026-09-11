@@ -48,6 +48,24 @@ export interface PreflightValidationFailure {
   clearWebcamHandoff?: boolean;
 }
 
+/**
+ * What the browser actually observed during the final pre-flight, so the
+ * caller can send it to the server as a record instead of re-querying the
+ * display and stream APIs a second time.
+ */
+export interface PrecheckObservation {
+  screen_count?: number;
+  is_extended?: boolean;
+  display_surface?: string;
+  fullscreen: boolean;
+  webcam_granted?: boolean;
+}
+
+export interface PreflightValidationResult {
+  failure: PreflightValidationFailure | null;
+  observation: PrecheckObservation;
+}
+
 export const PRECHECK_RECENT_INTERACTION_WINDOW_MS = 30000;
 
 const ENV_CHECK_ORDER: EnvCheckId[] = [
@@ -232,7 +250,7 @@ export const runStartPreflightValidation = async (
     isPwaMode: boolean;
     skipFullscreenCheck: boolean;
   }
-): Promise<PreflightValidationFailure | null> => {
+): Promise<PreflightValidationResult> => {
   const {
     requireScreenShare,
     requireSingleMonitor,
@@ -242,87 +260,103 @@ export const runStartPreflightValidation = async (
     isPwaMode,
     skipFullscreenCheck,
   } = options;
+  const observation: PrecheckObservation = { fullscreen: isFullscreen() };
+  const fail = (failure: PreflightValidationFailure): PreflightValidationResult => ({
+    failure,
+    observation,
+  });
+
   if (requireSingleMonitor) {
     const diagnostics = await displayService.check();
+    if (diagnostics.screenCount !== null) {
+      observation.screen_count = diagnostics.screenCount;
+    }
+    observation.is_extended = diagnostics.isExtended;
     if (!diagnostics.supportsScreenDetails) {
-      return {
+      return fail({
         checkId: "singleMonitor",
         detail: t("precheck.environment.errors.browserNotSupported"),
         clearShareHandoff: true,
-      };
+      });
     }
     if (diagnostics.screenCount === null) {
-      return {
+      return fail({
         checkId: "singleMonitor",
         detail: t("precheck.environment.errors.noScreenDetails"),
         clearShareHandoff: true,
-      };
+      });
     }
     if (diagnostics.isExtended || diagnostics.screenCount > 1) {
-      return {
+      return fail({
         checkId: "singleMonitor",
         detail: t("precheck.environment.errors.multiMonitor", { count: diagnostics.screenCount }),
         clearShareHandoff: true,
-      };
+      });
     }
   }
 
   if (requireScreenShare) {
     const handoffStream = peekPrecheckScreenShareHandoff();
     if (!handoffStream) {
-      return {
+      return fail({
         checkId: "shareScreen",
         detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
-      };
+      });
     }
     if (!isStreamLive(handoffStream)) {
-      return {
+      return fail({
         checkId: "shareScreen",
         detail: t("precheck.environment.errors.sharingInterrupted"),
         clearShareHandoff: true,
-      };
+      });
     }
     const screenTrack = handoffStream.getVideoTracks()[0];
     const settings = (screenTrack?.getSettings?.() || {}) as MediaTrackSettings & { displaySurface?: string };
+    if (typeof settings.displaySurface === "string") {
+      observation.display_surface = settings.displaySurface;
+    }
     if (settings.displaySurface !== "monitor") {
-      return {
+      return fail({
         checkId: "shareScreen",
         detail: t("precheck.environment.errors.notMonitor"),
         clearShareHandoff: true,
-      };
+      });
     }
   }
 
   if (requireWebcam || enableWebcam) {
     const handoffWebcam = peekPrecheckWebcamHandoff();
-    if (!isStreamHealthy(handoffWebcam)) {
-      return {
+    const webcamHealthy = isStreamHealthy(handoffWebcam);
+    observation.webcam_granted = webcamHealthy;
+    if (!webcamHealthy) {
+      return fail({
         checkId: "webcam",
         detail: t("precheck.environment.errors.webcamFailed", "Webcam 無法使用，請重新授權。"),
         clearWebcamHandoff: true,
-      };
+      });
     }
   }
 
   if (requirePwaOnTablet && !isPwaMode) {
-    return {
+    return fail({
       checkId: "fullscreen",
       detail: t(
         "precheck.environment.errors.tabletRequiresPwa",
         "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
       ),
-    };
+    });
   }
 
-  if (!skipFullscreenCheck && !isFullscreen()) {
-    return {
+  observation.fullscreen = isFullscreen();
+  if (!skipFullscreenCheck && !observation.fullscreen) {
+    return fail({
       checkId: "fullscreen",
       detail: t("precheck.environment.errors.fullscreenFailed"),
-    };
+    });
   }
 
-  return null;
+  return { failure: null, observation };
 };
 
 interface RunEnvChecksOptions {

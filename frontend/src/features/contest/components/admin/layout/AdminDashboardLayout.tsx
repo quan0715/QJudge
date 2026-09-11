@@ -36,6 +36,7 @@ const NAV_ITEMS: Record<
   { labelKey: string; examLabelKey?: string; icon: typeof Dashboard }
 > = {
   overview: { labelKey: "overview", icon: Dashboard },
+  standings: { labelKey: "standings", icon: ChartColumn },
   clarifications: { labelKey: "clarifications", icon: Chat },
   proctoring: { labelKey: "proctoring", icon: View },
   problem_editor: {

@@ -10,6 +10,7 @@ import {
   TableCell,
   TableContainer,
   SkeletonText,
+  Button,
 } from "@carbon/react";
 
 import { Link } from "react-router-dom";
@@ -52,6 +53,7 @@ interface ContestScoreboardProps {
   className?: string;
   contestId?: string;
   classroomId?: string;
+  onSelectParticipant?: (userId: string, problemId?: string) => void;
 }
 
 const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
@@ -61,6 +63,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   className,
   contestId,
   classroomId,
+  onSelectParticipant,
 }) => {
   const { t } = useTranslation("contest");
 
@@ -130,7 +133,6 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       const stats = cell.value as ProblemStats | null;
       if (!stats) return null;
 
-      const bgColor = getCellColor(stats);
       // Use Carbon text colors
       const textColor = "var(--cds-text-primary)";
 
@@ -153,7 +155,6 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
       return (
         <div
           style={{
-            backgroundColor: bgColor,
             height: "100%",
             width: "100%",
             display: "flex",
@@ -161,7 +162,6 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
-            padding: "0.5rem",
             minHeight: "60px",
             minWidth: "60px", // Ensure minimum width
           }}
@@ -216,41 +216,6 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
             </div>
           )}
         </div>
-      );
-    }
-
-    // Default rendering for other columns
-    if (cell.info.header === t("scoreboard.table.rank")) {
-      return (
-        <div style={{ fontWeight: "bold", textAlign: "left", width: "40px" }}>
-          {cell.value}
-        </div>
-      );
-    }
-    if (cell.info.header === t("scoreboard.table.solved")) {
-      return (
-        <div style={{ fontWeight: "bold", textAlign: "left", width: "60px" }}>
-          {cell.value}
-        </div>
-      );
-    }
-    if (cell.info.header === t("scoreboard.table.totalScore")) {
-      return (
-        <div style={{ fontWeight: "bold", textAlign: "left", width: "60px" }}>
-          {formatScore(cell.value)}
-        </div>
-      );
-    }
-    if (cell.info.header === t("scoreboard.table.penalty")) {
-      return (
-        <div style={{ fontWeight: "bold", textAlign: "left", width: "80px" }}>
-          {cell.value}
-        </div>
-      );
-    }
-    if (cell.info.header === t("scoreboard.table.user")) {
-      return (
-        <div style={{ fontWeight: 600, textAlign: "left" }}>{cell.value}</div>
       );
     }
 
@@ -334,9 +299,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                       >
                         <div
                           style={{
-                            textAlign: header.key.startsWith("problem_")
-                              ? "center"
-                              : "left",
+                            textAlign: header.key === "user" ? "left" : "center",
                             fontWeight: "bold",
                             fontSize: "14px",
                           }}
@@ -370,19 +333,43 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
               <TableBody>
                 {rows.map((row: any) => {
                   const { key, ...rowProps } = getRowProps({ row });
+                  const participant = standings.find((standing, index) =>
+                    `row_${standing.rank}_${standing.user?.id || index}` === row.id);
                   return (
                     <TableRow key={key} {...rowProps}>
                       {row.cells.map((cell: any) => (
                         <TableCell
                           key={cell.id}
                           style={{
+                            position: cell.info.header.startsWith("problem_") ? "relative" : undefined,
+                            backgroundColor: cell.info.header.startsWith("problem_") && cell.value
+                              ? getCellColor(cell.value as ProblemStats)
+                              : undefined,
                             padding: cell.info.header.startsWith("problem_")
                               ? 0
                               : "1rem",
-                            textAlign: "center",
+                            textAlign: cell.info.header === "user" ? "left" : "center",
                           }}
                         >
-                          {renderCell(cell, problems)}
+                          {onSelectParticipant && participant && (cell.info.header === "user" || cell.info.header.startsWith("problem_")) ? (
+                            <Button
+                              kind="ghost"
+                              aria-label={cell.info.header === "user" ? undefined : `${participant.displayName || participant.user.username} · ${problems.find((p) => `problem_${p.id}` === cell.info.header)?.label}`}
+                              onClick={() => {
+                                if (cell.info.header === "user") {
+                                  onSelectParticipant(String(participant.user.id));
+                                } else {
+                                  const problem = problems.find((p) => `problem_${p.id}` === cell.info.header);
+                                  onSelectParticipant(String(participant.user.id), problem?.problem_id || problem?.id);
+                                }
+                              }}
+                              style={cell.info.header.startsWith("problem_")
+                                ? { position: "absolute", inset: 0, height: "100%", width: "100%", maxWidth: "none", padding: 0 }
+                                : { height: "auto", width: "auto", maxWidth: "100%", padding: 0, alignItems: "center", textAlign: "left", overflowWrap: "anywhere" }}
+                            >
+                              {renderCell(cell, problems) || "—"}
+                            </Button>
+                          ) : renderCell(cell, problems)}
                         </TableCell>
                       ))}
                     </TableRow>

@@ -222,7 +222,8 @@
     "systemSettings": "System Settings",
     "teacherDashboard": "Teacher Dashboard",
     "userManagement": "User Management",
-    "userMenu": "User Menu"
+    "userMenu": "User Menu",
+    "serviceStatus": "Service Status"
   },
   "image": {
     "galleryTab": "Gallery",

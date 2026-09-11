@@ -3,6 +3,7 @@ Views for submissions app.
 """
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Submission
 from .serializers import (
@@ -14,12 +15,18 @@ from .access_policy import SubmissionAccessError, SubmissionAccessPolicy
 from .services import SubmissionService
 
 
+class SubmissionPagination(PageNumberPagination):
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class SubmissionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for viewing and creating submissions.
     """
     http_method_names = ["get", "post", "head", "options"]
     queryset = Submission.objects.all()
+    pagination_class = SubmissionPagination
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,

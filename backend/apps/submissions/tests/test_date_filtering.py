@@ -103,6 +103,18 @@ class DateRangeFilteringTestCase(TestCase):
                 three_months_ago,
                 f"Submission {submission['id']} is older than 3 months"
             )
+
+    def test_requested_page_size_produces_disjoint_history_pages(self):
+        params = {'source_type': 'practice', 'include_all': 'true', 'page_size': 5}
+        first = self.client.get('/api/v1/submissions/', params)
+        second = self.client.get('/api/v1/submissions/', {**params, 'page': 2})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(len(first.data['results']), 5)
+        self.assertEqual(len(second.data['results']), 5)
+        self.assertEqual(first.data['count'], 20)
+        self.assertTrue({r['id'] for r in first.data['results']}.isdisjoint(
+            {r['id'] for r in second.data['results']}))
     
     def test_include_all_returns_all_submissions(self):
         """Test that include_all=true returns all submissions."""

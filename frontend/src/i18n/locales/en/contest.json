@@ -12,6 +12,7 @@
     },
     "mobileTitle": "Contest Admin",
     "nav": {
+      "standings": "Leaderboard",
       "aiGrading": "AI Grading",
       "clarifications": "Q&A",
       "examAiGrading": "AI Grading",
@@ -1238,6 +1239,7 @@
       "end_exam": "End Exam",
       "enter_contest": "Enter Contest",
       "exam_entered": "Exam Entered",
+      "precheck_passed": "Pre-check Passed",
       "exam_submit_initiated": "Exam Submit Initiated",
       "exit_fullscreen": "Exit Fullscreen",
       "exit_fullscreen_triggered": "Exit Fullscreen (Triggered)",
@@ -1631,24 +1633,6 @@
     "title": "Problem Management"
   },
   "problems": "Problems",
-  "integrityStatus": {
-    "unavailable": "Monitoring status unavailable",
-    "unavailableDescription": "The system will retry automatically. Answering and submission are unaffected.",
-    "purged": "Data cleared",
-    "purgedDescription": "Monitoring data for this exam has been permanently deleted.",
-    "archived": "Archived",
-    "archivedDescription": "Exam records are archived. Check each event’s evidence status for completeness.",
-    "interrupted": "Monitoring interrupted",
-    "interruptedDescription": "Monitoring records may be delayed or missing. Answering and submission are unaffected.",
-    "draining": "Processing exam records",
-    "drainingDescription": "The exam has ended. Received events and evidence are being processed.",
-    "active": "Monitoring active",
-    "activeDescription": "Exam records are collected automatically. Review events and evidence manually.",
-    "closed": "Monitoring ended",
-    "closedDescription": "This exam is no longer accepting monitoring records.",
-    "waiting": "Waiting for the exam",
-    "waitingDescription": "Monitoring follows the exam schedule automatically. No manual start is needed."
-  },
   "proctoringPanel": {
     "backToRoster": "Back to list",
     "emptyDescription": "Use the list on the left to quickly switch between participant monitoring views.",

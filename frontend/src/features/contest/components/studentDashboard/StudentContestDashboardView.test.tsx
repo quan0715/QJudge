@@ -86,7 +86,7 @@ vi.mock("@carbon/react", () => ({
   ),
   SkeletonPlaceholder: () => <div data-testid="skeleton-placeholder" />,
   Tab: ({ children }: { children: ReactNode }) => (
-    <button type="button">{children}</button>
+    <button type="button" role="tab">{children}</button>
   ),
   TabList: ({
     children,
@@ -293,6 +293,14 @@ describe("StudentContestDashboard", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("offers standings only for coding participants when scoreboard visibility is enabled", () => {
+    const view = renderDashboard(createContest({ scoreboardVisibleDuringContest: true }));
+    expect(screen.getByRole("tab", { name: "排行榜" })).toBeInTheDocument();
+    view.unmount();
+    renderDashboard(createContest({ scoreboardVisibleDuringContest: false }));
+    expect(screen.queryByRole("tab", { name: "排行榜" })).not.toBeInTheDocument();
   });
 
   it("renders pre-exam join state inside the dashboard", () => {

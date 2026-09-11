@@ -4,6 +4,10 @@ import type { ExamStatusType } from "@/core/entities/contest.entity";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ExamOverlays } from "@/features/contest/components/exam/ExamOverlays";
 import { ExamModals } from "@/features/contest/components/exam/ExamModals";
+import {
+  examSensorTone,
+  resolveActiveExamSensorSource,
+} from "@/features/contest/domain/examSensorStatus";
 import { useExamState } from "@/features/contest/hooks/useExamState";
 import { useExamMonitoring } from "@/features/contest/hooks/useExamMonitoring";
 import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
@@ -13,7 +17,7 @@ import {
   syncAnticheatPhaseWithExamStatus,
   resetAnticheatOrchestrator,
 } from "@/features/contest/anticheat/orchestrator";
-import { hasExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks";
+import { hasExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 import { useAnticheatScreenCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatScreenCapture";
 import { useAnticheatWebcamCapture } from "@/features/contest/screens/paperExam/hooks/useAnticheatWebcamCapture";
 import { ExamCaptureProvider } from "@/features/contest/contexts/ExamCaptureContext";
@@ -46,8 +50,8 @@ import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShar
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
-import { IntegrityRuntimeProvider, useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
-import { useIntegrityCaptureRegistration, useIntegrityUploadOwner } from "../contexts/IntegrityUploadProvider";
+import { IntegrityRuntimeProvider } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
+import { useIntegrityCaptureRegistration, useRequiredIntegrityUploadOwner } from "../contexts/IntegrityUploadProvider";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
 
 interface ExamModeWrapperProps {
@@ -97,8 +101,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const [fullscreenAdapter] = useState(createFullscreenAdapter);
   const { showToast } = useToast();
   const [streamAdapter] = useState(createStreamAdapter);
-  const uploadOwner = useIntegrityUploadOwner();
-  const signalRelay = useIntegritySignalEmitter();
+  const uploadOwner = useRequiredIntegrityUploadOwner();
   const { t } = useTranslation("contest");
   const policyConfigRequired = requiresAnticheatPolicyConfig(cheatDetectionEnabled);
   const policyRequired =
@@ -175,7 +178,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     policyConfigRequired &&
     isIntegrityAttemptActive(examStatus) &&
     anticheatConfig?.version === 3 &&
-    !!uploadOwner?.resident &&
+    !!uploadOwner.resident &&
     !!anticheatConfig.integrityRun &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&
@@ -271,13 +274,13 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     },
   };
   useIntegrityCaptureRegistration(runtimeOptions);
-  const integrity = uploadOwner?.emitter ?? signalRelay;
+  const integrity = uploadOwner.emitter;
   const examCaptureContextValue = useMemo(
     () => ({
       ...capture,
-      deferMonitoringUploads: !!uploadOwner?.resident,
+      deferMonitoringUploads: uploadOwner.resident,
       flushPendingUploads: async () => {
-        await uploadOwner?.flush();
+        await uploadOwner.flush();
       },
     }),
     [capture, uploadOwner],
@@ -642,55 +645,42 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           "iPad 監考必須以主畫面啟動的 PWA 模式作答，請返回儀表板重新開啟。",
         )
       : examState.lockReason;
-  const monitoringReminder = useMemo<ExamMonitoringReminder | null>(() => {
-    if (shouldShowPolicyUnavailableScreen) {
-      return {
-        source: "policy_unavailable",
-        tone: "critical",
-      };
-    }
+  // One ladder for every consumer: the top-nav chip and the recovery modal both
+  // read this, so they can never disagree or open two dialogs at once.
+  const activeSensorSource = useMemo(
+    () =>
+      resolveActiveExamSensorSource({
+        policyUnavailable: shouldShowPolicyUnavailableScreen,
+        pwaRequired: pwaGuardFailed && isAnsweringPath(),
+        screenShareInterrupted: screenShare.reauth.inProgress,
+        webcamInterrupted: webcam.interrupted,
+        viewportInterrupted: viewport.interrupted,
+        fullscreenInterrupted: fullscreen.interrupted,
+        mouseLeaveInterrupted: mouseLeave.interrupted,
+        multiDisplayInterrupted: multiDisplay.interrupted,
+        isTablet: capability.isTablet,
+      }),
+    [
+      capability.isTablet,
+      isAnsweringPath,
+      fullscreen.interrupted,
+      mouseLeave.interrupted,
+      multiDisplay.interrupted,
+      pwaGuardFailed,
+      screenShare.reauth.inProgress,
+      shouldShowPolicyUnavailableScreen,
+      viewport.interrupted,
+      webcam.interrupted,
+    ],
+  );
 
-    if (pwaGuardFailed && isAnsweringPath()) {
-      return {
-        source: "pwa_required",
-        tone: "critical",
-      };
-    }
-
-    const activeSensorSource = screenShare.reauth.inProgress
-      ? "screen_share"
-      : webcam.interrupted
-        ? "webcam"
-        : viewport.interrupted
-          ? (capability.isTablet ? "split_view" : "viewport")
-          : fullscreen.interrupted
-            ? "fullscreen"
-            : mouseLeave.interrupted
-              ? "mouse_leave"
-              : multiDisplay.interrupted
-                ? "multiple_displays"
-                : null;
-    if (!activeSensorSource) {
-      return null;
-    }
-    return {
-      source: activeSensorSource,
-      tone: activeSensorSource === "screen_share" || activeSensorSource === "webcam"
-        ? "critical"
-        : "warning",
-    };
-  }, [
-    capability.isTablet,
-    isAnsweringPath,
-    fullscreen.interrupted,
-    mouseLeave.interrupted,
-    multiDisplay.interrupted,
-    pwaGuardFailed,
-    screenShare.reauth.inProgress,
-    shouldShowPolicyUnavailableScreen,
-    viewport.interrupted,
-    webcam.interrupted,
-  ]);
+  const monitoringReminder = useMemo<ExamMonitoringReminder | null>(
+    () =>
+      activeSensorSource
+        ? { source: activeSensorSource, tone: examSensorTone(activeSensorSource) }
+        : null,
+    [activeSensorSource],
+  );
 
   const handleBackToContest = async () => {
     await refreshAnticheatConfig();
@@ -714,18 +704,14 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
             onBackToContest={handleBackToContest}
           />
           <ExamModals
-            recoverySource={fullscreen.interrupted ? "fullscreen" : mouseLeave.interrupted ? "mouse_leave" : multiDisplay.interrupted ? "multiple_displays" : null}
+            recoverySource={activeSensorSource}
             onRecoverFullscreen={handleRecoverFullscreen}
             showUnlockNotification={showUnlockNotification}
             onUnlockContinue={handleUnlockContinue}
-            showScreenShareRecovery={screenShare.reauth.inProgress}
             isRequestingScreenShare={isRequestingScreenShare}
             onScreenShareReacquire={handleScreenShareReacquire}
-            showWebcamRecovery={webcam.interrupted}
             isRequestingWebcam={isRequestingWebcam}
             onWebcamReacquire={handleWebcamReacquire}
-            showViewportRecovery={viewport.interrupted}
-            isTablet={capability.isTablet}
           />
         </div>
           </ExamCaptureProvider>

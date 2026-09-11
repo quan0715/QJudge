@@ -7,6 +7,7 @@ import {
   endExam,
   isSubmittedExamSessionResponse,
 } from "@/infrastructure/api/repositories";
+import type { StartExamPrecheckPayload } from "@/infrastructure/api/repositories/exam.repository";
 import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,
@@ -29,7 +30,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-export const usePaperExamFlow = () => {
+export const useExamSessionFlow = () => {
   const { contestId } = useParams<{ contestId?: string }>();
   const { contest, refreshContest, loading: contextLoading } = useContest();
   const [loading, setLoading] = useState(false);
@@ -61,7 +62,7 @@ export const usePaperExamFlow = () => {
     }
   };
 
-  const startSession = async () => {
+  const startSession = async (precheck?: StartExamPrecheckPayload) => {
     const id = guardContestId();
     setLoading(true);
     setError(null);
@@ -72,7 +73,7 @@ export const usePaperExamFlow = () => {
       }
       // 考試模式只需 startExam，不需 enterContest
       // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
-      await startExam(id);
+      await startExam(id, precheck);
       await refreshContest();
       if (contest?.cheatDetectionEnabled) {
         syncAnticheatPhaseWithExamStatus(id, "in_progress");
@@ -151,4 +152,4 @@ export const usePaperExamFlow = () => {
   };
 };
 
-export default usePaperExamFlow;
+export default useExamSessionFlow;

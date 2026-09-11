@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useMemo, type ComponentType, type ReactNode } from "react";
 import { AreaChart, DonutChart } from "@carbon/charts-react";
 import { ScaleTypes } from "@carbon/charts";
 import "@carbon/charts-react/styles.css";
@@ -8,7 +8,6 @@ import {
   MenuButton,
   MenuItem,
   MenuItemDivider,
-  Pagination,
   SkeletonPlaceholder,
   SkeletonText,
   Tab,
@@ -48,7 +47,7 @@ import { formatScore } from "@/features/contest/utils/scoreFormat";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import ContestLogsScreen from "@/features/contest/screens/settings/ContestLogsScreen";
 import { questionTypeLabel } from "@/features/contest/screens/settings/grading/gradingTypes";
-import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
+import CodingAnswerRecords from "@/features/contest/components/studentDashboard/CodingAnswerRecords";
 import { OverviewDataCards } from "@/shared/ui/dataCard";
 import ContainerCard from "@/shared/layout/ContainerCard";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
@@ -57,6 +56,7 @@ import styles from "./ContestParticipantsDashboard.module.scss";
 
 interface ParticipantDashboardPaneProps {
   contestId?: string;
+  initialExpandedProblemId?: string;
   dashboard: ParticipantDashboard | null;
   loading: boolean;
   error: string;
@@ -127,6 +127,7 @@ type CodingReportPayload = Extract<
 
 const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
   contestId,
+  initialExpandedProblemId,
   dashboard,
   loading,
   error,
@@ -144,8 +145,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 }) => {
   const { t } = useTranslation("contest");
   const { theme } = useTheme();
-  const [submissionsPage, setSubmissionsPage] = useState(1);
-  const [submissionsPageSize, setSubmissionsPageSize] = useState(10);
 
   const availableDetails = useMemo(() => {
     const details =
@@ -176,17 +175,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           onClick: onReopenExam,
         }
       : null;
-
-  const submissionsEnabled =
-    dashboard?.contestType === "coding" && activeDetail === "submissions";
-
-  const codingSubmissions = useContestSubmissions({
-    contestId: contestId || "",
-    page: submissionsPage,
-    pageSize: submissionsPageSize,
-    userId: dashboard?.participant.userId,
-    enabled: submissionsEnabled,
-  });
 
   const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
   const donutData = useMemo(() => {
@@ -365,10 +353,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
           onChange={({ selectedIndex: nextIndex }) => {
             const safeIndex = typeof nextIndex === "number" ? nextIndex : 0;
             const nextDetail = availableDetails[safeIndex] ?? "overview";
-            if (nextDetail === "submissions") {
-              setSubmissionsPage(1);
-              setSubmissionsPageSize(10);
-            }
             onDetailChange(nextDetail);
           }}
         >
@@ -459,7 +443,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                             renderIcon={Download}
                             onClick={onDownloadReport}
                           />
-                          {dashboard.actions.canOpenGrading ? (
+                          {dashboard.contestType === "paper_exam" && dashboard.actions.canOpenGrading ? (
                             <MenuItem
                               label={t("dashboard.openGrading", "前往批改")}
                               renderIcon={Launch}
@@ -836,98 +820,23 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
                   />
                 ) : null}
 
-                {detail === "submissions" &&
-                dashboard.contestType === "coding" ? (
-                  <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>
-                      {t("dashboard.submissionRecords", "提交紀錄")}
-                    </h5>
-                    <div className={styles.submissionList}>
-                      {codingSubmissions.isLoading ? (
-                        <div className={styles.skeletonStack}>
-                          {[1, 2, 3].map((item) => (
-                            <div key={item} className={styles.submissionItem}>
-                              <SkeletonText heading width="40%" />
-                              <SkeletonText width="80%" />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (codingSubmissions.data?.results || []).length ===
-                        0 ? (
-                        <div className={styles.emptyState}>
-                          {t("dashboard.noSubmissionData", "尚無提交資料")}
-                        </div>
-                      ) : (
-                        (codingSubmissions.data?.results || []).map(
-                          (submission) => (
-                            <div
-                              key={submission.id}
-                              className={styles.submissionItem}
-                            >
-                              <div className={styles.submissionHeader}>
-                                <div>
-                                  <div className={styles.primaryText}>
-                                    {submission.problemTitle ||
-                                      submission.problemId}
-                                  </div>
-                                  <div className={styles.secondaryText}>
-                                    #{submission.id} • {submission.language}
-                                  </div>
-                                </div>
-                                <div className={styles.inlineMeta}>
-                                  <Tag
-                                    type={
-                                      submission.status === "AC"
-                                        ? "green"
-                                        : "cool-gray"
-                                    }
-                                  >
-                                    {submission.status}
-                                  </Tag>
-                                  {submission.score != null ? (
-	                                    <span>{formatScore(submission.score)}</span>
-                                  ) : null}
-                                </div>
-                              </div>
-                              <div className={styles.submissionBody}>
-                                <div className={styles.inlineMeta}>
-                                  <span>
-                                    {new Date(
-                                      submission.createdAt,
-                                    ).toLocaleString()}
-                                  </span>
-                                  {submission.execTime != null ? (
-                                    <span>{submission.execTime} ms</span>
-                                  ) : null}
-                                  {submission.memoryUsage != null ? (
-                                    <span>{submission.memoryUsage} KB</span>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </div>
-                          ),
-                        )
-                      )}
-                    </div>
-                    {(codingSubmissions.data?.count || 0) >
-                    submissionsPageSize ? (
-                      <div className={styles.paginationWrap}>
-                        <Pagination
-                          page={submissionsPage}
-                          pageSize={submissionsPageSize}
-                          pageSizes={[10, 20, 50]}
-                          totalItems={codingSubmissions.data?.count || 0}
-                          backwardText={t("common.prevPage", "上一頁")}
-                          forwardText={t("common.nextPage", "下一頁")}
-                          itemsPerPageText={t("common.itemsPerPage", "每頁")}
-                          onChange={({ page, pageSize }) => {
-                            setSubmissionsPage(page);
-                            setSubmissionsPageSize(pageSize);
-                          }}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
+                {detail === "submissions" && activeDetail === "submissions" && codingReport && contestId ? (
+                  <CodingAnswerRecords
+                    key={dashboard.participant.userId}
+                    contestId={contestId}
+                    userId={dashboard.participant.userId}
+                    initialExpandedProblemId={initialExpandedProblemId}
+                    problems={codingReport.problemGrid.map((problem) => ({
+                      id: problem.problemId,
+                      problemId: problem.problemId,
+                      label: problem.label,
+                      title: problem.title,
+                      userScore: problem.score,
+                      maxScore: problem.maxScore,
+                      userStatus: problem.status,
+                      submissionCount: problem.tries,
+                    }))}
+                  />
                 ) : null}
               </TabPanel>
             ))}

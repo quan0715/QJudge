@@ -81,5 +81,36 @@
       "student": "Student",
       "teacher": "Teacher"
     }
+  },
+  "service": {
+    "title": "Service Status",
+    "subtitle": "Live probe of the platform's own services. Probed on open and on refresh only — it does not poll.",
+    "refresh": "Probe again",
+    "loadFailed": "Could not load service status",
+    "allUp": "All services up",
+    "someDown": "{{count}} service(s) down",
+    "generatedAt": "Probed at",
+    "component": "Service",
+    "status": "Status",
+    "latency": "Latency",
+    "detail": "Detail",
+    "integrityTitle": "Integrity runs",
+    "liveRuns": "Live",
+    "unhealthyRuns": "Unhealthy",
+    "staleHeartbeats": "Stale heartbeat",
+    "neverReported": "Never reported",
+    "staleHint": "A heartbeat older than {{seconds}}s counts as stale.",
+    "contest": "Contest",
+    "runState": "State",
+    "worker": "Worker",
+    "lastError": "Last error",
+    "noHeartbeat": "No heartbeat",
+    "components": {
+      "database": "Database",
+      "cache": "Cache (Redis)",
+      "celery": "Celery workers",
+      "ai_service": "AI service",
+      "integrity_resident": "Integrity resident"
+    }
   }
 }

@@ -4,7 +4,11 @@ import type { ContestIntegrityRun, ExamRuntimeState } from "@/core/entities/cont
 import type { IntegritySignalEmitter } from "../anticheat/integrity/IntegrityRuntimeContext";
 import { asIntegritySignalDispatch, INTEGRITY_SIGNAL_EVENT } from "../anticheat/integrity/IntegrityRuntimeContext";
 import type { UseIntegrityRuntimeOptions } from "../anticheat/integrity/useIntegrityRuntime";
-import { ResidentIntegritySession, type IntegrityUploadMode } from "../anticheat/integrity/residentIntegritySession";
+import {
+  INTEGRITY_LOCAL_QUEUE_LIMIT,
+  ResidentIntegritySession,
+  type IntegrityUploadMode,
+} from "../anticheat/integrity/residentIntegritySession";
 import { getDeviceId } from "@/infrastructure/api/http.client";
 import { EXAM_SUBMITTED_EVENT } from "@/infrastructure/api/repositories/exam.repository";
 
@@ -17,6 +21,21 @@ interface UploadOwner {
 }
 const UploadContext = createContext<UploadOwner | null>(null);
 export const useIntegrityUploadOwner = () => useContext(UploadContext);
+
+/**
+ * For the monitored surface, which cannot fall back to anything: the only
+ * relay a missing provider could offer is the window event that provider
+ * itself listens for. Fail loudly instead of emitting into nowhere.
+ */
+export const useRequiredIntegrityUploadOwner = (): UploadOwner => {
+  const owner = useContext(UploadContext);
+  if (owner === null) {
+    throw new Error(
+      "useRequiredIntegrityUploadOwner must be used within an IntegrityUploadProvider",
+    );
+  }
+  return owner;
+};
 const active = (state: ExamRuntimeState | null) => ["in_progress", "paused", "locked"].includes(state?.exam_status ?? "");
 
 export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
@@ -66,8 +85,12 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       // Child entry effects run before this provider replaces the previous
       // session. Never dispatch a new attempt's signal to an old/off owner.
       if (owner.current && ownerScope.current === currentScope.current) return owner.current.emitter.emit(signal);
-      if (earlySignals.current.length < 128) earlySignals.current.push({ scope: currentScope.current, signal });
-      else { setGap(true); setLocalLoss(true); }
+      if (earlySignals.current.length < INTEGRITY_LOCAL_QUEUE_LIMIT) {
+        earlySignals.current.push({ scope: currentScope.current, signal });
+      } else {
+        setGap(true);
+        setLocalLoss(true);
+      }
       // Entry must remain usable while persistence is starting. These pending
       // records are not represented as durable until the owner appends them.
       return Promise.resolve();

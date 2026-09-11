@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   Column,
   DataTableSkeleton,
   Grid,
   InlineLoading,
+  InlineNotification,
 } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -16,24 +18,34 @@ import type {
 } from "@/features/contest/components/ContestScoreboard";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
+import { getContestStandings } from "@/infrastructure/api/repositories/contest.repository";
 
 interface ContestStandingsPageProps {
   maxWidth?: string;
+  onSelectParticipant?: (userId: string, problemId?: string) => void;
 }
 
 const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   maxWidth,
+  onSelectParticipant,
 }) => {
   const { t } = useTranslation("contest");
 
-  // Use standings from context - no local fetch needed
+  const { contest } = useContest();
   const {
-    contest,
-    scoreboardData,
-    standingsLoading,
-    isRefreshing,
-    refreshStandings,
-  } = useContest();
+    data: scoreboardData,
+    isLoading: standingsLoading,
+    isFetching: isRefreshing,
+    error,
+    refetch: refreshStandings,
+  } = useQuery({
+    queryKey: ["contestStandings", contest?.id, contest?.currentUserRole],
+    queryFn: () => getContestStandings(contest!.id),
+    enabled: !!contest?.id,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   // Transform ScoreboardData to ContestScoreboard format
   const problems: ProblemInfo[] = useMemo(() => {
@@ -45,7 +57,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
         title: p.title || p.label,
         order: p.order ?? index,
         label: p.label,
-        problem_id: problemId ?? undefined,
+        problem_id: p.problemId?.toString() || problemId || undefined,
         score: p.score || 0,
       };
     });
@@ -123,7 +135,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                 <Button
                   kind="ghost"
                   renderIcon={isRefreshing ? InlineLoading : Renew}
-                  onClick={refreshStandings}
+                  onClick={() => void refreshStandings()}
                   disabled={isRefreshing || loading}
                   hasIconOnly
                   iconDescription={
@@ -144,7 +156,9 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                 >
                   {t("standings.icpcRules")}
                 </p>
-                {loading ? (
+                {error ? (
+                  <InlineNotification kind="error" hideCloseButton title={t("standings.loadFailed", "無法載入排行榜")} subtitle={error.message} />
+                ) : loading ? (
                   renderSkeleton()
                 ) : (
                   <ContestScoreboard
@@ -153,6 +167,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
                     loading={false}
                     contestId={contest?.id}
                     classroomId={contest?.boundClassroomId || undefined}
+                    onSelectParticipant={onSelectParticipant}
                   />
                 )}
               </div>

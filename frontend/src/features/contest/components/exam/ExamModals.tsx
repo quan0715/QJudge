@@ -3,48 +3,61 @@ import { Modal } from "@carbon/react";
 import { CheckmarkFilled, ScreenOff, VideoOff, FitToScreen } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { ModalAlertContent } from "./ModalAlertContent";
+import {
+  isSensorRecoverableByModal,
+  type ExamSensorSource,
+} from "@/features/contest/domain/examSensorStatus";
 import styles from "./ModalAlertContent.module.scss";
 
 interface ExamModalsProps {
   showUnlockNotification: boolean;
   onUnlockContinue: () => void;
-  recoverySource?: string | null;
+  /**
+   * The one sensor the student must deal with, from
+   * `resolveActiveExamSensorSource`. At most one recovery modal opens for it.
+   */
+  recoverySource?: ExamSensorSource | null;
   onRecoverFullscreen?: () => void;
-  showScreenShareRecovery?: boolean;
   isRequestingScreenShare?: boolean;
   onScreenShareReacquire?: () => void;
-  showWebcamRecovery?: boolean;
   isRequestingWebcam?: boolean;
   onWebcamReacquire?: () => void;
-  showViewportRecovery?: boolean;
-  isTablet?: boolean;
 }
 
 export const ExamModals: React.FC<ExamModalsProps> = ({
   showUnlockNotification,
   onUnlockContinue,
-  recoverySource,
+  recoverySource = null,
   onRecoverFullscreen,
-  showScreenShareRecovery = false,
   isRequestingScreenShare = false,
   onScreenShareReacquire,
-  showWebcamRecovery = false,
   isRequestingWebcam = false,
   onWebcamReacquire,
-  showViewportRecovery = false,
-  isTablet = false,
 }) => {
   const { t } = useTranslation("contest");
   const withButtonTestId = (testId: string, label: React.ReactNode) => (
     <span data-testid={testId}>{label}</span>
   );
 
+  const activeSource = isSensorRecoverableByModal(recoverySource)
+    ? recoverySource
+    : null;
+  const isTablet = activeSource === "split_view";
+  const showScreenShareRecovery = activeSource === "screen_share";
+  const showWebcamRecovery = activeSource === "webcam";
+  const showViewportRecovery =
+    activeSource === "viewport" || activeSource === "split_view";
+  const showSensorWarning =
+    activeSource === "fullscreen" ||
+    activeSource === "mouse_leave" ||
+    activeSource === "multiple_displays";
+
   return (
     <>
       {/* Local sensor warning; the Worker is the only policy authority. */}
       <Modal
         data-testid="exam-recovery-modal"
-        open={recoverySource != null}
+        open={showSensorWarning}
         modalHeading={
           recoverySource === "multiple_displays"
             ? t("exam.multiDisplayRecoveryTitle", "偵測到多螢幕")

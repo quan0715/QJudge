@@ -257,7 +257,9 @@ def record_event_command(
     command_id="55555555-5555-5555-5555-555555555555",
     delayed_delivery=False,
     action="pause",
-    event_type="exit_fullscreen",
+    # Screen share loss is the canonical pausing event: it is the one that
+    # actually ends evidence capture. Fullscreen exit is only recorded.
+    event_type="screen_share_stopped",
 ):
     return {
         "command_id": command_id,
@@ -355,7 +357,7 @@ def test_record_event_command_is_idempotent_and_uses_strict_worker_envelope(
         "receipt_batch_id": str(RECEIPT_BATCH_ID),
         "integrity": {
             "action": "pause",
-            "definition_id": "fullscreen_integrity",
+            "definition_id": "screen_share",
             "device_id": "device-a",
             "evidence": {
                 "sources": ["screen_share"],
@@ -860,3 +862,57 @@ def test_command_helpers_never_import_worker_database_clients():
     assert "django.db" in source
     assert UUID(command_id := "55555555-5555-5555-5555-555555555555")
     assert str(UUID(command_id)) == command_id
+
+
+@pytest.mark.django_db
+def test_fullscreen_timeout_is_recorded_without_sending_the_student_to_precheck(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    """Returning to pre-check costs evidence capture; leaving fullscreen does
+    not. The violation is still counted, the student keeps answering."""
+    admit_receipt_batch(running_integrity_run, participant)
+    command = bind_run(
+        record_event_command(
+            participant,
+            command_id=str(uuid4()),
+            action="record",
+            event_type="exit_fullscreen",
+        ),
+        running_integrity_run,
+    )
+
+    response = internal_client.post_commands(running_integrity_run, [command])
+
+    assert response.status_code == 200
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.IN_PROGRESS
+    assert participant.violation_count == 1
+    event = ExamEvent.objects.get(integrity_command_id=command["command_id"])
+    assert event.metadata["integrity"]["definition_id"] == "fullscreen_integrity"
+    assert event.metadata["integrity"]["phase"] == "escalated"
+
+
+@pytest.mark.django_db
+def test_fullscreen_timeout_can_no_longer_request_a_pause(
+    internal_client,
+    running_integrity_run,
+    participant,
+):
+    admit_receipt_batch(running_integrity_run, participant)
+    command = bind_run(
+        record_event_command(
+            participant,
+            command_id=str(uuid4()),
+            action="pause",
+            event_type="exit_fullscreen",
+        ),
+        running_integrity_run,
+    )
+
+    response = internal_client.post_commands(running_integrity_run, [command])
+
+    assert response.status_code == 422
+    participant.refresh_from_db()
+    assert participant.exam_status == ExamStatus.IN_PROGRESS

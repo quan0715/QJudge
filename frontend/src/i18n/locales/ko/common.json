@@ -222,7 +222,8 @@
     "systemSettings": "시스템 설정",
     "teacherDashboard": "교사 대시보드",
     "userManagement": "사용자 관리",
-    "userMenu": "사용자 메뉴"
+    "userMenu": "사용자 메뉴",
+    "serviceStatus": "서비스 상태"
   },
   "image": {
     "galleryTab": "갤러리",

@@ -25,6 +25,14 @@ interface SessionOptions {
 
 /** A single durable attempt owner. Capture can disappear without releasing its
  * stores. A scope transition creates a different owner and cannot relabel data. */
+/**
+ * How many signals may sit in memory before a record is admitted as lost.
+ * Two buffers feed the same outbox -- IntegrityUploadProvider holds signals
+ * emitted before this session exists, and this session queues durable writes --
+ * so they share one limit rather than each inventing their own.
+ */
+export const INTEGRITY_LOCAL_QUEUE_LIMIT = 128;
+
 export class ResidentIntegritySession {
   private mode: IntegrityUploadMode;
   private closed = false;
@@ -54,7 +62,7 @@ export class ResidentIntegritySession {
     this.emitter = {
       emit: (signal) => {
         if (this.closed || this.mode !== "capture") return Promise.resolve();
-        if (this.queuedWrites >= 128) {
+        if (this.queuedWrites >= INTEGRITY_LOCAL_QUEUE_LIMIT) {
           this.localLoss(new Error("Integrity local write queue at capacity"));
           return Promise.resolve();
         }

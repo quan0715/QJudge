@@ -27,6 +27,12 @@ const parseDate = (dateStr: string | null | undefined): Date | null => {
   return isValidDate(date) ? date : null;
 };
 
+const getMeridiemFromIso = (value: unknown): "AM" | "PM" => {
+  if (typeof value !== "string") return "AM";
+  const date = parseDate(value);
+  return date && date.getHours() >= 12 ? "PM" : "AM";
+};
+
 const toTimeInput = (date: Date): string => {
   let hours = date.getHours() % 12;
   hours = hours || 12;
@@ -106,6 +112,8 @@ const ContestSettingsOverlay = ({
   const [endTimeInput, setEndTimeInput] = useState("");
   const [startDateInput, setStartDateInput] = useState<Date | null>(null);
   const [endDateInput, setEndDateInput] = useState<Date | null>(null);
+  const [startMeridiemInput, setStartMeridiemInput] = useState<"AM" | "PM">("AM");
+  const [endMeridiemInput, setEndMeridiemInput] = useState<"AM" | "PM">("AM");
   const initializedRef = useRef(false);
   const initializedContestIdRef = useRef<string | null>(null);
 
@@ -254,25 +262,17 @@ const ContestSettingsOverlay = ({
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
     });
-    if (contest.startTime) {
-      const startDate = parseDate(contest.startTime);
-      setStartTimeInput(startDate ? toTimeInput(startDate) : "");
-      setStartDateInput(startDate);
-    }
-    if (contest.endTime) {
-      const endDate = parseDate(contest.endTime);
-      setEndTimeInput(endDate ? toTimeInput(endDate) : "");
-      setEndDateInput(endDate);
-    }
+    const startDate = parseDate(contest.startTime);
+    setStartTimeInput(startDate ? toTimeInput(startDate) : "");
+    setStartDateInput(startDate);
+    setStartMeridiemInput(getMeridiemFromIso(contest.startTime));
+    const endDate = parseDate(contest.endTime);
+    setEndTimeInput(endDate ? toTimeInput(endDate) : "");
+    setEndDateInput(endDate);
+    setEndMeridiemInput(getMeridiemFromIso(contest.endTime));
   }, [contest]);
 
   if (!contest) return null;
-
-  const getMeridiemFromIso = (value: unknown): "AM" | "PM" => {
-    if (typeof value !== "string") return "AM";
-    const date = parseDate(value);
-    return date && date.getHours() >= 12 ? "PM" : "AM";
-  };
 
   return (
     <>
@@ -292,15 +292,15 @@ const ContestSettingsOverlay = ({
         endDateInput={endDateInput}
         startTimeInput={startTimeInput}
         endTimeInput={endTimeInput}
-        startMeridiem={getMeridiemFromIso(form.startTime)}
-        endMeridiem={getMeridiemFromIso(form.endTime)}
+        startMeridiem={startMeridiemInput}
+        endMeridiem={endMeridiemInput}
         onStartDateChange={(dates) =>
           handleDateChange(
             dates,
             "startTime",
             setStartDateInput,
             () => startTimeInput,
-            () => getMeridiemFromIso(form.startTime),
+            () => startMeridiemInput,
           )
         }
         onEndDateChange={(dates) =>
@@ -309,7 +309,7 @@ const ContestSettingsOverlay = ({
             "endTime",
             setEndDateInput,
             () => endTimeInput,
-            () => getMeridiemFromIso(form.endTime),
+            () => endMeridiemInput,
           )
         }
         onStartTimeChange={(event) =>
@@ -318,7 +318,7 @@ const ContestSettingsOverlay = ({
             "startTime",
             setStartTimeInput,
             () => startDateInput ?? parseDate(form.startTime as string),
-            () => getMeridiemFromIso(form.startTime),
+            () => startMeridiemInput,
           )
         }
         onEndTimeChange={(event) =>
@@ -327,25 +327,29 @@ const ContestSettingsOverlay = ({
             "endTime",
             setEndTimeInput,
             () => endDateInput ?? parseDate(form.endTime as string),
-            () => getMeridiemFromIso(form.endTime),
+            () => endMeridiemInput,
           )
         }
-        onStartMeridiemChange={(value) =>
+        onStartMeridiemChange={(value) => {
+          const meridiem = value === "PM" ? "PM" : "AM";
+          setStartMeridiemInput(meridiem);
           handleMeridiemChange(
-            value as string,
+            meridiem,
             "startTime",
             () => startDateInput,
             () => startTimeInput,
-          )
-        }
-        onEndMeridiemChange={(value) =>
+          );
+        }}
+        onEndMeridiemChange={(value) => {
+          const meridiem = value === "PM" ? "PM" : "AM";
+          setEndMeridiemInput(meridiem);
           handleMeridiemChange(
-            value as string,
+            meridiem,
             "endTime",
             () => endDateInput,
             () => endTimeInput,
-          )
-        }
+          );
+        }}
         onArchive={() => void handleArchive()}
         onDelete={() => void handleDelete()}
       />

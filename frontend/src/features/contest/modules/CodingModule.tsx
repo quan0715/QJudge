@@ -88,8 +88,7 @@ const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "clarifications",
   "proctoring",
   "problem_editor",
-  "grading",
-  "ai-grading",
+  "standings",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 
