@@ -1,6 +1,7 @@
 """ContestViewSet — main CRUD + admin operations."""
 import logging
 
+from django.contrib.auth import get_user_model
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.core.cache import cache
@@ -27,7 +28,6 @@ from ..serializers import (
 from ..permissions import (
     IsContestOwnerOrAdmin,
     IsContestLifecycleOwner,
-    can_manage_contest,
 )
 from ..services.export_service import (
     ExportValidationError,
@@ -50,8 +50,8 @@ from ..services.participant_dashboard import build_participant_dashboard
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from ..services.activity_log import log_contest_activity
+from ..services.participation import roster_user_ids
 from .attendance import AttendanceMixin
-from apps.classrooms.permissions import get_user_role_in_classroom
 
 logger = logging.getLogger(__name__)
 ANTICHEAT_CONFIG_CACHE_TTL_SECONDS = 30
@@ -122,52 +122,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         if not self._is_classroom_managed_contest(contest):
             return self._contest_requires_classroom_binding_response()
         return self._classroom_managed_response()
-
-    @classmethod
-    def _assert_user_in_bound_classroom(cls, contest: Contest, user):
-        classroom = cls._get_primary_bound_classroom(contest)
-        if classroom is None:
-            return Response(
-                {"message": "Contest has no primary classroom binding."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-        if get_user_role_in_classroom(user, classroom) is None:
-            return Response(
-                {"message": "Join the classroom before joining this contest"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        return None
-
-    @staticmethod
-    def _get_primary_bound_classroom(contest: Contest):
-        binding = (
-            contest.classroom_bindings.select_related("classroom")
-            .order_by("bound_at")
-            .first()
-        )
-        return binding.classroom if binding is not None else None
-
-    def _ensure_classroom_bound_participant(self, contest: Contest, user):
-        """
-        Classroom-bound contests must source student participation from classroom
-        membership. Managers and contest staff may still self-register.
-        """
-        classroom = self._get_primary_bound_classroom(contest)
-        if classroom is None:
-            return None, False, None
-
-        classroom_role = get_user_role_in_classroom(user, classroom)
-        if classroom_role is None:
-            return None, False, Response(
-                {"message": "Join the classroom before joining this contest"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        participant, created = ContestParticipant.objects.get_or_create(
-            contest=contest,
-            user=user,
-        )
-        return participant, created, None
 
     def _build_time_progress(self, contest: Contest, now):
         start_time = contest.start_time
@@ -417,10 +371,26 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
 
         contest = self.get_object()
 
-        # Query 1: All participants
-        participants = list(
-            ContestParticipant.objects.filter(contest=contest)
-            .select_related('user', 'user__profile')
+        # The roster is classroom membership, not whoever happens to have an
+        # attempt record: a student who has not checked in or started yet has
+        # no row. Present them as an unsaved not_started row so the teacher
+        # can see who has not shown up, without a second response shape.
+        roster_ids = roster_user_ids(contest)
+        existing = {
+            participant.user_id: participant
+            for participant in ContestParticipant.objects.filter(
+                contest=contest, user_id__in=roster_ids,
+            ).select_related('user', 'user__profile')
+        }
+        not_yet_started = [
+            ContestParticipant(contest=contest, user=user)
+            for user in get_user_model().objects.filter(
+                id__in=[uid for uid in roster_ids if uid not in existing],
+            ).select_related('profile')
+        ]
+        participants = sorted(
+            [*existing.values(), *not_yet_started],
+            key=lambda participant: participant.user_id,
         )
 
         if contest.contest_type == 'paper_exam':
@@ -619,138 +589,6 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         """
         contest = self.get_object()
         return self._classroom_roster_admin_gate(contest)
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def register(self, request, pk=None):
-        """
-        Register for a contest.
-        """
-        contest = self.get_object()
-        user = request.user
-
-        # Only allow registration for published contests
-        if contest.status != 'published':
-            return Response(
-                {'message': 'Contest is not published'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Block registration after contest ends
-        if contest.end_time and timezone.now() > contest.end_time:
-            return Response(
-                {'message': 'Contest has ended'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        if not self._is_classroom_managed_contest(contest):
-            return self._contest_requires_classroom_binding_response()
-
-        err = self._assert_user_in_bound_classroom(contest, user)
-        if err is not None:
-            return err
-
-        participant, created, error_response = self._ensure_classroom_bound_participant(
-            contest, user,
-        )
-        if error_response is not None:
-            return error_response
-        if not created:
-            raise DRFValidationError('Already registered')
-        log_contest_activity(
-            contest,
-            request.user,
-            'register',
-            "Registered for contest via classroom binding",
-        )
-        return Response(
-            {'message': 'Successfully registered'},
-            status=status.HTTP_201_CREATED,
-        )
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def enter(self, request, pk=None):
-        """
-        Enter a contest (check eligibility).
-        """
-        contest = self.get_object()
-        user = request.user
-
-        # Managers (platform_admin / owner / co_owner) can always enter
-        if can_manage_contest(user, contest):
-            return Response({'message': 'Entered successfully (Privileged)'})
-
-        if not self._is_classroom_managed_contest(contest):
-            return self._contest_requires_classroom_binding_response()
-
-        err = self._assert_user_in_bound_classroom(contest, user)
-        if err is not None:
-            return err
-
-        _, _, error_response = self._ensure_classroom_bound_participant(contest, user)
-        if error_response is not None:
-            return error_response
-
-        if contest.status == 'draft':
-            return Response(
-                {'message': 'Contest is not published'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        try:
-            participant = ContestParticipant.objects.get(contest=contest, user=user)
-        except ContestParticipant.DoesNotExist:
-            return Response(
-                {'message': 'Not registered'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Check if user left and multiple joins are not allowed
-        if participant.left_at and not contest.allow_multiple_joins:
-            return Response(
-                {'message': 'You have left the contest and re-entry is not allowed'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # If re-entering, clear left_at if allowed
-        if participant.left_at and contest.allow_multiple_joins:
-             participant.left_at = None
-             participant.save()
-
-        # Log activity
-        log_contest_activity(
-            contest,
-            request.user,
-            'enter_contest',
-            "Entered contest"
-        )
-
-        return Response({'message': 'Entered successfully'})
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def leave(self, request, pk=None):
-        """
-        Leave a contest.
-        """
-        contest = self.get_object()
-        user = request.user
-
-        try:
-            participant = ContestParticipant.objects.get(contest=contest, user=user)
-            if not participant.left_at:
-                participant.left_at = timezone.now()
-                participant.save()
-
-                # Log activity
-                log_contest_activity(
-                    contest,
-                    request.user,
-                    'other',
-                    "Left contest"
-                )
-        except ContestParticipant.DoesNotExist:
-            pass
-
-        return Response({'message': 'Left successfully'})
 
     # ========== Standings & Export ==========
 

@@ -137,7 +137,6 @@
         "features/classroom/components/CreateContestModal.tsx",
         "features/contest/components/ContestOverview.tsx",
         "features/contest/components/exam/PaperExamResultsList.tsx",
-        "features/contest/components/modals/ContestRegistrationModal.tsx",
         "features/contest/components/participants/ParticipantDashboardPane.tsx",
         "features/contest/components/participants/ParticipantOperationsPane.tsx",
         "features/contest/components/solver/submissions/ContestProblemSubmissions.tsx",

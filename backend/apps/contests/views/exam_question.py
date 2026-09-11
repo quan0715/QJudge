@@ -168,15 +168,16 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
         contest = self._get_contest()
         # Students can only list; admin check is enforced per-action for writes
         if not self._is_admin(contest):
-            # Students must be registered and have started exam to view questions.
+            # Students must have started the exam to view questions. A missing
+            # attempt record means the same thing: it is created on start.
             participant = contest.registrations.filter(user=self.request.user).first()
-            if not participant:
-                raise PermissionDenied('Not registered for this contest')
             if contest.status != 'published':
                 raise PermissionDenied('Contest is not published')
             if contest.start_time and timezone.now() < contest.start_time:
                 raise PermissionDenied('Contest has not started yet')
-            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
+            if participant is None or (
+                not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED
+            ):
                 raise PermissionDenied('You must start the exam before viewing questions')
 
         qs = ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')

@@ -7,6 +7,19 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from ..models import ContestParticipant, ExamStatus
 from ..permissions import can_manage_contest
+from .participation import NO_ATTEMPT_MESSAGE
+
+
+def assert_exam_window_open(contest):
+    """Layers 1 and 2: the contest is published and inside its time window."""
+    if contest.status != 'published':
+        raise PermissionDenied('Contest is not published.')
+
+    now = timezone.now()
+    if contest.start_time and now < contest.start_time:
+        raise ValidationError('Contest has not started yet. Please wait until the start time.')
+    if contest.end_time and now >= contest.end_time:
+        raise ValidationError('Contest has ended.')
 
 
 def validate_exam_operation(contest, user, require_in_progress=False, allow_admin_bypass=True):
@@ -32,22 +45,13 @@ def validate_exam_operation(contest, user, require_in_progress=False, allow_admi
             # Managers don't need to be registered
             return None
 
-    # Layer 1: Contest status
-    if contest.status != 'published':
-        raise PermissionDenied('Contest is not published.')
-
-    # Layer 2: Time range
-    now = timezone.now()
-    if contest.start_time and now < contest.start_time:
-        raise ValidationError('Contest has not started yet. Please wait until the start time.')
-    if contest.end_time and now >= contest.end_time:
-        raise ValidationError('Contest has ended.')
+    assert_exam_window_open(contest)
 
     # Layer 3: Participant status
     try:
         participant = ContestParticipant.objects.get(contest=contest, user=user)
     except ContestParticipant.DoesNotExist:
-        raise ValidationError('Not registered for this contest.')
+        raise ValidationError(NO_ATTEMPT_MESSAGE)
 
     if require_in_progress and participant.exam_status != ExamStatus.IN_PROGRESS:
         raise ValidationError('Exam is not in progress.')

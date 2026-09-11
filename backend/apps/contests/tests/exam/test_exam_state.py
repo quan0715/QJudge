@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 User = get_user_model()
 
@@ -26,7 +27,9 @@ class ExamStateTests(APITestCase):
             cheat_detection_enabled=True,
         )
         
-        # Register user
+        # The student is eligible through classroom membership; the attempt row
+        # is pre-created here only because several tests mutate its state.
+        enrol_candidates(self.contest, self.user)
         ContestParticipant.objects.create(contest=self.contest, user=self.user)
         self.client.force_authenticate(user=self.user)
         
@@ -52,16 +55,81 @@ class ExamStateTests(APITestCase):
         self.assertNotIn('question_edit_locked_at', detail.data)
         self.assertNotIn('question_edit_lock_trigger', detail.data)
 
-    def test_owner_participant_can_start_exam(self):
+    def test_staff_cannot_sit_their_own_exam_even_with_a_legacy_row(self):
+        # Registration used to let managers self-enrol to try their paper; the
+        # exam preview replaces that. A leftover row grants no eligibility.
         ContestParticipant.objects.create(contest=self.contest, user=self.admin)
         self.client.force_authenticate(user=self.admin)
 
         url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
         response = self.client.post(url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         p = ContestParticipant.objects.get(user=self.admin, contest=self.contest)
+        self.assertEqual(p.exam_status, ExamStatus.NOT_STARTED)
+
+    def test_start_creates_the_attempt_record_for_an_enrolled_student(self):
+        newcomer = User.objects.create_user(
+            username='newcomer', email='newcomer@example.com', password='password',
+        )
+        enrol_candidates(self.contest, newcomer)
+        self.client.force_authenticate(user=newcomer)
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        p = ContestParticipant.objects.get(user=newcomer, contest=self.contest)
         self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertIsNotNone(p.started_at)
+
+    def test_start_is_refused_to_a_user_outside_the_classroom(self):
+        outsider = User.objects.create_user(
+            username='outsider', email='outsider@example.com', password='password',
+        )
+        self.client.force_authenticate(user=outsider)
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
+            ContestParticipant.objects.filter(user=outsider, contest=self.contest).exists()
+        )
+
+    def test_a_student_removed_from_the_classroom_keeps_history_but_cannot_resume(self):
+        from apps.classrooms.models import ClassroomMember
+
+        p = ContestParticipant.objects.get(user=self.user, contest=self.contest)
+        p.exam_status = ExamStatus.PAUSED
+        p.started_at = timezone.now()
+        p.save(update_fields=["exam_status", "started_at"])
+        ClassroomMember.objects.filter(user=self.user).delete()
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        p.refresh_from_db()
+        self.assertEqual(p.exam_status, ExamStatus.PAUSED)
+
+    def test_start_is_refused_while_the_contest_window_is_closed(self):
+        newcomer = User.objects.create_user(
+            username='early', email='early@example.com', password='password',
+        )
+        enrol_candidates(self.contest, newcomer)
+        self.contest.start_time = timezone.now() + timedelta(hours=1)
+        self.contest.save(update_fields=["start_time"])
+        self.client.force_authenticate(user=newcomer)
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # A closed contest never gains attempt records.
+        self.assertFalse(
+            ContestParticipant.objects.filter(user=newcomer, contest=self.contest).exists()
+        )
         
     def test_end_exam(self):
         # Start first

@@ -9,7 +9,6 @@ import StudentContestDashboard from "@/features/contest/components/studentDashbo
 
 interface ContestDashboardOutletContext {
   refreshContest?: () => Promise<void>;
-  onJoin?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
@@ -86,7 +85,6 @@ const ContestDashboard = () => {
     <>
       <StudentContestDashboard
         contest={contest}
-        onJoin={outletContext?.onJoin}
         onStartExam={outletContext?.onStartExam}
         onEndExam={outletContext?.onEndExam}
         onGoToAnswering={outletContext?.onGoToAnswering}

@@ -72,7 +72,7 @@ def test_validate_exam_operation_returns_participant_on_success_and_raises_valid
     student: User,
     published_contest: Contest,
 ):
-    with pytest.raises(ValidationError, match="Not registered"):
+    with pytest.raises(ValidationError, match="have not started this exam"):
         validate_exam_operation(published_contest, student, allow_admin_bypass=False)
 
     participant = ContestParticipant.objects.create(
@@ -160,7 +160,7 @@ def test_validate_exam_operation_view_adapter_preserves_legacy_error_response(
 
     assert participant is None
     assert response.status_code == 400
-    assert response.data == {"error": "Not registered for this contest."}
+    assert response.data == {"error": "You have not started this exam."}
 
 
 @pytest.mark.django_db

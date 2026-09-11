@@ -24,7 +24,6 @@ import {
   Document,
   Flag,
   Launch,
-  Login,
   Play,
   QrCode,
   Renew,
@@ -77,7 +76,7 @@ import {
 } from "@/shared/components/dashboard";
 import { buildStudentLocatorQrValue } from "@/features/contest/attendance/attendanceQr";
 import { CountdownProgress } from "@/features/contest/components/CountdownProgress";
-import { ContestRegistrationModal } from "@/features/contest/components/modals/ContestRegistrationModal";
+import { isContestParticipant } from "@/features/contest/domain/contestRuntimePolicy";
 import PaperQuestionReportCard from "@/features/contest/components/exam/PaperQuestionReportCard";
 import { getMarkedQuestionIds } from "@/features/contest/screens/paperExam/hooks";
 import { formatContestCompactDuration } from "@/features/contest/utils/contestTimeFormat";
@@ -93,7 +92,6 @@ const ATTENDANCE_READY_STATUSES = new Set(["photo_confirmed", "teacher_assisted"
 
 interface StudentContestDashboardProps {
   contest: ContestDetail;
-  onJoin?: () => void;
   onStartExam?: () => void;
   onEndExam?: () => void;
   onGoToAnswering?: () => void;
@@ -117,9 +115,6 @@ const EMPTY_PAPER_DATA: PaperExamDashboardData = {
   answers: [],
   results: [],
 };
-
-const isParticipant = (contest: ContestDetail): boolean =>
-  contest.hasJoined;
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
   true_false: "是非題",
@@ -164,7 +159,6 @@ const isFailingScoreBucket = (label: string) => {
 
 export default function StudentContestDashboard({
   contest,
-  onJoin,
   onStartExam,
   onEndExam,
   onGoToAnswering,
@@ -196,7 +190,6 @@ export default function StudentContestDashboard({
   );
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [infoTab, setInfoTab] = useState<"rules" | "records" | "standings">("rules");
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showStudentQrModal, setShowStudentQrModal] = useState(false);
@@ -221,7 +214,7 @@ export default function StudentContestDashboard({
   const setPageHeaderActions = usePageHeaderActions();
 
   const phase = resolveStudentContestPhase(contest, nowMs);
-  const participant = isParticipant(contest);
+  const participant = isContestParticipant(contest);
   const showStandings = participant && contest.contestType === "coding" && (
     contest.scoreboardVisibleDuringContest ||
     (phase === "after" && contest.permissions?.canViewFullScoreboard)
@@ -468,13 +461,6 @@ export default function StudentContestDashboard({
         )
       : 0;
 
-  const attendanceRequired = !!(
-    contest.attendanceStatus?.attendanceRequired || contest.attendanceCheckEnabled
-  );
-  const canRegister =
-    !attendanceRequired &&
-    contest.status === "published" &&
-    contestState !== "ended";
   const canStartExam =
     participant &&
     contest.status === "published" &&
@@ -573,11 +559,6 @@ export default function StudentContestDashboard({
     [chartTheme, scoreSummary?.score_distribution],
   );
 
-  const handleRegisterSubmit = () => {
-    setShowRegisterModal(false);
-    onJoin?.();
-  };
-
   const handleDownloadReport = async () => {
     setReportError(null);
     setReportDownloading(true);
@@ -619,21 +600,11 @@ export default function StudentContestDashboard({
   };
 
   const renderEntryAction = () => {
-    if (!participant && phase !== "after") {
-      if (attendanceRequired) {
-        return null;
-      }
-      return (
-        <Button
-          renderIcon={Login}
-          disabled={!canRegister}
-          onClick={() => setShowRegisterModal(true)}
-        >
-          {canRegister
-            ? t("studentDashboard.actions.join", "加入競賽")
-            : t("studentDashboard.actions.joinUnavailable", "目前不可加入")}
-        </Button>
-      );
+    // Eligibility is classroom membership, so there is nothing to join: a
+    // student either can start (the attempt record is created then) or is
+    // not part of this contest at all.
+    if (!participant) {
+      return null;
     }
     if (canStartExam || canResumeExam) {
       return (
@@ -1186,13 +1157,6 @@ export default function StudentContestDashboard({
           <Fragment key={item.key}>{item.node}</Fragment>
         ))}
       </MobileActionFooter>
-
-      <ContestRegistrationModal
-        open={showRegisterModal}
-        contest={contest}
-        onClose={() => setShowRegisterModal(false)}
-        onSubmit={handleRegisterSubmit}
-      />
 
       <Modal
         open={showEndConfirm}

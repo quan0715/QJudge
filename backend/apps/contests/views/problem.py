@@ -85,14 +85,12 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         is_privileged = can_manage_contest(user, contest)
 
         if not is_privileged:
-            try:
-                participant = ContestParticipant.objects.get(contest=contest, user=user)
-            except ContestParticipant.DoesNotExist:
-                return Response(
-                    {'detail': 'You are not registered for this contest.'},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            if not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED:
+            # A missing attempt record means the contest has not been started:
+            # the record is created on start, there is no registration step.
+            participant = ContestParticipant.objects.filter(contest=contest, user=user).first()
+            if participant is None or (
+                not participant.started_at and participant.exam_status != ExamStatus.SUBMITTED
+            ):
                 return Response(
                     {'detail': 'You must start the contest to view problems.'},
                     status=status.HTTP_403_FORBIDDEN,
