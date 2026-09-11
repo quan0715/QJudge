@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.db.models import F, Max
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
