@@ -1692,10 +1692,6 @@
       "allowTablet": "Allow Tablet",
       "allowTabletDesc": "iPad and Android tablets remain classified as tablets, even with an external keyboard or mouse.",
       "desktopLabel": "Desktop / Laptop Settings",
-      "desktopPrimaryEvidence": "Desktop Primary Evidence Source",
-      "desktopPrimaryEvidenceDesc": "Desktop uses screen share as the primary source; fullscreen and multi-display rules follow the desktop monitoring flow.",
-      "desktopWebcamAssist": "Desktop Webcam Assist",
-      "desktopWebcamAssistDesc": "When enabled, desktop requires Webcam in addition to screen sharing.",
       "detectors": {
         "fullscreen": "Fullscreen Lock",
         "fullscreenDesc": "Force fullscreen mode; exiting will be recorded as a violation",
@@ -1709,8 +1705,6 @@
         "viewportIntegrityDesc": "Prevent iPad from using split-screen, slide-over, or small window modes"
       },
       "disabledDesc": "Restrictions disabled for {{device}}",
-      "enableEvidenceTracking": "Enable Evidence Tracking",
-      "enableEvidenceTrackingDesc": "Desktop defaults to screen sharing; tablet defaults to Webcam.",
       "enableMonitoring": "Enable Monitoring",
       "enabledDesc": "Anti-cheat mechanism enabled for {{device}}",
       "evidencePolicy": "Evidence Policy",
@@ -1719,13 +1713,18 @@
       "screenShare": "Screen Monitoring (Screen)",
       "screenShareDesc": "Capture student screen as monitoring evidence",
       "securityDetectors": "Violation Detection Mechanism",
-      "sourceScreenShare": "Screen share",
-      "sourceWebcam": "Webcam",
       "tabletLabel": "Tablet / iPad Settings",
-      "tabletPrimaryEvidence": "Tablet Primary Evidence Source",
-      "tabletPrimaryEvidenceDesc": "Tablet does not use desktop fullscreen, focus, or tab-hidden rules; entry uses PWA and runtime relies on viewport integrity checks.",
       "webcam": "Video Monitoring (Webcam)",
-      "webcamDesc": "Capture student webcam as monitoring evidence"
+      "webcamDesc": "Capture student webcam as monitoring evidence",
+      "enableScreenShare": "Enable Screen Share",
+      "enableScreenShareDesc": "Desktop students share their entire screen as exam evidence.",
+      "enableWebcam": "Enable Webcam",
+      "enableWebcamDesc": "Both desktop and tablet students turn on their webcam.",
+      "webcamOnlyTabletDesc": "Only tablets require a webcam right now; switching applies it to both desktop and tablet.",
+      "webcamOnlyDesktopDesc": "Only desktops require a webcam right now; switching applies it to both desktop and tablet.",
+      "tabletScreenShareUnsupported": "Tablets cannot share their screen yet",
+      "tabletNoEvidenceHint": "Tablet students currently have no evidence source. Turn on Webcam.",
+      "tabletWebcamOnlyHint": "Tablet students are recorded by webcam only."
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
@@ -1744,7 +1743,6 @@
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "deleteFailed": "Delete failed",
-    "displaySettings": "Display Settings",
     "enableExamMode": "Enable Anti-cheat Monitoring",
     "enableExamModeDesc": "Apply pre-checks, monitoring sources, and anomaly event logging according to the device policy.",
     "examModeSettings": "Cheat Detection Settings",
@@ -1778,7 +1776,11 @@
       "description": "Require either a room photo, or both a room photo and an attendance selfie.",
       "room": "Rear-camera room photo",
       "roomAndSelfie": "Front-camera selfie + rear-camera room photo"
-    }
+    },
+    "modalTitle": "Settings",
+    "contestOptions": "Contest Settings",
+    "contestType": "Exam Type",
+    "contestTypeDesc": "The exam type is chosen when the contest is created and cannot be changed afterwards."
   },
   "standings": {
     "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",

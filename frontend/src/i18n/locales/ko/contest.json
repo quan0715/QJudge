@@ -1692,10 +1692,6 @@
       "allowTablet": "태블릿 허용",
       "allowTabletDesc": "iPad / Android tablet은 외부 키보드나 마우스를 연결해도 tablet으로 분류됩니다.",
       "desktopLabel": "데스크톱 / 노트북 설정",
-      "desktopPrimaryEvidence": "데스크톱 기본 증거 소스",
-      "desktopPrimaryEvidenceDesc": "데스크톱은 화면 공유를 기본 소스로 사용하며 전체 화면 및 다중 화면 규칙은 데스크톱 감독 흐름을 따릅니다.",
-      "desktopWebcamAssist": "데스크톱 보조 Webcam",
-      "desktopWebcamAssistDesc": "켜면 데스크톱에서 화면 공유 외에 Webcam도 추가로 요구합니다.",
       "detectors": {
         "fullscreen": "전체 화면 잠금",
         "fullscreenDesc": "전체 화면 모드를 강제하며, 해제 시 위반으로 기록됩니다",
@@ -1709,8 +1705,6 @@
         "viewportIntegrityDesc": "iPad의 스플릿 뷰나 슬라이드 오버 등의 사용을 금지합니다"
       },
       "disabledDesc": "{{device}} 기기의 제한 비활성화됨",
-      "enableEvidenceTracking": "증거 추적 활성화",
-      "enableEvidenceTrackingDesc": "데스크톱은 기본적으로 화면 공유를, 태블릿은 Webcam을 요구합니다.",
       "enableMonitoring": "모니터링 활성화",
       "enabledDesc": "{{device}} 기기의 부정행위 방지 기능 활성화됨",
       "evidencePolicy": "증거 추적 정책",
@@ -1719,13 +1713,18 @@
       "screenShare": "화면 모니터링 (Screen)",
       "screenShareDesc": "모니터링 증거로 학생 화면을 캡처합니다",
       "securityDetectors": "부정행위 감지 메커니즘",
-      "sourceScreenShare": "화면 공유",
-      "sourceWebcam": "Webcam",
       "tabletLabel": "태블릿 / iPad 설정",
-      "tabletPrimaryEvidence": "태블릿 기본 증거 소스",
-      "tabletPrimaryEvidenceDesc": "태블릿은 desktop의 전체 화면, 포커스, 탭 숨김 규칙을 사용하지 않으며 입장은 PWA, 실행 중에는 창 무결성 검사를 중심으로 확인합니다.",
       "webcam": "웹캠 모니터링 (Webcam)",
-      "webcamDesc": "모니터링 증거로 학생 웹캠을 캡처합니다"
+      "webcamDesc": "모니터링 증거로 학생 웹캠을 캡처합니다",
+      "enableScreenShare": "화면 공유 사용",
+      "enableScreenShareDesc": "데스크톱 응시자는 전체 화면을 공유해 응시 증거로 남깁니다.",
+      "enableWebcam": "Webcam 사용",
+      "enableWebcamDesc": "데스크톱과 태블릿 응시자 모두 Webcam을 켭니다.",
+      "webcamOnlyTabletDesc": "현재는 태블릿만 Webcam이 필요합니다. 전환하면 데스크톱과 태블릿 모두에 적용됩니다.",
+      "webcamOnlyDesktopDesc": "현재는 데스크톱만 Webcam이 필요합니다. 전환하면 데스크톱과 태블릿 모두에 적용됩니다.",
+      "tabletScreenShareUnsupported": "태블릿은 아직 화면 공유를 사용할 수 없습니다",
+      "tabletNoEvidenceHint": "태블릿 응시자에게는 현재 증거 소스가 없습니다. Webcam을 켜 주세요.",
+      "tabletWebcamOnlyHint": "태블릿 응시자는 Webcam으로만 기록됩니다."
     },
     "archiveContest": "대회 보관",
     "archiveDesc": "보관하면 대회가 읽기 전용이 되며 다시 활성화할 수 없습니다.",
@@ -1744,7 +1743,6 @@
     "deleteContest": "대회 삭제",
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
     "deleteFailed": "삭제 실패",
-    "displaySettings": "표시 설정",
     "enableExamMode": "부정행위 방지 감독 활성화",
     "enableExamModeDesc": "기기 정책에 따라 사전 점검, 감독 소스 및 이상 이벤트 기록을 적용합니다.",
     "examModeSettings": "부정행위 감지 설정",
@@ -1778,7 +1776,11 @@
       "description": "현장 사진 또는 현장+본인 사진을 요구합니다.",
       "room": "후면: 현장",
       "roomAndSelfie": "전면: 본인 + 후면: 현장"
-    }
+    },
+    "modalTitle": "설정",
+    "contestOptions": "대회 설정",
+    "contestType": "시험 유형",
+    "contestTypeDesc": "시험 유형은 대회를 만들 때 정해지며 이후에는 변경할 수 없습니다."
   },
   "standings": {
     "icpcRules": "ICPC 규칙: 해결한 문제 수를 우선으로 하고, 다음으로 총 페널티 시간(해결 시간 + 오답당 20분)으로 순위를 결정합니다.",

@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { Information, Locked, View, Security } from "@carbon/icons-react";
+import { Information, Locked, Settings, Security } from "@carbon/icons-react";
 import { SettingsModal, type SettingsModalNavItem } from "@/shared/ui/modal/SettingsModal";
 import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
@@ -32,8 +32,8 @@ interface ContestSettingsModalProps extends ContestSettingsPanelProps {
 
 const NAV_ITEM_DEFS: (Omit<SettingsModalNavItem, "label"> & { labelKey: string; fallback: string })[] = [
   { id: "general", labelKey: "settings.basicInfo", fallback: "基本資訊", icon: Information },
-  { id: "access", labelKey: "settings.accessControl", fallback: "狀態與權限", icon: Locked },
-  { id: "display", labelKey: "settings.displaySettings", fallback: "顯示設定", icon: View },
+  { id: "access", labelKey: "settings.accessControl", fallback: "存取控制與權限", icon: Locked },
+  { id: "display", labelKey: "settings.contestOptions", fallback: "競賽設定", icon: Settings },
   { id: "cheatDetection", labelKey: "settings.examModeSettings", fallback: "防作弊監控設定", icon: Security },
 ];
 
@@ -113,7 +113,7 @@ export default function ContestSettingsModal({
     <SettingsModal
       open={open}
       onRequestClose={onRequestClose}
-      modalHeading={t("settings.title", "競賽設定")}
+      modalHeading={t("settings.modalTitle", "設定")}
       navItems={navItems}
       initialActiveId={initialActiveId}
       renderPanel={renderPanel}

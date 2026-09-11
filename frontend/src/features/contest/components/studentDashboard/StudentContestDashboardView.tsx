@@ -1055,7 +1055,9 @@ export default function StudentContestDashboard({
               </DashboardTabPanel>
               {showStandings && infoTab === "standings" ? (
                 <DashboardTabPanel tabId="standings">
-                  <ContestStandingsScreen />
+                  <div className={styles.tabContent}>
+                    <ContestStandingsScreen />
+                  </div>
                 </DashboardTabPanel>
               ) : null}
             </DashboardTabs>

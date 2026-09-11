@@ -136,6 +136,7 @@
         "features/classroom/components/AddMembersModal.tsx",
         "features/classroom/components/CreateContestModal.tsx",
         "features/contest/components/ContestOverview.tsx",
+        "features/contest/components/admin/settings/CheatDetectionPanel.tsx",
         "features/contest/components/exam/PaperExamResultsList.tsx",
         "features/contest/components/participants/ParticipantDashboardPane.tsx",
         "features/contest/components/participants/ParticipantOperationsPane.tsx",

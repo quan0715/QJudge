@@ -1692,10 +1692,6 @@
       "allowTablet": "タブレットを許可",
       "allowTabletDesc": "iPad / Android tablet は、外部キーボードやマウス接続時も tablet として扱います。",
       "desktopLabel": "デスクトップ / ノート PC 設定",
-      "desktopPrimaryEvidence": "デスクトップの主証拠ソース",
-      "desktopPrimaryEvidenceDesc": "デスクトップは画面共有を主ソースとし、全画面と複数画面ルールはデスクトップ監視フローに従います。",
-      "desktopWebcamAssist": "デスクトップ補助 Webcam",
-      "desktopWebcamAssistDesc": "有効にすると、デスクトップでは画面共有に加えて Webcam も要求します。",
       "detectors": {
         "fullscreen": "全画面ロック",
         "fullscreenDesc": "全画面モードを強制し、解除は違反として記録される",
@@ -1709,8 +1705,6 @@
         "viewportIntegrityDesc": "iPad のスプリットビューやスライドオーバーなどの使用を禁止する"
       },
       "disabledDesc": "{{device}} 端の制限が無効",
-      "enableEvidenceTracking": "証拠追跡を有効化",
-      "enableEvidenceTrackingDesc": "デスクトップは画面共有、タブレットは Webcam を既定で要求します。",
       "enableMonitoring": "監視を有効にする",
       "enabledDesc": "{{device}} 端の不正防止機能が有効",
       "evidencePolicy": "証拠追跡ポリシー",
@@ -1719,13 +1713,18 @@
       "screenShare": "画面共有 (Screen)",
       "screenShareDesc": "監視証拠として学生の画面をキャプチャする",
       "securityDetectors": "不正検知メカニズム",
-      "sourceScreenShare": "画面共有",
-      "sourceWebcam": "Webcam",
       "tabletLabel": "タブレット / iPad 設定",
-      "tabletPrimaryEvidence": "タブレットの主証拠ソース",
-      "tabletPrimaryEvidenceDesc": "タブレットでは desktop の全画面、フォーカス、タブ非表示ルールを使わず、入場は PWA、実行中はウィンドウ整合性チェックを中心に確認します。",
       "webcam": "ウェブカメラ (Webcam)",
-      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする"
+      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする",
+      "enableScreenShare": "画面共有を有効化",
+      "enableScreenShareDesc": "デスクトップの受験者は画面全体を共有して受験の証拠とします。",
+      "enableWebcam": "Webcam を有効化",
+      "enableWebcamDesc": "デスクトップとタブレットの受験者はどちらも Webcam をオンにします。",
+      "webcamOnlyTabletDesc": "現在はタブレットのみ Webcam が必要です。切り替えるとデスクトップとタブレットの両方に適用されます。",
+      "webcamOnlyDesktopDesc": "現在はデスクトップのみ Webcam が必要です。切り替えるとデスクトップとタブレットの両方に適用されます。",
+      "tabletScreenShareUnsupported": "タブレットは現在画面共有を利用できません",
+      "tabletNoEvidenceHint": "タブレットの受験者には証拠ソースがありません。Webcam を有効にしてください。",
+      "tabletWebcamOnlyHint": "タブレットの受験者は Webcam のみで記録されます。"
     },
     "archiveContest": "コンテストをアーカイブ",
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",
@@ -1744,7 +1743,6 @@
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
     "deleteFailed": "削除に失敗しました",
-    "displaySettings": "表示設定",
     "enableExamMode": "不正対策監視を有効化",
     "enableExamModeDesc": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。",
     "examModeSettings": "不正検出設定",
@@ -1778,7 +1776,11 @@
       "description": "会場写真、または会場写真と本人写真を要求できます。",
       "room": "背面：会場",
       "roomAndSelfie": "前面：本人 + 背面：会場"
-    }
+    },
+    "modalTitle": "設定",
+    "contestOptions": "コンテスト設定",
+    "contestType": "試験形式",
+    "contestTypeDesc": "試験形式はコンテスト作成時に決まり、作成後は変更できません。"
   },
   "standings": {
     "icpcRules": "ICPCルール：解決した問題数を優先し、次に総ペナルティ時間（解決時間 + 誤答につき20分）で順位を決定します。",

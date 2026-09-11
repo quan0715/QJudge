@@ -1,48 +1,35 @@
-import React from "react";
 import { FieldSaveIndicator } from "@/shared/ui/autoSave/FieldSaveIndicator";
 import type { FieldSaveState } from "@/features/contest/components/admin/examEditor/hooks/useExamAutoSave";
-import {
-  TITLE_STYLE,
-  DESC_STYLE,
-  settingsPanelStyles as s,
-} from "@/shared/layout/SettingsPanel";
 
-// Contest-specific wrappers that add save-state indicators
+// Contest settings report auto-save once per section instead of on every row.
 
-interface RowProps {
-  label: string;
-  description?: string;
-  children: React.ReactNode;
-  saveState?: FieldSaveState;
-  onRetry?: () => void;
+interface SectionSaveIndicatorProps {
+  fields: readonly string[];
+  getState: (field: string) => FieldSaveState | undefined;
+  onRetry: (field: string) => void;
 }
 
-export const ActionRow: React.FC<RowProps> = ({
-  label, description, children, saveState, onRetry,
-}) => (
-  <div className={s.actionRow}>
-    <div className={s.actionRowContent}>
-      <div style={TITLE_STYLE}>{label}</div>
-      {description && <div style={DESC_STYLE}>{description}</div>}
-    </div>
-    <div className={s.actionRowControl}>{children}</div>
-    {saveState && saveState.status !== "idle" && (
-      <FieldSaveIndicator status={saveState.status} error={saveState.error} onRetry={onRetry} />
-    )}
-  </div>
-);
-
-export const FieldRow: React.FC<RowProps> = ({
-  label, description, children, saveState, onRetry,
-}) => (
-  <div className={s.fieldRow}>
-    <div className={s.fieldRowHeader} style={{ marginBottom: description ? 0 : "0.5rem" }}>
-      <div style={TITLE_STYLE}>{label}</div>
-      {saveState && saveState.status !== "idle" && (
-        <FieldSaveIndicator status={saveState.status} error={saveState.error} onRetry={onRetry} />
-      )}
-    </div>
-    {description && <div style={{ ...DESC_STYLE, marginBottom: "0.5rem" }}>{description}</div>}
-    <div>{children}</div>
-  </div>
-);
+export const SectionSaveIndicator = ({
+  fields,
+  getState,
+  onRetry,
+}: SectionSaveIndicatorProps) => {
+  const states = fields.map((field) => ({ field, state: getState(field) }));
+  const failed = states.find(({ state }) => state?.status === "error");
+  if (failed) {
+    return (
+      <FieldSaveIndicator
+        status="error"
+        error={failed.state?.error}
+        onRetry={() => onRetry(failed.field)}
+      />
+    );
+  }
+  if (states.some(({ state }) => state?.status === "saving")) {
+    return <FieldSaveIndicator status="saving" />;
+  }
+  if (states.some(({ state }) => state?.status === "saved")) {
+    return <FieldSaveIndicator status="saved" />;
+  }
+  return null;
+};
