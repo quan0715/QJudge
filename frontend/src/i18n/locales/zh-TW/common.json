@@ -222,7 +222,8 @@
     "systemSettings": "系統設定",
     "teacherDashboard": "教師後台",
     "userManagement": "使用者管理",
-    "userMenu": "使用者選單"
+    "userMenu": "使用者選單",
+    "serviceStatus": "服務狀態"
   },
   "image": {
     "galleryTab": "圖庫",

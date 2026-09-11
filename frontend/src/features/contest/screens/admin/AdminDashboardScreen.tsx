@@ -41,7 +41,10 @@ const AdminPanelSlot = ({
 }: AdminPanelProps & { panelId: AdminPanelId; contestModule: ContestTypeModule }) => {
   const { t } = useTranslation("common");
   /* eslint-disable react-hooks/static-components */
-  const Renderer = getAdminPanelRenderer(panelId, contestModule);
+  const Renderer = useMemo(
+    () => getAdminPanelRenderer(panelId, contestModule),
+    [contestModule, panelId],
+  );
   return (
     <Suspense
       fallback={(
@@ -190,7 +193,7 @@ const AdminDashboardScreen = () => {
   const { contestId } = useParams<{ contestId: string }>();
 
   return (
-    <ContestProvider contestId={contestId}>
+    <ContestProvider contestId={contestId} enableRuntimePolling={false}>
       <ContestAdminProvider contestId={contestId}>
         <AdminPanelRefreshProvider>
           <AdminDashboardInner />

@@ -81,5 +81,36 @@
       "student": "学生",
       "teacher": "教員"
     }
+  },
+  "service": {
+    "title": "サービス状態",
+    "subtitle": "プラットフォーム自身のサービスの即時プローブ結果。開いたときと再プローブ時のみ実行し、ポーリングはしません。",
+    "refresh": "再プローブ",
+    "loadFailed": "サービス状態を取得できません",
+    "allUp": "すべて正常",
+    "someDown": "{{count}} 件の異常",
+    "generatedAt": "プローブ時刻",
+    "component": "サービス",
+    "status": "状態",
+    "latency": "レイテンシ",
+    "detail": "詳細",
+    "integrityTitle": "試験監視 Run",
+    "liveRuns": "進行中",
+    "unhealthyRuns": "unhealthy",
+    "staleHeartbeats": "ハートビート遅延",
+    "neverReported": "未報告",
+    "staleHint": "ハートビートが {{seconds}} 秒以上更新されない場合は遅延とみなします。",
+    "contest": "コンテスト",
+    "runState": "状態",
+    "worker": "Worker",
+    "lastError": "最終エラー",
+    "noHeartbeat": "ハートビートなし",
+    "components": {
+      "database": "データベース",
+      "cache": "キャッシュ (Redis)",
+      "celery": "Celery ワーカー",
+      "ai_service": "AI サービス",
+      "integrity_resident": "Integrity Resident"
+    }
   }
 }

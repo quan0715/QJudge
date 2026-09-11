@@ -283,7 +283,7 @@ const ParticipantOperationsPane = ({
               renderIcon={Download}
               onClick={onDownloadReport}
             />
-            {dashboard.actions.canOpenGrading ? (
+            {dashboard.contestType === "paper_exam" && dashboard.actions.canOpenGrading ? (
               <MenuItem
                 label={t("dashboard.openGrading", "前往批改")}
                 renderIcon={Launch}

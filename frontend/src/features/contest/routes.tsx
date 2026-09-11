@@ -10,7 +10,7 @@ const AdminDashboardScreen = lazy(() => import("./screens/admin/AdminDashboardSc
 const AttendanceProjectionScreen = lazy(() => import("./screens/admin/attendance/AttendanceProjectionScreen"));
 const StudentAttendanceScanScreen = lazy(() => import("./screens/attendance/StudentAttendanceScanScreen"));
 const StudentExamDemoScreen = lazy(() => import("./screens/examDemo/StudentExamDemoScreen"));
-const ExamPrecheckScreen = lazy(() => import("./screens/paperExam/ExamPrecheckScreen"));
+const ExamPrecheckScreen = lazy(() => import("./screens/precheck/ExamPrecheckScreen"));
 
 // ── Classroom-scoped contest routes (/classrooms/:classroomId/contest/:contestId) ──
 

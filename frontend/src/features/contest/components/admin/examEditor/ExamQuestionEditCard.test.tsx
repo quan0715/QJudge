@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ExamQuestion } from "@/core/entities/contest.entity";
@@ -156,6 +156,42 @@ describe("ExamQuestionEditCard", () => {
 
     expect(onAutoSave).not.toHaveBeenCalled();
     expect(screen.getByText("尚未儲存")).toBeInTheDocument();
+  });
+
+  it("sends one auto-save request for one edit", async () => {
+    vi.useFakeTimers();
+    const onAutoSave = vi.fn(
+      () => new Promise<void>((resolve) => setTimeout(resolve, 50)),
+    );
+    const Harness = () => {
+      const [, setSaveCount] = useState(0);
+      return (
+        <ExamQuestionEditCard
+          question={createQuestion()}
+          index={0}
+          onAutoSave={async (...args) => {
+            setSaveCount((count) => count + 1);
+            await onAutoSave(...args);
+          }}
+          onDelete={vi.fn()}
+          onDuplicate={vi.fn()}
+        />
+      );
+    };
+    renderWithProviders(
+      <Harness />,
+    );
+
+    fireEvent.click(screen.getByTestId("exam-card-q1"));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "分" }), {
+      target: { value: "7" },
+    });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1100); });
+
+    expect(onAutoSave).toHaveBeenCalledTimes(1);
   });
 
   it("sends mark_pending only after explicit confirmation", async () => {

@@ -17,7 +17,7 @@ import {
 } from "@/infrastructure/browser/fullscreen";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
-import { clearExamPrecheckPassed } from "@/features/contest/screens/paperExam/hooks/useExamPrecheckGate";
+import { clearExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 import {
   clearExamCaptureSessionId,
   getExamCaptureSessionId,

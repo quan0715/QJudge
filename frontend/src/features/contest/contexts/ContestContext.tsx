@@ -43,6 +43,7 @@ const ContestContext = createContext<ContestContextType | undefined>(undefined);
 
 interface ContestProviderProps {
   runtime?: ReturnType<typeof useExamRuntimeState>;
+  enableRuntimePolling?: boolean;
   children: ReactNode;
   contestId?: string;
   /** Optional: provide initial contest data to avoid duplicate fetch */
@@ -60,6 +61,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   initialScoreboardData,
   onRefresh,
   runtime: externalRuntime,
+  enableRuntimePolling = true,
 }) => {
   const params = useParams<{ contestId?: string }>();
   const contestId = propContestId || params.contestId;
@@ -79,7 +81,11 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
 
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const ownRuntime = useExamRuntimeState(!externalRuntime && contest?.hasJoined ? contestId : undefined);
+  const ownRuntime = useExamRuntimeState(
+    !externalRuntime && enableRuntimePolling && contest?.hasJoined
+      ? contestId
+      : undefined,
+  );
   const runtime = externalRuntime ?? ownRuntime;
   const currentContest = useMemo(() => mergeExamRuntimeState(contest, runtime.state), [contest, runtime.state]);
 

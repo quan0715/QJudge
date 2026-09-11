@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Literal, TypeAlias
 
 
-REGISTRY_VERSION = "2026-07-26.3"
+REGISTRY_VERSION = "2026-09-10.1"
 
 Emission = Literal["every", "edge", "sample", "health_snapshot"]
 Origin = Literal["browser", "server"]
@@ -125,6 +125,12 @@ DEFINITIONS = MappingProxyType(
             action="pause",
             origin="server",
         ),
+        # No pause action on purpose. Leaving fullscreen does not cost us the
+        # ability to collect evidence -- the screen share keeps recording the
+        # whole display. Sending the student back to pre-check would, because
+        # pre-check runs outside the monitored runtime. Reserve pre-check for
+        # events that actually end evidence capture; this one is recorded and
+        # penalized, and the student keeps answering.
         "fullscreen_integrity": _definition(
             "fullscreen_integrity",
             triggered="exit_fullscreen_triggered",
@@ -135,7 +141,6 @@ DEFINITIONS = MappingProxyType(
             priority=1,
             grace_ms=10_000,
             sources=("screen_share",),
-            action="pause",
         ),
         "mouse_leave": _definition(
             "mouse_leave",
@@ -184,6 +189,12 @@ DEFINITIONS = MappingProxyType(
             sources=("webcam",),
             action="pause",
         ),
+        # Tablet-only (see resolveDeviceMonitoringPlan), where the evidence
+        # source is the webcam -- Split View never interrupts it, so this is
+        # recorded rather than paused. Pre-check cannot verify the condition
+        # either: it has no viewport step, and an iPad PWA window can enter
+        # Split View. The runtime `viewport_restored` signal is what actually
+        # confirms recovery.
         "viewport": _definition(
             "viewport",
             triggered="viewport_interrupted",
@@ -193,8 +204,7 @@ DEFINITIONS = MappingProxyType(
             family="viewport_integrity",
             priority=1,
             grace_ms=5_000,
-            sources=("screen_share",),
-            action="pause",
+            sources=("webcam",),
         ),
         "clipboard": _definition(
             "clipboard",
@@ -220,6 +230,17 @@ DEFINITIONS = MappingProxyType(
             priority=0,
             sources=("screen_share", "webcam"),
             action="pause",
+        ),
+        # Written by the backend when POST /exam/start/ carries pre-check
+        # evidence, so a passed pre-check leaves an auditable record instead of
+        # living only in the client's sessionStorage.
+        "precheck_passed": _definition(
+            "precheck_passed",
+            triggered="precheck_passed",
+            emission="every",
+            family="exam_lifecycle",
+            priority=3,
+            origin="server",
         ),
         "exam_entered": _definition(
             "exam_entered",

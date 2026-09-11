@@ -166,11 +166,11 @@ export default function AdminOverviewScreen({
     (panel: AdminPanelId) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        next.set("panel", panel);
+        next.set("panel", contest?.contestType === "coding" && panel === "grading" ? "standings" : panel);
         return next;
       });
     },
-    [setSearchParams],
+    [setSearchParams, contest?.contestType],
   );
 
   const openSettings = useCallback(

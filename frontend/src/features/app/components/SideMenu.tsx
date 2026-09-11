@@ -47,6 +47,7 @@ const CONTEST_PANEL_META: Record<
   { labelKey: string; examLabelKey?: string; Icon: ComponentType<{ size?: number }> }
 > = {
   overview: { labelKey: "overview", Icon: Dashboard },
+  standings: { labelKey: "standings", Icon: ChartColumn },
   clarifications: { labelKey: "clarifications", Icon: ChatIcon },
   proctoring: { labelKey: "proctoring", Icon: View },
   problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },

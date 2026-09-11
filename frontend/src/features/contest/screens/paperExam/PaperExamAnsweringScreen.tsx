@@ -14,7 +14,7 @@ import {
   CheckmarkFilled,
   FlagFilled,
 } from "@carbon/icons-react";
-import { usePaperExamFlow } from "./usePaperExamFlow";
+import { useExamSessionFlow } from "@/features/contest/hooks/useExamSessionFlow";
 import { ExamQuestionCard } from "../../components/exam/ExamQuestionCard";
 import { PaperExamCore } from "../../components/exam/PaperExamCore";
 import ProblemPromptPreview from "../../components/exam/ProblemPromptPreview";
@@ -24,20 +24,15 @@ import {
   usePaperExamSaveOnLeave,
   getMarkedQuestionIds,
   saveMarkedQuestionIds,
-  hasExamPrecheckPassed,
-  syncExamPrecheckGateByStatus,
 } from "./hooks";
+import { hasExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 import { useExamCapture } from "@/features/contest/contexts/ExamCaptureContext";
 import type { ExamItem } from "../../types/exam.types";
 import { buildQuestionPresentationById } from "./paperExamSectionView";
 import styles from "./PaperExamAnswering.module.scss";
 import useExamSubmissionProgress from "@/features/contest/hooks/useExamSubmissionProgress";
 import ExamSubmissionProgressModal from "@/features/contest/components/exam/ExamSubmissionProgressModal";
-import {
-  getClassroomContestDashboardPath,
-  getClassroomContestPrecheckPath,
-  shouldRouteToPrecheck,
-} from "@/features/contest/domain/contestRoutePolicy";
+import { getClassroomContestDashboardPath } from "@/features/contest/domain/contestRoutePolicy";
 import {
   exitFullscreen,
   isFullscreen,
@@ -60,7 +55,7 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId?: string;
   }>();
   const [searchParams] = useSearchParams();
-  const { contestId, contest, submitExam, loading } = usePaperExamFlow();
+  const { contestId, contest, submitExam, loading } = useExamSessionFlow();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const classroomContestContext =
     classroomId && routeContestId
@@ -75,17 +70,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
       : effectiveClassroomId && contestId
         ? getClassroomContestDashboardPath(effectiveClassroomId, contestId)
         : "";
-  const precheckPath =
-    !contestId
-      ? ""
-      : classroomContestContext
-        ? getClassroomContestPrecheckPath(
-            classroomContestContext.classroomId!,
-            classroomContestContext.contestId!,
-          )
-        : effectiveClassroomId
-          ? getClassroomContestPrecheckPath(effectiveClassroomId, contestId)
-          : "";
   const integrityOwner = useIntegrityUploadOwner();
   const submitProgress = useExamSubmissionProgress();
   const setPageHeaderActions = usePageHeaderActions();
@@ -231,29 +215,19 @@ const PaperExamAnsweringScreen: React.FC = () => {
     t,
   ]);
 
+  // Precheck gating lives in RuntimeRouteWrapper — the single owner for every
+  // contest type. This screen only cleans up after its own submission.
   useEffect(() => {
     if (!contestId || !contest || contest.contestType !== "paper_exam") return;
-    syncExamPrecheckGateByStatus(contestId, contest.examStatus);
+    if (contest.examStatus !== "submitted") return;
 
-    if (
-      shouldRouteToPrecheck({
-        contest,
-        precheckPassed,
-      })
-    ) {
-      navigate(precheckPath, { replace: true });
-      return;
+    clearExamCaptureSessionId(contestId);
+    const stopResult = stopCaptureForContest(contestId, "submitted");
+    if (!stopResult) {
+      forceStopCapture("submitted");
     }
-
-    if (contest.examStatus === "submitted") {
-      clearExamCaptureSessionId(contestId);
-      const stopResult = stopCaptureForContest(contestId, "submitted");
-      if (!stopResult) {
-        forceStopCapture("submitted");
-      }
-      if (isFullscreen()) exitFullscreen().catch(() => {});
-    }
-  }, [contest, contestId, forceStopCapture, navigate, precheckPassed, precheckPath]);
+    if (isFullscreen()) exitFullscreen().catch(() => {});
+  }, [contest, contestId, forceStopCapture]);
 
   useEffect(() => {
     if (

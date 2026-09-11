@@ -9,6 +9,7 @@ export type AdminPanelId =
   | "proctoring"
   | "problem_editor"
   | "grading"
+  | "standings"
   | "ai-grading"
   | "statistics"
   | "settings";
@@ -17,8 +18,7 @@ export type ContestSettingsSectionId =
   | "general"
   | "access"
   | "display"
-  | "cheatDetection"
-  | "integrity";
+  | "cheatDetection";
 
 export type ContestAdminEditorKind = "coding" | "paper_exam";
 export type ContestStudentTabContentKind =

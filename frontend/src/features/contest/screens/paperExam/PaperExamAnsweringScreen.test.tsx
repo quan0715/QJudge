@@ -25,8 +25,8 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("./usePaperExamFlow", () => ({
-  usePaperExamFlow: () => ({
+vi.mock("@/features/contest/hooks/useExamSessionFlow", () => ({
+  useExamSessionFlow: () => ({
     contestId: "contest-1",
     contest: {
       id: "contest-1",
@@ -43,11 +43,14 @@ vi.mock("./usePaperExamFlow", () => ({
   }),
 }));
 
+vi.mock("@/features/contest/anticheat/examPrecheckGate", () => ({
+  hasExamPrecheckPassed: () => true,
+  syncExamPrecheckGateByStatus: vi.fn(),
+}));
+
 vi.mock("./hooks", () => ({
   getMarkedQuestionIds: () => new Set<string>(),
   saveMarkedQuestionIds: vi.fn(),
-  hasExamPrecheckPassed: () => true,
-  syncExamPrecheckGateByStatus: vi.fn(),
   usePaperExamAutoSave: () => ({
     saveStatus: "idle",
     handleAnswerChange: vi.fn(),

@@ -9,9 +9,3 @@ export {
   getMarkedQuestionIds,
   saveMarkedQuestionIds,
 } from "../markedQuestionStorage";
-export {
-  hasExamPrecheckPassed,
-  markExamPrecheckPassed,
-  clearExamPrecheckPassed,
-  syncExamPrecheckGateByStatus,
-} from "./useExamPrecheckGate";
