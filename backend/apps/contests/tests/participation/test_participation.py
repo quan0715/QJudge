@@ -1,9 +1,10 @@
 """Eligibility is classroom membership; the attempt record is created on use.
 
-There is no registration step and no roster sync. These tests pin who counts
-as a candidate, that the bulk and per-user answers agree, what a teacher's
-roster contains, and how the contest detail presents a candidate who has not
-acted yet.
+There is no registration step and no roster sync. Anyone with a classroom
+role -- staff included -- takes a contest through the same entry flow. These
+tests pin who counts as a candidate, that the bulk student list agrees with
+the per-user role, what a teacher's roster contains, and how the contest
+detail presents a candidate who has not acted yet.
 """
 
 from datetime import timedelta
@@ -18,9 +19,9 @@ from apps.classrooms.permissions import get_user_role_in_classroom
 from apps.classrooms.services import generate_invite_code
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.services.participation import (
-    candidate_user_ids,
     is_contest_candidate,
     roster_user_ids,
+    student_member_ids,
 )
 
 User = get_user_model()
@@ -70,20 +71,21 @@ class ParticipationFixture(APITestCase):
 
 
 class CandidateRuleTests(ParticipationFixture):
-    def test_only_student_members_are_candidates(self):
-        self.assertTrue(is_contest_candidate(self.student, self.contest))
-        for staff in (self.owner, self.co_admin, self.ta, self.platform_admin):
-            self.assertFalse(is_contest_candidate(staff, self.contest), staff.username)
+    def test_anyone_with_a_classroom_role_is_a_candidate(self):
+        # Staff test their own exam through the real entry flow, so they are
+        # candidates exactly like students. Only outsiders are refused.
+        for user in (self.student, self.owner, self.co_admin, self.ta, self.platform_admin):
+            self.assertTrue(is_contest_candidate(user, self.contest), user.username)
         self.assertFalse(is_contest_candidate(self.outsider, self.contest))
 
     def test_an_unbound_contest_has_no_candidates(self):
         unbound = Contest.objects.create(name="Loose", owner=self.owner, status="published")
 
         self.assertFalse(is_contest_candidate(self.student, unbound))
-        self.assertEqual(candidate_user_ids(unbound), [])
+        self.assertEqual(student_member_ids(unbound), [])
 
-    def test_bulk_candidate_list_agrees_with_the_per_user_rule(self):
-        # candidate_user_ids is a bulk query; is_contest_candidate goes through
+    def test_bulk_student_list_agrees_with_the_per_user_role(self):
+        # student_member_ids is a bulk query; roles come from
         # get_user_role_in_classroom. They must never drift apart.
         members = [m.user for m in self.classroom.memberships.select_related("user")]
         expected = {
@@ -91,7 +93,7 @@ class CandidateRuleTests(ParticipationFixture):
             if get_user_role_in_classroom(u, self.classroom) == "member"
         }
 
-        self.assertEqual(set(candidate_user_ids(self.contest)), expected)
+        self.assertEqual(set(student_member_ids(self.contest)), expected)
         self.assertEqual(expected, {self.student.id, self.other_student.id})
 
     def test_joining_the_classroom_is_enough_no_row_is_copied(self):
@@ -126,11 +128,20 @@ class RosterTests(ParticipationFixture):
 
         self.assertNotIn(self.student.id, roster_user_ids(self.contest))
 
-    def test_a_teacher_trying_their_own_paper_never_reads_as_a_student(self):
-        ContestParticipant.objects.create(
+    def test_staff_who_have_not_sat_it_stay_off_the_roster(self):
+        self.assertNotIn(self.owner.id, roster_user_ids(self.contest))
+        self.assertNotIn(self.ta.id, roster_user_ids(self.contest))
+
+    def test_a_teacher_test_run_is_listed_so_it_can_be_reset(self):
+        from apps.contests.services.participant_state import reset_participant_exam_record
+
+        run = ContestParticipant.objects.create(
             contest=self.contest, user=self.owner,
             exam_status=ExamStatus.SUBMITTED, started_at=timezone.now(),
         )
+        self.assertIn(self.owner.id, roster_user_ids(self.contest))
+
+        reset_participant_exam_record(run, activity_user=self.owner, activity_details="done testing")
 
         self.assertNotIn(self.owner.id, roster_user_ids(self.contest))
 
@@ -179,10 +190,11 @@ class ContestDetailPresentationTests(ParticipationFixture):
             self.assertFalse(response.data["can_participate"])
             self.assertIsNone(response.data["exam_status"])
 
-    def test_staff_are_never_offered_participation(self):
+    def test_staff_are_offered_participation(self):
         data = self._detail(self.owner)
 
-        self.assertFalse(data["can_participate"])
+        self.assertTrue(data["can_participate"])
+        self.assertEqual(data["exam_status"], ExamStatus.NOT_STARTED)
 
     def test_candidates_see_the_problem_list_before_their_first_action(self):
         from uuid import uuid4

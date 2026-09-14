@@ -1384,7 +1384,7 @@
     "loadingTitle": "Loading",
     "noFeedback": "No feedback",
     "notGraded": "Not graded",
-    "notEligibleDescription": "Only students in this classroom can view questions and results.",
+    "notEligibleDescription": "Only members of this classroom can view questions and results.",
     "notEligibleTitle": "Not in this classroom",
     "openingDescription": "Click a row to open the answering screen at that question.",
     "openingTitle": "Questions are available",

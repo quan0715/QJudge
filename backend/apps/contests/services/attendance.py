@@ -105,7 +105,7 @@ ATTENDANCE_ERROR_MESSAGES: dict[AttendanceErrorCode, str] = {
     "invalid_attendance_purpose": "Invalid attendance purpose.",
     "invalid_attendance_request": "Invalid attendance request.",
     "invalid_attendance_token": "The attendance QR code is invalid or expired.",
-    "not_registered": "Only student members of this contest's classroom can check in.",
+    "not_registered": "Only members of this contest's classroom can check in.",
     "participant_not_found": "Participant not found.",
     "reason_required": "Reason is required.",
     "token_forbidden_for_teacher_assisted": "QR token is not accepted for teacher-assisted attendance.",

@@ -1384,7 +1384,7 @@
     "loadingTitle": "載入中",
     "noFeedback": "尚無評語",
     "notGraded": "未批改",
-    "notEligibleDescription": "只有本班學生可以查看題目與成績。",
+    "notEligibleDescription": "只有本班成員可以查看題目與成績。",
     "notEligibleTitle": "不在本班名單",
     "openingDescription": "點擊題目列可進入作答畫面並定位到該題。",
     "openingTitle": "可檢視題目",
