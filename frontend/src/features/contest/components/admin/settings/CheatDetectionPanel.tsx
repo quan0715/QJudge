@@ -1,22 +1,20 @@
-import { Toggle } from "@carbon/react";
-import {
-  ActionRow,
-  FieldRow,
-} from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import { Section } from "@/shared/layout/SettingsPanel";
+import { useState } from "react";
+import { InlineNotification, Toggle } from "@carbon/react";
+import { SectionSaveIndicator } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { ActionRow, Section } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
 import {
   getAccessPolicyView,
   getEvidencePolicyView,
   updateAllowedDevice,
   updateDesktopMultiDisplayAllowance,
-  updateEvidenceTracking,
-  updateDesktopWebcamAssist,
+  updateEvidenceSource,
 } from "./anticheatPolicyModel";
+
+type PolicySection = "access" | "evidence";
 
 export default function CheatDetectionPanel({
   t,
-  tc,
   form,
   getState,
   onRetry,
@@ -25,253 +23,220 @@ export default function CheatDetectionPanel({
 }: ContestSettingsPanelProps) {
   const accessPolicy = getAccessPolicyView(form.anticheatDevicePolicy);
   const evidencePolicy = getEvidencePolicyView(form.anticheatDevicePolicy);
+  // Both policy sections write the same field, so its save state belongs to
+  // whichever section the teacher last touched.
+  const [editedSection, setEditedSection] = useState<PolicySection>("access");
 
-  const pushPolicyChange = (nextPolicy: unknown) => {
+  const pushPolicyChange = (section: PolicySection, nextPolicy: unknown) => {
+    setEditedSection(section);
     onChange("anticheatDevicePolicy", nextPolicy);
   };
 
+  const policySaveIndicator = (section: PolicySection) =>
+    editedSection === section ? (
+      <SectionSaveIndicator
+        fields={["anticheatDevicePolicy"]}
+        getState={getState}
+        onRetry={onRetry}
+      />
+    ) : undefined;
+
+  const webcamDescription =
+    evidencePolicy.webcamOnlyOn === "tablet"
+      ? t("settings.anticheat.webcamOnlyTabletDesc", "目前只有平板要求 Webcam；切換後會同時套用到桌機與平板。")
+      : evidencePolicy.webcamOnlyOn === "desktop"
+        ? t("settings.anticheat.webcamOnlyDesktopDesc", "目前只有桌機要求 Webcam；切換後會同時套用到桌機與平板。")
+        : t("settings.anticheat.enableWebcamDesc", "桌機與平板考生都需開啟 Webcam。");
+
   return (
-    <Section title={t("settings.examModeSettings", "防作弊監控設定")}>
-      <ActionRow
-        label={t("settings.enableExamMode")}
-        description={t(
-          "settings.enableExamModeDesc",
-          "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。"
-        )}
-        saveState={getState("cheatDetectionEnabled")}
-        onRetry={() => onRetry("cheatDetectionEnabled")}
+    <>
+      <Section
+        title={t("settings.examModeSettings", "防作弊監控設定")}
+        action={
+          <SectionSaveIndicator
+            fields={["cheatDetectionEnabled"]}
+            getState={getState}
+            onRetry={onRetry}
+          />
+        }
       >
-        <Toggle
-          id="settings-exam-mode"
-          labelText="啟用作弊檢查"
-          hideLabel
-          labelA={tc("toggle.off")}
-          labelB={tc("toggle.on")}
-          toggled={(form.cheatDetectionEnabled as boolean) ?? false}
-          onToggle={(checked) => {
-            const msg = checked
-              ? t(
-                  "settings.confirmEnableExamMode",
-                  "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？"
-                )
-              : t("settings.confirmDisableExamMode", "關閉後將停用本場考試的防作弊監控，確定關閉？");
-            onConfirmedChange("cheatDetectionEnabled", checked, msg);
-          }}
-        />
-      </ActionRow>
+        <ActionRow
+          label={t("settings.enableExamMode")}
+          labelId="settings-exam-mode-label"
+          description={t(
+            "settings.enableExamModeDesc",
+            "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。"
+          )}
+        >
+          <Toggle
+            id="settings-exam-mode"
+            aria-labelledby="settings-exam-mode-label"
+            hideLabel
+            size="sm"
+            toggled={(form.cheatDetectionEnabled as boolean) ?? false}
+            onToggle={(checked) => {
+              const msg = checked
+                ? t(
+                    "settings.confirmEnableExamMode",
+                    "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？"
+                  )
+                : t("settings.confirmDisableExamMode", "關閉後將停用本場考試的防作弊監控，確定關閉？");
+              onConfirmedChange("cheatDetectionEnabled", checked, msg);
+            }}
+          />
+        </ActionRow>
+      </Section>
 
       {(form.cheatDetectionEnabled as boolean) && (
         <>
-          <div style={{ marginTop: "1.5rem", marginBottom: "2rem" }}>
-            <h5
-              style={{
-                fontWeight: 600,
-                color: "var(--cds-text-primary)",
-                marginBottom: "0.75rem",
-              }}
-            >
-              {t("settings.anticheat.accessPolicy", "Access Policy")}
-            </h5>
-
+          <Section
+            title={t("settings.anticheat.accessPolicy", "Access Policy")}
+            action={policySaveIndicator("access")}
+          >
             <ActionRow
               label={t("settings.anticheat.allowDesktop", "允許桌機作答")}
+              labelId="settings-allow-desktop-label"
               description={t(
                 "settings.anticheat.allowDesktopDesc",
                 "Windows / macOS / Linux 桌面瀏覽器使用這套規則。"
               )}
-              saveState={getState("anticheatDevicePolicy")}
-              onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-desktop"
-                labelText={t("settings.anticheat.allowDesktop", "允許桌機作答")}
+                aria-labelledby="settings-allow-desktop-label"
                 hideLabel
-                labelA={tc("toggle.off")}
-                labelB={tc("toggle.on")}
+                size="sm"
                 toggled={accessPolicy.allowDesktop}
                 onToggle={(checked) =>
                   pushPolicyChange(
+                    "access",
                     updateAllowedDevice(form.anticheatDevicePolicy, "desktop", checked),
                   )
                 }
-                size="sm"
               />
             </ActionRow>
 
             <ActionRow
               label={t("settings.anticheat.allowTablet", "允許平板作答")}
+              labelId="settings-allow-tablet-label"
               description={t(
                 "settings.anticheat.allowTabletDesc",
                 "iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。"
               )}
-              saveState={getState("anticheatDevicePolicy")}
-              onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-tablet"
-                labelText={t("settings.anticheat.allowTablet", "允許平板作答")}
+                aria-labelledby="settings-allow-tablet-label"
                 hideLabel
-                labelA={tc("toggle.off")}
-                labelB={tc("toggle.on")}
+                size="sm"
                 toggled={accessPolicy.allowTablet}
                 onToggle={(checked) =>
                   pushPolicyChange(
+                    "access",
                     updateAllowedDevice(form.anticheatDevicePolicy, "tablet", checked),
                   )
                 }
-                size="sm"
               />
             </ActionRow>
 
             <ActionRow
               label={t("settings.anticheat.allowDesktopMultiDisplay", "允許桌機多螢幕")}
+              labelId="settings-allow-desktop-multi-display-label"
               description={t(
                 "settings.anticheat.allowDesktopMultiDisplayDesc",
                 "關閉時，桌機會啟用多螢幕偵測並記錄為異常事件。"
               )}
-              saveState={getState("anticheatDevicePolicy")}
-              onRetry={() => onRetry("anticheatDevicePolicy")}
             >
               <Toggle
                 id="settings-allow-desktop-multi-display"
-                labelText={t("settings.anticheat.allowDesktopMultiDisplay", "允許桌機多螢幕")}
+                aria-labelledby="settings-allow-desktop-multi-display-label"
                 hideLabel
-                labelA={tc("toggle.forbid")}
-                labelB={tc("toggle.allow")}
+                size="sm"
                 toggled={accessPolicy.allowDesktopMultiDisplay}
+                disabled={!accessPolicy.allowDesktop}
                 onToggle={(checked) =>
                   pushPolicyChange(
+                    "access",
                     updateDesktopMultiDisplayAllowance(form.anticheatDevicePolicy, checked),
                   )
                 }
+              />
+            </ActionRow>
+          </Section>
+
+          <Section
+            title={t("settings.anticheat.evidencePolicy", "Evidence Policy")}
+            action={policySaveIndicator("evidence")}
+          >
+            <ActionRow
+              label={t("settings.anticheat.enableScreenShare", "啟用螢幕分享")}
+              labelId="settings-evidence-screen-share-label"
+              description={t(
+                "settings.anticheat.enableScreenShareDesc",
+                "桌機考生需分享整個螢幕作為作答證據。"
+              )}
+            >
+              <Toggle
+                id="settings-evidence-screen-share"
+                aria-labelledby="settings-evidence-screen-share-label"
+                hideLabel
                 size="sm"
+                toggled={evidencePolicy.screenShare}
                 disabled={!accessPolicy.allowDesktop}
-              />
-            </ActionRow>
-
-            <ActionRow
-              label={t("settings.allowMultipleJoins")}
-              description={t(
-                "settings.allowMultipleJoinsDesc",
-                "允許學生在離開後重新進入考試，並接管原有的作答進度。"
-              )}
-              saveState={getState("allowMultipleJoins")}
-              onRetry={() => onRetry("allowMultipleJoins")}
-            >
-              <Toggle
-                id="settings-allow-multiple-joins"
-                labelText={t("settings.allowMultipleJoins")}
-                hideLabel
-                labelA={tc("toggle.forbid")}
-                labelB={tc("toggle.allow")}
-                toggled={(form.allowMultipleJoins as boolean) ?? false}
-                onToggle={(checked) => onChange("allowMultipleJoins", checked)}
-                size="sm"
-              />
-            </ActionRow>
-          </div>
-
-          <div style={{ marginTop: "1.5rem", marginBottom: "2rem" }}>
-            <h5
-              style={{
-                fontWeight: 600,
-                color: "var(--cds-text-primary)",
-                marginBottom: "0.75rem",
-              }}
-            >
-              {t("settings.anticheat.evidencePolicy", "Evidence Policy")}
-            </h5>
-
-            <ActionRow
-              label={t("settings.anticheat.enableEvidenceTracking", "啟用證據追蹤")}
-              description={t(
-                "settings.anticheat.enableEvidenceTrackingDesc",
-                "桌機預設要求螢幕分享；平板預設要求 Webcam。"
-              )}
-              saveState={getState("anticheatDevicePolicy")}
-              onRetry={() => onRetry("anticheatDevicePolicy")}
-            >
-              <Toggle
-                id="settings-evidence-enabled"
-                labelText={t("settings.anticheat.enableEvidenceTracking", "啟用證據追蹤")}
-                hideLabel
-                labelA={tc("toggle.off")}
-                labelB={tc("toggle.on")}
-                toggled={evidencePolicy.enabled}
                 onToggle={(checked) =>
-                  pushPolicyChange(updateEvidenceTracking(form.anticheatDevicePolicy, checked))
+                  pushPolicyChange(
+                    "evidence",
+                    updateEvidenceSource(form.anticheatDevicePolicy, "screenShare", checked),
+                  )
                 }
-                size="sm"
               />
             </ActionRow>
 
-            {evidencePolicy.enabled && (
-              <div
-                style={{
-                  marginTop: "1rem",
-                  paddingLeft: "1rem",
-                  borderLeft: "2px solid var(--cds-border-subtle)",
-                }}
-              >
-                <FieldRow
-                  label={t("settings.anticheat.desktopPrimaryEvidence", "桌機主證據來源")}
-                  description={t(
-                    "settings.anticheat.desktopPrimaryEvidenceDesc",
-                    "桌機以螢幕分享為主來源；全螢幕與多螢幕規則會依桌機監控流程執行。"
-                  )}
-                >
-                  <span style={{ fontSize: "0.875rem", color: "var(--cds-text-primary)" }}>
-                    {evidencePolicy.desktopScreenShare
-                      ? t("settings.anticheat.sourceScreenShare", "Screen share")
-                      : t("common:disabled", "未啟用")}
-                  </span>
-                </FieldRow>
+            <ActionRow
+              label={t("settings.anticheat.enableWebcam", "啟用 Webcam")}
+              labelId="settings-evidence-webcam-label"
+              description={webcamDescription}
+            >
+              <Toggle
+                id="settings-evidence-webcam"
+                aria-labelledby="settings-evidence-webcam-label"
+                hideLabel
+                size="sm"
+                toggled={evidencePolicy.webcam}
+                onToggle={(checked) =>
+                  pushPolicyChange(
+                    "evidence",
+                    updateEvidenceSource(form.anticheatDevicePolicy, "webcam", checked),
+                  )
+                }
+              />
+            </ActionRow>
 
-                <ActionRow
-                  label={t("settings.anticheat.desktopWebcamAssist", "桌機輔助 Webcam")}
-                  description={t(
-                    "settings.anticheat.desktopWebcamAssistDesc",
-                    "開啟後，桌機會在螢幕分享之外額外要求 Webcam。"
-                  )}
-                  saveState={getState("anticheatDevicePolicy")}
-                  onRetry={() => onRetry("anticheatDevicePolicy")}
-                >
-                  <Toggle
-                    id="settings-desktop-webcam-assist"
-                    labelText={t("settings.anticheat.desktopWebcamAssist", "桌機輔助 Webcam")}
-                    hideLabel
-                    labelA={tc("toggle.off")}
-                    labelB={tc("toggle.on")}
-                    toggled={evidencePolicy.desktopWebcamAssist}
-                    onToggle={(checked) =>
-                      pushPolicyChange(
-                        updateDesktopWebcamAssist(form.anticheatDevicePolicy, checked),
+            {evidencePolicy.tabletAdvisory && (
+              <InlineNotification
+                kind={evidencePolicy.tabletAdvisory === "noEvidence" ? "warning" : "info"}
+                lowContrast
+                hideCloseButton
+                title={t(
+                  "settings.anticheat.tabletScreenShareUnsupported",
+                  "平板暫時無法使用螢幕分享",
+                )}
+                subtitle={
+                  evidencePolicy.tabletAdvisory === "noEvidence"
+                    ? t(
+                        "settings.anticheat.tabletNoEvidenceHint",
+                        "平板考生目前沒有任何證據來源，建議開啟 Webcam。",
                       )
-                    }
-                    size="sm"
-                    disabled={!accessPolicy.allowDesktop}
-                  />
-                </ActionRow>
-
-                <FieldRow
-                  label={t("settings.anticheat.tabletPrimaryEvidence", "平板主證據來源")}
-                  description={t(
-                    "settings.anticheat.tabletPrimaryEvidenceDesc",
-                    "平板不使用 desktop 的全螢幕、失焦與分頁隱藏規則；進場以 PWA，執行期以視窗完整性檢查為主。"
-                  )}
-                >
-                  <span style={{ fontSize: "0.875rem", color: "var(--cds-text-primary)" }}>
-                    {evidencePolicy.tabletWebcam
-                      ? t("settings.anticheat.sourceWebcam", "Webcam")
-                      : t("common:disabled", "未啟用")}
-                  </span>
-                </FieldRow>
-              </div>
+                    : t(
+                        "settings.anticheat.tabletWebcamOnlyHint",
+                        "平板考生只會以 Webcam 作為作答證據。",
+                      )
+                }
+              />
             )}
-          </div>
-
+          </Section>
         </>
       )}
-    </Section>
+    </>
   );
 }

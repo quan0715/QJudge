@@ -20,7 +20,7 @@ const createContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     endTime: "",
     status: "published",
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     contestType: "coding",
     cheatDetectionEnabled: true,
     scoreboardVisibleDuringContest: false,
@@ -80,9 +80,11 @@ const createUnmonitoredExam = (overrides: Partial<ContestDetail> = {}) =>
 
 describe("contestRuntimePolicy", () => {
   it("recognizes contest participation", () => {
-    expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: false }))).toBe(false);
-    expect(isContestParticipant(createContest({ hasJoined: true, isRegistered: false }))).toBe(true);
-    expect(isContestParticipant(createContest({ hasJoined: false, isRegistered: true }))).toBe(false);
+    expect(isContestParticipant(createContest({ hasJoined: false, canParticipate: false }))).toBe(false);
+    expect(isContestParticipant(createContest({ hasJoined: true, canParticipate: false }))).toBe(true);
+    // Eligibility alone counts: the attempt record only appears on the first
+    // check-in or start, so a classroom student is a participant before it.
+    expect(isContestParticipant(createContest({ hasJoined: false, canParticipate: true }))).toBe(true);
   });
 
   it("treats submitted/locked/paused/in_progress as started exam", () => {
@@ -96,22 +98,22 @@ describe("contestRuntimePolicy", () => {
   it("allows exam content only for participants after exam starts", () => {
     expect(
       canAccessExamContent(
-        createContest({ hasJoined: false, isRegistered: false, examStatus: "submitted" }),
+        createContest({ hasJoined: false, canParticipate: false, examStatus: "submitted" }),
       ),
     ).toBe(false);
     expect(
       canAccessExamContent(
-        createContest({ hasJoined: true, isRegistered: true, examStatus: "in_progress" }),
+        createContest({ hasJoined: true, canParticipate: true, examStatus: "in_progress" }),
       ),
     ).toBe(true);
     expect(
       canAccessExamContent(
-        createContest({ hasJoined: true, isRegistered: true, examStatus: "paused" }),
+        createContest({ hasJoined: true, canParticipate: true, examStatus: "paused" }),
       ),
     ).toBe(false);
     expect(
       canAccessExamContent(
-        createContest({ hasJoined: true, isRegistered: true, examStatus: "locked" }),
+        createContest({ hasJoined: true, canParticipate: true, examStatus: "locked" }),
       ),
     ).toBe(false);
   });

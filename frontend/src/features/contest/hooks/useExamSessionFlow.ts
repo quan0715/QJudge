@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import {
-  registerContest,
   startExam,
   endExam,
   isSubmittedExamSessionResponse,
@@ -46,22 +45,6 @@ export const useExamSessionFlow = () => {
 
   const clearError = () => setError(null);
 
-  const register = async () => {
-    const id = guardContestId();
-    setLoading(true);
-    setError(null);
-    try {
-      await registerContest(id);
-      await refreshContest();
-      return true;
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, "報名失敗"));
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const startSession = async (precheck?: StartExamPrecheckPayload) => {
     const id = guardContestId();
     setLoading(true);
@@ -71,8 +54,8 @@ export const useExamSessionFlow = () => {
         clearExamCaptureSessionId(id);
         resetAnticheatOrchestrator(id);
       }
-      // 考試模式只需 startExam，不需 enterContest
-      // enterContest 會檢查 left_at（交卷時設定），導致已交卷的學生無法重新進入
+      // Starting creates the attempt record on the server; there is no
+      // separate registration or enter step.
       await startExam(id, precheck);
       await refreshContest();
       if (contest?.cheatDetectionEnabled) {
@@ -145,7 +128,6 @@ export const useExamSessionFlow = () => {
     loading: loading || contextLoading,
     error,
     clearError,
-    register,
     startSession,
     submitExam,
     refreshContest,

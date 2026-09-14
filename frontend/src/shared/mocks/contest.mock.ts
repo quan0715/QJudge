@@ -12,7 +12,7 @@ export const createMockContest = (
   attendanceCheckEnabled: false,
   organizer: "teacher",
   hasJoined: false,
-  isRegistered: false,
+  canParticipate: false,
   currentUserRole: "co_owner",
   participantCount: 30,
   contestType: "paper_exam",

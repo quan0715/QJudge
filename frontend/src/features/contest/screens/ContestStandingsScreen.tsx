@@ -2,9 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
-  Column,
   DataTableSkeleton,
-  Grid,
   InlineLoading,
   InlineNotification,
 } from "@carbon/react";
@@ -16,17 +14,22 @@ import type {
   ProblemInfo,
   StandingRow,
 } from "@/features/contest/components/ContestScoreboard";
-import SurfaceSection from "@/shared/layout/SurfaceSection";
-import ContainerCard from "@/shared/layout/ContainerCard";
 import { getContestStandings } from "@/infrastructure/api/repositories/contest.repository";
+import { BlockHeader, type BlockHeaderProps } from "@/shared/components/dashboard";
+import styles from "./ContestStandingsScreen.module.scss";
 
 interface ContestStandingsPageProps {
   maxWidth?: string;
+  titleSize?: BlockHeaderProps["titleSize"];
+  /** Stretch to the host's height so the board scrolls inside it with a sticky header. */
+  fill?: boolean;
   onSelectParticipant?: (userId: string, problemId?: string) => void;
 }
 
 const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   maxWidth,
+  titleSize,
+  fill = false,
   onSelectParticipant,
 }) => {
   const { t } = useTranslation("contest");
@@ -125,56 +128,53 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
     />
   );
 
+  // Flat on purpose: the host (admin panel or student tab) owns the surface and
+  // vertical scrolling, so the board never sits in a card with its own clip.
   return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <Grid fullWidth style={{ padding: 0 }}>
-          <Column lg={16} md={8} sm={4}>
-            <ContainerCard
-              title={t("standings.title")}
-              action={
-                <Button
-                  kind="ghost"
-                  renderIcon={isRefreshing ? InlineLoading : Renew}
-                  onClick={() => void refreshStandings()}
-                  disabled={isRefreshing || loading}
-                  hasIconOnly
-                  iconDescription={
-                    isRefreshing
-                      ? t("standings.refreshing")
-                      : t("standings.refresh")
-                  }
-                />
-              }
-              padding="none"
-            >
-              <div style={{ padding: "1rem" }}>
-                <p
-                  style={{
-                    marginBottom: "1rem",
-                    color: "var(--cds-text-secondary)",
-                  }}
-                >
-                  {t("standings.icpcRules")}
-                </p>
-                {error ? (
-                  <InlineNotification kind="error" hideCloseButton title={t("standings.loadFailed", "無法載入排行榜")} subtitle={error.message} />
-                ) : loading ? (
-                  renderSkeleton()
-                ) : (
-                  <ContestScoreboard
-                    problems={problems}
-                    standings={standings}
-                    loading={false}
-                    contestId={contest?.id}
-                    classroomId={contest?.boundClassroomId || undefined}
-                    onSelectParticipant={onSelectParticipant}
-                  />
-                )}
-              </div>
-            </ContainerCard>
-          </Column>
-      </Grid>
-    </SurfaceSection>
+    <section
+      className={`${styles.root}${fill ? ` ${styles.fill}` : ""}`}
+      style={maxWidth ? { maxWidth, marginInline: "auto" } : undefined}
+    >
+      <BlockHeader
+        title={t("standings.title")}
+        titleAs="h2"
+        titleSize={titleSize}
+        description={t("standings.icpcRules")}
+        actions={
+          <Button
+            kind="ghost"
+            renderIcon={isRefreshing ? InlineLoading : Renew}
+            onClick={() => void refreshStandings()}
+            disabled={isRefreshing || loading}
+            hasIconOnly
+            iconDescription={
+              isRefreshing ? t("standings.refreshing") : t("standings.refresh")
+            }
+          />
+        }
+      />
+
+      {error ? (
+        <InlineNotification
+          kind="error"
+          hideCloseButton
+          title={t("standings.loadFailed", "無法載入排行榜")}
+          subtitle={error.message}
+        />
+      ) : loading ? (
+        renderSkeleton()
+      ) : (
+        <ContestScoreboard
+          problems={problems}
+          standings={standings}
+          loading={false}
+          className={fill ? styles.fillBoard : undefined}
+          contestId={contest?.id}
+          classroomId={contest?.boundClassroomId || undefined}
+          onSelectParticipant={onSelectParticipant}
+        />
+      )}
+    </section>
   );
 };
 

@@ -18,6 +18,7 @@ from apps.contests.services.anti_cheat_session import (
     set_exam_allowed_jti,
 )
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 @pytest.fixture
@@ -72,6 +73,7 @@ def test_exam_jti_pin_is_enforced_during_active_exam_lock(
     student: User,
     published_exam: Contest,
 ) -> None:
+    enrol_candidates(published_exam, student)
     ContestParticipant.objects.create(
         contest=published_exam,
         user=student,
@@ -131,6 +133,7 @@ def test_active_session_binds_server_classified_device_kind(
     user_agent,
     expected_device_kind,
 ):
+    enrol_candidates(published_exam, student)
     participant = ContestParticipant.objects.create(
         contest=published_exam,
         user=student,

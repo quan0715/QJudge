@@ -11,7 +11,6 @@ export {
   getContest,
   getContestOverviewMetrics,
   getContestStandings,
-  registerContest,
   updateContest,
 } from "./contest.repository";
 export {

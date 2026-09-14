@@ -156,11 +156,6 @@ vi.mock("@/shared/ui/markdown/MarkdownRenderer", () => ({
   default: ({ children }: { children: string }) => <div>{children}</div>,
 }));
 
-vi.mock("@/features/contest/components/modals/ContestRegistrationModal", () => ({
-  ContestRegistrationModal: ({ open }: { open: boolean }) =>
-    open ? <div>registration modal</div> : null,
-}));
-
 vi.mock("@/infrastructure/api/repositories", () => ({
   downloadMyReport: vi.fn(),
 }));
@@ -221,7 +216,7 @@ const createContest = (
     endTime: "2099-05-05T12:00:00.000Z",
     status: "published",
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     contestType: "coding",
     cheatDetectionEnabled: false,
     scoreboardVisibleDuringContest: false,
@@ -303,17 +298,38 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("tab", { name: "排行榜" })).not.toBeInTheDocument();
   });
 
-  it("renders pre-exam join state inside the dashboard", () => {
+  it("lets a classroom student start without a join step", () => {
+    // No attempt record yet: the backend reports not_started for candidates,
+    // and starting is what creates the record.
     renderDashboard(
       createContest({
         hasJoined: false,
-        isRegistered: false,
+        canParticipate: true,
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: "not_started",
       }),
     );
 
     expect(screen.getByRole("main", { name: "學生競賽首頁" })).toBeInTheDocument();
     expect(screen.getByText("總時長")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /加入競賽/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /開始作答/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
+  });
+
+  it("offers no entry action to someone outside the classroom", () => {
+    renderDashboard(
+      createContest({
+        hasJoined: false,
+        canParticipate: false,
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2099-05-05T12:00:00.000Z",
+        examStatus: undefined,
+      }),
+    );
+
+    expect(screen.queryByRole("button", { name: /開始作答/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
   // 公告 block 暫時於 view 中隱藏（SHOW_ANNOUNCEMENTS=false），啟用時恢復此測試
@@ -394,11 +410,11 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /前往簽到/ })).not.toBeInTheDocument();
   });
 
-  it("uses attendance check-in instead of manual join when attendance is required", () => {
+  it("sends a student without an attempt record to attendance check-in first", () => {
     renderDashboardAtContestRoute(
       createContest({
         hasJoined: false,
-        isRegistered: false,
+        canParticipate: true,
         attendanceCheckEnabled: true,
         attendanceStatus: {
           attendanceRequired: true,

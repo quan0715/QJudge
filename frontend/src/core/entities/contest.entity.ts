@@ -248,8 +248,14 @@ export interface Contest {
   resultsPublished?: boolean;
 
   // User state
+  /** The user has an attempt record: they checked in or started. */
   hasJoined: boolean;
-  isRegistered: boolean;
+  /**
+   * The user may take this contest: a student member of its classroom.
+   * Independent of hasJoined -- the attempt record is created by the first
+   * check-in or start, there is no registration step.
+   */
+  canParticipate: boolean;
   currentUserRole?: ContestScopeRole;
   participantCount?: number;
 }

@@ -67,7 +67,6 @@ export const RuntimeRouteWrapper = ({ children }: Props) => {
     refreshContest,
     navigate,
     messages: {
-      joinError: t('error.joinFailed'),
       startError: t('error.startExamFailed'),
       endError: t('error.endExamFailed'),
       exitError: t('error.exitFailed'),

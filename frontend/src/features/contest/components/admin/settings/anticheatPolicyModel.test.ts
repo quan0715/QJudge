@@ -4,8 +4,7 @@ import {
   getEvidencePolicyView,
   updateAllowedDevice,
   updateDesktopMultiDisplayAllowance,
-  updateEvidenceTracking,
-  updateDesktopWebcamAssist,
+  updateEvidenceSource,
 } from "./anticheatPolicyModel";
 
 const defaultPolicy = () => createMockContest().anticheatDevicePolicy;
@@ -20,10 +19,10 @@ describe("anticheatPolicyModel", () => {
       allowDesktopMultiDisplay: false,
     });
     expect(getEvidencePolicyView(policy)).toEqual({
-      enabled: true,
-      desktopScreenShare: true,
-      desktopWebcamAssist: false,
-      tabletWebcam: true,
+      screenShare: true,
+      webcam: true,
+      webcamOnlyOn: "tablet",
+      tabletAdvisory: "webcamOnly",
     });
   });
 
@@ -58,93 +57,76 @@ describe("anticheatPolicyModel", () => {
     });
   });
 
-  describe("updateEvidenceTracking", () => {
-    it("enables canonical sources: desktop screenShare + tablet webcam", () => {
-      const next = updateEvidenceTracking(defaultPolicy(), true);
-      expect(next.desktop.sources.screenShare.enabled).toBe(true);
-      expect(next.tablet.sources.webcam.enabled).toBe(true);
-      expect(next.tablet.sources.screenShare.enabled).toBe(false);
-    });
-
-    it("preserves desktop webcam state when enabling evidence", () => {
-      // webcam originally off → stays off
-      const policyWebcamOff = defaultPolicy();
-      const nextOff = updateEvidenceTracking(policyWebcamOff, true);
-      expect(nextOff.desktop.sources.webcam.enabled).toBe(false);
-
-      // webcam originally on → stays on
-      const policyWebcamOn = createMockContest({
-        anticheatDevicePolicy: {
+  describe("getEvidencePolicyView", () => {
+    const withSources = (desktopWebcam: boolean, tabletWebcam: boolean, screenShare = true) =>
+      updateEvidenceSource(
+        {
           ...defaultPolicy(),
           desktop: {
             ...defaultPolicy().desktop,
             sources: {
-              ...defaultPolicy().desktop.sources,
-              webcam: { enabled: true },
-            },
-          },
-        },
-      }).anticheatDevicePolicy;
-      const nextOn = updateEvidenceTracking(policyWebcamOn, true);
-      expect(nextOn.desktop.sources.webcam.enabled).toBe(true);
-    });
-
-    it("disables all sources when evidence is turned off", () => {
-      const next = updateEvidenceTracking(defaultPolicy(), false);
-      expect(next.desktop.sources.screenShare.enabled).toBe(false);
-      expect(next.desktop.sources.webcam.enabled).toBe(false);
-      expect(next.tablet.sources.screenShare.enabled).toBe(false);
-      expect(next.tablet.sources.webcam.enabled).toBe(false);
-    });
-
-    it("enforces device constraints even when raw policy has impossible tablet settings", () => {
-      const rawPolicy = createMockContest({
-        anticheatDevicePolicy: {
-          desktop: {
-            enabled: true,
-            sources: {
-              screenShare: { enabled: false },
-              webcam: { enabled: true },
-            },
-            detectors: {
-              pwaMode: false,
-              fullscreen: true,
-              multiDisplay: true,
-              mouseLeave: true,
-              viewportIntegrity: false,
+              screenShare: { enabled: screenShare },
+              webcam: { enabled: desktopWebcam },
             },
           },
           tablet: {
-            enabled: true,
+            ...defaultPolicy().tablet,
             sources: {
-              screenShare: { enabled: true },
-              webcam: { enabled: false },
-            },
-            detectors: {
-              pwaMode: true,
-              fullscreen: false,
-              multiDisplay: false,
-              mouseLeave: true,
-              viewportIntegrity: true,
+              screenShare: { enabled: false },
+              webcam: { enabled: tabletWebcam },
             },
           },
         },
-      }).anticheatDevicePolicy;
+        "screenShare",
+        screenShare,
+      );
 
-      const next = updateEvidenceTracking(rawPolicy, true);
-      expect(next.tablet.sources.screenShare.enabled).toBe(false);
-      expect(next.tablet.detectors.fullscreen).toBe(false);
-      expect(next.tablet.detectors.multiDisplay).toBe(false);
+    it("warns that an allowed tablet has no evidence without a webcam", () => {
+      const view = getEvidencePolicyView(withSources(false, false));
+      expect(view.webcam).toBe(false);
+      expect(view.tabletAdvisory).toBe("noEvidence");
+    });
+
+    it("notes that tablets fall back to webcam only while screen share is on", () => {
+      expect(getEvidencePolicyView(withSources(true, true)).tabletAdvisory).toBe("webcamOnly");
+      expect(getEvidencePolicyView(withSources(true, true, false)).tabletAdvisory).toBeNull();
+    });
+
+    it("stays quiet about tablets once they are not allowed", () => {
+      const policy = updateAllowedDevice(withSources(false, false), "tablet", false);
+      expect(getEvidencePolicyView(policy).tabletAdvisory).toBeNull();
+      expect(getEvidencePolicyView(policy).webcamOnlyOn).toBeNull();
+    });
+
+    it("reads webcam from the allowed devices only", () => {
+      const desktopOnly = updateAllowedDevice(withSources(false, true), "tablet", false);
+      expect(getEvidencePolicyView(desktopOnly).webcam).toBe(false);
+
+      const tabletOnly = updateAllowedDevice(withSources(false, true), "desktop", false);
+      expect(getEvidencePolicyView(tabletOnly).webcam).toBe(true);
     });
   });
 
-  describe("updateDesktopWebcamAssist", () => {
-    it("toggles desktop webcam independently", () => {
-      const on = updateDesktopWebcamAssist(defaultPolicy(), true);
-      expect(on.desktop.sources.webcam.enabled).toBe(true);
+  describe("updateEvidenceSource", () => {
+    it("toggles screen share on desktop only", () => {
+      const off = updateEvidenceSource(defaultPolicy(), "screenShare", false);
+      expect(off.desktop.sources.screenShare.enabled).toBe(false);
+      expect(off.tablet.sources.webcam.enabled).toBe(true);
 
-      const off = updateDesktopWebcamAssist(on, false);
+      const on = updateEvidenceSource(off, "screenShare", true);
+      expect(on.desktop.sources.screenShare.enabled).toBe(true);
+      expect(on.tablet.sources.screenShare.enabled).toBe(false);
+    });
+
+    it("applies the webcam to desktop and tablet together", () => {
+      const on = updateEvidenceSource(defaultPolicy(), "webcam", true);
+      expect(on.desktop.sources.webcam.enabled).toBe(true);
+      expect(on.tablet.sources.webcam.enabled).toBe(true);
+      expect(getEvidencePolicyView(on).webcamOnlyOn).toBeNull();
+
+      const off = updateEvidenceSource(on, "webcam", false);
       expect(off.desktop.sources.webcam.enabled).toBe(false);
+      expect(off.tablet.sources.webcam.enabled).toBe(false);
     });
   });
 });

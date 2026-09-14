@@ -10,6 +10,7 @@ from rest_framework.test import APITestCase
 
 from apps.contests.models import Contest, ContestParticipant, ExamEvent, ExamStatus
 from apps.contests.services.precheck_record import normalize_precheck_payload
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 User = get_user_model()
 
@@ -90,6 +91,7 @@ class PrecheckRecordApiTests(APITestCase):
             status="published",
             cheat_detection_enabled=True,
         )
+        enrol_candidates(self.contest, self.student)
         self.participant = ContestParticipant.objects.create(
             contest=self.contest, user=self.student,
         )

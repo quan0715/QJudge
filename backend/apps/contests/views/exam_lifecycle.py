@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -26,6 +27,8 @@ from ..services.integrity_sessions import prepare_integrity_session
 from ..services.precheck_record import record_precheck_passed
 from ..services.exam_submission import finalize_submission
 from ..services.exam_schedule import lock_exam_runs
+from ..services.exam_validation import assert_exam_window_open
+from ..services.participation import ensure_candidate_participant
 from ..services.attendance import (
     AttendanceValidationError,
     assert_attendance_allows_start,
@@ -37,7 +40,11 @@ from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
 from .exam_integrity import ExamIntegrityMixin
 from .exam_sfu import ExamSfuMixin
-from .exam_validation_response import validate_exam_operation_for_view
+from .exam_validation_response import (
+    exam_operation_error_response,
+    validate_exam_operation_for_view,
+)
+from ..services.participation import NO_ATTEMPT_MESSAGE
 
 
 class ExamLifecycleMixin:
@@ -52,14 +59,14 @@ class ExamLifecycleMixin:
         contest = get_object_or_404(Contest.objects.select_for_update(), id=contest_pk)
         lock_exam_runs(contest.pk)
 
-        # 3-layer permission check (don't require in_progress for start)
-        participant, error_response = validate_exam_operation_for_view(
-            contest, request.user, require_in_progress=False
-        )
-        if error_response is not None:
-            return error_response
-        if participant is None:
-            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+        # Starting is where the attempt record comes into existence: there is no
+        # registration step, eligibility is classroom membership. Check the
+        # window first so a closed contest never gains attempt rows.
+        try:
+            assert_exam_window_open(contest)
+            participant = ensure_candidate_participant(contest, request.user)
+        except APIException as exc:
+            return exam_operation_error_response(exc)
 
         # Check if locked
         if participant.exam_status == ExamStatus.LOCKED:
@@ -183,7 +190,7 @@ class ExamLifecycleMixin:
         if error_response is not None:
             return error_response
         if participant is None:
-            return Response({'error': 'Not registered'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': NO_ATTEMPT_MESSAGE}, status=status.HTTP_400_BAD_REQUEST)
 
         participant = ContestParticipant.objects.select_for_update().get(pk=participant.pk)
         if participant.exam_status == ExamStatus.SUBMITTED:

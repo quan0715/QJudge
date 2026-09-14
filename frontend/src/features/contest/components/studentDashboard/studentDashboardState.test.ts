@@ -21,7 +21,7 @@ const createContest = (
     endTime: "2026-05-05T12:00:00.000Z",
     status: "published",
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     contestType: "coding",
     cheatDetectionEnabled: false,
     scoreboardVisibleDuringContest: false,

@@ -19,6 +19,7 @@ from apps.submissions.models import Submission
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 def _create_problem(title: str, owner: User, **kwargs) -> CodingProblem:
@@ -298,6 +299,7 @@ def test_owner_can_list_participants(
     contest: Contest,
     student: User,
 ) -> None:
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     UserProfile.objects.update_or_create(
         user=student,
@@ -470,40 +472,19 @@ def test_participant_roster_mutation_returns_binding_gate_when_unbound(
 
 
 @pytest.mark.django_db
-def test_register_rejects_non_published_contest(
+def test_registration_endpoints_are_gone(
     api_client: APIClient,
-    owner: User,
-    student: User,
-) -> None:
-    draft_contest = Contest.objects.create(
-        name="Draft Contest For Register",
-        owner=owner,
-        status="draft",
-    )
-    api_client.force_authenticate(user=student)
-
-    response = api_client.post(f"/api/v1/contests/{draft_contest.id}/register/", {}, format="json")
-
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.data["message"] == "Contest is not published"
-
-
-@pytest.mark.django_db
-def test_enter_privileged_user_and_leave_without_registration(
-    api_client: APIClient,
-    owner: User,
     contest: Contest,
     student: User,
 ) -> None:
-    api_client.force_authenticate(user=owner)
-    privileged = api_client.post(f"/api/v1/contests/{contest.id}/enter/", {}, format="json")
-    assert privileged.status_code == status.HTTP_200_OK
-    assert privileged.data["message"] == "Entered successfully (Privileged)"
-
+    # Eligibility is classroom membership; there is nothing to register for.
+    # ``leave`` went with them: it only stamped left_at, which is the
+    # submission time finalize_submission records, so calling it mid-exam
+    # corrupted the end time teachers see and the integrity upload grant uses.
     api_client.force_authenticate(user=student)
-    left = api_client.post(f"/api/v1/contests/{contest.id}/leave/", {}, format="json")
-    assert left.status_code == status.HTTP_200_OK
-    assert left.data["message"] == "Left successfully"
+    for action in ("register", "enter", "leave"):
+        response = api_client.post(f"/api/v1/contests/{contest.id}/{action}/", {}, format="json")
+        assert response.status_code == status.HTTP_404_NOT_FOUND, action
 
 
 @pytest.mark.django_db

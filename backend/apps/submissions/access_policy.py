@@ -11,6 +11,7 @@ from apps.contests.models import (
 )
 from apps.contests.permissions import can_manage_contest
 from apps.users.models import User
+from apps.contests.services.participation import NO_ATTEMPT_MESSAGE
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,7 @@ class SubmissionAccessPolicy:
         try:
             participant = ContestParticipant.objects.get(contest=contest, user=user)
         except ContestParticipant.DoesNotExist as exc:
-            raise SubmissionAccessError("You are not registered for this contest") from exc
+            raise SubmissionAccessError(NO_ATTEMPT_MESSAGE) from exc
 
         if contest.cheat_detection_enabled:
             if participant.has_finished_exam:

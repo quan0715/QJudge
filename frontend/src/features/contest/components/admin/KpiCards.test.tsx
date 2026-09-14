@@ -33,7 +33,7 @@ const buildContest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     endTime: "2026-03-16T11:00:00.000Z",
     status: "draft",
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     contestType: "coding",
     cheatDetectionEnabled: false,
     scoreboardVisibleDuringContest: false,

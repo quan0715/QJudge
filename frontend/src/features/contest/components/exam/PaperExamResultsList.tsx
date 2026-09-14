@@ -164,8 +164,8 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                 kind="info"
                 lowContrast
                 hideCloseButton
-                title={t("paperExamProblems.notRegisteredTitle")}
-                subtitle={t("paperExamProblems.notRegisteredDescription")}
+                title={t("paperExamProblems.notEligibleTitle")}
+                subtitle={t("paperExamProblems.notEligibleDescription")}
                 style={{ marginBottom: "1rem" }}
               />
             )}

@@ -24,6 +24,7 @@ from apps.contests.services.attendance import (
 from apps.problems.models import CodingProblem
 from apps.submissions.models import Submission
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 def make_user(username: str, *, role: str = "student", is_staff: bool = False) -> User:
@@ -92,6 +93,7 @@ def test_student_cannot_get_qr_token() -> None:
     teacher = make_user("attendance_qr_owner", role="teacher")
     student = make_user("attendance_qr_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     api_client.force_authenticate(user=student)
 
@@ -105,6 +107,7 @@ def test_student_self_scan_check_in_creates_event() -> None:
     api_client = APIClient()
     student = make_user("attendance_self_scan_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     token = create_attendance_token(contest, "check_in")
     api_client.force_authenticate(user=student)
@@ -135,6 +138,7 @@ def test_student_self_scan_manual_code_creates_event() -> None:
     teacher = make_user("attendance_manual_code_teacher", role="teacher")
     student = make_user("attendance_manual_code_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=teacher)
     token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
@@ -164,6 +168,7 @@ def test_student_self_scan_rejects_wrong_manual_code_purpose() -> None:
     teacher = make_user("attendance_wrong_manual_code_teacher", role="teacher")
     student = make_user("attendance_wrong_manual_code_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=teacher)
     token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_out")
@@ -189,6 +194,7 @@ def test_validate_endpoint_accepts_valid_manual_code() -> None:
     teacher = make_user("validate_code_teacher", role="teacher")
     student = make_user("validate_code_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=teacher)
     token_response = api_client.get(f"/api/v1/contests/{contest.id}/attendance/qr-token/?purpose=check_in")
@@ -213,6 +219,7 @@ def test_validate_endpoint_accepts_valid_token() -> None:
     teacher = make_user("validate_token_teacher", role="teacher")
     student = make_user("validate_token_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     token = create_attendance_token(contest, "check_in")
 
@@ -235,6 +242,7 @@ def test_validate_endpoint_rejects_invalid_code() -> None:
     teacher = make_user("validate_code_reject_teacher", role="teacher")
     student = make_user("validate_code_reject_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=student)
 
@@ -253,6 +261,7 @@ def test_validate_endpoint_rejects_invalid_token() -> None:
     api_client = APIClient()
     student = make_user("validate_token_reject_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=student)
 
@@ -271,6 +280,7 @@ def test_validate_endpoint_requires_token_or_manual_code() -> None:
     api_client = APIClient()
     student = make_user("validate_missing_credential_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     api_client.force_authenticate(user=student)
 
@@ -289,6 +299,7 @@ def test_student_self_scan_rejected_during_exam_runtime(exam_status: str) -> Non
     api_client = APIClient()
     student = make_user(f"attendance_runtime_{exam_status}")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=exam_status)
     token = create_attendance_token(contest, "check_in")
     api_client.force_authenticate(user=student)
@@ -308,6 +319,7 @@ def test_check_out_requires_submitted_status() -> None:
     api_client = APIClient()
     student = make_user("attendance_checkout_not_submitted")
     contest = make_contest()
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.NOT_STARTED)
     token = create_attendance_token(contest, "check_out")
     api_client.force_authenticate(user=student)
@@ -326,6 +338,7 @@ def test_check_out_requires_submitted_status() -> None:
 def test_completed_check_out_disables_student_check_out_action() -> None:
     student = make_user("attendance_checkout_done")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -361,6 +374,7 @@ def test_completed_check_out_disables_student_check_out_action() -> None:
 def test_completed_check_in_disables_student_check_in_action_before_start() -> None:
     student = make_user("attendance_checkin_done")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -397,6 +411,7 @@ def test_completed_check_in_disables_student_check_in_action_before_start() -> N
 def test_incomplete_repeat_check_in_does_not_downgrade_ready_status() -> None:
     student = make_user("attendance_repeat_incomplete_ready")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -443,6 +458,7 @@ def test_student_self_scan_rejects_completed_check_in_before_start() -> None:
     api_client = APIClient()
     student = make_user("attendance_repeat_checkin_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -495,6 +511,7 @@ def test_student_self_scan_check_in_after_submission_still_rejected() -> None:
     api_client = APIClient()
     student = make_user("attendance_repeat_checkin_submitted_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -539,6 +556,7 @@ def test_student_self_scan_rejects_completed_check_out() -> None:
     api_client = APIClient()
     student = make_user("attendance_repeat_checkout_student")
     contest = make_contest()
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -590,6 +608,7 @@ def test_student_self_scan_rejects_completed_check_out() -> None:
 def test_room_and_selfie_policy_requires_two_attendance_photos() -> None:
     student = make_user("attendance_two_photo_student")
     contest = make_contest(attendance_photo_policy="room_and_selfie")
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -648,6 +667,7 @@ def test_teacher_can_reset_participant_exam_record() -> None:
     teacher = make_user("attendance_reset_teacher", role="teacher")
     student = make_user("attendance_reset_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(
         contest=contest,
         user=student,
@@ -741,6 +761,7 @@ def test_teacher_assisted_check_in_uses_unified_event_endpoint() -> None:
     teacher = make_user("attendance_assist_teacher", role="teacher")
     student = make_user("attendance_assist_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     api_client.force_authenticate(user=teacher)
 
@@ -770,6 +791,7 @@ def test_teacher_assisted_check_in_rejects_completed_check_in() -> None:
     teacher = make_user("attendance_assist_repeat_teacher", role="teacher")
     student = make_user("attendance_assist_repeat_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     event = ExamEvent.objects.create(
         contest=contest,
@@ -820,6 +842,7 @@ def test_teacher_assisted_check_in_requires_uploaded_evidence_to_be_ready() -> N
     teacher = make_user("attendance_assist_ready_teacher", role="teacher")
     student = make_user("attendance_assist_ready_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(contest=contest, user=student)
     event = ExamEvent.objects.create(
         contest=contest,
@@ -888,6 +911,7 @@ def test_ta_can_create_evidence_upload_intent_for_student() -> None:
     teacher = make_user("ta_intent_teacher", role="teacher")
     student = make_user("ta_intent_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student)
     event = _make_teacher_assisted_event(contest, teacher, student)
     frame_captured_at_ms = int(event.metadata["evidence_anchor_at_ms"])
@@ -919,7 +943,9 @@ def test_non_manager_cannot_upload_intent_for_another_users_event() -> None:
     student_a = make_user("ta_perm_student_a")
     student_b = make_user("ta_perm_student_b")
     contest = make_contest(owner=owner)
+    enrol_candidates(contest, student_a)
     ContestParticipant.objects.create(contest=contest, user=student_a)
+    enrol_candidates(contest, student_b)
     ContestParticipant.objects.create(contest=contest, user=student_b)
     event = _make_teacher_assisted_event(contest, owner, student_a)
     frame_captured_at_ms = int(event.metadata["evidence_anchor_at_ms"])
@@ -947,6 +973,7 @@ def test_attendance_evidence_rejects_non_attendance_event() -> None:
     teacher = make_user("ta_bypass_teacher", role="teacher")
     student = make_user("ta_bypass_student")
     contest = make_contest(owner=teacher)
+    enrol_candidates(contest, student)
     ContestParticipant.objects.create(contest=contest, user=student, exam_status=ExamStatus.IN_PROGRESS)
     # Create a non-attendance event (screen_share_stopped)
     other_event = ExamEvent.objects.create(

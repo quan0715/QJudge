@@ -86,16 +86,19 @@ export const FieldRow = ({
 
 export const ActionRow = ({
   label,
+  labelId,
   description,
   children,
 }: {
   label: string;
+  /** Lets the inline control name itself with `aria-labelledby` instead of repeating the label. */
+  labelId?: string;
   description?: string;
   children: ReactNode;
 }) => (
   <div className={s.actionRow}>
     <div className={s.actionRowContent}>
-      <div style={TITLE_STYLE}>{label}</div>
+      <div id={labelId} style={TITLE_STYLE}>{label}</div>
       {description && <div style={DESC_STYLE}>{description}</div>}
     </div>
     <div className={s.actionRowControl}>{children}</div>

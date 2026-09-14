@@ -8,13 +8,13 @@ import {
   TableHeader,
   TableBody,
   TableCell,
-  TableContainer,
   SkeletonText,
   Button,
 } from "@carbon/react";
 
 import { Link } from "react-router-dom";
 import { formatScore } from "@/shared/utils/scoreFormat";
+import styles from "./ContestScoreboard.module.scss";
 
 export interface ProblemInfo {
   id: string;
@@ -242,14 +242,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   }
 
   return (
-    <div
-      className={className}
-      style={{
-        overflowX: "auto",
-        maxWidth: "100%",
-        WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
-      }}
-    >
+    <div className={`${styles.viewport}${className ? ` ${className}` : ""}`}>
       <DataTable rows={rows} headers={headers}>
         {({
           rows,
@@ -258,126 +251,120 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
           getHeaderProps,
           getRowProps,
         }: any) => (
-          <TableContainer>
-            <Table
-              {...getTableProps()}
-              isSortable
-              className="contest-scoreboard-table"
-            >
-              <TableHead>
-                <TableRow>
-                  {headers.map((header: any) => {
-                    const headerProps = getHeaderProps({ header });
-                    const isProblemColumn = header.key.startsWith("problem_");
-                    const problem = isProblemColumn
-                      ? problems.find((p) => `problem_${p.id}` === header.key)
-                      : null;
-                    const problemId = problem?.problem_id || problem?.id; // Prefer real problem ID
+          <Table {...getTableProps()} isSortable className={styles.table}>
+            <TableHead>
+              <TableRow>
+                {headers.map((header: any) => {
+                  const headerProps = getHeaderProps({ header });
+                  const isProblemColumn = header.key.startsWith("problem_");
+                  const problem = isProblemColumn
+                    ? problems.find((p) => `problem_${p.id}` === header.key)
+                    : null;
+                  const problemId = problem?.problem_id || problem?.id; // Prefer real problem ID
 
-                    return (
-                      <TableHeader
-                        {...headerProps}
-                        key={header.key}
-                        className={`${headerProps.className || ""} ${
-                          header.key === "user" ? "text-left" : ""
-                        }`}
+                  return (
+                    <TableHeader
+                      {...headerProps}
+                      key={header.key}
+                      className={`${headerProps.className || ""} ${
+                        header.key === "user" ? "text-left" : ""
+                      }`}
+                      style={{
+                        textAlign: header.key === "user" ? "left" : "center",
+                        width:
+                          header.key === "rank"
+                            ? "80px"
+                            : header.key === "solved"
+                            ? "80px"
+                            : header.key === "total_score"
+                            ? "80px"
+                            : header.key === "time"
+                            ? "80px"
+                            : header.key.startsWith("problem_")
+                            ? "80px"
+                            : "auto",
+                      }}
+                    >
+                      <div
                         style={{
                           textAlign: header.key === "user" ? "left" : "center",
-                          width:
-                            header.key === "rank"
-                              ? "80px"
-                              : header.key === "solved"
-                              ? "80px"
-                              : header.key === "total_score"
-                              ? "80px"
-                              : header.key === "time"
-                              ? "80px"
-                              : header.key.startsWith("problem_")
-                              ? "80px"
-                              : "auto",
+                          fontWeight: "bold",
+                          fontSize: "14px",
                         }}
                       >
-                        <div
-                          style={{
-                            textAlign: header.key === "user" ? "left" : "center",
-                            fontWeight: "bold",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {isProblemColumn && contestId && problemId ? (
-                            <Link
-                              to={
-                                classroomId
-                                  ? `/classrooms/${classroomId}/contest/${contestId}/solve/${problemId}`
-                                  : "/dashboard"
-                              }
-                              style={{
-                                textDecoration: "none",
-                                color: "inherit",
-                                display: "block",
-                                width: "100%",
-                                height: "100%",
-                              }}
-                            >
-                              {header.header}
-                            </Link>
-                          ) : (
-                            header.header
-                          )}
-                        </div>
-                      </TableHeader>
-                    );
-                  })}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((row: any) => {
-                  const { key, ...rowProps } = getRowProps({ row });
-                  const participant = standings.find((standing, index) =>
-                    `row_${standing.rank}_${standing.user?.id || index}` === row.id);
-                  return (
-                    <TableRow key={key} {...rowProps}>
-                      {row.cells.map((cell: any) => (
-                        <TableCell
-                          key={cell.id}
-                          style={{
-                            position: cell.info.header.startsWith("problem_") ? "relative" : undefined,
-                            backgroundColor: cell.info.header.startsWith("problem_") && cell.value
-                              ? getCellColor(cell.value as ProblemStats)
-                              : undefined,
-                            padding: cell.info.header.startsWith("problem_")
-                              ? 0
-                              : "1rem",
-                            textAlign: cell.info.header === "user" ? "left" : "center",
-                          }}
-                        >
-                          {onSelectParticipant && participant && (cell.info.header === "user" || cell.info.header.startsWith("problem_")) ? (
-                            <Button
-                              kind="ghost"
-                              aria-label={cell.info.header === "user" ? undefined : `${participant.displayName || participant.user.username} · ${problems.find((p) => `problem_${p.id}` === cell.info.header)?.label}`}
-                              onClick={() => {
-                                if (cell.info.header === "user") {
-                                  onSelectParticipant(String(participant.user.id));
-                                } else {
-                                  const problem = problems.find((p) => `problem_${p.id}` === cell.info.header);
-                                  onSelectParticipant(String(participant.user.id), problem?.problem_id || problem?.id);
-                                }
-                              }}
-                              style={cell.info.header.startsWith("problem_")
-                                ? { position: "absolute", inset: 0, height: "100%", width: "100%", maxWidth: "none", padding: 0 }
-                                : { height: "auto", width: "auto", maxWidth: "100%", padding: 0, alignItems: "center", textAlign: "left", overflowWrap: "anywhere" }}
-                            >
-                              {renderCell(cell, problems) || "—"}
-                            </Button>
-                          ) : renderCell(cell, problems)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
+                        {isProblemColumn && contestId && problemId ? (
+                          <Link
+                            to={
+                              classroomId
+                                ? `/classrooms/${classroomId}/contest/${contestId}/solve/${problemId}`
+                                : "/dashboard"
+                            }
+                            style={{
+                              textDecoration: "none",
+                              color: "inherit",
+                              display: "block",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          >
+                            {header.header}
+                          </Link>
+                        ) : (
+                          header.header
+                        )}
+                      </div>
+                    </TableHeader>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row: any) => {
+                const { key, ...rowProps } = getRowProps({ row });
+                const participant = standings.find((standing, index) =>
+                  `row_${standing.rank}_${standing.user?.id || index}` === row.id);
+                return (
+                  <TableRow key={key} {...rowProps}>
+                    {row.cells.map((cell: any) => (
+                      <TableCell
+                        key={cell.id}
+                        style={{
+                          position: cell.info.header.startsWith("problem_") ? "relative" : undefined,
+                          backgroundColor: cell.info.header.startsWith("problem_") && cell.value
+                            ? getCellColor(cell.value as ProblemStats)
+                            : undefined,
+                          padding: cell.info.header.startsWith("problem_")
+                            ? 0
+                            : "1rem",
+                          textAlign: cell.info.header === "user" ? "left" : "center",
+                        }}
+                      >
+                        {onSelectParticipant && participant && (cell.info.header === "user" || cell.info.header.startsWith("problem_")) ? (
+                          <Button
+                            kind="ghost"
+                            aria-label={cell.info.header === "user" ? undefined : `${participant.displayName || participant.user.username} · ${problems.find((p) => `problem_${p.id}` === cell.info.header)?.label}`}
+                            onClick={() => {
+                              if (cell.info.header === "user") {
+                                onSelectParticipant(String(participant.user.id));
+                              } else {
+                                const problem = problems.find((p) => `problem_${p.id}` === cell.info.header);
+                                onSelectParticipant(String(participant.user.id), problem?.problem_id || problem?.id);
+                              }
+                            }}
+                            style={cell.info.header.startsWith("problem_")
+                              ? { position: "absolute", inset: 0, height: "100%", width: "100%", maxWidth: "none", padding: 0 }
+                              : { height: "auto", width: "auto", maxWidth: "100%", padding: 0, alignItems: "center", textAlign: "left", overflowWrap: "anywhere" }}
+                          >
+                            {renderCell(cell, problems) || "—"}
+                          </Button>
+                        ) : renderCell(cell, problems)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </DataTable>
     </div>

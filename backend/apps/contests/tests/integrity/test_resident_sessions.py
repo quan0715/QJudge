@@ -13,6 +13,7 @@ from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
 from apps.contests.services.integrity_runs import create_run, LiveIntegrityRunExists
 from apps.contests.services.integrity_sessions import ensure_resident_session
 from apps.users.models import User
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 @pytest.fixture
@@ -89,6 +90,7 @@ def test_resident_terminal_history_does_not_reserve_live_slot(contest):
 def test_immediate_exam_start_is_independent_of_resident(contest, caplog, failure):
     from contextlib import nullcontext
     student = User.objects.create_user(username="resident-student", email="student@example.com", password="pass", role="student")
+    enrol_candidates(contest, student)
     participant = ContestParticipant.objects.create(contest=contest, user=student)
     client = APIClient()
     client.force_authenticate(student)

@@ -12,10 +12,7 @@ import type {
   ContestOverviewMetrics,
   ScoreboardData,
 } from "@/core/entities/contest.entity";
-import type {
-  IContestRepository,
-  ContestUpdatePayload,
-} from "@/core/ports/contest.repository";
+import type { ContestUpdatePayload } from "@/core/ports/contest.repository";
 import {
   mapContestDto,
   mapContestDetailDto,
@@ -73,35 +70,6 @@ export const deleteContest = async (id: string): Promise<void> => {
   );
 };
 
-const toggleStatus = async (
-  id: string
-): Promise<{ status: string }> => {
-  return requestJson<{ status: string }>(
-    httpClient.post(`/api/v1/contests/${id}/toggle_status/`),
-    "Failed to toggle contest status"
-  );
-};
-
-export const registerContest = async (
-  id: string,
-  data?: Record<string, never>
-): Promise<void> => {
-  await requestJson<void>(
-    httpClient.post(`/api/v1/contests/${id}/register/`, data),
-    "Registration failed"
-  );
-};
-
-const enterContest = async (
-  id: string,
-  data?: Record<string, never>,
-): Promise<void> => {
-  await requestJson<void>(
-    httpClient.post(`/api/v1/contests/${id}/enter/`, data ?? {}),
-    "Failed to enter contest"
-  );
-};
-
 export const archiveContest = async (id: string): Promise<void> => {
   await ensureOk(
     httpClient.post(`/api/v1/contests/${id}/archive/`),
@@ -141,22 +109,4 @@ export const getContestOverviewMetrics = async (
     "Failed to fetch contest overview metrics"
   );
   return mapContestOverviewMetricsDto(data);
-};
-
-// ============================================================================
-// Repository Instance (implements IContestRepository)
-// ============================================================================
-
-export const contestRepository: IContestRepository = {
-  getContests,
-  getContest,
-  updateContest,
-  deleteContest,
-  toggleStatus,
-  registerContest,
-  enterContest,
-  archiveContest,
-  getContestStandings,
-  getContestAnticheatConfig,
-  getContestOverviewMetrics,
 };

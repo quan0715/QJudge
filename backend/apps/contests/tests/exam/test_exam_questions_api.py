@@ -969,3 +969,22 @@ class TestExportPaper:
         res = api_client.get(url(contest.id) + "export-paper/?mode=unknown")
         assert res.status_code == status.HTTP_400_BAD_REQUEST
         assert res.data["success"] is False
+
+    def test_export_paper_returns_500_when_generation_fails_unexpectedly(
+        self, api_client, teacher, contest, monkeypatch,
+    ):
+        # The catch-all must surface its own message. It used to raise an
+        # un-imported APIException, so the handler itself died with NameError.
+        api_client.force_authenticate(user=teacher)
+
+        def _explode(**kwargs):
+            raise RuntimeError("renderer crashed")
+
+        monkeypatch.setattr(exam_question_view_module, "build_paper_exam_sheet_response", _explode)
+        contest.contest_type = "paper_exam"
+        contest.save(update_fields=["contest_type"])
+
+        res = api_client.get(url(contest.id) + "export-paper/?mode=question")
+
+        assert res.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Failed to generate paper exam sheet" in str(res.data)

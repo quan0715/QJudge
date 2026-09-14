@@ -265,7 +265,7 @@ def test_contest_submission_rejected_after_end(
 
 
 @pytest.mark.django_db
-def test_contest_submission_requires_registration(
+def test_contest_submission_requires_a_started_attempt(
     api_client: APIClient,
     judge_mocks: Dict[str, Mock],
 ) -> None:
@@ -286,7 +286,9 @@ def test_contest_submission_requires_registration(
     )
 
     assert response.status_code == 403
-    assert "not registered" in get_error_message(response).lower()
+    # No attempt record: the user never checked in or started. There is no
+    # registration step the message could point them to.
+    assert "not started this exam" in get_error_message(response).lower()
     judge_mocks["judge"].assert_not_called()
 
 

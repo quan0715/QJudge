@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 import {
+  Tag,
   TextInput,
   SelectItem,
   DatePicker,
@@ -8,9 +9,11 @@ import {
   TimePickerSelect,
 } from "@carbon/react";
 import { MarkdownField } from "@/shared/ui/markdown/markdownEditor";
-import { FieldRow } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
-import { Section } from "@/shared/layout/SettingsPanel";
+import { SectionSaveIndicator } from "@/features/contest/components/admin/AdminSettingsPanelLayout";
+import { ActionRow, FieldRow, Section } from "@/shared/layout/SettingsPanel";
 import type { ContestSettingsPanelProps } from "./contestSettingsPanel.types";
+
+const SAVE_FIELDS = ["name", "description", "startTime", "endTime", "rules"] as const;
 
 interface GeneralSettingsPanelProps extends ContestSettingsPanelProps {
   startDateInput: Date | null;
@@ -30,6 +33,7 @@ interface GeneralSettingsPanelProps extends ContestSettingsPanelProps {
 export default function GeneralSettingsPanel({
   t,
   tc,
+  contest,
   form,
   getState,
   onRetry,
@@ -48,12 +52,27 @@ export default function GeneralSettingsPanel({
   onEndMeridiemChange,
 }: GeneralSettingsPanelProps) {
   return (
-    <Section title="基本資訊">
+    <Section
+      title={t("settings.basicInfo", "基本資訊")}
+      action={<SectionSaveIndicator fields={SAVE_FIELDS} getState={getState} onRetry={onRetry} />}
+    >
+      <ActionRow
+        label={t("settings.contestType", "考試型態")}
+        description={t(
+          "settings.contestTypeDesc",
+          "考試型態在建立競賽時決定，建立後無法變更。",
+        )}
+      >
+        <Tag type="cool-gray" size="md">
+          {contest.contestType === "paper_exam"
+            ? t("adminOverview.examType.paper_exam", "考卷")
+            : t("adminOverview.examType.coding", "Coding Test")}
+        </Tag>
+      </ActionRow>
+
       <FieldRow
         label={t("settings.contestName")}
         description="顯示在競賽列表和頁首的名稱"
-        saveState={getState("name")}
-        onRetry={() => onRetry("name")}
       >
         <TextInput
           id="settings-name"
@@ -67,8 +86,6 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={t("settings.contestDescription")}
         description="簡短描述，出現在競賽概覽頁面"
-        saveState={getState("description")}
-        onRetry={() => onRetry("description")}
       >
         <TextInput
           id="settings-description"
@@ -82,8 +99,6 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={tc("form.startDate")}
         description="競賽開始時間，學生只能在此時間後進入作答"
-        saveState={getState("startTime")}
-        onRetry={() => onRetry("startTime")}
       >
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <DatePicker
@@ -122,8 +137,6 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={tc("form.endDate")}
         description="競賽結束時間，超過後將自動停止收卷"
-        saveState={getState("endTime")}
-        onRetry={() => onRetry("endTime")}
       >
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <DatePicker
@@ -162,8 +175,6 @@ export default function GeneralSettingsPanel({
       <FieldRow
         label={t("settings.contestRules")}
         description={t("settings.rulesHelperText")}
-        saveState={getState("rules")}
-        onRetry={() => onRetry("rules")}
       >
         <MarkdownField
           id="settings-rules"

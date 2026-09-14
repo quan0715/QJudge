@@ -1,10 +1,8 @@
 import { useCallback } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { ContestDetail } from "@/core/entities/contest.entity";
-import { joinContestUseCase } from "@/core/usecases/contest/joinContest.usecase";
 import { enterExamUseCase } from "@/core/usecases/exam/enterExam.usecase";
 import { leaveExamUseCase } from "@/core/usecases/exam/leaveExam.usecase";
-import { contestRepository } from "@/infrastructure/api/repositories/contest.repository";
 import {
   endExam,
   examSessionRepository,
@@ -59,7 +57,6 @@ interface UseContestExamActionsParams {
   refreshContest: RefreshFn;
   navigate: NavigateFunction;
   messages: {
-    joinError: string;
     startError: string;
     endError: string;
     exitError: string;
@@ -101,23 +98,6 @@ export const useContestExamActions = ({
     clearRuntimeWebcamHandoff(true);
     clearPrecheckWebcamHandoff(true);
   }, []);
-
-  const handleJoin = useCallback(
-    async () => {
-      if (!contest) return;
-
-      const result = await joinContestUseCase({
-        contestId: contest.id,
-      }, contestRepository);
-
-      if (result.success) {
-        await refreshContest();
-      } else {
-        onError(result.error || messages.joinError);
-      }
-    },
-    [contest, messages.joinError, onError, refreshContest]
-  );
 
   const handleStartExam = useCallback(async () => {
     if (!contest || !contestId) return;
@@ -300,7 +280,6 @@ export const useContestExamActions = ({
   }, []);
 
   return {
-    handleJoin,
     handleStartExam,
     handleEndExam,
     handleExit,

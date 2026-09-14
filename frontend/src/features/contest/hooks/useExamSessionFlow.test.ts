@@ -31,7 +31,6 @@ vi.mock("@/features/contest/contexts/ContestContext", () => ({
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   endExam: mocks.endExam,
-  registerContest: vi.fn(),
   startExam: mocks.startExam,
   isSubmittedExamSessionResponse: () => true,
 }));

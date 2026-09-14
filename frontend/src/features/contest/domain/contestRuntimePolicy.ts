@@ -1,7 +1,10 @@
 import type { ContestDetail, ContestStatus, ContestType, ExamStatusType } from "@/core/entities/contest.entity";
 
 type ContestTypeTarget = Pick<ContestDetail, "contestType"> | null | undefined;
-type ParticipantTarget = Pick<ContestDetail, "hasJoined"> | null | undefined;
+type ParticipantTarget =
+  | Pick<ContestDetail, "hasJoined" | "canParticipate">
+  | null
+  | undefined;
 type ExamStatusTarget = Pick<ContestDetail, "examStatus"> | null | undefined;
 type WorkspaceNavigationTarget =
   | Pick<ContestDetail, "examStatus" | "hasJoined">
@@ -12,6 +15,7 @@ type TabTarget =
       ContestDetail,
       | "contestType"
       | "hasJoined"
+      | "canParticipate"
       | "examStatus"
       | "endTime"
       | "cheatDetectionEnabled"
@@ -62,8 +66,14 @@ const isExamStatusIn = (
   allowed: Set<ExamStatusType>,
 ): boolean => (status ? allowed.has(status) : false);
 
+/**
+ * A student of this contest: eligible through classroom membership, or
+ * already holding an attempt record. The record is created by the first
+ * check-in or start, so eligibility alone must count -- there is no
+ * registration step that would have created it earlier.
+ */
 export const isContestParticipant = (contest: ParticipantTarget): boolean =>
-  !!contest?.hasJoined;
+  !!contest?.hasJoined || !!contest?.canParticipate;
 
 export const hasStartedExam = (contest: ExamStatusTarget): boolean =>
   !!contest && isExamStatusIn(contest.examStatus, EXAM_STARTED_STATUSES);

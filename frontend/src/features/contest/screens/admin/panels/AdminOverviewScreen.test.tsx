@@ -110,7 +110,7 @@ const contest = (overrides: Partial<ContestDetail> = {}): ContestDetail =>
     status: "published",
     attendanceCheckEnabled: true,
     hasJoined: false,
-    isRegistered: false,
+    canParticipate: false,
     participantCount: 5,
     isClassroomBound: true,
     boundClassroomId: "classroom-1",

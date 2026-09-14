@@ -9,7 +9,6 @@ from django.db import models
 
 from apps.classrooms.models import Classroom, ClassroomMember
 
-from .participant_sync import on_member_joined
 
 User = get_user_model()
 
@@ -73,7 +72,6 @@ def add_classroom_members(
         )
         if created:
             added.append(user.username)
-            on_member_joined(classroom, user)
         else:
             already_exists.append(user.username)
 

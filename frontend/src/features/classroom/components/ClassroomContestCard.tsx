@@ -19,7 +19,7 @@ export const ClassroomContestCard: React.FC<ClassroomContestCardProps> = ({ cont
     resultsPublished: contest.resultsPublished,
     organizer: undefined,
     hasJoined: true,
-    isRegistered: true,
+    canParticipate: true,
     participantCount: contest.participantCount,
   };
 

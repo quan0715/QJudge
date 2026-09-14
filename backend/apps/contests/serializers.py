@@ -14,6 +14,7 @@ from .models import (
     ExamQuestionType,
     ContestParticipant,
     ContestAnnouncement,
+    ExamStatus,
     Clarification,
     ExamEvent,
     ExamEvidenceFrame,
@@ -25,6 +26,7 @@ from .permissions import can_manage_contest, get_contest_permissions, get_contes
 from .services.attendance import build_attendance_status
 from .services.open_answer_document import validate_open_answer_document
 from .services.question_edit_lock import is_contest_question_edit_locked
+from .services.participation import is_contest_candidate, roster_user_ids
 from apps.users.serializers import UserSerializer
 
 LEGACY_CONTEST_ACCESS_FIELDS = {"requires_password", "password"}
@@ -42,7 +44,6 @@ class ContestListSerializer(serializers.ModelSerializer):
     """
     owner_username = serializers.CharField(source='owner.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
-    is_registered = serializers.SerializerMethodField()
     attendance_status = serializers.SerializerMethodField()
     
     class Meta:
@@ -57,21 +58,13 @@ class ContestListSerializer(serializers.ModelSerializer):
             'attendance_photo_policy',
             'owner_username',
             'participant_count',
-            'is_registered',
             'attendance_status',
             'created_at',
         ]
     
     def get_participant_count(self, obj):
-        """Get total number of participants."""
-        return obj.registrations.count()
-
-    def get_is_registered(self, obj):
-        """Check if current user is registered."""
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        return obj.registrations.filter(user=request.user).exists()
+        """Roster size: student members plus anyone who actually sat it."""
+        return len(roster_user_ids(obj))
 
     def get_attendance_status(self, obj):
         request = self.context.get('request')
@@ -91,6 +84,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     current_user_role = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
     has_joined = serializers.SerializerMethodField()
+    can_participate = serializers.SerializerMethodField()
     has_started = serializers.SerializerMethodField()
     started_at = serializers.SerializerMethodField()
     left_at = serializers.SerializerMethodField()
@@ -138,6 +132,7 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'current_user_role',
             'permissions',
             'has_joined',
+            'can_participate',
             'has_started',
             'started_at',
             'left_at',
@@ -192,9 +187,15 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         return registration.locked_at if registration else None
 
     def get_exam_status(self, obj):
-        """Get exam status for current user."""
+        """Exam status for the current user.
+
+        A candidate without an attempt record reads as ``not_started``, so no
+        client ever has to tell "no row" apart from "row not started yet".
+        """
         registration = self._get_current_registration(obj)
-        return registration.exam_status if registration else None
+        if registration is not None:
+            return registration.exam_status
+        return ExamStatus.NOT_STARTED if self.get_can_participate(obj) else None
 
     def get_submit_reason(self, obj):
         """Get submit reason for current user."""
@@ -216,8 +217,21 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         return get_contest_permissions(user, obj)
     
     def get_has_joined(self, obj):
-        """Check if current user has registered."""
+        """Whether the current user has an attempt record (checked in or started)."""
         return self._get_current_registration(obj) is not None
+
+    def get_can_participate(self, obj):
+        """Whether the current user may take this contest at all.
+
+        Eligibility is classroom membership. It does not require an attempt
+        record -- that is created by the user's first check-in or start.
+        """
+        user = self._get_request_user()
+        cache = self.context.setdefault('_contest_candidate_cache', {})
+        cache_key = (obj.pk, getattr(user, 'pk', None))
+        if cache_key not in cache:
+            cache[cache_key] = is_contest_candidate(user, obj)
+        return cache[cache_key]
     
     def get_has_started(self, obj):
         """Check if current user has started the exam."""
@@ -235,8 +249,8 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         return registration.left_at if registration else None
 
     def get_participant_count(self, obj):
-        """Get total number of participants."""
-        return obj.registrations.count()
+        """Roster size: student members plus anyone who actually sat it."""
+        return len(roster_user_ids(obj))
 
     def get_admins(self, obj):
         """Get list of admin users for this contest."""
@@ -314,10 +328,15 @@ class ContestDetailSerializer(serializers.ModelSerializer):
         if is_privileged:
             return ContestProblemSerializer(_get_coding_bindings(), many=True, context=self.context).data
 
-        # Check if user is a registered participant
-        is_participant = self._get_current_registration(obj) is not None
+        # Candidates see the problem list on the same schedule whether or not
+        # their attempt record exists yet -- the record is created by their
+        # first check-in or start, not by a registration step.
+        is_participant = (
+            self._get_current_registration(obj) is not None
+            or self.get_can_participate(obj)
+        )
 
-        # Non-registered users cannot see problems at all
+        # Outsiders cannot see problems at all
         if not is_participant:
             return []
 

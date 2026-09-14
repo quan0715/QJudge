@@ -9,6 +9,7 @@ from rest_framework import status
 
 from apps.users.models import User
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.contests.tests.classroom_candidates import enrol_candidates
 
 
 class ExamPermissionTests(APITestCase):
@@ -69,7 +70,16 @@ class ExamPermissionTests(APITestCase):
             owner=self.teacher
         )
         
-        # Register student for contests
+        # Eligibility is classroom membership; enrol the student in each contest
+        # so the layer 1/2 tests below exercise status and time, not eligibility.
+        for contest in (
+            self.active_contest,
+            self.draft_contest,
+            self.future_contest,
+            self.ended_contest,
+        ):
+            enrol_candidates(contest, self.student)
+
         self.participant = ContestParticipant.objects.create(
             contest=self.active_contest,
             user=self.student,

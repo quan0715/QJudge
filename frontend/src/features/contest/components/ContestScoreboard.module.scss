@@ -1,0 +1,17 @@
+// One grid cell sized to the viewport: Carbon's own table wrapper stretches
+// into it and stays the board's single scroller. In a page it only scrolls
+// sideways; in a height-bounded host it scrolls both ways, keeping the
+// horizontal scrollbar at the visible bottom edge.
+.viewport {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  max-width: 100%;
+}
+
+// Sticks only once the wrapper scrolls vertically (height-bounded hosts).
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}

@@ -185,7 +185,6 @@ class AttendanceMixin:
                 contest=contest,
                 actor=request.user,
                 data=serializer.validated_data,
-                ensure_participant=self._ensure_classroom_bound_participant,
             )
         except AttendanceValidationError as exc:
             http_status = (

@@ -4,8 +4,9 @@ from __future__ import annotations
 import secrets
 import string
 import time
-from typing import Any, Callable, Literal, get_args
+from typing import Any, Literal, get_args
 
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -19,6 +20,8 @@ from apps.contests.models import (
 )
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.participant_state import reset_participant_exam_record
+from apps.contests.services.participation import ensure_candidate_participant
+from rest_framework.exceptions import PermissionDenied
 
 ATTENDANCE_REFRESH_SECONDS = 60
 ATTENDANCE_TOKEN_MAX_AGE_SECONDS = 60
@@ -70,6 +73,9 @@ AttendanceErrorCode = Literal[
 ATTENDANCE_ERROR_CODES: tuple[AttendanceErrorCode, ...] = get_args(AttendanceErrorCode)
 
 
+User = get_user_model()
+
+
 class AttendanceValidationError(ValueError):
     """Attendance validation failure with a safe public error code."""
 
@@ -99,7 +105,7 @@ ATTENDANCE_ERROR_MESSAGES: dict[AttendanceErrorCode, str] = {
     "invalid_attendance_purpose": "Invalid attendance purpose.",
     "invalid_attendance_request": "Invalid attendance request.",
     "invalid_attendance_token": "The attendance QR code is invalid or expired.",
-    "not_registered": "You are not registered for this contest.",
+    "not_registered": "Only student members of this contest's classroom can check in.",
     "participant_not_found": "Participant not found.",
     "reason_required": "Reason is required.",
     "token_forbidden_for_teacher_assisted": "QR token is not accepted for teacher-assisted attendance.",
@@ -459,7 +465,6 @@ def _resolve_self_scan_event(
     contest: Contest,
     actor,
     data: dict[str, Any],
-    ensure_participant: Callable,
 ) -> dict[str, Any]:
     purpose = data["purpose"]
     if data.get("user_id"):
@@ -471,13 +476,12 @@ def _resolve_self_scan_event(
         str(data.get("manual_code") or ""),
     )
 
-    participant, _created, error_response = ensure_participant(contest, actor)
-    if error_response is not None:
-        return {"error_response": error_response}
-    if participant is None:
-        participant = ContestParticipant.objects.filter(contest=contest, user=actor).first()
-    if participant is None:
-        raise AttendanceValidationError("not_registered")
+    # Self check-in is one of the two actions that create the attempt record;
+    # starting the exam is the other.
+    try:
+        participant = ensure_candidate_participant(contest, actor)
+    except PermissionDenied:
+        raise AttendanceValidationError("not_registered") from None
 
     if purpose == "check_in" and participant.exam_status != ExamStatus.NOT_STARTED:
         return {"error_code": "check_in_only_before_personal_start"}
@@ -523,12 +527,12 @@ def _resolve_teacher_assisted_event(
     reason = str(data.get("reason") or "").strip()
     if not reason:
         raise AttendanceValidationError("reason_required")
+    # A student may not have an attempt record yet; assisted check-in creates it
+    # exactly as their own check-in would.
+    student = User.objects.filter(pk=data["user_id"]).first()
     try:
-        participant = ContestParticipant.objects.select_related("user").get(
-            contest=contest,
-            user_id=data["user_id"],
-        )
-    except ContestParticipant.DoesNotExist:
+        participant = ensure_candidate_participant(contest, student)
+    except PermissionDenied:
         raise AttendanceValidationError("participant_not_found") from None
 
     if _is_attendance_purpose_completed(contest, participant, purpose):
@@ -553,13 +557,12 @@ def create_attendance_event(
     contest: Contest,
     actor,
     data: dict[str, Any],
-    ensure_participant: Callable,
 ) -> dict[str, Any]:
     mode = data["mode"]
     purpose = data["purpose"]
 
     if mode == "student_self_scan":
-        resolved = _resolve_self_scan_event(contest, actor, data, ensure_participant)
+        resolved = _resolve_self_scan_event(contest, actor, data)
     elif mode == "teacher_assisted":
         resolved = _resolve_teacher_assisted_event(contest, actor, data)
     else:

@@ -10,7 +10,7 @@ const sampleContest = (override: Partial<Contest> = {}): Contest => ({
   endTime: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
   status: "published",
   hasJoined: false,
-  isRegistered: false,
+  canParticipate: false,
   organizer: "Host Team",
   ...override,
 });
@@ -49,19 +49,6 @@ export const Default: Story = {
     },
   },
   render: (args) => <ContestPreviewCard {...args} contest={args.contest ?? sampleContest()} />,
-};
-
-export const Registered: Story = {
-  parameters: {
-    docs: {
-      source: { code: `<ContestPreviewCard contest={{ ...contest, isRegistered: true }} />` },
-    },
-  },
-  render: () => (
-        <ContestPreviewCard
-          contest={sampleContest({ isRegistered: true })}
-        />
-      ),
 };
 
 export const Past: Story = {

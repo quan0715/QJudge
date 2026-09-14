@@ -9,13 +9,10 @@ from django.db import transaction
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.models import Contest
 
-from .participant_sync import sync_classroom_participants
-
 
 @dataclass(frozen=True)
 class BoundClassroomContestResult:
     binding: ClassroomContest
-    registered_count: int
     created: bool
 
 
@@ -39,11 +36,11 @@ def _create_bound_contest(
             allow_multiple_joins=data.get("allow_multiple_joins", False),
             results_published=data.get("results_published", False),
         )
+        # No roster copy: classroom membership is eligibility, and each
+        # student's attempt record is created by their own first exam action.
         binding = ClassroomContest.objects.create(classroom=classroom, contest=contest)
-        registered_count = sync_classroom_participants(classroom, contest)
     return BoundClassroomContestResult(
         binding=binding,
-        registered_count=registered_count,
         created=True,
     )
 

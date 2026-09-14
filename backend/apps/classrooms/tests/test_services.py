@@ -9,8 +9,6 @@ from apps.classrooms.services import (
     add_classroom_members,
     create_classroom_contest,
     generate_invite_code,
-    on_member_joined,
-    sync_classroom_participants,
 )
 from apps.contests.models import Contest, ContestParticipant
 from apps.users.models import User
@@ -83,30 +81,6 @@ def test_generate_invite_code_raises_after_too_many_collisions(mocker) -> None:
 
 
 @pytest.mark.django_db
-def test_sync_classroom_participants_creates_only_missing_members(
-    classroom: Classroom,
-    published_contest: Contest,
-    student_a: User,
-    student_b: User,
-) -> None:
-    ClassroomMember.objects.create(classroom=classroom, user=student_a, role="student")
-    ClassroomMember.objects.create(classroom=classroom, user=student_b, role="ta")
-    ContestParticipant.objects.create(contest=published_contest, user=student_a)
-
-    created_count = sync_classroom_participants(classroom, published_contest)
-
-    assert created_count == 1
-    assert (
-        ContestParticipant.objects.filter(contest=published_contest, user=student_a).count()
-        == 1
-    )
-    assert (
-        ContestParticipant.objects.filter(contest=published_contest, user=student_b).count()
-        == 1
-    )
-
-
-@pytest.mark.django_db
 def test_add_classroom_members_resolves_users_and_skips_reserved_members(
     classroom: Classroom,
     owner: User,
@@ -139,7 +113,7 @@ def test_add_classroom_members_resolves_users_and_skips_reserved_members(
 
 
 @pytest.mark.django_db
-def test_create_classroom_contest_binds_and_registers_members(
+def test_create_classroom_contest_binds_without_copying_the_roster(
     classroom: Classroom,
     owner: User,
     student_a: User,
@@ -164,57 +138,8 @@ def test_create_classroom_contest_binds_and_registers_members(
 
     assert result.binding.classroom == classroom
     assert result.binding.contest.name == "Midterm"
-    assert result.registered_count == 1
-    assert ContestParticipant.objects.filter(
+    # Membership is eligibility; a student's attempt record is created by their
+    # own first check-in or start, never copied from the roster up front.
+    assert not ContestParticipant.objects.filter(
         contest=result.binding.contest,
-        user=student_a,
     ).exists()
-
-
-@pytest.mark.django_db
-def test_sync_classroom_participants_returns_zero_when_all_registered(
-    classroom: Classroom,
-    published_contest: Contest,
-    student_a: User,
-) -> None:
-    ClassroomMember.objects.create(classroom=classroom, user=student_a, role="student")
-    ContestParticipant.objects.create(contest=published_contest, user=student_a)
-
-    created_count = sync_classroom_participants(classroom, published_contest)
-
-    assert created_count == 0
-
-
-@pytest.mark.django_db
-def test_on_member_joined_registers_only_for_published_bound_contests(
-    classroom: Classroom,
-    published_contest: Contest,
-    draft_contest: Contest,
-    student_c: User,
-) -> None:
-    ClassroomContest.objects.create(classroom=classroom, contest=published_contest)
-    ClassroomContest.objects.create(classroom=classroom, contest=draft_contest)
-
-    created_count = on_member_joined(classroom, student_c)
-
-    assert created_count == 1
-    assert ContestParticipant.objects.filter(contest=published_contest, user=student_c).exists()
-    assert not ContestParticipant.objects.filter(contest=draft_contest, user=student_c).exists()
-
-
-@pytest.mark.django_db
-def test_on_member_joined_skips_existing_participants(
-    classroom: Classroom,
-    published_contest: Contest,
-    student_c: User,
-) -> None:
-    ClassroomContest.objects.create(classroom=classroom, contest=published_contest)
-    ContestParticipant.objects.create(contest=published_contest, user=student_c)
-
-    created_count = on_member_joined(classroom, student_c)
-
-    assert created_count == 0
-    assert (
-        ContestParticipant.objects.filter(contest=published_contest, user=student_c).count()
-        == 1
-    )
