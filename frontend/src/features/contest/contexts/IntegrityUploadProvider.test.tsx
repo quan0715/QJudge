@@ -11,7 +11,7 @@ import type { ExamRuntimeState } from "@/core/entities/contest.entity";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it.each(["storage", "network"])("keeps answer DOM/outbox through submit and completion without erasing %s failure semantics", async (failure) => {
+it.each(["storage", "network"])("keeps answer DOM/outbox through submit and completion despite a %s failure", async (failure) => {
   vi.mocked(localStorage.getItem).mockReturnValue("device-a");
   const runId = crypto.randomUUID();
   const run = { id: runId, participantId: 44, sessionState: "active", health: "unhealthy",
@@ -72,12 +72,10 @@ it.each(["storage", "network"])("keeps answer DOM/outbox through submit and comp
   expect(screen.getByText("Submitted")).toBeTruthy();
   uploadComplete = true;
   await act(async () => { await currentOwner!.flush(); });
-  await waitFor(() => expect(screen.queryByTestId("integrity-upload-status")).toBeNull());
   state = { ...state, integrity_upload: { ...state.integrity_upload!, upload_status: "complete" } };
   await act(async () => { rerender(tree(false)); });
-  expect(screen.queryByTestId("integrity-upload-status")).toBeNull();
-  if (failure === "storage") expect(screen.getByTestId("integrity-local-data-loss")).toBeTruthy();
-  else expect(screen.queryByTestId("integrity-local-data-loss")).toBeNull();
+  // Upload state is never shown to the student, whatever failed.
+  expect(screen.queryByRole("status")).toBeNull();
   // A reset mounts the answer child before the provider's passive effect has
   // replaced the completed owner. The first entry must belong to the NEW scope.
   const nextAttempt = crypto.randomUUID();
@@ -93,5 +91,37 @@ it.each(["storage", "network"])("keeps answer DOM/outbox through submit and comp
       return scope?.attempt_id === nextAttempt && observations?.records?.some((record) => record.event_type === "exam_entered");
     })).toBe(true);
   }, { timeout: 5000 });
+  unmount();
+});
+
+const leavingIsBlocked = () => {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
+};
+
+it("stops guarding page exit once there is nothing left for this device to send", async () => {
+  const runId = crypto.randomUUID();
+  const base: ExamRuntimeState = { server_now: new Date().toISOString(), serverOffsetMs: 0,
+    start_time: null, end_time: null, schedule_revision: 1, participant_id: 44, exam_status: "in_progress",
+    integrity_run: { id: runId, session_state: "active", schedule_revision: 1, health: "healthy", accept_until: null },
+    session_identity: { active_device_matches: false, device_id: null, attempt_id: null, next_sequence: null },
+    integrity_upload: null };
+  const view = (state: ExamRuntimeState) => <IntegrityUploadProvider contestId="1" runtimeState={state}><p>page</p></IntegrityUploadProvider>;
+  const { rerender, unmount } = render(view(base));
+  expect(leavingIsBlocked()).toBe(true);
+
+  // Submitted, but this device holds no upload grant (another device, or none issued).
+  await act(async () => { rerender(view({ ...base, exam_status: "submitted" })); });
+  expect(leavingIsBlocked()).toBe(false);
+
+  const pending = { upload_status: "pending" as const, final_seq: null, received_seq: 0, processed_seq: 0, commands_drained: false };
+  await act(async () => { rerender(view({ ...base, exam_status: "submitted",
+    integrity_upload: { ...pending, accept_until: new Date(Date.now() + 60000).toISOString() } })); });
+  expect(leavingIsBlocked()).toBe(true);
+
+  await act(async () => { rerender(view({ ...base, exam_status: "submitted",
+    integrity_upload: { ...pending, accept_until: new Date(Date.now() - 1000).toISOString() } })); });
+  expect(leavingIsBlocked()).toBe(false);
   unmount();
 });

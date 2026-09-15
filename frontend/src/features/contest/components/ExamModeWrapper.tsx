@@ -278,7 +278,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const examCaptureContextValue = useMemo(
     () => ({
       ...capture,
-      deferMonitoringUploads: uploadOwner.resident,
       flushPendingUploads: async () => {
         await uploadOwner.flush();
       },

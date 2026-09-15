@@ -15,6 +15,8 @@ import {
 } from "@/infrastructure/browser/fullscreen";
 import { useIntegritySignalEmitter } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
 import { emitIntegritySignalBestEffort } from "@/features/contest/anticheat/integrity/emitIntegritySignalBestEffort";
+import { flushUploadsForSubmit } from "@/features/contest/anticheat/integrity/flushUploadsForSubmit";
+import { useIntegrityUploadOwner } from "@/features/contest/contexts/IntegrityUploadProvider";
 import { clearExamPrecheckPassed } from "@/features/contest/anticheat/examPrecheckGate";
 import {
   clearExamCaptureSessionId,
@@ -75,6 +77,7 @@ export const useContestExamActions = ({
 }: UseContestExamActionsParams) => {
   const submissionProgress = useExamSubmissionProgress();
   const integrity = useIntegritySignalEmitter();
+  const uploadOwner = useIntegrityUploadOwner();
   const resolveMonitoringModules = useCallback((): {
     primarySourceModule: "screen_share" | "webcam";
   } => {
@@ -150,6 +153,9 @@ export const useContestExamActions = ({
           });
           beginAnticheatTermination(contest.id);
         },
+        uploading: async () => {
+          if (uploadOwner) await flushUploadsForSubmit(uploadOwner.flush);
+        },
         finalizing: async () => {
           const response = uploadSessionId
             ? await endExam(contest.id, {
@@ -182,6 +188,7 @@ export const useContestExamActions = ({
     refreshContest,
     submissionProgress,
     integrity,
+    uploadOwner,
     resolveMonitoringModules,
   ]);
 
