@@ -26,6 +26,7 @@ interface EmbeddedProblemEditorProps {
   contestBinding: Pick<ContestProblemSummary, "sourceBank" | "sourceMode">;
   score?: number;
   frozen?: boolean;
+  onScoreChange?: (score: number) => Promise<void>;
   onDelete?: () => Promise<void>;
   onDuplicate?: () => void | Promise<void>;
   onPointerDownDrag?: (e: React.PointerEvent) => void;
@@ -39,6 +40,7 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
   contestBinding,
   score,
   frozen = false,
+  onScoreChange,
   onDelete,
   onDuplicate,
   onPointerDownDrag,
@@ -157,6 +159,7 @@ const EmbeddedProblemEditor: React.FC<EmbeddedProblemEditorProps> = ({
               score={score}
               difficulty={problem.difficulty}
               frozen={frozen}
+              onScoreChange={onScoreChange}
               contestBinding={contestBinding}
               problemId={problem.id}
               onSaveToBankSuccess={() => void onSaveToBankSuccess?.()}

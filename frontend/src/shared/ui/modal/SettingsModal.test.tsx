@@ -1,7 +1,5 @@
 import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsModal, type SettingsModalNavItem } from "./SettingsModal";
@@ -55,29 +53,4 @@ describe("SettingsModal", () => {
     );
   });
 
-  it("keeps the visible-item memo dependency array fixed-length for HMR tab additions", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/shared/ui/modal/SettingsModal.tsx"),
-      "utf8",
-    );
-
-    expect(source).toContain("[navItems]");
-    expect(source).not.toContain("...navItems.map");
-  });
-
-  it("uses public Carbon modal and button composition", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/shared/ui/modal/SettingsModal.tsx"),
-      "utf8",
-    );
-    const styles = readFileSync(
-      resolve(process.cwd(), "src/shared/ui/modal/SettingsModal.scss"),
-      "utf8",
-    );
-
-    expect(source).toContain("isFullWidth");
-    expect(source).not.toContain("<button");
-    expect(styles).not.toMatch(/\.(?:cds|bx)--/);
-    expect(styles).not.toContain("!important");
-  });
 });

@@ -1,0 +1,12 @@
+.refreshing svg {
+  animation: refresh-rotate 0.8s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes refresh-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshing svg { animation: none; }
+}

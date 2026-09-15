@@ -15,7 +15,6 @@ from apps.question_bank.models import ContestQuestionBinding
 from apps.classrooms.models import Classroom, ClassroomContest
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
-from apps.submissions.models import Submission
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
 from apps.question_bank.question_assets import create_question_asset, ensure_question_bank_membership
 from apps.users.models import User, UserProfile
@@ -889,15 +888,15 @@ def test_contest_question_mutations_blocked_when_question_edit_locked(
     student: User,
     contest: Contest,
 ) -> None:
+    contest.contest_type = "paper_exam"
+    contest.save(update_fields=["contest_type"])
     problem = _create_problem("Locked Contest Problem", owner)
     binding = bind_problem_to_contest(contest, problem, order=0, score=20)
-    Submission.objects.create(
-        user=student,
+    ContestParticipant.objects.create(
         contest=contest,
-        problem=problem,
-        source_type="contest",
-        language="python",
-        code="print(1)",
+        user=student,
+        started_at=timezone.now(),
+        exam_status=ExamStatus.IN_PROGRESS,
     )
 
     api_client.force_authenticate(user=owner)
@@ -976,20 +975,19 @@ def test_reorder_problems_updates_and_normalizes_order(
 
 
 @pytest.mark.django_db
-def test_contest_detail_computes_question_edit_lock_from_submission(
+def test_contest_detail_computes_question_edit_lock_from_attempt(
     api_client: APIClient,
     owner: User,
     student: User,
     contest: Contest,
 ) -> None:
-    problem = _create_problem("Detail Lock Evidence", owner)
-    Submission.objects.create(
-        user=student,
+    contest.contest_type = "paper_exam"
+    contest.save(update_fields=["contest_type"])
+    ContestParticipant.objects.create(
         contest=contest,
-        problem=problem,
-        source_type="contest",
-        language="python",
-        code="print(1)",
+        user=student,
+        started_at=timezone.now(),
+        exam_status=ExamStatus.IN_PROGRESS,
     )
 
     api_client.force_authenticate(user=owner)
@@ -1052,6 +1050,7 @@ def test_export_results_generates_csv_with_problem_cells(
 
     assert response.status_code == status.HTTP_200_OK
     assert "text/csv" in response["Content-Type"]
+    assert response.content.decode("utf-8").count("\ufeff") == 1
     csv_body = response.content.decode("utf-8-sig")
     assert "A (Sum)" in csv_body
     assert "B (Sort)" in csv_body

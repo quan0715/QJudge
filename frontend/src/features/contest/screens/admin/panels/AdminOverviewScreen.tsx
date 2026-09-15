@@ -1,3 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
+import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
+import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@carbon/react";
 import {
@@ -5,7 +8,7 @@ import {
   Launch,
   QrCode,
   Renew,
-  Settings,
+  Scan,
   UserFollow,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +20,8 @@ import AdminExamResultOverview from "@/features/contest/components/admin/statist
 import AdminQuestionStatsGallery from "@/features/contest/components/admin/statistics/AdminQuestionStatsGallery";
 import { useContestResultDashboard } from "@/features/contest/components/admin/statistics/useContestResultDashboard";
 import { AddParticipantModal } from "@/features/contest/components/modals/AddParticipantModal";
+import ContestSubmissionListScreen from "@/features/contest/screens/ContestSubmissionListScreen";
+import AdminStandingsScreen from "@/features/contest/screens/admin/panels/AdminStandingsScreen";
 import {
   useAdminPanelRefresh,
   useContest,
@@ -62,6 +67,7 @@ export default function AdminOverviewScreen({
   const { showToast } = useToast();
   const { confirm, modalProps: confirmModalProps } = useConfirmModal();
   const { contest, refreshContest } = useContest();
+  const queryClient = useQueryClient();
   const {
     participants,
     examEvents,
@@ -77,6 +83,8 @@ export default function AdminOverviewScreen({
   const [publishingContest, setPublishingContest] = useState(false);
   const [resultRefreshKey, setResultRefreshKey] = useState(0);
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
+  const [studentQrScannerOpen, setStudentQrScannerOpen] = useState(false);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const classroomBound = Boolean(contest?.isClassroomBound);
 
@@ -166,11 +174,11 @@ export default function AdminOverviewScreen({
     (panel: AdminPanelId) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        next.set("panel", contest?.contestType === "coding" && panel === "grading" ? "standings" : panel);
+        next.set("panel", panel);
         return next;
       });
     },
-    [setSearchParams, contest?.contestType],
+    [setSearchParams],
   );
 
   const openSettings = useCallback(
@@ -192,12 +200,17 @@ export default function AdminOverviewScreen({
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await Promise.all([refreshAllAdminData(), refreshContest()]);
+      await Promise.all([
+        refreshAllAdminData(),
+        refreshContest(),
+        queryClient.invalidateQueries({ queryKey: ["contestStandings", contest?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["contestClarifications", contest?.id] }),
+      ]);
       setResultRefreshKey((current) => current + 1);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshAllAdminData, refreshContest, refreshing]);
+  }, [refreshAllAdminData, refreshContest, refreshing, queryClient, contest?.id]);
 
   const handleExport = useCallback(async () => {
     if (!contest?.id || exporting) return;
@@ -408,7 +421,7 @@ export default function AdminOverviewScreen({
   const contestTypeLabel =
     contest.contestType === "paper_exam"
       ? t("adminOverview.screen.contestType.paperExam", "考卷")
-      : t("adminOverview.screen.contestType.coding", "Coding Test");
+      : t("adminOverview.screen.contestType.coding", "程式測驗");
   const renderContestHeader = () => (
     <section
       className={styles.overviewHeader}
@@ -423,16 +436,6 @@ export default function AdminOverviewScreen({
             <Button
               kind="ghost"
               hasIconOnly
-              renderIcon={Settings}
-              iconDescription={t(
-                "adminOverview.screen.actions.settings",
-                "競賽設定",
-              )}
-              onClick={() => openSettings()}
-            />
-            <Button
-              kind="ghost"
-              hasIconOnly
               renderIcon={Launch}
               iconDescription={t(
                 "adminOverview.screen.actions.contestHome",
@@ -441,6 +444,18 @@ export default function AdminOverviewScreen({
               disabled={!contestHomePath}
               onClick={openContestHome}
             />
+            {!isPreparationPhase ? (
+              <Button
+                kind="ghost"
+                hasIconOnly
+                renderIcon={Scan}
+                iconDescription={t(
+                  "adminOverview.screen.actions.studentQrScan",
+                  "掃描學生 QR",
+                )}
+                onClick={() => setStudentQrScannerOpen(true)}
+              />
+            ) : null}
             <Button
               kind="ghost"
               hasIconOnly
@@ -468,6 +483,8 @@ export default function AdminOverviewScreen({
               kind="ghost"
               hasIconOnly
               renderIcon={Renew}
+              className={refreshing ? refreshStyles.refreshing : undefined}
+              aria-busy={refreshing}
               iconDescription={
                 refreshing
                   ? t("adminOverview.screen.actions.refreshing", "重新整理中")
@@ -523,6 +540,13 @@ export default function AdminOverviewScreen({
               contestInProgress={contestInProgress}
               onOpenPanel={openPanel}
               participants={participants}
+              studentQrScannerOpen={studentQrScannerOpen}
+              onStudentQrScannerOpenChange={setStudentQrScannerOpen}
+              onOpenAnnouncement={
+                contest.permissions?.canManageClarifications
+                  ? () => setAnnouncementOpen(true)
+                  : undefined
+              }
               primary={null}
               overviewInfo={{
                 contestTypeLabel,
@@ -555,6 +579,22 @@ export default function AdminOverviewScreen({
                   detailLoadingIds={resultDetailLoadingIds}
                   detailErrors={resultDetailErrors}
                 />
+              }
+              clarificationsContent={
+                <ContestClarifications
+                  contestId={contest.id}
+                  mode="manage"
+                  problems={contest.problems}
+                  contestStatus={contest.status}
+                  contestEndTime={contest.endTime}
+                  embedded
+                  announcementOpen={announcementOpen}
+                  onAnnouncementOpenChange={setAnnouncementOpen}
+                />
+              }
+              submissionList={<ContestSubmissionListScreen embedded />}
+              standingsContent={
+                <AdminStandingsScreen contestId={contest.id} contest={contest} embedded />
               }
             />
           )

@@ -150,37 +150,12 @@ export async function logout(page: Page) {
     .filter({ has: page.getByTestId("user-menu-logout-confirm") });
   await confirmBtn.click({ timeout: 5000 });
 
-  // Accept either immediate redirect or client auth state cleared.
-  const logoutObserved = await Promise.race([
-    page
-      .waitForFunction(
-        () => ["/", "/login"].includes(window.location.pathname),
-        undefined,
-        { timeout: 4000 }
-      )
-      .then(() => true)
-      .catch(() => false),
-    page
-      .waitForFunction(
-        () => !localStorage.getItem("user") && !localStorage.getItem("token"),
-        undefined,
-        { timeout: 4000 }
-      )
-      .then(() => true)
-      .catch(() => false),
-  ]);
-
-  if (!logoutObserved) {
-    // Fallback for unstable menu interactions in E2E: enforce unauthenticated state.
-    await clearAuth(page);
-    await page.context().clearCookies();
-  }
-
-  if (!/\/$|\/login/.test(new URL(page.url()).pathname)) {
-    await page.goto("/problems");
-  }
-
-  await page.waitForURL(/\/$|\/login/, { timeout: 10000 });
+  // Observe the application logout; never clear state here to force success.
+  await expect.poll(() => page.evaluate(() =>
+    localStorage.getItem("user") === null,
+  )).toBe(true);
+  const currentUser = await page.request.get("/api/v1/users/me");
+  expect(currentUser.status()).toBe(401);
   await expect(page).toHaveURL(/\/$|\/login/);
 }
 

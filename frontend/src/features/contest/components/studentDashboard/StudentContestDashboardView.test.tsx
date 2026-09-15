@@ -16,8 +16,12 @@ import {
   getMyExamAnswers,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { getExamDashboardSummary } from "@/infrastructure/api/repositories/exam.repository";
-import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
+import userEvent from "@testing-library/user-event";
 import StudentContestDashboard from "./StudentContestDashboardView";
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn().mockResolvedValue(undefined) }),
+}));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -29,7 +33,9 @@ vi.mock("react-i18next", () => ({
   },
 }));
 
-vi.mock("@carbon/react", () => ({
+vi.mock("@carbon/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@carbon/react")>();
+  return ({
   Accordion: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   AccordionItem: ({ title, children }: { title: ReactNode; children: ReactNode }) => <div>{title}{children}</div>,
   Button: ({
@@ -85,28 +91,13 @@ vi.mock("@carbon/react", () => ({
     <div data-testid="progress-bar" data-value={value} />
   ),
   SkeletonPlaceholder: () => <div data-testid="skeleton-placeholder" />,
-  Tab: ({ children }: { children: ReactNode }) => (
-    <button type="button" role="tab">{children}</button>
-  ),
-  TabList: ({
-    children,
-    ...props
-  }: {
-    children: ReactNode;
-    "aria-label"?: string;
-  }) => (
-    <div role="tablist" aria-label={props["aria-label"]}>
-      {children}
-    </div>
-  ),
-  TabPanel: ({ children }: { children: ReactNode }) => (
-    <div role="tabpanel">{children}</div>
-  ),
-  TabPanels: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  Tabs: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Tab: actual.Tab,
+  TabList: actual.TabList,
+  Tabs: actual.Tabs,
   Tag: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   TextInput: () => <input aria-label="text input" />,
-}));
+});
+});
 
 vi.mock("@carbon/charts-react", () => ({
   LollipopChart: () => <div data-testid="score-distribution-chart" />,
@@ -201,8 +192,10 @@ vi.mock("@/infrastructure/api/repositories/exam.repository", () => ({
   })),
 }));
 
-vi.mock("@/infrastructure/api/repositories/contestAnnouncements.repository", () => ({
-  getContestAnnouncements: vi.fn(() => new Promise(() => {})),
+vi.mock("@/features/contest/components/ContestClarifications", () => ({
+  default: ({ contestId, mode }: { contestId: string; mode: string }) => (
+    <section aria-label="問答內容" data-mode={mode}>{contestId}</section>
+  ),
 }));
 
 const createContest = (
@@ -332,24 +325,31 @@ describe("StudentContestDashboard", () => {
     expect(screen.queryByRole("button", { name: /加入競賽/ })).not.toBeInTheDocument();
   });
 
-  // 公告 block 暫時於 view 中隱藏（SHOW_ANNOUNCEMENTS=false），啟用時恢復此測試
-  it.skip("renders contest announcements above the tabs", async () => {
-    vi.mocked(getContestAnnouncements).mockResolvedValueOnce([
-      {
-        id: "ann-1",
-        title: "考試公告",
-        content: "請準時進入考場",
-        created_at: "2099-05-05T09:00:00.000Z",
-        updated_at: "2099-05-05T09:00:00.000Z",
-        created_by: { username: "teacher" },
-      },
-    ]);
-
+  it("opens announcements and questions from the student dashboard", async () => {
     renderDashboard(createContest());
+    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
+    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
+    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
+  });
 
-    expect(await screen.findByText("考試公告")).toBeInTheDocument();
-    expect(screen.getByText("請準時進入考場")).toBeInTheDocument();
-    expect(screen.getByRole("tablist", { name: "競賽資訊切換" })).toBeInTheDocument();
+  it("shows the exam-taking Q&A even to a staff participant", async () => {
+    const contest = createContest();
+    renderDashboard({
+      ...contest,
+      permissions: { ...contest.permissions!, canManageClarifications: true },
+    });
+    await userEvent.click(screen.getByRole("tab", { name: "競賽資訊" }));
+    expect(screen.getByRole("region", { name: "問答內容" })).toHaveAttribute("data-mode", "participate");
+  });
+
+  it("opens the questions panel from a direct link", () => {
+    render(
+      <MemoryRouter initialEntries={["/?tab=clarifications"]}>
+        <StudentContestDashboard contest={createContest()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("region", { name: "問答內容" })).toHaveTextContent("contest-1");
+    expect(screen.getByRole("tab", { name: "競賽資訊" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("does not show answer records before the participant starts", () => {
@@ -381,7 +381,7 @@ describe("StudentContestDashboard", () => {
     );
 
     expect(screen.getByText("總時長")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /回到作答/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /前往作答區/ })).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.queryByText("已完成")).not.toBeInTheDocument();
     expect(screen.queryByText("已嘗試")).not.toBeInTheDocument();

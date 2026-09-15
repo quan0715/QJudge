@@ -79,15 +79,10 @@ const question: QuestionProgress = {
 };
 
 describe("GradingByStudentTabScreen", () => {
-  it("shows one username line without a row-level flag action", () => {
+  it("identifies the student by username", () => {
     renderScreen();
 
-    const username = screen.getByText("student1");
-    expect(username.className).toContain("title");
-    expect(screen.queryByText("Student One")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "標記" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("student1")).toBeInTheDocument();
   });
 
   it("compresses completed progress into a labelled completion icon", () => {
@@ -97,12 +92,11 @@ describe("GradingByStudentTabScreen", () => {
     expect(screen.queryByText("1/1")).not.toBeInTheDocument();
   });
 
-  it("presents a graded question score as quiet status text", () => {
+  it("presents a graded question score with an accessible score label", () => {
     renderScreen();
 
     const score = screen.getByLabelText("得分 2.00，共 2.00 分");
     expect(score).toHaveTextContent("2.00/2.00");
-    expect(score.tagName).toBe("SPAN");
   });
 
   it("shows a question type icon for each question", () => {

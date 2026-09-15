@@ -109,6 +109,15 @@ class CodingProblem(models.Model):
                 pass
         return f"{self.id}"
 
+    def public_sample_cases(self):
+        """Sample cases a solver may see.
+
+        The statement shows exactly these and a test run executes exactly
+        these (plus the solver's own cases); hidden cases only ever run in a
+        formal submission.
+        """
+        return self.test_cases.filter(is_sample=True, is_hidden=False)
+
     @property
     def acceptance_rate(self):
         if self.submission_count == 0:

@@ -107,7 +107,10 @@ class ContestProblemViewSet(viewsets.ModelViewSet):
         if not problem:
             return Response({'detail': 'Coding problem not linked.'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = ProblemDetailSerializer(problem, context={'request': request})
+        serializer = ProblemDetailSerializer(
+            problem,
+            context={'request': request, 'include_all_test_cases': is_privileged},
+        )
         data = serializer.data
 
         # Add binding-level fields

@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@carbon/react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Close, DocumentBlank, RecentlyViewed, Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
+import { DocumentBlank, RecentlyViewed, Checkmark, CircleDash, IncompleteCancel } from "@carbon/icons-react";
 import type { ContestProblemSummary } from "@/core/entities/contest.entity";
 import type { SubmissionStatus } from "@/core/entities/submission.entity";
 import { ExamNavigator } from "@/features/contest/components/exam/ExamNavigator";
@@ -51,11 +51,6 @@ export const SideMenuContestRuntimeSection = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-        <Button className="contest-runtime-nav-action" kind="ghost" hasIconOnly={compact} tooltipPosition="right" {...{ autoAlign: true }} renderIcon={ArrowLeft}
-          iconDescription={t("workspaceTopNav.backToContest", "返回競賽主頁")}
-          onClick={() => navigate(`/classrooms/${classroomId}/contest/${contestId}`)}>
-          {!compact && t("workspaceTopNav.backToContest", "返回競賽主頁")}
-        </Button>
       {runtimeNavigator && !runtimeNavigator.coding ? (
         <ExamNavigator
           items={runtimeNavigator.items}
@@ -122,13 +117,6 @@ export const SideMenuContestRuntimeSection = ({
                         {!compact && tab.label}
                       </Button>
                   ))}
-                  {isActive && codingNavigator && (
-                    <Button className="contest-runtime-nav-action" kind="ghost" hasIconOnly={compact} tooltipPosition="right" {...{ autoAlign: true }}
-                      renderIcon={Close} iconDescription={t("workspaceTopNav.closeInfoPanel")}
-                      onClick={() => codingNavigator.closeStatement?.()}>
-                      {!compact && t("workspaceTopNav.closeInfoPanel")}
-                    </Button>
-                  )}
                 </Fragment>
               );
             })

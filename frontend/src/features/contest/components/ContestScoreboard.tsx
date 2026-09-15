@@ -13,7 +13,6 @@ import {
 } from "@carbon/react";
 
 import { Link } from "react-router-dom";
-import { formatScore } from "@/shared/utils/scoreFormat";
 import styles from "./ContestScoreboard.module.scss";
 
 export interface ProblemInfo {
@@ -55,6 +54,8 @@ interface ContestScoreboardProps {
   classroomId?: string;
   onSelectParticipant?: (userId: string, problemId?: string) => void;
 }
+
+const formatScoreAsInteger = (value: number): string => String(Math.round(value));
 
 const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
   problems,
@@ -178,7 +179,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                 AC
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
-                {`${formatScore(stats.score || problemScore || 0)} ${t("scoreboard.status.pts")}`}
+                {formatScoreAsInteger(stats.score || problemScore || 0)}
               </div>
             </>
           )}
@@ -191,7 +192,7 @@ const ContestScoreboard: React.FC<ContestScoreboardProps> = ({
                   color: statusColor,
                 }}
               >
-                {stats.score && stats.score > 0 ? formatScore(stats.score) : "WA"}
+                {stats.score && stats.score > 0 ? formatScoreAsInteger(stats.score) : "WA"}
               </div>
               <div style={{ fontSize: "0.8em", color: textColor }}>
                 {stats.score && stats.score > 0

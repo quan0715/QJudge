@@ -197,8 +197,9 @@ class ProblemViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def test_run(self, request, id=None):
         """
-        Execute code against all stored test cases without creating a submission.
-        Returns execution results immediately.
+        Execute code against the public sample cases plus the caller's custom
+        cases, without creating a submission. Hidden cases only run in a
+        formal submission.
 
         Access mirrors Submission: any authenticated user may invoke test_run as
         long as they hold the problem id. If a `contest_id` is supplied, the
@@ -233,6 +234,7 @@ class ProblemViewSet(viewsets.ModelViewSet):
             except SubmissionAccessError as exc:
                 raise PermissionDenied(exc.message) from exc
 
+        custom_test_cases = serializer.validated_data["custom_test_cases"]
         if serializer.validated_data["asynchronous"]:
             from django.conf import settings
             from django.core import signing
@@ -240,17 +242,20 @@ class ProblemViewSet(viewsets.ModelViewSet):
 
             task = run_problem_test_run.apply_async(
                 args=[str(problem.id), serializer.validated_data["language"], serializer.validated_data["code"]],
-                kwargs={"report_progress": True}, queue=settings.JUDGE_TEST_RUN_QUEUE,
+                kwargs={"report_progress": True, "custom_test_cases": custom_test_cases},
+                queue=settings.JUDGE_TEST_RUN_QUEUE,
             )
             token = signing.dumps({"task": task.id, "user": str(request.user.pk), "problem": str(problem.pk)}, salt="test-run")
+            total = len(ProblemTestRunService.build_test_cases(problem, custom_test_cases))
             return Response({"run_id": token, "execution_status": "pending", "status": "pending",
-                             "total": problem.test_cases.count(), "results": []}, status=202)
+                             "total": total, "results": []}, status=202)
 
         try:
             result = ProblemTestRunService.run_via_worker(
                 problem=problem,
                 language=serializer.validated_data["language"],
                 source_code=serializer.validated_data["code"],
+                custom_test_cases=custom_test_cases,
             )
         except TestRunSetupError as exc:
             logger.warning("Test run setup failed with code=%s", exc.code)

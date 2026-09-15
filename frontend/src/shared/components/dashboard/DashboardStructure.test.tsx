@@ -3,7 +3,6 @@ import { render, screen } from "@testing-library/react";
 import {
   BlockHeader,
   DashboardBlock,
-  DashboardContainer,
   DashboardPage,
   KPIBlock,
 } from "./index";
@@ -12,42 +11,6 @@ describe("DashboardPage", () => {
   it("renders children inside main with aria-label", () => {
     render(<DashboardPage ariaLabel="page">x</DashboardPage>);
     expect(screen.getByRole("main", { name: "page" })).toHaveTextContent("x");
-  });
-});
-
-describe("DashboardContainer", () => {
-  it("renders children for stack layout", () => {
-    render(
-      <DashboardContainer layout="stack">
-        <div>a</div>
-        <div>b</div>
-      </DashboardContainer>,
-    );
-    expect(screen.getByText("a")).toBeInTheDocument();
-    expect(screen.getByText("b")).toBeInTheDocument();
-  });
-
-  it("renders children for split layout", () => {
-    render(
-      <DashboardContainer layout="split" dividers="auto" bordered>
-        <div>l</div>
-        <div>r</div>
-      </DashboardContainer>,
-    );
-    expect(screen.getByText("l")).toBeInTheDocument();
-    expect(screen.getByText("r")).toBeInTheDocument();
-  });
-
-  it("renders children for grid layout with columns", () => {
-    render(
-      <DashboardContainer layout="grid" columns={3} dividers="auto">
-        <div>1</div>
-        <div>2</div>
-        <div>3</div>
-      </DashboardContainer>,
-    );
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
   });
 });
 

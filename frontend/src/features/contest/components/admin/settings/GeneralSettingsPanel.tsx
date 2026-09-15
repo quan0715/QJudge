@@ -66,7 +66,7 @@ export default function GeneralSettingsPanel({
         <Tag type="cool-gray" size="md">
           {contest.contestType === "paper_exam"
             ? t("adminOverview.examType.paper_exam", "考卷")
-            : t("adminOverview.examType.coding", "Coding Test")}
+            : t("adminOverview.examType.coding", "程式測驗")}
         </Tag>
       </ActionRow>
 

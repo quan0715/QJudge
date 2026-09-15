@@ -15,7 +15,7 @@
 - 把 `coding_ext` 傳給 `qjudge_coding_problems`：改成 top-level `description`, `test_cases`, `language_configs`。
 - 在 `qjudge_code_runner` 少傳 `code`：補齊 `problem_id`, `language`, `code` 三欄。
 - delete 傳陣列 id：改成單一 id。
-- 老師需確認筆試題呈現後再更新：先用 `preview_exam_problem` 取得 read-only preview，取得確認後才呼叫 `qjudge_exam(action="update")`。
+- 老師要求先預覽時，用 `preview_exam_problem` 取得 read-only preview；已授權直接修改時可呼叫 `qjudge_exam(action="update")`，遵循 runtime 審核，不強制額外預覽確認。
 
 ## One-retry rule
 - 第一次錯誤：依 tool 錯誤內容補欄位並重送一次。

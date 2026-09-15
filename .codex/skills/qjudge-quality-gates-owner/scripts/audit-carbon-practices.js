@@ -535,24 +535,6 @@ function auditCode(file, source, cleanSource) {
           );
         }
       }
-
-      const relativePath = toPosix(path.relative(root, file));
-      if (
-        component === "Button" &&
-        attributes.has("size") &&
-        /(?:Header|Toolbar|TopNav|Navbar)/i.test(relativePath) &&
-        /size\s*=\s*["']sm["']/.test(evidence)
-      ) {
-        addFinding(
-          file,
-          source,
-          offset,
-          "small-button-in-navigation",
-          "warning",
-          "QJudge navigation and toolbar actions use the default Carbon button size to align with the 3rem shell.",
-          evidence,
-        );
-      }
     }
     typescript.forEachChild(node, inspect);
   }

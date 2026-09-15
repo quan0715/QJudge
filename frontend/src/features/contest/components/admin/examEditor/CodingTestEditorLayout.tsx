@@ -14,6 +14,7 @@ import {
   getContest,
   removeContestProblem,
   reorderContestProblems,
+  updateContestProblemScore,
 } from "@/infrastructure/api/repositories";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useToast } from "@/shared/contexts";
@@ -215,6 +216,39 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
       showToast,
       t,
     ]
+  );
+
+  const handleScoreChange = useCallback(
+    async (contestProblemId: string, maxScore: number) => {
+      if (questionEditLocked) {
+        showToast({ kind: "warning", title: lockedReason });
+        throw new Error(lockedReason);
+      }
+
+      try {
+        await listSave.track(() =>
+          updateContestProblemScore(contestId, contestProblemId, maxScore),
+        );
+        await refreshAfterListMutation();
+      } catch (error) {
+        console.error("Failed to update contest problem score", error);
+        showToast({
+          kind: "error",
+          title: t("examEditor.saveFailed", "儲存失敗"),
+          subtitle: error instanceof Error ? error.message : undefined,
+        });
+        throw error;
+      }
+    },
+    [
+      contestId,
+      listSave,
+      lockedReason,
+      questionEditLocked,
+      refreshAfterListMutation,
+      showToast,
+      t,
+    ],
   );
 
   const insertImportedProblemAt = useCallback(
@@ -505,6 +539,7 @@ const CodingTestEditorLayout: React.FC<CodingTestEditorLayoutProps> = ({
               }}
               score={cp.maxScore}
               frozen={questionEditLocked}
+              onScoreChange={(maxScore) => handleScoreChange(cp.id, maxScore)}
               onDuplicate={
                 questionEditLocked
                   ? undefined

@@ -5,6 +5,67 @@
   align-content: start;
 }
 
+.scheduleGridItem {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.scheduleGridItem > section {
+  height: 100%;
+}
+
+.scheduleBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: layout.$spacing-05;
+  height: 100%;
+}
+
+.scheduleEndpoint {
+  display: grid;
+  min-width: 0;
+}
+
+.scheduleEndpointEnd {
+  justify-items: end;
+  text-align: end;
+}
+
+.scheduleValue {
+  display: inline-flex;
+  align-items: center;
+  gap: layout.$spacing-02;
+  white-space: nowrap;
+}
+
+.scheduleArrow {
+  flex: 0 0 auto;
+  color: var(--cds-icon-secondary);
+}
+
+.submissionFilterGroup {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+.submissionFilterIcon {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-inline: layout.$spacing-03;
+  color: var(--cds-icon-secondary);
+}
+
+.submissionFilters {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+}
+
 
 .eventLogPanel {
   min-width: 0;
@@ -25,9 +86,6 @@
   padding: 1.25rem;
 }
 
-.drilldownPanelFlush {
-  padding: 0;
-}
 
 .emptyState {
   color: var(--cds-text-secondary);

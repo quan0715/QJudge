@@ -202,7 +202,7 @@ test.describe("Authentication E2E Tests", () => {
       expect(user!).toContain(TEST_USERS.student.email);
     });
 
-    test("should clear token from localStorage after logout", async ({
+    test("should clear authentication cookies after logout", async ({
       page,
     }) => {
       await loginViaAPI(page, "teacher");
@@ -211,8 +211,9 @@ test.describe("Authentication E2E Tests", () => {
 
       await logout(page);
 
-      const token = await page.evaluate(() => localStorage.getItem("token"));
-      expect(token).toBeFalsy();
+      const cookieNames = (await page.context().cookies()).map(({ name }) => name);
+      expect(cookieNames).not.toContain("access_token");
+      expect(cookieNames).not.toContain("refresh_token");
     });
   });
 

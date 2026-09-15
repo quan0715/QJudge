@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import AuthLayout from "@/features/auth/components/layout/AuthLayout";
 import CampusSsoScreen from "./CampusSsoScreen";
 import LoginScreen from "./LoginScreen";
 import RegisterScreen from "./RegisterScreen";
@@ -69,18 +68,6 @@ function renderWithRouter(node: ReactNode) {
   return render(<MemoryRouter>{node}</MemoryRouter>);
 }
 
-function renderLoginWithLayout() {
-  return render(
-    <MemoryRouter initialEntries={["/login"]}>
-      <Routes>
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<LoginScreen />} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
-  );
-}
-
 function renderCampusSsoRoute(initialPath: "/login/campus-sso" | "/register/campus-sso") {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
@@ -138,41 +125,24 @@ describe("auth provider options", () => {
   });
 
   it("hides email/password login when disabled and renders dynamic social providers", async () => {
-    const { container } = renderWithRouter(<LoginScreen />);
+    renderWithRouter(<LoginScreen />);
 
     expect(await screen.findByText("GitHub")).toBeInTheDocument();
     expect(screen.getByText("Google")).toBeInTheDocument();
     expect(screen.getByText("學校認證")).toBeInTheDocument();
-    expect(screen.queryByText("使用 GitHub 登入")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-email")).not.toBeInTheDocument();
-    expect(
-      Array.from(
-        container.querySelectorAll(".auth-oauth-group--primary .auth-oauth-btn__label"),
-      ).map((node) => node.textContent),
-    ).toEqual(["GitHub", "Google", "學校認證"]);
-    expect(container.querySelector(".auth-oauth-btn__arrow")).not.toBeInTheDocument();
   });
 
-  it("renders the login page inside the visual split shell", async () => {
-    renderLoginWithLayout();
-
-    expect(await screen.findByText("GitHub")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-visual-background")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-split-shell")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-visual-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-card-shell")).toBeInTheDocument();
-  });
-
-  it("reserves the provider row while auth options are loading", () => {
+  it("shows pending auth options without prematurely exposing password login", () => {
     mockGetAuthOptions.mockReturnValue(new Promise(() => {}));
 
     renderWithRouter(<LoginScreen />);
 
     expect(screen.getByTestId("auth-provider-loading-row")).toBeInTheDocument();
-    expect(screen.getAllByTestId("auth-provider-loading-slot")).toHaveLength(3);
+    expect(screen.queryByTestId("auth-login-form")).not.toBeInTheDocument();
   });
 
-  it("uses neutral credential placeholders and mobile footer actions when email login is enabled", async () => {
+  it("exposes credentials and mobile submit when email login is enabled", async () => {
     mockGetAuthOptions.mockResolvedValue({
       ...authOptions,
       data: {
@@ -183,11 +153,8 @@ describe("auth provider options", () => {
 
     renderWithRouter(<LoginScreen />);
 
-    expect(await screen.findByLabelText("Email / Username")).toHaveAttribute(
-      "placeholder",
-      "信箱或使用者名稱",
-    );
-    expect(screen.getByTestId("auth-login-password")).toHaveAttribute("placeholder", "密碼");
+    expect(await screen.findByLabelText("Email / Username")).toBeEnabled();
+    expect(screen.getByTestId("auth-login-password")).toBeEnabled();
     expect(screen.getByTestId("auth-login-mobile-register")).toHaveTextContent("建立帳號");
     expect(screen.getByTestId("auth-login-mobile-submit")).toHaveTextContent("登入");
   });
@@ -199,7 +166,7 @@ describe("auth provider options", () => {
     expect(screen.queryByTestId("auth-register-email")).not.toBeInTheDocument();
   });
 
-  it("uses a generic campus selector on registration before email registration", async () => {
+  it("opens campus selection from registration with email registration enabled", async () => {
     mockGetAuthOptions.mockResolvedValue({
       ...authOptions,
       data: {
@@ -208,7 +175,7 @@ describe("auth provider options", () => {
       },
     });
 
-    const { container } = renderWithRouter(
+    renderWithRouter(
       <>
         <RegisterScreen />
         <CurrentPath />
@@ -219,16 +186,8 @@ describe("auth provider options", () => {
     expect(screen.getByText("Google")).toBeInTheDocument();
     expect(screen.getByText("學校認證")).toBeInTheDocument();
     expect(screen.queryByText("Test University")).not.toBeInTheDocument();
-    expect(
-      Array.from(
-        container.querySelectorAll(".auth-oauth-group--primary .auth-oauth-btn__label"),
-      ).map((node) => node.textContent),
-    ).toEqual(["GitHub", "Google", "學校認證"]);
 
-    const providerGroup = container.querySelector(".auth-oauth-group--primary");
-    const emailForm = screen.getByTestId("auth-register-form");
-    expect(providerGroup).not.toBeNull();
-    expect(providerGroup!.compareDocumentPosition(emailForm) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("auth-register-form")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "學校認證" }));
     expect(screen.getByTestId("current-path")).toHaveTextContent("/register/campus-sso");

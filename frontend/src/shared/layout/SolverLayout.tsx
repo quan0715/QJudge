@@ -3,8 +3,9 @@ import { Button, Tooltip } from "@carbon/react";
 import {
   DocumentBlank,
   RecentlyViewed,
-  ChevronLeft,
+  Close,
 } from "@carbon/icons-react";
+import { useTranslation } from "react-i18next";
 import "./SolverLayout.scss";
 
 /** Tab definition for statement panel */
@@ -72,6 +73,7 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
   onStatementCollapsedChange,
   resultCollapsed: resultCollapsedProp,
 }) => {
+  const { t } = useTranslation("common");
   // Internal state for uncontrolled mode
   const [statementCollapsedInternal, setStatementCollapsedInternal] = useState(false);
   const [internalTabIndex, setInternalTabIndex] = useState(0);
@@ -258,9 +260,9 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
         ) : (
           // Expanded: show tabs header and content
           <div className="solver-layout__statement-content">
-            {!externalStatementNavigation && <div className="solver-layout__statement-header">
+            <div className="solver-layout__statement-header">
               <div className="solver-layout__statement-tabs">
-                {statementTabs.map((tab, index) => {
+                {!externalStatementNavigation && statementTabs.map((tab, index) => {
                   const Icon = tab.icon;
                   return (
                     <Tooltip key={tab.id} label={tab.label} align="bottom">
@@ -278,11 +280,12 @@ export const SolverLayout: React.FC<SolverLayoutProps> = ({
               <Button
                 kind="ghost"
                 hasIconOnly
-                renderIcon={ChevronLeft}
-                iconDescription="收合"
+                renderIcon={Close}
+                iconDescription={t("workspaceTopNav.closeInfoPanel")}
+                tooltipPosition="bottom"
                 onClick={() => setStatementCollapsed(true)}
               />
-            </div>}
+            </div>
             <div className="solver-layout__statement-body">
               {renderStatementContent(activeTabIndex)}
             </div>

@@ -13,11 +13,11 @@
 - Carbon 命令：`bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged`。
 
 ## strict (CI hard gate)
-- 目標：完整 root 沒有 Carbon internal selector 或 `!important` blocker。
+- 目標：完整 root 沒有 Carbon internal selector、`!important` 或無效 runtime spacing variable blocker。
 - 適用：目前 CI 與合併前驗證。
 - Carbon 命令：`bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all`。
 
 ## Current workflow
-1. 先用 `audit` 取得包含 review disposition 的完整清冊。
+1. 需要檢查 Carbon 用法時以 `audit` 取得清冊。Review 候選供人工判斷，不以數量或是否預先登記作為 CI 門檻。
 2. 開發中可跑 `staged` 縮短回饋時間。
 3. 合併前與 CI 必跑 `strict`；任何 blocker 都會阻擋。

@@ -7,10 +7,15 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   max-width: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
-// Sticks only once the wrapper scrolls vertically (height-bounded hosts).
-.table thead th {
+// Keep the header in the same table layout as the body while the Carbon table
+// content wrapper scrolls. The last header needs an explicit override because
+// Carbon's base table rule resets the final header cell to position: static.
+.table thead th,
+.table thead th:last-of-type {
   position: sticky;
   top: 0;
   z-index: 1;

@@ -1,6 +1,7 @@
 .root {
   display: inline-flex;
   align-items: stretch;
+  justify-content: flex-end;
   width: 100%;
   gap: 0;
   border: 0;
@@ -10,6 +11,11 @@
 .search {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.searchCollapsed {
+  flex: 0 0 auto;
+  width: auto;
 }
 
 .filterMenu {

@@ -261,6 +261,7 @@ export function mapClarificationDto(dto: any): Clarification {
     problemId: dto.problem_id?.toString(),
     problemTitle: dto.problem_title,
     isPublic: !!dto.is_public,
+    authorId: dto.author?.toString() ?? "",
     authorUsername:
       dto.author_username || dto.created_by?.username || "Unknown",
     answeredBy: dto.answered_by,

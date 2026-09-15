@@ -139,12 +139,6 @@ export interface AdminOverviewDashboardData {
   nextActions: NextActionItem[];
 }
 
-const studentParticipants = (participants: ContestParticipant[]) =>
-  participants.filter(
-    (participant) =>
-      !participant.accountRole || participant.accountRole === "student",
-  );
-
 const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
   participant.username ||
@@ -361,7 +355,7 @@ export const getTeacherAttentionRows = ({
   );
   const rows: TeacherAttentionRow[] = [];
 
-  for (const participant of studentParticipants(participants)) {
+  for (const participant of participants) {
     const latestEvent = latest.get(participant.userId);
     const participantTimestamps = participant as ContestParticipant & {
       lockedAt?: string | null;
@@ -449,7 +443,7 @@ const buildDistribution = (
   participants: ContestParticipant[],
   tr: DashboardText = defaultDashboardText,
 ): DistributionItem[] => {
-  const students = studentParticipants(participants);
+  const students = participants;
   const total = students.length;
   const count = (predicate: (participant: ContestParticipant) => boolean) =>
     students.filter(predicate).length;
@@ -620,7 +614,7 @@ export const buildAdminOverviewDashboard = ({
   now?: Date;
   tr?: DashboardText;
 }): AdminOverviewDashboardData => {
-  const students = studentParticipants(participants);
+  const students = participants;
   const total = Math.max(students.length, contest.participantCount || 0);
   const started = students.filter((p) => p.examStatus !== "not_started").length;
   const submitted = students.filter((p) => p.examStatus === "submitted").length;
@@ -857,7 +851,7 @@ export const buildAdminPreparationOverview = ({
   nowMs?: number;
   tr?: DashboardText;
 }): AdminPreparationOverviewData => {
-  const students = studentParticipants(participants);
+  const students = participants;
   const scheduled = isValidSchedule(contest);
   const problemCount = getWorkItemCount(contest);
   const hasRules = (contest.rules ?? "").trim().length > 0;
@@ -934,7 +928,7 @@ export const buildAdminPreparationOverview = ({
         value:
           contest.contestType === "paper_exam"
             ? tr("adminOverview.examType.paper_exam", "考卷")
-            : tr("adminOverview.examType.coding", "Coding Test"),
+            : tr("adminOverview.examType.coding", "程式測驗"),
       },
       {
         key: "problems",

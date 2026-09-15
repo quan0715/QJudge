@@ -6,6 +6,7 @@ import {
   Button,
   Tag,
   IconButton,
+  Layer,
 } from "@carbon/react";
 import { Locked, Copy, TrashCan, Close } from "@carbon/icons-react";
 import type { TestCaseData } from "@/core/entities/testcase.entity";
@@ -134,51 +135,55 @@ export const TestCaseDetail: React.FC<TestCaseDetailProps> = ({
           <span>此為隱藏測資，無法查看內容</span>
         </div>
       ) : (
-        <Stack gap={5} className={styles.content}>
-          {/* Input Section */}
-          <div className={styles.section}>
-            {isWritable ? (
-              <TextArea
-                id={`${fieldId}-input`}
-                labelText="Input"
-                placeholder="輸入測試資料..."
-                value={input || ""}
-                onChange={(e) => onInputChange?.(e.target.value)}
-                rows={6}
-                className={styles.textarea}
-              />
-            ) : (
-              <>
-                <h4 className={styles.sectionLabel}>Input</h4>
-                <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
-                  {input || "(Empty)"}
-                </CodeSnippet>
-              </>
-            )}
-          </div>
+        // The panel paints the current layer, so its fields and snippets sit
+        // one layer up; otherwise they share its background and disappear.
+        <Layer>
+          <Stack gap={5} className={styles.content}>
+            {/* Input Section */}
+            <div className={styles.section}>
+              {isWritable ? (
+                <TextArea
+                  id={`${fieldId}-input`}
+                  labelText="Input"
+                  placeholder="輸入測試資料..."
+                  value={input || ""}
+                  onChange={(e) => onInputChange?.(e.target.value)}
+                  rows={6}
+                  className={styles.textarea}
+                />
+              ) : (
+                <>
+                  <h4 className={styles.sectionLabel}>Input</h4>
+                  <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
+                    {input || "(Empty)"}
+                  </CodeSnippet>
+                </>
+              )}
+            </div>
 
-          {/* Expected Output Section */}
-          <div className={styles.section}>
-            {isWritable ? (
-              <TextArea
-                id={`${fieldId}-output`}
-                labelText="Expected Output"
-                placeholder="預期輸出..."
-                value={output || ""}
-                onChange={(e) => onOutputChange?.(e.target.value)}
-                rows={6}
-                className={styles.textarea}
-              />
-            ) : (
-              <>
-                <h4 className={styles.sectionLabel}>Expected Output</h4>
-                <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
-                  {output || "(Empty)"}
-                </CodeSnippet>
-              </>
-            )}
-          </div>
-        </Stack>
+            {/* Expected Output Section */}
+            <div className={styles.section}>
+              {isWritable ? (
+                <TextArea
+                  id={`${fieldId}-output`}
+                  labelText="Expected Output"
+                  placeholder="預期輸出..."
+                  value={output || ""}
+                  onChange={(e) => onOutputChange?.(e.target.value)}
+                  rows={6}
+                  className={styles.textarea}
+                />
+              ) : (
+                <>
+                  <h4 className={styles.sectionLabel}>Expected Output</h4>
+                  <CodeSnippet type="multi" feedback="Copied" className={styles.codeSnippet}>
+                    {output || "(Empty)"}
+                  </CodeSnippet>
+                </>
+              )}
+            </div>
+          </Stack>
+        </Layer>
       )}
     </div>
   );

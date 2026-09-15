@@ -54,4 +54,4 @@ The test stack also contains bootstrap, fake-adapter, migration, and integrity s
 - The test frontend reaches Django at `backend-test:8000`; the backend reaches AI at `ai-service:8001`.
 - Judge and integrity coverage may require Docker socket access and the relevant worker/controller services. A passing Celery-eager unit test is not evidence of a live Docker judge or integrity worker lifecycle.
 - Use service names, not container names, with Compose.
-- Compose management commands such as `up`, `down`, `ps`, `logs`, and `config` run through the wrapper; application commands run through `exec -T`.
+- Compose management commands such as `up`, `down`, `ps`, `logs`, and `config` run through the wrapper; service-dependent application commands run through `exec -T`; service-independent static checks may run on a matching host runtime.

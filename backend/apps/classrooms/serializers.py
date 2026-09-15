@@ -5,6 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from .models import Classroom, ClassroomMember, ClassroomContest, ClassroomAnnouncement
+from apps.contests.services.participation import roster_user_ids
 from .permissions import get_user_role_in_classroom
 
 User = get_user_model()
@@ -87,7 +88,8 @@ class BoundContestSerializer(serializers.ModelSerializer):
         ]
 
     def get_participant_count(self, obj):
-        return obj.contest.registrations.count()
+        """Same roster size the contest page shows."""
+        return len(roster_user_ids(obj.contest))
 
 
 class ClassroomAnnouncementSerializer(serializers.ModelSerializer):

@@ -319,12 +319,12 @@ describe("buildAdminPreparationOverview", () => {
     ).toBe("done");
   });
 
-  it("excludes non-student participants from the roster", () => {
+  it("keeps a staff test run on the roster so it can be reset", () => {
     const data = build({}, [
       participant("u1", "not_started"),
-      participant("u2", "not_started", { accountRole: "teacher" }),
+      participant("u2", "in_progress", { accountRole: "teacher" }),
     ]);
 
-    expect(data.participants.map((row) => row.userId)).toEqual(["u1"]);
+    expect(data.participants.map((row) => row.userId).sort()).toEqual(["u1", "u2"]);
   });
 });

@@ -4624,8 +4624,9 @@ paths:
     post:
       operationId: v1_management_problems_test_run_create
       description: |-
-        Execute code against all stored test cases without creating a submission.
-        Returns execution results immediately.
+        Execute code against the public sample cases plus the caller's custom
+        cases, without creating a submission. Hidden cases only run in a
+        formal submission.
 
         Access mirrors Submission: any authenticated user may invoke test_run as
         long as they hold the problem id. If a `contest_id` is supplied, the

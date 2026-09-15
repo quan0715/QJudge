@@ -1,16 +1,12 @@
 ---
 name: qjudge-quality-gates-owner
 description: Use when auditing or enforcing QJudge naming, architecture, Carbon practices, accessibility candidates, style restrictions, or CI quality profiles.
-metadata:
-  version: "2026.08.12"
-  carbon_mcp_verified: "2026-08-12"
-  carbon_framework: "v11"
-  carbon_reference_tag: "v11.113.0"
 ---
 
 # QJudge Quality Gates Owner
 
 ## Quick start
+依變更範圍選擇以下命令；文件整理不需要先跑全套 frontend 檢查。
 - 先跑 naming：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src`
 - 再跑 architecture：
@@ -45,14 +41,13 @@ metadata:
 - `review`：hard-coded theme/spacing/type、raw controls、accessible labels、notification variant、scroll owner 等需結合 UI context 判斷的候選。
 - `policy-reviewed`：已由 `references/carbon-audit-decisions.json` 以精確檔案、元件類型、理由、owner 與移除條件完成審查；新路徑或新控制類型不會自動繼承決策。
 - `exception-review`：測試 fixture、`shared/copilot` boundary、editor/media 等合理但仍需人工驗證的例外。
-- 需要人工視覺／runtime 判斷的 review debt 由 `references/carbon-manual-review-budget.json` 鎖定上限，只能下降；可精確映射的 spacing 使用 `scripts/fix-carbon-spacing-tokens.js --write` 處理。
+- `review` 是人工檢查線索，不鎖定候選數量，也不要求每個原生控制項或通知先登記例外。依本次變更檢查實際行為；spacing fixer 是選用工具，先確認 diff 再套用。
 - Audit script 會使用專案 TypeScript parser 做 JSX semantic checks；缺少 frontend dependencies 時退回保守 regex 掃描。
 - 不建立不存在的 generic Carbon override allowlist。若真的需要 compatibility boundary，必須是命名明確、範圍最小且有移除條件的 app-owned wrapper。
 
 ## 參考文件
 - `references/quality-profiles.md`
 - `references/carbon-audit-decisions.json`
-- `references/carbon-manual-review-budget.json`
 - `scripts/lint-naming.js`
 - `scripts/lint-architecture.js`
 - `scripts/lint-repository-exports.js`
