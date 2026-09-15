@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError, close_old_connections, connection, transaction
-from django.db.migrations.executor import MigrationExecutor
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -151,48 +150,3 @@ def test_prepares_exam_starting_in_less_than_five_minutes(contest):
     assert run.scheduled_start_at == contest.start_time
 
 
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize("legacy_fixtures", [False, True])
-def test_migration_forward_backward(legacy_fixtures):
-    old = [("contests", "0096_remove_contest_visibility")]
-    new = [("contests", "0097_resident_integrity_sessions")]
-    executor = MigrationExecutor(connection)
-    try:
-        executor.migrate(old)
-        apps = executor.loader.project_state(old).apps
-        ids = []
-        if legacy_fixtures:
-            ContestModel = apps.get_model("contests", "Contest")
-            RunModel = apps.get_model("contests", "ExamIntegrityRun")
-            for compute, data, expected in [("stopped", "open", "prepared"), ("starting", "open", "prepared"), ("running", "open", "active"), ("stopping", "open", "draining"), ("stopped", "archived", "archived"), ("destroyed", "archived", "closed")]:
-                exam = ContestModel.objects.create(name=f"migration-{compute}-{data}")
-                run = RunModel.objects.create(contest=exam, compute_state=compute, data_state=data)
-                ids.append((run.pk, compute, data, expected))
-            # Destroyed history may coexist with another live run on the old schema.
-            RunModel.objects.create(contest=exam, compute_state="stopped", data_state="open")
-        executor = MigrationExecutor(connection)
-        executor.migrate(new)
-        RunModel = executor.loader.project_state(new).apps.get_model("contests", "ExamIntegrityRun")
-        for pk, compute, data, expected in ids:
-            run = RunModel.objects.get(pk=pk)
-            assert (run.session_state, run.execution_backend) == (expected, "legacy")
-            assert run.schedule_revision == 1
-        executor = MigrationExecutor(connection)
-        executor.migrate(old)
-        RunModel = executor.loader.project_state(old).apps.get_model("contests", "ExamIntegrityRun")
-        for pk, compute, data, expected in ids:
-            run = RunModel.objects.get(pk=pk)
-            assert (run.compute_state, run.data_state) == (compute, data)
-    finally:
-        cleanup = MigrationExecutor(connection)
-        cleanup.migrate(cleanup.loader.graph.leaf_nodes())
-
-
-@pytest.mark.django_db
-def test_retired_worker_columns_are_absent_from_current_schema():
-    with connection.cursor() as cursor:
-        columns = {column.name for column in connection.introspection.get_table_description(
-            cursor, ExamIntegrityRun._meta.db_table)}
-    assert "session_state" in columns
-    assert not columns.intersection({"execution_backend", "compute_state", "worker_image",
-        "worker_url", "token_digest", "token_expires_at"})

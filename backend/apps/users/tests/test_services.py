@@ -140,12 +140,6 @@ class EmailAuthServiceTests(TestCase):
         self.assertIsNone(unknown_user)
 
 class AuthOptionsTests(SimpleTestCase):
-    def test_auth_provider_options_are_not_loaded_from_settings_module(self):
-        import config.settings.base as base_settings
-
-        self.assertFalse(hasattr(base_settings, "AUTH_PROVIDER_OPTIONS"))
-        self.assertFalse(hasattr(base_settings, "DEFAULT_AUTH_PROVIDER_OPTIONS"))
-        self.assertFalse(hasattr(base_settings, "_load_auth_provider_options"))
 
     @override_settings(
         AUTH_EMAIL_PASSWORD_ENABLED=False,

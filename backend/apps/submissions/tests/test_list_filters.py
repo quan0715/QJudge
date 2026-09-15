@@ -1,6 +1,6 @@
-"""Contract tests for GET /api/v1/submissions/ query filters.
+"""GET /api/v1/submissions/ query filters.
 
-Encodes that the ``problem`` filter targets ``CodingProblem.id`` — not
+The ``problem`` filter encodes that the ``problem`` filter targets ``CodingProblem.id`` — not
 ``ContestQuestionBinding.id``. We had a production 400 flood when the contest
 solver page forwarded a binding UUID into this filter; without a test pinning
 the contract, future refactors could re-introduce the same ambiguity.
@@ -136,3 +136,46 @@ class SubmissionListProblemFilterContractTests(TestCase):
             },
         )
         assert response.status_code == 400, response.content
+
+
+class SubmissionListUserFilterTests(TestCase):
+    """The ``user`` filter narrows a viewer's own scope; it never widens it."""
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        owner = User.objects.create_user(username="problem-owner", email="problem@example.com", password="password123")
+        cls.problem = CodingProblem.objects.create(slug="user-filter-problem", created_by=owner)
+        cls.user1 = User.objects.create_user(username="user1", email="user1@example.com", password="password123")
+        cls.user2 = User.objects.create_user(username="user2", email="user2@example.com", password="password123")
+        cls.own = [cls._submission(cls.user1), cls._submission(cls.user1)]
+        cls.others = cls._submission(cls.user2)
+
+    @classmethod
+    def _submission(cls, user):
+        return Submission.objects.create(
+            problem=cls.problem, user=user, language="python", code="print('hello')",
+            status="AC", source_type="practice",
+        )
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user1)
+
+    def _ids(self, query):
+        response = self.client.get(f"/api/v1/submissions/?source_type=practice{query}")
+        self.assertEqual(response.status_code, 200, response.data)
+        data = response.json()
+        return {row["id"] for row in data.get("results", data)}
+
+    def test_filter_by_own_user_id(self) -> None:
+        self.assertEqual(self._ids(f"&user={self.user1.id}"), {s.id for s in self.own})
+
+    def test_filter_by_another_user_stays_within_own_scope(self) -> None:
+        self.assertEqual(self._ids(f"&user={self.user2.id}"), set())
+
+    def test_without_user_filter_only_own_practice_submissions(self) -> None:
+        self.assertEqual(self._ids(""), {s.id for s in self.own})
+
+    def test_filter_by_nonexistent_user_is_rejected(self) -> None:
+        response = self.client.get("/api/v1/submissions/?source_type=practice&user=99999")
+        self.assertEqual(response.status_code, 400)

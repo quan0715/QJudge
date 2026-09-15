@@ -124,7 +124,7 @@ connection 必須明確提供 authorization、token、userinfo endpoint、scope 
 - `backend/apps/users/tests/test_auth_provider_options.py`
 - `backend/apps/users/tests/test_oauth_profile_helpers.py`
 - `backend/apps/users/tests/test_account_linking.py`
-- `backend/apps/users/tests/test_auth_module_boundaries.py`
+- `backend/apps/users/tests/test_oauth_provider_identity.py`
 
 測試通過後，仍要使用 provider 的測試應用程式與非管理員帳號走完瀏覽器流程，確認 callback、cookie、重複登入與登出。不要用正式教師或學生帳號做第一次串接測試。
 

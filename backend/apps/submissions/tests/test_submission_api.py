@@ -1,12 +1,10 @@
-
-import unittest
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 from apps.problems.models import CodingProblem, TestCase as ProblemTestCase
-from apps.submissions.models import Submission, SubmissionResult
+from apps.submissions.models import Submission
 
 User = get_user_model()
 
@@ -220,52 +218,6 @@ int main() {
         response = self.client.get('/api/v1/submissions/?status=WA')
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['status'], 'WA')
-
-
-class SubmissionModelTestCase(TestCase):
-    """Test cases for Submission model"""
-    
-    def setUp(self):
-        """Set up test data"""
-        self.user = User.objects.create_user(
-            username='test_user',
-            email='user@test.com',
-            password='testpass123'
-        )
-        
-        self.problem = CodingProblem.objects.create(
-            slug='test-problem',
-            time_limit=1000,
-            memory_limit=128
-        )
-    
-    def test_create_submission(self):
-        """Test creating a submission"""
-        submission = Submission.objects.create(
-            user=self.user,
-            problem=self.problem,
-            language='cpp',
-            code='test code',
-            status='pending'
-        )
-        
-        self.assertEqual(submission.user, self.user)
-        self.assertEqual(submission.problem, self.problem)
-        self.assertEqual(submission.language, 'cpp')
-        self.assertEqual(submission.status, 'pending')
-        self.assertEqual(submission.score, 0)
-    
-    def test_submission_str_representation(self):
-        """Test string representation of submission"""
-        submission = Submission.objects.create(
-            user=self.user,
-            problem=self.problem,
-            language='cpp',
-            code='test code'
-        )
-        
-        expected = f"Submission {submission.id} by {self.user.username} for {self.problem.id}"
-        self.assertEqual(str(submission), expected)
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)

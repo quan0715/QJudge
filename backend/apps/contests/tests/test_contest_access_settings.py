@@ -30,7 +30,7 @@ def owner() -> User:
 
 
 @pytest.mark.django_db
-def test_contest_serializer_rejects_legacy_password_fields(owner: User) -> None:
+def test_contest_serializer_rejects_password_fields(owner: User) -> None:
     serializer = ContestCreateUpdateSerializer(
         data={
             "name": "Attendance Contest",
@@ -95,7 +95,7 @@ def test_classroom_contest_create_exposes_attendance_toggle(
 
 
 @pytest.mark.django_db
-def test_classroom_contest_create_rejects_legacy_password_fields(
+def test_classroom_contest_create_rejects_password_fields(
     api_client: APIClient,
     owner: User,
 ) -> None:

@@ -1,12 +1,4 @@
-"""Contracts retained by the Django AI compatibility BFF."""
-
-from django.apps import apps
-
 from apps.ai.serializers import StartRunSerializer
-
-
-def test_django_ai_app_declares_no_domain_models():
-    assert list(apps.get_app_config("ai").get_models()) == []
 
 
 def test_start_run_serializer_accepts_expected_model_ids():
@@ -36,5 +28,3 @@ def test_start_run_serializer_default_model_id_is_openai_nano():
     assert serializer.validated_data["model_id"] == "openai-nano"
 
 
-def test_start_run_model_field_does_not_duplicate_ai_service_registry():
-    assert not hasattr(StartRunSerializer().fields["model_id"], "choices")

@@ -45,7 +45,7 @@ def due_schedule(running_integrity_run, participant):
 
 
 @pytest.mark.django_db
-def test_retired_end_command_is_rejected_after_extension(internal_client, running_integrity_run, participant):
+def test_end_command_is_rejected_after_extension(internal_client, running_integrity_run, participant):
     from apps.contests.services.exam_schedule import update_exam_schedule
     command = bind_run(auto_submit_command(participant), running_integrity_run)
     update_exam_schedule(participant.contest_id, start_time=participant.contest.start_time,
@@ -60,7 +60,7 @@ def test_retired_end_command_is_rejected_after_extension(internal_client, runnin
 
 
 @pytest.mark.django_db
-def test_retired_early_end_command_is_rejected(internal_client, running_integrity_run, participant):
+def test_early_end_command_is_rejected(internal_client, running_integrity_run, participant):
     command = bind_run(auto_submit_command(participant), running_integrity_run)
     response = internal_client.post_commands(running_integrity_run, [command])
     assert response.status_code == 422
@@ -70,7 +70,7 @@ def test_retired_early_end_command_is_rejected(internal_client, running_integrit
 
 
 @pytest.mark.django_db
-def test_retired_run_local_auto_submit_is_rejected_even_when_exam_is_due(
+def test_run_local_auto_submit_is_rejected_even_when_exam_is_due(
     internal_client,
     running_integrity_run,
     participant,
@@ -721,7 +721,7 @@ def test_warning_checkpoint_from_current_worker_command_shape_is_accepted(
 
 
 @pytest.mark.django_db
-def test_retired_archive_upload_command_is_not_accepted(
+def test_archive_upload_command_is_not_accepted(
     internal_client, running_integrity_run, mocker,
 ):
     presign = mocker.patch("apps.contests.services.integrity_commands.generate_archive_put_url")
@@ -895,7 +895,7 @@ def test_fullscreen_timeout_is_recorded_without_sending_the_student_to_precheck(
 
 
 @pytest.mark.django_db
-def test_fullscreen_timeout_can_no_longer_request_a_pause(
+def test_fullscreen_timeout_cannot_request_a_pause(
     internal_client,
     running_integrity_run,
     participant,
