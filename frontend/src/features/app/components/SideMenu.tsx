@@ -322,7 +322,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     if (!contestAdminContext) return;
     go(getClassroomContestDashboardPath(contestAdminContext.classroomId, contestAdminContext.contestId));
   }, [contestAdminContext, go]);
+  const goToContestDashboard = useCallback(() => {
+    if (!contestMatch) return;
+    go(getClassroomContestDashboardPath(contestMatch.classroomId, contestMatch.contestId));
+  }, [contestMatch, go]);
   const homeLabel = t("nav.home", "Home");
+  const contestDashboardLabel = t("workspaceTopNav.backToContest", "返回競賽儀表板");
   const contestHomeLabel = tContest("adminLayout.header.backToHome", "前往競賽主頁");
 
   return (
@@ -344,13 +349,27 @@ export const SideMenu: React.FC<SideMenuProps> = ({
         aria-label={t("header.sideNav", "Side navigation")}
       >
         {inContestRuntime && contestMatch ? (
-          <SideMenuContestRuntimeSection
-            classroomId={contestMatch.classroomId}
-            contestId={contestMatch.contestId}
-            activeProblemId={activeProblemId}
-            compact={compact}
-            problems={effectiveContestForNav?.problems ?? []}
-          />
+          <>
+            <div className="side-menu__section">
+              <button
+                type="button"
+                title={contestDashboardLabel}
+                aria-label={contestDashboardLabel}
+                className="side-menu__link"
+                onClick={goToContestDashboard}
+              >
+                <Dashboard size={16} />
+                <span>{contestDashboardLabel}</span>
+              </button>
+            </div>
+            <SideMenuContestRuntimeSection
+              classroomId={contestMatch.classroomId}
+              contestId={contestMatch.contestId}
+              activeProblemId={activeProblemId}
+              compact={compact}
+              problems={effectiveContestForNav?.problems ?? []}
+            />
+          </>
         ) : inContestIdle && contestMatch ? (
           <SideMenuContestIdleSection
             classroomId={contestMatch.classroomId}

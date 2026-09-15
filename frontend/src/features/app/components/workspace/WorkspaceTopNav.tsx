@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { IconButton, Tag } from "@carbon/react";
 import {
-  ArrowLeft,
   ChevronDown,
   Education,
   Home,
@@ -186,17 +185,6 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
   return (
     <header className={styles.root}>
       <div className={styles.left}>
-        {isRuntime && contestContext && (
-          <IconButton
-            kind="ghost"
-            size="md"
-            align="bottom-left"
-            label={t("workspaceTopNav.backToContest", "返回競賽主頁")}
-            onClick={goToContestHome}
-          >
-            <ArrowLeft size={20} />
-          </IconButton>
-        )}
         {showSidebarControl ? (
           <IconButton
             kind="ghost"
