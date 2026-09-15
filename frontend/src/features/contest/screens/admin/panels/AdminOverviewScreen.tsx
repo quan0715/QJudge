@@ -205,6 +205,7 @@ export default function AdminOverviewScreen({
         refreshContest(),
         queryClient.invalidateQueries({ queryKey: ["contestStandings", contest?.id] }),
         queryClient.invalidateQueries({ queryKey: ["contestClarifications", contest?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["contestSubmissions", contest?.id] }),
       ]);
       setResultRefreshKey((current) => current + 1);
     } finally {

@@ -252,6 +252,7 @@ export default function StudentContestDashboard({
         onRefreshContest?.(),
         queryClient.invalidateQueries({ queryKey: ["contestStandings", contest.id] }),
         queryClient.invalidateQueries({ queryKey: ["contestClarifications", contest.id] }),
+        queryClient.invalidateQueries({ queryKey: ["contestSubmissions", contest.id] }),
       ]);
       setPaperReloadKey((value) => value + 1);
     } finally {

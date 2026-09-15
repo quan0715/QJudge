@@ -59,6 +59,13 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
   const [localProblemFilter, setLocalProblemFilter] = useState<string>("all");
   const statusFilter = controlledStatusFilter ?? localStatusFilter;
   const problemFilter = controlledProblemFilter ?? localProblemFilter;
+  // Any filter change -- local or from a parent that controls the filters --
+  // starts from page 1; the old page may not exist under a narrower filter.
+  const [pagedFilters, setPagedFilters] = useState({ statusFilter, problemFilter });
+  if (pagedFilters.statusFilter !== statusFilter || pagedFilters.problemFilter !== problemFilter) {
+    setPagedFilters({ statusFilter, problemFilter });
+    setPage(1);
+  }
   const [onlyMine, setOnlyMine] = useState(false);
   const { user: currentUser } = useAuth();
 
@@ -98,13 +105,11 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
   const handleStatusFilterChange = (value: string) => {
     if (controlledStatusFilter === undefined) setLocalStatusFilter(value);
     onStatusFilterChange?.(value);
-    setPage(1);
   };
 
   const handleProblemFilterChange = (value: string) => {
     if (controlledProblemFilter === undefined) setLocalProblemFilter(value);
     onProblemFilterChange?.(value);
-    setPage(1);
   };
 
   const getStatusBadge = (status: string) => {
