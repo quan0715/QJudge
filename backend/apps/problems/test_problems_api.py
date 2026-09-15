@@ -11,6 +11,7 @@ from .models import CodingProblem, Tag, TestCase as ProblemTestCase
 from apps.submissions.models import Submission
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
+from apps.question_bank.models import ContestQuestionBinding
 
 
 class RetiredProblemRoutesTests(SimpleTestCase):
@@ -487,89 +488,142 @@ class ProblemTestRunTests(TestCase):
             order=1,
         )
 
-    def test_test_run_runs_all_stored_cases_and_returns_results(self):
-        """Test-run should execute every stored test case and not create submissions."""
+    def _run(self, execute_results, **payload):
         with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
             mock_judge = MagicMock()
-            mock_judge.execute.return_value = {
-                'status': 'AC',
-                'time': 12,
-                'memory': 2048,
-                'output': '3',
-                'error': '',
-            }
+            mock_judge.execute.side_effect = [
+                {'time': 1, 'memory': 1, 'error': '', **result} for result in execute_results
+            ]
             mock_get_judge.return_value = mock_judge
-
             response = self.client.post(
                 f'/api/v1/management/problems/{self.problem.id}/test_run/',
-                {
-                    'language': 'python',
-                    'code': 'print(sum(map(int,input().split())))',
-                },
+                {'language': 'python', 'code': 'x', **payload},
                 format='json',
             )
+        return response, mock_judge
+
+    def test_test_run_runs_sample_cases_and_returns_results(self):
+        """Test-run executes the public samples and creates no submission."""
+        response, _ = self._run([{'status': 'AC', 'output': '3'}])
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
         self.assertEqual(data['status'], 'AC')
         self.assertEqual(len(data['results']), 1)
         first = data['results'][0]
-        self.assertEqual(first['source'], 'test_case')
+        self.assertEqual(first['source'], 'sample')
         self.assertEqual(first['status'], 'AC')
         self.assertEqual(first['input'], '1 2')
         self.assertEqual(first['expected_output'], '3')
         self.assertEqual(Submission.objects.count(), 0)
 
-    def test_test_run_runs_non_sample_cases_too(self):
-        """All DB test cases (sample and hidden) are executed in order."""
+    def test_test_run_never_runs_or_reveals_hidden_cases(self):
+        """Hidden and non-sample cases are for formal submissions only."""
         ProblemTestCase.objects.create(
-            problem=self.problem,
-            input_data='2 3',
-            output_data='5',
-            is_sample=False,
-            is_hidden=True,
-            score=0,
-            order=2,
+            problem=self.problem, input_data='SECRET-IN', output_data='SECRET-OUT',
+            is_sample=False, is_hidden=True, score=0, order=2,
+        )
+        ProblemTestCase.objects.create(
+            problem=self.problem, input_data='NON-SAMPLE-IN', output_data='NON-SAMPLE-OUT',
+            is_sample=False, score=0, order=3,
         )
 
-        with patch('apps.judge.judge_factory.get_judge') as mock_get_judge:
-            mock_judge = MagicMock()
-            mock_judge.execute.side_effect = [
-                {
-                    'status': 'AC',
-                    'time': 10,
-                    'memory': 1024,
-                    'output': '3',
-                    'error': '',
-                },
-                {
-                    'status': 'WA',
-                    'time': 8,
-                    'memory': 512,
-                    'output': '0',
-                    'error': '',
-                },
-            ]
-            mock_get_judge.return_value = mock_judge
+        response, judge = self._run([{'status': 'AC', 'output': '3'}])
 
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(judge.execute.call_count, 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertNotIn('SECRET', str(response.data))
+        self.assertNotIn('NON-SAMPLE', str(response.data))
+
+    def test_test_run_runs_custom_cases_after_the_samples(self):
+        response, judge = self._run(
+            [
+                {'status': 'AC', 'output': '3'},
+                {'status': 'WA', 'output': '6'},
+                {'status': 'WA', 'output': 'hello'},
+            ],
+            custom_test_cases=[
+                {'input': '2 3', 'expected_output': '5'},
+                {'input': 'hello'},
+            ],
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        inputs = [call.kwargs['input_data'] for call in judge.execute.call_args_list]
+        self.assertEqual(inputs, ['1 2', '2 3', 'hello'])
+        sample, with_expected, output_only = response.data['results']
+        self.assertEqual(sample['source'], 'sample')
+        # A custom case with an expected output is judged like a sample.
+        self.assertEqual(with_expected['source'], 'custom')
+        self.assertEqual(with_expected['status'], 'WA')
+        self.assertEqual(with_expected['expected_output'], '5')
+        # Without one there is nothing to compare: just show the output.
+        self.assertEqual(output_only['status'], 'info')
+        self.assertIsNone(output_only['expected_output'])
+        self.assertEqual(output_only['output'], 'hello')
+        self.assertEqual(response.data['status'], 'WA')
+
+    def test_output_only_custom_case_does_not_fail_the_run(self):
+        response, _ = self._run(
+            [{'status': 'AC', 'output': '3'}, {'status': 'WA', 'output': 'anything'}],
+            custom_test_cases=[{'input': 'hello', 'expected_output': ''}],
+        )
+
+        self.assertEqual(response.data['status'], 'AC')
+        self.assertEqual(response.data['results'][1]['status'], 'info')
+
+    def test_output_only_custom_case_still_reports_a_runtime_error(self):
+        response, _ = self._run(
+            [{'status': 'AC', 'output': '3'}, {'status': 'RE', 'output': ''}],
+            custom_test_cases=[{'input': 'boom'}],
+        )
+
+        self.assertEqual(response.data['status'], 'RE')
+        self.assertEqual(response.data['results'][1]['status'], 'RE')
+
+    def test_custom_case_whitespace_is_preserved(self):
+        _, judge = self._run(
+            [{'status': 'AC', 'output': '3'}, {'status': 'AC', 'output': '  x\n'}],
+            custom_test_cases=[{'input': '  x\n', 'expected_output': '  x\n'}],
+        )
+
+        self.assertEqual(judge.execute.call_args_list[1].kwargs['input_data'], '  x\n')
+        self.assertEqual(judge.execute.call_args_list[1].kwargs['expected_output'], '  x\n')
+
+    def test_too_many_custom_cases_are_rejected(self):
+        response = self.client.post(
+            f'/api/v1/management/problems/{self.problem.id}/test_run/',
+            {
+                'language': 'python',
+                'code': 'x',
+                'custom_test_cases': [{'input': str(i)} for i in range(21)],
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_async_test_run_total_counts_samples_and_custom_cases(self):
+        with patch('apps.problems.tasks.run_problem_test_run.apply_async') as apply_async:
+            apply_async.return_value.id = 'task-1'
             response = self.client.post(
                 f'/api/v1/management/problems/{self.problem.id}/test_run/',
                 {
                     'language': 'python',
                     'code': 'x',
+                    'asynchronous': True,
+                    'custom_test_cases': [{'input': '5 6'}],
                 },
                 format='json',
             )
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.data
-        self.assertEqual(data['status'], 'WA')
-        self.assertEqual(len(data['results']), 2)
-        self.assertEqual(data['results'][0]['status'], 'AC')
-        self.assertEqual(data['results'][1]['status'], 'WA')
-        self.assertEqual(data['results'][0]['source'], 'test_case')
-        self.assertEqual(data['results'][1]['source'], 'test_case')
-        self.assertEqual(mock_judge.execute.call_count, 2)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.data['total'], 2)
+        self.assertEqual(
+            apply_async.call_args.kwargs['kwargs']['custom_test_cases'],
+            [{'input': '5 6', 'expected_output': ''}],
+        )
 
     def test_test_run_stops_after_compile_error(self):
         """Hard failures should stop remaining case execution like the submission path."""
@@ -731,3 +785,29 @@ class ProblemTestRunContestAccessTests(TestCase):
     def test_unauthenticated_is_rejected(self):
         resp = self._post({'language': 'python', 'code': 'x'})
         self.assertIn(resp.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
+
+    def _contest_problem_detail(self, user):
+        ProblemTestCase.objects.create(
+            problem=self.problem, input_data='SECRET-IN', output_data='SECRET-OUT',
+            is_sample=False, is_hidden=True, score=0, order=2,
+        )
+        binding = ContestQuestionBinding.objects.get(
+            contest=self.active_contest, coding_problem=self.problem,
+        )
+        self.client.force_authenticate(user=user)
+        return self.client.get(f'/api/v1/contests/{self.active_contest.id}/problems/{binding.id}/')
+
+    def test_contest_problem_detail_shows_solvers_only_public_samples(self):
+        resp = self._contest_problem_detail(self.student)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual([case['input_data'] for case in resp.data['test_cases']], ['1 2'])
+        self.assertNotIn('SECRET', str(resp.data))
+
+    def test_contest_problem_detail_gives_staff_every_case_to_edit(self):
+        resp = self._contest_problem_detail(self.teacher)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(
+            [case['input_data'] for case in resp.data['test_cases']], ['1 2', 'SECRET-IN'],
+        )

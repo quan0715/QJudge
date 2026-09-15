@@ -7,7 +7,8 @@ export const transformTestRunToResult = (data: any): TestRunResult => {
     passed: r.status === "AC",
     status: r.status,
     input: r.input,
-    expectedOutput: r.expected_output,
+    // null = output-only custom case: nothing to show or diff against.
+    expectedOutput: r.expected_output ?? undefined,
     actualOutput: r.output,
     error: r.error_message,
     executionTime: r.exec_time,

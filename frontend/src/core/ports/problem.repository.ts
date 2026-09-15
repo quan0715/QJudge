@@ -19,11 +19,19 @@ export interface GetProblemsParams {
 // Test Run Types
 // ============================================================================
 
+export interface TestRunCustomCase {
+  input: string;
+  /** Blank means "just show the output"; the case is not judged. */
+  expected_output?: string;
+}
+
 export interface TestRunPayload {
   language: string;
   code: string;
   contest_id?: string;
   asynchronous?: boolean;
+  /** Run after the public samples, in this order. */
+  custom_test_cases?: TestRunCustomCase[];
 }
 
 interface TestRunResultItem {

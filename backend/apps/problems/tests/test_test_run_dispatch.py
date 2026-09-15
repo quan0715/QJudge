@@ -43,6 +43,7 @@ def test_run_via_worker_dispatches_to_the_judge_queue():
     assert result == {"status": "AC"}
     apply_async.assert_called_once_with(
         args=[str(PROBLEM.id), "cpp", "int main(){}"],
+        kwargs={"custom_test_cases": []},
         queue="default",
     )
     apply_async.return_value.get.assert_called_once_with(timeout=42)
@@ -104,7 +105,7 @@ def test_task_result_is_json_serialisable(db):
     )
     problem = SimpleNamespace(
         id=PROBLEM.id,
-        test_cases=SimpleNamespace(all=lambda: [test_case]),
+        public_sample_cases=lambda: [test_case],
         time_limit=1000,
         memory_limit=128,
     )
@@ -225,7 +226,7 @@ class TestRunEndpointDelegationTests(DjangoTestCase):
 
 def test_worker_reports_completed_cases_as_they_finish():
     cases = [SimpleNamespace(id=i, input_data=str(i), output_data=str(i), is_hidden=False) for i in range(4)]
-    problem = SimpleNamespace(test_cases=SimpleNamespace(all=lambda: cases), time_limit=1000, memory_limit=128)
+    problem = SimpleNamespace(public_sample_cases=lambda: cases, time_limit=1000, memory_limit=128)
     judge = MagicMock()
     judge.execute.return_value = {"status": "AC", "output": "ok"}
     updates = []

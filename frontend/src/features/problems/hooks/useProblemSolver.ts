@@ -101,7 +101,13 @@ export function useProblemSolver({
   const [testCases, setTestCases] = useState<TestCaseItem[]>([]);
 
   // Unified Execution State
-  const { executionState, execute } = useSubmission({ problemId: problem?.id, contestId, code, language });
+  const customTestCases = useMemo(
+    () => testCases
+      .filter((testCase) => testCase.source === "custom")
+      .map((testCase) => ({ input: testCase.input, expected_output: testCase.output ?? "" })),
+    [testCases],
+  );
+  const { executionState, execute } = useSubmission({ problemId: problem?.id, contestId, code, language, customTestCases });
 
   // Initialize when problem changes
   useEffect(() => {
@@ -144,8 +150,9 @@ export function useProblemSolver({
     }
 
     // Load test cases
+    // Same cases, same order as the backend test run: public samples only.
     const publicCases: TestCaseItem[] = (problem.testCases || [])
-      .filter((tc) => tc.isSample)
+      .filter((tc) => tc.isSample && !tc.isHidden)
       .map((tc, idx) => ({
         id: `public_${idx}`,
         input: tc.input,

@@ -92,9 +92,21 @@ class TagSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+MAX_CUSTOM_TEST_CASES = 20
+
+
+class CustomTestCaseSerializer(serializers.Serializer):
+    input = serializers.CharField(trim_whitespace=False, allow_blank=True, max_length=65536)
+    expected_output = serializers.CharField(
+        trim_whitespace=False, allow_blank=True, required=False, default="", max_length=65536,
+        help_text="Leave blank to only see the program output",
+    )
+
+
 class TestRunSerializer(serializers.Serializer):
+    """Test run request: the public sample cases plus the solver's own cases."""
+
     asynchronous = serializers.BooleanField(required=False, default=False)
-    """Serializer for test run requests — executes against all problem test cases."""
 
     language = serializers.ChoiceField(
         choices=['cpp', 'c', 'python', 'java'],
@@ -110,6 +122,14 @@ class TestRunSerializer(serializers.Serializer):
         allow_null=True,
         help_text='Optional contest context for participant access enforcement',
     )
+    custom_test_cases = CustomTestCaseSerializer(many=True, required=False, default=list)
+
+    def validate_custom_test_cases(self, value):
+        if len(value) > MAX_CUSTOM_TEST_CASES:
+            raise serializers.ValidationError(
+                f"At most {MAX_CUSTOM_TEST_CASES} custom test cases per run."
+            )
+        return value
 
 
 class ProblemListSerializer(serializers.ModelSerializer):
@@ -177,7 +197,9 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
     output_description = serializers.SerializerMethodField()
     hint = serializers.SerializerMethodField()
     samples = serializers.SerializerMethodField()
-    test_cases = TestCaseSerializer(many=True, read_only=True)
+    # Solvers only get the public samples; contest staff editing the problem
+    # pass ``include_all_test_cases`` so saving the form keeps hidden cases.
+    test_cases = serializers.SerializerMethodField()
     language_configs = LanguageConfigSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     question_asset_id = serializers.UUIDField(source='question_asset.id', read_only=True)
@@ -257,9 +279,15 @@ class ProblemDetailSerializer(serializers.ModelSerializer):
         return self._get_content_field(obj, 'hint')
 
     def get_samples(self, obj):
-        """Get sample test cases."""
-        samples = obj.test_cases.filter(is_sample=True).order_by('order')
-        return TestCaseSerializer(samples, many=True).data
+        return TestCaseSerializer(obj.public_sample_cases(), many=True).data
+
+    def get_test_cases(self, obj):
+        cases = (
+            obj.test_cases.all()
+            if self.context.get('include_all_test_cases')
+            else obj.public_sample_cases()
+        )
+        return TestCaseSerializer(cases, many=True).data
 
 
 class ProblemAdminSerializer(serializers.ModelSerializer):
