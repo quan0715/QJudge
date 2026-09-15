@@ -5,7 +5,8 @@ Provides a clean interface for querying contest data and calculating statistics.
 from typing import List, Optional, Dict
 
 
-from ..models import Contest, ContestParticipant
+from ..models import Contest
+from ..services.participation import attempted_participants
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
@@ -94,13 +95,11 @@ class ContestDataService:
         return result
 
     def get_participants(self) -> List[ParticipantDTO]:
-        """Get all participants in the contest."""
+        """Get everyone who sat the contest."""
         if self._participants_cache is not None:
             return self._participants_cache
 
-        participants = ContestParticipant.objects.filter(
-            contest=self.contest
-        ).select_related('user')
+        participants = attempted_participants(self.contest).select_related('user')
 
         result = []
         for p in participants:

@@ -3,8 +3,9 @@
 There is no registration step and no roster sync. Anyone with a classroom
 role -- staff included -- takes a contest through the same entry flow. These
 tests pin who counts as a candidate, that the bulk student list agrees with
-the per-user role, what a teacher's roster contains, and how the contest
-detail presents a candidate who has not acted yet.
+the per-user role, what a teacher's roster contains, how the contest
+detail presents a candidate who has not acted yet, and that every result
+source counts exactly the people who sat it -- by attempt, never by role.
 """
 
 from datetime import timedelta
@@ -18,7 +19,11 @@ from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.classrooms.permissions import get_user_role_in_classroom
 from apps.classrooms.services import generate_invite_code
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
+from apps.classrooms.serializers import BoundContestSerializer
+from apps.contests.services.export_service import build_paper_exam_results_csv_response
+from apps.contests.services.participant_state import reset_participant_exam_record
 from apps.contests.services.participation import (
+    attempted_participants,
     is_contest_candidate,
     roster_user_ids,
     student_member_ids,
@@ -133,8 +138,6 @@ class RosterTests(ParticipationFixture):
         self.assertNotIn(self.ta.id, roster_user_ids(self.contest))
 
     def test_a_teacher_test_run_is_listed_so_it_can_be_reset(self):
-        from apps.contests.services.participant_state import reset_participant_exam_record
-
         run = ContestParticipant.objects.create(
             contest=self.contest, user=self.owner,
             exam_status=ExamStatus.SUBMITTED, started_at=timezone.now(),
@@ -224,3 +227,83 @@ class ContestDetailPresentationTests(ParticipationFixture):
         data = self._detail(self.owner)
 
         self.assertEqual(data["participant_count"], 2)
+
+
+class ResultSourceTests(ParticipationFixture):
+    """Standings, exports, statistics and counts share one definition."""
+
+    def setUp(self):
+        super().setUp()
+        started = {"started_at": timezone.now(), "exam_status": ExamStatus.SUBMITTED}
+        ContestParticipant.objects.create(contest=self.contest, user=self.owner, **started)
+        ContestParticipant.objects.create(contest=self.contest, user=self.student, **started)
+        # Checked in, never started.
+        ContestParticipant.objects.create(contest=self.contest, user=self.other_student)
+        # A staff test run that was cleaned up afterwards.
+        reset_participant_exam_record(
+            ContestParticipant.objects.create(contest=self.contest, user=self.co_admin, **started),
+            activity_user=self.co_admin,
+            activity_details="done testing",
+        )
+        self.sat_it = {self.owner.id, self.student.id}
+
+    def test_only_people_who_sat_it_count_whatever_their_role(self):
+        self.assertEqual(
+            set(attempted_participants(self.contest).values_list("user_id", flat=True)),
+            self.sat_it,
+        )
+
+    def test_standings_list_everyone_who_sat_it(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.get(f"/api/v1/contests/{self.contest.id}/standings/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual({row["user"]["id"] for row in response.data["standings"]}, self.sat_it)
+
+    def test_paper_exam_results_csv_lists_everyone_who_sat_it(self):
+        self.contest.contest_type = "paper_exam"
+        self.contest.save(update_fields=["contest_type"])
+
+        csv_text = build_paper_exam_results_csv_response(self.contest).content.decode("utf-8")
+
+        exported = {line.split(",")[0] for line in csv_text.splitlines()[1:]}
+        self.assertIn(self.owner.username, exported)
+        self.assertIn(self.student.username, exported)
+        self.assertNotIn(self.other_student.username, exported)
+        self.assertNotIn(self.co_admin.username, exported)
+
+    def test_paper_exam_dashboard_counts_everyone_who_sat_it(self):
+        self.contest.contest_type = "paper_exam"
+        self.contest.save(update_fields=["contest_type"])
+        self.client.force_authenticate(self.owner)
+
+        response = self.client.get(
+            f"/api/v1/contests/{self.contest.id}/exam-answers/dashboard-summary/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["contest"]["participant_count"], 2)
+        self.assertEqual(response.data["contest"]["completed_count"], 2)
+
+    def test_classroom_contest_list_shows_the_contest_roster_size(self):
+        binding = ClassroomContest.objects.get(contest=self.contest)
+
+        self.assertEqual(
+            BoundContestSerializer(binding).data["participant_count"],
+            len(roster_user_ids(self.contest)),
+        )
+
+
+class ResultsCsvEncodingTests(ParticipationFixture):
+    def test_the_bom_is_written_once_not_on_every_row(self):
+        self.contest.contest_type = "paper_exam"
+        self.contest.save(update_fields=["contest_type"])
+        ContestParticipant.objects.create(
+            contest=self.contest, user=self.student,
+            started_at=timezone.now(), exam_status=ExamStatus.SUBMITTED,
+        )
+
+        csv_text = build_paper_exam_results_csv_response(self.contest).content.decode("utf-8")
+
+        self.assertTrue(csv_text.startswith("\ufeff"))
+        self.assertEqual(csv_text.count("\ufeff"), 1)

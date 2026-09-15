@@ -14,6 +14,7 @@ from ..exporters import (
     PaperExamSheetRenderer,
     sanitize_filename,
 )
+from .participation import attempted_participants
 
 
 class ExportValidationError(Exception):
@@ -124,19 +125,30 @@ def _get_admin_user_ids(contest):
     return admin_ids
 
 
+def _csv_response(filename: str) -> HttpResponse:
+    """CSV download that Excel opens as UTF-8.
+
+    The BOM is written once, up front. A ``utf-8-sig`` charset would instead
+    prepend one to every chunk written, i.e. to every CSV row.
+    """
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.write('\ufeff')
+    return response
+
+
 def build_paper_exam_results_csv_response(contest):
     """Generate CSV response for paper-exam results."""
     from ..models import ExamAnswer, ExamQuestion, ExamQuestionType
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
     safe_name = sanitize_filename(contest.name)
-    response['Content-Disposition'] = f'attachment; filename="exam_{contest.id}_{safe_name}_results.csv"'
+    response = _csv_response(f'exam_{contest.id}_{safe_name}_results.csv')
 
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
     )
     participants = list(
-        contest.registrations
+        attempted_participants(contest)
         .select_related('user')
         .order_by('rank', '-score', 'joined_at')
     )
@@ -147,12 +159,8 @@ def build_paper_exam_results_csv_response(contest):
     for ans in answers:
         answer_lookup[ans.participant_id][ans.question_id] = ans
 
-    admin_user_ids = _get_admin_user_ids(contest)
     total_questions = len(questions)
     full_score = sum(q.score for q in questions)
-
-    # Filter out admins/co-admins — only export student participants
-    students = [p for p in participants if p.user_id not in admin_user_ids]
 
     # Header
     writer = csv.writer(response)
@@ -166,9 +174,9 @@ def build_paper_exam_results_csv_response(contest):
     score_sums = [0.0] * total_questions
     score_counts = [0] * total_questions
     total_score_sum = Decimal('0')
-    participant_count = len(students)
+    participant_count = len(participants)
 
-    for p in students:
+    for p in participants:
         profile = getattr(p.user, 'profile', None)
         display_name = getattr(profile, 'display_name', '') or ''
         status_label = p.get_exam_status_display()
@@ -214,8 +222,7 @@ def build_paper_exam_results_csv_response(contest):
 
 def build_contest_results_csv_response(contest, scoreboard_result):
     """Generate CSV response for contest scoreboard results."""
-    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="contest_{contest.id}_results.csv"'
+    response = _csv_response(f'contest_{contest.id}_results.csv')
 
     admin_user_ids = _get_admin_user_ids(contest)
     writer = csv.writer(response)

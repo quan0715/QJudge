@@ -19,11 +19,12 @@ applies to legacy or fixture data.
 
 from __future__ import annotations
 
+from django.db.models import Q, QuerySet
 from rest_framework.exceptions import PermissionDenied
 
 from apps.classrooms.permissions import get_user_role_in_classroom
 
-from ..models import Contest, ContestParticipant
+from ..models import Contest, ContestParticipant, ExamStatus
 
 NOT_A_CANDIDATE_MESSAGE = "Only members of this contest's classroom can take it."
 # The attempt record is created by the first check-in or start, so its absence
@@ -93,6 +94,19 @@ def student_member_ids(contest: Contest) -> list[int]:
     )
 
 
+def attempted_participants(contest: Contest) -> QuerySet[ContestParticipant]:
+    """Attempt records of everyone who actually sat this contest.
+
+    The single source for standings, scoring, result exports and the question
+    edit lock. No role filtering: a staff test run counts like any other
+    attempt until it is reset. A row that only checked in, or was reset back
+    to not started, has not sat the exam and is left out.
+    """
+    return contest.registrations.filter(
+        Q(started_at__isnull=False) | ~Q(exam_status=ExamStatus.NOT_STARTED)
+    )
+
+
 def roster_user_ids(contest: Contest) -> list[int]:
     """Everyone a teacher should see on this contest's roster.
 
@@ -102,7 +116,6 @@ def roster_user_ids(contest: Contest) -> list[int]:
     keeps a result visible after its owner leaves the classroom.
     """
     attempted = set(
-        contest.registrations.filter(started_at__isnull=False)
-        .values_list("user_id", flat=True)
+        attempted_participants(contest).values_list("user_id", flat=True)
     )
     return sorted(set(student_member_ids(contest)) | attempted)

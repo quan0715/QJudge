@@ -12,6 +12,7 @@ from apps.contests.models import (
     ExamQuestion,
     ExamQuestionType,
 )
+from apps.contests.services.participant_state import reset_participant_exam_record
 from apps.contests.services.question_edit_lock import (
     is_contest_question_edit_locked,
 )
@@ -99,16 +100,58 @@ def test_paper_exam_lock_tracks_current_answer_without_started_at(
 
 
 @pytest.mark.django_db
-def test_coding_lock_tracks_current_student_formal_submission(
+def test_paper_exam_lock_counts_a_staff_test_run_like_any_attempt(
+    contest: Contest,
+    owner: User,
+) -> None:
+    contest.contest_type = "paper_exam"
+    contest.save(update_fields=["contest_type"])
+    participant = ContestParticipant.objects.create(
+        contest=contest,
+        user=owner,
+        started_at=timezone.now(),
+        exam_status="in_progress",
+    )
+
+    assert is_contest_question_edit_locked(contest) is True
+
+    reset_participant_exam_record(
+        participant,
+        activity_user=owner,
+        activity_details="reset test run",
+    )
+    assert is_contest_question_edit_locked(contest) is False
+
+
+@pytest.mark.django_db
+def test_checking_in_alone_does_not_lock_a_paper_exam(
+    contest: Contest,
+    student: User,
+) -> None:
+    contest.contest_type = "paper_exam"
+    contest.save(update_fields=["contest_type"])
+    ContestParticipant.objects.create(contest=contest, user=student)
+
+    assert is_contest_question_edit_locked(contest) is False
+
+
+@pytest.mark.django_db
+def test_coding_contest_stays_editable_after_student_submissions(
     contest: Contest,
     owner: User,
     student: User,
 ) -> None:
     problem = CodingProblem.objects.create(
-        slug="derived-question-lock",
+        slug="coding-contest-stays-editable",
         created_by=owner,
     )
-    submission = Submission.objects.create(
+    ContestParticipant.objects.create(
+        contest=contest,
+        user=student,
+        started_at=timezone.now(),
+        exam_status="in_progress",
+    )
+    Submission.objects.create(
         user=student,
         contest=contest,
         problem=problem,
@@ -116,50 +159,6 @@ def test_coding_lock_tracks_current_student_formal_submission(
         is_test=False,
         language="python",
         code="print(1)",
-    )
-
-    assert is_contest_question_edit_locked(contest) is True
-
-    submission.delete()
-    assert is_contest_question_edit_locked(contest) is False
-
-
-@pytest.mark.django_db
-def test_coding_lock_ignores_manager_test_and_practice_submissions(
-    contest: Contest,
-    owner: User,
-    student: User,
-) -> None:
-    problem = CodingProblem.objects.create(
-        slug="ignored-question-lock-evidence",
-        created_by=owner,
-    )
-    Submission.objects.create(
-        user=owner,
-        contest=contest,
-        problem=problem,
-        source_type="contest",
-        is_test=False,
-        language="python",
-        code="print('manager')",
-    )
-    Submission.objects.create(
-        user=student,
-        contest=contest,
-        problem=problem,
-        source_type="contest",
-        is_test=True,
-        language="python",
-        code="print('test')",
-    )
-    Submission.objects.create(
-        user=student,
-        contest=contest,
-        problem=problem,
-        source_type="practice",
-        is_test=False,
-        language="python",
-        code="print('practice')",
     )
 
     assert is_contest_question_edit_locked(contest) is False

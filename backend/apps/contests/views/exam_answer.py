@@ -35,7 +35,7 @@ from .exam_validation_response import (
     build_device_conflict_response_for_view,
     validate_exam_operation_for_view,
 )
-from ..services.participation import NO_ATTEMPT_MESSAGE
+from ..services.participation import NO_ATTEMPT_MESSAGE, attempted_participants
 
 
 class ExamAnswerViewSet(viewsets.GenericViewSet):
@@ -61,11 +61,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         if question_id is not None:
             cache.delete(self._question_detail_cache_key(contest_id, question_id))
 
-    def _student_participants_qs(self, contest):
-        return ContestParticipant.objects.filter(
-            contest=contest,
-            user__role='student',
-        ).select_related('user')
+    def _attempted_participants_qs(self, contest):
+        return attempted_participants(contest).select_related('user')
 
     def _can_view_dashboard_summary(self, user, contest):
         if can_manage_contest(user, contest):
@@ -409,7 +406,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         scoring = ExamScoringService(contest)
 
         participants = list(
-            self._student_participants_qs(contest).values('id', 'exam_status')
+            self._attempted_participants_qs(contest).values('id', 'exam_status')
         )
         participant_ids = [item['id'] for item in participants]
         participant_count = len(participant_ids)
@@ -524,7 +521,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             return Response(cached_payload)
 
         question = get_object_or_404(ExamQuestion, pk=question_id, contest=contest)
-        participants = list(self._student_participants_qs(contest))
+        participants = list(self._attempted_participants_qs(contest))
         participant_ids = [participant.id for participant in participants]
         participants_by_id = {participant.id: participant for participant in participants}
         participant_count = len(participant_ids)

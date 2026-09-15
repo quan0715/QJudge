@@ -420,23 +420,23 @@ class ProblemContestLockGuardTests(TestCase):
             password="password",
             role="student",
         )
+        # Only paper exams lock; coding contests stay editable mid-contest.
         self.contest = Contest.objects.create(
             name="Locked Contest",
             owner=self.owner,
             status="published",
+            contest_type="paper_exam",
         )
         self.problem = CodingProblem.objects.create(
             slug="locked-contest-problem",
             created_by=self.owner,
         )
         bind_problem_to_contest(self.contest, self.problem, order=0, score=10)
-        Submission.objects.create(
-            user=self.student,
+        ContestParticipant.objects.create(
             contest=self.contest,
-            problem=self.problem,
-            source_type="contest",
-            language="python",
-            code="print(1)",
+            user=self.student,
+            started_at=timezone.now(),
+            exam_status="in_progress",
         )
 
     def test_patch_problem_blocked_when_linked_contest_locked(self):
