@@ -105,11 +105,18 @@ const AdminDashboardInner = () => {
     [contestModule, contest],
   );
   const routablePanels = useMemo(
-    () => availablePanels.includes("settings")
-      ? availablePanels
-      : [...availablePanels, "settings" as const],
+    () => Array.from(new Set([...availablePanels, "settings" as const, "clarifications" as const])),
     [availablePanels],
   );
+  useEffect(() => {
+    if (searchParams.get("panel") !== "clarifications") return;
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set("panel", "overview");
+      next.set("tab", "clarifications");
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
   const { activeKey: activePanel } = useTabWithUrlParam({
     param: "panel",
     keys: routablePanels,

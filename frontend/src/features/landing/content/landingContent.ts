@@ -298,7 +298,7 @@ export function getLandingContent(t: TFunction<"landing">): LandingContent {
       secondaryCta: t("footer.secondaryCta"),
       productLinks: [
         { label: t("footer.links.product.0.label"), href: "#landing-proposition" },
-        { label: t("footer.links.product.2.label"), href: "#landing-faq" },
+        { label: t("footer.links.product.1.label"), href: "#landing-faq" },
       ],
       contactLinks: [
         { label: t("footer.links.contact.0.label"), href: "mailto:quan787887@gmail.com" },

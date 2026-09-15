@@ -37,7 +37,6 @@ import { useTranslation } from "react-i18next";
 
 import type {
   ParticipantCodingProblemDetail,
-  ParticipantCodingProblemRow,
   ParticipantDashboard,
   ParticipantDashboardDetail,
   ParticipantDashboardStatus,
@@ -176,7 +175,7 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
         }
       : null;
 
-  const chartTheme = theme === "g100" || theme === "g90" ? theme : "g100";
+  const chartTheme = theme;
   const donutData = useMemo(() => {
     if (!dashboard || dashboard.contestType !== "coding") return [];
     const trend = (dashboard.report as CodingReportPayload).trend;
@@ -665,38 +664,6 @@ const ParticipantDashboardPane: React.FC<ParticipantDashboardPaneProps> = ({
 
                 {detail === "report" && codingReport ? (
                   <div className={styles.sectionStack}>
-                    <h5 className={styles.sectionTitle}>
-                      {t("dashboard.problemGrid", "題目成績摘要")}
-                    </h5>
-                    <div className={styles.problemList}>
-                      {codingReport.problemGrid.map(
-                        (row: ParticipantCodingProblemRow) => (
-                          <div
-                            key={row.problemId}
-                            className={styles.problemItem}
-                          >
-                            <div className={styles.problemHeader}>
-                              <div>
-                                <div className={styles.primaryText}>
-                                  {row.label} · {row.title}
-                                </div>
-                                <div className={styles.secondaryText}>
-                                  {row.difficulty || "-"} •{" "}
-                                  {t("dashboard.tries", "提交次數")} {row.tries}
-                                </div>
-                              </div>
-                              <div className={styles.inlineMeta}>
-                                {row.status ? <Tag>{row.status}</Tag> : null}
-                                <span>
-	                                  {formatScore(row.score)} / {formatScore(row.maxScore)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                    </div>
-
                     <h5 className={styles.sectionTitle}>
                       {t("dashboard.problemDetails", "題目詳情")}
                     </h5>

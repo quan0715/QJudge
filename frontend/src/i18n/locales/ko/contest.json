@@ -80,7 +80,12 @@
       "drilldown": {
         "ariaLabel": "개요 데이터 전환",
         "participants": "참가자",
-        "questionStats": "답안 분포"
+        "questionStats": "답안 분포",
+        "standings": "순위표",
+        "submissions": "제출 목록"
+      },
+      "clarifications": {
+        "publishAnnouncement": "공지 게시"
       },
       "eventLog": "이벤트 기록",
       "examStatusSummary": "시험 상태 요약",
@@ -106,6 +111,7 @@
       },
       "metricSwitcher": "학생 카드 지표 전환",
       "metrics": {
+        "currentStatus": "현재 전체 대회 상태",
         "endTime": "종료 시간",
         "examParticipants": "응시 인원",
         "onlineParticipants": "온라인 인원",
@@ -126,6 +132,18 @@
         "filterQuestionTypeAria": "문항 유형 필터",
         "search": "문항 검색",
         "searchPlaceholder": "문항 번호 또는 내용을 검색..."
+      },
+      "standings": {
+        "empty": "아직 순위표 데이터가 없습니다"
+      },
+      "submissions": {
+        "empty": "아직 제출 기록이 없습니다",
+        "filter": "제출 필터",
+        "filterAria": "제출 필터",
+        "problemFilter": "제출 문항 필터",
+        "problemFilterAria": "제출 문항 필터",
+        "statusFilter": "제출 상태 필터",
+        "statusFilterAria": "제출 상태 필터"
       },
       "tabsAriaLabel": "교사 관리 개요 탭"
     },
@@ -352,6 +370,7 @@
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
+        "studentQrScan": "학생 QR 스캔",
         "settings": "競賽設定",
         "attendanceProjection": "입퇴실 QR 열기"
       },
@@ -864,6 +883,7 @@
     "addFirstQuestion": "첫 번째 문제 추가",
     "addOption": "선택지 추가",
     "addQuestion": "문제 추가",
+    "addToBank": "문항 은행에 추가",
     "aiAssistant": "AI 어시스턴트",
     "answerFormat": "답안 형식",
     "answerFormats": {
@@ -921,6 +941,7 @@
     "loadFailed": "로드 실패",
     "loadFailedDetail": "시험 문제 로드에 실패했습니다",
     "maxScoreFieldLabel": "배점",
+    "tabTestCasesAndScoring": "테스트 케이스 및 배점",
     "noQuestions": "문제가 없습니다",
     "openBankInbox": "문제 은행 가져오기",
     "openSourcePanel": "문항 소스 열기",
@@ -945,6 +966,7 @@
     "referencePlaceholder": "참고 답안 (선택, Markdown 지원)",
     "removeFromContest": "대회에서 제거",
     "saveFailed": "저장에 실패했습니다",
+    "scoreDescription": "대회에서 이 문항의 최대 배점을 설정합니다",
     "saveToBank": "문항 은행에 저장",
     "saveToBankAlreadyInBank": "이미 문항 은행에 있음",
     "scoreLabel": "점",
@@ -1384,8 +1406,8 @@
     "loadingTitle": "로드 중",
     "noFeedback": "피드백 없음",
     "notGraded": "미채점",
-    "notEligibleDescription": "이 클래스 학생만 문제와 성적을 볼 수 있습니다.",
-    "notEligibleTitle": "이 클래스 학생이 아닙니다",
+    "notEligibleDescription": "이 클래스 구성원만 문제와 성적을 볼 수 있습니다.",
+    "notEligibleTitle": "이 클래스 구성원이 아닙니다",
     "openingDescription": "행을 클릭하면 해당 문제 위치로 답안 화면에 진입합니다.",
     "openingTitle": "문제 열람 가능",
     "title": "문제 및 성적",
@@ -1847,7 +1869,7 @@
     },
     "actions": {
       "adminPanel": "관리 대시보드",
-      "backToAnswering": "답안 화면으로 돌아가기",
+      "backToAnswering": "답안 작성 화면으로 이동",
       "downloadProof": "답안 증명 다운로드",
       "downloadReport": "성적표 다운로드",
       "refresh": "새로고침",
@@ -1962,6 +1984,7 @@
       "scoreDistribution": "점수 분포"
     },
     "tabs": {
+      "clarifications": "공지 및 질문",
       "ariaLabel": "대회 정보 전환",
       "records": "답안 기록",
       "rules": "규칙 안내"

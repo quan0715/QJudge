@@ -10,7 +10,7 @@ export {
 export type {
   ContestRuntimeNavigatorState,
 } from "./contestRuntimeNavigatorStore";
-export type { default as ContestContext } from "./ContestContext";
+export type { default as ContestContext } from "./ContestValueContext";
 export { ContestAdminProvider, useContestAdmin } from "./ContestAdminContext";
 export {
   AdminPanelRefreshProvider,

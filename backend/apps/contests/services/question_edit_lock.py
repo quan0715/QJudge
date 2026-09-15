@@ -5,8 +5,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from apps.contests.models import Contest, ExamAnswer
-from apps.contests.permissions import can_manage_contest
-from apps.submissions.models import Submission
+from apps.contests.services.participation import attempted_participants
 
 LOCKED_ERROR_CODE = "CONTEST_QUESTION_EDIT_LOCKED"
 LOCKED_ERROR_MESSAGE = "已有考生開始作答，競賽內容已鎖定"
@@ -28,25 +27,17 @@ class ContestQuestionEditLocked(APIException):
 
 
 def is_contest_question_edit_locked(contest: Contest) -> bool:
-    """Return whether current student exposure evidence locks question content."""
-    if contest.contest_type == "paper_exam":
-        return (
-            contest.registrations.filter(started_at__isnull=False).exists()
-            or ExamAnswer.objects.filter(participant__contest=contest).exists()
-        )
+    """Return whether anyone sitting a paper exam locks its question content.
 
-    submissions = (
-        Submission.objects.filter(
-            contest=contest,
-            source_type="contest",
-            is_test=False,
-        )
-        .select_related("user")
-        .iterator()
-    )
-    return any(
-        not can_manage_contest(submission.user, contest)
-        for submission in submissions
+    Paper exams lock once any attempt exists -- staff test runs included, the
+    same as students; resetting the attempt releases it. Coding contests stay
+    editable throughout: a mid-contest change is announced on site instead.
+    """
+    if contest.contest_type != "paper_exam":
+        return False
+    return (
+        attempted_participants(contest).exists()
+        or ExamAnswer.objects.filter(participant__contest=contest).exists()
     )
 
 

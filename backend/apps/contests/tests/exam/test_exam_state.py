@@ -55,18 +55,29 @@ class ExamStateTests(APITestCase):
         self.assertNotIn('question_edit_locked_at', detail.data)
         self.assertNotIn('question_edit_lock_trigger', detail.data)
 
-    def test_staff_cannot_sit_their_own_exam_even_with_a_legacy_row(self):
-        # Registration used to let managers self-enrol to try their paper; the
-        # exam preview replaces that. A leftover row grants no eligibility.
+    def test_owner_participant_can_start_exam(self):
         ContestParticipant.objects.create(contest=self.contest, user=self.admin)
         self.client.force_authenticate(user=self.admin)
 
         url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
         response = self.client.post(url)
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         p = ContestParticipant.objects.get(user=self.admin, contest=self.contest)
-        self.assertEqual(p.exam_status, ExamStatus.NOT_STARTED)
+        self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
+
+    def test_staff_test_their_exam_through_the_same_entry_flow(self):
+        # The classroom owner has no attempt record yet; starting creates one,
+        # exactly as it does for a student.
+        self.client.force_authenticate(user=self.admin)
+
+        url = reverse('contests:contest-exam-start-exam', args=[self.contest.id])
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        p = ContestParticipant.objects.get(user=self.admin, contest=self.contest)
+        self.assertEqual(p.exam_status, ExamStatus.IN_PROGRESS)
+        self.assertIsNotNone(p.started_at)
 
     def test_start_creates_the_attempt_record_for_an_enrolled_student(self):
         newcomer = User.objects.create_user(

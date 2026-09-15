@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from dataclasses import dataclass
+from typing import Literal, Sequence
 
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 from django.conf import settings
@@ -12,6 +13,9 @@ from apps.judge import judge_factory
 from apps.problems.models import CodingProblem, TestCase
 
 HARD_FAILURE_STATUSES = {"CE", "SE"}
+# A custom case without an expected output has nothing to compare against, so
+# only these statuses say something about it; anything else is just "info".
+CUSTOM_FAILURE_STATUSES = {"CE", "RE", "TLE", "MLE", "SE"}
 logger = logging.getLogger(__name__)
 
 TestRunSetupErrorCode = Literal["unsupported_language", "judge_unavailable"]
@@ -26,8 +30,32 @@ class TestRunSetupError(Exception):
         super().__init__(code)
 
 
+@dataclass(frozen=True)
+class CustomTestRunCase:
+    """A solver-written case; never stored."""
+
+    id: str
+    input_data: str
+    output_data: str
+
+
+def build_custom_cases(custom_test_cases: Sequence[dict]) -> list[CustomTestRunCase]:
+    return [
+        CustomTestRunCase(
+            id=f"custom_{index}",
+            input_data=case.get("input", ""),
+            output_data=case.get("expected_output", "") or "",
+        )
+        for index, case in enumerate(custom_test_cases, start=1)
+    ]
+
+
 class ProblemTestRunService:
-    """Runs all stored test cases without creating submissions."""
+    """Runs the public sample cases plus custom cases, without a submission.
+
+    Hidden and non-sample cases never run here: their verdicts, inputs and
+    expected outputs are only for formal submissions.
+    """
 
     @classmethod
     def run_via_worker(
@@ -36,6 +64,7 @@ class ProblemTestRunService:
         problem: CodingProblem,
         language: str,
         source_code: str,
+        custom_test_cases: Sequence[dict] = (),
     ) -> dict:
         """Run the test cases in a judge worker and wait for the verdict.
 
@@ -48,6 +77,7 @@ class ProblemTestRunService:
 
         async_result = run_problem_test_run.apply_async(
             args=[str(problem.id), language, source_code],
+            kwargs={"custom_test_cases": list(custom_test_cases)},
             queue=settings.JUDGE_TEST_RUN_QUEUE,
         )
 
@@ -78,26 +108,36 @@ class ProblemTestRunService:
         return payload["result"]
 
     @staticmethod
-    def _build_test_cases(problem: CodingProblem) -> list[TestCase]:
-        return list(problem.test_cases.all())
+    def build_test_cases(
+        problem: CodingProblem,
+        custom_test_cases: Sequence[dict] = (),
+    ) -> list[TestCase | CustomTestRunCase]:
+        """Samples first, then custom cases: the order the solver UI lists them."""
+        return [*problem.public_sample_cases(), *build_custom_cases(custom_test_cases)]
 
     @staticmethod
-    def _build_case_result(tc: TestCase, exec_result: dict) -> dict:
+    def _build_case_result(tc: TestCase | CustomTestRunCase, exec_result: dict) -> dict:
         raw_status = exec_result.get("status", "SE")
-        expected_output = getattr(tc, "output_data", "") or ""
+        is_custom = isinstance(tc, CustomTestRunCase)
+        expected_output = tc.output_data or ""
+        compares = not is_custom or expected_output.strip() != ""
+        if compares:
+            verdict = raw_status
+        else:
+            verdict = raw_status if raw_status in CUSTOM_FAILURE_STATUSES else "info"
 
         return {
-            "case_id": getattr(tc, "id", None),
-            "source": "test_case",
-            "status": raw_status,
+            "case_id": tc.id,
+            "source": "custom" if is_custom else "sample",
+            "status": verdict,
             "raw_status": raw_status,
             "exec_time": exec_result.get("time", 0),
             "memory_usage": exec_result.get("memory", 0),
             "output": exec_result.get("output", ""),
             "error_message": exec_result.get("error", ""),
             "input": tc.input_data,
-            "expected_output": expected_output,
-            "is_hidden": getattr(tc, "is_hidden", False),
+            "expected_output": expected_output if compares else None,
+            "is_hidden": False,
         }
 
     @classmethod
@@ -107,6 +147,7 @@ class ProblemTestRunService:
         problem: CodingProblem,
         language: str,
         source_code: str,
+        custom_test_cases: Sequence[dict] = (),
         on_progress=None,
     ) -> dict:
         try:
@@ -121,7 +162,7 @@ class ProblemTestRunService:
         max_memory_usage = 0
         final_status = "AC"
 
-        test_cases = cls._build_test_cases(problem)
+        test_cases = cls.build_test_cases(problem, custom_test_cases)
         if on_progress:
             on_progress({"total": len(test_cases), "results": []})
         for tc in test_cases:
@@ -129,7 +170,7 @@ class ProblemTestRunService:
                 exec_result = judge.execute(
                     code=source_code,
                     input_data=tc.input_data,
-                    expected_output=getattr(tc, "output_data", "") or "",
+                    expected_output=tc.output_data or "",
                     time_limit=problem.time_limit,
                     memory_limit=problem.memory_limit,
                 )
@@ -152,7 +193,7 @@ class ProblemTestRunService:
             max_memory_usage = max(max_memory_usage, case_result["memory_usage"])
 
             verdict = case_result["status"]
-            if verdict != "AC" and final_status == "AC":
+            if verdict not in {"AC", "info"} and final_status == "AC":
                 final_status = verdict
 
             raw_status = case_result["raw_status"]

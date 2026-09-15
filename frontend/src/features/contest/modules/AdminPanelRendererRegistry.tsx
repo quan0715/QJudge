@@ -5,9 +5,6 @@ import ContestExamGradingScreen from "../screens/settings/ContestExamGradingScre
 const AdminOverviewScreen = lazy(
   () => import("../screens/admin/panels/AdminOverviewScreen"),
 );
-const AdminClarificationsScreen = lazy(
-  () => import("../screens/admin/panels/AdminClarificationsScreen"),
-);
 const AdminProctoringPanel = lazy(
   () => import("../screens/admin/panels/AdminProctoringPanel"),
 );
@@ -19,7 +16,7 @@ const AdminStandingsScreen = lazy(() => import("../screens/admin/panels/AdminSta
 
 const defaultAdminRenderers: Record<AdminPanelId, AdminPanelRenderer> = {
   overview: AdminOverviewScreen,
-  clarifications: AdminClarificationsScreen,
+  clarifications: AdminOverviewScreen,
   proctoring: AdminProctoringPanel,
   standings: AdminStandingsScreen,
   grading: ContestExamGradingScreen,

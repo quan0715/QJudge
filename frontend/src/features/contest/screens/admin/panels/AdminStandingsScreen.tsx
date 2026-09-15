@@ -5,16 +5,19 @@ import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsS
 import ParticipantDrawer from "@/features/contest/components/participants/ParticipantDrawer";
 import styles from "./AdminStandingsPanel.module.scss";
 
-export default function AdminStandingsScreen({ contestId }: AdminPanelProps) {
+export default function AdminStandingsScreen({
+  contestId,
+  embedded = false,
+}: AdminPanelProps & { embedded?: boolean }) {
   const [, setSearchParams] = useSearchParams();
   const [selection, setSelection] = useState<{ userId: string; problemId?: string } | null>(null);
   return (
     <>
-      <div className={styles.root}>
-        <div className={styles.inner}>
+      <div className={embedded ? undefined : styles.root}>
+        <div className={embedded ? undefined : styles.inner}>
           <ContestStandingsScreen
-            titleSize="page"
-            fill
+            titleSize={embedded ? "section" : "page"}
+            fill={!embedded}
             onSelectParticipant={(userId, problemId) => setSelection({ userId, problemId })}
           />
         </div>

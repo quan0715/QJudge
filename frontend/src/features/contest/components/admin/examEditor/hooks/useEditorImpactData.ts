@@ -60,10 +60,8 @@ export function useEditorImpactData(
           getAllExamAnswersForGrading(contestId),
         ]);
 
-        // Filter to student-role only
-        const studentIds = participantsRes
-          .filter((p) => !p.accountRole || p.accountRole === "student")
-          .map((p) => String(p.userId));
+        // Everyone on the roster, staff test runs included.
+        const studentIds = participantsRes.map((p) => String(p.userId));
 
         const answersByStudent = new Map<string, GradingAnswerRow[]>();
         for (const sid of studentIds) {
@@ -71,7 +69,7 @@ export function useEditorImpactData(
         }
         for (const answer of answersRes.data) {
           const sid = answer.participantUserId;
-          if (!answersByStudent.has(sid)) continue; // skip non-student-role
+          if (!answersByStudent.has(sid)) continue; // not on the roster
           const list = answersByStudent.get(sid)!;
           // Minimal row — only studentId, questionId, score are read by simulation
           list.push({

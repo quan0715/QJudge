@@ -23,6 +23,7 @@ from ..models import (
     ExamQuestion,
     ExamQuestionScorePolicy,
 )
+from .participation import attempted_participants
 
 
 @dataclass
@@ -282,7 +283,7 @@ class ExamScoringService:
         has_redistribute = any(q.is_redistribute for q in questions)
         full_marks_total = sum(q.score for q in questions if q.is_full_marks)
 
-        participants = ContestParticipant.objects.filter(contest=self.contest)
+        participants = attempted_participants(self.contest)
         count = 0
         for participant in participants:
             answers = ExamAnswer.objects.filter(

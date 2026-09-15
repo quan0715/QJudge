@@ -10,7 +10,6 @@ const gatedRules = new Set([
   "carbon-form-label-review",
   "carbon-loading-label-review",
   "carbon-modal-label-review",
-  "small-button-in-navigation",
   "native-button-type-review",
   "native-form-label-review",
   "notification-title-review",

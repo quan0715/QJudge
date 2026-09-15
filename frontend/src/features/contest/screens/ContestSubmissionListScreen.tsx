@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   DataTable,
@@ -25,35 +25,29 @@ import { SubmissionDetailModal } from "@/features/submissions/components";
 import { SubmissionStatusBadge } from "@/shared/ui/tag";
 import SurfaceSection from "@/shared/layout/SurfaceSection";
 import ContainerCard from "@/shared/layout/ContainerCard";
+import { BlockHeader } from "@/shared/components/dashboard";
+import styles from "./ContestSubmissionListScreen.module.scss";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
 
-interface ContestSubmissionListScreenProps {
+export interface ContestSubmissionListScreenProps {
   maxWidth?: string;
+  embedded?: boolean;
+  statusFilter?: string;
+  problemFilter?: string;
+  onStatusFilterChange?: (value: string) => void;
+  onProblemFilterChange?: (value: string) => void;
+  hideEmbeddedToolbar?: boolean;
 }
-
-// CSS keyframes for flip animation
-const flipAnimationStyles = `
-  @keyframes flipIn {
-    0% {
-      transform: perspective(400px) rotateX(-90deg);
-      opacity: 0;
-    }
-    40% {
-      transform: perspective(400px) rotateX(10deg);
-    }
-    70% {
-      transform: perspective(400px) rotateX(-5deg);
-    }
-    100% {
-      transform: perspective(400px) rotateX(0deg);
-      opacity: 1;
-    }
-  }
-`;
 
 const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = ({
   maxWidth,
+  embedded = false,
+  statusFilter: controlledStatusFilter,
+  problemFilter: controlledProblemFilter,
+  onStatusFilterChange,
+  onProblemFilterChange,
+  hideEmbeddedToolbar = false,
 }) => {
   const { t } = useTranslation("contest");
   const { t: tc } = useTranslation("common");
@@ -61,11 +55,19 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [problemFilter, setProblemFilter] = useState<string>("all");
+  const [localStatusFilter, setLocalStatusFilter] = useState<string>("all");
+  const [localProblemFilter, setLocalProblemFilter] = useState<string>("all");
+  const statusFilter = controlledStatusFilter ?? localStatusFilter;
+  const problemFilter = controlledProblemFilter ?? localProblemFilter;
+  // Any filter change -- local or from a parent that controls the filters --
+  // starts from page 1; the old page may not exist under a narrower filter.
+  const [pagedFilters, setPagedFilters] = useState({ statusFilter, problemFilter });
+  if (pagedFilters.statusFilter !== statusFilter || pagedFilters.problemFilter !== problemFilter) {
+    setPagedFilters({ statusFilter, problemFilter });
+    setPage(1);
+  }
   const [onlyMine, setOnlyMine] = useState(false);
   const { user: currentUser } = useAuth();
-  const [animationKey, setAnimationKey] = useState(0);
 
   // Get contest problems from context
   const { contest } = useContest();
@@ -78,33 +80,11 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
     pageSize,
     statusFilter,
     problemFilter,
-    userId: onlyMine && currentUser?.id ? currentUser.id : undefined,
+    userId: !embedded && onlyMine && currentUser?.id ? currentUser.id : undefined,
   });
 
   const submissions = data?.results || [];
   const totalItems = data?.count || 0;
-
-  // Inject flip animation styles
-  useEffect(() => {
-    const existingStyle = document.getElementById("flip-animation-styles");
-    if (!existingStyle) {
-      const styleEl = document.createElement("style");
-      styleEl.id = "flip-animation-styles";
-      styleEl.textContent = flipAnimationStyles;
-      document.head.appendChild(styleEl);
-    }
-  }, []);
-
-  // Trigger animation when data changes
-  useEffect(() => {
-    if (data) {
-      const timerId = setTimeout(() => {
-        setAnimationKey((prev) => prev + 1);
-      }, 0);
-      return () => clearTimeout(timerId);
-    }
-    return undefined;
-  }, [data]);
 
   const statusOptions: Array<{ id: string; label: string }> = [
     { id: "all", label: t("submissions.allStatus") },
@@ -120,6 +100,16 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    if (controlledStatusFilter === undefined) setLocalStatusFilter(value);
+    onStatusFilterChange?.(value);
+  };
+
+  const handleProblemFilterChange = (value: string) => {
+    if (controlledProblemFilter === undefined) setLocalProblemFilter(value);
+    onProblemFilterChange?.(value);
   };
 
   const getStatusBadge = (status: string) => {
@@ -170,7 +160,7 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
     { key: "score", header: t("submissions.score") },
     { key: "time", header: t("submissions.time") },
     { key: "created_at", header: t("submissions.submittedAt") },
-    { key: "actions", header: t('table.actions') },
+    { key: "actions", header: tc("table.actions") },
   ];
 
   const rows = submissions.map((sub) => {
@@ -239,245 +229,246 @@ const ContestSubmissionListScreen: React.FC<ContestSubmissionListScreenProps> = 
   // Show initial loading state
   const showSkeleton = isLoading && submissions.length === 0;
 
-  return (
-    <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
-      <Grid fullWidth style={{ padding: 0 }}>
-          {/* Left Column: Filters */}
-          <Column lg={4} md={8} sm={4}>
-            <ContainerCard
-              title={t("submissions.filters")}
-              style={{ marginBottom: "1rem" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1.5rem",
-                }}
-              >
-                <Dropdown
-                  id="problem-filter"
-                  titleText={t("submissions.problemLabel")}
-                  label={t("submissions.selectProblem")}
-                  items={[
-                    { id: "all", label: t("submissions.allProblems") },
-                    ...problems.map((p) => ({
-                      id: p.problemId,
-                      label: `${p.label}. ${p.title}`,
-                    })),
-                  ]}
-                  itemToString={(item) => (item ? item.label : "")}
-                  selectedItem={
-                    problemFilter === "all"
-                      ? { id: "all", label: t("submissions.allProblems") }
-                      : {
-                          id: problemFilter,
-                          label: `${
-                            problems.find((p) => p.problemId === problemFilter)
-                              ?.label || ""
-                          }. ${
-                            problems.find((p) => p.problemId === problemFilter)
-                              ?.title || ""
-                          }`,
-                        }
-                  }
-                  onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
-                    if (selectedItem) {
-                      setProblemFilter(selectedItem.id);
-                      setPage(1);
-                    }
-                  }}
-                />
-
-                <Dropdown
-                  id="status-filter"
-                  titleText={t("submissions.statusLabel")}
-                  label={t("submissions.selectStatus")}
-                  items={statusOptions}
-                  itemToString={(item) => (item ? item.label : "")}
-                  selectedItem={
-                    statusOptions.find((s) => s.id === statusFilter) || null
-                  }
-                  onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
-                    if (selectedItem) {
-                      setStatusFilter(selectedItem.id);
-                      setPage(1);
-                    }
-                  }}
-                />
-
-                {currentUser && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "var(--cds-text-secondary)",
-                        marginBottom: "0.5rem",
-                      }}
-                    >
-                      {t("submissions.submitter")}
-                    </div>
-                    <Toggle
-                      id="only-mine-toggle"
-                      size="sm"
-                      labelText=""
-                      labelA={t("submissions.all")}
-                      labelB={t("submissions.mine")}
-                      toggled={onlyMine}
-                      onToggle={(checked: boolean) => {
-                        setOnlyMine(checked);
-                        setPage(1);
-                      }}
-                    />
-                  </div>
-                )}
-
-                <Button
-                  kind="tertiary"
-                  renderIcon={isFetching ? InlineLoading : Renew}
-                  onClick={handleRefresh}
-                  disabled={isFetching}
-                  size="md"
-                  style={{ width: "100%" }}
-                >
-                  {isFetching
-                    ? t("submissions.refreshing")
-                    : t("submissions.refresh")}
-                </Button>
-              </div>
-            </ContainerCard>
-          </Column>
-
-          {/* Right Column: Table */}
-          <Column lg={12} md={8} sm={4}>
-            <ContainerCard
-              title={
-                showSkeleton
-                  ? t("submissions.title")
-                  : t("submissions.titleWithCount", { count: totalItems })
+  const title = showSkeleton
+    ? t("submissions.title")
+    : t("submissions.titleWithCount", { count: totalItems });
+  const refreshAction = (
+    <Button
+      kind={embedded ? "ghost" : "tertiary"}
+      renderIcon={isFetching ? InlineLoading : Renew}
+      onClick={handleRefresh}
+      disabled={isFetching}
+      size="md"
+    >
+      {isFetching
+        ? t("submissions.refreshing")
+        : t("submissions.refresh")}
+    </Button>
+  );
+  const filters = (
+    <div className={embedded ? styles.filters : styles.sidebarFilters}>
+      <Dropdown
+        id="problem-filter"
+        titleText={t("submissions.problemLabel")}
+        label={t("submissions.selectProblem")}
+        items={[
+          { id: "all", label: t("submissions.allProblems") },
+          ...problems.map((p) => ({
+            id: p.problemId,
+            label: `${p.label}. ${p.title}`,
+          })),
+        ]}
+        itemToString={(item) => (item ? item.label : "")}
+        selectedItem={
+          problemFilter === "all"
+            ? { id: "all", label: t("submissions.allProblems") }
+            : {
+                id: problemFilter,
+                label: `${
+                  problems.find((p) => p.problemId === problemFilter)
+                    ?.label || ""
+                }. ${
+                  problems.find((p) => p.problemId === problemFilter)
+                    ?.title || ""
+                }`,
               }
-              padding="none"
-            >
-              <div style={{ minHeight: "200px" }}>
-                {showSkeleton ? (
-                  // Skeleton loading table for initial load
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          {headers.map((header) => (
-                            <TableHeader key={header.key}>
-                              {header.header}
-                            </TableHeader>
+        }
+        onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
+          if (selectedItem) {
+            handleProblemFilterChange(selectedItem.id);
+          }
+        }}
+      />
+
+      <Dropdown
+        id="status-filter"
+        titleText={t("submissions.statusLabel")}
+        label={t("submissions.selectStatus")}
+        items={statusOptions}
+        itemToString={(item) => (item ? item.label : "")}
+        selectedItem={
+          statusOptions.find((s) => s.id === statusFilter) || null
+        }
+        onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
+          if (selectedItem) {
+            handleStatusFilterChange(selectedItem.id);
+          }
+        }}
+      />
+
+      {!embedded && currentUser && (
+        <div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--cds-text-secondary)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            {t("submissions.submitter")}
+          </div>
+          <Toggle
+            id="only-mine-toggle"
+            size="sm"
+            labelText=""
+            labelA={t("submissions.all")}
+            labelB={t("submissions.mine")}
+            toggled={onlyMine}
+            onToggle={(checked: boolean) => {
+              setOnlyMine(checked);
+              setPage(1);
+            }}
+          />
+        </div>
+      )}
+
+      {embedded ? null : refreshAction}
+    </div>
+  );
+  const table = (
+    <>
+      <div className={styles.tableScroll}>
+        {showSkeleton ? (
+          // Skeleton loading table for initial load
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  {headers.map((header) => (
+                    <TableHeader key={header.key}>
+                      {header.header}
+                    </TableHeader>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    {headers.map((header) => (
+                      <TableCell key={header.key}>
+                        <SkeletonText
+                          width={
+                            header.key === "status" ? "50px" : "80%"
+                          }
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <DataTable rows={rows} headers={headers}>
+            {({
+              rows,
+              headers,
+              getTableProps,
+              getHeaderProps,
+              getRowProps,
+            }: any) => (
+              <TableContainer
+                title=""
+                description=""
+              >
+                <Table {...getTableProps()} className={styles.table}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header: any) => {
+                        const { key, ...headerProps } = getHeaderProps({
+                          header,
+                        });
+                        return (
+                          <TableHeader {...headerProps} key={key}>
+                            {header.header}
+                          </TableHeader>
+                        );
+                      })}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row: any) => {
+                      const { key, ...rowProps } = getRowProps({ row });
+                      return (
+                        <TableRow
+                          {...rowProps}
+                          key={key}
+                          onClick={() => {
+                            if (row.canView) {
+                              handleSubmissionClick(row.id);
+                            }
+                          }}
+                          style={{
+                            cursor: row.canView ? "pointer" : "default",
+                          }}
+                        >
+                          {row.cells.map((cell: any) => (
+                            <TableCell key={cell.id}>
+                              {cell.value}
+                            </TableCell>
                           ))}
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {Array.from({ length: 10 }).map((_, index) => (
-                          <TableRow key={`skeleton-${index}`}>
-                            {headers.map((header) => (
-                              <TableCell key={header.key}>
-                                <SkeletonText
-                                  width={
-                                    header.key === "status" ? "50px" : "80%"
-                                  }
-                                />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <DataTable rows={rows} headers={headers}>
-                    {({
-                      rows,
-                      headers,
-                      getTableProps,
-                      getHeaderProps,
-                      getRowProps,
-                    }: any) => (
-                      <TableContainer
-                        title=""
-                        description=""
-                      >
-                        <Table {...getTableProps()}>
-                          <TableHead>
-                            <TableRow>
-                              {headers.map((header: any) => {
-                                const { key, ...headerProps } = getHeaderProps({
-                                  header,
-                                });
-                                return (
-                                  <TableHeader {...headerProps} key={key}>
-                                    {header.header}
-                                  </TableHeader>
-                                );
-                              })}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {rows.map((row: any, rowIndex: number) => {
-                              const { key, ...rowProps } = getRowProps({ row });
-                              return (
-                                <TableRow
-                                  {...rowProps}
-                                  key={`${key}-${animationKey}`}
-                                  onClick={() => {
-                                    if (row.canView) {
-                                      handleSubmissionClick(row.id);
-                                    }
-                                  }}
-                                  style={{
-                                    cursor: row.canView ? "pointer" : "default",
-                                    animation: "flipIn 0.5s ease-out forwards",
-                                    animationDelay: `${rowIndex * 50}ms`,
-                                    opacity: 0,
-                                    transformOrigin: "center top",
-                                  }}
-                                >
-                                  {row.cells.map((cell: any) => (
-                                    <TableCell key={cell.id}>
-                                      {cell.value}
-                                    </TableCell>
-                                  ))}
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    )}
-                  </DataTable>
-                )}
-              </div>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DataTable>
+        )}
+      </div>
 
-              <Pagination
-                totalItems={totalItems}
-                backwardText={tc("pagination.previous")}
-                forwardText={tc("pagination.next")}
-                itemsPerPageText={tc("pagination.itemsPerPage")}
-                page={page}
-                pageSize={pageSize}
-                pageSizes={[10, 20, 50, 100]}
-                size="md"
-                onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
-                  setPage(newPage);
-                  setPageSize(newPageSize);
-                }}
-                style={{ borderTop: "1px solid var(--cds-border-subtle)" }}
-              />
-            </ContainerCard>
-          </Column>
-      </Grid>
+      <div className={styles.paginationScroll}>
+        <Pagination
+          totalItems={totalItems}
+          backwardText={tc("pagination.previous")}
+          forwardText={tc("pagination.next")}
+          itemsPerPageText={tc("pagination.itemsPerPage")}
+          page={page}
+          pageSize={pageSize}
+          pageSizes={[10, 20, 50, 100]}
+          size="md"
+          onChange={({ page: newPage, pageSize: newPageSize }: { page: number; pageSize: number }) => {
+            setPage(newPage);
+            setPageSize(newPageSize);
+          }}
+          style={{ borderTop: "1px solid var(--cds-border-subtle)" }}
+        />
+      </div>
+    </>
+  );
 
+  return (
+    <>
+      {embedded ? (
+        <section className={styles.embedded}>
+          <BlockHeader
+            title={title}
+            actions={hideEmbeddedToolbar ? undefined : refreshAction}
+          />
+          {hideEmbeddedToolbar ? null : filters}
+          {table}
+        </section>
+      ) : (
+        <SurfaceSection maxWidth={maxWidth} style={{ minHeight: "100%", flex: 1 }}>
+          <Grid fullWidth style={{ padding: 0 }}>
+            <Column lg={4} md={8} sm={4}>
+              <ContainerCard title={t("submissions.filters")} style={{ marginBottom: "1rem" }}>
+                {filters}
+              </ContainerCard>
+            </Column>
+            <Column lg={12} md={8} sm={4}>
+              <ContainerCard title={title} padding="none">{table}</ContainerCard>
+            </Column>
+          </Grid>
+        </SurfaceSection>
+      )}
       <SubmissionDetailModal
         submissionId={searchParams.get("submission_id")}
         isOpen={!!searchParams.get("submission_id")}
         onClose={handleCloseModal}
       />
-    </SurfaceSection>
+    </>
   );
 };
 

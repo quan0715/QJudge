@@ -21,7 +21,7 @@ vi.mock("@/features/contest/contexts", () => ({
 }));
 
 describe("SideMenuContestRuntimeSection", () => {
-  it("shows only one return-to-contest action during a paper exam", () => {
+  it("leaves the return-to-contest action to the top navigation", () => {
     Element.prototype.scrollIntoView = vi.fn();
     render(
       <MemoryRouter>
@@ -34,6 +34,7 @@ describe("SideMenuContestRuntimeSection", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText("返回競賽主頁")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "返回競賽主頁" })).not.toBeInTheDocument();
+    expect(screen.getByText("Question")).toBeInTheDocument();
   });
 });

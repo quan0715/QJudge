@@ -8,7 +8,6 @@ import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { useTranslation } from "react-i18next";
-import { CODING_PROBLEM_DIFFICULTY_TAG } from "./codingProblemDifficultyDisplay";
 import { isContestProblemLinkedToBank } from "./codingContestProblemBank";
 import examStyles from "./ExamQuestionEditCard.module.scss";
 import previewStyles from "./CodingProblemPreviewCard.module.scss";
@@ -75,11 +74,6 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
   };
 
   const description = problem.description;
-  const difficultyKey = problem.difficulty ?? "";
-  const diffMeta =
-    difficultyKey && CODING_PROBLEM_DIFFICULTY_TAG[difficultyKey]
-      ? CODING_PROBLEM_DIFFICULTY_TAG[difficultyKey]
-      : null;
 
   const inBank = isContestProblemLinkedToBank(contestBinding);
   const saveToBankDisabled = !!frozen || inBank;
@@ -124,11 +118,6 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
                     {t("answering.questionTypes.coding", "程式題")}
                   </span>
                 </Tag>
-                {diffMeta ? (
-                  <Tag size="sm" type={diffMeta.color as never}>
-                    {diffMeta.label}
-                  </Tag>
-                ) : null}
                 {contestBinding.sourceBank ? (
                   <Tag size="sm" type="blue" className={examStyles.sourceBankTag}>
                     <DataBase size={12} />
@@ -148,7 +137,7 @@ const CodingProblemPreviewCard: React.FC<CodingProblemPreviewCardProps> = ({
                     }}
                   >
                     <DataBase size={12} />
-                    {t("examEditor.saveToBank", "收錄到題庫")}
+                    {t("examEditor.addToBank", "加入題庫")}
                   </button>
                 ) : null}
               </span>

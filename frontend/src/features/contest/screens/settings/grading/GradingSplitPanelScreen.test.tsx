@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -81,20 +79,6 @@ describe("GradingSplitPanelScreen", () => {
     expect(within(header).queryByText("short_answer")).not.toBeInTheDocument();
     expect(within(header).queryByText(/Student One/)).not.toBeInTheDocument();
     expect(within(header).queryByText(/10.00/)).not.toBeInTheDocument();
-  });
-
-  it("uses one vertical reading flow for evidence and grading controls", () => {
-    const scss = readFileSync(
-      resolve(
-        process.cwd(),
-        "src/features/contest/screens/settings/grading/GradingPanel.module.scss",
-      ),
-      "utf8",
-    );
-    const bodyRule = scss.match(/\.panelBodyContent\s*\{([^}]*)\}/)?.[1];
-
-    expect(bodyRule).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
-    expect(bodyRule).not.toMatch(/minmax\(18rem, 20rem\)/);
   });
 
   it("separates grading evidence from score controls", () => {

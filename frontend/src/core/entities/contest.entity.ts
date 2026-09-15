@@ -593,6 +593,7 @@ export interface Clarification {
   problemId?: string;
   problemTitle?: string;
   isPublic: boolean;
+  authorId: string;
   authorUsername: string;
   answeredBy?: string;
   createdAt: string;

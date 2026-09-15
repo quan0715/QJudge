@@ -27,9 +27,9 @@ QJudge 維護中的技能位於 `.codex/skills/`：
 - `test`：backend、frontend、AI service 與隔離式 E2E 測試。
 - `main`：只有任務明確要求 production-shaped 操作時使用。
 
-Django、pytest、npm、Celery 等命令應以 `exec -T` 在所屬服務內執行；除非使用者明確要求 host-only 診斷，不直接在 host 執行。
+依賴資料庫、worker 或服務設定的命令在所屬容器執行。純文件、靜態檢查與不需服務的測試可使用已安裝且版本相符的 host 工具，不必為此另行請求許可。
 
-## 最低 quality gates
+## 依變更選擇驗證
 
 ```bash
 node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src
@@ -38,7 +38,7 @@ node .codex/skills/qjudge-quality-gates-owner/scripts/lint-repository-exports.js
 bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --all
 ```
 
-`--staged` 是本機快速檢查；CI hard gate 是 `--all`。視覺修改還要做實際 desktop／mobile rendered QA，不能只以 lint 判定完成。
+以上是可用檢查，不是每次文件修改都要全跑的清單。`--staged` 是本機快速檢查；CI hard gate 是 `--all`。UI 行為用互動測試驗證；版面修改查看受影響頁面與尺寸，不能只以 lint 或 SCSS 字串斷言判定畫面正確。不要用測試鎖死文件措辭、查證日期、CSS 寫法或人工審查項目數量。
 
 ## AI 助教
 
@@ -48,4 +48,4 @@ bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --al
 
 - 保留使用者與其他工作中的未提交變更，不替未完成的重構更新 policy baseline。
 - 先確認當前 source、runtime 與 Git 狀態，再宣稱功能、部署或 release 已完成。
-- 需要跨責任域時載入多個 owner skill，不把 UI、架構、環境或 PR 規則混寫進單一相容文件。
+- 只讀取任務需要的 skill。技能是工作指引；使用者已授權的範圍內直接完成，不因一般例外、固定步驟或重複確認而停下。

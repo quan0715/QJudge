@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True)
-def run_problem_test_run(self, problem_id, language, source_code, report_progress=False):
+def run_problem_test_run(self, problem_id, language, source_code, report_progress=False, custom_test_cases=()):
     """
     Execute a problem test run inside a judge worker.
 
@@ -35,6 +35,7 @@ def run_problem_test_run(self, problem_id, language, source_code, report_progres
             problem=problem,
             language=language,
             source_code=source_code,
+            custom_test_cases=custom_test_cases,
             **({"on_progress": progress} if progress else {}),
         )
     except TestRunSetupError as exc:

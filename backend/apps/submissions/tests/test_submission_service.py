@@ -15,7 +15,6 @@ from django.utils import timezone
 from pytest_mock import MockerFixture
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
-from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset, QuestionVersion
 from apps.submissions.models import Submission
@@ -283,29 +282,8 @@ def test_not_started_non_exam_submission_is_allowed(judge_mock: Mock) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Tests: Contest question edit lock trigger
+# Tests: Contest binding resolution
 # ---------------------------------------------------------------------------
-
-@pytest.mark.django_db
-def test_student_formal_contest_submission_is_question_lock_evidence(judge_mock: Mock) -> None:
-    teacher = UserFactory(role="teacher")
-    student = UserFactory(role="student")
-    contest = ContestFactory(owner=teacher)
-    problem = ProblemFactory(created_by=teacher)
-    ContestParticipantFactory(contest=contest, user=student)
-
-    SubmissionService.create_and_dispatch(
-        user=student,
-        data={
-            "problem": problem,
-            "language": "python",
-            "code": "print('ok')",
-            "contest": contest,
-        },
-    )
-
-    assert is_contest_question_edit_locked(contest) is True
-
 
 @pytest.mark.django_db
 def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mock) -> None:
@@ -348,22 +326,3 @@ def test_contest_submission_sets_binding_fk_from_problem_instance(judge_mock: Mo
     )
 
     assert submission.contest_question_binding_id == binding.id
-
-
-@pytest.mark.django_db
-def test_privileged_contest_submission_is_not_question_lock_evidence(judge_mock: Mock) -> None:
-    owner = UserFactory(role="teacher")
-    contest = ContestFactory(owner=owner)
-    problem = ProblemFactory(created_by=owner)
-
-    SubmissionService.create_and_dispatch(
-        user=owner,
-        data={
-            "problem": problem,
-            "language": "python",
-            "code": "print('owner test')",
-            "contest": contest,
-        },
-    )
-
-    assert is_contest_question_edit_locked(contest) is False

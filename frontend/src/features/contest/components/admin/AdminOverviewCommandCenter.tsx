@@ -1,5 +1,7 @@
+import { useTabWithUrlParam } from "@/shared/hooks/useTabWithUrlParam";
 import {
   Button,
+  Dropdown,
   Modal,
   OverflowMenu,
   OverflowMenuItem,
@@ -7,13 +9,14 @@ import {
   SkeletonText,
 } from "@carbon/react";
 import {
+  Add,
+  ArrowRight,
   CheckmarkFilled,
   CircleDash,
   Filter,
   InProgress,
   Locked,
   PauseFilled,
-  Scan,
   Time,
   WarningFilled,
 } from "@carbon/icons-react";
@@ -83,12 +86,22 @@ interface AdminOverviewCommandCenterProps {
   participants: ContestParticipant[];
   primary: ReactNode;
   questionStatsGallery?: ReactNode;
+  submissionList?: ReactNode;
+  standingsContent?: ReactNode;
+  clarificationsContent?: ReactNode;
   resultOverview?: ReactNode;
   gradingAction?: InsightCardAction;
+  studentQrScannerOpen?: boolean;
+  onStudentQrScannerOpenChange?: (open: boolean) => void;
+  onOpenAnnouncement?: () => void;
 }
 
-const isStudentParticipant = (participant: ContestParticipant) =>
-  !participant.accountRole || participant.accountRole === "student";
+type DrilldownTabId =
+  | "participants"
+  | "questionStats"
+  | "submissions"
+  | "standings"
+  | "clarifications";
 
 const getProfileDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
@@ -190,27 +203,38 @@ const PARTICIPANT_METRIC_OPTIONS: Array<{
 
 const DATE_TIME_LABEL_REGEX = /^(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2})$/;
 
+interface ScheduleEndpoint {
+  date: string;
+  time?: string;
+}
+
 const normalizeScheduleLabels = (
   startLabel: string,
   endLabel: string,
-): { start: string; end: string } => {
+): { start: ScheduleEndpoint; end: ScheduleEndpoint } => {
   const startMatch = startLabel.match(DATE_TIME_LABEL_REGEX);
   const endMatch = endLabel.match(DATE_TIME_LABEL_REGEX);
   if (!startMatch || !endMatch) {
-    return { start: startLabel, end: endLabel };
+    return { start: { date: startLabel }, end: { date: endLabel } };
   }
 
   const [, startDate, startTime] = startMatch;
   const [, endDate, endTime] = endMatch;
-  if (startDate === endDate) {
-    return { start: startTime, end: endTime };
-  }
+  const omitYear = startDate.slice(0, 4) === endDate.slice(0, 4);
+  const formatDate = (date: string) => (omitYear ? date.slice(5) : date);
 
   return {
-    start: `${startDate}\n${startTime}`,
-    end: `${endDate}\n${endTime}`,
+    start: { date: formatDate(startDate), time: startTime },
+    end: { date: formatDate(endDate), time: endTime },
   };
 };
+
+const renderScheduleValue = ({ date, time }: ScheduleEndpoint) => (
+  <span className={styles.scheduleValue}>
+    <span>{date}</span>
+    {time ? <span>{time}</span> : null}
+  </span>
+);
 
 type ParticipantStatusFilter =
   | "all"
@@ -245,6 +269,26 @@ const QUESTION_KIND_FILTERS: FilterOption[] = [
   { id: "short_answer", labelKey: "common:questionType.label.short_answer", defaultLabel: "簡答題" },
   { id: "essay", labelKey: "common:questionType.label.essay", defaultLabel: "申論題" },
 ];
+
+const SUBMISSION_STATUS_FILTERS: FilterOption[] = [
+  { id: "all", labelKey: "submissions.allStatus", defaultLabel: "全部狀態" },
+  { id: "AC", labelKey: "submissions.ac", defaultLabel: "通過 (AC)" },
+  { id: "WA", labelKey: "submissions.wa", defaultLabel: "答案錯誤 (WA)" },
+  { id: "TLE", labelKey: "submissions.tle", defaultLabel: "超時 (TLE)" },
+  { id: "MLE", labelKey: "submissions.mle", defaultLabel: "記憶體超限 (MLE)" },
+  { id: "RE", labelKey: "submissions.re", defaultLabel: "執行錯誤 (RE)" },
+  { id: "CE", labelKey: "submissions.ce", defaultLabel: "編譯錯誤 (CE)" },
+  { id: "pending", labelKey: "submissions.pending", defaultLabel: "等待中" },
+  { id: "judging", labelKey: "submissions.judging", defaultLabel: "評測中" },
+];
+
+interface SubmissionListToolbarProps {
+  statusFilter?: string;
+  problemFilter?: string;
+  onStatusFilterChange?: (value: string) => void;
+  onProblemFilterChange?: (value: string) => void;
+  hideEmbeddedToolbar?: boolean;
+}
 
 type DashboardTranslate = (
   key: string,
@@ -349,8 +393,14 @@ export default function AdminOverviewCommandCenter({
   participants,
   primary,
   questionStatsGallery,
+  submissionList,
+  standingsContent,
+  clarificationsContent,
   resultOverview,
   gradingAction,
+  studentQrScannerOpen,
+  onStudentQrScannerOpenChange,
+  onOpenAnnouncement,
 }: AdminOverviewCommandCenterProps) {
   const { t } = useTranslation("contest");
   const tr = useCallback(
@@ -379,12 +429,50 @@ export default function AdminOverviewCommandCenter({
   const [participantSearch, setParticipantSearch] = useState("");
   const [participantStatusFilter, setParticipantStatusFilter] =
     useState<ParticipantStatusFilter>("all");
-  const [activePanelTab, setActivePanelTab] =
-    useState<"participants" | "questionStats">("participants");
-  const [studentQrScannerOpen, setStudentQrScannerOpen] = useState(false);
+  const isCodingContest = contest?.contestType === "coding";
+  const { activeKey: activePanelTab, setActiveKey: setActivePanelTab } = useTabWithUrlParam<DrilldownTabId>({
+    param: "tab",
+    keys: isCodingContest
+      ? ["participants", "submissions", "standings", "clarifications"]
+      : ["participants", "questionStats", "clarifications"],
+    defaultKey: "participants",
+  });
+  const [internalStudentQrScannerOpen, setInternalStudentQrScannerOpen] =
+    useState(false);
+  const studentQrScannerIsOpen =
+    studentQrScannerOpen ?? internalStudentQrScannerOpen;
+  const setStudentQrScannerOpen = useCallback(
+    (open: boolean) => {
+      if (onStudentQrScannerOpenChange) {
+        onStudentQrScannerOpenChange(open);
+      } else {
+        setInternalStudentQrScannerOpen(open);
+      }
+    },
+    [onStudentQrScannerOpenChange],
+  );
   const [questionStatsSearch, setQuestionStatsSearch] = useState("");
   const [questionStatsKindFilter, setQuestionStatsKindFilter] =
     useState<string>("all");
+  const [submissionStatusFilter, setSubmissionStatusFilter] =
+    useState("all");
+  const [submissionProblemFilter, setSubmissionProblemFilter] =
+    useState("all");
+
+  const handleOpenPanel = useCallback(
+    (panel: AdminPanelId) => {
+      if (panel === "clarifications") {
+        setActivePanelTab("clarifications");
+        return;
+      }
+      if (isCodingContest && panel === "standings") {
+        setActivePanelTab("standings");
+        return;
+      }
+      onOpenPanel(panel);
+    },
+    [isCodingContest, onOpenPanel, setActivePanelTab],
+  );
   useEffect(() => {
     if (!contestId || !contestInProgress) return;
     // Background poll: only while the contest is actually running. Stays at a
@@ -415,7 +503,7 @@ export default function AdminOverviewCommandCenter({
     cameraState: studentQrCameraState,
     cameraError: studentQrCameraError,
   } = useCameraStream({
-    active: studentQrScannerOpen,
+    active: studentQrScannerIsOpen,
     facingMode: "environment",
     messages: {
       unavailable: t(
@@ -479,16 +567,15 @@ export default function AdminOverviewCommandCenter({
         ),
       });
     },
-    [contestId, participants, showToast, t],
+    [contestId, participants, setActivePanelTab, setStudentQrScannerOpen, showToast, t],
   );
   const studentQrScannerMode = useQrScanner({
     videoRef: studentQrVideoRef,
-    active: studentQrScannerOpen && studentQrCameraState === "ready",
+    active: studentQrScannerIsOpen && studentQrCameraState === "ready",
     onDetected: handleStudentQrDetected,
   });
 
-  const studentParticipants = participants
-    .filter(isStudentParticipant)
+  const studentParticipants = [...participants]
     .sort(
       (left, right) =>
         getParticipantSortScore(right) - getParticipantSortScore(left) ||
@@ -619,22 +706,40 @@ export default function AdminOverviewCommandCenter({
       </DashboardBlock>
       <DashboardBlock>
         <MetricBlock
-          label={t("adminOverview.command.metrics.questionCount", "題目數量")}
-          value={data.examStatus.workItemCount}
+          label={t(
+            "adminOverview.command.metrics.currentStatus",
+            "當前整體競賽狀態",
+          )}
+          value={data.timeline.phaseLabel}
         />
       </DashboardBlock>
-      <DashboardBlock>
-        <MetricBlock
-          label={t("adminOverview.command.metrics.startTime", "開始時間")}
-          value={scheduleLabels.start}
-        />
-      </DashboardBlock>
-      <DashboardBlock>
-        <MetricBlock
-          label={t("adminOverview.command.metrics.endTime", "結束時間")}
-          value={scheduleLabels.end}
-        />
-      </DashboardBlock>
+      <div className={styles.scheduleGridItem}>
+        <DashboardBlock
+          ariaLabel={t("adminOverview.command.examTime", "考試時間")}
+        >
+          <div className={styles.scheduleBlock}>
+            <div className={styles.scheduleEndpoint}>
+              <MetricBlock
+                label={t("adminOverview.command.metrics.startTime", "開始時間")}
+                value={renderScheduleValue(scheduleLabels.start)}
+              />
+            </div>
+            <ArrowRight
+              className={styles.scheduleArrow}
+              size={24}
+              aria-hidden="true"
+            />
+            <div
+              className={`${styles.scheduleEndpoint} ${styles.scheduleEndpointEnd}`}
+            >
+              <MetricBlock
+                label={t("adminOverview.command.metrics.endTime", "結束時間")}
+                value={renderScheduleValue(scheduleLabels.end)}
+              />
+            </div>
+          </div>
+        </DashboardBlock>
+      </div>
     </DashboardContainer>
   );
   const examStatusSummary = (
@@ -780,6 +885,7 @@ export default function AdminOverviewCommandCenter({
           "搜尋顯示名稱或使用者名稱...",
         )}
         value={participantSearch}
+        collapsible
         onChange={(value) =>
           handleParticipantSearchChange({
             target: { value },
@@ -787,16 +893,6 @@ export default function AdminOverviewCommandCenter({
         }
         onClear={() => setParticipantSearch("")}
       />
-      <DashboardToolbar.Filter>
-        <Button
-          kind="ghost"
-          size="md"
-          hasIconOnly
-          renderIcon={Scan}
-          iconDescription={t("adminOverview.command.participants.studentQr.scan", "掃學生 QR")}
-          onClick={() => setStudentQrScannerOpen(true)}
-        />
-      </DashboardToolbar.Filter>
       <DashboardToolbar.Filter>
         <OverflowMenu
           renderIcon={Filter}
@@ -827,8 +923,8 @@ export default function AdminOverviewCommandCenter({
     </DashboardToolbar>
   );
   const questionStatsPanel = (
-    <div className={`${styles.drilldownPanel} ${styles.drilldownPanelFlush}`}>
-      {isValidElement(questionStatsGallery)
+    <div className={styles.drilldownPanel}>
+      {isValidElement(questionStatsGallery) && typeof questionStatsGallery.type !== "string"
         ? cloneElement(
             questionStatsGallery as ReactElement<{
               searchQuery?: string;
@@ -836,6 +932,7 @@ export default function AdminOverviewCommandCenter({
               questionKindFilter?: string;
               onQuestionKindFilterChange?: (kind: string) => void;
               showFilterToolbar?: boolean;
+              embedded?: boolean;
             }>,
             {
               searchQuery: questionStatsSearch,
@@ -843,6 +940,7 @@ export default function AdminOverviewCommandCenter({
               questionKindFilter: questionStatsKindFilter,
               onQuestionKindFilterChange: setQuestionStatsKindFilter,
               showFilterToolbar: false,
+              embedded: true,
             },
           )
         : questionStatsGallery ?? (
@@ -865,6 +963,7 @@ export default function AdminOverviewCommandCenter({
           "搜尋題號或題目...",
         )}
         value={questionStatsSearch}
+        collapsible
         onChange={setQuestionStatsSearch}
         onClear={() => setQuestionStatsSearch("")}
       />
@@ -895,8 +994,134 @@ export default function AdminOverviewCommandCenter({
           ))}
         </OverflowMenu>
       </DashboardToolbar.Filter>
+      </DashboardToolbar>
+  );
+  const submissionProblemFilters = [
+    {
+      id: "all",
+      label: t("submissions.allProblems", "全部題目"),
+    },
+    ...(contest?.problems ?? []).map((problem) => ({
+      id: problem.problemId,
+      label: `${problem.label}. ${problem.title}`,
+    })),
+  ];
+  const submissionStatusFilters = SUBMISSION_STATUS_FILTERS.map((option) => ({
+    id: option.id,
+    label: t(option.labelKey, option.defaultLabel),
+  }));
+  const submissionTabToolbar = (
+    <DashboardToolbar>
+      <div className={styles.submissionFilterGroup}>
+        <Filter className={styles.submissionFilterIcon} aria-hidden="true" />
+        <div className={styles.submissionFilters}>
+          <Dropdown
+            id="overview-submission-status-filter"
+            titleText={t("submissions.statusLabel", "狀態")}
+            hideLabel
+            label={t("submissions.allStatus", "全部狀態")}
+            items={submissionStatusFilters}
+            itemToString={(item) => item?.label ?? ""}
+            selectedItem={
+              submissionStatusFilters.find(
+                (option) => option.id === submissionStatusFilter,
+              ) ?? submissionStatusFilters[0]
+            }
+            onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
+              if (selectedItem) setSubmissionStatusFilter(selectedItem.id);
+            }}
+          />
+          <Dropdown
+            id="overview-submission-problem-filter"
+            titleText={t("submissions.problemLabel", "題目")}
+            hideLabel
+            label={t("submissions.allProblems", "全部題目")}
+            items={submissionProblemFilters}
+            itemToString={(item) => item?.label ?? ""}
+            selectedItem={
+              submissionProblemFilters.find(
+                (option) => option.id === submissionProblemFilter,
+              ) ?? submissionProblemFilters[0]
+            }
+            onChange={({ selectedItem }: { selectedItem?: { id: string; label: string } | null }) => {
+              if (selectedItem) setSubmissionProblemFilter(selectedItem.id);
+            }}
+          />
+        </div>
+      </div>
     </DashboardToolbar>
   );
+  const submissionPanel = (
+    <div className={styles.drilldownPanel}>
+      {isValidElement(submissionList) && typeof submissionList.type !== "string"
+        ? cloneElement(
+            submissionList as ReactElement<SubmissionListToolbarProps>,
+            {
+              statusFilter: submissionStatusFilter,
+              problemFilter: submissionProblemFilter,
+              onStatusFilterChange: setSubmissionStatusFilter,
+              onProblemFilterChange: setSubmissionProblemFilter,
+              hideEmbeddedToolbar: true,
+            },
+          )
+        : submissionList ?? (
+            <div className={styles.emptyState}>
+              {t("adminOverview.command.submissions.empty", "目前沒有提交紀錄")}
+            </div>
+          )}
+    </div>
+  );
+  const standingsTabPanel = (
+    <div className={styles.drilldownPanel}>
+      {standingsContent ?? (
+        <div className={styles.emptyState}>
+          {t("adminOverview.command.standings.empty", "目前沒有排行榜資料")}
+        </div>
+      )}
+    </div>
+  );
+  const clarificationsTabToolbar = onOpenAnnouncement ? (
+    <DashboardToolbar>
+      <DashboardToolbar.Filter>
+        <Button
+          kind="ghost"
+          size="md"
+          hasIconOnly
+          renderIcon={Add}
+          iconDescription={t(
+            "adminOverview.command.clarifications.publishAnnouncement",
+            "發布公告",
+          )}
+          onClick={onOpenAnnouncement}
+        />
+      </DashboardToolbar.Filter>
+    </DashboardToolbar>
+  ) : undefined;
+  const drilldownTabs = isCodingContest
+    ? [
+        {
+          id: "participants",
+          label: t("adminOverview.command.drilldown.participants", "參與者"),
+        },
+        {
+          id: "submissions",
+          label: t("adminOverview.command.drilldown.submissions", "提交列表"),
+        },
+        {
+          id: "standings",
+          label: t("adminOverview.command.drilldown.standings", "排行榜"),
+        },
+      ]
+    : [
+        {
+          id: "participants",
+          label: t("adminOverview.command.drilldown.participants", "參與者"),
+        },
+        {
+          id: "questionStats",
+          label: t("adminOverview.command.drilldown.questionStats", "作答分佈"),
+        },
+      ];
   const drilldownPanel = (
     <DashboardBlock
       padding="flush"
@@ -904,34 +1129,45 @@ export default function AdminOverviewCommandCenter({
     >
       <DashboardTabs
         activeId={activePanelTab}
-        onChange={(id) =>
-          setActivePanelTab(id as "participants" | "questionStats")
-        }
+        onChange={(id) => setActivePanelTab(id as DrilldownTabId)}
       >
         <DashboardTabBar
           ariaLabel={t("adminOverview.command.drilldown.ariaLabel", "總覽資料切換")}
-          tabs={[
-            {
-              id: "participants",
-              label: t("adminOverview.command.drilldown.participants", "參與者"),
-            },
-            {
-              id: "questionStats",
-              label: t("adminOverview.command.drilldown.questionStats", "作答分佈"),
-            },
-          ]}
+          tabs={[...drilldownTabs, { id: "clarifications", label: t("studentDashboard.tabs.clarifications", "公告與提問") }]}
           toolbar={
             activePanelTab === "participants"
               ? participantTabToolbar
-              : questionStatsTabToolbar
+              : activePanelTab === "questionStats"
+                ? questionStatsTabToolbar
+                : activePanelTab === "submissions"
+                  ? submissionTabToolbar
+                  : activePanelTab === "clarifications"
+                    ? clarificationsTabToolbar
+                : undefined
           }
         />
+        {activePanelTab === "clarifications" ? (
+          <DashboardTabPanel tabId="clarifications">
+            <div className={styles.drilldownPanel}>{clarificationsContent}</div>
+          </DashboardTabPanel>
+        ) : null}
         <DashboardTabPanel tabId="participants">
           {participantPanel}
         </DashboardTabPanel>
-        <DashboardTabPanel tabId="questionStats">
-          {questionStatsPanel}
-        </DashboardTabPanel>
+        {isCodingContest ? (
+          <>
+            <DashboardTabPanel tabId="submissions">
+              {submissionPanel}
+            </DashboardTabPanel>
+            <DashboardTabPanel tabId="standings">
+              {standingsTabPanel}
+            </DashboardTabPanel>
+          </>
+        ) : (
+          <DashboardTabPanel tabId="questionStats">
+            {questionStatsPanel}
+          </DashboardTabPanel>
+        )}
       </DashboardTabs>
     </DashboardBlock>
   );
@@ -1006,11 +1242,11 @@ export default function AdminOverviewCommandCenter({
           contestId={contestId}
           selectedUserId={selectedUserId}
           onClose={() => setSelectedUserId(null)}
-          onOpenPanel={onOpenPanel}
+          onOpenPanel={handleOpenPanel}
         />
       ) : null}
       <Modal
-        open={studentQrScannerOpen}
+        open={studentQrScannerIsOpen}
         modalHeading={t(
           "adminOverview.command.participants.studentQr.heading",
           "掃描學生 QR",

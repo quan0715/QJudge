@@ -1,12 +1,10 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Button,
   SkeletonText,
   Pagination,
   InlineNotification,
 } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
 import { useContestSubmissions } from "@/features/contest/hooks/useContestSubmissions";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { SubmissionDetailModal, SubmissionTable, type SubmissionRow } from "@/features/submissions/components";
@@ -43,7 +41,7 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   const { user: currentUser } = useAuth();
 
   // Fetch submissions for this problem, filtered by current user
-  const { data, isLoading, isFetching, isError, error, refetch } = useContestSubmissions({
+  const { data, isLoading, isError, error } = useContestSubmissions({
     contestId,
     page,
     pageSize,
@@ -88,9 +86,6 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
   if (isLoading && submissions.length === 0) {
     return (
       <div className="contest-problem-submissions">
-        <div className="contest-problem-submissions__header">
-          <h3 className="contest-problem-submissions__title">{t("dashboard.submissionRecords", "提交紀錄")}</h3>
-        </div>
         <div className="contest-problem-submissions__skeleton">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="contest-problem-submissions__skeleton-row">
@@ -108,19 +103,6 @@ const ContestProblemSubmissions: React.FC<ContestProblemSubmissionsProps> = ({
 
   return (
     <div className="contest-problem-submissions">
-      <div className="contest-problem-submissions__header">
-        <h3 className="contest-problem-submissions__title">{t("dashboard.submissionRecords", "提交紀錄")}</h3>
-        <Button
-          kind="ghost"
-          size="sm"
-          hasIconOnly
-          iconDescription="重新整理"
-          renderIcon={Renew}
-          onClick={() => refetch()}
-          disabled={isFetching}
-        />
-      </div>
-
       {isError ? (
         <InlineNotification kind="error" title={t("dashboard.submissionsLoadFailed", "無法載入提交紀錄")} subtitle={error.message} hideCloseButton />
       ) : submissions.length === 0 ? (

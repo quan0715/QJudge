@@ -60,38 +60,8 @@
   height: 11.25rem;
 }
 
-.rulesContent {
-  color: var(--cds-text-primary);
-}
 
-.announcementList {
-  display: grid;
-  gap: layout.$spacing-05;
-  margin-top: layout.$spacing-05;
-}
 
-.announcementItem {
-  display: grid;
-  gap: layout.$spacing-04;
-  padding-top: layout.$spacing-05;
-  border-top: 1px solid var(--cds-border-subtle);
-}
-
-.announcementItem:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.announcementMeta {
-  flex: 0 0 auto;
-  color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  line-height: var(--cds-label-01-line-height, 1.33333);
-}
-
-.announcementContent {
-  color: var(--cds-text-primary);
-}
 
 .warningIcon {
   color: var(--cds-support-warning);

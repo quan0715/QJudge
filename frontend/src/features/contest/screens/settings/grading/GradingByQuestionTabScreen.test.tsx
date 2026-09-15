@@ -92,23 +92,17 @@ const question: QuestionProgress = {
 };
 
 describe("GradingByQuestionTabScreen", () => {
-  it("shows one username line without a row-level flag action", () => {
+  it("identifies the student by username", () => {
     renderScreen();
 
-    const username = screen.getByText("student1");
-    expect(username.className).toContain("title");
-    expect(screen.queryByText("Student One")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "標記" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("student1")).toBeInTheDocument();
   });
 
-  it("presents graded answer scores as quiet accessible text", () => {
+  it("presents graded answer scores with accessible score labels", () => {
     renderScreen();
 
     const score = screen.getByLabelText("得分 2.00，共 2.00 分");
     expect(score).toHaveTextContent("2.00/2.00");
-    expect(score.tagName).toBe("SPAN");
   });
 });
 

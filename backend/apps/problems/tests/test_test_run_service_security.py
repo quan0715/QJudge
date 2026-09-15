@@ -42,7 +42,7 @@ def test_unexpected_execution_failure_uses_fixed_public_message():
         is_hidden=False,
     )
     problem = SimpleNamespace(
-        test_cases=SimpleNamespace(all=lambda: [test_case]),
+        public_sample_cases=lambda: [test_case],
         time_limit=1,
         memory_limit=64,
     )

@@ -12,7 +12,7 @@ Resolve both values before grading:
 - `contest_id`
 - `question_id`
 
-Ask for missing values; never guess IDs.
+Resolve IDs from the conversation or platform lookup; ask only when the target remains ambiguous. Never invent IDs.
 
 ## Artifacts
 
@@ -57,7 +57,7 @@ artifact_csv_from_json(
 ```
 
 4. Apply the artifact size guard.
-5. Create one todo per batch of at most 20 answers.
+5. Use batches of 20 answers as a starting point; adjust to payload limits and answer length. Track progress in the CSV.
 
 ## Stage 2: grade batches
 
@@ -69,22 +69,17 @@ Grade each answer independently against `rubric.md`. Do not script or mechanical
 - Non-full score: `reason` is required.
 - If the teacher asks for feedback on every answer, always fill `reason`.
 
-Patch only graded rows, update the todo, re-run the guard, then continue.
+Patch only graded rows, re-run the guard, then continue.
 
 Do not use `artifact_read` pagination to locate ungraded rows.
 
 ## Stage 3: confirmation
 
-After no blank `score` remains, stop and ask:
-
-- confirm write-back: the reply must contain `寫回`
-- cancel: do not call a grading write action
-
-Do not reuse earlier approval.
+After no blank `score` remains, provide the grading artifact and summary. If the teacher already authorized write-back for these answers, continue through the runtime tool approval flow. If they requested only a draft or review, ask for write-back authorization after the result is ready. Do not require a literal keyword or repeat authorization already given for this scope.
 
 ## Stage 4: write back
 
-Process at most 20 unsynced rows at a time.
+Start with 20 unsynced rows per batch; adjust to the tool payload limit.
 
 1. Load `exam_answer_id`, `score`, and `reason`.
 2. Convert the local column name `reason` to the API field `feedback`:
@@ -112,11 +107,11 @@ The acknowledgement contains only `status`, `graded_count`, and `error_count`; i
 - Otherwise mark none of the batch as synced, stop, and report the aggregate counts. Do not invent failed IDs.
 - Do not automatically resubmit a partially successful batch. Regrading is not a no-op: it updates grading metadata and recalculates scores.
 
-After a successful sync patch, update the todo, apply the size guard, and continue.
+After a successful sync patch, apply the size guard and continue.
 
 ## Hard rules
 
-- Build each MCP payload in the current turn.
-- Every batch is declared in todos before work and marked completed immediately after success.
-- A write-back requires a current user message containing `寫回`.
-- Tool errors may be corrected once. Stop after the second failure.
+- Build write payloads from the reviewed artifact and current platform identifiers.
+- Keep CSV sync status aligned with successful acknowledgements.
+- Respect authorization scope and runtime approval decisions.
+- Retry only when there is a concrete correction; reconcile uncertain writes before resubmission.

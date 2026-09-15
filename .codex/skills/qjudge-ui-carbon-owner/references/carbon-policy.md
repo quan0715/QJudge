@@ -1,11 +1,8 @@
 # Carbon Policy (QJudge)
 
-## Carbon MCP verification snapshot
+## Version evidence
 
-- Verified: 2026-08-12 via IBM Carbon MCP `docs_search` and `code_search`.
-- React examples: Carbon v11, repository tag `v11.113.0`, MCP index updated 2026-08-07.
-- QJudge lockfile at verification time: `@carbon/react` `1.97.0`; `package.json` range `^1.96.0`.
-- When MCP returns a newer source tag or changed API, follow the new public API and update this snapshot plus skill metadata in the same change.
+Use `frontend/package-lock.json` for the installed version, then inspect that version's types/source or matching official documentation. MCP examples may target another release; compare them with the installed API. Historical query dates are not a compatibility guarantee.
 
 ## Public API boundary
 
@@ -103,4 +100,4 @@ node .codex/skills/qjudge-quality-gates-owner/scripts/audit-carbon-practices.js 
 bash .codex/skills/qjudge-quality-gates-owner/scripts/check-carbon-style.sh --staged
 ```
 
-For changed interactive components, also run focused tests, typecheck/build, Storybook coverage, keyboard checks, and light/dark visual checks.
+Choose verification for the change: interaction tests for behavior, typecheck for TypeScript changes, rendered checks for layout/theme changes. Use Storybook when isolation helps; documentation-only edits do not require rebuilding the app or checking every viewport.

@@ -55,25 +55,11 @@ Use this matrix as the fastest route-selection and result-shape check before que
 | Carbon Charts source / options                                                                                                                        | `get_charts`  | `framework`, `chart_type`, `mode`                                                         | `tool_policy`, `chosen_variant`, `available_variants[]`, `source_files[]`, `assembly` | Using `code_search` instead of `get_charts`, or paraphrasing assembly hints                                 |
 | Carbon Labs components — AnimatedHeader, Processing, Resizer, WhatsNew, chat; UIShell only when `@carbon-labs/react-ui-shell` is explicitly requested | `labs_search` | `framework` when known; component name in query                                           | `component_name`, `package_name`, `framework`, `variants[]`, `props[]`                | Using `labs_search` for stable Carbon UIShell; "UIShell" alone → `code_search`                              |
 
-> **⚠ MANDATORY — Icon names cannot be assumed from training data.** The export name is not
-> always predictable: slugs use `--` for variants, words flatten to PascalCase, and many
-> intuitive names simply do not exist. Always query first.
-> Verified examples: `add-comment` → `AddComment`, `arrows--horizontal` → `ArrowsHorizontal`,
-> `chart--win-loss` → `ChartWinLoss`, `face--satisfied--filled` → `FaceSatisfiedFilled`,
-> `airline--manage-gates` → `AirlineManageGates`, `character--whole-number` → `CharacterWholeNumber`.
-> **Always query `code_search` with `filters: { asset_type: "icon" }` first.**
-> Use the `import` field (not `name`) for the export name. Use `import_stmt` verbatim for the import line.
+## Verify the API being used
 
----
+Check component and icon exports against the installed package types/source. Use MCP discovery when the API is unfamiliar or local evidence is insufficient. Cached examples and MCP indexes may target another release; the project's installed version determines compatibility.
 
-## MCP-First Rule (Mandatory, Hard Rule)
-
-> **Never generate, modify, or diagnose Carbon component code from training knowledge alone.**
-> Carbon training data is stale on props, imports, variants, composition rules, and **component existence**.
-> **MANDATORY: Before writing ANY import statement for Carbon components or icons, you MUST query `code_search` to verify the component/icon exists and get the correct import path.**
-> Always call `code_search` (or `get_charts` for charts, `labs_search` for Carbon Labs package verification) before generating, editing, or debugging any Carbon code.
-> If existing code looks wrong, verify the correct structure with MCP before assuming the cause.
-> The MCP index is the authoritative source — not your weights.
+Do not guess exports or props. An existing verified import does not need another MCP query for each edit. If MCP is unavailable, use local package evidence or official documentation and state any unresolved uncertainty.
 
 ---
 
@@ -168,10 +154,10 @@ Hard rules — apply during code generation:
    - **`pkg` flags:** `import { pkg } from '@carbon/ibm-products'; pkg.component.Datagrid = true;` — required for silently-failing components
    - **Web Components:** `@carbon/ibm-products-web-components` — separate package, different paths
 7. **Web Components** — styles from `@carbon/styles/scss/` (preferred) or `@carbon/styles/css/styles.css` fallback.
-8. **CDN** — IBM CDN only (`1.www.s81c.com`). Never Google Fonts, jsDelivr, or unpkg.
-9. **Styling discipline** — never target `.bx--` / `.cds--` internal class names unless the user explicitly confirms. Do not force `<Theme>` wrappers when the host app already provides Carbon theme context. For Labs packages, prefer documented host attributes such as `data-carbon-theme` over ad-hoc wrapper substitutions when package guidance requires them.
-10. **Layout** — keep modals, side panels, tooltips, and toasts outside Grid flow. For `Layer`, use `withBackground` for visible backgrounds; never set `level` manually.
-11. **Composition** — `Breadcrumb` current item: use `isCurrentPage`, no `href`. Icon-only interactive controls must include `iconDescription`. **Status indicators:** use `IconIndicator`/`ShapeIndicator` (`import { preview__IconIndicator as IconIndicator } from '@carbon/react'`) — never colored Tags or icon queries; use the `kind` prop (`failed`, `warning`, `succeeded`, `in-progress`, etc.). **Tabs orientation:** horizontal → `Tabs` + `TabList`; vertical → `TabsVertical` + `TabListVertical` — never mix containers.
+8. **Assets** — Follow the host project’s font and asset setup; do not impose a separate CDN policy.
+9. **Styling discipline** — never target `.bx--` / `.cds--` internal class names; prefer public props and app-owned wrappers. Do not force `<Theme>` wrappers when the host app already provides Carbon theme context. For Labs packages, prefer documented host attributes such as `data-carbon-theme` over ad-hoc wrapper substitutions when package guidance requires them.
+10. **Layout** — place floating surfaces so they are not clipped by content layout. Use `Layer` props supported by the installed version and the surrounding theme hierarchy.
+11. **Composition** — use the installed component’s documented composition and props. Icon-only controls need an accessible name through the component’s supported labeling API. Choose tags, indicators, and tab layouts according to the information and interaction; do not mandate a preview export or one visual treatment for every status.
 12. **Accessibility** — apply WCAG 2.2 AA rules inline while generating code. See [references/accessibility-rules.md](references/accessibility-rules.md) → **Only read when** generating form components (TextInput, Select, Checkbox, etc.), using Modal/Dialog, writing custom interactive HTML, writing custom CSS outside Carbon, or user explicitly asks about accessibility or WCAG.
 13. **Labs verification** — Because Labs APIs and styling assumptions can differ from stable Carbon, explicitly verify imports, required peer dependencies, theme attributes, package-specific SCSS, and rendered styling before declaring the implementation complete. See [references/carbon-labs.md](references/carbon-labs.md) → **Only read when** the request involves Carbon Labs packages or experimental Carbon components.
 

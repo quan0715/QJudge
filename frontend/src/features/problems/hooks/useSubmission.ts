@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { submitSolution, getSubmission } from "@/infrastructure/api/repositories/submission.repository";
 import { testRun, getTestRunProgress } from "@/infrastructure/api/repositories/problem.repository";
 import type { SubmissionDetail } from "@/core/entities/submission.entity";
-import type { TestRunResult } from "@/core/ports/problem.repository";
+import type { TestRunCustomCase, TestRunResult } from "@/core/ports/problem.repository";
 import { INITIAL_EXECUTION_STATE, type ExecutionState, type ExecutionType } from "@/core/types/solver.types";
 import { transformSubmissionToResult, transformTestRunToResult } from "./solverAdapters";
 
@@ -16,8 +16,9 @@ const fromSubmission = (data: SubmissionDetail): Snapshot => ({
   pollingId: ["pending", "judging"].includes(data.status) ? data.id : undefined,
 });
 
-export function useSubmission({ problemId, contestId, code, language }: {
+export function useSubmission({ problemId, contestId, code, language, customTestCases }: {
   problemId?: string; contestId: string; code: string; language: string;
+  customTestCases: TestRunCustomCase[];
 }) {
   const [executionState, setState] = useState<ExecutionState>(INITIAL_EXECUTION_STATE);
   const generation = useRef(0);
@@ -48,11 +49,11 @@ export function useSubmission({ problemId, contestId, code, language }: {
     try {
       const payload = { language, code, contest_id: contestId };
       const snapshot = type === "test"
-        ? fromTest(await testRun(problemId, { ...payload, asynchronous: true }))
+        ? fromTest(await testRun(problemId, { ...payload, asynchronous: true, custom_test_cases: customTestCases }))
         : fromSubmission(await submitSolution({ ...payload, problem_id: problemId }));
       if (generation.current === run) apply(type, snapshot);
     } catch (error) { if (generation.current === run) fail(error); }
-  }, [problemId, contestId, language, code, apply, fail]);
+  }, [problemId, contestId, language, code, customTestCases, apply, fail]);
 
   useEffect(() => {
     const { type, pollingId, result, status } = executionState;

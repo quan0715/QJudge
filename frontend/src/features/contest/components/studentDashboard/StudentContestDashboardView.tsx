@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 import {
   Fragment,
   useCallback,
@@ -30,23 +32,21 @@ import {
   Time,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import type {
-  ContestAnnouncement,
   ContestDetail,
   ExamQuestion,
   ExamQuestionType,
 } from "@/core/entities/contest.entity";
 import { getContestState } from "@/core/entities/contest.entity";
+import ContestClarifications from "@/features/contest/components/ContestClarifications";
 import ContestStandingsScreen from "@/features/contest/screens/ContestStandingsScreen";
 import { downloadMyReport } from "@/infrastructure/api/repositories";
-import { getContestAnnouncements } from "@/infrastructure/api/repositories/contestAnnouncements.repository";
 import {
   getExamDashboardSummary,
   type ExamDashboardSummaryDto,
 } from "@/infrastructure/api/repositories/exam.repository";
-import { mapContestAnnouncementDto } from "@/infrastructure/mappers/contest.mapper";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import {
   getExamResults,
@@ -127,8 +127,6 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
 const PASSING_SCORE_THRESHOLD_PERCENT = 60;
 const CONTEST_STATE_REFRESH_INTERVAL_MS = 30_000;
 
-// 公告 block 暫時隱藏（資料拉取與渲染邏輯保留，flip 為 true 即可恢復）
-const SHOW_ANNOUNCEMENTS = false;
 
 const resolveCarbonChartTheme = (
   theme: string,
@@ -188,8 +186,18 @@ export default function StudentContestDashboard({
     },
     [t],
   );
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [infoTab, setInfoTab] = useState<"rules" | "records" | "standings">("rules");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const infoTab = requestedTab && ["records", "standings"].includes(requestedTab)
+    ? requestedTab : "information";
+  const setInfoTab = (id: string) => setSearchParams((previous) => {
+    const next = new URLSearchParams(previous);
+    next.set("tab", id);
+    return next;
+  });
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showStudentQrModal, setShowStudentQrModal] = useState(false);
@@ -202,9 +210,6 @@ export default function StudentContestDashboard({
     useState<ExamDashboardSummaryDto | null>(null);
   const [scoreSummaryLoading, setScoreSummaryLoading] = useState(false);
   const [scoreSummaryError, setScoreSummaryError] = useState<string | null>(null);
-  const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
-  const [announcementsError, setAnnouncementsError] = useState<string | null>(null);
   const [paperReloadKey, setPaperReloadKey] = useState(0);
   const [markedQuestionIds, setMarkedQuestionIds] = useState<Set<string>>(
     () => getMarkedQuestionIds(contest.id),
@@ -239,10 +244,21 @@ export default function StudentContestDashboard({
 
   useInterval(() => setNowMs(Date.now()), phase !== "after" ? 1000 : null);
 
-  const handleManualRefresh = useCallback(() => {
-    setPaperReloadKey((value) => value + 1);
-    void onRefreshContest?.();
-  }, [onRefreshContest]);
+  const handleManualRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        onRefreshContest?.(),
+        queryClient.invalidateQueries({ queryKey: ["contestStandings", contest.id] }),
+        queryClient.invalidateQueries({ queryKey: ["contestClarifications", contest.id] }),
+        queryClient.invalidateQueries({ queryKey: ["contestSubmissions", contest.id] }),
+      ]);
+      setPaperReloadKey((value) => value + 1);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefreshContest, queryClient, contest.id, refreshing]);
 
   // 重新整理放在 workspace top bar，讓所有競賽狀態共用同一個入口。
   useEffect(() => {
@@ -252,12 +268,15 @@ export default function StudentContestDashboard({
         size="sm"
         hasIconOnly
         renderIcon={Renew}
-        iconDescription={t("studentDashboard.actions.refresh", "重新整理")}
+        className={refreshing ? refreshStyles.refreshing : undefined}
+        aria-busy={refreshing}
+        disabled={refreshing}
+        iconDescription={refreshing ? t("adminOverview.screen.actions.refreshing", "重新整理中") : t("studentDashboard.actions.refresh", "重新整理")}
         onClick={handleManualRefresh}
       />,
     );
     return () => setPageHeaderActions(null);
-  }, [handleManualRefresh, setPageHeaderActions, t]);
+  }, [handleManualRefresh, refreshing, setPageHeaderActions, t]);
 
   const refreshContestState = useCallback(async () => {
     if (
@@ -360,41 +379,6 @@ export default function StudentContestDashboard({
     paperReloadKey,
     shouldLoadPaperData,
   ]);
-
-  useEffect(() => {
-    if (!contest.id) {
-      setAnnouncements([]);
-      return;
-    }
-
-    let cancelled = false;
-    setAnnouncementsLoading(true);
-    setAnnouncementsError(null);
-    void (async () => {
-      try {
-        const data = await getContestAnnouncements(contest.id);
-        if (cancelled) return;
-        setAnnouncements(data.map(mapContestAnnouncementDto));
-      } catch (error) {
-        if (cancelled) return;
-        setAnnouncements([]);
-        setAnnouncementsError(
-          error instanceof Error
-            ? error.message
-            : tr(
-                "studentDashboard.errors.announcementsLoadFailed",
-                "公告暫時無法載入",
-              ),
-        );
-      } finally {
-        if (!cancelled) setAnnouncementsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [contest.id, paperReloadKey]);
 
   useEffect(() => {
     if (
@@ -618,7 +602,7 @@ export default function StudentContestDashboard({
     if (canGoToAnswering) {
       return (
         <Button renderIcon={Launch} onClick={onGoToAnswering}>
-          {t("studentDashboard.actions.backToAnswering", "回到作答")}
+          {t("studentDashboard.actions.backToAnswering", "前往作答區")}
         </Button>
       );
     }
@@ -863,47 +847,6 @@ export default function StudentContestDashboard({
     );
   };
 
-  const renderAnnouncements = () => {
-    if (announcementsLoading) {
-      return (
-        <p className={styles.emptyText}>
-          {t("studentDashboard.announcements.loading", "載入公告中...")}
-        </p>
-      );
-    }
-    if (announcementsError) {
-      return <p className={styles.errorText}>{announcementsError}</p>;
-    }
-    if (!announcements.length) {
-      return (
-        <p className={styles.emptyText}>
-          {t("studentDashboard.announcements.empty", "目前沒有公告。")}
-        </p>
-      );
-    }
-
-    return (
-      <div className={styles.announcementList}>
-        {announcements.map((announcement) => (
-          <article className={styles.announcementItem} key={announcement.id}>
-            <BlockHeader
-              title={announcement.title}
-              actions={
-                announcement.createdAt ? (
-                  <span className={styles.announcementMeta}>
-                    {formatDate(announcement.createdAt, { includeSeconds: false })}
-                  </span>
-                ) : null
-              }
-            />
-            <div className={styles.announcementContent}>
-              <MarkdownRenderer>{announcement.content}</MarkdownRenderer>
-            </div>
-          </article>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <DashboardPage
@@ -961,27 +904,15 @@ export default function StudentContestDashboard({
             </DashboardBlock>
           </DashboardContainer>
 
-          {SHOW_ANNOUNCEMENTS ? (
-            <DashboardBlock>
-              <BlockHeader
-                title={t("studentDashboard.announcements.title", "公告")}
-              />
-              {renderAnnouncements()}
-            </DashboardBlock>
-          ) : null}
-
           <DashboardBlock padding="flush">
             <DashboardTabs
-              activeId={infoTab === "standings" && !showStandings ? "rules" : infoTab}
+              activeId={infoTab === "standings" && !showStandings ? "information" : infoTab}
               onChange={(id) => setInfoTab(id as typeof infoTab)}
             >
               <DashboardTabBar
                 ariaLabel={t("studentDashboard.tabs.ariaLabel", "競賽資訊切換")}
                 tabs={[
-                  {
-                    id: "rules",
-                    label: t("studentDashboard.tabs.rules", "規則說明"),
-                  },
+                  { id: "information", label: t("studentDashboard.infoLabel", "競賽資訊") },
                   {
                     id: "records",
                     label: t("studentDashboard.tabs.records", "作答紀錄"),
@@ -989,50 +920,6 @@ export default function StudentContestDashboard({
                   ...(showStandings ? [{ id: "standings", label: t("standings.title", "排行榜") }] : []),
                 ]}
               />
-              <DashboardTabPanel tabId="rules">
-                <div className={styles.tabContent}>
-                  <BlockHeader
-                    titleAs="h3"
-                    title={t("studentDashboard.rules.title", "規則說明")}
-                    description={
-                      contest.attendanceCheckEnabled
-                        ? t(
-                            "studentDashboard.rules.attendanceRequired",
-                            "本考試需要完成 QR 簽到後才能開始作答。",
-                          )
-                        : t(
-                            "studentDashboard.rules.defaultDescription",
-                            "請依照教師公告與考試規則完成作答。",
-                          )
-                    }
-
-                  />
-                  {contest.cheatDetectionEnabled ? (
-                    <InlineNotification
-                      kind="warning"
-                      lowContrast
-                      hideCloseButton
-                      title={t(
-                        "studentDashboard.monitoring.title",
-                        "已啟用監控",
-                      )}
-                      subtitle={t(
-                        "studentDashboard.monitoring.subtitle",
-                        "進入作答後會啟用全螢幕、裝置與證據來源監控。",
-                      )}
-                    />
-                  ) : null}
-                  {contest.rules ? (
-                    <div className={styles.rulesContent}>
-                      <MarkdownRenderer>{contest.rules}</MarkdownRenderer>
-                    </div>
-                  ) : (
-                    <p className={styles.emptyText}>
-                      {t("studentDashboard.rules.empty", "沒有額外規則。")}
-                    </p>
-                  )}
-                </div>
-              </DashboardTabPanel>
               <DashboardTabPanel tabId="records">
                 <div className={styles.tabContent}>
                   <BlockHeader
@@ -1053,6 +940,21 @@ export default function StudentContestDashboard({
                     : renderCodingRecords()}
                 </div>
               </DashboardTabPanel>
+              {infoTab === "information" ? (
+                <DashboardTabPanel tabId="information">
+                  <div className={styles.tabContent}>
+                    <ContestClarifications
+                      contestId={contest.id}
+                      mode="participate"
+                      problems={contest.problems}
+                      contestStatus={contest.status}
+                      contestEndTime={contest.endTime}
+                      embedded
+                      rules={contest.rules ?? ""}
+                    />
+                  </div>
+                </DashboardTabPanel>
+              ) : null}
               {showStandings && infoTab === "standings" ? (
                 <DashboardTabPanel tabId="standings">
                   <div className={styles.tabContent}>

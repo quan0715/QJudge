@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from apps.contests.models import Contest, ContestParticipant, ExamStatus
 from apps.contests.permissions import MANAGER_SCOPE_ROLES, get_contest_scope_role
+from apps.contests.services.participation import attempted_participants
 from apps.question_bank.models import ContestQuestionBinding, QuestionAsset
 from apps.submissions.models import Submission
 from apps.users.models import User
@@ -65,7 +66,7 @@ class ScoreboardService:
             for b in bindings
         ]
 
-        participants = ContestParticipant.objects.filter(contest=contest).select_related("user")
+        participants = attempted_participants(contest).select_related("user")
 
         submissions = (
             Submission.objects.filter(

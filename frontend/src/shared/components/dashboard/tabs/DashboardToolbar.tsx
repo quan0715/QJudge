@@ -1,5 +1,6 @@
-import type { ChangeEvent, ReactNode } from "react";
-import { Search } from "@carbon/react";
+import { Button, Search } from "@carbon/react";
+import { Search as SearchIcon } from "@carbon/icons-react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import styles from "./DashboardToolbar.module.scss";
 
 export interface DashboardToolbarProps {
@@ -18,6 +19,7 @@ interface ToolbarSearchProps {
   ariaLabel?: string;
   id?: string;
   size?: "sm" | "md" | "lg";
+  collapsible?: boolean;
 }
 
 function ToolbarSearch({
@@ -28,7 +30,26 @@ function ToolbarSearch({
   ariaLabel,
   id,
   size = "md",
+  collapsible = false,
 }: ToolbarSearchProps) {
+  const [expanded, setExpanded] = useState(!collapsible || Boolean(value));
+  const isExpanded = !collapsible || expanded || Boolean(value);
+
+  if (collapsible && !isExpanded) {
+    return (
+      <div className={`${styles.search} ${styles.searchCollapsed}`}>
+        <Button
+          kind="ghost"
+          size={size}
+          hasIconOnly
+          renderIcon={SearchIcon}
+          iconDescription={ariaLabel ?? placeholder ?? "搜尋"}
+          onClick={() => setExpanded(true)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.search}>
       <Search
