@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import type { ContestIntegrityRun, ExamRuntimeState } from "@/core/entities/contest.entity";
 import type { IntegritySignalEmitter } from "../anticheat/integrity/IntegrityRuntimeContext";
 import { asIntegritySignalDispatch, INTEGRITY_SIGNAL_EVENT } from "../anticheat/integrity/IntegrityRuntimeContext";
@@ -41,14 +40,11 @@ const active = (state: ExamRuntimeState | null) => ["in_progress", "paused", "lo
 export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   contestId: string; runtimeState: ExamRuntimeState | null; children: ReactNode;
 }) {
-  const { t } = useTranslation("contest");
   const [run, setRun] = useState<ContestIntegrityRun | undefined>();
   const config = useRef<UseIntegrityRuntimeOptions | null>(null);
   const owner = useRef<ResidentIntegritySession | null>(null);
   const ownerScope = useRef<string | null>(null);
   const earlySignals = useRef<Array<{ scope: string; signal: Parameters<IntegritySignalEmitter["emit"]>[0] }>>([]);
-  const [gap, setGap] = useState(false);
-  const [localLoss, setLocalLoss] = useState(false);
   const [completedScope, setCompletedScope] = useState<string | null>(null);
   const [submittedAttempt, setSubmittedAttempt] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
@@ -85,11 +81,9 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       // Child entry effects run before this provider replaces the previous
       // session. Never dispatch a new attempt's signal to an old/off owner.
       if (owner.current && ownerScope.current === currentScope.current) return owner.current.emitter.emit(signal);
+      // Beyond the limit the signal is dropped.
       if (earlySignals.current.length < INTEGRITY_LOCAL_QUEUE_LIMIT) {
         earlySignals.current.push({ scope: currentScope.current, signal });
-      } else {
-        setGap(true);
-        setLocalLoss(true);
       }
       // Entry must remain usable while persistence is starting. These pending
       // records are not represented as durable until the owner appends them.
@@ -127,8 +121,6 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       nextSequence: identity.next_sequence, mode: modeRef.current,
       snapshotProvider: () => config.current?.snapshotProvider() ?? { pageVisible: document.visibilityState !== "hidden",
         online: navigator.onLine, fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] },
-      onGap: () => setGap(true),
-      onLocalLoss: () => setLocalLoss(true),
       onProgress: (ack) => {
         if (ack.uploadStatus === "complete" && currentScope.current === scopeKey) setCompletedScope(scopeKey);
       },
@@ -139,7 +131,6 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
     void session.start();
     for (const pendingSignal of earlySignals.current.splice(0)) {
       if (pendingSignal.scope === scopeKey) void session.emitter.emit(pendingSignal.signal);
-      else { setGap(true); setLocalLoss(true); }
     }
     return () => {
       owner.current = null;
@@ -163,7 +154,11 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
     return () => window.removeEventListener(INTEGRITY_SIGNAL_EVENT, relay);
   }, [resident, emitter]);
 
-  const pending = resident && !complete && grant?.upload_status !== "complete";
+  // Leaving would stop capture during the exam, or stop a drain the server is
+  // still accepting. Without an upload grant there is nothing left to send
+  // from this device, so the page must not keep asking after the exam.
+  const pending = resident && !complete &&
+    (active(runtimeState) || (grant?.upload_status === "pending" && now < Date.parse(grant.accept_until)));
   useEffect(() => {
     if (!pending) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -173,14 +168,6 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   const value = useMemo(() => ({ resident, captureReady, emitter, configure, flush }), [resident, captureReady, emitter, configure, flush]);
   return <UploadContext.Provider value={value}>
     {children}
-    {resident && localLoss ? <div role="status" data-testid="integrity-local-data-loss">
-      {t("exam.integrityLocalDataLoss", "部分監考事件或影音未能錄製或保存，可能無法補傳；這不同於待傳送資料，完成上傳也不代表缺漏已恢復。可繼續作答與交卷。")}
-    </div> : null}
-    {pending && (gap || !active(runtimeState) || submittedAttempt === attemptId) ? <div role="status" data-testid="integrity-upload-status">
-      {grant?.upload_status === "expired" || (grant && now >= Date.parse(grant.accept_until))
-        ? t("exam.integrityUploadExpired", "監考資料補傳期限已到，仍有未完成的資料；交卷結果不受影響，已保存的本機資料會保留。")
-        : t("exam.integrityUploadPending", "監考資料尚未完成傳送；可繼續作答與交卷。離開頁面後傳送會停止，已保存的本機資料會保留。")}
-    </div> : null}
   </UploadContext.Provider>;
 }
 

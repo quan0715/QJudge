@@ -39,6 +39,7 @@ import {
 } from "@/infrastructure/browser/fullscreen";
 import { clearExamCaptureSessionId } from "@/shared/state/examCaptureSessionStore";
 import { stopCaptureForContest } from "@/features/contest/anticheat/captureLifecycle";
+import { flushUploadsForSubmit } from "@/features/contest/anticheat/integrity/flushUploadsForSubmit";
 import { usePageHeaderActions } from "@/features/app/contexts/PageHeaderActionsContext";
 import { useContestRuntimeMode } from "@/features/contest/hooks";
 import { useIntegrityUploadOwner } from "@/features/contest/contexts/IntegrityUploadProvider";
@@ -120,7 +121,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
   const {
     uploadSessionId: anticheatUploadSessionId,
     flushPendingUploads,
-    deferMonitoringUploads,
     forceStopCapture,
   } = useExamCapture();
 
@@ -174,14 +174,11 @@ const PaperExamAnsweringScreen: React.FC = () => {
 
   const runSubmitWithProgress = useCallback(async () => {
     const success = await submitProgress.run({
-      skipSteps: deferMonitoringUploads ? ["uploading"] : undefined,
       handlers: {
         checking: async () => {
           await flushAll();
         },
-        uploading: async () => {
-          await flushPendingUploads();
-        },
+        uploading: () => flushUploadsForSubmit(flushPendingUploads),
         finalizing: async () => {
           const ok = await submitExam(anticheatUploadSessionId || undefined);
           if (!ok) {
@@ -208,7 +205,6 @@ const PaperExamAnsweringScreen: React.FC = () => {
     contestId,
     flushAll,
     flushPendingUploads,
-    deferMonitoringUploads,
     forceStopCapture,
     submitExam,
     submitProgress,
