@@ -4,6 +4,7 @@ import { useLayoutEffect } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SUBMIT_UPLOAD_WAIT_MS } from "@/features/contest/anticheat/integrity/flushUploadsForSubmit";
 import PaperExamAnsweringScreen from "./PaperExamAnsweringScreen";
 import { IntegrityUploadProvider, useIntegrityUploadOwner } from "../../contexts/IntegrityUploadProvider";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
@@ -15,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   submitExam: vi.fn().mockResolvedValue(true),
   flushAll: vi.fn().mockResolvedValue(undefined),
   flushPendingUploads: vi.fn().mockResolvedValue(undefined),
-  deferMonitoringUploads: false,
   cheatDetectionEnabled: false,
 }));
 
@@ -77,7 +77,6 @@ vi.mock("@/features/contest/contexts/ExamCaptureContext", () => ({
   useExamCapture: () => ({
     uploadSessionId: "",
     flushPendingUploads: mocks.flushPendingUploads,
-    deferMonitoringUploads: mocks.deferMonitoringUploads,
     forceStopCapture: vi.fn(),
   }),
 }));
@@ -100,7 +99,6 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     mocks.submitExam.mockClear();
     mocks.flushAll.mockClear();
     mocks.flushPendingUploads.mockReset().mockResolvedValue(undefined);
-    mocks.deferMonitoringUploads = false;
     mocks.cheatDetectionEnabled = false;
   });
 
@@ -175,8 +173,7 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     expect(mocks.refreshContest).not.toHaveBeenCalled();
   });
 
-  it.each([true, false])("preserves submission upload policy (resident=%s)", async (resident) => {
-    mocks.deferMonitoringUploads = resident;
+  it.each([true, false])("waits a bounded time for monitoring uploads before submitting (uploads finish=%s)", async (finishes) => {
     let resolveMonitoring!: () => void;
     const monitoringRequest = new Promise<void>((resolve) => { resolveMonitoring = resolve; });
     mocks.flushPendingUploads.mockReturnValue(monitoringRequest);
@@ -188,13 +185,16 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     fireEvent.click(screen.getByTestId("paper-exam-submit-confirm-btn"));
     await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
     expect(mocks.flushAll).toHaveBeenCalledTimes(2);
-    if (!resident) {
-      expect(mocks.submitExam).not.toHaveBeenCalled();
-      expect(mocks.flushPendingUploads).toHaveBeenCalledOnce();
-      await act(async () => { resolveMonitoring(); await vi.advanceTimersByTimeAsync(4000); });
-    }
+    expect(mocks.flushPendingUploads).toHaveBeenCalledOnce();
+    expect(mocks.submitExam).not.toHaveBeenCalled();
+    await act(async () => {
+      if (finishes) resolveMonitoring();
+      else await vi.advanceTimersByTimeAsync(SUBMIT_UPLOAD_WAIT_MS);
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+    // Monitoring never holds a submission hostage: it goes through either way.
     expect(mocks.submitExam).toHaveBeenCalledOnce();
-    if (resident) expect(mocks.flushPendingUploads).not.toHaveBeenCalled();
     expect(mocks.flushAll.mock.invocationCallOrder[0]).toBeLessThan(mocks.submitExam.mock.invocationCallOrder[0]);
+    expect(mocks.flushPendingUploads.mock.invocationCallOrder[0]).toBeLessThan(mocks.submitExam.mock.invocationCallOrder[0]);
   });
 });

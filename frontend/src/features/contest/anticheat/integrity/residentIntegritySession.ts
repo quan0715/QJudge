@@ -18,7 +18,7 @@ interface SessionOptions {
   run: ContestIntegrityRun;
   mode?: IntegrityUploadMode;
   snapshotProvider: () => Omit<ExamIntegrityStateSnapshot, "health">;
-  onGap: (error: Error) => void;
+  onGap?: (error: Error) => void;
   onLocalLoss?: (error: Error) => void;
   onProgress: (ack: ExamIntegrityBatchAck) => void;
 }
@@ -285,7 +285,7 @@ export class ResidentIntegritySession {
   }
 
   private gap(error: unknown): void {
-    this.options.onGap(error instanceof Error ? error : new Error("Integrity storage or upload unavailable"));
+    this.options.onGap?.(error instanceof Error ? error : new Error("Integrity storage or upload unavailable"));
   }
 
   private localLoss(error: unknown): void {

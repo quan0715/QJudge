@@ -783,7 +783,6 @@
     "startExamFailed": "試験を開始できませんでした。後でもう一度お試しくささい"
   },
   "exam": {
-    "integrityLocalDataLoss": "一部の監視イベントや映像・音声を記録または保存できず、復元できない可能性があります。送信待ちとは異なり、送信完了後も欠落は解消されません。解答と提出は続けられます。",
     "abnormalBehavior": "異常な操作が検出されました",
     "accumulatedViolations": "累積違反回数",
     "alreadyLocked": "0 - ロック済み",
@@ -817,8 +816,6 @@
     "monitoringDeviceUnsupported": "現在のデバイスはこの試験の監視設定に適合しません。ダッシュボードに戻って環境チェックを再実行してください。",
     "monitoringHint": "試験監視中 - 詳細はクリック",
     "monitoringIssueHint": "案内に従って監視状態を復旧してください。イベント証跡は保存されています。",
-    "integrityUploadPending": "監視データの送信は未完了です。解答と提出は続けられます。ページを離れると送信は停止し、保存済みのローカルデータは保持されます。",
-    "integrityUploadExpired": "監視データの送信期限が過ぎ、未完了のデータがあります。提出結果に影響はなく、保存済みのローカルデータは保持されます。",
     "monitoringReminder": {
       "fullscreen": "全画面に戻る",
       "mouse_leave": "マウス離脱",
