@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useSearchParams, useOutletContext } from "react-router-dom";
 import { SkeletonText, Grid, Column, Tile } from "@carbon/react";
 
@@ -32,16 +31,6 @@ const ContestDashboard = () => {
   };
 
   const selectedSubmissionId = searchParams.get("submissionId");
-
-  useEffect(() => {
-    if (!contest) return;
-    if (!searchParams.has("tab")) return;
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("tab");
-      return next;
-    });
-  }, [contest, searchParams, setSearchParams]);
 
   // Skeleton loading component
   const renderSkeleton = () => (

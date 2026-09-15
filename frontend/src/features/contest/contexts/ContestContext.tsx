@@ -1,5 +1,4 @@
 import React, {
-  createContext,
   useContext,
   useState,
   useEffect,
@@ -18,28 +17,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import { useExamRuntimeState, mergeExamRuntimeState } from "../hooks/useExamRuntimeState";
 import { IntegrityUploadProvider } from "./IntegrityUploadProvider";
-
-interface ContestContextType {
-  runtime: ReturnType<typeof useExamRuntimeState>;
-  // Core contest data
-  contest: ContestDetail | null;
-  loading: boolean;
-  error: string | null;
-
-  // Standings data
-  scoreboardData: ScoreboardData | null;
-  standingsLoading: boolean;
-
-  // Refresh state (for button animation, not blocking)
-  isRefreshing: boolean;
-
-  // Granular refresh functions
-  refreshContest: () => Promise<void>;
-  refreshStandings: () => Promise<void>;
-  refreshAll: () => Promise<void>;
-}
-
-const ContestContext = createContext<ContestContextType | undefined>(undefined);
+import ContestContext, { type ContestContextType } from "./ContestValueContext";
 
 interface ContestProviderProps {
   runtime?: ReturnType<typeof useExamRuntimeState>;

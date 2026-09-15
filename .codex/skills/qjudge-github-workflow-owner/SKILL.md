@@ -6,7 +6,7 @@ description: QJudge 的 GitHub 全責工作流。當任務涉及 branch 策略�
 # QJudge GitHub Workflow Owner
 
 ## Quick start
-- 先同步 `dev`：`git switch dev && git fetch origin main && git merge --ff-only origin/main`。
+- 先檢查工作區與分支，再取得 `origin/dev`、`origin/main` 最新 refs；只有需要開新分支時才切換，不在未知工作區直接合併。
 - 從 `dev` 開分支：`git switch -c codex/<topic>`。
 - 提交：`bash .codex/skills/qjudge-github-workflow-owner/scripts/commit-changes.sh "type: message"`。
 - 開 PR：`bash .codex/skills/qjudge-github-workflow-owner/scripts/create-pr.sh --base dev --title "title"`。
@@ -22,8 +22,8 @@ description: QJudge 的 GitHub 全責工作流。當任務涉及 branch 策略�
 ## 執行規則
 - 僅允許：`codex/* -> dev` 或 `dev -> main`。
 - 不在 `main` 直接 commit。
-- PR 應小而可審：建議 <= 20 檔、<= 400 行增刪（特殊情況需在 PR 說明理由）。
-- 開 PR 前最少要跑：
+- PR 以一個可獨立審查的目的為單位，不設定固定檔案數或行數上限。
+- 開 PR 前依變更範圍選擇驗證；涉及 frontend 結構時可跑：
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-naming.js --root frontend/src`
   - `node .codex/skills/qjudge-quality-gates-owner/scripts/lint-architecture.js --root frontend/src`
 

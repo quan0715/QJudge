@@ -8,7 +8,6 @@ import {
   PopoverContent,
   FluidSearch,
   FluidDropdown,
-  Toggle,
 } from "@carbon/react";
 import { Catalog, DocumentExport, Filter, UserMultiple } from "@carbon/icons-react";
 import {
@@ -59,7 +58,6 @@ const ContestExamGradingScreen: React.FC = () => {
   const filter: GradingFilter = isValidFilter(rawFilter) ? rawFilter : "all";
   const selectedQuestionId = searchParams.get("grading_question");
   const selectedStudentId = searchParams.get("grading_student");
-  const studentsOnly = searchParams.get("grading_students_only") === "1";
 
   const updateGradingParams = useCallback((updates: Record<string, string | null>) => {
     startTransition(() => {
@@ -101,39 +99,7 @@ const ContestExamGradingScreen: React.FC = () => {
 
   const { flaggedIds, toggleFlag } = useGradingFlags();
 
-  // Filter to only student-role participants when toggle is active
-  const studentOnlyIds = useMemo(() => {
-    if (!studentsOnly) return null;
-    return new Set(
-      students
-        .filter((s) => !s.accountRole || s.accountRole === "student")
-        .map((s) => s.studentId),
-    );
-  }, [studentsOnly, students]);
-
-  const filteredStudents = useMemo(
-    () => (studentOnlyIds ? students.filter((s) => studentOnlyIds.has(s.studentId)) : students),
-    [students, studentOnlyIds],
-  );
-
-  const filteredAnswersByQuestion = useMemo(() => {
-    if (!studentOnlyIds) return answersByQuestion;
-    const map = new Map<string, typeof answers>();
-    for (const [qId, rows] of answersByQuestion) {
-      map.set(qId, rows.filter((a) => studentOnlyIds.has(a.studentId)));
-    }
-    return map;
-  }, [answersByQuestion, studentOnlyIds]);
-
-  const filteredAnswersByStudent = useMemo(() => {
-    if (!studentOnlyIds) return answersByStudent;
-    const map = new Map<string, typeof answers>();
-    for (const [sId, rows] of answersByStudent) {
-      if (studentOnlyIds.has(sId)) map.set(sId, rows);
-    }
-    return map;
-  }, [answersByStudent, studentOnlyIds]);
-  const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all" || studentsOnly;
+  const hasActiveFilters = searchQuery.trim().length > 0 || filter !== "all";
   const filterOptions = useMemo<GlobalFilterOption[]>(
     () => [
       { id: "all" as const, label: t("grading.filterAll", "全部") },
@@ -264,17 +230,6 @@ const ContestExamGradingScreen: React.FC = () => {
                         }
                       />
                     ) : null}
-                    <Toggle
-                      id="grading-students-only"
-                      labelText={t("grading.studentsOnly", "只顯示學生")}
-                      labelA={t("grading.studentsOnlyOff", "全部角色")}
-                      labelB={t("grading.studentsOnlyOn", "僅學生")}
-                      toggled={studentsOnly}
-                      onToggle={(checked) =>
-                        updateGradingParams({ grading_students_only: checked ? "1" : null })
-                      }
-                      size="sm"
-                    />
                   </div>
                   <div className={styles.globalFilterPopoverActions}>
                     <Button
@@ -308,8 +263,8 @@ const ContestExamGradingScreen: React.FC = () => {
           {viewMode === "byQuestion" ? (
             <GradingByQuestionTabScreen
               questionProgress={questionProgress}
-              answersByQuestion={filteredAnswersByQuestion}
-              students={filteredStudents}
+              answersByQuestion={answersByQuestion}
+              students={students}
               onGrade={gradeAnswer}
               onUngrade={ungradeAnswer}
               flaggedIds={flaggedIds}
@@ -329,9 +284,9 @@ const ContestExamGradingScreen: React.FC = () => {
             />
           ) : viewMode === "byStudent" ? (
             <GradingByStudentTabScreen
-              answersByStudent={filteredAnswersByStudent}
+              answersByStudent={answersByStudent}
               questionProgress={questionProgress}
-              students={filteredStudents}
+              students={students}
               onGrade={gradeAnswer}
               onUngrade={ungradeAnswer}
               flaggedIds={flaggedIds}
@@ -345,8 +300,8 @@ const ContestExamGradingScreen: React.FC = () => {
           ) : (
               <GradingMatrixViewScreen
                 questionProgress={questionProgress}
-                students={filteredStudents}
-                answersByQuestion={filteredAnswersByQuestion}
+                students={students}
+                answersByQuestion={answersByQuestion}
                 onSelectCell={handleSelectMatrixCell}
               />
           )}

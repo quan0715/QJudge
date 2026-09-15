@@ -80,7 +80,12 @@
       "drilldown": {
         "ariaLabel": "概要データ切替",
         "participants": "参加者",
-        "questionStats": "回答分布"
+        "questionStats": "回答分布",
+        "standings": "ランキング",
+        "submissions": "提出一覧"
+      },
+      "clarifications": {
+        "publishAnnouncement": "告知を公開"
       },
       "eventLog": "イベント記録",
       "examStatusSummary": "試験状態サマリー",
@@ -106,6 +111,7 @@
       },
       "metricSwitcher": "学生カード指標切替",
       "metrics": {
+        "currentStatus": "現在のコンテスト全体の状態",
         "endTime": "終了時間",
         "examParticipants": "受験者数",
         "onlineParticipants": "オンライン人数",
@@ -126,6 +132,18 @@
         "filterQuestionTypeAria": "問題形式で絞り込み",
         "search": "問題を検索",
         "searchPlaceholder": "問題番号または内容を検索..."
+      },
+      "standings": {
+        "empty": "ランキングデータはまだありません"
+      },
+      "submissions": {
+        "empty": "提出記録はまだありません",
+        "filter": "提出を絞り込む",
+        "filterAria": "提出を絞り込む",
+        "problemFilter": "提出問題で絞り込む",
+        "problemFilterAria": "提出問題で絞り込む",
+        "statusFilter": "提出状態で絞り込む",
+        "statusFilterAria": "提出状態で絞り込む"
       },
       "tabsAriaLabel": "教師管理概要タブ"
     },
@@ -352,6 +370,7 @@
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
+        "studentQrScan": "学生 QR をスキャン",
         "settings": "競賽設定",
         "attendanceProjection": "入退室 QR を開く"
       },
@@ -864,6 +883,7 @@
     "addFirstQuestion": "最初の問題を追加",
     "addOption": "選択肢を追加",
     "addQuestion": "問題を追加",
+    "addToBank": "問題バンクに追加",
     "aiAssistant": "AI アシスタント",
     "answerFormat": "解答形式",
     "answerFormats": {
@@ -921,6 +941,7 @@
     "loadFailed": "読み込み失敗",
     "loadFailedDetail": "試験問題の読み込みに失敗しました",
     "maxScoreFieldLabel": "配点",
+    "tabTestCasesAndScoring": "テストケースと配点",
     "noQuestions": "問題がありません",
     "openBankInbox": "問題バンクインポート",
     "openSourcePanel": "問題ソースを開く",
@@ -945,6 +966,7 @@
     "referencePlaceholder": "参考解答（任意、Markdown対応）",
     "removeFromContest": "コンテストから削除",
     "saveFailed": "保存に失敗しました",
+    "scoreDescription": "コンテストでこの問題に設定する最高点",
     "saveToBank": "問題バンクに保存",
     "saveToBankAlreadyInBank": "すでに問題バンクに登録済み",
     "scoreLabel": "点",
@@ -1847,7 +1869,7 @@
     },
     "actions": {
       "adminPanel": "管理ダッシュボード",
-      "backToAnswering": "回答に戻る",
+      "backToAnswering": "解答エリアへ",
       "downloadProof": "回答証明をダウンロード",
       "downloadReport": "成績レポートをダウンロード",
       "refresh": "更新",
@@ -1962,6 +1984,7 @@
       "scoreDistribution": "得点分布"
     },
     "tabs": {
+      "clarifications": "お知らせ・質問",
       "ariaLabel": "コンテスト情報タブ",
       "records": "回答記録",
       "rules": "ルール"

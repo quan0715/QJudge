@@ -1,0 +1,35 @@
+@use "@carbon/layout";
+
+.embedded {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-05;
+  min-width: 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  align-items: end;
+  gap: layout.$spacing-05;
+}
+
+.sidebarFilters {
+  display: flex;
+  flex-direction: column;
+  gap: layout.$spacing-06;
+}
+
+.tableScroll,
+.paginationScroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.tableScroll {
+  min-height: 12.5rem;
+}
+
+.table {
+  white-space: nowrap;
+}

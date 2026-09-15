@@ -1,5 +1,4 @@
 import React from "react";
-import { Tag } from "@carbon/react";
 import { Draggable } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -9,14 +8,12 @@ import {
   ListItemLeading,
   ListItemContent,
   ListItemTitle,
-  ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
 import { attachReorderPointerSession } from "@/shared/ui/cardListEditor";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import WorkTreeShell from "./WorkTreeShell";
 import treeStyles from "./WorkTree.module.scss";
 import { labelForContestProblemOrder } from "@/features/contest/domain/contestProblemOrderLabel";
-import { CODING_PROBLEM_DIFFICULTY_TAG } from "./codingProblemDifficultyDisplay";
 
 const PLACEHOLDER_PROBLEM_TITLE = /^test\s*-\s*q\d+$/i;
 
@@ -38,7 +35,7 @@ interface CodingProblemListPanelProps {
   onReorderPointerSessionChange?: (delta: 1 | -1) => void;
 }
 
-/** Row chrome aligned with paper exam `WorkTree` (order + title + meta Tag). */
+/** Row chrome aligned with paper exam `WorkTree` (order + title). */
 const ProblemTreeItem: React.FC<{
   problem: ContestProblemSummary;
   index: number;
@@ -83,16 +80,6 @@ const ProblemTreeItem: React.FC<{
         </ListItemLeading>
         <ListItemContent>
           <ListItemTitle>{titleText}</ListItemTitle>
-          <ListItemMeta>
-            {problem.difficulty && CODING_PROBLEM_DIFFICULTY_TAG[problem.difficulty] ? (
-              <Tag
-                type={CODING_PROBLEM_DIFFICULTY_TAG[problem.difficulty].color as never}
-                size="sm"
-              >
-                {CODING_PROBLEM_DIFFICULTY_TAG[problem.difficulty].label}
-              </Tag>
-            ) : null}
-          </ListItemMeta>
         </ListItemContent>
       </ListItem>
     </Reorder.Item>

@@ -198,7 +198,7 @@ describe("SideMenu contest admin workspace panels", () => {
     });
   });
 
-  it("limits compact contest admin nav to page panels", async () => {
+  it("keeps global, panel, and return actions in compact contest admin nav", async () => {
     mockGetContest.mockResolvedValue({
       id: "contest-1",
       contestType: "coding",
@@ -214,8 +214,10 @@ describe("SideMenu contest admin workspace panels", () => {
     expect(await screen.findByText("adminLayout.nav.overview")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.problemManagement")).toBeInTheDocument();
     expect(screen.getByText("adminLayout.nav.settings")).toBeInTheDocument();
-    expect(screen.queryByText("nav.dashboard")).not.toBeInTheDocument();
-    expect(screen.queryByText("nav.classrooms")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "返回教室" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "前往競賽主頁" })).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 

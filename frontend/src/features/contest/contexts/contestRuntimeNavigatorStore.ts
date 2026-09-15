@@ -6,7 +6,6 @@ export interface ContestRuntimeNavigatorState {
   coding?: boolean;
   activeTabIndex?: number;
   statementCollapsed?: boolean;
-  closeStatement?: () => void;
   selectTab?: (index: number) => void;
   items: ExamItem[];
   activeIndex: number;

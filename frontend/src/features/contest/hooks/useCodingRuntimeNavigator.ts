@@ -14,18 +14,16 @@ export function useCodingRuntimeNavigator(
     setActiveTabIndex(index);
     setCollapsed(false);
   }, []);
-  const closeStatement = useCallback(() => setCollapsed(true), []);
   const state = useMemo(() => problems.length ? {
     coding: true,
     statementCollapsed: collapsed,
-    closeStatement,
     activeTabIndex,
     selectTab,
     items: problems.map((data) => ({ kind: "coding" as const, data })),
     activeIndex: Math.max(0, problems.findIndex((p) => p.id === selectedId)),
     answeredIds,
     onSelect: (index: number) => { if (problems[index]) { selectProblem(problems[index].id); selectTab(0); } },
-  } : null, [problems, selectedId, answeredIds, selectProblem, activeTabIndex, selectTab, collapsed, closeStatement]);
+  } : null, [problems, selectedId, answeredIds, selectProblem, activeTabIndex, selectTab, collapsed]);
   useRegisterContestRuntimeNavigator(state, problems.length > 0);
   return { activeTabIndex, selectTab, collapsed, setCollapsed };
 }

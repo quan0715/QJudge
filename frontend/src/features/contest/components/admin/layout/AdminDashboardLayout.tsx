@@ -3,12 +3,12 @@ import { Breadcrumb, BreadcrumbItem, HeaderGlobalAction } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 import {
   Dashboard,
-  View,
-  Education,
+  VirtualDesktop,
+  QuestionAnswering,
+  DocumentTasks,
   Settings,
   TaskComplete,
   ChartColumn,
-  Chat,
 } from "@carbon/icons-react";
 import type { ContestDetail } from "@/core/entities/contest.entity";
 import type { AdminPanelId } from "@/features/contest/modules/types";
@@ -37,12 +37,12 @@ const NAV_ITEMS: Record<
 > = {
   overview: { labelKey: "overview", icon: Dashboard },
   standings: { labelKey: "standings", icon: ChartColumn },
-  clarifications: { labelKey: "clarifications", icon: Chat },
-  proctoring: { labelKey: "proctoring", icon: View },
+  clarifications: { labelKey: "clarifications", icon: QuestionAnswering },
+  proctoring: { labelKey: "proctoring", icon: VirtualDesktop },
   problem_editor: {
     labelKey: "problemManagement",
     examLabelKey: "examManagement",
-    icon: Education,
+    icon: DocumentTasks,
   },
   grading: {
     labelKey: "grading",

@@ -40,6 +40,7 @@ export {
   importContestProblemsFromBank,
   removeContestProblem,
   reorderContestProblems,
+  updateContestProblemScore,
 } from "./contestProblems.repository";
 export {
   endExam,

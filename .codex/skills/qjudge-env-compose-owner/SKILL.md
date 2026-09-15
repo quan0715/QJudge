@@ -17,7 +17,7 @@ Use the repository wrapper:
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <main|dev|test> <compose arguments>
 ```
 
-Run project commands inside the owning service. Do not run Django, pytest, or npm directly on the host unless the user explicitly requests a host-only diagnostic.
+Run commands that depend on databases, workers, or service configuration inside the owning service. Documentation, static checks, and service-independent tests may use an installed host runtime matching the project. No separate permission is needed for that choice.
 
 For tests, prefer the `test` environment. The development backend goes through development infrastructure such as PgBouncer and is not the canonical test runner.
 

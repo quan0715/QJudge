@@ -8,13 +8,11 @@
 ## Labels
 - Domain label: `frontend`, `backend`, `infra`, `docs`
 - Risk label: `risk-low`, `risk-medium`, `risk-high`
-- Optional phase label: `gate-0` ~ `gate-4` (僅在採 Gate 工作流時使用)
 
 ## PR description checklist
-- 變更目標與非目標
-- 影響範圍（路徑/功能）
-- 驗證步驟（含命令）
-- 風險與回滾方式
+- 問題與變更後行為
+- 實際驗證結果
+- 有實質風險時說明影響與復原方式；簡單修改不必填寫制式章節
 
 ## Merge gate
 - 必須通過 required CI jobs。

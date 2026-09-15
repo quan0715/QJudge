@@ -157,20 +157,6 @@
 .contest-problem-submissions {
   // Note: padding is now handled by parent .statement-panel__content
 
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: layout.$spacing-04;
-  }
-
-  &__title {
-    font-size: var(--cds-body-compact-01-font-size);
-    font-weight: var(--cds-body-compact-01-font-weight);
-    color: var(--cds-text-primary);
-    margin: 0;
-  }
-
   &__skeleton {
     display: flex;
     flex-direction: column;

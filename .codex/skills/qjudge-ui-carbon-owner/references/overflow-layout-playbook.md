@@ -10,7 +10,6 @@
 .layout {
   position: fixed;
   inset: 0;
-  min-height: 100dvh;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
@@ -37,7 +36,7 @@
 }
 ```
 
-**⚠️ 搭配 React useEffect 鎖定 body scroll**（必要）：
+若固定殼層仍讓 body 產生多餘捲動，可在掛載期間鎖定並還原：
 
 ```tsx
 // AdminShellLayout.tsx
@@ -50,13 +49,13 @@ useEffect(() => {
 
 原因：Carbon `Toggle` 等互動元件的 `focus()` 呼叫會觸發瀏覽器 `scrollIntoView()`。若 body 未鎖定，browser 會找到 `document` 並移動 `window.scrollY`，造成 fixed 版面位移。
 
-**⚠️ Panel 根元素必須用 flex scroll 模式**：
+Panel 可用 flex scroll 模式；是否需要由 panel 自己捲動取決於內容：
 
 ```css
 /* 面板根元素 — 而非 height: 100% */
 .panelRoot {
   flex: 1 1 auto;
-  min-height: 0;    /* ← 絕對不能省！沒有它 overflow-y: auto 失效 */
+  min-height: 0;    /* 允許 flex item 縮小至可用高度 */
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -95,7 +94,7 @@ useEffect(() => {
 
 要點：
 - 左右 pane 都先 `min-height: 0`。
-- 只有一邊 `overflow-y: auto`。
+- 左右內容都需要時可各自 `overflow-y: auto`，避免外層重複捲動即可。
 
 ## Pattern C: Header + Body + Footer（中段獨立捲動）
 

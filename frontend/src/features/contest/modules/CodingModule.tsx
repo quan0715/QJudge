@@ -85,10 +85,8 @@ const getCodingTabs = (contest?: ContestDetail | null) => {
 
 const CODING_ADMIN_PANELS: AdminPanelId[] = [
   "overview",
-  "clarifications",
   "proctoring",
   "problem_editor",
-  "standings",
 ];
 const DRAFT_ADMIN_PANELS: AdminPanelId[] = ["overview", "problem_editor"];
 

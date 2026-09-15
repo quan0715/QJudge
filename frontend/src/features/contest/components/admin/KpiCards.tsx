@@ -42,7 +42,7 @@ export default function KpiCards({
   const participantCount = contest.participantCount ?? 0;
   const examTypeLabel = t(
     `adminOverview.examType.${contest.contestType}`,
-    contest.contestType === "paper_exam" ? "考卷" : "Coding Test",
+    contest.contestType === "paper_exam" ? "考卷" : "程式測驗",
   );
 
   const heroActions: ReactNode = (

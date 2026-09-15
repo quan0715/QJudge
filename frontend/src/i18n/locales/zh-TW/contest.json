@@ -80,7 +80,12 @@
       "drilldown": {
         "ariaLabel": "總覽資料切換",
         "participants": "參與者",
-        "questionStats": "作答分佈"
+        "questionStats": "作答分佈",
+        "standings": "排行榜",
+        "submissions": "提交列表"
+      },
+      "clarifications": {
+        "publishAnnouncement": "發布公告"
       },
       "eventLog": "事件紀錄",
       "examStatusSummary": "考試狀態摘要",
@@ -106,6 +111,7 @@
       },
       "metricSwitcher": "考生卡片資料切換",
       "metrics": {
+        "currentStatus": "當前整體競賽狀態",
         "endTime": "結束時間",
         "examParticipants": "考試人數",
         "onlineParticipants": "在線人數",
@@ -127,6 +133,18 @@
         "search": "搜尋題目",
         "searchPlaceholder": "搜尋題號或題目..."
       },
+      "standings": {
+        "empty": "目前沒有排行榜資料"
+      },
+      "submissions": {
+        "empty": "目前沒有提交紀錄",
+        "filter": "提交紀錄篩選",
+        "filterAria": "提交紀錄篩選",
+        "problemFilter": "篩選提交題目",
+        "problemFilterAria": "篩選提交題目",
+        "statusFilter": "篩選提交狀態",
+        "statusFilterAria": "篩選提交狀態"
+      },
       "tabsAriaLabel": "教師管理總覽分頁"
     },
     "events": {
@@ -145,7 +163,7 @@
       "upcoming": "即將開始"
     },
     "examType": {
-      "coding": "Coding Test",
+      "coding": "程式測驗",
       "paper_exam": "考卷"
     },
     "kpi": {
@@ -352,6 +370,7 @@
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
+        "studentQrScan": "掃描學生 QR",
         "settings": "競賽設定",
         "attendanceProjection": "開啟簽到投屏"
       },
@@ -362,7 +381,7 @@
         "published": "已發布"
       },
       "contestType": {
-        "coding": "Coding Test",
+        "coding": "程式測驗",
         "paperExam": "考卷"
       },
       "exportFailed": "匯出失敗",
@@ -616,7 +635,7 @@
     "examModeHint": "啟用後將套用考前檢查、監考來源與異常事件記錄。",
     "examModeTitle": "啟用考試模式",
     "hidePassword": "隱藏密碼",
-    "modeCoding": "Coding Test 模式",
+    "modeCoding": "程式測驗模式",
     "modeExam": "紙筆題考試模式",
     "nameCoding": "競賽名稱",
     "nameExam": "紙筆題考試名稱",
@@ -641,9 +660,9 @@
     "startTimePlaceholder": "HH:MM",
     "stepIntro": "請先選擇競賽類型並輸入名稱。建立後可於競賽設定頁面進一步調整時間與進階條件。",
     "timeFormatExample": "請使用 12 小時制時間格式 HH:MM，並選擇上午或下午（例如 09:30 AM）。",
-    "titleCoding": "建立 Coding Test",
+    "titleCoding": "建立程式測驗",
     "titleExam": "建立紙筆題考試",
-    "typeCoding": "Coding Test",
+    "typeCoding": "程式測驗",
     "typeCodingDesc": "程式題為主，支援提交與判題",
     "typeExam": "紙筆題考試",
     "typeExamDesc": "考卷題型，是非/選擇/問答",
@@ -864,6 +883,7 @@
     "addFirstQuestion": "新增第一道題",
     "addOption": "新增選項",
     "addQuestion": "建立題目",
+    "addToBank": "加入題庫",
     "aiAssistant": "AI 助教",
     "answerFormat": "作答格式",
     "answerFormats": {
@@ -921,6 +941,7 @@
     "loadFailed": "載入失敗",
     "loadFailedDetail": "載入 Exam 題目失敗",
     "maxScoreFieldLabel": "配分",
+    "tabTestCasesAndScoring": "測資與配分",
     "noQuestions": "尚無題目",
     "openBankInbox": "題庫匯入",
     "openSourcePanel": "開啟題目來源",
@@ -945,6 +966,7 @@
     "referencePlaceholder": "參考答案（可選，支援 Markdown）",
     "removeFromContest": "從競賽移除",
     "saveFailed": "儲存失敗",
+    "scoreDescription": "設定此題在競賽中的最高分",
     "saveToBank": "收錄到題庫",
     "saveToBankAlreadyInBank": "此題已收錄至題庫",
     "scoreLabel": "分",
@@ -1847,7 +1869,7 @@
     },
     "actions": {
       "adminPanel": "管理後台",
-      "backToAnswering": "回到作答",
+      "backToAnswering": "前往作答區",
       "downloadProof": "下載作答證明",
       "downloadReport": "下載成績單",
       "refresh": "重新整理",
@@ -1962,6 +1984,7 @@
       "scoreDistribution": "成績分布"
     },
     "tabs": {
+      "clarifications": "公告與提問",
       "ariaLabel": "競賽資訊切換",
       "records": "作答紀錄",
       "rules": "規則說明"

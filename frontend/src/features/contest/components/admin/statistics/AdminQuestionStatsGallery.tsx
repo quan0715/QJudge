@@ -4,6 +4,7 @@ import {
   OverflowMenu,
   OverflowMenuItem,
   Search,
+  SelectableTag,
   SkeletonPlaceholder,
   SkeletonText,
   Tag,
@@ -20,6 +21,7 @@ import {
 } from "@/features/contest/components/admin/statistics/contestResultDashboard.mock";
 import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import { resolveExamQuestionTypeFromRaw } from "@/shared/ui/questionVisual";
+import { BlockHeader } from "@/shared/components/dashboard";
 import styles from "./AdminQuestionStatsGallery.module.scss";
 
 interface AdminQuestionStatsGalleryProps {
@@ -35,6 +37,7 @@ interface AdminQuestionStatsGalleryProps {
   questionKindFilter?: string;
   onQuestionKindFilterChange?: (kind: string) => void;
   showFilterToolbar?: boolean;
+  embedded?: boolean;
 }
 
 type AttentionToneKey = "critical" | "warning" | "success";
@@ -79,6 +82,7 @@ export default function AdminQuestionStatsGallery({
   questionKindFilter: controlledQuestionKindFilter,
   onQuestionKindFilterChange,
   showFilterToolbar = true,
+  embedded = false,
 }: AdminQuestionStatsGalleryProps) {
   const [focusMetric, setFocusMetric] = useState<FocusMetricKey>("score_rate");
   const [uncontrolledSearchQuery, setUncontrolledSearchQuery] = useState("");
@@ -123,7 +127,7 @@ export default function AdminQuestionStatsGallery({
 
   if (loading) {
     return (
-      <section className={styles.root} aria-label="各題作答數據">
+      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
         <GalleryHeader
           focusMetric={focusMetric}
           onFocusMetricChange={setFocusMetric}
@@ -144,7 +148,7 @@ export default function AdminQuestionStatsGallery({
 
   if (error || !dashboard) {
     return (
-      <section className={styles.root} aria-label="各題作答數據">
+      <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
         <GalleryHeader
           focusMetric={focusMetric}
           onFocusMetricChange={setFocusMetric}
@@ -208,7 +212,7 @@ export default function AdminQuestionStatsGallery({
     : null;
 
   return (
-    <section className={styles.root} aria-label="各題作答數據">
+    <section className={`${styles.root} ${embedded ? styles.embedded : ""}`} aria-label="各題作答數據">
       <GalleryHeader
         count={sortedQuestions.length}
         focusMetric={focusMetric}
@@ -281,31 +285,21 @@ function GalleryHeader({
     selectedQuestionKind != null && selectedQuestionKind.id !== "all";
   return (
     <div className={styles.header}>
-      <div>
-        <h3>各題作答數據</h3>
-        <p>{selectedMetric?.description ?? "切換關注指標查看題目狀態。"}</p>
-      </div>
-      <div className={styles.headerActions}>
-        {typeof count === "number" ? (
-          <Tag type="cool-gray" size="sm">
-            {count} 題
-          </Tag>
-        ) : null}
-        <div className={styles.focusGroup} role="group" aria-label="關注數據">
-          {focusMetrics.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`${styles.focusButton} ${
-                item.key === focusMetric ? styles.focusButtonActive : ""
-              }`}
-              aria-pressed={item.key === focusMetric}
-              onClick={() => onFocusMetricChange(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+      <BlockHeader
+        title="各題作答數據"
+        description={selectedMetric?.description}
+        actions={typeof count === "number" ? <Tag type="cool-gray" size="sm">{count} 題</Tag> : undefined}
+      />
+      <div className={styles.focusGroup} role="group" aria-label="關注數據">
+        {focusMetrics.map((item) => (
+          <SelectableTag
+            key={item.key}
+            text={item.label}
+            size="sm"
+            selected={item.key === focusMetric}
+            onClick={() => onFocusMetricChange(item.key)}
+          />
+        ))}
       </div>
       {showToolbar ? (
         <div

@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useCallback } from "react";
-import { Button, Tag } from "@carbon/react";
-import { Add, Draggable } from "@carbon/icons-react";
+import { Button } from "@carbon/react";
+import { Add, Draggable, GroupObjects } from "@carbon/icons-react";
 import { Reorder, useDragControls } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { ExamPaperBlock } from "@/core/entities/contest.entity";
-import { EXAM_QUESTION_TYPE_TAG_COLOR } from "@/shared/ui/examQuestionTypeVisual";
+import { EXAM_QUESTION_TYPE_ICON } from "@/shared/ui/examQuestionTypeVisual";
 import {
   ListItem,
   ListItemLeading,
@@ -12,7 +12,6 @@ import {
   ListItemTitle,
   ListItemMeta,
 } from "@/shared/ui/list/ListPanel";
-import { ScorePolicyTag } from "@/features/contest/screens/settings/grading/components/ScorePolicyMenu";
 import { formatScore } from "@/shared/utils/scoreFormat";
 import styles from "./WorkTree.module.scss";
 import WorkTreeShell from "./WorkTreeShell";
@@ -44,10 +43,15 @@ const TreeItem: React.FC<{
   const { t } = useTranslation("contest");
   const dragControls = useDragControls();
   const question = block.kind === "question" ? block.question : block.children[0];
-  const blockScore =
-    block.kind === "question"
-      ? block.question.score
-      : block.children.reduce((sum, child) => sum + child.score, 0);
+  const typeLabel =
+    block.kind === "group"
+      ? t("examEditor.groupBlock", "題組")
+      : t(
+          `common:questionType.label.${block.question.questionType}`,
+          block.question.questionType,
+        );
+  const TypeIcon =
+    block.kind === "group" ? GroupObjects : EXAM_QUESTION_TYPE_ICON[block.question.questionType];
 
   const titleText =
     block.kind === "group"
@@ -88,27 +92,14 @@ const TreeItem: React.FC<{
         <ListItemContent>
           <ListItemTitle>{titleText}</ListItemTitle>
           <ListItemMeta>
-            {block.kind === "group" ? (
-              <Tag type="purple" size="sm">
-                {t("examEditor.groupBlockWithCount", {
-                  count: block.children.length,
-                  defaultValue: "題組 {{count}} 題",
-                })}
-              </Tag>
-            ) : (
-              <Tag
-                type={(EXAM_QUESTION_TYPE_TAG_COLOR[block.question.questionType] ?? "gray") as never}
-                size="sm"
-              >
-                {t(`common:questionType.label.${block.question.questionType}`, block.question.questionType)}
-              </Tag>
-            )}
-            <span className={styles.itemScore}>
-              {t("examEditor.scoreShort", { score: formatScore(blockScore), defaultValue: "{{score}} 分" })}
+            <span
+              className={styles.itemTypeIcon}
+              role="img"
+              aria-label={typeLabel}
+              title={typeLabel}
+            >
+              <TypeIcon size={16} />
             </span>
-            {block.kind === "question" && block.question.scorePolicy && block.question.scorePolicy !== "normal" && (
-              <ScorePolicyTag policy={block.question.scorePolicy} />
-            )}
           </ListItemMeta>
         </ListItemContent>
       </ListItem>

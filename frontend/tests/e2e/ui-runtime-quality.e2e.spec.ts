@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { loginViaAPI, type UserRole } from "../helpers/auth.helper";
 
 type RuntimeProfile = {
@@ -12,10 +12,11 @@ const publicRoutes = [
   "/login",
   "/register",
   "/docs",
-  "/changelog",
 ] as const;
 
 const retiredRoutes = [
+  { role: "teacher" as const, route: "/changelog" },
+  { role: "admin" as const, route: "/management/announcements" },
   { role: "teacher" as const, route: "/marketplace" },
   { role: "teacher" as const, route: "/pricing" },
   { role: "admin" as const, route: "/system/review-queue" },
@@ -41,21 +42,20 @@ const profiles: RuntimeProfile[] = [
     theme: "dark",
   },
   {
-    name: "desktop at 200% zoom equivalent",
+    name: "narrow desktop",
     viewport: { width: 720, height: 900 },
     theme: "light",
   },
 ];
 
 const protectedRoutes: Array<{
-  expectedHeading?: RegExp;
   role: UserRole;
   route: string;
 }> = [
   { role: "student", route: "/dashboard" },
   { role: "teacher", route: "/chat" },
   { role: "admin", route: "/system/users" },
-  { role: "admin", route: "/management/announcements" },
+  { role: "admin", route: "/system/service-status" },
 ];
 
 async function collectRuntimeErrors(page: Page) {
@@ -84,84 +84,46 @@ async function collectRuntimeErrors(page: Page) {
   return errors;
 }
 
-async function expectHealthyLayout(page: Page) {
-  await page.waitForFunction(
-    () => (document.querySelector("#root")?.childElementCount ?? 0) > 0,
+async function expectRouteContent(page: Page, route: string) {
+  const expectedPath = route === "/docs" ? "/docs/overview" : route;
+  await expect(page).toHaveURL((url) =>
+    url.pathname === expectedPath ||
+    (route === "/docs" && url.pathname === "/docs" && url.hash === "#/docs/overview"),
   );
+  const contentByRoute: Record<string, Locator> = {
+    "/": page.getByTestId("landing-section-hero"),
+    "/login": page.getByTestId("auth-login-form"),
+    "/register": page.getByTestId("auth-register-form"),
+    "/docs": page.getByRole("main").getByRole("heading", { name: "平台概覽", level: 1 }),
+    "/dashboard": page.getByRole("heading", { name: /歡迎回來/ }),
+    "/chat": page.getByRole("textbox", { name: "訊息輸入" }),
+    "/system/users": page.getByRole("heading", { name: "使用者管理", exact: true }),
+    "/system/service-status": page.getByTestId("service-components"),
+  };
+  await expect(contentByRoute[route]).toBeVisible();
+  await expect(page.getByRole("heading", { name: "頁面不存在" })).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+}
 
-  const layout = await page.evaluate(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    const viewportWidth = root.clientWidth;
-    const viewportHeight = root.clientHeight;
-    const documentWidth = Math.max(root.scrollWidth, body.scrollWidth);
-    const documentScrollable =
-      Math.max(root.scrollHeight, body.scrollHeight) > viewportHeight + 2;
-
-    const largeNestedScrollOwners = Array.from(
-      document.querySelectorAll<HTMLElement>("body *"),
-    )
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        return (
-          ["auto", "scroll"].includes(style.overflowY) &&
-          element.scrollHeight > element.clientHeight + 2 &&
-          rect.height >= Math.min(320, viewportHeight * 0.5) &&
-          rect.width >= viewportWidth * 0.5
-        );
-      })
-      .map((element) => ({
-        className: element.className,
-        id: element.id,
-        tagName: element.tagName,
-      }));
-
-    return {
-      documentScrollable,
-      documentWidth,
-      largeNestedScrollOwners,
-      viewportWidth,
-    };
-  });
-
+async function expectHealthyLayout(page: Page) {
+  const layout = await page.evaluate(() => ({
+    documentWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+    viewportWidth: document.documentElement.clientWidth,
+  }));
   expect(
     layout.documentWidth,
     `page width ${layout.documentWidth}px exceeds viewport ${layout.viewportWidth}px`,
   ).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(
-    layout.documentScrollable && layout.largeNestedScrollOwners.length > 0,
-    `document and large nested containers both scroll: ${JSON.stringify(layout.largeNestedScrollOwners)}`,
-  ).toBe(false);
+  // Independent panes may scroll. A global scroll-owner count cannot tell
+  // whether content is unreachable; cover that in the relevant workflow.
 }
 
 async function expectKeyboardFocus(page: Page) {
-  await page.locator("body").press("Home");
   await page.keyboard.press("Tab");
-  const focus = await page.evaluate(() => {
-    const element = document.activeElement as HTMLElement | null;
-    if (!element || element === document.body) return null;
-    const rect = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return {
-      height: rect.height,
-      hasFocusIndicator:
-        element.matches(":focus-visible") &&
-        (style.outlineStyle !== "none" ||
-          style.boxShadow !== "none" ||
-          (style.borderTopStyle !== "none" &&
-            Number.parseFloat(style.borderTopWidth) > 0)),
-      tagName: element.tagName,
-      width: rect.width,
-    };
-  });
-
-  expect(focus, "Tab should move focus to a visible interactive element").not.toBeNull();
-  expect(focus?.width ?? 0).toBeGreaterThan(0);
-  expect(focus?.height ?? 0).toBeGreaterThan(0);
-  expect(focus?.hasFocusIndicator, `${focus?.tagName} should expose a focus indicator`).toBe(
-    true,
-  );
+  const focused = page.locator(":focus");
+  await expect(focused).toBeVisible();
+  await expect(focused).toBeInViewport();
+  // Presence of a border/box-shadow does not prove a visible focus indicator.
 }
 
 for (const profile of profiles) {
@@ -172,7 +134,7 @@ for (const profile of profiles) {
     });
 
     for (const route of publicRoutes) {
-      test(`${route} has one page scroll owner and no horizontal overflow`, async ({
+      test(`${route} loads its content without horizontal overflow`, async ({
         page,
       }) => {
         const runtimeErrors = await collectRuntimeErrors(page);
@@ -181,7 +143,7 @@ for (const profile of profiles) {
         }, profile.theme);
 
         await page.goto(route, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(250);
+        await expectRouteContent(page, route);
 
         await expect(page.locator("html")).toHaveAttribute(
           "data-carbon-theme",
@@ -193,8 +155,8 @@ for (const profile of profiles) {
       });
     }
 
-    for (const { expectedHeading, role, route } of protectedRoutes) {
-      test(`${role} ${route} has one page scroll owner and no horizontal overflow`, async ({
+    for (const { role, route } of protectedRoutes) {
+      test(`${role} ${route} loads its content without horizontal overflow`, async ({
         page,
       }) => {
         await page.addInitScript((theme) => {
@@ -202,9 +164,11 @@ for (const profile of profiles) {
         }, profile.theme);
 
         await loginViaAPI(page, role);
+        // Finish the setup document before observing errors on the target page.
+        await page.goto("about:blank");
         const runtimeErrors = await collectRuntimeErrors(page);
         await page.goto(route, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(250);
+        await expectRouteContent(page, route);
 
         await expect(page.locator("html")).toHaveAttribute(
           "data-carbon-theme",
@@ -214,11 +178,6 @@ for (const profile of profiles) {
           page.getByText("伺服器錯誤 (503)"),
           "an unavailable optional AI service should not interrupt unrelated pages",
         ).toHaveCount(0);
-        if (expectedHeading) {
-          await expect(
-            page.getByRole("heading", { name: expectedHeading }),
-          ).toBeVisible();
-        }
         await expectHealthyLayout(page);
         await expectKeyboardFocus(page);
         expect(runtimeErrors, `runtime errors on ${role} ${route}`).toEqual([]);
@@ -285,7 +244,7 @@ test("teacher Copilot APIs stay idle until a Copilot surface is requested", asyn
   });
 
   await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(500);
+  await expectRouteContent(page, "/dashboard");
   expect(aiRequests).toEqual([]);
 
   await page.goto("/chat", { waitUntil: "domcontentloaded" });

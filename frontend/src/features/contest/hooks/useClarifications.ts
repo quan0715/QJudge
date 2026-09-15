@@ -1,85 +1,41 @@
-import { useCallback, useEffect, useState } from "react";
-import type {
-  Clarification,
-  ContestAnnouncement,
-} from "@/core/entities/contest.entity";
-import {
-  mapClarificationDto,
-  mapContestAnnouncementDto,
-} from "@/infrastructure/mappers/contest.mapper";
-import {
-  getClarifications,
-  getContestAnnouncements,
-} from "@/infrastructure/api/repositories";
-import { useInterval } from "@/shared/hooks/useInterval";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { mapClarificationDto, mapContestAnnouncementDto } from "@/infrastructure/mappers/contest.mapper";
+import { getClarifications, getContestAnnouncements } from "@/infrastructure/api/repositories";
 
 interface UseClarificationsOptions {
   pollIntervalMs?: number | null;
 }
 
-export const useClarifications = (
-  contestId: string,
-  options?: UseClarificationsOptions,
-) => {
-  const [clarifications, setClarifications] = useState<Clarification[]>([]);
-  const [announcements, setAnnouncements] = useState<ContestAnnouncement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const pollIntervalMs = options?.pollIntervalMs ?? null;
-
-  const fetchData = useCallback(
-    async (showLoading = false) => {
-      if (!contestId) return;
-      if (showLoading) {
-        setLoading(true);
-      }
-      try {
-        const [clarData, annData] = await Promise.all([
-          getClarifications(contestId),
-          getContestAnnouncements(contestId),
-        ]);
-
-        // Handle clarifications
-        let rawClars: unknown[] = [];
-        if (clarData && typeof clarData === "object" && "results" in clarData) {
-          rawClars = (clarData as { results?: unknown[] }).results ?? [];
-        } else if (Array.isArray(clarData)) {
-          rawClars = clarData;
-        }
-        setClarifications(rawClars.map(mapClarificationDto));
-
-        // Handle announcements
-        let rawAnns: unknown[] = [];
-        if (Array.isArray(annData)) {
-          rawAnns = annData;
-        }
-        setAnnouncements(rawAnns.map((item: any) => mapContestAnnouncementDto(item)));
-        setError(null);
-      } catch (err) {
-        setError(err as Error);
-        console.error("Failed to fetch clarifications data", err);
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
-      }
+export const useClarifications = (contestId: string, options?: UseClarificationsOptions) => {
+  const { user } = useAuth();
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["contestClarifications", contestId, user?.id],
+    queryFn: async () => {
+      const [clarData, annData] = await Promise.all([
+        getClarifications(contestId),
+        getContestAnnouncements(contestId),
+      ]);
+      const rawQuestions = Array.isArray(clarData)
+        ? clarData
+        : (clarData as { results?: unknown[] } | null)?.results ?? [];
+      return {
+        clarifications: rawQuestions.map(mapClarificationDto),
+        announcements: (Array.isArray(annData) ? annData : []).map(mapContestAnnouncementDto),
+      };
     },
-    [contestId]
-  );
-
-  useEffect(() => {
-    fetchData(true);
-  }, [fetchData]);
-
-  useInterval(() => {
-    fetchData(false);
-  }, contestId && pollIntervalMs && pollIntervalMs > 0 ? pollIntervalMs : null);
-
+    enabled: !!contestId,
+    refetchInterval: options?.pollIntervalMs || false,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+  const refresh = useCallback(async () => { await refetch(); }, [refetch]);
   return {
-    clarifications,
-    announcements,
-    loading,
+    clarifications: data?.clarifications ?? [],
+    announcements: data?.announcements ?? [],
+    loading: isLoading,
     error,
-    refresh: () => fetchData(false),
+    refresh,
   };
 };

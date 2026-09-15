@@ -210,25 +210,19 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
   }, [questionInfoMap, answersByQuestion]);
 
   // ── Derived: global stats ──
-  // Global stats — scoped to student-role participants only to avoid
-  // counting admin/TA test submissions in grading progress.
+  // Global stats — everyone on the roster, staff test runs included; a test
+  // run stops counting once it is reset.
   const globalStats = useMemo<GlobalStats>(() => {
-    const studentOnlyIds = new Set(
-      participants
-        .filter((p) => !p.accountRole || p.accountRole === "student")
-        .map((p) => String(p.userId)),
-    );
-    const studentAnswers = answers.filter((a) => studentOnlyIds.has(a.studentId));
-    const studentIds = new Set(studentAnswers.map((a) => a.studentId));
-    const gradedAnswers = studentAnswers.filter((a) => a.score !== null).length;
-    const subjective = studentAnswers.filter((a) => isSubjectiveType(a.questionType));
+    const answeredIds = new Set(answers.map((a) => a.studentId));
+    const gradedAnswers = answers.filter((a) => a.score !== null).length;
+    const subjective = answers.filter((a) => isSubjectiveType(a.questionType));
     return {
-      totalStudents: studentIds.size,
-      totalParticipants: studentOnlyIds.size,
+      totalStudents: answeredIds.size,
+      totalParticipants: participants.length,
       totalQuestions: questionInfoMap.size,
-      totalAnswers: studentAnswers.length,
+      totalAnswers: answers.length,
       gradedAnswers,
-      ungradedAnswers: studentAnswers.length - gradedAnswers,
+      ungradedAnswers: answers.length - gradedAnswers,
       subjectiveTotal: subjective.length,
       subjectiveGraded: subjective.filter((a) => a.score !== null).length,
     };
@@ -239,7 +233,7 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
     // Start from all participants
     const map = new Map<
       string,
-      { studentId: string; username: string; displayName?: string; accountRole?: string }
+      { studentId: string; username: string; displayName?: string }
     >();
     for (const p of participants) {
       const id = String(p.userId);
@@ -247,7 +241,6 @@ export function useGradingData(options: UseGradingDataOptions = {}) {
         studentId: id,
         username: p.username,
         displayName: p.displayName ?? p.username,
-        accountRole: p.accountRole,
       });
     }
     // Also include any students from answers that might not be in participants

@@ -80,7 +80,12 @@
       "drilldown": {
         "ariaLabel": "Overview data tabs",
         "participants": "Participants",
-        "questionStats": "Answer distribution"
+        "questionStats": "Answer distribution",
+        "standings": "Leaderboard",
+        "submissions": "Submissions"
+      },
+      "clarifications": {
+        "publishAnnouncement": "Publish announcement"
       },
       "eventLog": "Event log",
       "examStatusSummary": "Exam status summary",
@@ -106,6 +111,7 @@
       },
       "metricSwitcher": "Student card metric switcher",
       "metrics": {
+        "currentStatus": "Current overall contest status",
         "endTime": "End time",
         "examParticipants": "Exam participants",
         "onlineParticipants": "Online participants",
@@ -126,6 +132,18 @@
         "filterQuestionTypeAria": "Filter question type",
         "search": "Search questions",
         "searchPlaceholder": "Search question number or prompt..."
+      },
+      "standings": {
+        "empty": "No leaderboard data yet"
+      },
+      "submissions": {
+        "empty": "No submission records yet",
+        "filter": "Submission filters",
+        "filterAria": "Submission filters",
+        "problemFilter": "Filter submission problem",
+        "problemFilterAria": "Filter submission problem",
+        "statusFilter": "Filter submission status",
+        "statusFilterAria": "Filter submission status"
       },
       "tabsAriaLabel": "Teacher admin overview tabs"
     },
@@ -352,6 +370,7 @@
         "exporting": "Exporting",
         "refresh": "Refresh",
         "refreshing": "Refreshing",
+        "studentQrScan": "Scan student QR",
         "settings": "Contest settings",
         "attendanceProjection": "Open attendance projection"
       },
@@ -864,6 +883,7 @@
     "addFirstQuestion": "Add first question",
     "addOption": "Add option",
     "addQuestion": "Add Question",
+    "addToBank": "Add to question bank",
     "aiAssistant": "AI assistant",
     "answerFormat": "Answer format",
     "answerFormats": {
@@ -921,6 +941,7 @@
     "loadFailed": "Load failed",
     "loadFailedDetail": "Failed to load exam questions",
     "maxScoreFieldLabel": "Points",
+    "tabTestCasesAndScoring": "Test cases & scoring",
     "noQuestions": "No questions yet",
     "openBankInbox": "Import from Bank",
     "openSourcePanel": "Open question sources",
@@ -945,6 +966,7 @@
     "referencePlaceholder": "Reference answer (optional, supports Markdown)",
     "removeFromContest": "Remove from contest",
     "saveFailed": "Save failed",
+    "scoreDescription": "Set the maximum points for this problem in the contest",
     "saveToBank": "Save to question bank",
     "saveToBankAlreadyInBank": "Already in question bank",
     "scoreLabel": "pts",
@@ -1847,7 +1869,7 @@
     },
     "actions": {
       "adminPanel": "Admin dashboard",
-      "backToAnswering": "Back to answering",
+      "backToAnswering": "Go to answering area",
       "downloadProof": "Download answer proof",
       "downloadReport": "Download score report",
       "refresh": "Refresh",
@@ -1962,6 +1984,7 @@
       "scoreDistribution": "Score distribution"
     },
     "tabs": {
+      "clarifications": "Announcements & questions",
       "ariaLabel": "Contest information tabs",
       "records": "Answer records",
       "rules": "Rules"

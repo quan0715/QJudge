@@ -1,12 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Button,
   DataTableSkeleton,
-  InlineLoading,
   InlineNotification,
 } from "@carbon/react";
-import { Renew } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { useContest } from "@/features/contest/contexts/ContestContext";
 import ContestScoreboard from "@/features/contest/components/ContestScoreboard";
@@ -38,9 +35,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
   const {
     data: scoreboardData,
     isLoading: standingsLoading,
-    isFetching: isRefreshing,
     error,
-    refetch: refreshStandings,
   } = useQuery({
     queryKey: ["contestStandings", contest?.id, contest?.currentUserRole],
     queryFn: () => getContestStandings(contest!.id),
@@ -140,18 +135,7 @@ const ContestStandingsPage: React.FC<ContestStandingsPageProps> = ({
         titleAs="h2"
         titleSize={titleSize}
         description={t("standings.icpcRules")}
-        actions={
-          <Button
-            kind="ghost"
-            renderIcon={isRefreshing ? InlineLoading : Renew}
-            onClick={() => void refreshStandings()}
-            disabled={isRefreshing || loading}
-            hasIconOnly
-            iconDescription={
-              isRefreshing ? t("standings.refreshing") : t("standings.refresh")
-            }
-          />
-        }
+
       />
 
       {error ? (

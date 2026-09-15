@@ -1,13 +1,16 @@
 import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { IconButton, Tag } from "@carbon/react";
 import {
+  ArrowLeft,
   ChevronDown,
   Education,
   Home,
   Locked,
   OpenPanelLeft,
   Settings,
+  Renew,
   View,
   WarningAltFilled,
 } from "@carbon/icons-react";
@@ -28,6 +31,7 @@ import { ExamModeMonitorModal } from "@/features/contest/components/modals/ExamM
 import { useExamMonitoringStatus } from "@/features/contest/contexts/ExamMonitoringStatusContext";
 import { TimeDisplay } from "@/shared/components/dashboard";
 import styles from "./WorkspaceTopNav.module.scss";
+import refreshStyles from "@/shared/ui/RefreshAnimation.module.scss";
 
 type MenuKind = "classroom" | "contest" | "contestMode" | null;
 
@@ -182,6 +186,17 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
   return (
     <header className={styles.root}>
       <div className={styles.left}>
+        {isRuntime && contestContext && (
+          <IconButton
+            kind="ghost"
+            size="md"
+            align="bottom-left"
+            label={t("workspaceTopNav.backToContest", "返回競賽主頁")}
+            onClick={goToContestHome}
+          >
+            <ArrowLeft size={20} />
+          </IconButton>
+        )}
         {showSidebarControl ? (
           <IconButton
             kind="ghost"
@@ -325,7 +340,7 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
         {(previewMode || isPreview) && <Tag type="cool-gray" size="sm">{t("workspaceTopNav.previewMode", "預覽模式")}</Tag>}
         {isRuntime && <RuntimeNavExtras />}
         {pageHeaderActions}
-        {!isRuntime ? <UserMenu /> : null}
+        <UserMenu />
       </div>
     </header>
   );
@@ -334,6 +349,8 @@ export function WorkspaceTopNav({ showSidebarControl, previewMode = false }: Wor
 function RuntimeNavExtras() {
   const { t } = useTranslation("contest");
   const [monitoringOpen, setMonitoringOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const { contest, runtime } = useContest();
   const monitoringReminder = useExamMonitoringStatus();
   const { timeLeft, isCountdownToStart } = useContestTimers({
@@ -341,6 +358,19 @@ function RuntimeNavExtras() {
     contestId: contest?.id,
     refreshContest: runtime.refresh,
   });
+
+  const handleRefresh = async () => {
+    if (!contest || refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        runtime.refresh(),
+        queryClient.invalidateQueries({ queryKey: ["contestSubmissions", contest.id] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (!contest) return null;
 
@@ -388,6 +418,18 @@ function RuntimeNavExtras() {
           }
         />
       </div>
+      <IconButton
+        kind="ghost"
+        size="md"
+        align="bottom"
+        label={refreshing ? t("adminOverview.screen.actions.refreshing", "重新整理中") : t("studentDashboard.actions.refresh", "重新整理")}
+        onClick={handleRefresh}
+        disabled={refreshing}
+        aria-busy={refreshing}
+        className={refreshing ? refreshStyles.refreshing : undefined}
+      >
+        <Renew size={20} />
+      </IconButton>
       <ExamModeMonitorModal
         open={monitoringOpen}
         onRequestClose={() => setMonitoringOpen(false)}

@@ -28,6 +28,11 @@ import { useAuth } from "@/features/auth";
 import { AutoSaveField } from "@/features/problems/components/edit/common";
 import { Section, FieldRow, ActionRow } from "@/shared/layout/SettingsPanel";
 import styles from "./BasicInfoSection.module.scss";
+import { HintField } from "./ContentSection";
+
+interface BasicInfoSectionProps {
+  directEdit?: boolean;
+}
 
 // Tag color mapping based on tag properties or index
 const TAG_COLORS: Array<
@@ -59,7 +64,7 @@ const TAG_HEX_COLORS = [
  * BasicInfoSection - Form section for basic problem info
  * Uses AutoSaveField for field-level auto-save
  */
-const BasicInfoSection: React.FC = () => {
+const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ directEdit = false }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || (user as any)?.is_staff;
   const isTeacherOrAdmin =
@@ -206,6 +211,8 @@ const BasicInfoSection: React.FC = () => {
           </AutoSaveField>
         </div>
       </ActionRow>
+
+      <HintField directEdit={directEdit} />
 
       <ActionRow label="難度" description="顯示於題庫與競賽列表中">
         <div style={{ width: "10rem" }}>

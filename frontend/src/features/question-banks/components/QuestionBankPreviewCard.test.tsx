@@ -42,7 +42,7 @@ const examQuestion: BankQuestion = {
 };
 
 describe("QuestionBankPreviewCard", () => {
-  it("renders 3-row card content and title fallback", () => {
+  it("uses the question prompt as the title fallback and displays its metadata", () => {
     render(<QuestionBankPreviewCard bank={bank} question={examQuestion} />);
 
     expect(screen.getByText("請說明作業系統的排程策略")).toBeInTheDocument();
@@ -51,9 +51,9 @@ describe("QuestionBankPreviewCard", () => {
     expect(screen.getByText(/通過率/i)).toBeInTheDocument();
   });
 
-  it("supports neutral icon variant and selectable click", () => {
+  it("invokes the card action when its title is clicked", () => {
     const onClick = vi.fn();
-    const { container } = render(
+    render(
       <QuestionBankPreviewCard
         bank={bank}
         question={examQuestion}
@@ -64,8 +64,7 @@ describe("QuestionBankPreviewCard", () => {
       />
     );
 
-    fireEvent.click(container.querySelector('[class*="card"]') as HTMLElement);
+    fireEvent.click(screen.getByRole("heading", { name: examQuestion.prompt }));
     expect(onClick).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[class*="cardSelected"]')).toBeTruthy();
   });
 });

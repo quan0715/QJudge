@@ -121,4 +121,25 @@ describe("WorkTree", () => {
     expect(screen.getByText("2 題")).toBeInTheDocument();
     expect(screen.getByText("總分 12.00")).toBeInTheDocument();
   });
+
+  it("uses a question-type icon without score or badge text in each entry", () => {
+    render(
+      <WorkTree
+        blocks={toBlocks([
+          buildQuestion({ id: "q-1", questionType: "single_choice", score: 5 }),
+        ])}
+        selectedId="q-1"
+        frozen
+        onSelect={vi.fn()}
+        onAdd={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "single_choice" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("single_choice")).not.toBeInTheDocument();
+    expect(screen.queryByText("examEditor.scoreShort")).not.toBeInTheDocument();
+  });
 });

@@ -20,6 +20,22 @@ export const getContestProblem = async (
   return mapProblemDetailDto(data);
 };
 
+export const updateContestProblemScore = async (
+  contestId: string,
+  contestProblemId: string,
+  maxScore: number,
+): Promise<number> => {
+  const responseData = await requestJson<{ max_score?: number; score?: number }>(
+    httpClient.patch(
+      `/api/v1/contests/${contestId}/problems/${contestProblemId}/score/`,
+      { max_score: maxScore },
+    ),
+    "Failed to update problem score",
+  );
+
+  return Number(responseData.max_score ?? responseData.score ?? maxScore);
+};
+
 export const createContestProblem = async (
   contestId: string,
   data: { title: string; max_score?: number }
@@ -74,4 +90,3 @@ export const reorderContestProblems = async (
     "Failed to reorder problems"
   );
 };
-

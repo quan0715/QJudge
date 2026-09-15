@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { IconButton, Tab, TabList, TabPanel, TabPanels, Tabs, Tag } from "@carbon/react";
+import { IconButton, NumberInput, Tab, TabList, TabPanel, TabPanels, Tabs, Tag } from "@carbon/react";
 import { Code, Copy, DataBase, Draggable, TrashCan } from "@carbon/icons-react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { formatScore } from "@/shared/utils/scoreFormat";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 import { SaveToBankModal } from "@/features/question-banks/components/SaveToBankModal";
 import { ProblemPreview } from "@/shared/ui/problem";
+import { ActionRow } from "@/shared/layout/SettingsPanel";
 import { useProblemEdit } from "@/features/problems/contexts/ProblemEditContext";
 import type { ProblemFormSchema } from "@/features/problems/forms/problemFormSchema";
 import { formSchemaToPreview } from "@/features/problems/forms/problemPreviewAdapter";
@@ -30,6 +31,7 @@ interface CodingProblemTabbedEditorProps {
   frozen?: boolean;
   contestBinding: Pick<ContestProblemSummary, "sourceBank" | "sourceMode">;
   problemId: string;
+  onScoreChange?: (score: number) => Promise<void>;
   onSaveToBankSuccess?: () => void;
   onDelete?: () => Promise<void>;
   onDuplicate?: () => void | Promise<void>;
@@ -44,6 +46,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
   frozen = false,
   contestBinding,
   problemId,
+  onScoreChange,
   onSaveToBankSuccess,
   onDelete,
   onDuplicate,
@@ -56,6 +59,7 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
   const { confirm, modalProps } = useConfirmModal();
   const [activeTab, setActiveTab] = useState(0);
   const [saveToBankOpen, setSaveToBankOpen] = useState(false);
+  const [scoreDraft, setScoreDraft] = useState<number | string | null>(null);
 
   const showSaveStatus = autoSave.globalStatus !== "idle";
 
@@ -86,6 +90,24 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
   const titleShown =
     (typeof titleLive === "string" && titleLive.trim()) ||
     t("examEditor.codingProblemUntitled", "未定標題的程式題");
+
+  const handleScoreBlur = () => {
+    if (!onScoreChange) return;
+    const currentScore = score ?? 100;
+    const nextScore = Number(scoreDraft ?? currentScore);
+    if (!Number.isInteger(nextScore) || nextScore <= 0) {
+      setScoreDraft(null);
+      return;
+    }
+    if (nextScore === currentScore) {
+      setScoreDraft(null);
+      return;
+    }
+
+    void onScoreChange(nextScore)
+      .then(() => setScoreDraft(null))
+      .catch(() => setScoreDraft(currentScore));
+  };
 
   return (
     <div className={`${examStyles.card} ${examStyles.cardEditing}`}>
@@ -182,18 +204,43 @@ const CodingProblemTabbedEditor: React.FC<CodingProblemTabbedEditorProps> = ({
           <TabList aria-label={t("examEditor.problemEditTabs", "題目編輯分頁")} contained>
             <Tab>{t("examEditor.tabBasicInfo", "基本資訊")}</Tab>
             <Tab>{t("examEditor.tabContent", "題目內容")}</Tab>
-            <Tab>{t("examEditor.tabTestCases", "測資")}</Tab>
+            <Tab>{t("examEditor.tabTestCasesAndScoring", "測資與配分")}</Tab>
             <Tab>{t("examEditor.tabCodeSettings", "撰寫設定")}</Tab>
             <Tab>{t("examEditor.tabPreview", "預覽")}</Tab>
           </TabList>
           <TabPanels>
             <TabPanel className={styles.tabPanel}>
-              <BasicInfoSection />
+              <BasicInfoSection directEdit />
             </TabPanel>
             <TabPanel className={styles.tabPanel}>
               <ContentSection directEdit />
             </TabPanel>
             <TabPanel className={styles.tabPanel}>
+              {onScoreChange ? (
+                <ActionRow
+                  label={t("examEditor.maxScoreFieldLabel", "配分")}
+                  description={t("examEditor.scoreDescription", "設定此題在競賽中的最高分")}
+                >
+                  <NumberInput
+                    id={`coding-score-${contestProblemId}`}
+                    data-testid={`coding-score-input-${contestProblemId}`}
+                    label={t("examEditor.maxScoreFieldLabel", "配分")}
+                    className={examStyles.scoreNumberInput}
+                    hideLabel
+                    size="sm"
+                    min={1}
+                    step={1}
+                    value={scoreDraft ?? score ?? 100}
+                    onChange={(_event, { value }) =>
+                      setScoreDraft(
+                        typeof value === "number" || typeof value === "string" ? value : "",
+                      )
+                    }
+                    onBlur={handleScoreBlur}
+                    disabled={frozen}
+                  />
+                </ActionRow>
+              ) : null}
               <TestCasesSection />
             </TabPanel>
             <TabPanel className={styles.tabPanel}>

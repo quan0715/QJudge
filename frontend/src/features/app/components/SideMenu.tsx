@@ -2,18 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Dashboard,
-  Education,
+  DocumentTasks,
   Checkmark,
   Chat as ChatIcon,
+  QuestionAnswering,
   AiLabel,
   Bullhorn,
   ChartColumn,
   TaskComplete,
   Trophy,
   UserMultiple,
-  View,
+  VirtualDesktop,
   Settings,
   Home,
+  ArrowLeft,
 } from "@carbon/icons-react";
 import type { ComponentType } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,9 +50,9 @@ const CONTEST_PANEL_META: Record<
 > = {
   overview: { labelKey: "overview", Icon: Dashboard },
   standings: { labelKey: "standings", Icon: ChartColumn },
-  clarifications: { labelKey: "clarifications", Icon: ChatIcon },
-  proctoring: { labelKey: "proctoring", Icon: View },
-  problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: Education },
+  clarifications: { labelKey: "clarifications", Icon: QuestionAnswering },
+  proctoring: { labelKey: "proctoring", Icon: VirtualDesktop },
+  problem_editor: { labelKey: "problemManagement", examLabelKey: "examManagement", Icon: DocumentTasks },
   grading: { labelKey: "grading", examLabelKey: "examGrading", Icon: TaskComplete },
   "ai-grading": { labelKey: "aiGrading", examLabelKey: "examAiGrading", Icon: AiLabel },
   statistics: { labelKey: "statistics", examLabelKey: "examStatistics", Icon: ChartColumn },
@@ -320,7 +322,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({
     if (!contestAdminContext) return;
     go(getClassroomContestDashboardPath(contestAdminContext.classroomId, contestAdminContext.contestId));
   }, [contestAdminContext, go]);
-  const showContestAdminMiniNav = compact && Boolean(contestAdminContext);
   const homeLabel = t("nav.home", "Home");
   const contestHomeLabel = tContest("adminLayout.header.backToHome", "前往競賽主頁");
 
@@ -359,25 +360,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
           />
         ) : (
           <>
-            {showContestAdminMiniNav && (
-              <div className="side-menu__section">
-                {contestPanelNavItems.map(({ panel, label, Icon }) => (
-                  <button
-                    key={panel}
-                    type="button"
-                    title={label}
-                    aria-label={label}
-                    className={`side-menu__link${contestActivePanel === panel ? " side-menu__link--active" : ""}`}
-                    onClick={() => goToContestPanel(panel)}
-                  >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {!showContestAdminMiniNav && (
+            {
               isChatRoute && isTeacherOrAdmin ? (
                 <>
                   <div className="side-menu__section">
@@ -553,9 +536,19 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                   )}
                 </>
               )
-            )}
+            }
             {contestAdminContext && (
               <div className="side-menu__bottom">
+                <button
+                  type="button"
+                  title="返回教室"
+                  aria-label="返回教室"
+                  className="side-menu__link"
+                  onClick={() => go(`/classrooms/${contestAdminContext.classroomId}`)}
+                >
+                  <ArrowLeft size={16} />
+                  <span>返回教室</span>
+                </button>
                 <button
                   type="button"
                   title={contestHomeLabel}
@@ -563,7 +556,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({
                   className="side-menu__link"
                   onClick={goToContestHome}
                 >
-                  <Education size={16} />
+                  <Trophy size={16} />
                   <span>{contestHomeLabel}</span>
                 </button>
               </div>
