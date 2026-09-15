@@ -97,7 +97,8 @@ PASSWORD_HASHERS = [
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # Celery
-CELERY_TASK_ALWAYS_EAGER = True  # 同步執行 Celery 任務（測試用）
+# Unit tests default to eager; browser E2E can exercise the real worker queues.
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # Judge Engine - 在測試環境中啟用

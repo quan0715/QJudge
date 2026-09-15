@@ -1,0 +1,71 @@
+name: Authentication and coding exam E2E
+
+on:
+  workflow_call:
+    inputs:
+      grep:
+        type: string
+        default: ""
+  workflow_dispatch:
+
+jobs:
+  coding-submissions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CELERY_TASK_ALWAYS_EAGER: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare isolated test credentials
+        run: |
+          cp .env.example .env
+          python3 -m pip install cryptography
+          python3 scripts/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
+      - name: Start real API and judge workers
+        run: |
+          .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d frontend-test celery-test celery-high-test judge-image-test
+      - name: Wait for API and frontend readiness
+        run: |
+          for i in {1..90}; do
+            if curl --fail --silent http://localhost:8002/api/health/ >/dev/null && \
+               curl --fail --silent http://localhost:5174/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Verify asynchronous judge dispatch is enabled
+        run: |
+          .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test \
+            python manage.py shell -c 'from django.conf import settings; assert not settings.CELERY_TASK_ALWAYS_EAGER'
+      - name: Verify login, registration and onboarding
+        run: |
+          .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
+            -e CI=true -e E2E_REUSE_ENV=true \
+            -e PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report-auth frontend-test \
+            npm run test:e2e -- tests/e2e/auth.e2e.spec.ts --no-deps --workers=1 --output=test-results-auth
+      - name: Run coding submissions through the browser and judge
+        env:
+          E2E_GREP: ${{ inputs.grep }}
+        run: |
+          cmd=(npm run test:e2e -- tests/e2e/coding-submissions.e2e.spec.ts --no-deps)
+          if [[ -n "$E2E_GREP" ]]; then cmd+=(--grep "$E2E_GREP"); fi
+          .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
+            -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+      - name: Collect service logs
+        if: always()
+        run: .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test logs --no-color > e2e-coding.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coding-submissions-e2e
+          path: |
+            frontend/playwright-report-auth
+            frontend/test-results-auth
+            frontend/playwright-report-e2e
+            frontend/test-results
+            e2e-coding.log
+          retention-days: 14
+      - name: Cleanup
+        if: always()
+        run: .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test down -v

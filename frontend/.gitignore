@@ -32,8 +32,12 @@ runtime.js
 
 # Playwright
 /test-results/
+/test-results-auth/
+/test-results-coding/
 /playwright-report/
 /playwright-report-e2e/
+/playwright-report-auth/
+/playwright-report-coding/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/

@@ -43,6 +43,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  coding-e2e:
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    name: Coding exam submissions E2E
+    uses: ./.github/workflows/e2e-coding.yml
+
   # ============================================
   # Static Analysis & Build Check (Blocking)
   # ============================================
