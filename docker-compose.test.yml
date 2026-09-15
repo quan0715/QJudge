@@ -256,6 +256,7 @@ services:
       "
     environment: &backend_test_environment
       - DJANGO_SETTINGS_MODULE=config.settings.test
+      - CELERY_TASK_ALWAYS_EAGER=${CELERY_TASK_ALWAYS_EAGER:-true}
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=qjudge_web
       - POSTGRES_PASSWORD=qjudge_web
@@ -387,6 +388,7 @@ services:
     command: celery -A config worker -l info -Q default
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
+      - CELERY_TASK_ALWAYS_EAGER=${CELERY_TASK_ALWAYS_EAGER:-true}
       - POSTGRES_DB=test_oj_e2e
       - POSTGRES_USER=qjudge_web
       - POSTGRES_PASSWORD=qjudge_web

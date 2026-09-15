@@ -18,8 +18,6 @@ import {
 import { TEST_USERS } from "../helpers/data.helper";
 
 test.describe("Authentication E2E Tests", () => {
-  test.describe.configure({ mode: "serial" });
-
   test.beforeEach(async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await clearAuth(page);
@@ -49,13 +47,11 @@ test.describe("Authentication E2E Tests", () => {
 
       await page.getByTestId("auth-register-submit").click();
 
-      await page.waitForFunction(
-        () => window.location.pathname !== "/register",
-        undefined,
-        { timeout: 20000 },
-      );
-
-      expect(page.url()).not.toContain("/register");
+      await expect(page).toHaveURL(/\/onboarding/);
+      const response = await page.request.get("/api/v1/users/me");
+      expect(response.ok()).toBe(true);
+      const body = await response.json();
+      expect((body.data ?? body).email).toBe(newUser.email);
     });
 
     test("should show error when passwords do not match", async ({ page }) => {
@@ -94,20 +90,9 @@ test.describe("Authentication E2E Tests", () => {
       );
 
       await page.getByTestId("auth-register-submit").click();
-      await page.waitForFunction(
-        () => ["/register", "/error"].includes(window.location.pathname),
-        undefined,
-        { timeout: 5000 },
-      );
-
-      const path = new URL(page.url()).pathname;
-      expect(path === "/register" || path === "/error").toBe(true);
-
-      if (path === "/register") {
-        await expect(page.getByTestId("auth-form-error")).toBeVisible({
-          timeout: 5000,
-        });
-      }
+      await expect(page.getByTestId("auth-form-error")).toBeVisible();
+      await expect(page).toHaveURL(/\/register/);
+      expect((await page.request.get("/api/v1/users/me")).status()).toBe(401);
     });
   });
 
@@ -193,13 +178,12 @@ test.describe("Authentication E2E Tests", () => {
       expect(await isAuthenticated(page)).toBe(true);
     });
 
-    test("should store user info in localStorage after login", async ({
-      page,
-    }) => {
+    test("should return the authenticated student identity after login", async ({ page }) => {
       await login(page, "student");
-      const user = await page.evaluate(() => localStorage.getItem("user"));
-      expect(user).toBeTruthy();
-      expect(user!).toContain(TEST_USERS.student.email);
+      const response = await page.request.get("/api/v1/users/me");
+      expect(response.ok()).toBe(true);
+      const body = await response.json();
+      expect((body.data ?? body).email).toBe(TEST_USERS.student.email);
     });
 
     test("should clear authentication cookies after logout", async ({
@@ -240,19 +224,6 @@ test.describe("Authentication E2E Tests", () => {
       );
       await page.getByTestId("auth-register-submit").click();
 
-      // Wait for registration to complete (leaves /register)
-      await page.waitForFunction(
-        () => window.location.pathname !== "/register",
-        undefined,
-        { timeout: 20000 },
-      );
-
-      // GET login page first to ensure csrftoken cookie is set, then go to dashboard.
-      // Full reload lets AuthContext pick up localStorage user + cookies.
-      await page.goto("/login");
-      await page.waitForTimeout(500);
-      await page.goto("/dashboard");
-      await page.waitForURL(/\/onboarding/, { timeout: 15000 });
       await expect(page).toHaveURL(/\/onboarding/);
 
       const nameInput = page.locator("#onboarding-display-name");
@@ -261,19 +232,16 @@ test.describe("Authentication E2E Tests", () => {
 
       await page.getByRole("button", { name: /開始使用/i }).click();
 
-      // After onboarding submission, user may go through /dashboard or re-auth
-      await page.waitForURL((url) => !url.pathname.includes("/onboarding"), {
-        timeout: 15000,
-      }).catch(async () => {
-        // Debug: capture state if we're still on onboarding
-        const html = await page.locator(".auth-form").innerHTML().catch(() => "no-form");
-        const url = page.url();
-        throw new Error(`Stuck after onboarding submit. URL: ${url}, form: ${html.slice(0, 500)}`);
-      });
-
-      // Should end up on dashboard (not login or onboarding)
-      const finalUrl = page.url();
-      expect(finalUrl).toMatch(/\/dashboard/);
+      await expect(page).toHaveURL(/\/dashboard/);
+      const response = await page.request.get("/api/v1/users/me");
+      expect(response.ok()).toBe(true);
+      const body = await response.json();
+      const user = body.data ?? body;
+      expect(user.profile.display_name).toBe(newUser.username);
+      expect(user.profile.onboarding_completed_at).toBeTruthy();
+      await page.reload();
+      await expect(page).toHaveURL(/\/dashboard/);
+      await expect(page.getByTestId("user-menu-toggle-btn")).toBeVisible();
     });
 
     test("unauthenticated user accessing protected route should go to login, not onboarding", async ({
@@ -298,18 +266,6 @@ test.describe("Authentication E2E Tests", () => {
       await expect(page).toHaveURL(/\/register/);
       await page.getByTestId("auth-register-nav-login").click();
       await expect(page).toHaveURL(/\/login/);
-    });
-
-    test("should redirect to login when accessing protected route while not authenticated", async ({
-      page,
-    }) => {
-      // Must match real routes under RequireAuth (not teacher-only / bare /classrooms, which 404).
-      const protectedRoutes = ["/dashboard", "/problems", "/ranking"];
-
-      for (const route of protectedRoutes) {
-        await page.goto(route);
-        await page.waitForURL(/\/$|\/login/, { timeout: 10000 });
-      }
     });
   });
 });

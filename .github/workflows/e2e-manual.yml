@@ -141,41 +141,11 @@ jobs:
         run: docker compose -f docker-compose.test.yml down -v
 
   e2e-coding:
-    name: "E2E: Coding"
+    name: "E2E: Coding submissions"
     if: inputs.group == '' || inputs.group == 'coding'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-      - name: Start test stack
-        run: |
-          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-          docker compose -f docker-compose.test.yml up -d
-      - name: Wait for readiness
-        uses: ./.github/actions/wait-test-stack
-      - name: Run Coding E2E
-        run: |
-          set -euo pipefail
-          SPECS="tests/e2e/tag-management.e2e.spec.ts"
-          cmd=(npm run test:e2e -- $SPECS)
-          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
-          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
-      - name: Collect logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-coding.log
-      - name: Upload artifacts
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: e2e-coding-artifacts
-          path: |
-            frontend/playwright-report-e2e
-            frontend/test-results
-            e2e-coding.log
-          retention-days: 14
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
+    uses: ./.github/workflows/e2e-coding.yml
+    with:
+      grep: ${{ inputs.grep }}
 
   e2e-settings:
     name: "E2E: Settings & Preferences"

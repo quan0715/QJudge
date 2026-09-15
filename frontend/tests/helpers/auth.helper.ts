@@ -197,19 +197,10 @@ export async function register(
  * @returns true if authenticated, false otherwise
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
-  try {
-    const hasUser = await page.evaluate(() => Boolean(localStorage.getItem("user")));
-    if (!hasUser) return false;
-
-    // Try to access a protected route
-    await page.goto("/dashboard");
-    await page.waitForURL(/\/dashboard/, { timeout: 5000 });
-
-    const path = new URL(page.url()).pathname;
-    return path.startsWith("/dashboard");
-  } catch {
-    return false;
-  }
+  const response = await page.request.get("/api/v1/users/me");
+  if (!response.ok()) return false;
+  const body = await response.json();
+  return Boolean((body.data ?? body).id);
 }
 
 /**
