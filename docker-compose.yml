@@ -258,10 +258,10 @@ services:
     profiles: ["live-turn"]
     restart: unless-stopped
     network_mode: host
-    # The renderer keeps this bind-mounted secret at 0600. The image defaults
-    # to nobody, which cannot read it; keep only the capability needed for
-    # the privileged TURN listening port.
-    user: "0:0"
+    # The renderer keeps this bind-mounted secret at 0600. Match the host
+    # owner so both rootless and rootful Docker can read it without making the
+    # secret world-readable; deploy-prod derives these IDs from the owner.
+    user: "${COTURN_UID:-1000}:${COTURN_GID:-1000}"
     cap_drop: ["ALL"]
     cap_add: ["NET_BIND_SERVICE"]
     command: ["-c", "/etc/coturn/turnserver.conf"]
