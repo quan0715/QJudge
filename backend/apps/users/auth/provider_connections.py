@@ -1,21 +1,46 @@
-"""Server-only provider connection configuration for QAuth federation."""
+"""Server-only provider connection configuration for QAuth federation.
+
+The catalog holds endpoints, scopes and the names of the environment variables
+that carry each provider's credentials; the credentials themselves never appear
+here. It is therefore kept as a reviewable file in the repository, and
+``QAUTH_PROVIDER_CONNECTIONS_JSON`` overrides that file for deployments needing
+a different identity provider. An explicit empty array disables every provider.
+"""
 
 from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 from django.conf import settings
 
 from .contracts import QAuthProviderConnection
 
 
+def _read_connection_file() -> str:
+    path = getattr(settings, "QAUTH_PROVIDER_CONNECTIONS_FILE", None)
+    if path is None:
+        path = os.getenv("QAUTH_PROVIDER_CONNECTIONS_FILE", "")
+    if not path:
+        return "[]"
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"QAUTH_PROVIDER_CONNECTIONS_FILE cannot be read: {path}") from exc
+
+
+def _connection_source() -> str:
+    override = getattr(settings, "QAUTH_PROVIDER_CONNECTIONS_JSON", None)
+    if override is None:
+        override = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "")
+    if override.strip():
+        return override
+    return _read_connection_file()
+
+
 def load_provider_connections(raw: str | None = None) -> dict[str, QAuthProviderConnection]:
-    source = raw
-    if source is None:
-        source = getattr(settings, "QAUTH_PROVIDER_CONNECTIONS_JSON", None)
-    if source is None:
-        source = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "[]")
+    source = raw if raw is not None else _connection_source()
 
     try:
         items = json.loads(source or "[]")

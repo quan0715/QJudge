@@ -359,8 +359,15 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_BEAT_SCHEDULE = {}
 
 # Public login method settings. OAuth connections are configured through QAuth.
+# The connection catalog holds endpoints and credential variable names, never the
+# credentials, so it ships as a file; the JSON variable overrides it, and an
+# explicit empty array there disables every OAuth provider.
 AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
-QAUTH_PROVIDER_CONNECTIONS_JSON = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "[]")
+QAUTH_PROVIDER_CONNECTIONS_FILE = os.getenv(
+    "QAUTH_PROVIDER_CONNECTIONS_FILE",
+    str(BASE_DIR / "config" / "qauth-providers.json"),
+)
+QAUTH_PROVIDER_CONNECTIONS_JSON = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "")
 
 # Judge Engine settings
 JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"
