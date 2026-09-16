@@ -258,6 +258,12 @@ services:
     profiles: ["live-turn"]
     restart: unless-stopped
     network_mode: host
+    # The renderer keeps this bind-mounted secret at 0600. The image defaults
+    # to nobody, which cannot read it; keep only the capability needed for
+    # the privileged TURN listening port.
+    user: "0:0"
+    cap_drop: ["ALL"]
+    cap_add: ["NET_BIND_SERVICE"]
     command: ["-c", "/etc/coturn/turnserver.conf"]
     read_only: true
     security_opt: ["no-new-privileges:true"]
