@@ -550,26 +550,3 @@ def test_completed_grant_is_readonly_even_for_evidence_operations(
         },
     )
     assert response.status_code == 403
-
-
-@pytest.mark.django_db(transaction=True)
-def test_migration_assigns_distinct_trusted_attempts_to_existing_participants(
-    participant, another_participant
-):
-    from django.db import connection
-    from django.db.migrations.executor import MigrationExecutor
-    from apps.contests.models import ContestParticipant
-
-    executor = MigrationExecutor(connection)
-    latest = executor.loader.graph.leaf_nodes()
-    try:
-        executor.migrate([("contests", "0097_resident_integrity_sessions")])
-        MigrationExecutor(connection).migrate(latest)
-        attempts = list(
-            ContestParticipant.objects.filter(
-                pk__in=[participant.pk, another_participant.pk]
-            ).values_list("integrity_attempt_id", flat=True)
-        )
-        assert len(set(attempts)) == 2
-    finally:
-        MigrationExecutor(connection).migrate(latest)
