@@ -169,13 +169,21 @@ if is_truthy "$live_monitoring_enabled"; then
     LIVEKIT_API_SECRET
     LIVEKIT_NODE_IP
     LIVEKIT_STUN_HOST
+    LIVEKIT_TURN_ENABLED
+    LIVEKIT_TURN_HOST
+    LIVEKIT_TURN_SECRET
   )
   for key in "${livekit_required_env_keys[@]}"; do
     require_env_key "$key"
     reject_env_placeholder "$key"
   done
+  if ! is_truthy "$(get_env_value LIVEKIT_TURN_ENABLED)"; then
+    echo ".env LIVEKIT_TURN_ENABLED must be true when LiveKit is enabled in production" >&2
+    exit 1
+  fi
 
   COMPOSE_FILES+=(--profile live-monitoring)
+  COMPOSE_FILES+=(--profile live-turn)
 fi
 
 postgres_admin_user="qjudge_admin"
@@ -267,6 +275,8 @@ render_livekit_config() {
   local livekit_image
   local livekit_config_file
   local livekit_config_path
+  local coturn_config_file
+  local coturn_config_path
 
   livekit_environment="$(get_env_value LIVEKIT_ENVIRONMENT)"
   livekit_environment="${livekit_environment:-main}"
@@ -286,6 +296,8 @@ render_livekit_config() {
   livekit_image="${livekit_image:-$DEFAULT_LIVEKIT_IMAGE}"
   livekit_config_file="$(get_env_value LIVEKIT_CONFIG_FILE)"
   livekit_config_file="${livekit_config_file:-./.tmp/livekit/main.json}"
+  coturn_config_file="$(get_env_value COTURN_CONFIG_FILE)"
+  coturn_config_file="${coturn_config_file:-./.tmp/livekit/coturn.conf}"
 
   if [[ "$livekit_config_file" = /* ]]; then
     livekit_config_path="$livekit_config_file"
@@ -293,6 +305,12 @@ render_livekit_config() {
     livekit_config_path="${DEPLOY_PATH}/${livekit_config_file#./}"
   fi
   mkdir -p -- "$(dirname "$livekit_config_path")"
+  if [[ "$coturn_config_file" = /* ]]; then
+    coturn_config_path="$coturn_config_file"
+  else
+    coturn_config_path="${DEPLOY_PATH}/${coturn_config_file#./}"
+  fi
+  mkdir -p -- "$(dirname "$coturn_config_path")"
 
   export LIVE_MONITORING_ENABLED="$live_monitoring_enabled"
   export LIVEKIT_ENVIRONMENT="$livekit_environment"
@@ -303,6 +321,15 @@ render_livekit_config() {
   export LIVEKIT_NODE_IP="$(get_env_value LIVEKIT_NODE_IP)"
   export LIVEKIT_STUN_HOST="$(get_env_value LIVEKIT_STUN_HOST)"
   export LIVEKIT_ADVERTISE_INTERNAL_IP="$(get_env_value LIVEKIT_ADVERTISE_INTERNAL_IP)"
+  export LIVEKIT_TURN_ENABLED="$(get_env_value LIVEKIT_TURN_ENABLED)"
+  export LIVEKIT_TURN_HOST="$(get_env_value LIVEKIT_TURN_HOST)"
+  export LIVEKIT_TURN_PORT="$(get_env_value LIVEKIT_TURN_PORT)"
+  export LIVEKIT_TURN_PROTOCOLS="$(get_env_value LIVEKIT_TURN_PROTOCOLS)"
+  export LIVEKIT_TURN_SECRET="$(get_env_value LIVEKIT_TURN_SECRET)"
+  export LIVEKIT_TURN_TTL_SECONDS="$(get_env_value LIVEKIT_TURN_TTL_SECONDS)"
+  export LIVEKIT_TURN_REALM="$(get_env_value LIVEKIT_TURN_REALM)"
+  export LIVEKIT_TURN_RELAY_PORT_START="$(get_env_value LIVEKIT_TURN_RELAY_PORT_START)"
+  export LIVEKIT_TURN_RELAY_PORT_END="$(get_env_value LIVEKIT_TURN_RELAY_PORT_END)"
   export LIVEKIT_IMAGE="$livekit_image"
   export LIVEKIT_CONFIG_FILE="$livekit_config_file"
   export LIVEKIT_PORT="$(get_env_value LIVEKIT_PORT)"
@@ -311,7 +338,9 @@ render_livekit_config() {
   export LIVEKIT_UDP_END="$(get_env_value LIVEKIT_UDP_END)"
 
   echo "[deploy] render LiveKit config"
-  python3 scripts/livekit/render-config.py --output "$livekit_config_path" >/dev/null
+  python3 scripts/livekit/render-config.py \
+    --output "$livekit_config_path" \
+    --coturn-output "$coturn_config_path" >/dev/null
 }
 
 render_livekit_config
