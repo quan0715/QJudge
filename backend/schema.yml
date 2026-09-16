@@ -2733,9 +2733,9 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/config/:
+  /api/v1/contests/{contest_pk}/exam/live/config/:
     get:
-      operationId: v1_contests_exam_sfu_config_retrieve
+      operationId: v1_contests_exam_live_config_retrieve
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2751,57 +2751,15 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/publisher/heartbeat/:
-    post:
-      operationId: v1_contests_exam_sfu_publisher_heartbeat_create
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/publisher/stop/:
-    post:
-      operationId: v1_contests_exam_sfu_publisher_stop_create
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/publishers/{target_user_id}/:
+  /api/v1/contests/{contest_pk}/exam/live/targets/:
     get:
-      operationId: v1_contests_exam_sfu_publishers_retrieve
+      operationId: v1_contests_exam_live_targets_retrieve
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
         name: contest_pk
         schema:
           type: string
-        required: true
-      - in: path
-        name: target_user_id
-        schema:
-          type: string
-          pattern: ^\d+$
         required: true
       tags:
       - v1
@@ -2811,9 +2769,9 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/sessions/:
+  /api/v1/contests/{contest_pk}/exam/live/token/:
     post:
-      operationId: v1_contests_exam_sfu_sessions_create
+      operationId: v1_contests_exam_live_token_create
       description: Composed ExamViewSet — all actions preserved, URL unchanged.
       parameters:
       - in: path
@@ -2829,43 +2787,15 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/renegotiate/:
-    put:
-      operationId: v1_contests_exam_sfu_sessions_renegotiate_update
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
+  /api/v1/contests/{contest_pk}/exam/runtime-state/:
+    get:
+      operationId: v1_contests_exam_runtime_state_retrieve
       parameters:
       - in: path
         name: contest_pk
         schema:
           type: string
-        required: true
-      - in: path
-        name: session_id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/exam/sfu/sessions/{session_id}/tracks/new/:
-    post:
-      operationId: v1_contests_exam_sfu_sessions_tracks_new_create
-      description: Composed ExamViewSet — all actions preserved, URL unchanged.
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: session_id
-        schema:
-          type: string
+          format: uuid
         required: true
       tags:
       - v1
@@ -2948,97 +2878,9 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/contests/{contest_pk}/integrity-runs/{id}/destroy/:
-    post:
-      operationId: v1_contests_integrity_runs_destroy_create
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
   /api/v1/contests/{contest_pk}/integrity-runs/{id}/purge/:
     post:
       operationId: v1_contests_integrity_runs_purge_create
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/integrity-runs/{id}/restart/:
-    post:
-      operationId: v1_contests_integrity_runs_restart_create
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/integrity-runs/{id}/start/:
-    post:
-      operationId: v1_contests_integrity_runs_start_create
-      parameters:
-      - in: path
-        name: contest_pk
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: id
-        schema:
-          type: string
-        required: true
-      tags:
-      - v1
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          description: No response body
-  /api/v1/contests/{contest_pk}/integrity-runs/{id}/stop/:
-    post:
-      operationId: v1_contests_integrity_runs_stop_create
       parameters:
       - in: path
         name: contest_pk
@@ -3411,6 +3253,12 @@ paths:
         required: false
         in: query
         description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
         schema:
           type: integer
       - in: query
@@ -4365,9 +4213,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContestDetail'
           description: ''
-  /api/v1/internal/integrity/runs/{run_id}/bootstrap/:
+  /api/v1/internal/integrity/resident/descriptors/:
     get:
-      operationId: v1_internal_integrity_runs_bootstrap_retrieve
+      operationId: v1_internal_integrity_resident_descriptors_retrieve
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/internal/integrity/runs/{run_id}/commands/:
+    post:
+      operationId: v1_internal_integrity_runs_commands_create
       parameters:
       - in: path
         name: run_id
@@ -4382,9 +4240,9 @@ paths:
       responses:
         '200':
           description: No response body
-  /api/v1/internal/integrity/runs/{run_id}/commands/:
+  /api/v1/internal/integrity/runs/{run_id}/finalize/:
     post:
-      operationId: v1_internal_integrity_runs_commands_create
+      operationId: v1_internal_integrity_runs_finalize_create
       parameters:
       - in: path
         name: run_id
@@ -4654,6 +4512,30 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProblemDetailRequest'
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/management/problems/{id}/test_run_status/:
+    get:
+      operationId: v1_management_problems_test_run_status_retrieve
+      description: ViewSet for viewing and editing problems.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this 題目.
+        required: true
+      tags:
+      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -5286,6 +5168,12 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       - in: query
         name: problem
         schema:
@@ -5397,6 +5285,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubmissionDetail'
           description: ''
+  /api/v1/system/service-status:
+    get:
+      operationId: v1_system_service_status_retrieve
+      description: |-
+        Live status of the platform's own services (platform admin only).
+
+        GET /api/v1/system/service-status
+      tags:
+      - v1
+      security:
+      - cookieJwtAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/users/:
     get:
       operationId: v1_users_retrieve
@@ -6353,6 +6256,9 @@ components:
         has_joined:
           type: string
           readOnly: true
+        can_participate:
+          type: string
+          readOnly: true
         has_started:
           type: string
           readOnly: true
@@ -6418,6 +6324,7 @@ components:
       - admins
       - attendance_status
       - bound_classroom_id
+      - can_participate
       - can_submit_exam
       - created_at
       - current_user_role
@@ -6570,9 +6477,6 @@ components:
         participant_count:
           type: string
           readOnly: true
-        is_registered:
-          type: string
-          readOnly: true
         attendance_status:
           type: string
           readOnly: true
@@ -6585,7 +6489,6 @@ components:
       - attendance_status
       - created_at
       - id
-      - is_registered
       - owner_username
       - participant_count
     ContestProblem:
@@ -6649,6 +6552,14 @@ components:
           type: string
           nullable: true
           readOnly: true
+        user_score:
+          type: number
+          format: double
+          nullable: true
+          readOnly: true
+        submission_count:
+          type: integer
+          readOnly: true
         in_question_bank:
           type: boolean
           readOnly: true
@@ -6666,7 +6577,9 @@ components:
       - source_bank
       - source_mode
       - source_question_id
+      - submission_count
       - title
+      - user_score
       - user_status
     ContestProblemRequest:
       type: object
@@ -7696,9 +7609,7 @@ components:
           type: string
           readOnly: true
         test_cases:
-          type: array
-          items:
-            $ref: '#/components/schemas/TestCase'
+          type: string
           readOnly: true
         language_configs:
           type: array
@@ -8363,78 +8274,6 @@ components:
           maxLength: 7
       required:
       - name
-    TestCase:
-      type: object
-      description: Serializer for test cases.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        input_data:
-          type: string
-        output_data:
-          type: string
-        is_sample:
-          type: boolean
-          title: 是否為範例
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 分數
-        weight_percent:
-          type: integer
-          maximum: 32767
-          minimum: 0
-          nullable: true
-          title: 權重百分比
-          description: 建議使用 0~100 的整數百分比；同題測資加總應為 100
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 排序
-        is_hidden:
-          type: boolean
-          title: 是否隱藏
-      required:
-      - id
-      - input_data
-      - output_data
-    TestCaseRequest:
-      type: object
-      description: Serializer for test cases.
-      properties:
-        input_data:
-          type: string
-        output_data:
-          type: string
-        is_sample:
-          type: boolean
-          title: 是否為範例
-        score:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 分數
-        weight_percent:
-          type: integer
-          maximum: 32767
-          minimum: 0
-          nullable: true
-          title: 權重百分比
-          description: 建議使用 0~100 的整數百分比；同題測資加總應為 100
-        order:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          title: 排序
-        is_hidden:
-          type: boolean
-          title: 是否隱藏
-      required:
-      - input_data
-      - output_data
     TokenRefresh:
       type: object
       description: Serializer for token refresh.

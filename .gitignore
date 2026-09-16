@@ -157,6 +157,7 @@ Thumbs.db
 !frontend/tests/e2e/fixtures/**/*.png
 
 # Runtime and ephemeral data
+.tmp/livekit/
 test-results/
 incident_logs/
 volume/

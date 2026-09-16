@@ -45,12 +45,18 @@ x-django-environment: &django_dev_environment
   MARKDOWN_IMAGE_MAX_BYTES: "5242880"
   MARKDOWN_IMAGE_PUBLIC_BASE_URL: http://localhost:5173
   INTEGRITY_ARCHIVE_MAX_BYTES: "52428800"
+
+x-livekit-dev-environment: &livekit_dev_environment
   LIVE_MONITORING_ENABLED: ${LIVE_MONITORING_ENABLED:-false}
-  LIVE_MONITORING_ROOM_PREFIX: ${LIVE_MONITORING_ROOM_PREFIX:-qjudge-dev-exam}
-  CLOUDFLARE_REALTIME_API_BASE_URL: ${CLOUDFLARE_REALTIME_API_BASE_URL:-https://rtc.live.cloudflare.com/v1}
-  CLOUDFLARE_REALTIME_APP_ID: ${CLOUDFLARE_REALTIME_APP_ID:-}
-  CLOUDFLARE_REALTIME_APP_SECRET: ${CLOUDFLARE_REALTIME_APP_SECRET:-}
-  LIVE_MONITORING_PUBLISHER_TTL_SECONDS: ${LIVE_MONITORING_PUBLISHER_TTL_SECONDS:-60}
+  LIVE_MONITORING_PROVIDER: ${LIVE_MONITORING_PROVIDER:-livekit}
+  LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-}
+  LIVEKIT_INTERNAL_URL: ${LIVEKIT_INTERNAL_URL:-http://livekit:7883}
+  LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+  LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+  LIVEKIT_NODE_IP: ${LIVEKIT_NODE_IP:-}
+  LIVEKIT_STUN_HOST: ${LIVEKIT_STUN_HOST:-}
+  LIVEKIT_ROOM_PREFIX: ${LIVEKIT_ROOM_PREFIX:-qjudge-dev-exam}
+  LIVEKIT_TOKEN_TTL_SECONDS: ${LIVEKIT_TOKEN_TTL_SECONDS:-120}
 
 x-integrity-environment: &integrity_dev_environment
   INTEGRITY_RESIDENT_URL: http://integrity-resident:8011
@@ -215,6 +221,27 @@ services:
       timeout: 5s
       retries: 5
 
+  livekit:
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3}
+    profiles: ["live-monitoring"]
+    restart: unless-stopped
+    command: ["--config", "/run/livekit/livekit.json"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - type: bind
+        source: ${LIVEKIT_CONFIG_FILE:-./.tmp/livekit/dev.json}
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "7883:7883"
+      - "7884:7884"
+      - "50100-50199:50100-50199/udp"
+    networks:
+      - oj_network_dev
+
   ai-migrate:
     build: &ai_dev_build
       context: ./ai-service
@@ -302,7 +329,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      <<: [*django_dev_environment, *integrity_dev_environment]
+      <<: [*django_dev_environment, *integrity_dev_environment, *livekit_dev_environment]
       HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
       AI_SERVICE_URL: http://ai-service:8001
       AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem

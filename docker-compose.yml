@@ -47,17 +47,23 @@ x-django-environment: &django_prod_environment
   MARKDOWN_IMAGE_MAX_BYTES: "5242880"
   MARKDOWN_IMAGE_PUBLIC_BASE_URL: ${QJUDGE_PUBLIC_ORIGIN:?QJUDGE_PUBLIC_ORIGIN is required}
   INTEGRITY_ARCHIVE_MAX_BYTES: "52428800"
-  LIVE_MONITORING_ENABLED: ${LIVE_MONITORING_ENABLED:-false}
-  LIVE_MONITORING_ROOM_PREFIX: ${LIVE_MONITORING_ROOM_PREFIX:-qjudge-exam}
-  CLOUDFLARE_REALTIME_API_BASE_URL: ${CLOUDFLARE_REALTIME_API_BASE_URL:-https://rtc.live.cloudflare.com/v1}
-  CLOUDFLARE_REALTIME_APP_ID: ${CLOUDFLARE_REALTIME_APP_ID:-}
-  CLOUDFLARE_REALTIME_APP_SECRET: ${CLOUDFLARE_REALTIME_APP_SECRET:-}
-  LIVE_MONITORING_PUBLISHER_TTL_SECONDS: ${LIVE_MONITORING_PUBLISHER_TTL_SECONDS:-60}
   DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@example.com}
   EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
   EMAIL_PORT: ${EMAIL_PORT:-587}
   EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
   EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+
+x-livekit-prod-environment: &livekit_prod_environment
+  LIVE_MONITORING_ENABLED: ${LIVE_MONITORING_ENABLED:-false}
+  LIVE_MONITORING_PROVIDER: ${LIVE_MONITORING_PROVIDER:-livekit}
+  LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-}
+  LIVEKIT_INTERNAL_URL: ${LIVEKIT_INTERNAL_URL:-http://livekit:7880}
+  LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+  LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+  LIVEKIT_NODE_IP: ${LIVEKIT_NODE_IP:-}
+  LIVEKIT_STUN_HOST: ${LIVEKIT_STUN_HOST:-}
+  LIVEKIT_ROOM_PREFIX: ${LIVEKIT_ROOM_PREFIX:-qjudge-exam}
+  LIVEKIT_TOKEN_TTL_SECONDS: ${LIVEKIT_TOKEN_TTL_SECONDS:-120}
 
 x-ai-database-environment: &ai_prod_database_environment
   AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD:?AI_DB_PASSWORD is required}@postgres:5432/qjudge_ai
@@ -223,6 +229,27 @@ services:
       timeout: 5s
       retries: 5
 
+  livekit:
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3}
+    profiles: ["live-monitoring"]
+    restart: unless-stopped
+    command: ["--config", "/run/livekit/livekit.json"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - type: bind
+        source: ${LIVEKIT_CONFIG_FILE:-./.tmp/livekit/main.json}
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50099:50000-50099/udp"
+    networks:
+      - oj_network
+
   # One migration owner gates every independently scaled AI runtime.
   ai-migrate:
     build: &ai_prod_build
@@ -322,7 +349,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      <<: *django_prod_environment
+      <<: [*django_prod_environment, *livekit_prod_environment]
       AI_SERVICE_URL: http://ai-service:8001
       AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
       JUDGE_TMP_DIR: /judge_tmp

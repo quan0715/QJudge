@@ -51,7 +51,11 @@ import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenM
 import { useMouseLeaveMonitoring } from "@/features/contest/hooks/useMouseLeaveMonitoring";
 import { useMultiDisplayMonitoring } from "@/features/contest/hooks/useMultiDisplayMonitoring";
 import { IntegrityRuntimeProvider } from "@/features/contest/anticheat/integrity/IntegrityRuntimeContext";
-import { useIntegrityCaptureRegistration, useRequiredIntegrityUploadOwner } from "../contexts/IntegrityUploadProvider";
+import {
+  useIntegrityCaptureRegistration,
+  useRequiredIntegrityUploadOwner,
+} from "../contexts/IntegrityUploadProvider";
+import { useLiveMonitoring } from "../contexts/LiveMonitoringProvider";
 import type { IntegrityCaptureState } from "@/core/entities/examIntegrity.entity";
 
 interface ExamModeWrapperProps {
@@ -102,6 +106,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const { showToast } = useToast();
   const [streamAdapter] = useState(createStreamAdapter);
   const uploadOwner = useRequiredIntegrityUploadOwner();
+  const {
+    setSources: setLiveSources,
+    clearSources: clearLiveSources,
+  } = useLiveMonitoring();
   const { t } = useTranslation("contest");
   const policyConfigRequired = requiresAnticheatPolicyConfig(cheatDetectionEnabled);
   const policyRequired =
@@ -239,11 +247,27 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
       examStatus === "in_progress" &&
       monitoringPlan.precheck.enableWebcam,
     autoAcquireOnStart: false,
-    publishLiveStream: webcamStreamMonitorEnabled,
     onWebcamLost: () => {
       webcam.onStreamLost();
     },
   });
+  useEffect(() => {
+    if (!screenStreamMonitorEnabled && !webcamStreamMonitorEnabled) {
+      clearLiveSources();
+      return;
+    }
+    setLiveSources({
+      screen_share: screenStreamMonitorEnabled ? capture.stream : null,
+      webcam: webcamStreamMonitorEnabled ? webcamCapture.stream : null,
+    });
+  }, [
+    capture.stream,
+    clearLiveSources,
+    screenStreamMonitorEnabled,
+    setLiveSources,
+    webcamCapture.stream,
+    webcamStreamMonitorEnabled,
+  ]);
   const { forceStopCapture } = capture;
   const { forceStopCapture: forceStopWebcamCapture } = webcamCapture;
   useEffect(() => {

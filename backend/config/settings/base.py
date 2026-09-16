@@ -19,6 +19,10 @@ def _endpoint_is_r2(url: str) -> bool:
         return False
     return host == "r2.cloudflarestorage.com" or host.endswith(".r2.cloudflarestorage.com")
 
+
+def _env_truthy(name: str, default: str = "false") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -475,25 +479,24 @@ ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
-# Cloudflare Realtime SFU live monitoring settings.
-# Keep disabled by default so existing exam monitoring/CD flows are untouched.
-CLOUDFLARE_REALTIME_API_BASE_URL = os.getenv(
-    "CLOUDFLARE_REALTIME_API_BASE_URL",
-    "https://rtc.live.cloudflare.com/v1",
-).rstrip("/")
-CLOUDFLARE_REALTIME_APP_ID = os.getenv("CLOUDFLARE_REALTIME_APP_ID", "")
-CLOUDFLARE_REALTIME_APP_SECRET = os.getenv("CLOUDFLARE_REALTIME_APP_SECRET", "")
-LIVE_MONITORING_ENABLED = (
-    os.getenv(
-        "LIVE_MONITORING_ENABLED",
-        os.getenv("LIVE_MONITORING_SPIKE_ENABLED", "false"),
-    ).lower()
-    == "true"
-)
-LIVE_MONITORING_ROOM_PREFIX = os.getenv("LIVE_MONITORING_ROOM_PREFIX", "qjudge-dev-exam")
-LIVE_MONITORING_PUBLISHER_TTL_SECONDS = int(
-    os.getenv("LIVE_MONITORING_PUBLISHER_TTL_SECONDS", "60")
-)
+LIVE_MONITORING_ENABLED = _env_truthy("LIVE_MONITORING_ENABLED")
+
+# Self-hosted LiveKit monitoring.  The provider is intentionally a narrow
+# deployment switch: an enabled deployment must use LiveKit, while the
+# disabled default carries no dependency on the SFU service.
+LIVE_MONITORING_PROVIDER = os.getenv(
+    "LIVE_MONITORING_PROVIDER",
+    "livekit" if LIVE_MONITORING_ENABLED else "disabled",
+).strip().lower()
+LIVEKIT_ENVIRONMENT = os.getenv("LIVEKIT_ENVIRONMENT", "dev").strip().lower()
+LIVEKIT_PUBLIC_URL = os.getenv("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+LIVEKIT_INTERNAL_URL = os.getenv("LIVEKIT_INTERNAL_URL", "").strip().rstrip("/")
+LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY", "").strip()
+LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "").strip()
+LIVEKIT_NODE_IP = os.getenv("LIVEKIT_NODE_IP", "").strip()
+LIVEKIT_STUN_HOST = os.getenv("LIVEKIT_STUN_HOST", "").strip()
+LIVEKIT_ROOM_PREFIX = os.getenv("LIVEKIT_ROOM_PREFIX", "qjudge-exam").strip()
+LIVEKIT_TOKEN_TTL_SECONDS = int(os.getenv("LIVEKIT_TOKEN_TTL_SECONDS", "120"))
 
 MARKDOWN_IMAGE_S3_BUCKET = os.getenv("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = int(os.getenv("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))

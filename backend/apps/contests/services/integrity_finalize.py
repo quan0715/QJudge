@@ -131,5 +131,10 @@ def finalize_control(run_id, body, *, digest):
         run.last_error = "resident_archive_with_gaps" if any(gaps.values()) else ""
         run.save(update_fields=["metrics", "session_state", "data_state", "archive_manifest_key",
             "archive_manifest_sha256", "archive_generation", "stopped_at", "last_error", "updated_at"])
-        return {"archived": True, "run_id": str(run_id), "revision": revision,
-                "manifest_key": key, "manifest_sha256": body["sha256"]}
+        result = {"archived": True, "run_id": str(run_id), "revision": revision,
+                  "manifest_key": key, "manifest_sha256": body["sha256"]}
+    # The archive state is durable before the room cleanup starts. A cleanup
+    # outage is retryable and must not roll back the accepted archive.
+    from .livekit_service import close_live_room_for_run
+    close_live_room_for_run(run)
+    return result

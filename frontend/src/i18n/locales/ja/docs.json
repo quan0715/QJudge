@@ -27,6 +27,7 @@
       "contributing": "コントリビュート",
       "create-exam": "試験と問題の作成",
       "deployment": "1台のホストからデプロイ",
+      "deployment-live-monitoring": "セルフホスト型ライブ監視をデプロイ",
       "deployment-options": "オプション機能を追加",
       "deployment-storage": "ファイルストレージを準備",
       "deployment-troubleshooting": "デプロイのトラブルシューティング",

@@ -71,6 +71,8 @@ Cloud VM 還要確認供應商的 firewall／Security Group 沒有把 PostgreSQL
 - Secret access key。
 - 目前要啟用之功能所需的 bucket；第一次核心驗收至少需要 `markdown-images`。
 
+如果這次部署需要 Exam Integrity 的地端即時監看，請在核心登入、評測與 storage 驗收後閱讀[部署地端 LiveKit 即時監看](deployment-live-monitoring.md)。LiveKit 是選用 profile，不應阻塞停用狀態下的作答、交卷與 Integrity。
+
 Credential 不要寫進筆記、shell script 或 Git。下一節的初始化工具會在需要時從終端機詢問，並把結果寫入權限為 `0600` 的 `.env`。
 
 ## 4. 取得 QJudge

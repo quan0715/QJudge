@@ -212,22 +212,20 @@ locust -f loadtests/anticheat_exam/locustfile.py --host https://<production-host
 For production, keep spawn rate below the login rate limit unless using
 distributed workers from multiple source IPs.
 
-## SFU Load Testing Scope
+## LiveKit Load Testing Scope
 
-This Locust file can exercise the backend anti-cheat/event/evidence APIs, but it
-does not create real WebRTC media tracks. A true SFU capacity test must run in a
-browser-capable harness that creates `RTCPeerConnection` objects and publishes a
-real or synthetic video track, then has admin subscribers join selected
-publishers. Do not treat plain HTTP calls to `/exam/sfu/*` as proof of SFU media
-capacity.
+This Locust file exercises the backend anti-cheat/event/evidence APIs, but it
+does not create real WebRTC media tracks. LiveKit media capacity must use the
+browser harness in `loadtests/livekit/` and
+`frontend/tests/e2e/livekit-capacity.e2e.spec.ts`, with a dedicated Run and
+real or continuously changing synthetic video. Plain HTTP success is not media
+capacity evidence.
 
-Recommended SFU test matrix:
-
-- 130 student publishers using synthetic screen-share video tracks.
-- Admin subscriber fanout at 1, 5, 10, and 20 concurrent monitored students.
-- Track publish success rate, subscribe success rate, reconnects, and median/p95
-  join latency.
-- Backend broker API latency and Cloudflare upstream errors.
+The required matrix is 10＋1, 50＋2 and 150＋5. Record publish and subscribe
+success, first-frame p50/p95, reconnects, bytes sent/received, SFU CPU/RSS/
+network, QJudge API p95, and checkpoint/evidence outcomes. A capacity result is
+`NOT_RUN` until every runner, browser publisher, selected subscriber and report
+is present.
 
 ## Abort Rules
 

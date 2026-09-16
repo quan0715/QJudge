@@ -39,7 +39,7 @@ from .exam_events import ExamEventsMixin
 from .exam_anticheat import ExamAnticheatMixin
 from .exam_evidence import ExamEvidenceMixin
 from .exam_integrity import ExamIntegrityMixin
-from .exam_sfu import ExamSfuMixin
+from .exam_live import ExamLiveMixin
 from .exam_validation_response import (
     exam_operation_error_response,
     validate_exam_operation_for_view,
@@ -253,7 +253,7 @@ class ExamViewSet(
     ExamEventsMixin,
     ExamAnticheatMixin,
     ExamEvidenceMixin,
-    ExamSfuMixin,
+    ExamLiveMixin,
     ExamIntegrityMixin,
     viewsets.GenericViewSet,
 ):

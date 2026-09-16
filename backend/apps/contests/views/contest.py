@@ -47,6 +47,11 @@ from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
 from ..services.integrity_sessions import prepare_integrity_session
 from ..services.participant_dashboard import build_participant_dashboard
+from ..services.live_monitoring_presence import (
+    current_live_run,
+    empty_live_snapshot,
+    get_live_snapshot,
+)
 from ..services.anticheat_config import build_contest_anticheat_config
 from ..services.scoreboard import ScoreboardScope, ScoreboardService
 from ..services.activity_log import log_contest_activity
@@ -420,17 +425,22 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         user_ids = [p.user_id for p in participants]
         if user_ids:
             from apps.contests.services.integrity_presence import get_last_checkpoints
-            from apps.contests.services.realtime_sfu_registry import get_preferred_publishers, get_publishers_by_user
 
             checkpoints = get_last_checkpoints(contest.id, user_ids)
-            live_publishers = get_preferred_publishers(contest.id, user_ids)
-            live_publishers_by_user = get_publishers_by_user(contest.id, user_ids)
             for p in participants:
                 p._last_checkpoint_cached = checkpoints.get(p.user_id)
-                p._live_publisher_cached = live_publishers.get(p.user_id)
-                p._live_publishers_cached = live_publishers_by_user.get(p.user_id, [])
 
-        serializer = ContestParticipantSerializer(participants, many=True)
+        live_run = current_live_run(contest)
+        live_snapshot = (
+            get_live_snapshot(contest, live_run)
+            if live_run is not None
+            else empty_live_snapshot(status="unavailable")
+        )
+        serializer = ContestParticipantSerializer(
+            participants,
+            many=True,
+            context={"live_monitoring_snapshot": live_snapshot},
+        )
         return Response(serializer.data)
 
     @action(
@@ -504,7 +514,19 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response(build_participant_dashboard(contest, participant))
+        live_run = current_live_run(contest)
+        live_snapshot = (
+            get_live_snapshot(contest, live_run)
+            if live_run is not None
+            else empty_live_snapshot(status="unavailable")
+        )
+        return Response(
+            build_participant_dashboard(
+                contest,
+                participant,
+                live_snapshot=live_snapshot,
+            )
+        )
 
     @action(detail=True, methods=['post'], permission_classes=[IsContestOwnerOrAdmin], url_path='unlock_participant')
     def unlock_participant(self, request, pk=None):

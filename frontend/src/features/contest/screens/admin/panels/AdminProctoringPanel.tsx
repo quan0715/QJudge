@@ -18,8 +18,12 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useTranslation } from "react-i18next";
 
 import type { ContestDetail, ContestParticipant, EventFeedItem, ParticipantDashboard } from "@/core/entities/contest.entity";
+import type {
+  LiveSource,
+  LiveState,
+  LiveTargetSnapshot,
+} from "@/core/entities/liveMonitoring.entity";
 import type { AdminPanelProps } from "@/features/contest/modules/types";
-import { createSfuLiveSubscriber } from "@/features/contest/anticheat/sfuLiveSubscriber";
 import EventIncidentCard from "@/features/contest/components/admin/EventIncidentCard";
 import IncidentDetail from "@/features/contest/components/admin/IncidentDetail";
 import { useAdminPanelRefresh, useContestAdmin } from "@/features/contest/contexts";
@@ -29,24 +33,20 @@ import {
   updateParticipant,
 } from "@/infrastructure/api/repositories";
 import {
-  getRealtimeSfuPublisher,
-  type RealtimeSfuPublisherDto,
-  type RealtimeSfuSourceModule,
-} from "@/infrastructure/api/repositories/exam.repository";
+  getLiveMonitoringConfig,
+  getLiveMonitoringTargets,
+  requestLiveMonitoringToken,
+} from "@/infrastructure/api/repositories/liveMonitoring.repository";
+import {
+  createLiveKitTransport,
+  type LiveTransport,
+} from "@/infrastructure/realtime/livekitTransport";
 import { useMediaQuery } from "@/shared/hooks";
 import { useToast } from "@/shared/contexts/ToastContext";
 import { PanelToolbar } from "@/shared/ui/list/PanelToolbar";
 import { ConfirmModal, useConfirmModal } from "@/shared/ui/modal";
 
 import styles from "./AdminProctoringPanel.module.scss";
-
-type LiveSource = RealtimeSfuSourceModule;
-
-interface SourceViewState {
-  busy: boolean;
-  isStreaming: boolean;
-  errorMessage: string;
-}
 
 const SOURCE_ORDER: LiveSource[] = ["screen_share", "webcam"];
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
@@ -55,18 +55,6 @@ const LIVE_STATUS_REFRESH_MS = 10000;
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
-};
-
-const createInitialSourceState = (): Record<LiveSource, SourceViewState> => ({
-  screen_share: { busy: false, isStreaming: false, errorMessage: "" },
-  webcam: { busy: false, isStreaming: false, errorMessage: "" },
-});
-
-const inferSourceModule = (publisher: RealtimeSfuPublisherDto): LiveSource => {
-  if (publisher.source_module === "webcam" || publisher.source_module === "screen_share") {
-    return publisher.source_module;
-  }
-  return publisher.track_name.startsWith("webcam-") ? "webcam" : "screen_share";
 };
 
 const getParticipantDisplayName = (participant: ContestParticipant) =>
@@ -129,7 +117,7 @@ interface MinimalLiveStageProps {
   onBackToRoster?: () => void;
 }
 
-const MinimalLiveStage = ({
+export const MinimalLiveStage = ({
   contestId,
   participant,
   discoveryRefreshKey,
@@ -143,15 +131,17 @@ const MinimalLiveStage = ({
     screen_share: null,
     webcam: null,
   });
-  const subscriberRefs = useRef({
-    screen_share: createSfuLiveSubscriber(),
-    webcam: createSfuLiveSubscriber(),
+  const transportRef = useRef<LiveTransport | null>(null);
+  const transportGenerationRef = useRef(0);
+  const selectedIdentityRef = useRef<string | null>(null);
+  const [transportState, setTransportState] = useState<LiveState>("idle");
+  const [snapshot, setSnapshot] = useState<LiveTargetSnapshot>({
+    observedAt: null,
+    stale: true,
+    targets: [],
   });
-  const connectingSourcesRef = useRef<Set<LiveSource>>(new Set());
-  const targetKeyRef = useRef("");
-  const handledDiscoveryRefreshKeyRef = useRef(discoveryRefreshKey);
-  const [sourceStates, setSourceStates] = useState(createInitialSourceState);
-  const [publishers, setPublishers] = useState<RealtimeSfuPublisherDto[]>([]);
+  const [visibleSources, setVisibleSources] = useState<LiveSource[]>([]);
+  const [playingSources, setPlayingSources] = useState<LiveSource[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [panelError, setPanelError] = useState("");
 
@@ -167,140 +157,135 @@ const MinimalLiveStage = ({
     [t],
   );
 
-  const stopSource = useCallback((source: LiveSource) => {
-    connectingSourcesRef.current.delete(source);
-    subscriberRefs.current[source].stop();
-    if (videoRefs.current[source]) {
-      videoRefs.current[source]!.srcObject = null;
+  useEffect(() => {
+    const generation = ++transportGenerationRef.current;
+    const controller = new AbortController();
+    let candidate: LiveTransport | null = null;
+    let unsubscribe: (() => void) | null = null;
+
+    if (!contestId || !monitoringAvailable) {
+      const previous = transportRef.current;
+      transportRef.current = null;
+      void previous?.close();
+      setTransportState(monitoringAvailable ? "idle" : "unavailable");
+      return () => {
+        controller.abort();
+        transportGenerationRef.current += 1;
+      };
     }
-    setSourceStates((current) => ({
-      ...current,
-      [source]: { busy: false, isStreaming: false, errorMessage: "" },
-    }));
-  }, []);
 
-  const stopAll = useCallback(() => {
-    SOURCE_ORDER.forEach((source) => stopSource(source));
-  }, [stopSource]);
-
-  const normalizePublishers = useCallback((items: RealtimeSfuPublisherDto[]) => {
-    const bySource = new Map<LiveSource, RealtimeSfuPublisherDto>();
-    items.forEach((publisher) => bySource.set(inferSourceModule(publisher), publisher));
-    return SOURCE_ORDER.flatMap((source) => {
-      const publisher = bySource.get(source);
-      return publisher ? [publisher] : [];
-    });
-  }, []);
-
-  const refreshSessions = useCallback(async () => {
-    if (!contestId || !userId || !monitoringAvailable) {
-      stopAll();
-      setPublishers([]);
-      setDiscovering(false);
-      setPanelError("");
-      return;
-    }
-    setDiscovering(true);
-    setPanelError("");
-    try {
-      const result = await getRealtimeSfuPublisher(contestId, userId);
-      const normalizedPublishers = normalizePublishers(result.publishers ?? (result.publisher ? [result.publisher] : []));
-      setPublishers(normalizedPublishers);
-      setSourceStates((current) => {
-        const next = { ...current };
-        normalizedPublishers.forEach((publisher) => {
-          const source = inferSourceModule(publisher);
-          if (next[source].errorMessage && !next[source].isStreaming) {
-            next[source] = { ...next[source], errorMessage: "" };
+    setTransportState("connecting");
+    void (async () => {
+      try {
+        const config = await getLiveMonitoringConfig(contestId, controller.signal);
+        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
+        if (!config.enabled || !config.configured || config.provider !== "livekit") {
+          setTransportState("unavailable");
+          return;
+        }
+        const grant = await requestLiveMonitoringToken(contestId, {
+          role: "subscriber",
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
+        candidate = createLiveKitTransport();
+        unsubscribe = candidate.onState((nextState) => {
+          if (!controller.signal.aborted && transportGenerationRef.current === generation) {
+            setTransportState(nextState);
           }
         });
-        return next;
-      });
+        await candidate.connect(grant);
+        if (controller.signal.aborted || transportGenerationRef.current !== generation) {
+          await candidate.close();
+          return;
+        }
+        transportRef.current = candidate;
+        candidate.selectTarget(selectedIdentityRef.current);
+        SOURCE_ORDER.forEach((source) => candidate?.bindVideo(source, videoRefs.current[source]));
+      } catch {
+        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
+        setTransportState("unavailable");
+        unsubscribe?.();
+        unsubscribe = null;
+        await candidate?.close();
+      }
+    })();
+
+    return () => {
+      controller.abort();
+      transportGenerationRef.current += 1;
+      unsubscribe?.();
+      unsubscribe = null;
+      const previous = transportRef.current;
+      transportRef.current = null;
+      void previous?.close();
+      if (candidate && candidate !== previous) void candidate.close();
+    };
+  }, [contestId, monitoringAvailable]);
+
+  const refreshTargets = useCallback(async () => {
+    if (!contestId || !monitoringAvailable) return;
+    setDiscovering(true);
+    try {
+      const next = await getLiveMonitoringTargets(contestId);
+      setSnapshot(next);
+      setPanelError("");
+      if (next.stale) return;
+      const target = next.targets.find((item) => item.userId === userId);
+      selectedIdentityRef.current = target?.identity ?? null;
+      setVisibleSources(target?.sources ?? []);
+      setPlayingSources([]);
+      transportRef.current?.selectTarget(selectedIdentityRef.current);
     } catch (error) {
-      setPublishers([]);
-      setPanelError(error instanceof Error ? error.message : t("liveView.discoveryError", "無法取得目前可監看的 session"));
+      setSnapshot((current) => ({ ...current, stale: true }));
+      setPanelError(error instanceof Error ? error.message : t("liveView.discoveryError", "無法取得目前可監看的來源"));
     } finally {
       setDiscovering(false);
     }
-  }, [contestId, monitoringAvailable, normalizePublishers, stopAll, t, userId]);
+  }, [contestId, monitoringAvailable, t, userId]);
 
   useEffect(() => {
-    const nextTargetKey = `${contestId}:${userId ?? ""}`;
-    if (targetKeyRef.current !== nextTargetKey) {
-      stopAll();
-      setPublishers([]);
-      setPanelError("");
-      targetKeyRef.current = nextTargetKey;
-    }
-    void refreshSessions();
-  }, [contestId, refreshSessions, stopAll, userId]);
-
-  useEffect(() => () => stopAll(), [stopAll]);
-
-  useEffect(() => {
-    if (handledDiscoveryRefreshKeyRef.current === discoveryRefreshKey) return;
-    handledDiscoveryRefreshKeyRef.current = discoveryRefreshKey;
-    if (!participant) return;
-    void refreshSessions();
-  }, [discoveryRefreshKey, participant, refreshSessions]);
-
-  const availableSources = useMemo(
-    () => publishers.map((publisher) => inferSourceModule(publisher)),
-    [publishers],
-  );
-  const startSource = useCallback(async (source: LiveSource) => {
-    if (!contestId || !userId || connectingSourcesRef.current.has(source)) return;
-    const publisher = publishers.find((item) => inferSourceModule(item) === source);
-    if (!publisher) return;
-    connectingSourcesRef.current.add(source);
-    setSourceStates((current) => ({
-      ...current,
-      [source]: { ...current[source], busy: true, errorMessage: "" },
-    }));
-    try {
-      await subscriberRefs.current[source].subscribeToPublisher(
-        contestId,
-        userId,
-        publisher,
-        (stream) => {
-          const video = videoRefs.current[source];
-          if (video) video.srcObject = stream;
-        },
-      );
-      setSourceStates((current) => ({
-        ...current,
-        [source]: { busy: false, isStreaming: true, errorMessage: "" },
-      }));
-    } catch (error) {
-      if (videoRefs.current[source]) videoRefs.current[source]!.srcObject = null;
-      setSourceStates((current) => ({
-        ...current,
-        [source]: {
-          busy: false,
-          isStreaming: false,
-          errorMessage: error instanceof Error ? error.message : t("liveView.unknownError", "啟動 live view 失敗"),
-        },
-      }));
-    } finally {
-      connectingSourcesRef.current.delete(source);
-    }
-  }, [contestId, publishers, t, userId]);
-
-  useEffect(() => {
-    if (!participant || discovering || !monitoringAvailable) return;
-    availableSources.forEach((source) => {
-      const sourceState = sourceStates[source];
-      if (sourceState.busy || sourceState.isStreaming || sourceState.errorMessage) return;
-      void startSource(source);
+    selectedIdentityRef.current = null;
+    setVisibleSources([]);
+    setPlayingSources([]);
+    transportRef.current?.selectTarget(null);
+    SOURCE_ORDER.forEach((source) => {
+      const video = videoRefs.current[source];
+      if (video) video.srcObject = null;
     });
-  }, [availableSources, discovering, monitoringAvailable, participant, sourceStates, startSource]);
+    setPanelError("");
+  }, [userId]);
 
-  const connectedCount = SOURCE_ORDER.filter((source) => sourceStates[source].isStreaming).length;
-  const visibleSources = availableSources;
+  useEffect(() => {
+    void refreshTargets();
+    if (!monitoringAvailable) return;
+    const intervalId = window.setInterval(() => void refreshTargets(), LIVE_STATUS_REFRESH_MS);
+    return () => window.clearInterval(intervalId);
+  }, [monitoringAvailable, refreshTargets]);
+
+  useEffect(() => {
+    if (!participant || !monitoringAvailable) return;
+    void refreshTargets();
+  }, [discoveryRefreshKey, monitoringAvailable, participant, refreshTargets]);
+
+  useEffect(() => {
+    const transport = transportRef.current;
+    if (!transport) return;
+    transport.selectTarget(selectedIdentityRef.current);
+    SOURCE_ORDER.forEach((source) => transport.bindVideo(source, videoRefs.current[source]));
+  }, [transportState]);
+
+  const markPlaying = useCallback((source: LiveSource) => {
+    setPlayingSources((current) => current.includes(source) ? current : [...current, source]);
+  }, []);
+
+  const markNotPlaying = useCallback((source: LiveSource) => {
+    setPlayingSources((current) => current.filter((item) => item !== source));
+  }, []);
 
   const renderSource = (source: LiveSource) => {
-    const sourceState = sourceStates[source];
-    const connected = sourceState.isStreaming;
+    const connected = playingSources.includes(source);
+    const waiting = !connected && (transportState === "connecting" || transportState === "reconnecting");
 
     return (
       <div
@@ -310,7 +295,7 @@ const MinimalLiveStage = ({
         <div className={styles.videoMeta}>
           <span>{sourceLabels[source]}</span>
           <span className={connected ? styles.signalLive : styles.signalMuted}>
-            {sourceState.busy
+            {waiting
               ? t("action.loading", "連線中...")
               : connected
                 ? t("liveView.connected", "已連線")
@@ -320,15 +305,19 @@ const MinimalLiveStage = ({
         <video
           ref={(node) => {
             videoRefs.current[source] = node;
+            transportRef.current?.bindVideo(source, node);
           }}
           className={styles.video}
           autoPlay
           playsInline
           muted
+          onPlaying={() => markPlaying(source)}
+          onPause={() => markNotPlaying(source)}
+          onEnded={() => markNotPlaying(source)}
         />
         {!connected ? (
           <div className={styles.blankVideo}>
-            <span>{sourceState.busy ? t("action.loading", "連線中...") : t("proctoringPanel.noSignal", "No signal")}</span>
+            <span>{waiting ? t("action.loading", "連線中...") : t("proctoringPanel.noSignal", "No signal")}</span>
           </div>
         ) : null}
       </div>
@@ -378,12 +367,17 @@ const MinimalLiveStage = ({
               onClick={onToggleLock}
             />
           ) : null}
-          <Tag type={connectedCount > 0 ? "green" : "cool-gray"} size="sm">
-            {connectedCount}/{visibleSources.length}
+          <Tag type={playingSources.length > 0 ? "green" : "cool-gray"} size="sm">
+            {playingSources.length}/{visibleSources.length}
           </Tag>
         </div>
       </div>
       {panelError ? <div className={styles.monitorError}>{panelError}</div> : null}
+      {snapshot.stale && visibleSources.length > 0 ? (
+        <div className={styles.monitorError}>
+          {t("liveView.staleSources", "來源狀態暫時無法確認，保留目前畫面。")}
+        </div>
+      ) : null}
       {visibleSources.length > 0 ? (
         <div
           className={[
@@ -395,7 +389,11 @@ const MinimalLiveStage = ({
         </div>
       ) : (
         <div className={styles.noSelection}>
-          {discovering ? t("action.loading", "連線中...") : t("proctoringPanel.noSignal", "No signal")}
+          {discovering || transportState === "connecting"
+            ? t("action.loading", "連線中...")
+            : transportState === "unavailable"
+              ? t("liveView.unavailable", "即時監看暫不可用")
+              : t("proctoringPanel.noSignal", "No signal")}
         </div>
       )}
     </div>
