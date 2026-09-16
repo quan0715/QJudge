@@ -71,7 +71,7 @@ Provider service 的欄位意義：
 
 | 欄位 | 核心功能 |
 | --- | --- |
-| `provider_key` | 對應 provider key；`BaseOAuthService` 用它讀取 `QAUTH_PROVIDER_CONNECTIONS_JSON`，並寫入 `ExternalIdentity.provider_key` |
+| `provider_key` | 對應 provider key；`BaseOAuthService` 用它讀取連線目錄，並寫入 `ExternalIdentity.provider_key` |
 
 新增 provider 時，選定一個 `provider_key`，例如 `example-university`，並讓 metadata、registry、connection、API path 都使用同一個值。NYCU 舊資料中的 `nycu-oauth` 會由 migration 收斂成 `nycu`。
 
@@ -154,7 +154,7 @@ Provider option 參數：
 
 ### 步驟 4：設定後端 OAuth 連線資料
 
-OAuth endpoint、scope 和 credential env name 由 `QAUTH_PROVIDER_CONNECTIONS_JSON` 管理：
+OAuth endpoint、scope 和 credential env name 由連線目錄管理。NYCU、GitHub、Google 已內建於 `backend/config/qauth-providers.json`，只要填入 credential 即可啟用；要改接其他 IdP 時，才用 `QAUTH_PROVIDER_CONNECTIONS_JSON` 覆寫整份目錄：
 
 ```env
 FRONTEND_URL=https://qjudge.example.edu
@@ -198,7 +198,7 @@ Connection 參數：
 
 | Function | 核心功能 |
 | --- | --- |
-| `load_provider_connections(raw=None)` | 解析 `QAUTH_PROVIDER_CONNECTIONS_JSON`，回傳以 `key` 索引的 connection map |
+| `load_provider_connections(raw=None)` | 依序取用傳入字串、`QAUTH_PROVIDER_CONNECTIONS_JSON`、`QAUTH_PROVIDER_CONNECTIONS_FILE` 指向的檔案，回傳以 `key` 索引的 connection map |
 | `resolve_provider_credentials(connection)` | 依 `client_id_env`、`client_secret_env` 從環境變數讀取 credential |
 | `BaseOAuthService._provider_connection()` | 依 provider service 的 `provider_key` 找 connection |
 | `BaseOAuthService._provider_url()` | 讀取 connection URL，缺少時拒絕啟動登入流程 |
@@ -465,7 +465,7 @@ curl -s http://localhost:8000/api/v1/auth/login/nycu \
 1. 選定 provider key，例如 `example-university`。
 2. 建立 `ExampleUniversityOAuthService(BaseOAuthService)`，填好 provider class 欄位與 `_parse_user_info()`。
 3. 在 `provider_registry.py` 呼叫 `register_oauth_provider()`，同時填 service 與顯示 metadata。
-4. 在 `QAUTH_PROVIDER_CONNECTIONS_JSON` 加入 OAuth endpoint、scope 和 credential env name。
+4. 在 `backend/config/qauth-providers.json` 加入 OAuth endpoint、scope 和 credential env name；單一部署要用不同設定時，改以 `QAUTH_PROVIDER_CONNECTIONS_JSON` 覆寫。
 5. 在前端 i18n 加入 `auth.providers.example-university.displayName` 與 `description`。
 6. 在學校 IdP 後台設定 callback URL。
 7. 用 auth options、authorization URL、瀏覽器登入流程逐段驗證。
