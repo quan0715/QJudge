@@ -102,6 +102,22 @@ def test_render_coturn_config_matches_livekit_relay_contract(tmp_path):
     assert output_path.read_text() == config
 
 
+def test_render_coturn_config_supports_separate_local_bind_ip():
+    config = render_coturn_config(
+        _environment(
+            LIVEKIT_STUN_HOST="turn.q-judge.com:3478",
+            LIVEKIT_TURN_ENABLED="true",
+            LIVEKIT_TURN_HOST="turn.q-judge.com",
+            LIVEKIT_TURN_SECRET="turn-shared-secret",
+            LIVEKIT_TURN_LOCAL_IP="10.0.0.25",
+        )
+    )
+
+    assert "external-ip=192.0.2.10/10.0.0.25" in config
+    assert "listening-ip=10.0.0.25" in config
+    assert "relay-ip=10.0.0.25" in config
+
+
 def test_render_config_rejects_public_stun_host_without_matching_turn_service():
     with pytest.raises(ConfigError, match="LIVEKIT_STUN_HOST"):
         render_config(
@@ -110,6 +126,35 @@ def test_render_config_rejects_public_stun_host_without_matching_turn_service():
                 LIVEKIT_TURN_ENABLED="true",
                 LIVEKIT_TURN_HOST="turn.q-judge.com",
                 LIVEKIT_TURN_SECRET="turn-shared-secret",
+            )
+        )
+
+
+def test_render_config_rejects_public_stun_host_with_turn_port_mismatch():
+    with pytest.raises(ConfigError, match="LIVEKIT_STUN_HOST"):
+        render_config(
+            _environment(
+                LIVEKIT_STUN_HOST="turn.q-judge.com:9999",
+                LIVEKIT_TURN_ENABLED="true",
+                LIVEKIT_TURN_HOST="turn.q-judge.com",
+                LIVEKIT_TURN_SECRET="turn-shared-secret",
+            )
+        )
+
+
+def test_render_config_rejects_stun_host_path():
+    with pytest.raises(ConfigError, match="LIVEKIT_STUN_HOST must not contain a path"):
+        render_config(_environment(LIVEKIT_STUN_HOST="turn.q-judge.com:3478/path"))
+
+
+def test_render_config_rejects_turn_listener_port_conflicts():
+    with pytest.raises(ConfigError, match="TURN listening port"):
+        render_config(
+            _environment(
+                LIVEKIT_TURN_ENABLED="true",
+                LIVEKIT_TURN_HOST="turn.q-judge.com",
+                LIVEKIT_TURN_SECRET="turn-shared-secret",
+                LIVEKIT_TURN_PORT="7890",
             )
         )
 
