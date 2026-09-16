@@ -1,6 +1,6 @@
 # 準備 QJudge 的檔案儲存
 
-QJudge 的 database 保存帳號、題目、權限與作答紀錄；題目圖片、監考證據與 AI 產生的檔案則放在 object storage（物件儲存）。兩者都屬於核心資料，但用途不同，不能用 database 取代檔案儲存。
+QJudge 的 database 保存帳號、題目、權限與作答紀錄；題目圖片、監考證據與 AI 產生的檔案則放在 object storage（物件儲存）。兩者都屬於核心資料，但用途不同，不能用 database 取代檔案儲存。地端 LiveKit 只負責即時媒體傳輸，不保存事件採證；Exam Integrity 的證據仍需寫入 `anticheat-raw`。
 
 QJudge 透過 S3-compatible API 讀寫檔案，因此不綁定單一供應商。第一次部署可以使用 Cloudflare R2，也可以連接 MinIO。Cloudflare Tunnel 只處理網站流量，與選擇哪一種 object storage 無關。
 

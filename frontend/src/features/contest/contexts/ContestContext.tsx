@@ -17,6 +17,7 @@ import type {
 } from "@/core/entities/contest.entity";
 import { useExamRuntimeState, mergeExamRuntimeState } from "../hooks/useExamRuntimeState";
 import { IntegrityUploadProvider } from "./IntegrityUploadProvider";
+import { LiveMonitoringProvider } from "./LiveMonitoringProvider";
 import ContestContext, { type ContestContextType } from "./ContestValueContext";
 
 interface ContestProviderProps {
@@ -191,7 +192,11 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
 
   return (
     <ContestContext.Provider value={value}>
-      <IntegrityUploadProvider contestId={contestId ?? ""} runtimeState={runtime.state}>{children}</IntegrityUploadProvider>
+      <LiveMonitoringProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
+        <IntegrityUploadProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
+          {children}
+        </IntegrityUploadProvider>
+      </LiveMonitoringProvider>
     </ContestContext.Provider>
   );
 };

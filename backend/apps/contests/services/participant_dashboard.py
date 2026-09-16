@@ -67,19 +67,29 @@ def _normalize_answer_value(question_type: str, value: Any) -> dict[str, Any]:
     return value
 
 
-def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
+def _serialize_participant(
+    participant: ContestParticipant,
+    live_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     profile = getattr(participant.user, "profile", None)
     from apps.contests.services.integrity_presence import get_last_checkpoint
-    from apps.contests.services.realtime_sfu_registry import get_publishers
+    from apps.contests.services.live_monitoring_presence import (
+        live_monitoring_status,
+        target_for_user,
+    )
 
     checkpoint = get_last_checkpoint(participant.contest_id, participant.user_id)
-    publishers = get_publishers(participant.contest_id, participant.user_id)
-    live_sources: list[str] = []
-    for publisher in publishers:
-        source = publisher.get("source_module") if isinstance(publisher, dict) else None
-        if source in ("screen_share", "webcam") and source not in live_sources:
-            live_sources.append(source)
-    live_monitoring_online = bool(live_sources)
+    live_status = live_monitoring_status(live_snapshot)
+    target = target_for_user(live_snapshot, participant.user_id)
+    live_sources = (
+        [
+            source for source in target.get("sources", [])
+            if source in ("screen_share", "webcam")
+        ]
+        if live_status == "available" and isinstance(target, dict)
+        else []
+    )
+    live_monitoring_online = live_status == "available" and bool(live_sources)
     return {
         "user_id": participant.user_id,
         "username": participant.user.username,
@@ -109,6 +119,7 @@ def _serialize_participant(participant: ContestParticipant) -> dict[str, Any]:
         "last_checkpoint_at": checkpoint,
         "live_monitoring_online": live_monitoring_online,
         "live_monitoring_sources": live_sources,
+        "live_monitoring_status": live_status,
     }
 
 
@@ -713,8 +724,24 @@ def _serialize_event_feed(
 
 
 def build_participant_dashboard(
-    contest: Contest, participant: ContestParticipant
+    contest: Contest,
+    participant: ContestParticipant,
+    *,
+    live_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if live_snapshot is None:
+        from apps.contests.services.live_monitoring_presence import (
+            current_live_run,
+            empty_live_snapshot,
+            get_live_snapshot,
+        )
+
+        run = current_live_run(contest)
+        live_snapshot = (
+            get_live_snapshot(contest, run)
+            if run is not None
+            else empty_live_snapshot(status="unavailable")
+        )
     timeline = _serialize_timeline(contest, participant)
     actions = {
         "can_download_report": True,
@@ -730,7 +757,7 @@ def build_participant_dashboard(
 
     payload = {
         "contest_type": contest.contest_type,
-        "participant": _serialize_participant(participant),
+        "participant": _serialize_participant(participant, live_snapshot),
         "timeline": timeline,
         "event_feed": event_feed,
         "actions": actions,

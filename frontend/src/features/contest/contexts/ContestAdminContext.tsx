@@ -74,6 +74,7 @@ const sameParticipantSnapshot = (
       a.examStatus !== b.examStatus ||
       a.connectionStatus !== b.connectionStatus ||
       a.liveMonitoringOnline !== b.liveMonitoringOnline ||
+      a.liveMonitoringStatus !== b.liveMonitoringStatus ||
       a.score !== b.score ||
       a.violationCount !== b.violationCount ||
       a.lockReason !== b.lockReason ||

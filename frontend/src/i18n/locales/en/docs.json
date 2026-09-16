@@ -27,6 +27,7 @@
       "contributing": "Contributing",
       "create-exam": "Create Exam & Questions",
       "deployment": "Deploy from a single host",
+      "deployment-live-monitoring": "Deploy self-hosted live monitoring",
       "deployment-options": "Add optional features",
       "deployment-storage": "Prepare file storage",
       "deployment-troubleshooting": "Troubleshoot deployment",

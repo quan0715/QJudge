@@ -10,6 +10,24 @@ PUBLIC_ORIGIN=""
 OUTPUT_PATH="${REPOSITORY_ROOT}/.env"
 FORCE=false
 TEMP_ENV=""
+LIVE_MONITORING_ENABLED="${LIVE_MONITORING_ENABLED:-false}"
+LIVEKIT_ENVIRONMENT="${LIVEKIT_ENVIRONMENT:-main}"
+LIVEKIT_PUBLIC_URL="${LIVEKIT_PUBLIC_URL:-}"
+LIVEKIT_INTERNAL_URL="${LIVEKIT_INTERNAL_URL:-}"
+LIVEKIT_API_KEY="${LIVEKIT_API_KEY:-}"
+LIVEKIT_API_SECRET="${LIVEKIT_API_SECRET:-}"
+LIVEKIT_NODE_IP="${LIVEKIT_NODE_IP:-}"
+LIVEKIT_STUN_HOST="${LIVEKIT_STUN_HOST:-}"
+LIVEKIT_ADVERTISE_INTERNAL_IP="${LIVEKIT_ADVERTISE_INTERNAL_IP:-false}"
+LIVEKIT_IMAGE="${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3}"
+LIVEKIT_CONFIG_FILE="${LIVEKIT_CONFIG_FILE:-./.tmp/livekit/${LIVEKIT_ENVIRONMENT}.json}"
+
+is_truthy() {
+  case "${1:-}" in
+    1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss]|[Oo][Nn]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 usage() {
   echo "Usage: setup-env.sh --target <cloud-vm|self-hosted> --storage <r2|minio> --origin <http(s)://host> [--output <path>] [--force]" >&2
@@ -217,10 +235,38 @@ require_pair "NYCU OAuth" NYCU_OAUTH_CLIENT_ID NYCU_OAUTH_CLIENT_SECRET
 require_pair "GitHub OAuth" GITHUB_OAUTH_CLIENT_ID GITHUB_OAUTH_CLIENT_SECRET
 require_pair "Google OAuth" GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET
 require_pair "SMTP" EMAIL_HOST_USER EMAIL_HOST_PASSWORD
-require_pair \
-  "Cloudflare Realtime" \
-  CLOUDFLARE_REALTIME_APP_ID \
-  CLOUDFLARE_REALTIME_APP_SECRET
+
+if is_truthy "$LIVE_MONITORING_ENABLED"; then
+  case "$LIVEKIT_ENVIRONMENT" in
+    main|dev|test) ;;
+    *)
+      echo "LIVEKIT_ENVIRONMENT must be main, dev, or test" >&2
+      exit 2
+      ;;
+  esac
+
+  case "$LIVEKIT_ENVIRONMENT" in
+    main) LIVEKIT_INTERNAL_URL="${LIVEKIT_INTERNAL_URL:-http://livekit:7880}" ;;
+    dev) LIVEKIT_INTERNAL_URL="${LIVEKIT_INTERNAL_URL:-http://livekit:7883}" ;;
+    test) LIVEKIT_INTERNAL_URL="${LIVEKIT_INTERNAL_URL:-http://livekit-test:7890}" ;;
+  esac
+  read_if_missing LIVEKIT_PUBLIC_URL "LiveKit public URL: "
+  read_if_missing LIVEKIT_API_KEY "LiveKit API key: " true
+  read_if_missing LIVEKIT_API_SECRET "LiveKit API secret: " true
+  read_if_missing LIVEKIT_NODE_IP "LiveKit reachable node IP: "
+  read_if_missing LIVEKIT_STUN_HOST "Local STUN/TURN host: "
+
+  LIVEKIT_CONFIG_PATH_ABS="$LIVEKIT_CONFIG_FILE"
+  if [[ "$LIVEKIT_CONFIG_PATH_ABS" != /* ]]; then
+    LIVEKIT_CONFIG_PATH_ABS="${REPOSITORY_ROOT}/${LIVEKIT_CONFIG_PATH_ABS#./}"
+  fi
+  mkdir -p -- "$(dirname "$LIVEKIT_CONFIG_PATH_ABS")"
+  export LIVE_MONITORING_ENABLED LIVEKIT_ENVIRONMENT LIVEKIT_PUBLIC_URL
+  export LIVEKIT_INTERNAL_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET
+  export LIVEKIT_NODE_IP LIVEKIT_STUN_HOST LIVEKIT_ADVERTISE_INTERNAL_IP LIVEKIT_IMAGE
+  python3 "${REPOSITORY_ROOT}/scripts/livekit/render-config.py" \
+    --output "$LIVEKIT_CONFIG_PATH_ABS" >/dev/null
+fi
 
 OUTPUT_DIR="$(dirname "$OUTPUT_PATH")"
 if [ ! -d "$OUTPUT_DIR" ]; then
@@ -274,8 +320,6 @@ OPTIONAL_ENV_KEYS=(
   GOOGLE_OAUTH_CLIENT_SECRET
   EMAIL_HOST_USER
   EMAIL_HOST_PASSWORD
-  CLOUDFLARE_REALTIME_APP_ID
-  CLOUDFLARE_REALTIME_APP_SECRET
 )
 
 TEMP_ENV="$(mktemp "${OUTPUT_DIR}/.qjudge-env.XXXXXX")"
@@ -297,6 +341,20 @@ chmod 600 "$TEMP_ENV"
   printf 'HOST_PROJECT_ROOT=%s\n' "$REPOSITORY_ROOT"
   printf 'DOCKER_GID=%s\n' "$DOCKER_GID"
   printf 'DOCKER_SOCKET_UID=%s\n' "$DOCKER_SOCKET_UID"
+  printf 'LIVE_MONITORING_ENABLED=%s\n' "$LIVE_MONITORING_ENABLED"
+  if is_truthy "$LIVE_MONITORING_ENABLED"; then
+    printf 'LIVE_MONITORING_PROVIDER=livekit\n'
+    printf 'LIVEKIT_ENVIRONMENT=%s\n' "$LIVEKIT_ENVIRONMENT"
+    printf 'LIVEKIT_PUBLIC_URL=%s\n' "$LIVEKIT_PUBLIC_URL"
+    printf 'LIVEKIT_INTERNAL_URL=%s\n' "$LIVEKIT_INTERNAL_URL"
+    printf 'LIVEKIT_API_KEY=%s\n' "$LIVEKIT_API_KEY"
+    printf 'LIVEKIT_API_SECRET=%s\n' "$LIVEKIT_API_SECRET"
+    printf 'LIVEKIT_NODE_IP=%s\n' "$LIVEKIT_NODE_IP"
+    printf 'LIVEKIT_STUN_HOST=%s\n' "$LIVEKIT_STUN_HOST"
+    printf 'LIVEKIT_ADVERTISE_INTERNAL_IP=%s\n' "$LIVEKIT_ADVERTISE_INTERNAL_IP"
+    printf 'LIVEKIT_IMAGE=%s\n' "$LIVEKIT_IMAGE"
+    printf 'LIVEKIT_CONFIG_FILE=%s\n' "$LIVEKIT_CONFIG_FILE"
+  fi
   for optional_key in "${OPTIONAL_ENV_KEYS[@]}"; do
     optional_value="${!optional_key:-}"
     if [ -n "$optional_value" ]; then

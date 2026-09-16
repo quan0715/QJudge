@@ -164,3 +164,49 @@ def test_base_oauth_service_uses_provider_connection_for_token_exchange(settings
     assert post.call_args.args[0] == "https://sso.example.edu/oauth/token"
     assert post.call_args.kwargs["data"]["client_id"] == "connection-client-id"
     assert post.call_args.kwargs["data"]["client_secret"] == "connection-client-secret"
+
+
+def test_shipped_connection_file_backs_the_registered_providers(settings, monkeypatch):
+    settings.AUTH_EMAIL_PASSWORD_ENABLED = False
+    settings.QAUTH_PROVIDER_CONNECTIONS_JSON = ""
+    monkeypatch.setenv("NYCU_OAUTH_CLIENT_ID", "client-id")
+    monkeypatch.setenv("NYCU_OAUTH_CLIENT_SECRET", "client-secret")
+    monkeypatch.delenv("GITHUB_OAUTH_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_OAUTH_CLIENT_ID", raising=False)
+
+    options = get_auth_options()
+
+    assert [provider["key"] for provider in options["providers"]] == ["nycu"]
+
+
+def test_connection_json_overrides_the_connection_file(settings, monkeypatch, tmp_path):
+    connection_file = tmp_path / "providers.json"
+    connection_file.write_text(
+        json.dumps([{"key": "nycu", "authorization_url": "https://file.example.edu/authorize"}]),
+        encoding="utf-8",
+    )
+    settings.QAUTH_PROVIDER_CONNECTIONS_FILE = str(connection_file)
+    settings.QAUTH_PROVIDER_CONNECTIONS_JSON = json.dumps(
+        [{"key": "nycu", "authorization_url": "https://override.example.edu/authorize"}]
+    )
+
+    connections = load_provider_connections()
+
+    assert connections["nycu"].authorization_url == "https://override.example.edu/authorize"
+
+
+def test_empty_connection_json_disables_every_provider(settings, tmp_path):
+    connection_file = tmp_path / "providers.json"
+    connection_file.write_text(json.dumps([{"key": "nycu"}]), encoding="utf-8")
+    settings.QAUTH_PROVIDER_CONNECTIONS_FILE = str(connection_file)
+    settings.QAUTH_PROVIDER_CONNECTIONS_JSON = "[]"
+
+    assert load_provider_connections() == {}
+
+
+def test_unreadable_connection_file_is_reported(settings):
+    settings.QAUTH_PROVIDER_CONNECTIONS_JSON = ""
+    settings.QAUTH_PROVIDER_CONNECTIONS_FILE = "/nonexistent/qauth-providers.json"
+
+    with pytest.raises(RuntimeError, match="QAUTH_PROVIDER_CONNECTIONS_FILE"):
+        load_provider_connections()

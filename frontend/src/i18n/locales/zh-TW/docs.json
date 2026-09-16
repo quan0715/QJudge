@@ -27,6 +27,7 @@
       "contributing": "如何貢獻",
       "create-exam": "建立考試與題目",
       "deployment": "從一台主機開始部署",
+      "deployment-live-monitoring": "部署地端即時監看",
       "deployment-options": "加入選用功能",
       "deployment-storage": "準備檔案儲存",
       "deployment-troubleshooting": "部署故障排除",

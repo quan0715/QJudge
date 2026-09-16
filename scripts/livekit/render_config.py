@@ -1,0 +1,212 @@
+"""Render the small, environment-specific LiveKit server configuration.
+
+The renderer deliberately uses only the Python standard library.  It writes
+JSON, which LiveKit accepts as YAML-compatible configuration, so the output is
+easy to validate in CI without adding a YAML dependency to the host setup
+script.
+"""
+
+from __future__ import annotations
+
+import argparse
+import ipaddress
+import json
+import os
+import re
+from pathlib import Path
+from typing import Mapping
+from urllib.parse import urlsplit
+
+
+class ConfigError(ValueError):
+    """Raised when the self-hosted LiveKit contract is incomplete or unsafe."""
+
+
+_ENVIRONMENT_PORTS = {
+    "main": {"port": 7880, "tcp_port": 7881, "udp_start": 50000, "udp_end": 50099},
+    "dev": {"port": 7883, "tcp_port": 7884, "udp_start": 50100, "udp_end": 50199},
+    "test": {"port": 7890, "tcp_port": 7891, "udp_start": 50200, "udp_end": 50299},
+}
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_LOCAL_HOST_SUFFIXES = (".internal", ".lan", ".local", ".test")
+_LOCAL_HOST_LABELS = {"internal", "lan", "local", "private"}
+
+
+def _is_enabled(value: str | None) -> bool:
+    return (value or "").strip().lower() in _TRUE_VALUES
+
+
+def _required(values: Mapping[str, str], name: str) -> str:
+    value = (values.get(name) or "").strip()
+    if not value:
+        raise ConfigError(f"{name} is required when LiveKit is enabled")
+    return value
+
+
+def _validate_url(name: str, value: str, schemes: set[str]) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme not in schemes or not parsed.hostname:
+        allowed = "/".join(sorted(schemes)).upper()
+        raise ConfigError(f"{name} must use {allowed} with a host")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ConfigError(f"{name} must not contain credentials, query, or fragment")
+    if parsed.path not in {"", "/"}:
+        raise ConfigError(f"{name} must not contain a path")
+    return value.rstrip("/")
+
+
+def _validate_node_ip(value: str) -> str:
+    try:
+        ipaddress.ip_address(value)
+    except ValueError as exc:
+        raise ConfigError("LIVEKIT_NODE_IP must be an IP address") from exc
+    return value
+
+
+def _endpoint_host(value: str) -> str:
+    candidate = value.strip()
+    if "://" in candidate:
+        parsed = urlsplit(candidate)
+        return parsed.hostname or ""
+    if candidate.startswith("["):
+        return candidate[1:].split("]", 1)[0]
+    if candidate.count(":") == 1:
+        return candidate.rsplit(":", 1)[0]
+    return candidate
+
+
+def _is_local_stun_host(value: str) -> bool:
+    host = _endpoint_host(value).lower().rstrip(".")
+    if not host:
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        labels = set(host.split("."))
+        return (
+            host == "localhost"
+            or "." not in host
+            or host.endswith(_LOCAL_HOST_SUFFIXES)
+            or bool(labels & _LOCAL_HOST_LABELS)
+        )
+    return bool(
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_reserved
+    )
+
+
+def _ports(values: Mapping[str, str], environment: str) -> dict[str, int]:
+    defaults = _ENVIRONMENT_PORTS[environment]
+    try:
+        return {
+            key: int(str(values.get(f"LIVEKIT_{key.upper()}") or defaults[key]).strip())
+            for key in ("port", "tcp_port", "udp_start", "udp_end")
+        }
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ConfigError("LiveKit port values must be integers") from exc
+
+
+def _validate_ports(ports: Mapping[str, int]) -> None:
+    if not 1 <= ports["port"] <= 65535:
+        raise ConfigError("LIVEKIT_PORT must be between 1 and 65535")
+    if not 1 <= ports["tcp_port"] <= 65535:
+        raise ConfigError("LIVEKIT_TCP_PORT must be between 1 and 65535")
+    if not 1 <= ports["udp_start"] <= ports["udp_end"] <= 65535:
+        raise ConfigError("LiveKit UDP port range is invalid")
+    if ports["port"] == ports["tcp_port"] or ports["port"] in range(
+        ports["udp_start"], ports["udp_end"] + 1
+    ):
+        raise ConfigError("LiveKit signalling and RTC ports must not overlap")
+
+
+def _write_config(output_path: Path, rendered: dict) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(rendered, indent=2, sort_keys=True) + "\n")
+    output_path.chmod(0o600)
+
+
+def render_config(values: Mapping[str, str] | None = None, output_path: Path | None = None) -> dict:
+    """Validate environment values and optionally write a LiveKit config.
+
+    Disabled deployments receive a deliberately minimal config.  This lets a
+    single compose definition keep the service behind the ``live-monitoring``
+    profile without making disabled QJudge startup depend on LiveKit secrets.
+    """
+
+    values = os.environ if values is None else values
+    rendered: dict = {"room": {"auto_create": False, "max_participants": 160}}
+
+    if not _is_enabled(values.get("LIVE_MONITORING_ENABLED")):
+        if output_path is not None:
+            _write_config(output_path, rendered)
+        return rendered
+
+    environment = (values.get("LIVEKIT_ENVIRONMENT") or "dev").strip().lower()
+    if environment not in _ENVIRONMENT_PORTS:
+        raise ConfigError("LIVEKIT_ENVIRONMENT must be main, dev, or test")
+
+    public_url = _validate_url(
+        "LIVEKIT_PUBLIC_URL", _required(values, "LIVEKIT_PUBLIC_URL"), {"ws", "wss"}
+    )
+    internal_url = _validate_url(
+        "LIVEKIT_INTERNAL_URL", _required(values, "LIVEKIT_INTERNAL_URL"), {"http", "https"}
+    )
+    api_key = _required(values, "LIVEKIT_API_KEY")
+    api_secret = _required(values, "LIVEKIT_API_SECRET")
+    node_ip = _validate_node_ip(_required(values, "LIVEKIT_NODE_IP"))
+    stun_host = _required(values, "LIVEKIT_STUN_HOST")
+    advertise_internal_ip = _is_enabled(values.get("LIVEKIT_ADVERTISE_INTERNAL_IP"))
+    if not _is_local_stun_host(stun_host):
+        raise ConfigError("LIVEKIT_STUN_HOST must point to the local STUN/TURN service")
+
+    image = _required(values, "LIVEKIT_IMAGE")
+    if not re.fullmatch(r"[^\s@]+@sha256:[0-9a-f]{64}", image):
+        raise ConfigError("LIVEKIT_IMAGE must be pinned by digest")
+
+    ports = _ports(values, environment)
+    _validate_ports(ports)
+
+    # ``public_url`` and ``internal_url`` are consumed by QJudge.  Keeping
+    # them in the renderer's input, rather than in this server config, avoids
+    # accidentally exposing application routing values through LiveKit.
+    del public_url, internal_url, image
+    rtc = {
+        "port_range_start": ports["udp_start"],
+        "port_range_end": ports["udp_end"],
+        "tcp_port": ports["tcp_port"],
+        "use_external_ip": False,
+        "node_ip": node_ip,
+        "stun_servers": [stun_host],
+    }
+    if advertise_internal_ip:
+        rtc["advertise_internal_ip"] = True
+
+    rendered.update(
+        {
+            "port": ports["port"],
+            "rtc": rtc,
+            "keys": {api_key: api_secret},
+        }
+    )
+    if output_path is not None:
+        _write_config(output_path, rendered)
+    return rendered
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path(os.getenv("LIVEKIT_CONFIG_PATH", "/run/livekit/livekit.json")),
+    )
+    args = parser.parse_args()
+    render_config(output_path=args.output)
+    print(f"LiveKit config rendered to {args.output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

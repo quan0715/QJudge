@@ -13,6 +13,10 @@ export type {
 export type { default as ContestContext } from "./ContestValueContext";
 export { ContestAdminProvider, useContestAdmin } from "./ContestAdminContext";
 export {
+  LiveMonitoringProvider,
+  useLiveMonitoring,
+} from "./LiveMonitoringProvider";
+export {
   AdminPanelRefreshProvider,
   useAdminPanelRefresh,
 } from "./AdminPanelRefreshContext";

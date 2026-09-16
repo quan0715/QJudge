@@ -154,7 +154,32 @@ docker compose exec -T integrity-resident python -c "from urllib.request import 
 
 如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認是空目錄再移除，重新執行 `docker compose run --rm --no-deps --build integrity-bootstrap`。不要覆寫現有有效憑證。Resident 與 reconciler 常駐運作，老師不需手動啟動或重啟每場考試的 Worker。
 
-## 8. Tunnel 與 OAuth
+## 8. LiveKit 即時監看
+
+**症狀：** QJudge 顯示即時監看不可用、targets 變成 stale、助教看到 No signal，或 LiveKit container 無法啟動。
+
+先確認設定檔、profile、服務 log 與 backend 的設定狀態；不要把 API secret 貼進輸出：
+
+```bash
+stat -c '%a %n' .tmp/livekit/main.json
+docker compose --profile live-monitoring ps livekit backend
+docker compose --profile live-monitoring logs --tail=200 livekit backend
+curl --fail http://127.0.0.1:8000/api/health/
+```
+
+設定檔應為權限 `0600`，且由 `scripts/livekit/render-config.py` 依目前 image schema 產生。確認 `LIVEKIT_PUBLIC_URL` 是瀏覽器可達的 `wss://` 位址，`LIVEKIT_INTERNAL_URL` 是 backend 可達的 HTTP API 位址；不要把 7880 未加密入口直接公開。再分別檢查 signaling、ICE UDP、ICE TCP 與 TURN/TLS 的 firewall／reverse proxy 路徑。
+
+如果 RoomService timeout，roster 的 `stale`／`unknown` 狀態不能解讀為考生離線；原始考生採證、作答與 checkpoint 不應因此停止。LiveKit 故障時不要改接 Cloudflare，先依[地端 LiveKit 即時監看](deployment-live-monitoring.md)的應變步驟停用服務或重試指定 Run 的 room cleanup。
+
+```bash
+python manage.py close_live_monitoring_room \
+  --contest-id <contest-id> \
+  --run-id <run-id>
+```
+
+無 `--confirm` 只會顯示 scope。確認刪除前先確認沒有進行中的考試；命令只刪 LiveKit room，不刪 QJudge 資料或 storage objects。
+
+## 9. Tunnel 與 OAuth
 
 **症狀：** HTTPS 網域打不開、Tunnel running 但沒有內容、OAuth callback mismatch，或登入後又回到錯誤頁面。
 

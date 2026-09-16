@@ -87,9 +87,11 @@ def test_verified_commit_is_idempotent_and_keeps_missing_final_marker_gap(reside
     assert auth.status_code == 200
     body = {"phase": "commit", "revision": 1, "candidate_id": auth.data["candidate_id"],
             "sha256": "a" * 64, "byte_length": 123, "gaps": {"pending_commands": 2}}
-    with patch("apps.contests.services.integrity_finalize.verify_candidate"):
+    with patch("apps.contests.services.integrity_finalize.verify_candidate"), \
+            patch("apps.contests.services.livekit_service.close_live_room_for_run") as cleanup:
         assert call(resident, body).status_code == 200
         assert call(resident, body).status_code == 200
+    cleanup.assert_called_once()
     resident.refresh_from_db()
     grant.refresh_from_db()
     assert resident.session_state == resident.data_state == "archived"

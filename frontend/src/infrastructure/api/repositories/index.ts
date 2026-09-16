@@ -62,3 +62,8 @@ export type {
   ExamQuestionUpsertPayload,
   ExistingGradesAction,
 } from "./examQuestions.repository";
+export {
+  getLiveMonitoringConfig,
+  getLiveMonitoringTargets,
+  requestLiveMonitoringToken,
+} from "./liveMonitoring.repository";

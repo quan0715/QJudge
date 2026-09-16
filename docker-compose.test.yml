@@ -138,6 +138,26 @@ services:
       timeout: 3s
       retries: 5
 
+  livekit-test:
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3}
+    profiles: ["live-monitoring"]
+    command: ["--config", "/run/livekit/livekit.json"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - type: bind
+        source: ${LIVEKIT_CONFIG_FILE:-./.tmp/livekit/test.json}
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+      - "50200-50299:50200-50299/udp"
+    networks:
+      - test-network
+
   # Protocol-correct fake OAuth, MCP and OpenAI-compatible model endpoints.
   fake-ai-adapters:
     build: &ai_test_build
@@ -276,6 +296,16 @@ services:
       - INTEGRITY_RESIDENT_URL=http://integrity-resident:8011
       - INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE=/run-secrets/resident-service-token
       - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
+      - LIVE_MONITORING_ENABLED=${LIVE_MONITORING_ENABLED:-false}
+      - LIVE_MONITORING_PROVIDER=${LIVE_MONITORING_PROVIDER:-livekit}
+      - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7890}
+      - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-http://livekit-test:7890}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
+      - LIVEKIT_NODE_IP=${LIVEKIT_NODE_IP:-}
+      - LIVEKIT_STUN_HOST=${LIVEKIT_STUN_HOST:-}
+      - LIVEKIT_ROOM_PREFIX=${LIVEKIT_ROOM_PREFIX:-qjudge-test-exam}
+      - LIVEKIT_TOKEN_TTL_SECONDS=${LIVEKIT_TOKEN_TTL_SECONDS:-120}
     ports:
       - "8002:8000"
     depends_on:
