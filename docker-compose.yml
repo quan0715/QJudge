@@ -247,10 +247,30 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "50000-50099:50000-50099/udp"
-      - "3478:3478/udp"
-      - "50300-50309:50300-50309/udp"
     networks:
       - oj_network
+
+  # TURN must use the host network so Docker does not rewrite the relay
+  # address for the public DNS-only endpoint. Open 3478 TCP/UDP and the
+  # configured relay range in the host/network firewall.
+  coturn:
+    image: ${COTURN_IMAGE:-coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888}
+    profiles: ["live-turn"]
+    restart: unless-stopped
+    network_mode: host
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /var/lib/coturn
+      - /var/tmp
+    volumes:
+      - type: bind
+        source: ${COTURN_CONFIG_FILE:-./.tmp/livekit/coturn.conf}
+        target: /etc/coturn/turnserver.conf
+        read_only: true
+        bind:
+          create_host_path: false
 
   # One migration owner gates every independently scaled AI runtime.
   ai-migrate:

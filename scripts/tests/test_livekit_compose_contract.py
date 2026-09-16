@@ -48,14 +48,28 @@ def test_livekit_is_not_a_backend_startup_dependency_when_disabled() -> None:
         assert "LIVE_MONITORING_ENABLED" in _environment_values(backend)
 
 
-def test_main_and_dev_livekit_expose_embedded_turn_ports() -> None:
-    for filename, service_name in (
-        ("docker-compose.yml", "livekit"),
-        ("docker-compose.dev.yml", "livekit"),
-    ):
-        service = _compose(filename)["services"][service_name]
-        assert "3478:3478/udp" in service["ports"]
-        assert "50300-50309:50300-50309/udp" in service["ports"]
+def test_dev_livekit_exposes_its_local_turn_ports() -> None:
+    service = _compose("docker-compose.dev.yml")["services"]["livekit"]
+
+    assert "3478:3478/udp" in service["ports"]
+    assert "50300-50309:50300-50309/udp" in service["ports"]
+
+
+def test_production_uses_profiled_host_network_coturn_for_turn_ports() -> None:
+    compose = _compose("docker-compose.yml")
+    livekit = compose["services"]["livekit"]
+    coturn = compose["services"]["coturn"]
+
+    assert "3478:3478/udp" not in livekit["ports"]
+    assert "50300-50309:50300-50309/udp" not in livekit["ports"]
+    assert coturn["profiles"] == ["live-turn"]
+    assert coturn["network_mode"] == "host"
+    assert "@sha256:" in coturn["image"]
+    assert coturn["command"] == ["-c", "/etc/coturn/turnserver.conf"]
+    assert any(
+        mount["target"] == "/etc/coturn/turnserver.conf"
+        for mount in coturn["volumes"]
+    )
 
 
 def test_production_deploy_activates_and_renders_livekit_when_enabled() -> None:
@@ -63,7 +77,9 @@ def test_production_deploy_activates_and_renders_livekit_when_enabled() -> None:
 
     assert 'live_monitoring_enabled="$(get_env_value LIVE_MONITORING_ENABLED)"' in deploy_script
     assert 'COMPOSE_FILES+=(--profile live-monitoring)' in deploy_script
+    assert 'COMPOSE_FILES+=(--profile live-turn)' in deploy_script
     assert 'python3 scripts/livekit/render-config.py' in deploy_script
+    assert '--coturn-output' in deploy_script
     assert 'LIVEKIT_CONFIG_FILE' in deploy_script
 
     profile_index = deploy_script.index('COMPOSE_FILES+=(--profile live-monitoring)')

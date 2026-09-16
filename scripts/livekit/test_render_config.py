@@ -3,7 +3,11 @@ import stat
 
 import pytest
 
-from scripts.livekit.render_config import ConfigError, render_config
+from scripts.livekit.render_config import (
+    ConfigError,
+    render_config,
+    render_coturn_config,
+)
 
 
 def _environment(**overrides):
@@ -43,6 +47,71 @@ def test_render_config_can_advertise_internal_candidates_alongside_node_ip():
     )
 
     assert rendered["rtc"]["advertise_internal_ip"] is True
+
+
+def test_render_config_adds_external_turn_servers_for_coturn():
+    rendered = render_config(
+        _environment(
+            LIVEKIT_STUN_HOST="turn.q-judge.com:3478",
+            LIVEKIT_TURN_ENABLED="true",
+            LIVEKIT_TURN_HOST="turn.q-judge.com",
+            LIVEKIT_TURN_SECRET="turn-shared-secret",
+        )
+    )
+
+    assert rendered["rtc"]["stun_servers"] == ["turn.q-judge.com:3478"]
+    assert rendered["rtc"]["turn_servers"] == [
+        {
+            "host": "turn.q-judge.com",
+            "port": 3478,
+            "protocol": "udp",
+            "secret": "turn-shared-secret",
+            "ttl": 300,
+        },
+        {
+            "host": "turn.q-judge.com",
+            "port": 3478,
+            "protocol": "tcp",
+            "secret": "turn-shared-secret",
+            "ttl": 300,
+        },
+    ]
+
+
+def test_render_coturn_config_matches_livekit_relay_contract(tmp_path):
+    output_path = tmp_path / "coturn.conf"
+
+    config = render_coturn_config(
+        _environment(
+            LIVEKIT_STUN_HOST="turn.q-judge.com:3478",
+            LIVEKIT_TURN_ENABLED="true",
+            LIVEKIT_TURN_HOST="turn.q-judge.com",
+            LIVEKIT_TURN_SECRET="turn-shared-secret",
+        ),
+        output_path,
+    )
+
+    assert "use-auth-secret" in config
+    assert "static-auth-secret=turn-shared-secret" in config
+    assert "external-ip=192.0.2.10" in config
+    assert "listening-ip=192.0.2.10" in config
+    assert "relay-ip=192.0.2.10" in config
+    assert "min-port=50300" in config
+    assert "max-port=50399" in config
+    assert stat.S_IMODE(output_path.stat().st_mode) == 0o600
+    assert output_path.read_text() == config
+
+
+def test_render_config_rejects_public_stun_host_without_matching_turn_service():
+    with pytest.raises(ConfigError, match="LIVEKIT_STUN_HOST"):
+        render_config(
+            _environment(
+                LIVEKIT_STUN_HOST="stun.q-judge.com:3478",
+                LIVEKIT_TURN_ENABLED="true",
+                LIVEKIT_TURN_HOST="turn.q-judge.com",
+                LIVEKIT_TURN_SECRET="turn-shared-secret",
+            )
+        )
 
 
 @pytest.mark.parametrize(
