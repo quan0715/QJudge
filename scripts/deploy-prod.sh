@@ -312,6 +312,8 @@ render_livekit_config() {
   fi
   mkdir -p -- "$(dirname "$coturn_config_path")"
 
+  export COTURN_UID="$(id -u)"
+  export COTURN_GID="$(id -g)"
   export LIVE_MONITORING_ENABLED="$live_monitoring_enabled"
   export LIVEKIT_ENVIRONMENT="$livekit_environment"
   export LIVEKIT_PUBLIC_URL="$(get_env_value LIVEKIT_PUBLIC_URL)"
