@@ -9,6 +9,7 @@
       "items": [
         "deployment",
         "deployment-storage",
+        "deployment-live-monitoring",
         "deployment-options",
         "deployment-troubleshooting"
       ]

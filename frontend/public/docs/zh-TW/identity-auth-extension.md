@@ -36,7 +36,7 @@ QJudge 可以使用帳號密碼，也可以串接校園 SSO、OAuth 2.0 或 Open
 登入頁需要知道 provider 的名稱、分類與圖示，但絕對不需要知道 client secret。QJudge 因此把設定分成兩層：
 
 - `backend/apps/users/auth/provider_registry.py` 保存可公開的顯示資訊與 service 對應。
-- `QAUTH_PROVIDER_CONNECTIONS_JSON` 保存後端使用的 endpoint、scope，以及「要從哪個環境變數讀取 credential」。
+- `backend/config/qauth-providers.json` 保存後端使用的 endpoint、scope，以及「要從哪個環境變數讀取 credential」。這份目錄不含機密，所以進 Git 版控；`QAUTH_PROVIDER_CONNECTIONS_JSON` 可整份覆寫，填入空陣列則停用所有 OAuth provider。
 - 實際 client ID 與 client secret 放在伺服器環境變數，不寫進 JSON、前端 bundle 或 Git。
 
 `GET /api/v1/auth/providers` 只會輸出公開 metadata。`backend/apps/users/auth/provider_connections.py` 只在伺服器端解析連線設定與讀取 credential。
@@ -100,7 +100,7 @@ class 的 `provider_key` 必須和 registry key 完全相同。路由不必為�
 
 ### 4. 加入 server-only connection
 
-在部署環境的 `QAUTH_PROVIDER_CONNECTIONS_JSON` 加入同一個 key，並用 `client_id_env`、`client_secret_env` 指向另外兩個環境變數。credential 本身只放進 secret 管理或 `.env`，不要直接放進 JSON。
+在 `backend/config/qauth-providers.json` 加入同一個 key，並用 `client_id_env`、`client_secret_env` 指向另外兩個環境變數。credential 本身只放進 secret 管理或 `.env`，不要直接放進目錄。若某個部署需要不同的 endpoint，用 `QAUTH_PROVIDER_CONNECTIONS_JSON` 覆寫整份目錄，或用 `QAUTH_PROVIDER_CONNECTIONS_FILE` 指向另一個檔案。
 
 connection 必須明確提供 authorization、token、userinfo endpoint、scope 與兩個 credential env 名稱；未完整設定的 provider 不會出現在公開登入選項，也無法啟動 OAuth 流程。設定完成後先用 Compose config 檢查 JSON 與環境變數，再啟動服務。
 

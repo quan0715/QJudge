@@ -1060,6 +1060,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
     last_checkpoint_at = serializers.SerializerMethodField()
     live_monitoring_online = serializers.SerializerMethodField()
     live_monitoring_sources = serializers.SerializerMethodField()
+    live_monitoring_status = serializers.SerializerMethodField()
     
     class Meta:
         model = ContestParticipant
@@ -1069,6 +1070,7 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
             'lock_reason', 'violation_count', 'submit_reason',
             'display_name', 'account_role', 'auth_provider',
             'connection_status', 'last_checkpoint_at', 'live_monitoring_online', 'live_monitoring_sources',
+            'live_monitoring_status',
         ]
 
     def _get_last_checkpoint(self, obj):
@@ -1079,28 +1081,22 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         obj._last_checkpoint_cached = get_last_checkpoint(obj.contest_id, obj.user_id)
         return obj._last_checkpoint_cached
 
-    def _get_live_publisher(self, obj):
-        if hasattr(obj, '_live_publisher_cached'):
-            return obj._live_publisher_cached
-        if hasattr(obj, '_live_publishers_cached'):
-            publishers = obj._live_publishers_cached
-            obj._live_publisher_cached = publishers[0] if publishers else None
-            return obj._live_publisher_cached
-        from apps.contests.services.realtime_sfu_registry import get_publisher
+    def _get_live_snapshot(self):
+        snapshot = self.context.get('live_monitoring_snapshot')
+        return snapshot if isinstance(snapshot, dict) else None
 
-        obj._live_publisher_cached = get_publisher(obj.contest_id, obj.user_id)
-        return obj._live_publisher_cached
+    def _get_live_target(self, obj):
+        from apps.contests.services.live_monitoring_presence import target_for_user
 
-    def _get_live_publishers(self, obj):
-        if hasattr(obj, '_live_publishers_cached'):
-            return obj._live_publishers_cached
-        from apps.contests.services.realtime_sfu_registry import get_publishers
+        return target_for_user(self._get_live_snapshot(), obj.user_id)
 
-        obj._live_publishers_cached = get_publishers(obj.contest_id, obj.user_id)
-        return obj._live_publishers_cached
+    def _get_live_status(self):
+        from apps.contests.services.live_monitoring_presence import live_monitoring_status
+
+        return live_monitoring_status(self._get_live_snapshot())
 
     def get_connection_status(self, obj):
-        if self._get_live_publisher(obj):
+        if self.get_live_monitoring_online(obj):
             return 'live'
         if self._get_last_checkpoint(obj):
             return 'online'
@@ -1110,15 +1106,24 @@ class ContestParticipantSerializer(serializers.ModelSerializer):
         return self._get_last_checkpoint(obj)
 
     def get_live_monitoring_online(self, obj):
-        return bool(self._get_live_publisher(obj))
+        target = self._get_live_target(obj)
+        return self._get_live_status() == 'available' and bool(
+            target and target.get('sources')
+        )
 
     def get_live_monitoring_sources(self, obj):
-        sources = []
-        for publisher in self._get_live_publishers(obj):
-            source = publisher.get('source_module') if isinstance(publisher, dict) else None
-            if source in ('screen_share', 'webcam') and source not in sources:
-                sources.append(source)
-        return sources
+        if self._get_live_status() != 'available':
+            return []
+        target = self._get_live_target(obj)
+        if not isinstance(target, dict) or not isinstance(target.get('sources'), list):
+            return []
+        return [
+            source for source in target['sources']
+            if source in ('screen_share', 'webcam')
+        ]
+
+    def get_live_monitoring_status(self, obj):
+        return self._get_live_status()
 
     @staticmethod
     def _score_to_float(value):

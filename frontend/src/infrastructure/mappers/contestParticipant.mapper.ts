@@ -44,6 +44,12 @@ export function mapContestParticipantDto(
           (source) => source === "screen_share" || source === "webcam",
         )
       : [],
+    liveMonitoringStatus:
+      dto.live_monitoring_status === "available" ||
+      dto.live_monitoring_status === "unavailable" ||
+      dto.live_monitoring_status === "unknown"
+        ? dto.live_monitoring_status
+        : "unknown",
     score: dto.total_score ?? dto.score ?? 0,
     rank: dto.rank,
     joinedAt: dto.joined_at || "",

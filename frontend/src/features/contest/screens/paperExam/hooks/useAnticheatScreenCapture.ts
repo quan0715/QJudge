@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createSfuScreenSharePublisher } from "./anticheat/sfuScreenSharePublisher";
 import {
   getExamCaptureSessionId,
   setExamCaptureSessionId,
@@ -56,8 +55,6 @@ export const useAnticheatScreenCapture = ({
   });
   const streamRef = useRef<MediaStream | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const sfuPublisherRef = useRef(createSfuScreenSharePublisher());
-  const lastSfuPublisherAttemptAtRef = useRef(0);
   const streamWasLiveRef = useRef(false);
   const prevMonitorStreamRef = useRef(monitorStream);
   const initialStreamExpectationCheckedRef = useRef(false);
@@ -77,25 +74,9 @@ export const useAnticheatScreenCapture = ({
 
   const handleDetectedScreenShareLoss = useCallback(() => {
     streamWasLiveRef.current = false;
-    lastSfuPublisherAttemptAtRef.current = 0;
-    void sfuPublisherRef.current.stop(contestId);
     setStreamActive(false);
     onScreenShareLostRef.current?.();
-  }, [contestId]);
-
-  const ensureSfuPublisher = useCallback(
-    (stream: MediaStream) => {
-      if (!monitorStream || sfuPublisherRef.current.state) return;
-      const now = Date.now();
-      if (now - lastSfuPublisherAttemptAtRef.current < 30_000) return;
-      lastSfuPublisherAttemptAtRef.current = now;
-      sfuPublisherRef.current.start(contestId, stream).catch(() => {
-        // Live monitoring is best effort during Phase 1. Evidence capture must
-        // continue even if Cloudflare Realtime is unavailable.
-      });
-    },
-    [contestId, monitorStream],
-  );
+  }, []);
 
   const stopStream = useCallback(() => {
     const stream = streamRef.current;
@@ -117,15 +98,13 @@ export const useAnticheatScreenCapture = ({
     streamWasLiveRef.current = true;
     setStreamActive(true);
     hasCaptureSessionRef.current = true;
-    ensureSfuPublisher(stream);
     return stream;
-  }, [ensureSfuPublisher, handleDetectedScreenShareLoss, updateStream]);
+  }, [handleDetectedScreenShareLoss, updateStream]);
 
   const acquireStream = useCallback(async (): Promise<MediaStream | null> => {
     const existingStream = streamRef.current;
     if (existingStream && isStreamLive(existingStream)) {
       hasCaptureSessionRef.current = true;
-      ensureSfuPublisher(existingStream);
       return existingStream;
     }
     stopStream();
@@ -175,7 +154,6 @@ export const useAnticheatScreenCapture = ({
         timestamp: new Date().toISOString(),
       };
 
-      void sfuPublisherRef.current.stop(contestId);
       streamWasLiveRef.current = false;
       hasCaptureSessionRef.current = false;
       setStreamActive(false);

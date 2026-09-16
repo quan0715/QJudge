@@ -215,6 +215,7 @@ export interface ContestParticipantDto {
   last_checkpoint_at?: string | null;
   live_monitoring_online?: boolean;
   live_monitoring_sources?: Array<"screen_share" | "webcam">;
+  live_monitoring_status?: "available" | "unavailable" | "unknown";
   score?: number;
   total_score?: number;
   rank?: number;

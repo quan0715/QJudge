@@ -163,3 +163,7 @@ LOGGING = {
         },
     },
 }
+
+# Tests state their own provider connections; the shipped catalog would otherwise
+# leak whichever OAuth credentials the surrounding environment happens to define.
+QAUTH_PROVIDER_CONNECTIONS_JSON = "[]"

@@ -64,6 +64,7 @@ export interface ContestParticipant {
   lastCheckpointAt?: string | null;
   liveMonitoringOnline?: boolean;
   liveMonitoringSources?: Array<"screen_share" | "webcam">;
+  liveMonitoringStatus?: "available" | "unavailable" | "unknown";
   score: number;
   rank?: number;
   joinedAt: string;

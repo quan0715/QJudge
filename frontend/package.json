@@ -58,6 +58,7 @@
     "i18next": "^25.7.2",
     "jsqr": "1.4.0",
     "katex": "^0.16.25",
+    "livekit-client": "2.22.3",
     "mathlive": "^0.109.2",
     "mermaid": "^11.14.0",
     "motion": "^12.34.3",

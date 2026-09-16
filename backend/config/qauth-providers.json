@@ -1,0 +1,32 @@
+[
+  {
+    "key": "nycu",
+    "type": "oidc",
+    "authorization_url": "https://id.nycu.edu.tw/o/authorize/",
+    "token_url": "https://id.nycu.edu.tw/o/token/",
+    "userinfo_url": "https://id.nycu.edu.tw/api/profile/",
+    "scope": "profile",
+    "client_id_env": "NYCU_OAUTH_CLIENT_ID",
+    "client_secret_env": "NYCU_OAUTH_CLIENT_SECRET"
+  },
+  {
+    "key": "github",
+    "type": "oauth2",
+    "authorization_url": "https://github.com/login/oauth/authorize",
+    "token_url": "https://github.com/login/oauth/access_token",
+    "userinfo_url": "https://api.github.com/user",
+    "scope": "read:user user:email",
+    "client_id_env": "GITHUB_OAUTH_CLIENT_ID",
+    "client_secret_env": "GITHUB_OAUTH_CLIENT_SECRET"
+  },
+  {
+    "key": "google",
+    "type": "oidc",
+    "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth",
+    "token_url": "https://oauth2.googleapis.com/token",
+    "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
+    "scope": "openid email profile",
+    "client_id_env": "GOOGLE_OAUTH_CLIENT_ID",
+    "client_secret_env": "GOOGLE_OAUTH_CLIENT_SECRET"
+  }
+]

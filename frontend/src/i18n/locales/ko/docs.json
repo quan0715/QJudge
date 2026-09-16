@@ -27,6 +27,7 @@
       "contributing": "기여하기",
       "create-exam": "시험 및 문제 만들기",
       "deployment": "단일 호스트에서 배포 시작",
+      "deployment-live-monitoring": "셀프 호스팅 실시간 모니터링 배포",
       "deployment-options": "선택 기능 추가",
       "deployment-storage": "파일 스토리지 준비",
       "deployment-troubleshooting": "배포 문제 해결",
