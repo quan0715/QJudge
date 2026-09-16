@@ -32,7 +32,7 @@ Thinking-enabled DeepSeek models use `ReasoningPreservingChatDeepSeek`. OpenAI r
 
 - `backend/apps/ai/serializers.py`: the request field has no choices and defers model validation to the AI Service.
 - `backend/apps/ai/views.py`: `ModelListView` proxies `/v1/models`; it has no local catalog.
-- `backend/apps/ai/tests/test_model_contract.py`: validates deferral and the compatibility default.
+- `backend/apps/ai/tests/test_start_run_serializer.py`: validates deferral and the compatibility default.
 - `backend/apps/ai/tests/test_bff_contract.py`: validates forwarding.
 
 The Django AI app no longer owns AI domain models, pricing, or credits. Model catalog changes do not require Django model migrations.

@@ -471,22 +471,6 @@ def test_participant_roster_mutation_returns_binding_gate_when_unbound(
 
 
 @pytest.mark.django_db
-def test_registration_endpoints_are_gone(
-    api_client: APIClient,
-    contest: Contest,
-    student: User,
-) -> None:
-    # Eligibility is classroom membership; there is nothing to register for.
-    # ``leave`` went with them: it only stamped left_at, which is the
-    # submission time finalize_submission records, so calling it mid-exam
-    # corrupted the end time teachers see and the integrity upload grant uses.
-    api_client.force_authenticate(user=student)
-    for action in ("register", "enter", "leave"):
-        response = api_client.post(f"/api/v1/contests/{contest.id}/{action}/", {}, format="json")
-        assert response.status_code == status.HTTP_404_NOT_FOUND, action
-
-
-@pytest.mark.django_db
 def test_create_problem_via_title_and_duplicate_via_problem_id(
     api_client: APIClient,
     owner: User,

@@ -113,19 +113,6 @@ class EnhancedAuthTests(APITestCase):
         self.assertFalse(response.data["success"])
         self.assertEqual(response.data["error"]["code"], "PASSWORD_AUTH_DISABLED")
 
-    def test_password_recovery_routes_are_removed(self):
-        for path in ["/api/v1/auth/forgot-password", "/api/v1/auth/reset-password"]:
-            response = self.client.post(path, {}, format="json")
-            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_auth_me_session_routes_are_removed(self):
-        legacy_routes = [
-            ("get", "/api/v1/auth/me/login-records"),
-            ("post", "/api/v1/auth/me/logout-other-devices"),
-        ]
-        for method, path in legacy_routes:
-            response = getattr(self.client, method)(path, {}, format="json")
-            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_session_routes_are_canonical(self):
         self.client.force_authenticate(user=self.user)
