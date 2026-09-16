@@ -4,6 +4,7 @@ set -euo pipefail
 DEPLOY_PATH="${1:?Usage: deploy-prod.sh <deploy_path> <git_ref>}"
 GIT_REF="${2:?Usage: deploy-prod.sh <deploy_path> <git_ref>}"
 COMPOSE_FILES=(-f docker-compose.yml)
+DEFAULT_LIVEKIT_IMAGE="livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3"
 
 # ── prerequisites ──────────────────────────────────────────────
 
@@ -56,6 +57,13 @@ get_env_value() {
   line="${line%\'}"
   line="${line#\'}"
   printf '%s\n' "$line"
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss]|[Oo][Nn]) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 require_env_key() {
@@ -138,6 +146,38 @@ reject_env_values "DB_PASSWORD" "postgres" "password"
 reject_env_values "POSTGRES_ADMIN_PASSWORD" "postgres" "password"
 reject_env_values "AI_DB_PASSWORD" "postgres" "password"
 
+live_monitoring_enabled="$(get_env_value LIVE_MONITORING_ENABLED)"
+if is_truthy "$live_monitoring_enabled"; then
+  livekit_environment="$(get_env_value LIVEKIT_ENVIRONMENT)"
+  if [ -n "$livekit_environment" ] && [ "$livekit_environment" != "main" ]; then
+    echo ".env LIVEKIT_ENVIRONMENT must be main for production deploys" >&2
+    exit 1
+  fi
+
+  live_monitoring_provider="$(get_env_value LIVE_MONITORING_PROVIDER)"
+  if [ -z "$live_monitoring_provider" ]; then
+    live_monitoring_provider="livekit"
+  fi
+  if [ "$live_monitoring_provider" != "livekit" ]; then
+    echo ".env LIVE_MONITORING_PROVIDER must be livekit when monitoring is enabled" >&2
+    exit 1
+  fi
+
+  livekit_required_env_keys=(
+    LIVEKIT_PUBLIC_URL
+    LIVEKIT_API_KEY
+    LIVEKIT_API_SECRET
+    LIVEKIT_NODE_IP
+    LIVEKIT_STUN_HOST
+  )
+  for key in "${livekit_required_env_keys[@]}"; do
+    require_env_key "$key"
+    reject_env_placeholder "$key"
+  done
+
+  COMPOSE_FILES+=(--profile live-monitoring)
+fi
+
 postgres_admin_user="qjudge_admin"
 django_db_user="qjudge_web"
 ai_db_user="qjudge_ai"
@@ -215,6 +255,66 @@ previous_git_ref="$(git rev-parse HEAD)"
 echo "[deploy] fetch and checkout ${GIT_REF}"
 git fetch --all --tags --prune
 git checkout --force "${GIT_REF}"
+
+render_livekit_config() {
+  if ! is_truthy "$live_monitoring_enabled"; then
+    return 0
+  fi
+
+  local livekit_environment
+  local default_livekit_internal_url
+  local livekit_internal_url
+  local livekit_image
+  local livekit_config_file
+  local livekit_config_path
+
+  livekit_environment="$(get_env_value LIVEKIT_ENVIRONMENT)"
+  livekit_environment="${livekit_environment:-main}"
+  case "$livekit_environment" in
+    main) default_livekit_internal_url="http://livekit:7880" ;;
+    dev) default_livekit_internal_url="http://livekit:7883" ;;
+    test) default_livekit_internal_url="http://livekit-test:7890" ;;
+    *)
+      echo ".env LIVEKIT_ENVIRONMENT must be main, dev, or test" >&2
+      exit 1
+      ;;
+  esac
+
+  livekit_internal_url="$(get_env_value LIVEKIT_INTERNAL_URL)"
+  livekit_internal_url="${livekit_internal_url:-$default_livekit_internal_url}"
+  livekit_image="$(get_env_value LIVEKIT_IMAGE)"
+  livekit_image="${livekit_image:-$DEFAULT_LIVEKIT_IMAGE}"
+  livekit_config_file="$(get_env_value LIVEKIT_CONFIG_FILE)"
+  livekit_config_file="${livekit_config_file:-./.tmp/livekit/main.json}"
+
+  if [[ "$livekit_config_file" = /* ]]; then
+    livekit_config_path="$livekit_config_file"
+  else
+    livekit_config_path="${DEPLOY_PATH}/${livekit_config_file#./}"
+  fi
+  mkdir -p -- "$(dirname "$livekit_config_path")"
+
+  export LIVE_MONITORING_ENABLED="$live_monitoring_enabled"
+  export LIVEKIT_ENVIRONMENT="$livekit_environment"
+  export LIVEKIT_PUBLIC_URL="$(get_env_value LIVEKIT_PUBLIC_URL)"
+  export LIVEKIT_INTERNAL_URL="$livekit_internal_url"
+  export LIVEKIT_API_KEY="$(get_env_value LIVEKIT_API_KEY)"
+  export LIVEKIT_API_SECRET="$(get_env_value LIVEKIT_API_SECRET)"
+  export LIVEKIT_NODE_IP="$(get_env_value LIVEKIT_NODE_IP)"
+  export LIVEKIT_STUN_HOST="$(get_env_value LIVEKIT_STUN_HOST)"
+  export LIVEKIT_ADVERTISE_INTERNAL_IP="$(get_env_value LIVEKIT_ADVERTISE_INTERNAL_IP)"
+  export LIVEKIT_IMAGE="$livekit_image"
+  export LIVEKIT_CONFIG_FILE="$livekit_config_file"
+  export LIVEKIT_PORT="$(get_env_value LIVEKIT_PORT)"
+  export LIVEKIT_TCP_PORT="$(get_env_value LIVEKIT_TCP_PORT)"
+  export LIVEKIT_UDP_START="$(get_env_value LIVEKIT_UDP_START)"
+  export LIVEKIT_UDP_END="$(get_env_value LIVEKIT_UDP_END)"
+
+  echo "[deploy] render LiveKit config"
+  python3 scripts/livekit/render-config.py --output "$livekit_config_path" >/dev/null
+}
+
+render_livekit_config
 
 echo "[deploy] bootstrap AI OAuth signing key"
 python3 scripts/bootstrap_ai_oauth_keys.py
