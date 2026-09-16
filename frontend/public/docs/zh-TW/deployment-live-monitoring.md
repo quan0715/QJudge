@@ -29,6 +29,7 @@ LIVEKIT_API_KEY=<secret-managed-key>
 LIVEKIT_API_SECRET=<secret-managed-secret>
 LIVEKIT_NODE_IP=<reachable-private-or-public-ip>
 LIVEKIT_STUN_HOST=turn.internal.example.edu:3478
+LIVEKIT_ADVERTISE_INTERNAL_IP=false
 LIVEKIT_IMAGE=livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
 LIVEKIT_CONFIG_FILE=./.tmp/livekit/main.json
 ```
@@ -40,7 +41,7 @@ python3 scripts/livekit/render-config.py \
   --output ./.tmp/livekit/main.json
 ```
 
-產出會包含 `room.auto_create=false`、`room.max_participants=160`、明確的 RTC port range、`use_external_ip=false`、指定 `node_ip`／STUN host 與 API key mapping。停用時 renderer 只產生最小設定，不要求 LiveKit credentials。
+產出會包含 `room.auto_create=false`、`room.max_participants=160`、明確的 RTC port range、`use_external_ip=false`、指定 `node_ip`／STUN host 與 API key mapping。若同一服務需要同時服務內網與公網客戶端，將 `LIVEKIT_ADVERTISE_INTERNAL_IP=true`，並把 `LIVEKIT_NODE_IP` 設為外部可達的 IP；這不會取代 NAT／防火牆轉發。停用時 renderer 只產生最小設定，不要求 LiveKit credentials。
 
 ## 啟動與檢查
 

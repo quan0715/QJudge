@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   requestToken: vi.fn(),
   createTransport: vi.fn(),
 }));
+const translate = vi.hoisted(() => (_key: string, fallback: string) => fallback);
 
 vi.mock("@/infrastructure/api/repositories/liveMonitoring.repository", () => ({
   getLiveMonitoringConfig: mocks.getConfig,
@@ -19,7 +20,7 @@ vi.mock("@/infrastructure/realtime/livekitTransport", () => ({
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (_key: string, fallback: string) => fallback }),
+  useTranslation: () => ({ t: translate }),
 }));
 
 import type { ContestParticipant } from "@/core/entities/contest.entity";
@@ -80,6 +81,132 @@ beforeEach(() => {
 });
 
 describe("MinimalLiveStage", () => {
+  it("retries a transient subscriber connection failure with a fresh token", async () => {
+    const firstTransport = {
+      connect: vi.fn().mockRejectedValueOnce(new Error("signaling unavailable")),
+      selectTarget: vi.fn(),
+      bindVideo: vi.fn(),
+      onState: vi.fn(() => () => undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    const secondTransport = {
+      connect: vi.fn().mockResolvedValue(undefined),
+      selectTarget: vi.fn(),
+      bindVideo: vi.fn(),
+      onState: vi.fn(() => () => undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+    };
+    mocks.createTransport
+      .mockReturnValueOnce(firstTransport)
+      .mockReturnValueOnce(secondTransport);
+
+    render(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={0}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(firstTransport.connect).toHaveBeenCalledOnce());
+    await waitFor(
+      () => expect(secondTransport.connect).toHaveBeenCalledOnce(),
+      { timeout: 1500 },
+    );
+
+    expect(mocks.requestToken).toHaveBeenCalledTimes(2);
+    expect(firstTransport.close).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry a subscriber token conflict", async () => {
+    const conflict = Object.assign(
+      new Error("The exam live monitoring session is not available for this scope."),
+      { status: 409 },
+    );
+    mocks.requestToken.mockRejectedValue(conflict);
+
+    render(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={0}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(mocks.requestToken).toHaveBeenCalledOnce());
+    await new Promise((resolve) => window.setTimeout(resolve, 1100));
+
+    expect(mocks.requestToken).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a playing source connected while refreshing its discovery state", async () => {
+    const view = render(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={0}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(view.getByText("Screen")).toBeInTheDocument());
+    await waitFor(() => expect(mocks.getTargets).toHaveBeenCalledTimes(2));
+    const video = view.container.querySelector("video");
+    expect(video).not.toBeNull();
+
+    fireEvent.playing(video as HTMLVideoElement);
+    expect(view.getByText("已連線")).toBeInTheDocument();
+
+    view.rerender(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={1}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(mocks.getTargets).toHaveBeenCalledTimes(3));
+    expect(view.getByText("已連線")).toBeInTheDocument();
+  });
+
+  it("does not rebind video elements when discovery refresh rerenders the stage", async () => {
+    const view = render(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={0}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(view.getByText("Screen")).toBeInTheDocument());
+    await waitFor(() => expect(mocks.getTargets).toHaveBeenCalledTimes(2));
+    const transport = mocks.createTransport.mock.results[0].value;
+    await waitFor(() => expect(transport.connect).toHaveBeenCalledOnce());
+    transport.bindVideo.mockClear();
+
+    view.rerender(
+      <MinimalLiveStage
+        contestId="contest-1"
+        participant={participant("7")}
+        discoveryRefreshKey={1}
+        lockActionBusy={false}
+        monitoringAvailable
+      />,
+    );
+
+    await waitFor(() => expect(mocks.getTargets).toHaveBeenCalledTimes(3));
+    expect(transport.bindVideo).not.toHaveBeenCalled();
+  });
+
   it("subscribes only to the selected participant's reported sources", async () => {
     const view = render(
       <MinimalLiveStage

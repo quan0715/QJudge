@@ -52,6 +52,7 @@ const SOURCE_ORDER: LiveSource[] = ["screen_share", "webcam"];
 const EMPTY_EVENT_FEED: EventFeedItem[] = [];
 const AUTO_REFRESH_MS = 30000;
 const LIVE_STATUS_REFRESH_MS = 10000;
+const LIVE_CONNECT_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000] as const;
 const PANEL_TRANSITION = {
   duration: 0.22,
   ease: [0.2, 0, 0.38, 0.9] as const,
@@ -60,6 +61,9 @@ const PANEL_TRANSITION = {
 const getParticipantDisplayName = (participant: ContestParticipant) =>
   participant.displayName ||
   participant.username;
+
+const areLiveSourcesEqual = (left: LiveSource[], right: LiveSource[]) =>
+  left.length === right.length && left.every((source, index) => source === right[index]);
 
 const isParticipantLive = (participant: ContestParticipant) =>
   participant.liveMonitoringOnline || participant.connectionStatus === "live";
@@ -94,6 +98,37 @@ const isContestInExamWindow = (contest: ContestDetail | null | undefined, now: n
   const end = Date.parse(contest?.endTime ?? "");
   if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
   return now >= start && now <= end;
+};
+
+const liveErrorStatus = (error: unknown): number | undefined => {
+  if (typeof error !== "object" || error === null) return undefined;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : undefined;
+};
+
+const shouldRetryLiveConnection = (error: unknown): boolean => {
+  const status = liveErrorStatus(error);
+  return status === undefined || status >= 500;
+};
+
+const waitForLiveConnectionRetry = (
+  signal: AbortSignal,
+  delayMs: number,
+): Promise<boolean> => {
+  if (signal.aborted) return Promise.resolve(false);
+
+  return new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve(true);
+    }, delayMs);
+    const onAbort = () => {
+      window.clearTimeout(timeoutId);
+      signal.removeEventListener("abort", onAbort);
+      resolve(false);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 };
 
 const getParticipantSearchText = (participant: ContestParticipant) =>
@@ -134,6 +169,7 @@ export const MinimalLiveStage = ({
   const transportRef = useRef<LiveTransport | null>(null);
   const transportGenerationRef = useRef(0);
   const selectedIdentityRef = useRef<string | null>(null);
+  const discoveredSourcesRef = useRef<LiveSource[]>([]);
   const [transportState, setTransportState] = useState<LiveState>("idle");
   const [snapshot, setSnapshot] = useState<LiveTargetSnapshot>({
     observedAt: null,
@@ -156,6 +192,19 @@ export const MinimalLiveStage = ({
     }),
     [t],
   );
+  const videoRefCallbacks = useMemo(
+    () => ({
+      screen_share: (node: HTMLVideoElement | null) => {
+        videoRefs.current.screen_share = node;
+        transportRef.current?.bindVideo("screen_share", node);
+      },
+      webcam: (node: HTMLVideoElement | null) => {
+        videoRefs.current.webcam = node;
+        transportRef.current?.bindVideo("webcam", node);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const generation = ++transportGenerationRef.current;
@@ -176,38 +225,73 @@ export const MinimalLiveStage = ({
 
     setTransportState("connecting");
     void (async () => {
-      try {
-        const config = await getLiveMonitoringConfig(contestId, controller.signal);
-        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
-        if (!config.enabled || !config.configured || config.provider !== "livekit") {
-          setTransportState("unavailable");
-          return;
-        }
-        const grant = await requestLiveMonitoringToken(contestId, {
-          role: "subscriber",
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
-        candidate = createLiveKitTransport();
-        unsubscribe = candidate.onState((nextState) => {
-          if (!controller.signal.aborted && transportGenerationRef.current === generation) {
-            setTransportState(nextState);
-          }
-        });
-        await candidate.connect(grant);
-        if (controller.signal.aborted || transportGenerationRef.current !== generation) {
-          await candidate.close();
-          return;
-        }
-        transportRef.current = candidate;
-        candidate.selectTarget(selectedIdentityRef.current);
-        SOURCE_ORDER.forEach((source) => candidate?.bindVideo(source, videoRefs.current[source]));
-      } catch {
-        if (controller.signal.aborted || transportGenerationRef.current !== generation) return;
-        setTransportState("unavailable");
+      let retryAttempt = 0;
+
+      const isCurrent = () =>
+        !controller.signal.aborted && transportGenerationRef.current === generation;
+
+      const closeCandidate = async () => {
+        const current = candidate;
+        candidate = null;
         unsubscribe?.();
         unsubscribe = null;
-        await candidate?.close();
+        try {
+          await current?.close();
+        } catch {
+          // A failed signaling attempt is already unavailable; cleanup is best effort.
+        }
+      };
+
+      while (isCurrent()) {
+        try {
+          const config = await getLiveMonitoringConfig(contestId, controller.signal);
+          if (!isCurrent()) return;
+          if (!config.enabled || !config.configured || config.provider !== "livekit") {
+            setTransportState("unavailable");
+            return;
+          }
+
+          const grant = await requestLiveMonitoringToken(contestId, {
+            role: "subscriber",
+            signal: controller.signal,
+          });
+          if (!isCurrent()) return;
+
+          candidate = createLiveKitTransport();
+          unsubscribe = candidate.onState((nextState) => {
+            if (isCurrent()) setTransportState(nextState);
+          });
+          const connectedCandidate = candidate;
+          await connectedCandidate.connect(grant);
+          if (!isCurrent()) {
+            await closeCandidate();
+            return;
+          }
+          connectedCandidate.selectTarget(selectedIdentityRef.current);
+          SOURCE_ORDER.forEach((source) => connectedCandidate.bindVideo(source, videoRefs.current[source]));
+          transportRef.current = connectedCandidate;
+          candidate = null;
+          return;
+        } catch (error) {
+          if (!isCurrent()) return;
+          await closeCandidate();
+          if (!shouldRetryLiveConnection(error)) {
+            setTransportState("unavailable");
+            return;
+          }
+
+          setTransportState("connecting");
+          const delayIndex = Math.min(
+            retryAttempt,
+            LIVE_CONNECT_RETRY_DELAYS_MS.length - 1,
+          );
+          retryAttempt += 1;
+          const shouldContinue = await waitForLiveConnectionRetry(
+            controller.signal,
+            LIVE_CONNECT_RETRY_DELAYS_MS[delayIndex],
+          );
+          if (!shouldContinue) return;
+        }
       }
     })();
 
@@ -232,10 +316,23 @@ export const MinimalLiveStage = ({
       setPanelError("");
       if (next.stale) return;
       const target = next.targets.find((item) => item.userId === userId);
-      selectedIdentityRef.current = target?.identity ?? null;
-      setVisibleSources(target?.sources ?? []);
-      setPlayingSources([]);
-      transportRef.current?.selectTarget(selectedIdentityRef.current);
+      const nextIdentity = target?.identity ?? null;
+      const nextSources = target?.sources ?? [];
+      const identityChanged = selectedIdentityRef.current !== nextIdentity;
+      const sourcesChanged = !areLiveSourcesEqual(discoveredSourcesRef.current, nextSources);
+
+      selectedIdentityRef.current = nextIdentity;
+      if (sourcesChanged) {
+        discoveredSourcesRef.current = nextSources;
+        setVisibleSources(nextSources);
+        setPlayingSources((current) => {
+          const nextPlaying = current.filter((source) => nextSources.includes(source));
+          return nextPlaying.length === current.length ? current : nextPlaying;
+        });
+      }
+      if (identityChanged || sourcesChanged) {
+        transportRef.current?.selectTarget(nextIdentity);
+      }
     } catch (error) {
       setSnapshot((current) => ({ ...current, stale: true }));
       setPanelError(error instanceof Error ? error.message : t("liveView.discoveryError", "無法取得目前可監看的來源"));
@@ -246,6 +343,7 @@ export const MinimalLiveStage = ({
 
   useEffect(() => {
     selectedIdentityRef.current = null;
+    discoveredSourcesRef.current = [];
     setVisibleSources([]);
     setPlayingSources([]);
     transportRef.current?.selectTarget(null);
@@ -264,9 +362,9 @@ export const MinimalLiveStage = ({
   }, [monitoringAvailable, refreshTargets]);
 
   useEffect(() => {
-    if (!participant || !monitoringAvailable) return;
+    if (!userId || !monitoringAvailable) return;
     void refreshTargets();
-  }, [discoveryRefreshKey, monitoringAvailable, participant, refreshTargets]);
+  }, [discoveryRefreshKey, monitoringAvailable, refreshTargets, userId]);
 
   useEffect(() => {
     const transport = transportRef.current;
@@ -303,10 +401,7 @@ export const MinimalLiveStage = ({
           </span>
         </div>
         <video
-          ref={(node) => {
-            videoRefs.current[source] = node;
-            transportRef.current?.bindVideo(source, node);
-          }}
+          ref={videoRefCallbacks[source]}
           className={styles.video}
           autoPlay
           playsInline

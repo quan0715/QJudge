@@ -157,6 +157,7 @@ def render_config(values: Mapping[str, str] | None = None, output_path: Path | N
     api_secret = _required(values, "LIVEKIT_API_SECRET")
     node_ip = _validate_node_ip(_required(values, "LIVEKIT_NODE_IP"))
     stun_host = _required(values, "LIVEKIT_STUN_HOST")
+    advertise_internal_ip = _is_enabled(values.get("LIVEKIT_ADVERTISE_INTERNAL_IP"))
     if not _is_local_stun_host(stun_host):
         raise ConfigError("LIVEKIT_STUN_HOST must point to the local STUN/TURN service")
 
@@ -171,17 +172,21 @@ def render_config(values: Mapping[str, str] | None = None, output_path: Path | N
     # them in the renderer's input, rather than in this server config, avoids
     # accidentally exposing application routing values through LiveKit.
     del public_url, internal_url, image
+    rtc = {
+        "port_range_start": ports["udp_start"],
+        "port_range_end": ports["udp_end"],
+        "tcp_port": ports["tcp_port"],
+        "use_external_ip": False,
+        "node_ip": node_ip,
+        "stun_servers": [stun_host],
+    }
+    if advertise_internal_ip:
+        rtc["advertise_internal_ip"] = True
+
     rendered.update(
         {
             "port": ports["port"],
-            "rtc": {
-                "port_range_start": ports["udp_start"],
-                "port_range_end": ports["udp_end"],
-                "tcp_port": ports["tcp_port"],
-                "use_external_ip": False,
-                "node_ip": node_ip,
-                "stun_servers": [stun_host],
-            },
+            "rtc": rtc,
             "keys": {api_key: api_secret},
         }
     )

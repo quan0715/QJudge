@@ -37,6 +37,14 @@ def test_render_config_writes_pinned_runtime_config_without_stdout_secret(tmp_pa
     assert stat.S_IMODE(output_path.stat().st_mode) == 0o600
 
 
+def test_render_config_can_advertise_internal_candidates_alongside_node_ip():
+    rendered = render_config(
+        _environment(LIVEKIT_ADVERTISE_INTERNAL_IP="true")
+    )
+
+    assert rendered["rtc"]["advertise_internal_ip"] is True
+
+
 @pytest.mark.parametrize(
     "missing",
     ["LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "LIVEKIT_NODE_IP"],

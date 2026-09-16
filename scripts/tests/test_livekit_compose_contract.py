@@ -43,3 +43,13 @@ def test_livekit_is_not_a_backend_startup_dependency_when_disabled() -> None:
         assert "livekit" not in backend.get("depends_on", {})
         assert "livekit-test" not in backend.get("depends_on", {})
         assert "LIVE_MONITORING_ENABLED" in _environment_values(backend)
+
+
+def test_main_and_dev_livekit_expose_embedded_turn_ports() -> None:
+    for filename, service_name in (
+        ("docker-compose.yml", "livekit"),
+        ("docker-compose.dev.yml", "livekit"),
+    ):
+        service = _compose(filename)["services"][service_name]
+        assert "3478:3478/udp" in service["ports"]
+        assert "50300-50309:50300-50309/udp" in service["ports"]
