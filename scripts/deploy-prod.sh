@@ -101,6 +101,16 @@ reject_env_values() {
   done
 }
 
+reject_unpinned_image() {
+  local key="$1"
+  local value
+  value="$(get_env_value "$key")"
+  if [ -n "$value" ] && [[ "$value" != *"@sha256:"* ]]; then
+    echo ".env key ${key} must be pinned with a @sha256: digest" >&2
+    exit 1
+  fi
+}
+
 required_env_keys=(
   POSTGRES_ADMIN_PASSWORD
   DB_PASSWORD
@@ -181,6 +191,8 @@ if is_truthy "$live_monitoring_enabled"; then
     echo ".env LIVEKIT_TURN_ENABLED must be true when LiveKit is enabled in production" >&2
     exit 1
   fi
+
+  reject_unpinned_image "COTURN_IMAGE"
 
   COMPOSE_FILES+=(--profile live-monitoring)
   COMPOSE_FILES+=(--profile live-turn)
