@@ -72,6 +72,12 @@ def test_production_uses_profiled_host_network_coturn_for_turn_ports() -> None:
     )
 
 
+def test_production_coturn_can_read_the_private_rendered_config() -> None:
+    coturn = _compose("docker-compose.yml")["services"]["coturn"]
+
+    assert coturn["user"] == "0:0"
+
+
 def test_production_deploy_activates_and_renders_livekit_when_enabled() -> None:
     deploy_script = DEPLOY_SCRIPT.read_text()
 
