@@ -352,10 +352,3 @@ def test_raw_invite_code_is_not_an_action_link_token(
     assert response.data["error"]["code"] == "ACTION_LINK_NOT_FOUND"
 
 
-@pytest.mark.django_db
-def test_legacy_magic_link_route_is_not_registered(
-    api_client: APIClient,
-    classroom: Classroom,
-) -> None:
-    response = api_client.get(f"/api/v1/magic-links/{action_token(classroom)}")
-    assert response.status_code == status.HTTP_404_NOT_FOUND

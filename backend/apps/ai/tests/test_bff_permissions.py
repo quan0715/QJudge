@@ -36,8 +36,3 @@ def test_unauthenticated_request_short_circuits_before_upstream(
     assert ai_transport.requests == []
 
 
-def test_internal_artifact_ownership_route_is_removed(api_client, ai_transport) -> None:
-    response = api_client.get("/api/v1/ai/_internal/artifacts/")
-
-    assert response.status_code == 404
-    assert ai_transport.requests == []

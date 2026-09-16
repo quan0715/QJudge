@@ -37,7 +37,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
-  pytest apps/ai/tests/test_boundary.py::test_django_ai_app_is_only_a_bff -q
+  pytest apps/ai/tests/test_bff_contract.py -q
 ```
 
 ### 2) AI app 全部測試

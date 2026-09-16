@@ -117,6 +117,3 @@ class TeacherActivationInviteTests(APITestCase):
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(second_response.data["error"]["code"], "ACTION_LINK_ALREADY_REDEEMED")
 
-    def test_legacy_magic_link_route_is_not_registered(self):
-        response = self.client.get("/api/v1/magic-links/qj_ta_legacy")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

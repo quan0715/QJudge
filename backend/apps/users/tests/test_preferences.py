@@ -111,6 +111,12 @@ class UserPreferencesViewTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["preferred_theme"], "dark")
 
+    def test_patch_editor_font_size_out_of_range(self):
+        self.client.force_authenticate(user=self.user)
+        for size in (8, 30):
+            response = self.client.patch(self.url, {"editor_font_size": size}, format="json")
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, size)
+
     def test_patch_invalid_theme(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
