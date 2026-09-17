@@ -8,7 +8,7 @@ import type {
   ExamIntegrityOutbox,
 } from "@/core/ports/examIntegrity.repository";
 
-const DATABASE_NAME = "qjudge-exam-integrity-v1";
+import { integrityDatabaseName } from "./integrityDatabaseName";
 const DATABASE_VERSION = 3;
 const RECORDS_STORE = "records";
 const META_STORE = "meta";
@@ -313,7 +313,10 @@ export class IndexedDbIntegrityOutbox implements ExamIntegrityOutbox {
     if (options.attemptId && (!Number.isSafeInteger(options.nextSequence) || options.nextSequence! < 1)) {
       throw new Error("Resident outbox requires an authoritative next sequence");
     }
-    const database = await openDatabase(options.databaseName ?? DATABASE_NAME);
+    // Resident streams are immutable per participant AND attempt. Never reuse
+    // the old run/device database: it can contain another user's inflight body.
+    // Leave that database intact rather than guessing ownership or relabeling it.
+    const database = await openDatabase(integrityDatabaseName(options));
     if (options.attemptId) {
       const transaction = database.transaction([META_STORE, RECORDS_STORE], "readwrite");
       const done = transactionDone(transaction);

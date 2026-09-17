@@ -10,6 +10,8 @@ import {
 } from "../anticheat/integrity/residentIntegritySession";
 import { getDeviceId } from "@/infrastructure/api/http.client";
 import { EXAM_SUBMITTED_EVENT } from "@/infrastructure/api/repositories/exam.repository";
+import { InlineNotification } from "@carbon/react";
+import { useTranslation } from "react-i18next";
 
 interface UploadOwner {
   resident: boolean;
@@ -40,6 +42,8 @@ const active = (state: ExamRuntimeState | null) => ["in_progress", "paused", "lo
 export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   contestId: string; runtimeState: ExamRuntimeState | null; children: ReactNode;
 }) {
+  const { t } = useTranslation();
+  const [failedScope, setFailedScope] = useState<string | null>(null);
   const [run, setRun] = useState<ContestIntegrityRun | undefined>();
   const config = useRef<UseIntegrityRuntimeOptions | null>(null);
   const owner = useRef<ResidentIntegritySession | null>(null);
@@ -72,6 +76,7 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
     config.current = next;
     const nextRun = next?.integrityRun;
     if (nextRun) setRun((previous) => previous?.id === nextRun.id &&
+      previous?.participantId === nextRun.participantId &&
       previous?.registrySnapshot.version === nextRun.registrySnapshot.version ? previous : nextRun);
     if (ownerScope.current === currentScope.current) owner.current?.setSources(next?.evidenceSources ?? {});
   }, []);
@@ -124,6 +129,9 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
       onProgress: (ack) => {
         if (ack.uploadStatus === "complete" && currentScope.current === scopeKey) setCompletedScope(scopeKey);
       },
+      onInitializationError: () => {
+        if (currentScope.current === scopeKey) setFailedScope(scopeKey);
+      },
     });
     owner.current = session;
     ownerScope.current = scopeKey;
@@ -167,6 +175,11 @@ export function IntegrityUploadProvider({ contestId, runtimeState, children }: {
   }, [pending]);
   const value = useMemo(() => ({ resident, captureReady, emitter, configure, flush }), [resident, captureReady, emitter, configure, flush]);
   return <UploadContext.Provider value={value}>
+    {failedScope === scopeKey && pending && <InlineNotification
+      kind="error" role="alert" hideCloseButton
+      title={t("integrity.initializationFailed", "監考事件記錄無法啟動")}
+      subtitle={t("integrity.initializationFailedHelp", "請通知監考人員。作答仍可繼續，請勿清除瀏覽器資料。")}
+    />}
     {children}
   </UploadContext.Provider>;
 }
@@ -181,6 +194,7 @@ export function useIntegrityCaptureRegistration(options: UseIntegrityRuntimeOpti
     owner.configure({ ...latest.current, snapshotProvider: () => latest.current.snapshotProvider() });
     return () => owner.configure(null);
   }, [owner?.resident, owner?.configure, options.enabled, options.integrityRun?.id,
+    options.integrityRun?.participantId, options.integrityRun?.registrySnapshot.version,
     options.evidenceSources?.screen_share, options.evidenceSources?.webcam]);
   return owner;
 }

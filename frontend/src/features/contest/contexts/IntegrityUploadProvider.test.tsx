@@ -11,6 +11,32 @@ import type { ExamRuntimeState } from "@/core/entities/contest.entity";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+it("shows a persistent warning when event storage cannot initialize without removing the answer", async () => {
+  vi.mocked(localStorage.getItem).mockReturnValue("device-a");
+  vi.spyOn(IndexedDbIntegrityOutbox, "open").mockRejectedValue(new Error("IndexedDB unavailable"));
+  const runId = crypto.randomUUID();
+  const run = { id: runId, participantId: 44, sessionState: "active", health: "healthy",
+    registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {} };
+  const state: ExamRuntimeState = { server_now: new Date().toISOString(), serverOffsetMs: 0,
+    start_time: null, end_time: null, schedule_revision: 1, participant_id: 44, exam_status: "in_progress",
+    integrity_run: { id: runId, session_state: "active", schedule_revision: 1, health: "healthy", accept_until: null },
+    session_identity: { active_device_matches: true, device_id: getDeviceId(), attempt_id: crypto.randomUUID(), next_sequence: 1 },
+    integrity_upload: null };
+  function Answer() {
+    const owner = useIntegrityUploadOwner();
+    useLayoutEffect(() => { owner?.configure({ enabled: true, contestId: "1", integrityRun: run,
+      snapshotProvider: () => ({ pageVisible: true, online: true, fullscreen: false,
+        screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
+    }, [owner?.configure]);
+    return <input aria-label="answer" defaultValue="do not lose this answer" />;
+  }
+  const { unmount } = render(<IntegrityUploadProvider contestId="1" runtimeState={state}><Answer /></IntegrityUploadProvider>);
+  try {
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("監考事件記錄無法啟動"));
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("do not lose this answer");
+  } finally { unmount(); }
+});
+
 it.each(["storage", "network"])("keeps answer DOM/outbox through submit and completion despite a %s failure", async (failure) => {
   vi.mocked(localStorage.getItem).mockReturnValue("device-a");
   const runId = crypto.randomUUID();

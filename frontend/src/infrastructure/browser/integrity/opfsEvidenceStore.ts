@@ -3,7 +3,7 @@ import type {
   IntegrityEvidenceSource,
 } from "@/core/entities/examIntegrity.entity";
 
-const DATABASE_NAME = "qjudge-exam-integrity-v1";
+import { integrityDatabaseName } from "./integrityDatabaseName";
 const DATABASE_VERSION = 3;
 const RECORDS_STORE = "records";
 const META_STORE = "meta";
@@ -206,7 +206,7 @@ export class OpfsEvidenceStore {
 
   static async open(options: OpfsEvidenceStoreOptions): Promise<OpfsEvidenceStore> {
     if (typeof indexedDB === "undefined") throw new Error("IndexedDB is required for integrity evidence");
-    const database = await openDatabase(options.databaseName ?? DATABASE_NAME);
+    const database = await openDatabase(integrityDatabaseName(options));
     let opfs: OpfsDirectory | null = options.opfs ?? null;
     if (options.opfs === undefined) {
       try {
@@ -216,6 +216,12 @@ export class OpfsEvidenceStore {
         // browsers that do not implement OPFS.
         opfs = null;
       }
+    }
+    // Match IndexedDB ownership so another attempt's files cannot look like
+    // unindexed crash leftovers and disable this attempt's capture.
+    if (opfs && options.attemptId) {
+      opfs = await nestedDirectory(opfs, ["exam-integrity-scopes",
+        encodeURIComponent(JSON.stringify([options.runId, options.participantId, options.deviceId, options.attemptId]))]);
     }
     return new OpfsEvidenceStore(database, {
       runId: options.runId,
