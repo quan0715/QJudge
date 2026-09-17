@@ -74,6 +74,9 @@ describe("resident evidence fence storage integration", () => {
       expect(await old.getBlob(prior)).not.toBeNull();
       expect(await legacy.getBlob(unowned)).not.toBeNull();
       await old.putChunk({ ...input, recordingSessionId: "old-long", startAtMs: 1000, endAtMs: 301000 });
+      // A prior attempt cannot exhaust the new immutable scope's capture budget.
+      expect(await owner.enforceCapacity("screen_share", { minimumLocalBufferMs: 60000, localCapMs: 300000, localCapBytesPerSource: 100000000 })).toBe(true);
+      await next.putChunk({ ...input, recordingSessionId: "current-long", startAtMs: 1000, endAtMs: 301000 });
       expect(await owner.enforceCapacity("screen_share", { minimumLocalBufferMs: 60000, localCapMs: 300000, localCapBytesPerSource: 100000000 })).toBe(false);
     } finally { await Promise.all([old.close(), next.close(), legacy.close()]); }
   });

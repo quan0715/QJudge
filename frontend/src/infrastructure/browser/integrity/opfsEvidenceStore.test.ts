@@ -53,6 +53,26 @@ class TreeDirectory extends MemoryDirectory {
 describe("OpfsEvidenceStore", () => {
   const names: string[] = [];
 
+  it("reconciles two attempts sharing an OPFS root without blocking or deleting either recording", async () => {
+    const databaseName = `scope-files-${crypto.randomUUID()}`; names.push(databaseName);
+    const root = new TreeDirectory();
+    const base = { runId: "run", deviceId: "device", participantId: 1, databaseName, opfs: root };
+    const old = await OpfsEvidenceStore.open({ ...base, attemptId: "old" });
+    const next = await OpfsEvidenceStore.open({ ...base, attemptId: "new" });
+    const input = { source: "screen_share" as const, recordingSessionId: "session", epochId: "epoch", chunkSeq: 1,
+      isInitChunk: true, previousSha256: "", startAtMs: 100, endAtMs: 200, codec: "video/webm" };
+    try {
+      const prior = await old.putChunk({ ...input, bytes: new NodeBlob(["old"]) as unknown as Blob });
+      const current = await next.putChunk({ ...input, bytes: new NodeBlob(["new recording"]) as unknown as Blob });
+      await old.reconcile();
+      await next.reconcile();
+      expect(old.blockedCaptureSources).toEqual([]);
+      expect(next.blockedCaptureSources).toEqual([]);
+      expect((await old.getBlob(prior))?.size).toBe(3);
+      expect((await next.getBlob(current))?.size).toBe(13);
+    } finally { await old.close(); await next.close(); }
+  });
+
   it("preserves accounted bytes across repeated failed OPFS removal and accepts only confirmed absence", async () => {
     const databaseName = `remove-failure-${crypto.randomUUID()}`; names.push(databaseName);
     const opfs = new MemoryDirectory();
@@ -82,7 +102,8 @@ describe("OpfsEvidenceStore", () => {
         isInitChunk: true, previousSha256: "", startAtMs: 100, endAtMs: 200, codec: "video/webm", bytes: new NodeBlob(["known"]) as unknown as Blob });
       await store.reconcile();
       expect(store.blockedCaptureSources).toEqual([]);
-      const source = root.children.get("exam-integrity")!.children.get("run")!.children.get("device")!.children.get("screen_share")!;
+      const scoped = root.children.get("exam-integrity-scopes")!.children.get(encodeURIComponent(JSON.stringify(["run", 1, "device", "attempt"])))!;
+      const source = scoped.children.get("exam-integrity")!.children.get("run")!.children.get("device")!.children.get("screen_share")!;
       source.files.set("orphan.webm", new NodeBlob(["unindexed bytes"]) as unknown as Blob);
       await store.reconcile();
       expect(store.blockedCaptureSources).toEqual(["screen_share"]);
@@ -95,7 +116,7 @@ describe("OpfsEvidenceStore", () => {
     const databaseName = `accounting-${crypto.randomUUID()}`; names.push(databaseName);
     const root = new TreeDirectory();
     let source = root;
-    for (const piece of ["exam-integrity", "run", "device", "screen_share"]) source = await source.getDirectoryHandle(piece, { create: true });
+    for (const piece of ["exam-integrity-scopes", encodeURIComponent(JSON.stringify(["run", 1, "device", "attempt"])), "exam-integrity", "run", "device", "screen_share"]) source = await source.getDirectoryHandle(piece, { create: true });
     source.values = async function* () {
       if (failure === "missing-during-enumeration") throw new DOMException("disappeared", "NotFoundError");
       for (let i = 0; i <= 10000; i++) {
@@ -110,6 +131,9 @@ describe("OpfsEvidenceStore", () => {
 
 
   afterEach(async () => {
+    for (const { name } of await indexedDB.databases()) {
+      if (name && names.some(base => name.startsWith(`${base}:scope:`))) names.push(name);
+    }
     await Promise.all(names.splice(0).map((name) => new Promise<void>((resolve, reject) => {
       const request = indexedDB.deleteDatabase(name);
       request.onsuccess = () => resolve();

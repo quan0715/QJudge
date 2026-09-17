@@ -20,6 +20,7 @@ interface SessionOptions {
   snapshotProvider: () => Omit<ExamIntegrityStateSnapshot, "health">;
   onGap?: (error: Error) => void;
   onLocalLoss?: (error: Error) => void;
+  onInitializationError?: () => void;
   onProgress: (ack: ExamIntegrityBatchAck) => void;
 }
 
@@ -102,7 +103,10 @@ export class ResidentIntegritySession {
       // Event intake and transport depend only on IndexedDB. Evidence recovery
       // runs independently and cannot hold up detector signals or answer flows.
       this.evidenceReady = this.openEvidence();
-    } catch (error) { this.localLoss(error); }
+    } catch (error) {
+      if (!this.closed) this.options.onInitializationError?.();
+      this.localLoss(error);
+    }
   }
 
   private async openEvidence(): Promise<void> {
