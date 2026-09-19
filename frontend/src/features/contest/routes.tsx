@@ -111,7 +111,7 @@ export const classroomExamPrecheckRoute = (
   <Route
     path="/classrooms/:classroomId/contest/:contestId/exam-precheck"
     element={
-      <ContestProvider>
+      <ContestProvider enableLiveMonitoring={false}>
         <RouteLoadingBoundary>
           <ExamPrecheckScreen />
         </RouteLoadingBoundary>

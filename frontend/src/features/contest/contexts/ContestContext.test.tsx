@@ -5,6 +5,7 @@ import { ContestProvider, useContest } from "./ContestContext";
 
 const mockGetContest = vi.fn();
 const mockGetRuntimeState = vi.fn();
+const mockLiveMonitoringProvider = vi.hoisted(() => vi.fn());
 
 vi.mock("@/infrastructure/api/repositories", () => ({
   getContest: (...args: unknown[]) => mockGetContest(...args),
@@ -20,10 +21,18 @@ vi.mock("./IntegrityUploadProvider", () => ({
   IntegrityUploadProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+vi.mock("./LiveMonitoringProvider", () => ({
+  LiveMonitoringProvider: ({ children }: { children: React.ReactNode }) => {
+    mockLiveMonitoringProvider();
+    return children;
+  },
+}));
+
 describe("ContestProvider runtime polling", () => {
   beforeEach(() => {
     mockGetContest.mockReset();
     mockGetRuntimeState.mockReset();
+    mockLiveMonitoringProvider.mockReset();
     mockGetContest.mockResolvedValue({ id: "contest-1", hasJoined: true });
     mockGetRuntimeState.mockResolvedValue({
       server_now: "2026-09-09T00:00:00Z",
@@ -49,5 +58,20 @@ describe("ContestProvider runtime polling", () => {
     await waitFor(() => expect(mockGetContest).toHaveBeenCalledTimes(1));
 
     expect(mockGetRuntimeState).not.toHaveBeenCalled();
+  });
+
+  it("can disable LiveKit publisher creation for the precheck surface", async () => {
+    const Content = () => <div>precheck</div>;
+
+    render(
+      <MemoryRouter>
+        <ContestProvider contestId="contest-1" enableLiveMonitoring={false}>
+          <Content />
+        </ContestProvider>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("precheck");
+    expect(mockLiveMonitoringProvider).not.toHaveBeenCalled();
   });
 });
