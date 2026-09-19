@@ -122,6 +122,29 @@ def _turn_protocols(value: str | None) -> list[str]:
     return protocols
 
 
+def _validate_endpoint(
+    name: str, value: str, default_port: int
+) -> tuple[str, int]:
+    candidate = value.strip()
+    parsed_value = candidate if "://" in candidate else f"//{candidate}"
+    try:
+        parsed = urlsplit(parsed_value)
+        port = parsed.port or default_port
+    except ValueError as exc:
+        raise ConfigError(f"{name} must be a host[:port] endpoint") from exc
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ConfigError(f"{name} must not contain credentials, query, or fragment")
+    if parsed.path not in {"", "/"}:
+        raise ConfigError(f"{name} must not contain a path")
+
+    host = parsed.hostname
+    if host is None and "://" not in candidate and candidate.count(":") > 1 and not candidate.startswith("["):
+        host = candidate
+    if not host:
+        raise ConfigError(f"{name} must be a host[:port] endpoint")
+    return _validate_host(name, host), port
+
+
 def _endpoint_host(value: str) -> str:
     candidate = value.strip()
     if "://" in candidate:
@@ -189,6 +212,15 @@ def _validate_relay_ports(values: Mapping[str, str], environment: str) -> tuple[
     if start > end:
         raise ConfigError("LiveKit TURN relay port range is invalid")
     livekit_ports = _ports(values, environment)
+    turn_port = _validate_port(
+        "LIVEKIT_TURN_PORT", values.get("LIVEKIT_TURN_PORT"), _DEFAULT_TURN_PORT
+    )
+    if turn_port in {livekit_ports["port"], livekit_ports["tcp_port"]} or turn_port in range(
+        livekit_ports["udp_start"], livekit_ports["udp_end"] + 1
+    ):
+        raise ConfigError("LiveKit TURN listening port must not overlap LiveKit ports")
+    if start <= turn_port <= end:
+        raise ConfigError("LiveKit TURN listening port must not overlap relay ports")
     if start <= livekit_ports["udp_end"] and livekit_ports["udp_start"] <= end:
         raise ConfigError("LiveKit and TURN relay UDP port ranges must not overlap")
     return start, end
@@ -254,10 +286,13 @@ def render_config(values: Mapping[str, str] | None = None, output_path: Path | N
     api_secret = _required(values, "LIVEKIT_API_SECRET")
     node_ip = _validate_node_ip(_required(values, "LIVEKIT_NODE_IP"))
     stun_host = _required(values, "LIVEKIT_STUN_HOST")
+    stun_endpoint = _validate_endpoint("LIVEKIT_STUN_HOST", stun_host, _DEFAULT_TURN_PORT)
     turn = _turn_settings(values)
     advertise_internal_ip = _is_enabled(values.get("LIVEKIT_ADVERTISE_INTERNAL_IP"))
     if not _is_local_stun_host(stun_host) and not (
-        turn and _endpoint_host(stun_host).lower().rstrip(".") == turn["host"].lower()
+        turn
+        and stun_endpoint[0].lower() == turn["host"].lower()
+        and stun_endpoint[1] == turn["port"]
     ):
         raise ConfigError("LIVEKIT_STUN_HOST must point to the local STUN/TURN service")
 
@@ -267,6 +302,8 @@ def render_config(values: Mapping[str, str] | None = None, output_path: Path | N
 
     ports = _ports(values, environment)
     _validate_ports(ports)
+    if turn:
+        _validate_relay_ports(values, environment)
 
     # ``public_url`` and ``internal_url`` are consumed by QJudge.  Keeping
     # them in the renderer's input, rather than in this server config, avoids
@@ -322,10 +359,12 @@ def render_coturn_config(
     if environment not in _ENVIRONMENT_PORTS:
         raise ConfigError("LIVEKIT_ENVIRONMENT must be main, dev, or test")
     node_ip = _validate_node_ip(_required(values, "LIVEKIT_NODE_IP"))
+    turn_local_ip = _validate_node_ip(values.get("LIVEKIT_TURN_LOCAL_IP") or node_ip)
     relay_start, relay_end = _validate_relay_ports(values, environment)
     realm = _validate_host(
         "LIVEKIT_TURN_REALM", values.get("LIVEKIT_TURN_REALM") or turn["host"]
     )
+    external_ip = node_ip if turn_local_ip == node_ip else f"{node_ip}/{turn_local_ip}"
 
     config = "\n".join(
         (
@@ -334,9 +373,9 @@ def render_coturn_config(
             "use-auth-secret",
             f"static-auth-secret={turn['secret']}",
             f"realm={realm}",
-            f"external-ip={node_ip}",
-            f"listening-ip={node_ip}",
-            f"relay-ip={node_ip}",
+            f"external-ip={external_ip}",
+            f"listening-ip={turn_local_ip}",
+            f"relay-ip={turn_local_ip}",
             f"min-port={relay_start}",
             f"max-port={relay_end}",
             "no-tls",
