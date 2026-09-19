@@ -31,6 +31,8 @@ interface ContestProviderProps {
   initialScoreboardData?: ScoreboardData | null;
   /** Optional: external refresh function from parent */
   onRefresh?: () => Promise<void>;
+  /** Precheck must not create a publisher before the answering surface mounts. */
+  enableLiveMonitoring?: boolean;
 }
 
 export const ContestProvider: React.FC<ContestProviderProps> = ({
@@ -41,6 +43,7 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
   onRefresh,
   runtime: externalRuntime,
   enableRuntimePolling = true,
+  enableLiveMonitoring = true,
 }) => {
   const params = useParams<{ contestId?: string }>();
   const contestId = propContestId || params.contestId;
@@ -190,13 +193,21 @@ export const ContestProvider: React.FC<ContestProviderProps> = ({
     ]
   );
 
+  const contestContent = (
+    <IntegrityUploadProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
+      {children}
+    </IntegrityUploadProvider>
+  );
+
   return (
     <ContestContext.Provider value={value}>
-      <LiveMonitoringProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
-        <IntegrityUploadProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
-          {children}
-        </IntegrityUploadProvider>
-      </LiveMonitoringProvider>
+      {enableLiveMonitoring ? (
+        <LiveMonitoringProvider contestId={contestId ?? ""} runtimeState={runtime.state}>
+          {contestContent}
+        </LiveMonitoringProvider>
+      ) : (
+        contestContent
+      )}
     </ContestContext.Provider>
   );
 };
