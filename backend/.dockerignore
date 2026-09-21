@@ -13,8 +13,6 @@ build/
 .env
 .env.*
 *.log
-celerybeat-schedule*
-celerybeat.pid
 .DS_Store
 .mypy_cache/
 .ruff_cache/

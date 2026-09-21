@@ -343,7 +343,9 @@ services:
     restart: always
     healthcheck:
       disable: true
-    command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    # /app is a host bind mount that appuser cannot write when the checkout is
+    # owned by another user (e.g. root). The schedule file is a disposable cache.
+    command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
     environment: *ai_prod_queue_environment
     volumes:
       - ./ai-service:/app
@@ -491,9 +493,7 @@ services:
     image: oj-backend:prod
     container_name: oj_celery_beat
     restart: always
-    # The schedule file is a disposable last-run cache; /tmp stays writable
-    # regardless of the container user or how /app was built.
-    command: celery -A config beat -l info -s /tmp/celerybeat-schedule
+    command: celery -A config beat -l info
     environment:
       <<: *django_prod_environment
     depends_on:
