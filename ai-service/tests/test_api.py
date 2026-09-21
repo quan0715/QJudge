@@ -429,6 +429,7 @@ def test_usage_and_models_never_expose_price_cost_or_credit() -> None:
     assert models.status_code == 200
     assert [model["model_id"] for model in models.json()["models"]] == [
         "openai-nano",
+        "openai-gemma4-31b",
         "openai-mini",
         "openai-mini-medium",
         "deepseek-v4-flash",

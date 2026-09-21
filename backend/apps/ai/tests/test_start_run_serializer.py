@@ -4,6 +4,7 @@ from apps.ai.serializers import StartRunSerializer
 def test_start_run_serializer_accepts_expected_model_ids():
     for model_id in (
         "openai-nano",
+        "openai-gemma4-31b",
         "openai-mini",
         "openai-mini-medium",
         "deepseek-v4-flash",
@@ -26,5 +27,4 @@ def test_start_run_serializer_default_model_id_is_openai_nano():
     serializer = StartRunSerializer(data={"content": "hello"})
     assert serializer.is_valid(), serializer.errors
     assert serializer.validated_data["model_id"] == "openai-nano"
-
 

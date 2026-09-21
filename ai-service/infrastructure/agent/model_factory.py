@@ -94,6 +94,7 @@ class TpmGatedChatOpenAI(ChatOpenAI):
 # Canonical model ID -> provider model string (fixed in code, not env-configured)
 _MODEL_MAP: dict[str, str] = {
     "openai-nano": "gpt-5-nano",
+    "openai-gemma4-31b": "Gemma4-31B",
     "openai-mini": "gpt-5.4-mini",
     "openai-mini-medium": "gpt-5.4-mini",
     "deepseek-v4-flash": "deepseek-v4-flash",
@@ -141,6 +142,7 @@ _DEFAULT_MODEL_ID = "openai-nano"
 # provider-side runtime profile metadata.
 MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
     "openai-nano": 400_000,
+    "openai-gemma4-31b": 131_072,
     "openai-mini": 272_000,
     "openai-mini-medium": 272_000,
     "deepseek-v4-flash": 1_000_000,
@@ -151,6 +153,7 @@ MODEL_MAX_INPUT_TOKENS: dict[str, int] = {
 SUMMARIZATION_TRIGGER_FRACTION = 0.70
 MODEL_SUMMARY_TRIM_TOKENS: dict[str, int] = {
     "openai-nano": 12_000,
+    "openai-gemma4-31b": 12_000,
     "openai-mini": 12_000,
     "openai-mini-medium": 12_000,
     "deepseek-v4-flash": 12_000,
@@ -183,7 +186,19 @@ class ModelFactory:
 
         model = None
         if model_id.startswith("openai-"):
-            api_key = settings.openai_api_key
+            if model_id == "openai-gemma4-31b":
+                # Gemma is served by a separate OpenAI-compatible vLLM
+                # endpoint. Fall back to the historical OpenAI settings so
+                # existing single-endpoint deployments remain compatible.
+                api_key = (
+                    getattr(settings, "vllm_api_key", "") or settings.openai_api_key
+                )
+                base_url = (
+                    getattr(settings, "vllm_base_url", "") or settings.openai_base_url
+                )
+            else:
+                api_key = settings.openai_api_key
+                base_url = settings.openai_base_url
             reasoning_effort = _OPENAI_REASONING_EFFORT.get(model_id)
             logger.info(
                 "Creating ChatOpenAI model=%s (from '%s', reasoning_effort=%s)",
@@ -196,8 +211,8 @@ class ModelFactory:
                 "api_key": api_key or None,
                 "streaming": True,
             }
-            if settings.openai_base_url:
-                openai_kwargs["base_url"] = settings.openai_base_url
+            if base_url:
+                openai_kwargs["base_url"] = base_url
             rate_limit_rps = _OPENAI_RATE_LIMIT_RPS.get(model_id)
             if rate_limit_rps:
                 # LangChain waits on this limiter before each model invocation.

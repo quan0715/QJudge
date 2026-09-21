@@ -19,6 +19,12 @@ from infrastructure.agent import model_factory
             "http://fake-model.test/v1",
         ),
         (
+            "openai-gemma4-31b",
+            "vllm_base_url",
+            "base_url",
+            "http://fake-vllm.test/v1",
+        ),
+        (
             "deepseek-v4-flash",
             "deepseek_base_url",
             "api_base",
@@ -42,6 +48,8 @@ def test_model_factory_uses_configured_provider_base_url(
         OPENAI_API_KEY="test-openai",
         DEEPSEEK_API_KEY="test-deepseek",
         OPENAI_BASE_URL="http://fake-model.test/v1",
+        VLLM_API_KEY="test-vllm",
+        VLLM_BASE_URL="http://fake-vllm.test/v1",
         DEEPSEEK_BASE_URL="http://fake-deepseek.test/v1",
     )
     monkeypatch.setattr(model_factory, "get_settings", lambda: settings)

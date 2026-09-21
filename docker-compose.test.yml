@@ -31,6 +31,8 @@ x-ai-worker-environment: &ai_test_worker_environment
   OPENAI_API_KEY: fake-test-provider-key
   DEEPSEEK_BASE_URL: http://fake-ai-adapters:8080/v1
   OPENAI_BASE_URL: http://fake-ai-adapters:8080/v1
+  VLLM_API_KEY: fake-test-provider-key
+  VLLM_BASE_URL: http://fake-ai-adapters:8080/v1
   AI_ARTIFACT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
   AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
   AI_ARTIFACT_STORAGE_REGION: test

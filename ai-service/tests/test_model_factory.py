@@ -36,7 +36,9 @@ class _FakeSettings:
     deepseek_api_key = "deepseek-key"
     openai_api_key = "openai-key"
     deepseek_base_url = ""
-    openai_base_url = ""
+    openai_base_url = "https://openai.example/v1"
+    vllm_api_key = "vllm-key"
+    vllm_base_url = "https://vllm.example/v1"
 
 
 def test_create_model_openai_nano(monkeypatch):
@@ -49,6 +51,31 @@ def test_create_model_openai_nano(monkeypatch):
     assert "reasoning_effort" not in model.kwargs
     # nano has no TPM pressure; no rate limiter.
     assert "rate_limiter" not in model.kwargs
+
+
+def test_create_model_gemma4_31b_uses_its_own_provider_model(monkeypatch):
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("openai-gemma4-31b")
+
+    assert isinstance(model, _ChatOpenAIStub)
+    assert model.kwargs["model"] == "Gemma4-31B"
+    assert model.kwargs["api_key"] == "vllm-key"
+    assert model.kwargs["base_url"] == "https://vllm.example/v1"
+    assert model.kwargs["streaming"] is True
+    assert "reasoning" not in model.kwargs
+    assert "use_responses_api" not in model.kwargs
+    assert model_factory_mod.ModelFactory.get_model_max_input_tokens(
+        "openai-gemma4-31b"
+    ) == 131_072
+
+
+def test_create_model_openai_nano_keeps_the_openai_endpoint(monkeypatch):
+    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
+    model = model_factory_mod.ModelFactory.create_model("openai-nano")
+
+    assert model.kwargs["model"] == "gpt-5-nano"
+    assert model.kwargs["api_key"] == "openai-key"
+    assert model.kwargs["base_url"] == "https://openai.example/v1"
 
 
 def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
