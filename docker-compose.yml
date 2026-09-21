@@ -491,7 +491,9 @@ services:
     image: oj-backend:prod
     container_name: oj_celery_beat
     restart: always
-    command: celery -A config beat -l info
+    # The schedule file is a disposable last-run cache; /tmp stays writable
+    # regardless of the container user or how /app was built.
+    command: celery -A config beat -l info -s /tmp/celerybeat-schedule
     environment:
       <<: *django_prod_environment
     depends_on:
