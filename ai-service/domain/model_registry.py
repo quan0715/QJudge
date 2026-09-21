@@ -12,6 +12,12 @@ MODEL_INFO: tuple[dict[str, Any], ...] = (
         "is_default": True,
     },
     {
+        "model_id": "openai-gemma4-31b",
+        "display_name": "Gemma4-31B",
+        "description": "自架 vLLM Gemma4-31B，適合校內部署與批改",
+        "is_default": False,
+    },
+    {
         "model_id": "openai-mini",
         "display_name": "gpt-5.4-mini (low)",
         "description": "OpenAI 推理模型，低思考強度，平衡速度與品質",

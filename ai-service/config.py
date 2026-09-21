@@ -76,6 +76,17 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("OPENAI_BASE_URL"),
     )
+    # Optional self-hosted OpenAI-compatible endpoint for models such as
+    # Gemma served by vLLM. Keeping this separate lets native OpenAI models
+    # continue using OPENAI_BASE_URL in the same deployment.
+    vllm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("VLLM_API_KEY"),
+    )
+    vllm_base_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("VLLM_BASE_URL"),
+    )
 
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = (
