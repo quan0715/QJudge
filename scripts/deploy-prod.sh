@@ -181,6 +181,11 @@ if is_truthy "$live_monitoring_enabled"; then
     echo ".env LIVEKIT_TURN_ENABLED must be true when LiveKit is enabled in production" >&2
     exit 1
   fi
+  coturn_image="$(get_env_value COTURN_IMAGE)"
+  if [ -n "$coturn_image" ] && [[ ! "$coturn_image" =~ ^[^[:space:]@]+@sha256:[0-9a-f]{64}$ ]]; then
+    echo ".env COTURN_IMAGE must be pinned by digest when overridden" >&2
+    exit 1
+  fi
 
   COMPOSE_FILES+=(--profile live-monitoring)
   COMPOSE_FILES+=(--profile live-turn)
@@ -329,6 +334,7 @@ render_livekit_config() {
   export LIVEKIT_TURN_PROTOCOLS="$(get_env_value LIVEKIT_TURN_PROTOCOLS)"
   export LIVEKIT_TURN_SECRET="$(get_env_value LIVEKIT_TURN_SECRET)"
   export LIVEKIT_TURN_TTL_SECONDS="$(get_env_value LIVEKIT_TURN_TTL_SECONDS)"
+  export LIVEKIT_TURN_LOCAL_IP="$(get_env_value LIVEKIT_TURN_LOCAL_IP)"
   export LIVEKIT_TURN_REALM="$(get_env_value LIVEKIT_TURN_REALM)"
   export LIVEKIT_TURN_RELAY_PORT_START="$(get_env_value LIVEKIT_TURN_RELAY_PORT_START)"
   export LIVEKIT_TURN_RELAY_PORT_END="$(get_env_value LIVEKIT_TURN_RELAY_PORT_END)"

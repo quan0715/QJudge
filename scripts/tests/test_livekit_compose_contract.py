@@ -151,3 +151,64 @@ def test_production_deploy_fails_before_checkout_when_livekit_config_is_missing(
 
     assert result.returncode != 0
     assert "LIVEKIT_PUBLIC_URL" in result.stderr
+
+
+def test_production_deploy_rejects_unpinned_coturn_image_override(tmp_path: Path) -> None:
+    deploy_path = tmp_path / "deploy"
+    deploy_path.mkdir()
+    (deploy_path / ".git").mkdir()
+    (deploy_path / ".env").write_text(
+        "\n".join(
+            (
+                "POSTGRES_ADMIN_PASSWORD=prod-admin-secret",
+                "DB_PASSWORD=prod-db-secret",
+                "AI_DB_PASSWORD=prod-ai-secret",
+                "CREDENTIAL_LEASE_SECRET=prod-lease-secret",
+                "SECRET_KEY=prod-secret-key",
+                "QJUDGE_PUBLIC_ORIGIN=https://q-judge.com",
+                "OBJECT_STORAGE_ENDPOINT_URL=https://storage.invalid",
+                "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.invalid",
+                "OBJECT_STORAGE_ACCESS_KEY=prod-storage-access",
+                "OBJECT_STORAGE_SECRET_KEY=prod-storage-secret",
+                "LIVE_MONITORING_ENABLED=true",
+                "LIVEKIT_PUBLIC_URL=wss://livekit.q-judge.com",
+                "LIVEKIT_API_KEY=prod-livekit-key",
+                "LIVEKIT_API_SECRET=prod-livekit-secret",
+                "LIVEKIT_NODE_IP=192.0.2.10",
+                "LIVEKIT_STUN_HOST=turn.q-judge.com:3478",
+                "LIVEKIT_TURN_ENABLED=true",
+                "LIVEKIT_TURN_HOST=turn.q-judge.com",
+                "LIVEKIT_TURN_SECRET=prod-turn-secret",
+                "COTURN_IMAGE=coturn/coturn:latest",
+            )
+        )
+        + "\n"
+    )
+
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "docker").write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = compose ] && [ \"$2\" = version ]; then exit 0; fi\n"
+        "exit 64\n"
+    )
+    (fake_bin / "stat").write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = -c ]; then printf '0\\n'; exit 0; fi\n"
+        "exit 64\n"
+    )
+    for command in (fake_bin / "docker", fake_bin / "stat"):
+        command.chmod(0o755)
+
+    environment = os.environ.copy()
+    environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
+    result = subprocess.run(
+        ["bash", str(DEPLOY_SCRIPT), str(deploy_path), "main"],
+        capture_output=True,
+        text=True,
+        env=environment,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "COTURN_IMAGE must be pinned by digest" in result.stderr

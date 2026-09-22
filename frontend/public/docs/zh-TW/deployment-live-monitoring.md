@@ -35,6 +35,7 @@ LIVEKIT_CONFIG_FILE=./.tmp/livekit/main.json
 LIVEKIT_TURN_ENABLED=true
 LIVEKIT_TURN_HOST=turn.example.edu
 LIVEKIT_TURN_PORT=3478
+LIVEKIT_TURN_LOCAL_IP=<optional-local-bind-ip>
 LIVEKIT_TURN_PROTOCOLS=udp,tcp
 LIVEKIT_TURN_SECRET=<secret-managed-turn-secret>
 LIVEKIT_TURN_TTL_SECONDS=300
@@ -47,10 +48,11 @@ COTURN_CONFIG_FILE=./.tmp/livekit/coturn.conf
 
 ```bash
 python3 scripts/livekit/render-config.py \
-  --output ./.tmp/livekit/main.json
+  --output ./.tmp/livekit/main.json \
+  --coturn-output ./.tmp/livekit/coturn.conf
 ```
 
-產出會包含 `room.auto_create=false`、`room.max_participants=160`、明確的 RTC port range、`use_external_ip=false`、指定 `node_ip`／STUN host、TURN server 與 API key mapping。`coturn.conf` 使用同一個 TURN shared secret，並以 host network 提供 UDP／TCP 3478 與 relay port range。TURN hostname 必須是 DNS-only A/AAAA 記錄，直接指向 `LIVEKIT_NODE_IP`；不能套 Cloudflare Proxy。若同一服務需要同時服務內網與公網客戶端，將 `LIVEKIT_ADVERTISE_INTERNAL_IP=true`，並把 `LIVEKIT_NODE_IP` 設為外部可達的 IP；這不會取代 NAT／防火牆轉發。停用時 renderer 只產生最小設定，不要求 LiveKit credentials。
+產出會包含 `room.auto_create=false`、`room.max_participants=160`、明確的 RTC port range、`use_external_ip=false`、指定 `node_ip`／STUN host、TURN server 與 API key mapping。`coturn.conf` 使用同一個 TURN shared secret，並以 host network 提供 UDP／TCP 3478 與 relay port range。TURN hostname 必須是 DNS-only A/AAAA 記錄，直接指向 `LIVEKIT_NODE_IP`；不能套 Cloudflare Proxy。若主機在 NAT 後方且 `LIVEKIT_NODE_IP` 是對外公告位址，請額外設定 `LIVEKIT_TURN_LOCAL_IP` 為 coturn 實際綁定的本機介面 IP。若同一服務需要同時服務內網與公網客戶端，將 `LIVEKIT_ADVERTISE_INTERNAL_IP=true`，並把 `LIVEKIT_NODE_IP` 設為外部可達的 IP；這不會取代 NAT／防火牆轉發。停用時 renderer 只產生最小設定，不要求 LiveKit credentials。
 
 ## 啟動與檢查
 
