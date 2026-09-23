@@ -231,7 +231,6 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 
 1. 備份 `online_judge`、`qjudge_ai`、`.env`、`secrets/`。
 2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域；DB 密碼若含非英數字需先以 `ALTER ROLE` 更換）。
-   以 `docker network inspect online_judge_oj_network` 確認除 QJudge、MinIO、LiveKit 外沒有其他容器使用舊 network。
 3. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret），addon 掛到新的 `qjudge` network。
 4. 建立新 bucket，執行一次性複製腳本並比對數量與總大小。
 5. `qjudge check` → `qjudge upgrade <sha>`。
