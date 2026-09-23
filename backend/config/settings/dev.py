@@ -87,15 +87,8 @@ LOGGING = {
         },
     },
 }
-# CORS settings
-CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in env('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-if env('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
-
-# CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in env('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
-if env('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
+CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 # Dev may expose the same backend through a public tunnel while the frontend is
 # still exercised directly through Vite. Keep both local Vite origins trusted
 # even when FRONTEND_URL points at the tunnel hostname.

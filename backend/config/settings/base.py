@@ -235,12 +235,11 @@ _QJUDGE_PUBLIC_ORIGIN = (
     if _QJUDGE_PUBLIC_ORIGIN_RAW
     else None
 )
-FRONTEND_URL = env(
-    "FRONTEND_URL",
-    _QJUDGE_PUBLIC_ORIGIN.url if _QJUDGE_PUBLIC_ORIGIN else "http://localhost:5173",
+FRONTEND_URL = (
+    _QJUDGE_PUBLIC_ORIGIN.url if _QJUDGE_PUBLIC_ORIGIN else "http://localhost:5173"
 )
-# OAuth issuer defaults to FRONTEND_URL (same domain in production)
-OAUTH_ISSUER_URL = env("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
+# Backend, AI service and MCP server all use the public origin as OAuth issuer.
+OAUTH_ISSUER_URL = FRONTEND_URL
 AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
     env(
         "AI_OAUTH_SIGNING_PRIVATE_KEY_FILE",
@@ -504,7 +503,4 @@ LIVEKIT_TOKEN_TTL_SECONDS = int(env("LIVEKIT_TOKEN_TTL_SECONDS", "120"))
 
 MARKDOWN_IMAGE_S3_BUCKET = env("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = int(env("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
-MARKDOWN_IMAGE_PUBLIC_BASE_URL = env(
-    "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
-    env("FRONTEND_URL", ""),
-).strip()
+MARKDOWN_IMAGE_PUBLIC_BASE_URL = FRONTEND_URL

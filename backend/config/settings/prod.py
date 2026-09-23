@@ -141,13 +141,6 @@ LOGGING = {
     },
 }
 
-# CORS settings
-# CORS settings
-CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in env('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-if env('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
-
-# CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in env('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
-if env('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
+# CORS and CSRF trust only the public origin.
+CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
