@@ -46,6 +46,11 @@ class SchemaTests(unittest.TestCase):
         for name in ("SECRET_KEY", "DB_PASSWORD", "AI_DB_PASSWORD", "POSTGRES_ADMIN_PASSWORD"):
             self.assertTrue(KEYS_BY_NAME[name].secret, name)
 
+    def test_dev_keys_are_optional(self):
+        for name in ("HOST_PROJECT_ROOT", "DOCKER_JUDGE_PLATFORM"):
+            self.assertEqual(KEYS_BY_NAME[name].feature, "dev")
+            self.assertFalse(KEYS_BY_NAME[name].is_required({}))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,7 +19,7 @@ HTTP_URL_KEYS = {
     "VLLM_BASE_URL",
 }
 URL_SAFE_PASSWORD_KEYS = {"POSTGRES_ADMIN_PASSWORD", "DB_PASSWORD", "AI_DB_PASSWORD"}
-ALPHANUMERIC = re.compile(r"[A-Za-z0-9]+")
+URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
 
 
 def check_env(env: Env) -> list[str]:
@@ -57,8 +57,8 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
         ):
             return "must use https when QJUDGE_PUBLIC_ORIGIN uses https"
         return None
-    if name in URL_SAFE_PASSWORD_KEYS and not ALPHANUMERIC.fullmatch(value):
-        return "must contain only letters and digits because it is embedded in a database URL"
+    if name in URL_SAFE_PASSWORD_KEYS and not URL_SAFE.fullmatch(value):
+        return "may contain only letters, digits and -._~ because it is embedded in a database URL"
     return None
 
 

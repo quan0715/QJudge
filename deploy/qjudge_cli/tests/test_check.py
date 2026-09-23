@@ -67,9 +67,13 @@ class CheckTests(unittest.TestCase):
     def test_storage_mode_must_be_known(self):
         self.assertEqual(error_keys(with_changes(STORAGE_MODE="s3")), ["STORAGE_MODE"])
 
-    def test_db_passwords_must_be_alphanumeric(self):
+    def test_db_passwords_reject_url_reserved_characters(self):
         env = with_changes(DB_PASSWORD="has@symbol", AI_DB_PASSWORD="ok123")
         self.assertEqual(error_keys(env), ["DB_PASSWORD"])
+
+    def test_db_passwords_accept_url_unreserved_characters(self):
+        env = with_changes(DB_PASSWORD="qjudge_web-dev.1~x")
+        self.assertEqual(check_env(env), [])
 
     def test_media_external_requires_livekit_keys(self):
         env = with_changes(MEDIA_MODE="external")
