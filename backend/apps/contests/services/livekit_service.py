@@ -96,6 +96,9 @@ class LiveKitConfig:
 
     @property
     def configured(self) -> bool:
+        # node_ip and stun_host are LiveKit-server-only concerns (media
+        # relay/NAT traversal); the backend never uses them, so they don't
+        # gate readiness here.
         return bool(
             self.enabled
             and self.provider == "livekit"
@@ -103,8 +106,6 @@ class LiveKitConfig:
             and self.internal_url
             and self.api_key
             and self.api_secret
-            and self.node_ip
-            and self.stun_host
         )
 
 
