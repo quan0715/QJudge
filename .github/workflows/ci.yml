@@ -10,6 +10,7 @@ on:
       - "integrity-service/**"
       - "mcp-server/**"
       - "ai-service/**"
+      - "deploy/**"
       - "docker-compose.yml"
       - "docker-compose.dev.yml"
       - "docker-compose.test.yml"
@@ -28,6 +29,7 @@ on:
       - "integrity-service/**"
       - "mcp-server/**"
       - "ai-service/**"
+      - "deploy/**"
       - "docker-compose.yml"
       - "docker-compose.dev.yml"
       - "docker-compose.test.yml"
@@ -72,6 +74,9 @@ jobs:
           set -euo pipefail
           bash -n scripts/deploy-prod.sh scripts/check-compose-config.sh
           bash scripts/check-compose-config.sh
+
+      - name: Deploy CLI Tests
+        run: python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
 
       - name: Install Frontend Deps
         run: npm ci
