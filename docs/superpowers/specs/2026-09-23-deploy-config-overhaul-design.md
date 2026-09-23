@@ -37,9 +37,9 @@
 
 ### 不可破壞的限制
 
-- 現行 prod（`100.115.163.27`）在切換前不做任何變更，切換後保留作為回退。
-- dcslab（`140.113.207.46`）上獨立管理的 `qjudge-media`（LiveKit／coturn）、`qjudge-prod` MinIO 與外部 network `online_judge_oj_network` 不得被本流程修改或重建。
-- 新流程完成首次安裝後，project、volume 與 network 名稱即固定，之後每次升級都做身分比對。
+- prod 為 dcslab（`/mnt/data/qjudge-app`），原地轉換，不做主機搬遷。
+- compose project `qjudge-app`、volume key 與外部 network `online_judge_oj_network` 不變，資料 volume 必須沿用；每次升級都做身分比對。
+- dcslab 上獨立管理的 `qjudge-media`（LiveKit／coturn）與 `qjudge-prod` MinIO 不得被本流程修改或重建。
 - 不自動刪除舊 bucket、舊備份或 volume。
 
 ## 2. 目錄結構
@@ -182,14 +182,13 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 - 單一 bucket，固定 prefix：`markdown/`、`integrity/`、`ai-artifacts/`（實作時盤點其他使用者並補齊）。DB 內保存的 `object_key` 不含 prefix，由 storage 存取層加上，不改寫資料。
 - 監考證據改用 app 端清理：移除 upload `cleanup=true` 與 `retain=true` tagging；Celery beat 定期刪除未被保留且超過保存期限的物件，保留判斷以 DB 為準。R2 與 MinIO 行為一致。
 - `qjudge storage check`：HeadBucket；不存在時嘗試 CreateBucket，無權限則提示客戶手動建立；並以測試物件驗證 Put／Get／Delete 與 presigned URL。
-- `qjudge storage migrate`：伺服器端 CopyObject 將舊 bucket 物件複製到新 bucket 對應 prefix，比對數量與大小；增量執行，已存在且大小相同的物件跳過，因此可先做一次完整複製、切換凍結寫入後再補齊差異；不刪除舊 bucket。
+- `qjudge storage migrate`：伺服器端 CopyObject 將舊 bucket 物件複製到新 bucket 對應 prefix，比對數量與大小；增量執行，已存在且大小相同的物件跳過，因此可先做一次完整複製、升級前再補齊差異；不刪除舊 bucket。
 
 ## 7. CLI（`deploy/qjudge`）
 
 | 指令 | 行為 |
 |---|---|
 | `init` | 新安裝；詢問反向代理是否同機、storage、公開 origin；產生機密與金鑰；寫出 `.env`；已有 `.env` 則拒絕 |
-| `import <舊安裝備份>` | 將舊版安裝的 DB dump、`.env`、`secrets/` 匯入新安裝，見第 10 節 |
 | `check` | 依 schema 靜態驗證 `.env`，一次列出所有錯誤；exit code 0／1；`--json` |
 | `doctor` | 執行期檢查：容器狀態、一次性服務結果、內部健康、入口可達性、DB role 權限；不輸出機密 |
 | `ingress [--nginx]` | 見第 5 節 |
@@ -259,30 +258,19 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 - GitHub environment `production` secrets：`TS_OAUTH_CLIENT_ID`、`TS_OAUTH_SECRET`、`PROD_SSH_HOST`、`PROD_SSH_KNOWN_HOSTS`、`PROD_DEPLOY_SSH_KEY`、`PROD_DEPLOY_PATH`。
 - 連線方式與部署邏輯分離；若未來改為直接 SSH 或單位 VPN，只替換連線步驟。
 
-## 10. 主機搬遷：現行 prod → dcslab
+## 10. dcslab 一次性轉換
 
-dcslab 為新 prod 主機。現有 `/mnt/data/qjudge-app` 的候選安裝（舊版 layout、staging 快照資料、寫入限制）不轉換，改以新流程全新安裝；候選安裝於新 prod 驗收後由管理者手動移除。
+不提供 adopt／import 類指令；轉換只在 dcslab 手動執行一次，外部既有安裝依 release notes 做相同步驟。
 
-### `qjudge import`
+1. 以舊流程做一次完整備份（DB dump、根目錄 `.env`、`secrets/`），另存主機外。
+2. checkout 新版後，`mv .env deploy/.env`、`mv secrets deploy/secrets`（保留權限）。
+3. 確認 `deploy/.env` 含 `COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`LIVE_MONITORING=external`（接 `qjudge-media`，LiveKit 使用 host networking，`LIVEKIT_INTERNAL_URL` 以 advanced key 設定）。
+4. `qjudge check`：列出需要的改名與缺漏；改名由第一次 `upgrade` 自動套用。
+5. 在 `qjudge-prod` MinIO 建立新 bucket，`qjudge storage check`，`qjudge storage migrate` 完整複製。
+6. 選定正式考試以外的時段執行 `qjudge upgrade <sha>`；第一次執行時若沒有 `state.json`，以目前 HEAD 建立，身分比對改以 compose project label 找出執行中的服務。`upgrade` 前再執行一次 `storage migrate` 補齊差異。
+7. 驗收登入、評測、Integrity、監考、AI、MCP。
 
-來源為舊版安裝產生的匯出目錄，內容為兩個 DB 的 custom dump、舊 `.env`、`secrets/` 與 checksum。
-
-1. 驗證 checksum 與 `pg_restore --list`。
-2. 以 schema 套用舊 `.env` 的改名與廢除；沿用 `SECRET_KEY`、`CREDENTIAL_LEASE_SECRET`、AI OAuth 與 Integrity 金鑰，避免既有 session、token 與簽章失效；DB 密碼與拓撲設定沿用新安裝的值。
-3. 還原 `online_judge` 與 `qjudge_ai`，執行 `db-bootstrap` 與 migrate。
-4. 比對主要資料表筆數並輸出報告。
-
-另提供 `deploy/qjudge export-legacy`（只用標準函式庫與 docker，可在舊主機的舊 checkout 單獨執行）產生上述匯出目錄。
-
-### 搬遷步驟
-
-1. dcslab 加入 tailnet（`tag:qjudge-prod`），建立 `deploy` 帳號與 forced command key。
-2. dcslab：`qjudge init`，設定 `QJUDGE_NETWORK_EXTERNAL=true`、`LIVE_MONITORING=external`（接 `qjudge-media`）、storage 指向 `qjudge-prod` MinIO 的新 bucket；`qjudge storage check`。
-3. 演練：在舊主機 `export-legacy` → dcslab `import` → `storage migrate` 完整複製 → 以非正式網域或 preview 入口驗收。演練期間背景任務（Celery、AI worker、Integrity reconciler）不得處理共用 storage 的正式資料，驗收以 fake 或唯讀流程進行。
-4. 選定正式考試以外的時段，凍結舊主機所有寫入者並排空 Redis 佇列與 Integrity resident journal。
-5. 最終 `export-legacy` → `import`（覆蓋演練資料）→ `storage migrate` 補齊差異 → `doctor` → 驗收登入、評測、Integrity、監考、AI。
-6. 將入口（反向代理或 DNS）切到 dcslab；CD 的 `PROD_SSH_HOST` 改為 dcslab。
-7. 舊主機停止服務但保留資料，作為回退；回退方式為將入口切回舊主機，切換後的新寫入需人工評估。
+第一次升級前的舊 image 沒有 SHA tag，`qjudge rollback` 無法回到轉換前版本。轉換失敗時的回退方式：checkout 舊版、將 `.env` 與 `secrets/` 移回根目錄、以舊 `deploy-prod.sh` 流程啟動；DB 依需要以步驟 1 的備份還原。
 
 ## 11. 文件與 agent 指引
 
@@ -299,9 +287,9 @@ dcslab 為新 prod 主機。現有 `/mnt/data/qjudge-app` 的候選安裝（舊�
 2. **Compose 重組**：`deploy/` 目錄、base + build + dev overlay、移除 `container_name`、獨立 migrate／db-bootstrap、profiles、移除 prod 原始碼掛載；app settings 改由 origin 推導、env 瘦身。
 3. **Gateway**：改名、trusted proxies、`/mcp`、`ingress`。
 4. **Storage**：核心 API、單一 bucket prefix、app 端清理、`storage check`／`migrate`。
-5. **升級流程**：`init`、`upgrade`、`rollback`、`backup`、`doctor`、`import`、`export-legacy`；新版 CD workflow（Tailscale + OpenSSH forced command）。
+5. **升級流程**：`init`、`upgrade`、`rollback`、`backup`、`doctor`；新版 CD workflow（Tailscale + OpenSSH forced command，目標為 dcslab）。
 6. **測試與 CI**：刪除 test compose 與 `Dockerfile.e2e`、單元測試改在 dev 容器、CI E2E 全新安裝、migration lint。
 7. **文件與指引**：公開部署文件、設定參考、skills、CLAUDE.md。
-8. **搬遷與清理**：依第 10 節搬遷到 dcslab；驗收後 CD 指向 dcslab，刪除第 2 節列出的舊 compose 與腳本；舊主機、舊 bucket 與 dcslab 候選安裝由管理者決定何時移除。
+8. **dcslab 轉換與清理**：依第 10 節轉換；驗收後 CD 切換到新 workflow，刪除第 2 節列出的舊 compose 與腳本；舊 bucket 由管理者決定何時刪除。
 
-第 2 到第 7 階段期間，舊的 `docker-compose.yml`、`deploy-prod.sh` 與 `cd-prod.yml` 保持可用，現行 prod 仍以舊流程部署 hotfix；新流程只作用於 dcslab。
+第 2 到第 7 階段期間，舊的 `docker-compose.yml`、`deploy-prod.sh` 與 `cd-prod.yml` 保持可用，dcslab 仍以舊流程部署 hotfix。
