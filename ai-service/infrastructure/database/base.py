@@ -40,6 +40,8 @@ def create_async_engine_from_settings() -> AsyncEngine:
     return create_async_engine(
         normalize_async_database_url(database_url),
         pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=5,
     )
 
 

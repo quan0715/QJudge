@@ -157,6 +157,9 @@ class Settings(BaseSettings):
 
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+    qjudge_public_origin: str = Field(
+        default="", validation_alias=AliasChoices("QJUDGE_PUBLIC_ORIGIN")
+    )
     mcp_initialize_timeout_seconds: float = 10.0
     mcp_list_tools_timeout_seconds: float = 10.0
     mcp_call_tool_timeout_seconds: float = 30.0

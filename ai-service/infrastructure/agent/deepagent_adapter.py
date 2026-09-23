@@ -363,7 +363,7 @@ class _DeepAgentRuntime:
     async def setup(self) -> None:
         """Initialize the Postgres checkpointer using a connection pool.
 
-        A pool (min=1, max=10) prevents the "another command is already in
+        A pool (min=1, max=5) prevents the "another command is already in
         progress" OperationalError that occurs when multiple concurrent
         requests—or a CancelledError that leaves a connection dirty—all share
         a single psycopg AsyncConnection.

@@ -228,7 +228,10 @@ class _ReadinessProbe:
 
 def _oauth_locations(settings: Settings) -> tuple[str, str]:
     backend_origin = settings.mcp_token_exchange_url.split("/api/", 1)[0].rstrip("/")
-    issuer = os.environ.get("AI_OAUTH_ISSUER", "").strip().rstrip("/")
+    # AI_OAUTH_ISSUER is read only when the origin is unset (legacy compose).
+    issuer = (
+        settings.qjudge_public_origin or os.environ.get("AI_OAUTH_ISSUER", "")
+    ).strip().rstrip("/")
     jwks_url = os.environ.get(
         "AI_OAUTH_JWKS_URL", f"{backend_origin}/.well-known/jwks.json"
     )
