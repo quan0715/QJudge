@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
 BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
 CONTEST_ID=""
 CONFIRMED=0
@@ -21,7 +20,6 @@ Options:
   --contest-id <id>   Optional. Only clean one contest's evidence data.
 
 Environment:
-  COMPOSE_FILE        docker compose file path (default: docker-compose.dev.yml)
   BACKEND_SERVICE     compose backend service name (default: backend)
 EOF
 }
@@ -58,12 +56,7 @@ if [[ "$CONFIRMED" -ne 1 ]]; then
   exit 1
 fi
 
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  echo "[error] Compose file not found: $COMPOSE_FILE" >&2
-  exit 1
-fi
-
-compose=(docker compose -f "$COMPOSE_FILE")
+compose=("$ROOT_DIR/.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh" dev)
 
 if ! "${compose[@]}" ps --services >/dev/null 2>&1; then
   echo "[error] Unable to read compose services. Is Docker running?" >&2
@@ -71,7 +64,7 @@ if ! "${compose[@]}" ps --services >/dev/null 2>&1; then
 fi
 
 if ! "${compose[@]}" ps --services --status running | grep -qx "$BACKEND_SERVICE"; then
-  echo "[error] Backend service '$BACKEND_SERVICE' is not running in $COMPOSE_FILE" >&2
+  echo "[error] Backend service '$BACKEND_SERVICE' is not running in the dev stack" >&2
   exit 1
 fi
 

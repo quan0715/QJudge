@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down monitor monitor-down loadtest loadtest-down judge-build
+.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down loadtest loadtest-down judge-build
 
 # Default target
 help:
@@ -17,10 +17,6 @@ help:
 	@echo "  test-build      Build and start the testing stack"
 	@echo "  test-down       Stop and remove testing containers and volumes"
 	@echo ""
-	@echo "Monitoring (Overlay):"
-	@echo "  monitor         Start monitoring stack (Prometheus, Grafana) alongside dev"
-	@echo "  monitor-down    Stop monitoring stack"
-	@echo ""
 	@echo "Load Testing:"
 	@echo "  loadtest        Start the load testing stack"
 	@echo "  loadtest-build  Build and start the load testing stack"
@@ -34,13 +30,13 @@ help:
 
 # --- Development ---
 dev: integrity-secrets integrity-resident-build
-	docker compose -f docker-compose.dev.yml up -d
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 
 dev-build: integrity-secrets integrity-resident-build
-	docker compose -f docker-compose.dev.yml up -d --build
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 
 dev-down:
-	docker compose -f docker-compose.dev.yml down
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev down
 
 integrity-secrets:
 	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm --no-deps --build integrity-bootstrap
@@ -57,13 +53,6 @@ test-build:
 
 test-down:
 	docker compose -f docker-compose.test.yml down -v
-
-# --- Monitoring ---
-monitor:
-	docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
-
-monitor-down:
-	docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml down
 
 # --- Load Testing ---
 loadtest:
