@@ -61,13 +61,13 @@ def _paired_with(other: str) -> Callable[[Env], bool]:
     return requirement
 
 
-def _oauth_pair(provider: str) -> tuple[Key, Key]:
+def _oauth_pair(provider: str, label: str) -> tuple[Key, Key]:
     client_id = f"{provider}_OAUTH_CLIENT_ID"
     client_secret = f"{provider}_OAUTH_CLIENT_SECRET"
     return (
-        Key(client_id, "oauth", f"{provider.title()} OAuth client ID.",
+        Key(client_id, "oauth", f"{label} OAuth client ID.",
             required=_paired_with(client_secret)),
-        Key(client_secret, "oauth", f"{provider.title()} OAuth client secret.",
+        Key(client_secret, "oauth", f"{label} OAuth client secret.",
             required=_paired_with(client_id), secret=True),
     )
 
@@ -136,9 +136,9 @@ KEYS: tuple[Key, ...] = (
     Key("VLLM_API_KEY", "ai", "Self-hosted vLLM API key.", secret=True),
     Key("VLLM_BASE_URL", "ai", "Self-hosted vLLM OpenAI-compatible URL."),
     # Third-party login
-    *_oauth_pair("NYCU"),
-    *_oauth_pair("GITHUB"),
-    *_oauth_pair("GOOGLE"),
+    *_oauth_pair("NYCU", "NYCU"),
+    *_oauth_pair("GITHUB", "GitHub"),
+    *_oauth_pair("GOOGLE", "Google"),
     # Email
     Key("EMAIL_HOST_USER", "smtp", "SMTP username.", required=_paired_with("EMAIL_HOST_PASSWORD")),
     Key("EMAIL_HOST_PASSWORD", "smtp", "SMTP password.",
