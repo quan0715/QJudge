@@ -99,3 +99,57 @@ def test_dev_trusts_origin_and_local_vite():
 
     assert ORIGIN in values["CSRF_TRUSTED_ORIGINS"]
     assert "http://localhost:5173" in values["CSRF_TRUSTED_ORIGINS"]
+
+
+MEDIA_NAMES = ["LIVE_MONITORING_ENABLED", "LIVE_MONITORING_PROVIDER", "LIVEKIT_INTERNAL_URL"]
+
+
+def test_media_mode_external_enables_livekit_and_derives_server_url():
+    values = load_settings(
+        "base",
+        {"MEDIA_MODE": "external", "LIVEKIT_PUBLIC_URL": "wss://live.example.edu/"},
+        MEDIA_NAMES,
+    )
+
+    assert values == {
+        "LIVE_MONITORING_ENABLED": True,
+        "LIVE_MONITORING_PROVIDER": "livekit",
+        "LIVEKIT_INTERNAL_URL": "https://live.example.edu",
+    }
+
+
+def test_media_disabled_by_default():
+    values = load_settings("base", {}, MEDIA_NAMES)
+
+    assert values["LIVE_MONITORING_ENABLED"] is False
+    assert values["LIVE_MONITORING_PROVIDER"] == "disabled"
+
+
+def test_media_mode_wins_over_legacy_flag():
+    values = load_settings(
+        "base",
+        {"MEDIA_MODE": "disabled", "LIVE_MONITORING_ENABLED": "true"},
+        MEDIA_NAMES,
+    )
+
+    assert values["LIVE_MONITORING_ENABLED"] is False
+
+
+def test_legacy_flag_still_enables_media_without_media_mode():
+    values = load_settings("base", {"LIVE_MONITORING_ENABLED": "true"}, MEDIA_NAMES)
+
+    assert values["LIVE_MONITORING_ENABLED"] is True
+
+
+def test_explicit_internal_url_overrides_derived_url():
+    values = load_settings(
+        "base",
+        {
+            "MEDIA_MODE": "bundled",
+            "LIVEKIT_PUBLIC_URL": "ws://localhost:7883",
+            "LIVEKIT_INTERNAL_URL": "http://livekit:7883",
+        },
+        MEDIA_NAMES,
+    )
+
+    assert values["LIVEKIT_INTERNAL_URL"] == "http://livekit:7883"

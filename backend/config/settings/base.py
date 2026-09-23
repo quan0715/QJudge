@@ -26,6 +26,15 @@ def _endpoint_is_r2(url: str) -> bool:
 def _env_truthy(name: str, default: str = "false") -> bool:
     return env(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
+
+def _livekit_server_url(public_url: str) -> str:
+    """LiveKit serves its API on the signaling host; map ws(s) to http(s)."""
+    if public_url.startswith("wss://"):
+        return "https://" + public_url[len("wss://"):]
+    if public_url.startswith("ws://"):
+        return "http://" + public_url[len("ws://"):]
+    return public_url
+
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -482,18 +491,19 @@ ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
     env("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
-LIVE_MONITORING_ENABLED = _env_truthy("LIVE_MONITORING_ENABLED")
-
-# Self-hosted LiveKit monitoring.  The provider is intentionally a narrow
-# deployment switch: an enabled deployment must use LiveKit, while the
-# disabled default carries no dependency on the SFU service.
-LIVE_MONITORING_PROVIDER = env(
-    "LIVE_MONITORING_PROVIDER",
-    "livekit" if LIVE_MONITORING_ENABLED else "disabled",
-).strip().lower()
+# MEDIA_MODE selects live monitoring. LIVE_MONITORING_ENABLED is read only when
+# MEDIA_MODE is unset, so hosts still on the legacy compose keep working.
+MEDIA_MODE = (
+    env("MEDIA_MODE")
+    or ("external" if _env_truthy("LIVE_MONITORING_ENABLED") else "disabled")
+).lower()
+LIVE_MONITORING_ENABLED = MEDIA_MODE in {"bundled", "external"}
+LIVE_MONITORING_PROVIDER = "livekit" if LIVE_MONITORING_ENABLED else "disabled"
 LIVEKIT_ENVIRONMENT = env("LIVEKIT_ENVIRONMENT", "dev").strip().lower()
-LIVEKIT_PUBLIC_URL = env("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
-LIVEKIT_INTERNAL_URL = env("LIVEKIT_INTERNAL_URL", "").strip().rstrip("/")
+LIVEKIT_PUBLIC_URL = env("LIVEKIT_PUBLIC_URL", "").rstrip("/")
+LIVEKIT_INTERNAL_URL = env(
+    "LIVEKIT_INTERNAL_URL", _livekit_server_url(LIVEKIT_PUBLIC_URL)
+).rstrip("/")
 LIVEKIT_API_KEY = env("LIVEKIT_API_KEY", "").strip()
 LIVEKIT_API_SECRET = env("LIVEKIT_API_SECRET", "").strip()
 LIVEKIT_NODE_IP = env("LIVEKIT_NODE_IP", "").strip()
