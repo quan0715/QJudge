@@ -81,6 +81,8 @@ coverage.xml
 *.env
 !.env.example
 .env.next
+deploy/backups/
+deploy/.version
 
 # Celery
 celerybeat-schedule
