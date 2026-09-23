@@ -44,6 +44,14 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("QJUDGE_PUBLIC_ORIGIN=", output)
 
+    def test_lint_compose_reports_problems(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "compose.yml"
+            path.write_text("A: ${UNKNOWN_KEY}\n")
+            code, output = self.run_cli("lint-compose", str(path))
+        self.assertEqual(code, 1)
+        self.assertIn("UNKNOWN_KEY", output)
+
 
 if __name__ == "__main__":
     unittest.main()

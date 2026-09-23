@@ -9,6 +9,7 @@ from pathlib import Path
 from .check import check_env
 from .envfile import load
 from .example import render
+from .lint import lint_compose_text
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,11 +20,15 @@ def main(argv: list[str] | None = None) -> int:
     check_parser = commands.add_parser("check", help="validate deploy/.env")
     check_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     commands.add_parser("env-example", help="print the .env.example generated from the schema")
+    lint_parser = commands.add_parser("lint-compose", help="check compose files against the schema")
+    lint_parser.add_argument("files", type=Path, nargs="+")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
         sys.stdout.write(render())
         return 0
+    if args.command == "lint-compose":
+        return _lint(args.files)
     return _check(args.env_file)
 
 
@@ -39,3 +44,12 @@ def _check(env_file: Path) -> int:
         return 1
     print(f"{env_file}: OK")
     return 0
+
+
+def _lint(files: list[Path]) -> int:
+    failed = False
+    for path in files:
+        for problem in lint_compose_text(path.read_text(encoding="utf-8")):
+            print(f"{path}: {problem}")
+            failed = True
+    return 1 if failed else 0
