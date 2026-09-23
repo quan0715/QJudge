@@ -12,6 +12,7 @@
 - 主機 build 會覆蓋 `oj-backend:prod`，失敗時無法回到上一版。
 - dev／test／prod 三份 compose 各自維護服務定義與 env 清單。
 - MinIO 與 LiveKit 散落在 `docker-compose.migration.yml`、`scripts/livekit/` 與主 compose，連線設定要手動兩邊對齊。
+- DB 連線設定重複（每個服務 7 個 `DB_*`），AI 直連 postgres 使總連線數沒有上限。
 
 ### 決定
 
@@ -19,12 +20,13 @@
 |---|---|
 | 部署對象 | 自己的 prod（dcslab）與外部自架者用同一套流程 |
 | 機密 | 放在主機 `deploy/.env` 與 `deploy/secrets/` |
-| 預設值 | 由 app settings 持有；compose 只傳遞，不寫預設值 |
+| 預設值 | 由 app 持有；app 讀 env 時空字串視為未設定；compose 只傳遞，不替使用者 key 提供預設值 |
 | schema | CLI 內一份 key 清單，用來驗證 `.env` 與產生 `.env.example` |
 | 入口 | 前端容器改為 `gateway`，所有 HTTP 路徑（含 `/mcp`）由它分流 |
+| DB | 所有長駐 process 經 pgbouncer；每個 app 只讀一個連線 URL；`.env` 只放密碼 |
 | Storage | 只用 S3 核心 API，單一 bucket 以 prefix 區分 |
 | MinIO／LiveKit | `bundled` 或 `external` 兩種模式；bundled 為獨立 addon |
-| 環境 | 只保留 prod 形狀與 dev overlay；E2E 在 CI 以全新安裝執行 |
+| 環境 | 只保留 prod 形狀與 dev overlay；DB 測試與 E2E 只在 CI 執行 |
 | Image | 維持主機 build，以 git SHA 當 tag，保留最近 3 版供 rollback |
 
 ### 不做
@@ -32,10 +34,12 @@
 - CI 推送 image 到 GHCR、semver release、輕量 bundle（之後再做）。
 - `.env` 自動遷移、版本歷史、舊版安裝轉換工具。
 - 主機搬遷流程。
+- 本地測試 DB。
 
 ### 限制
 
-- dcslab（`/mnt/data/qjudge-app`）原地升級；compose project `qjudge-app`、資料 volume、外部 network `online_judge_oj_network`、MinIO 資料目錄 `/mnt/data/qjudge-data/minio` 必須沿用。
+- dcslab（`140.113.207.46`，`/mnt/data/qjudge-app`）已是 prod（2026-09-23 確認），原地升級。`docs/operations/dcslab-predeployment.md` 為歷史紀錄。
+- compose project `qjudge-app`、資料 volume、外部 network `online_judge_oj_network`、MinIO 資料目錄 `/mnt/data/qjudge-data/minio` 必須沿用。
 
 ## 2. 目錄結構
 
@@ -43,6 +47,11 @@
 deploy/
   compose.yml              QJudge 應用（prod 形狀），只有 image:
   compose.build.yml        6 個自建 image 的 build 設定
+  postgres/
+    postgresql.conf        連線數與記憶體設定
+    initdb.d/              第一次初始化時建立 DB 與 role 的 SQL
+  pgbouncer/
+    pgbouncer.ini          兩個 DB 的 pool 設定
   addons/
     storage/compose.yml    MinIO
     media/                 LiveKit + coturn
@@ -55,7 +64,7 @@ compose.dev.yml            dev overlay
 ci/compose.fakes.yml       CI E2E 用的 fake-ai-adapters
 ```
 
-最後清理階段刪除：`docker-compose.yml`、`docker-compose.dev.yml`、`docker-compose.test.yml`、`docker-compose.migration.yml`、`docker-compose.monitoring.yml` 與 `monitoring/`、`loadtest/docker-compose.loadtest.yml`、`scripts/livekit/`、`frontend/Dockerfile.e2e`、`scripts/deploy-prod.sh`、`scripts/setup-env.sh`、`scripts/prepare-prod-release-env.py`、`scripts/qjudge-deploy.py`、`scripts/check-compose-config.sh`、`scripts/bootstrap_ai_oauth_keys.py`、`scripts/bootstrap_integrity_secrets.py`，並同步更新引用它們的 `Makefile`、`ci.yml`、測試與文件。Locust 腳本保留。
+最後清理階段刪除：`docker-compose.yml`、`docker-compose.dev.yml`、`docker-compose.test.yml`、`docker-compose.migration.yml`、`docker-compose.monitoring.yml` 與 `monitoring/`、`loadtest/docker-compose.loadtest.yml`、`scripts/livekit/`、`scripts/db/bootstrap-ai-database.sh`、`frontend/Dockerfile.e2e`、`scripts/deploy-prod.sh`、`scripts/setup-env.sh`、`scripts/prepare-prod-release-env.py`、`scripts/qjudge-deploy.py`、`scripts/check-compose-config.sh`、`scripts/bootstrap_ai_oauth_keys.py`、`scripts/bootstrap_integrity_secrets.py`，並同步更新引用它們的 `Makefile`、`ci.yml`、測試與文件。Locust 腳本保留。
 
 ## 3. 設定
 
@@ -65,6 +74,17 @@ ci/compose.fakes.yml       CI E2E 用的 fake-ai-adapters
 
 用途：`qjudge check` 驗證 `.env`（缺漏、條件必填、URL 格式），以及產生 `.env.example`。schema 不存預設值與推導邏輯。
 
+### 設定值放哪裡
+
+| 性質 | 位置 | 例子 |
+|---|---|---|
+| 使用者設定 | `deploy/.env` | origin、密碼、storage／media 模式 |
+| 容器間連線 | compose | 服務名稱、內部 port、DB 名稱、由密碼組成的連線 URL |
+| 基礎服務調校 | `deploy/postgres/`、`deploy/pgbouncer/` 設定檔 | `max_connections`、pool 大小 |
+| app 行為 | app 程式常數 | `sslmode`、`CONN_MAX_AGE`、app 端 pool 大小、TTL |
+
+compose 可以寫死容器間連線值，但不替使用者 key 提供預設值。
+
 ### `.env` 的 key
 
 核心：
@@ -73,7 +93,7 @@ ci/compose.fakes.yml       CI E2E 用的 fake-ai-adapters
 - `GATEWAY_BIND_ADDRESS`（預設 `127.0.0.1`；反向代理在另一台機器時填 VPS 內網 IP）、`GATEWAY_PORT`
 - `QJUDGE_TRUSTED_PROXIES`（反向代理的 IP）
 - `COMPOSE_PROJECT_NAME`、`COMPOSE_PROFILES`
-- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰
+- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`（只含英數字）、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰
 
 Storage：
 
@@ -99,11 +119,13 @@ Storage：
 - `OBJECT_STORAGE_REGION`、`OBJECT_STORAGE_AUTO_CREATE_BUCKETS`、`OBJECT_STORAGE_OBJECT_TAGGING_ENABLED`
 - `ANTICHEAT_RAW_BUCKET`、`INTEGRITY_ARCHIVE_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET`、`AI_ARTIFACT_S3_BUCKET`
 - `MCP_PUBLIC_URL`、`LIVEKIT_INTERNAL_URL`
+- `DB_NAME`、`DB_USER`、`DB_HOST`、`DB_PORT`、`DB_SSLMODE`、`DB_CONN_MAX_AGE`、`AI_DB_USER`、`AI_DB_NAME`
 
 dcslab 的 `.env` 依此清單手動改寫一次。
 
 ### 推導與瘦身
 
+- app 共用一個讀 env 的 helper，空字串視為未設定，避免 compose 傳入的空值蓋掉 app 預設。
 - 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。
 - 盤點 backend 與 ai-service 的 env 讀取，部署者不需要設定的值（TTL、內部 bucket 名稱、room prefix 等）改為程式常數。
 
@@ -118,32 +140,49 @@ base 規則：
 
 - 檔案開頭 `name: ${COMPOSE_PROJECT_NAME:-qjudge}`。
 - 自建服務使用 `image: qjudge/<name>:${QJUDGE_VERSION}`。
-- env 以 anchor 依服務群組定義一次，值一律 `${VAR}` 或 `${VAR:-}`；CI lint 禁止 compose 出現非空的 `:-default`（port、bind address 除外）。
+- env 以 anchor 依服務群組定義一次；使用者 key 一律 `${VAR}` 或 `${VAR:-}`；CI lint 禁止 compose 為使用者 key 寫非空的 `:-default`（port、bind address 除外）。
 - 移除所有 `container_name`；`frontend` 改名 `gateway`。
 - `migrate` 與 `ai-migrate` 為一次性服務，backend 啟動不再跑 migrate。
 - 移除 prod ai-service 的 `./ai-service:/app` 原始碼掛載。
 - MinIO、LiveKit、coturn 不在 base。
 
-單元測試改在 dev 容器內執行；`settings.test` 使用獨立 Redis DB index 與 eager Celery。
+## 5. DB
 
-## 5. Gateway
+```
+所有長駐 app process ──▶ pgbouncer（session mode，online_judge + qjudge_ai）──▶ postgres
+pg_dump 與 initdb ─────────────────────────────────────────────────────────▶ postgres（admin）
+```
+
+- AI 改經 pgbouncer，總連線數由 pgbouncer 控制；超過 pool 的請求排隊，不會被 postgres 拒絕。維持 session mode（已通過 200 人壓測，AI checkpointer 與 prepared statement 可正常運作）。
+- 連線預算：`postgresql.conf` 的 `max_connections=400`；`pgbouncer.ini` 中 `online_judge` pool 300、`qjudge_ai` pool 60，保留 40 給 admin 與備份；`max_client_conn=2000`。以 dcslab 記憶體確認 `shared_buffers` 與 `work_mem`。
+- 連線 URL（compose anchor 各一行）：
+  - backend 群組：`DATABASE_URL=postgresql://qjudge_web:${DB_PASSWORD}@pgbouncer:5432/online_judge`
+  - AI 群組：`AI_DATABASE_URL=postgresql://qjudge_ai:${AI_DB_PASSWORD}@pgbouncer:5432/qjudge_ai`
+- pgbouncer 啟動時由兩組密碼產生 `userlist.txt`；其餘設定在 `pgbouncer.ini`。
+- Django：只從 `DATABASE_URL` 建立設定；`sslmode=disable`、`CONN_MAX_AGE=0`、`CONN_HEALTH_CHECKS=True` 為程式常數；`prod.py` 不再另建 DATABASES。
+- AI：SQLAlchemy engine 每個 process 只建立一次，pool 5 + overflow 5；checkpointer pool 上限 5；ai-worker 設定 `--concurrency=2`。修正 `ai-service/worker/tasks.py` 每個任務都呼叫 `async_session_factory()` 建立新 engine 的問題。
+- 初始化：`deploy/postgres/initdb.d/` 的 SQL 在資料目錄為空時建立 `online_judge`／`qjudge_web`、`qjudge_ai`／`qjudge_ai`（NOSUPERUSER、NOCREATEDB、NOCREATEROLE）。移除 `ai-db-bootstrap` 服務與 `deploy-prod.sh` 的 role SQL。既有安裝不需執行；改密碼時以 `ALTER ROLE` 手動更新並同步 `.env`。
+- dev 使用相同拓撲與連線 URL，overlay 只開放 port。
+- 測試：不提供本地測試 DB。CI 的 backend 測試使用 GitHub service postgres，`settings.test` 同樣只讀 `DATABASE_URL`。
+
+## 6. Gateway
 
 - 分流所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/admin`、`/django-admin`、`/static`、`/media`、`/mcp`。
 - `set_real_ip_from` 設為 `QJUDGE_TRUSTED_PROXIES`；`X-Forwarded-Proto` 使用代理傳入值，移除寫死的 `https`。
+- 信任邊界：gateway 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `GATEWAY_PORT`。上游代理必須以 `proxy_set_header` 覆寫 `X-Forwarded-For` 與 `X-Forwarded-Proto`（`ingress` 輸出的範本已包含）。
 - 使用 nginx 官方 image 的 envsubst template。
-- 客戶反向代理只需一條 `proxy_pass` 到 `GATEWAY_BIND_ADDRESS:GATEWAY_PORT`。
 
 `qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → gateway；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 需直接開放或由路由器轉發。
 
-## 6. Storage
+## 7. Storage
 
 - 只使用 Get／Put／Head／Delete／List／presigned URL／checksum；region 固定 `us-east-1`。
 - 執行期不建立 bucket，刪除 backend 與 ai-service 的建 bucket 程式碼。
 - 單一 bucket，固定 prefix：`markdown/`、`integrity/`、`ai-artifacts/`。DB 的 `object_key` 不含 prefix，由存取層加上。
 - 監考證據移除 object tagging，改由 Celery beat 刪除 DB 未保留且超過保存期限的物件。
-- dcslab 轉換時以一次性腳本把舊 bucket 物件複製到新 bucket 的 prefix。
+- dcslab 轉換：一次性複製腳本內寫死舊 bucket → 新 prefix 對照（`markdown-images` → `markdown/`、`anticheat-raw` → `integrity/`、`ai-artifacts` → `ai-artifacts/`），來源與目的為同一個 MinIO；在 app 停止時執行，完成後比對物件數量；舊 bucket 保留不刪。
 
-## 7. Addon
+## 8. Addon
 
 - `deploy/addons/storage`（MinIO）與 `deploy/addons/media`（LiveKit + coturn）各自是獨立 compose project，image 固定版本。
 - `qjudge upgrade` 不會重啟 addon；addon 用 `qjudge addon <name> up|upgrade` 管理。
@@ -151,7 +190,7 @@ base 規則：
 - `qjudge addon media init`：產生 LiveKit API key／secret 與 TURN secret，並寫入 `.env`。
 - `external` 模式不啟動 addon，只使用 `.env` 的連線設定。
 
-## 8. CLI
+## 9. CLI
 
 | 指令 | 行為 |
 |---|---|
@@ -166,43 +205,44 @@ base 規則：
 
 1. `git checkout <ref>`，`qjudge check`。
 2. 以 `sha-<12>` 為 tag build image（舊服務持續運作）。
-3. `pg_dump` 備份到 `deploy/backups/`，保留最近 10 份。
+3. `pg_dump` 備份 `online_judge` 與 `qjudge_ai` 到 `deploy/backups/`，保留最近 10 份。
 4. 執行 `migrate`、`ai-migrate`。
 5. `up -d`。
 6. 健康檢查：經 gateway 內網位址帶 `Host` 打 `/api/health/`，AI 與 Integrity ready。
-7. 失敗時用上一版 image 重新 `up`；DB 不自動還原。
-8. 把目前與上一版 SHA 寫入 `deploy/.version`；清理 image 只保留最近 3 版。
+7. 把目前與上一版 SHA 寫入 `deploy/.version`；清理 image 只保留最近 3 版。
+
+失敗處理：第 5 步之前任一步失敗，checkout 回上一版後結束（服務未變動）；第 5 步之後失敗，checkout 回上一版並以上一版 image 重新 `up`。DB 不自動還原。
+
+migration 必須能與上一版程式碼共存；不能共存的變更，rollback 時需手動還原 DB：`pg_restore --clean --dbname <db> deploy/backups/<id>/<db>.dump`。
 
 ### `rollback`
 
 checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 
-DB bootstrap（建立 `qjudge_admin`、驗證應用 role 權限）改為一次性 `db-bootstrap` 服務，於 migrate 前執行。
-
-## 9. CI 與 CD
+## 10. CI 與 CD
 
 - CI 保留現有 static checks 與 unit job；新增 compose 預設值 lint 與 `.env.example` 一致性檢查。
 - E2E：`qjudge init --non-interactive` → `qjudge upgrade <sha>`（疊加 `ci/compose.fakes.yml`）→ seed → 在 runner 上執行 Playwright，目標為 gateway。
 - CD：確認 SHA 的 CI 成功 → Tailscale 加入 tailnet → SSH 到 dcslab → `deploy/qjudge upgrade <sha>`。
 
-## 10. dcslab 轉換
+## 11. dcslab 轉換
 
-1. 備份 DB、`.env`、`secrets/`。
-2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 MinIO 與 LiveKit 的 credential 與網域）。
-3. 維護時段：停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret）。
-4. 建立新 bucket，執行一次性複製腳本。
+1. 備份 `online_judge`、`qjudge_ai`、`.env`、`secrets/`。
+2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域）。
+3. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret）。
+4. 建立新 bucket，執行一次性複製腳本並比對數量。
 5. `qjudge check` → `qjudge upgrade <sha>`。
 6. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
 
-## 11. 文件
+## 12. 文件
 
 - 公開部署文件改寫為 `init`／`check`／`ingress`／`upgrade`，加入「反向代理在另一台機器」與 `STORAGE_MODE`／`MEDIA_MODE` 說明。
 - 更新 `qjudge-env-compose-owner` skill、`environment-matrix.md`、`qjudge-dc.sh`、`CLAUDE.md`。
 
-## 12. 實作階段
+## 13. 實作階段
 
-1. schema、`check`、`.env.example` 產生、compose lint。
-2. compose 重組：`deploy/`、base + build + dev overlay、migrate／db-bootstrap 服務、app settings 推導與 env 瘦身。
+1. schema、`check`、`.env.example` 產生、compose lint、env helper（空字串視為未設定）。
+2. compose 重組：`deploy/`、base + build + dev overlay、migrate 服務、DB 連線（pgbouncer、URL、initdb、pool 常數）、app settings 推導與 env 瘦身。
 3. gateway 與 `ingress`。
 4. storage 簡化、單一 bucket、storage 與 media addon。
 5. `init`、`upgrade`、`rollback`，CD 改寫。
