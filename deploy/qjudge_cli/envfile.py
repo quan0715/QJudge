@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -15,11 +16,18 @@ def parse(text: str) -> dict[str, str]:
         key = key.strip()
         if key.startswith("export "):
             key = key[len("export "):].strip()
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        values[key] = value
+        values[key] = _parse_value(value.strip())
     return values
+
+
+def _parse_value(value: str) -> str:
+    """Mirror Compose: quoted values end at the closing quote; otherwise
+    " #" starts a comment."""
+    if value[:1] in ("\"", "'"):
+        end = value.find(value[0], 1)
+        if end != -1:
+            return value[1:end]
+    return re.split(r"\s+#", value, maxsplit=1)[0]
 
 
 def load(path: Path) -> dict[str, str]:

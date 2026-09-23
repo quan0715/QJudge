@@ -22,6 +22,15 @@ class ParseTests(unittest.TestCase):
     def test_empty_value_is_kept_as_empty_string(self):
         self.assertEqual(parse("A=\n"), {"A": ""})
 
+    def test_strips_inline_comment_like_compose(self):
+        self.assertEqual(parse("A=https://j.example.edu # prod\n"), {"A": "https://j.example.edu"})
+
+    def test_keeps_hash_without_leading_space(self):
+        self.assertEqual(parse("A=a#b\n"), {"A": "a#b"})
+
+    def test_keeps_hash_inside_quotes_and_drops_trailing_comment(self):
+        self.assertEqual(parse("A=\"x # y\" # note\n"), {"A": "x # y"})
+
 
 if __name__ == "__main__":
     unittest.main()
