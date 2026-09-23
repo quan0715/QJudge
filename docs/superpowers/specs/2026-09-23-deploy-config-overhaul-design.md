@@ -22,6 +22,7 @@
 | 設定管理 | 精簡版：schema 只存在 CLI、只描述客戶會碰的 key；app settings 持有行為預設值；compose 只傳遞 |
 | 入口 | 前端容器改為 `gateway` 單一入口（含 `/mcp`），支援反向代理在另一台機器 |
 | Storage | 只使用 S3 核心 API，合併為單一 bucket 以 prefix 區分 |
+| 基礎依賴 | MinIO 與 LiveKit／coturn 各自支援 `bundled`／`external`；bundled 以獨立 addon（獨立 compose project 與生命週期）提供，`qjudge upgrade` 不碰 addon |
 | 環境 | 只保留 prod 形狀（`deploy/compose.yml`）與 dev overlay；刪除 test compose；E2E 只在 CI 做全新安裝驗收 |
 | Image | 本次維持主機 build，但以 git SHA 標記並保留最近 3 版以支援 rollback |
 | 升級 | `qjudge upgrade`：build 先於停機、備份、身分比對、獨立 migrate、smoke、失敗自動退回程式碼 |
@@ -39,7 +40,7 @@
 
 - prod 為 dcslab（`/mnt/data/qjudge-app`），原地轉換，不做主機搬遷。
 - compose project `qjudge-app`、volume key 與外部 network `online_judge_oj_network` 不變，資料 volume 必須沿用；每次升級都做身分比對。
-- dcslab 上獨立管理的 `qjudge-media`（LiveKit／coturn）與 `qjudge-prod` MinIO 不得被本流程修改或重建。
+- dcslab 上的 MinIO 資料目錄 `/mnt/data/qjudge-data/minio` 與 LiveKit／coturn 的網域、port、secret 必須沿用；兩者改由 addon 管理時只允許在維護時段短暫重啟。
 - 不自動刪除舊 bucket、舊備份或 volume。
 
 ## 2. 目錄結構
@@ -48,7 +49,9 @@
 deploy/                         部署所需全部檔案；未來 bundle 即此目錄
   compose.yml                   唯一服務定義（prod 形狀），只有 image:
   compose.build.yml             6 個自建 image 的 build context（本次 prod／自架／CI 皆疊加）
-  compose.monitoring.yml        選用 Prometheus／Grafana overlay（image 固定版本）
+  addons/
+    storage/compose.yml         MinIO（取代 docker-compose.migration.yml）
+    media/                      LiveKit + coturn + TLS／SNI 設定（取代 scripts/livekit/vps 與主 compose 的 livekit／coturn）
   gateway/                      gateway nginx 樣板
   qjudge                        CLI 入口
   qjudge_cli/                   schema.py、指令實作、ingress nginx 範本
@@ -58,7 +61,9 @@ compose.dev.yml                 dev overlay（repo 根目錄）
 ci/compose.fakes.yml            只新增 fake-ai-adapters，供 CI E2E 使用
 ```
 
-於第 12 節第 8 階段刪除：`docker-compose.yml`、`docker-compose.dev.yml`、`docker-compose.test.yml`、`docker-compose.migration.yml`、`frontend/Dockerfile.e2e`、`scripts/deploy-prod.sh`、`scripts/setup-env.sh`、`scripts/prepare-prod-release-env.py`、`scripts/qjudge-deploy.py`、`scripts/check-compose-config.sh`、`scripts/bootstrap_ai_oauth_keys.py`、`scripts/bootstrap_integrity_secrets.py`（功能併入 CLI）。`loadtest/docker-compose.loadtest.yml` 改為疊在 base 上的 overlay 或刪除，實作時依使用狀況決定。
+於第 12 節第 8 階段刪除：`docker-compose.yml`、`docker-compose.dev.yml`、`docker-compose.test.yml`、`docker-compose.migration.yml`（內容移入 storage addon）、`docker-compose.monitoring.yml` 與 `monitoring/`（不再提供）、`loadtest/docker-compose.loadtest.yml`、`scripts/livekit/`（內容移入 media addon）、`frontend/Dockerfile.e2e`、`scripts/deploy-prod.sh`、`scripts/setup-env.sh`、`scripts/prepare-prod-release-env.py`、`scripts/qjudge-deploy.py`、`scripts/check-compose-config.sh`、`scripts/bootstrap_ai_oauth_keys.py`、`scripts/bootstrap_integrity_secrets.py`（功能併入 CLI）。
+
+壓測保留 `loadtest/` 的 Locust 腳本；壓測環境以 CI E2E 相同的全新安裝腳本建立，settings 改為 `config.settings.loadtest`，Locust 只需目標網址。`Makefile` 的 monitor／loadtest target、`scripts/check-compose-config.sh`、`ci.yml` 路徑、`ai-service/tests/contract/test_compose_boundaries.py` 與 `docs/loadtest.md` 同步更新。
 
 ## 3. 設定 schema（`deploy/qjudge_cli/schema.py`）
 
@@ -67,12 +72,12 @@ Python 標準函式庫實作，主機只需 `python3`。
 ### 每個 key 的欄位
 
 - `name`、`type`（str／bool／int／url／origin／ip-list／enum）
-- `required`：`True`、`False` 或條件函式（例如 `LIVE_MONITORING == "local"`）
+- `required`：`True`、`False` 或條件函式（例如 `MEDIA_MODE == "bundled"`）
 - `secret`：遮蔽輸出、由 `init` 產生或提示輸入
 - `generated`：`init` 自動產生，客戶只需備份
 - `managed`：由 CLI 偵測並寫入（例如 Docker socket GID），客戶不應手改
-- `feature`：所屬功能（core、ai、oauth、smtp、mcp、tunnel、live-monitoring）
-- `consumers`：傳遞給哪些服務群組（django、ai、gateway、mcp、integrity、livekit）
+- `feature`：所屬功能（core、storage、media、ai、oauth、smtp、mcp、tunnel）
+- `consumers`：傳遞給哪些服務群組（django、ai、gateway、mcp、integrity，以及 addon 的 storage、media）
 - `renamed_from`：舊 key 名稱，升級時自動改寫
 - `removed`：已廢除的 key，升級時移除並提示
 - `advanced`：不出現在 `.env.example`，只出現在參考文件
@@ -86,12 +91,14 @@ schema 不寫 app 行為預設值。拓撲值（port、bind address、project na
 最小部署：
 
 - `QJUDGE_PUBLIC_ORIGIN`
-- `OBJECT_STORAGE_ENDPOINT_URL`、`OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`、`OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY`、`OBJECT_STORAGE_BUCKET`（預設 `qjudge`）
+- `STORAGE_MODE=bundled|external`
+  - external：`OBJECT_STORAGE_ENDPOINT_URL`、`OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`、`OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY`、`OBJECT_STORAGE_BUCKET`（預設 `qjudge`）
+  - bundled：只需 `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`（瀏覽器可達的 HTTPS 網域）；endpoint、application key、bucket 由 storage addon 產生
 - 反向代理在另一台機器時必填：`GATEWAY_BIND_ADDRESS`（VPS 內網 IP）、`QJUDGE_TRUSTED_PROXIES`（代理機器 IP）；同機時預設 `127.0.0.1`
 
 拓撲：`COMPOSE_PROJECT_NAME`、`COMPOSE_PROFILES`、`GATEWAY_PORT`、`QJUDGE_NETWORK_NAME`／`QJUDGE_NETWORK_EXTERNAL`（advanced）
 
-產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 金鑰與 Integrity 機密；本機 LiveKit 時另產生 API key／secret 與 TURN secret。
+產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 金鑰與 Integrity 機密；bundled addon 另產生 MinIO root 與 application credential、LiveKit API key／secret 與 TURN secret。
 
 選用功能：
 
@@ -102,7 +109,7 @@ schema 不寫 app 行為預設值。拓撲值（port、bind address、project na
 | SMTP | `EMAIL_HOST_USER`、`EMAIL_HOST_PASSWORD`；host／port advanced |
 | Remote MCP | `QJUDGE_REMOTE_MCP_ENABLED` |
 | Cloudflare Tunnel | `TUNNEL_TOKEN`（對應 profile `tunnel`） |
-| 監考 | `LIVE_MONITORING=disabled|external|local`；external：`LIVEKIT_PUBLIC_URL`、`LIVEKIT_API_KEY`、`LIVEKIT_API_SECRET`；local：`LIVEKIT_PUBLIC_URL`、`LIVEKIT_NODE_IP`、`LIVEKIT_TURN_HOST` |
+| 監考 | `MEDIA_MODE=disabled|bundled|external`；external：`LIVEKIT_PUBLIC_URL`、`LIVEKIT_API_KEY`、`LIVEKIT_API_SECRET`；bundled：`LIVEKIT_PUBLIC_URL`、`LIVEKIT_NODE_IP`、`LIVEKIT_TURN_HOST` |
 
 ### 改名與廢除（由 `renamed_from`／`removed` 處理）
 
@@ -110,11 +117,11 @@ schema 不寫 app 行為預設值。拓撲值（port、bind address、project na
 |---|---|
 | `FRONTEND_PORT` | `GATEWAY_PORT` |
 | `FRONTEND_BIND_ADDRESS` | `GATEWAY_BIND_ADDRESS` |
-| `LIVE_MONITORING_ENABLED` + `LIVEKIT_DEPLOYMENT` | `LIVE_MONITORING` |
+| `LIVE_MONITORING_ENABLED` + `LIVEKIT_DEPLOYMENT` | `MEDIA_MODE`（`local` 對應 `bundled`） |
 | `OBJECT_STORAGE_REGION`、`OBJECT_STORAGE_AUTO_CREATE_BUCKETS`、`OBJECT_STORAGE_OBJECT_TAGGING_ENABLED` | 廢除 |
 | `ANTICHEAT_RAW_BUCKET`、`INTEGRITY_ARCHIVE_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET`、`AI_ARTIFACT_S3_BUCKET` | 廢除，改用 `OBJECT_STORAGE_BUCKET` + 固定 prefix |
 | `MCP_PUBLIC_URL` | 廢除，由 origin + `/mcp` 推導 |
-| `LIVEKIT_INTERNAL_URL`（local 模式） | 廢除，由服務名稱推導；external 模式仍可設定（advanced） |
+| `LIVEKIT_INTERNAL_URL`（bundled 模式） | 廢除，由 addon 位址推導；external 模式仍可設定（advanced） |
 
 ### 推導規則的歸屬
 
@@ -142,7 +149,7 @@ schema 不寫 app 行為預設值。拓撲值（port、bind address、project na
 - 移除所有 `container_name`。
 - `frontend` 服務改名為 `gateway`。
 - `migrate`（backend）與 `ai-migrate` 為一次性服務，backend 啟動指令不再執行 migrate。
-- 選用功能使用 profiles：`livekit`、`turn`、`tunnel`、`monitoring`；由 `.env` 的 `COMPOSE_PROFILES` 控制，直接 `docker compose up` 即可得到正確服務集合。
+- base 只包含 QJudge 應用；MinIO、LiveKit、coturn 不在 base。唯一 profile 為 `tunnel`，由 `.env` 的 `COMPOSE_PROFILES` 控制，直接 `docker compose up` 即可得到正確服務集合。
 - 移除 prod ai-service 的 `./ai-service:/app` 原始碼掛載。
 
 ### dev overlay 只覆寫
@@ -169,7 +176,7 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 依 `.env` 啟用的功能輸出：
 
 - HTTP 單一路由：主網域 → gateway。
-- 需要獨立 hostname：MinIO 公開端點（保留 `Host`、上傳大小、關閉 request buffering）、本機 LiveKit 信令（WebSocket）。
+- 需要獨立 hostname：MinIO 公開端點（保留 `Host`、上傳大小、關閉 request buffering）、bundled LiveKit 信令（WebSocket）與 TURN TLS。
 - 非 HTTP：LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 與 relay 範圍；說明 VPS 有公網 IP 時直接開放，否則由客戶路由器 DNAT，`LIVEKIT_NODE_IP` 填對外公網 IP；TURN DNS 不可經 proxy。
 - 在代理機器上執行的驗證指令，例如 `curl -H 'Host: judge.example.edu' http://10.0.0.5:8080/api/health/`。
 - `--nginx`：輸出客戶反向代理可參考的 server block。
@@ -181,8 +188,29 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 - 執行期不建立 bucket；刪除 `markdown_image_storage.py` 與 ai-service `s3_artifact_store.py` 的建 bucket 邏輯。
 - 單一 bucket，固定 prefix：`markdown/`、`integrity/`、`ai-artifacts/`（實作時盤點其他使用者並補齊）。DB 內保存的 `object_key` 不含 prefix，由 storage 存取層加上，不改寫資料。
 - 監考證據改用 app 端清理：移除 upload `cleanup=true` 與 `retain=true` tagging；Celery beat 定期刪除未被保留且超過保存期限的物件，保留判斷以 DB 為準。R2 與 MinIO 行為一致。
-- `qjudge storage check`：HeadBucket；不存在時嘗試 CreateBucket，無權限則提示客戶手動建立；並以測試物件驗證 Put／Get／Delete 與 presigned URL。
+- `qjudge storage check`：HeadBucket；external 模式下不存在時嘗試 CreateBucket，無權限則提示客戶手動建立；bundled 模式由 storage addon init 建立 bucket、application key 與 CORS；兩者都以測試物件驗證 Put／Get／Delete 與 presigned URL。
 - `qjudge storage migrate`：伺服器端 CopyObject 將舊 bucket 物件複製到新 bucket 對應 prefix，比對數量與大小；增量執行，已存在且大小相同的物件跳過，因此可先做一次完整複製、升級前再補齊差異；不刪除舊 bucket。
+
+## 6.1 基礎依賴 addon
+
+### 模式
+
+| 依賴 | `.env` | 模式 |
+|---|---|---|
+| Object storage | `STORAGE_MODE` | `bundled`：storage addon 的 MinIO；`external`：R2、學校 MinIO 等任何 S3 相容服務 |
+| 監考 media | `MEDIA_MODE` | `disabled`；`bundled`：media addon 的 LiveKit + coturn；`external`：既有 LiveKit |
+
+### addon 規則
+
+- 每個 addon 為 `deploy/addons/<name>/`，有獨立 compose project（`qjudge-storage`、`qjudge-media`）與固定 image 版本；image 以 release tag 加 digest 固定，不使用 `latest`。
+- `qjudge upgrade` 只處理應用 project，不 recreate、不重啟 addon。addon 以 `qjudge addon <name> init|up|status|upgrade|backup` 管理，升級時段由管理者決定。
+- addon 設定寫在同一份 `deploy/.env` 與同一份 schema；`check`、`doctor`、`ingress` 涵蓋 addon。
+- bundled 模式自動對接：
+  - storage：MinIO 以應用 network 別名 `minio` 提供 `http://minio:9000`；init 建立 root credential（只供 addon 使用）、QJudge 專用 application key（只允許該 bucket）、bucket 與 CORS（origin 取自 `QJUDGE_PUBLIC_ORIGIN`）。
+  - media：init 產生 LiveKit API key／secret 與 TURN secret，同時供 addon 與應用使用；LiveKit 與 coturn 使用 host networking；TLS 與 SNI 分流（HAProxy／nginx／certbot）的設定由 addon 提供範本，實際 ingress 由 `qjudge ingress` 列出。
+- addon 可部署在另一台主機：在該主機 clone repo，只執行 `qjudge addon <name>`；應用端改用 external 模式並填入 addon 輸出的連線資訊。
+- 備份：`qjudge backup` 只含 DB、`.env`、`secrets/`；storage addon 提供 `qjudge addon storage backup`（mirror 到管理者指定位置）；`doctor` 在 bundled storage 未設定 mirror 時警告。
+- MinIO 社群版的 image 發布與授權狀態需在實作時確認；app 只依賴 S3 核心 API，必要時可替換為其他 S3 相容實作而不影響應用。
 
 ## 7. CLI（`deploy/qjudge`）
 
@@ -197,6 +225,7 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 | `rollback [--to <sha>]` | 見第 8 節 |
 | `backup` / `backup restore <id>` | 手動備份與還原；還原必須互動確認或 `--yes` |
 | `storage check` / `storage migrate` | 見第 6 節 |
+| `addon <storage|media> init|up|status|upgrade|backup` | 見第 6.1 節 |
 
 `.env` 的讀寫只由 CLI 的單一 parser 處理，改寫時保留註解與順序，並先備份。
 
@@ -264,11 +293,12 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 
 1. 以舊流程做一次完整備份（DB dump、根目錄 `.env`、`secrets/`），另存主機外。
 2. checkout 新版後，`mv .env deploy/.env`、`mv secrets deploy/secrets`（保留權限）。
-3. 確認 `deploy/.env` 含 `COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`LIVE_MONITORING=external`（接 `qjudge-media`，LiveKit 使用 host networking，`LIVEKIT_INTERNAL_URL` 以 advanced key 設定）。
+3. 確認 `deploy/.env` 含 `COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，並填入現有 MinIO 與 LiveKit／coturn 的 credential、網域與 secret（沿用，不重新產生）。
 4. `qjudge check`：列出需要的改名與缺漏；改名由第一次 `upgrade` 自動套用。
-5. 在 `qjudge-prod` MinIO 建立新 bucket，`qjudge storage check`，`qjudge storage migrate` 完整複製。
-6. 選定正式考試以外的時段執行 `qjudge upgrade <sha>`；第一次執行時若沒有 `state.json`，以目前 HEAD 建立，身分比對改以 compose project label 找出執行中的服務。`upgrade` 前再執行一次 `storage migrate` 補齊差異。
-7. 驗收登入、評測、Integrity、監考、AI、MCP。
+5. 盤點 dcslab 上目前 MinIO（`docker-compose.migration.yml`）與 LiveKit／coturn 的實際部署：compose project、設定與 secret 路徑、port、TLS／SNI 設定。維護時段內以 addon 取代：`qjudge addon storage up`（資料目錄沿用 `/mnt/data/qjudge-data/minio`）、`qjudge addon media up`（網域、port、secret 沿用），確認後停止舊的 compose project。
+6. `qjudge addon storage init` 只補建新 bucket 與 application key（已存在者不覆寫），`qjudge storage check`，`qjudge storage migrate` 完整複製。
+7. 選定正式考試以外的時段執行 `qjudge upgrade <sha>`；第一次執行時若沒有 `state.json`，以目前 HEAD 建立，身分比對改以 compose project label 找出執行中的服務。`upgrade` 前再執行一次 `storage migrate` 補齊差異。
+8. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
 
 第一次升級前的舊 image 沒有 SHA tag，`qjudge rollback` 無法回到轉換前版本。轉換失敗時的回退方式：checkout 舊版、將 `.env` 與 `secrets/` 移回根目錄、以舊 `deploy-prod.sh` 流程啟動；DB 依需要以步驟 1 的備份還原。
 
@@ -276,6 +306,7 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 
 - 公開部署文件（`frontend/public/docs/zh-TW/deployment*.md`）改寫為 `init`／`check`／`ingress`／`upgrade` 流程，新增「反向代理在另一台機器」章節。
 - `docs/operations/production-configuration.md` 改為由 schema 產生的設定參考。
+- `frontend/public/docs/zh-TW/deployment-storage.md` 與監考部署文件改寫為 `STORAGE_MODE`／`MEDIA_MODE` 兩種模式；`scripts/livekit/vps/README.md` 的維運內容移入 media addon 文件。
 - 更新 `qjudge-env-compose-owner` skill、`environment-matrix.md`、`qjudge-dc.sh`、repository `CLAUDE.md` 的 `main|dev|test` 說明。
 - 更新 agent memory 中關於 test 環境與共用 project name 的紀錄。
 
@@ -286,7 +317,7 @@ nginx 容器負責所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/
 1. **Schema 與 CLI 基礎**：`schema.py`、`.env` parser、`check`、`config show`、`.env.example` 產生、compose lint。schema 先描述現有 key，後續階段每次改名或廢除 key 時同步加入 `renamed_from`／`removed`。
 2. **Compose 重組**：`deploy/` 目錄、base + build + dev overlay、移除 `container_name`、獨立 migrate／db-bootstrap、profiles、移除 prod 原始碼掛載；app settings 改由 origin 推導、env 瘦身。
 3. **Gateway**：改名、trusted proxies、`/mcp`、`ingress`。
-4. **Storage**：核心 API、單一 bucket prefix、app 端清理、`storage check`／`migrate`。
+4. **Storage 與 addon**：核心 API、單一 bucket prefix、app 端清理、`storage check`／`migrate`；storage 與 media addon、`STORAGE_MODE`／`MEDIA_MODE`；主 compose 移除 livekit／coturn。
 5. **升級流程**：`init`、`upgrade`、`rollback`、`backup`、`doctor`；新版 CD workflow（Tailscale + OpenSSH forced command，目標為 dcslab）。
 6. **測試與 CI**：刪除 test compose 與 `Dockerfile.e2e`、單元測試改在 dev 容器、CI E2E 全新安裝、migration lint。
 7. **文件與指引**：公開部署文件、設定參考、skills、CLAUDE.md。
