@@ -48,8 +48,7 @@ deploy/
   compose.yml              QJudge 應用（prod 形狀），只有 image:
   compose.build.yml        6 個自建 image 的 build 設定
   postgres/
-    postgresql.conf        連線數與記憶體設定
-    initdb.d/              第一次初始化時建立 DB 與 role 的 SQL
+    initdb.d/              第一次初始化時建立 DB 與 role 的腳本
   pgbouncer/
     pgbouncer.ini          兩個 DB 的 pool 設定
   addons/
@@ -80,7 +79,7 @@ ci/compose.fakes.yml       CI E2E 用的 fake-ai-adapters
 |---|---|---|
 | 使用者設定 | `deploy/.env` | origin、密碼、storage／media 模式 |
 | 容器間連線 | compose | 服務名稱、內部 port、DB 名稱、由密碼組成的連線 URL |
-| 基礎服務調校 | `deploy/postgres/`、`deploy/pgbouncer/` 設定檔 | `max_connections`、pool 大小 |
+| 基礎服務調校 | postgres：compose command 的 `-c` 參數；pgbouncer：`deploy/pgbouncer/pgbouncer.ini` | `max_connections`、pool 大小 |
 | app 行為 | app 程式常數 | `sslmode`、`CONN_MAX_AGE`、app 端 pool 大小、TTL |
 
 compose 可以寫死容器間連線值，但不替使用者 key 提供預設值。
@@ -93,7 +92,7 @@ compose 可以寫死容器間連線值，但不替使用者 key 提供預設值�
 - `GATEWAY_BIND_ADDRESS`（預設 `127.0.0.1`；反向代理在另一台機器時填 VPS 內網 IP）、`GATEWAY_PORT`
 - `QJUDGE_TRUSTED_PROXIES`（反向代理的 IP）
 - `COMPOSE_PROJECT_NAME`、`COMPOSE_PROFILES`
-- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰。三組 DB 密碼只含英數字（會直接放進連線 URL），`check` 驗證此規則
+- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰。三組 DB 密碼只能含 URL 不需編碼的字元（英數字與 `-._~`，會直接放進連線 URL），`check` 驗證此規則
 
 Storage：
 
@@ -111,6 +110,7 @@ Storage：
 | SMTP | `EMAIL_HOST_USER`、`EMAIL_HOST_PASSWORD` |
 | Remote MCP | `QJUDGE_REMOTE_MCP_ENABLED` |
 | Cloudflare Tunnel | `TUNNEL_TOKEN`（profile `tunnel`） |
+| 本地開發 | `HOST_PROJECT_ROOT`、`DOCKER_JUDGE_PLATFORM`（只有 dev 使用） |
 
 ### 移除的 key
 
@@ -127,20 +127,22 @@ dcslab 的 `.env` 依此清單手動改寫一次。
 ### 推導與瘦身
 
 - app 共用一個讀 env 的 helper，空字串視為未設定，避免 compose 傳入的空值蓋掉 app 預設。
-- 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。
+- 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。MCP URL 的推導與 `/mcp` 路由一起在 gateway 計畫處理。
+- 過渡期：dcslab 在清理前仍以舊 compose 部署，app 在新 key 未設定時讀舊 key（`LIVE_MONITORING_ENABLED`、`AI_OAUTH_ISSUER`、mcp 的 `OAUTH_ISSUER_URL`），清理階段移除。
+- `LIVEKIT_INTERNAL_URL` 預設由 `LIVEKIT_PUBLIC_URL` 推導（`ws`/`wss` 換成 `http`/`https`）；dev overlay 以容器位址覆寫。
 - 盤點 backend 與 ai-service 的 env 讀取，部署者不需要設定的值（TTL、內部 bucket 名稱、room prefix 等）改為程式常數。
 
 ## 4. Compose
 
 - prod：`deploy/compose.yml` + `deploy/compose.build.yml`。
-- dev：再疊 `compose.dev.yml`，project `qjudge-dev`；只覆寫程式碼 bind mount、熱重載指令、localhost port、`settings.dev`、Storybook、Vite dev server。
+- dev：再疊 `compose.dev.yml`；project 名稱沿用 checkout 目錄名稱（主目錄為 `online_judge`，worktree 各自不同），以沿用既有 dev volume；network 為 project 內建 network；只覆寫程式碼 bind mount、熱重載指令、localhost port、`settings.dev`、Storybook、Vite dev server、dev 專用連線值。dev 的設定檔同樣是 `deploy/.env`。
 - CI E2E：prod 形狀 + `ci/compose.fakes.yml`，每次獨立 project。
 - `qjudge-dc.sh` 只保留 `main` 與 `dev`。
 
 base 規則：
 
 - 檔案開頭 `name: ${COMPOSE_PROJECT_NAME:-qjudge}`。
-- 共用 network 固定名稱 `qjudge`，宣告為 `external: true`；app 與 addon 都掛在這個 network。`init`、`upgrade`、`addon up` 執行前若不存在就建立。dev overlay 改用 `qjudge-dev`，由 `qjudge-dc.sh` 建立。
+- 共用 network 固定名稱 `qjudge`，宣告為 `external: true`；app 與 addon 都掛在這個 network。`init`、`upgrade`、`addon up` 執行前若不存在就建立。dev overlay 改回 project 內建 network，避免多個 worktree 共用同一個 network。
 - 自建服務使用 `image: qjudge/<name>:${QJUDGE_VERSION}`。
 - env 以 anchor 依服務群組定義一次；使用者 key 一律 `${VAR}` 或 `${VAR:-}`；CI lint 禁止 compose 為使用者 key 寫非空的 `:-default`（port、bind address 除外）。
 - 移除所有 `container_name`；`frontend` 改名 `gateway`。
@@ -156,13 +158,13 @@ pg_dump 與 initdb ────────────────────�
 ```
 
 - AI 改經 pgbouncer，總連線數由 pgbouncer 控制；超過 pool 的請求排隊，不會被 postgres 拒絕。維持 session mode（已通過 200 人壓測，AI checkpointer 與 prepared statement 可正常運作）。
-- 連線預算：`postgresql.conf` 的 `max_connections=400`；`pgbouncer.ini` 中 `online_judge` pool 300、`qjudge_ai` pool 60，保留 40 給 admin 與備份；`max_client_conn=2000`。以 dcslab 記憶體確認 `shared_buffers` 與 `work_mem`。
+- 連線預算：postgres `-c max_connections=400`（不改用 `config_file`，因為它會忽略既有資料目錄的設定）；`pgbouncer.ini` 中 `online_judge` pool 300、`qjudge_ai` pool 60，各保留 10 條 reserve，剩餘 20 條給 admin 與備份；`max_client_conn=2000`。以 dcslab 記憶體確認 `shared_buffers` 與 `work_mem`。
 - 連線 URL（compose anchor 各一行）：
   - backend 群組：`DATABASE_URL=postgresql://qjudge_web:${DB_PASSWORD}@pgbouncer:5432/online_judge`
   - AI 群組：`AI_DATABASE_URL=postgresql://qjudge_ai:${AI_DB_PASSWORD}@pgbouncer:5432/qjudge_ai`
-- pgbouncer 啟動時由兩組密碼產生 `userlist.txt`；其餘設定在 `pgbouncer.ini`。
+- pgbouncer 由 image 內建 entrypoint 依 `DATABASE_URLS`（兩組連線）產生 `userlist.txt`；其餘設定在掛載的 `pgbouncer.ini`。
 - Django：只從 `DATABASE_URL` 建立設定；`sslmode=disable`、`CONN_MAX_AGE=0`、`CONN_HEALTH_CHECKS=True` 為程式常數；`prod.py` 不再另建 DATABASES。
-- AI：SQLAlchemy engine 每個 process 只建立一次，pool 5 + overflow 5；checkpointer pool 上限 5；ai-worker 設定 `--concurrency=2`。修正 `ai-service/worker/tasks.py` 每個任務都呼叫 `async_session_factory()` 建立新 engine 的問題。
+- AI：SQLAlchemy engine pool 5 + overflow 5；checkpointer pool 上限 5，`search_path` 改在連線建立後以 `SET` 設定（pgbouncer 不接受 `options` 啟動參數）；ai-worker 設定 `--concurrency=2`。worker 任務每次以 `asyncio.run` 建立並 dispose engine 是正確做法（async engine 不能跨 event loop），維持不變。
 - 初始化：`deploy/postgres/initdb.d/` 的 SQL 在資料目錄為空時建立 `online_judge`／`qjudge_web`、`qjudge_ai`／`qjudge_ai`（NOSUPERUSER、NOCREATEDB、NOCREATEROLE）。移除 `ai-db-bootstrap` 服務與 `deploy-prod.sh` 的 role SQL。既有安裝不需執行；改密碼時以 `ALTER ROLE` 手動更新並同步 `.env`。
 - dev 使用相同拓撲與連線 URL，overlay 只開放 port。
 - 測試：不提供本地測試 DB。CI 的 backend 測試使用 GitHub service postgres，`settings.test` 同樣只讀 `DATABASE_URL`。
@@ -244,8 +246,9 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 
 ## 13. 實作階段
 
-1. schema、`check`、`.env.example` 產生、compose lint、env helper（空字串視為未設定）。
-2. compose 重組：`deploy/`、base + build + dev overlay、migrate 服務、DB 連線（pgbouncer、URL、initdb、pool 常數）、app settings 推導與 env 瘦身。
+1. schema、`check`、`.env.example` 產生、env helper（空字串視為未設定）。
+2. compose 與 DB：`deploy/`、base + build + dev overlay、migrate 服務、DB 連線（pgbouncer、URL、initdb、pool 常數）、app 由 origin 推導與 `MEDIA_MODE`、compose lint、本地 dev 切換。
+2.5. app env 瘦身：沒有部署者設定的 env 改為程式常數。
 3. gateway 與 `ingress`。
 4. storage 簡化、單一 bucket、storage 與 media addon。
 5. `init`、`upgrade`、`rollback`，CD 改寫。
