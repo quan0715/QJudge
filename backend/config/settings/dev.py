@@ -1,13 +1,13 @@
 """
 Development settings
 """
-import os
+from config.env import env
 from .base import *
 
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = env('DEBUG', 'True') == 'True'
 
 # GlitchTip / Sentry Error Tracking (optional in dev — sentry-sdk is a prod dependency)
-GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
+GLITCHTIP_DSN = env("GLITCHTIP_DSN", "")
 if GLITCHTIP_DSN:
     try:
         import sentry_sdk
@@ -23,7 +23,7 @@ if GLITCHTIP_DSN:
     except ImportError:
         pass
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
+ALLOWED_HOSTS = env('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
 
 # Development-specific apps
 INSTALLED_APPS += [
@@ -88,14 +88,14 @@ LOGGING = {
     },
 }
 # CORS settings
-CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in env('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
+if env('FRONTEND_URL'):
+    CORS_ALLOWED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in env('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
+if env('FRONTEND_URL'):
+    CSRF_TRUSTED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
 # Dev may expose the same backend through a public tunnel while the frontend is
 # still exercised directly through Vite. Keep both local Vite origins trusted
 # even when FRONTEND_URL points at the tunnel hostname.
@@ -103,7 +103,7 @@ for _origin in ('http://localhost:5173', 'http://127.0.0.1:5173'):
     if _origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_origin)
 # Cloudflare Tunnel dev domains
-for _host in os.getenv('ALLOWED_HOSTS', '').split(','):
+for _host in env('ALLOWED_HOSTS', '').split(','):
     _host = _host.strip()
     if _host and _host not in ('localhost', '127.0.0.1', '0.0.0.0', '*'):
         CSRF_TRUSTED_ORIGINS.append(f'https://{_host}')

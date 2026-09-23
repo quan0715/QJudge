@@ -4,7 +4,7 @@ Load test settings - inherits from test.py with key differences:
 - Rate limiting enabled
 - S3-compatible anticheat storage configured
 """
-import os
+from config.env import env
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -26,20 +26,20 @@ REST_FRAMEWORK = {
 }
 
 # Disable only login IP ratelimit in loadtest by default to avoid test data pollution.
-LOADTEST_DISABLE_LOGIN_RATELIMIT = os.getenv(
+LOADTEST_DISABLE_LOGIN_RATELIMIT = env(
     "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"
 ) == "1"
 
 # --- Object storage / Anticheat ---
-OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
+OBJECT_STORAGE_ENDPOINT_URL = env("OBJECT_STORAGE_ENDPOINT_URL", "")
 # For Locust / browser direct PUT.
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv(
+OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = env(
     "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
     OBJECT_STORAGE_ENDPOINT_URL,
 )
-OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "")
-OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "")
-OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "auto")
+OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
+OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
+OBJECT_STORAGE_REGION = env("OBJECT_STORAGE_REGION", "auto")
 
 _REQUIRED_OBJECT_STORAGE_SETTINGS = {
     "OBJECT_STORAGE_ENDPOINT_URL": OBJECT_STORAGE_ENDPOINT_URL,
@@ -55,4 +55,4 @@ if _missing_object_storage_settings:
         + ", ".join(_missing_object_storage_settings)
     )
 
-ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+ANTICHEAT_RAW_BUCKET = env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")

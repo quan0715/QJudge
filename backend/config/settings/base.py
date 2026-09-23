@@ -4,9 +4,12 @@ Base settings shared across all environments.
 """
 
 import os
+from config.env import env
 from pathlib import Path
 from datetime import timedelta
 from urllib.parse import urlparse
+
+from .database import build_database_config
 
 from config.deployment import parse_public_origin
 
@@ -21,13 +24,13 @@ def _endpoint_is_r2(url: str) -> bool:
 
 
 def _env_truthy(name: str, default: str = "false") -> bool:
-    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+    return env(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-default-key-change-in-production")
+SECRET_KEY = env("SECRET_KEY", "django-insecure-default-key-change-in-production")
 
 # Application definition
 INSTALLED_APPS = [
@@ -94,25 +97,19 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Database Configuration
+# With pgBouncer (session mode), release connections after each request. The
+# legacy DB_* values remain available to existing installs and maintenance jobs.
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "online_judge"),
-        "USER": os.getenv("DB_USER", "postgres"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
-        "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        # With pgBouncer (session mode) as the connection proxy, Django should
-        # release connections immediately after each request (CONN_MAX_AGE=0).
-        # pgBouncer returns the server connection to its pool and reuses it for
-        # the next request, so there is no penalty for closing from Django's side.
-        # Override via DB_CONN_MAX_AGE env var if running without pgBouncer.
-        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
-        "CONN_HEALTH_CHECKS": True,
-        "OPTIONS": {
-            "connect_timeout": 10,
+    "default": build_database_config(
+        {
+            "NAME": env("DB_NAME", "online_judge"),
+            "USER": env("DB_USER", "postgres"),
+            "PASSWORD": env("DB_PASSWORD", "postgres"),
+            "HOST": env("DB_HOST", "localhost"),
+            "PORT": env("DB_PORT", "5432"),
         },
-    }
+        {"connect_timeout": 10},
+    )
 }
 
 # Custom User Model
@@ -211,7 +208,7 @@ SIMPLE_JWT = {
 JWT_AUTH_COOKIE = "access_token"
 JWT_AUTH_REFRESH_COOKIE = "refresh_token"
 # Secure flag is set based on environment (overridden in dev.py/prod.py if needed)
-JWT_AUTH_COOKIE_SECURE = os.getenv("DJANGO_ENV", "production") == "production"
+JWT_AUTH_COOKIE_SECURE = env("DJANGO_ENV", "production") == "production"
 JWT_AUTH_COOKIE_HTTP_ONLY = True  # Prevent XSS attacks
 JWT_AUTH_COOKIE_SAMESITE = "Lax"  # CSRF protection
 JWT_AUTH_COOKIE_PATH = "/"
@@ -232,26 +229,26 @@ OAUTH2_PROVIDER = {
     "ALLOWED_REDIRECT_URI_SCHEMES": ["http", "https", "cursor", "vscode"],
 }
 
-_QJUDGE_PUBLIC_ORIGIN_RAW = os.environ.get("QJUDGE_PUBLIC_ORIGIN", "")
+_QJUDGE_PUBLIC_ORIGIN_RAW = env("QJUDGE_PUBLIC_ORIGIN", "")
 _QJUDGE_PUBLIC_ORIGIN = (
     parse_public_origin(_QJUDGE_PUBLIC_ORIGIN_RAW)
     if _QJUDGE_PUBLIC_ORIGIN_RAW
     else None
 )
-FRONTEND_URL = os.environ.get(
+FRONTEND_URL = env(
     "FRONTEND_URL",
     _QJUDGE_PUBLIC_ORIGIN.url if _QJUDGE_PUBLIC_ORIGIN else "http://localhost:5173",
 )
 # OAuth issuer defaults to FRONTEND_URL (same domain in production)
-OAUTH_ISSUER_URL = os.environ.get("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
+OAUTH_ISSUER_URL = env("OAUTH_ISSUER_URL", FRONTEND_URL).rstrip("/")
 AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
-    os.environ.get(
+    env(
         "AI_OAUTH_SIGNING_PRIVATE_KEY_FILE",
         BASE_DIR.parent / "secrets" / "ai-oauth-ed25519-private.pem",
     )
 )
 # MCP server public URL (served at /mcp via streamable-http transport)
-MCP_PUBLIC_URL = os.environ.get("MCP_PUBLIC_URL", "http://localhost:9000")
+MCP_PUBLIC_URL = env("MCP_PUBLIC_URL", "http://localhost:9000")
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {
@@ -302,13 +299,13 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Session cookie settings
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = os.getenv("DJANGO_ENV", "production") == "production"
+SESSION_COOKIE_SECURE = env("DJANGO_ENV", "production") == "production"
 
 # CSRF cookie settings
 # CSRF_COOKIE_HTTPONLY = False allows frontend to read the token via JavaScript
 # and include it in the X-CSRFToken header for cookie-authenticated requests
 CSRF_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = os.getenv("DJANGO_ENV", "production") == "production"
+CSRF_COOKIE_SECURE = env("DJANGO_ENV", "production") == "production"
 CSRF_COOKIE_HTTPONLY = False  # Frontend needs to read this for X-CSRFToken header
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
@@ -318,7 +315,7 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+        "LOCATION": env("REDIS_URL", "redis://localhost:6379/1"),
         "KEY_PREFIX": "qjudge",
         "TIMEOUT": 300,  # 5 minutes default
     }
@@ -336,18 +333,18 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/0")],
+            "hosts": [env("REDIS_URL", "redis://localhost:6379/0")],
         },
     },
 }
 
 # Email defaults (provider-agnostic; EMAIL_BACKEND set per environment)
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "noreply@example.com")
 EMAIL_SUBJECT_PREFIX = "[QJudge] "
 
 # Celery settings
-CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CELERY_BROKER_URL = env("REDIS_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("REDIS_URL", "redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
@@ -362,33 +359,33 @@ CELERY_BEAT_SCHEDULE = {}
 # The connection catalog holds endpoints and credential variable names, never the
 # credentials, so it ships as a file; the JSON variable overrides it, and an
 # explicit empty array there disables every OAuth provider.
-AUTH_EMAIL_PASSWORD_ENABLED = os.getenv("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
-QAUTH_PROVIDER_CONNECTIONS_FILE = os.getenv(
+AUTH_EMAIL_PASSWORD_ENABLED = env("AUTH_EMAIL_PASSWORD_ENABLED", "True").lower() in {"1", "true", "yes", "on"}
+QAUTH_PROVIDER_CONNECTIONS_FILE = env(
     "QAUTH_PROVIDER_CONNECTIONS_FILE",
     str(BASE_DIR / "config" / "qauth-providers.json"),
 )
-QAUTH_PROVIDER_CONNECTIONS_JSON = os.getenv("QAUTH_PROVIDER_CONNECTIONS_JSON", "")
+QAUTH_PROVIDER_CONNECTIONS_JSON = env("QAUTH_PROVIDER_CONNECTIONS_JSON", "")
 
 # Judge Engine settings
-JUDGE_ENGINE_ENABLED = os.getenv("JUDGE_ENGINE_ENABLED", "True") == "True"
-JUDGE_MAX_CPU_TIME = int(os.getenv("JUDGE_MAX_CPU_TIME", "10"))  # seconds
-JUDGE_MAX_MEMORY = int(os.getenv("JUDGE_MAX_MEMORY", "256"))  # MB
+JUDGE_ENGINE_ENABLED = env("JUDGE_ENGINE_ENABLED", "True") == "True"
+JUDGE_MAX_CPU_TIME = int(env("JUDGE_MAX_CPU_TIME", "10"))  # seconds
+JUDGE_MAX_MEMORY = int(env("JUDGE_MAX_MEMORY", "256"))  # MB
 
 # Docker settings for judge system
-DOCKER_IMAGE_JUDGE = os.getenv("DOCKER_IMAGE_JUDGE", "oj-judge:latest")
-DOCKER_JUDGE_PLATFORM = os.getenv("DOCKER_JUDGE_PLATFORM") or None
-DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv("DOCKER_JUDGE_PIDS_LIMIT", "64"))
-DOCKER_JUDGE_TMPFS_SIZE = os.getenv("DOCKER_JUDGE_TMPFS_SIZE", "100M")
-DOCKER_JUDGE_TIMEOUT = int(os.getenv("DOCKER_JUDGE_TIMEOUT", "60"))  # seconds
+DOCKER_IMAGE_JUDGE = env("DOCKER_IMAGE_JUDGE", "oj-judge:latest")
+DOCKER_JUDGE_PLATFORM = env("DOCKER_JUDGE_PLATFORM") or None
+DOCKER_JUDGE_PIDS_LIMIT = int(env("DOCKER_JUDGE_PIDS_LIMIT", "64"))
+DOCKER_JUDGE_TMPFS_SIZE = env("DOCKER_JUDGE_TMPFS_SIZE", "100M")
+DOCKER_JUDGE_TIMEOUT = int(env("DOCKER_JUDGE_TIMEOUT", "60"))  # seconds
 
 # Ad-hoc test runs are executed by the judge workers (the only processes with
 # Docker access) while the HTTP request waits for the result.
-JUDGE_TEST_RUN_QUEUE = os.getenv("JUDGE_TEST_RUN_QUEUE", "default")
-JUDGE_TEST_RUN_TIMEOUT = int(os.getenv("JUDGE_TEST_RUN_TIMEOUT", "120"))  # seconds
+JUDGE_TEST_RUN_QUEUE = env("JUDGE_TEST_RUN_QUEUE", "default")
+JUDGE_TEST_RUN_TIMEOUT = int(env("JUDGE_TEST_RUN_TIMEOUT", "120"))  # seconds
 
 # Seccomp profile path (set to None to disable)
 # 優先使用 HOST_PROJECT_ROOT (解決 Docker Socket Binding 路徑問題)
-HOST_PROJECT_ROOT = os.getenv("HOST_PROJECT_ROOT")
+HOST_PROJECT_ROOT = env("HOST_PROJECT_ROOT")
 if HOST_PROJECT_ROOT:
     DOCKER_SECCOMP_PROFILE = os.path.join(
         HOST_PROJECT_ROOT, "backend/judge/seccomp_profiles/cpp.json"
@@ -396,44 +393,44 @@ if HOST_PROJECT_ROOT:
 else:
     DOCKER_SECCOMP_PROFILE = os.path.join(BASE_DIR, "judge/seccomp_profiles/cpp.json")
 
-# 如果環境變數明確停用，則設為 None
-if os.getenv("DOCKER_SECCOMP_PROFILE") == "":
+# DOCKER_SECCOMP_DISABLED=true disables the seccomp profile.
+if _env_truthy("DOCKER_SECCOMP_DISABLED"):
     DOCKER_SECCOMP_PROFILE = None
 
 # AI Service settings
 # URL for the AI Service container (LangChain DeepAgent)
-AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai-service:8001")
-AI_ACCESS_TOKEN_SECONDS = int(os.getenv("AI_ACCESS_TOKEN_SECONDS", "300"))
+AI_SERVICE_URL = env("AI_SERVICE_URL", "http://ai-service:8001")
+AI_ACCESS_TOKEN_SECONDS = int(env("AI_ACCESS_TOKEN_SECONDS", "300"))
 AI_SERVICE_CONNECT_TIMEOUT_SECONDS = float(
-    os.getenv("AI_SERVICE_CONNECT_TIMEOUT_SECONDS", "3")
+    env("AI_SERVICE_CONNECT_TIMEOUT_SECONDS", "3")
 )
 AI_SERVICE_READ_TIMEOUT_SECONDS = float(
-    os.getenv("AI_SERVICE_READ_TIMEOUT_SECONDS", "30")
+    env("AI_SERVICE_READ_TIMEOUT_SECONDS", "30")
 )
 AI_SERVICE_WRITE_TIMEOUT_SECONDS = float(
-    os.getenv("AI_SERVICE_WRITE_TIMEOUT_SECONDS", "10")
+    env("AI_SERVICE_WRITE_TIMEOUT_SECONDS", "10")
 )
 AI_SERVICE_POOL_TIMEOUT_SECONDS = float(
-    os.getenv("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
+    env("AI_SERVICE_POOL_TIMEOUT_SECONDS", "3")
 )
 # Exam integrity. The backend owns schedule and deadline authority; the
 # resident service owns every Run's journal in one process, with no Docker
 # socket and no per-exam container.
-INTEGRITY_RESIDENT_URL = os.getenv("INTEGRITY_RESIDENT_URL", "http://integrity-resident:8011")
-INTEGRITY_ACCEPT_GRACE_SECONDS = int(os.getenv("INTEGRITY_ACCEPT_GRACE_SECONDS", "300"))
+INTEGRITY_RESIDENT_URL = env("INTEGRITY_RESIDENT_URL", "http://integrity-resident:8011")
+INTEGRITY_ACCEPT_GRACE_SECONDS = int(env("INTEGRITY_ACCEPT_GRACE_SECONDS", "300"))
 
-INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = os.getenv(
+INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE = env(
     "INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE",
     "/run-secrets/integrity-worker-signing-key",
 )
-INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE = os.getenv(
+INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE = env(
     "INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE", "/run-secrets/resident-service-token"
 )
 INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = float(
-    os.getenv("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")
+    env("INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS", "1.0")
 )
 INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = float(
-    os.getenv("INTEGRITY_WORKER_READ_TIMEOUT_SECONDS", "5.0")
+    env("INTEGRITY_WORKER_READ_TIMEOUT_SECONDS", "5.0")
 )
 
 # ---------------------------------------------------------------------------
@@ -442,25 +439,25 @@ INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = float(
 # OBJECT_STORAGE_* is the only supported external configuration surface for
 # app-level S3-compatible object storage access.
 # ---------------------------------------------------------------------------
-OBJECT_STORAGE_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_ENDPOINT_URL", "")
+OBJECT_STORAGE_ENDPOINT_URL = env("OBJECT_STORAGE_ENDPOINT_URL", "")
 # Browser-facing endpoint used for presigned URLs. For R2 this is usually the
 # same S3 API endpoint as OBJECT_STORAGE_ENDPOINT_URL.
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = os.getenv("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "")
-OBJECT_STORAGE_REGION = os.getenv("OBJECT_STORAGE_REGION", "us-east-1")
-OBJECT_STORAGE_ACCESS_KEY = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "")
-OBJECT_STORAGE_SECRET_KEY = os.getenv("OBJECT_STORAGE_SECRET_KEY", "")
+OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = env("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "")
+OBJECT_STORAGE_REGION = env("OBJECT_STORAGE_REGION", "us-east-1")
+OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
+OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
 OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = int(
-    os.getenv("OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS", "300")
+    env("OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS", "300")
 )
 _OBJECT_STORAGE_IS_R2 = _endpoint_is_r2(OBJECT_STORAGE_ENDPOINT_URL)
-OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = os.getenv(
+OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = env(
     "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED",
     "false" if _OBJECT_STORAGE_IS_R2 else "true",
 ).lower() == "true"
 # Cloudflare R2 does not allow bucket creation via the S3 API (buckets must be
 # pre-created in the dashboard or via the Cloudflare API). Disable auto-create
 # automatically when the configured endpoint points at R2.
-OBJECT_STORAGE_AUTO_CREATE_BUCKETS = os.getenv(
+OBJECT_STORAGE_AUTO_CREATE_BUCKETS = env(
     "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
     "false" if _OBJECT_STORAGE_IS_R2 else "true",
 ).lower() == "true"
@@ -471,19 +468,19 @@ MARKDOWN_IMAGE_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
 MARKDOWN_IMAGE_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
 
 # Per-feature bucket / size settings
-ANTICHEAT_RAW_BUCKET = os.getenv("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
-INTEGRITY_ARCHIVE_BUCKET = os.getenv(
+ANTICHEAT_RAW_BUCKET = env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+INTEGRITY_ARCHIVE_BUCKET = env(
     "INTEGRITY_ARCHIVE_BUCKET",
     ANTICHEAT_RAW_BUCKET,
 )
 INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = int(
-    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES", "1073741824")
+    env("INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES", "1073741824")
 )
 INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = int(
-    os.getenv("INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES", "268435456")
+    env("INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES", "268435456")
 )
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = int(
-    os.getenv("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
+    env("ANTICHEAT_CAPTURE_INTERVAL_SECONDS", "3")
 )
 
 LIVE_MONITORING_ENABLED = _env_truthy("LIVE_MONITORING_ENABLED")
@@ -491,23 +488,23 @@ LIVE_MONITORING_ENABLED = _env_truthy("LIVE_MONITORING_ENABLED")
 # Self-hosted LiveKit monitoring.  The provider is intentionally a narrow
 # deployment switch: an enabled deployment must use LiveKit, while the
 # disabled default carries no dependency on the SFU service.
-LIVE_MONITORING_PROVIDER = os.getenv(
+LIVE_MONITORING_PROVIDER = env(
     "LIVE_MONITORING_PROVIDER",
     "livekit" if LIVE_MONITORING_ENABLED else "disabled",
 ).strip().lower()
-LIVEKIT_ENVIRONMENT = os.getenv("LIVEKIT_ENVIRONMENT", "dev").strip().lower()
-LIVEKIT_PUBLIC_URL = os.getenv("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
-LIVEKIT_INTERNAL_URL = os.getenv("LIVEKIT_INTERNAL_URL", "").strip().rstrip("/")
-LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY", "").strip()
-LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "").strip()
-LIVEKIT_NODE_IP = os.getenv("LIVEKIT_NODE_IP", "").strip()
-LIVEKIT_STUN_HOST = os.getenv("LIVEKIT_STUN_HOST", "").strip()
-LIVEKIT_ROOM_PREFIX = os.getenv("LIVEKIT_ROOM_PREFIX", "qjudge-exam").strip()
-LIVEKIT_TOKEN_TTL_SECONDS = int(os.getenv("LIVEKIT_TOKEN_TTL_SECONDS", "120"))
+LIVEKIT_ENVIRONMENT = env("LIVEKIT_ENVIRONMENT", "dev").strip().lower()
+LIVEKIT_PUBLIC_URL = env("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+LIVEKIT_INTERNAL_URL = env("LIVEKIT_INTERNAL_URL", "").strip().rstrip("/")
+LIVEKIT_API_KEY = env("LIVEKIT_API_KEY", "").strip()
+LIVEKIT_API_SECRET = env("LIVEKIT_API_SECRET", "").strip()
+LIVEKIT_NODE_IP = env("LIVEKIT_NODE_IP", "").strip()
+LIVEKIT_STUN_HOST = env("LIVEKIT_STUN_HOST", "").strip()
+LIVEKIT_ROOM_PREFIX = env("LIVEKIT_ROOM_PREFIX", "qjudge-exam").strip()
+LIVEKIT_TOKEN_TTL_SECONDS = int(env("LIVEKIT_TOKEN_TTL_SECONDS", "120"))
 
-MARKDOWN_IMAGE_S3_BUCKET = os.getenv("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
-MARKDOWN_IMAGE_MAX_BYTES = int(os.getenv("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
-MARKDOWN_IMAGE_PUBLIC_BASE_URL = os.getenv(
+MARKDOWN_IMAGE_S3_BUCKET = env("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
+MARKDOWN_IMAGE_MAX_BYTES = int(env("MARKDOWN_IMAGE_MAX_BYTES", "5242880"))
+MARKDOWN_IMAGE_PUBLIC_BASE_URL = env(
     "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
-    os.getenv("FRONTEND_URL", ""),
+    env("FRONTEND_URL", ""),
 ).strip()

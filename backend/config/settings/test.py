@@ -3,6 +3,7 @@ Test settings for CI/CD environments
 """
 from .base import *
 import os
+from config.env import env
 from urllib.parse import urlparse
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -13,8 +14,8 @@ SECRET_KEY = 'test-secret-key-not-for-production'
 
 # Test database
 # 優先使用 DATABASE_URL（CI 標準格式）
-DATABASE_URL = os.getenv('DATABASE_URL')
-DB_CONN_MAX_AGE = int(os.getenv('DB_CONN_MAX_AGE', '0'))
+DATABASE_URL = env('DATABASE_URL')
+DB_CONN_MAX_AGE = int(env('DB_CONN_MAX_AGE', '0'))
 DB_OPTIONS = {
     'connect_timeout': 10,
 }
@@ -22,7 +23,7 @@ DB_OPTIONS = {
 
 def _env_first(*keys: str, default: str | None = None) -> str | None:
     for key in keys:
-        value = os.getenv(key)
+        value = env(key)
         if value:
             return value
     return default
@@ -73,7 +74,7 @@ else:
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        'LOCATION': env('REDIS_URL', 'redis://localhost:6379/0'),
         'KEY_PREFIX': 'qjudge_test',
         'TIMEOUT': 300,
     }
@@ -94,11 +95,11 @@ PASSWORD_HASHERS = [
 ]
 
 # Redis
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+REDIS_URL = env('REDIS_URL', 'redis://localhost:6379/0')
 
 # Celery
 # Unit tests default to eager; browser E2E can exercise the real worker queues.
-CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
+CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # Judge Engine - 在測試環境中啟用
@@ -108,14 +109,14 @@ JUDGE_MAX_MEMORY = 256
 
 # Docker Judge Settings for Testing
 # 使用環境變數或預設值
-DOCKER_IMAGE_JUDGE = os.getenv('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
-DOCKER_JUDGE_PLATFORM = os.getenv('DOCKER_JUDGE_PLATFORM') or None
-DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv('DOCKER_JUDGE_PIDS_LIMIT', '64'))
-DOCKER_JUDGE_TMPFS_SIZE = os.getenv('DOCKER_JUDGE_TMPFS_SIZE', '100M')
-DOCKER_JUDGE_TIMEOUT = int(os.getenv('DOCKER_JUDGE_TIMEOUT', '60'))
+DOCKER_IMAGE_JUDGE = env('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
+DOCKER_JUDGE_PLATFORM = env('DOCKER_JUDGE_PLATFORM') or None
+DOCKER_JUDGE_PIDS_LIMIT = int(env('DOCKER_JUDGE_PIDS_LIMIT', '64'))
+DOCKER_JUDGE_TMPFS_SIZE = env('DOCKER_JUDGE_TMPFS_SIZE', '100M')
+DOCKER_JUDGE_TIMEOUT = int(env('DOCKER_JUDGE_TIMEOUT', '60'))
 
 # Seccomp (Optional in tests)
-DOCKER_SECCOMP_PROFILE = os.getenv('DOCKER_SECCOMP_PROFILE', None)
+DOCKER_SECCOMP_PROFILE = env('DOCKER_SECCOMP_PROFILE', None)
 
 # 允許任何 host（測試用）
 ALLOWED_HOSTS = ['*']

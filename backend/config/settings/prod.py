@@ -2,15 +2,17 @@
 Production settings
 """
 import os
+from config.env import env
 from .base import *
+from .database import build_database_config
 from config.deployment import parse_public_origin
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = env('DEBUG', 'False') == 'True'
 
 # =============================================================================
 # GlitchTip / Sentry Error Tracking
 # =============================================================================
-GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
+GLITCHTIP_DSN = env("GLITCHTIP_DSN", "")
 
 if GLITCHTIP_DSN:
     import sentry_sdk
@@ -30,12 +32,12 @@ if GLITCHTIP_DSN:
                 event_level="ERROR",   # ERROR+ 送為獨立 event
             ),
         ],
-        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
+        traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
         send_default_pii=False,
-        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        environment=env("SENTRY_ENVIRONMENT", "production"),
     )
 
-_PUBLIC_ORIGIN_VALUE = os.getenv("QJUDGE_PUBLIC_ORIGIN", "")
+_PUBLIC_ORIGIN_VALUE = env("QJUDGE_PUBLIC_ORIGIN", "")
 if _PUBLIC_ORIGIN_VALUE:
     _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
     ALLOWED_HOSTS = [
@@ -47,35 +49,30 @@ if _PUBLIC_ORIGIN_VALUE:
 else:
     _PUBLIC_ORIGIN = None
     ALLOWED_HOSTS = [
-        host for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host
+        host for host in env("ALLOWED_HOSTS", "").split(",") if host
     ]
 
 # =============================================================================
 # Production Database Configuration
 # =============================================================================
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.getenv('DB_NAME', 'postgres'),
-    'USER': os.getenv('DB_USER', 'postgres'),
-    'PASSWORD': os.getenv('DB_PASSWORD', ''),
-    'HOST': os.getenv('DB_HOST', ''),
-    'PORT': os.getenv('DB_PORT', '5432'),
-    # CONN_MAX_AGE=0: release connections immediately so pgBouncer recycles them.
-    # pgBouncer (session mode) maintains the actual server-side pool, making
-    # per-request close/reopen cheap (local proxy, no TLS handshake).
-    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '0')),
-    'CONN_HEALTH_CHECKS': True,
-    'OPTIONS': {
+DATABASES['default'] = build_database_config(
+    {
+        'NAME': env('DB_NAME', 'postgres'),
+        'USER': env('DB_USER', 'postgres'),
+        'PASSWORD': env('DB_PASSWORD', ''),
+        'HOST': env('DB_HOST', ''),
+        'PORT': env('DB_PORT', '5432'),
+    },
+    {
         'connect_timeout': 10,
-        # TCP Keepalive - keeps the pgBouncer→Django socket alive through NAT.
+        # TCP keepalive keeps the pgBouncer→Django socket alive through NAT.
         'keepalives': 1,
         'keepalives_idle': 30,
         'keepalives_interval': 10,
         'keepalives_count': 5,
-        # External managed databases usually require SSL.
-        'sslmode': os.getenv('DB_SSLMODE', 'require'),
+        'sslmode': env('DB_SSLMODE', 'require'),
     },
-}
+)
 
 if SECRET_KEY == "django-insecure-default-key-change-in-production":
     raise RuntimeError("SECRET_KEY must be set in production")
@@ -101,11 +98,11 @@ SECURE_HSTS_PRELOAD = _PUBLIC_ORIGIN_USES_HTTPS
 
 # Email backend for production
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST = env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
 
 # Logging
 LOGGING = {
@@ -146,11 +143,11 @@ LOGGING = {
 
 # CORS settings
 # CORS settings
-CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in env('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
+if env('FRONTEND_URL'):
+    CORS_ALLOWED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in env('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
+if env('FRONTEND_URL'):
+    CSRF_TRUSTED_ORIGINS.append(env('FRONTEND_URL').strip('/'))
