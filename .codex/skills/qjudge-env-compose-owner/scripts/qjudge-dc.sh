@@ -41,13 +41,19 @@ fi
 
 case "$ENV_NAME" in
   main)
-    COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
+    COMPOSE_ARGS=(-f "$ROOT_DIR/docker-compose.yml")
     ;;
   dev)
-    COMPOSE_FILE="$ROOT_DIR/docker-compose.dev.yml"
+    COMPOSE_ARGS=(
+      --project-directory "$ROOT_DIR/deploy"
+      -f "$ROOT_DIR/deploy/compose.yml"
+      -f "$ROOT_DIR/deploy/compose.build.yml"
+      -f "$ROOT_DIR/compose.dev.yml"
+    )
+    export QJUDGE_VERSION=dev QJUDGE_BUILD_ENV=development
     ;;
   test)
-    COMPOSE_FILE="$ROOT_DIR/docker-compose.test.yml"
+    COMPOSE_ARGS=(-f "$ROOT_DIR/docker-compose.test.yml")
     ;;
   *)
     echo "Unknown env: $ENV_NAME (allowed: main|dev|test)" >&2
@@ -89,4 +95,4 @@ if [[ "$ENV_NAME" == "test" && $# -ge 2 ]]; then
   esac
 fi
 
-exec "$DOCKER_BIN" compose -f "$COMPOSE_FILE" "$@"
+exec "$DOCKER_BIN" compose "${COMPOSE_ARGS[@]}" "$@"

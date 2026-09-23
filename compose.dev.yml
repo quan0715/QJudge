@@ -1,0 +1,129 @@
+# Local development overlay for deploy/compose.yml: source mounts, hot reload,
+# localhost ports and dev-only wiring. Use via
+# .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev <args>.
+x-dev-django-environment: &dev_django_environment
+  DJANGO_ENV: development
+  DJANGO_SETTINGS_MODULE: config.settings.dev
+  DOCKER_IMAGE_JUDGE: ghcr.io/quan0715/qjudge/judge:latest
+  DOCKER_JUDGE_PLATFORM: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+  LIVEKIT_INTERNAL_URL: http://livekit:7883
+  LIVEKIT_ROOM_PREFIX: qjudge-dev-exam
+  # MCP public URL moves to the gateway plan; dev keeps the direct port.
+  MCP_PUBLIC_URL: http://localhost:9002
+
+x-dev-backend: &dev_backend
+  volumes:
+    - ../backend:/app
+  environment: *dev_django_environment
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${DEV_POSTGRES_PORT:-5432}:5432"
+  pgbouncer:
+    ports:
+      - "127.0.0.1:${DEV_PGBOUNCER_PORT:-6432}:5432"
+  redis:
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${DEV_REDIS_PORT:-6379}:6379"
+
+  migrate: *dev_backend
+  integrity-reconciler: *dev_backend
+  celery-beat: *dev_backend
+  backend:
+    <<: *dev_backend
+    command: ["python", "-m", "uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]
+    ports:
+      - "127.0.0.1:${DEV_BACKEND_PORT:-8000}:8000"
+  celery:
+    <<: *dev_backend
+    command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "celery,default"]
+  celery-high:
+    <<: *dev_backend
+    command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "high_priority", "--concurrency=2"]
+
+  ai-migrate:
+    volumes:
+      - ../ai-service:/app
+  ai-service:
+    volumes:
+      - ../ai-service:/app
+    ports:
+      - "127.0.0.1:${DEV_AI_PORT:-8001}:8001"
+  ai-worker:
+    volumes:
+      - ../ai-service:/app
+  ai-scheduler:
+    volumes:
+      - ../ai-service:/app
+
+  judge-image:
+    image: ghcr.io/quan0715/qjudge/judge:latest
+    platform: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+
+  qjudge-mcp:
+    environment:
+      MCP_PUBLIC_URL: http://localhost:9002
+    ports:
+      - "127.0.0.1:${DEV_MCP_PORT:-9002}:9000"
+
+  frontend:
+    image: qjudge/frontend-dev:dev
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../frontend:/app
+      - ../backend:/backend:ro
+      - /app/node_modules
+    ports: !override
+      - "127.0.0.1:${DEV_FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_TARGET: http://backend:8000
+      VITE_STORYBOOK_TARGET: http://storybook:6006
+      VITE_MCP_PUBLIC_URL: http://localhost:9002/mcp
+    depends_on:
+      - storybook
+
+  storybook:
+    image: qjudge/frontend-dev:dev
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    command: ["npm", "run", "storybook", "--", "--host", "0.0.0.0", "--ci"]
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:${DEV_STORYBOOK_PORT:-6006}:6006"
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    depends_on:
+      - backend
+
+  # Kept here until the media addon exists (plan 05).
+  livekit:
+    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    profiles: ["live-monitoring"]
+    restart: unless-stopped
+    command: ["--config", "/run/livekit/livekit.json"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - type: bind
+        source: ../.tmp/livekit/dev.json
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "7883:7883"
+      - "7884:7884"
+      - "50100-50199:50100-50199/udp"
+      - "3478:3478/udp"
+      - "50300-50309:50300-50309/udp"
+
+# Each checkout gets its own project network instead of the shared external one.
+networks:
+  default: !reset {}
