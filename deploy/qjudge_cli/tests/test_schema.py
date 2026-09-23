@@ -47,9 +47,20 @@ class SchemaTests(unittest.TestCase):
             self.assertTrue(KEYS_BY_NAME[name].secret, name)
 
     def test_dev_keys_are_optional(self):
-        for name in ("HOST_PROJECT_ROOT", "DOCKER_JUDGE_PLATFORM"):
-            self.assertEqual(KEYS_BY_NAME[name].feature, "dev")
-            self.assertFalse(KEYS_BY_NAME[name].is_required({}))
+        self.assertEqual(KEYS_BY_NAME["DOCKER_JUDGE_PLATFORM"].feature, "dev")
+        self.assertFalse(KEYS_BY_NAME["DOCKER_JUDGE_PLATFORM"].is_required({}))
+        self.assertEqual(KEYS_BY_NAME["HOST_PROJECT_ROOT"].feature, "core")
+        self.assertFalse(KEYS_BY_NAME["HOST_PROJECT_ROOT"].is_required({}))
+
+    def test_oauth_login_toggle_keys_are_optional(self):
+        for name in ("AUTH_EMAIL_PASSWORD_ENABLED", "QAUTH_PROVIDER_CONNECTIONS_JSON"):
+            self.assertEqual(KEYS_BY_NAME[name].feature, "oauth", name)
+            self.assertFalse(KEYS_BY_NAME[name].is_required({}), name)
+
+    def test_smtp_keys_are_optional(self):
+        for name in ("EMAIL_HOST", "EMAIL_PORT", "DEFAULT_FROM_EMAIL"):
+            self.assertEqual(KEYS_BY_NAME[name].feature, "smtp", name)
+            self.assertFalse(KEYS_BY_NAME[name].is_required({}), name)
 
 
 if __name__ == "__main__":
