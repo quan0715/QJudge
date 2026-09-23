@@ -18,6 +18,7 @@ CLEARED_KEYS = (
     "LIVE_MONITORING_PROVIDER",
     "LIVEKIT_PUBLIC_URL",
     "LIVEKIT_INTERNAL_URL",
+    "DB_SSLMODE",
 )
 
 
@@ -88,6 +89,21 @@ def test_prod_trusts_only_the_public_origin():
         "CORS_ALLOWED_ORIGINS": [ORIGIN],
         "CSRF_TRUSTED_ORIGINS": [ORIGIN],
     }
+
+
+def test_prod_db_sslmode_is_disabled_regardless_of_env():
+    values = load_settings(
+        "prod",
+        {
+            "DJANGO_ENV": "production",
+            "SECRET_KEY": "deploy-settings-test-secret",
+            "QJUDGE_PUBLIC_ORIGIN": ORIGIN,
+            "DATABASE_URL": "postgresql://u:p@pgbouncer:5432/online_judge",
+        },
+        ["DATABASES"],
+    )
+
+    assert values["DATABASES"]["default"]["OPTIONS"]["sslmode"] == "disable"
 
 
 def test_dev_trusts_origin_and_local_vite():

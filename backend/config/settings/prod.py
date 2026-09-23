@@ -70,7 +70,12 @@ DATABASES['default'] = build_database_config(
         'keepalives_idle': 30,
         'keepalives_interval': 10,
         'keepalives_count': 5,
-        'sslmode': env('DB_SSLMODE', 'require'),
+        # PgBouncer has no TLS listener; the app-to-pgbouncer hop stays on the
+        # Compose network, so sslmode is an app constant, not deployer input.
+        # A `?sslmode=...` query in DATABASE_URL still overrides this (see
+        # build_database_config, which merges URL query options over these
+        # defaults).
+        'sslmode': 'disable',
     },
 )
 
