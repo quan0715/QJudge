@@ -34,12 +34,12 @@
 - CI 推送 image 到 GHCR、semver release、輕量 bundle（之後再做）。
 - `.env` 自動遷移、版本歷史、舊版安裝轉換工具。
 - 主機搬遷流程。
-- 本地測試 DB。
+- 本地測試 DB：本機只執行不需要 DB 的測試（vitest、純 unit），DB 測試只在 CI 執行。
 
 ### 限制
 
 - dcslab（`140.113.207.46`，`/mnt/data/qjudge-app`）已是 prod（2026-09-23 確認），原地升級。`docs/operations/dcslab-predeployment.md` 為歷史紀錄。
-- compose project `qjudge-app`、資料 volume、外部 network `online_judge_oj_network`、MinIO 資料目錄 `/mnt/data/qjudge-data/minio` 必須沿用。
+- compose project `qjudge-app`、資料 volume（含 `integrity_resident_data`）、MinIO 資料目錄 `/mnt/data/qjudge-data/minio` 必須沿用；轉換過程不刪除或修改這些資料。
 
 ## 2. 目錄結構
 
@@ -93,7 +93,7 @@ compose 可以寫死容器間連線值，但不替使用者 key 提供預設值�
 - `GATEWAY_BIND_ADDRESS`（預設 `127.0.0.1`；反向代理在另一台機器時填 VPS 內網 IP）、`GATEWAY_PORT`
 - `QJUDGE_TRUSTED_PROXIES`（反向代理的 IP）
 - `COMPOSE_PROJECT_NAME`、`COMPOSE_PROFILES`
-- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`（只含英數字）、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰
+- 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰。三組 DB 密碼只含英數字（會直接放進連線 URL），`check` 驗證此規則
 
 Storage：
 
@@ -119,6 +119,7 @@ Storage：
 - `OBJECT_STORAGE_REGION`、`OBJECT_STORAGE_AUTO_CREATE_BUCKETS`、`OBJECT_STORAGE_OBJECT_TAGGING_ENABLED`
 - `ANTICHEAT_RAW_BUCKET`、`INTEGRITY_ARCHIVE_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET`、`AI_ARTIFACT_S3_BUCKET`
 - `MCP_PUBLIC_URL`、`LIVEKIT_INTERNAL_URL`
+- `QJUDGE_NETWORK_NAME`、`QJUDGE_NETWORK_EXTERNAL`（network 固定，見第 4 節）
 - `DB_NAME`、`DB_USER`、`DB_HOST`、`DB_PORT`、`DB_SSLMODE`、`DB_CONN_MAX_AGE`、`AI_DB_USER`、`AI_DB_NAME`
 
 dcslab 的 `.env` 依此清單手動改寫一次。
@@ -139,6 +140,7 @@ dcslab 的 `.env` 依此清單手動改寫一次。
 base 規則：
 
 - 檔案開頭 `name: ${COMPOSE_PROJECT_NAME:-qjudge}`。
+- 共用 network 固定名稱 `qjudge`，宣告為 `external: true`；app 與 addon 都掛在這個 network。`init`、`upgrade`、`addon up` 執行前若不存在就建立。dev overlay 改用 `qjudge-dev`，由 `qjudge-dc.sh` 建立。
 - 自建服務使用 `image: qjudge/<name>:${QJUDGE_VERSION}`。
 - env 以 anchor 依服務群組定義一次；使用者 key 一律 `${VAR}` 或 `${VAR:-}`；CI lint 禁止 compose 為使用者 key 寫非空的 `:-default`（port、bind address 除外）。
 - 移除所有 `container_name`；`frontend` 改名 `gateway`。
@@ -180,7 +182,7 @@ pg_dump 與 initdb ────────────────────�
 - 執行期不建立 bucket，刪除 backend 與 ai-service 的建 bucket 程式碼。
 - 單一 bucket，固定 prefix：`markdown/`、`integrity/`、`ai-artifacts/`。DB 的 `object_key` 不含 prefix，由存取層加上。
 - 監考證據移除 object tagging，改由 Celery beat 刪除 DB 未保留且超過保存期限的物件。
-- dcslab 轉換：一次性複製腳本內寫死舊 bucket → 新 prefix 對照（`markdown-images` → `markdown/`、`anticheat-raw` → `integrity/`、`ai-artifacts` → `ai-artifacts/`），來源與目的為同一個 MinIO；在 app 停止時執行，完成後比對物件數量；舊 bucket 保留不刪。
+- dcslab 轉換：一次性複製腳本內寫死舊 bucket → 新 prefix 對照（`markdown-images` → `markdown/`、`anticheat-raw` → `integrity/`、`ai-artifacts` → `ai-artifacts/`），來源與目的為同一個 MinIO；在 app 停止時執行，完成後比對各 prefix 的物件數量與總大小；舊 bucket 保留不刪。
 
 ## 8. Addon
 
@@ -228,11 +230,13 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 ## 11. dcslab 轉換
 
 1. 備份 `online_judge`、`qjudge_ai`、`.env`、`secrets/`。
-2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`QJUDGE_NETWORK_EXTERNAL=true`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域）。
-3. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret）。
-4. 建立新 bucket，執行一次性複製腳本並比對數量。
+2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域；DB 密碼若含非英數字需先以 `ALTER ROLE` 更換）。
+   以 `docker network inspect online_judge_oj_network` 確認除 QJudge、MinIO、LiveKit 外沒有其他容器使用舊 network。
+3. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret），addon 掛到新的 `qjudge` network。
+4. 建立新 bucket，執行一次性複製腳本並比對數量與總大小。
 5. `qjudge check` → `qjudge upgrade <sha>`。
 6. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
+7. 驗收後手動移除舊 network `online_judge_oj_network`。
 
 ## 12. 文件
 
