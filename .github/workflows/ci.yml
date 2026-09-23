@@ -78,6 +78,12 @@ jobs:
       - name: Deploy CLI Tests
         run: python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
 
+      - name: Deploy Compose Lint and Config
+        run: |
+          deploy/qjudge lint-compose deploy/compose.yml
+          QJUDGE_VERSION=ci docker compose --project-directory deploy --env-file deploy/.env.example \
+            -f deploy/compose.yml -f deploy/compose.build.yml config --quiet
+
       - name: Install Frontend Deps
         run: npm ci
         working-directory: frontend

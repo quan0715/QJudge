@@ -1,0 +1,376 @@
+# QJudge application (production shape). Compose reads ./.env from this
+# directory. Build definitions: compose.build.yml. Local dev: ../compose.dev.yml.
+# Only schema keys from .env and container wiring belong here; app defaults
+# live in the application (see deploy/qjudge lint-compose).
+name: ${COMPOSE_PROJECT_NAME:-qjudge}
+
+x-django-environment: &django_environment
+  DJANGO_ENV: production
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  QJUDGE_PUBLIC_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
+  SECRET_KEY: ${SECRET_KEY}
+  DATABASE_URL: postgresql://qjudge_web:${DB_PASSWORD}@pgbouncer:5432/online_judge
+  REDIS_URL: redis://redis:6379/0
+  NYCU_OAUTH_CLIENT_ID: ${NYCU_OAUTH_CLIENT_ID:-}
+  NYCU_OAUTH_CLIENT_SECRET: ${NYCU_OAUTH_CLIENT_SECRET:-}
+  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+  GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+  OBJECT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL}
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL}
+  OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY}
+  OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY}
+  MEDIA_MODE: ${MEDIA_MODE:-}
+  LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:-}
+  LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+  LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+  HOST_PROJECT_ROOT: ${HOST_PROJECT_ROOT:-}
+  JUDGE_TMP_DIR: /judge_tmp
+  AI_OAUTH_SIGNING_PRIVATE_KEY_FILE: /run-secrets/ai-oauth-ed25519-private.pem
+  INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/integrity/resident-service-token
+  INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE: /run-secrets/integrity/integrity-worker-signing-key
+
+x-ai-environment: &ai_environment
+  AI_DATABASE_URL: postgresql+psycopg://qjudge_ai:${AI_DB_PASSWORD}@pgbouncer:5432/qjudge_ai
+  AI_REDIS_URL: redis://redis:6379/2
+  QJUDGE_PUBLIC_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
+  CREDENTIAL_LEASE_SECRET: ${CREDENTIAL_LEASE_SECRET}
+  AI_ARTIFACT_STORAGE_ENDPOINT_URL: ${OBJECT_STORAGE_ENDPOINT_URL}
+  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL}
+  AI_ARTIFACT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY}
+  AI_ARTIFACT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+  DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+  VLLM_API_KEY: ${VLLM_API_KEY:-}
+  VLLM_BASE_URL: ${VLLM_BASE_URL:-}
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    command: postgres -c max_connections=400 -c shared_buffers=256MB -c work_mem=4MB
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: qjudge_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      QJUDGE_DB_PASSWORD: ${DB_PASSWORD}
+      QJUDGE_AI_DB_PASSWORD: ${AI_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/initdb.d:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qjudge_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    restart: always
+    environment:
+      AUTH_TYPE: plain
+      DATABASE_URLS: postgres://qjudge_web:${DB_PASSWORD}@postgres:5432/online_judge,postgres://qjudge_ai:${AI_DB_PASSWORD}@postgres:5432/qjudge_ai
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U qjudge_web -d online_judge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: "no"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    environment: *django_environment
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+
+  ai-migrate:
+    image: qjudge/ai-service:${QJUDGE_VERSION}
+    restart: "no"
+    healthcheck:
+      disable: true
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup"]
+    environment: *ai_environment
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+
+  ai-oauth-bootstrap:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: "no"
+    command:
+      - python
+      - /bootstrap/bootstrap_ai_oauth_keys.py
+      - --private-key
+      - /oauth-secrets/ai-oauth-ed25519-private.pem
+      - --public-key
+      - /oauth-secrets/ai-oauth-ed25519-public.pem
+    volumes:
+      - ../scripts/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
+      - ./secrets:/oauth-secrets
+    network_mode: none
+
+  integrity-bootstrap:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    user: "0:0"
+    restart: "no"
+    command: ["python", "/bootstrap/bootstrap_integrity_secrets.py", "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"]
+    volumes:
+      - ../scripts/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
+      - ./secrets/integrity:/bootstrap-secrets
+    network_mode: none
+
+  ai-service:
+    image: qjudge/ai-service:${QJUDGE_VERSION}
+    restart: always
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment: *ai_environment
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "8", "http://localhost:8001/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ai-worker:
+    image: qjudge/ai-service:${QJUDGE_VERSION}
+    restart: always
+    healthcheck:
+      disable: true
+    command: ["celery", "-A", "worker.celery_app:celery_app", "worker", "--queues=qjudge-ai", "--concurrency=2", "--loglevel=INFO"]
+    environment: *ai_environment
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+
+  ai-scheduler:
+    image: qjudge/ai-service:${QJUDGE_VERSION}
+    restart: always
+    healthcheck:
+      disable: true
+    command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    environment: *ai_environment
+    depends_on:
+      ai-migrate:
+        condition: service_completed_successfully
+
+  backend:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: always
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"]
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - judge_tmp:/judge_tmp
+      - ./secrets:/run-secrets:ro
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    environment: *django_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      ai-oauth-bootstrap:
+        condition: service_completed_successfully
+      integrity-bootstrap:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; from urllib.request import Request, urlopen; host = os.environ['QJUDGE_PUBLIC_ORIGIN'].split('://', 1)[1].rstrip('/'); r = urlopen(Request('http://localhost:8000/api/health/', headers={'Host': host, 'X-Forwarded-Proto': 'https'}), timeout=4); assert r.status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  celery-high:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: always
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "high_priority", "--concurrency=2"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
+    environment: *django_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      judge-image:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+
+  celery:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: always
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-Q", "default", "--concurrency=2"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - judge_tmp:/judge_tmp
+    environment: *django_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      judge-image:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+
+  celery-beat:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: always
+    command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule=/tmp/celerybeat-schedule"]
+    environment: *django_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  integrity-resident-data-init:
+    image: qjudge/integrity-resident:${QJUDGE_VERSION}
+    user: "0:0"
+    restart: "no"
+    read_only: true
+    command: ["sh", "-c", "chown 10001:10001 /run-data && chmod 0700 /run-data"]
+    volumes:
+      - integrity_resident_data:/run-data
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: ["no-new-privileges:true"]
+
+  integrity-resident:
+    image: qjudge/integrity-resident:${QJUDGE_VERSION}
+    user: "10001:10001"
+    restart: always
+    read_only: true
+    command: ["uvicorn", "integrity_service.resident.app:app", "--host", "0.0.0.0", "--port", "8011", "--workers", "1"]
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      INTEGRITY_RESIDENT_DATA_ROOT: /run-data
+      INTEGRITY_RESIDENT_PUBLIC_KEY_FILE: /run-secrets/backend-public-key
+      INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE: /run-secrets/resident-service-token
+    volumes:
+      - integrity_resident_data:/run-data
+      - type: bind
+        source: ./secrets/integrity/backend-public-key
+        target: /run-secrets/backend-public-key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./secrets/integrity/resident-service-token
+        target: /run-secrets/resident-service-token
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      integrity-bootstrap:
+        condition: service_completed_successfully
+      integrity-resident-data-init:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  integrity-reconciler:
+    image: qjudge/backend:${QJUDGE_VERSION}
+    restart: always
+    command: ["python", "manage.py", "reconcile_integrity"]
+    volumes:
+      - ./secrets:/run-secrets:ro
+    environment: *django_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      integrity-resident:
+        condition: service_healthy
+
+  qjudge-mcp:
+    image: qjudge/mcp:${QJUDGE_VERSION}
+    restart: unless-stopped
+    environment:
+      DJANGO_BASE_URL: http://backend:8000
+      QJUDGE_PUBLIC_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
+      OAUTH_JWKS_URL: http://backend:8000/.well-known/jwks.json
+    depends_on:
+      - backend
+
+  frontend:
+    image: qjudge/frontend:${QJUDGE_VERSION}
+    restart: always
+    ports:
+      - "${GATEWAY_BIND_ADDRESS:-127.0.0.1}:${GATEWAY_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.9.1
+    restart: always
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
+    depends_on:
+      - frontend
+
+  # Makes sure the judge runtime image exists before workers start.
+  judge-image:
+    image: oj-judge:latest
+    command: ["true"]
+    restart: "no"
+    network_mode: none
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  judge_tmp:
+  integrity_resident_data:
+
+networks:
+  default:
+    name: qjudge
+    external: true
