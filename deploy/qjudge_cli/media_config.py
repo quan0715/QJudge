@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
+from .envfile import write_private
 from .schema import Env
 
 
@@ -18,7 +18,6 @@ def render_livekit_config(env: Env) -> str:
             "port_range_start": 50000,
             "port_range_end": 50099,
             "node_ip": env["LIVEKIT_NODE_IP"],
-            "use_external_ip": False,
             "turn_servers": [
                 {
                     "host": env["LIVEKIT_TURN_HOST"],
@@ -80,15 +79,7 @@ def write_media_config(deploy_dir: Path, env: Env) -> list[str]:
     ):
         path = secrets_dir / name
         if not path.is_file() or path.read_text(encoding="utf-8") != contents:
-            _write_private_file(path, contents)
+            write_private(path, contents)
             changed.append(service)
     return changed
 
-
-def _write_private_file(path: Path, contents: str) -> None:
-    """Write a private file, restricting an existing file before truncation."""
-    if path.exists():
-        path.chmod(0o600)
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-        output.write(contents)

@@ -1,6 +1,5 @@
 # Bundled object storage (MinIO). A separate project so application upgrades
 # never restart it. Run through `deploy/qjudge addon storage up|init`.
-name: ${COMPOSE_PROJECT_NAME:-qjudge}-storage
 
 services:
   minio:
@@ -10,7 +9,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
-      MINIO_SERVER_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL}
       MINIO_API_CORS_ALLOW_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
     volumes:
       - ${MINIO_DATA_DIR:-minio-data}:/data

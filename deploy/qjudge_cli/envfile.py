@@ -37,34 +37,21 @@ def load(path: Path) -> dict[str, str]:
     return parse(path.read_text(encoding="utf-8"))
 
 
-def write_values(path: Path, updates: Mapping[str, str]) -> None:
-    """Atomically fill selected empty keys while keeping other lines intact."""
-    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
-    existing = parse("".join(lines))
-    pending = {key: value for key, value in updates.items() if not existing.get(key, "").strip()}
-    if not pending:
-        return
-
-    last_assignments = {}
-    for index, line in enumerate(lines):
-        match = re.match(r"^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=)", line)
-        if match and match.group(2) in pending:
-            last_assignments[match.group(2)] = (index, match)
-    for key, (index, match) in last_assignments.items():
-        lines[index] = f"{match.group(1)}{key}{match.group(3)}{pending.pop(key)}\n"
-    if pending:
-        if lines and not lines[-1].endswith("\n"):
-            lines[-1] += "\n"
-        lines.extend(f"{key}={value}\n" for key, value in pending.items())
-
+def write_private(path: Path, text: str) -> None:
+    """Replace path through an owner-only temp file in the same directory."""
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            os.fchmod(output.fileno(), 0o600)
-            output.writelines(lines)
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+        output.write(text)
+    os.replace(temporary, path)
+
+
+def write_values(path: Path, updates: Mapping[str, str]) -> None:
+    """Set keys by replacing their KEY= lines or appending them."""
+    pending = dict(updates)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        key = line.split("=", 1)[0].strip()
+        if "=" in line and key in pending:
+            lines[index] = f"{key}={pending.pop(key)}"
+    lines += [f"{key}={value}" for key, value in pending.items()]
+    write_private(path, "\n".join(lines) + "\n")

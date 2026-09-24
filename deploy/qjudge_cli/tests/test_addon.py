@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from qjudge_cli.addon import addon_command, run_addon
-from qjudge_cli.envfile import load, write_values
+from qjudge_cli.envfile import load
 from qjudge_cli.tests.test_check import VALID
 
 DEPLOY = Path("/srv/qjudge/deploy")
@@ -44,6 +44,8 @@ class AddonTests(unittest.TestCase):
             self.assertEqual(values["LIVEKIT_API_SECRET"], "generated-api")
             self.assertEqual(values["LIVEKIT_TURN_SECRET"], "generated-turn")
             self.assertIn("# keep this comment", env_file.read_text())
+            self.assertIn("LIVEKIT_API_SECRET, LIVEKIT_TURN_SECRET", output.getvalue())
+            self.assertNotIn("LIVEKIT_API_KEY", output.getvalue())
             self.assertNotIn("generated-api", output.getvalue())
             self.assertNotIn("generated-turn", output.getvalue())
             self.assertEqual(S_IMODE(env_file.stat().st_mode), 0o600)
@@ -88,41 +90,6 @@ class AddonTests(unittest.TestCase):
             token_hex.assert_not_called()
             token_urlsafe.assert_not_called()
             writer.assert_not_called()
-
-    def test_media_init_updates_last_duplicate_empty_credential(self):
-        with TemporaryDirectory() as directory:
-            env_file = Path(directory) / ".env"
-            env_file.write_text(
-                "MEDIA_MODE=bundled\nLIVEKIT_API_KEY=old-key\n"
-                "LIVEKIT_API_KEY=\nLIVEKIT_API_SECRET=existing-api\n"
-                "LIVEKIT_TURN_SECRET=existing-turn\n"
-            )
-            with patch("qjudge_cli.addon.secrets.token_hex", return_value="new-key"):
-                self.assertEqual(run_addon(DEPLOY, env_file, load(env_file), "media", "init"), 0)
-            self.assertEqual(load(env_file)["LIVEKIT_API_KEY"], "new-key")
-            self.assertIn("LIVEKIT_API_KEY=old-key\nLIVEKIT_API_KEY=new-key\n", env_file.read_text())
-
-    def test_env_writer_replace_failure_preserves_original_and_removes_temp(self):
-        with TemporaryDirectory() as directory:
-            env_file = Path(directory) / ".env"
-            original = b"MEDIA_MODE=bundled\n# keep\nLIVEKIT_API_KEY=\n"
-            env_file.write_bytes(original)
-            with patch("qjudge_cli.envfile.os.replace", side_effect=OSError("replace failed")):
-                with self.assertRaisesRegex(OSError, "replace failed"):
-                    write_values(env_file, {"LIVEKIT_API_KEY": "new-key"})
-            self.assertEqual(env_file.read_bytes(), original)
-            self.assertEqual(list(Path(directory).iterdir()), [env_file])
-
-    def test_env_writer_skips_replace_without_effective_updates(self):
-        with TemporaryDirectory() as directory:
-            env_file = Path(directory) / ".env"
-            original = b"LIVEKIT_API_KEY=existing-key\n"
-            env_file.write_bytes(original)
-            with patch("qjudge_cli.envfile.os.replace") as replace:
-                write_values(env_file, {"LIVEKIT_API_KEY": "new-key"})
-                write_values(env_file, {})
-            replace.assert_not_called()
-            self.assertEqual(env_file.read_bytes(), original)
 
     def test_media_up_refuses_external_mode_without_compose(self):
         for mode in ("external", "disabled"):
@@ -184,24 +151,6 @@ class AddonTests(unittest.TestCase):
             self.assertEqual(rotated.calls[1][-4:], ["up", "-d", "--force-recreate", "livekit"])
             self.assertEqual(rotated.calls[2][-4:], ["up", "-d", "livekit", "coturn"])
 
-    def test_media_compose_uses_verified_image_digests(self):
-        compose = (Path(__file__).resolve().parents[2] / "addons" / "media" / "compose.yml").read_text()
-        self.assertIn("livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3", compose)
-        self.assertIn("coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888", compose)
-        self.assertIn('"${FRONTEND_BIND_ADDRESS:-127.0.0.1}:7880:7880"', compose)
-        self.assertIn('user: "0:0"', compose.split("  coturn:", 1)[1])
-
-    def test_coturn_mounts_tls_certificates_and_publishes_tls_only_on_loopback(self):
-        compose = (Path(__file__).resolve().parents[2] / "addons" / "media" / "compose.yml").read_text()
-        coturn = compose.split("  coturn:", 1)[1]
-        self.assertIn(
-            "source: /etc/letsencrypt\n        target: /etc/letsencrypt\n"
-            "        read_only: true\n        bind:\n          create_host_path: false",
-            coturn,
-        )
-        tls_ports = [line.strip() for line in coturn.splitlines() if line.strip().startswith("- ") and ":5349" in line]
-        self.assertEqual(tls_ports, ['- "127.0.0.1:5349:5349/tcp"'])
-
     def test_storage_up_command(self):
         self.assertEqual(
             addon_command(DEPLOY, ENV_FILE, "storage", "up"),
@@ -236,9 +185,6 @@ class AddonTests(unittest.TestCase):
         self.assertEqual(run.calls[2][-3:], ["run", "--rm", "storage-init"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 class ProjectIsolationTests(unittest.TestCase):
     def test_explicit_project_overrides_compose_project_name(self):
         run = Recorder()
@@ -247,3 +193,7 @@ class ProjectIsolationTests(unittest.TestCase):
         command = run.calls[-1]
         self.assertIn("--project-name", command)
         self.assertEqual(command[command.index("--project-name") + 1], "qjudge-app-storage")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -64,6 +64,9 @@ def run_addon(
             updates["LIVEKIT_TURN_SECRET"] = secrets.token_urlsafe(32)
         if updates:
             write_values(env_file, updates)
+            print(f"Filled {', '.join(updates)} in {env_file}")
+        else:
+            print("LiveKit and TURN credentials are already set")
         return 0
     problems = check_env(env)
     for problem in problems:

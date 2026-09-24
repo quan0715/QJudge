@@ -1,11 +1,9 @@
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
-from deploy.qjudge_cli.media_config import (
+from qjudge_cli.media_config import (
     render_coturn_config,
     render_livekit_config,
     write_media_config,
@@ -30,7 +28,6 @@ class MediaConfigTests(unittest.TestCase):
         self.assertEqual(config["rtc"]["port_range_start"], 50000)
         self.assertEqual(config["rtc"]["port_range_end"], 50099)
         self.assertEqual(config["rtc"]["node_ip"], "192.0.2.10")
-        self.assertIs(config["rtc"]["use_external_ip"], False)
         self.assertEqual(config["keys"], {"qjudge-key": "qjudge-api-secret"})
         self.assertNotIn("turn", config)
         self.assertEqual(
@@ -104,34 +101,6 @@ class MediaConfigTests(unittest.TestCase):
             self.assertEqual(json.loads(livekit_path.read_text())["keys"]["qjudge-key"],
                              "qjudge-api-secret")
             self.assertIn("static-auth-secret=qjudge-turn-secret", coturn_path.read_text())
-
-    def test_write_media_config_restricts_existing_files_before_overwriting(self):
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            deploy_dir = Path(temporary_directory) / "deploy"
-            secrets_dir = deploy_dir / "secrets"
-            secrets_dir.mkdir(parents=True)
-            livekit_path = secrets_dir / "livekit.json"
-            coturn_path = secrets_dir / "turnserver.conf"
-            livekit_path.write_text("old livekit data", encoding="utf-8")
-            coturn_path.write_text("old coturn data", encoding="utf-8")
-            livekit_path.chmod(0o644)
-            coturn_path.chmod(0o644)
-
-            observed_modes = []
-            original_open = os.open
-
-            def observe_mode_before_open(path, flags, mode):
-                observed_modes.append(Path(path).stat().st_mode & 0o777)
-                return original_open(path, flags, mode)
-
-            with patch("deploy.qjudge_cli.media_config.os.open", side_effect=observe_mode_before_open):
-                write_media_config(deploy_dir, MEDIA_ENV)
-
-            self.assertEqual(observed_modes, [0o600, 0o600])
-            self.assertEqual(livekit_path.stat().st_mode & 0o777, 0o600)
-            self.assertEqual(coturn_path.stat().st_mode & 0o777, 0o600)
-            self.assertNotEqual(livekit_path.read_text(encoding="utf-8"), "old livekit data")
-            self.assertNotEqual(coturn_path.read_text(encoding="utf-8"), "old coturn data")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 # Bundled media runs beside the application as an independent Compose project.
-name: ${COMPOSE_PROJECT_NAME:-qjudge}-media
 
 services:
   livekit:
