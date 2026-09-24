@@ -19,16 +19,18 @@ def render_livekit_config(env: Env) -> str:
             "port_range_end": 50099,
             "node_ip": env["LIVEKIT_NODE_IP"],
             "use_external_ip": False,
+            "turn_servers": [
+                {
+                    "host": env["LIVEKIT_TURN_HOST"],
+                    "port": 3478,
+                    "protocol": protocol,
+                    "secret": env["LIVEKIT_TURN_SECRET"],
+                    "ttl": 3600,
+                }
+                for protocol in ("udp", "tcp")
+            ],
         },
         "keys": {env["LIVEKIT_API_KEY"]: env["LIVEKIT_API_SECRET"]},
-        "turn": {
-            "enabled": True,
-            "domain": env["LIVEKIT_TURN_HOST"],
-            "secret": env["LIVEKIT_TURN_SECRET"],
-            "udp_port": 3478,
-            "tcp_port": 3478,
-            "ttl": 3600,
-        },
     }
     return json.dumps(config, indent=2) + "\n"
 
@@ -40,6 +42,8 @@ def render_coturn_config(env: Env) -> str:
         f"realm={env['LIVEKIT_TURN_HOST']}",
         "use-auth-secret",
         f"static-auth-secret={env['LIVEKIT_TURN_SECRET']}",
+        "proc-user=nobody",
+        "proc-group=nogroup",
         "min-port=50300",
         "max-port=50399",
         f"external-ip={env['LIVEKIT_NODE_IP']}",

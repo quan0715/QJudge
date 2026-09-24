@@ -32,12 +32,26 @@ class MediaConfigTests(unittest.TestCase):
         self.assertEqual(config["rtc"]["node_ip"], "192.0.2.10")
         self.assertIs(config["rtc"]["use_external_ip"], False)
         self.assertEqual(config["keys"], {"qjudge-key": "qjudge-api-secret"})
-        self.assertTrue(config["turn"]["enabled"])
-        self.assertEqual(config["turn"]["domain"], "turn.example.test")
-        self.assertEqual(config["turn"]["secret"], "qjudge-turn-secret")
-        self.assertEqual(config["turn"]["udp_port"], 3478)
-        self.assertEqual(config["turn"]["tcp_port"], 3478)
-        self.assertEqual(config["turn"]["ttl"], 3600)
+        self.assertNotIn("turn", config)
+        self.assertEqual(
+            config["rtc"]["turn_servers"],
+            [
+                {
+                    "host": "turn.example.test",
+                    "port": 3478,
+                    "protocol": "udp",
+                    "secret": "qjudge-turn-secret",
+                    "ttl": 3600,
+                },
+                {
+                    "host": "turn.example.test",
+                    "port": 3478,
+                    "protocol": "tcp",
+                    "secret": "qjudge-turn-secret",
+                    "ttl": 3600,
+                },
+            ],
+        )
 
     def test_coturn_config_uses_same_shared_secret_and_relay_range(self):
         config = render_coturn_config(MEDIA_ENV)
@@ -46,6 +60,8 @@ class MediaConfigTests(unittest.TestCase):
         self.assertIn("realm=turn.example.test", config)
         self.assertIn("use-auth-secret", config)
         self.assertIn("static-auth-secret=qjudge-turn-secret", config)
+        self.assertIn("proc-user=nobody", config)
+        self.assertIn("proc-group=nogroup", config)
         self.assertIn("min-port=50300", config)
         self.assertIn("max-port=50399", config)
         self.assertIn("external-ip=192.0.2.10", config)
