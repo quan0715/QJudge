@@ -22,6 +22,7 @@ CLEARED_KEYS = (
     "DEBUG",
     "ALLOWED_HOSTS",
     "DB_CONN_MAX_AGE",
+    "MCP_PUBLIC_URL",
 )
 
 
@@ -286,3 +287,19 @@ def test_conn_max_age_is_zero_regardless_of_env():
     )
 
     assert values["DATABASES"]["default"]["CONN_MAX_AGE"] == 0
+
+
+def test_mcp_public_url_defaults_to_public_origin():
+    values = load_settings("base", {"QJUDGE_PUBLIC_ORIGIN": ORIGIN}, ["MCP_PUBLIC_URL"])
+
+    assert values["MCP_PUBLIC_URL"] == ORIGIN
+
+
+def test_legacy_mcp_public_url_still_wins():
+    values = load_settings(
+        "base",
+        {"QJUDGE_PUBLIC_ORIGIN": ORIGIN, "MCP_PUBLIC_URL": "https://mcp.example.edu/"},
+        ["MCP_PUBLIC_URL"],
+    )
+
+    assert values["MCP_PUBLIC_URL"] == "https://mcp.example.edu"

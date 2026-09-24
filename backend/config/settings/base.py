@@ -255,8 +255,9 @@ AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
         BASE_DIR.parent / "secrets" / "ai-oauth-ed25519-private.pem",
     )
 )
-# MCP server public URL (served at /mcp via streamable-http transport)
-MCP_PUBLIC_URL = env("MCP_PUBLIC_URL", "http://localhost:9000")
+# Base URL of the MCP server; clients connect to <base>/mcp through the gateway.
+# MCP_PUBLIC_URL is read only for hosts still on the legacy compose.
+MCP_PUBLIC_URL = (env("MCP_PUBLIC_URL") or FRONTEND_URL).rstrip("/")
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {

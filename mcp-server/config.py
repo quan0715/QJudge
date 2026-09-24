@@ -3,8 +3,12 @@ import os
 DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8000")
 MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
 MCP_PORT = int(os.getenv("MCP_PORT", "9000"))
-MCP_PUBLIC_URL = os.getenv("MCP_PUBLIC_URL", "http://localhost:9000")
 QJUDGE_PUBLIC_ORIGIN = os.getenv("QJUDGE_PUBLIC_ORIGIN", "").strip().rstrip("/")
+# Base URL of this server behind the gateway; MCP_PUBLIC_URL is read only for
+# hosts still on the legacy compose.
+MCP_PUBLIC_URL = (
+    os.getenv("MCP_PUBLIC_URL", "").strip() or QJUDGE_PUBLIC_ORIGIN or "http://localhost:9000"
+).rstrip("/")
 # The public origin is the OAuth issuer; OAUTH_ISSUER_URL is read only when the
 # origin is unset (legacy compose).
 OAUTH_ISSUER_URL = (
