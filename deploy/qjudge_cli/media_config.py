@@ -49,9 +49,20 @@ def render_coturn_config(env: Env) -> str:
         f"static-auth-secret={env['LIVEKIT_TURN_SECRET']}",
         "proc-user=nobody",
         "proc-group=nogroup",
+        "fingerprint",
         "min-port=50300",
         "max-port=50399",
         f"external-ip={env['LIVEKIT_NODE_IP']}",
+        "no-tcp-relay",
+        "no-multicast-peers",
+        # Relayed media only ever goes to LiveKit's advertised address; an
+        # allowed-peer-ip entry overrides the denied ranges.
+        "denied-peer-ip=0.0.0.0-255.255.255.255",
+        "denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+        f"allowed-peer-ip={env['LIVEKIT_NODE_IP']}",
+        "no-cli",
+        "log-file=stdout",
+        "simple-log",
     )
     return "\n".join(lines) + "\n"
 

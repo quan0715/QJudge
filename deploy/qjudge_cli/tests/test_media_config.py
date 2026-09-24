@@ -80,6 +80,16 @@ class MediaConfigTests(unittest.TestCase):
         self.assertNotIn("listening-ip=", config)
         self.assertNotIn("relay-ip=", config)
 
+    def test_coturn_config_relays_only_to_livekit_node_ip(self):
+        lines = render_coturn_config(MEDIA_ENV).splitlines()
+
+        for directive in ("no-tcp-relay", "no-multicast-peers", "no-cli", "fingerprint"):
+            self.assertIn(directive, lines)
+        self.assertIn("denied-peer-ip=0.0.0.0-255.255.255.255", lines)
+        self.assertIn("denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", lines)
+        self.assertEqual([line for line in lines if line.startswith("allowed-peer-ip=")],
+                         ["allowed-peer-ip=192.0.2.10"])
+
     def test_write_media_config_creates_private_runtime_files(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             deploy_dir = Path(temporary_directory) / "deploy"
