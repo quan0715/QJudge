@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_MCP_TARGET || 'http://localhost:9000',
           changeOrigin: false,
         },
-        '/mcp': {
+        '^/mcp(/|$)': {
           target: env.VITE_MCP_TARGET || 'http://localhost:9000',
           changeOrigin: false,
         },

@@ -43,10 +43,15 @@ def check_env(env: Env) -> list[str]:
 def _value_problem(name: str, value: str, env: Env) -> str | None:
     if name == "QJUDGE_TRUSTED_PROXIES":
         for item in value.split(","):
+            item = item.strip()
+            if not item:
+                continue
             try:
-                ipaddress.ip_network(item.strip(), strict=False)
+                network = ipaddress.ip_network(item, strict=False)
             except ValueError:
-                return f"'{item.strip()}' is not an IP address or CIDR"
+                return f"'{item}' is not an IP address or CIDR"
+            if network.prefixlen == 0:
+                return f"'{item}' trusts every client; list the reverse proxy addresses"
         return None
     if name in ENUMS and value not in ENUMS[name]:
         return "must be one of " + ", ".join(ENUMS[name])

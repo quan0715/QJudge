@@ -15,7 +15,8 @@ def _gateway(env: Env) -> str:
 
 def render_ingress(env: Env) -> str:
     origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").rstrip("/")
-    host = urlsplit(origin).netloc
+    origin_parts = urlsplit(origin)
+    host = origin_parts.netloc
     gateway = _gateway(env)
     proxies = env.get("QJUDGE_TRUSTED_PROXIES", "").strip()
     lines = [
@@ -32,7 +33,8 @@ def render_ingress(env: Env) -> str:
     ]
     profiles = [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
     if "tunnel" in profiles:
-        lines += ["", f"Cloudflare Tunnel  route {host} -> http://gateway:80"]
+        # Tunnel routes match by hostname; a port here would never match.
+        lines += ["", f"Cloudflare Tunnel  route {origin_parts.hostname} -> http://gateway:80"]
     lines += ["", "Run `deploy/qjudge ingress --nginx` for a reverse proxy server block."]
     return "\n".join(lines) + "\n"
 

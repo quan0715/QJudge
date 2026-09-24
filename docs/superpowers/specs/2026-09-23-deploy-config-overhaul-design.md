@@ -173,8 +173,8 @@ pg_dump 與 initdb ────────────────────�
 
 - 分流所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/admin`、`/django-admin`、`/static`、`/media`、`/mcp`。
 - `set_real_ip_from` 設為 `QJUDGE_TRUSTED_PROXIES`；`X-Forwarded-Proto` 使用代理傳入值，移除寫死的 `https`。
-- 信任邊界：gateway 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `GATEWAY_PORT`。上游代理必須以 `proxy_set_header` 覆寫 `X-Forwarded-For` 與 `X-Forwarded-Proto`（`ingress` 輸出的範本已包含）。
-- 使用 nginx 官方 image 的 envsubst template。
+- 信任邊界：gateway 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `GATEWAY_PORT`。上游代理必須以 `proxy_set_header` 附加或覆寫 `X-Forwarded-For` 並設定 `X-Forwarded-Proto`（`ingress` 輸出的範本會採附加）。
+- real IP 設定由 nginx 官方 image 的 `/docker-entrypoint.d` 腳本依 `QJUDGE_TRUSTED_PROXIES` 產生；未設定時信任所有來源但只取最後一個 `X-Forwarded-For`；gateway 轉給 app 的 `X-Forwarded-For` 只含解析後的來源 IP。
 
 `qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → gateway；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 需直接開放或由路由器轉發。
 

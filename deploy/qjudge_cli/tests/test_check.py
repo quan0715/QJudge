@@ -109,6 +109,14 @@ class CheckTests(unittest.TestCase):
         env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, 192.168.0.0/24")
         self.assertEqual(check_env(env), [])
 
+    def test_trusted_proxies_ignore_trailing_comma(self):
+        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2,")
+        self.assertEqual(check_env(env), [])
+
+    def test_trusted_proxies_reject_trust_all(self):
+        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="0.0.0.0/0")
+        self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
+
 
 if __name__ == "__main__":
     unittest.main()

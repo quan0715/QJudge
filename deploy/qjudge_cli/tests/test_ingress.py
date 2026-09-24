@@ -23,6 +23,17 @@ class IngressTests(unittest.TestCase):
         text = render_ingress({**VALID, "COMPOSE_PROFILES": "tunnel", "TUNNEL_TOKEN": "t"})
         self.assertIn("http://gateway:80", text)
 
+    def test_tunnel_route_uses_hostname_without_port(self):
+        env = {
+            **VALID,
+            "QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu:8443",
+            "COMPOSE_PROFILES": "tunnel",
+            "TUNNEL_TOKEN": "t",
+        }
+        text = render_ingress(env)
+        self.assertIn("route judge.example.edu -> http://gateway:80", text)
+        self.assertIn("curl -H 'Host: judge.example.edu:8443'", text)
+
     def test_nginx_server_block(self):
         text = render_nginx({**VALID, "GATEWAY_BIND_ADDRESS": "10.0.0.5"})
         self.assertIn("server_name judge.example.edu;", text)
