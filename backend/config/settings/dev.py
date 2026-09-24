@@ -4,7 +4,7 @@ Development settings
 from config.env import env
 from .base import *
 
-DEBUG = env('DEBUG', 'True') == 'True'
+DEBUG = True
 
 # GlitchTip / Sentry Error Tracking (optional in dev — sentry-sdk is a prod dependency)
 GLITCHTIP_DSN = env("GLITCHTIP_DSN", "")
@@ -23,7 +23,7 @@ if GLITCHTIP_DSN:
     except ImportError:
         pass
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS', 'localhost,127.0.0.1,*').split(',')
+ALLOWED_HOSTS = ["*"]
 
 # Development-specific apps
 INSTALLED_APPS += [
@@ -95,11 +95,6 @@ CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 for _origin in ('http://localhost:5173', 'http://127.0.0.1:5173'):
     if _origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_origin)
-# Cloudflare Tunnel dev domains
-for _host in env('ALLOWED_HOSTS', '').split(','):
-    _host = _host.strip()
-    if _host and _host not in ('localhost', '127.0.0.1', '0.0.0.0', '*'):
-        CSRF_TRUSTED_ORIGINS.append(f'https://{_host}')
 
 # Allow all origins in dev if needed (optional, but good for local dev)
 CORS_ALLOW_ALL_ORIGINS = True

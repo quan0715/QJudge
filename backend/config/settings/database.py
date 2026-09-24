@@ -46,7 +46,8 @@ def build_database_config(defaults, default_options):
     return {
         "ENGINE": "django.db.backends.postgresql",
         **values,
-        "CONN_MAX_AGE": int(env("DB_CONN_MAX_AGE", "0")),
+        # PgBouncer pools server connections; Django closes its own after each request.
+        "CONN_MAX_AGE": 0,
         "CONN_HEALTH_CHECKS": True,
         "OPTIONS": options,
     }

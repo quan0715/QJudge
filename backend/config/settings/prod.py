@@ -7,7 +7,7 @@ from .base import *
 from .database import build_database_config
 from config.deployment import parse_public_origin
 
-DEBUG = env('DEBUG', 'False') == 'True'
+DEBUG = False
 
 # =============================================================================
 # GlitchTip / Sentry Error Tracking
@@ -47,10 +47,9 @@ if _PUBLIC_ORIGIN_VALUE:
         "backend",
     ]
 else:
+    # QJUDGE_PUBLIC_ORIGIN is required in production; without it no host is allowed.
     _PUBLIC_ORIGIN = None
-    ALLOWED_HOSTS = [
-        host for host in env("ALLOWED_HOSTS", "").split(",") if host
-    ]
+    ALLOWED_HOSTS = []
 
 # =============================================================================
 # Production Database Configuration

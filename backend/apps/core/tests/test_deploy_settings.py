@@ -19,6 +19,9 @@ CLEARED_KEYS = (
     "LIVEKIT_PUBLIC_URL",
     "LIVEKIT_INTERNAL_URL",
     "DB_SSLMODE",
+    "DEBUG",
+    "ALLOWED_HOSTS",
+    "DB_CONN_MAX_AGE",
 )
 
 
@@ -234,3 +237,52 @@ def test_tuning_values_are_constants():
     file_path = values.pop("QAUTH_PROVIDER_CONNECTIONS_FILE")
     assert values == BASE_CONSTANTS
     assert file_path.endswith("config/qauth-providers.json")
+
+
+def test_prod_debug_and_hosts_ignore_env():
+    values = load_settings(
+        "prod",
+        {
+            "DJANGO_ENV": "production",
+            "SECRET_KEY": "deploy-settings-test-secret",
+            "QJUDGE_PUBLIC_ORIGIN": ORIGIN,
+            "DEBUG": "True",
+            "ALLOWED_HOSTS": "evil.example",
+        },
+        ["DEBUG", "ALLOWED_HOSTS"],
+    )
+
+    assert values["DEBUG"] is False
+    assert values["ALLOWED_HOSTS"] == ["judge.example.edu", "localhost", "127.0.0.1", "backend"]
+
+
+def test_prod_without_origin_allows_no_hosts():
+    values = load_settings(
+        "prod",
+        {"DJANGO_ENV": "production", "SECRET_KEY": "deploy-settings-test-secret", "ALLOWED_HOSTS": "evil.example"},
+        ["ALLOWED_HOSTS"],
+    )
+
+    assert values["ALLOWED_HOSTS"] == []
+
+
+def test_dev_debug_and_hosts_ignore_env():
+    values = load_settings(
+        "dev",
+        {"QJUDGE_PUBLIC_ORIGIN": ORIGIN, "DEBUG": "False", "ALLOWED_HOSTS": "tunnel.example"},
+        ["DEBUG", "ALLOWED_HOSTS", "CSRF_TRUSTED_ORIGINS"],
+    )
+
+    assert values["DEBUG"] is True
+    assert values["ALLOWED_HOSTS"] == ["*"]
+    assert "https://tunnel.example" not in values["CSRF_TRUSTED_ORIGINS"]
+
+
+def test_conn_max_age_is_zero_regardless_of_env():
+    values = load_settings(
+        "base",
+        {"DATABASE_URL": "postgresql://u:p@pgbouncer:5432/online_judge", "DB_CONN_MAX_AGE": "60"},
+        ["DATABASES"],
+    )
+
+    assert values["DATABASES"]["default"]["CONN_MAX_AGE"] == 0
