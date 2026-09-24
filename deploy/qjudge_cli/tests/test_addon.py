@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from qjudge_cli.addon import addon_command, run_addon
-from qjudge_cli.envfile import load
+from qjudge_cli.envfile import load, write_values
 from qjudge_cli.tests.test_check import VALID
 
 DEPLOY = Path("/srv/qjudge/deploy")
@@ -78,7 +78,7 @@ class AddonTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             env_file = Path(directory) / ".env"
             env_file.write_text("MEDIA_MODE=bundled\nLIVEKIT_API_KEY=existing-key\nLIVEKIT_API_SECRET=existing-api-secret\nLIVEKIT_TURN_SECRET=existing-turn-secret\n")
-            with patch("qjudge_cli.addon.secrets.token_hex") as token_hex, patch("qjudge_cli.addon.secrets.token_urlsafe") as token_urlsafe:
+            with patch("qjudge_cli.addon.secrets.token_hex") as token_hex, patch("qjudge_cli.addon.secrets.token_urlsafe") as token_urlsafe, patch("qjudge_cli.addon.write_values") as writer:
                 code = run_addon(DEPLOY, env_file, load(env_file), "media", "init")
             values = load(env_file)
             self.assertEqual(code, 0)
@@ -87,6 +87,42 @@ class AddonTests(unittest.TestCase):
             self.assertEqual(values["LIVEKIT_TURN_SECRET"], "existing-turn-secret")
             token_hex.assert_not_called()
             token_urlsafe.assert_not_called()
+            writer.assert_not_called()
+
+    def test_media_init_updates_last_duplicate_empty_credential(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text(
+                "MEDIA_MODE=bundled\nLIVEKIT_API_KEY=old-key\n"
+                "LIVEKIT_API_KEY=\nLIVEKIT_API_SECRET=existing-api\n"
+                "LIVEKIT_TURN_SECRET=existing-turn\n"
+            )
+            with patch("qjudge_cli.addon.secrets.token_hex", return_value="new-key"):
+                self.assertEqual(run_addon(DEPLOY, env_file, load(env_file), "media", "init"), 0)
+            self.assertEqual(load(env_file)["LIVEKIT_API_KEY"], "new-key")
+            self.assertIn("LIVEKIT_API_KEY=old-key\nLIVEKIT_API_KEY=new-key\n", env_file.read_text())
+
+    def test_env_writer_replace_failure_preserves_original_and_removes_temp(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            original = b"MEDIA_MODE=bundled\n# keep\nLIVEKIT_API_KEY=\n"
+            env_file.write_bytes(original)
+            with patch("qjudge_cli.envfile.os.replace", side_effect=OSError("replace failed")):
+                with self.assertRaisesRegex(OSError, "replace failed"):
+                    write_values(env_file, {"LIVEKIT_API_KEY": "new-key"})
+            self.assertEqual(env_file.read_bytes(), original)
+            self.assertEqual(list(Path(directory).iterdir()), [env_file])
+
+    def test_env_writer_skips_replace_without_effective_updates(self):
+        with TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            original = b"LIVEKIT_API_KEY=existing-key\n"
+            env_file.write_bytes(original)
+            with patch("qjudge_cli.envfile.os.replace") as replace:
+                write_values(env_file, {"LIVEKIT_API_KEY": "new-key"})
+                write_values(env_file, {})
+            replace.assert_not_called()
+            self.assertEqual(env_file.read_bytes(), original)
 
     def test_media_up_refuses_external_mode_without_compose(self):
         for mode in ("external", "disabled"):

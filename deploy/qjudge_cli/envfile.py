@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Mapping
 
@@ -37,20 +38,33 @@ def load(path: Path) -> dict[str, str]:
 
 
 def write_values(path: Path, updates: Mapping[str, str]) -> None:
-    """Fill selected empty keys while keeping all other .env lines intact."""
+    """Atomically fill selected empty keys while keeping other lines intact."""
     lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
     existing = parse("".join(lines))
     pending = {key: value for key, value in updates.items() if not existing.get(key, "").strip()}
+    if not pending:
+        return
+
+    last_assignments = {}
     for index, line in enumerate(lines):
         match = re.match(r"^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=)", line)
         if match and match.group(2) in pending:
-            key = match.group(2)
-            lines[index] = f"{match.group(1)}{key}{match.group(3)}{pending.pop(key)}\n"
+            last_assignments[match.group(2)] = (index, match)
+    for key, (index, match) in last_assignments.items():
+        lines[index] = f"{match.group(1)}{key}{match.group(3)}{pending.pop(key)}\n"
     if pending:
         if lines and not lines[-1].endswith("\n"):
             lines[-1] += "\n"
         lines.extend(f"{key}={value}\n" for key, value in pending.items())
-    path.chmod(0o600)
-    descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-        output.writelines(lines)
+
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            os.fchmod(output.fileno(), 0o600)
+            output.writelines(lines)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)

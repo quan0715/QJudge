@@ -54,7 +54,8 @@ def run_addon(
             updates["LIVEKIT_API_SECRET"] = secrets.token_urlsafe(32)
         if not env.get("LIVEKIT_TURN_SECRET", "").strip():
             updates["LIVEKIT_TURN_SECRET"] = secrets.token_urlsafe(32)
-        write_values(env_file, updates)
+        if updates:
+            write_values(env_file, updates)
         return 0
     problems = check_env(env)
     for problem in problems:
