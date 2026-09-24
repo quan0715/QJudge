@@ -1,0 +1,48 @@
+# Bundled object storage (MinIO). A separate project so application upgrades
+# never restart it. Run through `deploy/qjudge addon storage up|init`.
+name: ${COMPOSE_PROJECT_NAME:-qjudge}-storage
+
+services:
+  minio:
+    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
+      MINIO_SERVER_URL: ${OBJECT_STORAGE_PUBLIC_ENDPOINT_URL}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
+    volumes:
+      - ${MINIO_DATA_DIR:-minio-data}:/data
+    ports:
+      # The storage reverse proxy connects here; the console stays on loopback.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:9000:9000"
+      - "127.0.0.1:9001:9001"
+    networks:
+      default:
+        aliases: [minio]
+
+  # One-off: `deploy/qjudge addon storage init` creates the bucket.
+  storage-init:
+    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    profiles: ["init"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for attempt in $$(seq 60); do
+          mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1 && break
+          sleep 1
+        done
+        mc mb --ignore-existing "local/$$OBJECT_STORAGE_BUCKET"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET}
+
+volumes:
+  minio-data:
+
+networks:
+  default:
+    name: qjudge
+    external: true

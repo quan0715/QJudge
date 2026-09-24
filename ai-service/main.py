@@ -247,11 +247,9 @@ def _artifact_store(settings: Settings) -> S3ArtifactStore:
         bucket=settings.artifact_s3_bucket,
         endpoint_url=settings.artifact_storage_endpoint_url,
         public_endpoint_url=settings.artifact_storage_public_endpoint_url,
-        region=settings.artifact_storage_region,
         access_key=settings.artifact_storage_access_key,
         secret_key=settings.artifact_storage_secret_key,
         presign_ttl_seconds=settings.artifact_presigned_url_ttl_seconds,
-        auto_create_bucket=settings.artifact_storage_auto_create_bucket,
     )
 
 

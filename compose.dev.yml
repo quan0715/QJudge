@@ -98,6 +98,19 @@ services:
     depends_on:
       - backend
 
+  # Reuse the bundled storage services inside the dev project.
+  minio:
+    extends:
+      file: addons/storage/compose.yml
+      service: minio
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN},http://localhost:5173
+
+  storage-init:
+    extends:
+      file: addons/storage/compose.yml
+      service: storage-init
+
   # Kept here until the media addon exists (plan 05).
   livekit:
     image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
@@ -119,6 +132,9 @@ services:
       - "50100-50199:50100-50199/udp"
       - "3478:3478/udp"
       - "50300-50309:50300-50309/udp"
+
+volumes:
+  minio-data:
 
 # Each checkout gets its own project network instead of the shared external one.
 networks:

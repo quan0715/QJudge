@@ -189,21 +189,16 @@ class S3ArtifactStore:
         bucket: str,
         endpoint_url: str = "",
         public_endpoint_url: str = "",
-        region: str = "us-east-1",
         access_key: str = "",
         secret_key: str = "",
         presign_ttl_seconds: int = 300,
-        auto_create_bucket: bool = True,
         client: Any | None = None,
         public_client: Any | None = None,
     ) -> None:
         self._bucket = bucket
-        self._region = region
         self._presign_ttl_seconds = presign_ttl_seconds
-        self._auto_create_bucket = auto_create_bucket
-        self._bucket_ready = False
         kwargs: dict[str, Any] = {
-            "region_name": region,
+            "region_name": "us-east-1",
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
         }
@@ -228,7 +223,6 @@ class S3ArtifactStore:
         await asyncio.to_thread(self._put, key, content, content_type)
 
     def _put(self, key: str, content: bytes, content_type: str) -> None:
-        self._ensure_bucket()
         try:
             self._client.put_object(
                 Bucket=self._bucket, Key=key, Body=content, ContentType=content_type
@@ -265,35 +259,6 @@ class S3ArtifactStore:
             )
         except Exception as exc:
             raise ArtifactStorageError("Failed to create artifact URL") from exc
-
-    def _ensure_bucket(self) -> None:
-        if self._bucket_ready:
-            return
-        try:
-            self._client.head_bucket(Bucket=self._bucket)
-            self._bucket_ready = True
-            return
-        except Exception as exc:
-            code = _provider_error_code(exc)
-            if not self._auto_create_bucket:
-                if code in {"403", "AccessDenied", "Forbidden"}:
-                    self._bucket_ready = True
-                    return
-                raise ArtifactStorageError("Failed to access artifact bucket") from exc
-            if code not in {"404", "NoSuchBucket", "NotFound"}:
-                raise ArtifactStorageError("Failed to access artifact bucket") from exc
-        create_params: dict[str, Any] = {"Bucket": self._bucket}
-        if self._region and self._region != "us-east-1":
-            create_params["CreateBucketConfiguration"] = {
-                "LocationConstraint": self._region
-            }
-        try:
-            self._client.create_bucket(**create_params)
-        except Exception as exc:
-            code = _provider_error_code(exc)
-            if code != "BucketAlreadyOwnedByYou":
-                raise ArtifactStorageError("Failed to create artifact bucket") from exc
-        self._bucket_ready = True
 
 
 def _provider_error_code(exc: Exception) -> str:

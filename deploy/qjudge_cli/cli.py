@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from .addon import ACTIONS, ADDONS, run_addon
 from .check import check_env
 from .envfile import load
 from .example import render
@@ -26,6 +27,10 @@ def main(argv: list[str] | None = None) -> int:
     ingress_parser = commands.add_parser("ingress", help="list the entry points to configure outside QJudge")
     ingress_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     ingress_parser.add_argument("--nginx", action="store_true", help="print a reverse proxy server block")
+    addon_parser = commands.add_parser("addon", help="run a bundled addon")
+    addon_parser.add_argument("name", choices=sorted(ADDONS))
+    addon_parser.add_argument("action", choices=ACTIONS)
+    addon_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
@@ -37,6 +42,11 @@ def main(argv: list[str] | None = None) -> int:
         env = load(args.env_file)
         sys.stdout.write(render_nginx(env) if args.nginx else render_ingress(env))
         return 0
+    if args.command == "addon":
+        if not args.env_file.is_file():
+            print(f"{args.env_file}: not found")
+            return 1
+        return run_addon(DEPLOY_DIR, args.env_file, load(args.env_file), args.name, args.action)
     return _check(args.env_file)
 
 

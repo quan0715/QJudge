@@ -180,12 +180,6 @@ class Settings(BaseSettings):
             "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
         ),
     )
-    artifact_storage_region: str = Field(
-        default="us-east-1",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_REGION", "OBJECT_STORAGE_REGION"
-        ),
-    )
     artifact_storage_access_key: str = Field(
         default="",
         validation_alias=AliasChoices(
@@ -198,15 +192,9 @@ class Settings(BaseSettings):
             "AI_ARTIFACT_STORAGE_SECRET_KEY", "OBJECT_STORAGE_SECRET_KEY"
         ),
     )
-    artifact_storage_auto_create_bucket: bool = Field(
-        default=True,
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET",
-            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
-        ),
-    )
     artifact_s3_bucket: str = Field(
-        default="ai-artifacts", validation_alias=AliasChoices("AI_ARTIFACT_S3_BUCKET")
+        default="ai-artifacts",
+        validation_alias=AliasChoices("OBJECT_STORAGE_BUCKET", "AI_ARTIFACT_S3_BUCKET"),
     )
     artifact_max_bytes: int = Field(
         default=10 * 1024 * 1024,

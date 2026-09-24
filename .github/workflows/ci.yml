@@ -82,9 +82,11 @@ jobs:
 
       - name: Deploy Compose Lint and Config
         run: |
-          deploy/qjudge lint-compose deploy/compose.yml
+          deploy/qjudge lint-compose deploy/compose.yml deploy/addons/storage/compose.yml
           QJUDGE_VERSION=ci docker compose --project-directory deploy --env-file deploy/.env.example \
             -f deploy/compose.yml -f deploy/compose.build.yml config --quiet
+          docker compose --project-directory deploy --env-file deploy/.env.example \
+            -f deploy/addons/storage/compose.yml config --quiet
 
       - name: Install Frontend Deps
         run: npm ci

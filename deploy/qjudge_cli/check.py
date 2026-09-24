@@ -70,6 +70,8 @@ def _value_problem(name: str, value: str, env: Env) -> str | None:
         ):
             return "must use https when QJUDGE_PUBLIC_ORIGIN uses https"
         return None
+    if name == "OBJECT_STORAGE_SECRET_KEY" and env.get("STORAGE_MODE", "").strip() == "bundled" and len(value) < 8:
+        return "must be at least 8 characters because it is the MinIO root password"
     if name in URL_SAFE_PASSWORD_KEYS and not URL_SAFE.fullmatch(value):
         return "may contain only letters, digits and -._~ because it is embedded in a database URL"
     return None

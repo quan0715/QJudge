@@ -6,11 +6,23 @@ from urllib.parse import urlsplit
 
 from .schema import Env
 
+MINIO_PORT = 9000
+
+
+def _bind_address(env: Env) -> str:
+    return env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
+
 
 def _frontend(env: Env) -> str:
-    address = env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
     port = env.get("FRONTEND_PORT", "").strip() or "8080"
-    return f"http://{address}:{port}"
+    return f"http://{_bind_address(env)}:{port}"
+
+
+def _bundled_storage(env: Env) -> str:
+    """Public storage URL when QJudge runs MinIO itself, else ''."""
+    if env.get("STORAGE_MODE", "").strip() != "bundled":
+        return ""
+    return env.get("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "").strip().rstrip("/")
 
 
 def render_ingress(env: Env) -> str:
@@ -31,25 +43,34 @@ def render_ingress(env: Env) -> str:
         f"    curl -H 'Host: {host}' {frontend}/api/health/",
         f"  Remote MCP clients connect to {origin}/mcp",
     ]
+    # Tunnel routes match by hostname; a port here would never match.
+    routes = [(origin_parts.hostname, "http://frontend:80")]
+    storage = _bundled_storage(env)
+    if storage:
+        lines += [
+            "",
+            f"Storage  {storage}",
+            f"  Reverse proxy -> http://{_bind_address(env)}:{MINIO_PORT} "
+            "(MinIO; pass Host unchanged, no body size limit, buffering off)",
+        ]
+        routes.append((urlsplit(storage).hostname, f"http://minio:{MINIO_PORT}"))
     profiles = [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
     if "tunnel" in profiles:
-        # Tunnel routes match by hostname; a port here would never match.
-        lines += ["", f"Cloudflare Tunnel  route {origin_parts.hostname} -> http://frontend:80"]
-    lines += ["", "Run `deploy/qjudge ingress --nginx` for a reverse proxy server block."]
+        lines += ["", "Cloudflare Tunnel"]
+        lines += [f"  route {name} -> {target}" for name, target in routes]
+    lines += ["", "Run `deploy/qjudge ingress --nginx` for reverse proxy server blocks."]
     return "\n".join(lines) + "\n"
 
 
-def render_nginx(env: Env) -> str:
-    host = urlsplit(env.get("QJUDGE_PUBLIC_ORIGIN", "")).hostname or "_"
-    frontend = _frontend(env)
+def _server_block(host: str, upstream: str, extra: str = "") -> str:
     return f"""server {{
     listen 443 ssl;
     server_name {host};
     # ssl_certificate     /path/to/fullchain.pem;
     # ssl_certificate_key /path/to/privkey.pem;
-
+{extra}
     location / {{
-        proxy_pass {frontend};
+        proxy_pass {upstream};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -60,3 +81,18 @@ def render_nginx(env: Env) -> str:
     }}
 }}
 """
+
+
+def render_nginx(env: Env) -> str:
+    host = urlsplit(env.get("QJUDGE_PUBLIC_ORIGIN", "")).hostname or "_"
+    blocks = [_server_block(host, _frontend(env))]
+    storage = _bundled_storage(env)
+    if storage:
+        blocks.append(
+            _server_block(
+                urlsplit(storage).hostname or "_",
+                f"http://{_bind_address(env)}:{MINIO_PORT}",
+                "    client_max_body_size 0;\n",
+            )
+        )
+    return "\n".join(blocks)

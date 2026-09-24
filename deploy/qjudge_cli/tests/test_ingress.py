@@ -5,6 +5,24 @@ from qjudge_cli.tests.test_check import VALID
 
 
 class IngressTests(unittest.TestCase):
+    def test_bundled_storage_entry(self):
+        text = render_ingress(VALID)
+        self.assertIn("Storage  https://files.example.edu", text)
+        self.assertIn("http://127.0.0.1:9000", text)
+
+    def test_external_storage_has_no_entry(self):
+        self.assertNotIn("Storage", render_ingress({**VALID, "STORAGE_MODE": "external"}))
+
+    def test_tunnel_routes_storage_to_minio(self):
+        text = render_ingress({**VALID, "COMPOSE_PROFILES": "tunnel", "TUNNEL_TOKEN": "t"})
+        self.assertIn("route files.example.edu -> http://minio:9000", text)
+
+    def test_nginx_includes_storage_server(self):
+        text = render_nginx(VALID)
+        self.assertIn("server_name files.example.edu;", text)
+        self.assertIn("proxy_pass http://127.0.0.1:9000;", text)
+        self.assertIn("client_max_body_size 0;", text)
+
     def test_local_frontend_defaults(self):
         text = render_ingress(VALID)
         self.assertIn("https://judge.example.edu", text)

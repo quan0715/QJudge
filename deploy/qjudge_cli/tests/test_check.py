@@ -13,7 +13,7 @@ VALID = {
     "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://files.example.edu",
     "OBJECT_STORAGE_ENDPOINT_URL": "http://minio:9000",
     "OBJECT_STORAGE_ACCESS_KEY": "access",
-    "OBJECT_STORAGE_SECRET_KEY": "secret",
+    "OBJECT_STORAGE_SECRET_KEY": "secret-key",
     "OBJECT_STORAGE_BUCKET": "qjudge",
 }
 
@@ -33,6 +33,17 @@ def error_keys(env):
 
 
 class CheckTests(unittest.TestCase):
+    def test_bundled_storage_secret_needs_eight_characters(self):
+        env = with_changes(OBJECT_STORAGE_SECRET_KEY="short")
+        self.assertEqual(error_keys(env), ["OBJECT_STORAGE_SECRET_KEY"])
+
+    def test_external_storage_secret_has_no_length_rule(self):
+        env = with_changes(STORAGE_MODE="external", OBJECT_STORAGE_SECRET_KEY="short")
+        self.assertEqual(check_env(env), [])
+
+    def test_minio_data_dir_is_optional(self):
+        self.assertEqual(check_env(with_changes(MINIO_DATA_DIR="/mnt/data/minio")), [])
+
     def test_valid_env_has_no_errors(self):
         self.assertEqual(check_env(VALID), [])
 

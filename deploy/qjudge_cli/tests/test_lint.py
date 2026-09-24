@@ -4,6 +4,9 @@ from qjudge_cli.lint import lint_compose_text
 
 
 class LintTests(unittest.TestCase):
+    def test_minio_data_dir_may_default_to_a_volume(self):
+        self.assertEqual(lint_compose_text("      - ${MINIO_DATA_DIR:-minio-data}:/data\n"), [])
+
     def test_schema_keys_and_empty_defaults_pass(self):
         text = "A: ${SECRET_KEY}\nB: ${OPENAI_API_KEY:-}\n"
         self.assertEqual(lint_compose_text(text), [])
