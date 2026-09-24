@@ -94,12 +94,11 @@ class MediaConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             deploy_dir = Path(temporary_directory) / "deploy"
 
-            livekit_path, coturn_path = write_media_config(deploy_dir, MEDIA_ENV)
+            self.assertEqual(write_media_config(deploy_dir, MEDIA_ENV), ["livekit", "coturn"])
+            self.assertEqual(write_media_config(deploy_dir, MEDIA_ENV), [])
 
-            self.assertEqual(livekit_path, deploy_dir / "secrets" / "livekit.json")
-            self.assertEqual(coturn_path, deploy_dir / "secrets" / "turnserver.conf")
-            self.assertTrue(livekit_path.is_file())
-            self.assertTrue(coturn_path.is_file())
+            livekit_path = deploy_dir / "secrets" / "livekit.json"
+            coturn_path = deploy_dir / "secrets" / "turnserver.conf"
             self.assertEqual(livekit_path.stat().st_mode & 0o777, 0o600)
             self.assertEqual(coturn_path.stat().st_mode & 0o777, 0o600)
             self.assertEqual(json.loads(livekit_path.read_text())["keys"]["qjudge-key"],

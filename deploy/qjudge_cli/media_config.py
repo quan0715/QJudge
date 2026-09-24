@@ -67,16 +67,22 @@ def render_coturn_config(env: Env) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_media_config(deploy_dir: Path, env: Env) -> tuple[Path, Path]:
-    """Write the two private runtime configs under the deployment secrets dir."""
+def write_media_config(deploy_dir: Path, env: Env) -> list[str]:
+    """Write the private runtime configs under the deployment secrets dir and
+    return the services whose config changed."""
     secrets_dir = deploy_dir / "secrets"
     secrets_dir.mkdir(parents=True, exist_ok=True)
 
-    livekit_path = secrets_dir / "livekit.json"
-    coturn_path = secrets_dir / "turnserver.conf"
-    _write_private_file(livekit_path, render_livekit_config(env))
-    _write_private_file(coturn_path, render_coturn_config(env))
-    return livekit_path, coturn_path
+    changed = []
+    for service, name, contents in (
+        ("livekit", "livekit.json", render_livekit_config(env)),
+        ("coturn", "turnserver.conf", render_coturn_config(env)),
+    ):
+        path = secrets_dir / name
+        if not path.is_file() or path.read_text(encoding="utf-8") != contents:
+            _write_private_file(path, contents)
+            changed.append(service)
+    return changed
 
 
 def _write_private_file(path: Path, contents: str) -> None:

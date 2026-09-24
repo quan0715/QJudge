@@ -21,7 +21,7 @@ ADDONS = {
     },
     "media": {
         "mode_key": "MEDIA_MODE",
-        "up": ["up", "-d", "--force-recreate", "livekit", "coturn"],
+        "up": ["up", "-d", "livekit", "coturn"],
     },
 }
 ACTIONS = ("up", "init")
@@ -31,11 +31,15 @@ def compose_project(env: Env) -> str:
     return env.get("COMPOSE_PROJECT_NAME", "").strip() or "qjudge"
 
 
-def addon_command(deploy_dir: Path, env_file: Path, name: str, action: str, project: str = "qjudge") -> list[str]:
+def _compose(deploy_dir: Path, env_file: Path, name: str, project: str) -> list[str]:
     return [
         "docker", "compose", "--project-name", f"{project}-{name}", "--project-directory", str(deploy_dir), "--env-file", str(env_file),
-        "-f", str(deploy_dir / "addons" / name / "compose.yml"), *ADDONS[name][action],
+        "-f", str(deploy_dir / "addons" / name / "compose.yml"),
     ]
+
+
+def addon_command(deploy_dir: Path, env_file: Path, name: str, action: str, project: str = "qjudge") -> list[str]:
+    return [*_compose(deploy_dir, env_file, name, project), *ADDONS[name][action]]
 
 
 def run_addon(
@@ -68,6 +72,13 @@ def run_addon(
         return 1
     if run(["docker", "network", "inspect", NETWORK], capture_output=True).returncode != 0:
         run(["docker", "network", "create", NETWORK], check=True)
+    project = compose_project(env)
     if name == "media":
-        write_media_config(deploy_dir, env)
-    return run(addon_command(deploy_dir, env_file, name, action, compose_project(env))).returncode
+        # Compose cannot see bind-mounted file changes, so recreate only the
+        # services whose rendered config changed; the rest keep running.
+        changed = write_media_config(deploy_dir, env)
+        if changed:
+            code = run([*_compose(deploy_dir, env_file, name, project), "up", "-d", "--force-recreate", *changed]).returncode
+            if code:
+                return code
+    return run(addon_command(deploy_dir, env_file, name, action, project)).returncode

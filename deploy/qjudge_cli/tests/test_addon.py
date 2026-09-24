@@ -28,7 +28,7 @@ class Recorder:
 class AddonTests(unittest.TestCase):
     def test_media_up_uses_separate_project_and_starts_both_services(self):
         command = addon_command(DEPLOY, ENV_FILE, "media", "up", "qjudge-app")
-        self.assertEqual(command[-5:], ["up", "-d", "--force-recreate", "livekit", "coturn"])
+        self.assertEqual(command[-4:], ["up", "-d", "livekit", "coturn"])
         self.assertEqual(command[command.index("--project-name") + 1], "qjudge-app-media")
 
     def test_media_init_generates_only_missing_values_and_preserves_existing(self):
@@ -166,6 +166,23 @@ class AddonTests(unittest.TestCase):
             self.assertEqual(run_addon(deploy_dir, env_file, media_env, "media", "up", run=run), 0)
             self.assertEqual(run.calls[1], ["docker", "network", "create", "qjudge"])
             self.assertEqual(run.calls[2][-5:], ["up", "-d", "--force-recreate", "livekit", "coturn"])
+            self.assertEqual(run.calls[3][-4:], ["up", "-d", "livekit", "coturn"])
+
+    def test_media_up_recreates_only_services_whose_config_changed(self):
+        with TemporaryDirectory() as directory:
+            deploy_dir = Path(directory)
+            env_file = deploy_dir / ".env"
+            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test", "LIVEKIT_TURN_SECRET": "turn-secret"}
+            run_addon(deploy_dir, env_file, media_env, "media", "up", run=Recorder())
+
+            unchanged = Recorder()
+            self.assertEqual(run_addon(deploy_dir, env_file, media_env, "media", "up", run=unchanged), 0)
+            self.assertEqual([call[-4:] for call in unchanged.calls[1:]], [["up", "-d", "livekit", "coturn"]])
+
+            rotated = Recorder()
+            self.assertEqual(run_addon(deploy_dir, env_file, {**media_env, "LIVEKIT_API_SECRET": "new-secret"}, "media", "up", run=rotated), 0)
+            self.assertEqual(rotated.calls[1][-4:], ["up", "-d", "--force-recreate", "livekit"])
+            self.assertEqual(rotated.calls[2][-4:], ["up", "-d", "livekit", "coturn"])
 
     def test_media_compose_uses_verified_image_digests(self):
         compose = (Path(__file__).resolve().parents[2] / "addons" / "media" / "compose.yml").read_text()
