@@ -27,6 +27,10 @@ ADDONS = {
 ACTIONS = ("up", "init")
 
 
+def compose_project(env: Env) -> str:
+    return env.get("COMPOSE_PROJECT_NAME", "").strip() or "qjudge"
+
+
 def addon_command(deploy_dir: Path, env_file: Path, name: str, action: str, project: str = "qjudge") -> list[str]:
     return [
         "docker", "compose", "--project-name", f"{project}-{name}", "--project-directory", str(deploy_dir), "--env-file", str(env_file),
@@ -66,4 +70,4 @@ def run_addon(
         run(["docker", "network", "create", NETWORK], check=True)
     if name == "media":
         write_media_config(deploy_dir, env)
-    return run(addon_command(deploy_dir, env_file, name, action, env.get("COMPOSE_PROJECT_NAME", "").strip() or "qjudge")).returncode
+    return run(addon_command(deploy_dir, env_file, name, action, compose_project(env))).returncode

@@ -40,8 +40,8 @@ def render_coturn_config(env: Env) -> str:
     lines = (
         "listening-port=3478",
         "tls-listening-port=5349",
-        "cert=/etc/letsencrypt/live/qjudge-media/fullchain.pem",
-        "pkey=/etc/letsencrypt/live/qjudge-media/privkey.pem",
+        f"cert=/etc/letsencrypt/live/{env['LIVEKIT_TURN_HOST']}/fullchain.pem",
+        f"pkey=/etc/letsencrypt/live/{env['LIVEKIT_TURN_HOST']}/privkey.pem",
         "no-tlsv1",
         "no-tlsv1_1",
         f"realm={env['LIVEKIT_TURN_HOST']}",

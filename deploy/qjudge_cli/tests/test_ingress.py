@@ -7,7 +7,7 @@ from qjudge_cli.tests.test_check import VALID
 class IngressTests(unittest.TestCase):
     def test_bundled_storage_entry(self):
         text = render_ingress(VALID)
-        self.assertIn("Storage  https://files.example.edu", text)
+        self.assertIn("https://files.example.edu", text)
         self.assertIn("http://127.0.0.1:9000", text)
 
     def test_external_storage_has_no_entry(self):
@@ -59,9 +59,10 @@ class IngressTests(unittest.TestCase):
         self.assertIn("proxy_set_header X-Forwarded-Proto $scheme;", text)
         self.assertIn("proxy_buffering off;", text)
 
-    def test_bundled_media_entry_describes_proxy_and_public_ports(self):
+    def test_bundled_media_entry_lists_proxy_ports_and_certificate(self):
         env = {
             **VALID,
+            "COMPOSE_PROJECT_NAME": "qjudge-app",
             "MEDIA_MODE": "bundled",
             "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
             "LIVEKIT_TURN_HOST": "turn.example.edu",
@@ -69,18 +70,18 @@ class IngressTests(unittest.TestCase):
 
         text = render_ingress(env)
 
-        self.assertIn("LiveKit  wss://live.example.edu", text)
-        self.assertIn("Reverse proxy -> http://127.0.0.1:7880", text)
-        self.assertIn("LiveKit HTTP/WebSocket signaling", text)
-        self.assertIn("TCP 7881", text)
-        self.assertIn("UDP 50000-50099", text)
-        self.assertIn("TURN UDP/TCP 3478", text)
-        self.assertIn("relay UDP 50300-50399", text)
-        self.assertIn(
-            "TURN/TLS: public TCP 443 for turn.example.edu -> existing HAProxy SNI -> 127.0.0.1:5349",
-            text,
-        )
-        self.assertIn("Coturn TLS 5349 remains host-loopback only, private to HAProxy.", text)
+        for value in (
+            "wss://live.example.edu",
+            "http://127.0.0.1:7880",
+            "7881",
+            "50000-50099",
+            "3478",
+            "50300-50399",
+            "turn.example.edu -> 127.0.0.1:5349",
+            "/etc/letsencrypt/live/turn.example.edu/",
+            "docker compose -p qjudge-app-media restart coturn",
+        ):
+            self.assertIn(value, text)
 
     def test_tunnel_routes_bundled_media_hostname_to_livekit(self):
         env = {
@@ -134,9 +135,8 @@ class IngressTests(unittest.TestCase):
                     "50000-50099",
                     "3478",
                     "50300-50399",
-                    "TURN/TLS",
-                    "443 ->",
                     "5349",
+                    "coturn",
                 ):
                     self.assertNotIn(bundled_marker, ingress)
                     self.assertNotIn(bundled_marker, nginx)

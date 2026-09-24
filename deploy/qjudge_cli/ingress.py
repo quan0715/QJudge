@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
+from .addon import compose_project
 from .schema import Env
 
 MINIO_PORT = 9000
@@ -71,8 +72,10 @@ def render_ingress(env: Env) -> str:
             f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)",
             "  Open TCP 7881 and UDP 50000-50099 directly to LiveKit.",
             "  Open TURN UDP/TCP 3478 and relay UDP 50300-50399 directly to coturn.",
-            f"  TURN/TLS: public TCP 443 for {turn_host} -> existing HAProxy SNI -> 127.0.0.1:5349",
-            "  Coturn TLS 5349 remains host-loopback only, private to HAProxy.",
+            f"  TLS passthrough (SNI) on 443 for {turn_host} -> 127.0.0.1:5349 (coturn TLS)",
+            f"  TURN certificate at /etc/letsencrypt/live/{turn_host}/",
+            "  coturn reads the certificate only at start; the certbot deploy hook must run:",
+            f"    docker compose -p {compose_project(env)}-media restart coturn",
         ]
         if media_host:
             routes.append((media_host, "http://livekit:7880"))
