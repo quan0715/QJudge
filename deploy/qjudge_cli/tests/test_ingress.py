@@ -59,6 +59,73 @@ class IngressTests(unittest.TestCase):
         self.assertIn("proxy_set_header X-Forwarded-Proto $scheme;", text)
         self.assertIn("proxy_buffering off;", text)
 
+    def test_bundled_media_entry_describes_proxy_and_public_ports(self):
+        env = {
+            **VALID,
+            "MEDIA_MODE": "bundled",
+            "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+        }
+
+        text = render_ingress(env)
+
+        self.assertIn("LiveKit  wss://live.example.edu", text)
+        self.assertIn("Reverse proxy -> http://127.0.0.1:7880", text)
+        self.assertIn("LiveKit HTTP/WebSocket signaling", text)
+        self.assertIn("TCP 7881", text)
+        self.assertIn("UDP 50000-50099", text)
+        self.assertIn("TURN UDP/TCP 3478", text)
+        self.assertIn("relay UDP 50300-50399", text)
+
+    def test_tunnel_routes_bundled_media_hostname_to_livekit(self):
+        env = {
+            **VALID,
+            "MEDIA_MODE": "bundled",
+            "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+            "COMPOSE_PROFILES": "tunnel",
+        }
+
+        text = render_ingress(env)
+
+        self.assertIn("route live.example.edu -> http://livekit:7880", text)
+
+    def test_nginx_includes_websocket_proxy_for_bundled_media(self):
+        env = {
+            **VALID,
+            "MEDIA_MODE": "bundled",
+            "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+        }
+
+        text = render_nginx(env)
+
+        self.assertIn("server_name live.example.edu;", text)
+        self.assertIn("proxy_pass http://127.0.0.1:7880;", text)
+        self.assertIn("proxy_set_header Upgrade $http_upgrade;", text)
+        self.assertIn('proxy_set_header Connection "upgrade";', text)
+
+    def test_external_and_disabled_media_omit_bundled_ingress(self):
+        external = {
+            **VALID,
+            "MEDIA_MODE": "external",
+            "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+            "COMPOSE_PROFILES": "tunnel",
+        }
+        disabled = {**VALID, "MEDIA_MODE": "disabled", "COMPOSE_PROFILES": "tunnel"}
+
+        for env in (external, disabled):
+            with self.subTest(media_mode=env["MEDIA_MODE"]):
+                ingress = render_ingress(env)
+                nginx = render_nginx(env)
+                for bundled_marker in (
+                    "live.example.edu",
+                    "7880",
+                    "7881",
+                    "50000-50099",
+                    "3478",
+                    "50300-50399",
+                ):
+                    self.assertNotIn(bundled_marker, ingress)
+                    self.assertNotIn(bundled_marker, nginx)
+
 
 if __name__ == "__main__":
     unittest.main()

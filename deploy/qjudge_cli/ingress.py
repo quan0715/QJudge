@@ -25,6 +25,13 @@ def _bundled_storage(env: Env) -> str:
     return env.get("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "").strip().rstrip("/")
 
 
+def _bundled_media(env: Env) -> str:
+    """Public LiveKit URL when QJudge runs its media addon, else ''."""
+    if env.get("MEDIA_MODE", "").strip() != "bundled":
+        return ""
+    return env.get("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+
+
 def render_ingress(env: Env) -> str:
     origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").rstrip("/")
     origin_parts = urlsplit(origin)
@@ -54,6 +61,18 @@ def render_ingress(env: Env) -> str:
             "(MinIO; pass Host unchanged, no body size limit, buffering off)",
         ]
         routes.append((urlsplit(storage).hostname, f"http://minio:{MINIO_PORT}"))
+    media = _bundled_media(env)
+    if media:
+        media_host = urlsplit(media).hostname
+        lines += [
+            "",
+            f"LiveKit  {media}",
+            f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)",
+            "  Open TCP 7881 and UDP 50000-50099 directly to LiveKit.",
+            "  Open TURN UDP/TCP 3478 and relay UDP 50300-50399 directly to coturn.",
+        ]
+        if media_host:
+            routes.append((media_host, "http://livekit:7880"))
     profiles = [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
     if "tunnel" in profiles:
         lines += ["", "Cloudflare Tunnel"]
@@ -62,7 +81,13 @@ def render_ingress(env: Env) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _server_block(host: str, upstream: str, extra: str = "") -> str:
+def _server_block(host: str, upstream: str, extra: str = "", websocket: bool = False) -> str:
+    websocket_headers = (
+        "        proxy_set_header Upgrade $http_upgrade;\n"
+        '        proxy_set_header Connection "upgrade";'
+        if websocket
+        else '        proxy_set_header Connection "";'
+    )
     return f"""server {{
     listen 443 ssl;
     server_name {host};
@@ -75,7 +100,7 @@ def _server_block(host: str, upstream: str, extra: str = "") -> str:
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Connection "";
+{websocket_headers}
         proxy_buffering off;
         proxy_read_timeout 300s;
     }}
@@ -93,6 +118,15 @@ def render_nginx(env: Env) -> str:
                 urlsplit(storage).hostname or "_",
                 f"http://{_bind_address(env)}:{MINIO_PORT}",
                 "    client_max_body_size 0;\n",
+            )
+        )
+    media = _bundled_media(env)
+    if media:
+        blocks.append(
+            _server_block(
+                urlsplit(media).hostname or "_",
+                f"http://{_bind_address(env)}:7880",
+                websocket=True,
             )
         )
     return "\n".join(blocks)
