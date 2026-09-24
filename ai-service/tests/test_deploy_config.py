@@ -71,3 +71,17 @@ def test_checkpoint_pool_sets_schema_without_startup_options(monkeypatch):
     asyncio.run(captured["configure"](FakeConnection()))
     assert "search_path" in executed[0]
     assert "ai_checkpoint" in executed[0]
+
+
+def test_artifact_bucket_prefers_single_bucket(monkeypatch):
+    monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "qjudge")
+    monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
+
+    assert Settings(_env_file=None).artifact_s3_bucket == "qjudge"
+
+
+def test_artifact_bucket_falls_back_to_legacy_key(monkeypatch):
+    monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
+    monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
+
+    assert Settings(_env_file=None).artifact_s3_bucket == "legacy"

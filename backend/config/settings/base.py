@@ -7,20 +7,10 @@ import os
 from config.env import env
 from pathlib import Path
 from datetime import timedelta
-from urllib.parse import urlparse
 
 from .database import build_database_config
 
 from config.deployment import parse_public_origin
-
-
-def _endpoint_is_r2(url: str) -> bool:
-    """True iff the hostname is on cloudflarestorage.com (R2)."""
-    try:
-        host = (urlparse(url).hostname or "").lower()
-    except ValueError:
-        return False
-    return host == "r2.cloudflarestorage.com" or host.endswith(".r2.cloudflarestorage.com")
 
 
 def _env_truthy(name: str, default: str = "false") -> bool:
@@ -428,43 +418,22 @@ INTEGRITY_WORKER_CONNECT_TIMEOUT_SECONDS = 1.0
 INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = 5.0
 
 # ---------------------------------------------------------------------------
-# S3-compatible object storage connection settings.
-#
-# OBJECT_STORAGE_* is the only supported external configuration surface for
-# app-level S3-compatible object storage access.
+# S3-compatible object storage. Every object lives in one bucket; object keys
+# already carry their own prefixes (markdown/, integrity/, ai-artifacts/,
+# contest_*/, runs/).
 # ---------------------------------------------------------------------------
 OBJECT_STORAGE_ENDPOINT_URL = env("OBJECT_STORAGE_ENDPOINT_URL", "")
-# Browser-facing endpoint used for presigned URLs. For R2 this is usually the
-# same S3 API endpoint as OBJECT_STORAGE_ENDPOINT_URL.
+# Browser-facing endpoint used for presigned URLs.
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = env("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "")
-OBJECT_STORAGE_REGION = env("OBJECT_STORAGE_REGION", "us-east-1")
+OBJECT_STORAGE_REGION = "us-east-1"
 OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
 OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
 OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = 300
-_OBJECT_STORAGE_IS_R2 = _endpoint_is_r2(OBJECT_STORAGE_ENDPOINT_URL)
-OBJECT_STORAGE_OBJECT_TAGGING_ENABLED = env(
-    "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED",
-    "false" if _OBJECT_STORAGE_IS_R2 else "true",
-).lower() == "true"
-# Cloudflare R2 does not allow bucket creation via the S3 API (buckets must be
-# pre-created in the dashboard or via the Cloudflare API). Disable auto-create
-# automatically when the configured endpoint points at R2.
-OBJECT_STORAGE_AUTO_CREATE_BUCKETS = env(
-    "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
-    "false" if _OBJECT_STORAGE_IS_R2 else "true",
-).lower() == "true"
+OBJECT_STORAGE_BUCKET = env("OBJECT_STORAGE_BUCKET")
 
-MARKDOWN_IMAGE_S3_ENDPOINT_URL = OBJECT_STORAGE_ENDPOINT_URL
-MARKDOWN_IMAGE_S3_REGION = OBJECT_STORAGE_REGION
-MARKDOWN_IMAGE_S3_ACCESS_KEY = OBJECT_STORAGE_ACCESS_KEY
-MARKDOWN_IMAGE_S3_SECRET_KEY = OBJECT_STORAGE_SECRET_KEY
-
-# Per-feature bucket / size settings
-ANTICHEAT_RAW_BUCKET = env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
-INTEGRITY_ARCHIVE_BUCKET = env(
-    "INTEGRITY_ARCHIVE_BUCKET",
-    ANTICHEAT_RAW_BUCKET,
-)
+# Per-feature bucket keys are read only for hosts still on the legacy compose.
+ANTICHEAT_RAW_BUCKET = OBJECT_STORAGE_BUCKET or env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
+INTEGRITY_ARCHIVE_BUCKET = OBJECT_STORAGE_BUCKET or env("INTEGRITY_ARCHIVE_BUCKET", ANTICHEAT_RAW_BUCKET)
 INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = 1073741824
 INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = 268435456
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = 3
@@ -489,6 +458,6 @@ LIVEKIT_STUN_HOST = env("LIVEKIT_STUN_HOST", "").strip()
 LIVEKIT_ROOM_PREFIX = env("LIVEKIT_ROOM_PREFIX", "qjudge-exam").strip()
 LIVEKIT_TOKEN_TTL_SECONDS = 120
 
-MARKDOWN_IMAGE_S3_BUCKET = env("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
+MARKDOWN_IMAGE_S3_BUCKET = OBJECT_STORAGE_BUCKET or env("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = 5242880
 MARKDOWN_IMAGE_PUBLIC_BASE_URL = FRONTEND_URL

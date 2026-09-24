@@ -7,6 +7,8 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 ORIGIN = "https://judge.example.edu"
 CLEARED_KEYS = (
+    "OBJECT_STORAGE_BUCKET", "ANTICHEAT_RAW_BUCKET", "INTEGRITY_ARCHIVE_BUCKET",
+    "MARKDOWN_IMAGE_S3_BUCKET", "OBJECT_STORAGE_REGION", "OBJECT_STORAGE_ENDPOINT_URL",
     "QJUDGE_PUBLIC_ORIGIN",
     "FRONTEND_URL",
     "OAUTH_ISSUER_URL",
@@ -303,3 +305,47 @@ def test_legacy_mcp_public_url_still_wins():
     )
 
     assert values["MCP_PUBLIC_URL"] == "https://mcp.example.edu"
+
+
+BUCKET_SETTINGS = ["ANTICHEAT_RAW_BUCKET", "INTEGRITY_ARCHIVE_BUCKET", "MARKDOWN_IMAGE_S3_BUCKET"]
+
+
+def test_single_bucket_serves_every_feature():
+    values = load_settings(
+        "base",
+        {
+            "OBJECT_STORAGE_BUCKET": "qjudge",
+            "ANTICHEAT_RAW_BUCKET": "ignored",
+            "MARKDOWN_IMAGE_S3_BUCKET": "ignored",
+        },
+        BUCKET_SETTINGS,
+    )
+
+    assert values == {name: "qjudge" for name in BUCKET_SETTINGS}
+
+
+def test_legacy_bucket_keys_apply_without_single_bucket():
+    values = load_settings(
+        "base",
+        {"ANTICHEAT_RAW_BUCKET": "old-raw", "MARKDOWN_IMAGE_S3_BUCKET": "old-markdown"},
+        BUCKET_SETTINGS,
+    )
+
+    assert values == {
+        "ANTICHEAT_RAW_BUCKET": "old-raw",
+        "INTEGRITY_ARCHIVE_BUCKET": "old-raw",
+        "MARKDOWN_IMAGE_S3_BUCKET": "old-markdown",
+    }
+
+
+def test_storage_region_is_constant():
+    values = load_settings(
+        "base",
+        {
+            "OBJECT_STORAGE_REGION": "auto",
+            "OBJECT_STORAGE_ENDPOINT_URL": "https://account.r2.cloudflarestorage.com",
+        },
+        ["OBJECT_STORAGE_REGION"],
+    )
+
+    assert values == {"OBJECT_STORAGE_REGION": "us-east-1"}

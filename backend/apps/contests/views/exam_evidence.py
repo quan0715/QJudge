@@ -397,14 +397,7 @@ class ExamEvidenceMixin:
                         "source_module": source_module,
                         "client_captured_at_ms": captured_at_ms,
                         "put_url": put_url,
-                        "required_headers": {
-                            "Content-Type": "image/webp",
-                            **(
-                                {"x-amz-tagging": "cleanup=true"}
-                                if settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
-                                else {}
-                            ),
-                        },
+                        "required_headers": {"Content-Type": "image/webp"},
                     }
                 )
 
