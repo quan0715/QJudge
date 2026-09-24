@@ -97,7 +97,8 @@ Storage：
 
 - `STORAGE_MODE=bundled|external`
 - `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`（瀏覽器可達的 HTTPS 網址）
-- external 另需：`OBJECT_STORAGE_ENDPOINT_URL`、`OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY`、`OBJECT_STORAGE_BUCKET`
+- `OBJECT_STORAGE_ENDPOINT_URL`、`OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY`、`OBJECT_STORAGE_BUCKET`（bundled 時 endpoint 為 `http://minio:9000`，access／secret key 同時是 MinIO root 帳密）
+- `MINIO_DATA_DIR`（選用，bundled MinIO 的主機資料目錄；未設定時用 Docker volume）
 
 選用功能：
 
@@ -180,15 +181,17 @@ pg_dump 與 initdb ────────────────────�
 
 - 只使用 Get／Put／Head／Delete／List／presigned URL／checksum；region 固定 `us-east-1`。
 - 執行期不建立 bucket，刪除 backend 與 ai-service 的建 bucket 程式碼。
-- 單一 bucket，固定 prefix：`markdown/`、`integrity/`、`ai-artifacts/`。DB 的 `object_key` 不含 prefix，由存取層加上。
-- 監考證據移除 object tagging，改由 Celery beat 刪除 DB 未保留且超過保存期限的物件。
-- dcslab 轉換：一次性複製腳本內寫死舊 bucket → 新 prefix 對照（`markdown-images` → `markdown/`、`anticheat-raw` → `integrity/`、`ai-artifacts` → `ai-artifacts/`），來源與目的為同一個 MinIO；在 app 停止時執行，完成後比對各 prefix 的物件數量與總大小；舊 bucket 保留不刪。
+- 單一 bucket（`OBJECT_STORAGE_BUCKET`）。現有 object key 已各自帶開頭（`markdown/`、`integrity/`、`ai-artifacts/`、`contest_*/`、`runs/`），彼此不重疊，因此不另加 prefix，DB 內的 key 不變。
+- 移除 object tagging：目前沒有任何 lifecycle 規則使用這些 tag。證據刪除維持管理介面的 purge，不新增自動清理。
+- dcslab 轉換：在 app 停止時以 `mc mirror` 把舊 bucket（`markdown-images`、`anticheat-raw`、`ai-artifacts`，以及另外設定過的 integrity archive bucket）複製到新 bucket，key 不變；完成後比對物件數量與總大小；舊 bucket 保留不刪。
+- 本地 dev 同樣使用 bundled MinIO。
 
 ## 8. Addon
 
 - `deploy/addons/storage`（MinIO）與 `deploy/addons/media`（LiveKit + coturn）各自是獨立 compose project，image 固定版本。
-- `qjudge upgrade` 不會重啟 addon；addon 用 `qjudge addon <name> up|upgrade` 管理。
-- `qjudge addon storage init`：建立 bucket、QJudge 用的 access key、CORS，並寫入 `.env`。
+- `qjudge upgrade` 不會重啟 addon；addon 用 `qjudge addon <name> up` 啟動或套用新版（image 版本寫在 addon compose）。
+- `qjudge addon storage init`：建立 bucket。MinIO root 帳密就是 `OBJECT_STORAGE_ACCESS_KEY`／`OBJECT_STORAGE_SECRET_KEY`；CORS 以 MinIO 的 `MINIO_API_CORS_ALLOW_ORIGIN` 設為 origin。`.env` 的值由 `qjudge init`（第 5 階段）產生。
+- 本地 dev 的 overlay 以 `extends` 引用 storage addon 的服務定義，MinIO 跑在 dev project 內。
 - `qjudge addon media init`：產生 LiveKit API key／secret 與 TURN secret，並寫入 `.env`。
 - `external` 模式不啟動 addon，只使用 `.env` 的連線設定。
 
