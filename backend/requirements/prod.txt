@@ -3,5 +3,3 @@
 # Production server
 gunicorn>=22.0,<23.0
 
-# Monitoring
-sentry-sdk>=2.0,<3.0

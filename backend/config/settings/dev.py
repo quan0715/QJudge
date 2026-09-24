@@ -1,27 +1,9 @@
 """
 Development settings
 """
-from config.env import env
 from .base import *
 
 DEBUG = True
-
-# GlitchTip / Sentry Error Tracking (optional in dev — sentry-sdk is a prod dependency)
-GLITCHTIP_DSN = env("GLITCHTIP_DSN", "")
-if GLITCHTIP_DSN:
-    try:
-        import sentry_sdk
-        from sentry_sdk.integrations.django import DjangoIntegration
-
-        sentry_sdk.init(
-            dsn=GLITCHTIP_DSN,
-            integrations=[DjangoIntegration(transaction_style="url")],
-            traces_sample_rate=0,
-            send_default_pii=False,
-            environment="development",
-        )
-    except ImportError:
-        pass
 
 ALLOWED_HOSTS = ["*"]
 

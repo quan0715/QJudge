@@ -9,34 +9,6 @@ from config.deployment import parse_public_origin
 
 DEBUG = False
 
-# =============================================================================
-# GlitchTip / Sentry Error Tracking
-# =============================================================================
-GLITCHTIP_DSN = env("GLITCHTIP_DSN", "")
-
-if GLITCHTIP_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
-
-    sentry_sdk.init(
-        dsn=GLITCHTIP_DSN,
-        integrations=[
-            DjangoIntegration(transaction_style="url"),
-            CeleryIntegration(),
-            RedisIntegration(),
-            LoggingIntegration(
-                level="WARNING",       # WARNING+ 記為 breadcrumb
-                event_level="ERROR",   # ERROR+ 送為獨立 event
-            ),
-        ],
-        traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
-        send_default_pii=False,
-        environment=env("SENTRY_ENVIRONMENT", "production"),
-    )
-
 _PUBLIC_ORIGIN_VALUE = env("QJUDGE_PUBLIC_ORIGIN", "")
 if _PUBLIC_ORIGIN_VALUE:
     _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
