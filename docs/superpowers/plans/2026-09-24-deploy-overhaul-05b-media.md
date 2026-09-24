@@ -60,27 +60,27 @@
 - Produces: `render_livekit_config(env: Env) -> str`、`render_coturn_config(env: Env) -> str`、`write_media_config(deploy_dir: Path, env: Env) -> tuple[Path, Path]`。
 - Runtime file names are `deploy/secrets/livekit.json` and `deploy/secrets/turnserver.conf`; each is written with mode `0600`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
-新增 fixture，使用 `LIVEKIT_API_KEY=qjudge-key`、`LIVEKIT_API_SECRET=qjudge-api-secret`、`LIVEKIT_NODE_IP=192.0.2.10`、`LIVEKIT_TURN_HOST=turn.example.test`、`LIVEKIT_TURN_SECRET=qjudge-turn-secret`。測試 JSON 的 `port=7880`、`rtc.tcp_port=7881`、`rtc.port_range_start=50000`、`rtc.port_range_end=50099`、`rtc.node_ip`、`rtc.use_external_ip=false`、API key map 與 TURN UDP/TCP shared-secret 設定（TTL 3600 秒）；測試 coturn 的 3478 listener、相同 realm/secret、50300–50399 relay range、`external-ip=192.0.2.10`；測試 `write_media_config` 寫入兩個檔案且 mode 為 `0600`。
+新增 fixture，使用 `LIVEKIT_API_KEY=qjudge-key`、`LIVEKIT_API_SECRET=qjudge-api-secret`、`LIVEKIT_NODE_IP=192.0.2.10`、`LIVEKIT_TURN_HOST=turn.example.test`、`LIVEKIT_TURN_SECRET=qjudge-turn-secret`。測試 JSON 的 `port=7880`、`rtc.tcp_port=7881`、`rtc.port_range_start=50000`、`rtc.port_range_end=50099`、`rtc.node_ip`、`rtc.use_external_ip=false`、API key map 與 TURN UDP/TCP shared-secret 設定（TTL 3600 秒）；測試 coturn 的 3478 listener、相同 realm/secret、50300–50399 relay range、`external-ip=192.0.2.10`，且不將公開 IP 指定為容器內的 `listening-ip` 或 `relay-ip`；測試 `write_media_config` 寫入兩個檔案且 mode 為 `0600`。
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_media_config -v`
 
 Expected: FAIL，因 `media_config` 尚不存在。
 
-- [ ] **Step 3: Implement the minimal renderer**
+- [x] **Step 3: Implement the minimal renderer**
 
-用標準函式庫 `json.dumps` 輸出 LiveKit JSON；設定固定服務埠與已核對的 QJudge TURN relay range。coturn listener 綁定 `LIVEKIT_NODE_IP`，啟用 shared-secret authentication，不啟用本階段未設定的 TLS listener。寫檔前建立 `deploy/secrets/`，寫入後 `chmod(0o600)`。不輸出任何 secret。
+用標準函式庫 `json.dumps` 輸出 LiveKit JSON；設定固定服務埠與已核對的 QJudge TURN relay range。coturn 不指定 `listening-ip`／`relay-ip`，讓它使用 container network interface；以 `external-ip=LIVEKIT_NODE_IP` 宣告公開節點 IP，並由 Docker 同埠映射轉送 3478 與 relay traffic。啟用 shared-secret authentication，不啟用本階段未設定的 TLS listener。以 owner-only 權限建立或覆寫 `deploy/secrets/` 內的設定檔。不輸出任何 secret。
 
-- [ ] **Step 4: Run tests and verify they pass**
+- [x] **Step 4: Run tests and verify they pass**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_media_config -v`
 
 Expected: PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add deploy/qjudge_cli/media_config.py deploy/qjudge_cli/tests/test_media_config.py
@@ -101,7 +101,7 @@ git commit -m "feat(deploy): render bundled media configuration" -m "Co-Authored
 - `media init` uses `secrets.token_hex`/`secrets.token_urlsafe`; it must not print the generated values.
 - `envfile.py` produces `write_values(path: Path, updates: Mapping[str, str]) -> None`, which preserves unrelated lines and writes the updated env file with mode `0600`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 在 `test_addon.py` 加入以下 imports 與 `AddonTests` methods：
 
@@ -206,29 +206,29 @@ from unittest.mock import patch
                 self.assertFalse((deploy_dir / "secrets").exists())
 ```
 
-另加入 `test_media_up_writes_config_before_compose`：用 `tmp_path` 建 deploy dir 與完整 `VALID` + bundled media 值；在 `Recorder` 收到第一個 Compose 命令時斷言兩個 config 已存在且 command 不含 API/TURN secret。加入 `test_media_up_creates_shared_network_before_compose`：令 `Recorder(network_exists=False)`，斷言 network create 發生於 compose up 之前。測試 image reference 固定為 dcslab 已運行且核對過的 LiveKit `v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3` 與 coturn `4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888`。
+另加入 `test_media_up_writes_config_before_compose`：用暫存 deploy dir 與完整 `VALID` + bundled media 值；在 `Recorder` 收到第一個 Compose 命令時斷言兩個 config 已存在且 command 不含 API/TURN secret。加入 `test_media_up_creates_shared_network_before_compose`：令 `Recorder(network_exists=False)`，斷言 network create 發生於 compose up 之前。加入 `test_media_init_updates_last_duplicate_empty_credential`，確保重複 key 會更新最後一個有效 assignment；加入 env writer 的 replace 失敗測試，確認原 `.env` 完整保留且暫存檔清除，以及已存在所有 credentials 時 init 不呼叫 writer。測試 image reference 固定為 dcslab 已運行且核對過的 LiveKit `v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3` 與 coturn `4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888`。
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_addon -v`
 
 Expected: FAIL，因 addon 尚未登記 `media`，且 `.env` 尚無指定 key 更新能力。
 
-- [ ] **Step 3: Implement media addon**
+- [x] **Step 3: Implement media addon**
 
-`deploy/addons/media/compose.yml` 定義獨立 `<COMPOSE_PROJECT_NAME>-media` project；`livekit` 以 `livekit` network alias 加入 external `qjudge`，掛載 `secrets/livekit.json`，公開 HTTP 7880、TCP 7881、UDP 50000–50099。`coturn` 也加入 external `qjudge`，掛載 `secrets/turnserver.conf`，映射 UDP/TCP 3478 及 UDP 50300–50399；`external-ip` 設為 `LIVEKIT_NODE_IP`，listener/relay 使用 container network interface。兩個 image 使用上方 digest pin。
+`deploy/addons/media/compose.yml` 定義獨立 `<COMPOSE_PROJECT_NAME>-media` project；`livekit` 以 `livekit` network alias 加入 external `qjudge`，掛載 `secrets/livekit.json`，HTTP 7880 只綁定 `${FRONTEND_BIND_ADDRESS:-127.0.0.1}`，並公開 TCP 7881、UDP 50000–50099。`coturn` 也加入 external `qjudge`，掛載 `secrets/turnserver.conf`，映射 UDP/TCP 3478 及 UDP 50300–50399；`external-ip` 設為 `LIVEKIT_NODE_IP`，listener/relay 使用 container network interface。兩個 image 使用上方 digest pin。
 
 `compose.dev.yml` 的 LiveKit 維持 dev 專用 config 與 7883/7884、50100–50199 埠，只把過期的「media addon exists」註解改成說明此隔離用途；不要讓 prod addon 的埠套用到 dev project。
 
-`envfile.py` 增加只更新指定 key 的寫入函式，保留其他行、註解與既有非空值；media `init` 僅適用 `MEDIA_MODE=bundled`，填入缺漏的三個 secret 並限制 `.env` 為 owner-only。media `up` 經 `check_env`，先確保 network、產生 config，再以 addon 專屬 project 執行 Compose。storage 的 `init|up` 行為維持不變。
+`envfile.py` 增加只更新指定 key 的寫入函式，保留其他行、註解與既有非空值；只在值有變動時，以同目錄 `0600` 暫存檔和原子替換更新 `.env`，並更新重複 key 中最後生效的那一行。media `init` 僅適用 `MEDIA_MODE=bundled`，填入缺漏的三個 secret 並限制 `.env` 為 owner-only。media `up` 經 `check_env`，先確保 network、產生 config，再以 addon 專屬 project 執行 Compose。storage 的 `init|up` 行為維持不變。
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_media_config deploy.qjudge_cli.tests.test_addon -v`
 
 Expected: PASS；測試使用暫存 `.env` 與暫存 deploy dir，不讀寫 `deploy/.env` 或正式 `deploy/secrets/`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add deploy/addons/media/compose.yml compose.dev.yml deploy/qjudge_cli/envfile.py deploy/qjudge_cli/addon.py deploy/qjudge_cli/cli.py deploy/qjudge_cli/tests/test_addon.py
@@ -243,29 +243,29 @@ git commit -m "feat(deploy): add bundled LiveKit and coturn addon" -m "Co-Author
 
 **Interfaces:**
 - Consumes existing `Env`, `render_ingress`, and `render_nginx` interfaces.
-- Bundled LiveKit reverse proxy upstream is `http://<FRONTEND_BIND_ADDRESS>:7880`; tunnel upstream is `http://livekit:7880`.
+- Bundled LiveKit reverse proxy upstream is `http://<FRONTEND_BIND_ADDRESS-or-127.0.0.1>:7880`; tunnel upstream is `http://livekit:7880`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Test that bundled mode reports the `LIVEKIT_PUBLIC_URL` hostname, HTTP/WebSocket proxy to port 7880, TCP 7881, UDP 50000–50099, TURN UDP/TCP 3478 and coturn UDP relay range 50300–50399. With the `tunnel` profile, assert the hostname routes to `http://livekit:7880`. `render_nginx` must include WebSocket `Upgrade` and `Connection` headers for the LiveKit hostname. Test both external and disabled modes omit all bundled media entries.
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_ingress -v`
 
 Expected: FAIL because ingress currently only describes frontend and storage.
 
-- [ ] **Step 3: Implement media ingress output**
+- [x] **Step 3: Implement media ingress output**
 
 Add the bundled media hostname to the tunnel route list and describe the proxy and public UDP/TCP ports. Generate a separate nginx server block with WebSocket upgrade headers; retain the existing frontend and storage output unchanged.
 
-- [ ] **Step 4: Run tests and verify they pass**
+- [x] **Step 4: Run tests and verify they pass**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_ingress -v`
 
 Expected: PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add deploy/qjudge_cli/ingress.py deploy/qjudge_cli/tests/test_ingress.py
@@ -277,22 +277,23 @@ git commit -m "feat(deploy): describe bundled media ingress" -m "Co-Authored-By:
 **Files:**
 - Modify: `deploy/qjudge_cli/schema.py`、`deploy/.env.example`
 - Modify: `.github/workflows/ci.yml`
+- Modify: `deploy/qjudge_cli/tests/test_schema.py`
 
-- [ ] **Step 1: Add focused assertions**
+- [x] **Step 1: Add focused assertions**
 
 在 `test_schema.py` 加入 `test_media_mode_documents_addon_commands`，斷言 `KEYS_BY_NAME["MEDIA_MODE"].help` 含 `qjudge addon media init|up`。Add the media addon Compose file to the CI lint and config checks.
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run: `python3 -m unittest deploy.qjudge_cli.tests.test_schema deploy.qjudge_cli.tests.test_example -v`
 
 Expected: 新增的 schema test FAIL，因 `MEDIA_MODE.help` 尚未提及 media addon CLI。
 
-- [ ] **Step 3: Update schema/example and CI**
+- [x] **Step 3: Update schema/example and CI**
 
 Regenerate with `deploy/qjudge env-example > deploy/.env.example`. Extend `lint-compose` and `docker compose config --quiet` to include `deploy/addons/media/compose.yml`, using the same `deploy/.env.example` fixture as storage.
 
-- [ ] **Step 4: Run the complete deploy CLI and Compose checks**
+- [x] **Step 4: Run the complete deploy CLI and Compose checks**
 
 Run:
 
@@ -306,7 +307,7 @@ docker compose --project-directory deploy --env-file deploy/.env.example -f depl
 
 Expected: all tests and Compose checks pass. Do not start or stop any containers.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add deploy/qjudge_cli/schema.py deploy/.env.example .github/workflows/ci.yml deploy/qjudge_cli/tests/test_schema.py
