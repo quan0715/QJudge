@@ -43,7 +43,7 @@
 - Modify: `backend/apps/core/services/markdown_image_storage.py`、`backend/apps/core/services/__init__.py`
 - Test: `backend/apps/core/tests/test_deploy_settings.py`、`backend/apps/core/tests/test_markdown_image_storage.py`（新增）、`backend/apps/contests/tests/test_anticheat_storage.py`（新增）
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `backend/apps/core/tests/test_deploy_settings.py`：`CLEARED_KEYS` 加入 `"OBJECT_STORAGE_BUCKET"`、`"ANTICHEAT_RAW_BUCKET"`、`"INTEGRITY_ARCHIVE_BUCKET"`、`"MARKDOWN_IMAGE_S3_BUCKET"`、`"OBJECT_STORAGE_REGION"`、`"OBJECT_STORAGE_ENDPOINT_URL"`，檔尾加入：
 
@@ -146,7 +146,7 @@ def test_put_url_carries_no_tagging():
 
 這兩個新測試不需要 DB。若 `backend/apps/contests/tests/` 的 conftest 有 autouse 的 DB fixture 讓測試需要 DB，改放 `backend/apps/core/tests/test_anticheat_storage.py`。
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend python -m pytest -q -p no:cacheprovider apps/core/tests/test_deploy_settings.py apps/core/tests/test_markdown_image_storage.py apps/contests/tests/test_anticheat_storage.py
@@ -154,7 +154,7 @@ def test_put_url_carries_no_tagging():
 
 Expected: bucket 與 region 測試 FAIL；markdown 測試 FAIL（呼叫了 `head_bucket`）；anticheat 測試 FAIL（`Tagging` 在參數中）。
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `backend/config/settings/base.py`：
 
@@ -228,7 +228,7 @@ def get_markdown_image_s3_client():
 
 最後 `git grep -n -E "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED|OBJECT_STORAGE_AUTO_CREATE_BUCKETS|MARKDOWN_IMAGE_S3_(ENDPOINT_URL|REGION|ACCESS_KEY|SECRET_KEY)|reset_bucket_ready_cache|_endpoint_is_r2" -- backend ':!backend/venv'` 應無結果。
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Step 2 的指令全數 PASS。另執行不需 DB 的相關測試：
 
@@ -239,7 +239,7 @@ Step 2 的指令全數 PASS。另執行不需 DB 的相關測試：
 
 需要 DB 的 contests／core API 測試在 CI 執行（本地 DB 帳號無 CREATEDB）。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/apps/core/tests/test_markdown_image_storage.py backend/apps/contests/tests/test_anticheat_storage.py
@@ -256,7 +256,7 @@ git commit -m "refactor(backend): serve all objects from one bucket without tagg
 - Modify: `ai-service/config.py`、`ai-service/infrastructure/artifacts/s3_artifact_store.py`、`ai-service/main.py`、`ai-service/worker/tasks.py`
 - Test: `ai-service/tests/test_deploy_config.py`、`ai-service/tests/unit/test_artifact_service.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `ai-service/tests/test_deploy_config.py` 檔尾加入：
 
@@ -282,7 +282,7 @@ def test_artifact_bucket_falls_back_to_legacy_key(monkeypatch):
 3. `test_s3_store_presign_uses_browser_endpoint_and_ttl`：移除 `region="ap-northeast-1"` 參數，預期的 `region_name` 改為 `"us-east-1"`。
 4. 其他建構 `S3ArtifactStore(... region=..., auto_create_bucket=...)` 的地方移除這兩個參數。
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m pytest -q -p no:cacheprovider tests/test_deploy_config.py tests/unit/test_artifact_service.py
@@ -292,7 +292,7 @@ def test_artifact_bucket_falls_back_to_legacy_key(monkeypatch):
 
 Expected: 新的 bucket 測試 FAIL；store 測試因仍呼叫 `head_bucket` 或 `region` 參數不符而 FAIL／ERROR。
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `ai-service/config.py`：
 
@@ -316,7 +316,7 @@ Expected: 新的 bucket 測試 FAIL；store 測試因仍呼叫 `head_bucket` 或
 
 `git grep -n -E "artifact_storage_region|artifact_storage_auto_create_bucket|auto_create_bucket|_ensure_bucket" -- ai-service ':!ai-service/tests/contract'` 應無結果（contract 測試檢查的是舊 compose，本計畫不動）。
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Step 2 的指令全數 PASS，另跑整個 unit 目錄確認沒有其他測試依賴被刪除的參數：
 
@@ -324,7 +324,7 @@ Step 2 的指令全數 PASS，另跑整個 unit 目錄確認沒有其他測試�
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m pytest -q -p no:cacheprovider tests/unit tests/test_deploy_config.py
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "refactor(ai): store artifacts in the shared bucket without bucket creation" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -- ai-service/config.py ai-service/infrastructure/artifacts/s3_artifact_store.py ai-service/main.py ai-service/worker/tasks.py ai-service/tests/test_deploy_config.py ai-service/tests/unit/test_artifact_service.py
@@ -338,7 +338,7 @@ git commit -m "refactor(ai): store artifacts in the shared bucket without bucket
 - Modify: `deploy/qjudge_cli/schema.py`、`deploy/qjudge_cli/check.py`、`deploy/qjudge_cli/lint.py`、`deploy/compose.yml`、`deploy/.env.example`
 - Test: `deploy/qjudge_cli/tests/test_check.py`、`deploy/qjudge_cli/tests/test_lint.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `deploy/qjudge_cli/tests/test_check.py`：`VALID` 的 `"OBJECT_STORAGE_SECRET_KEY": "secret"` 改為 `"secret-key"`，`CheckTests` 內加入：
 
@@ -364,12 +364,12 @@ git commit -m "refactor(ai): store artifacts in the shared bucket without bucket
 
 （`lint_compose_text` 的 import 依該檔現有寫法。）
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy`
 Expected: 新測試 FAIL（無長度規則、`MINIO_DATA_DIR` 為 unknown key、lint 報 default）。
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `deploy/qjudge_cli/schema.py` 的 `# Object storage` 區塊改為：
 
@@ -419,7 +419,7 @@ Expected: 新測試 FAIL（無長度規則、`MINIO_DATA_DIR` 為 unknown key、
 
 重新產生範本：`deploy/qjudge env-example > deploy/.env.example`
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
@@ -430,7 +430,7 @@ deploy/qjudge check
 
 Expected：unittest OK；lint 無輸出；config 成功；本地 `deploy/.env`（目前 `STORAGE_MODE=external`）仍 OK。本地 dev 的 storage 在 Task 5 才切換，這個 commit 之後 dev 的上傳仍不可用（切換前本來就無法使用：R2 上沒有預設名稱的 bucket）。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(deploy): pass the single storage bucket and describe bundled MinIO keys" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -- deploy/qjudge_cli/schema.py deploy/qjudge_cli/check.py deploy/qjudge_cli/lint.py deploy/compose.yml deploy/.env.example deploy/qjudge_cli/tests/test_check.py deploy/qjudge_cli/tests/test_lint.py
@@ -445,7 +445,7 @@ git commit -m "feat(deploy): pass the single storage bucket and describe bundled
 - Modify: `deploy/qjudge_cli/cli.py`、`deploy/qjudge_cli/ingress.py`、`.github/workflows/ci.yml`
 - Test: `deploy/qjudge_cli/tests/test_addon.py`（新增）、`deploy/qjudge_cli/tests/test_ingress.py`
 
-- [ ] **Step 1: 確認 MinIO image 是否內含 `mc`**
+- [x] **Step 1: 確認 MinIO image 是否內含 `mc`**
 
 ```bash
 docker run --rm --entrypoint sh quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e -c 'command -v mc && mc --version'
@@ -453,7 +453,7 @@ docker run --rm --entrypoint sh quay.io/minio/minio:latest@sha256:14cea493d9a34a
 
 有 `mc`：`storage-init` 使用同一個 image。沒有：`docker pull quay.io/minio/mc:latest` 後以 `docker image inspect --format '{{index .RepoDigests 0}}'` 取得 digest，`storage-init` 使用 `quay.io/minio/mc@sha256:<digest>`。在回報中寫明採用哪一種。
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `deploy/qjudge_cli/tests/test_addon.py`：
 
@@ -540,12 +540,12 @@ if __name__ == "__main__":
         self.assertIn("client_max_body_size 0;", text)
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy`
 Expected: `test_addon` import ERROR；新的 ingress 測試 FAIL。
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `deploy/addons/storage/compose.yml`（`<MINIO_IMAGE>` 為上面的 minio image 完整參照；`<MC_IMAGE>` 依 Step 1 決定）：
 
@@ -794,7 +794,7 @@ def render_nginx(env: Env) -> str:
             -f deploy/addons/storage/compose.yml config --quiet
 ```
 
-- [ ] **Step 5: Run tests and checks**
+- [x] **Step 5: Run tests and checks**
 
 ```bash
 python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
@@ -805,7 +805,7 @@ deploy/qjudge addon storage up
 
 Expected：unittest OK；lint 無輸出；addon config 顯示 project 名 `qjudge-storage`、`minio` 服務 alias `minio`、volume `minio-data`；`addon storage up` 因本地 `deploy/.env` 為 `STORAGE_MODE=external` 印出 `STORAGE_MODE is not bundled; the storage addon is not used` 並 exit 1（不啟動任何容器）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add deploy/addons/storage/compose.yml deploy/qjudge_cli/addon.py deploy/qjudge_cli/tests/test_addon.py
@@ -820,7 +820,7 @@ git commit -m "feat(deploy): add the bundled MinIO addon and list storage in qju
 - Modify: `compose.dev.yml`
 - Local only（不 commit）：`deploy/.env`
 
-- [ ] **Step 1: dev overlay 加入 MinIO**
+- [x] **Step 1: dev overlay 加入 MinIO**
 
 `compose.dev.yml` 的 `services:` 內（`livekit` 之前）加入：
 
@@ -855,11 +855,11 @@ volumes:
 
 Expected：服務清單有 `minio`（`storage-init` 在 profile `init` 中，不會列出或需加 `--profile init` 才列出）；`minio` 的 network 為 dev project 的 default（不是外部 `qjudge`），alias `minio`，volume `minio-data`。
 
-- [ ] **Step 2: Cloudflare Tunnel 路由（使用者操作）**
+- [x] **Step 2: Cloudflare Tunnel 路由（使用者操作）**
 
 dev 的 origin 是 `https://q-judge-dev.quan.wtf`，瀏覽器與 integrity-resident 需要以 HTTPS 連到 MinIO。請使用者在 Cloudflare Zero Trust 的 dev tunnel 新增 public hostname：`storage-dev.quan.wtf` → `http://minio:9000`。若使用者選用其他 hostname，以下步驟的網址跟著替換。等待使用者確認完成再繼續。
 
-- [ ] **Step 3: 改寫本地 `deploy/.env` 的 storage key**
+- [x] **Step 3: 改寫本地 `deploy/.env` 的 storage key**
 
 只改這幾行（其餘不動；先備份 `cp deploy/.env deploy/.env.before-minio`）：
 
@@ -889,7 +889,7 @@ deploy/qjudge check
 
 Expected：`deploy/.env: OK`。
 
-- [ ] **Step 4: 啟動 MinIO 並建立 bucket**
+- [x] **Step 4: 啟動 MinIO 並建立 bucket**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d minio
@@ -898,7 +898,7 @@ Expected：`deploy/.env: OK`。
 
 Expected：`storage-init` 印出 `Bucket created successfully` 或 bucket 已存在的訊息，exit 0。
 
-- [ ] **Step 5: 搬移既有 dev 物件（R2 → 本地 MinIO，只讀 R2）**
+- [x] **Step 5: 搬移既有 dev 物件（R2 → 本地 MinIO，只讀 R2）**
 
 三個 R2 dev bucket 的 key 互不重疊，直接鏡像到 `qjudge`。R2 的 endpoint 與金鑰從 repo 根目錄舊 `.env` 讀取（`OBJECT_STORAGE_ENDPOINT_URL`、`OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY`），不寫入任何檔案、不印出：
 
@@ -934,7 +934,7 @@ docker run --rm --network online_judge_default \
 
 （`<MC_IMAGE>` 與 Task 4 相同。network 名稱以 `docker network ls` 確認 dev project 的 default network。）Expected：local 的總物件數與大小等於三個 R2 bucket 相加。若 R2 讀取失敗，回報錯誤並跳過此步（dev 資料不搬移不影響功能驗證）。
 
-- [ ] **Step 6: 重建 app 服務並驗證**
+- [x] **Step 6: 重建 app 服務並驗證**
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d backend celery celery-high celery-beat ai-service ai-worker ai-scheduler integrity-resident integrity-reconciler
@@ -989,7 +989,7 @@ rm /tmp/qjudge-storage-check.txt
 
 Expected：healthcheck 通過；三個 bucket 設定都印 `qjudge`；presigned PUT 200；CORS preflight 200 或 204；AI 讀寫成功且 presign 網址以 `https://storage-dev.quan.wtf` 開頭。若 Step 5 有搬移資料，再以瀏覽器（或 curl）打開一張既有題目圖片 `https://q-judge-dev.quan.wtf/api/v1/markdown/images/<既有 key>`，應為 200。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git commit -m "feat(dev): run the storage addon's MinIO inside the dev project" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -- compose.dev.yml
@@ -1004,3 +1004,31 @@ git commit -m "feat(dev): run the storage addon's MinIO inside the dev project" 
 - CLI unittest、`lint-compose`（含 addon）、compose config 通過；backend／ai-service 相關的非 DB 測試通過，DB 測試由 CI 執行。
 - 本地 dev 使用 dev project 內的 MinIO，上傳、下載、presigned PUT 與 CORS 經 tunnel 正常。
 - 舊 `docker-compose*.yml`、`scripts/` 與 contract 測試未修改。
+
+
+## Review 與實作結果（2026-09-24）
+
+已完成程式、CLI、addon 與本機 dev 切換；正式環境未部署。實作在 `codex/storage-overhaul` 隔離分支，修改亦套回原工作目錄供 dev 執行，保留原有其他修改。
+
+### Review 修正
+
+- `COMPOSE_PROJECT_NAME` 優先於 Compose 的 top-level `name`。CLI 現在明確傳入 `--project-name <project>-storage`，確保 addon 與 app 分離；新增回歸測試。直接呼叫 addon compose 時亦須自行指定 project name。
+- 固定 `us-east-1` 會使 boto3 預設 presign 回到 SigV2；實測 R2 回 `401 Unauthorized: SigV2 authorization is not supported`。Backend 與 AI client 明確使用標準 `s3v4`，沒有 provider 分支；兩個實際簽名測試先失敗再通過，R2 原物件下載恢復 HTTP 200。
+- 指定 MinIO digest 已確認內建 `mc`，server 與 init 共用該 image。
+- Backend 使用既有 host Python 3.11 venv；AI 使用 `uv run --with pytest --with pytest-asyncio`，工作目錄為 `ai-service`。DB 測試仍留 CI。Host pytest-django 會為既有 healthcheck SimpleTestCase 嘗試建立 DB，改用 `django.setup()` + unittest 執行其 4 個無 DB 測試。
+- 提交依實際相依性合併，未沿用範例中的其他模型署名。
+
+### 驗證證據
+
+- Backend 相關測試 30 passed；healthcheck unit 4 passed；AI unit/config 107 passed；CLI 76 passed。
+- Compose lint、base/build/addon/dev config 成功；dev network 為 `online_judge_default`，MinIO volume 為 `online_judge_minio-data`。
+- 已透過 Cloudflare 瀏覽器 UI 在 `QJudge-Dev` 新增 `storage-dev.quan.wtf → http://minio:9000`，DNS CNAME 自動建立；公開 readiness HTTP 200。
+- `deploy/.env` 改為 bundled 與單一 `qjudge` bucket；舊設定備份於 git-ignored `deploy/backups/storage-05-before-minio.env`，機密未納入版本控制。
+- 初始化重複執行成功；backend healthcheck 全數通過。
+- Markdown server PUT/GET、公開 presigned PUT/GET、SHA-256 checksum chunk upload、AI PUT/GET 與公開 presign 均成功。
+- CORS 接受 dev origin 與 localhost，拒絕其他 origin；從 dev 網頁執行跨來源 fetch，PUT/GET 均 HTTP 200，內容一致。
+- 原 R2 dev 資料只讀複製：markdown 20 件／12,679,180 bytes；監考 2,009 件／119,985,005 bytes；AI 936 件／9,478,315 bytes。共 2,965 件／142,142,500 bytes，逐 key 與大小核對一致。既有圖片經 backend API HTTP 200。
+- 初次 Python urllib 公開探測被 Cloudflare browser integrity 回 1010；瀏覽器實測與帶明確探測 User-Agent 的請求成功，未放寬 Cloudflare 規則。
+- 使用者曾選擇 dcslab external MinIO，已建立空 `qjudge-dev` bucket；之後改回本機。遠端 bucket 保留未使用，未修改正式 MinIO CORS 或正式資料。
+
+Fresh reviewer 對主要實作未提出 actionable findings；後續 SigV4 相容性修正以 RED→GREEN 回歸與真實 R2/MinIO handshake 驗證。尚未執行 CI DB suite，亦未推送或部署正式環境。

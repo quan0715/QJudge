@@ -353,6 +353,7 @@ async def test_s3_store_presign_uses_browser_endpoint_and_ttl(monkeypatch) -> No
     )
 
     assert await store.presign("result") == "https://browser.example/download"
+    assert boto3.calls[0][1].pop("config").signature_version == "s3v4"
     assert boto3.calls == [
         (
             "s3",
@@ -392,3 +393,16 @@ async def test_s3_store_wraps_upload_failure() -> None:
 
     with pytest.raises(ArtifactStorageError, match="Failed to upload artifact"):
         await store.put("result", b"bytes", "text/plain")
+
+
+async def test_presigning_uses_sigv4_for_s3_compatible_endpoints() -> None:
+    from urllib.parse import parse_qs, urlsplit
+
+    store = S3ArtifactStore(
+        bucket='qjudge', endpoint_url='http://minio:9000',
+        public_endpoint_url='https://storage.example.edu',
+        access_key='test-key', secret_key='test-secret',
+    )
+    query = parse_qs(urlsplit(await store.presign('ai-artifacts/test.txt')).query)
+    assert query.get('X-Amz-Algorithm') == ['AWS4-HMAC-SHA256']
+    assert 'AWSAccessKeyId' not in query

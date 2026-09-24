@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from botocore.config import Config
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -199,6 +200,7 @@ class S3ArtifactStore:
         self._presign_ttl_seconds = presign_ttl_seconds
         kwargs: dict[str, Any] = {
             "region_name": "us-east-1",
+            "config": Config(signature_version="s3v4"),
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
         }

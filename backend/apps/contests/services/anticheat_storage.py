@@ -9,6 +9,7 @@ from functools import lru_cache
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+from botocore.config import Config
 from django.conf import settings
 
 
@@ -30,6 +31,7 @@ def _cached_s3_client(resolved_endpoint: str) -> Any:
         "aws_access_key_id": settings.OBJECT_STORAGE_ACCESS_KEY,
         "aws_secret_access_key": settings.OBJECT_STORAGE_SECRET_KEY,
         "region_name": settings.OBJECT_STORAGE_REGION,
+        "config": Config(signature_version="s3v4"),
     }
     if resolved_endpoint:
         kwargs["endpoint_url"] = resolved_endpoint
