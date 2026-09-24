@@ -75,7 +75,7 @@ frontend、backend 與 ai-service 的原始碼會掛載進容器。大多數修�
 哪個畫面出錯，就先看相對應的服務：
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f frontend
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f gateway
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f backend
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f ai-service
 ```
@@ -84,11 +84,11 @@ frontend、backend 與 ai-service 的原始碼會掛載進容器。大多數修�
 
 ## 6. 執行測試
 
-前端檢查在 dev frontend container 中執行：
+前端檢查在 dev gateway container 中執行：
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run lint
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run test
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T gateway npm run lint
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T gateway npm run test
 ```
 
 後端測試使用獨立的 test Compose，避免測試資料混入開發資料庫：

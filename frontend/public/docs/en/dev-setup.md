@@ -141,6 +141,6 @@ docker compose logs <service-name>
 For the compose-based dev workflow, prefer:
 
 ```bash
-bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f frontend
+bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f gateway
 bash .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev logs -f storybook
 ```
