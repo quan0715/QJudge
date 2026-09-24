@@ -8,6 +8,8 @@
 
 **dcslab 唯讀現況（2026-09-24）：** `qjudge-media` 正在執行 LiveKit `v1.13.7` 與 coturn `4.6.3`；目前兩者用 host network。LiveKit 使用 HTTP 7880、TCP 7881、UDP 50000–50099，coturn 使用 UDP/TCP 3478、UDP relay 50300–50399，外部 HAProxy 另將 TCP 443/TLS 轉到 coturn TLS 5349。現行 Coturn 憑證在 `/etc/letsencrypt/live/qjudge-media/`。app 與執行中服務的 API key／TURN secret 相符，但 `.env` 的 `LIVEKIT_NODE_IP` 與 LiveKit `node_ip` 不同；plan 08 必須在轉換前釐清。05b 只建置與本機驗證，不改 dcslab。
 
+**Review fixes（2026-09-24，取代下文相衝突的描述）：** coturn 改用 project-local `turn` network，不再加入 `qjudge`；設定拒絕所有 relay peer，只允許 `LIVEKIT_NODE_IP`，並關閉 TCP relay、multicast peer 與 CLI。憑證路徑改為 certbot 預設 lineage `/etc/letsencrypt/live/<LIVEKIT_TURN_HOST>/`，`qjudge ingress` 列出 certbot deploy hook 需執行的 coturn restart 命令。`addon media up` 不再 `--force-recreate`，只重建 rendered config 有變動的服務，其餘 `up -d`。實測發現 coturn 會把等於 `external-ip` 的 peer 位址改寫成自己的 relay 位址，因此 bridge network 下 relay 到 `LIVEKIT_NODE_IP` 到不了 LiveKit（加 ACL 前即如此），dcslab 轉換前的 relay-only TURN 測試必須通過。
+
 **Tech Stack:** Python 標準函式庫 CLI、Docker Compose v2、LiveKit Server、coturn。
 
 **Spec:** `docs/superpowers/specs/2026-09-23-deploy-config-overhaul-design.md` §§2–4、6、8、13。

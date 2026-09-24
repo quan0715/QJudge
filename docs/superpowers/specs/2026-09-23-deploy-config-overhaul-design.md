@@ -204,7 +204,7 @@ pg_dump 與 initdb ────────────────────�
 | `ingress` | 列出需要設定的入口 |
 | `upgrade <ref>` | 升級 |
 | `rollback` | 回到上一版 |
-| `addon <name> init|up|upgrade` | 管理 addon |
+| `addon <name> init|up` | 初始化或啟動 addon（見第 8 節） |
 
 ### `upgrade <ref>`
 
@@ -234,11 +234,12 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 
 1. 備份 `online_judge`、`qjudge_ai`、`.env`、`secrets/`。
 2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域；DB 密碼若含非英數字需先以 `ALTER ROLE` 更換）。
-3. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret），addon 掛到新的 `qjudge` network。
-4. 建立新 bucket，執行一次性複製腳本並比對數量與總大小。
-5. `qjudge check` → `qjudge upgrade <sha>`。
-6. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
-7. 驗收後手動移除舊 network `online_judge_oj_network`。
+3. 轉換前：讓 TURN 憑證位於 `/etc/letsencrypt/live/<LIVEKIT_TURN_HOST>/`（dcslab 現行 lineage 為 `qjudge-media`），並安裝 certbot deploy hook，執行 `qjudge ingress` 列出的 `docker compose -p <project>-media restart coturn`（coturn 只在啟動時讀取憑證）。
+4. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret），addon 掛到新的 `qjudge` network。確認固定版本 MinIO image 能以既有資料 `/mnt/data/qjudge-data/minio` 正常啟動；恢復服務前，對 bundled media addon 做 relay-only TURN 測試（瀏覽器 `iceTransportPolicy: "relay"` 或 `turnutils_uclient`）。
+5. 建立新 bucket，執行一次性複製腳本並比對數量與總大小。
+6. `qjudge check` → `qjudge upgrade <sha>`。
+7. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
+8. 驗收後手動移除舊 network `online_judge_oj_network`，並刪除 plan 05 驗證時在正式 MinIO 建立的空 bucket `qjudge-dev`。
 
 ## 12. 文件
 
