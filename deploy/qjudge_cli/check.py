@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from urllib.parse import urlsplit
 
@@ -40,6 +41,13 @@ def check_env(env: Env) -> list[str]:
 
 
 def _value_problem(name: str, value: str, env: Env) -> str | None:
+    if name == "QJUDGE_TRUSTED_PROXIES":
+        for item in value.split(","):
+            try:
+                ipaddress.ip_network(item.strip(), strict=False)
+            except ValueError:
+                return f"'{item.strip()}' is not an IP address or CIDR"
+        return None
     if name in ENUMS and value not in ENUMS[name]:
         return "must be one of " + ", ".join(ENUMS[name])
     if name == "QJUDGE_PUBLIC_ORIGIN":

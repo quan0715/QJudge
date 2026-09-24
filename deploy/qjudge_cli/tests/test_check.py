@@ -94,6 +94,21 @@ class CheckTests(unittest.TestCase):
     def test_media_mode_must_be_known(self):
         self.assertEqual(error_keys(with_changes(MEDIA_MODE="local")), ["MEDIA_MODE"])
 
+    def test_trusted_proxies_required_when_gateway_is_not_local(self):
+        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5")
+        self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
+
+    def test_trusted_proxies_optional_when_gateway_is_local(self):
+        self.assertEqual(check_env(with_changes(GATEWAY_BIND_ADDRESS="127.0.0.1")), [])
+
+    def test_trusted_proxies_must_be_addresses(self):
+        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, nginx-host")
+        self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
+
+    def test_trusted_proxies_accept_ips_and_cidrs(self):
+        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, 192.168.0.0/24")
+        self.assertEqual(check_env(env), [])
+
 
 if __name__ == "__main__":
     unittest.main()

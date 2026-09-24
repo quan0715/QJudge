@@ -9,6 +9,7 @@ from pathlib import Path
 from .check import check_env
 from .envfile import load
 from .example import render
+from .ingress import render_ingress, render_nginx
 from .lint import lint_compose_text
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
@@ -22,6 +23,9 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("env-example", help="print the .env.example generated from the schema")
     lint_parser = commands.add_parser("lint-compose", help="check compose files against the schema")
     lint_parser.add_argument("files", type=Path, nargs="+")
+    ingress_parser = commands.add_parser("ingress", help="list the entry points to configure outside QJudge")
+    ingress_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    ingress_parser.add_argument("--nginx", action="store_true", help="print a reverse proxy server block")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
@@ -29,6 +33,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "lint-compose":
         return _lint(args.files)
+    if args.command == "ingress":
+        env = load(args.env_file)
+        sys.stdout.write(render_nginx(env) if args.nginx else render_ingress(env))
+        return 0
     return _check(args.env_file)
 
 

@@ -62,6 +62,9 @@ class SchemaTests(unittest.TestCase):
             self.assertEqual(KEYS_BY_NAME[name].feature, "smtp", name)
             self.assertFalse(KEYS_BY_NAME[name].is_required({}), name)
 
+    def test_remote_mcp_toggle_is_gone(self):
+        self.assertNotIn("QJUDGE_REMOTE_MCP_ENABLED", KEYS_BY_NAME)
+
 
 if __name__ == "__main__":
     unittest.main()
