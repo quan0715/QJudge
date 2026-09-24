@@ -175,7 +175,7 @@ pg_dump 與 initdb ────────────────────�
 - 信任邊界：frontend 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `FRONTEND_PORT`。上游代理必須以 `proxy_set_header` 附加或覆寫 `X-Forwarded-For` 並設定 `X-Forwarded-Proto`（`ingress` 輸出的範本會採附加）。
 - real IP 設定由 nginx 官方 image 的 `/docker-entrypoint.d` 腳本依 `QJUDGE_TRUSTED_PROXIES` 產生；未設定時信任所有來源但只取最後一個 `X-Forwarded-For`；frontend 轉給 app 的 `X-Forwarded-For` 只含解析後的來源 IP。
 
-`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → frontend；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 需直接開放或由路由器轉發。
+`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → frontend；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN UDP/TCP `3478` 與 relay UDP `50300-50399` 需直接開放或由路由器轉發。TURN/TLS 維持既有外部 HAProxy TCP `443` SNI route，轉到 host-loopback coturn TLS `5349`；`5349` 不直接對外開放。
 
 ## 7. Storage
 
