@@ -50,6 +50,13 @@ class MediaConfigTests(unittest.TestCase):
                     "secret": "qjudge-turn-secret",
                     "ttl": 3600,
                 },
+                {
+                    "host": "turn.example.test",
+                    "port": 443,
+                    "protocol": "tls",
+                    "secret": "qjudge-turn-secret",
+                    "ttl": 3600,
+                },
             ],
         )
 
@@ -57,6 +64,11 @@ class MediaConfigTests(unittest.TestCase):
         config = render_coturn_config(MEDIA_ENV)
 
         self.assertIn("listening-port=3478", config)
+        self.assertIn("tls-listening-port=5349", config)
+        self.assertIn("cert=/etc/letsencrypt/live/qjudge-media/fullchain.pem", config)
+        self.assertIn("pkey=/etc/letsencrypt/live/qjudge-media/privkey.pem", config)
+        self.assertIn("no-tlsv1", config)
+        self.assertIn("no-tlsv1_1", config)
         self.assertIn("realm=turn.example.test", config)
         self.assertIn("use-auth-secret", config)
         self.assertIn("static-auth-secret=qjudge-turn-secret", config)
@@ -67,8 +79,6 @@ class MediaConfigTests(unittest.TestCase):
         self.assertIn("external-ip=192.0.2.10", config)
         self.assertNotIn("listening-ip=", config)
         self.assertNotIn("relay-ip=", config)
-        self.assertNotIn("tls-listening-port", config)
-        self.assertNotIn("cert=", config)
 
     def test_write_media_config_creates_private_runtime_files(self):
         with tempfile.TemporaryDirectory() as temporary_directory:

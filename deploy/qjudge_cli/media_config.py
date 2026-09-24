@@ -22,12 +22,12 @@ def render_livekit_config(env: Env) -> str:
             "turn_servers": [
                 {
                     "host": env["LIVEKIT_TURN_HOST"],
-                    "port": 3478,
+                    "port": port,
                     "protocol": protocol,
                     "secret": env["LIVEKIT_TURN_SECRET"],
                     "ttl": 3600,
                 }
-                for protocol in ("udp", "tcp")
+                for protocol, port in (("udp", 3478), ("tcp", 3478), ("tls", 443))
             ],
         },
         "keys": {env["LIVEKIT_API_KEY"]: env["LIVEKIT_API_SECRET"]},
@@ -39,6 +39,11 @@ def render_coturn_config(env: Env) -> str:
     """Return coturn's shared-secret listener and QJudge relay configuration."""
     lines = (
         "listening-port=3478",
+        "tls-listening-port=5349",
+        "cert=/etc/letsencrypt/live/qjudge-media/fullchain.pem",
+        "pkey=/etc/letsencrypt/live/qjudge-media/privkey.pem",
+        "no-tlsv1",
+        "no-tlsv1_1",
         f"realm={env['LIVEKIT_TURN_HOST']}",
         "use-auth-secret",
         f"static-auth-secret={env['LIVEKIT_TURN_SECRET']}",
