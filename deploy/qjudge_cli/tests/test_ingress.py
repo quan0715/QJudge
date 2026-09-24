@@ -64,6 +64,7 @@ class IngressTests(unittest.TestCase):
             **VALID,
             "MEDIA_MODE": "bundled",
             "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+            "LIVEKIT_TURN_HOST": "turn.example.edu",
         }
 
         text = render_ingress(env)
@@ -75,6 +76,11 @@ class IngressTests(unittest.TestCase):
         self.assertIn("UDP 50000-50099", text)
         self.assertIn("TURN UDP/TCP 3478", text)
         self.assertIn("relay UDP 50300-50399", text)
+        self.assertIn(
+            "TURN/TLS: public TCP 443 for turn.example.edu -> existing HAProxy SNI -> 127.0.0.1:5349",
+            text,
+        )
+        self.assertIn("Coturn TLS 5349 remains host-loopback only, private to HAProxy.", text)
 
     def test_tunnel_routes_bundled_media_hostname_to_livekit(self):
         env = {
@@ -107,9 +113,15 @@ class IngressTests(unittest.TestCase):
             **VALID,
             "MEDIA_MODE": "external",
             "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+            "LIVEKIT_TURN_HOST": "turn.example.edu",
             "COMPOSE_PROFILES": "tunnel",
         }
-        disabled = {**VALID, "MEDIA_MODE": "disabled", "COMPOSE_PROFILES": "tunnel"}
+        disabled = {
+            **VALID,
+            "MEDIA_MODE": "disabled",
+            "LIVEKIT_TURN_HOST": "turn.example.edu",
+            "COMPOSE_PROFILES": "tunnel",
+        }
 
         for env in (external, disabled):
             with self.subTest(media_mode=env["MEDIA_MODE"]):
@@ -122,6 +134,9 @@ class IngressTests(unittest.TestCase):
                     "50000-50099",
                     "3478",
                     "50300-50399",
+                    "TURN/TLS",
+                    "443 ->",
+                    "5349",
                 ):
                     self.assertNotIn(bundled_marker, ingress)
                     self.assertNotIn(bundled_marker, nginx)

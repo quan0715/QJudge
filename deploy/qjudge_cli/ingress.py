@@ -64,12 +64,15 @@ def render_ingress(env: Env) -> str:
     media = _bundled_media(env)
     if media:
         media_host = urlsplit(media).hostname
+        turn_host = env.get("LIVEKIT_TURN_HOST", "").strip()
         lines += [
             "",
             f"LiveKit  {media}",
             f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)",
             "  Open TCP 7881 and UDP 50000-50099 directly to LiveKit.",
             "  Open TURN UDP/TCP 3478 and relay UDP 50300-50399 directly to coturn.",
+            f"  TURN/TLS: public TCP 443 for {turn_host} -> existing HAProxy SNI -> 127.0.0.1:5349",
+            "  Coturn TLS 5349 remains host-loopback only, private to HAProxy.",
         ]
         if media_host:
             routes.append((media_host, "http://livekit:7880"))
