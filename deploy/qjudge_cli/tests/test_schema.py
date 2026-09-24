@@ -27,6 +27,11 @@ class SchemaTests(unittest.TestCase):
         self.assertTrue(key.is_required({"MEDIA_MODE": "external"}))
         self.assertTrue(key.is_required({"MEDIA_MODE": "bundled"}))
 
+    def test_media_mode_documents_addon_commands(self):
+        help_text = KEYS_BY_NAME["MEDIA_MODE"].help
+        self.assertIn("qjudge addon media init", help_text)
+        self.assertIn("qjudge addon media up", help_text)
+
     def test_bundled_media_keys_required_only_when_bundled(self):
         key = KEYS_BY_NAME["LIVEKIT_NODE_IP"]
         self.assertFalse(key.is_required({"MEDIA_MODE": "external"}))

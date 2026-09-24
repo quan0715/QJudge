@@ -127,7 +127,8 @@ KEYS: tuple[Key, ...] = (
         "Host directory for bundled MinIO data; a Docker volume is used when unset."),
 
     # Live monitoring
-    Key("MEDIA_MODE", "media", "disabled, bundled (LiveKit addon) or external (existing LiveKit)."),
+    Key("MEDIA_MODE", "media",
+        "disabled, bundled (LiveKit addon; run qjudge addon media init then qjudge addon media up) or external (existing LiveKit)."),
     Key("LIVEKIT_PUBLIC_URL", "media", "LiveKit URL browsers connect to, e.g. wss://live.example.edu.",
         required=_media_enabled),
     Key("LIVEKIT_API_KEY", "media", "LiveKit API key.", required=_media_enabled, secret=True),
