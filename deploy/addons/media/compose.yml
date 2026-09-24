@@ -23,6 +23,7 @@ services:
 
   coturn:
     image: coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888
+    user: "0:0"
     restart: unless-stopped
     command: ["-c", "/etc/coturn/turnserver.conf"]
     volumes:

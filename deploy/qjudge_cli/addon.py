@@ -21,7 +21,7 @@ ADDONS = {
     },
     "media": {
         "mode_key": "MEDIA_MODE",
-        "up": ["up", "-d", "livekit", "coturn"],
+        "up": ["up", "-d", "--force-recreate", "livekit", "coturn"],
     },
 }
 ACTIONS = ("up", "init")
