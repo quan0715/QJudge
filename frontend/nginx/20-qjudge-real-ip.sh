@@ -1,6 +1,6 @@
 #!/bin/sh
 # Trust X-Forwarded-For only from QJUDGE_TRUSTED_PROXIES (comma-separated IPs or
-# CIDRs). Unset trusts every peer, which is safe only while the gateway port is
+# CIDRs). Unset trusts every peer, which is safe only while the frontend port is
 # bound to 127.0.0.1 or reachable only through a local tunnel.
 set -eu
 

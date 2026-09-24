@@ -43,7 +43,7 @@ check_http() {
   echo "[OK] $label returned HTTP 200"
 }
 
-check_service_running gateway
+check_service_running frontend
 check_service_running storybook
 
 check_http "Frontend" "http://localhost:5173/"

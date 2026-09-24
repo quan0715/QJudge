@@ -345,17 +345,15 @@ services:
     depends_on:
       - backend
 
-  gateway:
-    image: qjudge/gateway:${QJUDGE_VERSION}
+  # Serves the SPA and is the single HTTP entry point (routes /api, /o,
+  # /.well-known, /mcp to the apps).
+  frontend:
+    image: qjudge/frontend:${QJUDGE_VERSION}
     restart: always
     environment:
       QJUDGE_TRUSTED_PROXIES: ${QJUDGE_TRUSTED_PROXIES:-}
     ports:
-      - "${GATEWAY_BIND_ADDRESS:-127.0.0.1}:${GATEWAY_PORT:-8080}:80"
-    networks:
-      default:
-        # Existing Cloudflare Tunnel routes point at http://frontend:80.
-        aliases: [frontend]
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
     depends_on:
       - backend
       - qjudge-mcp
@@ -366,7 +364,7 @@ services:
     profiles: ["tunnel"]
     command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
     depends_on:
-      - gateway
+      - frontend
 
   # Makes sure the judge runtime image exists before workers start.
   judge-image:

@@ -45,7 +45,7 @@ services:
     build:
       context: ..
       dockerfile: mcp-server/Dockerfile
-  gateway:
+  frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile

@@ -22,7 +22,7 @@
 | 機密 | 放在主機 `deploy/.env` 與 `deploy/secrets/` |
 | 預設值 | 由 app 持有；app 讀 env 時空字串視為未設定；compose 只傳遞，不替使用者 key 提供預設值 |
 | schema | CLI 內一份 key 清單，用來驗證 `.env` 與產生 `.env.example` |
-| 入口 | 前端容器改為 `gateway`，所有 HTTP 路徑（含 `/mcp`）由它分流 |
+| 入口 | `frontend` 容器是唯一 HTTP 入口，所有路徑（含 `/mcp`）由它分流 |
 | DB | 所有長駐 process 經 pgbouncer；每個 app 只讀一個連線 URL；`.env` 只放密碼 |
 | Storage | 只用 S3 核心 API，單一 bucket 以 prefix 區分 |
 | MinIO／LiveKit | `bundled` 或 `external` 兩種模式；bundled 為獨立 addon |
@@ -54,7 +54,6 @@ deploy/
   addons/
     storage/compose.yml    MinIO
     media/                 LiveKit + coturn
-  gateway/                 gateway nginx 樣板
   qjudge                   CLI（Python 標準函式庫）
   qjudge_cli/              schema.py 與指令實作
   .env.example             由 schema 產生
@@ -89,7 +88,7 @@ compose 可以寫死容器間連線值，但不替使用者 key 提供預設值�
 核心：
 
 - `QJUDGE_PUBLIC_ORIGIN`
-- `GATEWAY_BIND_ADDRESS`（預設 `127.0.0.1`；反向代理在另一台機器時填 VPS 內網 IP）、`GATEWAY_PORT`
+- `FRONTEND_BIND_ADDRESS`（預設 `127.0.0.1`；反向代理在另一台機器時填 VPS 內網 IP）、`FRONTEND_PORT`
 - `QJUDGE_TRUSTED_PROXIES`（反向代理的 IP）
 - `COMPOSE_PROJECT_NAME`、`COMPOSE_PROFILES`
 - 由 `init` 產生：`SECRET_KEY`、`POSTGRES_ADMIN_PASSWORD`、`DB_PASSWORD`、`AI_DB_PASSWORD`、`CREDENTIAL_LEASE_SECRET`，以及 `secrets/` 內的 AI OAuth 與 Integrity 金鑰。三組 DB 密碼只能含 URL 不需編碼的字元（英數字與 `-._~`，會直接放進連線 URL），`check` 驗證此規則
@@ -114,7 +113,6 @@ Storage：
 
 ### 移除的 key
 
-- `FRONTEND_PORT`／`FRONTEND_BIND_ADDRESS` → `GATEWAY_PORT`／`GATEWAY_BIND_ADDRESS`
 - `LIVE_MONITORING_ENABLED`、`LIVEKIT_DEPLOYMENT` → `MEDIA_MODE`
 - `OBJECT_STORAGE_REGION`、`OBJECT_STORAGE_AUTO_CREATE_BUCKETS`、`OBJECT_STORAGE_OBJECT_TAGGING_ENABLED`
 - `ANTICHEAT_RAW_BUCKET`、`INTEGRITY_ARCHIVE_BUCKET`、`MARKDOWN_IMAGE_S3_BUCKET`、`AI_ARTIFACT_S3_BUCKET`
@@ -127,7 +125,7 @@ dcslab 的 `.env` 依此清單手動改寫一次。
 ### 推導與瘦身
 
 - app 共用一個讀 env 的 helper，空字串視為未設定，避免 compose 傳入的空值蓋掉 app 預設。
-- 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。MCP URL 的推導與 `/mcp` 路由一起在 gateway 計畫處理。
+- 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。MCP URL 的推導與 `/mcp` 路由一起在入口計畫處理。
 - 過渡期：dcslab 在清理前仍以舊 compose 部署，app 在新 key 未設定時讀舊 key（`LIVE_MONITORING_ENABLED`、`AI_OAUTH_ISSUER`、mcp 的 `OAUTH_ISSUER_URL`），清理階段移除。
 - `LIVEKIT_INTERNAL_URL` 預設由 `LIVEKIT_PUBLIC_URL` 推導（`ws`/`wss` 換成 `http`/`https`）；dev overlay 以容器位址覆寫。
 - 盤點 backend 與 ai-service 的 env 讀取，部署者不需要設定的值（TTL、內部 bucket 名稱、room prefix 等）改為程式常數。
@@ -145,7 +143,7 @@ base 規則：
 - 共用 network 固定名稱 `qjudge`，宣告為 `external: true`；app 與 addon 都掛在這個 network。`init`、`upgrade`、`addon up` 執行前若不存在就建立。dev overlay 改回 project 內建 network，避免多個 worktree 共用同一個 network。
 - 自建服務使用 `image: qjudge/<name>:${QJUDGE_VERSION}`。
 - env 以 anchor 依服務群組定義一次；使用者 key 一律 `${VAR}` 或 `${VAR:-}`；CI lint 禁止 compose 為使用者 key 寫非空的 `:-default`（port、bind address 除外）。
-- 移除所有 `container_name`；`frontend` 改名 `gateway`。
+- 移除所有 `container_name`。
 - `migrate` 與 `ai-migrate` 為一次性服務，backend 啟動不再跑 migrate。
 - 移除 prod ai-service 的 `./ai-service:/app` 原始碼掛載。
 - MinIO、LiveKit、coturn 不在 base。
@@ -169,14 +167,14 @@ pg_dump 與 initdb ────────────────────�
 - dev 使用相同拓撲與連線 URL，overlay 只開放 port。
 - 測試：不提供本地測試 DB。CI 的 backend 測試使用 GitHub service postgres，`settings.test` 同樣只讀 `DATABASE_URL`。
 
-## 6. Gateway
+## 6. 入口（frontend）
 
 - 分流所有 HTTP 路徑：SPA、`/api`、`/o`、`/.well-known`、`/admin`、`/django-admin`、`/static`、`/media`、`/mcp`。
 - `set_real_ip_from` 設為 `QJUDGE_TRUSTED_PROXIES`；`X-Forwarded-Proto` 使用代理傳入值，移除寫死的 `https`。
-- 信任邊界：gateway 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `GATEWAY_PORT`。上游代理必須以 `proxy_set_header` 附加或覆寫 `X-Forwarded-For` 並設定 `X-Forwarded-Proto`（`ingress` 輸出的範本會採附加）。
-- real IP 設定由 nginx 官方 image 的 `/docker-entrypoint.d` 腳本依 `QJUDGE_TRUSTED_PROXIES` 產生；未設定時信任所有來源但只取最後一個 `X-Forwarded-For`；gateway 轉給 app 的 `X-Forwarded-For` 只含解析後的來源 IP。
+- 信任邊界：frontend 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `FRONTEND_PORT`。上游代理必須以 `proxy_set_header` 附加或覆寫 `X-Forwarded-For` 並設定 `X-Forwarded-Proto`（`ingress` 輸出的範本會採附加）。
+- real IP 設定由 nginx 官方 image 的 `/docker-entrypoint.d` 腳本依 `QJUDGE_TRUSTED_PROXIES` 產生；未設定時信任所有來源但只取最後一個 `X-Forwarded-For`；frontend 轉給 app 的 `X-Forwarded-For` 只含解析後的來源 IP。
 
-`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → gateway；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 需直接開放或由路由器轉發。
+`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → frontend；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN `3478` 需直接開放或由路由器轉發。
 
 ## 7. Storage
 
@@ -212,7 +210,7 @@ pg_dump 與 initdb ────────────────────�
 3. `pg_dump` 備份 `online_judge` 與 `qjudge_ai` 到 `deploy/backups/`，保留最近 10 份。
 4. 執行 `migrate`、`ai-migrate`。
 5. `up -d`。
-6. 健康檢查：經 gateway 內網位址帶 `Host` 打 `/api/health/`，AI 與 Integrity ready。
+6. 健康檢查：經 frontend 內網位址帶 `Host` 打 `/api/health/`，AI 與 Integrity ready。
 7. 把目前與上一版 SHA 寫入 `deploy/.version`；清理 image 只保留最近 3 版。
 
 失敗處理：第 5 步之前任一步失敗，checkout 回上一版後結束（服務未變動）；第 5 步之後失敗，checkout 回上一版並以上一版 image 重新 `up`。DB 不自動還原。
@@ -226,7 +224,7 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 ## 10. CI 與 CD
 
 - CI 保留現有 static checks 與 unit job；新增 compose 預設值 lint 與 `.env.example` 一致性檢查。
-- E2E：`qjudge init --non-interactive` → `qjudge upgrade <sha>`（疊加 `ci/compose.fakes.yml`）→ seed → 在 runner 上執行 Playwright，目標為 gateway。
+- E2E：`qjudge init --non-interactive` → `qjudge upgrade <sha>`（疊加 `ci/compose.fakes.yml`）→ seed → 在 runner 上執行 Playwright，目標為 frontend。
 - CD：確認 SHA 的 CI 成功 → Tailscale 加入 tailnet → SSH 到 dcslab → `deploy/qjudge upgrade <sha>`。
 
 ## 11. dcslab 轉換
@@ -249,7 +247,7 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 1. schema、`check`、`.env.example` 產生、env helper（空字串視為未設定）。
 2. compose 與 DB：`deploy/`、base + build + dev overlay、migrate 服務、DB 連線（pgbouncer、URL、initdb、pool 常數）、app 由 origin 推導與 `MEDIA_MODE`、compose lint、本地 dev 切換。
 2.5. app env 瘦身：沒有部署者設定的 env 改為程式常數。
-3. gateway 與 `ingress`。
+3. frontend 與 `ingress`。
 4. storage 簡化、單一 bucket、storage 與 media addon。
 5. `init`、`upgrade`、`rollback`，CD 改寫。
 6. CI E2E 全新安裝，刪除 test compose。

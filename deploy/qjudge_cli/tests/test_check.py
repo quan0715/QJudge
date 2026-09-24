@@ -43,7 +43,7 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(error_keys(with_changes(SECRET_KEY="")), ["SECRET_KEY"])
 
     def test_unknown_key_is_reported(self):
-        self.assertEqual(error_keys(with_changes(FRONTEND_PORT="8080")), ["FRONTEND_PORT"])
+        self.assertEqual(error_keys(with_changes(NOT_A_REAL_KEY="8080")), ["NOT_A_REAL_KEY"])
 
     def test_origin_must_not_have_path(self):
         env = with_changes(QJUDGE_PUBLIC_ORIGIN="https://judge.example.edu/app")
@@ -94,27 +94,27 @@ class CheckTests(unittest.TestCase):
     def test_media_mode_must_be_known(self):
         self.assertEqual(error_keys(with_changes(MEDIA_MODE="local")), ["MEDIA_MODE"])
 
-    def test_trusted_proxies_required_when_gateway_is_not_local(self):
-        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5")
+    def test_trusted_proxies_required_when_frontend_is_not_local(self):
+        env = with_changes(FRONTEND_BIND_ADDRESS="10.0.0.5")
         self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
 
-    def test_trusted_proxies_optional_when_gateway_is_local(self):
-        self.assertEqual(check_env(with_changes(GATEWAY_BIND_ADDRESS="127.0.0.1")), [])
+    def test_trusted_proxies_optional_when_frontend_is_local(self):
+        self.assertEqual(check_env(with_changes(FRONTEND_BIND_ADDRESS="127.0.0.1")), [])
 
     def test_trusted_proxies_must_be_addresses(self):
-        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, nginx-host")
+        env = with_changes(FRONTEND_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, nginx-host")
         self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
 
     def test_trusted_proxies_accept_ips_and_cidrs(self):
-        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, 192.168.0.0/24")
+        env = with_changes(FRONTEND_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2, 192.168.0.0/24")
         self.assertEqual(check_env(env), [])
 
     def test_trusted_proxies_ignore_trailing_comma(self):
-        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2,")
+        env = with_changes(FRONTEND_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="10.0.0.2,")
         self.assertEqual(check_env(env), [])
 
     def test_trusted_proxies_reject_trust_all(self):
-        env = with_changes(GATEWAY_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="0.0.0.0/0")
+        env = with_changes(FRONTEND_BIND_ADDRESS="10.0.0.5", QJUDGE_TRUSTED_PROXIES="0.0.0.0/0")
         self.assertEqual(error_keys(env), ["QJUDGE_TRUSTED_PROXIES"])
 
 

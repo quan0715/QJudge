@@ -13,7 +13,7 @@
 | Environment | Web/API | AI runtime | Data | Workers | UI |
 | --- | --- | --- | --- | --- | --- |
 | `main` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend` |
-| `dev` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `gateway`, `storybook` |
+| `dev` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend`, `storybook` |
 | `test` | `backend-test` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres-test`, `redis-test` | `celery-test`, `celery-high-test` | `frontend-test` |
 
 The test stack also contains bootstrap, fake-adapter, migration, and integrity services. Inspect `docker-compose.test.yml` before diagnosing those dependencies.

@@ -10,7 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Section } from "@/shared/layout/SettingsPanel";
 
-// The gateway serves the MCP endpoint on the same origin as the site.
+// The frontend nginx serves the MCP endpoint on the same origin as the site.
 const MCP_URL = `${window.location.origin}/mcp`;
 const DIRECT_CONNECT_URL = MCP_URL;
 

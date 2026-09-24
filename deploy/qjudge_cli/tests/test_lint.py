@@ -21,7 +21,7 @@ class LintTests(unittest.TestCase):
         )
 
     def test_topology_defaults_are_allowed(self):
-        text = 'ports: ["${GATEWAY_BIND_ADDRESS:-127.0.0.1}:${GATEWAY_PORT:-8080}:80"]\nname: ${COMPOSE_PROJECT_NAME:-qjudge}\n'
+        text = 'ports: ["${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"]\nname: ${COMPOSE_PROJECT_NAME:-qjudge}\n'
         self.assertEqual(lint_compose_text(text), [])
 
     def test_internal_variables_are_allowed(self):
