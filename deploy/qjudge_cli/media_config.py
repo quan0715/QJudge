@@ -37,7 +37,6 @@ def render_coturn_config(env: Env) -> str:
     """Return coturn's shared-secret listener and QJudge relay configuration."""
     lines = (
         "listening-port=3478",
-        f"listening-ip={env['LIVEKIT_NODE_IP']}",
         f"realm={env['LIVEKIT_TURN_HOST']}",
         "use-auth-secret",
         f"static-auth-secret={env['LIVEKIT_TURN_SECRET']}",

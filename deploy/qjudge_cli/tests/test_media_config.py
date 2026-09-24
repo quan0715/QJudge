@@ -49,6 +49,8 @@ class MediaConfigTests(unittest.TestCase):
         self.assertIn("min-port=50300", config)
         self.assertIn("max-port=50399", config)
         self.assertIn("external-ip=192.0.2.10", config)
+        self.assertNotIn("listening-ip=", config)
+        self.assertNotIn("relay-ip=", config)
         self.assertNotIn("tls-listening-port", config)
         self.assertNotIn("cert=", config)
 
