@@ -345,13 +345,20 @@ services:
     depends_on:
       - backend
 
-  frontend:
-    image: qjudge/frontend:${QJUDGE_VERSION}
+  gateway:
+    image: qjudge/gateway:${QJUDGE_VERSION}
     restart: always
+    environment:
+      QJUDGE_TRUSTED_PROXIES: ${QJUDGE_TRUSTED_PROXIES:-}
     ports:
       - "${GATEWAY_BIND_ADDRESS:-127.0.0.1}:${GATEWAY_PORT:-8080}:80"
+    networks:
+      default:
+        # Existing Cloudflare Tunnel routes point at http://frontend:80.
+        aliases: [frontend]
     depends_on:
       - backend
+      - qjudge-mcp
 
   cloudflared:
     image: cloudflare/cloudflared:2025.9.1
@@ -359,7 +366,7 @@ services:
     profiles: ["tunnel"]
     command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
     depends_on:
-      - frontend
+      - gateway
 
   # Makes sure the judge runtime image exists before workers start.
   judge-image:

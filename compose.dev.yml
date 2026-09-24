@@ -8,8 +8,6 @@ x-dev-django-environment: &dev_django_environment
   DOCKER_JUDGE_PLATFORM: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
   LIVEKIT_INTERNAL_URL: http://livekit:7883
   LIVEKIT_ROOM_PREFIX: qjudge-dev-exam
-  # MCP public URL moves to the gateway plan; dev keeps the direct port.
-  MCP_PUBLIC_URL: http://localhost:9002
 
 x-dev-backend: &dev_backend
   volumes:
@@ -63,12 +61,10 @@ services:
     platform: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
 
   qjudge-mcp:
-    environment:
-      MCP_PUBLIC_URL: http://localhost:9002
     ports:
       - "127.0.0.1:${DEV_MCP_PORT:-9002}:9000"
 
-  frontend:
+  gateway:
     image: qjudge/frontend-dev:dev
     build:
       context: ../frontend
@@ -82,7 +78,10 @@ services:
     environment:
       VITE_API_TARGET: http://backend:8000
       VITE_STORYBOOK_TARGET: http://storybook:6006
-      VITE_MCP_PUBLIC_URL: http://localhost:9002/mcp
+      VITE_MCP_TARGET: http://qjudge-mcp:9000
+    networks:
+      default:
+        aliases: [frontend]
     depends_on:
       - storybook
 
