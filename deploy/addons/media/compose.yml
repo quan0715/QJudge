@@ -33,9 +33,16 @@ services:
         read_only: true
         bind:
           create_host_path: false
+      - type: bind
+        source: /etc/letsencrypt
+        target: /etc/letsencrypt
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
+      - "127.0.0.1:5349:5349/tcp"
       - "50300-50399:50300-50399/udp"
     networks:
       default: {}

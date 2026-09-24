@@ -174,6 +174,17 @@ class AddonTests(unittest.TestCase):
         self.assertIn('"${FRONTEND_BIND_ADDRESS:-127.0.0.1}:7880:7880"', compose)
         self.assertIn('user: "0:0"', compose.split("  coturn:", 1)[1])
 
+    def test_coturn_mounts_tls_certificates_and_publishes_tls_only_on_loopback(self):
+        compose = (Path(__file__).resolve().parents[2] / "addons" / "media" / "compose.yml").read_text()
+        coturn = compose.split("  coturn:", 1)[1]
+        self.assertIn(
+            "source: /etc/letsencrypt\n        target: /etc/letsencrypt\n"
+            "        read_only: true\n        bind:\n          create_host_path: false",
+            coturn,
+        )
+        tls_ports = [line.strip() for line in coturn.splitlines() if line.strip().startswith("- ") and ":5349" in line]
+        self.assertEqual(tls_ports, ['- "127.0.0.1:5349:5349/tcp"'])
+
     def test_storage_up_command(self):
         self.assertEqual(
             addon_command(DEPLOY, ENV_FILE, "storage", "up"),
