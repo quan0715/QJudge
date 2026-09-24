@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import secrets
 import subprocess
 from pathlib import Path
 from typing import Callable
 
 from .check import check_env
+from .envfile import write_values
+from .media_config import write_media_config
 from .schema import Env
 
 NETWORK = "qjudge"
@@ -15,6 +18,10 @@ ADDONS = {
         "mode_key": "STORAGE_MODE",
         "up": ["up", "-d", "minio"],
         "init": ["run", "--rm", "storage-init"],
+    },
+    "media": {
+        "mode_key": "MEDIA_MODE",
+        "up": ["up", "-d", "livekit", "coturn"],
     },
 }
 ACTIONS = ("up", "init")
@@ -39,6 +46,16 @@ def run_addon(
     if env.get(mode_key, "").strip() != "bundled":
         print(f"{mode_key} is not bundled; the {name} addon is not used")
         return 1
+    if name == "media" and action == "init":
+        updates = {}
+        if not env.get("LIVEKIT_API_KEY", "").strip():
+            updates["LIVEKIT_API_KEY"] = secrets.token_hex(16)
+        if not env.get("LIVEKIT_API_SECRET", "").strip():
+            updates["LIVEKIT_API_SECRET"] = secrets.token_urlsafe(32)
+        if not env.get("LIVEKIT_TURN_SECRET", "").strip():
+            updates["LIVEKIT_TURN_SECRET"] = secrets.token_urlsafe(32)
+        write_values(env_file, updates)
+        return 0
     problems = check_env(env)
     for problem in problems:
         print(problem)
@@ -46,4 +63,6 @@ def run_addon(
         return 1
     if run(["docker", "network", "inspect", NETWORK], capture_output=True).returncode != 0:
         run(["docker", "network", "create", NETWORK], check=True)
+    if name == "media":
+        write_media_config(deploy_dir, env)
     return run(addon_command(deploy_dir, env_file, name, action, env.get("COMPOSE_PROJECT_NAME", "").strip() or "qjudge")).returncode

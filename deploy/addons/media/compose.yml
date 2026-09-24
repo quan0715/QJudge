@@ -1,0 +1,45 @@
+# Bundled media runs beside the application as an independent Compose project.
+name: ${COMPOSE_PROJECT_NAME:-qjudge}-media
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    restart: unless-stopped
+    command: ["--config", "/run/livekit/livekit.json"]
+    volumes:
+      - type: bind
+        source: ./secrets/livekit.json
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:7880:7880"
+      - "7881:7881/tcp"
+      - "50000-50099:50000-50099/udp"
+    networks:
+      default:
+        aliases: [livekit]
+
+  coturn:
+    image: coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888
+    restart: unless-stopped
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - type: bind
+        source: ./secrets/turnserver.conf
+        target: /etc/coturn/turnserver.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "50300-50399:50300-50399/udp"
+    networks:
+      default: {}
+
+networks:
+  default:
+    name: qjudge
+    external: true

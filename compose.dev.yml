@@ -111,7 +111,7 @@ services:
       file: addons/storage/compose.yml
       service: storage-init
 
-  # Kept here until the media addon exists (plan 05).
+  # Dev-only LiveKit uses separate config and ports from the production media addon.
   livekit:
     image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
     profiles: ["live-monitoring"]

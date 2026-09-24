@@ -27,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     ingress_parser = commands.add_parser("ingress", help="list the entry points to configure outside QJudge")
     ingress_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     ingress_parser.add_argument("--nginx", action="store_true", help="print a reverse proxy server block")
-    addon_parser = commands.add_parser("addon", help="run a bundled addon")
+    addon_parser = commands.add_parser("addon", help="initialize or start bundled storage and media")
     addon_parser.add_argument("name", choices=sorted(ADDONS))
     addon_parser.add_argument("action", choices=ACTIONS)
     addon_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
