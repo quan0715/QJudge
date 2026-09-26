@@ -5,14 +5,13 @@ from __future__ import annotations
 import secrets
 import subprocess
 from pathlib import Path
-from typing import Callable
 
 from .check import check_env
 from .envfile import write_values
 from .media_config import write_media_config
 from .schema import Env
+from .stack import Runner, compose_project, ensure_network
 
-NETWORK = "qjudge"
 ADDONS = {
     "storage": {
         "mode_key": "STORAGE_MODE",
@@ -25,10 +24,6 @@ ADDONS = {
     },
 }
 ACTIONS = ("up", "init")
-
-
-def compose_project(env: Env) -> str:
-    return env.get("COMPOSE_PROJECT_NAME", "").strip() or "qjudge"
 
 
 def _compose(deploy_dir: Path, env_file: Path, name: str, project: str) -> list[str]:
@@ -48,7 +43,7 @@ def run_addon(
     env: Env,
     name: str,
     action: str,
-    run: Callable[..., subprocess.CompletedProcess] = subprocess.run,
+    run: Runner = subprocess.run,
 ) -> int:
     mode_key = ADDONS[name]["mode_key"]
     if env.get(mode_key, "").strip() != "bundled":
@@ -71,8 +66,7 @@ def run_addon(
         print(problem)
     if problems:
         return 1
-    if run(["docker", "network", "inspect", NETWORK], capture_output=True).returncode != 0:
-        run(["docker", "network", "create", NETWORK], check=True)
+    ensure_network(run)
     project = compose_project(env)
     # Compose cannot see bind-mounted file changes, so recreate LiveKit only
     # when its rendered config changed.

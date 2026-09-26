@@ -1,7 +1,7 @@
 import io
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from qjudge_cli.cli import main
@@ -38,6 +38,22 @@ class CliTests(unittest.TestCase):
     def test_check_fails_when_env_file_is_missing(self):
         code, _ = self.run_cli("check", "--env-file", "/nonexistent/.env")
         self.assertEqual(code, 1)
+
+    def test_init_non_interactive_lists_missing_keys_without_writing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            code, output = self.run_cli(
+                "init", "--env-file", str(env_file), "--non-interactive",
+                "--set", "QJUDGE_PUBLIC_ORIGIN=https://judge.example.edu",
+            )
+            self.assertFalse(env_file.exists())
+        self.assertEqual(code, 1)
+        self.assertIn("STORAGE_MODE: required", output)
+
+    def test_init_rejects_set_without_equals(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
+            main(["init", "--non-interactive", "--set", "STORAGE_MODE"])
+        self.assertEqual(raised.exception.code, 2)
 
     def test_env_example_prints_rendered_example(self):
         code, output = self.run_cli("env-example")

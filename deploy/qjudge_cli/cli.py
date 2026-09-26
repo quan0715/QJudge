@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from .check import check_env
 from .envfile import load
 from .example import render
 from .ingress import render_ingress, render_nginx
+from .init import run_init
 from .lint import lint_compose_text
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +33,10 @@ def main(argv: list[str] | None = None) -> int:
     addon_parser.add_argument("name", choices=sorted(ADDONS))
     addon_parser.add_argument("action", choices=ACTIONS)
     addon_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    init_parser = commands.add_parser("init", help="create deploy/.env for a new installation")
+    init_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    init_parser.add_argument("--non-interactive", action="store_true", help="fail instead of asking for missing keys")
+    init_parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="preset a key")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
@@ -42,6 +48,12 @@ def main(argv: list[str] | None = None) -> int:
         env = load(args.env_file)
         sys.stdout.write(render_nginx(env) if args.nginx else render_ingress(env))
         return 0
+    if args.command == "init":
+        for item in args.set:
+            if "=" not in item:
+                parser.error(f"--set expects KEY=VALUE: {item}")
+        values = dict(item.split("=", 1) for item in args.set)
+        return run_init(DEPLOY_DIR, args.env_file, values, not args.non_interactive, subprocess.run)
     if args.command == "addon":
         if not args.env_file.is_file():
             print(f"{args.env_file}: not found")
