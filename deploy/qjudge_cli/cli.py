@@ -14,6 +14,7 @@ from .example import render
 from .ingress import render_ingress, render_nginx
 from .init import run_init
 from .lint import lint_compose_text
+from .release import rollback, upgrade
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,6 +38,11 @@ def main(argv: list[str] | None = None) -> int:
     init_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     init_parser.add_argument("--non-interactive", action="store_true", help="fail instead of asking for missing keys")
     init_parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="preset a key")
+    upgrade_parser = commands.add_parser("upgrade", help="build, back up, migrate and start a git ref")
+    upgrade_parser.add_argument("ref")
+    upgrade_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    rollback_parser = commands.add_parser("rollback", help="start the previously deployed version again")
+    rollback_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
@@ -54,10 +60,14 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error(f"--set expects KEY=VALUE: {item}")
         values = dict(item.split("=", 1) for item in args.set)
         return run_init(DEPLOY_DIR, args.env_file, values, not args.non_interactive, subprocess.run)
+    if args.command in ("addon", "upgrade", "rollback") and not args.env_file.is_file():
+        print(f"{args.env_file}: not found")
+        return 1
+    if args.command == "upgrade":
+        return upgrade(DEPLOY_DIR, args.env_file, args.ref)
+    if args.command == "rollback":
+        return rollback(DEPLOY_DIR, args.env_file)
     if args.command == "addon":
-        if not args.env_file.is_file():
-            print(f"{args.env_file}: not found")
-            return 1
         return run_addon(DEPLOY_DIR, args.env_file, load(args.env_file), args.name, args.action)
     return _check(args.env_file)
 
