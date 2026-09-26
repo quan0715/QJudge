@@ -12,15 +12,13 @@ x-ai-api-environment: &ai_test_api_environment
   MCP_SERVER_ID: qjudge-test
   MCP_TOKEN_EXCHANGE_URL: http://fake-ai-adapters:8080/token-exchange
   QJUDGE_MCP_URL: http://fake-ai-adapters:8080/mcp
-  AI_OAUTH_ISSUER: http://fake-ai-adapters:8080
+  QJUDGE_PUBLIC_ORIGIN: http://fake-ai-adapters:8080
   AI_OAUTH_JWKS_URL: http://fake-ai-adapters:8080/.well-known/jwks.json
-  AI_ARTIFACT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
-  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
-  AI_ARTIFACT_STORAGE_REGION: test
-  AI_ARTIFACT_STORAGE_ACCESS_KEY: fake-test-storage-key
-  AI_ARTIFACT_STORAGE_SECRET_KEY: fake-test-storage-secret
-  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: "false"
-  AI_ARTIFACT_S3_BUCKET: ai-artifacts-test
+  OBJECT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
+  OBJECT_STORAGE_ACCESS_KEY: fake-test-storage-key
+  OBJECT_STORAGE_SECRET_KEY: fake-test-storage-secret
+  OBJECT_STORAGE_BUCKET: ai-artifacts-test
 x-ai-worker-environment: &ai_test_worker_environment
   <<: [*ai_test_database_environment, *ai_test_queue_environment]
   CREDENTIAL_LEASE_SECRET: test-credential-lease-secret-long-enough
@@ -33,13 +31,11 @@ x-ai-worker-environment: &ai_test_worker_environment
   OPENAI_BASE_URL: http://fake-ai-adapters:8080/v1
   VLLM_API_KEY: fake-test-provider-key
   VLLM_BASE_URL: http://fake-ai-adapters:8080/v1
-  AI_ARTIFACT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
-  AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
-  AI_ARTIFACT_STORAGE_REGION: test
-  AI_ARTIFACT_STORAGE_ACCESS_KEY: fake-test-storage-key
-  AI_ARTIFACT_STORAGE_SECRET_KEY: fake-test-storage-secret
-  AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET: "false"
-  AI_ARTIFACT_S3_BUCKET: ai-artifacts-test
+  OBJECT_STORAGE_ENDPOINT_URL: http://fake-ai-adapters:8080
+  OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: http://fake-ai-adapters:8080
+  OBJECT_STORAGE_ACCESS_KEY: fake-test-storage-key
+  OBJECT_STORAGE_SECRET_KEY: fake-test-storage-secret
+  OBJECT_STORAGE_BUCKET: ai-artifacts-test
 
 services:
   judge-image-test:

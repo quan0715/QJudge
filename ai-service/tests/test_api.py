@@ -536,8 +536,6 @@ async def test_api_readiness_does_not_require_worker_provider_credentials() -> N
 
     base = {
         "AI_DATABASE_URL": "postgresql://qjudge_ai@db/ai",
-        "AI_DB_USER": "qjudge_ai",
-        "AI_DB_NAME": "ai",
         "ai_redis_url": "redis://queue/2",
         "credential_lease_secret": "x" * 32,
     }

@@ -17,19 +17,17 @@ def test_oauth_issuer_comes_from_public_origin(monkeypatch):
     assert issuer == "https://judge.example.edu"
 
 
-def test_oauth_issuer_falls_back_to_legacy_key(monkeypatch):
+def test_oauth_issuer_ignores_legacy_key(monkeypatch):
     monkeypatch.delenv("QJUDGE_PUBLIC_ORIGIN", raising=False)
     monkeypatch.setenv("AI_OAUTH_ISSUER", "https://legacy.example/")
 
     issuer, _ = _oauth_locations(Settings(_env_file=None))
 
-    assert issuer == "https://legacy.example"
+    assert issuer == ""
 
 
 def test_engine_pool_is_bounded(monkeypatch):
     monkeypatch.setenv("AI_DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
-    monkeypatch.delenv("AI_DB_USER", raising=False)
-    monkeypatch.delenv("AI_DB_NAME", raising=False)
     get_settings.cache_clear()
     try:
         engine = create_async_engine_from_settings()
@@ -73,15 +71,14 @@ def test_checkpoint_pool_sets_schema_without_startup_options(monkeypatch):
     assert "ai_checkpoint" in executed[0]
 
 
-def test_artifact_bucket_prefers_single_bucket(monkeypatch):
+def test_artifact_bucket_comes_from_single_bucket(monkeypatch):
     monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "qjudge")
-    monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
 
     assert Settings(_env_file=None).artifact_s3_bucket == "qjudge"
 
 
-def test_artifact_bucket_falls_back_to_legacy_key(monkeypatch):
+def test_artifact_bucket_ignores_legacy_key(monkeypatch):
     monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
     monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
 
-    assert Settings(_env_file=None).artifact_s3_bucket == "legacy"
+    assert Settings(_env_file=None).artifact_s3_bucket == "ai-artifacts"

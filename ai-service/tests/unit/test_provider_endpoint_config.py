@@ -1,9 +1,8 @@
-"""Provider and database endpoint configuration used by isolated deployments."""
+"""Provider endpoint configuration used by isolated deployments."""
 
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
 from config import Settings
 from infrastructure.agent import model_factory
@@ -65,25 +64,3 @@ def test_model_factory_uses_configured_provider_base_url(
 
     assert model.kwargs[argument_name] == expected
     assert getattr(settings, setting_name) == expected
-
-
-def test_settings_reject_database_url_for_a_different_role() -> None:
-    with pytest.raises(ValidationError, match="AI_DATABASE_URL username"):
-        Settings(
-            AI_DATABASE_URL="postgresql+psycopg://django:secret@postgres/qjudge_ai",
-            AI_DB_USER="qjudge_ai",
-            AI_DB_NAME="qjudge_ai",
-        )
-
-
-def test_settings_accept_percent_encoded_matching_database_identity() -> None:
-    settings = Settings(
-        AI_DATABASE_URL=(
-            "postgresql+psycopg://qjudge%5Fai:secret@postgres:5432/qjudge%5Fai"
-        ),
-        AI_DB_USER="qjudge_ai",
-        AI_DB_NAME="qjudge_ai",
-    )
-
-    assert settings.ai_db_user == "qjudge_ai"
-    assert settings.ai_db_name == "qjudge_ai"
