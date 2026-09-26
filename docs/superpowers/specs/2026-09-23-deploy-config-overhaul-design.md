@@ -127,7 +127,7 @@ dcslab 的 `.env` 依此清單手動改寫一次。
 
 - app 共用一個讀 env 的 helper，空字串視為未設定，避免 compose 傳入的空值蓋掉 app 預設。
 - 各 app 自行由 `QJUDGE_PUBLIC_ORIGIN` 推導 issuer、CORS、CSRF、`ALLOWED_HOSTS`、MCP URL、OAuth redirect URI；compose 不再把 origin 複製成多個變數。MCP URL 的推導與 `/mcp` 路由一起在入口計畫處理。
-- 過渡期：dcslab 在清理前仍以舊 compose 部署，app 在新 key 未設定時讀舊 key（`LIVE_MONITORING_ENABLED`、`AI_OAUTH_ISSUER`、mcp 的 `OAUTH_ISSUER_URL`），清理階段移除。
+- 不保留舊 key fallback：app 只讀新 key。dev 在 dcslab 轉換（第 8 階段）前不 release 到 main。
 - `LIVEKIT_INTERNAL_URL` 預設由 `LIVEKIT_PUBLIC_URL` 推導（`ws`/`wss` 換成 `http`/`https`）；dev overlay 以容器位址覆寫。
 - 盤點 backend 與 ai-service 的 env 讀取，部署者不需要設定的值（TTL、內部 bucket 名稱、room prefix 等）改為程式常數。
 
@@ -258,4 +258,4 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 7. 文件與 skill。
 8. dcslab 轉換，刪除舊檔案。
 
-第 1 到 7 階段期間，dcslab 仍以舊流程部署 hotfix。
+第 1 到 7 階段期間，dcslab 仍以舊流程部署從 main 分出的 hotfix；dev 不併入 main。
