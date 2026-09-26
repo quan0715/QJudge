@@ -214,7 +214,9 @@ def upgrade(
         return abort("postgres is not healthy")
     if not stack.backup(version, sha):
         return abort("database backup failed")
-    for service in ("migrate", "ai-migrate"):
+    # `up` creates every container before starting any, and integrity-resident bind-mounts
+    # files that only integrity-bootstrap writes, so the secrets must exist beforehand.
+    for service in ("ai-oauth-bootstrap", "integrity-bootstrap", "migrate", "ai-migrate"):
         if stack.compose(version, "run", "--rm", service).returncode != 0:
             return abort(f"{service} failed; application services still run the previous version", hint=True)
 

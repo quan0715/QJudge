@@ -89,6 +89,17 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(dump.read_bytes(), b"dump")
             self.assertEqual(dump.stat().st_mode & 0o777, 0o600)
 
+    def test_secrets_are_bootstrapped_before_starting_the_stack(self):
+        # integrity-resident bind-mounts files that only integrity-bootstrap creates, and
+        # `up` creates every container before starting any, so a fresh install needs them first.
+        host = FakeHost()
+        self.assertEqual(self._upgrade(host), 0)
+        order = [" ".join(c) for c, _ in host.calls]
+        up_all = next(i for i, c in enumerate(order) if "--remove-orphans" in c)
+        for service in ("ai-oauth-bootstrap", "integrity-bootstrap"):
+            index = next(i for i, c in enumerate(order) if f"run --rm {service}" in c)
+            self.assertLess(index, up_all)
+
     def test_build_failure_restores_checkout_without_touching_services(self):
         host = FakeHost(fail_on=(" build",))
         self.assertEqual(self._upgrade(host), 1)
