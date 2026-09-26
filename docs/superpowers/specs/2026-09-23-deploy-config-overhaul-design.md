@@ -53,7 +53,7 @@ deploy/
     pgbouncer.ini          兩個 DB 的 pool 設定
   addons/
     storage/compose.yml    MinIO
-    media/                 LiveKit + coturn
+    media/                 LiveKit（內建 TURN）
   qjudge                   CLI（Python 標準函式庫）
   qjudge_cli/              schema.py 與指令實作
   .env.example             由 schema 產生
@@ -104,7 +104,7 @@ Storage：
 
 | 功能 | key |
 |---|---|
-| 監考 | `MEDIA_MODE=disabled|bundled|external`；`LIVEKIT_PUBLIC_URL`、`LIVEKIT_API_KEY`、`LIVEKIT_API_SECRET`；bundled 另需 `LIVEKIT_NODE_IP`、`LIVEKIT_TURN_HOST`、`LIVEKIT_TURN_SECRET` |
+| 監考 | `MEDIA_MODE=disabled|bundled|external`；`LIVEKIT_PUBLIC_URL`、`LIVEKIT_API_KEY`、`LIVEKIT_API_SECRET`；bundled 另需 `LIVEKIT_NODE_IP`、`LIVEKIT_TURN_HOST` |
 | AI | `OPENAI_API_KEY`／`OPENAI_BASE_URL`、`DEEPSEEK_API_KEY`／`DEEPSEEK_BASE_URL`、`VLLM_API_KEY`／`VLLM_BASE_URL` |
 | OAuth 登入 | `<PROVIDER>_OAUTH_CLIENT_ID`／`_CLIENT_SECRET` |
 | SMTP | `EMAIL_HOST_USER`、`EMAIL_HOST_PASSWORD` |
@@ -147,7 +147,7 @@ base 規則：
 - 移除所有 `container_name`。
 - `migrate` 與 `ai-migrate` 為一次性服務，backend 啟動不再跑 migrate。
 - 移除 prod ai-service 的 `./ai-service:/app` 原始碼掛載。
-- MinIO、LiveKit、coturn 不在 base。
+- MinIO、LiveKit 不在 base。
 
 ## 5. DB
 
@@ -175,7 +175,7 @@ pg_dump 與 initdb ────────────────────�
 - 信任邊界：frontend 預設只綁 `127.0.0.1`；反向代理在另一台機器時，以主機防火牆限制只有該機器能連 `FRONTEND_PORT`。上游代理必須以 `proxy_set_header` 附加或覆寫 `X-Forwarded-For` 並設定 `X-Forwarded-Proto`（`ingress` 輸出的範本會採附加）。
 - real IP 設定由 nginx 官方 image 的 `/docker-entrypoint.d` 腳本依 `QJUDGE_TRUSTED_PROXIES` 產生；未設定時信任所有來源但只取最後一個 `X-Forwarded-For`；frontend 轉給 app 的 `X-Forwarded-For` 只含解析後的來源 IP。
 
-`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → frontend；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN UDP/TCP `3478` 與 relay UDP `50300-50399` 需直接開放或由路由器轉發。TURN/TLS 維持既有外部 HAProxy TCP `443` SNI route，轉到 host-loopback coturn TLS `5349`；`5349` 不直接對外開放。
+`qjudge ingress` 依 `.env` 列出需要設定的入口：主網域 → frontend；MinIO 公開網域；bundled LiveKit 的 WebSocket 網域；LiveKit UDP `50000-50099`、TCP `7881`、TURN UDP `3478` 與 relay UDP `50300-50399` 需在 `LIVEKIT_NODE_IP` 直接開放或由路由器轉發。TURN/TLS：LiveKit 固定廣告 `turns:<LIVEKIT_TURN_HOST>:443`，由主機反向代理在 443 終止 TLS（憑證由主機管理，續期後 reload 代理），以純 TCP 轉到 LiveKit TURN `5349`（綁 `FRONTEND_BIND_ADDRESS`，不直接對外）。`ingress --nginx` 附 nginx `stream` 範例，假設 TURN 網域解析到只給 TURN 用的位址。
 
 ## 7. Storage
 
@@ -188,11 +188,13 @@ pg_dump 與 initdb ────────────────────�
 
 ## 8. Addon
 
-- `deploy/addons/storage`（MinIO）與 `deploy/addons/media`（LiveKit + coturn）各自是獨立 compose project，image 固定版本。
+- `deploy/addons/storage`（MinIO）與 `deploy/addons/media`（LiveKit）各自是獨立 compose project，image 固定版本。
+- media 使用 LiveKit 內建 TURN（`turn.external_tls`），不另跑 coturn：relay 直接進 SFU，TURN 帳密由 LiveKit API key 推導，不需要 TURN secret 與憑證；LiveKit 預設拒絕 relay 到 loopback、私有、link-local 與 multicast 位址。coturn 在 Docker bridge 上會把等於 `external-ip` 的 peer 改寫成自己，無法 relay 到 LiveKit，因此不採用。
 - `qjudge upgrade` 不會重啟 addon；addon 用 `qjudge addon <name> up` 啟動或套用新版（image 版本寫在 addon compose）。
 - `qjudge addon storage init`：建立 bucket。MinIO root 帳密就是 `OBJECT_STORAGE_ACCESS_KEY`／`OBJECT_STORAGE_SECRET_KEY`；CORS 以 MinIO 的 `MINIO_API_CORS_ALLOW_ORIGIN` 設為 origin。`.env` 的值由 `qjudge init`（第 5 階段）產生。
 - 本地 dev 的 overlay 以 `extends` 引用 storage addon 的服務定義，MinIO 跑在 dev project 內。
-- `qjudge addon media init`：產生 LiveKit API key／secret 與 TURN secret，並寫入 `.env`。
+- `qjudge addon media init`：產生 LiveKit API key／secret，並寫入 `.env`。
+- `qjudge addon media up`：產生 `secrets/livekit.json`，只在內容變動時重建 LiveKit。
 - `external` 模式不啟動 addon，只使用 `.env` 的連線設定。
 
 ## 9. CLI
@@ -234,8 +236,8 @@ checkout `deploy/.version` 記錄的上一版，以本機 image `up`。
 
 1. 備份 `online_judge`、`qjudge_ai`、`.env`、`secrets/`。
 2. checkout 新版，`.env` 與 `secrets/` 移到 `deploy/`，依第 3 節改寫 `.env`（`COMPOSE_PROJECT_NAME=qjudge-app`、`STORAGE_MODE=bundled`、`MEDIA_MODE=bundled`，沿用現有 DB 密碼、MinIO 與 LiveKit 的 credential 與網域；DB 密碼若含非英數字需先以 `ALTER ROLE` 更換）。
-3. 轉換前：讓 TURN 憑證位於 `/etc/letsencrypt/live/<LIVEKIT_TURN_HOST>/`（dcslab 現行 lineage 為 `qjudge-media`），並安裝 certbot deploy hook，執行 `qjudge ingress` 列出的 `docker compose -p <project>-media restart coturn`（coturn 只在啟動時讀取憑證）。
-4. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO 與 LiveKit compose，改以 addon 啟動（沿用資料目錄、網域、port、secret），addon 掛到新的 `qjudge` network。確認固定版本 MinIO image 能以既有資料 `/mnt/data/qjudge-data/minio` 正常啟動；恢復服務前，對 bundled media addon 做 relay-only TURN 測試（瀏覽器 `iceTransportPolicy: "relay"` 或 `turnutils_uclient`）。
+3. 轉換前：`.env` 移除 `LIVEKIT_TURN_SECRET`；準備 TURN 網域的代理設定，把現行 coturn + HAProxy SNI passthrough 改為在 443 終止 TLS（憑證沿用主機 lineage `qjudge-media`，續期後 reload 代理），以純 TCP 轉到 LiveKit TURN `5349`，於維護時段套用。
+4. 維護時段：停止 QJudge app 服務；停掉舊的 MinIO、LiveKit 與 coturn compose，改以 addon 啟動（沿用資料目錄、網域、port、API key／secret），addon 掛到新的 `qjudge` network，並套用第 3 步的 TURN 代理設定。確認固定版本 MinIO image 能以既有資料 `/mnt/data/qjudge-data/minio` 正常啟動；恢復服務前，對 bundled media addon 做 relay-only TURN 測試（瀏覽器 `iceTransportPolicy: "relay"`，UDP 3478 與 TLS 443 各一次）。
 5. 建立新 bucket，執行一次性複製腳本並比對數量與總大小。
 6. `qjudge check` → `qjudge upgrade <sha>`。
 7. 驗收登入、評測、Integrity、監考、AI、MCP、圖片與證據上傳下載。
