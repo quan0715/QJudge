@@ -135,10 +135,9 @@ KEYS: tuple[Key, ...] = (
     Key("LIVEKIT_API_SECRET", "media", "LiveKit API secret.", required=_media_enabled, secret=True),
     Key("LIVEKIT_NODE_IP", "media", "Public IP LiveKit advertises for media (bundled mode).",
         required=_media_bundled),
-    Key("LIVEKIT_TURN_HOST", "media", "DNS-only TURN hostname (bundled mode).",
+    Key("LIVEKIT_TURN_HOST", "media",
+        "DNS-only TURN hostname; the host proxy terminates its TLS on 443 (bundled mode).",
         required=_media_bundled),
-    Key("LIVEKIT_TURN_SECRET", "media", "TURN shared secret (bundled mode).",
-        required=_media_bundled, secret=True),
     # AI providers
     Key("OPENAI_API_KEY", "ai", "OpenAI API key.", secret=True),
     Key("OPENAI_BASE_URL", "ai", "OpenAI-compatible base URL override."),

@@ -26,9 +26,9 @@ class Recorder:
 
 
 class AddonTests(unittest.TestCase):
-    def test_media_up_uses_separate_project_and_starts_both_services(self):
+    def test_media_up_uses_separate_project_and_starts_livekit(self):
         command = addon_command(DEPLOY, ENV_FILE, "media", "up", "qjudge-app")
-        self.assertEqual(command[-4:], ["up", "-d", "livekit", "coturn"])
+        self.assertEqual(command[-3:], ["up", "-d", "livekit"])
         self.assertEqual(command[command.index("--project-name") + 1], "qjudge-app-media")
 
     def test_media_init_generates_only_missing_values_and_preserves_existing(self):
@@ -36,18 +36,16 @@ class AddonTests(unittest.TestCase):
             env_file = Path(directory) / ".env"
             env_file.write_text("MEDIA_MODE=bundled\nLIVEKIT_NODE_IP=192.0.2.10\nLIVEKIT_TURN_HOST=turn.example.test\nLIVEKIT_API_KEY=existing-key\n# keep this comment\n")
             output = StringIO()
-            with patch("qjudge_cli.addon.secrets.token_urlsafe", side_effect=["generated-api", "generated-turn"]), redirect_stdout(output):
+            with patch("qjudge_cli.addon.secrets.token_urlsafe", return_value="generated-api"), redirect_stdout(output):
                 code = run_addon(DEPLOY, env_file, load(env_file), "media", "init")
             values = load(env_file)
             self.assertEqual(code, 0)
             self.assertEqual(values["LIVEKIT_API_KEY"], "existing-key")
             self.assertEqual(values["LIVEKIT_API_SECRET"], "generated-api")
-            self.assertEqual(values["LIVEKIT_TURN_SECRET"], "generated-turn")
             self.assertIn("# keep this comment", env_file.read_text())
-            self.assertIn("LIVEKIT_API_SECRET, LIVEKIT_TURN_SECRET", output.getvalue())
+            self.assertIn("LIVEKIT_API_SECRET", output.getvalue())
             self.assertNotIn("LIVEKIT_API_KEY", output.getvalue())
             self.assertNotIn("generated-api", output.getvalue())
-            self.assertNotIn("generated-turn", output.getvalue())
             self.assertEqual(S_IMODE(env_file.stat().st_mode), 0o600)
 
     def test_media_init_generates_all_empty_credentials(self):
@@ -55,14 +53,14 @@ class AddonTests(unittest.TestCase):
             env_file = Path(directory) / ".env"
             env_file.write_text("MEDIA_MODE=bundled\n")
             output = StringIO()
-            with patch("qjudge_cli.addon.secrets.token_hex", return_value="generated-key"), patch("qjudge_cli.addon.secrets.token_urlsafe", side_effect=["generated-api", "generated-turn"]), redirect_stdout(output):
+            with patch("qjudge_cli.addon.secrets.token_hex", return_value="generated-key"), patch("qjudge_cli.addon.secrets.token_urlsafe", return_value="generated-api"), redirect_stdout(output):
                 code = run_addon(DEPLOY, env_file, load(env_file), "media", "init")
             values = load(env_file)
             self.assertEqual(code, 0)
             self.assertEqual(values["LIVEKIT_API_KEY"], "generated-key")
             self.assertEqual(values["LIVEKIT_API_SECRET"], "generated-api")
-            self.assertEqual(values["LIVEKIT_TURN_SECRET"], "generated-turn")
-            for secret in ("generated-key", "generated-api", "generated-turn"):
+            self.assertNotIn("LIVEKIT_TURN_SECRET", values)
+            for secret in ("generated-key", "generated-api"):
                 self.assertNotIn(secret, output.getvalue())
 
     def test_media_init_refuses_disabled_or_external_mode_without_side_effects(self):
@@ -76,17 +74,16 @@ class AddonTests(unittest.TestCase):
                 self.assertEqual(env_file.read_text(), f"MEDIA_MODE={mode}\n")
                 self.assertEqual(run.calls, [])
 
-    def test_media_init_preserves_existing_api_and_turn_secrets(self):
+    def test_media_init_preserves_existing_api_credentials(self):
         with TemporaryDirectory() as directory:
             env_file = Path(directory) / ".env"
-            env_file.write_text("MEDIA_MODE=bundled\nLIVEKIT_API_KEY=existing-key\nLIVEKIT_API_SECRET=existing-api-secret\nLIVEKIT_TURN_SECRET=existing-turn-secret\n")
+            env_file.write_text("MEDIA_MODE=bundled\nLIVEKIT_API_KEY=existing-key\nLIVEKIT_API_SECRET=existing-api-secret\n")
             with patch("qjudge_cli.addon.secrets.token_hex") as token_hex, patch("qjudge_cli.addon.secrets.token_urlsafe") as token_urlsafe, patch("qjudge_cli.addon.write_values") as writer:
                 code = run_addon(DEPLOY, env_file, load(env_file), "media", "init")
             values = load(env_file)
             self.assertEqual(code, 0)
             self.assertEqual(values["LIVEKIT_API_KEY"], "existing-key")
             self.assertEqual(values["LIVEKIT_API_SECRET"], "existing-api-secret")
-            self.assertEqual(values["LIVEKIT_TURN_SECRET"], "existing-turn-secret")
             token_hex.assert_not_called()
             token_urlsafe.assert_not_called()
             writer.assert_not_called()
@@ -107,16 +104,14 @@ class AddonTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             deploy_dir = Path(directory)
             env_file = deploy_dir / ".env"
-            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test", "LIVEKIT_TURN_SECRET": "turn-secret"}
+            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test"}
             env_file.write_text("\n".join(f"{key}={value}" for key, value in media_env.items()) + "\n")
 
             class ConfigRecorder(Recorder):
                 def __call__(self, args, **kwargs):
                     if args[:2] == ["docker", "compose"]:
                         self_outer.assertTrue((deploy_dir / "secrets" / "livekit.json").is_file())
-                        self_outer.assertTrue((deploy_dir / "secrets" / "turnserver.conf").is_file())
                         self_outer.assertNotIn("api-secret", " ".join(args))
-                        self_outer.assertNotIn("turn-secret", " ".join(args))
                     return super().__call__(args, **kwargs)
 
             self_outer = self
@@ -127,29 +122,28 @@ class AddonTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             deploy_dir = Path(directory)
             env_file = deploy_dir / ".env"
-            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test", "LIVEKIT_TURN_SECRET": "turn-secret"}
+            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test"}
             env_file.write_text("\n".join(f"{key}={value}" for key, value in media_env.items()) + "\n")
             run = Recorder(network_exists=False)
             self.assertEqual(run_addon(deploy_dir, env_file, media_env, "media", "up", run=run), 0)
             self.assertEqual(run.calls[1], ["docker", "network", "create", "qjudge"])
-            self.assertEqual(run.calls[2][-5:], ["up", "-d", "--force-recreate", "livekit", "coturn"])
-            self.assertEqual(run.calls[3][-4:], ["up", "-d", "livekit", "coturn"])
+            self.assertEqual(run.calls[2][-4:], ["up", "-d", "--force-recreate", "livekit"])
+            self.assertEqual(len(run.calls), 3)
 
-    def test_media_up_recreates_only_services_whose_config_changed(self):
+    def test_media_up_recreates_livekit_only_when_config_changed(self):
         with TemporaryDirectory() as directory:
             deploy_dir = Path(directory)
             env_file = deploy_dir / ".env"
-            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test", "LIVEKIT_TURN_SECRET": "turn-secret"}
+            media_env = {**VALID, "MEDIA_MODE": "bundled", "LIVEKIT_PUBLIC_URL": "wss://live.example.test", "LIVEKIT_API_KEY": "api-key", "LIVEKIT_API_SECRET": "api-secret", "LIVEKIT_NODE_IP": "192.0.2.10", "LIVEKIT_TURN_HOST": "turn.example.test"}
             run_addon(deploy_dir, env_file, media_env, "media", "up", run=Recorder())
 
             unchanged = Recorder()
             self.assertEqual(run_addon(deploy_dir, env_file, media_env, "media", "up", run=unchanged), 0)
-            self.assertEqual([call[-4:] for call in unchanged.calls[1:]], [["up", "-d", "livekit", "coturn"]])
+            self.assertEqual([call[-3:] for call in unchanged.calls[1:]], [["up", "-d", "livekit"]])
 
             rotated = Recorder()
             self.assertEqual(run_addon(deploy_dir, env_file, {**media_env, "LIVEKIT_API_SECRET": "new-secret"}, "media", "up", run=rotated), 0)
-            self.assertEqual(rotated.calls[1][-4:], ["up", "-d", "--force-recreate", "livekit"])
-            self.assertEqual(rotated.calls[2][-4:], ["up", "-d", "livekit", "coturn"])
+            self.assertEqual([call[-4:] for call in rotated.calls[1:]], [["up", "-d", "--force-recreate", "livekit"]])
 
     def test_storage_up_command(self):
         self.assertEqual(

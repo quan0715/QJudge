@@ -59,29 +59,26 @@ class IngressTests(unittest.TestCase):
         self.assertIn("proxy_set_header X-Forwarded-Proto $scheme;", text)
         self.assertIn("proxy_buffering off;", text)
 
-    def test_bundled_media_entry_lists_proxy_ports_and_certificate(self):
+    def test_bundled_media_entry_lists_proxy_routes_and_node_ports(self):
         env = {
             **VALID,
-            "COMPOSE_PROJECT_NAME": "qjudge-app",
             "MEDIA_MODE": "bundled",
             "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
             "LIVEKIT_TURN_HOST": "turn.example.edu",
+            "LIVEKIT_NODE_IP": "192.0.2.10",
+            "FRONTEND_BIND_ADDRESS": "10.0.0.5",
         }
 
-        text = render_ingress(env)
+        lines = render_ingress(env).splitlines()
 
-        for value in (
-            "wss://live.example.edu",
-            "http://127.0.0.1:7880",
-            "7881",
-            "50000-50099",
-            "3478",
-            "50300-50399",
-            "turn.example.edu -> 127.0.0.1:5349",
-            "/etc/letsencrypt/live/turn.example.edu/",
-            "docker compose -p qjudge-app-media restart coturn",
-        ):
-            self.assertIn(value, text)
+        self.assertIn("LiveKit  wss://live.example.edu", lines)
+        self.assertIn("  Reverse proxy -> http://10.0.0.5:7880 (LiveKit HTTP/WebSocket signaling)", lines)
+        self.assertIn("TURN  turn.example.edu", lines)
+        turn_route = next(line for line in lines if "TLS termination" in line)
+        self.assertIn("443 -> tcp 10.0.0.5:5349", turn_route)
+        node_ports = next(line for line in lines if "Open directly on 192.0.2.10" in line)
+        for port in ("TCP 7881", "UDP 50000-50099", "UDP 3478", "UDP 50300-50399"):
+            self.assertIn(port, node_ports)
 
     def test_tunnel_routes_bundled_media_hostname_to_livekit(self):
         env = {
@@ -108,6 +105,20 @@ class IngressTests(unittest.TestCase):
         self.assertIn("proxy_pass http://127.0.0.1:7880;", text)
         self.assertIn("proxy_set_header Upgrade $http_upgrade;", text)
         self.assertIn('proxy_set_header Connection "upgrade";', text)
+
+    def test_nginx_terminates_turn_tls_to_livekit_tcp_port(self):
+        env = {
+            **VALID,
+            "MEDIA_MODE": "bundled",
+            "LIVEKIT_PUBLIC_URL": "wss://live.example.edu",
+            "LIVEKIT_TURN_HOST": "turn.example.edu",
+        }
+
+        stream = render_nginx(env).split("stream {", 1)[1]
+
+        self.assertIn(":443 ssl;", stream)
+        self.assertIn("proxy_pass 127.0.0.1:5349;", stream)
+        self.assertNotIn("server_name", stream)
 
     def test_external_and_disabled_media_omit_bundled_ingress(self):
         external = {
@@ -136,7 +147,7 @@ class IngressTests(unittest.TestCase):
                     "3478",
                     "50300-50399",
                     "5349",
-                    "coturn",
+                    "turn.example.edu",
                 ):
                     self.assertNotIn(bundled_marker, ingress)
                     self.assertNotIn(bundled_marker, nginx)

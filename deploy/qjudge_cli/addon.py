@@ -21,7 +21,7 @@ ADDONS = {
     },
     "media": {
         "mode_key": "MEDIA_MODE",
-        "up": ["up", "-d", "livekit", "coturn"],
+        "up": ["up", "-d", "livekit"],
     },
 }
 ACTIONS = ("up", "init")
@@ -60,13 +60,11 @@ def run_addon(
             updates["LIVEKIT_API_KEY"] = secrets.token_hex(16)
         if not env.get("LIVEKIT_API_SECRET", "").strip():
             updates["LIVEKIT_API_SECRET"] = secrets.token_urlsafe(32)
-        if not env.get("LIVEKIT_TURN_SECRET", "").strip():
-            updates["LIVEKIT_TURN_SECRET"] = secrets.token_urlsafe(32)
         if updates:
             write_values(env_file, updates)
             print(f"Filled {', '.join(updates)} in {env_file}")
         else:
-            print("LiveKit and TURN credentials are already set")
+            print("LiveKit credentials are already set")
         return 0
     problems = check_env(env)
     for problem in problems:
@@ -76,12 +74,8 @@ def run_addon(
     if run(["docker", "network", "inspect", NETWORK], capture_output=True).returncode != 0:
         run(["docker", "network", "create", NETWORK], check=True)
     project = compose_project(env)
-    if name == "media":
-        # Compose cannot see bind-mounted file changes, so recreate only the
-        # services whose rendered config changed; the rest keep running.
-        changed = write_media_config(deploy_dir, env)
-        if changed:
-            code = run([*_compose(deploy_dir, env_file, name, project), "up", "-d", "--force-recreate", *changed]).returncode
-            if code:
-                return code
+    # Compose cannot see bind-mounted file changes, so recreate LiveKit only
+    # when its rendered config changed.
+    if name == "media" and write_media_config(deploy_dir, env):
+        return run([*_compose(deploy_dir, env_file, name, project), "up", "-d", "--force-recreate", "livekit"]).returncode
     return run(addon_command(deploy_dir, env_file, name, action, project)).returncode

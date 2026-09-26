@@ -14,41 +14,18 @@ services:
           create_host_path: false
     ports:
       - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:7880:7880"
+      # TURN over TCP after the host proxy terminates TLS on 443.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:5349:5349/tcp"
+      # LiveKit advertises these on LIVEKIT_NODE_IP, so host and container ports match.
       - "7881:7881/tcp"
       - "50000-50099:50000-50099/udp"
+      - "3478:3478/udp"
+      - "50300-50399:50300-50399/udp"
     networks:
       default:
         aliases: [livekit]
-
-  coturn:
-    image: coturn/coturn:4.6.3@sha256:71c3c990283385567f11794ee692e3a47b66fd9b0bb39e42afbe776e331dd888
-    user: "0:0"
-    restart: unless-stopped
-    command: ["-c", "/etc/coturn/turnserver.conf"]
-    volumes:
-      - type: bind
-        source: ./secrets/turnserver.conf
-        target: /etc/coturn/turnserver.conf
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: /etc/letsencrypt
-        target: /etc/letsencrypt
-        read_only: true
-        bind:
-          create_host_path: false
-    ports:
-      - "3478:3478/udp"
-      - "3478:3478/tcp"
-      - "127.0.0.1:5349:5349/tcp"
-      - "50300-50399:50300-50399/udp"
-    # Kept off the shared qjudge network so relays cannot reach internal services.
-    networks:
-      turn: {}
 
 networks:
   default:
     name: qjudge
     external: true
-  turn: {}

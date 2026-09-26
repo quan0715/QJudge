@@ -3,11 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from qjudge_cli.media_config import (
-    render_coturn_config,
-    render_livekit_config,
-    write_media_config,
-)
+from qjudge_cli.media_config import render_livekit_config, write_media_config
 
 
 MEDIA_ENV = {
@@ -15,92 +11,48 @@ MEDIA_ENV = {
     "LIVEKIT_API_SECRET": "qjudge-api-secret",
     "LIVEKIT_NODE_IP": "192.0.2.10",
     "LIVEKIT_TURN_HOST": "turn.example.test",
-    "LIVEKIT_TURN_SECRET": "qjudge-turn-secret",
 }
 
 
 class MediaConfigTests(unittest.TestCase):
-    def test_livekit_config_uses_qjudge_ports_and_shared_turn_secret(self):
+    def test_livekit_config_uses_qjudge_ports_and_node_ip(self):
         config = json.loads(render_livekit_config(MEDIA_ENV))
 
         self.assertEqual(config["port"], 7880)
-        self.assertEqual(config["rtc"]["tcp_port"], 7881)
-        self.assertEqual(config["rtc"]["port_range_start"], 50000)
-        self.assertEqual(config["rtc"]["port_range_end"], 50099)
-        self.assertEqual(config["rtc"]["node_ip"], "192.0.2.10")
-        self.assertEqual(config["keys"], {"qjudge-key": "qjudge-api-secret"})
-        self.assertNotIn("turn", config)
         self.assertEqual(
-            config["rtc"]["turn_servers"],
-            [
-                {
-                    "host": "turn.example.test",
-                    "port": 3478,
-                    "protocol": "udp",
-                    "secret": "qjudge-turn-secret",
-                    "ttl": 3600,
-                },
-                {
-                    "host": "turn.example.test",
-                    "port": 3478,
-                    "protocol": "tcp",
-                    "secret": "qjudge-turn-secret",
-                    "ttl": 3600,
-                },
-                {
-                    "host": "turn.example.test",
-                    "port": 443,
-                    "protocol": "tls",
-                    "secret": "qjudge-turn-secret",
-                    "ttl": 3600,
-                },
-            ],
+            config["rtc"],
+            {"tcp_port": 7881, "port_range_start": 50000, "port_range_end": 50099, "node_ip": "192.0.2.10"},
+        )
+        self.assertEqual(config["keys"], {"qjudge-key": "qjudge-api-secret"})
+
+    def test_livekit_runs_embedded_turn_behind_external_tls(self):
+        config = json.loads(render_livekit_config(MEDIA_ENV))
+
+        self.assertEqual(
+            config["turn"],
+            {
+                "enabled": True,
+                "domain": "turn.example.test",
+                "udp_port": 3478,
+                "tls_port": 5349,
+                "external_tls": True,
+                "relay_range_start": 50300,
+                "relay_range_end": 50399,
+            },
         )
 
-    def test_coturn_config_uses_same_shared_secret_and_relay_range(self):
-        config = render_coturn_config(MEDIA_ENV)
-
-        self.assertIn("listening-port=3478", config)
-        self.assertIn("tls-listening-port=5349", config)
-        self.assertIn("cert=/etc/letsencrypt/live/turn.example.test/fullchain.pem", config)
-        self.assertIn("pkey=/etc/letsencrypt/live/turn.example.test/privkey.pem", config)
-        self.assertIn("no-tlsv1", config)
-        self.assertIn("no-tlsv1_1", config)
-        self.assertIn("realm=turn.example.test", config)
-        self.assertIn("use-auth-secret", config)
-        self.assertIn("static-auth-secret=qjudge-turn-secret", config)
-        self.assertIn("proc-user=nobody", config)
-        self.assertIn("proc-group=nogroup", config)
-        self.assertIn("min-port=50300", config)
-        self.assertIn("max-port=50399", config)
-        self.assertIn("external-ip=192.0.2.10", config)
-        self.assertNotIn("listening-ip=", config)
-        self.assertNotIn("relay-ip=", config)
-
-    def test_coturn_config_relays_only_to_livekit_node_ip(self):
-        lines = render_coturn_config(MEDIA_ENV).splitlines()
-
-        for directive in ("no-tcp-relay", "no-multicast-peers", "no-cli", "fingerprint"):
-            self.assertIn(directive, lines)
-        self.assertIn("denied-peer-ip=0.0.0.0-255.255.255.255", lines)
-        self.assertIn("denied-peer-ip=::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", lines)
-        self.assertEqual([line for line in lines if line.startswith("allowed-peer-ip=")],
-                         ["allowed-peer-ip=192.0.2.10"])
-
-    def test_write_media_config_creates_private_runtime_files(self):
+    def test_write_media_config_reports_changes_and_is_private(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             deploy_dir = Path(temporary_directory) / "deploy"
+            config_path = deploy_dir / "secrets" / "livekit.json"
 
-            self.assertEqual(write_media_config(deploy_dir, MEDIA_ENV), ["livekit", "coturn"])
-            self.assertEqual(write_media_config(deploy_dir, MEDIA_ENV), [])
+            self.assertTrue(write_media_config(deploy_dir, MEDIA_ENV))
+            self.assertFalse(write_media_config(deploy_dir, MEDIA_ENV))
+            self.assertEqual(config_path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads(config_path.read_text())["keys"], {"qjudge-key": "qjudge-api-secret"})
 
-            livekit_path = deploy_dir / "secrets" / "livekit.json"
-            coturn_path = deploy_dir / "secrets" / "turnserver.conf"
-            self.assertEqual(livekit_path.stat().st_mode & 0o777, 0o600)
-            self.assertEqual(coturn_path.stat().st_mode & 0o777, 0o600)
-            self.assertEqual(json.loads(livekit_path.read_text())["keys"]["qjudge-key"],
-                             "qjudge-api-secret")
-            self.assertIn("static-auth-secret=qjudge-turn-secret", coturn_path.read_text())
+            self.assertTrue(write_media_config(deploy_dir, {**MEDIA_ENV, "LIVEKIT_NODE_IP": "192.0.2.11"}))
+            self.assertEqual(json.loads(config_path.read_text())["rtc"]["node_ip"], "192.0.2.11")
 
 
 if __name__ == "__main__":

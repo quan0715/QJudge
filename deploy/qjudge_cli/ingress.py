@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-from .addon import compose_project
+from .media_config import TURN_TCP_PORT
 from .schema import Env
 
 MINIO_PORT = 9000
@@ -70,12 +70,12 @@ def render_ingress(env: Env) -> str:
             "",
             f"LiveKit  {media}",
             f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)",
-            "  Open TCP 7881 and UDP 50000-50099 directly to LiveKit.",
-            "  Open TURN UDP/TCP 3478 and relay UDP 50300-50399 directly to coturn.",
-            f"  TLS passthrough (SNI) on 443 for {turn_host} -> 127.0.0.1:5349 (coturn TLS)",
-            f"  TURN certificate at /etc/letsencrypt/live/{turn_host}/",
-            "  coturn reads the certificate only at start; the certbot deploy hook must run:",
-            f"    docker compose -p {compose_project(env)}-media restart coturn",
+            f"  Open directly on {env.get('LIVEKIT_NODE_IP', '').strip()}: TCP 7881, UDP 50000-50099, "
+            "UDP 3478 and UDP 50300-50399 (media, TURN and TURN relay)",
+            "",
+            f"TURN  {turn_host}",
+            f"  TLS termination on 443 -> tcp {_bind_address(env)}:{TURN_TCP_PORT} (LiveKit TURN; forward plain TCP)",
+            f"  The proxy host manages the {turn_host} certificate; reload the proxy after renewal.",
         ]
         if media_host:
             routes.append((media_host, "http://livekit:7880"))
@@ -135,4 +135,22 @@ def render_nginx(env: Env) -> str:
                 websocket=True,
             )
         )
+        blocks.append(_turn_stream_block(env))
     return "\n".join(blocks)
+
+
+def _turn_stream_block(env: Env) -> str:
+    turn_host = env.get("LIVEKIT_TURN_HOST", "").strip() or "_"
+    return f"""# TURN/TLS for {turn_host}: top-level stream context (ngx_stream_module).
+# LiveKit always advertises turns:{turn_host}:443. This assumes {turn_host}
+# resolves to an address used only for TURN; bind the http servers to the
+# host's other address so both can listen on 443.
+stream {{
+    server {{
+        listen <TURN address>:443 ssl;
+        # ssl_certificate     /path/to/{turn_host}/fullchain.pem;
+        # ssl_certificate_key /path/to/{turn_host}/privkey.pem;
+        proxy_pass {_bind_address(env)}:{TURN_TCP_PORT};
+    }}
+}}
+"""
