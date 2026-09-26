@@ -402,7 +402,7 @@ git commit -m "feat(deploy): add qjudge init to create deploy/.env" -m "Co-Autho
 4. `QJUDGE_VERSION=<version> <app_compose> build`；失敗 → checkout 回 `before`，exit 1。
 5. `<app_compose> up -d postgres pgbouncer redis`，等待 postgres healthy（輪詢 `ps --format json` 的 `Health`，上限 120 秒）。
 6. 備份：`deploy/backups/<UTC yyyymmddTHHMMSSZ>-<sha12>/online_judge.dump` 與 `qjudge_ai.dump`，內容來自 `<app_compose> exec -T postgres pg_dump -U qjudge_admin -d <db> -Fc`（stdout 寫檔，檔案 0600）；只保留最近 10 個備份目錄。失敗 → checkout 回 `before`，exit 1。
-7. `QJUDGE_VERSION=<version> <app_compose> run --rm migrate`，接著 `run --rm ai-migrate`；失敗 → checkout 回 `before`，exit 1（此時 app 服務仍是舊版）。
+7. `QJUDGE_VERSION=<version> <app_compose> run --rm` 依序執行 `ai-oauth-bootstrap`、`integrity-bootstrap`（`up` 會先建立所有容器再啟動，而 `integrity-resident` bind mount 的機密檔只由 `integrity-bootstrap` 產生，全新安裝必須先跑）、`migrate`、`ai-migrate`；失敗 → checkout 回 `before`，exit 1（此時 app 服務仍是舊版）。
 8. `QJUDGE_VERSION=<version> <app_compose> up -d --remove-orphans`。
 9. 健康檢查（上限 300 秒）：`backend`、`ai-service`、`integrity-resident` 的 `Health` 皆為 `healthy`，且 `GET http://<FRONTEND_BIND_ADDRESS 或 127.0.0.1>:<FRONTEND_PORT 或 8080>/api/health/`（`Host` 為 origin 的 host）回 200。
 10. 失敗（8 或 9）→ `.version` 有 `current` 時：checkout 回該 SHA 並以 `QJUDGE_VERSION=sha-<current12>` `up -d --remove-orphans`；沒有（第一次安裝）則只 checkout 回 `before`。印出最新備份路徑與 `pg_restore` 指令提示，exit 1。
