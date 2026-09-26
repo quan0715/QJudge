@@ -18,9 +18,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Prepare isolated test credentials
         run: |
-          cp .env.example .env
           python3 -m pip install cryptography
-          python3 scripts/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
+          python3 deploy/bootstrap/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
       - name: Start real API and judge workers
         run: |
           .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d frontend-test celery-test celery-high-test judge-image-test

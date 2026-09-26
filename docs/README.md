@@ -9,7 +9,6 @@
 - [語系維護](i18n.md)：前端語系 key 與公開文件翻譯的檢查方式。
 - [壓力測試](loadtest.md)：隔離壓測環境的建立、執行與清理。
 - [Exam Integrity runbook](operations/exam-integrity-runbook.md)：Integrity Run 的營運檢查與復原。
-- `examples/loadtest.env.example`：壓測專用 object storage 設定範本。
 
 ## 公開文件
 

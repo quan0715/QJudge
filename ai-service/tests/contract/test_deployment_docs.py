@@ -42,8 +42,6 @@ def test_public_deployment_guide_is_a_linear_minimum_path() -> None:
             "## 10. 更新與暫停",
         ),
     )
-    assert "scripts/setup-env.sh" in guide
-    assert "scripts/deploy-prod.sh" in guide
     assert "cp .env.example .env" not in guide
     assert not re.search(r"Grafana|GlitchTip|Recur|billing", guide, re.IGNORECASE)
 

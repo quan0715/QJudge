@@ -5,7 +5,12 @@ from pathlib import Path
 
 
 def _load_bootstrap_module():
-    script_path = Path(__file__).resolve().parents[1] / "bootstrap_ai_oauth_keys.py"
+    script_path = (
+        Path(__file__).resolve().parents[2]
+        / "deploy"
+        / "bootstrap"
+        / "bootstrap_ai_oauth_keys.py"
+    )
     spec = importlib.util.spec_from_file_location(
         "bootstrap_ai_oauth_keys", script_path
     )

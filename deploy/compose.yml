@@ -133,7 +133,7 @@ services:
       - --public-key
       - /oauth-secrets/ai-oauth-ed25519-public.pem
     volumes:
-      - ../scripts/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
+      - ./bootstrap/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
       - ./secrets:/oauth-secrets
     network_mode: none
 
@@ -143,7 +143,7 @@ services:
     restart: "no"
     command: ["python", "/bootstrap/bootstrap_integrity_secrets.py", "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"]
     volumes:
-      - ../scripts/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
+      - ./bootstrap/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
       - ./secrets/integrity:/bootstrap-secrets
     network_mode: none
 

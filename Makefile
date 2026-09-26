@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down loadtest loadtest-down judge-build
+.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down judge-build
 
 # Default target
 help:
@@ -16,11 +16,6 @@ help:
 	@echo "  test            Start the testing stack (used for e2e and integration tests)"
 	@echo "  test-build      Build and start the testing stack"
 	@echo "  test-down       Stop and remove testing containers and volumes"
-	@echo ""
-	@echo "Load Testing:"
-	@echo "  loadtest        Start the load testing stack"
-	@echo "  loadtest-build  Build and start the load testing stack"
-	@echo "  loadtest-down   Stop and remove load testing containers and volumes"
 	@echo ""
 	@echo "Judge System:"
 	@echo "  judge-build     Build the oj-judge Docker image locally"
@@ -53,16 +48,6 @@ test-build:
 
 test-down:
 	docker compose -f docker-compose.test.yml down -v
-
-# --- Load Testing ---
-loadtest:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d
-
-loadtest-build:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
-
-loadtest-down:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml down -v
 
 # --- Judge System ---
 judge-build:

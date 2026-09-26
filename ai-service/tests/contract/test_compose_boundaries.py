@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import os
 import re
-import subprocess
-import textwrap
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -14,11 +11,7 @@ import pytest
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-COMPOSE_FILES = (
-    "docker-compose.yml",
-    "docker-compose.dev.yml",
-    "docker-compose.test.yml",
-)
+COMPOSE_FILES = ("docker-compose.test.yml",)
 
 
 def _compose(filename: str) -> dict:
@@ -46,28 +39,6 @@ def _environment_mapping(service: dict) -> dict[str, str]:
 def _command(service: dict) -> str:
     command = service.get("command", "")
     return command if isinstance(command, str) else " ".join(command)
-
-
-def _minimal_production_env() -> str:
-    return textwrap.dedent(
-        """\
-        QJUDGE_PUBLIC_ORIGIN=https://qjudge.invalid
-        POSTGRES_ADMIN_PASSWORD=secure-admin-password
-        DB_PASSWORD=secure-web-password
-        AI_DB_PASSWORD=secure-ai-password
-        CREDENTIAL_LEASE_SECRET=secure-credential-lease-secret-long-enough
-        SECRET_KEY=secure-production-secret
-        OBJECT_STORAGE_ENDPOINT_URL=https://storage.invalid
-        OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.invalid
-        OBJECT_STORAGE_ACCESS_KEY=secure-storage-key
-        OBJECT_STORAGE_SECRET_KEY=secure-storage-secret
-        """
-    )
-
-
-def _write_executable(path: Path, source: str) -> None:
-    path.write_text(source)
-    path.chmod(0o755)
 
 
 def _rendered_compose(filename: str, extra_environment: dict[str, str] | None = None) -> dict:
@@ -129,12 +100,7 @@ def test_ai_processes_share_only_ai_credentials(filename: str) -> None:
     assert {"AI_REDIS_URL", "AI_QUEUE_NAME", "AI_QUEUE_KEY_PREFIX"} <= scheduler_keys
     assert "AI_DATABASE_URL" not in scheduler_keys
 
-    django_names = (
-        ("backend-test", "celery-test")
-        if filename == "docker-compose.test.yml"
-        else ("backend", "celery", "celery-high", "celery-beat")
-    )
-    for name in django_names:
+    for name in ("backend-test", "celery-test"):
         assert "AI_DATABASE_URL" not in _environment_keys(services[name])
 
 
@@ -195,34 +161,10 @@ def test_rendered_ai_database_identity_matches_bootstrap(filename: str) -> None:
         assert environment["AI_DB_NAME"] == bootstrap["AI_DB_NAME"]
 
 
-def test_production_compose_derives_public_runtime_values_from_one_origin() -> None:
-    services = _rendered_compose(
-        "docker-compose.yml",
-        {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.test"},
-    )["services"]
-    backend = services["backend"]["environment"]
-    assert backend["FRONTEND_URL"] == "https://judge.example.test"
-    assert backend["OAUTH_ISSUER_URL"] == "https://judge.example.test"
-    assert backend["CORS_ALLOWED_ORIGINS"] == "https://judge.example.test"
-    assert backend["CSRF_TRUSTED_ORIGINS"] == "https://judge.example.test"
-
-
-def test_production_compose_builds_ai_database_url_from_generated_password() -> None:
-    services = _rendered_compose(
-        "docker-compose.yml", {"AI_DB_PASSWORD": "UrlSafe123"}
-    )["services"]
-    for name in ("ai-migrate", "ai-service", "ai-worker"):
-        assert services[name]["environment"]["AI_DATABASE_URL"] == (
-            "postgresql+psycopg://qjudge_ai:UrlSafe123@postgres:5432/qjudge_ai"
-        )
-
-
 @pytest.mark.parametrize("filename", COMPOSE_FILES)
 def test_database_bootstrap_owns_database_credential_creation(filename: str) -> None:
     services = _compose(filename)["services"]
-    postgres_name = (
-        "postgres-test" if filename == "docker-compose.test.yml" else "postgres"
-    )
+    postgres_name = "postgres-test"
     bootstrap = services["ai-db-bootstrap"]
     assert bootstrap["depends_on"][postgres_name]["condition"] == "service_healthy"
     assert "bootstrap-ai-database.sh" in _command(bootstrap)
@@ -235,8 +177,7 @@ def test_backend_has_only_the_ai_http_boundary_and_private_signing_key(
     filename: str,
 ) -> None:
     services = _compose(filename)["services"]
-    backend_name = "backend-test" if filename == "docker-compose.test.yml" else "backend"
-    backend = services[backend_name]
+    backend = services["backend-test"]
     assert "env_file" not in backend
     keys = _environment_keys(backend)
     assert "AI_SERVICE_URL" in keys
@@ -284,222 +225,6 @@ def test_test_backend_waits_for_idempotent_oauth_key_bootstrap() -> None:
     assert all(".tmp/ai-oauth" not in str(volume) for volume in bootstrap_volumes + backend_volumes)
 
 
-@pytest.mark.parametrize("filename", ("docker-compose.dev.yml",))
-def test_django_runtime_defaults_are_not_user_env_inputs(filename: str) -> None:
-    services = _rendered_compose(
-        filename,
-        {
-            "DB_CONN_MAX_AGE": "37",
-            "JUDGE_ENGINE_ENABLED": "False",
-            "JUDGE_MAX_CPU_TIME": "23",
-            "HOST_PROJECT_ROOT": "/srv/qjudge",
-            "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "true",
-            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "true",
-            "INTEGRITY_ARCHIVE_MAX_BYTES": "7654321",
-            "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": "11",
-            "CLOUDFLARE_REALTIME_APP_ID": "render-cf-app",
-            "CLOUDFLARE_REALTIME_APP_SECRET": "render-cf-secret",
-        },
-    )["services"]
-    django_names = ("backend", "celery", "celery-high", "celery-beat")
-    expected_fixed = {
-        "DB_CONN_MAX_AGE": "0",
-        "JUDGE_ENGINE_ENABLED": "True",
-        "JUDGE_MAX_CPU_TIME": "10",
-        "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "false",
-        "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "false",
-        "INTEGRITY_ARCHIVE_MAX_BYTES": "52428800",
-        "ANTICHEAT_CAPTURE_INTERVAL_SECONDS": "3",
-    }
-    expected_external = {
-        "HOST_PROJECT_ROOT": "/srv/qjudge",
-        "CLOUDFLARE_REALTIME_APP_ID": "render-cf-app",
-        "CLOUDFLARE_REALTIME_APP_SECRET": "render-cf-secret",
-    }
-    ai_secrets = {
-        "AI_DATABASE_URL",
-        "AI_DB_PASSWORD",
-        "CREDENTIAL_LEASE_SECRET",
-        "DEEPSEEK_API_KEY",
-        "OPENAI_API_KEY",
-    }
-    for name in django_names:
-        environment = services[name]["environment"]
-        assert expected_fixed.items() <= environment.items()
-        assert expected_external.items() <= environment.items()
-        assert not ai_secrets & set(environment)
-
-
-def test_production_compose_accepts_provider_settings_generated_by_setup() -> None:
-    services = _rendered_compose(
-        "docker-compose.yml",
-        {
-            "OBJECT_STORAGE_REGION": "us-east-1",
-            "OBJECT_STORAGE_OBJECT_TAGGING_ENABLED": "true",
-            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS": "true",
-            "ANTICHEAT_RAW_BUCKET": "school-anticheat",
-            "MARKDOWN_IMAGE_S3_BUCKET": "school-markdown",
-            "AI_ARTIFACT_S3_BUCKET": "school-ai-artifacts",
-        },
-    )["services"]
-
-    for name in ("backend", "celery", "celery-high", "celery-beat"):
-        environment = services[name]["environment"]
-        assert environment["OBJECT_STORAGE_REGION"] == "us-east-1"
-        assert environment["OBJECT_STORAGE_OBJECT_TAGGING_ENABLED"] == "true"
-        assert environment["OBJECT_STORAGE_AUTO_CREATE_BUCKETS"] == "true"
-        assert environment["ANTICHEAT_RAW_BUCKET"] == "school-anticheat"
-        assert environment["MARKDOWN_IMAGE_S3_BUCKET"] == "school-markdown"
-
-    for name in ("ai-service", "ai-worker"):
-        environment = services[name]["environment"]
-        assert environment["AI_ARTIFACT_STORAGE_REGION"] == "us-east-1"
-        assert environment["AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET"] == "true"
-        assert environment["AI_ARTIFACT_S3_BUCKET"] == "school-ai-artifacts"
-
-
-def test_default_production_compose_excludes_removed_integrations(tmp_path: Path) -> None:
-    services = {
-        name
-        for name, service in _compose("docker-compose.yml")["services"].items()
-        if not service.get("profiles")
-    }
-    assert "glitchtip" not in services
-    assert "glitchtip-worker" not in services
-    assert "cloudflared" not in services
-
-
-def test_production_integrity_bootstrap_needs_no_host_sudo() -> None:
-    services = _compose("docker-compose.yml")["services"]
-    bootstrap = services["integrity-bootstrap"]
-    assert bootstrap["user"] == "0:0"
-    assert bootstrap["network_mode"] == "none"
-    assert bootstrap["restart"] == "no"
-    assert bootstrap["command"][-4:] == [
-        "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001",
-    ]
-    assert services["integrity-resident"]["depends_on"]["integrity-bootstrap"] == {
-        "condition": "service_completed_successfully",
-    }
-
-
-def test_tunnel_profile_adds_cloudflared(tmp_path: Path) -> None:
-    cloudflared = _compose("docker-compose.yml")["services"]["cloudflared"]
-    assert "tunnel" in cloudflared["profiles"]
-
-
-def _run_fake_production_deploy(
-    tmp_path: Path, *, extra_env: str = ""
-) -> tuple[subprocess.CompletedProcess[str], str]:
-    deploy_path = tmp_path / "deploy"
-    deploy_path.mkdir()
-    (deploy_path / ".git").mkdir()
-    (deploy_path / ".env").write_text(_minimal_production_env() + extra_env)
-
-    command_log = tmp_path / "commands.log"
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    _write_executable(
-        fake_bin / "git",
-        """#!/bin/sh
-printf 'git %s\n' "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
-case "$*" in
-  "rev-parse HEAD") printf 'previous-sha\n' ;;
-esac
-""",
-    )
-    _write_executable(
-        fake_bin / "docker",
-        """#!/bin/sh
-printf 'DOCKER_GID=%s docker %s\n' "${DOCKER_GID:-}" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"
-case "$*" in
-  "compose version") exit 0 ;;
-  *"ps --status running --services"*) printf 'postgres\n' ;;
-  *"pg_dump"*) printf 'fake-custom-dump\n' ;;
-  *"pg_restore --list"*) exit 0 ;;
-  *"exec -T"*) printf '0\n' ;;
-esac
-exit 0
-""",
-    )
-    _write_executable(
-        fake_bin / "python3",
-        '#!/bin/sh\nprintf "python3 %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\nexit 0\n',
-    )
-    _write_executable(
-        fake_bin / "curl",
-        '#!/bin/sh\nprintf "curl %s\\n" "$*" >> "$QJUDGE_TEST_COMMAND_LOG"\nexit 0\n',
-    )
-    _write_executable(fake_bin / "stat", "#!/bin/sh\nprintf '138\\n'\n")
-    _write_executable(fake_bin / "id", "#!/bin/sh\nprintf '0\\n'\n")
-
-    environment = os.environ.copy()
-    environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
-    environment["QJUDGE_TEST_COMMAND_LOG"] = str(command_log)
-    result = subprocess.run(
-        [
-            "bash",
-            str(REPOSITORY_ROOT / "scripts/deploy-prod.sh"),
-            str(deploy_path),
-            "deadbeef",
-        ],
-        cwd=REPOSITORY_ROOT,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    commands = command_log.read_text() if command_log.exists() else ""
-    return result, commands
-
-
-def test_production_deploy_does_not_require_removed_integrations(
-    tmp_path: Path,
-) -> None:
-    result, commands = _run_fake_production_deploy(tmp_path)
-
-    assert result.returncode == 0, result.stderr
-    assert "docker-compose.monitoring.yml" not in commands
-    assert "oj_grafana" not in commands
-    assert "--profile tunnel" not in commands
-
-
-def test_production_deploy_enables_tunnel_only_when_token_is_configured(
-    tmp_path: Path,
-) -> None:
-    result, commands = _run_fake_production_deploy(
-        tmp_path, extra_env="TUNNEL_TOKEN=secure-tunnel-token\n"
-    )
-
-    assert result.returncode == 0, result.stderr
-    compose_deployment_commands = [
-        line
-        for line in commands.splitlines()
-        if "docker compose -f" in line
-    ]
-    assert compose_deployment_commands
-    assert all("--profile tunnel" in line for line in compose_deployment_commands)
-
-
-def test_production_deploy_allows_private_http_minio_with_https_public_endpoint(
-    tmp_path: Path,
-) -> None:
-    result, _commands = _run_fake_production_deploy(
-        tmp_path,
-        extra_env=textwrap.dedent(
-            """\
-            OBJECT_STORAGE_ENDPOINT_URL=http://minio.internal:9000
-            OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.invalid
-            OBJECT_STORAGE_REGION=us-east-1
-            OBJECT_STORAGE_AUTO_CREATE_BUCKETS=true
-            OBJECT_STORAGE_OBJECT_TAGGING_ENABLED=true
-            """
-        ),
-    )
-
-    assert result.returncode == 0, result.stderr
-
-
 def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
     source = (REPOSITORY_ROOT / "scripts/db/bootstrap-ai-database.sh").read_text()
     assert "set -eu" in source
@@ -515,100 +240,3 @@ def test_database_bootstrap_is_fail_closed_and_never_echoes_secrets() -> None:
         "$AI_DB_PASSWORD",
     ):
         assert f'echo "{secret}"' not in source
-
-
-def test_production_deploy_validates_roles_and_bootstraps_oauth_before_render() -> None:
-    source = (REPOSITORY_ROOT / "scripts/deploy-prod.sh").read_text()
-    oauth = source.index("python3 scripts/bootstrap_ai_oauth_keys.py")
-    render = source.index('docker compose "${COMPOSE_FILES[@]}" config --quiet')
-    assert oauth < render
-    required_block = source.split("required_env_keys=(", 1)[1].split(")", 1)[0]
-    expected_required = {
-        "POSTGRES_ADMIN_PASSWORD",
-        "DB_PASSWORD",
-        "AI_DB_PASSWORD",
-        "CREDENTIAL_LEASE_SECRET",
-        "SECRET_KEY",
-        "QJUDGE_PUBLIC_ORIGIN",
-        "OBJECT_STORAGE_ENDPOINT_URL",
-        "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-        "OBJECT_STORAGE_ACCESS_KEY",
-        "OBJECT_STORAGE_SECRET_KEY",
-    }
-    assert expected_required == set(required_block.split())
-    for key in (
-        "AI_DATABASE_URL",
-        "AI_REDIS_URL",
-        "AI_QUEUE_NAME",
-        "AI_QUEUE_KEY_PREFIX",
-        "DB_SSLMODE",
-        "FRONTEND_URL",
-        "ALLOWED_HOSTS",
-        "CORS_ALLOWED_ORIGINS",
-        "CSRF_TRUSTED_ORIGINS",
-        "REDIS_URL",
-        "MCP_PUBLIC_URL",
-        "OAUTH_ISSUER_URL",
-        "OBJECT_STORAGE_REGION",
-        "ANTICHEAT_RAW_BUCKET",
-        "MARKDOWN_IMAGE_S3_BUCKET",
-        "MARKDOWN_IMAGE_PUBLIC_BASE_URL",
-        "AI_ARTIFACT_S3_BUCKET",
-    ):
-        assert key not in required_block
-    assert "AI_DATABASE_URL" not in source
-    assert "rolsuper OR rolcreatedb OR rolcreaterole" in source
-
-
-def test_production_deploy_prepares_integrity_runtime_before_start(
-    tmp_path: Path,
-) -> None:
-    result, commands = _run_fake_production_deploy(tmp_path)
-
-    assert result.returncode == 0, result.stderr
-    integrity_bootstrap = commands.index(
-        "run --rm --no-deps --build integrity-bootstrap"
-    )
-    compose_start = commands.index("up -d --remove-orphans")
-    assert integrity_bootstrap < compose_start
-    assert "integrity-worker-image" not in commands
-    assert "DOCKER_GID=138 docker compose" in commands
-
-
-def test_production_deploy_backs_up_database_before_start(tmp_path: Path) -> None:
-    result, commands = _run_fake_production_deploy(tmp_path)
-
-    assert result.returncode == 0, result.stderr
-    database_backup = commands.index("pg_dump")
-    compose_start = commands.index("up -d --remove-orphans")
-    assert database_backup < compose_start
-    assert "pg_restore --list" in commands
-    assert "[deploy] backup ready:" in result.stdout
-
-
-def test_production_deploy_prepares_database_admin_before_start(
-    tmp_path: Path,
-) -> None:
-    result, commands = _run_fake_production_deploy(tmp_path)
-
-    assert result.returncode == 0, result.stderr
-    database_admin = commands.index(
-        "exec -T -e QJUDGE_BOOTSTRAP_ADMIN_PASSWORD postgres"
-    )
-    compose_start = commands.index("up -d --remove-orphans")
-    assert database_admin < compose_start
-
-
-def test_production_deploy_checks_each_critical_http_boundary(tmp_path: Path) -> None:
-    result, commands = _run_fake_production_deploy(tmp_path)
-
-    assert result.returncode == 0, result.stderr
-    assert "http://localhost:80" in commands
-    assert "http://localhost:8000/api/health/" in commands
-    assert "http://localhost:8001/health/ready" in commands
-    assert "http://localhost:8011/ready" in commands
-    assert "exec -T integrity-resident python -c" in commands
-    assert (
-        "curl --fail --silent --show-error --max-time 8 "
-        "http://localhost:8011/ready"
-    ) not in commands

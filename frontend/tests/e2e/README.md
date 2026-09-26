@@ -33,7 +33,7 @@ The workflow uploads the Playwright report, failure trace/video and service logs
 From the repository root:
 
 ```bash
-python3 scripts/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
+python3 deploy/bootstrap/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
 
 CELERY_TASK_ALWAYS_EAGER=false \
   .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d \

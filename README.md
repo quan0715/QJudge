@@ -8,7 +8,7 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
 - 考試系統：支援註冊、前檢、作答、檢查、評分與結果流程
 - CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
-- 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
+- 本地容器化開發：`qjudge-dc.sh dev`（`deploy/compose.yml` + `compose.dev.yml`）可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
 ## 技術棧
 
@@ -24,16 +24,8 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 ## 快速啟動（建議）
 
 ```bash
-export OBJECT_STORAGE_ENDPOINT_URL=https://ACCOUNT_ID.r2.cloudflarestorage.com
-export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
-read -r -p "R2 access key: " OBJECT_STORAGE_ACCESS_KEY
-read -r -s -p "R2 secret key: " OBJECT_STORAGE_SECRET_KEY
-printf '\n'
-export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
-./scripts/setup-env.sh \
-  --target self-hosted \
-  --storage r2 \
-  --origin http://localhost:5173
+cp deploy/.env.example deploy/.env   # 填入必要值
+deploy/qjudge check
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
@@ -50,7 +42,7 @@ export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
 ## 目前已知狀態
 
 - `ai-service` 提供 `/health/live` 與 `/health/ready` 健康檢查
-- compose 矩陣固定為 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.test.yml`
+- 開發使用 `qjudge-dc.sh dev`，測試使用 `docker-compose.test.yml`；production 由 `deploy/qjudge` 管理
 - backend 測試使用 `docker-compose.test.yml` 的 `backend-test` service，避免誤連 dev/prod DB
 
 ## 架設與部署

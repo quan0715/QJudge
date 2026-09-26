@@ -5,7 +5,7 @@ Usage (inside container):
     python manage.py healthcheck
 
 Usage (from host):
-    docker compose -f docker-compose.dev.yml exec backend python manage.py healthcheck
+    .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec backend python manage.py healthcheck
 """
 import sys
 

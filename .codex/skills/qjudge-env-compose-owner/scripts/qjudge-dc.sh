@@ -7,7 +7,9 @@ Usage:
   qjudge-dc.sh <env> <docker compose args...>
 
 Envs:
-  main | dev | test
+  dev | test
+
+Production-shaped operations use deploy/qjudge.
 
 Examples:
   qjudge-dc.sh dev up -d --build
@@ -40,9 +42,6 @@ if [[ -z "$DOCKER_BIN" ]]; then
 fi
 
 case "$ENV_NAME" in
-  main)
-    COMPOSE_ARGS=(-f "$ROOT_DIR/docker-compose.yml")
-    ;;
   dev)
     COMPOSE_ARGS=(
       --project-directory "$ROOT_DIR/deploy"
@@ -56,7 +55,7 @@ case "$ENV_NAME" in
     COMPOSE_ARGS=(-f "$ROOT_DIR/docker-compose.test.yml")
     ;;
   *)
-    echo "Unknown env: $ENV_NAME (allowed: main|dev|test)" >&2
+    echo "Unknown env: $ENV_NAME (allowed: dev|test)" >&2
     usage
     exit 1
     ;;

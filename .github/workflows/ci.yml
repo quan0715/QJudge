@@ -12,12 +12,8 @@ on:
       - "ai-service/**"
       - "deploy/**"
       - "compose.dev.yml"
-      - "docker-compose.yml"
-      - "docker-compose.dev.yml"
       - "docker-compose.test.yml"
-      - "docker-compose.monitoring.yml"
       - "loadtest/**"
-      - ".env.example"
       - ".github/workflows/**"
       - ".github/actions/**"
       - "scripts/**"
@@ -32,12 +28,8 @@ on:
       - "ai-service/**"
       - "deploy/**"
       - "compose.dev.yml"
-      - "docker-compose.yml"
-      - "docker-compose.dev.yml"
       - "docker-compose.test.yml"
-      - "docker-compose.monitoring.yml"
       - "loadtest/**"
-      - ".env.example"
       - ".github/workflows/**"
       - ".github/actions/**"
       - "scripts/**"
@@ -70,12 +62,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-
-      - name: Deployment Compose Config Check
-        run: |
-          set -euo pipefail
-          bash -n scripts/deploy-prod.sh scripts/check-compose-config.sh
-          bash scripts/check-compose-config.sh
 
       - name: Deploy CLI Tests
         run: python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy
@@ -181,10 +167,9 @@ jobs:
 
       - name: Prepare test stack environment
         run: |
-          cp .env.example .env
           echo "DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)" >> "$GITHUB_ENV"
           python3 -m pip install cryptography
-          python3 scripts/bootstrap_integrity_secrets.py \
+          python3 deploy/bootstrap/bootstrap_integrity_secrets.py \
             --secrets-dir .tmp/integrity-test-secrets
           sudo chgrp 10001 .tmp/integrity-test-secrets/backend-public-key .tmp/integrity-test-secrets/resident-service-token
           chmod 640 .tmp/integrity-test-secrets/backend-public-key .tmp/integrity-test-secrets/resident-service-token
@@ -382,29 +367,22 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    env:
-      OBJECT_STORAGE_ENDPOINT_URL: https://storage-contract.invalid
-      OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: https://storage-contract.invalid
-      OBJECT_STORAGE_ACCESS_KEY: contract-access-key
-      OBJECT_STORAGE_SECRET_KEY: contract-secret-key
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Prepare repository contract environment
         run: |
-          cp .env.example .env
           mkdir -p .tmp/integrity-contract
-          docker compose -f docker-compose.dev.yml config --format json > .tmp/integrity-contract/dev.json
-          ANTICHEAT_RAW_BUCKET=qjudge-dev-anticheat-raw OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS=777 \
-            docker compose -f docker-compose.dev.yml config --format json > .tmp/integrity-contract/override.json
+          QJUDGE_VERSION=ci docker compose --project-directory deploy --env-file deploy/.env.example \
+            -f deploy/compose.yml -f deploy/compose.build.yml -f compose.dev.yml \
+            config --format json > .tmp/integrity-contract/dev.json
 
       - name: Run Integrity Service Tests
         run: |
           .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test run --rm --no-deps --build \
             -v "$GITHUB_WORKSPACE:/workspace:ro" \
             -e INTEGRITY_DEV_COMPOSE_JSON=/workspace/.tmp/integrity-contract/dev.json \
-            -e INTEGRITY_DEV_COMPOSE_OVERRIDE_JSON=/workspace/.tmp/integrity-contract/override.json \
             -w /workspace/integrity-service integrity-unit-test \
             python -m pytest -q -p no:cacheprovider
 

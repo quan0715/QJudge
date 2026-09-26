@@ -9,12 +9,12 @@ description: Use when QJudge work involves Docker Compose environments, migratio
 
 - `dev`: interactive development, Storybook, and manual runtime inspection.
 - `test`: automated backend/frontend/AI tests and isolated E2E dependencies.
-- `main`: production-shaped local or deployment operations; use only when the task explicitly targets it.
+- Production-shaped operations use `deploy/qjudge`; use it only when the task explicitly targets production.
 
 Use the repository wrapper:
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <main|dev|test> <compose arguments>
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <dev|test> <compose arguments>
 ```
 
 Run commands that depend on databases, workers, or service configuration inside the owning service. Documentation, static checks, and service-independent tests may use an installed host runtime matching the project. No separate permission is needed for that choice.

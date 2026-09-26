@@ -253,7 +253,7 @@ services:
       - --public-key
       - /oauth-secrets/ai-oauth-ed25519-public.pem
     volumes:
-      - ./scripts/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
+      - ./deploy/bootstrap/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
       - ai-oauth-test-secrets:/oauth-secrets
     networks:
       - test-network

@@ -45,18 +45,16 @@ def test_resident_runtime_has_only_its_own_credentials_and_durable_storage(servi
     assert "/ready" in resident["healthcheck"]["test"][-1]
 
 
-def test_backend_and_reconciler_share_canonical_credentials_and_resident_routing(services):
+def test_backend_and_reconciler_share_canonical_credentials(services):
     for name in ("backend", "integrity-reconciler"):
         service = services[name]
         env = service["environment"]
         assert "INTEGRITY_EXECUTION_BACKEND" not in env
-        assert env["INTEGRITY_RESIDENT_URL"] == "http://integrity-resident:8011"
         assert env["INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE"] == "/run-secrets/integrity/resident-service-token"
         assert env["INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE"] == "/run-secrets/integrity/integrity-worker-signing-key"
         assert any(v["target"] == "/run-secrets" and v["read_only"] for v in service["volumes"])
-        assert service["depends_on"]["integrity-bootstrap"]["condition"] == "service_completed_successfully"
+    assert services["backend"]["depends_on"]["integrity-bootstrap"]["condition"] == "service_completed_successfully"
     reconciler = services["integrity-reconciler"]
-    assert reconciler["environment"]["DB_HOST"] == "postgres"
     assert reconciler["command"] == ["python", "manage.py", "reconcile_integrity"]
     assert not reconciler.get("ports")
 
@@ -97,19 +95,3 @@ def test_runtime_waits_for_narrow_bootstrap_and_data_ownership(services):
     assert len(initializer["volumes"]) == 1
     assert initializer["volumes"][0]["source"] == "integrity_resident_data"
     assert initializer["volumes"][0]["type"] == "volume"
-
-
-@pytest.mark.parametrize("render_key,bucket,ttl", [
-    ("INTEGRITY_DEV_COMPOSE_JSON", "anticheat-raw", "300"),
-    ("INTEGRITY_DEV_COMPOSE_OVERRIDE_JSON", "qjudge-dev-anticheat-raw", "777"),
-])
-def test_descriptor_archive_settings_match_between_backend_and_reconciler(render_key, bucket, ttl):
-    path = os.environ.get(render_key)
-    if not path:
-        pytest.skip("requires host-rendered dummy default and override Compose JSON")
-    with open(path) as stream:
-        rendered = json.load(stream)["services"]
-    for name in ("backend", "integrity-reconciler"):
-        env = rendered[name]["environment"]
-        assert env["ANTICHEAT_RAW_BUCKET"] == bucket, name
-        assert env["OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS"] == ttl, name

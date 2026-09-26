@@ -20,12 +20,12 @@ QJudge 維護中的技能位於 `.codex/skills/`：
 先讀 `qjudge-env-compose-owner/references/environment-matrix.md`，並一律從 repository wrapper 選擇環境：
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <main|dev|test> <compose arguments>
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <dev|test> <compose arguments>
 ```
 
 - `dev`：互動式開發、Storybook、實際畫面檢查。
 - `test`：backend、frontend、AI service 與隔離式 E2E 測試。
-- `main`：只有任務明確要求 production-shaped 操作時使用。
+- production 形狀的操作使用 `deploy/qjudge`，只有任務明確要求時使用。
 
 依賴資料庫、worker 或服務設定的命令在所屬容器執行。純文件、靜態檢查與不需服務的測試可使用已安裝且版本相符的 host 工具，不必為此另行請求許可。
 

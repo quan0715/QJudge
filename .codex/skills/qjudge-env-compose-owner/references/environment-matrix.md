@@ -4,15 +4,15 @@
 
 | Environment | File | Intended use |
 | --- | --- | --- |
-| `main` | `docker-compose.yml` | production-shaped runtime |
 | `dev` | `qjudge-dc.sh dev` (`deploy/compose.yml` + `deploy/compose.build.yml` + `compose.dev.yml`, env `deploy/.env`) | interactive development and Storybook |
 | `test` | `docker-compose.test.yml` | isolated tests and E2E |
+
+Production is managed by `deploy/qjudge`, not by this wrapper.
 
 ## Current services
 
 | Environment | Web/API | AI runtime | Data | Workers | UI |
 | --- | --- | --- | --- | --- | --- |
-| `main` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend` |
 | `dev` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend`, `storybook` |
 | `test` | `backend-test` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres-test`, `redis-test` | `celery-test`, `celery-high-test` | `frontend-test` |
 

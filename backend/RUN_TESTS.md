@@ -7,7 +7,7 @@
 先確保開發容器已啟動：
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 ```
 
 ## 二、建議測試設定
@@ -15,7 +15,7 @@ docker compose -f docker-compose.dev.yml up -d --build
 請優先使用 `config.settings.test` 與明確本機 `DATABASE_URL`：
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
@@ -33,7 +33,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 ### 1) AI compatibility BFF smoke test
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
@@ -43,7 +43,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 ### 2) AI app 全部測試
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
@@ -53,7 +53,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 ### 3) submissions 測試
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov' \
@@ -94,7 +94,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 處理：
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T postgres \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T postgres \
   psql -U postgres -c "DROP DATABASE IF EXISTS test_online_judge;"
 ```
 
@@ -109,7 +109,7 @@ docker compose -f docker-compose.dev.yml exec -T postgres \
 ### 1) 產生 OpenAPI schema
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.dev \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   python manage.py spectacular --file schema.yml
@@ -127,7 +127,7 @@ docker compose -f docker-compose.dev.yml exec -T backend \
 - 加上 `--reuse-db` 減少重建
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T backend \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
   env DJANGO_SETTINGS_MODULE=config.settings.test \
   DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
   PYTEST_ADDOPTS='--no-cov --reuse-db' \
