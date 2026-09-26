@@ -737,3 +737,24 @@ git commit -m "docs(plan): record plan 06 local install and upgrade results" -m 
 - `deploy/qjudge init`、`upgrade <ref>`、`rollback` 有單元測試；本地以獨立 project 完成全新安裝、upgrade、rollback 與失敗回復的實測。
 - CD workflow 改為 `deploy/qjudge upgrade <sha>`。
 - dev stack 與其資料不受影響。
+
+---
+
+## 驗證結果（2026-09-26，Task 5，macOS arm64 + Docker Desktop）
+
+版本：A = `8b783960`（修正 commit），B = `391b8451`，C = `7587d8a7`（只在本機、detached，backend `exit 1`）。worktree `/private/tmp/qjudge-e2e-wt`，project `qjudge-e2e`，storage 用 dev MinIO（bucket `qjudge-e2e`，容器經 `host.docker.internal:9000`）。
+
+| 步驟 | 結果 |
+|---|---|
+| `init --non-interactive` | exit 0，`deploy/.env` 為 0600 |
+| `upgrade A`（全新安裝） | exit 0；`.version` 只有 `current=A`；site 200、api 200；1 個備份 |
+| `upgrade B` | exit 0；`current=B previous=A`；2 個備份 |
+| `rollback` | exit 0；`current=A previous=B`；api 200；`qjudge/backend` 有 `sha-8b783960d1bb`、`sha-391b8451955f`、`dev` |
+| `upgrade C` | exit 1（backend 300 秒未 healthy），印出 `Started sha-8b783960d1bb again` 與還原提示；`.version` 不變、HEAD 回到 A、api 200 |
+| 清除 | `qjudge-e2e` 容器／volume、`qjudge/*:sha-*`、`oj-judge:latest`、worktree、bucket 皆移除；dev stack `ps` 不變 |
+
+**發現並修正的 bug：** 全新安裝時 `up -d` 會先建立所有容器再啟動，而 `integrity-resident` bind mount 的 `secrets/integrity/backend-public-key` 要等 `integrity-bootstrap` 執行後才存在，daemon 拒絕建立容器（`bind source path does not exist`）。`upgrade` 改為在 migrate 前以 `run --rm` 執行 `ai-oauth-bootstrap`、`integrity-bootstrap`（`8b783960`，含單元測試；Task 3 行為第 7 點已同步）。修正後以新的 HEAD~1／HEAD 重建 worktree 重跑全部步驟。
+
+**偏差（環境）：**
+- 本機到 PyPI 不穩（pip 15 秒 read timeout），`compose build` 平行安裝時多次失敗；先以同一組 compose 檔逐一 `build <service>` 暖 BuildKit cache，再跑 `upgrade`（build 全部命中 cache）。build 失敗時 `upgrade` 皆正確 checkout 回原 HEAD、exit 1、不動服務。
+- `ghcr.io/quan0715/qjudge/judge:latest` 沒有 arm64 manifest，走 fallback 在本機 build `oj-judge:latest`。
