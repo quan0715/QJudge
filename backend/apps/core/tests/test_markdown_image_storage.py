@@ -13,7 +13,7 @@ class RecordingClient:
 
 
 def test_store_uploads_without_bucket_checks(monkeypatch, settings):
-    settings.MARKDOWN_IMAGE_S3_BUCKET = "qjudge"
+    settings.OBJECT_STORAGE_BUCKET = "qjudge"
     client = RecordingClient()
     monkeypatch.setattr(storage, "get_markdown_image_s3_client", lambda: client)
 

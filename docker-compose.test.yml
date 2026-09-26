@@ -279,12 +279,7 @@ services:
     environment: &backend_test_environment
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - CELERY_TASK_ALWAYS_EAGER=${CELERY_TASK_ALWAYS_EAGER:-true}
-      - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=qjudge_web
-      - POSTGRES_PASSWORD=qjudge_web
-      - POSTGRES_HOST=postgres-test
-      - POSTGRES_PORT=5432
-      - DB_CONN_MAX_AGE=0
+      - DATABASE_URL=postgresql://qjudge_web:qjudge_web@postgres-test:5432/test_oj_e2e
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
@@ -298,16 +293,12 @@ services:
       - INTEGRITY_RESIDENT_URL=http://integrity-resident:8011
       - INTEGRITY_RESIDENT_SERVICE_TOKEN_FILE=/run-secrets/resident-service-token
       - INTEGRITY_WORKER_SIGNING_PRIVATE_KEY_FILE=/run-secrets/integrity-worker-signing-key
-      - LIVE_MONITORING_ENABLED=${LIVE_MONITORING_ENABLED:-false}
-      - LIVE_MONITORING_PROVIDER=${LIVE_MONITORING_PROVIDER:-livekit}
+      - MEDIA_MODE=${MEDIA_MODE:-disabled}
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7890}
       - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-http://livekit-test:7890}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
-      - LIVEKIT_NODE_IP=${LIVEKIT_NODE_IP:-}
-      - LIVEKIT_STUN_HOST=${LIVEKIT_STUN_HOST:-}
       - LIVEKIT_ROOM_PREFIX=${LIVEKIT_ROOM_PREFIX:-qjudge-test-exam}
-      - LIVEKIT_TOKEN_TTL_SECONDS=${LIVEKIT_TOKEN_TTL_SECONDS:-120}
     ports:
       - "8002:8000"
     depends_on:
@@ -421,12 +412,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.test
       - CELERY_TASK_ALWAYS_EAGER=${CELERY_TASK_ALWAYS_EAGER:-true}
-      - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=qjudge_web
-      - POSTGRES_PASSWORD=qjudge_web
-      - POSTGRES_HOST=postgres-test
-      - POSTGRES_PORT=5432
-      - DB_CONN_MAX_AGE=0
+      - DATABASE_URL=postgresql://qjudge_web:qjudge_web@postgres-test:5432/test_oj_e2e
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0

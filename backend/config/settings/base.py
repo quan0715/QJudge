@@ -96,20 +96,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Database Configuration
-# With pgBouncer (session mode), release connections after each request. The
-# legacy DB_* values remain available to existing installs and maintenance jobs.
-DATABASES = {
-    "default": build_database_config(
-        {
-            "NAME": env("DB_NAME", "online_judge"),
-            "USER": env("DB_USER", "postgres"),
-            "PASSWORD": env("DB_PASSWORD", "postgres"),
-            "HOST": env("DB_HOST", "localhost"),
-            "PORT": env("DB_PORT", "5432"),
-        },
-        {"connect_timeout": 10},
-    )
-}
+# With pgBouncer (session mode), release connections after each request.
+DATABASES = {"default": build_database_config({"connect_timeout": 10})}
 
 # Custom User Model
 AUTH_USER_MODEL = "users.User"
@@ -246,8 +234,7 @@ AI_OAUTH_SIGNING_PRIVATE_KEY_FILE = Path(
     )
 )
 # Base URL of the MCP server; clients connect to <base>/mcp through the frontend.
-# MCP_PUBLIC_URL is read only for hosts still on the legacy compose.
-MCP_PUBLIC_URL = (env("MCP_PUBLIC_URL") or FRONTEND_URL).rstrip("/")
+MCP_PUBLIC_URL = FRONTEND_URL
 
 # Spectacular settings
 SPECTACULAR_SETTINGS = {
@@ -429,35 +416,23 @@ OBJECT_STORAGE_REGION = "us-east-1"
 OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
 OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
 OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS = 300
-OBJECT_STORAGE_BUCKET = env("OBJECT_STORAGE_BUCKET")
-
-# Per-feature bucket keys are read only for hosts still on the legacy compose.
-ANTICHEAT_RAW_BUCKET = OBJECT_STORAGE_BUCKET or env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")
-INTEGRITY_ARCHIVE_BUCKET = OBJECT_STORAGE_BUCKET or env("INTEGRITY_ARCHIVE_BUCKET", ANTICHEAT_RAW_BUCKET)
+OBJECT_STORAGE_BUCKET = env("OBJECT_STORAGE_BUCKET", "")
 INTEGRITY_ARCHIVE_CAPACITY_WARNING_BYTES = 1073741824
 INTEGRITY_ARCHIVE_CAPACITY_RESERVE_BYTES = 268435456
 ANTICHEAT_CAPTURE_INTERVAL_SECONDS = 3
 
-# MEDIA_MODE selects live monitoring. LIVE_MONITORING_ENABLED is read only when
-# MEDIA_MODE is unset, so hosts still on the legacy compose keep working.
-MEDIA_MODE = (
-    env("MEDIA_MODE")
-    or ("external" if _env_truthy("LIVE_MONITORING_ENABLED") else "disabled")
-).lower()
+# MEDIA_MODE selects live monitoring.
+MEDIA_MODE = env("MEDIA_MODE", "disabled").lower()
 LIVE_MONITORING_ENABLED = MEDIA_MODE in {"bundled", "external"}
 LIVE_MONITORING_PROVIDER = "livekit" if LIVE_MONITORING_ENABLED else "disabled"
-LIVEKIT_ENVIRONMENT = env("LIVEKIT_ENVIRONMENT", "dev").strip().lower()
 LIVEKIT_PUBLIC_URL = env("LIVEKIT_PUBLIC_URL", "").rstrip("/")
 LIVEKIT_INTERNAL_URL = env(
     "LIVEKIT_INTERNAL_URL", _livekit_server_url(LIVEKIT_PUBLIC_URL)
 ).rstrip("/")
 LIVEKIT_API_KEY = env("LIVEKIT_API_KEY", "").strip()
 LIVEKIT_API_SECRET = env("LIVEKIT_API_SECRET", "").strip()
-LIVEKIT_NODE_IP = env("LIVEKIT_NODE_IP", "").strip()
-LIVEKIT_STUN_HOST = env("LIVEKIT_STUN_HOST", "").strip()
 LIVEKIT_ROOM_PREFIX = env("LIVEKIT_ROOM_PREFIX", "qjudge-exam").strip()
 LIVEKIT_TOKEN_TTL_SECONDS = 120
 
-MARKDOWN_IMAGE_S3_BUCKET = OBJECT_STORAGE_BUCKET or env("MARKDOWN_IMAGE_S3_BUCKET", "markdown-images")
 MARKDOWN_IMAGE_MAX_BYTES = 5242880
 MARKDOWN_IMAGE_PUBLIC_BASE_URL = FRONTEND_URL

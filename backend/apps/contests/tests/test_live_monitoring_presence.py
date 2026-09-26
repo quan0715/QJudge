@@ -26,9 +26,6 @@ LIVEKIT_SETTINGS = {
     "LIVEKIT_INTERNAL_URL": "http://livekit:7880",
     "LIVEKIT_API_KEY": "qjudge-test-key",
     "LIVEKIT_API_SECRET": "qjudge-test-secret",
-    "LIVEKIT_NODE_IP": "10.20.0.15",
-    "LIVEKIT_STUN_HOST": "turn.test.internal",
-    "LIVEKIT_ENVIRONMENT": "test",
     "LIVEKIT_ROOM_PREFIX": "qjudge-exam",
 }
 

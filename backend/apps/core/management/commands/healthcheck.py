@@ -101,19 +101,8 @@ class Command(BaseCommand):
         return True, f"buckets reachable: {bucket_names}"
 
     def _configured_object_storage_buckets(self):
-        raw_buckets = [
-            ("anticheat_raw", getattr(settings, "ANTICHEAT_RAW_BUCKET", "")),
-            ("markdown_images", getattr(settings, "MARKDOWN_IMAGE_S3_BUCKET", "")),
-        ]
-        buckets = []
-        seen = set()
-        for label, bucket in raw_buckets:
-            bucket_name = (bucket or "").strip()
-            if not bucket_name or bucket_name in seen:
-                continue
-            buckets.append((label, bucket_name))
-            seen.add(bucket_name)
-        return buckets
+        bucket_name = (settings.OBJECT_STORAGE_BUCKET or "").strip()
+        return [("object_storage", bucket_name)] if bucket_name else []
 
     def _check_celery_default(self):
         queue_name = getattr(settings, "CELERY_TASK_DEFAULT_QUEUE", "celery")

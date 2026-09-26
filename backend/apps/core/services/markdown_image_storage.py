@@ -71,7 +71,7 @@ def store_markdown_image(content: bytes, object_key: str, content_type: str) -> 
     client = get_markdown_image_s3_client()
     try:
         client.put_object(
-            Bucket=settings.MARKDOWN_IMAGE_S3_BUCKET,
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
             Key=object_key,
             Body=content,
             ContentType=content_type,
@@ -85,7 +85,7 @@ def fetch_markdown_image(object_key: str) -> MarkdownImageObject:
     client = get_markdown_image_s3_client()
     try:
         response = client.get_object(
-            Bucket=settings.MARKDOWN_IMAGE_S3_BUCKET,
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
             Key=object_key,
         )
     except ClientError as exc:

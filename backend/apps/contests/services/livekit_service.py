@@ -47,6 +47,10 @@ LIVEKIT_SOURCE_NAMES = {"screen_share": "screen_share", "webcam": "camera"}
 LIVEKIT_ROOM_MAX_PARTICIPANTS = 160
 LIVEKIT_TOKEN_MAX_TTL_SECONDS = 120
 LIVE_CLEANUP_PENDING_WARNING = "live_cleanup_pending"
+# Namespace hashed into participant identities and presence cache keys. It was
+# never configured per deployment, so it stays at its historical value to keep
+# identities stable.
+LIVEKIT_IDENTITY_NAMESPACE = "dev"
 
 
 class LiveMonitoringError(Exception):
@@ -89,16 +93,11 @@ class LiveKitConfig:
     internal_url: str
     api_key: str
     api_secret: str
-    node_ip: str
-    stun_host: str
     room_prefix: str
     token_ttl_seconds: int
 
     @property
     def configured(self) -> bool:
-        # node_ip and stun_host are LiveKit-server-only concerns (media
-        # relay/NAT traversal); the backend never uses them, so they don't
-        # gate readiness here.
         return bool(
             self.enabled
             and self.provider == "livekit"
@@ -135,8 +134,6 @@ def get_livekit_config() -> LiveKitConfig:
         internal_url=str(getattr(settings, "LIVEKIT_INTERNAL_URL", "") or "").strip().rstrip("/"),
         api_key=str(getattr(settings, "LIVEKIT_API_KEY", "") or "").strip(),
         api_secret=str(getattr(settings, "LIVEKIT_API_SECRET", "") or "").strip(),
-        node_ip=str(getattr(settings, "LIVEKIT_NODE_IP", "") or "").strip(),
-        stun_host=str(getattr(settings, "LIVEKIT_STUN_HOST", "") or "").strip(),
         room_prefix=str(getattr(settings, "LIVEKIT_ROOM_PREFIX", "qjudge-exam") or "qjudge-exam").strip(),
         token_ttl_seconds=int(getattr(settings, "LIVEKIT_TOKEN_TTL_SECONDS", 120)),
     )
@@ -235,7 +232,7 @@ def build_live_identity(
     message = "|".join(
         (
             config.provider,
-            str(getattr(settings, "LIVEKIT_ENVIRONMENT", "dev")),
+            LIVEKIT_IDENTITY_NAMESPACE,
             str(run_id),
             subject,
             str(attempt_id or ""),

@@ -12,9 +12,8 @@ class Command(BaseCommand):
     help = (
         "Reconcile resident sessions and enforce current exam deadlines. "
         "Requires a direct or session-pooled PostgreSQL connection for advisory "
-        "ownership; transaction pooling is unsupported. Main/dev use DB_HOST "
-        "(not POSTGRES_HOST); prefer DB_HOST=postgres for this process. "
-        "Test settings prefer DATABASE_URL, then POSTGRES_HOST over DB_HOST."
+        "ownership; transaction pooling is unsupported. The connection comes "
+        "from DATABASE_URL."
     )
 
     def add_arguments(self, parser):

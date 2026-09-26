@@ -8,7 +8,6 @@ import uuid
 from typing import Any, Iterable
 
 import aiohttp
-from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -18,6 +17,7 @@ from apps.contests.services.livekit_service import (
     LIVE_PUBLISHER_STATES,
     LIVE_SESSION_STATES,
     LIVE_SOURCES,
+    LIVEKIT_IDENTITY_NAMESPACE,
     _allowed_sources,
     _room_name,
     build_live_identity,
@@ -33,8 +33,7 @@ PRESENCE_REQUEST_TIMEOUT_SECONDS = 3
 
 
 def live_presence_cache_key(run_id: str) -> str:
-    environment = str(getattr(settings, "LIVEKIT_ENVIRONMENT", "dev") or "dev").strip()
-    return f"livekit:presence:{environment}:{run_id}"
+    return f"livekit:presence:{LIVEKIT_IDENTITY_NAMESPACE}:{run_id}"
 
 
 def live_presence_lock_key(run_id: str) -> str:

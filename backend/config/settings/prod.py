@@ -10,30 +10,20 @@ from config.deployment import parse_public_origin
 DEBUG = False
 
 _PUBLIC_ORIGIN_VALUE = env("QJUDGE_PUBLIC_ORIGIN", "")
-if _PUBLIC_ORIGIN_VALUE:
-    _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
-    ALLOWED_HOSTS = [
-        _PUBLIC_ORIGIN.hostname,
-        "localhost",
-        "127.0.0.1",
-        "backend",
-    ]
-else:
-    # QJUDGE_PUBLIC_ORIGIN is required in production; without it no host is allowed.
-    _PUBLIC_ORIGIN = None
-    ALLOWED_HOSTS = []
+if not _PUBLIC_ORIGIN_VALUE:
+    raise RuntimeError("QJUDGE_PUBLIC_ORIGIN must be set in production")
+_PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
+ALLOWED_HOSTS = [
+    _PUBLIC_ORIGIN.hostname,
+    "localhost",
+    "127.0.0.1",
+    "backend",
+]
 
 # =============================================================================
 # Production Database Configuration
 # =============================================================================
 DATABASES['default'] = build_database_config(
-    {
-        'NAME': env('DB_NAME', 'postgres'),
-        'USER': env('DB_USER', 'postgres'),
-        'PASSWORD': env('DB_PASSWORD', ''),
-        'HOST': env('DB_HOST', ''),
-        'PORT': env('DB_PORT', '5432'),
-    },
     {
         'connect_timeout': 10,
         # TCP keepalive keeps the pgBouncer→Django socket alive through NAT.
@@ -54,10 +44,8 @@ if SECRET_KEY == "django-insecure-default-key-change-in-production":
     raise RuntimeError("SECRET_KEY must be set in production")
 
 # Security settings. Explicit HTTP origins support private-network and initial
-# deployment verification; HTTPS and the legacy no-origin fallback stay strict.
-_PUBLIC_ORIGIN_USES_HTTPS = (
-    _PUBLIC_ORIGIN is None or _PUBLIC_ORIGIN.url.startswith("https://")
-)
+# deployment verification; HTTPS origins stay strict.
+_PUBLIC_ORIGIN_USES_HTTPS = _PUBLIC_ORIGIN.url.startswith("https://")
 SECURE_SSL_REDIRECT = _PUBLIC_ORIGIN_USES_HTTPS
 SESSION_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
 CSRF_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS

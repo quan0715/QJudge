@@ -30,20 +30,13 @@ LOADTEST_DISABLE_LOGIN_RATELIMIT = env(
     "LOADTEST_DISABLE_LOGIN_RATELIMIT", "1"
 ) == "1"
 
-# --- Object storage / Anticheat ---
-OBJECT_STORAGE_ENDPOINT_URL = env("OBJECT_STORAGE_ENDPOINT_URL", "")
-# For Locust / browser direct PUT.
-OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = env(
-    "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-    OBJECT_STORAGE_ENDPOINT_URL,
-)
-OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
-OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
-
+# --- Object storage / Anticheat: loadtest requires real storage ---
+OBJECT_STORAGE_BUCKET = env("OBJECT_STORAGE_BUCKET", "")
 _REQUIRED_OBJECT_STORAGE_SETTINGS = {
     "OBJECT_STORAGE_ENDPOINT_URL": OBJECT_STORAGE_ENDPOINT_URL,
     "OBJECT_STORAGE_ACCESS_KEY": OBJECT_STORAGE_ACCESS_KEY,
     "OBJECT_STORAGE_SECRET_KEY": OBJECT_STORAGE_SECRET_KEY,
+    "OBJECT_STORAGE_BUCKET": OBJECT_STORAGE_BUCKET,
 }
 _missing_object_storage_settings = [
     name for name, value in _REQUIRED_OBJECT_STORAGE_SETTINGS.items() if not value
@@ -53,5 +46,3 @@ if _missing_object_storage_settings:
         "Loadtest object storage settings are required: "
         + ", ".join(_missing_object_storage_settings)
     )
-
-ANTICHEAT_RAW_BUCKET = env("ANTICHEAT_RAW_BUCKET", "anticheat-raw")

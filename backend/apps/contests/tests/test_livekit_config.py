@@ -11,8 +11,6 @@ def _config(**overrides) -> LiveKitConfig:
         internal_url="http://livekit:7880",
         api_key="qjudge-test-key",
         api_secret="qjudge-test-secret",
-        node_ip="",
-        stun_host="",
         room_prefix="qjudge-exam",
         token_ttl_seconds=120,
     )
@@ -21,7 +19,7 @@ def _config(**overrides) -> LiveKitConfig:
 
 
 class TestLiveKitConfigConfigured:
-    def test_configured_true_without_node_ip_or_stun_host(self):
+    def test_configured_true_with_url_and_credentials(self):
         config = _config()
 
         assert config.configured is True

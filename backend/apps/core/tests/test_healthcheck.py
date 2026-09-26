@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, override_settings
 
@@ -8,8 +8,7 @@ from apps.core.management.commands.healthcheck import Command
 class HealthcheckCommandTests(SimpleTestCase):
     @override_settings(
         OBJECT_STORAGE_ENDPOINT_URL="https://example.r2.cloudflarestorage.com",
-        ANTICHEAT_RAW_BUCKET="qjudge-anticheat-raw",
-        MARKDOWN_IMAGE_S3_BUCKET="qjudge-markdown-images",
+        OBJECT_STORAGE_BUCKET="qjudge",
     )
     @patch("apps.contests.services.anticheat_storage.get_s3_client")
     def test_object_storage_connection_uses_bucket_scoped_probe(self, mock_get_client):
@@ -19,16 +18,15 @@ class HealthcheckCommandTests(SimpleTestCase):
         ok, detail = Command()._check_object_storage_connection()
 
         self.assertTrue(ok)
-        self.assertIn("qjudge-anticheat-raw", detail)
+        self.assertIn("'qjudge'", detail)
         client.list_objects_v2.assert_called_once_with(
-            Bucket="qjudge-anticheat-raw",
+            Bucket="qjudge",
             MaxKeys=0,
         )
         client.list_buckets.assert_not_called()
 
     @override_settings(
-        ANTICHEAT_RAW_BUCKET="qjudge-anticheat-raw",
-        MARKDOWN_IMAGE_S3_BUCKET="qjudge-markdown-images",
+        OBJECT_STORAGE_BUCKET="qjudge",
     )
     @patch("apps.contests.services.anticheat_storage.get_s3_client")
     def test_object_storage_buckets_use_head_bucket(self, mock_get_client):
@@ -38,12 +36,7 @@ class HealthcheckCommandTests(SimpleTestCase):
         ok, detail = Command()._check_object_storage_buckets()
 
         self.assertTrue(ok)
-        client.head_bucket.assert_has_calls(
-            [
-                call(Bucket="qjudge-anticheat-raw"),
-                call(Bucket="qjudge-markdown-images"),
-            ]
-        )
+        client.head_bucket.assert_called_once_with(Bucket="qjudge")
         client.list_buckets.assert_not_called()
 
     @override_settings(CELERY_TASK_DEFAULT_QUEUE="default")

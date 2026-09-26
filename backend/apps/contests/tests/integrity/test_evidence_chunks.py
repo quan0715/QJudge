@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 from botocore.exceptions import ClientError
+from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.test import RequestFactory
@@ -1347,7 +1348,7 @@ def test_complete_verifies_object_checksum_without_proxying_media(
 
     assert response.status_code == 200
     object_store.head_object.assert_called_once_with(
-        Bucket="anticheat-raw",
+        Bucket=settings.OBJECT_STORAGE_BUCKET,
         Key=requested_evidence_chunk.object_key,
         ChecksumMode="ENABLED",
     )

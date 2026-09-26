@@ -6,9 +6,11 @@ from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 ORIGIN = "https://judge.example.edu"
+DATABASE_URL = "postgresql://u:p@pgbouncer:5432/online_judge"
 CLEARED_KEYS = (
     "OBJECT_STORAGE_BUCKET", "ANTICHEAT_RAW_BUCKET", "INTEGRITY_ARCHIVE_BUCKET",
     "MARKDOWN_IMAGE_S3_BUCKET", "OBJECT_STORAGE_REGION", "OBJECT_STORAGE_ENDPOINT_URL",
+    "DATABASE_URL", "DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_PORT",
     "QJUDGE_PUBLIC_ORIGIN",
     "FRONTEND_URL",
     "OAUTH_ISSUER_URL",
@@ -28,17 +30,18 @@ CLEARED_KEYS = (
 )
 
 
-def load_settings(module: str, extra_env: dict[str, str], names: list[str]) -> dict:
+def run_settings(module: str, extra_env: dict[str, str], names: list[str]):
     environment = os.environ.copy()
     for key in CLEARED_KEYS:
         environment.pop(key, None)
+    environment["DATABASE_URL"] = DATABASE_URL
     environment.update(extra_env)
     script = (
         "import json\n"
         f"from config.settings import {module} as s\n"
         f"print(json.dumps({{n: getattr(s, n) for n in {names!r}}}, default=str))\n"
     )
-    result = subprocess.run(
+    return subprocess.run(
         [sys.executable, "-c", script],
         cwd=BACKEND_ROOT,
         env=environment,
@@ -46,6 +49,10 @@ def load_settings(module: str, extra_env: dict[str, str], names: list[str]) -> d
         text=True,
         check=False,
     )
+
+
+def load_settings(module: str, extra_env: dict[str, str], names: list[str]) -> dict:
+    result = run_settings(module, extra_env, names)
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout.strip().splitlines()[-1])
 
@@ -147,20 +154,10 @@ def test_media_disabled_by_default():
     assert values["LIVE_MONITORING_PROVIDER"] == "disabled"
 
 
-def test_media_mode_wins_over_legacy_flag():
-    values = load_settings(
-        "base",
-        {"MEDIA_MODE": "disabled", "LIVE_MONITORING_ENABLED": "true"},
-        MEDIA_NAMES,
-    )
-
-    assert values["LIVE_MONITORING_ENABLED"] is False
-
-
-def test_legacy_flag_still_enables_media_without_media_mode():
+def test_legacy_live_monitoring_flag_is_ignored():
     values = load_settings("base", {"LIVE_MONITORING_ENABLED": "true"}, MEDIA_NAMES)
 
-    assert values["LIVE_MONITORING_ENABLED"] is True
+    assert values["LIVE_MONITORING_ENABLED"] is False
 
 
 def test_explicit_internal_url_overrides_derived_url():
@@ -259,14 +256,15 @@ def test_prod_debug_and_hosts_ignore_env():
     assert values["ALLOWED_HOSTS"] == ["judge.example.edu", "localhost", "127.0.0.1", "backend"]
 
 
-def test_prod_without_origin_allows_no_hosts():
-    values = load_settings(
+def test_prod_requires_public_origin():
+    result = run_settings(
         "prod",
-        {"DJANGO_ENV": "production", "SECRET_KEY": "deploy-settings-test-secret", "ALLOWED_HOSTS": "evil.example"},
+        {"DJANGO_ENV": "production", "SECRET_KEY": "deploy-settings-test-secret"},
         ["ALLOWED_HOSTS"],
     )
 
-    assert values["ALLOWED_HOSTS"] == []
+    assert result.returncode != 0
+    assert "QJUDGE_PUBLIC_ORIGIN must be set in production" in result.stderr
 
 
 def test_dev_debug_and_hosts_ignore_env():
@@ -282,60 +280,49 @@ def test_dev_debug_and_hosts_ignore_env():
 
 
 def test_conn_max_age_is_zero_regardless_of_env():
-    values = load_settings(
-        "base",
-        {"DATABASE_URL": "postgresql://u:p@pgbouncer:5432/online_judge", "DB_CONN_MAX_AGE": "60"},
-        ["DATABASES"],
-    )
+    values = load_settings("base", {"DB_CONN_MAX_AGE": "60"}, ["DATABASES"])
 
     assert values["DATABASES"]["default"]["CONN_MAX_AGE"] == 0
 
 
-def test_mcp_public_url_defaults_to_public_origin():
-    values = load_settings("base", {"QJUDGE_PUBLIC_ORIGIN": ORIGIN}, ["MCP_PUBLIC_URL"])
+def test_database_comes_only_from_database_url():
+    values = load_settings(
+        "base",
+        {"DB_HOST": "legacy-host", "DB_NAME": "legacy", "DB_USER": "legacy", "DB_PORT": "6543"},
+        ["DATABASES"],
+    )
 
-    assert values["MCP_PUBLIC_URL"] == ORIGIN
+    database = values["DATABASES"]["default"]
+    assert (database["HOST"], database["NAME"], database["USER"], database["PORT"]) == (
+        "pgbouncer", "online_judge", "u", "5432",
+    )
 
 
-def test_legacy_mcp_public_url_still_wins():
+def test_database_url_is_required():
+    result = run_settings("base", {"DATABASE_URL": "", "DB_HOST": "legacy-host"}, ["DATABASES"])
+
+    assert result.returncode != 0
+    assert "DATABASE_URL must be set" in result.stderr
+
+
+def test_legacy_mcp_public_url_is_ignored():
     values = load_settings(
         "base",
         {"QJUDGE_PUBLIC_ORIGIN": ORIGIN, "MCP_PUBLIC_URL": "https://mcp.example.edu/"},
         ["MCP_PUBLIC_URL"],
     )
 
-    assert values["MCP_PUBLIC_URL"] == "https://mcp.example.edu"
+    assert values["MCP_PUBLIC_URL"] == ORIGIN
 
 
-BUCKET_SETTINGS = ["ANTICHEAT_RAW_BUCKET", "INTEGRITY_ARCHIVE_BUCKET", "MARKDOWN_IMAGE_S3_BUCKET"]
-
-
-def test_single_bucket_serves_every_feature():
-    values = load_settings(
-        "base",
-        {
-            "OBJECT_STORAGE_BUCKET": "qjudge",
-            "ANTICHEAT_RAW_BUCKET": "ignored",
-            "MARKDOWN_IMAGE_S3_BUCKET": "ignored",
-        },
-        BUCKET_SETTINGS,
-    )
-
-    assert values == {name: "qjudge" for name in BUCKET_SETTINGS}
-
-
-def test_legacy_bucket_keys_apply_without_single_bucket():
+def test_legacy_bucket_keys_are_ignored():
     values = load_settings(
         "base",
         {"ANTICHEAT_RAW_BUCKET": "old-raw", "MARKDOWN_IMAGE_S3_BUCKET": "old-markdown"},
-        BUCKET_SETTINGS,
+        ["OBJECT_STORAGE_BUCKET"],
     )
 
-    assert values == {
-        "ANTICHEAT_RAW_BUCKET": "old-raw",
-        "INTEGRITY_ARCHIVE_BUCKET": "old-raw",
-        "MARKDOWN_IMAGE_S3_BUCKET": "old-markdown",
-    }
+    assert values == {"OBJECT_STORAGE_BUCKET": ""}
 
 
 def test_storage_region_is_constant():

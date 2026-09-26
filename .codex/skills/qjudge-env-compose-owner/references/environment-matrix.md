@@ -29,9 +29,7 @@ The test stack also contains bootstrap, fake-adapter, migration, and integrity s
 # Backend tests
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d backend-test
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
-  -e POSTGRES_DB=postgres \
-  -e POSTGRES_USER=qjudge_test_admin \
-  -e POSTGRES_PASSWORD=qjudge_test_admin_password \
+  -e DATABASE_URL=postgresql://qjudge_test_admin:qjudge_test_admin_password@postgres-test:5432/postgres \
   backend-test pytest -q
 
 # AI-service tests

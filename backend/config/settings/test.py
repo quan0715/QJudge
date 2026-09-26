@@ -4,7 +4,6 @@ Test settings for CI/CD environments
 from .base import *
 import os
 from config.env import env
-from urllib.parse import urlparse
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -12,62 +11,10 @@ DEBUG = False
 SECRET_KEY = 'test-secret-key-not-for-production'
 
 
-# Test database
-# 優先使用 DATABASE_URL（CI 標準格式）
-DATABASE_URL = env('DATABASE_URL')
-DB_CONN_MAX_AGE = int(env('DB_CONN_MAX_AGE', '0'))
-DB_OPTIONS = {
-    'connect_timeout': 10,
-}
+# The test database comes from DATABASE_URL, parsed in base.
 
-
-def _env_first(*keys: str, default: str | None = None) -> str | None:
-    for key in keys:
-        value = env(key)
-        if value:
-            return value
-    return default
-
-if DATABASE_URL:
-    # Parse DATABASE_URL (e.g., postgresql://user:pass@host:port/dbname)
-    url = urlparse(DATABASE_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:],  # Remove leading '/'
-            'USER': url.username,
-            'PASSWORD': url.password,
-            'HOST': url.hostname,
-            'PORT': url.port or '5432',
-            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
-            'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': DB_OPTIONS,
-        }
-    }
-else:
-    # 回退到個別環境變數；預設值對齊 docker-compose.test.yml 的 host 映射。
-    db_host = _env_first('POSTGRES_HOST', 'DB_HOST', 'DATABASE_HOST', default='localhost')
-    # Django test runner 需要直連 PostgreSQL 來建立/刪除 test_* 資料庫；
-    # pgbouncer 只代理既有資料庫，不能承接這段流程。
-    if db_host == 'pgbouncer':
-        db_host = _env_first('POSTGRES_DIRECT_HOST', 'POSTGRES_HOST', default='postgres')
-    # 如果是 Docker 服務名但不在 Docker 網路內，回退到 localhost
-    if db_host in ('postgres_test', 'postgres') and not os.path.exists('/.dockerenv'):
-        db_host = 'localhost'
-    
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _env_first('POSTGRES_DB', 'DB_NAME', 'DATABASE_NAME', default='test_oj_e2e'),
-            'USER': _env_first('POSTGRES_USER', 'DB_USER', 'DATABASE_USER', default='oj_user'),
-            'PASSWORD': _env_first('POSTGRES_PASSWORD', 'DB_PASSWORD', 'DATABASE_PASSWORD', default='oj_password'),
-            'HOST': db_host,
-            'PORT': _env_first('POSTGRES_PORT', 'DB_PORT', 'DATABASE_PORT', default='5433'),
-            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
-            'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': DB_OPTIONS,
-        }
-    }
+# Storage calls are mocked in tests; a fixed bucket keeps them deterministic.
+OBJECT_STORAGE_BUCKET = "qjudge-test"
 
 # Use Redis cache for tests (required by django_ratelimit)
 # CI environment provides Redis service

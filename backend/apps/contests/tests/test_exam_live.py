@@ -28,8 +28,6 @@ LIVEKIT_SETTINGS = {
     "LIVEKIT_INTERNAL_URL": "http://livekit:7880",
     "LIVEKIT_API_KEY": "qjudge-test-key",
     "LIVEKIT_API_SECRET": "qjudge-test-secret",
-    "LIVEKIT_NODE_IP": "192.0.2.10",
-    "LIVEKIT_STUN_HOST": "stun.internal:3478",
     "LIVEKIT_ROOM_PREFIX": "qjudge-test-exam",
     "LIVEKIT_TOKEN_TTL_SECONDS": 120,
 }
@@ -311,8 +309,6 @@ class ExamLiveApiTests(APITestCase):
         LIVEKIT_INTERNAL_URL="http://livekit:7880",
         LIVEKIT_API_KEY="qjudge-test-key",
         LIVEKIT_API_SECRET="qjudge-test-secret",
-        LIVEKIT_NODE_IP="192.0.2.10",
-        LIVEKIT_STUN_HOST="stun.internal:3478",
     )
     def test_unsupported_provider_is_not_reported_as_livekit(self):
         self.client.force_authenticate(user=self.student)

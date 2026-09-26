@@ -11,7 +11,7 @@ services:
       - OBJECT_STORAGE_ACCESS_KEY=${LOADTEST_OBJECT_STORAGE_ACCESS_KEY:?LOADTEST_OBJECT_STORAGE_ACCESS_KEY is required}
       - OBJECT_STORAGE_SECRET_KEY=${LOADTEST_OBJECT_STORAGE_SECRET_KEY:?LOADTEST_OBJECT_STORAGE_SECRET_KEY is required}
       - OBJECT_STORAGE_REGION=${LOADTEST_OBJECT_STORAGE_REGION:-auto}
-      - ANTICHEAT_RAW_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
+      - OBJECT_STORAGE_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
 
   # Override celery-test: real async worker with concurrency
   celery-test:
@@ -21,7 +21,7 @@ services:
       - OBJECT_STORAGE_ACCESS_KEY=${LOADTEST_OBJECT_STORAGE_ACCESS_KEY:?LOADTEST_OBJECT_STORAGE_ACCESS_KEY is required}
       - OBJECT_STORAGE_SECRET_KEY=${LOADTEST_OBJECT_STORAGE_SECRET_KEY:?LOADTEST_OBJECT_STORAGE_SECRET_KEY is required}
       - OBJECT_STORAGE_REGION=${LOADTEST_OBJECT_STORAGE_REGION:-auto}
-      - ANTICHEAT_RAW_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
+      - OBJECT_STORAGE_BUCKET=${LOADTEST_ANTICHEAT_RAW_BUCKET:?LOADTEST_ANTICHEAT_RAW_BUCKET is required}
     command: celery -A config worker -l info -Q celery,default,high_priority --concurrency=4
 
   # ---- New services ----
@@ -32,12 +32,7 @@ services:
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.loadtest
-      - POSTGRES_DB=test_oj_e2e
-      - POSTGRES_USER=oj_user
-      - POSTGRES_PASSWORD=oj_password
-      - POSTGRES_HOST=pgbouncer-test
-      - POSTGRES_PORT=5432
-      - DB_CONN_MAX_AGE=0
+      - DATABASE_URL=postgresql://oj_user:oj_password@pgbouncer-test:5432/test_oj_e2e
       - REDIS_HOST=redis-test
       - REDIS_PORT=6379
       - REDIS_URL=redis://redis-test:6379/0
