@@ -31,8 +31,6 @@ dc=(env QJUDGE_VERSION="$version" docker compose --project-name "${project:-qjud
     -f "$ROOT/deploy/compose.yml" -f "$ROOT/deploy/compose.build.yml" -f "$ROOT/ci/compose.e2e.yml")
 
 "${dc[@]}" up -d --remove-orphans
-# nginx resolves `backend` once at start; the overlay recreated backend.
-"${dc[@]}" restart frontend
 for attempt in $(seq 90); do
   if curl --fail --silent --output /dev/null "$base/api/health/" \
     && curl --fail --silent --output /dev/null "$base/"; then
