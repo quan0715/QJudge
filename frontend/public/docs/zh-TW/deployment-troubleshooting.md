@@ -51,7 +51,7 @@ docker compose -p qjudge logs --tail=200 <service>
 
 這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是最新備份與還原指令；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。
 
-健康檢查要求 `backend`、`ai-service`、`integrity-resident` 皆為 healthy，而且經由 frontend 的 `/api/health/` 回應 200。Origin 為 HTTPS 時，backend 會把這個 HTTP 請求導向 `https://<origin>/api/health/`，因此反向代理或 Tunnel 必須已經可以使用。
+健康檢查要求 `backend`、`ai-service`、`integrity-resident` 皆為 healthy，而且直接對 frontend 的 `/api/health/`（帶 origin 的 `Host` 與 `X-Forwarded-Proto`）回應 200，不經過反向代理。
 
 ## 網站打不開或一直重新導向
 

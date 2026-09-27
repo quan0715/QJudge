@@ -19,7 +19,7 @@ from .check import check_env
 from .envfile import load, write_private
 from .stack import Runner, app_compose, ensure_network
 
-HttpStatus = Callable[[str, str], int]
+HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
 
 DATABASES = ("online_judge", "qjudge_ai")
@@ -33,10 +33,16 @@ APP_TIMEOUT = 300
 POLL_SECONDS = 5
 
 
-def http_status(url: str, host_header: str) -> int:
-    request = urllib.request.Request(url, headers={"Host": host_header})
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def http_status(url: str, host_header: str, proto: str) -> int:
+    """Status of url as the reverse proxy would send it; redirects are not followed."""
+    request = urllib.request.Request(url, headers={"Host": host_header, "X-Forwarded-Proto": proto})
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
+        with urllib.request.build_opener(_NoRedirect).open(request, timeout=5) as response:
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
@@ -114,7 +120,8 @@ class _Stack:
         host = self.env.get("FRONTEND_BIND_ADDRESS", "").strip() or "127.0.0.1"
         host = "127.0.0.1" if host in ("0.0.0.0", "::") else f"[{host}]" if ":" in host else host
         url = f"http://{host}:{self.env.get('FRONTEND_PORT', '').strip() or '8080'}/api/health/"
-        return self.http(url, urlsplit(self.env.get("QJUDGE_PUBLIC_ORIGIN", "")).netloc) == 200
+        origin = urlsplit(self.env.get("QJUDGE_PUBLIC_ORIGIN", ""))
+        return self.http(url, origin.netloc, origin.scheme or "http") == 200
 
     def wait(self, check: Callable[[], bool], timeout: int) -> bool:
         waited = 0

@@ -86,7 +86,7 @@ deploy/qjudge ingress
 deploy/qjudge ingress --nginx
 ```
 
-照輸出設定反向代理或 Cloudflare Tunnel，細節見[網路入口與選用功能](deployment-options.md)。Origin 使用 HTTPS 時，先完成這一步再執行 `upgrade`：backend 會把 HTTP 請求導向 HTTPS，`upgrade` 的健康檢查因此會經由公開網址完成。
+照輸出設定反向代理或 Cloudflare Tunnel，細節見[網路入口與選用功能](deployment-options.md)。
 
 ## 6. 安裝指定版本
 

@@ -27,7 +27,10 @@ class IngressTests(unittest.TestCase):
         text = render_ingress(VALID)
         self.assertIn("https://judge.example.edu", text)
         self.assertIn("http://127.0.0.1:8080", text)
-        self.assertIn("curl -H 'Host: judge.example.edu' http://127.0.0.1:8080/api/health/", text)
+        self.assertIn(
+            "curl -H 'Host: judge.example.edu' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8080/api/health/",
+            text,
+        )
         self.assertIn("/mcp", text)
 
     def test_remote_proxy_uses_bind_address(self):

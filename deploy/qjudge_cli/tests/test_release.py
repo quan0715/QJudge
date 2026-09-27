@@ -5,7 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from qjudge_cli.release import _ps_rows, read_version, rollback, upgrade
+from qjudge_cli.release import _ps_rows, http_status, read_version, rollback, upgrade
 from qjudge_cli.tests.test_check import VALID
 
 OLD = "a" * 40
@@ -60,12 +60,24 @@ class ReleaseTests(unittest.TestCase):
     def _upgrade(self, host, http=200):
         with redirect_stdout(io.StringIO()):
             return upgrade(self.deploy, self.env_file, "v2", run=host, sleep=lambda s: None,
-                           http_status=lambda url, host_header: http)
+                           http_status=lambda url, host_header, proto: http)
 
     def _rollback(self, host):
         with redirect_stdout(io.StringIO()):
             return rollback(self.deploy, self.env_file, run=host, sleep=lambda s: None,
-                            http_status=lambda url, host_header: 200)
+                            http_status=lambda url, host_header, proto: 200)
+
+    def test_health_check_sends_the_origin_scheme(self):
+        seen = []
+
+        def status(url, host_header, proto):
+            seen.append((url, host_header, proto))
+            return 200
+
+        with redirect_stdout(io.StringIO()):
+            upgrade(self.deploy, self.env_file, "v2", run=FakeHost(), sleep=lambda s: None,
+                    http_status=status)
+        self.assertIn(("http://127.0.0.1:8080/api/health/", "judge.example.edu", "https"), seen)
 
     def test_upgrade_builds_backs_up_migrates_and_records_versions(self):
         (self.deploy / ".version").write_text(f"current={OLD}\n")
@@ -157,6 +169,32 @@ class ReleaseTests(unittest.TestCase):
         host = FakeHost(head=NEW)
         self.assertEqual(self._rollback(host), 1)
         self.assertEqual(host.head, NEW)
+
+
+
+class HttpStatusTests(unittest.TestCase):
+    def test_redirects_are_reported_not_followed(self):
+        import http.server
+        import threading
+
+        class Redirect(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                proto = self.headers.get("X-Forwarded-Proto")
+                self.send_response(200 if proto == "https" else 301)
+                self.send_header("Location", "https://judge.example.edu/api/health/")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Redirect)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            url = f"http://127.0.0.1:{server.server_port}/api/health/"
+            self.assertEqual(http_status(url, "judge.example.edu", "http"), 301)
+            self.assertEqual(http_status(url, "judge.example.edu", "https"), 200)
+        finally:
+            server.shutdown()
 
 
 if __name__ == "__main__":

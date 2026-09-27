@@ -48,7 +48,7 @@ def render_ingress(env: Env) -> str:
         lines.append(f"  Frontend trusts forwarded headers only from: {proxies}")
     lines += [
         "  Check from the proxy host:",
-        f"    curl -H 'Host: {host}' {frontend}/api/health/",
+        f"    curl -H 'Host: {host}' -H 'X-Forwarded-Proto: {origin_parts.scheme or 'http'}' {frontend}/api/health/",
         f"  Remote MCP clients connect to {origin}/mcp",
     ]
     # Tunnel routes match by hostname; a port here would never match.
