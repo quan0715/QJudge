@@ -78,6 +78,8 @@ stream {
 
 `sudo nginx -t && sudo systemctl reload nginx`。此時 8445 尚無流量（HAProxy 仍指向 coturn 的 5349）。確認憑證 lineage `qjudge-media` 涵蓋 `turn.q-judge.com`（`sudo certbot certificates`）。certbot renew hook 之後只需要 reload nginx 與 HAProxy（不再需要重啟 coturn）。
 
+- [ ] **A4b（使用者，sudo）CD 用的 Tailscale**：dcslab 目前不在 tailnet（tailnet 上的 `quan338`／`100.115.163.27` 是舊主機，GitHub 的 `PROD_SSH_*` secrets 也指向它）。在 dcslab 安裝 Tailscale 並以 `sudo tailscale up --ssh --advertise-tags=<與 CI 可 SSH 的主機相同的 tag>` 加入；在 Tailscale ACL 允許 `tag:ci` 以使用者 `dcslab` SSH 到這台（可比照舊主機的規則）。完成後從本機以 `tailscale ssh dcslab@<dcslab 的 tailnet 名稱> true` 測試。dcslab 的其他條件已確認：Python 3.12、帳號在 docker group、repo 為 public 可直接 `git fetch`。GitHub secrets 在 B 節驗收後才改（見 D 節），避免在轉換前誤觸 CD。
+
 - [ ] **A5（Agent）在 dcslab 以獨立 worktree 預先 build**，縮短停機時間（不影響執行中的服務）：
 
 ```bash
@@ -277,4 +279,4 @@ docker compose -p qjudge-app -f docker-compose.yml -f docker-compose.dcslab-prod
 - [ ] 移除舊容器：`docker compose -p qjudge-media -f /mnt/data/qjudge-media/compose.yaml rm`、`qjudge-prod` 同理；舊 image（`oj-*`、`quay.io/minio/minio`）視磁碟需要刪除。
 - [ ] repo 內未追蹤的 `docker-compose.dcslab*.yml`、`scripts/staging-ip.nginx.conf` 與根目錄 `.env`、`secrets/` 移到 `$BK` 保存；`/mnt/data/qjudge-next` worktree 以 `git worktree remove` 移除。
 - [ ] 使用者（sudo）：certbot renew hook 移除重啟 coturn 的步驟，保留 reload nginx／HAProxy。
-- [ ] CD：GitHub secret `PROD_DEPLOY_PATH` 維持 `/mnt/data/qjudge-app`；之後的部署以 CD（main 手動觸發）或在主機執行 `deploy/qjudge upgrade <sha>`。
+- [ ] CD（B10 驗收後即可做，不必等一週）：GitHub secrets 改為 `PROD_SSH_HOST=<dcslab 的 tailnet 名稱或 IP>`、`PROD_SSH_USER=dcslab`、`PROD_DEPLOY_PATH=/mnt/data/qjudge-app`；從 main 手動觸發一次 CD（部署同一個 SHA，`upgrade` 會是 no-op 的完整流程）確認可用。之後的部署以 CD 或在主機執行 `deploy/qjudge upgrade <sha>`。
