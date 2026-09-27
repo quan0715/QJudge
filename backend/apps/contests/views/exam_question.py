@@ -19,7 +19,6 @@ from apps.question_bank.question_assets import (
 from ..models import (
     Contest,
     ExamQuestion,
-    ExamQuestionScorePolicy,
     ExamStatus,
     ExamQuestionType,
 )
@@ -38,7 +37,6 @@ from ..services.question_edit_lock import (
     lock_contest_for_question_edit,
 )
 from ..services.locked_question_update import apply_locked_question_update
-from ..services.exam_scoring import ExamScoringService
 from ..services.activity_log import log_contest_activity
 from .exam_validation_response import build_device_conflict_response_for_view
 
@@ -260,20 +258,7 @@ class ContestExamQuestionViewSet(viewsets.ModelViewSet):
                     action=action,
                 )
             else:
-                old_policy = serializer.instance.score_policy
-                old_score = serializer.instance.score
                 serializer.save()
-                new_policy = serializer.instance.score_policy
-                new_score = serializer.instance.score
-
-                # Recalculate all scores when policy or max score changes
-                policy_changed = old_policy != new_policy
-                score_changed_for_full_marks = (
-                    new_policy == ExamQuestionScorePolicy.FULL_MARKS
-                    and old_score != new_score
-                )
-                if policy_changed or score_changed_for_full_marks:
-                    ExamScoringService(contest).recalculate_all()
 
             ensure_contest_binding_for_exam_question(
                 exam_question=serializer.instance,

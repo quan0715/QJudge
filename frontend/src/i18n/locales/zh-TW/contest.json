@@ -1914,6 +1914,7 @@
     "errors": {
       "announcementsLoadFailed": "公告暫時無法載入",
       "questionsLoadFailed": "題目資料暫時無法載入",
+      "answersLoadFailed": "作答紀錄暫時無法載入",
       "scoreDistributionLoadFailed": "成績分布暫時無法載入"
     },
     "infoLabel": "競賽資訊",

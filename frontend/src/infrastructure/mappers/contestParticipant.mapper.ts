@@ -50,8 +50,7 @@ export function mapContestParticipantDto(
       dto.live_monitoring_status === "unknown"
         ? dto.live_monitoring_status
         : "unknown",
-    score: dto.total_score ?? dto.score ?? 0,
-    rank: dto.rank,
+    score: dto.total_score ?? 0,
     joinedAt: dto.joined_at || "",
     examStatus: dto.exam_status || "not_started",
     lockReason: dto.lock_reason,

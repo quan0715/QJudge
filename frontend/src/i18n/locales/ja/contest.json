@@ -1914,6 +1914,7 @@
     "errors": {
       "announcementsLoadFailed": "お知らせを一時的に読み込めません",
       "questionsLoadFailed": "問題データを一時的に読み込めません",
+      "answersLoadFailed": "解答記録を一時的に読み込めません",
       "scoreDistributionLoadFailed": "得点分布を一時的に読み込めません"
     },
     "infoLabel": "コンテスト情報",

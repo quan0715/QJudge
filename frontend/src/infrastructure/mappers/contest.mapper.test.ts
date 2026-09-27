@@ -52,7 +52,7 @@ describe("contest mapper", () => {
         user_id: 1,
         username: "student1",
         display_name: "Student One",
-        score: 0,
+        total_score: 0,
         joined_at: "2026-05-03T08:50:00+08:00",
         exam_status: "not_started",
         violation_count: 0,

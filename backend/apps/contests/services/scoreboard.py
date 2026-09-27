@@ -90,8 +90,6 @@ class ScoreboardService:
                 "user": UserSerializer(participant.user).data,
                 "display_name": display_name,
                 "solved": 0,
-                "rank": participant.rank,
-                "score": float(participant.score or 0),
                 "joined_at": participant.joined_at,
                 "has_finished_exam": participant.exam_status == ExamStatus.SUBMITTED,
                 "started_at": participant.started_at,

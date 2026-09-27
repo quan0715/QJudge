@@ -14,6 +14,7 @@ from apps.contests.models import (
     ExamQuestionType,
     ExamStatus,
 )
+from apps.contests.services.exam_scoring import ExamScoringService
 from apps.contests.services.locked_question_update import apply_locked_question_update
 from apps.users.models import User
 
@@ -46,7 +47,6 @@ def locked_exam():
         user=student,
         exam_status=ExamStatus.SUBMITTED,
         started_at=timezone.now() - timedelta(minutes=30),
-        score=Decimal("0"),
     )
     objective = ExamQuestion.objects.create(
         contest=contest,
@@ -100,6 +100,11 @@ def locked_exam():
     }
 
 
+def _participant_total(exam):
+    participant = exam["participant"]
+    return ExamScoringService(exam["contest"]).get_participant_totals([participant.id])[participant.id]
+
+
 def question_url(exam, question):
     return f"/api/v1/contests/{exam['contest'].id}/exam-questions/{question.id}/"
 
@@ -139,14 +144,13 @@ def test_regrade_uses_live_rule_recalculates_total_and_unpublishes(locked_exam):
 
     assert response.status_code == status.HTTP_200_OK
     locked_exam["objective_answer"].refresh_from_db()
-    locked_exam["participant"].refresh_from_db()
     locked_exam["contest"].refresh_from_db()
     assert locked_exam["objective_answer"].is_correct is True
     assert locked_exam["objective_answer"].score == Decimal("5")
     assert locked_exam["objective_answer"].graded_by_id is None
     assert locked_exam["objective_answer"].graded_at is None
     assert locked_exam["objective_answer"].feedback == "manual note"
-    assert locked_exam["participant"].score == Decimal("12")
+    assert _participant_total(locked_exam) == 12
     assert locked_exam["contest"].results_published is False
 
 
@@ -223,10 +227,9 @@ def test_policy_change_preserves_raw_score_recalculates_and_unpublishes(locked_e
 
     assert response.status_code == status.HTTP_200_OK
     locked_exam["essay_answer"].refresh_from_db()
-    locked_exam["participant"].refresh_from_db()
     locked_exam["contest"].refresh_from_db()
     assert locked_exam["essay_answer"].score == Decimal("7")
-    assert locked_exam["participant"].score == Decimal("0")
+    assert _participant_total(locked_exam) == 0
     assert locked_exam["contest"].results_published is False
 
 
@@ -251,15 +254,17 @@ def test_nested_paper_question_route_uses_same_regrade_command(locked_exam):
 
 @pytest.mark.django_db
 def test_rule_and_regrade_roll_back_together(locked_exam, monkeypatch):
-    def fail_recalculation(_service):
-        raise RuntimeError("recalculation failed")
+    # Fail at the last step inside the transaction, after the rule change,
+    # the regrade and the unpublish have all been written.
+    def fail_on_commit_registration(_callback):
+        raise RuntimeError("late failure")
 
     monkeypatch.setattr(
-        "apps.contests.services.locked_question_update.ExamScoringService.recalculate_all",
-        fail_recalculation,
+        "apps.contests.services.locked_question_update.transaction.on_commit",
+        fail_on_commit_registration,
     )
 
-    with pytest.raises(RuntimeError, match="recalculation failed"):
+    with pytest.raises(RuntimeError, match="late failure"):
         locked_exam["client"].patch(
             question_url(locked_exam, locked_exam["objective"]),
             {"correct_answer": 1, "existing_grades_action": "regrade"},

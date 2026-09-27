@@ -1914,6 +1914,7 @@
     "errors": {
       "announcementsLoadFailed": "Announcements are temporarily unavailable",
       "questionsLoadFailed": "Question data is temporarily unavailable",
+      "answersLoadFailed": "Answer records are temporarily unavailable",
       "scoreDistributionLoadFailed": "Score distribution is temporarily unavailable"
     },
     "infoLabel": "Contest information",

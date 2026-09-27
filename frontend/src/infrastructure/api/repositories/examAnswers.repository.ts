@@ -22,6 +22,8 @@ interface ExamAnswerDetailDto extends ExamAnswerDto {
   question_options?: string[];
   question_explanation?: string;
   max_score?: string | number | null;
+  effective_score?: number | null;
+  effective_max_score?: number | null;
   participant_user_id?: number;
   participant_username?: string;
   participant_display_name?: string;
@@ -35,7 +37,7 @@ export interface ExamAnswer {
   updatedAt: string;
 }
 
-export interface ExamAnswerDetail extends ExamAnswer {
+interface ExamAnswerDetail extends ExamAnswer {
   isCorrect: boolean | null;
   score: number | null;
   feedback: string;
@@ -46,9 +48,24 @@ export interface ExamAnswerDetail extends ExamAnswer {
   questionOptions?: string[];
   questionExplanation?: string;
   maxScore?: number | null;
+  /** Score after score policies (redistribute / full marks); null when not counted. */
+  effectiveScore?: number | null;
+  effectiveMaxScore?: number | null;
   participantUserId?: string;
   participantUsername?: string;
   participantDisplayName?: string;
+}
+
+interface ExamResultsMeta extends BaseMeta {
+  total_score?: number;
+  max_total_score?: number;
+}
+
+/** The student's own published results, scored like the PDF report. */
+export interface ExamResults {
+  answers: ExamAnswerDetail[];
+  totalScore: number;
+  maxTotalScore: number;
 }
 
 /**
@@ -127,6 +144,9 @@ const mapAnswerDetailDto = (dto: ExamAnswerDetailDto): ExamAnswerDetail => ({
   questionOptions: dto.question_options,
   questionExplanation: dto.question_explanation,
   maxScore: dto.max_score != null ? Number(dto.max_score) : null,
+  effectiveScore: dto.effective_score != null ? Number(dto.effective_score) : null,
+  effectiveMaxScore:
+    dto.effective_max_score != null ? Number(dto.effective_max_score) : null,
   participantUserId: dto.participant_user_id != null ? String(dto.participant_user_id) : undefined,
   participantUsername: dto.participant_username,
   participantDisplayName: dto.participant_display_name,
@@ -251,12 +271,16 @@ export const getMyExamAnswers = async (
 /** Get graded results (requires results_published). */
 export const getExamResults = async (
   contestId: string
-): Promise<ExamAnswerDetail[]> => {
-  const data = await requestJson<ExamAnswerDetailDto[]>(
+): Promise<ExamResults> => {
+  const { data, meta } = await fetchEnvelope<ExamAnswerDetailDto[], ExamResultsMeta>(
     httpClient.get(`/api/v1/contests/${contestId}/exam-answers/results/`),
     "Failed to fetch results"
   );
-  return data.map(mapAnswerDetailDto);
+  return {
+    answers: data.map(mapAnswerDetailDto),
+    totalScore: Number(meta.total_score ?? 0),
+    maxTotalScore: Number(meta.max_total_score ?? 0),
+  };
 };
 
 // ── TA/Admin API ──

@@ -1914,6 +1914,7 @@
     "errors": {
       "announcementsLoadFailed": "공지사항을 일시적으로 불러올 수 없습니다",
       "questionsLoadFailed": "문항 데이터를 일시적으로 불러올 수 없습니다",
+      "answersLoadFailed": "답안 기록을 일시적으로 불러올 수 없습니다",
       "scoreDistributionLoadFailed": "점수 분포를 일시적으로 불러올 수 없습니다"
     },
     "infoLabel": "대회 정보",

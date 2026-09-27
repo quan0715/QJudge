@@ -100,13 +100,22 @@ export const buildCodingProgressSummary = (
 
 type PaperProgressAnswer = {
   questionId: string | number;
-  score?: number | null;
 };
 
+type PaperScoreTotals = {
+  totalScore: number;
+  maxTotalScore: number;
+};
+
+/**
+ * `publishedTotals` comes from the results endpoint once results are
+ * published; totals are never summed here so score policies (excluded,
+ * full marks, redistribute) stay the server's call, as in the PDF report.
+ */
 export const buildPaperProgressSummary = (
   questions: ExamQuestion[],
   answers: PaperProgressAnswer[],
-  resultsPublished: boolean,
+  publishedTotals: PaperScoreTotals | null,
 ): StudentProgressSummary => {
   const resultQuestionIds = new Set(
     answers.map((answer) => String(answer.questionId)),
@@ -114,18 +123,14 @@ export const buildPaperProgressSummary = (
   const completedItems = questions.filter((question) =>
     resultQuestionIds.has(String(question.id)),
   ).length;
-  const totalScore = resultsPublished
-    ? answers.reduce((sum, answer) => sum + (answer.score ?? 0), 0)
-    : null;
-  const maxScore = questions.reduce(
-    (sum, question) => sum + (question.score ?? 0),
-    0,
-  );
+  const maxScore =
+    publishedTotals?.maxTotalScore ??
+    questions.reduce((sum, question) => sum + (question.score ?? 0), 0);
   return {
     totalItems: questions.length,
     completedItems,
     attemptedItems: completedItems,
-    totalScore,
+    totalScore: publishedTotals?.totalScore ?? null,
     maxScore,
   };
 };

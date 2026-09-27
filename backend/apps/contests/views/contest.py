@@ -43,6 +43,7 @@ from ..services.participant_state import (
     reopen_participant_exam,
     unlock_participant as unlock_contest_participant,
 )
+from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
 from ..services.integrity_sessions import prepare_integrity_session
@@ -399,12 +400,14 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
         )
 
         if contest.contest_type == 'paper_exam':
-            # Paper exam: use persisted participant.score which is maintained
-            # by ExamScoringService and correctly respects score_policy
-            # (excluded, full_marks, redistribute).
+            # Paper exam: totals are derived from the answers and the score
+            # policies on every read; unsaved not-started rows have none.
+            participant_totals = ExamScoringService(contest).get_participant_totals(
+                [p.id for p in existing.values()],
+            )
             user_totals: dict = {
-                p.user_id: float(p.score or 0)
-                for p in participants
+                p.user_id: participant_totals[p.id]
+                for p in existing.values()
             }
         else:
             # Coding contest: best submission score per (user, problem)

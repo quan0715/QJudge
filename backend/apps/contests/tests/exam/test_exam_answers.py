@@ -5,11 +5,10 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
-from decimal import Decimal
 from uuid import uuid4
 from apps.contests.models import (
     Contest, ContestParticipant, ExamQuestion, ExamAnswer,
-    ExamStatus, ExamQuestionType,
+    ExamStatus, ExamQuestionType, ExamQuestionScorePolicy,
 )
 from apps.contests.services.question_edit_lock import is_contest_question_edit_locked
 
@@ -72,6 +71,14 @@ class ExamAnswerTestBase(APITestCase):
             score=20,
             order=3,
         )
+
+    def _roster_total(self):
+        """The student's total on the teacher's roster card."""
+        self.client.force_authenticate(user=self.teacher)
+        resp = self.client.get(f'/api/v1/contests/{self.contest.id}/participants/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        row = next(r for r in resp.data if r['user_id'] == self.student.id)
+        return row['total_score']
 
 
 class ExamAnswerSubmitTests(ExamAnswerTestBase):
@@ -173,6 +180,21 @@ class ExamAnswerSubmitTests(ExamAnswerTestBase):
         self.assertFalse(answer.is_correct)
         self.assertEqual(answer.score, 0)
 
+    def test_roster_total_follows_auto_grade(self):
+        self.client.force_authenticate(user=self.student)
+        self.client.post(self._url(), {
+            'question_id': self.q_single.id,
+            'answer': {'selected': 'B'},
+        }, format='json')
+        self.assertEqual(self._roster_total(), 5.0)
+
+        self.client.force_authenticate(user=self.student)
+        self.client.post(self._url(), {
+            'question_id': self.q_single.id,
+            'answer': {'selected': 'A'},
+        }, format='json')
+        self.assertEqual(self._roster_total(), 0.0)
+
     def test_submit_model_has_no_question_snapshot(self):
         self.client.force_authenticate(user=self.student)
         resp = self.client.post(self._url(), {
@@ -257,6 +279,23 @@ class ExamAnswerMyAnswersTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp.data), 0)
 
+    def test_my_answers_readable_after_contest_ends(self):
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_essay,
+            answer={'text': 'kept after the exam'},
+        )
+        self.participant.exam_status = ExamStatus.SUBMITTED
+        self.participant.save(update_fields=['exam_status'])
+        self.contest.end_time = timezone.now() - timedelta(minutes=1)
+        self.contest.save(update_fields=['end_time'])
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(self._url())
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data[0]['answer'], {'text': 'kept after the exam'})
+
 
 class ExamAnswerResultsTests(ExamAnswerTestBase):
     """Tests for GET /exam-answers/results/"""
@@ -285,9 +324,39 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
         self.client.force_authenticate(user=self.student)
         resp = self.client.get(self._url())
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp.data), 1)
-        self.assertEqual(float(resp.data[0]['score']), 5.0)
-        self.assertEqual(resp.data[0]['question_explanation'], 'Single-choice explanation')
+        rows = resp.data['data']
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(float(rows[0]['score']), 5.0)
+        self.assertEqual(rows[0]['question_explanation'], 'Single-choice explanation')
+
+    def test_results_apply_score_policies_like_the_pdf_report(self):
+        self.q_multi.score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
+        self.q_multi.score_policy_config = {'redistribute_to': [str(self.q_single.id)]}
+        self.q_multi.save(update_fields=['score_policy', 'score_policy_config'])
+        self.q_essay.score_policy = ExamQuestionScorePolicy.FULL_MARKS
+        self.q_essay.save(update_fields=['score_policy'])
+        self.contest.results_published = True
+        self.contest.save(update_fields=['results_published'])
+        ExamAnswer.objects.create(
+            participant=self.participant,
+            question=self.q_single,
+            answer={'selected': 'B'},
+            is_correct=True,
+            score=5,
+        )
+
+        self.client.force_authenticate(user=self.student)
+        resp = self.client.get(self._url())
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        row = resp.data['data'][0]
+        self.assertEqual(float(row['score']), 5.0)
+        self.assertEqual(row['effective_score'], 15.0)
+        self.assertEqual(row['effective_max_score'], 15.0)
+        # 15 from the redistributed single choice + 20 from the unanswered
+        # full-marks essay; identical to the PDF report's breakdown.
+        self.assertEqual(resp.data['meta']['total_score'], 35.0)
+        self.assertEqual(resp.data['meta']['max_total_score'], 35.0)
 
     def test_results_use_current_question_explanation(self):
         self.client.force_authenticate(user=self.student)
@@ -310,7 +379,7 @@ class ExamAnswerResultsTests(ExamAnswerTestBase):
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            resp.data[0]['question_explanation'],
+            resp.data['data'][0]['question_explanation'],
             'Corrected explanation',
         )
 
@@ -348,11 +417,9 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(ans.score, 15)
         self.assertEqual(ans.feedback, 'Good answer')
         self.assertEqual(ans.graded_by, self.teacher)
-        # Check participant total score updated
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 15)
+        self.assertEqual(self._roster_total(), 15.0)
 
-    def test_teacher_grade_answer_rounds_participant_score(self):
+    def test_teacher_grade_answer_rounds_roster_total(self):
         ans = ExamAnswer.objects.create(
             participant=self.participant,
             question=self.q_essay,
@@ -368,8 +435,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
             'feedback': 'Partial credit',
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, Decimal('1.60'))
+        self.assertEqual(self._roster_total(), 1.6)
 
     def test_teacher_grade_after_exam_submitted(self):
         """考生已交卷仍可批改問答題（配合前端 E2E 交卷後批改流程）。"""
@@ -391,8 +457,7 @@ class ExamAnswerGradeTests(ExamAnswerTestBase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         ans.refresh_from_db()
         self.assertEqual(ans.score, 12)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 12)
+        self.assertEqual(self._roster_total(), 12.0)
 
     def test_student_cannot_grade(self):
         ans = ExamAnswer.objects.create(

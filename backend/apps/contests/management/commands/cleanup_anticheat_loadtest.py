@@ -175,8 +175,6 @@ class Command(BaseCommand):
                 deleted_events = events.delete()[0]
                 deleted_contests = 0
                 reset_participants = participants.update(
-                    score=0,
-                    rank=None,
                     started_at=None,
                     left_at=None,
                     locked_at=None,

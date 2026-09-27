@@ -18,7 +18,7 @@ from .models import (
 class ContestParticipantInline(admin.TabularInline):
     model = ContestParticipant
     extra = 0
-    readonly_fields = ['score', 'rank', 'joined_at']
+    readonly_fields = ['joined_at']
     can_delete = False
 
 

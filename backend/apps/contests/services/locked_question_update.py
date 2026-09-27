@@ -15,7 +15,6 @@ from apps.contests.models import (
     ExamQuestionType,
 )
 
-from .exam_scoring import ExamScoringService
 from .question_edit_lock import ContestQuestionEditLocked
 
 ExistingGradesAction = Literal["regrade", "keep", "mark_pending"]
@@ -150,9 +149,6 @@ def apply_locked_question_update(
 
     policy_changed = bool(changes & POLICY_FIELDS)
     scores_changed = action in {"regrade", "mark_pending"} or policy_changed
-    if scores_changed:
-        ExamScoringService(contest).recalculate_all()
-
     if scores_changed and contest.results_published:
         contest.results_published = False
         contest.save(update_fields=["results_published", "updated_at"])

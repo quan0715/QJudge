@@ -14,6 +14,7 @@ from ..exporters import (
     PaperExamSheetRenderer,
     sanitize_filename,
 )
+from .exam_scoring import ExamScoringService
 from .participation import attempted_participants
 
 
@@ -147,11 +148,15 @@ def build_paper_exam_results_csv_response(contest):
     questions = list(
         ExamQuestion.objects.filter(contest=contest).order_by('order', 'id')
     )
+    scoring = ExamScoringService(contest)
     participants = list(
         attempted_participants(contest)
         .select_related('user')
-        .order_by('rank', '-score', 'joined_at')
+        .order_by('joined_at')
     )
+    totals = scoring.get_participant_totals([p.id for p in participants])
+    # Highest total first; the stable sort keeps join order among ties.
+    participants.sort(key=lambda p: -totals[p.id])
     answers = ExamAnswer.objects.filter(participant__contest=contest)
 
     # Build lookup: {participant_id: {question_id: ExamAnswer}}
@@ -160,7 +165,7 @@ def build_paper_exam_results_csv_response(contest):
         answer_lookup[ans.participant_id][ans.question_id] = ans
 
     total_questions = len(questions)
-    full_score = sum(q.score for q in questions)
+    full_score = scoring.get_max_total_score()
 
     # Header
     writer = csv.writer(response)
@@ -192,10 +197,10 @@ def build_paper_exam_results_csv_response(contest):
             p.user.email,
             status_label,
             f'{graded_count}/{total_questions}',
-            _format_score(p.score),
+            _format_score(totals[p.id]),
             _format_score(full_score),
         ]
-        total_score_sum += Decimal(str(p.score or 0))
+        total_score_sum += Decimal(str(totals[p.id]))
         for i, q in enumerate(questions):
             ans = p_answers.get(q.id)
             if ans is not None and ans.score is not None:

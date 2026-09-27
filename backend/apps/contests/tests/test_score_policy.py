@@ -1,6 +1,5 @@
 """Tests for the score_policy feature (excluded / full_marks questions)."""
 from datetime import timedelta
-from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -94,10 +93,10 @@ class ScorePolicyCalculationTests(TestCase):
 
     def test_normal_policy_sums_all_scores(self):
         """Normal policy: simple sum of all answered questions."""
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         self.assertEqual(score, 10)
 
-        score = self.scoring.calculate_participant_score(self.p2)
+        score = self.scoring.get_participant_totals([self.p2.id])[self.p2.id]
         self.assertEqual(score, 20)
 
     def test_excluded_removes_question_from_total(self):
@@ -106,10 +105,10 @@ class ScorePolicyCalculationTests(TestCase):
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
 
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         self.assertEqual(score, 0)  # Only had Q1 right, now excluded
 
-        score = self.scoring.calculate_participant_score(self.p2)
+        score = self.scoring.get_participant_totals([self.p2.id])[self.p2.id]
         self.assertEqual(score, 10)  # Q2 still counts
 
     def test_full_marks_gives_max_to_everyone(self):
@@ -118,11 +117,11 @@ class ScorePolicyCalculationTests(TestCase):
         self.questions[1].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[1].save()
 
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         # Q1: 10 (normal, correct), Q2: 10 (full_marks), Q3: 0, Q4: 0
         self.assertEqual(score, 20)
 
-        score = self.scoring.calculate_participant_score(self.p2)
+        score = self.scoring.get_participant_totals([self.p2.id])[self.p2.id]
         # Q1: 10, Q2: 10 (full_marks), Q3: 0
         self.assertEqual(score, 20)
 
@@ -132,7 +131,7 @@ class ScorePolicyCalculationTests(TestCase):
         self.questions[3].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[3].save()
 
-        score = self.scoring.calculate_participant_score(self.p2)
+        score = self.scoring.get_participant_totals([self.p2.id])[self.p2.id]
         # Q1: 10, Q2: 10, Q3: 0, Q4: 10 (full_marks, no answer needed)
         self.assertEqual(score, 30)
 
@@ -143,7 +142,7 @@ class ScorePolicyCalculationTests(TestCase):
         self.questions[1].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[1].save()
 
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         # Q1: excluded, Q2: 10 (full_marks), Q3: 0, Q4: 0
         self.assertEqual(score, 10)
 
@@ -153,29 +152,26 @@ class ScorePolicyCalculationTests(TestCase):
             q.score_policy = ExamQuestionScorePolicy.EXCLUDED
             q.save()
 
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         self.assertEqual(score, 0)
 
-    def test_recalculate_all_scores_updates_everyone(self):
-        """recalculate_all_scores should update all participants."""
+    def test_policy_change_is_reflected_for_everyone_without_recalculation(self):
+        """Totals are derived on read, so a policy change needs no write-back."""
         self.questions[0].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[0].save()
 
-        count = self.scoring.recalculate_all()
-        self.assertEqual(count, 2)
+        totals = ExamScoringService(self.contest).get_participant_totals([self.p1.id, self.p2.id])
 
-        self.p1.refresh_from_db()
-        self.p2.refresh_from_db()
         # Both get Q1 full marks (10) + their actual scores
-        self.assertEqual(self.p1.score, 10)  # Q1:10(fm), Q2-4: 0
-        self.assertEqual(self.p2.score, 20)  # Q1:10(fm), Q2:10, Q3:0
+        self.assertEqual(totals[self.p1.id], 10)  # Q1:10(fm), Q2-4: 0
+        self.assertEqual(totals[self.p2.id], 20)  # Q1:10(fm), Q2:10, Q3:0
 
     def test_excluded_does_not_modify_answer_score(self):
         """Excluding a question should NOT change ExamAnswer.score values."""
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
 
-        self.scoring.calculate_participant_score(self.p1)
+        self.scoring.get_participant_totals([self.p1.id])
 
         answer = ExamAnswer.objects.get(participant=self.p1, question=self.questions[0])
         self.assertEqual(answer.score, 10)  # Original score preserved
@@ -187,7 +183,7 @@ class ScorePolicyCalculationTests(TestCase):
         answer.score = None
         answer.save()
 
-        score = self.scoring.calculate_participant_score(self.p1)
+        score = self.scoring.get_participant_totals([self.p1.id])[self.p1.id]
         self.assertEqual(score, 0)
 
 
@@ -262,33 +258,31 @@ class ExamScoringServiceTests(TestCase):
         # full_marks still counts toward max
         self.assertEqual(svc.get_max_total_score(), 40.0)
 
-    def test_calculate_participant_score_normal(self):
+    def test_participant_total_normal(self):
         svc = self._service()
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 23.0)  # 10+5+0+8
 
-    def test_calculate_participant_score_with_excluded(self):
+    def test_participant_total_with_excluded(self):
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
         svc = self._service()
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 13.0)  # 5+0+8
 
-    def test_calculate_participant_score_with_full_marks(self):
+    def test_participant_total_with_full_marks(self):
         self.questions[2].score_policy = ExamQuestionScorePolicy.FULL_MARKS
         self.questions[2].save()
         svc = self._service()
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 33.0)  # 10+5+10(fm)+8
 
-    def test_recalculate_all(self):
+    def test_participant_totals_follow_policy_changes(self):
         self.questions[0].score_policy = ExamQuestionScorePolicy.EXCLUDED
         self.questions[0].save()
         svc = self._service()
-        count = svc.recalculate_all()
-        self.assertEqual(count, 1)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 13)
+        totals = svc.get_participant_totals([self.participant.id])
+        self.assertEqual(totals, {self.participant.id: 13})
 
     def test_get_participant_breakdown(self):
         self.questions[1].score_policy = ExamQuestionScorePolicy.FULL_MARKS
@@ -403,7 +397,7 @@ class ExamScoringRedistributeTests(TestCase):
         # Each of Q2-Q5 gets bonus = 10 * (10/40) = 2.5 → effective_max=12.5
         # Student scores: Q2: 5*(12.5/10)=6.25, Q3: 0, Q4: 10*(12.5/10)=12.5, Q5: 5*(12.5/10)=6.25
         # Total = 6.25 + 0 + 12.5 + 6.25 = 25 → rounds to 25
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 25)
 
     def test_redistribute_to_specific_targets(self):
@@ -423,7 +417,7 @@ class ExamScoringRedistributeTests(TestCase):
         # Q4, Q5 unchanged
         # Student: Q2: 5*(15/10)=7.5, Q3: 0*(15/10)=0, Q4: 10, Q5: 5
         # Total = 7.5 + 0 + 10 + 5 = 22.5 → stays at two-decimal precision
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 22.5)
 
     def test_redistribute_multiple_sources(self):
@@ -441,7 +435,7 @@ class ExamScoringRedistributeTests(TestCase):
         # Q3 effective_max = 10 + 10 + 10 = 30
         # Student: Q3: 0*(30/10)=0, Q4: 10, Q5: 5
         # Total = 0 + 10 + 5 = 15
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 15)
 
     def test_redistribute_preserves_zero_score(self):
@@ -455,20 +449,18 @@ class ExamScoringRedistributeTests(TestCase):
         # Q3 effective_max = 10 + 10 = 20
         # Student: Q1: 10, Q2: 5, Q3: 0*(20/10)=0, Q5: 5
         # Total = 10 + 5 + 0 + 5 = 20
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
         self.assertEqual(score, 20)
 
-    def test_redistribute_recalculate_all(self):
-        """recalculate_all handles redistribute correctly."""
+    def test_redistribute_participant_totals(self):
+        """get_participant_totals handles redistribute correctly."""
         self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
         self.questions[0].score_policy_config = {'redistribute_to': []}
         self.questions[0].save()
 
         svc = self._service()
-        count = svc.recalculate_all()
-        self.assertEqual(count, 1)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, 25)
+        totals = svc.get_participant_totals([self.participant.id])
+        self.assertEqual(totals[self.participant.id], 25)
 
     def test_redistribute_breakdown(self):
         """get_participant_breakdown shows redistribute question as None."""
@@ -500,7 +492,7 @@ class ExamScoringRedistributeTests(TestCase):
         self.assertAlmostEqual(scores[self.participant.id], 25.0, places=1)
 
     def test_redistribute_participant_score_rounds_to_two_decimal_places(self):
-        """Persisted paper-exam totals keep canonical two-decimal precision."""
+        """Paper-exam totals keep canonical two-decimal precision."""
         self.questions[0].score = 1
         self.questions[0].score_policy = ExamQuestionScorePolicy.REDISTRIBUTE
         self.questions[0].score_policy_config = {
@@ -520,11 +512,9 @@ class ExamScoringRedistributeTests(TestCase):
         ).update(score=1)
 
         svc = self._service()
-        score = svc.calculate_participant_score(self.participant)
+        score = svc.get_participant_totals([self.participant.id])[self.participant.id]
 
         self.assertEqual(score, 1.33)
-        self.participant.refresh_from_db()
-        self.assertEqual(self.participant.score, Decimal('1.33'))
 
     def test_redistribute_bulk_scores_round_to_two_decimal_places(self):
         """Bulk score calculations use the same two-decimal precision."""

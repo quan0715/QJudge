@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getExamQuestions } from "@/infrastructure/api/repositories/examQuestions.repository";
 import {
   getExamResults,
-  type ExamAnswerDetail,
+  type ExamResults,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { useToast } from "@/shared/contexts/ToastContext";
 import {
@@ -48,7 +48,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
   const contestId = contest.id.toString();
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
-  const [results, setResults] = useState<ExamAnswerDetail[]>([]);
+  const [publishedResults, setPublishedResults] = useState<ExamResults | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const canQueryExamData = isContestParticipant(contest);
   const canOpenAnswering = canOpenPaperAnsweringFromDashboard(contest);
@@ -60,7 +60,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
     const load = async () => {
       if (!canQueryExamData) {
         setQuestions([]);
-        setResults([]);
+        setPublishedResults(null);
         setLoadError(null);
         setLoading(false);
         return;
@@ -69,15 +69,15 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
       setLoading(true);
       setLoadError(null);
       try {
-        const [examQuestions, publishedResults] = await Promise.all([
+        const [examQuestions, examResults] = await Promise.all([
           getExamQuestions(contestId),
-          resultsPublished ? getExamResults(contestId) : Promise.resolve([]),
+          resultsPublished ? getExamResults(contestId) : Promise.resolve(null),
         ]);
         if (cancelled) return;
         setQuestions(
           examQuestions.slice().sort((a, b) => a.order - b.order)
         );
-        setResults(publishedResults);
+        setPublishedResults(examResults);
       } catch (error) {
         if (cancelled) return;
         setLoadError(
@@ -101,6 +101,7 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
     };
   }, [canQueryExamData, contestId, resultsPublished, showToast, t]);
 
+  const results = useMemo(() => publishedResults?.answers ?? [], [publishedResults]);
   const resultMap = useMemo(
     () =>
       new Map(results.map((result) => [String(result.questionId), result])),
@@ -119,11 +120,11 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
             `common:questionType.label.${(result?.questionType || question.questionType)?.toString()}`,
             (result?.questionType || question.questionType || "-").toString()
           ),
-          maxScore: question.score ?? 0,
+          maxScore: result?.effectiveMaxScore ?? question.score ?? 0,
           scorePolicy: question.scorePolicy,
           score:
             resultsPublished && result
-              ? formatScore(result.score)
+              ? formatScore(result.effectiveScore)
               : t("paperExamProblems.notGraded"),
           feedback:
             resultsPublished && result
@@ -134,14 +135,9 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
     [questions, resultMap, resultsPublished, t]
   );
 
-  const totalScore = useMemo(
-    () => results.reduce((sum, item) => sum + (item.score ?? 0), 0),
-    [results]
-  );
-  const totalMaxScore = useMemo(
-    () => questions.reduce((sum, item) => sum + (item.score ?? 0), 0),
-    [questions]
-  );
+  // Totals come from the server so score policies match the PDF report.
+  const totalScore = publishedResults?.totalScore ?? 0;
+  const totalMaxScore = publishedResults?.maxTotalScore ?? 0;
 
   return (
     <div style={{ maxWidth, margin: maxWidth ? "0 auto" : undefined, padding: "1rem" }}>
@@ -269,7 +265,8 @@ const PaperExamResultsList: React.FC<PaperExamResultsListProps> = ({
                               {t("answering.submit.questionPreview", { index: index + 1 })}
                             </strong>
                             <span>
-                              {formatScore(result.score ?? 0)} / {formatScore(question.score)}
+                              {formatScore(result.effectiveScore ?? 0)} /{" "}
+                              {formatScore(result.effectiveMaxScore ?? question.score)}
                             </span>
                           </div>
                           <div style={{ marginBottom: "1rem" }}>
