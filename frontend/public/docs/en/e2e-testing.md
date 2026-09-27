@@ -5,7 +5,7 @@ E2E and API integration tests run in CI against a QJudge instance built from scr
 | Workflow | When | What |
 | --- | --- | --- |
 | Integration Tests in `ci.yml` | Every CI run | `npm run test:api` and the MCP Server integration tests |
-| `e2e.yml` | Every pull request targeting `main`, or manual dispatch | Pull requests run auth and coding; manual runs can pick any group (auth, exam, contest, coding, settings) and a grep |
+| `e2e.yml` | Every pull request targeting `main`, or manual dispatch | Pull requests run auth and coding; manual runs can pick any group (auth, exam, contest, coding) and a grep |
 
 Every job starts with `ci/e2e-stack.sh`:
 

@@ -5,7 +5,7 @@ E2E と API 統合テストは、通常のインストール手順でゼロか�
 | Workflow | タイミング | 内容 |
 | --- | --- | --- |
 | `ci.yml` の Integration Tests | すべての CI 実行 | `npm run test:api` と MCP Server の統合テスト |
-| `e2e.yml` | `main` 向けのすべての pull request、または手動実行 | pull request では auth と coding を実行。手動実行では任意のグループ（auth、exam、contest、coding、settings）と grep を指定可能 |
+| `e2e.yml` | `main` 向けのすべての pull request、または手動実行 | pull request では auth と coding を実行。手動実行では任意のグループ（auth、exam、contest、coding）と grep を指定可能 |
 
 各 job は最初に `ci/e2e-stack.sh` を実行します。
 
