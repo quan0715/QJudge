@@ -31,7 +31,6 @@ class Command(BaseCommand):
             ("object_storage_connection", self._check_object_storage_connection),
             ("object_storage_buckets", self._check_object_storage_buckets),
             ("celery_default", self._check_celery_default),
-            ("celery_beat", self._check_celery_beat),
         ]
 
         for name, fn in checks:
@@ -129,30 +128,3 @@ class Command(BaseCommand):
         )
         active_detail = ", ".join(active_queue_names) if active_queue_names else "none"
         return False, f"no worker consuming '{queue_name}' (active: {active_detail})"
-
-    def _check_celery_beat(self):
-        """Check beat scheduler — best-effort, non-fatal if unreachable."""
-        from config.celery import app as celery_app
-
-        inspector = celery_app.control.inspect(timeout=3.0)
-        scheduled = inspector.scheduled() or {}
-        if scheduled:
-            worker = next(iter(scheduled))
-            return True, f"scheduler reachable via {worker}"
-
-        # Fallback: check if any periodic task ran recently via DB
-        try:
-            from django_celery_beat.models import PeriodicTask  # type: ignore
-            from django.utils import timezone as tz
-            from datetime import timedelta
-
-            recent = PeriodicTask.objects.filter(
-                enabled=True,
-                last_run_at__gte=tz.now() - timedelta(minutes=10),
-            ).first()
-            if recent:
-                return True, f"task '{recent.name}' ran at {recent.last_run_at}"
-        except Exception:
-            pass
-
-        return True, "beat not verified (non-blocking)"

@@ -37,9 +37,6 @@ services:
   integrity-reconciler:
     <<: *dev_backend
     depends_on: *after_backend
-  celery-beat:
-    <<: *dev_backend
-    depends_on: *after_backend
   backend:
     <<: *dev_backend
     command: ["sh", "-c", "python manage.py migrate --noinput && exec python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app"]
@@ -50,11 +47,6 @@ services:
         condition: service_healthy
   celery:
     <<: *dev_backend
-    command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "celery,default"]
-    depends_on: *after_backend
-  celery-high:
-    <<: *dev_backend
-    command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "high_priority", "--concurrency=2"]
     depends_on: *after_backend
 
   ai-service:
@@ -67,10 +59,6 @@ services:
       pgbouncer:
         condition: service_healthy
   ai-worker:
-    volumes:
-      - ../ai-service:/app
-    depends_on: *after_ai_service
-  ai-scheduler:
     volumes:
       - ../ai-service:/app
     depends_on: *after_ai_service

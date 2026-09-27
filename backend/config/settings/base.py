@@ -337,10 +337,6 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_DEFAULT_QUEUE = "default"
 
-# Periodic work is registered by the services that own it.  AI recovery and
-# artifact maintenance run in the independent AI scheduler.
-CELERY_BEAT_SCHEDULE = {}
-
 # Public login method settings. OAuth connections are configured through QAuth.
 # The connection catalog holds endpoints and credential variable names, never the
 # credentials, so it ships as a file; the JSON variable overrides it, and an

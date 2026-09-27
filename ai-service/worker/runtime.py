@@ -589,7 +589,7 @@ class SqlAlchemyWorkerRunStore:
         await self._dispatcher.dispatch(
             recovery.run_id,
             credential_lease_key,
-            TraceContext(request_id="ai-scheduler"),
+            TraceContext(request_id="ai-recovery"),
         )
 
 

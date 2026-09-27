@@ -15,19 +15,13 @@ x-integrity-build: &integrity_build
 services:
   backend:
     build: *backend_build
-  celery-high:
-    build: *backend_build
   celery:
-    build: *backend_build
-  celery-beat:
     build: *backend_build
   integrity-reconciler:
     build: *backend_build
   ai-service:
     build: *ai_build
   ai-worker:
-    build: *ai_build
-  ai-scheduler:
     build: *ai_build
   integrity-resident:
     build: *integrity_build

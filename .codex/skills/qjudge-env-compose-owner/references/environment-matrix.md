@@ -15,9 +15,9 @@ The Compose project name is `COMPOSE_PROJECT_NAME` from `deploy/.env`; keep the 
 | Role | Services |
 | --- | --- |
 | Web/API | `backend`, `frontend` (Vite on 5173), `storybook` |
-| AI runtime | `ai-service`, `ai-worker`, `ai-scheduler` |
+| AI runtime | `ai-service`, `ai-worker` (embedded beat, single replica) |
 | Data | `postgres`, `pgbouncer`, `redis`, `minio` |
-| Workers | `celery`, `celery-high`, `celery-beat`, `integrity-resident`, `integrity-reconciler` |
+| Workers | `celery` (queues `high_priority,default`), `integrity-resident`, `integrity-reconciler` |
 | MCP | `qjudge-mcp` (host port 9002) |
 | One-off | `storage-init` |
 | Profiles | `livekit` (`live-monitoring`, reads `.tmp/livekit/dev.json`), `cloudflared` (`tunnel`) |

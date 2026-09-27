@@ -16,8 +16,8 @@ docker compose -p qjudge logs --tail=200 <service>
 | --- | --- |
 | `frontend` | HTTP 入口與路徑分流 |
 | `backend` | Django API |
-| `celery`、`celery-high`、`celery-beat` | 背景工作與程式評測 |
-| `ai-service`、`ai-worker`、`ai-scheduler` | AI 助教 |
+| `celery` | 背景工作與程式評測（`high_priority`、`default` queue） |
+| `ai-service`、`ai-worker` | AI 助教（`ai-worker` 內含排程，只能單一 replica） |
 | `integrity-resident`、`integrity-reconciler` | 考試 Integrity |
 | `qjudge-mcp` | Remote MCP |
 | `postgres`、`pgbouncer`、`redis` | 資料庫與 queue |
@@ -85,11 +85,11 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 ## 提交後沒有評測結果
 
 ```bash
-docker compose -p qjudge logs --tail=200 celery celery-high
+docker compose -p qjudge logs --tail=200 celery
 docker image inspect oj-judge:latest --format '{{.Id}}'
 ```
 
-評測由 `celery` 與 `celery-high` 透過主機的 Docker 執行 `oj-judge:latest`。Image 不存在時重新執行 `upgrade`，它會重新取得或 build judge image。
+評測由 `celery` 透過主機的 Docker 執行 `oj-judge:latest`。Image 不存在時重新執行 `upgrade`，它會重新取得或 build judge image。
 
 ## 即時監看無法使用
 

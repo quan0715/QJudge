@@ -188,7 +188,7 @@ EOF
   fi
 fi
 
-APP_SERVICES=(frontend backend celery celery-beat ai-service redis pgbouncer)
+APP_SERVICES=(frontend backend celery ai-service redis pgbouncer)
 BUILD_ARGS=(-d)
 if [[ "$SKIP_BUILD" -ne 1 ]]; then
   BUILD_ARGS=( -d --build )
