@@ -119,22 +119,28 @@ services:
     image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
     profiles: ["live-monitoring"]
     restart: unless-stopped
-    command: ["--config", "/run/livekit/livekit.json"]
     read_only: true
     security_opt: ["no-new-privileges:true"]
-    volumes:
-      - type: bind
-        source: ../.tmp/livekit/dev.json
-        target: /run/livekit/livekit.json
-        read_only: true
-        bind:
-          create_host_path: false
+    environment:
+      # livekit-server reads its config body from LIVEKIT_CONFIG.
+      LIVEKIT_CONFIG: |
+        port: 7883
+        keys:
+          "${LIVEKIT_API_KEY}": "${LIVEKIT_API_SECRET}"
+        rtc:
+          tcp_port: 7884
+          port_range_start: 50100
+          port_range_end: 50199
+          node_ip: "${LIVEKIT_NODE_IP:-}"
+          use_external_ip: false
+          advertise_internal_ip: true
+        room:
+          auto_create: false
+          max_participants: 160
     ports:
       - "7883:7883"
       - "7884:7884"
       - "50100-50199:50100-50199/udp"
-      - "3478:3478/udp"
-      - "50300-50309:50300-50309/udp"
 
 volumes:
   minio-data:
