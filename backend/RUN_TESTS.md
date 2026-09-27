@@ -1,135 +1,37 @@
-# Backend 測試執行指南（2026-02-24）
+# Backend 測試執行指南
 
-本指南以 Docker Compose 開發環境為主，目標是降低環境差異造成的假性失敗。
+## 在哪裡跑
 
-## 一、前置條件
+| 測試 | 位置 |
+|---|---|
+| 不需要資料庫的測試（設定、service 單元、序列化） | 本機 dev 容器 |
+| 需要資料庫的測試（`django_db`、`APITestCase`、`TestCase`） | CI 的 Backend Unit Tests job |
+| 整合測試與 E2E | CI，以 `ci/e2e-stack.sh` 全新安裝後執行 |
 
-先確保開發容器已啟動：
+dev 的資料庫帳號沒有 `CREATEDB`，無法建立測試資料庫，需要資料庫的測試請推到 CI 執行。
 
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
-```
+## 本機執行
 
-## 二、建議測試設定
-
-請優先使用 `config.settings.test` 與明確本機 `DATABASE_URL`：
-
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.test \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  PYTEST_ADDOPTS='--no-cov' \
-  pytest <test-path> -q
-```
-
-說明：
-
-- `config.settings.test`：避免 `dev` 設定造成資料庫路由副作用
-- `DATABASE_URL`：明確指定 docker 內 postgres，避免誤連 cloud
-- `PYTEST_ADDOPTS='--no-cov'`：先跑功能驗證，不受全域 coverage gate 影響
-
-## 三、常用測試命令
-
-### 1) AI compatibility BFF smoke test
+`pytest.ini` 預設使用 `config.settings.test`，在 dev 的 backend 容器內執行：
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.test \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  PYTEST_ADDOPTS='--no-cov' \
-  pytest apps/ai/tests/test_bff_contract.py -q
+  python -m pytest -q -p no:cacheprovider <test-path>
 ```
 
-### 2) AI app 全部測試
+例如：
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.test \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  PYTEST_ADDOPTS='--no-cov' \
-  pytest apps/ai/tests -q
+  python -m pytest -q -p no:cacheprovider apps/ai/tests/test_bff_contract.py apps/core/tests/test_deploy_settings.py
 ```
 
-### 3) submissions 測試
+測試若因無法建立 `test_*` 資料庫而失敗，代表它需要資料庫，交給 CI 驗證即可。
+
+## 其他檢查
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.test \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  PYTEST_ADDOPTS='--no-cov' \
-  pytest apps/submissions/tests -q
-```
-
-## 四、常見問題
-
-### 問題 1：誤連外部 DB
-
-症狀：
-
-- 測試錯誤訊息出現外部 DB host
-- `FATAL: Tenant or user not found`
-
-處理：
-
-- 使用本指南中的 `DJANGO_SETTINGS_MODULE=config.settings.test`
-- 同時指定 `DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge`
-
-### 問題 2：coverage 阻擋測試流程
-
-症狀：
-
-- 測試項目通過，但整體因 coverage 門檻失敗
-
-處理：
-
-- 開發階段先加 `PYTEST_ADDOPTS='--no-cov'`
-- CI 或合併前再執行完整 coverage 流程
-
-### 問題 3：測試資料庫衝突
-
-症狀：
-
-- `database "test_xxx" already exists`
-
-處理：
-
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T postgres \
-  psql -U postgres -c "DROP DATABASE IF EXISTS test_online_judge;"
-```
-
-## 五、建議策略
-
-1. 先跑單一 smoke case（確認環境）
-2. 再跑目標 app 測試
-3. 最後才跑全量測試與 coverage
-
-## 六、Schema 與穩定性檢查（建議）
-
-### 1) 產生 OpenAPI schema
-
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.dev \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  python manage.py spectacular --file schema.yml
-```
-
-### 2) 避免 pytest 平行執行造成 test DB race
-
-當多個 `pytest` 指令同時跑、且都嘗試建立同一個 `test_online_judge`，可能出現：
-- `database "test_online_judge" already exists`
-- `database "test_online_judge" does not exist`
-
-建議：
-
-- 同一時間只跑一個 pytest process（sequential）
-- 加上 `--reuse-db` 減少重建
-
-```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
-  env DJANGO_SETTINGS_MODULE=config.settings.test \
-  DATABASE_URL=postgresql://postgres:postgres@postgres:5432/online_judge \
-  PYTEST_ADDOPTS='--no-cov --reuse-db' \
-  pytest <test-path> -q
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend python manage.py check
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend python -m compileall -q apps config
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend python manage.py spectacular --file /tmp/schema.yml
 ```
