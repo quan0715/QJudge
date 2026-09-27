@@ -1,10 +1,14 @@
 # Bundled object storage (MinIO). A separate project so application upgrades
 # never restart it. Run through `deploy/qjudge addon storage up|init`.
+# MinIO no longer publishes community images; Chainguard builds the same server
+# (with mc). Its free tier only tags `latest`, so pin by digest and bump it here.
 
 services:
   minio:
-    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    image: cgr.dev/chainguard/minio:latest@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
     restart: unless-stopped
+    # Existing data directories are root-owned; the image defaults to uid 65532.
+    user: "0:0"
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
@@ -22,7 +26,7 @@ services:
 
   # One-off: `deploy/qjudge addon storage init` creates the bucket.
   storage-init:
-    image: quay.io/minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    image: cgr.dev/chainguard/minio:latest@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
     profiles: ["init"]
     entrypoint: ["/bin/sh", "-c"]
     command:
