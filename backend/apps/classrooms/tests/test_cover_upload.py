@@ -132,6 +132,20 @@ class TestClassroomCoverUpload:
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_upload_cover_corrupt_png(
+        self, api_client: APIClient, owner: User, classroom: Classroom
+    ):
+        api_client.force_authenticate(user=owner)
+        payload = bytearray(_make_png_bytes())
+        payload[payload.index(b"IDAT") + 4] ^= 0xFF
+        bad = SimpleUploadedFile("cover.png", bytes(payload), content_type="image/png")
+        resp = api_client.post(
+            self._url(classroom),
+            {"file": bad},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
     @override_settings(MARKDOWN_IMAGE_MAX_BYTES=10)
     def test_upload_cover_too_large(
         self, api_client: APIClient, owner: User, classroom: Classroom

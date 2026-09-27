@@ -67,3 +67,13 @@ class UserAvatarUploadViewTests(TestCase):
         response = self.client.post(self.url, {"file": file_obj}, format="multipart")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["error"]["code"], "UNSUPPORTED_IMAGE")
+
+    def test_upload_avatar_rejects_corrupt_png(self):
+        self.client.force_authenticate(user=self.user)
+        payload = bytearray(_make_png_bytes())
+        payload[payload.index(b"IDAT") + 4] ^= 0xFF
+        file_obj = BytesIO(bytes(payload))
+        file_obj.name = "avatar.png"
+        response = self.client.post(self.url, {"file": file_obj}, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"]["code"], "UNSUPPORTED_IMAGE")

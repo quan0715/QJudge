@@ -2,9 +2,7 @@
 Views for question bank API.
 """
 import logging
-from io import BytesIO
 
-from PIL import Image, UnidentifiedImageError
 from django.conf import settings
 from django.http import Http404
 from django.db.models import Count
@@ -16,8 +14,10 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.core.services import (
+    InvalidImageError,
     MarkdownImageStorageError,
     build_markdown_image_object_key,
+    inspect_image,
     store_markdown_image,
 )
 
@@ -155,11 +155,8 @@ class QuestionBankViewSet(viewsets.ModelViewSet):
             raise DRFValidationError("Uploaded file is empty")
 
         try:
-            with Image.open(BytesIO(payload)) as img:
-                img.verify()
-            with Image.open(BytesIO(payload)) as img:
-                image_format = (img.format or "").upper()
-        except (UnidentifiedImageError, OSError):
+            image_format = inspect_image(payload).format
+        except InvalidImageError:
             raise DRFValidationError("Unsupported image file")
 
         if image_format not in self.COVER_SUPPORTED_FORMATS:

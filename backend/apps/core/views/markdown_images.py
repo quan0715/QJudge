@@ -1,10 +1,8 @@
 """Markdown image upload/read APIs."""
 from __future__ import annotations
 
-from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, UnidentifiedImageError
 from django.conf import settings
 from django.http import HttpResponse
 from django.urls import reverse
@@ -14,10 +12,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.services import (
+    InvalidImageError,
     MarkdownImageNotFoundError,
     MarkdownImageStorageError,
     build_markdown_image_object_key,
     fetch_markdown_image,
+    inspect_image,
     is_valid_markdown_image_object_key,
     store_markdown_image,
 )
@@ -76,11 +76,8 @@ class MarkdownImageUploadView(APIView):
             )
 
         try:
-            with Image.open(BytesIO(payload)) as image:
-                image.verify()
-            with Image.open(BytesIO(payload)) as image:
-                image_format = (image.format or "").upper()
-        except (UnidentifiedImageError, OSError):
+            image_format = inspect_image(payload).format
+        except InvalidImageError:
             return Response(
                 {"error": "Unsupported image file"},
                 status=status.HTTP_400_BAD_REQUEST,
