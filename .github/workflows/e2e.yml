@@ -8,12 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       group:
-        description: "Test group to run (empty = all groups in parallel)"
+        description: "Test group to run (all = every group in parallel)"
         required: false
-        default: ""
+        default: "all"
         type: choice
         options:
-          - ""
+          - "all"
           - auth
           - exam
           - contest
@@ -32,7 +32,7 @@ concurrency:
 jobs:
   e2e-auth:
     name: "E2E: Auth & Pending Actions"
-    if: inputs.group == '' || inputs.group == 'auth'
+    if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'auth'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -85,7 +85,7 @@ jobs:
 
   e2e-exam:
     name: "E2E: Exam"
-    if: inputs.group == '' || inputs.group == 'exam'
+    if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'exam'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -138,7 +138,7 @@ jobs:
 
   e2e-contest:
     name: "E2E: Contest"
-    if: inputs.group == '' || inputs.group == 'contest'
+    if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'contest'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -191,14 +191,14 @@ jobs:
 
   e2e-coding:
     name: "E2E: Coding submissions"
-    if: inputs.group == '' || inputs.group == 'coding'
+    if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'coding'
     uses: ./.github/workflows/e2e-coding.yml
     with:
       grep: ${{ inputs.grep }}
 
   e2e-settings:
     name: "E2E: Settings & Preferences"
-    if: inputs.group == '' || inputs.group == 'settings'
+    if: github.event_name != 'workflow_dispatch' || inputs.group == 'all' || inputs.group == 'settings'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
