@@ -80,7 +80,7 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
       baseURL ||
       process.env.PLAYWRIGHT_BASE_URL ||
       process.env.E2E_BASE_URL ||
-      "http://localhost:5174";
+      "http://localhost:8080";
     const deviceA = `e2e-dual-a-${Date.now()}`;
     const deviceB = `e2e-dual-b-${Date.now()}`;
 
