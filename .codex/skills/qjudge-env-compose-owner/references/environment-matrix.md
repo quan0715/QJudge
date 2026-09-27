@@ -57,7 +57,8 @@ Never run `dev down -v`: it deletes the dev database and MinIO data.
 | Backend Unit Tests | backend `pytest` against a GitHub service PostgreSQL |
 | Judge Tests | judge and submission tests with the judge image |
 | Integration Tests | `ci/e2e-stack.sh`, then `npm run test:api` and MCP integration tests |
-| Integrity Service Tests | `integrity-service/Dockerfile.test` |
+| MCP Server Tests | `mcp-server` `pytest tests` (integration tests skip without a backend) |
+| Integrity Service Tests | `integrity-service` `pytest` on the runner Python, as root for the secret bootstrap tests |
 | `e2e-coding.yml` | pull requests to `main`: auth and coding submission Playwright specs |
 | `e2e-manual.yml` | manual dispatch by group |
 
