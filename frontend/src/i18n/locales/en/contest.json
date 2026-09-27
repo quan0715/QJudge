@@ -1569,6 +1569,7 @@
     },
     "environment": {
       "checks": {
+        "graphics": "Graphics environment",
         "fullscreen": "Fullscreen Mode",
         "interaction": "Interaction Check",
         "monitor": "Display Count",
@@ -1576,6 +1577,8 @@
         "webcam": "Webcam Access"
       },
       "errors": {
+        "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device.",
+        "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
         "dependencyPrefix": "Requires passing \"{{name}}\".",
         "focusFailed": "Please switch back to this page and try again.",
@@ -1592,6 +1595,7 @@
         "webcamUnsupported": "This browser does not support Webcam."
       },
       "requirements": {
+        "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
         "browser": "Use latest Google Chrome or Microsoft Edge.",
         "display": "Single physical monitor required; disconnect external displays.",
         "permission": "Grant \"Window and Display Management\" permission when prompted.",

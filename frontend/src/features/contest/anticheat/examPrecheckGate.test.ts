@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   hasExamPrecheckPassed,
   markExamPrecheckPassed,
@@ -12,6 +12,17 @@ describe("examPrecheckGate", () => {
   beforeEach(() => {
     clearExamPrecheckPassed(contestId);
     window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects a saved precheck from an earlier page when WebGL is unavailable", () => {
+    window.sessionStorage.setItem(`qjudge.exam.precheck_gate.v1:${contestId}`, "1");
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+
+    expect(hasExamPrecheckPassed(contestId)).toBe(false);
   });
 
   it("marks and reads precheck state", () => {

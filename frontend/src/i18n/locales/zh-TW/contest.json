@@ -1569,6 +1569,7 @@
     },
     "environment": {
       "checks": {
+        "graphics": "繪圖環境檢測",
         "fullscreen": "全螢幕模式測試",
         "interaction": "輸入互動檢測",
         "monitor": "螢幕數量檢測",
@@ -1576,6 +1577,8 @@
         "webcam": "Webcam 授權"
       },
       "errors": {
+        "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。",
+        "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
         "dependencyPrefix": "需先通過「{{name}}」。",
         "focusFailed": "請先切回此頁面後重試。",
@@ -1592,6 +1595,7 @@
         "webcamUnsupported": "此瀏覽器不支援 Webcam。"
       },
       "requirements": {
+        "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
         "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
         "display": "限單一螢幕，請務必拔除外接顯示器。",
         "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
