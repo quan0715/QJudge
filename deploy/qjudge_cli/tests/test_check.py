@@ -60,6 +60,10 @@ class CheckTests(unittest.TestCase):
         env = with_changes(QJUDGE_PUBLIC_ORIGIN="https://judge.example.edu/app")
         self.assertEqual(error_keys(env), ["QJUDGE_PUBLIC_ORIGIN"])
 
+    def test_origin_must_not_carry_credentials(self):
+        env = with_changes(QJUDGE_PUBLIC_ORIGIN="https://user:pass@judge.example.edu")
+        self.assertEqual(error_keys(env), ["QJUDGE_PUBLIC_ORIGIN"])
+
     def test_origin_must_use_http_or_https(self):
         env = with_changes(QJUDGE_PUBLIC_ORIGIN="judge.example.edu")
         self.assertEqual(error_keys(env), ["QJUDGE_PUBLIC_ORIGIN"])

@@ -79,6 +79,25 @@ class ReleaseTests(unittest.TestCase):
                     http_status=status)
         self.assertIn(("http://127.0.0.1:8080/api/health/", "judge.example.edu", "https"), seen)
 
+    def test_failure_restores_the_deployed_version_even_if_already_checked_out(self):
+        # CD checks out the target before running upgrade.
+        (self.deploy / ".version").write_text(f"current={OLD}\n")
+        host = FakeHost(head=NEW, fail_on=(" build",))
+        self.assertEqual(self._upgrade(host), 1)
+        self.assertEqual(host.head, OLD)
+
+    def test_failed_rollback_restores_the_current_version(self):
+        (self.deploy / ".version").write_text(f"current={NEW}\nprevious={OLD}\n")
+        host = FakeHost(head=NEW)
+        with redirect_stdout(io.StringIO()):
+            code = rollback(self.deploy, self.env_file, run=host, sleep=lambda s: None,
+                            http_status=lambda url, host_header, proto: 502)
+        self.assertEqual(code, 1)
+        self.assertEqual(host.head, NEW)
+        last_up = [v for c, v in host.calls if "--remove-orphans" in c][-1]
+        self.assertEqual(last_up, "sha-" + NEW[:12])
+        self.assertEqual(read_version(self.deploy), {"current": NEW, "previous": OLD})
+
     def test_upgrade_builds_backs_up_migrates_and_records_versions(self):
         (self.deploy / ".version").write_text(f"current={OLD}\n")
         host = FakeHost()

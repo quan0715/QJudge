@@ -197,7 +197,10 @@ def upgrade(
     stack = _Stack(deploy_dir, env_file, run, sleep, http_status)
     if stack.git("fetch", "--tags", "--prune", "origin").returncode != 0:
         print("warning: git fetch failed; using local refs")
-    before = stack.head()
+    recorded = read_version(deploy_dir)
+    current = recorded.get("current")
+    # CD checks out the target first, so HEAD is not always the deployed release.
+    restore = current or stack.head()
     if not stack.checkout(ref):
         return 1
     sha = stack.head()
@@ -205,7 +208,7 @@ def upgrade(
 
     def abort(message: str, hint: bool = False) -> int:
         print(message)
-        stack.checkout(before)
+        stack.checkout(restore)
         if hint:
             stack.restore_hint()
         return 1
@@ -235,8 +238,6 @@ def upgrade(
             return abort(f"{service} migrations failed; application services still run the previous version",
                          hint=True)
 
-    recorded = read_version(deploy_dir)
-    current = recorded.get("current")
     if not stack.start(version):
         print(f"{version} is not healthy")
         if current:
@@ -244,7 +245,7 @@ def upgrade(
             stack.compose(_version(current), "up", "-d", "--remove-orphans")
             print(f"Started {_version(current)} again")
         else:
-            stack.checkout(before)
+            stack.checkout(restore)
         stack.restore_hint()
         return 1
     previous = current if current != sha else recorded.get("previous")
@@ -271,8 +272,10 @@ def rollback(
         return 1
     version = _version(previous)
     if not stack.start(version):
-        print(f"{version} is not healthy; {deploy_dir / '.version'} unchanged")
-        stack.restore_hint()
+        current = recorded["current"]
+        print(f"{version} is not healthy; starting {_version(current)} again")
+        stack.checkout(current)
+        stack.compose(_version(current), "up", "-d", "--remove-orphans")
         return 1
     _write_version(deploy_dir, previous, recorded.get("current"))
     print(f"Rolled back to {version}")

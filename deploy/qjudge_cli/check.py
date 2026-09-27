@@ -85,6 +85,8 @@ def _url_problem(value: str, schemes: tuple[str, ...], *, origin_only: bool = Fa
         return "is not a valid URL"
     if parts.scheme not in schemes or not parts.hostname:
         return f"must start with {' or '.join(s + '://' for s in schemes)} and include a host"
+    if parts.username or parts.password:
+        return "must not include a user name or password"
     if origin_only and (parts.path not in ("", "/") or parts.query or parts.fragment):
         return "must not include a path, query, or fragment"
     return None
