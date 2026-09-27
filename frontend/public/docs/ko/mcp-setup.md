@@ -4,7 +4,7 @@ QJudge는 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) 를 �
 
 | 도구 | 상태 |
 |------|------|
-| remote MCP 지원 AI 도구 | `https://mcp.q-judge.com/mcp` 를 붙여 넣어 사용 가능 |
+| remote MCP 지원 AI 도구 | `https://q-judge.com/mcp` 를 붙여 넣어 사용 가능 |
 | [Claude Code](https://claude.ai/claude-code) | 완전 지원 |
 | [Cursor](https://cursor.com) | 완전 지원 |
 | [Codex CLI](https://github.com/openai/codex) | 완전 지원 |
@@ -27,7 +27,7 @@ AI 도구에 MCP, Connectors, Integrations 설정 화면이 있다면 이 방법
 4. 첫 호출 시 브라우저에서 OAuth를 완료합니다.
 
 ```text
-https://mcp.q-judge.com/mcp
+https://q-judge.com/mcp
 ```
 
 ## 도구별 설정
@@ -35,7 +35,7 @@ https://mcp.q-judge.com/mcp
 ### Claude Code
 
 ```bash
-claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
+claude mcp add --transport http qjudge https://q-judge.com/mcp
 ```
 
 ### Cursor
@@ -47,7 +47,7 @@ claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "https://mcp.q-judge.com/mcp"
+      "url": "https://q-judge.com/mcp"
     }
   }
 }
@@ -56,5 +56,5 @@ claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 ### Codex CLI
 
 ```bash
-codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
+codex mcp add --transport http qjudge https://q-judge.com/mcp
 ```

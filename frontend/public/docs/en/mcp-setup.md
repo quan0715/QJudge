@@ -4,7 +4,7 @@ QJudge supports [MCP (Model Context Protocol)](https://modelcontextprotocol.io/)
 
 | Tool | Status |
 |------|--------|
-| Remote MCP-capable AI tools | Fully supported by pasting `https://mcp.q-judge.com/mcp` |
+| Remote MCP-capable AI tools | Fully supported by pasting `https://q-judge.com/mcp` |
 | [Claude Code](https://claude.ai/claude-code) | Fully supported (Streamable HTTP) |
 | [Cursor](https://cursor.com) | Fully supported |
 | [Codex CLI](https://github.com/openai/codex) | Fully supported |
@@ -28,7 +28,7 @@ If your AI tool has built-in MCP, Connectors, or Integrations settings, prefer t
 4. The first time you invoke a QJudge tool, complete the browser OAuth flow
 
 ```text
-https://mcp.q-judge.com/mcp
+https://q-judge.com/mcp
 ```
 
 This usually applies to ChatGPT, Claude Desktop, VS Code, and other clients that support remote MCP.
@@ -40,7 +40,7 @@ This usually applies to ChatGPT, Claude Desktop, VS Code, and other clients that
 Run:
 
 ```bash
-claude mcp add --transport http qjudge https://mcp.q-judge.com/mcp
+claude mcp add --transport http qjudge https://q-judge.com/mcp
 ```
 
 After restarting Claude Code, run `/mcp` to confirm that `qjudge` appears in the server list.
@@ -54,7 +54,7 @@ Add this to `.cursor/mcp.json`:
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "https://mcp.q-judge.com/mcp"
+      "url": "https://q-judge.com/mcp"
     }
   }
 }
@@ -67,7 +67,7 @@ After restarting Cursor, QJudge tools should be available in Agent mode.
 Run:
 
 ```bash
-codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
+codex mcp add --transport http qjudge https://q-judge.com/mcp
 ```
 
 ## If your tool does not support remote MCP
@@ -75,7 +75,7 @@ codex mcp add --transport http qjudge https://mcp.q-judge.com/mcp
 If your AI tool only supports local JSON config files or CLI-based setup, use the Claude Code, Cursor, or Codex CLI examples above. The important part is that every client points to the same remote server URL:
 
 ```text
-https://mcp.q-judge.com/mcp
+https://q-judge.com/mcp
 ```
 
 ## Automatic authorization flow
@@ -145,7 +145,7 @@ Once connected, the AI tool can access these QJudge MCP tool groups:
 
 ### Connection failed
 
-- Verify the MCP server URL is `https://mcp.q-judge.com/mcp`
+- Verify the MCP server URL is `https://q-judge.com/mcp`
 - Verify your account has teacher or TA permissions
 - If authorization expired, repeat the setup flow and re-authorize
 
