@@ -108,10 +108,10 @@ endpoint = (getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "") or "").strip()
 access_key = (getattr(settings, "OBJECT_STORAGE_ACCESS_KEY", "") or "").strip()
 secret_key = (getattr(settings, "OBJECT_STORAGE_SECRET_KEY", "") or "").strip()
 region = (getattr(settings, "OBJECT_STORAGE_REGION", "us-east-1") or "us-east-1").strip()
-raw_bucket = (getattr(settings, "ANTICHEAT_RAW_BUCKET", "anticheat-raw") or "anticheat-raw").strip()
+bucket = (getattr(settings, "OBJECT_STORAGE_BUCKET", "") or "").strip()
 
-if not endpoint or not access_key or not secret_key:
-    print("[object-storage] skipped: missing OBJECT_STORAGE_* credentials/endpoint in env")
+if not endpoint or not access_key or not secret_key or not bucket:
+    print("[object-storage] skipped: missing OBJECT_STORAGE_* settings in env")
     raise SystemExit(0)
 
 s3 = boto3.client(
@@ -156,9 +156,14 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
 
     return total_deleted
 
-prefix = f"contest_{contest_id}/" if contest_id is not None else ""
-raw_deleted = purge_bucket(raw_bucket, prefix=prefix)
-print(f"[object-storage] deleted_raw_objects={raw_deleted} bucket={raw_bucket} prefix={prefix or '(all)'}")
+# The bucket also holds markdown images and AI artifacts; delete only evidence.
+if contest_id is not None:
+    prefixes = [f"contest_{contest_id}/", f"integrity/{contest_id}/"]
+else:
+    prefixes = ["contest_", "integrity/", "runs/"]
+for prefix in prefixes:
+    deleted = purge_bucket(bucket, prefix=prefix)
+    print(f"[object-storage] deleted_objects={deleted} bucket={bucket} prefix={prefix}")
 PY
 
 echo "[done] Anti-cheat cleanup completed."
