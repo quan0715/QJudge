@@ -38,15 +38,18 @@ QJudge currently records raw token usage but has no active model pricing or cred
 ## Verification
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T ai-service \
-  pytest tests/test_model_factory.py tests/test_api.py tests/unit/test_provider_endpoint_config.py
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service \
+  python -m pytest -q tests/test_model_factory.py tests/test_api.py tests/unit/test_provider_endpoint_config.py
 
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T backend-test \
-  pytest apps/ai/tests/test_start_run_serializer.py apps/ai/tests/test_bff_contract.py
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
+  python -m pytest -q --ds=config.settings.test \
+  apps/ai/tests/test_start_run_serializer.py apps/ai/tests/test_bff_contract.py
 
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test \
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend \
   npm run typecheck
 ```
+
+The two backend files use no database, so they run in dev; CI's Backend Unit Tests job runs all of `apps/ai/tests`.
 
 For a new provider model or changed provider string, run a real provider smoke test only with explicit authorization and available credentials.
 

@@ -7,7 +7,7 @@
 QJudge 維護中的技能位於 `.codex/skills/`：
 
 - 架構、分層、import 與檔案歸屬：`qjudge-architecture-owner`
-- main／dev／test Compose、migrate、測試與服務診斷：`qjudge-env-compose-owner`
+- dev Compose、CI 測試環境、`deploy/qjudge`、migrate 與服務診斷：`qjudge-env-compose-owner`
 - branch、commit、PR 與 dev-to-main release：`qjudge-github-workflow-owner`
 - naming、architecture、exports 與 Carbon gates：`qjudge-quality-gates-owner`
 - Carbon 元件、版面、Storybook 與 accessibility：`qjudge-ui-carbon-owner`
@@ -17,14 +17,14 @@ QJudge 維護中的技能位於 `.codex/skills/`：
 
 ## 執行環境
 
-先讀 `qjudge-env-compose-owner/references/environment-matrix.md`，並一律從 repository wrapper 選擇環境：
+先讀 `qjudge-env-compose-owner/references/environment-matrix.md`，本機 Compose 一律經由 repository wrapper：
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <dev|test> <compose arguments>
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev <compose arguments>
 ```
 
-- `dev`：互動式開發、Storybook、實際畫面檢查。
-- `test`：backend、frontend、AI service 與隔離式 E2E 測試。
+- `dev`：互動式開發、Storybook、實際畫面檢查與不需資料庫的測試；資料要保留，`down` 不加 `-v`。
+- 需要資料庫的測試與 E2E 在 CI 執行（`ci/e2e-stack.sh`）。
 - production 形狀的操作使用 `deploy/qjudge`，只有任務明確要求時使用。
 
 依賴資料庫、worker 或服務設定的命令在所屬容器執行。純文件、靜態檢查與不需服務的測試可使用已安裝且版本相符的 host 工具，不必為此另行請求許可。

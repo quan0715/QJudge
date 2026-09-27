@@ -7,30 +7,26 @@ description: Use when QJudge work involves Docker Compose environments, migratio
 
 ## Environment choice
 
-- `dev`: interactive development, Storybook, and manual runtime inspection.
-- `test`: automated backend/frontend/AI tests and isolated E2E dependencies.
-- Production-shaped operations use `deploy/qjudge`; use it only when the task explicitly targets production.
+- `dev`: the only local environment. Interactive development, Storybook, and manual runtime inspection. It keeps its data: never add `-v` to `down`.
+- CI: database-backed backend tests (GitHub service PostgreSQL) and the integration/E2E suites on a fresh install made by `ci/e2e-stack.sh`. There is no local test stack.
+- Production: `deploy/qjudge init|check|ingress|upgrade|rollback|addon`. Use it only when the task explicitly targets a production-shaped install.
 
-Use the repository wrapper:
+Use the repository wrapper for dev:
 
 ```bash
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh <dev|test> <compose arguments>
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev <compose arguments>
 ```
 
-Run commands that depend on databases, workers, or service configuration inside the owning service. Documentation, static checks, and service-independent tests may use an installed host runtime matching the project. No separate permission is needed for that choice.
+Run commands that depend on databases, workers, or service configuration inside the owning dev service. Documentation, static checks, and service-independent tests may use an installed host runtime matching the project. No separate permission is needed for that choice.
 
-For tests, prefer the `test` environment. The development backend goes through development infrastructure such as PgBouncer and is not the canonical test runner.
+Dev has no test database: the application role cannot create one. Run only database-free tests in dev (pytest-django rejects database access from unmarked tests); leave database-backed backend tests and E2E to CI unless the user asks for a local fresh-install run as described in `references/environment-matrix.md`.
 
 ## Common flow
 
-1. Inspect status with `<env> ps`.
-2. Start only the required services, or use `<env> up -d --build` for the complete environment.
+1. Inspect status with `dev ps`.
+2. Start only the required services, or use `dev up -d --build` for the complete environment.
 3. Run non-interactive commands with `exec -T`.
 4. Inspect the exact service logs and readiness endpoint when a command fails.
-
-The wrapper accepts test aliases such as `backend`, `frontend`, and `celery`, but documentation uses actual service names such as `backend-test` to make the selected environment explicit.
-
-The running `backend-test` service uses the least-privileged `qjudge_web` role and cannot create Django's temporary test database. For a pytest run, override only that process with the isolated test PostgreSQL administrator as documented in `references/environment-matrix.md`; do not grant `CREATEDB` to the application role.
 
 ## Boundaries
 
