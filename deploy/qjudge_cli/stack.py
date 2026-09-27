@@ -24,6 +24,26 @@ def app_compose(deploy_dir: Path, env_file: Path, env: Env) -> list[str]:
     ]
 
 
+def secrets_commands(deploy_dir: Path, image: str) -> list[list[str]]:
+    """Create missing AI OAuth and Integrity keys under deploy/secrets; existing keys are kept."""
+    secrets = deploy_dir / "secrets"
+    base = ["docker", "run", "--rm", "--network", "none", "--user", "0:0",
+            "-v", f"{deploy_dir / 'bootstrap'}:/bootstrap:ro"]
+    return [
+        [*base, "-v", f"{secrets}:/oauth-secrets", image,
+         "python", "/bootstrap/bootstrap_ai_oauth_keys.py",
+         "--private-key", "/oauth-secrets/ai-oauth-ed25519-private.pem",
+         "--public-key", "/oauth-secrets/ai-oauth-ed25519-public.pem"],
+        [*base, "-v", f"{secrets / 'integrity'}:/bootstrap-secrets", image,
+         "python", "/bootstrap/bootstrap_integrity_secrets.py",
+         "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"],
+    ]
+
+
+def bootstrap_secrets(deploy_dir: Path, image: str, run: Runner) -> bool:
+    return all(run(command).returncode == 0 for command in secrets_commands(deploy_dir, image))
+
+
 def ensure_network(run: Runner) -> None:
     if run(["docker", "network", "inspect", NETWORK], capture_output=True).returncode != 0:
         run(["docker", "network", "create", NETWORK], check=True)

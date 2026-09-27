@@ -44,7 +44,6 @@ services:
   ai-worker: *fake_ai_service
   ai-scheduler: *fake_ai_service
 
-  migrate: *django_test
   backend: *django_test
   celery: *django_test
   celery-high: *django_test

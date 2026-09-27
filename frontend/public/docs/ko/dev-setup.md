@@ -58,12 +58,13 @@ deploy/qjudge check
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```
 
-`integrity-bootstrap`은 Integrity 서비스가 마운트하는 키를 `deploy/secrets/integrity/`에 생성하며, 첫 `up` 전에 있어야 합니다. `storage-init`은 MinIO에 `OBJECT_STORAGE_BUCKET`을 만듭니다. 마이그레이션은 `up` 때 자동으로 실행됩니다.
+`deploy/qjudge secrets`는 서비스가 마운트하는 AI OAuth 및 Integrity 키를 `deploy/secrets/`에 생성하며, 첫 `up` 전에 있어야 합니다. 기존 키는 그대로 유지됩니다. 채점 워커는 받아 둔 채점 이미지에서 제출을 실행합니다. `storage-init`은 MinIO에 `OBJECT_STORAGE_BUCKET`을 만듭니다. `backend`와 `ai-service`는 시작할 때 마이그레이션을 적용합니다.
 
 테스트 계정과 예제 문제가 필요하면:
 

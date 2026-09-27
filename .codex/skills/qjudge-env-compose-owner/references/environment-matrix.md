@@ -19,8 +19,10 @@ The Compose project name is `COMPOSE_PROJECT_NAME` from `deploy/.env`; keep the 
 | Data | `postgres`, `pgbouncer`, `redis`, `minio` |
 | Workers | `celery`, `celery-high`, `celery-beat`, `integrity-resident`, `integrity-reconciler` |
 | MCP | `qjudge-mcp` (host port 9002) |
-| One-off | `migrate`, `ai-migrate`, `ai-oauth-bootstrap`, `integrity-bootstrap`, `storage-init`, `judge-image` |
+| One-off | `storage-init` |
 | Profiles | `livekit` (`live-monitoring`, reads `.tmp/livekit/dev.json`), `cloudflared` (`tunnel`) |
+
+Dev `backend` and `ai-service` apply their migrations when they start; the workers wait until they are healthy. The judge image comes from GHCR (`DOCKER_IMAGE_JUDGE`).
 
 ```bash
 # Runtime
@@ -29,7 +31,10 @@ The Compose project name is `COMPOSE_PROJECT_NAME` from `deploy/.env`; keep the 
 ./scripts/dev/check-dev-services.sh
 
 # First start on a new checkout: keys before the first up, bucket after it
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 
 # Database-free backend tests
@@ -76,6 +81,7 @@ deploy/qjudge addon media init|up
 deploy/qjudge ingress [--nginx]
 deploy/qjudge upgrade <ref>
 deploy/qjudge rollback
+deploy/qjudge secrets [--image IMAGE]   # create missing AI OAuth and Integrity keys; existing keys are kept
 ```
 
 The project name is `COMPOSE_PROJECT_NAME` (default `qjudge`); addons run as `<project>-storage` and `<project>-media`. Inspect with `docker compose -p <project> ps|logs|exec`. `upgrade` backs up both databases to `deploy/backups/`, records versions in `deploy/.version`, and never restores the database automatically. The public guide is `frontend/public/docs/zh-TW/deployment*.md`.

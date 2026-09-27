@@ -13,12 +13,6 @@ x-integrity-build: &integrity_build
   dockerfile: Dockerfile.resident
 
 services:
-  migrate:
-    build: *backend_build
-  ai-oauth-bootstrap:
-    build: *backend_build
-  integrity-bootstrap:
-    build: *backend_build
   backend:
     build: *backend_build
   celery-high:
@@ -29,16 +23,12 @@ services:
     build: *backend_build
   integrity-reconciler:
     build: *backend_build
-  ai-migrate:
-    build: *ai_build
   ai-service:
     build: *ai_build
   ai-worker:
     build: *ai_build
   ai-scheduler:
     build: *ai_build
-  integrity-resident-data-init:
-    build: *integrity_build
   integrity-resident:
     build: *integrity_build
   qjudge-mcp:

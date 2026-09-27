@@ -88,11 +88,15 @@ class ReleaseTests(unittest.TestCase):
         order = host.commands()
         build = next(i for i, c in enumerate(order) if c.endswith(" build"))
         backup = next(i for i, c in enumerate(order) if "pg_dump" in c)
-        migrate = next(i for i, c in enumerate(order) if "run --rm migrate" in c)
+        migrate = next(i for i, c in enumerate(order)
+                       if "run --rm --no-deps backend python manage.py migrate --noinput" in c)
+        ai_migrate = next(i for i, c in enumerate(order)
+                          if "run --rm --no-deps ai-service sh -c python -m alembic upgrade head" in c)
         up_all = next(i for i, c in enumerate(order) if "--remove-orphans" in c)
         self.assertLess(build, backup)
         self.assertLess(backup, migrate)
-        self.assertLess(migrate, up_all)
+        self.assertLess(migrate, ai_migrate)
+        self.assertLess(ai_migrate, up_all)
         self.assertEqual(read_version(self.deploy), {"current": NEW, "previous": OLD})
         [backup_dir] = list((self.deploy / "backups").iterdir())
         self.assertTrue(backup_dir.name.endswith("-" + NEW[:12]))
@@ -102,15 +106,23 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(dump.stat().st_mode & 0o777, 0o600)
 
     def test_secrets_are_bootstrapped_before_starting_the_stack(self):
-        # integrity-resident bind-mounts files that only integrity-bootstrap creates, and
+        # integrity-resident bind-mounts files that only the secrets bootstrap creates, and
         # `up` creates every container before starting any, so a fresh install needs them first.
         host = FakeHost()
         self.assertEqual(self._upgrade(host), 0)
-        order = [" ".join(c) for c, _ in host.calls]
+        order = host.commands()
         up_all = next(i for i, c in enumerate(order) if "--remove-orphans" in c)
-        for service in ("ai-oauth-bootstrap", "integrity-bootstrap"):
-            index = next(i for i, c in enumerate(order) if f"run --rm {service}" in c)
+        image = "qjudge/backend:sha-" + NEW[:12]
+        for script in ("bootstrap_ai_oauth_keys.py", "bootstrap_integrity_secrets.py"):
+            index = next(i for i, c in enumerate(order) if c.startswith("docker run") and script in c)
+            self.assertIn(f" {image} python /bootstrap/{script}", order[index])
             self.assertLess(index, up_all)
+
+    def test_migration_failure_keeps_services_on_the_previous_version(self):
+        host = FakeHost(fail_on=("alembic upgrade head",))
+        self.assertEqual(self._upgrade(host), 1)
+        self.assertEqual(host.head, OLD)
+        self.assertFalse(any("--remove-orphans" in c for c in host.commands()))
 
     def test_build_failure_restores_checkout_without_touching_services(self):
         host = FakeHost(fail_on=(" build",))

@@ -58,12 +58,13 @@ Compose のコマンドはすべてラッパー経由で実行します。ラッ
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```
 
-`integrity-bootstrap` は Integrity サービスがマウントする鍵を `deploy/secrets/integrity/` に生成します。最初の `up` より前に存在している必要があります。`storage-init` は MinIO に `OBJECT_STORAGE_BUCKET` を作成します。マイグレーションは `up` のときに自動で実行されます。
+`deploy/qjudge secrets` は各サービスがマウントする AI OAuth と Integrity の鍵を `deploy/secrets/` に生成します。最初の `up` より前に存在している必要があり、既存の鍵はそのまま残ります。ジャッジワーカーは取得したジャッジイメージで提出を実行します。`storage-init` は MinIO に `OBJECT_STORAGE_BUCKET` を作成します。`backend` と `ai-service` は起動時にマイグレーションを適用します。
 
 テスト用アカウントとサンプル問題が必要な場合：
 

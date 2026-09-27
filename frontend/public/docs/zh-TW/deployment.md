@@ -100,7 +100,7 @@ deploy/qjudge upgrade origin/main
 2. 準備 judge image：從 GHCR 取得，失敗時使用本機已有的 `oj-judge:latest`，再不行就在本機 build。
 3. 在主機 build QJudge images，tag 為 `sha-<commit 前 12 碼>`。
 4. 啟動 PostgreSQL、PgBouncer 與 Redis，把 `online_judge` 與 `qjudge_ai` 備份到 `deploy/backups/`。
-5. 產生缺少的 AI OAuth 與 Integrity 金鑰，執行 Django 與 AI migration。
+5. 以新版 backend image 產生缺少的 AI OAuth 與 Integrity 金鑰（已有的保留；`deploy/qjudge secrets` 可單獨執行這一步），再執行 Django 與 AI migration。
 6. 啟動所有服務，最多等待 5 分鐘，直到 backend、AI service、Integrity 皆 healthy，且經由 frontend 的 `/api/health/` 回應 200。
 7. 把目前與上一版的 commit 寫入 `deploy/.version`，QJudge images 只保留最近 3 版。
 

@@ -46,7 +46,7 @@ docker compose -p qjudge logs --tail=200 <service>
 | `judge image unavailable` | 無法從 GHCR 取得，本機 build `backend/judge/Dockerfile.judge` 也失敗；看前面的 Docker 輸出 |
 | `build failed` | 看前面的 build 輸出中第一個失敗的 image |
 | `postgres is not healthy`、`database backup failed` | 查看 `postgres` 的 log 與磁碟空間 |
-| `<service> failed; application services still run the previous version` | `migrate`、`ai-migrate` 或金鑰產生失敗；錯誤直接顯示在上方輸出 |
+| `secrets bootstrap failed; …`、`<service> migrations failed; …` | 金鑰產生或 `backend`、`ai-service` 的 migration 失敗，應用服務仍執行原本的版本；錯誤直接顯示在上方輸出 |
 | `sha-… is not healthy` | 新版服務在 5 分鐘內沒有通過健康檢查；有上一版時會以上一版的 image 重新啟動 |
 
 這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是最新備份與還原指令；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。

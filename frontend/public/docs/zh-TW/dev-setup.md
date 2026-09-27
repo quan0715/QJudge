@@ -56,12 +56,13 @@ deploy/qjudge check
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```
 
-`integrity-bootstrap` 在 `deploy/secrets/integrity/` 產生 Integrity 服務要掛載的金鑰，必須在第一次 `up` 之前存在。`storage-init` 在 MinIO 建立 `OBJECT_STORAGE_BUCKET`。Migration 會在 `up` 時自動執行。
+`deploy/qjudge secrets` 在 `deploy/secrets/` 產生服務要掛載的 AI OAuth 與 Integrity 金鑰，必須在第一次 `up` 之前存在；已有的金鑰會保留。Judge worker 以拉下來的 judge image 執行提交。`storage-init` 在 MinIO 建立 `OBJECT_STORAGE_BUCKET`。`backend` 與 `ai-service` 啟動時會先套用 migration。
 
 需要測試帳號與範例題目時：
 

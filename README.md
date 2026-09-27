@@ -29,7 +29,8 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 cp deploy/.env.example deploy/.env   # 填入必要值
 deploy/qjudge check
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```

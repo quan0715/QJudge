@@ -58,12 +58,13 @@ Run every Compose command through the wrapper, which selects the right compose f
 
 ```bash
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm integrity-bootstrap
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```
 
-`integrity-bootstrap` writes the keys under `deploy/secrets/integrity/` that the integrity service mounts; they must exist before the first `up`. `storage-init` creates `OBJECT_STORAGE_BUCKET` in MinIO. Migrations run automatically during `up`.
+`deploy/qjudge secrets` writes the AI OAuth and Integrity keys under `deploy/secrets/` that the services mount; they must exist before the first `up`, and existing keys are kept. The judge workers run submissions in the pulled judge image. `storage-init` creates `OBJECT_STORAGE_BUCKET` in MinIO. `backend` and `ai-service` apply migrations when they start.
 
 For test accounts and sample problems:
 

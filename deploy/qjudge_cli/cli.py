@@ -14,7 +14,8 @@ from .example import render
 from .ingress import render_ingress, render_nginx
 from .init import run_init
 from .lint import lint_compose_text
-from .release import rollback, upgrade
+from .release import _version, read_version, rollback, upgrade
+from .stack import bootstrap_secrets
 
 DEPLOY_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     upgrade_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
     rollback_parser = commands.add_parser("rollback", help="start the previously deployed version again")
     rollback_parser.add_argument("--env-file", type=Path, default=DEPLOY_DIR / ".env")
+    secrets_parser = commands.add_parser("secrets", help="create missing AI OAuth and Integrity keys")
+    secrets_parser.add_argument("--image", help="backend image to run the scripts with (default: the deployed version)")
     args = parser.parse_args(argv)
 
     if args.command == "env-example":
@@ -67,6 +70,13 @@ def main(argv: list[str] | None = None) -> int:
         return upgrade(DEPLOY_DIR, args.env_file, args.ref)
     if args.command == "rollback":
         return rollback(DEPLOY_DIR, args.env_file)
+    if args.command == "secrets":
+        current = read_version(DEPLOY_DIR).get("current")
+        image = args.image or (current and f"qjudge/backend:{_version(current)}")
+        if not image:
+            print(f"{DEPLOY_DIR / '.version'}: no deployed version; pass --image")
+            return 1
+        return 0 if bootstrap_secrets(DEPLOY_DIR, image, subprocess.run) else 1
     if args.command == "addon":
         return run_addon(DEPLOY_DIR, args.env_file, load(args.env_file), args.name, args.action)
     return _check(args.env_file)

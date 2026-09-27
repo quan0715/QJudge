@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from qjudge_cli.cli import main
 from qjudge_cli.tests.test_check import VALID
@@ -67,6 +68,27 @@ class CliTests(unittest.TestCase):
             code, output = self.run_cli("lint-compose", str(path))
         self.assertEqual(code, 1)
         self.assertIn("UNKNOWN_KEY", output)
+
+    def secrets_image(self, *args, version=None):
+        seen = []
+        with tempfile.TemporaryDirectory() as directory:
+            if version:
+                (Path(directory) / ".version").write_text(f"current={version}\n")
+            with mock.patch("qjudge_cli.cli.DEPLOY_DIR", Path(directory)), \
+                    mock.patch("qjudge_cli.cli.bootstrap_secrets",
+                               lambda deploy, image, run: seen.append(image) or True):
+                code, _ = self.run_cli("secrets", *args)
+        return code, seen
+
+    def test_secrets_defaults_to_the_deployed_backend_image(self):
+        self.assertEqual(self.secrets_image(version="c" * 40), (0, ["qjudge/backend:sha-" + "c" * 12]))
+
+    def test_secrets_image_option_wins(self):
+        self.assertEqual(self.secrets_image("--image", "qjudge/backend:dev", version="c" * 40),
+                         (0, ["qjudge/backend:dev"]))
+
+    def test_secrets_without_deployed_version_needs_an_image(self):
+        self.assertEqual(self.secrets_image(), (1, []))
 
 
 if __name__ == "__main__":

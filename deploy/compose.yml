@@ -102,59 +102,11 @@ services:
       timeout: 5s
       retries: 5
 
-  migrate:
-    image: qjudge/backend:${QJUDGE_VERSION}
-    restart: "no"
-    command: ["python", "manage.py", "migrate", "--noinput"]
-    environment: *django_environment
-    depends_on:
-      pgbouncer:
-        condition: service_healthy
-
-  ai-migrate:
-    image: qjudge/ai-service:${QJUDGE_VERSION}
-    restart: "no"
-    healthcheck:
-      disable: true
-    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup"]
-    environment: *ai_environment
-    depends_on:
-      pgbouncer:
-        condition: service_healthy
-
-  ai-oauth-bootstrap:
-    image: qjudge/backend:${QJUDGE_VERSION}
-    restart: "no"
-    command:
-      - python
-      - /bootstrap/bootstrap_ai_oauth_keys.py
-      - --private-key
-      - /oauth-secrets/ai-oauth-ed25519-private.pem
-      - --public-key
-      - /oauth-secrets/ai-oauth-ed25519-public.pem
-    volumes:
-      - ./bootstrap/bootstrap_ai_oauth_keys.py:/bootstrap/bootstrap_ai_oauth_keys.py:ro
-      - ./secrets:/oauth-secrets
-    network_mode: none
-
-  integrity-bootstrap:
-    image: qjudge/backend:${QJUDGE_VERSION}
-    user: "0:0"
-    restart: "no"
-    command: ["python", "/bootstrap/bootstrap_integrity_secrets.py", "--secrets-dir", "/bootstrap-secrets", "--resident-gid", "10001"]
-    volumes:
-      - ./bootstrap/bootstrap_integrity_secrets.py:/bootstrap/bootstrap_integrity_secrets.py:ro
-      - ./secrets/integrity:/bootstrap-secrets
-    network_mode: none
-
   ai-service:
     image: qjudge/ai-service:${QJUDGE_VERSION}
     restart: always
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
     environment: *ai_environment
-    depends_on:
-      ai-migrate:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--max-time", "8", "http://localhost:8001/health/ready"]
       interval: 30s
@@ -168,9 +120,6 @@ services:
       disable: true
     command: ["celery", "-A", "worker.celery_app:celery_app", "worker", "--queues=qjudge-ai", "--concurrency=2", "--loglevel=INFO"]
     environment: *ai_environment
-    depends_on:
-      ai-migrate:
-        condition: service_completed_successfully
 
   ai-scheduler:
     image: qjudge/ai-service:${QJUDGE_VERSION}
@@ -179,9 +128,6 @@ services:
       disable: true
     command: ["celery", "-A", "worker.celery_app:celery_app", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
     environment: *ai_environment
-    depends_on:
-      ai-migrate:
-        condition: service_completed_successfully
 
   backend:
     image: qjudge/backend:${QJUDGE_VERSION}
@@ -198,12 +144,6 @@ services:
         hard: 65536
     environment: *django_environment
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      ai-oauth-bootstrap:
-        condition: service_completed_successfully
-      integrity-bootstrap:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
       ai-service:
@@ -224,12 +164,8 @@ services:
       - judge_tmp:/judge_tmp
     environment: *django_environment
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
-      judge-image:
-        condition: service_started
     deploy:
       resources:
         limits:
@@ -245,12 +181,8 @@ services:
       - judge_tmp:/judge_tmp
     environment: *django_environment
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
-      judge-image:
-        condition: service_started
     deploy:
       resources:
         limits:
@@ -263,23 +195,8 @@ services:
     command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule=/tmp/celerybeat-schedule"]
     environment: *django_environment
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       redis:
         condition: service_healthy
-
-  integrity-resident-data-init:
-    image: qjudge/integrity-resident:${QJUDGE_VERSION}
-    user: "0:0"
-    restart: "no"
-    read_only: true
-    command: ["sh", "-c", "chown 10001:10001 /run-data && chmod 0700 /run-data"]
-    volumes:
-      - integrity_resident_data:/run-data
-    network_mode: none
-    cap_drop: [ALL]
-    cap_add: [CHOWN, FOWNER]
-    security_opt: ["no-new-privileges:true"]
 
   integrity-resident:
     image: qjudge/integrity-resident:${QJUDGE_VERSION}
@@ -311,10 +228,6 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     depends_on:
-      integrity-bootstrap:
-        condition: service_completed_successfully
-      integrity-resident-data-init:
-        condition: service_completed_successfully
       backend:
         condition: service_started
     healthcheck:
@@ -332,8 +245,6 @@ services:
       - ./secrets:/run-secrets:ro
     environment: *django_environment
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       integrity-resident:
         condition: service_healthy
 
@@ -367,13 +278,6 @@ services:
     command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
     depends_on:
       - frontend
-
-  # Makes sure the judge runtime image exists before workers start.
-  judge-image:
-    image: oj-judge:latest
-    command: ["true"]
-    restart: "no"
-    network_mode: none
 
 volumes:
   postgres_data:

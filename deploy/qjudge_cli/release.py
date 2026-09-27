@@ -17,13 +17,17 @@ from urllib.parse import urlsplit
 
 from .check import check_env
 from .envfile import load, write_private
-from .stack import Runner, app_compose, ensure_network
+from .stack import Runner, app_compose, bootstrap_secrets, ensure_network
 
 HttpStatus = Callable[[str, str, str], int]
 Sleep = Callable[[float], None]
 
 DATABASES = ("online_judge", "qjudge_ai")
 APP_SERVICES = ("backend", "ai-service", "integrity-resident")
+MIGRATIONS = (
+    ("backend", ("python", "manage.py", "migrate", "--noinput")),
+    ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
+)
 JUDGE_IMAGE = "oj-judge:latest"
 JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge:latest"
 KEEP_BACKUPS = 10
@@ -222,10 +226,14 @@ def upgrade(
     if not stack.backup(version, sha):
         return abort("database backup failed")
     # `up` creates every container before starting any, and integrity-resident bind-mounts
-    # files that only integrity-bootstrap writes, so the secrets must exist beforehand.
-    for service in ("ai-oauth-bootstrap", "integrity-bootstrap", "migrate", "ai-migrate"):
-        if stack.compose(version, "run", "--rm", service).returncode != 0:
-            return abort(f"{service} failed; application services still run the previous version", hint=True)
+    # files that only the secrets bootstrap writes, so the secrets must exist beforehand.
+    if not bootstrap_secrets(deploy_dir, f"qjudge/backend:{version}", run):
+        return abort("secrets bootstrap failed; application services still run the previous version", hint=True)
+    # postgres, pgbouncer and redis already run; --no-deps keeps the new app services stopped.
+    for service, command in MIGRATIONS:
+        if stack.compose(version, "run", "--rm", "--no-deps", service, *command).returncode != 0:
+            return abort(f"{service} migrations failed; application services still run the previous version",
+                         hint=True)
 
     recorded = read_version(deploy_dir)
     current = recorded.get("current")

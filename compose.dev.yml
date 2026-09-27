@@ -14,6 +14,14 @@ x-dev-backend: &dev_backend
     - ../backend:/app
   environment: *dev_django_environment
 
+# backend and ai-service apply migrations when they start; workers wait for them.
+x-after-backend: &after_backend
+  backend:
+    condition: service_healthy
+x-after-ai-service: &after_ai_service
+  ai-service:
+    condition: service_healthy
+
 services:
   postgres:
     ports:
@@ -26,39 +34,46 @@ services:
     ports:
       - "127.0.0.1:${DEV_REDIS_PORT:-6379}:6379"
 
-  migrate: *dev_backend
-  integrity-reconciler: *dev_backend
-  celery-beat: *dev_backend
+  integrity-reconciler:
+    <<: *dev_backend
+    depends_on: *after_backend
+  celery-beat:
+    <<: *dev_backend
+    depends_on: *after_backend
   backend:
     <<: *dev_backend
-    command: ["python", "-m", "uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]
+    command: ["sh", "-c", "python manage.py migrate --noinput && exec python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app"]
     ports:
       - "127.0.0.1:${DEV_BACKEND_PORT:-8000}:8000"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
   celery:
     <<: *dev_backend
     command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "celery,default"]
+    depends_on: *after_backend
   celery-high:
     <<: *dev_backend
     command: ["celery", "-A", "config.celery", "worker", "--loglevel=info", "-Q", "high_priority", "--concurrency=2"]
+    depends_on: *after_backend
 
-  ai-migrate:
-    volumes:
-      - ../ai-service:/app
   ai-service:
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup && exec uvicorn main:app --host 0.0.0.0 --port 8001"]
     volumes:
       - ../ai-service:/app
     ports:
       - "127.0.0.1:${DEV_AI_PORT:-8001}:8001"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
   ai-worker:
     volumes:
       - ../ai-service:/app
+    depends_on: *after_ai_service
   ai-scheduler:
     volumes:
       - ../ai-service:/app
-
-  judge-image:
-    image: ghcr.io/quan0715/qjudge/judge:latest
-    platform: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+    depends_on: *after_ai_service
 
   qjudge-mcp:
     ports:
