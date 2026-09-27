@@ -30,12 +30,19 @@ services:
     profiles: ["init"]
     entrypoint: ["/bin/sh", "-c"]
     command:
+      # The image ships an mc alias named "local" (localhost:9000), so use our own
+      # name and fail loudly instead of falling back to it.
       - |
-        for attempt in $$(seq 60); do
-          mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1 && break
+        for attempt in $$(seq 120); do
+          mc alias set qjudge http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1 && break
+          if [ "$$attempt" = 120 ]; then
+            mc alias set qjudge http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+            echo "MinIO did not become reachable at http://minio:9000" >&2
+            exit 1
+          fi
           sleep 1
         done
-        mc mb --ignore-existing "local/$$OBJECT_STORAGE_BUCKET"
+        mc mb --ignore-existing "qjudge/$$OBJECT_STORAGE_BUCKET"
     environment:
       MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}

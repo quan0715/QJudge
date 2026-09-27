@@ -7,8 +7,7 @@ E2E 與 API 整合測試在 CI 執行，對象是一套以正式安裝流程從�
 | Workflow | 何時執行 | 內容 |
 | --- | --- | --- |
 | `ci.yml` 的 Integration Tests | 每次 CI | `npm run test:api` 與 MCP Server 整合測試 |
-| `e2e-coding.yml` | 目標為 `main` 的 pull request | 登入流程後執行 coding 考試提交 |
-| `e2e-manual.yml` | 在 GitHub Actions 手動觸發 | 依群組（auth、exam、contest、coding、settings）執行，可加 grep |
+| `e2e.yml` | 每個目標為 `main` 的 pull request，或手動觸發 | pull request 執行 auth 與 coding；手動觸發可指定任一群組（auth、exam、contest、coding）與 grep |
 
 每個 job 都先執行 `ci/e2e-stack.sh`：
 

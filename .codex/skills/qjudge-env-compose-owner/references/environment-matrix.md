@@ -5,7 +5,7 @@
 | Environment | How | Intended use |
 | --- | --- | --- |
 | `dev` | `qjudge-dc.sh dev` (`deploy/compose.yml` + `deploy/compose.build.yml` + `compose.dev.yml`, env `deploy/.env`) | local development, Storybook, database-free tests |
-| CI | `.github/workflows/ci.yml`, `e2e-coding.yml`, `e2e-manual.yml` | database-backed backend tests, integration tests, E2E |
+| CI | `.github/workflows/ci.yml`, `e2e.yml` | database-backed backend tests, integration tests, E2E |
 | Production | `deploy/qjudge` (`deploy/compose.yml` + `deploy/compose.build.yml`, addons under `deploy/addons/`) | self-hosted installs |
 
 ## Dev
@@ -64,8 +64,7 @@ Never run `dev down -v`: it deletes the dev database and MinIO data.
 | Integration Tests | `ci/e2e-stack.sh`, then `npm run test:api` and MCP integration tests |
 | MCP Server Tests | `mcp-server` `pytest tests` (integration tests skip without a backend) |
 | Integrity Service Tests | `integrity-service` `pytest` on the runner Python, as root for the secret bootstrap tests |
-| `e2e-coding.yml` | pull requests to `main`: auth and coding submission Playwright specs |
-| `e2e-manual.yml` | manual dispatch by group |
+| `e2e.yml` | every pull request to `main` (no path filter): auth and coding; manual dispatch: any group (auth, exam, contest, coding). Exam and contest specs need updating before they run on pull requests. Coding calls `e2e-coding.yml` |
 
 `ci/e2e-stack.sh` runs `deploy/qjudge init --non-interactive` (origin `http://localhost:8080`, bundled storage), `addon storage up|init`, `upgrade <HEAD>`, restarts with `ci/compose.e2e.yml` (test settings, asynchronous Celery, fake AI adapters), seeds with `seed_e2e_data`, and exports the stack's compose command as `QJ_DC`. Extra `--set KEY=VALUE` arguments override the `init` defaults.
 

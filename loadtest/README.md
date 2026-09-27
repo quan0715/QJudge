@@ -2,6 +2,8 @@
 
 200 人考試壓力測試（Locust）。環境建立、執行與清理請看 [壓測流程](../docs/loadtest.md)。
 
+另有兩組獨立情境：[`anticheat_exam/`](anticheat_exam/README.md)（監考證據上傳）與 [`livekit/`](livekit/README.md)（LiveKit 容量）。
+
 ## Quick Start
 
 ```bash
