@@ -13,8 +13,8 @@ SECRET_KEY = 'test-secret-key-not-for-production'
 
 # The test database comes from DATABASE_URL, parsed in base.
 
-# Storage calls are mocked in tests; a fixed bucket keeps them deterministic.
-OBJECT_STORAGE_BUCKET = "qjudge-test"
+# Unit tests mock storage and need a bucket name; the E2E stack sets a real one.
+OBJECT_STORAGE_BUCKET = OBJECT_STORAGE_BUCKET or "qjudge-test"
 
 # Use Redis cache for tests (required by django_ratelimit)
 # CI environment provides Redis service
@@ -68,9 +68,9 @@ DOCKER_SECCOMP_PROFILE = env('DOCKER_SECCOMP_PROFILE', None)
 # 允許任何 host（測試用）
 ALLOWED_HOSTS = ['*']
 
-# CSRF trusted origins for E2E test frontend (port 5174)
-# Include 127.0.0.1 — Playwright/CI often uses PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174
+# The public origin (the E2E stack's frontend) plus local dev servers.
 CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL,
     "http://localhost:5174",
     "http://127.0.0.1:5174",
     "http://localhost:3000",
