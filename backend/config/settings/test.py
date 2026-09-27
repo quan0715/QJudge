@@ -71,8 +71,6 @@ ALLOWED_HOSTS = ['*']
 # The public origin (the E2E stack's frontend) plus local dev servers.
 CSRF_TRUSTED_ORIGINS = [
     FRONTEND_URL,
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",

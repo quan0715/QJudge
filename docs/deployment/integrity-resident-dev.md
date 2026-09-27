@@ -80,6 +80,6 @@ Use dedicated local test accounts and clearly named exams. Verify:
   accessible rather than being silently discarded.
 - Verify finalization and two concurrent exams independently.
 
-Automated backend, browser-unit and resident-engine tests use the test Compose
-environment. See the release completion plan for the current acceptance record;
-do not infer end-to-end completion from a unit-suite count.
+Automated backend, browser-unit and resident-engine tests run in CI. See the
+release completion plan for the current acceptance record; do not infer
+end-to-end completion from a unit-suite count.

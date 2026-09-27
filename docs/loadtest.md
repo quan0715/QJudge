@@ -4,24 +4,20 @@
 
 ## 先隔離測試環境
 
-壓測使用 `docker-compose.test.yml`。資料庫、Redis、backend port 與 Docker network 都和 dev／production 分開。以 `CELERY_TASK_ALWAYS_EAGER=false` 啟動時，Celery 任務交給真實 worker 執行。
+壓測使用 `ci/e2e-stack.sh` 全新安裝的 stack。在獨立 worktree 以 `--set` 指定自己的 Compose project 名稱與 storage（見腳本內的預設值），資料庫、Redis 與 Docker network 都和 dev／production 分開。這個 stack 以 `CELERY_TASK_ALWAYS_EAGER=false` 啟動，Celery 任務交給真實 worker 執行。少量 smoke test 也可以直接對 dev（`http://localhost:8000`）執行。
 
 ## 第一次以 5 人驗證
 
-先啟動隔離環境：
+先安裝隔離環境：
 
 ```bash
-CELERY_TASK_ALWAYS_EAGER=false docker compose \
-  -f docker-compose.test.yml \
-  up -d --build backend-test celery-test celery-high-test
+ci/e2e-stack.sh --set COMPOSE_PROJECT_NAME=qjudge-loadtest
 ```
 
-確認服務狀態後建立 200 組測試帳號與考試資料：
+腳本最後一行印出這個 stack 的 Compose 指令，以下以 `<compose>` 代表。確認服務狀態後建立 200 組測試帳號與考試資料：
 
 ```bash
-docker compose \
-  -f docker-compose.test.yml \
-  exec -T backend-test python manage.py seed_loadtest_data
+<compose> exec -T backend python manage.py seed_loadtest_data
 ```
 
 Locust 在主機端使用獨立 Python environment：
@@ -41,13 +37,13 @@ locust -f locustfile.py \
   --spawn-rate 5 \
   --run-time 2m \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 若需要互動介面，改用：
 
 ```bash
-locust -f locustfile.py --host http://localhost:8002
+locust -f locustfile.py --host http://localhost:8080
 ```
 
 瀏覽器開啟 `http://localhost:8089`。
@@ -63,7 +59,7 @@ locust -f locustfile.py \
   --spawn-rate 10 \
   --run-time 30m \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 需要固定的 50、100、150、200 人階段時，先在 `loadtest/locustfile.py` 啟用 `SteppedLoadShape` import。`loadtest/shapes.py` 會用四分鐘升到 200 人，再維持十分鐘。
@@ -77,7 +73,7 @@ locust -f locustfile.py \
   --users 200 \
   --spawn-rate 200 \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 ## 判讀結果
@@ -98,9 +94,7 @@ Locust 目前主要覆蓋 `ExamStudentUser`，流程是登入、進入考試、�
 一般停止會保留 test volumes，方便檢查結果：
 
 ```bash
-docker compose \
-  -f docker-compose.test.yml \
-  down
+<compose> down
 ```
 
 只有在確認目標是這套隔離測試環境、且不需要保留任何測試資料時，才加入 `-v`。不要對 dev 或 production Compose 使用這個清理方式。
