@@ -5,8 +5,7 @@ E2E와 API 통합 테스트는 일반 설치 절차로 처음부터 구성한 QJ
 | Workflow | 실행 시점 | 내용 |
 | --- | --- | --- |
 | `ci.yml`의 Integration Tests | 모든 CI 실행 | `npm run test:api`와 MCP Server 통합 테스트 |
-| `e2e-coding.yml` | `main` 대상 pull request | 로그인 흐름 후 코딩 시험 제출 |
-| `e2e-manual.yml` | GitHub Actions에서 수동 실행 | 그룹(auth, exam, contest, coding, settings)별 또는 전체, 선택적 grep |
+| `e2e.yml` | `main` 대상의 모든 pull request 또는 수동 실행 | 모든 그룹(auth, exam, contest, coding, settings). 수동 실행 시 그룹과 grep 지정 가능 |
 
 모든 job은 먼저 `ci/e2e-stack.sh`를 실행합니다.
 

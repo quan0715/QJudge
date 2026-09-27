@@ -1,9 +1,10 @@
-# Playwright E2E：僅允許手動觸發。
-# 使用方式：GitHub → Actions → 選本 workflow → 「Run workflow」。
+# Playwright E2E：每個合併到 main 的 PR 都會執行（不設路徑過濾），也可手動觸發。
 # 五組測試平行執行，各自以 ci/e2e-stack.sh 全新安裝 stack，Playwright 在 runner 上執行。
-name: E2E (manual only)
+name: E2E
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       group:
@@ -25,7 +26,7 @@ on:
         type: string
 
 concurrency:
-  group: e2e-manual-${{ github.ref }}
+  group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

@@ -39,11 +39,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  coding-e2e:
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    name: Coding exam submissions E2E
-    uses: ./.github/workflows/e2e-coding.yml
-
   # ============================================
   # Static Analysis & Build Check (Blocking)
   # ============================================
@@ -142,7 +137,7 @@ jobs:
   # ============================================
   # Integration Tests (fresh `deploy/qjudge` install via ci/e2e-stack.sh)
   # Covers: Frontend API tests + MCP Server integration tests
-  # Auth E2E moved to e2e-manual.yml (manual dispatch, parallel groups)
+  # Playwright E2E lives in e2e.yml (every pull request to main)
   # ============================================
   integration-tests:
     name: Integration Tests
