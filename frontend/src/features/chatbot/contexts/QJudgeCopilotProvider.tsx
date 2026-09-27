@@ -1,5 +1,4 @@
 import { useMemo, type ReactNode } from "react";
-import { useLocation } from "react-router-dom";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import {
@@ -18,9 +17,14 @@ import {
 import { QJudgeCopilotTranslations } from "../adapters/qJudgeCopilotTranslations";
 import { useReactRouterCopilotSessionLocation } from "../adapters/reactRouterCopilotSessionLocation";
 import { ArtifactPanelProvider } from "./ArtifactPanelContext";
+import {
+  CopilotDemandProvider,
+  useIsCopilotRequested,
+} from "./CopilotDemandContext";
 
 export interface QJudgeCopilotBoundaryProps {
   enabled: boolean;
+  ownerKey?: string | null;
   transport: CopilotTransport;
   location: CopilotSessionLocation;
   storage: CopilotStorage;
@@ -33,6 +37,7 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
   return (
     <CopilotProvider
       enabled={props.enabled}
+      ownerKey={props.ownerKey}
       transport={props.transport}
       sessionLocation={props.location}
       storage={props.storage}
@@ -46,25 +51,26 @@ export function QJudgeCopilotBoundary(props: QJudgeCopilotBoundaryProps) {
 }
 
 export function QJudgeCopilotProvider({ children }: { children: ReactNode }) {
+  return (
+    <CopilotDemandProvider>
+      <QJudgeCopilotRuntime>{children}</QJudgeCopilotRuntime>
+    </CopilotDemandProvider>
+  );
+}
+
+function QJudgeCopilotRuntime({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { right } = useWorkspace();
-  const routerLocation = useLocation();
+  const isRequested = useIsCopilotRequested();
   const location = useReactRouterCopilotSessionLocation();
   const translations = useMemo(() => new QJudgeCopilotTranslations(), []);
   const hasCopilotRole = user?.role === "teacher" || user?.role === "admin";
-  const isStandaloneChat = routerLocation.pathname === "/chat";
-  const isContestAiGrading =
-    /^\/classrooms\/[^/]+\/contest\/[^/]+\/admin\/?$/.test(
-      routerLocation.pathname,
-    ) &&
-    new URLSearchParams(routerLocation.search).get("panel") === "ai-grading";
-  const enabled =
-    hasCopilotRole &&
-    (right.isOpenPreference || isStandaloneChat || isContestAiGrading);
+  const enabled = hasCopilotRole && (right.isOpenPreference || isRequested);
 
   return (
     <QJudgeCopilotBoundary
       enabled={enabled}
+      ownerKey={user ? String(user.id) : null}
       transport={qJudgeCopilotTransport}
       location={location}
       storage={qJudgeCopilotStorage}
