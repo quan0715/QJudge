@@ -1,16 +1,13 @@
 """
 MCP Server integration tests — hit real Django API.
 
-Prerequisites (test stack):
-  docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-  docker compose -f docker-compose.test.yml up -d
-
-Prerequisites (dev stack):
-  Already running on localhost:8000
+Prerequisites: a stack installed by `ci/e2e-stack.sh` (frontend on
+localhost:8080, seeded with `seed_e2e_data`), or the dev backend on
+localhost:8000.
 
 Run:
+  pytest tests/test_integration.py -v
   DJANGO_BASE_URL=http://localhost:8000 pytest tests/test_integration.py -v
-  DJANGO_BASE_URL=http://localhost:8002 pytest tests/test_integration.py -v
 """
 
 import asyncio
@@ -26,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8002")
+DJANGO_BASE_URL = os.getenv("DJANGO_BASE_URL", "http://localhost:8080")
 
 # Skip entire module if backend is unreachable
 def _backend_reachable() -> bool:

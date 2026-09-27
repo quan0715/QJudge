@@ -1,96 +1,69 @@
-# 部署地端 LiveKit 即時監看
+# 設定即時監看
 
-QJudge 的即時監看使用自架 LiveKit Server。每個 Exam Integrity Run 對應一個 Room；考生在同一個 session 發布螢幕分享與 Webcam，助教選擇對象後才訂閱最多兩路影像。LiveKit 只拿到 capture stream 的 clone，原始 stream 仍由考生端採證與 MediaRecorder 管理。
+考試的即時監看使用 LiveKit：考生發布螢幕分享與 Webcam，助教選擇對象後才觀看。這是選用功能；LiveKit 無法使用時，畫面會顯示即時監看暫不可用，作答、交卷與監考採證照常進行。
 
-這項功能不是 150 格影像牆，也不會取代作答、交卷、Integrity checkpoint 或 S3-compatible evidence storage。SFU 無法使用時，畫面顯示「即時監看暫不可用」，考題、作答、原始採證與待傳資料仍應繼續。
+## 選擇模式
 
-## 啟用前提
+| `MEDIA_MODE` | 說明 |
+| --- | --- |
+| `disabled` 或留空 | 不使用即時監看 |
+| `bundled` | QJudge 以 addon 執行 LiveKit，使用 LiveKit 內建的 TURN |
+| `external` | 連接既有的 LiveKit |
 
-正式啟用前請準備：
+啟用時需要的設定：
 
-- 可由 QJudge backend 連到的 LiveKit HTTP API 位址。
-- 瀏覽器可連到的 `wss://` LiveKit signaling 位址。
-- LiveKit API key／secret、可達的 `LIVEKIT_NODE_IP`，以及地端 STUN／TURN host。
-- 獨立於 judge 工作負載的媒體主機資源。單一 Room 上限 160 人是配置值，不是容量驗收結果。
-- TLS、ICE UDP、ICE TCP 與必要 TURN/TLS 的實際防火牆規則。不要把未加密的 7880 直接公開給使用者。
+| 設定 | 用途 |
+| --- | --- |
+| `LIVEKIT_PUBLIC_URL` | 瀏覽器連線的網址，例如 `wss://live.example.edu` |
+| `LIVEKIT_API_KEY`、`LIVEKIT_API_SECRET` | LiveKit API credential |
+| `LIVEKIT_NODE_IP` | bundled 限定：LiveKit 對瀏覽器公布的 media IP，通常是主機的公開 IP |
+| `LIVEKIT_TURN_HOST` | bundled 限定：TURN 網域，DNS 直接解析到主機，不經過 CDN proxy |
 
-LiveKit image 必須使用已查核的 digest；目前 Compose 預設值是 `livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3`。更新 image 時，先對照該版本的 config schema，再重新執行 smoke 與容量驗收。
+Backend 呼叫 LiveKit API 的網址由 `LIVEKIT_PUBLIC_URL` 推導（`wss://` 換成 `https://`），因此 backend container 也要能連到這個網址。
 
-## 建立設定
+## Bundled
 
-先依一般部署指南準備 `.env` 與 object storage，再設定下列值。credential 只放在 secret manager 或權限為 `0600` 的 `.env`，不要提交、截圖或貼到 logs：
-
-```text
-LIVE_MONITORING_ENABLED=true
-LIVEKIT_ENVIRONMENT=main
-LIVEKIT_PUBLIC_URL=wss://livekit.example.edu
-LIVEKIT_INTERNAL_URL=http://livekit:7880
-LIVEKIT_API_KEY=<secret-managed-key>
-LIVEKIT_API_SECRET=<secret-managed-secret>
-LIVEKIT_NODE_IP=<reachable-private-or-public-ip>
-LIVEKIT_STUN_HOST=turn.example.edu:3478
-LIVEKIT_ADVERTISE_INTERNAL_IP=false
-LIVEKIT_IMAGE=livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
-LIVEKIT_CONFIG_FILE=./.tmp/livekit/main.json
-LIVEKIT_TURN_ENABLED=true
-LIVEKIT_TURN_HOST=turn.example.edu
-LIVEKIT_TURN_PORT=3478
-LIVEKIT_TURN_PROTOCOLS=udp,tcp
-LIVEKIT_TURN_SECRET=<secret-managed-turn-secret>
-LIVEKIT_TURN_TTL_SECONDS=300
-LIVEKIT_TURN_RELAY_PORT_START=50300
-LIVEKIT_TURN_RELAY_PORT_END=50399
-COTURN_CONFIG_FILE=./.tmp/livekit/coturn.conf
-```
-
-由 renderer 產生該環境的 server config：
+在 `deploy/.env` 設定 `MEDIA_MODE=bundled`、`LIVEKIT_PUBLIC_URL`、`LIVEKIT_NODE_IP` 與 `LIVEKIT_TURN_HOST`（`init` 時選擇 bundled 會逐項詢問），接著：
 
 ```bash
-python3 scripts/livekit/render-config.py \
-  --output ./.tmp/livekit/main.json
+deploy/qjudge addon media init
+deploy/qjudge addon media up
+deploy/qjudge ingress
 ```
 
-產出會包含 `room.auto_create=false`、`room.max_participants=160`、明確的 RTC port range、`use_external_ip=false`、指定 `node_ip`／STUN host、TURN server 與 API key mapping。`coturn.conf` 使用同一個 TURN shared secret，並以 host network 提供 UDP／TCP 3478 與 relay port range。TURN hostname 必須是 DNS-only A/AAAA 記錄，直接指向 `LIVEKIT_NODE_IP`；不能套 Cloudflare Proxy。若同一服務需要同時服務內網與公網客戶端，將 `LIVEKIT_ADVERTISE_INTERNAL_IP=true`，並把 `LIVEKIT_NODE_IP` 設為外部可達的 IP；這不會取代 NAT／防火牆轉發。停用時 renderer 只產生最小設定，不要求 LiveKit credentials。
+- `addon media init` 在 `LIVEKIT_API_KEY`／`LIVEKIT_API_SECRET` 空白時產生並寫入 `.env`；已有值時不變更。`init` 當時就選擇 bundled 的話已經產生過。
+- `addon media up` 依 `.env` 產生 `deploy/secrets/livekit.json`，只有內容改變時才重建 LiveKit。LiveKit 在獨立的 Compose project `<project>-media` 中執行，`upgrade` 不會重啟它。
+- 最後以目前版本重新執行 `upgrade`，讓 backend 讀到新的 `MEDIA_MODE`（見[部署指南](deployment.md)第 8 節）。
 
-## 啟動與檢查
+`ingress` 會列出 LiveKit 需要的入口：
 
-LiveKit 位於 `live-monitoring` profile；停用 flag 不應讓 QJudge backend、作答或 Integrity 依賴 LiveKit health。啟用後：
+| 入口 | 設定方式 |
+| --- | --- |
+| `LIVEKIT_PUBLIC_URL` 的網域 | 反向代理到 `FRONTEND_BIND_ADDRESS:7880`，需支援 WebSocket；使用 Tunnel 時 route 到 `http://livekit:7880` |
+| Media 與 TURN | 在 `LIVEKIT_NODE_IP` 直接開放 TCP `7881`、UDP `50000-50099`、UDP `3478` 與 UDP `50300-50399`，或由路由器轉發到主機 |
+| TURN/TLS | LiveKit 固定公布 `turns:<LIVEKIT_TURN_HOST>:443`。主機的反向代理在 443 以 TURN 網域的憑證終止 TLS，再以純 TCP 轉到 `FRONTEND_BIND_ADDRESS:5349` |
+
+`ingress --nginx` 附有 TURN 的 nginx `stream` 範例。範例假設 TURN 網域解析到一個只給 TURN 使用的位址，網站的 `server` 則綁在主機的另一個位址，兩者才能同時使用 443。TURN 憑證由主機管理，續期後要 reload 反向代理。TURN 帳密由 LiveKit API key 推導，不需要另外設定。
+
+更新 LiveKit 版本時，image 寫在 `deploy/addons/media/compose.yml`；升級 QJudge 後執行 `deploy/qjudge addon media up` 套用。
+
+## External
+
+設定 `MEDIA_MODE=external`、`LIVEKIT_PUBLIC_URL`、`LIVEKIT_API_KEY` 與 `LIVEKIT_API_SECRET` 後以目前版本重新 `upgrade`。不需要 `addon media` 指令；TURN、port 與憑證由既有的 LiveKit 負責。
+
+## 驗收
+
+1. 以考生或考試管理者身分開啟 `/api/v1/contests/<contest_id>/exam/live/config/`，應回傳 `enabled: true`、`configured: true` 與 `provider: "livekit"`。
+2. 用一場測試考試與少量裝置確認考生可以發布畫面、助教可以切換觀看對象，交卷後停止發布。
+3. 至少用一台位於受限網路（只允許 443）的裝置測試，確認 TURN/TLS 路徑可用。
+
+## 停用與清理
+
+在沒有進行中考試時，把 `MEDIA_MODE` 改為 `disabled` 並以目前版本重新 `upgrade`。需要關閉某場考試殘留的 LiveKit room 時：
 
 ```bash
-docker compose --profile live-monitoring --profile live-turn up -d livekit coturn backend
-docker compose --profile live-monitoring --profile live-turn ps livekit coturn backend
-docker compose --profile live-monitoring --profile live-turn logs --tail=200 livekit coturn backend
+docker compose -p qjudge exec backend python manage.py close_live_monitoring_room \
+  --contest-id <contest_id> --run-id <run_id>
 ```
 
-Production 必須讓主機／上游防火牆放行 LiveKit 的 TCP `7881`、UDP `50000-50099`，以及 coturn 的 TCP／UDP `3478` 與 UDP relay `50300-50399`。`7880` 只給 backend 與 Cloudflare Tunnel 使用，不直接提供給考生。
-
-先確認 `/api/v1/contests/{contest_id}/exam/live/config/` 回傳 `enabled`、`configured` 與 `provider=livekit`，再用專用考試驗證 publisher／subscriber token、雙來源、切換對象與交卷清理。Browser token 只存在記憶體，API 回應使用 `Cache-Control: no-store`；不能從 localStorage、URL 或一般分析事件恢復 token。
-
-後端以一個共享 Redis presence snapshot 提供 roster 狀態：成功快取 10 秒、抓取鎖 5 秒、LiveKit RoomService request timeout 3 秒。`stale=true` 或 `status=unknown` 不代表已確認 live；助教看到舊畫面時會保留畫面並標示來源狀態暫時無法確認。
-
-## 故障應變
-
-LiveKit 故障不應觸發攝影機關閉、螢幕分享停止、違規或自動交卷。需要整體停用時，在沒有進行中考試的維護窗口執行：
-
-```bash
-docker compose --profile live-monitoring stop livekit
-```
-
-並在 backend 重新載入 `LIVE_MONITORING_ENABLED=false`。這不是 Cloudflare fallback；本遷移不保留外部 SFU 自動回退。受影響 Run 依 contest／run scope 執行清理命令，無法連線時保留 retry marker：
-
-```bash
-python manage.py close_live_monitoring_room \
-  --contest-id <contest-id> \
-  --run-id <run-id>
-
-python manage.py close_live_monitoring_room \
-  --contest-id <contest-id> \
-  --run-id <run-id> \
-  --confirm
-```
-
-沒有 `--confirm` 只會列出 contest、Run 與 room scope，不會呼叫刪除 API。確認後命令只刪除該 Run 的 LiveKit Room，不刪考生資料、事件、物件或 Integrity Run。Run archive／data commit 成功後的自動清理失敗也只會記錄 `live_cleanup_pending`，不回滾已提交資料。
-
-## 放行界線
-
-目前通過的單元／整合測試只能支持 Gate A 的程式契約。沒有實際 host、TLS、TURN、真實瀏覽器媒體與容量報告前，不得描述為地端端到端可用，也不得安排 150 名正式考生。Gate B 必須完成少量真媒體與外連封鎖驗證；Gate C 還要完成 150 名 publisher、5 位助教、300 次切換與最長考試時長 soak。
+不加 `--confirm` 只列出會影響的範圍；加上後才刪除該 room，不會刪除考生資料或已上傳的檔案。

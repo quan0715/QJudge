@@ -107,6 +107,21 @@ class MarkdownImageApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Unsupported image", response.data["error"])
 
+    def test_upload_rejects_corrupt_png(self):
+        self.client.force_authenticate(user=self.user)
+        payload = bytearray(_make_png_bytes())
+        payload[payload.index(b"IDAT") + 4] ^= 0xFF
+        file_obj = BytesIO(bytes(payload))
+        file_obj.name = "diagram.png"
+
+        response = self.client.post(
+            "/api/v1/markdown/images/",
+            {"file": file_obj},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Unsupported image", response.data["error"])
+
     @override_settings(MARKDOWN_IMAGE_MAX_BYTES=10)
     def test_upload_rejects_oversized_image(self):
         self.client.force_authenticate(user=self.user)

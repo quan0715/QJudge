@@ -13,6 +13,7 @@ import {
   requestFullscreen,
 } from "@/infrastructure/browser/fullscreen";
 import { DisplayCheckService } from "@/features/contest/detectors/displayCheckService";
+import { checkGraphicsEnvironment } from "@/features/contest/detectors/graphicsEnvironmentCheck";
 import {
   clearPrecheckScreenShareHandoff,
   peekPrecheckScreenShareHandoff,
@@ -35,6 +36,7 @@ export interface CheckItem {
 }
 
 export type EnvCheckId =
+  | "graphics"
   | "singleMonitor"
   | "shareScreen"
   | "webcam"
@@ -69,6 +71,7 @@ export interface PreflightValidationResult {
 export const PRECHECK_RECENT_INTERACTION_WINDOW_MS = 30000;
 
 const ENV_CHECK_ORDER: EnvCheckId[] = [
+  "graphics",
   "singleMonitor",
   "shareScreen",
   "webcam",
@@ -126,7 +129,9 @@ export const createEnvironmentChecks = (
   t: TranslateFn,
   filter?: EnvironmentCheckFilter
 ): CheckItem[] => {
-  const checks: CheckItem[] = [];
+  const checks: CheckItem[] = [
+    { id: "graphics", label: t("precheck.environment.checks.graphics"), status: "pending" },
+  ];
   if (!filter || filter.requireSingleMonitor) {
     checks.push(
       { id: "singleMonitor", label: t("precheck.environment.checks.monitor"), status: "pending" },
@@ -211,7 +216,9 @@ export const applyPreflightFailureToEnvChecks = (
         };
       }
       if (idx > failureIndex) {
-        const depName = failure.checkId === "singleMonitor"
+        const depName = failure.checkId === "graphics"
+          ? t("precheck.environment.checks.graphics")
+          : failure.checkId === "singleMonitor"
           ? t("precheck.environment.checks.monitor")
           : failure.checkId === "shareScreen"
             ? t("precheck.environment.checks.sharing")
@@ -265,6 +272,16 @@ export const runStartPreflightValidation = async (
     failure,
     observation,
   });
+
+  const graphics = checkGraphicsEnvironment();
+  if (graphics.failure) {
+    return fail({
+      checkId: "graphics",
+      detail: t(`precheck.environment.errors.${graphics.failure}`),
+      clearShareHandoff: true,
+      clearWebcamHandoff: true,
+    });
+  }
 
   if (requireSingleMonitor) {
     const diagnostics = await displayService.check();
@@ -459,6 +476,20 @@ export const runEnvChecks = async ({
   };
 
   try {
+    markRunning("graphics", t("precheck.environment.status.checking"));
+    const graphics = checkGraphicsEnvironment();
+    if (graphics.failure) {
+      await finalizeCheck("graphics", "fail", t(`precheck.environment.errors.${graphics.failure}`));
+      applyPreflightFailureToEnvChecks({
+        checkId: "graphics",
+        detail: t(`precheck.environment.errors.${graphics.failure}`),
+        clearShareHandoff: true,
+        clearWebcamHandoff: true,
+      }, setEnvChecks, setEnvTestDone, setEnvTestRunning, t);
+      return;
+    }
+    await finalizeCheck("graphics", "pass");
+
     if (requireSingleMonitor) {
       markRunning("singleMonitor", t("precheck.environment.status.checking"));
       const diagnostics = await displayService.check();

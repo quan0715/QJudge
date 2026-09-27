@@ -4,45 +4,20 @@
 
 ## 先隔離測試環境
 
-壓測會合併 `docker-compose.test.yml` 與 `loadtest/docker-compose.loadtest.yml`。資料庫、Redis、backend port 與 Docker network 都和 dev／production 分開；object storage 也必須使用專用 credential 與 bucket，不能共用正式資料。
-
-先參考 `docs/examples/loadtest.env.example` 準備以下變數：
-
-```text
-LOADTEST_OBJECT_STORAGE_ENDPOINT_URL
-LOADTEST_OBJECT_STORAGE_PUBLIC_ENDPOINT_URL
-LOADTEST_OBJECT_STORAGE_ACCESS_KEY
-LOADTEST_OBJECT_STORAGE_SECRET_KEY
-LOADTEST_ANTICHEAT_RAW_BUCKET
-```
-
-不要提交實際 credential。所有變數備妥後，先確認 Compose 可以解析：
-
-```bash
-docker compose \
-  -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  config --quiet
-```
+壓測使用 `ci/e2e-stack.sh` 全新安裝的 stack。在獨立 worktree 以 `--set` 指定自己的 Compose project 名稱與 storage（見腳本內的預設值），資料庫、Redis 與 Docker network 都和 dev／production 分開。這個 stack 以 `CELERY_TASK_ALWAYS_EAGER=false` 啟動，Celery 任務交給真實 worker 執行。少量 smoke test 也可以直接對 dev（`http://localhost:8000`）執行。
 
 ## 第一次以 5 人驗證
 
-先啟動隔離環境：
+先安裝隔離環境：
 
 ```bash
-docker compose \
-  -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  up -d --build
+ci/e2e-stack.sh --set COMPOSE_PROJECT_NAME=qjudge-loadtest
 ```
 
-確認服務狀態後建立 200 組測試帳號與考試資料：
+腳本最後一行印出這個 stack 的 Compose 指令，以下以 `<compose>` 代表。確認服務狀態後建立 200 組測試帳號與考試資料：
 
 ```bash
-docker compose \
-  -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  exec -T backend-test python manage.py seed_loadtest_data
+<compose> exec -T backend python manage.py seed_loadtest_data
 ```
 
 Locust 在主機端使用獨立 Python environment：
@@ -62,16 +37,16 @@ locust -f locustfile.py \
   --spawn-rate 5 \
   --run-time 2m \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 若需要互動介面，改用：
 
 ```bash
-locust -f locustfile.py --host http://localhost:8002
+locust -f locustfile.py --host http://localhost:8080
 ```
 
-瀏覽器開啟 `http://localhost:8089`。壓測專用 Grafana 位於 `http://localhost:3001`；它只屬於這套 test Compose，不是 QJudge production 的部署需求。
+瀏覽器開啟 `http://localhost:8089`。
 
 ## 逐步增加到 200 人
 
@@ -84,7 +59,7 @@ locust -f locustfile.py \
   --spawn-rate 10 \
   --run-time 30m \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 需要固定的 50、100、150、200 人階段時，先在 `loadtest/locustfile.py` 啟用 `SteppedLoadShape` import。`loadtest/shapes.py` 會用四分鐘升到 200 人，再維持十分鐘。
@@ -98,7 +73,7 @@ locust -f locustfile.py \
   --users 200 \
   --spawn-rate 200 \
   --headless \
-  --host http://localhost:8002
+  --host http://localhost:8080
 ```
 
 ## 判讀結果
@@ -119,10 +94,7 @@ Locust 目前主要覆蓋 `ExamStudentUser`，流程是登入、進入考試、�
 一般停止會保留 test volumes，方便檢查結果：
 
 ```bash
-docker compose \
-  -f docker-compose.test.yml \
-  -f loadtest/docker-compose.loadtest.yml \
-  down
+<compose> down
 ```
 
 只有在確認目標是這套隔離測試環境、且不需要保留任何測試資料時，才加入 `-v`。不要對 dev 或 production Compose 使用這個清理方式。
@@ -135,9 +107,5 @@ loadtest/users/exam_student.py
 loadtest/users/burst.py
 loadtest/shapes.py
 loadtest/safety.py
-loadtest/docker-compose.loadtest.yml
-loadtest/prometheus/prometheus.yml
-loadtest/grafana/provisioning/
 backend/apps/core/management/commands/seed_loadtest_data.py
-backend/config/settings/loadtest.py
 ```

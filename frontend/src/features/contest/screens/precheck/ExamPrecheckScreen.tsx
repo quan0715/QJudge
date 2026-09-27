@@ -103,6 +103,7 @@ const ExamPrecheckScreen: React.FC = () => {
     : t("precheck.entryDevice.source.none", "未啟用監考來源");
   const environmentRequirements = [
     t("precheck.environment.requirements.browser"),
+    t("precheck.environment.requirements.graphics"),
     ...(monitoringPlan.precheck.requireSingleMonitor
       ? [
           t("precheck.environment.requirements.permission"),

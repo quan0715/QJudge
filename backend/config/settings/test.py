@@ -3,7 +3,7 @@ Test settings for CI/CD environments
 """
 from .base import *
 import os
-from urllib.parse import urlparse
+from config.env import env
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -11,69 +11,17 @@ DEBUG = False
 SECRET_KEY = 'test-secret-key-not-for-production'
 
 
-# Test database
-# 優先使用 DATABASE_URL（CI 標準格式）
-DATABASE_URL = os.getenv('DATABASE_URL')
-DB_CONN_MAX_AGE = int(os.getenv('DB_CONN_MAX_AGE', '0'))
-DB_OPTIONS = {
-    'connect_timeout': 10,
-}
+# The test database comes from DATABASE_URL, parsed in base.
 
-
-def _env_first(*keys: str, default: str | None = None) -> str | None:
-    for key in keys:
-        value = os.getenv(key)
-        if value:
-            return value
-    return default
-
-if DATABASE_URL:
-    # Parse DATABASE_URL (e.g., postgresql://user:pass@host:port/dbname)
-    url = urlparse(DATABASE_URL)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:],  # Remove leading '/'
-            'USER': url.username,
-            'PASSWORD': url.password,
-            'HOST': url.hostname,
-            'PORT': url.port or '5432',
-            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
-            'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': DB_OPTIONS,
-        }
-    }
-else:
-    # 回退到個別環境變數；預設值對齊 docker-compose.test.yml 的 host 映射。
-    db_host = _env_first('POSTGRES_HOST', 'DB_HOST', 'DATABASE_HOST', default='localhost')
-    # Django test runner 需要直連 PostgreSQL 來建立/刪除 test_* 資料庫；
-    # pgbouncer 只代理既有資料庫，不能承接這段流程。
-    if db_host == 'pgbouncer':
-        db_host = _env_first('POSTGRES_DIRECT_HOST', 'POSTGRES_HOST', default='postgres')
-    # 如果是 Docker 服務名但不在 Docker 網路內，回退到 localhost
-    if db_host in ('postgres_test', 'postgres') and not os.path.exists('/.dockerenv'):
-        db_host = 'localhost'
-    
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _env_first('POSTGRES_DB', 'DB_NAME', 'DATABASE_NAME', default='test_oj_e2e'),
-            'USER': _env_first('POSTGRES_USER', 'DB_USER', 'DATABASE_USER', default='oj_user'),
-            'PASSWORD': _env_first('POSTGRES_PASSWORD', 'DB_PASSWORD', 'DATABASE_PASSWORD', default='oj_password'),
-            'HOST': db_host,
-            'PORT': _env_first('POSTGRES_PORT', 'DB_PORT', 'DATABASE_PORT', default='5433'),
-            'CONN_MAX_AGE': DB_CONN_MAX_AGE,
-            'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': DB_OPTIONS,
-        }
-    }
+# Unit tests mock storage and need a bucket name; the E2E stack sets a real one.
+OBJECT_STORAGE_BUCKET = OBJECT_STORAGE_BUCKET or "qjudge-test"
 
 # Use Redis cache for tests (required by django_ratelimit)
 # CI environment provides Redis service
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+        'LOCATION': env('REDIS_URL', 'redis://localhost:6379/0'),
         'KEY_PREFIX': 'qjudge_test',
         'TIMEOUT': 300,
     }
@@ -94,11 +42,11 @@ PASSWORD_HASHERS = [
 ]
 
 # Redis
-REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+REDIS_URL = env('REDIS_URL', 'redis://localhost:6379/0')
 
 # Celery
 # Unit tests default to eager; browser E2E can exercise the real worker queues.
-CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
+CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = True
 
 # Judge Engine - 在測試環境中啟用
@@ -108,23 +56,21 @@ JUDGE_MAX_MEMORY = 256
 
 # Docker Judge Settings for Testing
 # 使用環境變數或預設值
-DOCKER_IMAGE_JUDGE = os.getenv('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
-DOCKER_JUDGE_PLATFORM = os.getenv('DOCKER_JUDGE_PLATFORM') or None
-DOCKER_JUDGE_PIDS_LIMIT = int(os.getenv('DOCKER_JUDGE_PIDS_LIMIT', '64'))
-DOCKER_JUDGE_TMPFS_SIZE = os.getenv('DOCKER_JUDGE_TMPFS_SIZE', '100M')
-DOCKER_JUDGE_TIMEOUT = int(os.getenv('DOCKER_JUDGE_TIMEOUT', '60'))
+DOCKER_IMAGE_JUDGE = env('DOCKER_IMAGE_JUDGE', 'oj-judge:latest')
+DOCKER_JUDGE_PLATFORM = env('DOCKER_JUDGE_PLATFORM') or None
+DOCKER_JUDGE_PIDS_LIMIT = int(env('DOCKER_JUDGE_PIDS_LIMIT', '64'))
+DOCKER_JUDGE_TMPFS_SIZE = env('DOCKER_JUDGE_TMPFS_SIZE', '100M')
+DOCKER_JUDGE_TIMEOUT = int(env('DOCKER_JUDGE_TIMEOUT', '60'))
 
 # Seccomp (Optional in tests)
-DOCKER_SECCOMP_PROFILE = os.getenv('DOCKER_SECCOMP_PROFILE', None)
+DOCKER_SECCOMP_PROFILE = env('DOCKER_SECCOMP_PROFILE', None)
 
 # 允許任何 host（測試用）
 ALLOWED_HOSTS = ['*']
 
-# CSRF trusted origins for E2E test frontend (port 5174)
-# Include 127.0.0.1 — Playwright/CI often uses PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174
+# The public origin (the E2E stack's frontend) plus local dev servers.
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
+    FRONTEND_URL,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",

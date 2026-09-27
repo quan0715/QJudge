@@ -1,20 +1,20 @@
 """Current-user avatar upload views."""
 
-from io import BytesIO
 from pathlib import Path
 
 from django.conf import settings
 from django.core.cache import cache
 from django.urls import reverse
-from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.services import (
+    InvalidImageError,
     MarkdownImageStorageError,
     build_markdown_image_object_key,
+    inspect_image,
     store_markdown_image,
 )
 
@@ -86,12 +86,8 @@ class UserAvatarUploadView(SchemaAPIView):
             )
 
         try:
-            with Image.open(BytesIO(payload)) as image:
-                image.verify()
-            with Image.open(BytesIO(payload)) as image:
-                image_format = (image.format or "").upper()
-                width, height = image.size
-        except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+            image = inspect_image(payload)
+        except InvalidImageError:
             return Response(
                 {
                     "success": False,
@@ -100,7 +96,7 @@ class UserAvatarUploadView(SchemaAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if width * height > self.MAX_IMAGE_PIXELS:
+        if image.width * image.height > self.MAX_IMAGE_PIXELS:
             return Response(
                 {
                     "success": False,
@@ -112,7 +108,7 @@ class UserAvatarUploadView(SchemaAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if image_format not in self.SUPPORTED_IMAGE_FORMATS:
+        if image.format not in self.SUPPORTED_IMAGE_FORMATS:
             return Response(
                 {
                     "success": False,
@@ -124,7 +120,7 @@ class UserAvatarUploadView(SchemaAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        extension, content_type = self.SUPPORTED_IMAGE_FORMATS[image_format]
+        extension, content_type = self.SUPPORTED_IMAGE_FORMATS[image.format]
         object_key = build_markdown_image_object_key(extension)
 
         try:

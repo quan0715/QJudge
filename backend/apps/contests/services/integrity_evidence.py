@@ -1057,7 +1057,7 @@ def create_evidence_manifest(
             else:
                 try:
                     put_url, checksum = generate_evidence_chunk_put_url(
-                        settings.ANTICHEAT_RAW_BUCKET,
+                        settings.OBJECT_STORAGE_BUCKET,
                         row.object_key,
                         content_type=row.content_type,
                         byte_size=row.byte_size,
@@ -1113,7 +1113,7 @@ def complete_evidence_chunk(
     client = get_s3_client()
     try:
         head = client.head_object(
-            Bucket=settings.ANTICHEAT_RAW_BUCKET,
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
             Key=chunk.object_key,
             ChecksumMode="ENABLED",
         )
@@ -1715,7 +1715,7 @@ def _load_archive_manifest_chain(
         visited.add(key)
         try:
             response = client.get_object(
-                Bucket=settings.INTEGRITY_ARCHIVE_BUCKET,
+                Bucket=settings.OBJECT_STORAGE_BUCKET,
                 Key=key,
             )
         except (BotoCoreError, ClientError):
@@ -1960,22 +1960,22 @@ def purge_integrity_data(run: ExamIntegrityRun) -> None:
         archive_keys, evidence_keys = receipt
     _delete_exact_keys(
         client,
-        settings.INTEGRITY_ARCHIVE_BUCKET,
+        settings.OBJECT_STORAGE_BUCKET,
         archive_keys,
     )
     _delete_exact_keys(
         client,
-        settings.ANTICHEAT_RAW_BUCKET,
+        settings.OBJECT_STORAGE_BUCKET,
         evidence_keys,
     )
     _verify_exact_keys_absent(
         client,
-        settings.INTEGRITY_ARCHIVE_BUCKET,
+        settings.OBJECT_STORAGE_BUCKET,
         archive_keys,
     )
     _verify_exact_keys_absent(
         client,
-        settings.ANTICHEAT_RAW_BUCKET,
+        settings.OBJECT_STORAGE_BUCKET,
         evidence_keys,
     )
     with transaction.atomic():

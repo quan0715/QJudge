@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.dev.yml}"
 BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
 CONTEST_ID=""
 CONFIRMED=0
@@ -21,7 +20,6 @@ Options:
   --contest-id <id>   Optional. Only clean one contest's evidence data.
 
 Environment:
-  COMPOSE_FILE        docker compose file path (default: docker-compose.dev.yml)
   BACKEND_SERVICE     compose backend service name (default: backend)
 EOF
 }
@@ -58,12 +56,7 @@ if [[ "$CONFIRMED" -ne 1 ]]; then
   exit 1
 fi
 
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  echo "[error] Compose file not found: $COMPOSE_FILE" >&2
-  exit 1
-fi
-
-compose=(docker compose -f "$COMPOSE_FILE")
+compose=("$ROOT_DIR/.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh" dev)
 
 if ! "${compose[@]}" ps --services >/dev/null 2>&1; then
   echo "[error] Unable to read compose services. Is Docker running?" >&2
@@ -71,7 +64,7 @@ if ! "${compose[@]}" ps --services >/dev/null 2>&1; then
 fi
 
 if ! "${compose[@]}" ps --services --status running | grep -qx "$BACKEND_SERVICE"; then
-  echo "[error] Backend service '$BACKEND_SERVICE' is not running in $COMPOSE_FILE" >&2
+  echo "[error] Backend service '$BACKEND_SERVICE' is not running in the dev stack" >&2
   exit 1
 fi
 
@@ -115,10 +108,10 @@ endpoint = (getattr(settings, "OBJECT_STORAGE_ENDPOINT_URL", "") or "").strip()
 access_key = (getattr(settings, "OBJECT_STORAGE_ACCESS_KEY", "") or "").strip()
 secret_key = (getattr(settings, "OBJECT_STORAGE_SECRET_KEY", "") or "").strip()
 region = (getattr(settings, "OBJECT_STORAGE_REGION", "us-east-1") or "us-east-1").strip()
-raw_bucket = (getattr(settings, "ANTICHEAT_RAW_BUCKET", "anticheat-raw") or "anticheat-raw").strip()
+bucket = (getattr(settings, "OBJECT_STORAGE_BUCKET", "") or "").strip()
 
-if not endpoint or not access_key or not secret_key:
-    print("[object-storage] skipped: missing OBJECT_STORAGE_* credentials/endpoint in env")
+if not endpoint or not access_key or not secret_key or not bucket:
+    print("[object-storage] skipped: missing OBJECT_STORAGE_* settings in env")
     raise SystemExit(0)
 
 s3 = boto3.client(
@@ -163,9 +156,18 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
 
     return total_deleted
 
-prefix = f"contest_{contest_id}/" if contest_id is not None else ""
-raw_deleted = purge_bucket(raw_bucket, prefix=prefix)
-print(f"[object-storage] deleted_raw_objects={raw_deleted} bucket={raw_bucket} prefix={prefix or '(all)'}")
+# The bucket also holds markdown images and AI artifacts; delete only evidence.
+if contest_id is not None:
+    from apps.contests.models import ExamIntegrityRun
+
+    run_ids = ExamIntegrityRun.objects.filter(contest_id=contest_id).values_list("id", flat=True)
+    # Integrity archives are keyed by run, not contest.
+    prefixes = [f"contest_{contest_id}/", f"integrity/{contest_id}/", *(f"runs/{run_id}/" for run_id in run_ids)]
+else:
+    prefixes = ["contest_", "integrity/", "runs/"]
+for prefix in prefixes:
+    deleted = purge_bucket(bucket, prefix=prefix)
+    print(f"[object-storage] deleted_objects={deleted} bucket={bucket} prefix={prefix}")
 PY
 
 echo "[done] Anti-cheat cleanup completed."

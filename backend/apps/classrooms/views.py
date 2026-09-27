@@ -1,9 +1,7 @@
 """
 Views for classrooms.
 """
-from io import BytesIO
 
-from PIL import Image, UnidentifiedImageError
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError as DRFValidationError
@@ -16,7 +14,9 @@ from django.urls import reverse
 from apps.users.permissions import IsTeacherOrAdmin
 from apps.core.services import (
     build_markdown_image_object_key,
+    inspect_image,
     store_markdown_image,
+    InvalidImageError,
     MarkdownImageStorageError,
 )
 
@@ -295,11 +295,8 @@ class ClassroomViewSet(viewsets.ModelViewSet):
             raise DRFValidationError('Uploaded file is empty')
 
         try:
-            with Image.open(BytesIO(payload)) as img:
-                img.verify()
-            with Image.open(BytesIO(payload)) as img:
-                image_format = (img.format or '').upper()
-        except (UnidentifiedImageError, OSError):
+            image_format = inspect_image(payload).format
+        except InvalidImageError:
             raise DRFValidationError('Unsupported image file')
 
         if image_format not in self.COVER_SUPPORTED_FORMATS:

@@ -1,212 +1,113 @@
 # 部署故障排除
 
-遇到錯誤時，先找出部署流程中最早失敗的一步。不要一開始就重啟所有 services、替換 `.env` 或刪除資料；下游服務常常只是因為前一個相依項目沒有準備好。
+先找出最早失敗的一步，不要一開始就重啟所有服務、重建 `deploy/.env` 或刪除 volume。以下指令的 `qjudge` 是 Compose project 名稱；`deploy/.env` 設定了 `COMPOSE_PROJECT_NAME` 時改用該值。自帶的 addon 分別在 `qjudge-storage` 與 `qjudge-media` project 中。
 
-以下每一節先提供少量、唯讀的檢查。若要回報問題，保留 QJudge commit、Ubuntu／Docker 版本與異常 service 最近的 logs，並先移除 token、credential、email、presigned URL 與學生資料。
-
-## 1. 主機與工具
-
-**症狀：** 找不到指令、Docker daemon unavailable，或目前帳號沒有權限。
-
-先執行：
+## 先看這三個
 
 ```bash
-docker --version
+deploy/qjudge check
+docker compose -p qjudge ps --all
+docker compose -p qjudge logs --tail=200 <service>
+```
+
+`check` 一次列出 `deploy/.env` 的所有問題；沒有問題時顯示 `…/.env: OK`。`ps` 中長駐服務應為 running 或 healthy。依症狀查看對應服務的 log：
+
+| 服務 | 負責 |
+| --- | --- |
+| `frontend` | HTTP 入口與路徑分流 |
+| `backend` | Django API |
+| `celery` | 背景工作與程式評測（`high_priority`、`default` queue） |
+| `ai-service`、`ai-worker` | AI 助教（`ai-worker` 內含排程，只能單一 replica） |
+| `integrity-resident`、`integrity-reconciler` | 考試 Integrity |
+| `qjudge-mcp` | Remote MCP |
+| `postgres`、`pgbouncer`、`redis` | 資料庫與 queue |
+| `cloudflared` | Cloudflare Tunnel |
+
+## `check` 的錯誤
+
+每一行是一個 key 與原因，例如：
+
+- `…: unknown key` — 不是目前支援的 key，對照 `deploy/.env.example` 修正或刪除。
+- `…: required.` — 必填或所選功能需要的 key 沒有值。
+- `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL: must use https when QJUDGE_PUBLIC_ORIGIN uses https`
+- `QJUDGE_PUBLIC_ORIGIN: must not include a path, query, or fragment`
+- DB 密碼只能包含英數字與 `-._~`，因為它會直接放進連線 URL。
+
+`init` 在 `deploy/.env` 已存在時拒絕執行；要修改設定請直接編輯該檔。
+
+## `upgrade` 失敗
+
+`upgrade` 會印出停在哪一步：
+
+| 訊息 | 處理 |
+| --- | --- |
+| `N problem(s) in …` | 依上方的 `check` 錯誤修正 |
+| git 的 checkout 錯誤 | 確認 ref 存在於 remote；`git fetch` 失敗時只會使用本機已有的 ref |
+| `judge image unavailable` | 無法從 GHCR 取得，本機 build `backend/judge/Dockerfile.judge` 也失敗；看前面的 Docker 輸出 |
+| `build failed` | 看前面的 build 輸出中第一個失敗的 image |
+| `postgres is not healthy`、`database backup failed` | 查看 `postgres` 的 log 與磁碟空間 |
+| `secrets bootstrap failed; …`、`<service> migrations failed; …` | 金鑰產生或 `backend`、`ai-service` 的 migration 失敗，應用服務仍執行原本的版本；錯誤直接顯示在上方輸出 |
+| `sha-… is not healthy` | 新版服務在 5 分鐘內沒有通過健康檢查；有上一版時會以上一版的 image 重新啟動 |
+
+這些情況都會 checkout 回原本的版本，資料庫不會自動還原。印出 `Database not restored` 時，下一行是最新備份與還原指令；只有 migration 不能與舊版程式共存時才需要還原，步驟見[部署指南](deployment.md)第 9 節。
+
+健康檢查要求 `backend`、`ai-service`、`integrity-resident` 皆為 healthy，而且直接對 frontend 的 `/api/health/`（帶 origin 的 `Host` 與 `X-Forwarded-Proto`）回應 200，不經過反向代理。
+
+## 網站打不開或一直重新導向
+
+先確認入口設定與 `deploy/qjudge ingress` 的輸出一致，再從反向代理所在的主機直接測試 frontend（位址與 port 換成 `ingress` 列出的值）：
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'Host: judge.example.edu' -H 'X-Forwarded-Proto: https' \
+  http://127.0.0.1:8080/api/health/
+```
+
+- `200`：QJudge 正常，問題在反向代理、DNS 或憑證。
+- `400`：`Host` 與 `QJUDGE_PUBLIC_ORIGIN` 的網域不同。
+- 連不上：檢查 `FRONTEND_BIND_ADDRESS`、`FRONTEND_PORT` 與防火牆，以及 `frontend` 是否 running。
+
+瀏覽器一直重新導向時，檢查反向代理是否設定 `X-Forwarded-Proto`。Origin 為 HTTPS 而請求沒有這個 header 時，backend 會回應 `301` 導向 HTTPS。
+
+後台看到的使用者 IP 都是反向代理的位址時，確認 `QJUDGE_TRUSTED_PROXIES` 包含反向代理的 IP，且反向代理有附加 `X-Forwarded-For`。使用 Tunnel 時查看 `docker compose -p qjudge logs --tail=200 cloudflared`，並確認 Cloudflare 的 route 與 `ingress` 列出的一致。
+
+## 檔案上傳或圖片讀取失敗
+
+| 症狀 | 檢查 |
+| --- | --- |
+| 瀏覽器顯示 CORS error | Bundled：修改 origin 後要重新執行 `deploy/qjudge addon storage up`。External：bucket CORS 要允許 `QJUDGE_PUBLIC_ORIGIN` 與 `GET`、`PUT`、`HEAD` |
+| `SignatureDoesNotMatch` | 反向代理改寫了 `Host`，或瀏覽器連線的網址與 `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` 不同；也檢查主機時間 `date -u` |
+| `NoSuchBucket` | Bundled 執行 `deploy/qjudge addon storage init`；External 建立 `OBJECT_STORAGE_BUCKET` 指定的 bucket |
+| `AccessDenied` | Credential 沒有該 bucket 的讀寫權限 |
+
+相關 log：`docker compose -p qjudge logs --tail=200 backend ai-worker`，bundled MinIO 為 `docker compose -p qjudge-storage logs --tail=200 minio`。Presigned URL 在有效時間內可以直接存取檔案，不要貼到公開的 issue。
+
+## 提交後沒有評測結果
+
+```bash
+docker compose -p qjudge logs --tail=200 celery
+docker image inspect oj-judge:latest --format '{{.Id}}'
+```
+
+評測由 `celery` 透過主機的 Docker 執行 `oj-judge:latest`。Image 不存在時重新執行 `upgrade`，它會重新取得或 build judge image。
+
+## 即時監看無法使用
+
+1. 開啟 `/api/v1/contests/<contest_id>/exam/live/config/`：`enabled` 為 false 表示 `MEDIA_MODE` 未啟用或尚未重新 `upgrade`；`configured` 為 false 表示 LiveKit 設定不完整。
+2. 查看 `docker compose -p qjudge-media logs --tail=200 livekit` 與 `backend` 的 log。Backend 以 `LIVEKIT_PUBLIC_URL` 推導出的 HTTPS 網址呼叫 LiveKit，container 內必須能連到它。
+3. 只有部分網路連不上時，檢查 `LIVEKIT_NODE_IP` 上的 UDP／TCP port 與 443 的 TURN/TLS 轉送，對照 `deploy/qjudge ingress` 的輸出。
+
+## 回報問題
+
+附上以下資訊，並先移除 token、密碼、email、presigned URL 與學生資料：
+
+```bash
+git rev-parse HEAD
+cat deploy/.version
+docker version
 docker compose version
-docker info
+deploy/qjudge check
+docker compose -p qjudge ps --all
 ```
 
-前兩行應顯示版本，`docker info` 應同時顯示 Client 與 Server。若出現 permission denied，先修正目前帳號的 Docker 權限；若無法連到 daemon，先確認 Docker service 已啟動。
-
-Docker 可以運作、部署仍在 build 階段失敗時，再查看 build 輸出中第一個失敗的 image。不要因為最後一行只寫 exit code，就忽略前面的 package 或 network error。
-
-## 2. 環境設定
-
-**症狀：** `setup-env.sh` 停止、拒絕覆寫，或顯示缺少必要值。
-
-先確認 `.env` 是否存在、權限是否正確，並只列出 key 名稱：
-
-```bash
-ls -l .env
-awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/{print $1}' .env
-```
-
-`.env` 應位於 repository root，權限應限制為擁有者讀寫。不要用 `cat .env` 回報問題。
-
-如果 `.env` 已存在，初始化工具拒絕覆寫是正常的保護機制。不要直接加入 `--force`；它會重新產生 application 與 database secrets。先備份並確認你是要修改單一設定，還是重新建立整套環境。
-
-非互動的 shell 不會出現 object storage 提示。自動化流程需要預先注入四個 `OBJECT_STORAGE_*` 值，但 log 只能顯示 key 是否存在，不能輸出 value。
-
-## 3. Compose 與啟動
-
-**症狀：** Compose 說變數缺失、service 沒有建立，或 container 反覆重啟。
-
-先檢查 rendered Compose 與所有狀態：
-
-```bash
-docker compose config --quiet
-docker compose ps --all
-```
-
-第一個指令沒有輸出代表設定可以解析。第二個指令中，長期服務應為 running／healthy；一次性服務可以成功結束。
-
-找出第一個異常 service 後讀取最近 logs：
-
-```bash
-docker compose logs --tail=200 SERVICE_NAME
-```
-
-將 `SERVICE_NAME` 換成畫面中的名稱，例如 `postgres`、`ai-db-bootstrap`、`backend` 或 `frontend`。先修正第一個失敗的 dependency，再重新建立受影響的 service。
-
-## 4. Database 與 migration
-
-**症狀：** `ai-db-bootstrap`／`ai-migrate` 失敗，backend 卡在 migration，或登入時出現 database error。
-
-先看一次性工作與 backend：
-
-```bash
-docker compose ps --all ai-db-bootstrap ai-migrate
-docker compose logs --tail=200 ai-db-bootstrap ai-migrate backend
-```
-
-`ai-db-bootstrap` 與 `ai-migrate` 應以成功狀態結束。Backend 啟動時會執行 Django migration；完成後才啟動 web server。
-
-需要確認 Django migration 狀態時：
-
-```bash
-docker compose exec backend python manage.py showmigrations --plan
-```
-
-若既有 PostgreSQL volume 使用的 password 和目前 `.env` 不一致，不能靠刪除 volume 修復。先確認備份、既有角色與 credential rotation 方式，再決定復原步驟。
-
-## 5. 健康檢查
-
-**症狀：** Container 看起來已啟動，但網頁、API 或 AI readiness 沒有回應。
-
-在部署主機依序測試：
-
-```bash
-curl --fail http://127.0.0.1/
-curl --fail http://127.0.0.1:8000/api/health/
-curl --fail http://127.0.0.1:8001/health/ready
-```
-
-首頁失敗時先看 `frontend`，backend health 失敗時看 `postgres`、`pgbouncer`、`redis` 與 `backend`。AI readiness 不要求 provider API key；失敗時先看 AI database、Redis queue 與 `ai-service`。
-
-下一步讀取對應 service：
-
-```bash
-docker compose logs --tail=200 frontend backend ai-service
-```
-
-只啟動 container 但沒有完成瀏覽器登入、題目、評測與圖片上傳，仍不能視為部署完成。
-
-## 6. 檔案儲存
-
-**症狀：** Bucket not found、Access denied、signature mismatch、圖片無法讀取或瀏覽器顯示 CORS error。
-
-先只顯示 endpoint，不顯示 credential，並確認主機時間：
-
-```bash
-awk -F= '/^OBJECT_STORAGE_(ENDPOINT_URL|PUBLIC_ENDPOINT_URL)=/{print}' .env
-date -u
-```
-
-Container endpoint 必須能從 QJudge services 連線，public endpoint 則必須能從使用者瀏覽器連線。使用 R2 時兩者通常相同且都使用 HTTPS；使用 MinIO 時可以不同，但 QJudge 網站若使用 HTTPS，public endpoint 也必須使用 HTTPS。
-
-目前使用之功能對應的 bucket 必須存在：核心圖片上傳使用 `markdown-images`，Exam Integrity 使用 `anticheat-raw`，AI 產物使用 `ai-artifacts`。
-
-依症狀檢查：
-
-- Signature mismatch：endpoint、access key、secret key 或主機時間不一致。
-- Access denied：credential 沒有指定 bucket 的 object read／write 權限。
-- CORS error：bucket allowed origin 和 `QJUDGE_PUBLIC_ORIGIN` 不完全相同，或 method／header 未允許。R2 與 MinIO 都要檢查。
-- URL 指向錯誤主機：public endpoint 使用了瀏覽器無法解析的 hostname。
-
-接著查看實際處理 request 的 service：
-
-```bash
-docker compose logs --tail=200 backend ai-worker integrity-resident integrity-reconciler
-```
-
-Presigned URL 在有效時間內可能帶有存取權限，不要貼到公開 issue。
-
-## 7. Judge 與 Integrity
-
-**症狀：** 程式提交沒有結果、Judge image 不存在，或監考事件未出現在管理畫面。
-
-先確認 image、Docker socket 與 secret files，不輸出 secret 內容：
-
-```bash
-docker image inspect oj-judge:latest >/dev/null
-stat -c '%u:%g %a %n' /var/run/docker.sock
-stat -c '%F %u:%g %a %n' secrets/integrity/backend-public-key secrets/integrity/resident-service-token secrets/integrity/integrity-worker-signing-key
-```
-
-Judge image 應存在；Docker socket 只供 Judge 使用，group 要和 `.env` 產生的設定一致。Integrity 不使用 Docker socket。三個 credential path 應是 regular file；Resident 的 public key 與 service token 應為 group 10001、權限 640，簽章私鑰保持 600。
-
-再查看相關 services：
-
-```bash
-docker compose logs --tail=200 celery celery-high integrity-resident integrity-reconciler
-docker compose exec -T integrity-resident python -c "from urllib.request import urlopen; assert urlopen('http://localhost:8011/ready').status == 200"
-```
-
-如果 secret bind mount source 意外變成 directory，先停止使用該路徑的 container，確認是空目錄再移除，重新執行 `docker compose run --rm --no-deps --build integrity-bootstrap`。不要覆寫現有有效憑證。Resident 與 reconciler 常駐運作，老師不需手動啟動或重啟每場考試的 Worker。
-
-## 8. LiveKit 即時監看
-
-**症狀：** QJudge 顯示即時監看不可用、targets 變成 stale、助教看到 No signal，或 LiveKit container 無法啟動。
-
-先確認設定檔、profile、服務 log 與 backend 的設定狀態；不要把 API secret 貼進輸出：
-
-```bash
-stat -c '%a %n' .tmp/livekit/main.json
-docker compose --profile live-monitoring ps livekit backend
-docker compose --profile live-monitoring logs --tail=200 livekit backend
-curl --fail http://127.0.0.1:8000/api/health/
-```
-
-設定檔應為權限 `0600`，且由 `scripts/livekit/render-config.py` 依目前 image schema 產生。確認 `LIVEKIT_PUBLIC_URL` 是瀏覽器可達的 `wss://` 位址，`LIVEKIT_INTERNAL_URL` 是 backend 可達的 HTTP API 位址；不要把 7880 未加密入口直接公開。再分別檢查 signaling、ICE UDP、ICE TCP 與 TURN/TLS 的 firewall／reverse proxy 路徑。
-
-如果 RoomService timeout，roster 的 `stale`／`unknown` 狀態不能解讀為考生離線；原始考生採證、作答與 checkpoint 不應因此停止。LiveKit 故障時不要改接 Cloudflare，先依[地端 LiveKit 即時監看](deployment-live-monitoring.md)的應變步驟停用服務或重試指定 Run 的 room cleanup。
-
-```bash
-python manage.py close_live_monitoring_room \
-  --contest-id <contest-id> \
-  --run-id <run-id>
-```
-
-無 `--confirm` 只會顯示 scope。確認刪除前先確認沒有進行中的考試；命令只刪 LiveKit room，不刪 QJudge 資料或 storage objects。
-
-## 9. Tunnel 與 OAuth
-
-**症狀：** HTTPS 網域打不開、Tunnel running 但沒有內容、OAuth callback mismatch，或登入後又回到錯誤頁面。
-
-啟用 Tunnel 時先檢查 profile、logs 與 public origin：
-
-```bash
-docker compose --profile tunnel ps cloudflared
-docker compose --profile tunnel logs --tail=200 cloudflared
-awk -F= '/^QJUDGE_PUBLIC_ORIGIN=/{print}' .env
-```
-
-Container 應為 running，origin 應與瀏覽器網址完全相同。Cloudflare dashboard 還要確認 Tunnel status、public hostname、DNS 與 target service；token 正確不代表 route 一定正確。
-
-OAuth provider 登記的 callback 必須是 frontend route：
-
-```text
-https://YOUR_QJUDGE_HOST/auth/PROVIDER/callback
-```
-
-`PROVIDER` 要換成 `nycu`、`github` 或 `google`。Client ID 與 secret 必須成對存在；不要把 backend 的 `/api/v1/auth/callback/{provider}` 登記到 provider console。
-
-下一步查看 frontend 與 backend：
-
-```bash
-docker compose logs --tail=200 frontend backend
-```
-
-若要回報問題，附上 `git rev-parse HEAD`、`docker version`、`docker compose version`、`docker compose ps --all` 與已去除秘密的相關 logs。不要附上 `.env` 全文。
-
-問題解除後，回到[從一台主機開始部署 QJudge](deployment.md)重新執行對應的驗收步驟。
+再加上異常服務的 log。不要附上 `deploy/.env` 或 `deploy/secrets/` 的內容。

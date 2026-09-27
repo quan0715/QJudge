@@ -66,7 +66,6 @@ export interface ContestParticipant {
   liveMonitoringSources?: Array<"screen_share" | "webcam">;
   liveMonitoringStatus?: "available" | "unavailable" | "unknown";
   score: number;
-  rank?: number;
   joinedAt: string;
   // Primary state field
   examStatus: ExamStatusType;

@@ -1,0 +1,35 @@
+# Build the self-built images locally. Every service sharing an image lists the
+# same build so `docker compose build` produces the tag regardless of order.
+x-backend-build: &backend_build
+  context: ../backend
+  dockerfile: Dockerfile
+  args:
+    DJANGO_ENV: ${QJUDGE_BUILD_ENV:-production}
+x-ai-build: &ai_build
+  context: ../ai-service
+  dockerfile: Dockerfile
+x-integrity-build: &integrity_build
+  context: ../integrity-service
+  dockerfile: Dockerfile.resident
+
+services:
+  backend:
+    build: *backend_build
+  celery:
+    build: *backend_build
+  integrity-reconciler:
+    build: *backend_build
+  ai-service:
+    build: *ai_build
+  ai-worker:
+    build: *ai_build
+  integrity-resident:
+    build: *integrity_build
+  qjudge-mcp:
+    build:
+      context: ..
+      dockerfile: mcp-server/Dockerfile
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile

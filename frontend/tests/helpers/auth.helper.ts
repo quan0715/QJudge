@@ -25,9 +25,7 @@ export async function login(page: Page, role: UserRole = "student") {
 
   const gotoLogin = async () => {
     const isSameLoginRedirectInterrupt = (message: string) =>
-      message.includes('interrupted by another navigation to "http://localhost:5174/login"') ||
-      message.includes('interrupted by another navigation to "http://127.0.0.1:5174/login"') ||
-      message.includes("interrupted by another navigation to \"/login\"");
+      /interrupted by another navigation to "(https?:\/\/[^/"]+)?\/login"/.test(message);
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {

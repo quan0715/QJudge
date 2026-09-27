@@ -24,37 +24,25 @@ The workflow first runs `auth.e2e.spec.ts` to verify login, registration, onboar
 session persistence and logout. Coding submissions run only after authentication passes.
 Both Playwright reports are retained separately.
 
-This workflow sets `CELERY_TASK_ALWAYS_EAGER=false` and starts both worker queues
-and the judge image. Default unit-test settings still use eager execution.
+The workflow installs a fresh stack with `ci/e2e-stack.sh` (`deploy/qjudge init`
++ `upgrade`, then `ci/compose.e2e.yml`: test settings, non-eager Celery with both
+worker queues and the judge image) and runs Playwright on the runner against
+`http://localhost:8080`. Default unit-test settings still use eager execution.
 The workflow uploads the Playwright report, failure trace/video and service logs.
 
 ## Local run
 
-From the repository root:
+Install the stack in a separate worktree with its own Compose project and
+storage (see the `--set` arguments in `ci/e2e-stack.sh`); the script prints the
+Compose command for the installed stack. Then, from `frontend/`:
 
 ```bash
-python3 scripts/bootstrap_integrity_secrets.py --secrets-dir .tmp/integrity-test-secrets
-
-CELERY_TASK_ALWAYS_EAGER=false \
-  .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d \
-  frontend-test celery-test celery-high-test judge-image-test
-
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
-  -e CI=true -e E2E_REUSE_ENV=true frontend-test \
-  npm run test:e2e -- tests/e2e/coding-submissions.e2e.spec.ts --no-deps --retries=0
+npx playwright install chromium
+CI=true npm run test:e2e -- tests/e2e/coding-submissions.e2e.spec.ts --no-deps --retries=0
 ```
 
 `--no-deps` skips the unrelated shared auth setup: this spec performs its own
-student login and teacher fixture authentication. The test stack is retained
-locally. GitHub Actions removes its isolated stack after the job.
+student login and teacher fixture authentication.
 
-On Apple Silicon, a native judge avoids amd64 emulation. Build it from the same
-Dockerfile, then set these overrides on the Compose `up` command above:
-
-```bash
-docker build -t qjudge-coding-e2e-arm64:local -f backend/judge/Dockerfile.judge backend/judge
-export DOCKER_IMAGE_JUDGE=qjudge-coding-e2e-arm64:local
-export DOCKER_JUDGE_PLATFORM=linux/arm64
-```
-
-CI uses the default amd64 judge image on its Ubuntu runner.
+The published judge image is amd64 only; on Apple Silicon `deploy/qjudge upgrade`
+builds `oj-judge:latest` natively from `backend/judge/Dockerfile.judge`.

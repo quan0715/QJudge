@@ -1,4 +1,4 @@
 interface:
   display_name: "QJudge Env Compose Owner"
-  short_description: "Owner of main/dev/test Docker Compose workflows with exec-first policy"
-  default_prompt: "Run QJudge environment operations with docker compose using exec-first commands for backend and frontend tasks."
+  short_description: "Owner of the dev Compose workflow, CI fresh-install tests, and deploy/qjudge production commands"
+  default_prompt: "Run QJudge dev operations through qjudge-dc.sh with exec-first commands; leave database-backed tests and E2E to CI."

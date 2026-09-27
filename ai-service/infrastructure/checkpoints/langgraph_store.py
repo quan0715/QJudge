@@ -50,6 +50,11 @@ class LangGraphCheckpointStore:
             raise TypeError("session_id must be a UUID")
         return {"thread_id": str(session_id)}
 
+    async def _use_schema(self, connection) -> None:
+        await connection.execute(
+            sql.SQL("SET search_path TO {}").format(sql.Identifier(self._schema))
+        )
+
     async def setup(self) -> None:
         if self._checkpointer is not None:
             return
@@ -59,12 +64,11 @@ class LangGraphCheckpointStore:
         pool = AsyncConnectionPool(
             conninfo=_psycopg_url(self._database_url),
             min_size=1,
-            max_size=10,
-            kwargs={
-                "autocommit": True,
-                "prepare_threshold": 0,
-                "options": f"-c search_path={self._schema}",
-            },
+            max_size=5,
+            # PgBouncer rejects the "options" startup parameter, so the schema
+            # is selected after each connection is opened.
+            configure=self._use_schema,
+            kwargs={"autocommit": True, "prepare_threshold": 0},
             open=False,
         )
         await pool.open()

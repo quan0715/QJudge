@@ -9,6 +9,7 @@ from functools import lru_cache
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+from botocore.config import Config
 from django.conf import settings
 
 
@@ -30,6 +31,7 @@ def _cached_s3_client(resolved_endpoint: str) -> Any:
         "aws_access_key_id": settings.OBJECT_STORAGE_ACCESS_KEY,
         "aws_secret_access_key": settings.OBJECT_STORAGE_SECRET_KEY,
         "region_name": settings.OBJECT_STORAGE_REGION,
+        "config": Config(signature_version="s3v4"),
     }
     if resolved_endpoint:
         kwargs["endpoint_url"] = resolved_endpoint
@@ -95,7 +97,6 @@ def generate_put_url(
     object_key: str,
     expires_seconds: int = 300,
     content_type: str = "image/webp",
-    tagging: str = "cleanup=true",
     client: Any | None = None,
 ) -> str:
     # Presigned URLs must be signed against the same public host clients will call.
@@ -106,8 +107,6 @@ def generate_put_url(
         "Key": object_key,
         "ContentType": content_type,
     }
-    if tagging and settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
-        params["Tagging"] = tagging
     url = client.generate_presigned_url(
         ClientMethod="put_object",
         Params=params,
@@ -167,57 +166,3 @@ def generate_get_url(
         ExpiresIn=expires_seconds,
     )
     return url
-
-
-def tag_object_retain(bucket: str, object_key: str) -> None:
-    """Retain-tag a single object. Prefer tag_objects_retain() for batches."""
-    if not settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
-        return
-    client = get_s3_client()
-    client.copy_object(
-        Bucket=bucket,
-        Key=object_key,
-        CopySource={"Bucket": bucket, "Key": object_key},
-        TaggingDirective="REPLACE",
-        Tagging="retain=true",
-    )
-
-
-def tag_objects_retain(bucket: str, object_keys: list[str]) -> int:
-    """Batch-tag objects as retain=true using CopyObject for broad provider compatibility."""
-    import logging
-
-    logger = logging.getLogger(__name__)
-    if not settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED:
-        logger.info("Object tagging disabled; skipped retain tags for %s objects", len(object_keys))
-        return 0
-    client = get_s3_client()
-    tagged = 0
-    for key in object_keys:
-        try:
-            client.copy_object(
-                Bucket=bucket,
-                Key=key,
-                CopySource={"Bucket": bucket, "Key": key},
-                TaggingDirective="REPLACE",
-                Tagging="retain=true",
-            )
-            tagged += 1
-        except Exception as exc:
-            logger.warning("Failed to retain-tag %s: %s", key, exc)
-    return tagged
-
-
-def list_raw_keys_for_user(contest_id: int, user_id: int) -> list[str]:
-    """List all raw screenshot keys for a user across all sessions."""
-    client = get_s3_client()
-    bucket = settings.ANTICHEAT_RAW_BUCKET
-    prefix = f"contest_{contest_id}/user_{user_id}/"
-    paginator = client.get_paginator("list_objects_v2")
-    keys: list[str] = []
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        for item in page.get("Contents", []):
-            key = item.get("Key")
-            if key and key.endswith(".webp"):
-                keys.append(key)
-    return keys

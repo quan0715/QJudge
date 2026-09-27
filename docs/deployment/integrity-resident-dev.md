@@ -32,8 +32,9 @@ Use the existing dev database. In the commands below, `dc` means
    `dc exec -T -e DB_HOST=postgres backend python manage.py migrate`.
    Migration 0099 removes the retired worker fields.
 2. Build the runtime: `dc build integrity-resident`.
-3. For first setup, run `dc run --rm --no-deps integrity-bootstrap`, then
-   `dc run --rm --no-deps integrity-resident-data-init`.
+3. For first setup, run `deploy/qjudge secrets --image qjudge/backend:dev`.
+   The resident image creates `/run-data` owned by 10001 with mode 0700, and a
+   new volume starts from it.
 4. Recreate the runtime and reconciler:
    `dc up -d --no-deps --no-build integrity-resident integrity-reconciler`.
    Backend source reloads in dev; restart the backend if its environment changed.
@@ -80,6 +81,6 @@ Use dedicated local test accounts and clearly named exams. Verify:
   accessible rather than being silently discarded.
 - Verify finalization and two concurrent exams independently.
 
-Automated backend, browser-unit and resident-engine tests use the test Compose
-environment. See the release completion plan for the current acceptance record;
-do not infer end-to-end completion from a unit-suite count.
+Automated backend, browser-unit and resident-engine tests run in CI. See the
+release completion plan for the current acceptance record; do not infer
+end-to-end completion from a unit-suite count.

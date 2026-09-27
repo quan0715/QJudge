@@ -15,15 +15,6 @@ OBJECT_KEY_PATTERN = re.compile(
     r"^markdown/\d{4}/\d{2}/[0-9a-f]{32}\.(?:png|jpe?g|webp|gif)$"
 )
 
-_BUCKET_READY = False
-
-
-def reset_bucket_ready_cache() -> None:
-    """Reset the bucket-exists cache (useful in tests)."""
-    global _BUCKET_READY
-    _BUCKET_READY = False
-
-
 class MarkdownImageStorageError(Exception):
     """Raised when markdown image storage operations fail."""
 
@@ -66,63 +57,21 @@ def get_markdown_image_s3_client():
     """Build boto3 S3 client for markdown images."""
     boto3 = _get_boto3()
     kwargs: dict[str, Any] = {
-        "aws_access_key_id": settings.MARKDOWN_IMAGE_S3_ACCESS_KEY,
-        "aws_secret_access_key": settings.MARKDOWN_IMAGE_S3_SECRET_KEY,
-        "region_name": settings.MARKDOWN_IMAGE_S3_REGION,
+        "aws_access_key_id": settings.OBJECT_STORAGE_ACCESS_KEY,
+        "aws_secret_access_key": settings.OBJECT_STORAGE_SECRET_KEY,
+        "region_name": settings.OBJECT_STORAGE_REGION,
     }
-    if settings.MARKDOWN_IMAGE_S3_ENDPOINT_URL:
-        kwargs["endpoint_url"] = settings.MARKDOWN_IMAGE_S3_ENDPOINT_URL
+    if settings.OBJECT_STORAGE_ENDPOINT_URL:
+        kwargs["endpoint_url"] = settings.OBJECT_STORAGE_ENDPOINT_URL
     return boto3.client("s3", **kwargs)
-
-
-def _ensure_bucket_exists(client) -> None:
-    global _BUCKET_READY
-    if _BUCKET_READY:
-        return
-
-    bucket = settings.MARKDOWN_IMAGE_S3_BUCKET
-    auto_create = getattr(settings, "OBJECT_STORAGE_AUTO_CREATE_BUCKETS", True)
-    try:
-        client.head_bucket(Bucket=bucket)
-        _BUCKET_READY = True
-        return
-    except ClientError as exc:
-        code = str(exc.response.get("Error", {}).get("Code", "")).strip()
-        if not auto_create:
-            if code in {"403", "AccessDenied", "Forbidden"}:
-                _BUCKET_READY = True
-                return
-            if code in {"404", "NoSuchBucket", "NotFound"}:
-                raise MarkdownImageStorageError(
-                    f"Markdown image bucket '{bucket}' not found on object storage; "
-                    "create it in the provider dashboard before retrying."
-                ) from exc
-            raise MarkdownImageStorageError("Failed to access markdown image bucket") from exc
-        if code not in {"404", "NoSuchBucket", "NotFound"}:
-            raise MarkdownImageStorageError("Failed to access markdown image bucket") from exc
-
-    create_params: dict[str, Any] = {"Bucket": bucket}
-    region = (settings.MARKDOWN_IMAGE_S3_REGION or "").strip()
-    if region and region != "us-east-1":
-        create_params["CreateBucketConfiguration"] = {"LocationConstraint": region}
-
-    try:
-        client.create_bucket(**create_params)
-    except ClientError as exc:
-        code = str(exc.response.get("Error", {}).get("Code", "")).strip()
-        if code != "BucketAlreadyOwnedByYou":
-            raise MarkdownImageStorageError("Failed to create markdown image bucket") from exc
-
-    _BUCKET_READY = True
 
 
 def store_markdown_image(content: bytes, object_key: str, content_type: str) -> None:
     """Upload markdown image bytes to S3."""
     client = get_markdown_image_s3_client()
-    _ensure_bucket_exists(client)
     try:
         client.put_object(
-            Bucket=settings.MARKDOWN_IMAGE_S3_BUCKET,
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
             Key=object_key,
             Body=content,
             ContentType=content_type,
@@ -136,7 +85,7 @@ def fetch_markdown_image(object_key: str) -> MarkdownImageObject:
     client = get_markdown_image_s3_client()
     try:
         response = client.get_object(
-            Bucket=settings.MARKDOWN_IMAGE_S3_BUCKET,
+            Bucket=settings.OBJECT_STORAGE_BUCKET,
             Key=object_key,
         )
     except ClientError as exc:

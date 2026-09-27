@@ -10,7 +10,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { Section } from "@/shared/layout/SettingsPanel";
 
-const MCP_URL = import.meta.env.VITE_MCP_PUBLIC_URL || "https://mcp.q-judge.com/mcp";
+// The frontend nginx serves the MCP endpoint on the same origin as the site.
+const MCP_URL = `${window.location.origin}/mcp`;
 const DIRECT_CONNECT_URL = MCP_URL;
 
 const CLAUDE_CODE_CMD = `claude mcp add --transport http qjudge ${MCP_URL}`;

@@ -1,0 +1,48 @@
+# CI E2E overlay for deploy/compose.yml, applied by ci/e2e-stack.sh after a
+# fresh `deploy/qjudge init` + `upgrade`. Not a deployment configuration.
+# Paths resolve against --project-directory deploy.
+
+# AI services talk to protocol-correct fakes (OAuth issuer, token exchange,
+# MCP, OpenAI-compatible model) so tests never reach real providers.
+x-fake-ai-environment: &fake_ai_environment
+  QJUDGE_PUBLIC_ORIGIN: http://fake-ai-adapters:8080
+  AI_OAUTH_JWKS_URL: http://fake-ai-adapters:8080/.well-known/jwks.json
+  MCP_TOKEN_EXCHANGE_URL: http://fake-ai-adapters:8080/token-exchange
+  QJUDGE_MCP_URL: http://fake-ai-adapters:8080/mcp
+  OPENAI_API_KEY: fake-test-provider-key
+  OPENAI_BASE_URL: http://fake-ai-adapters:8080/v1
+  DEEPSEEK_API_KEY: fake-test-provider-key
+  DEEPSEEK_BASE_URL: http://fake-ai-adapters:8080/v1
+  VLLM_API_KEY: fake-test-provider-key
+  VLLM_BASE_URL: http://fake-ai-adapters:8080/v1
+
+x-fake-ai-service: &fake_ai_service
+  environment: *fake_ai_environment
+  depends_on:
+    fake-ai-adapters:
+      condition: service_healthy
+
+# Test settings disable rate limits; Celery stays asynchronous so submissions
+# go through the real judge workers.
+x-django-test: &django_test
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.test
+    CELERY_TASK_ALWAYS_EAGER: "false"
+
+services:
+  fake-ai-adapters:
+    image: qjudge/ai-service:${QJUDGE_VERSION}
+    restart: "no"
+    command: ["uvicorn", "tests.fakes.fake_ai_adapters:app", "--host", "0.0.0.0", "--port", "8080"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  ai-service: *fake_ai_service
+  ai-worker: *fake_ai_service
+
+  backend: *django_test
+  celery: *django_test
+  integrity-reconciler: *django_test

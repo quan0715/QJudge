@@ -28,7 +28,7 @@ def process_image(img_path, box, text, out_path, pad=12, text_offset=15):
     print(f"Saved {out_path}")
 
 def main():
-    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:5174")
+    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:8080")
     email = os.environ.get("OJ_TEST_EMAIL", "teacher@example.com")
     password = os.environ.get("OJ_TEST_PASSWORD", "teacher123")
 

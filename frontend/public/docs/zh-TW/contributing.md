@@ -24,7 +24,7 @@ git switch -c YOUR_FEATURE_BRANCH
 
 ## 在相同環境驗證
 
-QJudge 的依賴與測試以 Compose 管理。前端測試在 dev frontend container 中執行，後端測試使用 test Compose 的 `backend-test`，詳細指令見[本機開發環境](#/docs/dev-setup)。
+QJudge 的依賴與測試以 Compose 管理。前端與不需要資料庫的測試在 dev container 中執行；需要資料庫的後端測試、整合測試與 E2E 在 CI 執行。詳細指令見[本機開發環境](#/docs/dev-setup)。
 
 至少驗證你改到的範圍；若變更會跨服務傳遞資料，再補上相鄰服務的 contract 或整合測試。不要只因為完整測試耗時，就完全省略可直接證明行為的最小測試。
 

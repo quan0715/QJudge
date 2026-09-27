@@ -86,6 +86,15 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
         },
+        // MCP endpoint and its OAuth protected-resource metadata (RFC 9728).
+        '/.well-known/oauth-protected-resource': {
+          target: env.VITE_MCP_TARGET || 'http://localhost:9000',
+          changeOrigin: false,
+        },
+        '^/mcp(/|$)': {
+          target: env.VITE_MCP_TARGET || 'http://localhost:9000',
+          changeOrigin: false,
+        },
         '/.well-known': {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,

@@ -3,9 +3,8 @@
 import json
 from functools import lru_cache
 from typing import Any
-from urllib.parse import unquote, urlsplit
 
-from pydantic import AliasChoices, Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -51,6 +50,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        env_ignore_empty=True,
         extra="ignore",
     )
 
@@ -98,8 +98,6 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("AI_DATABASE_URL"),
     )
-    ai_db_user: str = Field(default="", validation_alias=AliasChoices("AI_DB_USER"))
-    ai_db_name: str = Field(default="", validation_alias=AliasChoices("AI_DB_NAME"))
     ai_database_schema: str = "ai"
     ai_checkpoint_schema: str = "ai_checkpoint"
 
@@ -136,8 +134,7 @@ class Settings(BaseSettings):
     credential_lease_secret: str = Field(
         default="",
         min_length=32,
-        # The adapter is not wired into legacy startup until the canonical API
-        # lands; an explicitly configured short value is still rejected.
+        # Empty leaves readiness not_ready; a configured short value is rejected.
         validate_default=False,
     )
     mcp_server_id: str = "qjudge"
@@ -156,6 +153,9 @@ class Settings(BaseSettings):
 
     # MCP tool source
     qjudge_mcp_url: str = "http://qjudge-mcp:9000/mcp"
+    qjudge_public_origin: str = Field(
+        default="", validation_alias=AliasChoices("QJUDGE_PUBLIC_ORIGIN")
+    )
     mcp_initialize_timeout_seconds: float = 10.0
     mcp_list_tools_timeout_seconds: float = 10.0
     mcp_call_tool_timeout_seconds: float = 30.0
@@ -165,56 +165,29 @@ class Settings(BaseSettings):
     # AI Service-owned artifact object storage.
     artifact_storage_endpoint_url: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_ENDPOINT_URL", "OBJECT_STORAGE_ENDPOINT_URL"
-        ),
+        validation_alias=AliasChoices("OBJECT_STORAGE_ENDPOINT_URL"),
     )
     artifact_storage_public_endpoint_url: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_PUBLIC_ENDPOINT_URL",
-            "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-        ),
-    )
-    artifact_storage_region: str = Field(
-        default="us-east-1",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_REGION", "OBJECT_STORAGE_REGION"
-        ),
+        validation_alias=AliasChoices("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"),
     )
     artifact_storage_access_key: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_ACCESS_KEY", "OBJECT_STORAGE_ACCESS_KEY"
-        ),
+        validation_alias=AliasChoices("OBJECT_STORAGE_ACCESS_KEY"),
     )
     artifact_storage_secret_key: str = Field(
         default="",
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_SECRET_KEY", "OBJECT_STORAGE_SECRET_KEY"
-        ),
-    )
-    artifact_storage_auto_create_bucket: bool = Field(
-        default=True,
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_STORAGE_AUTO_CREATE_BUCKET",
-            "OBJECT_STORAGE_AUTO_CREATE_BUCKETS",
-        ),
+        validation_alias=AliasChoices("OBJECT_STORAGE_SECRET_KEY"),
     )
     artifact_s3_bucket: str = Field(
-        default="ai-artifacts", validation_alias=AliasChoices("AI_ARTIFACT_S3_BUCKET")
+        default="ai-artifacts",
+        validation_alias=AliasChoices("OBJECT_STORAGE_BUCKET"),
     )
     artifact_max_bytes: int = Field(
         default=10 * 1024 * 1024,
         validation_alias=AliasChoices("AI_ARTIFACT_MAX_BYTES"),
     )
-    artifact_presigned_url_ttl_seconds: int = Field(
-        default=300,
-        validation_alias=AliasChoices(
-            "AI_ARTIFACT_PRESIGNED_URL_TTL_SECONDS",
-            "OBJECT_STORAGE_PRESIGNED_URL_TTL_SECONDS",
-        ),
-    )
+    artifact_presigned_url_ttl_seconds: int = 300
 
     # CORS Settings (for development)
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
@@ -277,24 +250,6 @@ class Settings(BaseSettings):
     @classmethod
     def _coerce_path_lists(cls, value: Any) -> Any:
         return cls._parse_env_path_list(value)
-
-    @model_validator(mode="after")
-    def _validate_database_identity(self) -> "Settings":
-        if not self.ai_db_user and not self.ai_db_name:
-            return self
-        if not self.ai_database_url or not self.ai_db_user or not self.ai_db_name:
-            raise ValueError(
-                "AI_DATABASE_URL, AI_DB_USER, and AI_DB_NAME must be configured together"
-            )
-        normalized = self.ai_database_url.replace(
-            "postgresql+psycopg://", "postgresql://", 1
-        )
-        parsed = urlsplit(normalized)
-        if unquote(parsed.username or "") != self.ai_db_user:
-            raise ValueError("AI_DATABASE_URL username does not match AI_DB_USER")
-        if unquote(parsed.path.lstrip("/")) != self.ai_db_name:
-            raise ValueError("AI_DATABASE_URL database does not match AI_DB_NAME")
-        return self
 
 
 @lru_cache

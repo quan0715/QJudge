@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw, ImageFont
 
 def main():
-    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:5174")
+    base_url = os.environ.get("OJ_BASE_URL", "http://localhost:8080")
     email = os.environ.get("OJ_TEST_EMAIL", "teacher@example.com")
     password = os.environ.get("OJ_TEST_PASSWORD", "teacher123")
 

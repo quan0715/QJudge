@@ -672,8 +672,6 @@ def test_teacher_can_reset_participant_exam_record() -> None:
         contest=contest,
         user=student,
         exam_status=ExamStatus.SUBMITTED,
-        score=88,
-        rank=3,
         started_at=timezone.now() - timedelta(minutes=30),
         left_at=timezone.now() - timedelta(minutes=5),
         locked_at=timezone.now() - timedelta(minutes=20),
@@ -740,8 +738,6 @@ def test_teacher_can_reset_participant_exam_record() -> None:
     assert ExamEvidenceFrame.objects.filter(contest=contest, user=student).count() == 0
     participant.refresh_from_db()
     assert participant.exam_status == ExamStatus.NOT_STARTED
-    assert participant.score == 0
-    assert participant.rank is None
     assert participant.started_at is None
     assert participant.left_at is None
     assert participant.locked_at is None

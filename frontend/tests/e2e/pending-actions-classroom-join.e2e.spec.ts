@@ -27,7 +27,7 @@ test.describe("Classroom join via pending actions", () => {
       testInfo.project.use.baseURL ||
       process.env.PLAYWRIGHT_BASE_URL ||
       process.env.E2E_BASE_URL ||
-      "http://localhost:5174";
+      "http://localhost:8080";
 
     const ctx = await browser.newContext({ baseURL });
     const page = await ctx.newPage();

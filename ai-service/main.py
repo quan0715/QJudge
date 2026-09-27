@@ -228,7 +228,7 @@ class _ReadinessProbe:
 
 def _oauth_locations(settings: Settings) -> tuple[str, str]:
     backend_origin = settings.mcp_token_exchange_url.split("/api/", 1)[0].rstrip("/")
-    issuer = os.environ.get("AI_OAUTH_ISSUER", "").strip().rstrip("/")
+    issuer = settings.qjudge_public_origin.strip().rstrip("/")
     jwks_url = os.environ.get(
         "AI_OAUTH_JWKS_URL", f"{backend_origin}/.well-known/jwks.json"
     )
@@ -244,11 +244,9 @@ def _artifact_store(settings: Settings) -> S3ArtifactStore:
         bucket=settings.artifact_s3_bucket,
         endpoint_url=settings.artifact_storage_endpoint_url,
         public_endpoint_url=settings.artifact_storage_public_endpoint_url,
-        region=settings.artifact_storage_region,
         access_key=settings.artifact_storage_access_key,
         secret_key=settings.artifact_storage_secret_key,
         presign_ttl_seconds=settings.artifact_presigned_url_ttl_seconds,
-        auto_create_bucket=settings.artifact_storage_auto_create_bucket,
     )
 
 

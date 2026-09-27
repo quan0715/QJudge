@@ -2,7 +2,7 @@
  * 教室 → 建立紙本測驗（關閉防弊略過 precheck）→ 手動出題 → 發布/時段
  * → 學生作答交卷 → 教師批改。
  *
- * 需 docker test stack + seed_e2e_data。
+ * 需 ci/e2e-stack.sh 安裝的 stack + seed_e2e_data。
  */
 import { expect, test } from "@playwright/test";
 import { loginViaAPI } from "../helpers/auth.helper";

@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +14,7 @@ import {
   useCopilotSessions,
 } from "@copilot";
 import { useArtifactPanel } from "./ArtifactPanelContext";
+import { useRequestCopilot } from "./CopilotDemandContext";
 import {
   QJudgeCopilotBoundary,
   QJudgeCopilotProvider,
@@ -203,19 +204,52 @@ describe("QJudgeCopilotProvider", () => {
     },
   );
 
-  it.each([
-    "/chat",
-    "/classrooms/classroom-1/contest/contest-1/admin?panel=ai-grading",
-  ])("bootstraps the QJudge runtime when route %s requires Copilot", async (route) => {
+  it("bootstraps the QJudge runtime while a screen requests Copilot", async () => {
     authState.user = { role: "teacher" };
     const listModels = vi.spyOn(qJudgeCopilotModelCatalog, "list");
     const listSessions = vi.spyOn(qJudgeCopilotTransport, "listSessions");
-    const wrapper = createQJudgeProviderWrapper(route);
+    const wrapper = createQJudgeProviderWrapper();
 
-    renderHook(() => useCopilotSessions(), { wrapper });
+    renderHook(
+      () => {
+        useRequestCopilot();
+        return useCopilotSessions();
+      },
+      { wrapper },
+    );
 
     await waitFor(() => expect(listModels).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
+  });
+
+  it("suspends the runtime once the requesting screen unmounts", async () => {
+    authState.user = { role: "teacher" };
+    const listSessions = vi.spyOn(qJudgeCopilotTransport, "listSessions");
+    const Wrapper = createQJudgeProviderWrapper();
+    const probe: { listStatus: string | null } = { listStatus: null };
+    function Requester() {
+      useRequestCopilot();
+      return null;
+    }
+    function Probe() {
+      probe.listStatus = useCopilotSessions().listStatus;
+      return null;
+    }
+
+    const view = render(
+      <Wrapper>
+        <Requester />
+        <Probe />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <Wrapper>
+        <Probe />
+      </Wrapper>,
+    );
+    await waitFor(() => expect(probe.listStatus).toBe("idle"));
   });
 
   it("is exported with its dependency-injected boundary", () => {

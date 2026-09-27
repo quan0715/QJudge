@@ -18,8 +18,10 @@ FROM nginx:alpine
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx config
+# Gateway config: routes, forwarded-proto map, and real IP from trusted proxies.
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/00-forwarded-proto.conf /etc/nginx/conf.d/00-forwarded-proto.conf
+COPY --chmod=755 nginx/20-qjudge-real-ip.sh /docker-entrypoint.d/20-qjudge-real-ip.sh
 
 EXPOSE 80
 

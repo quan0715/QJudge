@@ -50,6 +50,27 @@ import {
 
 const LAST_SESSION_KEY = "copilot:last-session-id";
 const LAST_MODEL_KEY = "copilot:last-model-id";
+const OWNER_KEY = "copilot:owner";
+
+/** Whether persisted selections may be read for this owner. */
+const isStorageOwnedBy = (
+  storage: CopilotStorage | undefined,
+  ownerKey: string | null | undefined,
+): boolean =>
+  ownerKey === undefined || storage?.get(OWNER_KEY) === ownerKey;
+
+/** Drops selections persisted by a different owner, then records the new one. */
+const claimStorage = (
+  storage: CopilotStorage | undefined,
+  ownerKey: string | null | undefined,
+): void => {
+  if (!storage || ownerKey === undefined) return;
+  if (storage.get(OWNER_KEY) === ownerKey) return;
+  storage.remove(LAST_SESSION_KEY);
+  storage.remove(LAST_MODEL_KEY);
+  if (ownerKey === null) storage.remove(OWNER_KEY);
+  else storage.set(OWNER_KEY, ownerKey);
+};
 const EMPTY_MODELS: readonly CopilotModel[] = [];
 const EMPTY_SESSION_SUMMARIES: readonly CopilotSessionSummary[] = [];
 const defaultTranslations = new DefaultCopilotTranslations();
@@ -89,6 +110,13 @@ export interface CopilotProviderProps {
   translations?: CopilotTranslations;
   initialSession?: CopilotInitialSessionStrategy;
   enabled?: boolean;
+  /**
+   * Identity of the account that owns persisted selections. When provided,
+   * disabling the provider only suspends the runtime and keeps the last
+   * session/model; they are dropped once a different owner enables it. When
+   * omitted, every disable is treated as an ownership boundary.
+   */
+  ownerKey?: string | null;
   children: ReactNode;
 }
 
@@ -284,6 +312,7 @@ export function CopilotProvider({
   translations = defaultTranslations,
   initialSession = "none",
   enabled = true,
+  ownerKey,
   children,
 }: CopilotProviderProps) {
   const [runtime, setRuntime] = useState(createCopilotRuntimeState);
@@ -305,7 +334,9 @@ export function CopilotProvider({
   const [selectedModelId, setSelectedModelId] = useState<string | null>(() =>
     chooseModelId(
       fallbackModels,
-      enabled ? (storage?.get(LAST_MODEL_KEY) ?? null) : null,
+      enabled && isStorageOwnedBy(storage, ownerKey)
+        ? (storage?.get(LAST_MODEL_KEY) ?? null)
+        : null,
     ),
   );
   const selectedModelIdRef = useRef(selectedModelId);
@@ -321,6 +352,7 @@ export function CopilotProvider({
   const ownershipRef = useRef<{
     enabled: boolean;
     transport: CopilotTransport;
+    ownerKey: string | null | undefined;
   } | null>(null);
   const revisionRef = useRef(0);
   const activeIdRef = useRef<string | null>(null);
@@ -561,7 +593,7 @@ export function CopilotProvider({
     subscriptionRef.current = null;
   }, [clearReconnectTimer]);
 
-  const resetRuntimeOwnership = useCallback(() => {
+  const resetRuntimeOwnership = useCallback((clearPersisted: boolean) => {
     ++ownershipEpochRef.current;
     ++revisionRef.current;
     invalidateModelRequest();
@@ -592,11 +624,13 @@ export function CopilotProvider({
     setModels(fallbackModels);
     setModelStatus(modelCatalog ? "idle" : "unavailable");
     setModelError(null);
-    storage?.remove(LAST_MODEL_KEY);
+    if (clearPersisted) {
+      storage?.remove(LAST_MODEL_KEY);
+      storage?.remove(LAST_SESSION_KEY);
+    }
     const fallbackModelId = chooseModelId(fallbackModels, null);
     selectedModelIdRef.current = fallbackModelId;
     setSelectedModelId(fallbackModelId);
-    storage?.remove(LAST_SESSION_KEY);
     writeLocation(null);
   }, [
     closeRunSubscription,
@@ -610,14 +644,20 @@ export function CopilotProvider({
 
   useLayoutEffect(() => {
     const previous = ownershipRef.current;
-    const transportChanged =
-      previous !== null && previous.transport !== transport;
-    const mustReset =
-      previous !== null &&
-      ((previous.enabled && !enabled) || (enabled && transportChanged));
-    ownershipRef.current = { enabled, transport };
-    if (mustReset) resetRuntimeOwnership();
-  }, [enabled, resetRuntimeOwnership, transport]);
+    ownershipRef.current = { enabled, transport, ownerKey };
+    if (previous !== null) {
+      const transportChanged = previous.transport !== transport;
+      const disabled = previous.enabled && !enabled;
+      const ownerChanged = enabled && previous.ownerKey !== ownerKey;
+      if (disabled || (enabled && transportChanged) || ownerChanged) {
+        const clearPersisted =
+          ownerKey === undefined && (disabled || transportChanged);
+        resetRuntimeOwnership(clearPersisted);
+      }
+    }
+    // Runs before the passive effects that read persisted selections.
+    if (enabled) claimStorage(storage, ownerKey);
+  }, [enabled, ownerKey, resetRuntimeOwnership, storage, transport]);
 
   const subscribeToRun = useCallback(
     (run: CopilotRun) => {

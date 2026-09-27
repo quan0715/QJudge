@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Loading } from "@carbon/react";
 import { Document, List, Pause, Renew, Return } from "@carbon/icons-react";
@@ -19,6 +19,7 @@ import {
 import { useTaskSession } from "@/features/ai-tasks/hooks/useTaskSession";
 import { useCopilotModels, useCopilotRun, useCopilotSessions } from "@copilot";
 import { useArtifactPanel } from "@/features/chatbot/contexts/ArtifactPanelContext";
+import { useRequestCopilot } from "@/features/chatbot/contexts/CopilotDemandContext";
 import { useWorkspace } from "@/features/app/contexts/WorkspaceContext";
 import { selectLatestTodoItems } from "@/features/chatbot/adapters/qJudgeCopilotMessageData";
 import { formatScore } from "@/shared/utils/scoreFormat";
@@ -61,7 +62,7 @@ function truncateLabel(value: string, maxLength = 56): string {
 
 const ContestAiGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [, startTransition] = useTransition();
+  useRequestCopilot();
   const { t } = useTranslation("contest");
   const { contest } = useContest();
   const selectedQuestionId = searchParams.get(AI_GRADING_QUESTION_PARAM);
@@ -121,30 +122,15 @@ const ContestAiGradingScreen: React.FC = () => {
   const lastAutoScrolledPendingRef = useRef<string | null>(null);
 
   const updateAiGradingParams = useCallback((updates: Record<string, string | null>) => {
-    startTransition(() => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        let hasChanges = false;
-
-        Object.entries(updates).forEach(([key, value]) => {
-          const current = next.get(key);
-          if (!value) {
-            if (current !== null) {
-              next.delete(key);
-              hasChanges = true;
-            }
-            return;
-          }
-          if (current !== value) {
-            next.set(key, value);
-            hasChanges = true;
-          }
-        });
-
-        return hasChanges ? next : prev;
-      }, { replace: true });
+    const next = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
     });
-  }, [setSearchParams, startTransition]);
+    // setSearchParams always navigates, so skip no-op writes.
+    if (next.toString() === searchParams.toString()) return;
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Filter down to models the grading task supports.
   const gradingModels = useMemo(

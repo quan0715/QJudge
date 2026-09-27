@@ -1,0 +1,150 @@
+# Local development overlay for deploy/compose.yml: source mounts, hot reload,
+# localhost ports and dev-only wiring. Use via
+# .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev <args>.
+x-dev-django-environment: &dev_django_environment
+  DJANGO_ENV: development
+  DJANGO_SETTINGS_MODULE: config.settings.dev
+  DOCKER_IMAGE_JUDGE: ghcr.io/quan0715/qjudge/judge:latest
+  DOCKER_JUDGE_PLATFORM: ${DOCKER_JUDGE_PLATFORM:-linux/amd64}
+  LIVEKIT_INTERNAL_URL: http://livekit:7883
+  LIVEKIT_ROOM_PREFIX: qjudge-dev-exam
+
+x-dev-backend: &dev_backend
+  volumes:
+    - ../backend:/app
+  environment: *dev_django_environment
+
+# backend and ai-service apply migrations when they start; workers wait for them.
+x-after-backend: &after_backend
+  backend:
+    condition: service_healthy
+x-after-ai-service: &after_ai_service
+  ai-service:
+    condition: service_healthy
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${DEV_POSTGRES_PORT:-5432}:5432"
+  pgbouncer:
+    ports:
+      - "127.0.0.1:${DEV_PGBOUNCER_PORT:-6432}:5432"
+  redis:
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${DEV_REDIS_PORT:-6379}:6379"
+
+  integrity-reconciler:
+    <<: *dev_backend
+    depends_on: *after_backend
+  backend:
+    <<: *dev_backend
+    command: ["sh", "-c", "python manage.py migrate --noinput && exec python -m uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app"]
+    ports:
+      - "127.0.0.1:${DEV_BACKEND_PORT:-8000}:8000"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+  celery:
+    <<: *dev_backend
+    depends_on: *after_backend
+
+  ai-service:
+    command: ["sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup && exec uvicorn main:app --host 0.0.0.0 --port 8001"]
+    volumes:
+      - ../ai-service:/app
+    ports:
+      - "127.0.0.1:${DEV_AI_PORT:-8001}:8001"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+  ai-worker:
+    volumes:
+      - ../ai-service:/app
+    depends_on: *after_ai_service
+
+  qjudge-mcp:
+    ports:
+      - "127.0.0.1:${DEV_MCP_PORT:-9002}:9000"
+
+  frontend:
+    image: qjudge/frontend-dev:dev
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../frontend:/app
+      - ../backend:/backend:ro
+      - /app/node_modules
+    ports: !override
+      - "127.0.0.1:${DEV_FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_TARGET: http://backend:8000
+      VITE_STORYBOOK_TARGET: http://storybook:6006
+      VITE_MCP_TARGET: http://qjudge-mcp:9000
+    depends_on:
+      - storybook
+
+  storybook:
+    image: qjudge/frontend-dev:dev
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    command: ["npm", "run", "storybook", "--", "--host", "0.0.0.0", "--ci"]
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:${DEV_STORYBOOK_PORT:-6006}:6006"
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    depends_on:
+      - backend
+
+  # Reuse the bundled storage services inside the dev project.
+  minio:
+    extends:
+      file: addons/storage/compose.yml
+      service: minio
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN},http://localhost:5173
+
+  storage-init:
+    extends:
+      file: addons/storage/compose.yml
+      service: storage-init
+
+  # Dev-only LiveKit uses separate config and ports from the production media addon.
+  livekit:
+    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    profiles: ["live-monitoring"]
+    restart: unless-stopped
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      # livekit-server reads its config body from LIVEKIT_CONFIG.
+      LIVEKIT_CONFIG: |
+        port: 7883
+        keys:
+          "${LIVEKIT_API_KEY}": "${LIVEKIT_API_SECRET}"
+        rtc:
+          tcp_port: 7884
+          port_range_start: 50100
+          port_range_end: 50199
+          node_ip: "${LIVEKIT_NODE_IP:-}"
+          use_external_ip: false
+          advertise_internal_ip: true
+        room:
+          auto_create: false
+          max_participants: 160
+    ports:
+      - "7883:7883"
+      - "7884:7884"
+      - "50100-50199:50100-50199/udp"
+
+volumes:
+  minio-data:
+
+# Each checkout gets its own project network instead of the shared external one.
+networks:
+  default: !reset {}

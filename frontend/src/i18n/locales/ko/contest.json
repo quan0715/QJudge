@@ -1569,6 +1569,7 @@
     },
     "environment": {
       "checks": {
+        "graphics": "그래픽 환경 확인",
         "fullscreen": "전체 화면 테스트",
         "interaction": "입력 상호작용 확인",
         "monitor": "모니터 개수 확인",
@@ -1576,6 +1577,8 @@
         "webcam": "Webcam 권한"
       },
       "errors": {
+        "webglUnavailable": "WebGL을 사용할 수 없어 시험에 입장할 수 없습니다. 로컬 브라우저에서 하드웨어 가속을 켜고 다시 시작하세요. 문제가 계속되면 다른 기기를 사용하세요.",
+        "softwareRenderer": "llvmpipe 소프트웨어 렌더링 환경에서는 시험에 입장할 수 없습니다. 로컬 데스크톱에서 브라우저 하드웨어 가속을 켜거나 다른 기기를 사용하세요.",
         "browserNotSupported": "사용 중인 브라우저가 디스플레이 관리를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.",
         "dependencyPrefix": "'{{name}}'을(를) 먼저 통과해야 합니다.",
         "focusFailed": "이 페이지로 돌아온 후 다시 시도해 주세요.",
@@ -1592,6 +1595,7 @@
         "webcamUnsupported": "이 브라우저는 Webcam을 지원하지 않습니다."
       },
       "requirements": {
+        "graphics": "WebGL을 사용할 수 있어야 합니다. llvmpipe 소프트웨어 렌더링 환경은 허용되지 않습니다.",
         "browser": "최신 Chrome 또는 Edge 브라우저만 사용 가능합니다.",
         "display": "단일 모니터만 허용됩니다 (외부 모니터 분리).",
         "permission": "'창 및 디스플레이 관리' 권한을 허용해 주세요.",
@@ -1914,6 +1918,7 @@
     "errors": {
       "announcementsLoadFailed": "공지사항을 일시적으로 불러올 수 없습니다",
       "questionsLoadFailed": "문항 데이터를 일시적으로 불러올 수 없습니다",
+      "answersLoadFailed": "답안 기록을 일시적으로 불러올 수 없습니다",
       "scoreDistributionLoadFailed": "점수 분포를 일시적으로 불러올 수 없습니다"
     },
     "infoLabel": "대회 정보",

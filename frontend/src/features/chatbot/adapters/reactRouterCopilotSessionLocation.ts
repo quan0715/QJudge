@@ -2,31 +2,30 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { CopilotSessionLocation } from "@copilot";
 
-type SearchParamsUpdate =
-  | URLSearchParams
-  | ((previous: URLSearchParams) => URLSearchParams);
 type SetSearchParams = (
-  update: SearchParamsUpdate,
+  next: URLSearchParams,
   options?: { replace?: boolean },
 ) => void;
 
-const DEFAULT_SESSION_PARAM = "ai_session_id";
+const SESSION_PARAM = "ai_session_id";
 
 export class ReactRouterCopilotSessionLocation
   implements CopilotSessionLocation
 {
   private readonly listeners = new Set<(id: string | null) => void>();
   private currentId: string | null;
+  private searchParams: URLSearchParams;
   private setSearchParams: SetSearchParams;
   private readonly paramName: string;
 
   constructor(
     searchParams: URLSearchParams,
     setSearchParams: SetSearchParams,
-    paramName: string = DEFAULT_SESSION_PARAM,
+    paramName: string = SESSION_PARAM,
   ) {
-    this.setSearchParams = setSearchParams;
     this.paramName = paramName;
+    this.searchParams = searchParams;
+    this.setSearchParams = setSearchParams;
     this.currentId = searchParams.get(paramName);
   }
 
@@ -35,15 +34,13 @@ export class ReactRouterCopilotSessionLocation
   }
 
   set(id: string | null, options: { replace?: boolean } = {}): void {
-    this.setSearchParams(
-      (previous) => {
-        const next = new URLSearchParams(previous);
-        if (id) next.set(this.paramName, id);
-        else next.delete(this.paramName);
-        return next;
-      },
-      { replace: options.replace ?? true },
-    );
+    if (this.searchParams.get(this.paramName) !== id) {
+      const next = new URLSearchParams(this.searchParams);
+      if (id) next.set(this.paramName, id);
+      else next.delete(this.paramName);
+      this.searchParams = next;
+      this.setSearchParams(next, { replace: options.replace ?? true });
+    }
     this.updateId(id);
   }
 
@@ -52,9 +49,15 @@ export class ReactRouterCopilotSessionLocation
     return () => this.listeners.delete(listener);
   }
 
-  update(searchParams: URLSearchParams, setSearchParams: SetSearchParams): void {
+  /** Points writes at the latest router state; safe to call during render. */
+  bind(searchParams: URLSearchParams, setSearchParams: SetSearchParams): void {
+    this.searchParams = searchParams;
     this.setSearchParams = setSearchParams;
-    this.updateId(searchParams.get(this.paramName));
+  }
+
+  /** Notifies listeners when the URL changed outside of `set`. */
+  syncFromUrl(): void {
+    this.updateId(this.searchParams.get(this.paramName));
   }
 
   private updateId(id: string | null): void {
@@ -64,19 +67,17 @@ export class ReactRouterCopilotSessionLocation
   }
 }
 
-export function useReactRouterCopilotSessionLocation(
-  paramName: string = DEFAULT_SESSION_PARAM,
-): CopilotSessionLocation {
+export function useReactRouterCopilotSessionLocation(): CopilotSessionLocation {
   const [searchParams, setSearchParams] = useSearchParams();
   const [location] = useState(
-    () => new ReactRouterCopilotSessionLocation(
-      searchParams,
-      setSearchParams,
-      paramName,
-    ),
+    () => new ReactRouterCopilotSessionLocation(searchParams, setSearchParams),
   );
+  // Bind during render: CopilotProvider writes from layout effects, which run
+  // before this hook's passive effect. A setter bound later would resolve
+  // against a stale URL and navigate back to it (e.g. the previous panel).
+  location.bind(searchParams, setSearchParams);
   useEffect(() => {
-    location.update(searchParams, setSearchParams);
-  }, [location, searchParams, setSearchParams]);
+    location.syncFromUrl();
+  }, [location, searchParams]);
   return location;
 }

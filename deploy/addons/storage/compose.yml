@@ -1,0 +1,50 @@
+# Bundled object storage (MinIO). A separate project so application upgrades
+# never restart it. Run through `deploy/qjudge addon storage up|init`.
+# MinIO no longer publishes community images; Chainguard builds the same server
+# (with mc). Its free tier only tags `latest`, so pin by digest and bump it here.
+
+services:
+  minio:
+    image: cgr.dev/chainguard/minio:latest@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+    restart: unless-stopped
+    # Existing data directories are root-owned; the image defaults to uid 65532.
+    user: "0:0"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${QJUDGE_PUBLIC_ORIGIN}
+    volumes:
+      - ${MINIO_DATA_DIR:-minio-data}:/data
+    ports:
+      # The storage reverse proxy connects here; the console stays on loopback.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:9000:9000"
+      - "127.0.0.1:9001:9001"
+    networks:
+      default:
+        aliases: [minio]
+
+  # One-off: `deploy/qjudge addon storage init` creates the bucket.
+  storage-init:
+    image: cgr.dev/chainguard/minio:latest@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+    profiles: ["init"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for attempt in $$(seq 60); do
+          mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1 && break
+          sleep 1
+        done
+        mc mb --ignore-existing "local/$$OBJECT_STORAGE_BUCKET"
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORAGE_SECRET_KEY}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET}
+
+volumes:
+  minio-data:
+
+networks:
+  default:
+    name: qjudge
+    external: true

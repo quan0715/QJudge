@@ -1,57 +1,93 @@
 # QJudge Environment Matrix
 
-## Compose files
+## Environments
 
-| Environment | File | Intended use |
+| Environment | How | Intended use |
 | --- | --- | --- |
-| `main` | `docker-compose.yml` | production-shaped runtime |
-| `dev` | `docker-compose.dev.yml` | interactive development and Storybook |
-| `test` | `docker-compose.test.yml` | isolated tests and E2E |
+| `dev` | `qjudge-dc.sh dev` (`deploy/compose.yml` + `deploy/compose.build.yml` + `compose.dev.yml`, env `deploy/.env`) | local development, Storybook, database-free tests |
+| CI | `.github/workflows/ci.yml`, `e2e-coding.yml`, `e2e-manual.yml` | database-backed backend tests, integration tests, E2E |
+| Production | `deploy/qjudge` (`deploy/compose.yml` + `deploy/compose.build.yml`, addons under `deploy/addons/`) | self-hosted installs |
 
-## Current services
+## Dev
 
-| Environment | Web/API | AI runtime | Data | Workers | UI |
-| --- | --- | --- | --- | --- | --- |
-| `main` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend` |
-| `dev` | `backend` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres`, `redis` | `celery`, `celery-high`, `celery-beat` | `frontend`, `storybook` |
-| `test` | `backend-test` | `ai-service`, `ai-worker`, `ai-scheduler` | `postgres-test`, `redis-test` | `celery-test`, `celery-high-test` | `frontend-test` |
+The Compose project name is `COMPOSE_PROJECT_NAME` from `deploy/.env`; keep the existing value so the dev volumes are reused. Validate the env file with `deploy/qjudge check`. The dev network is project-local, so worktrees with their own `deploy/.env` and project name do not collide except on published ports.
 
-The test stack also contains bootstrap, fake-adapter, migration, and integrity services. Inspect `docker-compose.test.yml` before diagnosing those dependencies.
+| Role | Services |
+| --- | --- |
+| Web/API | `backend`, `frontend` (Vite on 5173), `storybook` |
+| AI runtime | `ai-service`, `ai-worker` (embedded beat, single replica) |
+| Data | `postgres`, `pgbouncer`, `redis`, `minio` |
+| Workers | `celery` (queues `high_priority,default`), `integrity-resident`, `integrity-reconciler` |
+| MCP | `qjudge-mcp` (host port 9002) |
+| One-off | `storage-init` |
+| Profiles | `livekit` (`live-monitoring`, reads `.tmp/livekit/dev.json`), `cloudflared` (`tunnel`) |
 
-## Canonical commands
+Dev `backend` and `ai-service` apply their migrations when they start; the workers wait until they are healthy. The judge image comes from GHCR (`DOCKER_IMAGE_JUDGE`).
 
 ```bash
-# Development runtime
+# Runtime
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
 ./scripts/dev/check-dev-services.sh
 
-# Backend tests
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d backend-test
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T \
-  -e POSTGRES_DB=postgres \
-  -e POSTGRES_USER=qjudge_test_admin \
-  -e POSTGRES_PASSWORD=qjudge_test_admin_password \
-  backend-test pytest -q
+# First start on a new checkout: keys before the first up, bucket after it
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 
-# AI-service tests
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d ai-service
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T ai-service pytest -q
+# Database-free backend tests
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T backend \
+  python -m pytest -q --ds=config.settings.test <test path>
+
+# AI-service tests (no CI job runs them)
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m pytest -q <test path>
 
 # Frontend checks
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test up -d frontend-test
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test npm run lint
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test exec -T frontend-test npm run typecheck
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run lint
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run typecheck
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run test
 
-# Storybook belongs to dev
+# Storybook
 .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T storybook npm run build-storybook
 ```
 
+Never run `dev down -v`: it deletes the dev database and MinIO data.
+
+## CI
+
+| Job | Runs |
+| --- | --- |
+| Backend Unit Tests | backend `pytest` against a GitHub service PostgreSQL |
+| Judge Tests | judge and submission tests with the judge image |
+| Integration Tests | `ci/e2e-stack.sh`, then `npm run test:api` and MCP integration tests |
+| MCP Server Tests | `mcp-server` `pytest tests` (integration tests skip without a backend) |
+| Integrity Service Tests | `integrity-service` `pytest` on the runner Python, as root for the secret bootstrap tests |
+| `e2e-coding.yml` | pull requests to `main`: auth and coding submission Playwright specs |
+| `e2e-manual.yml` | manual dispatch by group |
+
+`ci/e2e-stack.sh` runs `deploy/qjudge init --non-interactive` (origin `http://localhost:8080`, bundled storage), `addon storage up|init`, `upgrade <HEAD>`, restarts with `ci/compose.e2e.yml` (test settings, asynchronous Celery, fake AI adapters), seeds with `seed_e2e_data`, and exports the stack's compose command as `QJ_DC`. Extra `--set KEY=VALUE` arguments override the `init` defaults.
+
+A local fresh-install run is only for when the user asks: create a separate worktree (`git worktree add --detach <dir> HEAD`), run `<dir>/ci/e2e-stack.sh --set COMPOSE_PROJECT_NAME=qjudge-e2e`, and point Playwright or Vitest at `http://localhost:8080`. Bundled storage needs ports 9000/9001, which dev MinIO also uses, and a `127.0.0.1 minio` hosts entry; otherwise pass external storage with `--set`. Clean up with `docker compose -p qjudge-e2e down -v` and `docker compose -p qjudge-e2e-storage down -v` only, then remove the worktree.
+
+## Production
+
+```bash
+deploy/qjudge init        # create deploy/.env (refuses to overwrite)
+deploy/qjudge check       # validate deploy/.env
+deploy/qjudge addon storage up|init
+deploy/qjudge addon media init|up
+deploy/qjudge ingress [--nginx]
+deploy/qjudge upgrade <ref>
+deploy/qjudge rollback
+deploy/qjudge secrets [--image IMAGE]   # create missing AI OAuth and Integrity keys; existing keys are kept
+```
+
+The project name is `COMPOSE_PROJECT_NAME` (default `qjudge`); addons run as `<project>-storage` and `<project>-media`. Inspect with `docker compose -p <project> ps|logs|exec`. `upgrade` backs up both databases to `deploy/backups/`, records versions in `deploy/.version`, and never restores the database automatically. The public guide is `frontend/public/docs/zh-TW/deployment*.md`.
+
 ## Operational notes
 
-- `backend-test` runs with `config.settings.test` and prepares E2E state on startup.
-- The backend application process uses the least-privileged `qjudge_web` role. Django pytest needs to create and drop a separate temporary database, so the canonical pytest command overrides only the test process with the administrator of the isolated `postgres-test` instance.
-- The test frontend reaches Django at `backend-test:8000`; the backend reaches AI at `ai-service:8001`.
-- Judge and integrity coverage may require Docker socket access and the relevant worker/controller services. A passing Celery-eager unit test is not evidence of a live Docker judge or integrity worker lifecycle.
+- Judge and integrity coverage may require Docker socket access and the relevant worker services. A passing Celery-eager unit test is not evidence of a live Docker judge or integrity worker lifecycle.
 - Use service names, not container names, with Compose.
 - Compose management commands such as `up`, `down`, `ps`, `logs`, and `config` run through the wrapper; service-dependent application commands run through `exec -T`; service-independent static checks may run on a matching host runtime.

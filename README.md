@@ -8,7 +8,7 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 - AI 助教：已導入 DeepAgent（LangGraph）流程，並完成前後端 SSE 事件串流對接
 - 考試系統：支援註冊、前檢、作答、檢查、評分與結果流程
 - CI/CD：GitHub Actions CI（Unit Tests + Judge Tests）通過後，透過 Tailscale SSH 自動部署
-- 本地容器化開發：`docker-compose.dev.yml` 可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
+- 本地容器化開發：`qjudge-dc.sh dev`（`deploy/compose.yml` + `compose.dev.yml`）可直接拉起 frontend/backend/ai-service/postgres/redis/celery/storybook
 
 ## 技術棧
 
@@ -21,41 +21,25 @@ QJudge 是一個整合競賽、教學、評測與 AI 助教流程的線上評測
 | Judge | Docker 容器隔離執行 |
 | 部署 | Docker Compose、GitHub Actions CI/CD、Tailscale SSH |
 
-## 快速啟動（建議）
+## 本機開發
+
+本機只有 dev 環境：`qjudge-dc.sh dev`，設定檔為 `deploy/.env`。
 
 ```bash
-export OBJECT_STORAGE_ENDPOINT_URL=https://ACCOUNT_ID.r2.cloudflarestorage.com
-export OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="$OBJECT_STORAGE_ENDPOINT_URL"
-read -r -p "R2 access key: " OBJECT_STORAGE_ACCESS_KEY
-read -r -s -p "R2 secret key: " OBJECT_STORAGE_SECRET_KEY
-printf '\n'
-export OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
-./scripts/setup-env.sh \
-  --target self-hosted \
-  --storage r2 \
-  --origin http://localhost:5173
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
-.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev ps
-./scripts/dev/check-dev-services.sh
+cp deploy/.env.example deploy/.env   # 填入必要值
+deploy/qjudge check
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build
+docker pull --platform linux/amd64 ghcr.io/quan0715/qjudge/judge:latest
+deploy/qjudge secrets --image qjudge/backend:dev
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
+.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm storage-init
 ```
 
-啟動後預設入口：
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8000`
-- AI Service: `http://localhost:8001`
-- Storybook: `http://localhost:6006`
-- MCP Server: `http://localhost:9002/mcp`
-
-## 目前已知狀態
-
-- `ai-service` 提供 `/health/live` 與 `/health/ready` 健康檢查
-- compose 矩陣固定為 `docker-compose.yml` / `docker-compose.dev.yml` / `docker-compose.test.yml`
-- backend 測試使用 `docker-compose.test.yml` 的 `backend-test` service，避免誤連 dev/prod DB
+要填的值、預設入口與測試方式見[建立本機開發環境](frontend/public/docs/zh-TW/dev-setup.md)。需要資料庫的後端測試、整合測試與 E2E 在 CI 執行，E2E 以 `ci/e2e-stack.sh` 全新安裝後測試，見 [E2E 測試](frontend/public/docs/zh-TW/e2e-testing.md)。
 
 ## 架設與部署
 
-正式的最小部署流程、外部服務選擇與驗收方式，請參考
+正式站台以 `deploy/qjudge` 安裝與維護：`init` 建立設定、`addon` 啟動自帶的 MinIO／LiveKit、`ingress` 列出反向代理或 Tunnel 的設定、`upgrade <ref>` 安裝或升級、`rollback` 回到上一版。完整流程見
 [QJudge 架設與部署指南](frontend/public/docs/zh-TW/deployment.md)。`frontend/public/docs` 是對外文件的正式來源；論文附錄會從完成實機驗證的 release tag 擷取。
 
 ## 文件導覽

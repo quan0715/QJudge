@@ -281,7 +281,7 @@ class FakeS3Client:
         return "https://browser.example/download"
 
 
-async def test_s3_store_put_checks_bucket_once_and_uploads_content() -> None:
+async def test_s3_store_put_uploads_without_bucket_calls() -> None:
     client = FakeS3Client()
     store = S3ArtifactStore(bucket="artifacts", client=client)
 
@@ -289,7 +289,6 @@ async def test_s3_store_put_checks_bucket_once_and_uploads_content() -> None:
     await store.put("second", b"two", "application/json")
 
     assert client.calls == [
-        ("head_bucket", {"Bucket": "artifacts"}),
         (
             "put_object",
             {
@@ -347,7 +346,6 @@ async def test_s3_store_presign_uses_browser_endpoint_and_ttl(monkeypatch) -> No
         bucket="artifacts",
         endpoint_url="http://minio:9000",
         public_endpoint_url="https://objects.example",
-        region="ap-northeast-1",
         access_key="key",
         secret_key="secret",
         presign_ttl_seconds=123,
@@ -355,11 +353,12 @@ async def test_s3_store_presign_uses_browser_endpoint_and_ttl(monkeypatch) -> No
     )
 
     assert await store.presign("result") == "https://browser.example/download"
+    assert boto3.calls[0][1].pop("config").signature_version == "s3v4"
     assert boto3.calls == [
         (
             "s3",
             {
-                "region_name": "ap-northeast-1",
+                "region_name": "us-east-1",
                 "aws_access_key_id": "key",
                 "aws_secret_access_key": "secret",
                 "endpoint_url": "https://objects.example",
@@ -387,47 +386,23 @@ async def test_s3_store_presign_wraps_provider_failure() -> None:
         await store.presign("result")
 
 
-async def test_s3_store_creates_missing_regional_bucket() -> None:
+async def test_s3_store_wraps_upload_failure() -> None:
     client = FakeS3Client()
-    client.head_error = FakeProviderError("NoSuchBucket")
-    store = S3ArtifactStore(
-        bucket="artifacts", region="ap-northeast-1", client=client
-    )
-
-    await store.put("result", b"bytes", "text/plain")
-
-    assert client.calls[:2] == [
-        ("head_bucket", {"Bucket": "artifacts"}),
-        (
-            "create_bucket",
-            {
-                "Bucket": "artifacts",
-                "CreateBucketConfiguration": {
-                    "LocationConstraint": "ap-northeast-1"
-                },
-            },
-        ),
-    ]
-
-
-@pytest.mark.parametrize(
-    ("operation", "message"),
-    [
-        ("put", "Failed to upload artifact"),
-        ("bucket", "Failed to access artifact bucket"),
-        ("create", "Failed to create artifact bucket"),
-    ],
-)
-async def test_s3_store_wraps_provider_failures(operation: str, message: str) -> None:
-    client = FakeS3Client()
-    if operation == "put":
-        client.put_error = FakeProviderError()
-    elif operation == "bucket":
-        client.head_error = FakeProviderError("AccessDenied")
-    else:
-        client.head_error = FakeProviderError("NoSuchBucket")
-        client.create_error = FakeProviderError()
+    client.put_error = FakeProviderError()
     store = S3ArtifactStore(bucket="artifacts", client=client)
 
-    with pytest.raises(ArtifactStorageError, match=message):
+    with pytest.raises(ArtifactStorageError, match="Failed to upload artifact"):
         await store.put("result", b"bytes", "text/plain")
+
+
+async def test_presigning_uses_sigv4_for_s3_compatible_endpoints() -> None:
+    from urllib.parse import parse_qs, urlsplit
+
+    store = S3ArtifactStore(
+        bucket='qjudge', endpoint_url='http://minio:9000',
+        public_endpoint_url='https://storage.example.edu',
+        access_key='test-key', secret_key='test-secret',
+    )
+    query = parse_qs(urlsplit(await store.presign('ai-artifacts/test.txt')).query)
+    assert query.get('X-Amz-Algorithm') == ['AWS4-HMAC-SHA256']
+    assert 'AWSAccessKeyId' not in query

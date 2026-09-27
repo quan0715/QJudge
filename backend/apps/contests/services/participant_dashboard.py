@@ -97,8 +97,6 @@ def _serialize_participant(
         "account_role": getattr(participant.user, "role", "student"),
         "auth_provider": getattr(participant.user, "auth_provider", "email"),
         "email": getattr(participant.user, "email", ""),
-        "score": float(participant.score or 0),
-        "rank": participant.rank,
         "joined_at": participant.joined_at.isoformat()
         if participant.joined_at
         else None,

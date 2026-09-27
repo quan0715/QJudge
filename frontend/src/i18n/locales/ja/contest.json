@@ -1569,6 +1569,7 @@
     },
     "environment": {
       "checks": {
+        "graphics": "描画環境の確認",
         "fullscreen": "フルスクリーンテスト",
         "interaction": "操作入力の確認",
         "monitor": "モニター数確認",
@@ -1576,6 +1577,8 @@
         "webcam": "Webcam 権限"
       },
       "errors": {
+        "webglUnavailable": "WebGL を利用できないため、試験に入れません。ローカルのブラウザーでハードウェアアクセラレーションを有効にして再起動してください。改善しない場合は別の端末を使用してください。",
+        "softwareRenderer": "llvmpipe によるソフトウェア描画環境では試験に入れません。ローカルのデスクトップでブラウザーのハードウェアアクセラレーションを有効にするか、別の端末を使用してください。",
         "browserNotSupported": "お使いのブラウザはディスプレイ管理に対応していません。Chrome または Edge を使用してください。",
         "dependencyPrefix": "「{{name}}」を先に通過する必要があります。",
         "focusFailed": "このページに戻ってから再試行してください。",
@@ -1592,6 +1595,7 @@
         "webcamUnsupported": "このブラウザは Webcam をサポートしていません。"
       },
       "requirements": {
+        "graphics": "WebGL が必要です。llvmpipe によるソフトウェア描画環境は利用できません。",
         "browser": "最新版 Chrome または Edge を使用してください。",
         "display": "単一モニター限定（外部モニターは外してください）。",
         "permission": "「ウィンドウとディスプレイの管理」を許可してください。",
@@ -1914,6 +1918,7 @@
     "errors": {
       "announcementsLoadFailed": "お知らせを一時的に読み込めません",
       "questionsLoadFailed": "問題データを一時的に読み込めません",
+      "answersLoadFailed": "解答記録を一時的に読み込めません",
       "scoreDistributionLoadFailed": "得点分布を一時的に読み込めません"
     },
     "infoLabel": "コンテスト情報",

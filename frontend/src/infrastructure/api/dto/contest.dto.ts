@@ -216,9 +216,7 @@ export interface ContestParticipantDto {
   live_monitoring_online?: boolean;
   live_monitoring_sources?: Array<"screen_share" | "webcam">;
   live_monitoring_status?: "available" | "unavailable" | "unknown";
-  score?: number;
   total_score?: number;
-  rank?: number;
   joined_at?: string;
   exam_status?: ExamStatusType;
   lock_reason?: string;

@@ -3,13 +3,13 @@ Locust entrypoint — imports all User classes.
 
 Usage:
   # Smoke test (headless, 5 users)
-  locust -f locustfile.py --users 5 --spawn-rate 5 --run-time 2m --headless --host http://localhost:8002
+  locust -f locustfile.py --users 5 --spawn-rate 5 --run-time 2m --headless --host http://localhost:8080
 
   # Full ramp-up with Web UI
-  locust -f locustfile.py --host http://localhost:8002
+  locust -f locustfile.py --host http://localhost:8080
 
   # Burst tests (recommended dedicated files)
-  locust -f locust_burst_start.py --users 200 --spawn-rate 200 --headless --host http://localhost:8002
+  locust -f locust_burst_start.py --users 200 --spawn-rate 200 --headless --host http://localhost:8080
 """
 
 # Main exam lifecycle user

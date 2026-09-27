@@ -5,7 +5,7 @@ Usage (inside container):
     python manage.py healthcheck
 
 Usage (from host):
-    docker compose -f docker-compose.dev.yml exec backend python manage.py healthcheck
+    .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec backend python manage.py healthcheck
 """
 import sys
 
@@ -31,7 +31,6 @@ class Command(BaseCommand):
             ("object_storage_connection", self._check_object_storage_connection),
             ("object_storage_buckets", self._check_object_storage_buckets),
             ("celery_default", self._check_celery_default),
-            ("celery_beat", self._check_celery_beat),
         ]
 
         for name, fn in checks:
@@ -101,19 +100,8 @@ class Command(BaseCommand):
         return True, f"buckets reachable: {bucket_names}"
 
     def _configured_object_storage_buckets(self):
-        raw_buckets = [
-            ("anticheat_raw", getattr(settings, "ANTICHEAT_RAW_BUCKET", "")),
-            ("markdown_images", getattr(settings, "MARKDOWN_IMAGE_S3_BUCKET", "")),
-        ]
-        buckets = []
-        seen = set()
-        for label, bucket in raw_buckets:
-            bucket_name = (bucket or "").strip()
-            if not bucket_name or bucket_name in seen:
-                continue
-            buckets.append((label, bucket_name))
-            seen.add(bucket_name)
-        return buckets
+        bucket_name = (settings.OBJECT_STORAGE_BUCKET or "").strip()
+        return [("object_storage", bucket_name)] if bucket_name else []
 
     def _check_celery_default(self):
         queue_name = getattr(settings, "CELERY_TASK_DEFAULT_QUEUE", "celery")
@@ -140,30 +128,3 @@ class Command(BaseCommand):
         )
         active_detail = ", ".join(active_queue_names) if active_queue_names else "none"
         return False, f"no worker consuming '{queue_name}' (active: {active_detail})"
-
-    def _check_celery_beat(self):
-        """Check beat scheduler — best-effort, non-fatal if unreachable."""
-        from config.celery import app as celery_app
-
-        inspector = celery_app.control.inspect(timeout=3.0)
-        scheduled = inspector.scheduled() or {}
-        if scheduled:
-            worker = next(iter(scheduled))
-            return True, f"scheduler reachable via {worker}"
-
-        # Fallback: check if any periodic task ran recently via DB
-        try:
-            from django_celery_beat.models import PeriodicTask  # type: ignore
-            from django.utils import timezone as tz
-            from datetime import timedelta
-
-            recent = PeriodicTask.objects.filter(
-                enabled=True,
-                last_run_at__gte=tz.now() - timedelta(minutes=10),
-            ).first()
-            if recent:
-                return True, f"task '{recent.name}' ran at {recent.last_run_at}"
-        except Exception:
-            pass
-
-        return True, "beat not verified (non-blocking)"

@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -48,7 +48,7 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
     # Actions in this set return errors in the new envelope shape.
     # See apps.core.api.envelope (success shape) and apps.core.exceptions
     # (error shape). Other actions retain the legacy `{success, error}` format.
-    envelope_error_actions = {"all_answers"}
+    envelope_error_actions = {"all_answers", "results"}
 
     def _get_contest(self, contest_pk):
         return get_object_or_404(Contest, pk=contest_pk)
@@ -258,13 +258,16 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['get'], url_path='my-answers')
     def my_answers(self, request, contest_pk=None):
-        """Get all answers for the current student in this contest."""
+        """Get all answers for the current student in this contest.
+
+        Reading one's own saved answers is not an exam operation, so it is not
+        limited to the exam window: the dashboard shows them after the exam
+        ends, before results are published, like the answer-proof report.
+        """
         contest = self._get_contest(contest_pk)
-        participant, error_response = validate_exam_operation_for_view(
-            contest, request.user, require_in_progress=False
-        )
-        if error_response is not None:
-            return error_response
+        participant = ContestParticipant.objects.filter(
+            contest=contest, user=request.user,
+        ).first()
         if participant is None:
             return Response(
                 {'error': NO_ATTEMPT_MESSAGE},
@@ -284,31 +287,49 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=['get'], url_path='results')
     def results(self, request, contest_pk=None):
-        """Get graded results (only when results are published)."""
+        """Get graded results (only when results are published).
+
+        Returns ``{"data": [...], "meta": {"total_score", "max_total_score"}}``.
+        Each row keeps the raw ``score`` and adds ``effective_score`` /
+        ``effective_max_score`` after score policies, computed by the same
+        breakdown the student PDF report uses, so both show the same numbers.
+        """
         contest = self._get_contest(contest_pk)
 
         # Check if results are published
         if not contest.results_published:
             if not can_manage_contest(request.user, contest):
-                return Response(
-                    {'error': 'Results have not been published yet.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                raise PermissionDenied('Results have not been published yet.')
 
-        try:
-            participant = ContestParticipant.objects.get(
-                contest=contest, user=request.user
-            )
-        except ContestParticipant.DoesNotExist:
-            return Response(
-                {'error': NO_ATTEMPT_MESSAGE},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        participant = ContestParticipant.objects.filter(
+            contest=contest, user=request.user,
+        ).first()
+        if participant is None:
+            raise ValidationError(NO_ATTEMPT_MESSAGE)
 
-        answers = ExamAnswer.objects.filter(
-            participant=participant
-        ).select_related('question', 'graded_by')
-        return Response(ExamAnswerDetailSerializer(answers, many=True).data)
+        answers = list(
+            ExamAnswer.objects.filter(participant=participant)
+            .select_related('question', 'graded_by')
+        )
+        scoring = ExamScoringService(contest)
+        breakdown = scoring.get_participant_breakdown(
+            participant, {answer.question_id: answer for answer in answers},
+        )
+        effective_max = scoring.get_effective_max_scores()
+        effective_scores = {
+            item['question_id']: item['score'] for item in breakdown.items
+        }
+
+        rows = ExamAnswerDetailSerializer(answers, many=True).data
+        for answer, row in zip(answers, rows):
+            row['effective_score'] = effective_scores.get(answer.question_id)
+            row['effective_max_score'] = float(scoring._round_score(
+                effective_max.get(answer.question_id, answer.question.score)
+            ))
+        return envelope(rows, meta={
+            'total_score': breakdown.total_score,
+            'max_total_score': breakdown.max_total_score,
+        })
 
     # ── TA/Admin endpoints ──
 
@@ -611,9 +632,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.save()
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
 
-        # Update participant total score
-        ExamScoringService(contest).calculate_participant_score(answer_obj.participant)
-
         return Response(ExamAnswerDetailSerializer(answer_obj).data)
 
     @action(detail=False, methods=['post'], url_path='batch-grade')
@@ -635,7 +653,6 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
 
         now = timezone.now()
         results = []
-        affected_participants = set()
         affected_question_ids = set()
 
         for entry in grades:
@@ -673,14 +690,8 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
             answer_obj.is_correct = validated_score > 0
             answer_obj.save()
 
-            affected_participants.add(answer_obj.participant_id)
             affected_question_ids.add(answer_obj.question_id)
             results.append({'exam_answer_id': answer_id, 'status': 'ok', 'score': float(validated_score)})
-
-        # Recalculate affected participant total scores
-        for pid in affected_participants:
-            participant = ContestParticipant.objects.get(pk=pid)
-            ExamScoringService(contest).calculate_participant_score(participant)
 
         # Invalidate caches
         for qid in affected_question_ids:
@@ -707,8 +718,5 @@ class ExamAnswerViewSet(viewsets.GenericViewSet):
         answer_obj.is_correct = None
         answer_obj.save()
         self._invalidate_dashboard_cache(contest.id, answer_obj.question_id)
-
-        # Recalculate participant total score
-        ExamScoringService(contest).calculate_participant_score(answer_obj.participant)
 
         return Response(ExamAnswerDetailSerializer(answer_obj).data)

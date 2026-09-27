@@ -264,8 +264,6 @@ class Command(BaseCommand):
         ExamEvent.objects.filter(contest=contest).delete()
 
         updated = participants_qs.update(
-            score=0,
-            rank=None,
             started_at=None,
             left_at=None,
             locked_at=None,

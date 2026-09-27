@@ -23,7 +23,7 @@ def test_local_integrity_secrets_are_ignored() -> None:
 
 
 def test_dev_secret_bootstrap_generates_usable_files_once(tmp_path: Path) -> None:
-    script = REPO_ROOT / "scripts" / "bootstrap_integrity_secrets.py"
+    script = REPO_ROOT / "deploy" / "bootstrap" / "bootstrap_integrity_secrets.py"
     secrets_dir = tmp_path / "integrity"
 
     assert script.is_file()
@@ -55,7 +55,7 @@ def test_dev_secret_bootstrap_generates_usable_files_once(tmp_path: Path) -> Non
 
 def run_bootstrap(directory, *args):
     return subprocess.run(
-        [sys.executable, str(REPO_ROOT / "scripts/bootstrap_integrity_secrets.py"),
+        [sys.executable, str(REPO_ROOT / "deploy/bootstrap/bootstrap_integrity_secrets.py"),
          "--secrets-dir", str(directory), *args], capture_output=True, text=True,
     )
 

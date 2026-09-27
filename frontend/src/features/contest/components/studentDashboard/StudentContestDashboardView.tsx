@@ -52,7 +52,7 @@ import {
   getExamResults,
   getMyExamAnswers,
   type ExamAnswer,
-  type ExamAnswerDetail,
+  type ExamResults,
 } from "@/infrastructure/api/repositories/examAnswers.repository";
 import { formatScore } from "@/features/contest/utils/scoreFormat";
 import MarkdownRenderer from "@/shared/ui/markdown/MarkdownRenderer";
@@ -105,7 +105,7 @@ interface PaperExamDashboardData {
   error: string | null;
   questions: ExamQuestion[];
   answers: ExamAnswer[];
-  results: ExamAnswerDetail[];
+  results: ExamResults | null;
 }
 
 const EMPTY_PAPER_DATA: PaperExamDashboardData = {
@@ -113,7 +113,7 @@ const EMPTY_PAPER_DATA: PaperExamDashboardData = {
   error: null,
   questions: [],
   answers: [],
-  results: [],
+  results: null,
 };
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
@@ -350,18 +350,24 @@ export default function StudentContestDashboard({
           : [];
       const results =
         answersResult.status === "fulfilled" && contest.resultsPublished
-          ? answersResult.value as ExamAnswerDetail[]
-          : [];
+          ? answersResult.value as ExamResults
+          : null;
 
       setPaperData({
         loading: false,
+        // A failed answer load must not read as "every question unanswered".
         error:
           questionsResult.status === "rejected"
             ? tr(
                 "studentDashboard.errors.questionsLoadFailed",
                 "題目資料暫時無法載入",
               )
-            : null,
+            : answersResult.status === "rejected"
+              ? tr(
+                  "studentDashboard.errors.answersLoadFailed",
+                  "作答紀錄暫時無法載入",
+                )
+              : null,
         questions,
         answers,
         results,
@@ -431,8 +437,8 @@ export default function StudentContestDashboard({
     if (contest.contestType === "paper_exam") {
       return buildPaperProgressSummary(
         paperData.questions,
-        contest.resultsPublished ? paperData.results : paperData.answers,
-        contest.resultsPublished,
+        paperData.results?.answers ?? paperData.answers,
+        paperData.results,
       );
     }
     return buildCodingProgressSummary(contest);
@@ -742,7 +748,10 @@ export default function StudentContestDashboard({
     }
 
     const resultMap = new Map(
-      paperData.results.map((result) => [String(result.questionId), result]),
+      (paperData.results?.answers ?? []).map((result) => [
+        String(result.questionId),
+        result,
+      ]),
     );
     const answerMap = new Map(
       paperData.answers.map((answer) => [String(answer.questionId), answer]),
@@ -761,7 +770,7 @@ export default function StudentContestDashboard({
             question.questionType
           ) as ExamQuestionType;
           const maxScore =
-            question.score ?? result?.maxScore ?? 0;
+            result?.effectiveMaxScore ?? question.score ?? result?.maxScore ?? 0;
           const status =
             marked
               ? {
@@ -828,7 +837,7 @@ export default function StudentContestDashboard({
               statusTone={status.tone}
               statusEmphasis={status.emphasis}
               showGrading={contest.resultsPublished}
-              score={result?.score}
+              score={result?.effectiveScore}
               maxScore={maxScore}
               gradedByUsername={result?.gradedByUsername}
               feedback={result?.feedback}

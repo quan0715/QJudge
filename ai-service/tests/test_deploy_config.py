@@ -1,0 +1,84 @@
+import asyncio
+
+import pytest
+
+from config import Settings, get_settings
+from infrastructure.checkpoints import langgraph_store
+from infrastructure.database.base import create_async_engine_from_settings
+from main import _oauth_locations
+
+
+def test_oauth_issuer_comes_from_public_origin(monkeypatch):
+    monkeypatch.setenv("QJUDGE_PUBLIC_ORIGIN", "https://judge.example.edu/")
+    monkeypatch.setenv("AI_OAUTH_ISSUER", "https://ignored.example")
+
+    issuer, _ = _oauth_locations(Settings(_env_file=None))
+
+    assert issuer == "https://judge.example.edu"
+
+
+def test_oauth_issuer_ignores_legacy_key(monkeypatch):
+    monkeypatch.delenv("QJUDGE_PUBLIC_ORIGIN", raising=False)
+    monkeypatch.setenv("AI_OAUTH_ISSUER", "https://legacy.example/")
+
+    issuer, _ = _oauth_locations(Settings(_env_file=None))
+
+    assert issuer == ""
+
+
+def test_engine_pool_is_bounded(monkeypatch):
+    monkeypatch.setenv("AI_DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    get_settings.cache_clear()
+    try:
+        engine = create_async_engine_from_settings()
+        assert engine.pool.size() == 5
+        assert engine.pool._max_overflow == 5
+    finally:
+        get_settings.cache_clear()
+
+
+class _StopSetup(Exception):
+    pass
+
+
+def test_checkpoint_pool_sets_schema_without_startup_options(monkeypatch):
+    captured = {}
+
+    def fake_pool(**kwargs):
+        captured.update(kwargs)
+        raise _StopSetup
+
+    monkeypatch.setattr(langgraph_store, "AsyncConnectionPool", fake_pool)
+    store = langgraph_store.LangGraphCheckpointStore(
+        database_url="postgresql://user:pass@localhost:5432/db",
+        schema="ai_checkpoint",
+    )
+
+    with pytest.raises(_StopSetup):
+        asyncio.run(store.setup())
+
+    assert captured["max_size"] == 5
+    assert "options" not in captured["kwargs"]
+
+    executed = []
+
+    class FakeConnection:
+        async def execute(self, statement):
+            executed.append(repr(statement))
+
+    asyncio.run(captured["configure"](FakeConnection()))
+    assert "search_path" in executed[0]
+    assert "ai_checkpoint" in executed[0]
+
+
+def test_artifact_bucket_comes_from_single_bucket(monkeypatch):
+    monkeypatch.setenv("OBJECT_STORAGE_BUCKET", "qjudge")
+
+    assert Settings(_env_file=None).artifact_s3_bucket == "qjudge"
+
+
+def test_artifact_bucket_ignores_legacy_key(monkeypatch):
+    monkeypatch.delenv("OBJECT_STORAGE_BUCKET", raising=False)
+    monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
+
+    assert Settings(_env_file=None).artifact_s3_bucket == "ai-artifacts"

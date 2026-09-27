@@ -1,4 +1,5 @@
 import type { ExamStatusType } from "@/core/entities/contest.entity";
+import { checkGraphicsEnvironment } from "@/features/contest/detectors/graphicsEnvironmentCheck";
 
 const PRECHECK_GATE_KEY_PREFIX = "qjudge.exam.precheck_gate.v1";
 const precheckGateMemory = new Set<string>();
@@ -12,6 +13,8 @@ export const hasExamPrecheckPassed = (contestId: string): boolean => {
   try {
     const passed = !!window.sessionStorage.getItem(getPrecheckGateKey(contestId));
     if (passed) {
+      // A saved pass must not admit a newly opened page in an unsupported environment.
+      if (checkGraphicsEnvironment().failure) return false;
       precheckGateMemory.add(contestId);
     }
     return passed;

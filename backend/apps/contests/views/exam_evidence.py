@@ -129,7 +129,7 @@ def _storage_error_code(exc: ClientError) -> str:
 
 def _validate_evidence_object_head(client, object_key: str):
     try:
-        head = client.head_object(Bucket=settings.ANTICHEAT_RAW_BUCKET, Key=object_key)
+        head = client.head_object(Bucket=settings.OBJECT_STORAGE_BUCKET, Key=object_key)
     except ClientError as exc:
         code = _storage_error_code(exc)
         if code in {"404", "NoSuchKey", "NotFound", "NoSuchBucket"}:
@@ -217,7 +217,7 @@ class ExamEvidenceMixin:
                 "codec": chunk.codec,
                 "content_type": chunk.content_type,
                 "url": (
-                    generate_get_url(settings.ANTICHEAT_RAW_BUCKET, chunk.object_key)
+                    generate_get_url(settings.OBJECT_STORAGE_BUCKET, chunk.object_key)
                     if chunk.status == ExamEvidenceChunk.Status.VERIFIED
                     else None
                 ),
@@ -384,7 +384,7 @@ class ExamEvidenceMixin:
                     },
                 )
                 put_url = generate_put_url(
-                    settings.ANTICHEAT_RAW_BUCKET,
+                    settings.OBJECT_STORAGE_BUCKET,
                     object_key,
                     expires_seconds=expires_seconds,
                     client=presign_client,
@@ -397,14 +397,7 @@ class ExamEvidenceMixin:
                         "source_module": source_module,
                         "client_captured_at_ms": captured_at_ms,
                         "put_url": put_url,
-                        "required_headers": {
-                            "Content-Type": "image/webp",
-                            **(
-                                {"x-amz-tagging": "cleanup=true"}
-                                if settings.OBJECT_STORAGE_OBJECT_TAGGING_ENABLED
-                                else {}
-                            ),
-                        },
+                        "required_headers": {"Content-Type": "image/webp"},
                     }
                 )
 

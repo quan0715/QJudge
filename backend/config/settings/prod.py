@@ -2,89 +2,50 @@
 Production settings
 """
 import os
+from config.env import env
 from .base import *
+from .database import build_database_config
 from config.deployment import parse_public_origin
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = False
 
-# =============================================================================
-# GlitchTip / Sentry Error Tracking
-# =============================================================================
-GLITCHTIP_DSN = os.getenv("GLITCHTIP_DSN", "")
-
-if GLITCHTIP_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-    from sentry_sdk.integrations.celery import CeleryIntegration
-    from sentry_sdk.integrations.redis import RedisIntegration
-    from sentry_sdk.integrations.logging import LoggingIntegration
-
-    sentry_sdk.init(
-        dsn=GLITCHTIP_DSN,
-        integrations=[
-            DjangoIntegration(transaction_style="url"),
-            CeleryIntegration(),
-            RedisIntegration(),
-            LoggingIntegration(
-                level="WARNING",       # WARNING+ 記為 breadcrumb
-                event_level="ERROR",   # ERROR+ 送為獨立 event
-            ),
-        ],
-        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
-        send_default_pii=False,
-        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
-    )
-
-_PUBLIC_ORIGIN_VALUE = os.getenv("QJUDGE_PUBLIC_ORIGIN", "")
-if _PUBLIC_ORIGIN_VALUE:
-    _PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
-    ALLOWED_HOSTS = [
-        _PUBLIC_ORIGIN.hostname,
-        "localhost",
-        "127.0.0.1",
-        "backend",
-    ]
-else:
-    _PUBLIC_ORIGIN = None
-    ALLOWED_HOSTS = [
-        host for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host
-    ]
+_PUBLIC_ORIGIN_VALUE = env("QJUDGE_PUBLIC_ORIGIN", "")
+if not _PUBLIC_ORIGIN_VALUE:
+    raise RuntimeError("QJUDGE_PUBLIC_ORIGIN must be set in production")
+_PUBLIC_ORIGIN = parse_public_origin(_PUBLIC_ORIGIN_VALUE)
+ALLOWED_HOSTS = [
+    _PUBLIC_ORIGIN.hostname,
+    "localhost",
+    "127.0.0.1",
+    "backend",
+]
 
 # =============================================================================
 # Production Database Configuration
 # =============================================================================
-DATABASES['default'] = {
-    'ENGINE': 'django.db.backends.postgresql',
-    'NAME': os.getenv('DB_NAME', 'postgres'),
-    'USER': os.getenv('DB_USER', 'postgres'),
-    'PASSWORD': os.getenv('DB_PASSWORD', ''),
-    'HOST': os.getenv('DB_HOST', ''),
-    'PORT': os.getenv('DB_PORT', '5432'),
-    # CONN_MAX_AGE=0: release connections immediately so pgBouncer recycles them.
-    # pgBouncer (session mode) maintains the actual server-side pool, making
-    # per-request close/reopen cheap (local proxy, no TLS handshake).
-    'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '0')),
-    'CONN_HEALTH_CHECKS': True,
-    'OPTIONS': {
+DATABASES['default'] = build_database_config(
+    {
         'connect_timeout': 10,
-        # TCP Keepalive - keeps the pgBouncer→Django socket alive through NAT.
+        # TCP keepalive keeps the pgBouncer→Django socket alive through NAT.
         'keepalives': 1,
         'keepalives_idle': 30,
         'keepalives_interval': 10,
         'keepalives_count': 5,
-        # External managed databases usually require SSL.
-        'sslmode': os.getenv('DB_SSLMODE', 'require'),
+        # PgBouncer has no TLS listener; the app-to-pgbouncer hop stays on the
+        # Compose network, so sslmode is an app constant, not deployer input.
+        # A `?sslmode=...` query in DATABASE_URL still overrides this (see
+        # build_database_config, which merges URL query options over these
+        # defaults).
+        'sslmode': 'disable',
     },
-}
+)
 
 if SECRET_KEY == "django-insecure-default-key-change-in-production":
     raise RuntimeError("SECRET_KEY must be set in production")
 
 # Security settings. Explicit HTTP origins support private-network and initial
-# deployment verification; HTTPS and the legacy no-origin fallback stay strict.
-_PUBLIC_ORIGIN_USES_HTTPS = (
-    _PUBLIC_ORIGIN is None or _PUBLIC_ORIGIN.url.startswith("https://")
-)
+# deployment verification; HTTPS origins stay strict.
+_PUBLIC_ORIGIN_USES_HTTPS = _PUBLIC_ORIGIN.url.startswith("https://")
 SECURE_SSL_REDIRECT = _PUBLIC_ORIGIN_USES_HTTPS
 SESSION_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
 CSRF_COOKIE_SECURE = _PUBLIC_ORIGIN_USES_HTTPS
@@ -101,11 +62,11 @@ SECURE_HSTS_PRELOAD = _PUBLIC_ORIGIN_USES_HTTPS
 
 # Email backend for production
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST = env('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(env('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
 
 # Logging
 LOGGING = {
@@ -144,13 +105,6 @@ LOGGING = {
     },
 }
 
-# CORS settings
-# CORS settings
-CORS_ALLOWED_ORIGINS = [origin.strip('/') for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
-
-# CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = [origin.strip('/') for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin]
-if os.getenv('FRONTEND_URL'):
-    CSRF_TRUSTED_ORIGINS.append(os.getenv('FRONTEND_URL').strip('/'))
+# CORS and CSRF trust only the public origin.
+CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
+CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]

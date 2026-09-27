@@ -4,8 +4,8 @@ import path from "path";
 /**
  * Vitest config for API Integration Tests
  *
- * 這些測試需要真實的後端環境運行
- * 執行前需要: docker compose -f docker-compose.test.yml pull --ignore-pull-failures && docker compose -f docker-compose.test.yml up -d
+ * 這些測試打真實的後端：先以 `ci/e2e-stack.sh` 安裝 stack，
+ * 預設目標 http://localhost:8080（可用 API_BASE_URL 覆寫）。
  */
 export default defineConfig({
   test: {

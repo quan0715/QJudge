@@ -23,7 +23,7 @@ def run(coro):
 
 def test_oauth_config_canonicalizes_trailing_slash():
     environment = os.environ.copy()
-    environment["OAUTH_ISSUER_URL"] = "https://issuer.test/"
+    environment["QJUDGE_PUBLIC_ORIGIN"] = "https://issuer.test/"
 
     result = subprocess.run(
         [

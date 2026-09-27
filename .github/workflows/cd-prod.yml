@@ -85,14 +85,6 @@ jobs:
           version: latest
           ping: ${{ secrets.PROD_SSH_HOST }}
 
-      - name: Upload deploy script
-        env:
-          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
-          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
-        run: |
-          cat scripts/deploy-prod.sh | tailscale ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
-            "cat > /tmp/qjudge-deploy-prod.sh && chmod +x /tmp/qjudge-deploy-prod.sh"
-
       - name: Deploy on server
         env:
           PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
@@ -100,5 +92,6 @@ jobs:
           PROD_DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
           DEPLOY_SHA: ${{ steps.sha.outputs.sha }}
         run: |
+          # Check out first so the server runs this release's deploy CLI.
           tailscale ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
-            "/tmp/qjudge-deploy-prod.sh '$PROD_DEPLOY_PATH' '$DEPLOY_SHA'"
+            "cd '$PROD_DEPLOY_PATH' && git fetch --tags --prune origin && git checkout --detach '$DEPLOY_SHA' && deploy/qjudge upgrade '$DEPLOY_SHA'"

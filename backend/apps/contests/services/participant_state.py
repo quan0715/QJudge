@@ -198,8 +198,6 @@ def reset_participant_exam_record(
         from .integrity_upload_grants import rotate_integrity_attempt
         rotate_integrity_attempt(participant)
         participant.exam_status = ExamStatus.NOT_STARTED
-        participant.score = 0
-        participant.rank = None
         participant.started_at = None
         participant.left_at = None
         participant.locked_at = None
@@ -209,8 +207,6 @@ def reset_participant_exam_record(
         participant.save(
             update_fields=[
                 "exam_status",
-                "score",
-                "rank",
                 "started_at",
                 "left_at",
                 "locked_at",

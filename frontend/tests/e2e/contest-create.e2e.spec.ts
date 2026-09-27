@@ -1,6 +1,6 @@
 /**
  * 教室詳情 → CreateContestModal：建立紙本測驗與程式競賽。
- * 需 docker test stack + seed_e2e_data（teacher）。
+ * 需 ci/e2e-stack.sh 安裝的 stack + seed_e2e_data（teacher）。
  */
 import { expect, test } from "@playwright/test";
 import { clearAuth, loginViaAPI } from "../helpers/auth.helper";

@@ -158,7 +158,7 @@ class Command(BaseCommand):
             for chunk in _chunks(object_keys, 1000):
                 try:
                     result = client.delete_objects(
-                        Bucket=settings.ANTICHEAT_RAW_BUCKET,
+                        Bucket=settings.OBJECT_STORAGE_BUCKET,
                         Delete={"Objects": [{"Key": key} for key in chunk], "Quiet": True},
                     )
                     deleted_objects += len(chunk) - len(result.get("Errors", []))
@@ -175,8 +175,6 @@ class Command(BaseCommand):
                 deleted_events = events.delete()[0]
                 deleted_contests = 0
                 reset_participants = participants.update(
-                    score=0,
-                    rank=None,
                     started_at=None,
                     left_at=None,
                     locked_at=None,

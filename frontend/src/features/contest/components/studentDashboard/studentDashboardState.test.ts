@@ -112,8 +112,8 @@ describe("studentDashboardState", () => {
         { id: 1, score: 10 },
         { id: 2, score: 15 },
       ] as ExamQuestion[],
-      [{ questionId: "1", score: 8 }],
-      false,
+      [{ questionId: "1" }],
+      null,
     );
 
     expect(summary).toEqual({
@@ -125,20 +125,21 @@ describe("studentDashboardState", () => {
     });
   });
 
-  it("includes paper scores after results are published", () => {
+  it("uses the server's policy-adjusted totals after results are published", () => {
     const summary = buildPaperProgressSummary(
       [
         { id: 1, score: 10 },
         { id: 2, score: 15 },
       ] as ExamQuestion[],
       [
-        { questionId: "1", score: 8 },
-        { questionId: 2, score: 12 },
+        { questionId: "1" },
+        { questionId: 2 },
       ],
-      true,
+      { totalScore: 23.5, maxTotalScore: 20 },
     );
 
-    expect(summary.totalScore).toBe(20);
+    expect(summary.totalScore).toBe(23.5);
+    expect(summary.maxScore).toBe(20);
     expect(summary.completedItems).toBe(2);
   });
 });

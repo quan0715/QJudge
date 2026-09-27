@@ -3,18 +3,18 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright E2E Testing Configuration
  *
- * Designed for the docker test stack: `docker compose -f docker-compose.test.yml`
- * maps `frontend-test` to host port 5174 (see CI e2e-manual workflow).
+ * Runs on the host against the frontend of a stack installed by
+ * `ci/e2e-stack.sh` (http://localhost:8080 by default).
  *
- * Usage (host machine, stack already up):
+ * Usage (stack already up):
  *   npm run test:e2e            # headless
- *   npm run test:e2e:ui         # Playwright UI against localhost:5174
- *   PLAYWRIGHT_BASE_URL=http://127.0.0.1:5174 npm run test:e2e:ui
+ *   npm run test:e2e:ui         # Playwright UI
+ *   PLAYWRIGHT_BASE_URL=http://127.0.0.1:8080 npm run test:e2e
  */
 const e2eBaseURL =
   process.env.PLAYWRIGHT_BASE_URL ||
   process.env.E2E_BASE_URL ||
-  "http://localhost:5174";
+  "http://localhost:8080";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -58,9 +58,8 @@ export default defineConfig({
     navigationTimeout: 30 * 1000,
   },
 
-  /* Global setup and teardown */
+  /* Wait for the running stack */
   globalSetup: "./tests/helpers/setup.ts",
-  globalTeardown: "./tests/helpers/teardown.ts",
 
   /* Configure projects for Chrome only */
   projects: [

@@ -156,7 +156,7 @@ vi.mock("@/infrastructure/api/repositories/examQuestions.repository", () => ({
 }));
 
 vi.mock("@/infrastructure/api/repositories/examAnswers.repository", () => ({
-  getExamResults: vi.fn(async () => []),
+  getExamResults: vi.fn(async () => ({ answers: [], totalScore: 0, maxTotalScore: 0 })),
   getMyExamAnswers: vi.fn(async () => []),
 }));
 
@@ -517,6 +517,38 @@ describe("StudentContestDashboard", () => {
     expect(getExamResults).not.toHaveBeenCalled();
   });
 
+  it("reports a failed answer load instead of showing every question unanswered", async () => {
+    vi.mocked(getExamQuestions).mockResolvedValueOnce([
+      {
+        id: "question-1",
+        contestId: "contest-1",
+        questionType: "short_answer",
+        prompt: "Explain",
+        options: [],
+        explanation: "",
+        score: 10,
+        order: 1,
+        createdAt: "2000-05-05T10:00:00.000Z",
+        updatedAt: "2000-05-05T10:00:00.000Z",
+      },
+    ]);
+    vi.mocked(getMyExamAnswers).mockRejectedValueOnce(new Error("Contest has ended."));
+
+    renderDashboard(
+      createContest({
+        contestType: "paper_exam",
+        startTime: "2000-05-05T10:00:00.000Z",
+        endTime: "2000-05-05T12:00:00.000Z",
+        examStatus: "submitted",
+        examQuestionsCount: 1,
+        problems: [],
+      }),
+    );
+
+    expect(await screen.findByText("作答紀錄暫時無法載入")).toBeInTheDocument();
+    expect(screen.queryByText("未作答")).not.toBeInTheDocument();
+  });
+
   it("renders post-exam answer report and score distribution", async () => {
     renderDashboard(
       createContest({
@@ -665,20 +697,28 @@ describe("StudentContestDashboard", () => {
         updatedAt: "2000-05-05T10:00:00.000Z",
       },
     ]);
-    vi.mocked(getExamResults).mockResolvedValueOnce([
-      {
-        id: "answer-1",
-        questionId: "question-1",
-        answer: { text: "answer" },
-        createdAt: "2000-05-05T10:10:00.000Z",
-        updatedAt: "2000-05-05T10:10:00.000Z",
-        isCorrect: null,
-        score: 8,
-        feedback: "Good",
-        gradedByUsername: "teacher",
-        gradedAt: "2000-05-05T11:00:00.000Z",
-      },
-    ]);
+    // Raw 5 / 10 becomes 8 / 12 after score policies; the dashboard must show
+    // the policy-adjusted numbers, as the PDF report does.
+    vi.mocked(getExamResults).mockResolvedValueOnce({
+      answers: [
+        {
+          id: "answer-1",
+          questionId: "question-1",
+          answer: { text: "answer" },
+          createdAt: "2000-05-05T10:10:00.000Z",
+          updatedAt: "2000-05-05T10:10:00.000Z",
+          isCorrect: null,
+          score: 5,
+          effectiveScore: 8,
+          effectiveMaxScore: 12,
+          feedback: "Good",
+          gradedByUsername: "teacher",
+          gradedAt: "2000-05-05T11:00:00.000Z",
+        },
+      ],
+      totalScore: 8,
+      maxTotalScore: 12,
+    });
 
     renderDashboard(
       createContest({
@@ -692,7 +732,9 @@ describe("StudentContestDashboard", () => {
       }),
     );
 
-    expect(await screen.findAllByText("8.00 / 10.00")).not.toHaveLength(0);
+    expect(await screen.findAllByText("8.00 / 12.00")).not.toHaveLength(0);
+    expect(screen.getByText(/8\.00 \/ 12\.00 · teacher/)).toBeInTheDocument();
+    expect(screen.queryByText(/5\.00 \/ 10\.00/)).not.toBeInTheDocument();
     expect(screen.getByText("考試成績")).toBeInTheDocument();
     expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("Current prompt")).toBeInTheDocument();

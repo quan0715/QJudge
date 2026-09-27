@@ -253,6 +253,23 @@ class TestQuestionBankAPI:
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_upload_cover_corrupt_png(
+        self,
+        api_client: APIClient,
+        teacher: User,
+        teacher_private_bank: QuestionBank,
+    ):
+        api_client.force_authenticate(user=teacher)
+        payload = bytearray(self._png_file().read())
+        payload[payload.index(b"IDAT") + 4] ^= 0xFF
+        bad = SimpleUploadedFile("cover.png", bytes(payload), content_type="image/png")
+        resp = api_client.post(
+            f"/api/v1/question-banks/{teacher_private_bank.uuid}/upload_cover/",
+            {"file": bad},
+            format="multipart",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
     @override_settings(MARKDOWN_IMAGE_MAX_BYTES=10)
     def test_upload_cover_too_large(
         self,

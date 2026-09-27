@@ -1,6 +1,6 @@
 /**
  * E2E: classroom create → settings (icon + preset cover + optional file upload) → rename → delete.
- * Requires docker test stack + seed_e2e_data (teacher@example.com).
+ * Requires a stack installed by ci/e2e-stack.sh + seed_e2e_data (teacher@example.com).
  *
  * Locators: data-testid plus stable field `#id` for Carbon inputs (fill targets the real control).
  * File POST to upload_cover needs S3-compatible object storage; opt in with E2E_RUN_COVER_UPLOAD=1 (default: skipped).

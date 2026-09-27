@@ -1,4 +1,4 @@
-.PHONY: help dev dev-build dev-down integrity-secrets integrity-resident-build test test-down monitor monitor-down loadtest loadtest-down judge-build
+.PHONY: help dev dev-build dev-down dev-secrets integrity-resident-build judge-build
 
 # Default target
 help:
@@ -12,68 +12,28 @@ help:
 	@echo "  dev-build       Build and start the development stack"
 	@echo "  dev-down        Stop and remove development containers"
 	@echo ""
-	@echo "Testing Environment:"
-	@echo "  test            Start the testing stack (used for e2e and integration tests)"
-	@echo "  test-build      Build and start the testing stack"
-	@echo "  test-down       Stop and remove testing containers and volumes"
-	@echo ""
-	@echo "Monitoring (Overlay):"
-	@echo "  monitor         Start monitoring stack (Prometheus, Grafana) alongside dev"
-	@echo "  monitor-down    Stop monitoring stack"
-	@echo ""
-	@echo "Load Testing:"
-	@echo "  loadtest        Start the load testing stack"
-	@echo "  loadtest-build  Build and start the load testing stack"
-	@echo "  loadtest-down   Stop and remove load testing containers and volumes"
-	@echo ""
 	@echo "Judge System:"
 	@echo "  judge-build     Build the oj-judge Docker image locally"
-	@echo "  integrity-secrets       Create missing local Integrity credentials"
+	@echo "  dev-secrets             Create missing local AI OAuth and Integrity keys"
 	@echo "  integrity-resident-build  Build the resident Integrity service"
 	@echo ""
 
 # --- Development ---
-dev: integrity-secrets integrity-resident-build
-	docker compose -f docker-compose.dev.yml up -d
+dev: dev-secrets integrity-resident-build
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d
 
-dev-build: integrity-secrets integrity-resident-build
-	docker compose -f docker-compose.dev.yml up -d --build
+dev-build: dev-secrets integrity-resident-build
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --build
 
 dev-down:
-	docker compose -f docker-compose.dev.yml down
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev down
 
-integrity-secrets:
-	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev run --rm --no-deps --build integrity-bootstrap
+dev-secrets:
+	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build backend
+	deploy/qjudge secrets --image qjudge/backend:dev
 
 integrity-resident-build:
 	.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev build integrity-resident
-
-# --- Testing ---
-test:
-	docker compose -f docker-compose.test.yml up -d
-
-test-build:
-	docker compose -f docker-compose.test.yml up -d --build
-
-test-down:
-	docker compose -f docker-compose.test.yml down -v
-
-# --- Monitoring ---
-monitor:
-	docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml up -d
-
-monitor-down:
-	docker compose -f docker-compose.dev.yml -f docker-compose.monitoring.yml down
-
-# --- Load Testing ---
-loadtest:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d
-
-loadtest-build:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml up -d --build
-
-loadtest-down:
-	docker compose -f docker-compose.test.yml -f loadtest/docker-compose.loadtest.yml down -v
 
 # --- Judge System ---
 judge-build:

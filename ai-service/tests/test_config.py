@@ -31,3 +31,11 @@ def test_invalid_json_array_env_raises_settings_error(monkeypatch):
 
     with pytest.raises(SettingsError):
         Settings(_env_file=None)
+
+
+def test_empty_env_value_keeps_field_default(monkeypatch):
+    monkeypatch.setenv("APP_NAME", "")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.app_name == "AI Service"

@@ -1,0 +1,31 @@
+# Bundled media runs beside the application as an independent Compose project.
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.7@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
+    restart: unless-stopped
+    command: ["--config", "/run/livekit/livekit.json"]
+    volumes:
+      - type: bind
+        source: ./secrets/livekit.json
+        target: /run/livekit/livekit.json
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:7880:7880"
+      # TURN over TCP after the host proxy terminates TLS on 443.
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:5349:5349/tcp"
+      # LiveKit advertises these on LIVEKIT_NODE_IP, so host and container ports match.
+      - "7881:7881/tcp"
+      - "50000-50099:50000-50099/udp"
+      - "3478:3478/udp"
+      - "50300-50399:50300-50399/udp"
+    networks:
+      default:
+        aliases: [livekit]
+
+networks:
+  default:
+    name: qjudge
+    external: true

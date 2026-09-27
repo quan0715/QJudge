@@ -563,6 +563,81 @@ describe("CopilotProvider session lifecycle", () => {
     expect(snapshot.current?.models.selectedModelId).toBe("default-model");
   });
 
+  it("keeps an owner's persisted selections while suspended", async () => {
+    const transport = new MemoryCopilotTransport();
+    const session = await transport.createSession({ title: "Kept" });
+    const storage = new MemoryCopilotStorage([
+      ["copilot:owner", "user-1"],
+      ["copilot:last-model-id", "shared-model"],
+      ["copilot:last-session-id", session.id],
+    ]);
+    const fallbackModels = [
+      { id: "default-model", displayName: "Default", isDefault: true },
+      { id: "shared-model", displayName: "Shared" },
+    ];
+    const modelCatalog = new MemoryCopilotModelCatalog(fallbackModels);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    const renderProvider = (enabled: boolean) => (
+      <CopilotProvider
+        transport={transport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+        initialSession="first"
+        ownerKey="user-1"
+        enabled={enabled}
+      >
+        <ProviderProbe />
+      </CopilotProvider>
+    );
+    const view = render(renderProvider(true));
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("shared-model");
+
+    view.rerender(renderProvider(false));
+    expect(storage.get("copilot:last-model-id")).toBe("shared-model");
+    expect(storage.get("copilot:last-session-id")).toBe(session.id);
+
+    view.rerender(renderProvider(true));
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("shared-model");
+    await waitFor(() =>
+      expect(snapshot.current?.sessions.activeSession.id).toBe(session.id),
+    );
+  });
+
+  it("drops persisted selections when a different owner enables it", async () => {
+    const transport = new MemoryCopilotTransport();
+    const storage = new MemoryCopilotStorage([
+      ["copilot:owner", "user-1"],
+      ["copilot:last-model-id", "shared-model"],
+      ["copilot:last-session-id", "other-account-session"],
+    ]);
+    const fallbackModels = [
+      { id: "default-model", displayName: "Default", isDefault: true },
+      { id: "shared-model", displayName: "Shared" },
+    ];
+    const modelCatalog = new MemoryCopilotModelCatalog(fallbackModels);
+    const { snapshot, ProviderProbe } = createProviderProbe();
+    render(
+      <CopilotProvider
+        transport={transport}
+        storage={storage}
+        modelCatalog={modelCatalog}
+        fallbackModels={fallbackModels}
+        ownerKey="user-2"
+      >
+        <ProviderProbe />
+      </CopilotProvider>,
+    );
+
+    expect(snapshot.current?.models.selectedModelId).toBe("default-model");
+    expect(storage.get("copilot:owner")).toBe("user-2");
+    expect(storage.get("copilot:last-session-id")).toBeNull();
+    await waitFor(() => expect(snapshot.current?.models.status).toBe("ready"));
+    expect(snapshot.current?.models.selectedModelId).toBe("default-model");
+  });
+
   it("does not carry a model selection across a live transport change", async () => {
     const oldTransport = new MemoryCopilotTransport();
     const newTransport = new MemoryCopilotTransport();

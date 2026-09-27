@@ -122,14 +122,7 @@ def backend_signing_public_key_b64() -> str:
 
 
 def _archive_bucket() -> str:
-    bucket = str(
-        getattr(
-            settings,
-            "INTEGRITY_ARCHIVE_BUCKET",
-            settings.ANTICHEAT_RAW_BUCKET,
-        )
-        or ""
-    ).strip()
+    bucket = str(settings.OBJECT_STORAGE_BUCKET or "").strip()
     if not bucket:
         raise RuntimeError("integrity archive storage is unavailable")
     return bucket

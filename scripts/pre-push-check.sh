@@ -85,7 +85,8 @@ cd "$PROJECT_ROOT"
 # ==================== 4. Docker Compose 配置驗證 ====================
 print_step "驗證 Docker Compose 配置..."
 
-if bash scripts/check-compose-config.sh; then
+if QJUDGE_VERSION=ci docker compose --project-directory deploy --env-file deploy/.env.example \
+    -f deploy/compose.yml -f deploy/compose.build.yml config --quiet; then
     print_success "Docker Compose 配置有效"
 else
     print_error "Docker Compose 配置無效"
