@@ -1,6 +1,6 @@
 # Playwright E2E：僅允許手動觸發。
 # 使用方式：GitHub → Actions → 選本 workflow → 「Run workflow」。
-# 五組測試平行執行，各自啟動獨立 docker-compose stack。
+# 五組測試平行執行，各自以 ci/e2e-stack.sh 全新安裝 stack，Playwright 在 runner 上執行。
 name: E2E (manual only)
 
 on:
@@ -33,25 +33,44 @@ jobs:
     name: "E2E: Auth & Pending Actions"
     if: inputs.group == '' || inputs.group == 'auth'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
-      - name: Start test stack
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve bundled MinIO on the runner
+        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
+      - name: Install QJudge from scratch
+        run: ci/e2e-stack.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies and Chromium
+        working-directory: frontend
         run: |
-          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-          docker compose -f docker-compose.test.yml up -d
-      - name: Wait for readiness
-        uses: ./.github/actions/wait-test-stack
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Run Auth E2E
+        working-directory: frontend
+        env:
+          E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/auth.e2e.spec.ts tests/e2e/pending-actions-classroom-join.e2e.spec.ts tests/e2e/pending-actions-register-redirect.e2e.spec.ts tests/e2e/pending-actions-exam-takeover.e2e.spec.ts"
-          cmd=(npm run test:e2e -- $SPECS)
-          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
-          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+          cmd=(npm run test:e2e -- tests/e2e/auth.e2e.spec.ts tests/e2e/pending-actions-classroom-join.e2e.spec.ts tests/e2e/pending-actions-register-redirect.e2e.spec.ts)
+          if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
+          "${cmd[@]}"
       - name: Collect logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-auth.log
+        if: always() && env.QJ_DC != ''
+        run: $QJ_DC logs --no-color > e2e-auth.log
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -62,33 +81,49 @@ jobs:
             frontend/test-results
             e2e-auth.log
           retention-days: 14
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
 
   e2e-exam:
     name: "E2E: Exam"
     if: inputs.group == '' || inputs.group == 'exam'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
-      - name: Start test stack
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve bundled MinIO on the runner
+        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
+      - name: Install QJudge from scratch
+        run: ci/e2e-stack.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies and Chromium
+        working-directory: frontend
         run: |
-          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-          docker compose -f docker-compose.test.yml up -d
-      - name: Wait for readiness
-        uses: ./.github/actions/wait-test-stack
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Run Exam E2E
+        working-directory: frontend
+        env:
+          E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts"
-          cmd=(npm run test:e2e -- $SPECS)
-          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
-          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+          cmd=(npm run test:e2e -- tests/e2e/exam-full-lifecycle.e2e.spec.ts tests/e2e/exam-login-dual-device.e2e.spec.ts)
+          if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
+          "${cmd[@]}"
       - name: Collect logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-exam.log
+        if: always() && env.QJ_DC != ''
+        run: $QJ_DC logs --no-color > e2e-exam.log
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -99,33 +134,49 @@ jobs:
             frontend/test-results
             e2e-exam.log
           retention-days: 14
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
 
   e2e-contest:
     name: "E2E: Contest"
     if: inputs.group == '' || inputs.group == 'contest'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
-      - name: Start test stack
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve bundled MinIO on the runner
+        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
+      - name: Install QJudge from scratch
+        run: ci/e2e-stack.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies and Chromium
+        working-directory: frontend
         run: |
-          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-          docker compose -f docker-compose.test.yml up -d
-      - name: Wait for readiness
-        uses: ./.github/actions/wait-test-stack
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Run Contest E2E
+        working-directory: frontend
+        env:
+          E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/contest-create.e2e.spec.ts tests/e2e/contest-problem-editor.e2e.spec.ts tests/e2e/classroom-settings.e2e.spec.ts"
-          cmd=(npm run test:e2e -- $SPECS)
-          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
-          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+          cmd=(npm run test:e2e -- tests/e2e/contest-create.e2e.spec.ts tests/e2e/contest-problem-editor.e2e.spec.ts tests/e2e/classroom-settings.e2e.spec.ts)
+          if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
+          "${cmd[@]}"
       - name: Collect logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-contest.log
+        if: always() && env.QJ_DC != ''
+        run: $QJ_DC logs --no-color > e2e-contest.log
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -136,9 +187,6 @@ jobs:
             frontend/test-results
             e2e-contest.log
           retention-days: 14
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
 
   e2e-coding:
     name: "E2E: Coding submissions"
@@ -151,25 +199,44 @@ jobs:
     name: "E2E: Settings & Preferences"
     if: inputs.group == '' || inputs.group == 'settings'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
-      - name: Start test stack
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve bundled MinIO on the runner
+        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
+      - name: Install QJudge from scratch
+        run: ci/e2e-stack.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies and Chromium
+        working-directory: frontend
         run: |
-          docker compose -f docker-compose.test.yml pull --ignore-pull-failures
-          docker compose -f docker-compose.test.yml up -d
-      - name: Wait for readiness
-        uses: ./.github/actions/wait-test-stack
+          npm ci
+          npx playwright install --with-deps chromium
       - name: Run Settings E2E
+        working-directory: frontend
+        env:
+          E2E_GREP: ${{ inputs.grep }}
         run: |
           set -euo pipefail
-          SPECS="tests/e2e/preferences-i18n-theme.e2e.spec.ts"
-          cmd=(npm run test:e2e -- $SPECS)
-          if [[ -n "${{ inputs.grep }}" ]]; then cmd+=("--grep" "${{ inputs.grep }}"); fi
-          docker compose -f docker-compose.test.yml exec -T -e CI=true -e E2E_REUSE_ENV=true frontend-test "${cmd[@]}"
+          cmd=(npm run test:e2e -- tests/e2e/preferences-i18n-theme.e2e.spec.ts)
+          if [[ -n "$E2E_GREP" ]]; then cmd+=("--grep" "$E2E_GREP"); fi
+          "${cmd[@]}"
       - name: Collect logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > e2e-settings.log
+        if: always() && env.QJ_DC != ''
+        run: $QJ_DC logs --no-color > e2e-settings.log
       - name: Upload artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -180,6 +247,3 @@ jobs:
             frontend/test-results
             e2e-settings.log
           retention-days: 14
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v

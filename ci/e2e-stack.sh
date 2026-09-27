@@ -29,6 +29,10 @@ base="http://localhost:${port:-8080}"
 dc=(env QJUDGE_VERSION="$version" docker compose --project-name "${project:-qjudge}"
     --project-directory "$ROOT/deploy" --env-file "$ROOT/deploy/.env"
     -f "$ROOT/deploy/compose.yml" -f "$ROOT/deploy/compose.build.yml" -f "$ROOT/ci/compose.e2e.yml")
+# Export before starting so later CI steps can collect logs if this fails.
+if [ -n "${GITHUB_ENV:-}" ]; then
+  echo "QJ_DC=${dc[*]}" >> "$GITHUB_ENV"
+fi
 
 "${dc[@]}" up -d --remove-orphans
 for attempt in $(seq 90); do
@@ -44,8 +48,6 @@ for attempt in $(seq 90); do
 done
 "${dc[@]}" exec -T backend python manage.py seed_e2e_data
 
-if [ -n "${GITHUB_ENV:-}" ]; then
-  echo "QJ_DC=${dc[*]}" >> "$GITHUB_ENV"
-else
+if [ -z "${GITHUB_ENV:-}" ]; then
   echo "${dc[*]}"
 fi

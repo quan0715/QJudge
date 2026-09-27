@@ -12,7 +12,7 @@ on:
       - "ai-service/**"
       - "deploy/**"
       - "compose.dev.yml"
-      - "docker-compose.test.yml"
+      - "ci/**"
       - "loadtest/**"
       - ".github/workflows/**"
       - ".github/actions/**"
@@ -28,7 +28,7 @@ on:
       - "ai-service/**"
       - "deploy/**"
       - "compose.dev.yml"
-      - "docker-compose.test.yml"
+      - "ci/**"
       - "loadtest/**"
       - ".github/workflows/**"
       - ".github/actions/**"
@@ -140,7 +140,7 @@ jobs:
           retention-days: 14
 
   # ============================================
-  # Integration Tests (shared test stack — up once)
+  # Integration Tests (fresh `deploy/qjudge` install via ci/e2e-stack.sh)
   # Covers: Frontend API tests + MCP Server integration tests
   # Auth E2E moved to e2e-manual.yml (manual dispatch, parallel groups)
   # ============================================
@@ -148,12 +148,10 @@ jobs:
     name: Integration Tests
     needs: static-checks
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: read
-    env:
-      DOCKER_IMAGE_JUDGE: ghcr.io/quan0715/qjudge/judge:latest
 
     steps:
       - uses: actions/checkout@v7
@@ -165,56 +163,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare test stack environment
-        run: |
-          echo "DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)" >> "$GITHUB_ENV"
-          python3 -m pip install cryptography
-          python3 deploy/bootstrap/bootstrap_integrity_secrets.py \
-            --secrets-dir .tmp/integrity-test-secrets
-          sudo chgrp 10001 .tmp/integrity-test-secrets/backend-public-key .tmp/integrity-test-secrets/resident-service-token
-          chmod 640 .tmp/integrity-test-secrets/backend-public-key .tmp/integrity-test-secrets/resident-service-token
+      - name: Resolve bundled MinIO on the runner
+        run: echo "127.0.0.1 minio" | sudo tee -a /etc/hosts
 
-      - name: Pull test stack images (best effort)
-        run: docker compose -f docker-compose.test.yml pull --ignore-pull-failures
+      - name: Install QJudge from scratch
+        run: ci/e2e-stack.sh
 
-      - name: Start test stack
-        run: |
-          docker compose -f docker-compose.test.yml up -d --build
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Wait for backend readiness
-        run: |
-          set -euo pipefail
-          DC="docker compose -f docker-compose.test.yml"
-          for i in $(seq 1 240); do
-            STATE=$($DC ps --format '{{.State}}' backend-test 2>/dev/null || echo "missing")
-            if [ "$STATE" = "exited" ] || [ "$STATE" = "dead" ] || [ "$STATE" = "missing" ]; then
-              echo "backend-test container is not running (state=$STATE). Dumping logs:"
-              $DC ps
-              $DC logs --tail=200 backend-test || true
-              exit 1
-            fi
-            if $DC exec -T backend-test \
-              python -c "
-          import sys, urllib.error, urllib.request
-          try:
-              r = urllib.request.urlopen('http://127.0.0.1:8000/api/v1/auth/me', timeout=2)
-              print('backend=200'); sys.exit(0)
-          except urllib.error.HTTPError as exc:
-              print(f'backend={exc.code}'); sys.exit(0)
-          except Exception:
-              sys.exit(1)
-          "; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Timed out waiting for backend readiness."
-          $DC ps
-          $DC logs --tail=200 backend-test frontend-test || true
-          exit 1
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
 
       - name: Frontend API Integration Tests
-        run: docker compose -f docker-compose.test.yml exec -T frontend-test npm run test:api
+        run: npm run test:api
+        working-directory: frontend
 
       - uses: actions/setup-python@v7
         with:
@@ -226,15 +193,15 @@ jobs:
 
       - name: MCP Server Integration Tests
         env:
-          DJANGO_BASE_URL: http://localhost:8002
+          DJANGO_BASE_URL: http://localhost:8080
           DJANGO_FORWARDED_PROTO: http
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
         run: python -m pytest tests/test_integration.py -v
         working-directory: mcp-server
 
       - name: Collect compose logs
-        if: always()
-        run: docker compose -f docker-compose.test.yml logs --no-color > integration.log
+        if: always() && env.QJ_DC != ''
+        run: $QJ_DC logs --no-color > integration.log
 
       - name: Upload artifacts
         if: always()
@@ -243,10 +210,6 @@ jobs:
           name: integration-artifacts
           path: integration.log
           retention-days: 14
-
-      - name: Cleanup
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
 
   # ============================================
   # Backend Unit Tests (no Judge)
@@ -380,8 +343,12 @@ jobs:
 
       - name: Run Integrity Service Tests
         run: |
-          .codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh test run --rm --no-deps --build \
+          docker build -f integrity-service/Dockerfile.test -t integrity-unit-test integrity-service
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/integrity-service/integrity_service:/app/integrity_service:ro" \
+            -v "$GITHUB_WORKSPACE/integrity-service/tests:/app/tests:ro" \
             -v "$GITHUB_WORKSPACE:/workspace:ro" \
+            -e PYTHONDONTWRITEBYTECODE=1 \
             -e INTEGRITY_DEV_COMPOSE_JSON=/workspace/.tmp/integrity-contract/dev.json \
             -w /workspace/integrity-service integrity-unit-test \
             python -m pytest -q -p no:cacheprovider
