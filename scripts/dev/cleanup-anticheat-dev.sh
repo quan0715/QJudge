@@ -158,7 +158,11 @@ def purge_bucket(bucket: str, prefix: str = "") -> int:
 
 # The bucket also holds markdown images and AI artifacts; delete only evidence.
 if contest_id is not None:
-    prefixes = [f"contest_{contest_id}/", f"integrity/{contest_id}/"]
+    from apps.contests.models import ExamIntegrityRun
+
+    run_ids = ExamIntegrityRun.objects.filter(contest_id=contest_id).values_list("id", flat=True)
+    # Integrity archives are keyed by run, not contest.
+    prefixes = [f"contest_{contest_id}/", f"integrity/{contest_id}/", *(f"runs/{run_id}/" for run_id in run_ids)]
 else:
     prefixes = ["contest_", "integrity/", "runs/"]
 for prefix in prefixes:
