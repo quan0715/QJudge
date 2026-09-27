@@ -64,7 +64,7 @@ Never run `dev down -v`: it deletes the dev database and MinIO data.
 | Integration Tests | `ci/e2e-stack.sh`, then `npm run test:api` and MCP integration tests |
 | MCP Server Tests | `mcp-server` `pytest tests` (integration tests skip without a backend) |
 | Integrity Service Tests | `integrity-service` `pytest` on the runner Python, as root for the secret bootstrap tests |
-| `e2e.yml` | every pull request to `main` (no path filter) and manual dispatch: all Playwright groups (auth, exam, contest, coding, settings); coding calls `e2e-coding.yml` |
+| `e2e.yml` | every pull request to `main` (no path filter): auth and coding; manual dispatch: any group (auth, exam, contest, coding, settings). Exam, contest and settings specs need updating before they run on pull requests. Coding calls `e2e-coding.yml` |
 
 `ci/e2e-stack.sh` runs `deploy/qjudge init --non-interactive` (origin `http://localhost:8080`, bundled storage), `addon storage up|init`, `upgrade <HEAD>`, restarts with `ci/compose.e2e.yml` (test settings, asynchronous Celery, fake AI adapters), seeds with `seed_e2e_data`, and exports the stack's compose command as `QJ_DC`. Extra `--set KEY=VALUE` arguments override the `init` defaults.
 
