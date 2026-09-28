@@ -53,7 +53,7 @@ def test_format_message_for_summary_includes_tool_metadata():
 
 
 def test_summarize_interruption_uses_summary_model_result():
-    handler = RecursionFailureHandler(model_factory=lambda _model_id: _FakeSummaryModel())
+    handler = RecursionFailureHandler(summary_model_id="summary-model", model_factory=lambda _model_id: _FakeSummaryModel())
     agent = _FakeAgent([AIMessage(content="hello")])
 
     result = asyncio.run(handler.summarize_interruption(agent=agent, config={}))

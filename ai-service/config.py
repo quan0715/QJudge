@@ -59,35 +59,6 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # LLM API Key (platform-managed)
-    deepseek_api_key: str = Field(
-        default="",
-        validation_alias=AliasChoices("DEEPSEEK_API_KEY"),
-    )
-    openai_api_key: str = Field(
-        default="",
-        validation_alias=AliasChoices("OPENAI_API_KEY"),
-    )
-    deepseek_base_url: str = Field(
-        default="",
-        validation_alias=AliasChoices("DEEPSEEK_BASE_URL"),
-    )
-    openai_base_url: str = Field(
-        default="",
-        validation_alias=AliasChoices("OPENAI_BASE_URL"),
-    )
-    # Optional self-hosted OpenAI-compatible endpoint for models such as
-    # Gemma served by vLLM. Keeping this separate lets native OpenAI models
-    # continue using OPENAI_BASE_URL in the same deployment.
-    vllm_api_key: str = Field(
-        default="",
-        validation_alias=AliasChoices("VLLM_API_KEY"),
-    )
-    vllm_base_url: str = Field(
-        default="",
-        validation_alias=AliasChoices("VLLM_BASE_URL"),
-    )
-
     # Deployment model catalog; deploy/ai is mounted read-only here.
     ai_models_file: str = Field(
         default="/etc/qjudge-ai/models.yml",
