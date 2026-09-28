@@ -8,7 +8,7 @@ import {
   Warning,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
-import { InlineNotification } from "@carbon/react";
+import { Callout } from "@carbon/react";
 import type {
   CopilotMessage,
   CopilotModel,
@@ -38,6 +38,8 @@ interface ComposerBarProps {
   placeholder?: string;
   sessionNotice?: string | null;
   modelNotice?: string | null;
+  /** Reloads the model list; shown as the notice action when set. */
+  onModelNoticeRetry?: () => void;
   /** Session-scoped messages to feed SessionBadges (todo/artifact). */
   messages?: readonly CopilotMessage[];
 }
@@ -59,6 +61,7 @@ export function ComposerBar({
   placeholder,
   sessionNotice,
   modelNotice,
+  onModelNoticeRetry,
   messages,
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
@@ -187,11 +190,12 @@ export function ComposerBar({
       {hasStatusBlock && (
         <div className={styles.statusStack}>
           {modelNotice && (
-            <InlineNotification
+            <Callout
               kind="warning"
               lowContrast
-              hideCloseButton
               title={modelNotice}
+              actionButtonLabel={onModelNoticeRetry ? t("ui.retry") : undefined}
+              onActionButtonClick={onModelNoticeRetry}
             />
           )}
           {sessionNotice && (

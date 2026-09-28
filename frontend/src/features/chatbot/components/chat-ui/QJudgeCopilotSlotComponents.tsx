@@ -119,6 +119,7 @@ export function QJudgeCopilotComposer() {
       disabled={disabled}
       sessionNotice={run.notice}
       modelNotice={modelNotice ? t(MODEL_NOTICE_I18N_KEY[modelNotice.kind]) : null}
+      onModelNoticeRetry={modelNotice?.blocking ? () => void refreshModels() : undefined}
       messages={sessions.activeSession.data?.messages ?? []}
     />
   );

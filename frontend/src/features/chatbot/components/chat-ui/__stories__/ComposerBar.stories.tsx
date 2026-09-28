@@ -100,6 +100,7 @@ export const InvalidModelConfig: Story = {
     selectedModelId: null,
     disabled: true,
     modelNotice: "AI 模型設定有誤，AI 功能暫時無法使用。請聯絡站台管理員檢查 AI 模型設定。",
+    onModelNoticeRetry: () => {},
   },
 };
 
