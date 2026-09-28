@@ -206,7 +206,9 @@
   align-items: center;
   justify-content: space-between;
   gap: layout.$spacing-03;
-  padding: layout.$spacing-03 1.25rem;
+  // The right side clears the fixed AI assistant button (1.25rem inset, 44px wide,
+  // WorkspaceShell `.fab`) so it never covers the save action.
+  padding: layout.$spacing-03 calc(2.5rem + 44px) layout.$spacing-03 1.25rem;
   flex-shrink: 0;
   border-top: 1px solid
     var(--qg-panel-divider-muted-color, var(--cds-border-subtle-01));
