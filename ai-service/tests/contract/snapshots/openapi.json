@@ -680,15 +680,21 @@
             "type": "string"
           },
           "model_id": {
-            "maxLength": 50,
-            "minLength": 1,
-            "title": "Model Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
           }
         },
         "required": [
-          "message",
-          "model_id"
+          "message"
         ],
         "title": "StartRunRequest",
         "type": "object"

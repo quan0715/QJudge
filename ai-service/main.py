@@ -34,6 +34,7 @@ from config import Settings, get_settings
 from domain.models import Principal, Run, RunKind, RunStatus, Usage
 from domain.ports import TraceContext
 from infrastructure.artifacts import S3ArtifactStore, SqlAlchemyArtifactRepository
+from infrastructure.agent.model_catalog import process_model_catalog
 from infrastructure.checkpoints.langgraph_store import LangGraphCheckpointStore
 from infrastructure.database.base import create_async_engine_from_settings
 from infrastructure.database.models import RunRow, SessionRow
@@ -350,6 +351,7 @@ def create_app() -> FastAPI:
         oauth_jwks_url="",
     )
     app.state.sse_poll_seconds = 0.5
+    app.state.model_catalog = process_model_catalog()
 
     app.add_middleware(
         CORSMiddleware,

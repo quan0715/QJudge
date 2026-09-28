@@ -21,6 +21,7 @@ from application.run_service import (
     SessionNotFound as RunSessionNotFound,
 )
 from application.session_service import SessionNotFound
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from domain.ports import McpReadinessError
 from infrastructure.artifacts.s3_artifact_store import ArtifactStorageError
 from infrastructure.oauth.jwt_verifier import AuthError
@@ -164,6 +165,24 @@ def install_error_handlers(app: FastAPI) -> None:
             code="ARTIFACT_STORAGE_UNAVAILABLE",
             message="Artifact storage is temporarily unavailable.",
             retryable=True,
+        )
+
+    @app.exception_handler(ModelConfigInvalid)
+    async def model_config_invalid(request: Request, _exc: ModelConfigInvalid) -> JSONResponse:
+        return error_response(
+            request,
+            status_code=503,
+            code="MODEL_CONFIG_INVALID",
+            message="AI model configuration is invalid; ask the site administrator to check it.",
+        )
+
+    @app.exception_handler(ModelNotAvailable)
+    async def model_not_available(request: Request, _exc: ModelNotAvailable) -> JSONResponse:
+        return error_response(
+            request,
+            status_code=422,
+            code="MODEL_NOT_AVAILABLE",
+            message="The selected AI model is not available.",
         )
 
     @app.exception_handler(RequestValidationError)

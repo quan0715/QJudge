@@ -15,6 +15,7 @@ from api.dependencies import (
     get_active_run_reader,
     get_artifact_service,
     get_event_reader,
+    get_model_catalog,
     get_readiness_probe,
     get_run_service,
     get_session_service,
@@ -35,6 +36,8 @@ from domain.models import (
     SessionDetail,
     UsageSummary,
 )
+from infrastructure.agent.model_catalog import ModelCatalog
+from infrastructure.agent.model_config import parse_model_config
 from main import _ReadinessProbe, create_app
 
 OWNER = Principal("https://issuer.test", "teacher-1")
@@ -229,7 +232,24 @@ class FakeReadiness:
         return {"database": "ready", "queue": "ready", "settings": "ready"}
 
 
-def make_client() -> tuple[TestClient, FakeRunService]:
+def make_catalog() -> ModelCatalog:
+    env = {"OPENAI_API_KEY": "k", "DEEPSEEK_API_KEY": "k"}
+    config = parse_model_config(
+        {
+            "default": "deepseek-v4-flash",
+            "models": [
+                {"id": "openai-nano", "provider": "openai", "model": "gpt-5-nano",
+                 "display_name": "gpt-5-nano", "max_input_tokens": 400_000},
+                {"id": "deepseek-v4-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
+            ],
+        },
+        env,
+        lambda kind, model: None,
+    )
+    return ModelCatalog(config, env=env)
+
+
+def make_client(catalog: ModelCatalog | None = None) -> tuple[TestClient, FakeRunService]:
     app = create_app()
     runs = FakeRunService()
     app.dependency_overrides[current_principal] = lambda: OWNER
@@ -241,6 +261,8 @@ def make_client() -> tuple[TestClient, FakeRunService]:
     app.dependency_overrides[get_artifact_service] = FakeArtifactService
     app.dependency_overrides[get_usage_service] = FakeUsageService
     app.dependency_overrides[get_readiness_probe] = FakeReadiness
+    selected = catalog or make_catalog()
+    app.dependency_overrides[get_model_catalog] = lambda: selected
     return TestClient(app), runs
 
 
@@ -381,7 +403,7 @@ def test_invalid_model_is_rejected_before_command_service(model_id: str) -> None
     )
 
     assert invalid_model.status_code == 422
-    assert invalid_model.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert invalid_model.json()["error"]["code"] == "MODEL_NOT_AVAILABLE"
     assert runs.start_token is None
 
 
@@ -427,13 +449,9 @@ def test_usage_and_models_never_expose_price_cost_or_credit() -> None:
     }
     models = client.get("/v1/models")
     assert models.status_code == 200
-    assert [model["model_id"] for model in models.json()["models"]] == [
-        "openai-nano",
-        "openai-gemma4-31b",
-        "openai-mini",
-        "openai-mini-medium",
-        "deepseek-v4-flash",
-        "deepseek-v4-pro",
+    assert models.json()["models"] == [
+        {"model_id": "openai-nano", "display_name": "gpt-5-nano", "description": "", "is_default": False},
+        {"model_id": "deepseek-v4-flash", "display_name": "deepseek-v4-flash", "description": "", "is_default": True},
     ]
     forbidden = {"price", "pricing", "cost", "credits", "entitlement"}
     assert all(forbidden.isdisjoint(model) for model in models.json()["models"])
@@ -585,3 +603,47 @@ def test_legacy_shared_secret_and_chat_routes_are_removed() -> None:
     assert removed.status_code == 404
     assert removed.json()["error"]["code"] == "HTTP_NOT_FOUND"
     assert client.get("/api/models").status_code == 404
+
+
+def test_start_run_accepts_null_model_id_and_uses_default() -> None:
+    client, _ = make_client()
+    created = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "null-model"},
+        json={"message": "hello", "model_id": None},
+    )
+    assert created.status_code == 202
+    assert created.json()["model_id"] == "deepseek-v4-flash"
+
+
+def test_start_run_rejects_unavailable_model() -> None:
+    client, _ = make_client()
+    response = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "gone-model"},
+        json={"message": "hello", "model_id": "removed-model"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "MODEL_NOT_AVAILABLE"
+    assert response.json()["error"]["retryable"] is False
+
+
+def test_invalid_model_config_is_reported_without_breaking_readiness() -> None:
+    client, _ = make_client(ModelCatalog(None, ("OPENAI_API_KEY: not set in deploy/ai/keys.env",)))
+    models = client.get("/v1/models")
+    assert models.status_code == 503
+    assert models.json()["error"]["code"] == "MODEL_CONFIG_INVALID"
+    assert "OPENAI_API_KEY" not in models.json()["error"]["message"]
+    started = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "invalid-config"},
+        json={"message": "hello"},
+    )
+    assert started.status_code == 503
+    assert started.json()["error"]["code"] == "MODEL_CONFIG_INVALID"
+    assert client.get("/health/ready").status_code == 200
+
+
+def test_empty_catalog_lists_no_models() -> None:
+    client, _ = make_client(ModelCatalog(parse_model_config({}, {}, lambda kind, model: None), env={}))
+    assert client.get("/v1/models").json() == {"models": []}
