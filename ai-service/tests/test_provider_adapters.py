@@ -21,6 +21,8 @@ class _ReasoningClient(_Client):
 def _stub_clients(monkeypatch):
     monkeypatch.setattr(provider_adapters, "ChatOpenAI", _Client)
     monkeypatch.setattr(provider_adapters, "ChatDeepSeek", _Client)
+    monkeypatch.setattr(provider_adapters, "HistoryCompatibleChatOpenAI", _Client)
+    monkeypatch.setattr(provider_adapters, "HistoryCompatibleChatDeepSeek", _Client)
     monkeypatch.setattr(provider_adapters, "ReasoningPreservingChatDeepSeek", _ReasoningClient)
 
 
