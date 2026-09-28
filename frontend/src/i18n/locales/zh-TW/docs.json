@@ -21,9 +21,7 @@
       "classroom-roster": "管理學生名冊",
       "classroom-setup": "建立教室",
       "classroom-management": "教室管理",
-      "common-errors": "常見錯誤",
       "contest-extension-architecture": "Contest 擴充架構指南",
-      "contests": "參加競賽",
       "contributing": "如何貢獻",
       "create-exam": "建立考試與題目",
       "deployment": "從一台主機開始部署",
@@ -40,15 +38,11 @@
       "exam-review": "確認考試內容",
       "exam-statistics": "考試作答統計與檢視",
       "identity-auth-extension": "身份模組維護與擴充",
-      "judge-system": "評測系統說明",
       "mcp-setup": "MCP AI 工具連線",
       "nycu-login-showcase": "NYCU Login Showcase",
       "overview": "平台概覽",
       "question-bank": "題庫管理",
       "quick-start": "快速入門",
-      "student-exam-guide": "學生考試指南",
-      "submission": "程式碼提交",
-      "supported-languages": "支援的程式語言",
       "teacher-adoption-overview": "課堂導入總覽",
       "teacher-assignment-workflow": "作業與練習導入流程",
       "teacher-exam-workflow": "正式考試導入流程",
@@ -67,9 +61,7 @@
       "developer-guide": "開發者指南",
       "getting-started": "快速開始",
       "first-exam": "準備第一場考試",
-      "reference": "參考資料",
-      "teacher-guide": "教師指南",
-      "user-guide": "使用指南"
+      "teacher-guide": "教師指南"
     }
   },
   "page": {

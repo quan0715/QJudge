@@ -26,14 +26,6 @@
       ]
     },
     {
-      "id": "user-guide",
-      "items": ["submission", "contests", "student-exam-guide", "judge-system"]
-    },
-    {
-      "id": "reference",
-      "items": ["common-errors", "supported-languages"]
-    },
-    {
       "id": "teacher-guide",
       "items": [
         "teacher-adoption-overview",

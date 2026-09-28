@@ -6,7 +6,6 @@ Select a guide based on what you want to achieve:
 
 | Goal                         | Target Audience      | Quick Links                                                             |
 | ---------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| **Join Contests**            | Contest Participants | [Contest Guide](/docs/contests) → [Common Errors](/docs/common-errors)  |
 | **Create & Manage Contests** | Teachers, TAs        | [Teacher Guide](/docs/teacher-overview)                                 |
 | **System Administration**    | Administrators       | [Admin Guide](/docs/admin-overview)                                     |
 | **Contribute Code**          | Developers           | [Dev Setup](/docs/dev-setup) → [Contributing](/docs/contributing)       |

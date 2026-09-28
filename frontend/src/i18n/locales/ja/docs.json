@@ -21,9 +21,7 @@
       "classroom-management": "クラスルーム管理",
       "classroom-roster": "学生名簿を管理",
       "classroom-setup": "クラスルームを作成",
-      "common-errors": "よくあるエラー",
       "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
-      "contests": "コンテストに参加",
       "contributing": "コントリビュート",
       "create-exam": "試験と問題の作成",
       "deployment": "1台のホストからデプロイ",
@@ -40,15 +38,11 @@
       "exam-review": "試験内容を確認",
       "exam-statistics": "試験統計と確認",
       "identity-auth-extension": "認証モジュールの保守と拡張",
-      "judge-system": "ジャッジシステム",
       "mcp-setup": "MCP AI ツール接続",
       "nycu-login-showcase": "NYCU Login Showcase",
       "overview": "プラットフォーム概要",
       "question-bank": "問題バンク管理",
       "quick-start": "クイックスタート",
-      "student-exam-guide": "学生試験ガイド",
-      "submission": "コード提出",
-      "supported-languages": "対応言語",
       "teacher-adoption-overview": "授業導入の概要",
       "teacher-assignment-workflow": "課題と練習の導入フロー",
       "teacher-exam-workflow": "正式試験の導入フロー",
@@ -67,9 +61,7 @@
       "deployment": "構築とデプロイ",
       "first-exam": "最初の試験を準備",
       "getting-started": "はじめに",
-      "reference": "リファレンス",
-      "teacher-guide": "教師ガイド",
-      "user-guide": "ユーザーガイド"
+      "teacher-guide": "教師ガイド"
     }
   },
   "page": {

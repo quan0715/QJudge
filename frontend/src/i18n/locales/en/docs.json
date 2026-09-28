@@ -21,9 +21,7 @@
       "classroom-management": "Classroom Management",
       "classroom-roster": "Manage the student roster",
       "classroom-setup": "Create a classroom",
-      "common-errors": "Common Errors",
       "contest-extension-architecture": "Contest Extension Architecture Guide",
-      "contests": "Joining Contests",
       "contributing": "Contributing",
       "create-exam": "Create Exam & Questions",
       "deployment": "Deploy from a single host",
@@ -40,15 +38,11 @@
       "exam-review": "Review exam content",
       "exam-statistics": "Exam Statistics & Review",
       "identity-auth-extension": "Identity Authentication Maintenance and Extension",
-      "judge-system": "Judge System",
       "mcp-setup": "MCP Setup",
       "nycu-login-showcase": "NYCU Login Showcase",
       "overview": "Platform Overview",
       "question-bank": "Question Banks",
       "quick-start": "Quick Start",
-      "student-exam-guide": "Student Exam Guide",
-      "submission": "Code Submission",
-      "supported-languages": "Supported Languages",
       "teacher-adoption-overview": "Classroom Adoption Overview",
       "teacher-assignment-workflow": "Assignments and Practice Workflow",
       "teacher-exam-workflow": "Formal Exam Workflow",
@@ -67,9 +61,7 @@
       "deployment": "Setup and Deployment",
       "first-exam": "Prepare Your First Exam",
       "getting-started": "Getting Started",
-      "reference": "Reference",
-      "teacher-guide": "Teacher Guide",
-      "user-guide": "User Guide"
+      "teacher-guide": "Teacher Guide"
     }
   },
   "page": {

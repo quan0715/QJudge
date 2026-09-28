@@ -57,8 +57,6 @@ After logging in, open your classroom and select a contest that your teacher has
 | Python   | 3.10    | `python3`            |
 | Java     | 17      | `javac` + `java`     |
 
-For details, see [Supported Languages](/docs/supported-languages).
-
 ---
 
 ## Step 4: View Results
@@ -76,18 +74,8 @@ After submission, the system automatically evaluates your code. Results appear w
 | Runtime Error         | RE   | Crashed during run  | Check array bounds, division by zero  |
 | Compilation Error     | CE   | Failed to compile   | Check syntax errors                   |
 
-For detailed troubleshooting, see [Common Errors](/docs/common-errors).
-
 ---
 
 ## Done!
-
-Congratulations on completing your first submission! Next steps:
-
-| What's Next                                           | Description                             |
-| ----------------------------------------------------- | --------------------------------------- |
-| [Join Contests](/docs/contests)                       | Challenge yourself in timed contests    |
-| [Learn Judge System](/docs/judge-system)              | Deep dive into the evaluation mechanism |
-| [View Supported Languages](/docs/supported-languages) | Learn detailed language settings        |
 
 Happy coding!
