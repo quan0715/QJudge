@@ -99,16 +99,7 @@ class SessionListResponse(BaseModel):
 
 class StartRunRequest(BaseModel):
     message: str = Field(min_length=1, max_length=100_000)
-    model_id: str = Field(min_length=1, max_length=50)
-
-    @field_validator("model_id")
-    @classmethod
-    def supported_model_id(cls, value: str) -> str:
-        from domain.model_registry import MODEL_IDS
-
-        if value not in MODEL_IDS:
-            raise ValueError("model_id is not supported")
-        return value
+    model_id: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class ApprovalDecision(StrEnum):

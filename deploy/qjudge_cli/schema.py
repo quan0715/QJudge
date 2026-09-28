@@ -138,13 +138,6 @@ KEYS: tuple[Key, ...] = (
     Key("LIVEKIT_TURN_HOST", "media",
         "DNS-only TURN hostname; the host proxy terminates its TLS on 443 (bundled mode).",
         required=_media_bundled),
-    # AI providers
-    Key("OPENAI_API_KEY", "ai", "OpenAI API key.", secret=True),
-    Key("OPENAI_BASE_URL", "ai", "OpenAI-compatible base URL override."),
-    Key("DEEPSEEK_API_KEY", "ai", "DeepSeek API key.", secret=True),
-    Key("DEEPSEEK_BASE_URL", "ai", "DeepSeek base URL override."),
-    Key("VLLM_API_KEY", "ai", "Self-hosted vLLM API key.", secret=True),
-    Key("VLLM_BASE_URL", "ai", "Self-hosted vLLM OpenAI-compatible URL."),
     # Third-party login
     *_oauth_pair("NYCU", "NYCU"),
     *_oauth_pair("GITHUB", "GitHub"),

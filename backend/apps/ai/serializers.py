@@ -32,14 +32,8 @@ class UpdateSessionSerializer(serializers.Serializer):
 
 class StartRunSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=100_000)
-    # The independent AI service owns the live model registry and performs
-    # authoritative validation. Keeping a second enum here caused the BFF,
-    # model picker, and runtime to drift apart.
-    model_id = serializers.CharField(
-        max_length=50,
-        required=False,
-        default="openai-nano",
-    )
+    # The AI service owns the live catalog, default and model validation.
+    model_id = serializers.CharField(max_length=50, required=False)
 
 
 class RunApprovalSerializer(serializers.Serializer):

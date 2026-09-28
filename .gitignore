@@ -172,6 +172,8 @@ running/
 .claude/
 .opencode/
 .superpowers/
+# Host-specific AI catalog; provider credentials use the existing *.env ignore.
+/deploy/ai/models.yml
 .worktrees/
 .agents/
 .playwright-mcp/

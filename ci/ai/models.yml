@@ -1,0 +1,10 @@
+# CI E2E catalog: every model talks to the fake OpenAI-compatible adapter.
+models:
+  - id: openai-nano
+    provider: fake
+    model: gpt-5-nano
+    max_input_tokens: 400000
+
+endpoints:
+  fake:
+    base_url: http://fake-ai-adapters:8080/v1

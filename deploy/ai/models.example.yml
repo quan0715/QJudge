@@ -1,0 +1,29 @@
+# AI models this host offers. Copy to deploy/ai/models.yml.
+# API keys go in deploy/ai/keys.env as <PROVIDER>_API_KEY, for example
+# OPENAI_API_KEY, DEEPSEEK_API_KEY or LAB_VLLM_API_KEY for endpoint lab-vllm.
+# Restart ai-service and ai-worker after editing.
+#
+# default: deepseek-flash         # optional; first available model otherwise
+#
+# models:
+#   - id: gpt-6-luna              # built-in OpenAI provider
+#     provider: openai
+#     display_name: GPT-6 Luna
+#     reasoning_effort: medium    # uses the Responses API for tool calling
+#     max_input_tokens: 272000    # stays within short-context pricing
+#   - id: deepseek-flash
+#     provider: deepseek
+#     display_name: DeepSeek V4.1 Flash
+#     reasoning_effort: high      # low | medium | high
+#     max_input_tokens: 1000000   # required when LangChain has no profile
+#   - id: gemma4-31b              # self-hosted OpenAI-compatible endpoint
+#     provider: lab-vllm
+#     model: Gemma4-31B           # defaults to id
+#     display_name: Gemma4-31B    # defaults to id
+#     description: Campus vLLM
+#
+# endpoints:
+#   lab-vllm:
+#     base_url: http://10.0.0.5:8000/v1
+
+models: []

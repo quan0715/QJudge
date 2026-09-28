@@ -1,148 +1,72 @@
-"""Tests for ModelFactory multi-provider wiring."""
+"""ModelFactory builds catalog models and stamps context limits."""
 
 from __future__ import annotations
 
 import pytest
 
+from domain.model_catalog import ModelNotAvailable
 from infrastructure.agent import model_factory as model_factory_mod
+from infrastructure.agent.model_catalog import ModelCatalog
+from infrastructure.agent.model_config import parse_model_config
 
 
-class _ChatDeepSeekStub:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+class _Model:
+    def __init__(self, profile=None):
+        self.profile = profile
 
 
-class _ReasoningPreservingChatDeepSeekStub(_ChatDeepSeekStub):
-    pass
+def _catalog(data, env):
+    return ModelCatalog(parse_model_config(data, env, lambda kind, model: None), env=env)
 
 
-class _ChatOpenAIStub:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+@pytest.fixture
+def built(monkeypatch):
+    calls = {}
+
+    def fake_build(endpoint, spec, api_key):
+        calls.update(endpoint=endpoint, spec=spec, api_key=api_key)
+        return _Model(profile={"tool_calling": True})
+
+    monkeypatch.setattr(model_factory_mod, "build_chat_model", fake_build)
+    return calls
 
 
-@pytest.fixture(autouse=True)
-def _stub_provider_models(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(model_factory_mod, "TpmGatedChatOpenAI", _ChatOpenAIStub)
-    monkeypatch.setattr(model_factory_mod, "ChatDeepSeek", _ChatDeepSeekStub)
-    monkeypatch.setattr(
-        model_factory_mod,
-        "ReasoningPreservingChatDeepSeek",
-        _ReasoningPreservingChatDeepSeekStub,
+def test_create_model_uses_endpoint_key_and_stamps_limits(built):
+    catalog = _catalog(
+        {
+            "models": [{"id": "gemma4-31b", "provider": "lab-vllm", "model": "Gemma4-31B",
+                        "max_input_tokens": 131072}],
+            "endpoints": {"lab-vllm": {"base_url": "http://vllm.test/v1"}},
+        },
+        {"LAB_VLLM_API_KEY": "lab-key"},
     )
+    model = model_factory_mod.ModelFactory.create_model("gemma4-31b", catalog=catalog)
+    assert built["api_key"] == "lab-key"
+    assert built["endpoint"].base_url == "http://vllm.test/v1"
+    assert model.profile == {"tool_calling": True, "max_input_tokens": 131072}
+    assert model._qjudge_model_id == "gemma4-31b"
+    assert model._qjudge_model_name == "Gemma4-31B"
+    assert model._qjudge_max_input_tokens == 131072
+    assert model._qjudge_summarization_trim_tokens == 12_000
+    assert model._qjudge_summarization_trigger_fraction == 0.70
 
 
-class _FakeSettings:
-    deepseek_api_key = "deepseek-key"
-    openai_api_key = "openai-key"
-    deepseek_base_url = ""
-    openai_base_url = "https://openai.example/v1"
-    vllm_api_key = "vllm-key"
-    vllm_base_url = "https://vllm.example/v1"
+def test_create_model_without_id_uses_catalog_default(built):
+    catalog = _catalog(
+        {
+            "default": "b",
+            "models": [
+                {"id": "a", "provider": "openai", "max_input_tokens": 1},
+                {"id": "b", "provider": "openai", "max_input_tokens": 1},
+            ],
+        },
+        {"OPENAI_API_KEY": "k"},
+    )
+    model_factory_mod.ModelFactory.create_model(catalog=catalog)
+    assert built["spec"].id == "b"
 
 
-def test_create_model_openai_nano(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("openai-nano")
-    assert isinstance(model, _ChatOpenAIStub)
-    assert model.kwargs["model"] == "gpt-5-nano"
-    assert model.kwargs["api_key"] == "openai-key"
-    assert model.kwargs["streaming"] is True
-    assert "reasoning_effort" not in model.kwargs
-    # nano has no TPM pressure; no rate limiter.
-    assert "rate_limiter" not in model.kwargs
-
-
-def test_create_model_gemma4_31b_uses_its_own_provider_model(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("openai-gemma4-31b")
-
-    assert isinstance(model, _ChatOpenAIStub)
-    assert model.kwargs["model"] == "Gemma4-31B"
-    assert model.kwargs["api_key"] == "vllm-key"
-    assert model.kwargs["base_url"] == "https://vllm.example/v1"
-    assert model.kwargs["streaming"] is True
-    assert "reasoning" not in model.kwargs
-    assert "use_responses_api" not in model.kwargs
-    assert model_factory_mod.ModelFactory.get_model_max_input_tokens(
-        "openai-gemma4-31b"
-    ) == 131_072
-
-
-def test_create_model_openai_nano_keeps_the_openai_endpoint(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("openai-nano")
-
-    assert model.kwargs["model"] == "gpt-5-nano"
-    assert model.kwargs["api_key"] == "openai-key"
-    assert model.kwargs["base_url"] == "https://openai.example/v1"
-
-
-def test_create_model_openai_mini_sets_reasoning_effort(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("openai-mini")
-    assert isinstance(model, _ChatOpenAIStub)
-    assert model.kwargs["model"] == "gpt-5.4-mini"
-    assert model.kwargs["api_key"] == "openai-key"
-    assert model.kwargs["streaming"] is True
-    # Must route via Responses API (gpt-5.x + tools + reasoning on
-    # /v1/chat/completions is rejected by OpenAI).
-    assert model.kwargs["reasoning"] == {"effort": "low", "summary": "auto"}
-    assert model.kwargs["use_responses_api"] is True
-    assert model.kwargs["output_version"] == "responses/v1"
-    assert "reasoning_effort" not in model.kwargs
-    # TPM protection.
-    rate_limiter = model.kwargs.get("rate_limiter")
-    assert rate_limiter is not None
-    assert rate_limiter.requests_per_second == 2.0
-
-
-def test_create_model_openai_mini_medium_sets_medium_effort(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model("openai-mini-medium")
-    assert isinstance(model, _ChatOpenAIStub)
-    assert model.kwargs["model"] == "gpt-5.4-mini"
-    assert model.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
-    assert model.kwargs["use_responses_api"] is True
-    assert model.kwargs["output_version"] == "responses/v1"
-    rate_limiter = model.kwargs.get("rate_limiter")
-    assert rate_limiter is not None
-    assert rate_limiter.requests_per_second == 2.0
-
-
-@pytest.mark.parametrize(
-    ("model_id", "provider_model"),
-    [
-        ("deepseek-v4-flash", "deepseek-v4-flash"),
-        ("deepseek-v4-pro", "deepseek-v4-pro"),
-    ],
-)
-def test_create_model_canonical_deepseek_v4_uses_thinking_client(
-    monkeypatch,
-    model_id,
-    provider_model,
-):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    model = model_factory_mod.ModelFactory.create_model(model_id)
-
-    assert isinstance(model, _ReasoningPreservingChatDeepSeekStub)
-    assert model.kwargs["model"] == provider_model
-    assert model.kwargs["extra_body"] == {"thinking": {"type": "enabled"}}
-    assert model.kwargs["reasoning_effort"] == "high"
-
-
-def test_model_ids_match_factory_registry():
-    from domain.model_registry import MODEL_IDS
-
-    assert MODEL_IDS == frozenset(model_factory_mod._MODEL_MAP)
-
-
-def test_unknown_model_is_rejected():
-    with pytest.raises(ValueError, match="Unsupported model_id: missing-model"):
-        model_factory_mod.ModelFactory.resolve_model_string("missing-model")
-
-
-def test_create_model_rejects_legacy_model_id(monkeypatch):
-    monkeypatch.setattr(model_factory_mod, "get_settings", lambda: _FakeSettings())
-    with pytest.raises(ValueError, match="Unsupported model_id: deepseek-v4"):
-        model_factory_mod.ModelFactory.create_model("deepseek-v4")
+def test_create_model_rejects_unconfigured_id(built):
+    catalog = _catalog({"models": []}, {})
+    with pytest.raises(ModelNotAvailable):
+        model_factory_mod.ModelFactory.create_model("openai-nano", catalog=catalog)

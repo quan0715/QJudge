@@ -8,6 +8,7 @@ import {
   Warning,
 } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
+import { InlineNotification } from "@carbon/react";
 import type {
   CopilotMessage,
   CopilotModel,
@@ -36,6 +37,7 @@ interface ComposerBarProps {
   disabled?: boolean;
   placeholder?: string;
   sessionNotice?: string | null;
+  modelNotice?: string | null;
   /** Session-scoped messages to feed SessionBadges (todo/artifact). */
   messages?: readonly CopilotMessage[];
 }
@@ -56,6 +58,7 @@ export function ComposerBar({
   disabled = false,
   placeholder,
   sessionNotice,
+  modelNotice,
   messages,
 }: ComposerBarProps) {
   const { t } = useTranslation("chatbot");
@@ -159,7 +162,7 @@ export function ComposerBar({
     !disabled &&
     !isStreaming &&
     !hasUploadingAttachment;
-  const hasStatusBlock = Boolean(sessionNotice);
+  const hasStatusBlock = Boolean(sessionNotice || modelNotice);
   const canUpload = !disabled && !isStreaming && !hasUploadingAttachment;
 
   const handlePickFile = useCallback(() => {
@@ -183,6 +186,14 @@ export function ComposerBar({
     <div className={styles.bar}>
       {hasStatusBlock && (
         <div className={styles.statusStack}>
+          {modelNotice && (
+            <InlineNotification
+              kind="warning"
+              lowContrast
+              hideCloseButton
+              title={modelNotice}
+            />
+          )}
           {sessionNotice && (
             <div className={styles.dividerNotice}>
               <span className={styles.line} />

@@ -14,8 +14,7 @@ from .grading import run_question_grading
 from .manifest import write_manifest
 
 DEFAULT_EXPERIMENT_MODELS = [
-    "deepseek-v4-flash",
-    "deepseek-v4-pro",
+    "deepseek-flash",
 ]
 
 EXPERIMENT_PRESETS: dict[str, dict[str, Any]] = {

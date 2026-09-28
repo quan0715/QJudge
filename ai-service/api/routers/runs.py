@@ -16,6 +16,7 @@ from api.dependencies import (
     current_principal,
     get_active_run_reader,
     get_event_reader,
+    get_model_catalog,
     get_run_service,
     get_sse_poll_seconds,
 )
@@ -120,16 +121,18 @@ async def start_run(
     principal: Annotated[Principal, Depends(current_principal)],
     token: Annotated[str, Depends(current_bearer_token)],
     service: Annotated[Any, Depends(get_run_service)],
+    catalog: Annotated[Any, Depends(get_model_catalog)],
     idempotency_key: Annotated[
         str,
         Header(alias="Idempotency-Key", min_length=1, max_length=255),
     ],
 ) -> RunResponse:
+    model = await asyncio.to_thread(catalog.resolve, body.model_id)
     run = await service.start(
         principal,
         session_id,
         body.message,
-        body.model_id,
+        model.id,
         idempotency_key,
         token,
     )

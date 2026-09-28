@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
+import { aiErrorCode } from "@/shared/ai/modelAvailabilityNotice";
 import {
   fetchArtifactContent,
   listArtifacts,
@@ -22,6 +23,7 @@ interface AiState {
   rubricMarkdown?: string;
   hasGradeArtifact?: boolean;
   error?: string;
+  runErrorCode?: string;
   sessionId?: string;
   trackedQuestionId?: string;
 }
@@ -196,7 +198,6 @@ function parseSuggestions(
   return results;
 }
 
-export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-v4-flash";
 
 export function buildDefaultGradingPrompt(contestId: string, questionId: string): string {
   return buildPrompt(contestId, questionId);
@@ -407,7 +408,7 @@ export function useAiQuestionGrading() {
     startInFlightRef.current = true;
 
     const prompt = options?.prompt?.trim() || buildPrompt(contestId, questionId);
-    const modelId = options?.modelId || AI_GRADING_DEFAULT_MODEL_ID;
+    const modelId = options?.modelId;
     const context = buildTaskContext(contestId, questionId);
 
     setState({
@@ -415,6 +416,7 @@ export function useAiQuestionGrading() {
       rubricMarkdown: undefined,
       hasGradeArtifact: true, // grade.csv 由下方 seed 寫入
       error: undefined,
+      runErrorCode: undefined,
       trackedQuestionId: questionId,
     });
     primeRows(rows);
@@ -442,6 +444,7 @@ export function useAiQuestionGrading() {
       setState((prev) => ({
         ...prev,
         error: error instanceof Error ? error.message : "AI 批改啟動失敗",
+        runErrorCode: aiErrorCode(error),
       }));
       return null;
     } finally {
@@ -486,6 +489,7 @@ export function useAiQuestionGrading() {
           ...prev,
           byAnswerId: nextByAnswerId,
           error: undefined,
+          runErrorCode: undefined,
           sessionId,
           trackedQuestionId: questionId,
         };
@@ -497,7 +501,7 @@ export function useAiQuestionGrading() {
       const prompt = buildRetryPrompt(contestId, questionId, answerIds, options?.note);
       await withRetry(() =>
         chatbotRepository.startRun(sessionId, prompt, {
-          modelOverride: options?.modelId || AI_GRADING_DEFAULT_MODEL_ID,
+          modelOverride: options?.modelId,
         }),
       );
       return true;
@@ -505,6 +509,7 @@ export function useAiQuestionGrading() {
       setState((prev) => ({
         ...prev,
         error: error instanceof Error ? error.message : "AI 重新批改啟動失敗",
+        runErrorCode: aiErrorCode(error),
       }));
       return false;
     } finally {
@@ -658,6 +663,7 @@ export function useAiQuestionGrading() {
       rubricMarkdown: state.rubricMarkdown,
       hasGradeArtifact: state.hasGradeArtifact,
       error: state.error,
+      runErrorCode: state.runErrorCode,
       sessionId: state.sessionId,
       trackedQuestionId: state.trackedQuestionId,
       start,
@@ -674,6 +680,7 @@ export function useAiQuestionGrading() {
       state.rubricMarkdown,
       state.hasGradeArtifact,
       state.error,
+      state.runErrorCode,
       state.sessionId,
       state.trackedQuestionId,
       start,

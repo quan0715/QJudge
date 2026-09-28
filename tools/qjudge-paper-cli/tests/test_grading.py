@@ -212,7 +212,7 @@ def test_run_question_grading_creates_read_only_artifacts(tmp_path: Path):
         classroom_id="classroom-1",
         contest_id="contest-1",
         question_id="question-1",
-        model_id="deepseek-v4-flash",
+        model_id="deepseek-flash",
         output_dir=tmp_path,
         user_id="user-1",
     )
@@ -239,7 +239,7 @@ def test_run_question_grading_creates_read_only_artifacts(tmp_path: Path):
     )
     assert baseline_rows[0]["original_score"] == "1"
     assert baseline_rows[0]["original_feedback"] == "human note"
-    assert client.started_run["model_id"] == "deepseek-v4-flash"
+    assert client.started_run["model_id"] == "deepseek-flash"
     assert client.context_payload["task_manifest"]["task_type"] == "grading.question"
     assert client.context_payload["task_manifest"]["tool_policy"] == {
         "qjudge_grading": {

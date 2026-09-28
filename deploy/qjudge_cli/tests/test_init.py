@@ -17,6 +17,25 @@ def no_docker(args, **kwargs):
 
 
 class InitTests(unittest.TestCase):
+    def test_init_copies_the_models_example_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deploy = Path(directory)
+            (deploy / "ai").mkdir()
+            (deploy / "ai" / "models.example.yml").write_text("models: []\n")
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(run_init(deploy, deploy / ".env", BUNDLED, interactive=False, run=no_docker), 0)
+            self.assertEqual((deploy / "ai" / "models.yml").read_text(), "models: []\n")
+
+    def test_init_keeps_an_existing_models_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deploy = Path(directory)
+            (deploy / "ai").mkdir()
+            (deploy / "ai" / "models.example.yml").write_text("models: []\n")
+            (deploy / "ai" / "models.yml").write_text("default: mine\n")
+            with redirect_stdout(io.StringIO()):
+                run_init(deploy, deploy / ".env", BUNDLED, interactive=False, run=no_docker)
+            self.assertEqual((deploy / "ai" / "models.yml").read_text(), "default: mine\n")
+
     def test_bundled_storage_needs_only_origin_and_public_url(self):
         env = build_env(BUNDLED)
         self.assertEqual(check_env(env), [])

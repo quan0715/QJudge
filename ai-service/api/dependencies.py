@@ -71,5 +71,9 @@ def get_readiness_probe(request: Request) -> Any:
     return _state(request, "readiness_probe")
 
 
+def get_model_catalog(request: Request) -> Any:
+    return _state(request, "model_catalog")
+
+
 def get_sse_poll_seconds(request: Request) -> float:
     return float(getattr(request.app.state, "sse_poll_seconds", 0.5))
