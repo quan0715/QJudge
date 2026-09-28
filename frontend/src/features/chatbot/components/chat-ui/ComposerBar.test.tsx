@@ -19,6 +19,19 @@ const baseProps = {
   isStreaming: false,
 };
 
+describe("ComposerBar model notice", () => {
+  it("shows the model notice as an inline warning", () => {
+    render(
+      <ComposerBar
+        {...baseProps}
+        attachments={[]}
+        modelNotice="此站台尚未設定 AI 模型，請聯絡站台管理員。"
+      />,
+    );
+    expect(screen.getByText("此站台尚未設定 AI 模型，請聯絡站台管理員。")).toBeInTheDocument();
+  });
+});
+
 function attachment(
   status: CopilotPendingAttachment["status"],
   error?: CopilotError,

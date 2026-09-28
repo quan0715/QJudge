@@ -46,8 +46,8 @@ from infrastructure.agent.hitl_middleware import ActionAwareHITLMiddleware
 from infrastructure.agent.model_factory import (
     ModelFactory,
     SUMMARIZATION_TRIGGER_FRACTION,
-    _DEFAULT_MODEL_ID as _REPAIR_MODEL_ID,
 )
+from infrastructure.agent.model_catalog import process_model_catalog
 from infrastructure.agent.approval_policy import WRITE_ACTIONS
 from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
@@ -190,14 +190,6 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
         )
 
     @classmethod
-    def _extract_model_name(cls, model: Any) -> str:
-        for attr in ("model_name", "model", "name"):
-            value = getattr(model, attr, None)
-            if isinstance(value, str) and value.strip():
-                return value.strip().lower()
-        return ""
-
-    @classmethod
     def _infer_model_max_input_tokens(cls, model: Any) -> int | None:
         max_input_hint = getattr(model, "_qjudge_max_input_tokens", None)
         if isinstance(max_input_hint, int) and max_input_hint > 0:
@@ -214,10 +206,6 @@ class _SafeSummarizationMiddleware(SummarizationMiddleware):
         if isinstance(max_input_obj, int) and max_input_obj > 0:
             return max_input_obj
 
-        # Final fallback for OpenAI GPT-5 family.
-        model_name = cls._extract_model_name(model)
-        if model_name.startswith("gpt-5"):
-            return 400_000
         return None
 
     @classmethod
@@ -394,11 +382,11 @@ class _DeepAgentRuntime:
         """
         if self._checkpointer is None:
             raise RuntimeError("Checkpointer not initialized")
-        agent = self._build_agent(
-            model_id=_REPAIR_MODEL_ID,
-            system_prompt=None,
-            tools=[],
-        )
+        model_id = process_model_catalog().default_id()
+        if model_id is None:
+            logger.warning("Skipping checkpoint repair for %s: no AI model is available", thread_id)
+            return False
+        agent = self._build_agent(model_id=model_id, system_prompt=None, tools=[])
         config = {"configurable": {"thread_id": thread_id}}
         return await self._repair_dangling_tool_calls(agent, config)
 

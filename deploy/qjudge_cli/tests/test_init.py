@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from qjudge_cli.check import check_env
 from qjudge_cli.envfile import load
@@ -17,11 +18,36 @@ def no_docker(args, **kwargs):
 
 
 class InitTests(unittest.TestCase):
+    def test_init_copies_the_models_example_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deploy = Path(directory)
+            (deploy / "ai").mkdir()
+            (deploy / "ai" / "models.example.yml").write_text("models: []\n")
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(run_init(deploy, deploy / ".env", BUNDLED, interactive=False, run=no_docker), 0)
+            self.assertEqual((deploy / "ai" / "models.yml").read_text(), "models: []\n")
+
+    def test_init_keeps_an_existing_models_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            deploy = Path(directory)
+            (deploy / "ai").mkdir()
+            (deploy / "ai" / "models.example.yml").write_text("models: []\n")
+            (deploy / "ai" / "models.yml").write_text("default: mine\n")
+            with redirect_stdout(io.StringIO()):
+                run_init(deploy, deploy / ".env", BUNDLED, interactive=False, run=no_docker)
+            self.assertEqual((deploy / "ai" / "models.yml").read_text(), "default: mine\n")
+
     def test_bundled_storage_needs_only_origin_and_public_url(self):
         env = build_env(BUNDLED)
         self.assertEqual(check_env(env), [])
         self.assertEqual(env["OBJECT_STORAGE_ENDPOINT_URL"], "http://minio:9000")
         self.assertGreaterEqual(len(env["OBJECT_STORAGE_SECRET_KEY"]), 8)
+
+    def test_generated_bundled_storage_secret_does_not_start_with_a_flag(self):
+        with patch("qjudge_cli.init.secrets.token_urlsafe", return_value="-unsafe-secret"):
+            env = build_env(BUNDLED)
+
+        self.assertFalse(env["OBJECT_STORAGE_SECRET_KEY"].startswith("-"))
 
     def test_generated_secrets_differ_and_pass_password_rules(self):
         env = build_env(BUNDLED)

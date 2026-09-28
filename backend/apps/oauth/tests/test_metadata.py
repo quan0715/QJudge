@@ -24,8 +24,7 @@ class OAuthAuthorizationServerMetadataTest(TestCase):
         self.assertEqual(data["response_types_supported"], ["code"])
         self.assertEqual(data["grant_types_supported"], ["authorization_code"])
         self.assertEqual(data["code_challenge_methods_supported"], ["S256"])
-        self.assertIn("mcp", data["scopes_supported"])
-        self.assertIn("qjudge.paper", data["scopes_supported"])
+        self.assertEqual(data["scopes_supported"], ["mcp"])
         self.assertEqual(
             data["token_endpoint_auth_methods_supported"], ["none"]
         )

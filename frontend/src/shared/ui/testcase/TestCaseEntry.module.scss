@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .entry {
   display: flex;
   flex-direction: column;
@@ -61,7 +62,7 @@
   white-space: nowrap;
 
   code {
-    font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+    font-family: type.font-family("mono");
     background-color: var(--cds-layer-02);
     padding: layout.$spacing-01 layout.$spacing-02;
     border-radius: 2px;

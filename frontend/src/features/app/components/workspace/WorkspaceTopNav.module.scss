@@ -5,7 +5,7 @@
   justify-content: space-between;
   min-height: 3rem;
   padding: 0 0 0 layout.$spacing-04;
-  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-bottom: 1px solid var(--cds-border-subtle-01);
   background: var(--cds-layer);
   color: var(--cds-text-primary);
   flex-shrink: 0;
@@ -82,7 +82,7 @@
   max-height: min(24rem, 70vh);
   overflow-y: auto;
   padding: layout.$spacing-02;
-  border: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border: 1px solid var(--cds-border-subtle-01);
   border-radius: 8px;
   background: var(--cds-layer);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);

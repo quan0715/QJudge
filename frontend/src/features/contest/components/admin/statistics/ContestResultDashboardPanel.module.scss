@@ -79,25 +79,6 @@
   position: relative;
 }
 
-.chartReferenceLine {
-  position: absolute;
-  left: layout.$spacing-06;
-  right: layout.$spacing-06;
-  height: 0;
-  border-top: 2px dashed var(--cds-support-warning);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.chartReferenceLabel {
-  position: absolute;
-  top: -1.5rem;
-  right: 0;
-  color: var(--cds-support-warning);
-  @include type.type-style("label-01");
-  white-space: nowrap;
-}
-
 /* ── Right column: question grid ── */
 .questionColumn {
   align-items: stretch;
@@ -133,12 +114,6 @@
   & + & {
     margin-top: layout.$spacing-06;
   }
-}
-
-.questionSectionTitle {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  @include type.type-style("heading-compact-01");
 }
 
 .questionGrid {
@@ -206,10 +181,6 @@
   @include type.type-style("label-01");
 }
 
-.inlineTag {
-  flex-shrink: 0;
-}
-
 .previewCardTitle {
   color: var(--cds-text-primary);
   @include type.type-style("body-compact-01");
@@ -232,20 +203,6 @@
 
 .previewProgress {
   margin-top: layout.$spacing-03;
-}
-
-.rateBar {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
-}
-
-.rateBarHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
 }
 
 .rateBarTrack {
@@ -278,7 +235,7 @@
 }
 
 .rateBarFillDefault {
-  background: var(--cds-link-primary, #4589ff);
+  background: var(--cds-link-primary);
 }
 
 
@@ -324,12 +281,6 @@
   :global(.markdown-body > :last-child) {
     margin-bottom: 0;
   }
-}
-
-.drawerLoading {
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
-  padding: layout.$spacing-05 0;
 }
 
 .drawerError {
@@ -469,15 +420,15 @@
 .miniBarFill {
   height: 100%;
   min-width: 0;
-  background: var(--cds-link-primary, #4589ff);
+  background: var(--cds-link-primary);
 }
 
 .miniBarFillSuccess {
-  background: var(--cds-support-success, #42be65);
+  background: var(--cds-support-success);
 }
 
 .miniBarFillWarning {
-  background: var(--cds-support-warning, #f1c21b);
+  background: var(--cds-support-warning);
 }
 
 .miniBarCount {
@@ -500,65 +451,12 @@
   gap: layout.$spacing-02;
 }
 
-.optionRow {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-}
-
-.optionRowHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: layout.$spacing-04;
-}
-
-.optionLabel {
-  color: var(--cds-text-primary);
-  @include type.type-style("body-compact-01");
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  flex: 1;
-}
-
-.optionMeta {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  flex-shrink: 0;
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
-}
-
 .optionStateCorrect {
   color: var(--cds-support-success);
 }
 
 .optionStateIncorrect {
   color: color-mix(in srgb, var(--cds-support-error) 72%, var(--cds-text-secondary));
-}
-
-.optionTrack {
-  width: 100%;
-  height: 0.875rem;
-  border-radius: 999px;
-  background: var(--cds-layer-02);
-  overflow: hidden;
-}
-
-.optionFill {
-  height: 100%;
-  background: var(--cds-link-primary, #4589ff);
-  border-radius: 999px;
-}
-
-.optionFillCorrect {
-  background: var(--cds-support-success, #42be65);
-}
-
-.optionFillIncorrect {
-  background: #a8a8a8;
 }
 
 .detailMetricGrid {
@@ -701,21 +599,6 @@
   @include type.type-style("body-compact-01");
   white-space: pre-wrap;
   word-break: break-word;
-}
-
-/* ── Coding-only & empty states ── */
-.basicInfoCard {
-  padding: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-}
-
-.basicInfoCopy {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  @include type.type-style("body-compact-01");
 }
 
 .emptyGrid {

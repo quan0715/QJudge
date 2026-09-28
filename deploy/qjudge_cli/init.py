@@ -30,7 +30,7 @@ def _mode_defaults(env: Mapping[str, str]) -> dict[str, Callable[[], str]]:
         defaults.update({
             "OBJECT_STORAGE_ENDPOINT_URL": lambda: "http://minio:9000",
             "OBJECT_STORAGE_ACCESS_KEY": lambda: "qjudge",
-            "OBJECT_STORAGE_SECRET_KEY": lambda: secrets.token_urlsafe(24),
+            "OBJECT_STORAGE_SECRET_KEY": lambda: "qj-" + secrets.token_urlsafe(24),
             "OBJECT_STORAGE_BUCKET": lambda: "qjudge",
         })
     if env.get("MEDIA_MODE") == "bundled":
@@ -100,9 +100,19 @@ def run_init(
     write_private(env_file, render_env(env))
     ensure_network(run)
     print(f"Wrote {env_file}")
+    _ensure_models_file(deploy_dir)
     if env.get("STORAGE_MODE") == "bundled":
         print("Next: deploy/qjudge addon storage up && deploy/qjudge addon storage init")
     if env.get("MEDIA_MODE") == "bundled":
         print("Next: deploy/qjudge addon media up")
     print("Then: deploy/qjudge ingress, and deploy/qjudge upgrade <git ref>")
     return 0
+
+
+def _ensure_models_file(deploy_dir: Path) -> None:
+    models = deploy_dir / "ai" / "models.yml"
+    example = deploy_dir / "ai" / "models.example.yml"
+    if models.exists() or not example.exists():
+        return
+    models.write_text(example.read_text())
+    print(f"Wrote {models}; list this host's AI models there and their API keys in deploy/ai/keys.env")

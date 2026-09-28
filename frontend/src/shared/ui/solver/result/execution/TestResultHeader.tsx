@@ -18,19 +18,19 @@ export const TestResultHeader: React.FC<TestResultHeaderProps> = ({
     switch (type) {
       case "green":
         return {
-          bg: "var(--cds-support-success-highlight)",
+          bg: "var(--cds-notification-background-success)",
           text: "var(--cds-text-primary)",
           border: "var(--cds-support-success)"
         };
       case "red":
         return {
-          bg: "var(--cds-support-error-highlight)",
+          bg: "var(--cds-notification-background-error)",
           text: "var(--cds-text-primary)",
           border: "var(--cds-support-error)"
         };
       case "blue":
         return {
-          bg: "var(--cds-support-info-highlight)",
+          bg: "var(--cds-notification-background-info)",
           text: "var(--cds-text-primary)",
           border: "var(--cds-support-info)"
         };

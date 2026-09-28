@@ -47,6 +47,25 @@ class FakeHost:
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_invalid_model_config_aborts_before_stopping_anything(self):
+        host = FakeHost(fail_on=("infrastructure.agent.model_config",))
+        self.assertEqual(self._upgrade(host), 1)
+        self.assertEqual(host.head, OLD)
+        commands = host.commands()
+        self.assertFalse(any("pg_dump" in c for c in commands))
+        self.assertFalse(any(" up -d " in f" {c} " for c in commands))
+
+    def test_model_config_is_checked_right_after_build(self):
+        host = FakeHost()
+        self.assertEqual(self._upgrade(host), 0)
+        order = host.commands()
+        build = next(i for i, c in enumerate(order) if c.endswith(" build"))
+        check = next(i for i, c in enumerate(order)
+                     if "run --rm --no-deps ai-service python -m infrastructure.agent.model_config" in c)
+        postgres = next(i for i, c in enumerate(order) if "up -d postgres" in c)
+        self.assertLess(build, check)
+        self.assertLess(check, postgres)
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.deploy = Path(self.directory.name) / "deploy"

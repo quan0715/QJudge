@@ -2,14 +2,14 @@ import type { CSSProperties, ReactNode } from "react";
 import s from "./SettingsPanel.module.scss";
 
 export const TITLE_STYLE: CSSProperties = {
-  fontSize: "var(--cds-body-short-01-font-size, 0.875rem)",
+  fontSize: "0.875rem",
   fontWeight: 400,
   lineHeight: "1.125rem",
   color: "var(--cds-text-primary)",
 };
 
 export const DESC_STYLE: CSSProperties = {
-  fontSize: "var(--cds-helper-text-01-font-size, 0.75rem)",
+  fontSize: "0.75rem",
   fontWeight: 400,
   lineHeight: "1rem",
   color: "var(--cds-text-helper)",

@@ -318,10 +318,12 @@
   },
   "oauth": {
     "authorize": {
+      "account": "Account",
       "allow": "Allow",
       "deny": "Deny",
       "description": "{{clientName}} is requesting access to your QJudge account",
       "error": "Authorization failed. Please try again.",
+      "grantNote": "If you allow, this app can read and act on QJudge as you.",
       "invalidRequest": "Invalid authorization request",
       "loading": "Processing...",
       "title": "Authorization Request"

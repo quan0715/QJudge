@@ -183,6 +183,12 @@ function auditStyle(file, source, cleanSource) {
       message: "Carbon React does not emit runtime --cds-spacing-* variables; use @carbon/layout Sass tokens.",
     },
     {
+      regex: /var\(\s*--cds-[a-z0-9-]+-(?:font-size|font-weight|line-height|letter-spacing|font-family)\s*\)/gi,
+      rule: "invalid-carbon-type-variable",
+      severity: "error",
+      message: "Carbon React does not emit runtime type token variables, so this declaration is dropped; use the @carbon/type type-style mixin.",
+    },
+    {
       regex: /(?:#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\))/gi,
       rule: "hardcoded-theme-color",
       severity: "warning",

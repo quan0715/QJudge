@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .wrapper {
   width: 100%;
   max-width: 42rem;
@@ -35,16 +36,12 @@
 
 .headerEyebrow {
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  font-weight: var(--cds-label-01-font-weight, 400);
-  line-height: var(--cds-label-01-line-height, 1rem);
+  @include type.type-style("label-01");
 }
 
 .headerLabel {
   color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-01-font-size, 1rem);
-  font-weight: var(--cds-heading-compact-01-font-weight, 600);
-  line-height: var(--cds-heading-compact-01-line-height, 1.25rem);
+  @include type.type-style("heading-compact-01");
 }
 
 .actionCount {
@@ -74,10 +71,7 @@
 .toolName {
   overflow: hidden;
   color: var(--cds-text-primary);
-  font-family: var(--cds-code-01-font-family);
-  font-size: var(--cds-code-01-font-size);
-  font-weight: var(--cds-code-01-font-weight);
-  line-height: var(--cds-code-01-line-height);
+  @include type.type-style("code-01");
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -112,8 +106,8 @@
   dt {
     overflow: hidden;
     color: var(--cds-text-secondary);
-    font-family: var(--cds-code-01-font-family);
-    font-size: var(--cds-code-01-font-size);
+    font-family: type.font-family("mono");
+    font-size: 0.75rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -123,8 +117,7 @@
     margin: 0;
     overflow: hidden;
     color: var(--cds-text-primary);
-    font-size: var(--cds-body-compact-01-font-size);
-    line-height: var(--cds-body-compact-01-line-height);
+    @include type.type-style("body-compact-01");
     text-align: end;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -144,9 +137,7 @@
   border-radius: 4px;
   background: var(--cds-layer-02);
   color: var(--cds-text-secondary);
-  font-family: var(--cds-code-01-font-family);
-  font-size: var(--cds-code-01-font-size);
-  line-height: var(--cds-code-01-line-height);
+  @include type.type-style("code-01");
   white-space: pre;
 }
 

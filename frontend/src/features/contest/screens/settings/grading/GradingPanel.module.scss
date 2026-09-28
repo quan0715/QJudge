@@ -10,7 +10,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--cds-layer-02, var(--cds-layer));
+  background: var(--cds-layer-02);
 }
 
 .panelEmpty {
@@ -160,7 +160,7 @@
 .readonlyHint {
   margin: 0;
   @include type.type-style("helper-text-01");
-  color: var(--cds-text-helper, var(--cds-text-secondary));
+  color: var(--cds-text-helper);
 }
 
 /* ── Shortcut hints ── */
@@ -170,7 +170,7 @@
   display: grid;
   gap: layout.$spacing-03;
   @include type.type-style("helper-text-01");
-  color: var(--cds-text-helper, var(--cds-text-secondary));
+  color: var(--cds-text-helper);
 }
 
 .shortcutTrigger {
@@ -259,7 +259,7 @@
     padding: 0;
     border-top: none;
     gap: 0;
-    background: var(--cds-layer-02, var(--cds-layer));
+    background: var(--cds-layer-02);
     flex-wrap: wrap;
   }
 

@@ -16,6 +16,7 @@ from api.dependencies import (
     current_principal,
     get_active_run_reader,
     get_event_reader,
+    get_model_catalog,
     get_run_service,
     get_session_service,
     get_usage_service,
@@ -27,6 +28,8 @@ from application.usage_service import UsageService
 from domain.models import Principal, RunStatus
 from domain.ports import CredentialLeaseKey
 from infrastructure.database.uow import SqlAlchemyUnitOfWork
+from infrastructure.agent.model_catalog import ModelCatalog
+from infrastructure.agent.model_config import parse_model_config
 from main import create_app
 
 OWNER = Principal("https://issuer.test", "teacher-1")
@@ -100,6 +103,14 @@ async def api_stack(
     app.dependency_overrides[get_event_reader] = lambda: EventReader(uow_factory)
     app.dependency_overrides[get_active_run_reader] = ActiveRuns
     app.dependency_overrides[get_usage_service] = lambda: UsageService(uow_factory)
+    app.dependency_overrides[get_model_catalog] = lambda: ModelCatalog(
+        parse_model_config(
+            {"models": [{"id": "deepseek-flash", "provider": "deepseek", "max_input_tokens": 1024}]},
+            {"DEEPSEEK_API_KEY": "test-key"},
+            lambda kind, model: None,
+        ),
+        env={"DEEPSEEK_API_KEY": "test-key"},
+    )
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
     ) as client:
@@ -115,7 +126,7 @@ async def test_start_replay_and_complete(api_stack) -> None:
     run_response = await client.post(
         f"/v1/sessions/{session_id}/runs",
         headers={"Idempotency-Key": "browser-message-1"},
-        json={"message": "hello", "model_id": "deepseek-v4-flash"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
     )
     assert run_response.status_code == 202
     run_id = UUID(run_response.json()["run_id"])
@@ -160,7 +171,7 @@ async def test_mcp_failure_does_not_break_persistence_routes(api_stack) -> None:
     failed = await client.post(
         f"/v1/sessions/{session_id}/runs",
         headers={"Idempotency-Key": "mcp-down"},
-        json={"message": "hello", "model_id": "deepseek-v4-flash"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
     )
     assert failed.status_code == 503
     assert failed.json()["error"]["code"] == "MCP_UNAVAILABLE"
@@ -174,7 +185,7 @@ async def test_foreign_owner_cannot_read_session_run_or_events(api_stack) -> Non
     started = await client.post(
         f"/v1/sessions/{session_id}/runs",
         headers={"Idempotency-Key": "owner-run"},
-        json={"message": "hello", "model_id": "deepseek-v4-flash"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
     )
     run_id = started.json()["run_id"]
     client._transport.app.dependency_overrides[current_principal] = lambda: Principal(

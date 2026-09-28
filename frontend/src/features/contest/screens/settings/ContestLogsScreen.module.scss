@@ -106,7 +106,7 @@
   width: 100%;
   height: 100%;
   padding: 0 layout.$spacing-04;
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   background: var(--cds-field);
   border: none;
   border-bottom: 1px solid var(--cds-border-strong);
@@ -140,7 +140,7 @@
   padding: layout.$spacing-09 layout.$spacing-05;
   text-align: center;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .dateSeparator {
@@ -148,8 +148,8 @@
   top: 0;
   z-index: 1;
   padding: layout.$spacing-03 layout.$spacing-05;
-  background: var(--cds-layer-02, var(--cds-background));
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  background: var(--cds-layer-02);
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--cds-text-secondary);
   letter-spacing: 0.03em;
@@ -162,7 +162,7 @@
 
 .statusFooter {
   padding: layout.$spacing-04 0;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   text-align: center;
 }

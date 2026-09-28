@@ -7,9 +7,9 @@
 // fallback (#e8e8e8) when g100 layer tokens haven't cascaded yet.
 
 :root {
-  --qj-card-bg: var(--cds-layer-01, var(--cds-layer));
-  --qj-card-hover-bg: var(--cds-layer-hover-01, var(--cds-layer-hover));
-  --qj-card-active-bg: var(--cds-layer-active-01, var(--cds-layer-active));
+  --qj-card-bg: var(--cds-layer-01);
+  --qj-card-hover-bg: var(--cds-layer-hover-01);
+  --qj-card-active-bg: var(--cds-layer-active-01);
   --qj-card-border: var(--cds-border-subtle);
 }
 

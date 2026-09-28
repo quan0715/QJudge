@@ -86,7 +86,7 @@ const AuthLayout = () => {
     }
     if (path.startsWith('/oauth/authorize')) {
       return {
-        title: t("oauth.authorize.title", "MCP OAuth 授權"),
+        title: t("oauth.authorize.title"),
         subtitle: t("oauth.authorize.description", {
           clientName: t("oauth.authorize.defaultClient", "外部應用程式"),
         }),

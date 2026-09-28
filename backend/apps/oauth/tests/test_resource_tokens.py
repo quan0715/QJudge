@@ -227,13 +227,6 @@ def test_jwks_exposes_public_ed25519_key(signing_key_file, client):
     assert keys[0]["kid"] == "qjudge-ai-ed25519-v1"
 
 
-def test_oauth_metadata_advertises_ai_chat_scope(client):
-    response = client.get("/.well-known/oauth-authorization-server")
-
-    assert response.status_code == 200
-    assert "ai:chat" in response.json()["scopes_supported"]
-
-
 def test_opaque_pkce_token_can_bridge_to_ai_resource_token(
     api_client, teacher, signing_key_file
 ):

@@ -12,7 +12,6 @@
     margin-bottom: $spacing-06;
 
     // Shrink avatar trigger
-    :global(.image-edit-trigger),
     :global(.image-edit-dialog__trigger) {
       width: 56px;
       height: 56px;
@@ -41,19 +40,6 @@
   // Account fields (row table)
   &__account-fields {
     margin-bottom: $spacing-04;
-  }
-
-  // Shared option row: label left, button right
-  &__option-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: $spacing-03 0;
-  }
-
-  &__option-desc {
-    @include type-style("helper-text-01");
-    color: $text-helper;
   }
 
   // Device table header

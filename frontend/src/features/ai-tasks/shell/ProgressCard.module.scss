@@ -23,9 +23,9 @@
   color: var(--cds-text-primary);
 }
 
-.status_running { color: var(--cds-support-info, #0f62fe); }
-.status_done { color: var(--cds-support-success, #24a148); }
-.status_fail { color: var(--cds-support-error, #da1e28); }
+.status_running { color: var(--cds-support-info); }
+.status_done { color: var(--cds-support-success); }
+.status_fail { color: var(--cds-support-error); }
 .status_idle { color: var(--cds-text-secondary); }
 
 .count {

@@ -329,8 +329,10 @@ class ApproveAuthorizationView(APIView):
                 status=400,
             )
 
+        # RFC 6749 §3.3: scope is a space-delimited list.
+        requested_scopes = scope.split() if isinstance(scope, str) else []
         supported_scopes = set(_supported_oauth_scopes())
-        if scope not in supported_scopes:
+        if not requested_scopes or not set(requested_scopes) <= supported_scopes:
             return Response(
                 {
                     "error": "invalid_scope",
@@ -385,7 +387,7 @@ class ApproveAuthorizationView(APIView):
             code=code,
             expires=timezone.now() + timedelta(seconds=60),
             redirect_uri=redirect_uri,
-            scope=scope,
+            scope=" ".join(requested_scopes),
             code_challenge=code_challenge,
             code_challenge_method=code_challenge_method,
         )

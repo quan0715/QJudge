@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Layer } from "@carbon/react";
 import {
   Rocket,
-  Book,
   DocumentBlank,
   Education,
   UserAdmin,
@@ -31,8 +30,6 @@ interface DocSidebarProps {
 // Section icons mapping
 const sectionIcons: Record<string, React.ElementType> = {
   "getting-started": Rocket,
-  "user-guide": Book,
-  reference: DocumentBlank,
   "teacher-guide": Education,
   "admin-guide": UserAdmin,
   "developer-guide": Code,
@@ -164,11 +161,11 @@ const DocSidebar: React.FC<DocSidebarProps> = ({
                             gap: "0.5rem",
                             padding: "0.625rem 1rem 0.625rem 2.5rem",
                             background: isActive
-                              ? "var(--cds-layer-selected-01, #e0e0e0)"
+                              ? "var(--cds-layer-selected-01)"
                               : "transparent",
                             border: "none",
                             borderLeft: isActive
-                              ? "3px solid var(--cds-border-interactive, #0f62fe)"
+                              ? "3px solid var(--cds-border-interactive)"
                               : "3px solid transparent",
                             cursor: "pointer",
                             color: isActive

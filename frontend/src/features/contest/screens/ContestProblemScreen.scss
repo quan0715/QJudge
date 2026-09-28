@@ -19,7 +19,7 @@
 
     h3 {
       margin: 0;
-      font-size: var(--cds-heading-03-font-size, 1.25rem);
+      font-size: 1.25rem;
       font-weight: 600;
       color: var(--cds-text-primary);
     }
@@ -28,24 +28,6 @@
       margin: 0;
       color: var(--cds-text-secondary);
     }
-  }
-
-  &__error-banner {
-    flex-shrink: 0;
-    padding: layout.$spacing-03;
-    background-color: var(--cds-layer-01);
-    border-bottom: 1px solid var(--cds-border-subtle-01);
-  }
-
-  &__loading-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: layout.$spacing-04;
-    color: var(--cds-text-secondary);
-    font-size: var(--cds-body-compact-01-font-size, 0.875rem);
   }
 }
 

@@ -15,7 +15,7 @@
 
 // Dark variant (with cover image or gradient)
 .heroDark {
-  background-color: var(--cds-background-brand, #0f62fe);
+  background-color: var(--cds-background-brand);
   color: #fff;
 
   &::after {

@@ -27,7 +27,7 @@ export const TestCaseResultDetail: React.FC<TestCaseResultDetailProps> = ({
         alignItems: "center", 
         justifyContent: "center",
         color: "var(--cds-text-secondary)",
-        padding: "var(--cds-spacing-05)"
+        padding: "1rem"
       }}>
         <div style={{ textAlign: "center" }}>
           Select a test case to view details
@@ -39,7 +39,7 @@ export const TestCaseResultDetail: React.FC<TestCaseResultDetailProps> = ({
   return (
     <div style={{ flex: 1, overflowY: "auto"}}>
       <Layer level={0}>
-        <Stack gap={7} style={{ padding: "var(--cds-spacing-05)" }}>
+        <Stack gap={7} style={{ padding: "1rem" }}>
           
           {/* Error Section */}
           {/* {result?.error && (
@@ -52,8 +52,8 @@ export const TestCaseResultDetail: React.FC<TestCaseResultDetailProps> = ({
               }}>Error
               </span>
               <div style={{ 
-                padding: "var(--cds-spacing-03)",
-                backgroundColor: "var(--cds-background-error)",
+                padding: "0.5rem",
+                backgroundColor: "var(--cds-notification-background-error)",
                 color: "var(--cds-text-error)",
                 borderLeft: "4px solid var(--cds-support-error)"
               }}>

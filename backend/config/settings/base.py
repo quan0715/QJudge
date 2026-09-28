@@ -205,8 +205,6 @@ JWT_AUTH_COOKIE_DOMAIN = None  # Use default domain
 OAUTH2_PROVIDER = {
     "SCOPES": {
         "mcp": "Access QJudge via MCP",
-        "ai:chat": "Access the QJudge AI chat service",
-        "qjudge.paper": "Access QJudge paper exam workflows from QJudge Paper CLI",
     },
     "DEFAULT_SCOPES": ["mcp"],
     "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,       # 1 hour
@@ -249,8 +247,6 @@ SPECTACULAR_SETTINGS = {
             "tokenUrl": "/api/oauth/token/",
             "scopes": {
                 "mcp": "MCP server access",
-                "ai:chat": "QJudge AI chat access",
-                "qjudge.paper": "QJudge Paper CLI access",
             },
         }
     },

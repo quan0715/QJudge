@@ -13,7 +13,6 @@
   align-content: start;
 }
 
-.classroom-admin-loading,
 .classroom-admin-empty {
   min-height: 100vh;
   display: flex;
@@ -47,19 +46,9 @@
   background: transparent;
 }
 
-// Keep for ContestPanel which still uses this class without side column
-.classroom-admin-overview-layout {
-  @include grid.sidebar-detail-grid;
-}
-
 .classroom-admin-catalog-layout {
   display: grid;
   min-width: 0;
-}
-
-.classroom-admin-overview-layout__main > .classroom-admin-section,
-.classroom-admin-overview-layout__side > .classroom-admin-section {
-  margin-bottom: 0;
 }
 
 .classroom-admin-section {
@@ -68,10 +57,6 @@
   & + & {
     border-top: 1px solid var(--cds-border-subtle);
   }
-}
-
-.classroom-admin-section--invite {
-  padding: layout.$spacing-04 0;
 }
 
 .classroom-admin-section__header {
@@ -97,14 +82,6 @@
   }
 }
 
-.classroom-admin-members-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) layout.rem(180px) auto;
-  align-items: end;
-  gap: layout.$spacing-03;
-  margin-bottom: layout.$spacing-04;
-}
-
 .classroom-admin-member-search {
   margin-bottom: layout.$spacing-05;
 }
@@ -120,31 +97,6 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin: 0 0 layout.$spacing-03;
-}
-
-.classroom-admin-members-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-02;
-  margin-bottom: layout.$spacing-03;
-}
-
-.classroom-admin-members-toolbar__search {
-  min-width: 0;
-}
-
-.classroom-admin-members-toolbar__select {
-  min-width: layout.rem(160px);
-}
-
-.classroom-admin-members-toolbar__meta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: layout.$spacing-03;
-  white-space: nowrap;
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
 }
 
 .classroom-admin-announcement-list {
@@ -166,70 +118,6 @@
     margin: 0;
     color: var(--cds-text-primary);
   }
-}
-
-.classroom-admin-announcement-card {
-  @include card.interactive;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-03;
-  border: 1px solid var(--cds-border-subtle);
-  border-left: 3px solid var(--cds-border-interactive);
-  transition:
-    background-color 110ms ease,
-    border-color 110ms ease;
-
-  &:hover {
-    border-color: var(--cds-border-interactive);
-  }
-}
-
-.classroom-admin-announcement-card--pinned {
-  border-left-color: var(--cds-support-warning);
-}
-
-.classroom-admin-announcement-card__head {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  min-width: 0;
-
-  h4 {
-    @include type.type-style("heading-compact-02");
-    margin: 0;
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--cds-text-primary);
-  }
-}
-
-.classroom-admin-announcement-card__pin {
-  color: var(--cds-support-warning);
-  flex-shrink: 0;
-}
-
-.classroom-admin-announcement-card__date {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  color: var(--cds-text-secondary);
-  @include type.type-style("label-01");
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.classroom-admin-announcement-card__preview {
-  @include type.type-style("body-compact-01");
-  margin: 0;
-  color: var(--cds-text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
 }
 
 .classroom-admin-announcement-view {
@@ -338,97 +226,8 @@
   }
 }
 
-.classroom-admin-mini-list {
-  display: grid;
-  gap: layout.$spacing-02;
-}
-
 .classroom-admin-section--todo {
   padding-bottom: layout.$spacing-03;
-}
-
-.classroom-admin-todo-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: layout.$spacing-02;
-
-  button {
-    border: 1px solid var(--cds-border-subtle);
-    background: var(--cds-layer-02);
-    color: var(--cds-text-primary);
-    padding: layout.$spacing-03;
-    text-align: left;
-    display: grid;
-    gap: layout.$spacing-01;
-    cursor: pointer;
-
-    &:hover {
-      border-color: var(--cds-border-interactive);
-      background: var(--cds-layer-hover);
-    }
-
-    span {
-      @include type.type-style("label-01");
-      color: var(--cds-text-secondary);
-    }
-
-    strong {
-      @include type.type-style("heading-compact-02");
-      color: var(--cds-text-primary);
-      font-weight: 500;
-    }
-  }
-}
-
-.classroom-admin-mini-card {
-  @include mixins.sidebar-item;
-  padding: layout.$spacing-03 layout.$spacing-04;
-  gap: layout.$spacing-03;
-  border-bottom: none;
-}
-
-.classroom-admin-mini-card__info {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-02;
-  min-width: 0;
-}
-
-.classroom-admin-mini-card__name {
-  @include type.type-style("heading-compact-01");
-  color: var(--cds-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.classroom-admin-mini-card__meta {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-}
-
-.classroom-admin-mini-card__date {
-  display: inline-flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  @include type.type-style("label-01");
-  color: var(--cds-text-secondary);
-}
-
-.classroom-settings-save-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: layout.$spacing-05;
-}
-
-.classroom-settings-meta-value {
-  @include type.type-style("body-compact-01");
-}
-
-.classroom-settings-heading {
-  @include type.type-style("productive-heading-04");
-  margin: 0;
 }
 
 // ── Icon picker in settings ──
@@ -463,9 +262,6 @@
 }
 
 @media (max-width: 1056px) {
-  .classroom-admin-overview-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 672px) {
@@ -477,39 +273,7 @@
     padding: layout.$spacing-04 layout.$spacing-05;
   }
 
-  .classroom-admin-todo-list {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .classroom-admin-members-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-  }
-
-  .classroom-admin-members-summary {
-    margin-bottom: layout.$spacing-02;
-  }
-
-  .classroom-admin-members-toolbar__select {
-    min-width: 0;
-  }
-
-  .classroom-admin-members-toolbar__meta {
-    justify-content: space-between;
-    white-space: normal;
-  }
-
   .classroom-admin-section {
     padding: layout.$spacing-04 0;
-  }
-
-  .classroom-admin-announcement-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .classroom-admin-announcement-card__meta {
-    width: 100%;
-    flex-wrap: wrap;
   }
 }

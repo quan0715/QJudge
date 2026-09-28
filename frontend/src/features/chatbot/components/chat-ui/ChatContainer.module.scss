@@ -19,7 +19,7 @@
       rgba(69, 137, 255, 0.10) 0%,
       transparent 55%
     ),
-    var(--cds-background, #fff);
+    var(--cds-background);
 }
 
 :global([data-carbon-theme="g100"]) .full .main {
@@ -29,7 +29,7 @@
       rgba(69, 137, 255, 0.15) 0%,
       transparent 55%
     ),
-    var(--cds-background, #161616);
+    var(--cds-background);
 }
 
 // Sidebar mode: same gradient
@@ -40,7 +40,7 @@
       rgba(69, 137, 255, 0.10) 0%,
       transparent 55%
     ),
-    var(--cds-background, #fff);
+    var(--cds-background);
 }
 
 :global([data-carbon-theme="g100"]) .sidebar {
@@ -50,7 +50,7 @@
       rgba(69, 137, 255, 0.15) 0%,
       transparent 55%
     ),
-    var(--cds-background, #161616);
+    var(--cds-background);
 }
 
 .main {

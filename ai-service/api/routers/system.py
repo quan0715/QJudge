@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request
@@ -9,11 +10,12 @@ from fastapi.responses import JSONResponse
 
 from api.dependencies import (
     current_principal,
+    get_model_catalog,
     get_readiness_probe,
     get_usage_service,
 )
 from api.errors import ERROR_RESPONSES, ErrorDetail, ErrorEnvelope, request_id_for
-from api.schemas import LiveResponse, ModelsResponse, ReadyResponse, UsageResponse
+from api.schemas import LiveResponse, ModelInfo, ModelsResponse, ReadyResponse, UsageResponse
 from domain.models import Principal
 
 health_router = APIRouter(prefix="/health", tags=["health"])
@@ -54,10 +56,22 @@ async def ready(
 @system_router.get("/models", response_model=ModelsResponse)
 async def models(
     _principal: Annotated[Principal, Depends(current_principal)],
+    catalog: Annotated[Any, Depends(get_model_catalog)],
 ) -> ModelsResponse:
-    from domain.model_registry import MODEL_INFO
-
-    return ModelsResponse(models=MODEL_INFO)
+    available, default_id = await asyncio.to_thread(
+        lambda: (catalog.available(), catalog.default_id())
+    )
+    return ModelsResponse(
+        models=[
+            ModelInfo(
+                model_id=spec.id,
+                display_name=spec.display_name,
+                description=spec.description,
+                is_default=spec.id == default_id,
+            )
+            for spec in available
+        ]
+    )
 
 
 @system_router.get("/usage", response_model=UsageResponse)

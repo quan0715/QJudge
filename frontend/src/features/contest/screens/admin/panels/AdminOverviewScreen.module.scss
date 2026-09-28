@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .page {
   display: flex;
   flex-direction: column;
@@ -29,9 +30,7 @@
 .overviewHeaderTitle {
   margin: 0;
   color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-02-font-size, 1rem);
-  font-weight: var(--cds-heading-compact-02-font-weight, 600);
-  line-height: var(--cds-heading-compact-02-line-height, 1.375);
+  @include type.type-style("heading-compact-02");
 }
 
 .overviewHeaderActions {

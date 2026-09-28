@@ -53,7 +53,7 @@ export const NotFound: FC<NotFoundProps> = ({
               lineHeight: 1,
               marginBottom: "2rem",
               color: theme === "g100" ? "#6366f1" : "#0f62fe",
-              fontFamily: "var(--cds-code-font-family, monospace)",
+              fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: "-0.05em",
             }}
           >

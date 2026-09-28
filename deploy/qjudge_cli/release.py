@@ -28,6 +28,8 @@ MIGRATIONS = (
     ("backend", ("python", "manage.py", "migrate", "--noinput")),
     ("ai-service", ("sh", "-c", "python -m alembic upgrade head && python -m infrastructure.checkpoints.langgraph_store setup")),
 )
+# Validate with the new image before stopping the running application.
+MODEL_CONFIG_CHECK = ("ai-service", ("python", "-m", "infrastructure.agent.model_config"))
 JUDGE_IMAGE = "oj-judge:latest"
 JUDGE_REMOTE = "ghcr.io/quan0715/qjudge/judge:latest"
 KEEP_BACKUPS = 10
@@ -223,6 +225,9 @@ def upgrade(
         return abort("judge image unavailable")
     if stack.compose(version, "build").returncode != 0:
         return abort("build failed")
+    service, command = MODEL_CONFIG_CHECK
+    if stack.compose(version, "run", "--rm", "--no-deps", service, *command).returncode != 0:
+        return abort("deploy/ai/models.yml is invalid; services still run the previous version")
     if (stack.compose(version, "up", "-d", "postgres", "pgbouncer", "redis").returncode != 0
             or not stack.wait(lambda: stack.healthy(version, ("postgres",)), POSTGRES_TIMEOUT)):
         return abort("postgres is not healthy")

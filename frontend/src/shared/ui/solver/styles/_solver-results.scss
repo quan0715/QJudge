@@ -2,6 +2,7 @@
 // Test Results Panel styles - 保留獨特的狀態顏色、動畫
 // 整合 ResultsPanel.scss 和 TestResultPanel.scss
 @use "@carbon/layout";
+@use "@carbon/type";
 
 // ==============================================
 // Results Panel - Empty State
@@ -34,16 +35,13 @@
   }
 
   &__empty-title {
-    font-size: var(--cds-heading-compact-01-font-size);
-    font-weight: var(--cds-heading-compact-01-font-weight);
-    line-height: var(--cds-heading-compact-01-line-height);
+    @include type.type-style("heading-compact-01");
     color: var(--cds-text-primary);
     margin: 0;
   }
 
   &__empty-subtitle {
-    font-size: var(--cds-body-compact-01-font-size);
-    line-height: var(--cds-body-compact-01-line-height);
+    @include type.type-style("body-compact-01");
     color: var(--cds-text-secondary);
     text-align: center;
     margin: 0;
@@ -99,9 +97,7 @@
 
   // Title - 狀態顏色
   &__title {
-    font-size: var(--cds-heading-03-font-size);
-    line-height: var(--cds-heading-03-line-height);
-    font-weight: var(--cds-heading-03-font-weight);
+    @include type.type-style("heading-03");
     margin: 0;
 
     &[data-status="green"] {
@@ -119,9 +115,7 @@
   }
 
   &__subtitle {
-    font-size: var(--cds-label-01-font-size);
-    line-height: var(--cds-label-01-line-height);
-    font-weight: var(--cds-label-01-font-weight);
+    @include type.type-style("label-01");
     color: var(--cds-text-secondary);
   }
 
@@ -171,9 +165,7 @@
   }
 
   &__case-label {
-    font-size: var(--cds-body-compact-01-font-size);
-    line-height: var(--cds-body-compact-01-line-height);
-    font-weight: var(--cds-body-compact-01-font-weight);
+    @include type.type-style("body-compact-01");
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -186,7 +178,7 @@
   }
 
   &__empty-text {
-    font-size: var(--cds-body-compact-01-font-size);
+    font-size: 0.875rem;
     color: var(--cds-text-secondary);
     font-style: italic;
   }
@@ -203,9 +195,7 @@
   }
 
   &__section-title {
-    font-size: var(--cds-label-01-font-size);
-    line-height: var(--cds-label-01-line-height);
-    font-weight: var(--cds-label-01-font-weight);
+    @include type.type-style("label-01");
     color: var(--cds-text-secondary);
     text-transform: uppercase;
   }
@@ -218,15 +208,12 @@
     padding: layout.$spacing-04;
     color: var(--cds-text-primary);
     white-space: pre-wrap;
-    font-family: var(--cds-code-01-font-family);
-    font-size: var(--cds-code-01-font-size);
-    line-height: var(--cds-code-01-line-height);
+    @include type.type-style("code-01");
   }
 
   &__empty {
     color: var(--cds-text-secondary);
-    font-size: var(--cds-body-01-font-size);
-    line-height: var(--cds-body-01-line-height);
+    @include type.type-style("body-01");
   }
 
   // Hidden Test Cases State
@@ -244,15 +231,12 @@
   }
 
   &__hidden-text {
-    font-size: var(--cds-heading-compact-01-font-size);
-    line-height: var(--cds-heading-compact-01-line-height);
-    font-weight: var(--cds-heading-compact-01-font-weight);
+    @include type.type-style("heading-compact-01");
     color: var(--cds-text-primary);
   }
 
   &__hidden-subtext {
-    font-size: var(--cds-body-compact-01-font-size);
-    line-height: var(--cds-body-compact-01-line-height);
+    @include type.type-style("body-compact-01");
     color: var(--cds-text-secondary);
   }
 
@@ -266,9 +250,7 @@
   }
 
   &__editor-title {
-    font-size: var(--cds-heading-compact-01-font-size);
-    font-weight: var(--cds-heading-compact-01-font-weight);
-    line-height: var(--cds-heading-compact-01-line-height);
+    @include type.type-style("heading-compact-01");
     color: var(--cds-text-primary);
     margin: 0;
   }

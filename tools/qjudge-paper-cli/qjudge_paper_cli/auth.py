@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover - fallback for constrained environments
     user_config_dir = None
 
 
-DEFAULT_SCOPE = "qjudge.paper"
+DEFAULT_SCOPE = "mcp"
 TOKEN_EXPIRY_SKEW_SECONDS = 60
 
 

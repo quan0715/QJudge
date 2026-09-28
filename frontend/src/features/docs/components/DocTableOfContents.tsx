@@ -97,7 +97,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ content }) => {
               padding: "0.75rem 1rem",
               margin: 0,
               fontWeight: 600,
-              fontSize: "var(--cds-label-01-font-size)",
+              fontSize: "0.75rem",
               borderBottom: "1px solid var(--cds-border-subtle-01)",
             }}
           >

@@ -24,21 +24,10 @@
   line-height: 1.3;
 }
 
-.emptyNotice {
-  margin-top: layout.$spacing-05;
-  color: var(--cds-text-secondary);
-}
-
 .settingsStack {
   display: flex;
   flex-direction: column;
   gap: layout.$spacing-07;
-}
-
-.inlineOptions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: layout.$spacing-05;
 }
 
 .checkboxBlock {

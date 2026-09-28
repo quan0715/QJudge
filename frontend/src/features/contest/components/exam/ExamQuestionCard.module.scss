@@ -54,7 +54,7 @@
 
 .prompt {
   margin-bottom: layout.$spacing-06;
-  font-size: var(--cds-heading-compact-02-font-size, 1.125rem);
+  font-size: 1rem;
   line-height: 1.8;
   color: var(--cds-text-primary);
 
@@ -129,10 +129,6 @@
     resize: none;
     overflow: hidden;
   }
-}
-
-.shortInput {
-  width: 100%;
 }
 
 .headerRight {

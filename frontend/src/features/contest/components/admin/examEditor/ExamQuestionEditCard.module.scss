@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 
 // ─── Card wrapper ───
 .card {
@@ -54,7 +55,7 @@
 }
 
 .label {
-  font-size: var(--cds-heading-compact-02-font-size, 0.875rem);
+  font-size: 1rem;
   font-weight: 600;
   color: var(--cds-text-primary);
   display: flex;
@@ -88,7 +89,7 @@
   border: none;
   background: none;
   color: var(--cds-link-primary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   cursor: pointer;
   white-space: nowrap;
 
@@ -99,13 +100,13 @@
 }
 
 .score {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   color: var(--cds-text-helper);
 }
 
 .prompt {
   margin-bottom: layout.$spacing-06;
-  font-size: var(--cds-heading-compact-02-font-size, 1.125rem);
+  font-size: 1rem;
   line-height: 1.8;
   color: var(--cds-text-primary);
 
@@ -125,7 +126,7 @@
 }
 
 .promptEmpty {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   color: var(--cds-text-placeholder);
   margin-bottom: layout.$spacing-06;
   font-style: italic;
@@ -143,7 +144,7 @@
   color: var(--cds-text-helper);
   letter-spacing: 0.32px;
   text-transform: uppercase;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
 }
 
 .previewAnswers {
@@ -152,9 +153,8 @@
 }
 
 .answerText {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  @include type.type-style("body-compact-01");
   color: var(--cds-text-primary);
-  line-height: var(--cds-body-compact-01-line-height, 1.5);
   white-space: pre-wrap;
 }
 
@@ -195,14 +195,6 @@
   gap: layout.$spacing-04;
 }
 
-.textArea {
-  width: 100%;
-
-  textarea {
-    min-height: 80px;
-  }
-}
-
 // ─── Edit mode ───
 .editBody {
   padding: layout.$spacing-05;
@@ -231,7 +223,7 @@
 }
 
 .autoSaveHint {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }
 
@@ -276,7 +268,7 @@
 }
 
 .optionLetter {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--cds-text-secondary);
   min-width: 20px;

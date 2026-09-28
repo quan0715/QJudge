@@ -7,7 +7,7 @@
   overflow-y: auto;
   height: 100%;
   min-width: 0;
-  background: var(--cds-layer-background-02, var(--cds-layer-02));
+  background: var(--cds-layer-background-02);
   border-right: 1px solid var(--cds-border-subtle);
 }
 
@@ -102,7 +102,7 @@
   padding: 0.625rem layout.$spacing-04;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 0;
-  background: var(--cds-layer-background-01, var(--cds-layer-01));
+  background: var(--cds-layer-background-01);
   cursor: pointer;
   font-size: 0.875rem;
   font-family: inherit;

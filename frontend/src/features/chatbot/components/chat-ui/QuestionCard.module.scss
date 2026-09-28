@@ -10,8 +10,8 @@
 .card {
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid var(--cds-border-subtle, #e0e0e0);
-  background: var(--cds-layer-01, #f4f4f4);
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-01);
 }
 
 // ── Header ──────────────────────────────────────
@@ -20,13 +20,13 @@
   align-items: center;
   gap: layout.$spacing-03;
   padding: layout.$spacing-04 layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle, #e0e0e0);
-  background: var(--cds-layer-02, #ffffff);
+  border-bottom: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer-02);
 }
 
 .headerIcon {
   font-size: 1rem;
-  color: var(--cds-icon-interactive, #4589ff);
+  color: var(--cds-icon-interactive);
 }
 
 .headerLabel {
@@ -34,7 +34,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--cds-text-secondary, #525252);
+  color: var(--cds-text-secondary);
 }
 
 // ── Question body ────────────────────────────────
@@ -45,7 +45,7 @@
 .questionText {
   font-size: 0.9375rem;
   line-height: 1.5;
-  color: var(--cds-text-primary, #161616);
+  color: var(--cds-text-primary);
   margin-bottom: 0.875rem;
 }
 
@@ -66,10 +66,6 @@
   overflow-wrap: anywhere;
 }
 
-.optionBtnSelected {
-  composes: optionBtn;
-}
-
 // ── Text input ───────────────────────────────────
 .textInputWrapper {
   margin-bottom: layout.$spacing-03;
@@ -78,7 +74,7 @@
 // ── Footer ────────────────────────────────────────
 .footer {
   display: flex;
-  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
+  border-top: 1px solid var(--cds-border-subtle);
 }
 
 .footerBtn {
@@ -91,11 +87,4 @@
   & + & {
     margin-inline-start: 0;
   }
-}
-
-.loadingFooter {
-  display: flex;
-  justify-content: center;
-  padding: 0.875rem layout.$spacing-05;
-  border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
 }

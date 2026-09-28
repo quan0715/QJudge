@@ -15,10 +15,6 @@
   }
 }
 
-.tabPanel {
-  padding: 0;
-}
-
 .tabContent {
   display: grid;
   gap: layout.$spacing-05;
@@ -60,60 +56,8 @@
   height: 11.25rem;
 }
 
-
-
-
-.warningIcon {
-  color: var(--cds-support-warning);
-}
-
-.successIcon {
-  color: var(--cds-support-success);
-}
-
-.recordMeta,
 .emptyText {
   color: var(--cds-text-secondary);
-}
-
-.recordMeta {
-  margin-top: layout.$spacing-02;
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-}
-
-.recordTitle {
-  color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-02-font-size, 1rem);
-  font-weight: 600;
-  line-height: var(--cds-body-compact-02-line-height, 1.375);
-}
-
-.recordScore {
-  color: var(--cds-text-primary);
-  font-family: var(--cds-code-font-family, monospace);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.problemReportList {
-  display: grid;
-  gap: layout.$spacing-04;
-}
-
-.problemReportItem {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: layout.$spacing-05;
-  align-items: center;
-  padding: layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle);
-}
-
-.problemReportMeta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: layout.$spacing-04;
 }
 
 .questionList {
@@ -152,19 +96,6 @@
 @media (max-width: 672px) {
   .tabContent {
     padding: layout.$spacing-05;
-  }
-
-  .problemReportItem {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .problemReportMeta {
-    justify-content: flex-start;
-  }
-
-  .recordScore {
-    white-space: normal;
   }
 
 }

@@ -16,7 +16,7 @@
 }
 
 .noAnswer {
-  color: var(--cds-text-helper, #8d8d8d);
+  color: var(--cds-text-helper);
   font-style: italic;
 }
 
@@ -35,7 +35,7 @@
   padding: 0.4375rem layout.$spacing-04;
   border-radius: 4px;
   border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-field, var(--cds-layer-01));
+  background: var(--cds-field);
   font-size: 0.8125rem;
   line-height: 1.4;
 }

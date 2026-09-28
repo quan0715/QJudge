@@ -9,8 +9,8 @@ from langchain_core.messages import AnyMessage
 from langgraph.errors import GraphRecursionError
 
 from infrastructure.agent.model_factory import ModelFactory
+from infrastructure.agent.model_catalog import process_model_catalog
 
-_DEFAULT_RECURSION_SUMMARY_MODEL_ID = "openai-nano"
 _DEFAULT_RECURSION_TAIL_MESSAGES = 12
 
 
@@ -20,7 +20,7 @@ class RecursionFailureHandler:
     def __init__(
         self,
         *,
-        summary_model_id: str = _DEFAULT_RECURSION_SUMMARY_MODEL_ID,
+        summary_model_id: str | None = None,
         tail_messages: int = _DEFAULT_RECURSION_TAIL_MESSAGES,
         model_factory: Callable[[str], Any] | None = None,
     ) -> None:
@@ -101,7 +101,10 @@ class RecursionFailureHandler:
         if len(transcript) > 6000:
             transcript = transcript[-6000:]
 
-        summary_model = self._model_factory(self._summary_model_id)
+        model_id = self._summary_model_id or process_model_catalog().default_id()
+        if model_id is None:
+            return self.fallback_recursion_summary()
+        summary_model = self._model_factory(model_id)
         summary_prompt = self.build_recursion_summary_prompt(transcript)
         response = await summary_model.ainvoke(summary_prompt)
         content = getattr(response, "content", "")

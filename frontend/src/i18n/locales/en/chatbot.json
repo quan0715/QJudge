@@ -5,6 +5,9 @@
     "title": "Approval Required"
   },
   "errors": {
+    "aiModelConfigInvalid": "AI model settings are invalid, so AI features are unavailable. Please ask the site administrator to check the AI model settings.",
+    "aiModelNotAvailable": "The selected model is currently unavailable. The model list has been refreshed; choose another model and send again.",
+    "aiNoModelsConfigured": "No AI models are configured for this site. Please contact the site administrator.",
     "aiServiceUnavailable": "Sorry, AI service is temporarily unavailable. Please try again later.",
     "apiKeyRequired": "AI service is not configured yet. Please contact an administrator.",
     "cancelActionFailed": "Failed to cancel action",

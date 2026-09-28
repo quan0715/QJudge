@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loading } from "@carbon/react";
+import { InlineNotification, Loading } from "@carbon/react";
 import { Document, List, Pause, Renew, Return } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
@@ -11,7 +11,6 @@ import GradingCardViewOnly from "./grading/GradingCardViewOnly";
 import type { GradingAnswerRow } from "./grading";
 import ExamQuestionEditCard from "@/features/contest/components/admin/examEditor/ExamQuestionEditCard";
 import {
-  AI_GRADING_DEFAULT_MODEL_ID,
   AI_GRADING_TASK_TYPE,
   buildDefaultGradingPrompt,
   useAiQuestionGrading,
@@ -37,9 +36,9 @@ import {
   RetryGradingModal,
 } from "./grading/components/GradingModals";
 import { selectEffectiveGradingRun } from "./copilotGradingSelectors";
+import { MODEL_NOTICE_I18N_KEY, modelAvailabilityNotice } from "@/shared/ai/modelAvailabilityNotice";
 import styles from "./ContestAiGradingScreen.module.scss";
 
-const EXCLUDED_MODEL_IDS = new Set(["openai-nano"]);
 const AI_GRADING_QUESTION_PARAM = "ai_grading_question";
 const ACTIVE_GRADING_RUN_STATUSES = new Set([
   "queued",
@@ -64,6 +63,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   useRequestCopilot();
   const { t } = useTranslation("contest");
+  const { t: tChatbot } = useTranslation("chatbot");
   const { contest } = useContest();
   const selectedQuestionId = searchParams.get(AI_GRADING_QUESTION_PARAM);
   const {
@@ -76,6 +76,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const {
     resultsByAnswerId,
     error,
+    runErrorCode,
     sessionId,
     trackedQuestionId,
     start,
@@ -95,7 +96,11 @@ const ContestAiGradingScreen: React.FC = () => {
     select: selectSession,
     refresh: refreshSessions,
   } = useCopilotSessions();
-  const { models, select: selectModel } = useCopilotModels();
+  const { models, status: modelStatus, error: modelError, select: selectModel, refresh: refreshModels } = useCopilotModels();
+  const modelNotice = modelAvailabilityNotice({ status: modelStatus, models, error: modelError, runErrorCode });
+  useEffect(() => {
+    if (runErrorCode === "MODEL_NOT_AVAILABLE") void refreshModels();
+  }, [refreshModels, runErrorCode]);
   const { state: runState } = useCopilotRun();
   const isLoadingSessions = sessionListStatus === "loading";
   const currentSession =
@@ -106,7 +111,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const { right } = useWorkspace();
 
   const [promptDraft, setPromptDraft] = useState("");
-  const [modelId, setModelId] = useState<string>(AI_GRADING_DEFAULT_MODEL_ID);
+  const [modelId, setModelId] = useState<string>("");
   const [selectedAnswerIds, setSelectedAnswerIds] = useState<Set<string>>(new Set());
   const [submittingAnswerIds, setSubmittingAnswerIds] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
@@ -132,11 +137,10 @@ const ContestAiGradingScreen: React.FC = () => {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Filter down to models the grading task supports.
+  // The deployment catalog is the grading model list.
   const gradingModels = useMemo(
     () =>
       models
-        .filter((model) => !EXCLUDED_MODEL_IDS.has(model.id))
         .map((model) => ({
           model_id: model.id,
           display_name: model.displayName,
@@ -146,11 +150,13 @@ const ContestAiGradingScreen: React.FC = () => {
     [models],
   );
 
-  // Ensure model state defaults to the first supported grading model once available.
+  // Use the deployment default when the selected model is no longer available.
   useEffect(() => {
     if (gradingModels.length === 0) return;
     setModelId((prev) =>
-      gradingModels.some((m) => m.model_id === prev) ? prev : gradingModels[0].model_id,
+      gradingModels.some((m) => m.model_id === prev)
+        ? prev
+        : (gradingModels.find((m) => m.is_default) ?? gradingModels[0]).model_id,
     );
   }, [gradingModels]);
 
@@ -257,7 +263,7 @@ const ContestAiGradingScreen: React.FC = () => {
   }, []);
 
   const handleStartAiGrading = useCallback(async () => {
-    if (!contest?.id || !selectedQuestion || rows.length === 0) return;
+    if (!contest?.id || !selectedQuestion || rows.length === 0 || !modelId || modelNotice?.blocking) return;
     setStartingAiGrading(true);
     const effectivePrompt = promptDraft.trim() || defaultPrompt;
     const sessionTitle = `${t("grading.taskTypeLabel", "AI 批改")} · Q${selectedQuestion.questionIndex}`;
@@ -284,6 +290,7 @@ const ContestAiGradingScreen: React.FC = () => {
     contest?.id,
     defaultPrompt,
     modelId,
+    modelNotice?.blocking,
     promptDraft,
     refreshSessions,
     selectSession,
@@ -320,7 +327,7 @@ const ContestAiGradingScreen: React.FC = () => {
   }, [currentSession?.id, preparingSessionId]);
 
   const handlePrimaryAction = useCallback(() => {
-    if (sessionRunning || startingAiGrading) return; // button is disabled; belt-and-braces
+    if (sessionRunning || startingAiGrading || !modelId || modelNotice?.blocking) return;
     if (sessionId) {
       // 已有匹配的 session → 先問要沿用舊 session 還是開新 session
       if (rows.length === 0) return;
@@ -328,7 +335,7 @@ const ContestAiGradingScreen: React.FC = () => {
       return;
     }
     void handleStartAiGrading();
-  }, [handleStartAiGrading, rows, sessionId, sessionRunning, startingAiGrading]);
+  }, [handleStartAiGrading, modelId, modelNotice?.blocking, rows, sessionId, sessionRunning, startingAiGrading]);
 
   const handleRegradeReuseSession = useCallback(() => {
     if (rows.length === 0) return;
@@ -452,7 +459,7 @@ const ContestAiGradingScreen: React.FC = () => {
 
   const handleConfirmRetry = useCallback(
     async () => {
-      if (!contest?.id || !selectedQuestion || !sessionId || retryModalRows.length === 0) return;
+      if (!contest?.id || !selectedQuestion || !sessionId || retryModalRows.length === 0 || !modelId || modelNotice?.blocking) return;
       setActionError(null);
       const started = await retryAnswers(contest.id, selectedQuestion.questionId, retryModalRows, {
         modelId,
@@ -471,6 +478,7 @@ const ContestAiGradingScreen: React.FC = () => {
       closeRetryModal,
       contest?.id,
       modelId,
+      modelNotice?.blocking,
       refreshSessions,
       selectSession,
       retryAnswers,
@@ -935,6 +943,14 @@ const ContestAiGradingScreen: React.FC = () => {
 
   return (
     <div className={styles.shellRoot}>
+      {modelNotice && (
+        <InlineNotification
+          kind="warning"
+          lowContrast
+          hideCloseButton
+          title={tChatbot(MODEL_NOTICE_I18N_KEY[modelNotice.kind])}
+        />
+      )}
       <AITaskShell
         status={effectiveTaskStatus}
         running={sessionRunning}
@@ -993,7 +1009,7 @@ const ContestAiGradingScreen: React.FC = () => {
               ? t("grading.primaryRetry", "重新批改")
               : t("grading.primaryStart", "開始批改"),
           onClick: handlePrimaryAction,
-          disabled: startingAiGrading || sessionRunning || rows.length === 0,
+          disabled: startingAiGrading || sessionRunning || rows.length === 0 || !modelId || Boolean(modelNotice?.blocking),
           pending: startingAiGrading,
           kind: "primary",
           renderIcon: sessionRunning ? Pause : sessionId ? Renew : Return,

@@ -5,6 +5,9 @@
     "title": "需要確認操作"
   },
   "errors": {
+    "aiModelConfigInvalid": "AI 模型設定有誤，AI 功能暫時無法使用。請聯絡站台管理員檢查 AI 模型設定。",
+    "aiModelNotAvailable": "所選模型目前無法使用，模型清單已重新整理，請改選其他模型後再送出。",
+    "aiNoModelsConfigured": "此站台尚未設定 AI 模型，請聯絡站台管理員。",
     "aiServiceUnavailable": "抱歉，AI 服務暫時無法使用，請稍後再試。",
     "apiKeyRequired": "AI 服務尚未設定完成，請聯絡管理員。",
     "cancelActionFailed": "取消操作失敗",

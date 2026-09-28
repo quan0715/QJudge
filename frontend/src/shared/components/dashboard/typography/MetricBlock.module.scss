@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .root {
   display: grid;
   gap: layout.$spacing-02;
@@ -13,9 +14,8 @@
 .label {
   margin: 0;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  @include type.type-style("label-01");
   font-weight: 400;
-  line-height: var(--cds-label-01-line-height, 1.33333);
 }
 
 .value {
@@ -28,11 +28,9 @@
 }
 
 .valueDefault {
-  font-size: var(--cds-heading-compact-02-font-size, 1rem);
-  line-height: var(--cds-heading-compact-02-line-height, 1.375);
+  @include type.type-style("heading-compact-02");
 }
 
 .valueLg {
-  font-size: var(--cds-heading-03-font-size, 1.25rem);
-  line-height: var(--cds-heading-03-line-height, 1.4);
+  @include type.type-style("heading-03");
 }

@@ -1,23 +1,5 @@
 @use "@carbon/layout";
 
-.editorLayout {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.workTreePane {
-  flex: 0 0 22rem;
-  min-width: 18rem;
-  max-width: 24rem;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--cds-background);
-  border-right: 1px solid var(--cds-border-subtle);
-}
-
 // ─── Right pane overrides (passed via contentClassName) ───
 .editorPane {
   flex: 1 1 auto;
@@ -34,15 +16,6 @@
   overscroll-behavior: none;
 }
 
-// ─── Reorder group fills content area ───
-.reorderGroup {
-  width: 100%;
-  max-width: 720px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .editorEmptyState {
   min-height: 100%;
   width: 100%;
@@ -54,23 +27,6 @@
 }
 
 @media (max-width: 1056px) {
-  .editorLayout {
-    flex-direction: column;
-  }
-
-  .workTreePane {
-    flex: 0 0 auto;
-    min-width: 0;
-    max-width: none;
-    max-height: 18rem;
-    border-right: none;
-    border-bottom: 1px solid var(--cds-border-subtle);
-  }
-}
-
-.cardItem {
-  width: 100%;
-  max-width: 720px;
 }
 
 .groupBlock {
@@ -92,14 +48,6 @@
 
 .groupChild {
   background: var(--cds-layer);
-}
-
-.addQuestionRow {
-  width: 100%;
-  max-width: 720px;
-  display: flex;
-  justify-content: center;
-  padding-top: layout.$spacing-05;
 }
 
 // ─── Type picker dialog ───
@@ -146,69 +94,14 @@
 }
 
 .typePickerLabel {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--cds-text-primary);
 }
 
 .typePickerDesc {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
-}
-
-// ─── Insert divider between cards ───
-.divider {
-  width: 100%;
-  max-width: 720px;
-  height: 1px;
-  background: var(--cds-border-subtle-00);
-  margin: layout.$spacing-03 0;
-}
-
-.dividerHover {
-  width: 100%;
-  max-width: 720px;
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  padding: layout.$spacing-02 0;
-  opacity: 0;
-  transition: opacity 0.15s;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-.dividerLine {
-  flex: 1;
-  height: 1px;
-  background: var(--cds-border-interactive);
-}
-
-.dividerBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--cds-border-interactive);
-  border-radius: 50%;
-  background: var(--cds-background);
-  color: var(--cds-icon-interactive);
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0;
-  font: inherit;
-
-  &:hover {
-    background: var(--cds-layer-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cds-focus);
-    outline-offset: 2px;
-  }
 }
 
 .toolbarStatusGroup {
@@ -219,7 +112,7 @@
 }
 
 .lockedHint {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   white-space: nowrap;
 }
@@ -230,28 +123,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.dropSlotIdle {
-  width: 100%;
-  max-width: 720px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.dropSlot {
-  width: 100%;
-  max-width: 720px;
-  height: 22px;
-  flex-shrink: 0;
-  border: 1px dashed transparent;
-  border-radius: 6px;
-  transition: border-color 0.12s ease, background-color 0.12s ease;
-}
-
-.dropSlotActive {
-  border-color: var(--cds-border-interactive);
-  background: color-mix(in srgb, var(--cds-support-info) 14%, transparent);
 }
 
 @media (max-width: 900px) {

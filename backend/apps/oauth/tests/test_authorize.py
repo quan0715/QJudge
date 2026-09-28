@@ -151,8 +151,8 @@ class ApproveAuthorizationTest(TestCase):
         self.assertIn("redirect_uri", data)
         self.assertIn("code=", data["redirect_uri"])
 
-    def test_approve_accepts_qjudge_paper_scope(self):
-        response = self.api_client.post(
+    def _approve_with_scope(self, scope):
+        return self.api_client.post(
             "/api/oauth/approve/",
             data={
                 "client_id": "test-client-id-2",
@@ -160,13 +160,21 @@ class ApproveAuthorizationTest(TestCase):
                 "response_type": "code",
                 "code_challenge": self.challenge,
                 "code_challenge_method": "S256",
-                "scope": "qjudge.paper",
+                "scope": scope,
             },
             format="json",
         )
+
+    def test_approve_normalizes_scope_whitespace(self):
+        response = self._approve_with_scope(" mcp ")
         self.assertEqual(response.status_code, 200)
         grant = Grant.objects.get(application=self.app, user=self.user)
-        self.assertEqual(grant.scope, "qjudge.paper")
+        self.assertEqual(grant.scope, "mcp")
+
+    def test_approve_rejects_any_scope_besides_mcp(self):
+        response = self._approve_with_scope("mcp qjudge.paper")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "invalid_scope")
 
     def test_approve_requires_authentication(self):
         # Use default client (not authenticated)
