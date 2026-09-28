@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { InlineNotification, Loading } from "@carbon/react";
+import { Callout, Loading } from "@carbon/react";
 import { Document, List, Pause, Renew, Return } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import type { ExamQuestion } from "@/core/entities/contest.entity";
@@ -944,11 +944,12 @@ const ContestAiGradingScreen: React.FC = () => {
   return (
     <div className={styles.shellRoot}>
       {modelNotice && (
-        <InlineNotification
+        <Callout
           kind="warning"
           lowContrast
-          hideCloseButton
           title={tChatbot(MODEL_NOTICE_I18N_KEY[modelNotice.kind])}
+          actionButtonLabel={modelNotice.blocking ? tChatbot("ui.retry") : undefined}
+          onActionButtonClick={modelNotice.blocking ? () => void refreshModels() : undefined}
         />
       )}
       <AITaskShell

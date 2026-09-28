@@ -28,10 +28,13 @@ URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
 def check_env(env: Env) -> list[str]:
     """Return one message per problem; an empty list means the env is valid."""
     errors: list[str] = []
-    # Old releases still read these on rollback. The new Compose file does not
-    # pass them to AI containers; operators remove them after that window ends.
-    for name in sorted(set(env) - set(KEYS_BY_NAME) - MOVED_AI_KEYS):
-        errors.append(f"{name}: unknown key; see deploy/.env.example for supported keys")
+    for name in sorted(set(env) - set(KEYS_BY_NAME)):
+        if name in MOVED_AI_KEYS:
+            errors.append(
+                f"{name}: moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
+            )
+        else:
+            errors.append(f"{name}: unknown key; see deploy/.env.example for supported keys")
     for key in KEYS:
         value = env.get(key.name, "").strip()
         if not value:

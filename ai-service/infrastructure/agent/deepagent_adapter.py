@@ -47,7 +47,7 @@ from infrastructure.agent.model_factory import (
     ModelFactory,
     SUMMARIZATION_TRIGGER_FRACTION,
 )
-from infrastructure.agent.model_catalog import process_model_catalog
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from infrastructure.agent.approval_policy import WRITE_ACTIONS
 from infrastructure.agent.checkpoint_recovery_manager import CheckpointRecoveryManager
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
@@ -382,28 +382,28 @@ class _DeepAgentRuntime:
         """
         if self._checkpointer is None:
             raise RuntimeError("Checkpointer not initialized")
-        model_id = process_model_catalog().default_id()
-        if model_id is None:
+        try:
+            model = await asyncio.to_thread(ModelFactory.create_model)
+        except (ModelConfigInvalid, ModelNotAvailable):
             logger.warning("Skipping checkpoint repair for %s: no AI model is available", thread_id)
             return False
-        agent = self._build_agent(model_id=model_id, system_prompt=None, tools=[])
+        agent = self._build_agent(model=model, system_prompt=None, tools=[])
         config = {"configurable": {"thread_id": thread_id}}
         return await self._repair_dangling_tool_calls(agent, config)
 
     def _build_agent(
         self,
-        model_id: str,
+        model: Any,
         system_prompt: str | None,
         tools: list[Any],
         event_queue: asyncio.Queue | None = None,
     ):
-        """Build a DeepAgent with tools.
+        """Build a DeepAgent with tools around an already-built chat model.
 
         create_deep_agent already injects the standard DeepAgents stack
         (TodoList, Skills, Filesystem, Summarization, etc.). Only append
         custom middleware that is not already included.
         """
-        model = ModelFactory.create_model(model_id=model_id)
         prompt = system_prompt or _DEFAULT_SYSTEM_PROMPT
         skills = [p for p in self._skills_paths if p]
         memory = [p for p in self._memory_paths if p]
@@ -490,8 +490,10 @@ class _DeepAgentRuntime:
             raise ValueError(f"Unsupported agent operation: {command.operation}")
 
         event_queue: asyncio.Queue = asyncio.Queue()
+        # Resolving the model may probe a self-hosted endpoint; keep it off the loop.
+        model = await asyncio.to_thread(ModelFactory.create_model, command.model_id)
         agent = self._build_agent(
-            model_id=command.model_id,
+            model=model,
             system_prompt=None,
             tools=[*tools, build_ask_user_tool(), build_suggest_next_actions_tool()],
             event_queue=event_queue,

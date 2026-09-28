@@ -24,7 +24,8 @@ description: Use when implementing or reviewing QJudge frontend components, Carb
 ## 核心規則
 - 禁止新增或依賴 `.cds--*` / `.bx--*` internal selector；只使用 Carbon public API、app-owned class 與 token。
 - 禁止 `!important`。
-- React SCSS 禁止不帶 fallback 的 `var(--cds-<type-token>-font-size)` 等字型 runtime variable（Carbon React 不輸出，整條宣告會被丟掉）；使用 `@carbon/type` 的 `type.type-style()`。
+- React SCSS 禁止 `var(--cds-<type-token>-font-size)` 等字型 runtime variable（Carbon React 不輸出，整條宣告會被丟掉）；使用 `@carbon/type` 的 `type.type-style()`。
+- `var(--cds-*)` 不加 fallback；只使用 Carbon React 實際輸出的 token。
 - React SCSS 禁止 `var(--cds-spacing-*)`：Carbon React 不會輸出這組 runtime custom properties，瀏覽器會直接丟棄整條 spacing declaration。使用 `@use "@carbon/layout";` 與 `layout.$spacing-*`；plain CSS 則使用 canonical rem value 或遷移成 SCSS。
 - Layout 優先 Carbon `Grid` / `Column` 與 2x Grid 節奏。
 - 避免同一內容出現多餘的父子捲軸；split pane、編輯器與長列表可各自捲動，重點是內容可達與焦點不被裁切。

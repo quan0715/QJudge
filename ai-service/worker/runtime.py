@@ -14,6 +14,7 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from domain.models import Principal, Run, RunKind, RunStatus, Usage
 from domain.ports import (
     CredentialLease,
@@ -139,6 +140,8 @@ def _run_from_row(row: RunRow) -> Run:
 def _safe_message(error: Exception) -> str:
     if isinstance(error, McpReadinessError):
         return "MCP is unavailable for this run"
+    if isinstance(error, (ModelConfigInvalid, ModelNotAvailable)):
+        return "The selected AI model is not available"
     return "AI workflow execution failed"
 
 
@@ -696,7 +699,7 @@ class WorkerRuntime:
                 if event.get("type") in _TERMINAL_EVENTS:
                     terminalized = True
                     return
-        except McpReadinessError as error:
+        except (McpReadinessError, ModelConfigInvalid, ModelNotAvailable) as error:
             terminalized = await self._runs.append_event(
                 run_id,
                 claim.execution_epoch,

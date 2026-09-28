@@ -81,6 +81,17 @@ test("all-scope gate rejects runtime Carbon type variables", (t) => {
   assert.match(result.stdout, /invalid-carbon-type-variable/);
 });
 
+test("all-scope gate rejects token fallbacks and tokens Carbon does not emit", (t) => {
+  const result = runFixture(t, {
+    "Fallback.module.scss": `.root { color: var(--cds-text-primary, #161616); }`,
+    "Legacy.tsx": `export const legacy = { background: "var(--cds-ui-02)" };`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /carbon-variable-fallback/);
+  assert.match(result.stdout, /unknown-carbon-token/);
+  assert.doesNotMatch(result.stdout, /--cds-text-primary\b.*unknown-carbon-token/);
+});
+
 test("staged gate reads the index instead of a clean working-tree version", (t) => {
   const result = runStagedFixture(
     t,
@@ -136,6 +147,16 @@ test("staged gate rejects type variables and accepts the type-style mixin", (t) 
     ".root { line-height: var(--cds-label-01-line-height); }",
   );
   assert.equal(clean.status, 0, clean.stderr || clean.stdout);
+});
+
+test("staged gate rejects token fallbacks", (t) => {
+  const blocked = runStagedFixture(
+    t,
+    ".root { color: var(--cds-text-primary, #161616); }",
+    ".root { color: var(--cds-text-primary); }",
+  );
+  assert.equal(blocked.status, 1);
+  assert.match(blocked.stderr, /remove the var\(\) fallback/);
 });
 
 test("help documents staged and all scopes", () => {

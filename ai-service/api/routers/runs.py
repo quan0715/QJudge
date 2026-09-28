@@ -28,6 +28,7 @@ from api.schemas import (
     RunResponse,
     StartRunRequest,
 )
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from domain.models import Principal, Run, RunStatus, StreamEvent
 
 router = APIRouter(prefix="/v1", tags=["runs"], responses=ERROR_RESPONSES)
@@ -127,7 +128,17 @@ async def start_run(
         Header(alias="Idempotency-Key", min_length=1, max_length=255),
     ],
 ) -> RunResponse:
-    model = await asyncio.to_thread(catalog.resolve, body.model_id)
+    try:
+        model = await asyncio.to_thread(catalog.resolve, body.model_id)
+    except (ModelConfigInvalid, ModelNotAvailable):
+        # A retry of an already accepted request gets its run back even if
+        # the model has since become unavailable.
+        existing = await service.find_by_idempotency_key(
+            principal, session_id, idempotency_key
+        )
+        if existing is None:
+            raise
+        return RunResponse.from_domain(existing)
     run = await service.start(
         principal,
         session_id,

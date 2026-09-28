@@ -37,7 +37,7 @@ description: Use when auditing or enforcing QJudge naming, architecture, Carbon 
 
 ## Carbon audit contract
 
-- `blocker`：`.cds--*` / `.bx--*` internal selector、`!important`、Carbon React 不會輸出的 `var(--cds-spacing-*)` 與不帶 fallback 的字型 token（如 `var(--cds-label-01-font-size)`）runtime variable。
+- `blocker`：`.cds--*` / `.bx--*` internal selector、`!important`、Carbon React 不會輸出的 `--cds-*` 變數（含 `--cds-spacing-*`、字型 token 與 v10 舊名稱，`--all` 以編譯出的 `@carbon/react` token 清單比對），以及任何帶 fallback 的 `var(--cds-*, …)`。
 - `review`：hard-coded theme/spacing/type、raw controls、accessible labels、notification variant、scroll owner 等需結合 UI context 判斷的候選。
 - `policy-reviewed`：已由 `references/carbon-audit-decisions.json` 以精確檔案、元件類型、理由、owner 與移除條件完成審查；新路徑或新控制類型不會自動繼承決策。
 - `exception-review`：測試 fixture、`shared/copilot` boundary、editor/media 等合理但仍需人工驗證的例外。
