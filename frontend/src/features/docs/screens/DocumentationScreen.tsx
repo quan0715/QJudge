@@ -8,7 +8,6 @@ import DocSidebar from "../components/DocSidebar";
 import DocTableOfContents from "../components/DocTableOfContents";
 import DocFeedback from "../components/DocFeedback";
 import QuickLinkCards from "../components/QuickLinkCards";
-import { BrandLockup } from "@/shared/brand/BrandLockup";
 import { useTheme } from "@/shared/ui/theme/ThemeContext";
 import { ThemeSwitch, LanguageSwitch, type ThemeValue } from "@/shared/ui/config";
 import styles from "./DocumentationScreen.module.scss";
@@ -119,8 +118,14 @@ const DocumentationScreen: React.FC = () => {
     });
   };
 
-  // Get current document title
-  const currentTitle = currentSlug ? t(`nav.items.${currentSlug}`) : "";
+  // A leading "# Title" in the Markdown is the article title; show it once, in the header.
+  const leadingTitle = content.match(/^\s*#\s+(.+)\n*/);
+  const currentTitle =
+    leadingTitle?.[1].trim() || (currentSlug ? t(`nav.items.${currentSlug}`) : "");
+  const body = leadingTitle ? content.slice(leadingTitle[0].length) : content;
+  const currentSection = config?.sections.find((section) =>
+    section.items.includes(currentSlug),
+  );
 
   const handleThemeChange = (value: ThemeValue) => {
     setPreference(value);
@@ -134,16 +139,6 @@ const DocumentationScreen: React.FC = () => {
     <div className={styles.container}>
       {/* Left Sidebar - Navigation */}
       <aside className={styles.leftSidebar}>
-        {/* Product Title */}
-        <div className={styles.sidebarHeader}>
-          <p className={styles.eyebrow}>
-            {t("nav.productLabel", "使用說明")}
-          </p>
-          <h2 className={styles.sidebarTitle}>
-            <BrandLockup size={22} />
-          </h2>
-        </div>
-
         {/* Sidebar Navigation */}
         <div className={styles.sidebarContent}>
           {config ? (
@@ -194,44 +189,35 @@ const DocumentationScreen: React.FC = () => {
       <div className={styles.mainArea}>
         {/* Header Title Area */}
         <header className={styles.pageHeader}>
-          {/* Back Button */}
-          <IconButton
-            kind="ghost"
-            size="sm"
-            label={t("nav.back", "返回")}
-            onClick={() => navigate(-1)}
-            style={{ marginBottom: "1rem", marginLeft: "-0.5rem" }}
-          >
-            <ArrowLeft />
-          </IconButton>
+          <div className={styles.pageNav}>
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={t("nav.back", "返回")}
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft />
+            </IconButton>
+            {currentSection && (
+              <span className={styles.pageSection}>
+                {t(`nav.sections.${currentSection.id}`)}
+              </span>
+            )}
+          </div>
 
-          {/* Page Title */}
-          {!loading && !error && (
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                <h1 className={styles.pageTitle}>
-                  {currentTitle}
-                </h1>
-              </div>
-              {lastUpdated && (
-                <p className={styles.pageMeta}>
-                  {t("nav.lastUpdated", "前次更新")} {formatDate(lastUpdated)}
-                </p>
-              )}
-            </div>
-          )}
-
-          {loading && (
-            <div>
-              <SkeletonText heading width="40%" />
-            </div>
+          {loading ? (
+            <SkeletonText heading width="40%" />
+          ) : (
+            !error && (
+              <>
+                <h1 className={styles.pageTitle}>{currentTitle}</h1>
+                {lastUpdated && (
+                  <p className={styles.pageMeta}>
+                    {t("nav.lastUpdated", "前次更新")} {formatDate(lastUpdated)}
+                  </p>
+                )}
+              </>
+            )
           )}
         </header>
 
@@ -267,7 +253,7 @@ const DocumentationScreen: React.FC = () => {
                   enableMermaid
                   allowRawHtml
                 >
-                  {content}
+                  {body}
                 </MarkdownRenderer>
 
                 {/* Feedback section */}

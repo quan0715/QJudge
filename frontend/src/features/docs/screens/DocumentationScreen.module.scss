@@ -1,34 +1,30 @@
 @use "@carbon/layout";
+@use "@carbon/react/scss/type";
 // DocumentationScreen responsive styles
 
-.eyebrow,
+.pageNav {
+  display: flex;
+  align-items: center;
+  gap: layout.$spacing-03;
+  margin: 0 0 layout.$spacing-05 (-(layout.$spacing-03));
+}
+
+.pageSection,
 .pageMeta {
+  @include type.type-style("label-01");
   margin: 0;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size);
-  line-height: var(--cds-label-01-line-height);
-}
-
-.eyebrow {
-  margin-bottom: layout.$spacing-02;
-}
-
-.sidebarTitle {
-  margin: 0;
-  font-size: var(--cds-heading-03-font-size);
-  line-height: var(--cds-heading-03-line-height);
 }
 
 .pageTitle {
-  margin: 0;
-  font-size: var(--cds-heading-05-font-size);
-  line-height: var(--cds-heading-05-line-height);
+  @include type.type-style("heading-05");
+  margin: 0 0 layout.$spacing-03;
+  color: var(--cds-text-primary);
 }
 
 .errorText {
+  @include type.type-style("body-02");
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-02-font-size);
-  line-height: var(--cds-body-02-line-height);
 }
 
 .container {
@@ -47,11 +43,6 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-}
-
-.sidebarHeader {
-  padding: layout.$spacing-06 layout.$spacing-05 layout.$spacing-03 layout.$spacing-05;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
 }
 
 .sidebarContent {
@@ -190,6 +181,10 @@
 
   .pageHeader {
     padding: layout.$spacing-05;
+  }
+
+  .pageTitle {
+    @include type.type-style("heading-04");
   }
 
   .mainContent {
