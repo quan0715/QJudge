@@ -11,7 +11,7 @@ usage() {
   printf '%s\n' \
     'Usage: check-carbon-style.sh [--staged | --all] [--root <path>] [--format text|json|markdown]' \
     '' \
-    '  --staged         Block Carbon internals, !important, and invalid spacing or type variables (default).' \
+    '  --staged         Block Carbon internals, !important, invalid spacing or type variables, and token fallbacks (default).' \
     '  --all            Audit the complete root and fail on blocking findings.' \
     '  --root <path>    Source root for --all (default: frontend/src).' \
     '  --format <type>  Output format for --all (default: text).' \
@@ -84,6 +84,12 @@ for file in "${TARGET_FILES[@]}"; do
   if MATCHES=$(git show ":${file}" | grep -En 'var\([[:space:]]*--cds-[a-z0-9-]+-(font-size|font-weight|line-height|letter-spacing|font-family)[[:space:]]*\)'); then
     printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
     printf '%s\n' 'Blocked: Carbon React does not emit type token runtime variables; use the @carbon/type type-style mixin.' >&2
+    FAILED=1
+  fi
+
+  if MATCHES=$(git show ":${file}" | grep -En 'var\([[:space:]]*--cds-[a-z0-9-]+[[:space:]]*,'); then
+    printf '%s\n' "$MATCHES" | sed "s#^#${file}:#"
+    printf '%s\n' 'Blocked: Carbon theme tokens are always defined; remove the var() fallback.' >&2
     FAILED=1
   fi
 done

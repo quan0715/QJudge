@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Theme } from "@carbon/react";
+import { Theme, usePrefix } from "@carbon/react";
 
 type ThemeType = "white" | "g100" | "g90" | "g10";
 type ThemePreference = "light" | "dark" | "system";
@@ -54,11 +54,12 @@ const getInitialPreference = (): ThemePreference => {
   return "system";
 };
 
+const THEMES: ThemeType[] = ["white", "g10", "g90", "g100"];
+
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [preference, setPreferenceState] = useState<ThemePreference>(getInitialPreference);
   const [theme, setThemeState] = useState<ThemeType>(() => preferenceToTheme(getInitialPreference()));
-  const carbonThemeRef = useRef<HTMLDivElement>(null);
-  const carbonTokenNames = useRef<string[]>([]);
+  const prefix = usePrefix();
 
   // Single system theme listener — only active when preference === "system"
   useEffect(() => {
@@ -76,29 +77,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [preference]);
 
   // Sync data-carbon-theme + root background + theme-color (iOS Safari / Android Chrome).
-  // Copy Carbon's emitted theme tokens to <html> so body-level portals can use them.
+  // Carbon's zone class on <html> defines the theme tokens for html, body and
+  // anything portaled outside the <Theme> subtree.
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-carbon-theme", theme);
-    const carbonThemeStyle = carbonThemeRef.current && window.getComputedStyle(carbonThemeRef.current);
-    for (const tokenName of carbonTokenNames.current) {
-      root.style.removeProperty(tokenName);
-    }
-    const nextCarbonTokenNames: string[] = [];
-    if (carbonThemeStyle) {
-      for (let index = 0; index < carbonThemeStyle.length; index += 1) {
-        const tokenName = carbonThemeStyle.item(index);
-        if (!tokenName.startsWith("--cds-")) continue;
-        root.style.setProperty(tokenName, carbonThemeStyle.getPropertyValue(tokenName));
-        nextCarbonTokenNames.push(tokenName);
-      }
-    }
-    carbonTokenNames.current = nextCarbonTokenNames;
+    root.classList.remove(...THEMES.map((zone) => `${prefix}--${zone}`));
+    root.classList.add(`${prefix}--${theme}`);
     const bg = themeChromeColor(theme);
     root.style.backgroundColor = bg;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", bg);
-  }, [theme]);
+  }, [prefix, theme]);
 
   const setPreference = useCallback((pref: ThemePreference) => {
     setPreferenceState(pref);
@@ -111,7 +101,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ThemeContext.Provider value={{ theme, preference, setPreference }}>
-      <Theme theme={theme} ref={carbonThemeRef}>
+      <Theme theme={theme}>
         {children}
         <div id="modal-portal-root" />
       </Theme>
