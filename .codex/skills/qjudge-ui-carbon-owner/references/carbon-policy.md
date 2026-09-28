@@ -15,9 +15,9 @@ Use `frontend/package-lock.json` for the installed version, then inspect that ve
 ## Theme and tokens
 
 - Keep app-level `<Theme theme="white|g10|g90|g100">` and `data-carbon-theme` aligned.
-- Use Carbon color, spacing, typography, layer, border, and focus tokens. A numeric fallback inside a documented runtime color/theme token is acceptable only when runtime support requires it.
+- Use Carbon color, spacing, typography, layer, border, and focus tokens. Do not add a fallback to `var(--cds-*)`: the active Carbon zone class is on `<html>`, so every emitted token is defined everywhere, and a fallback only hides a misspelled or retired token (for example the v10 `--cds-ui-02`).
 - Carbon React does **not** emit `--cds-spacing-*` runtime custom properties. A fallback does not make this pattern acceptable: it hides a missing token contract and diverges from the Sass API used by Carbon React.
-- Type tokens such as `--cds-heading-05-font-size` or `--cds-code-01-font-family` are not emitted either; without a fallback the declaration is dropped. Use `@use "@carbon/type";` with `@include type.type-style("<token>");`, or the canonical value when only one property is needed.
+- Type tokens such as `--cds-heading-05-font-size` or `--cds-code-01-font-family` are not emitted either, so the declaration is dropped. Use `@use "@carbon/type";` with `@include type.type-style("<token>");`, or the canonical value when only one property is needed.
 - Hard-coded colors are limited to media overlays, syntax highlighting, editors, charts, and imported brand artwork; document why a semantic Carbon token cannot represent the value.
 - Preserve Carbon focus, hover, active, disabled, and high-contrast states. Do not paint over them with custom skins.
 

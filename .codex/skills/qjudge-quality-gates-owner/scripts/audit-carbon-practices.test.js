@@ -38,7 +38,7 @@ test("audits every supported source file and records clean files", (t) => {
       color: var(--cds-text-primary);
       margin: 0;
       gap: layout.$spacing-03;
-      font-size: var(--cds-body-01-font-size, 0.875rem);
+      @include type.type-style("body-01");
     }`,
     "notes.md": "not a source file",
   });

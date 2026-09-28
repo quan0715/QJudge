@@ -43,6 +43,19 @@ try {
 } catch {
   // The regex fallback still runs when frontend dependencies are not installed.
 }
+// Every --cds-* custom property Carbon React emits; null skips the token-name check.
+let carbonTokens = null;
+try {
+  const frontend = path.resolve(__dirname, "../../../../frontend");
+  const sass = require(require.resolve("sass", { paths: [frontend] }));
+  const css = sass.compileString('@use "@carbon/react";', {
+    loadPaths: [path.join(frontend, "node_modules")],
+    logger: sass.Logger.silent,
+  }).css;
+  carbonTokens = new Set([...css.matchAll(/(--cds-[a-z0-9-]+)\s*:/g)].map((match) => match[1]));
+} catch {
+  // Unknown-token checks need the frontend's sass and @carbon/react.
+}
 
 if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
   console.error(`Carbon audit root does not exist: ${root}`);
@@ -160,6 +173,33 @@ function addFinding(file, source, offset, rule, severity, message, evidence = ""
         }
       : {}),
   });
+}
+
+function auditCarbonVariables(file, source, cleanSource) {
+  for (const match of cleanSource.matchAll(/var\(\s*(--cds-[a-z0-9-]+)\s*(,)?/gi)) {
+    if (match[2]) {
+      addFinding(
+        file,
+        source,
+        match.index,
+        "carbon-variable-fallback",
+        "error",
+        "Carbon theme tokens are always defined; a fallback only hides a missing or misspelled token.",
+        match[0],
+      );
+    }
+    if (carbonTokens && !carbonTokens.has(match[1]) && !declaredTokens.has(match[1])) {
+      addFinding(
+        file,
+        source,
+        match.index,
+        "unknown-carbon-token",
+        "error",
+        "Carbon React does not emit this token, so the declaration is dropped; use a current Carbon token.",
+        match[0],
+      );
+    }
+  }
 }
 
 function auditStyle(file, source, cleanSource) {
@@ -549,10 +589,17 @@ function auditCode(file, source, cleanSource) {
 
 const inventoryFiles = walk(root).sort();
 const sourceFiles = inventoryFiles.filter((file) => supportedExtensions.has(path.extname(file)));
+// Tokens the application defines itself, such as Carbon Charts overrides.
+const declaredTokens = new Set(
+  sourceFiles.flatMap((file) =>
+    [...fs.readFileSync(file, "utf8").matchAll(/(--cds-[a-z0-9-]+)\s*:/g)].map((match) => match[1]),
+  ),
+);
 for (const file of sourceFiles) {
   const extension = path.extname(file);
   const source = fs.readFileSync(file, "utf8");
   const cleanSource = stripComments(source, extension);
+  auditCarbonVariables(file, source, cleanSource);
   if (styleExtensions.has(extension)) {
     auditStyle(file, source, cleanSource);
   } else {
