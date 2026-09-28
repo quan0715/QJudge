@@ -3,13 +3,14 @@
 # OPENAI_API_KEY, DEEPSEEK_API_KEY or LAB_VLLM_API_KEY for endpoint lab-vllm.
 # Restart ai-service and ai-worker after editing.
 #
-# default: gpt-5-nano            # optional; first available model otherwise
+# default: deepseek-flash         # optional; first available model otherwise
 #
 # models:
 #   - id: gpt-5-nano              # built-in provider: openai or deepseek
 #     provider: openai
-#   - id: deepseek-v4-flash
+#   - id: deepseek-flash
 #     provider: deepseek
+#     display_name: DeepSeek V4.1 Flash
 #     reasoning_effort: high      # low | medium | high
 #     max_input_tokens: 1000000   # required when LangChain has no profile
 #   - id: gemma4-31b              # self-hosted OpenAI-compatible endpoint

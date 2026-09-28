@@ -139,7 +139,7 @@ class FakeSessionService:
 class FakeRunService:
     def __init__(self) -> None:
         self.run = Run(
-            RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-v4-flash"
+            RUN_ID, SESSION_ID, RunStatus.QUEUED, RunKind.CHAT, "deepseek-flash"
         )
         self.start_token = None
         self.approval_calls = 0
@@ -175,7 +175,7 @@ class FakeEventReader:
         if run_id != RUN_ID:
             raise RunNotFound(run_id)
         return Run(
-            RUN_ID, SESSION_ID, RunStatus.COMPLETED, RunKind.CHAT, "deepseek-v4-flash", 0
+            RUN_ID, SESSION_ID, RunStatus.COMPLETED, RunKind.CHAT, "deepseek-flash", 0
         )
 
     async def list_after(self, principal, run_id, after):
@@ -236,11 +236,11 @@ def make_catalog() -> ModelCatalog:
     env = {"OPENAI_API_KEY": "k", "DEEPSEEK_API_KEY": "k"}
     config = parse_model_config(
         {
-            "default": "deepseek-v4-flash",
+            "default": "deepseek-flash",
             "models": [
                 {"id": "openai-nano", "provider": "openai", "model": "gpt-5-nano",
                  "display_name": "gpt-5-nano", "max_input_tokens": 400_000},
-                {"id": "deepseek-v4-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
+                {"id": "deepseek-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
             ],
         },
         env,
@@ -281,7 +281,7 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
     started = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
         headers={"Idempotency-Key": "browser-message-1"},
-        json={"message": "hello", "model_id": "deepseek-v4-flash"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
     )
     assert started.status_code == 202
     assert started.json()["run_id"] == str(RUN_ID)
@@ -289,7 +289,7 @@ def test_canonical_routes_validate_and_use_bearer_subject_token() -> None:
 
     missing_key = client.post(
         f"/v1/sessions/{SESSION_ID}/runs",
-        json={"message": "hello", "model_id": "deepseek-v4-flash"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
     )
     assert missing_key.status_code == 422
     assert missing_key.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -391,7 +391,7 @@ def test_session_update_requires_a_title_or_context() -> None:
 
 @pytest.mark.parametrize(
     "model_id",
-    ["invented-model", "deepseek-v4", "deepseek-v4-thinking"],
+    ["invented-model", "deepseek-v4", "deepseek-v4-thinking", "deepseek-v4-flash", "deepseek-v4-pro"],
 )
 def test_invalid_model_is_rejected_before_command_service(model_id: str) -> None:
     client, runs = make_client()
@@ -451,7 +451,7 @@ def test_usage_and_models_never_expose_price_cost_or_credit() -> None:
     assert models.status_code == 200
     assert models.json()["models"] == [
         {"model_id": "openai-nano", "display_name": "gpt-5-nano", "description": "", "is_default": False},
-        {"model_id": "deepseek-v4-flash", "display_name": "deepseek-v4-flash", "description": "", "is_default": True},
+        {"model_id": "deepseek-flash", "display_name": "deepseek-flash", "description": "", "is_default": True},
     ]
     forbidden = {"price", "pricing", "cost", "credits", "entitlement"}
     assert all(forbidden.isdisjoint(model) for model in models.json()["models"])
@@ -613,7 +613,7 @@ def test_start_run_accepts_null_model_id_and_uses_default() -> None:
         json={"message": "hello", "model_id": None},
     )
     assert created.status_code == 202
-    assert created.json()["model_id"] == "deepseek-v4-flash"
+    assert created.json()["model_id"] == "deepseek-flash"
 
 
 def test_start_run_rejects_unavailable_model() -> None:

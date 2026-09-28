@@ -33,8 +33,7 @@ def test_exam2_diverse_preset_uses_three_distinct_question_shapes():
         "8bd69984-3cd8-48b1-9da3-4c040620959e",
     ]
     assert DEFAULT_EXPERIMENT_MODELS == [
-        "deepseek-v4-flash",
-        "deepseek-v4-pro",
+        "deepseek-flash",
     ]
 
 
@@ -194,7 +193,7 @@ def test_run_grading_experiment_writes_incremental_summary(
         classroom_id="classroom-1",
         contest_id="contest-1",
         question_ids=["question-list"],
-        model_ids=["deepseek-v4-flash", "deepseek-v4-pro"],
+        model_ids=["model-a", "model-b"],
         output_root=tmp_path,
         user_id="user-1",
         preset="exam2-diverse",
@@ -203,8 +202,8 @@ def test_run_grading_experiment_writes_incremental_summary(
     )
 
     assert calls == [
-        ("question-list", "deepseek-v4-flash"),
-        ("question-list", "deepseek-v4-pro"),
+        ("question-list", "model-a"),
+        ("question-list", "model-b"),
     ]
     assert result["summary_csv"].exists()
     summary = json.loads(result["summary_json"].read_text())

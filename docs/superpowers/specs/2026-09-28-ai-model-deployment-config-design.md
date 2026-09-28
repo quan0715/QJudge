@@ -49,13 +49,14 @@ AI 部署檔集中在 `deploy/ai/`，整個目錄以唯讀掛載到 `ai-service`
 ### `deploy/ai/models.yml`
 
 ```yaml
-default: deepseek-v4-flash      # 選填，未填取第一個可用模型
+default: deepseek-flash         # 選填，未填取第一個可用模型
 
 models:
   - id: gpt-5-nano
     provider: openai
-  - id: deepseek-v4-flash
+  - id: deepseek-flash
     provider: deepseek
+    display_name: DeepSeek V4.1 Flash
     reasoning_effort: high
     max_input_tokens: 1000000
   - id: gemma4-31b
@@ -206,10 +207,10 @@ AI 助教輸入框與 AI 批改畫面依模型目錄狀態顯示 Carbon `InlineN
 
 ## 7. 現有部署轉換
 
-dcslab 沿用現有 ID，歷史紀錄不需改寫。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
+dcslab 的 OpenAI 與自架模型沿用現有 ID；DeepSeek 改用 `deepseek-flash`。歷史紀錄保留原本的模型 ID。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
 
 ```yaml
-default: openai-nano
+default: deepseek-flash
 
 models:
   - id: openai-nano
@@ -237,14 +238,9 @@ models:
     description: OpenAI 推理模型，中等思考強度，適合複雜批改與推理
     reasoning_effort: medium
     max_input_tokens: 272000
-  - id: deepseek-v4-flash
+  - id: deepseek-flash
     provider: deepseek
-    description: DeepSeek V4 Flash，1M context，thinking enabled，適合大量批改與日常推理
-    reasoning_effort: high
-    max_input_tokens: 1000000
-  - id: deepseek-v4-pro
-    provider: deepseek
-    description: DeepSeek V4 Pro，1M context，thinking enabled，適合高品質批改與複雜推理
+    description: DeepSeek V4.1 Flash，1M context，thinking enabled，適合大量批改與日常推理
     reasoning_effort: high
     max_input_tokens: 1000000
 

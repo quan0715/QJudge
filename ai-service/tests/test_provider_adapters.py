@@ -83,7 +83,7 @@ def test_openai_compatible_without_key_sends_empty_placeholder():
 def test_deepseek_reasoning_enables_thinking_with_preserving_client():
     model = provider_adapters.build_chat_model(
         _endpoint("deepseek", "deepseek"),
-        _spec(provider="deepseek", model="deepseek-v4-flash", reasoning_effort="high"),
+        _spec(provider="deepseek", model="deepseek-flash", reasoning_effort="high"),
         "key",
     )
     assert isinstance(model, _ReasoningClient)
@@ -94,7 +94,7 @@ def test_deepseek_reasoning_enables_thinking_with_preserving_client():
 def test_deepseek_without_reasoning_disables_thinking():
     model = provider_adapters.build_chat_model(
         _endpoint("deepseek", "deepseek", "https://ds.test"),
-        _spec(provider="deepseek", model="deepseek-v4-flash"),
+        _spec(provider="deepseek", model="deepseek-flash"),
         "key",
     )
     assert type(model) is _Client

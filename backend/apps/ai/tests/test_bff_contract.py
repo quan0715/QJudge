@@ -98,7 +98,7 @@ def _run_payload(status: str = "queued") -> dict[str, object]:
         "session_id": SESSION_ID,
         "status": status,
         "kind": "chat",
-        "model_id": "deepseek-v4-flash",
+        "model_id": "deepseek-flash",
         "last_sequence": 0,
         "cancel_requested": False,
         "error_code": None,
@@ -117,7 +117,7 @@ def test_create_run_maps_path_token_body_and_idempotency(
 
     response = api_client.post(
         f"/api/v1/ai/sessions/{SESSION_ID}/runs/",
-        {"content": "hello", "model_id": "deepseek-v4-flash"},
+        {"content": "hello", "model_id": "deepseek-flash"},
         format="json",
         HTTP_IDEMPOTENCY_KEY="message-1",
         HTTP_X_REQUEST_ID="request-1",
@@ -134,7 +134,7 @@ def test_create_run_maps_path_token_body_and_idempotency(
     assert upstream.headers["traceparent"].startswith("00-aaaa")
     assert json.loads(upstream.content) == {
         "message": "hello",
-        "model_id": "deepseek-v4-flash",
+        "model_id": "deepseek-flash",
     }
     assert response.status_code == 202
     assert response.json()["id"] == RUN_ID

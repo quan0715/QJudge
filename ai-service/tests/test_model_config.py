@@ -115,10 +115,10 @@ def test_self_hosted_key_is_optional():
 
 
 def test_builtin_model_without_known_limit_needs_max_input_tokens():
-    problems = problems_of({"models": [{"id": "deepseek-v4-flash", "provider": "deepseek"}]})
+    problems = problems_of({"models": [{"id": "deepseek-flash", "provider": "deepseek"}]})
     assert problems == (
-        "models[0] (deepseek-v4-flash).max_input_tokens: required; "
-        "LangChain has no context limit for deepseek-v4-flash",
+        "models[0] (deepseek-flash).max_input_tokens: required; "
+        "LangChain has no context limit for deepseek-flash",
     )
 
 

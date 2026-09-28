@@ -39,7 +39,7 @@ from .grading import run_question_grading
 
 
 DEFAULT_BACKEND_URL = os.environ.get("QJUDGE_BACKEND_URL", "http://localhost:8000")
-DEFAULT_MODEL_ID = "deepseek-v4-flash"
+DEFAULT_MODEL_ID = "deepseek-flash"
 
 console = Console()
 app = typer.Typer(help="QJudge Paper CLI", pretty_exceptions_show_locals=False)
