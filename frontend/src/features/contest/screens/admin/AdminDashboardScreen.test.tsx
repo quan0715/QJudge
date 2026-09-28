@@ -19,6 +19,10 @@ const mockContest = {
   currentUserRole: "co_owner",
   boundClassroomId: "classroom-1",
 };
+let mockContestState: { contest: typeof mockContest | null; loading: boolean } = {
+  contest: mockContest,
+  loading: false,
+};
 
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
@@ -30,8 +34,7 @@ vi.mock("@/features/contest/contexts", () => ({
   ContestAdminProvider: ({ children }: { children: ReactNode }) => children,
   AdminPanelRefreshProvider: ({ children }: { children: ReactNode }) => children,
   useContest: () => ({
-    contest: mockContest,
-    loading: false,
+    ...mockContestState,
     refreshContest: mockRefreshContest,
   }),
   useContestAdmin: () => ({
@@ -48,7 +51,11 @@ vi.mock("@/features/contest/modules/registry", () => ({
   getContestTypeModule: () => ({
     admin: {
       editorKind: "coding",
-      getAvailablePanels: () => ["overview", "problem_editor", "participants", "logs"],
+      // Like the real modules, a type-specific panel is only valid once the contest is known.
+      getAvailablePanels: (contest: unknown) =>
+        contest
+          ? ["overview", "problem_editor", "participants", "logs", "grading"]
+          : ["overview", "problem_editor"],
     },
   }),
 }));
@@ -103,6 +110,7 @@ describe("AdminDashboardScreen", () => {
     mockRefreshAllAdminData.mockReset();
     mockRefreshAdminData.mockReset();
     mockPanelMount.mockReset();
+    mockContestState = { contest: mockContest, loading: false };
   });
 
   it("does not render the legacy workspace toolbar", () => {
@@ -160,5 +168,34 @@ describe("AdminDashboardScreen", () => {
     await waitFor(() => {
       expect(screen.getByTestId("location-search").textContent ?? "").not.toContain("panel=settings");
     });
+  });
+
+  it("keeps a type-specific ?panel deep link while the contest is still loading", async () => {
+    mockContestState = { contest: null, loading: true };
+    const renderRoute = () => (
+      <MemoryRouter initialEntries={["/classrooms/classroom-1/contest/contest-1/admin?panel=grading"]}>
+        <Routes>
+          <Route
+            path="/classrooms/:classroomId/contest/:contestId/admin"
+            element={(
+              <>
+                <AdminDashboardScreen />
+                <LocationProbe />
+              </>
+            )}
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+    const view = render(renderRoute());
+    expect(mockPanelMount).not.toHaveBeenCalled();
+
+    mockContestState = { contest: mockContest, loading: false };
+    view.rerender(renderRoute());
+
+    await waitFor(() => {
+      expect(mockPanelMount).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByTestId("location-search")).toHaveTextContent("panel=grading");
   });
 });

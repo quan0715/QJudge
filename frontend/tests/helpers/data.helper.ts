@@ -174,8 +174,6 @@ export const API_ENDPOINTS = {
   contests: {
     list: "/api/v1/contests/",
     detail: (id: string | number) => `/api/v1/contests/${id}/`,
-    join: (id: string | number) => `/api/v1/contests/${id}/join/`,
-    register: (id: string | number) => `/api/v1/contests/${id}/register/`,
     examStart: (id: string | number) => `/api/v1/contests/${id}/exam/start/`,
     examEnd: (id: string | number) => `/api/v1/contests/${id}/exam/end/`,
   },

@@ -61,7 +61,7 @@ test.describe("Classroom settings E2E", () => {
     const classroomId = page.url().match(/\/classrooms\/([^/?#]+)/)?.[1];
     expect(classroomId).toBeTruthy();
 
-    await page.getByTestId("classroom-open-settings").click();
+    await page.getByRole("tab", { name: "教室設定", exact: true }).click();
     await expect(page.getByTestId("classroom-settings-name")).toBeVisible({ timeout: 15000 });
 
     const iconPatch = page.waitForResponse(

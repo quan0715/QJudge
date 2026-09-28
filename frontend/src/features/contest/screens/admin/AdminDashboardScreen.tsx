@@ -64,11 +64,8 @@ const AdminPanelSlot = ({
 };
 
 const AdminDashboardInner = () => {
-  const { t } = useTranslation("common");
   const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-
   const { contest, loading } = useContest();
   const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const hasManagementRole = isContestManagerScopeRole(contest?.currentUserRole);
@@ -88,6 +85,29 @@ const AdminDashboardInner = () => {
       navigate(fallbackPath, { replace: true });
     }
   }, [loading, contest, canAccessAdminPanel, contestId, effectiveClassroomId, navigate]);
+
+  if (loading && !contest) {
+    return (
+      <div className={styles.loadingState}>
+        <Loading
+          withOverlay={false}
+          description="載入競賽管理資料"
+        />
+      </div>
+    );
+  }
+
+  // Panels mount only once the contest is known: the valid `panel` values depend on
+  // its type, and resolving them earlier would drop a deep link such as ?panel=grading.
+  return <AdminDashboardPanels />;
+};
+
+const AdminDashboardPanels = () => {
+  const { t } = useTranslation("common");
+  const { contestId, classroomId } = useParams<{ contestId: string; classroomId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { contest } = useContest();
+  const effectiveClassroomId = classroomId || contest?.boundClassroomId || undefined;
   const contestModule = useMemo(
     () => getContestTypeModule(contest?.contestType),
     [contest?.contestType],
@@ -143,17 +163,6 @@ const AdminDashboardInner = () => {
       : `/dashboard`;
     window.open(previewPath, "_blank");
   };
-
-  if (loading && !contest) {
-    return (
-      <div className={styles.loadingState}>
-        <Loading
-          withOverlay={false}
-          description="載入競賽管理資料"
-        />
-      </div>
-    );
-  }
 
   return (
     <div className={styles.page}>
