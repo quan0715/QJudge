@@ -258,7 +258,7 @@ class SessionViewSet(viewsets.ViewSet):
             path=f"/v1/sessions/{pk}/runs",
             json_body={
                 "message": serializer.validated_data["content"],
-                "model_id": serializer.validated_data["model_id"],
+                "model_id": serializer.validated_data.get("model_id"),
             },
             mapper=run_to_legacy,
         )

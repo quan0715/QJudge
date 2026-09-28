@@ -141,6 +141,23 @@ def test_create_run_maps_path_token_body_and_idempotency(
     assert response.json()["last_event_seq"] == 0
 
 
+def test_create_run_without_model_forwards_null(api_client, teacher, ai_transport) -> None:
+    ai_transport.respond_json(202, _run_payload())
+    api_client.force_authenticate(teacher)
+
+    response = api_client.post(
+        f"/api/v1/ai/sessions/{SESSION_ID}/runs/",
+        {"content": "hello"},
+        format="json",
+    )
+
+    assert response.status_code == 202
+    assert json.loads(ai_transport.requests[0].content) == {
+        "message": "hello",
+        "model_id": None,
+    }
+
+
 def test_task_manifest_context_is_forwarded_without_django_state(
     api_client, teacher, ai_transport
 ) -> None:
