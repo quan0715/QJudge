@@ -33,7 +33,7 @@ endpoints:
 
 ## Validate and apply
 
-After `qjudge init`, edit the catalog and keys on the target host. `deploy/qjudge check` flags AI keys left in `deploy/.env` and points to the new files. `deploy/qjudge upgrade <ref>` builds the new image and validates model configuration before starting the database or backing it up; an invalid file aborts while the previous services keep running.
+After `qjudge init`, edit the catalog and keys on the target host. `deploy/qjudge upgrade <ref>` builds the new image and validates model configuration before starting the database or backing it up; an invalid file aborts while the previous services keep running.
 
 To validate an already built image on the host, set `QJUDGE_VERSION` to its deployed image tag (for example `sha-<12-character-commit-prefix>`):
 
@@ -55,4 +55,4 @@ Check AI service logs and the authenticated model list afterward. Verify a real 
 
 ## Move an existing installation
 
-Copy each configured provider key from `deploy/.env` into `deploy/ai/keys.env`; move any `OPENAI_BASE_URL` or `DEEPSEEK_BASE_URL` to `endpoints.openai.base_url` or `endpoints.deepseek.base_url`. Convert `VLLM_BASE_URL` to a named self-hosted endpoint and set the corresponding model's `provider`. Keep existing model IDs if historical runs should show familiar names. Remove the six old AI keys from `deploy/.env` after the new files are ready. The concrete dcslab catalog and rationale are in [the design spec](../superpowers/specs/2026-09-28-ai-model-deployment-config-design.md#7-現有部署轉換).
+Copy each configured provider key from `deploy/.env` into `deploy/ai/keys.env`; move any `OPENAI_BASE_URL` or `DEEPSEEK_BASE_URL` to `endpoints.openai.base_url` or `endpoints.deepseek.base_url`. Convert `VLLM_BASE_URL` to a named self-hosted endpoint and set the corresponding model's `provider`. Keep existing model IDs if historical runs should show familiar names. **Keep the six old AI entries in `deploy/.env` while rollback can restore a release that reads them.** The new Compose file does not pass them into AI containers. After the rollback target is also a catalog-based release, remove the old entries from `deploy/.env`. The concrete dcslab catalog and rationale are in [the design spec](../superpowers/specs/2026-09-28-ai-model-deployment-config-design.md#7-現有部署轉換).

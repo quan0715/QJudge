@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import chatbotRepository from "@/infrastructure/api/repositories/chatbot.repository";
+import { aiErrorCode } from "@/shared/ai/modelAvailabilityNotice";
 import {
   fetchArtifactContent,
   listArtifacts,
@@ -22,6 +23,7 @@ interface AiState {
   rubricMarkdown?: string;
   hasGradeArtifact?: boolean;
   error?: string;
+  runErrorCode?: string;
   sessionId?: string;
   trackedQuestionId?: string;
 }
@@ -414,6 +416,7 @@ export function useAiQuestionGrading() {
       rubricMarkdown: undefined,
       hasGradeArtifact: true, // grade.csv 由下方 seed 寫入
       error: undefined,
+      runErrorCode: undefined,
       trackedQuestionId: questionId,
     });
     primeRows(rows);
@@ -441,6 +444,7 @@ export function useAiQuestionGrading() {
       setState((prev) => ({
         ...prev,
         error: error instanceof Error ? error.message : "AI 批改啟動失敗",
+        runErrorCode: aiErrorCode(error),
       }));
       return null;
     } finally {
@@ -485,6 +489,7 @@ export function useAiQuestionGrading() {
           ...prev,
           byAnswerId: nextByAnswerId,
           error: undefined,
+          runErrorCode: undefined,
           sessionId,
           trackedQuestionId: questionId,
         };
@@ -504,6 +509,7 @@ export function useAiQuestionGrading() {
       setState((prev) => ({
         ...prev,
         error: error instanceof Error ? error.message : "AI 重新批改啟動失敗",
+        runErrorCode: aiErrorCode(error),
       }));
       return false;
     } finally {
@@ -657,6 +663,7 @@ export function useAiQuestionGrading() {
       rubricMarkdown: state.rubricMarkdown,
       hasGradeArtifact: state.hasGradeArtifact,
       error: state.error,
+      runErrorCode: state.runErrorCode,
       sessionId: state.sessionId,
       trackedQuestionId: state.trackedQuestionId,
       start,
@@ -673,6 +680,7 @@ export function useAiQuestionGrading() {
       state.rubricMarkdown,
       state.hasGradeArtifact,
       state.error,
+      state.runErrorCode,
       state.sessionId,
       state.trackedQuestionId,
       start,

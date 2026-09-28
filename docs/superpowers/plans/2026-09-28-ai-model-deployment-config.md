@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-28-ai-model-deployment-config-design.md`
 
+**Implementation review correction:** Task 7 originally required `qjudge check` to reject legacy AI entries in `deploy/.env`. The release manager can still roll back to a Compose version that reads those entries, so the implemented check permits them during that rollback window. The new Compose file does not pass them to AI containers; remove them once the rollback target also uses `deploy/ai/`. The operator guide and design spec contain the safe migration order.
+
 ## Global Constraints
 
 - 在 feature branch 上實作（依 `qjudge-github-workflow-owner`），不要直接 commit 到 `dev`。

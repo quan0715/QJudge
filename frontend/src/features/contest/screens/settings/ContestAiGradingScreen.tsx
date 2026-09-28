@@ -76,6 +76,7 @@ const ContestAiGradingScreen: React.FC = () => {
   const {
     resultsByAnswerId,
     error,
+    runErrorCode,
     sessionId,
     trackedQuestionId,
     start,
@@ -95,8 +96,11 @@ const ContestAiGradingScreen: React.FC = () => {
     select: selectSession,
     refresh: refreshSessions,
   } = useCopilotSessions();
-  const { models, status: modelStatus, error: modelError, select: selectModel } = useCopilotModels();
-  const modelNotice = modelAvailabilityNotice({ status: modelStatus, models, error: modelError });
+  const { models, status: modelStatus, error: modelError, select: selectModel, refresh: refreshModels } = useCopilotModels();
+  const modelNotice = modelAvailabilityNotice({ status: modelStatus, models, error: modelError, runErrorCode });
+  useEffect(() => {
+    if (runErrorCode === "MODEL_NOT_AVAILABLE") void refreshModels();
+  }, [refreshModels, runErrorCode]);
   const { state: runState } = useCopilotRun();
   const isLoadingSessions = sessionListStatus === "loading";
   const currentSession =

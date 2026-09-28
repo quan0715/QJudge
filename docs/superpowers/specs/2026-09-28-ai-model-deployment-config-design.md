@@ -113,7 +113,7 @@ LAB_VLLM_API_KEY=...        # vLLM 未開 --api-key 時可省略
 | 內建（`openai`、`deepseek`） | 設定錯誤 |
 | 自架 endpoint | 允許，送出 `EMPTY` |
 
-`deploy/.env`、`qjudge_cli/schema.py` 與 `deploy/compose.yml` 移除 `OPENAI_*`、`DEEPSEEK_*`、`VLLM_*` 六個 key。
+`qjudge_cli/schema.py` 與新版本的 `deploy/compose.yml` 移除 `OPENAI_*`、`DEEPSEEK_*`、`VLLM_*` 六個 key。`deploy/.env` 在可能回滾到舊版時暫時保留這六項；新版本不會將它們傳給 AI 容器。回滾目標也升級為目錄式設定後再刪除，避免回滾時舊版 AI service 失去憑證。
 
 ## 3. 內建 adapter
 
@@ -256,10 +256,10 @@ endpoints:
 步驟：
 
 1. 建立 `deploy/ai/models.yml`（如上）與 `deploy/ai/keys.env`，把 `.env` 中的 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`VLLM_API_KEY` 搬過去。
-2. 刪除 `.env` 的六個 AI key；若原本設了 `OPENAI_BASE_URL` 或 `DEEPSEEK_BASE_URL`，改寫成 `endpoints.openai.base_url` 或 `endpoints.deepseek.base_url`。
+2. 若原本設了 `OPENAI_BASE_URL` 或 `DEEPSEEK_BASE_URL`，另寫入 `endpoints.openai.base_url` 或 `endpoints.deepseek.base_url`。暫留 `.env` 的六個 AI key 供舊版回滾使用。
 3. 執行 `qjudge upgrade`；模型設定有誤時會在停機前中止。
 
-`qjudge check` 對仍留在 `.env` 的舊 key 回報錯誤，並提示搬到 `deploy/ai/`。
+`qjudge check` 在回滾窗口容許 `.env` 的舊 key；新版本只從 `deploy/ai/` 讀取設定。確認回滾目標也已使用目錄式設定後，移除 `.env` 的舊 key。
 
 dev 使用同一份 `deploy/ai/`；缺檔時 AI 功能顯示設定錯誤訊息，其他服務照常。CI E2E 掛載 `ci/ai/`，指向 fake adapter。
 

@@ -31,6 +31,7 @@ export function modelAvailabilityNotice(input: {
   models: readonly CopilotModel[];
   error: CopilotError | null;
   runError?: CopilotError | null;
+  runErrorCode?: string;
 }): ModelAvailabilityNotice | null {
   if (input.status === "error") {
     return aiErrorCode(input.error) === "MODEL_CONFIG_INVALID"
@@ -41,8 +42,9 @@ export function modelAvailabilityNotice(input: {
     return { kind: "no-models", blocking: true };
   }
   if (
-    input.runError?.operation === "start-run" &&
-    aiErrorCode(input.runError) === "MODEL_NOT_AVAILABLE"
+    (input.runErrorCode === "MODEL_NOT_AVAILABLE" ||
+      (input.runError?.operation === "start-run" &&
+        aiErrorCode(input.runError) === "MODEL_NOT_AVAILABLE"))
   ) {
     return { kind: "model-not-available", blocking: false };
   }

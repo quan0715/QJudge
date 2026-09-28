@@ -60,6 +60,12 @@ describe("modelAvailabilityNotice", () => {
     ).toEqual({ kind: "model-not-available", blocking: false });
   });
 
+  it("shows the same notice for grading requests outside Copilot run state", () => {
+    expect(modelAvailabilityNotice({
+      status: "ready", models: [model], error: null, runErrorCode: "MODEL_NOT_AVAILABLE",
+    })).toEqual({ kind: "model-not-available", blocking: false });
+  });
+
   it("stays quiet while loading or when models are ready", () => {
     expect(modelAvailabilityNotice({ status: "loading", models: [], error: null })).toBeNull();
     expect(modelAvailabilityNotice({ status: "ready", models: [model], error: null })).toBeNull();
