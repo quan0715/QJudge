@@ -88,6 +88,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("VLLM_BASE_URL"),
     )
 
+    # Deployment model catalog; deploy/ai is mounted read-only here.
+    ai_models_file: str = Field(
+        default="/etc/qjudge-ai/models.yml",
+        validation_alias=AliasChoices("AI_MODELS_FILE"),
+    )
+
     # DeepAgent / LangGraph Settings
     ai_state_postgres_url: str = (
         ""  # Postgres URL for checkpoint store (ai_state schema)
