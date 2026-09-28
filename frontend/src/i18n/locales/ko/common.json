@@ -318,10 +318,12 @@
   },
   "oauth": {
     "authorize": {
+      "account": "계정",
       "allow": "허용",
       "deny": "거부",
       "description": "{{clientName}}이(가) QJudge 계정 접근을 요청합니다",
       "error": "권한 부여에 실패했습니다. 나중에 다시 시도해주세요",
+      "grantNote": "허용하면 이 앱이 사용자 대신 QJudge를 조회하고 사용할 수 있습니다.",
       "invalidRequest": "유효하지 않은 권한 요청",
       "loading": "처리 중...",
       "title": "권한 요청"

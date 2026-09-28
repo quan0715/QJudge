@@ -318,10 +318,12 @@
   },
   "oauth": {
     "authorize": {
+      "account": "授權帳號",
       "allow": "允許",
       "deny": "拒絕",
       "description": "{{clientName}} 正在請求存取你的 QJudge 帳號",
       "error": "授權失敗，請稍後再試",
+      "grantNote": "允許後，此應用程式能以你的身分讀取與操作 QJudge。",
       "invalidRequest": "無效的授權請求",
       "loading": "處理中...",
       "title": "授權請求"

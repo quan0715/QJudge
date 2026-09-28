@@ -32,7 +32,7 @@ export default function OAuthAuthorizeScreen() {
 
   const metadata = useMemo(
     () => ({
-      title: t("oauth.authorize.title", "MCP OAuth 授權"),
+      title: t("oauth.authorize.title"),
       subtitle: t("oauth.authorize.description", { clientName }),
     }),
     [clientName, t],
@@ -40,7 +40,7 @@ export default function OAuthAuthorizeScreen() {
 
   useAuthLayoutMetadata(metadata);
 
-  const handleApprove = async () => {
+  const submit = async (decision: { scope: string } | { deny: true }) => {
     setLoading(true);
     setError(null);
     try {
@@ -51,57 +51,18 @@ export default function OAuthAuthorizeScreen() {
         code_challenge: codeChallenge,
         code_challenge_method: codeChallengeMethod,
         state: state || undefined,
-        scope,
+        ...decision,
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData.error_description || errData.error || t("oauth.authorize.error"));
-        setLoading(false);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.redirect_uri) {
+        window.location.href = data.redirect_uri;
         return;
       }
-      const data = await res.json();
-      if (data.redirect_uri) {
-        window.location.href = data.redirect_uri;
-      } else {
-        setError(t("oauth.authorize.error"));
-        setLoading(false);
-      }
+      setError(data.error_description || data.error || "");
     } catch {
-      setError(t("oauth.authorize.error"));
-      setLoading(false);
+      setError("");
     }
-  };
-
-  const handleDeny = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await httpClient.post("/api/oauth/approve/", {
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: responseType,
-        code_challenge: codeChallenge,
-        code_challenge_method: codeChallengeMethod,
-        state: state || undefined,
-        deny: true,
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        setError(errData.error_description || errData.error || t("oauth.authorize.error"));
-        setLoading(false);
-        return;
-      }
-      const data = await res.json();
-      if (data.redirect_uri) {
-        window.location.href = data.redirect_uri;
-      } else {
-        setError(t("oauth.authorize.error"));
-        setLoading(false);
-      }
-    } catch {
-      setError(t("oauth.authorize.error"));
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   if (!isValid) {
@@ -118,23 +79,24 @@ export default function OAuthAuthorizeScreen() {
 
   return (
     <div className="auth-form auth-consent">
-      <div className="auth-consent-summary">
-        <p className="auth-consent-kicker">MCP OAuth</p>
-        <h2 className="auth-consent-client">{clientName}</h2>
-        <p className="auth-consent-description">
-          {t("oauth.authorize.description", { clientName })}
-        </p>
-        {user && (
-          <p className="auth-consent-account">
-            {user.username} ({user.email})
-          </p>
-        )}
-      </div>
+      {user && (
+        <dl className="auth-consent-account">
+          <dt className="auth-consent-label">{t("oauth.authorize.account")}</dt>
+          <dd className="auth-consent-user">
+            <span className="auth-consent-username">{user.username}</span>
+            <span className="auth-consent-email">{user.email}</span>
+          </dd>
+        </dl>
+      )}
 
-      {error && (
+      <p className="auth-consent-note">{t("oauth.authorize.grantNote")}</p>
+
+      {error !== null && (
         <InlineNotification
           kind="error"
-          title={error}
+          lowContrast
+          title={t("oauth.authorize.error")}
+          subtitle={error || undefined}
           hideCloseButton
         />
       )}
@@ -143,7 +105,7 @@ export default function OAuthAuthorizeScreen() {
         <Button
           kind="secondary"
           className="auth-submit-btn"
-          onClick={handleDeny}
+          onClick={() => submit({ deny: true })}
           disabled={loading}
           renderIcon={Close}
         >
@@ -152,7 +114,7 @@ export default function OAuthAuthorizeScreen() {
         <Button
           kind="primary"
           className="auth-submit-btn"
-          onClick={handleApprove}
+          onClick={() => submit({ scope })}
           disabled={loading}
           renderIcon={Checkmark}
         >

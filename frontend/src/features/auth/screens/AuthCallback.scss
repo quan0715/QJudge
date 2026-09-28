@@ -28,7 +28,7 @@
   gap: $spacing-05;
 }
 
-.auth-consent-summary,
+.auth-consent-account,
 .auth-loading-step-frame {
   width: 100%;
   padding: $spacing-05;
@@ -36,31 +36,38 @@
   border: 1px solid $border-subtle-01;
 }
 
-.auth-consent-kicker {
-  @include type.type-style("label-01");
-  margin: 0 0 $spacing-03;
-  color: $text-secondary;
-}
-
-.auth-consent-client {
-  @include type.type-style("heading-03");
-  margin: 0 0 $spacing-03;
-  color: $text-primary;
-  font-weight: 500;
-}
-
-.auth-consent-description,
 .auth-consent-account {
-  @include type.type-style("body-compact-01");
   margin: 0;
-  color: $text-secondary;
-  line-height: 1.5;
 }
 
-.auth-consent-account {
-  margin-top: $spacing-04;
-  color: $text-primary;
+.auth-consent-label {
+  @include type.type-style("label-01");
+  margin-bottom: $spacing-02;
+  color: $text-secondary;
+}
+
+.auth-consent-user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: $spacing-02 $spacing-03;
+  margin: 0;
   word-break: break-word;
+}
+
+.auth-consent-username {
+  @include type.type-style("heading-compact-02");
+  color: $text-primary;
+}
+
+.auth-consent-email,
+.auth-consent-note {
+  @include type.type-style("body-compact-01");
+  color: $text-secondary;
+}
+
+.auth-consent-note {
+  margin: 0;
 }
 
 .auth-consent-actions {

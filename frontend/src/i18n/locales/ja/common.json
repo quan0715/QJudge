@@ -318,10 +318,12 @@
   },
   "oauth": {
     "authorize": {
+      "account": "アカウント",
       "allow": "許可",
       "deny": "拒否",
       "description": "{{clientName}} があなたの QJudge アカウントへのアクセスを要求しています",
       "error": "認可に失敗しました。後でもう一度お試しください",
+      "grantNote": "許可すると、このアプリはあなたとして QJudge の閲覧と操作ができます。",
       "invalidRequest": "無効な認可リクエスト",
       "loading": "処理中...",
       "title": "認可リクエスト"
