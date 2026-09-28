@@ -1,33 +1,5 @@
 @use "@/styles/admin-panel" as mixins;
 
-/* Shared mini (collapsed) pane used by both ByQuestion and ByStudent views. */
-
-.miniPane {
-  @include mixins.mini-pane;
-}
-
-.miniHeader {
-  flex-shrink: 0;
-}
-
-/* Native <button> — no Carbon overrides needed. Same height as miniItem. */
-.miniToggleButton {
-  @include mixins.mini-item;
-  color: var(--cds-icon-primary);
-}
-
-.miniList {
-  @include mixins.mini-list;
-}
-
-.miniFooter {
-  @include mixins.mini-footer;
-}
-
-.miniItem {
-  @include mixins.mini-item;
-}
-
 /* ─── Status colors (shared by mini & expanded question items) ─── */
 
 .statusDone {

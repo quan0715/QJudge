@@ -1,8 +1,8 @@
 .copilot-root {
-  --copilot-color-background: var(--cds-background, #ffffff);
-  --copilot-color-surface: var(--cds-layer-01, #f4f4f4);
-  --copilot-color-text: var(--cds-text-primary, #161616);
-  --copilot-color-accent: var(--cds-link-primary, #0f62fe);
+  --copilot-color-background: var(--cds-background);
+  --copilot-color-surface: var(--cds-layer-01);
+  --copilot-color-text: var(--cds-text-primary);
+  --copilot-color-accent: var(--cds-link-primary);
   --copilot-space-1: 0.25rem;
   --copilot-space-2: 0.5rem;
   --copilot-space-3: 1rem;

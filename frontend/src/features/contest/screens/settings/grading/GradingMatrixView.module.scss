@@ -30,7 +30,7 @@
   align-items: center;
   gap: layout.$spacing-05;
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .legend {
@@ -38,7 +38,7 @@
   align-items: center;
   gap: layout.$spacing-04;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
 }
 
 .legendItem {
@@ -89,7 +89,7 @@
   background: var(--cds-layer-02);
   color: var(--cds-text-secondary);
   font-weight: 500;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
 }
 
 /* ── Frozen column (left sticky) — header corner ── */
@@ -102,7 +102,7 @@
   background: var(--cds-layer-02);
   color: var(--cds-text-secondary);
   font-weight: 500;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   justify-content: flex-start;
   padding: 0 layout.$spacing-04;
 }
@@ -144,7 +144,7 @@
 
 .summaryCellValue {
   color: var(--cds-text-primary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -167,7 +167,7 @@
 
 .studentUsername {
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.8125rem);
+  font-size: 0.875rem;
   line-height: 1.25;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -212,7 +212,7 @@
   color: var(--cds-text-primary);
   background: var(--cds-layer-02);
   cursor: pointer;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   line-height: 1;
 }
 
@@ -267,5 +267,5 @@
   align-items: center;
   justify-content: center;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }

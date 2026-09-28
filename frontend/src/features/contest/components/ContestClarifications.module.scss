@@ -21,14 +21,6 @@
   gap: layout.$spacing-03;
 }
 
-.toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 20rem);
-  justify-content: end;
-  align-items: center;
-  gap: layout.$spacing-05;
-}
-
 .announcement, .question {
   padding: layout.$spacing-05;
   border: 1px solid var(--cds-border-subtle);
@@ -53,7 +45,7 @@
 .meta, .notice, .empty {
   margin: 0;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .notice {
@@ -77,13 +69,10 @@
 .answerLabel {
   margin: 0 0 layout.$spacing-03;
   font-weight: 600;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
 }
 
 @media (max-width: 672px) {
-  .toolbar {
-    grid-template-columns: 1fr;
-  }
 }
 
 .replyContext {

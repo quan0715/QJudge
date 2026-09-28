@@ -38,7 +38,7 @@
 }
 
 .label {
-  font-size: var(--cds-heading-compact-02-font-size, 0.875rem);
+  font-size: 1rem;
   font-weight: 600;
   color: var(--cds-text-primary);
 }
@@ -78,7 +78,7 @@
 
 .emptyStem {
   color: var(--cds-text-placeholder);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .children {
@@ -86,16 +86,4 @@
   flex-direction: column;
   gap: layout.$spacing-04;
   padding: 0 layout.$spacing-05 layout.$spacing-05;
-}
-
-.childList {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-  padding-left: layout.$spacing-05;
-  border-left: 2px solid var(--cds-border-subtle);
-}
-
-.childActions {
-  padding-left: layout.$spacing-05;
 }

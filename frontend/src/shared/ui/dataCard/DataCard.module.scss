@@ -12,93 +12,6 @@
   border: 1px solid var(--cds-border-subtle);
 }
 
-.filled {
-  background-color: var(--cds-background-active);
-}
-
-.title {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-  color: var(--cds-text-secondary);
-}
-
-.value {
-  font-weight: 300;
-  display: flex;
-  align-items: baseline;
-  gap: layout.$spacing-02;
-}
-
-.unit {
-  font-size: 0.6em;
-  color: var(--cds-text-secondary);
-}
-
-.description {
-  color: var(--cds-text-secondary);
-}
-
-.sizeSm .title {
-  font-size: 0.75rem;
-  margin-bottom: layout.$spacing-02;
-}
-
-.sizeSm .value {
-  font-size: 1.5rem;
-  line-height: 1.2;
-  margin-bottom: layout.$spacing-02;
-}
-
-.sizeSm .description {
-  font-size: 0.625rem;
-}
-
-.sizeDefault .title {
-  font-size: 0.875rem;
-  margin-bottom: layout.$spacing-03;
-}
-
-.sizeDefault .value {
-  font-size: 2rem;
-  line-height: 1;
-  margin-bottom: layout.$spacing-03;
-}
-
-.sizeDefault .description {
-  font-size: 0.75rem;
-}
-
-.sizeLg .title {
-  font-size: 1rem;
-  margin-bottom: layout.$spacing-04;
-}
-
-.sizeLg .value {
-  font-size: 2.5rem;
-  line-height: 1;
-  margin-bottom: layout.$spacing-04;
-}
-
-.sizeLg .description {
-  font-size: 0.875rem;
-}
-
-.sizeXl .title {
-  font-size: 1.125rem;
-  margin-bottom: layout.$spacing-05;
-}
-
-.sizeXl .value {
-  font-size: 3rem;
-  line-height: 1;
-  margin-bottom: layout.$spacing-05;
-}
-
-.sizeXl .description {
-  font-size: 1rem;
-}
-
 .kpi {
   padding: layout.$spacing-05 layout.$spacing-07;
   align-items: flex-start;
@@ -114,14 +27,14 @@
 }
 
 .kpiValue {
-  font-size: var(--cds-productive-heading-05, 2rem);
+  font-size: 2rem;
   font-weight: 300;
   line-height: 1;
   margin-bottom: layout.$spacing-02;
 }
 
 .kpiLabel {
-  font-size: var(--cds-body-short-01, 0.875rem);
+  font-size: 0.875rem;
   color: var(--cds-text-secondary);
 }
 
@@ -136,7 +49,7 @@
 }
 
 .kpiDescription {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   margin-top: layout.$spacing-01;
 }
@@ -146,7 +59,7 @@
 }
 
 .kpiActive {
-  background: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  background: var(--cds-layer-selected-01);
 }
 
 // Rendered on top of a cover image — frosted dark backdrop for readability

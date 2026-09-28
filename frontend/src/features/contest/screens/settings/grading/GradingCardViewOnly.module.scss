@@ -16,21 +16,21 @@
 
 .cardPending {
   position: relative;
-  border-color: color-mix(in srgb, var(--cds-border-interactive, #0f62fe) 28%, var(--cds-border-subtle));
+  border-color: color-mix(in srgb, var(--cds-border-interactive) 28%, var(--cds-border-subtle));
   background:
     linear-gradient(
       115deg,
-      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-interactive, #0f62fe)) 0%,
-      color-mix(in srgb, var(--cds-layer-background-01) 98%, var(--cds-support-info, #4589ff)) 28%,
+      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-interactive)) 0%,
+      color-mix(in srgb, var(--cds-layer-background-01) 98%, var(--cds-support-info)) 28%,
       var(--cds-layer-background-01) 48%,
-      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info, #4589ff)) 72%,
-      color-mix(in srgb, var(--cds-layer-background-01) 95%, var(--cds-support-success, #24a148)) 100%
+      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info)) 72%,
+      color-mix(in srgb, var(--cds-layer-background-01) 95%, var(--cds-support-success)) 100%
     );
   background-size: 260% 260%;
   animation: pendingCardField 8.4s ease-in-out infinite;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--cds-border-interactive, #0f62fe) 10%, transparent),
-    0 0 12px color-mix(in srgb, var(--cds-interactive, #0f62fe) 5%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, var(--cds-border-interactive) 10%, transparent),
+    0 0 12px color-mix(in srgb, var(--cds-interactive) 5%, transparent);
 }
 
 .cardPending::before {
@@ -42,9 +42,9 @@
     linear-gradient(
       90deg,
       transparent 0%,
-      color-mix(in srgb, var(--cds-interactive, #0f62fe) 7%, transparent) 38%,
-      color-mix(in srgb, var(--cds-support-info, #4589ff) 9%, transparent) 50%,
-      color-mix(in srgb, var(--cds-support-success, #24a148) 6%, transparent) 62%,
+      color-mix(in srgb, var(--cds-interactive) 7%, transparent) 38%,
+      color-mix(in srgb, var(--cds-support-info) 9%, transparent) 50%,
+      color-mix(in srgb, var(--cds-support-success) 6%, transparent) 62%,
       transparent 76%
     ),
     repeating-linear-gradient(
@@ -108,8 +108,8 @@
 }
 
 .selectCellActive {
-  background: var(--cds-button-primary, #0f62fe);
-  color: var(--cds-text-on-color, #ffffff);
+  background: var(--cds-button-primary);
+  color: var(--cds-text-on-color);
 }
 
 .selectMark {
@@ -120,14 +120,14 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  background: var(--cds-field-01, transparent);
+  background: var(--cds-field-01);
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
 .selectMarkActive {
-  background: var(--cds-button-primary, #0f62fe);
-  border-color: var(--cds-button-primary, #0f62fe);
-  color: var(--cds-text-on-color, #ffffff);
+  background: var(--cds-button-primary);
+  border-color: var(--cds-button-primary);
+  color: var(--cds-text-on-color);
 }
 
 .userBlock {
@@ -177,10 +177,10 @@
   background:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--cds-layer-background-01) 88%, var(--cds-interactive, #0f62fe)) 0%,
-      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info, #4589ff)) 36%,
-      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-support-info, #4589ff)) 64%,
-      color-mix(in srgb, var(--cds-layer-background-01) 90%, var(--cds-support-success, #24a148)) 100%
+      color-mix(in srgb, var(--cds-layer-background-01) 88%, var(--cds-interactive)) 0%,
+      color-mix(in srgb, var(--cds-layer-background-01) 96%, var(--cds-support-info)) 36%,
+      color-mix(in srgb, var(--cds-layer-background-01) 94%, var(--cds-support-info)) 64%,
+      color-mix(in srgb, var(--cds-layer-background-01) 90%, var(--cds-support-success)) 100%
     );
   background-size: 240% 240%;
   animation: pendingPanelField 7.2s ease-in-out infinite;
@@ -245,18 +245,18 @@
 }
 
 .deltaUp {
-  color: var(--cds-support-success, #24a148);
+  color: var(--cds-support-success);
   background: rgba(36, 161, 72, 0.12);
 }
 
 .deltaDown {
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
   background: rgba(218, 30, 40, 0.12);
 }
 
 .deltaZero {
   color: var(--cds-text-secondary);
-  background: var(--cds-layer-02, rgba(0, 0, 0, 0.06));
+  background: var(--cds-layer-02);
 }
 
 .label {
@@ -329,14 +329,14 @@
   height: 0.5rem;
   border-radius: 50%;
   background:
-    radial-gradient(circle, var(--cds-text-on-color, #ffffff) 0 18%, transparent 19%),
+    radial-gradient(circle, var(--cds-text-on-color) 0 18%, transparent 19%),
     linear-gradient(
       135deg,
-      var(--cds-interactive, #0f62fe),
-      var(--cds-support-info, #4589ff) 48%,
-      var(--cds-support-success, #24a148)
+      var(--cds-interactive),
+      var(--cds-support-info) 48%,
+      var(--cds-support-success)
     );
-  box-shadow: 0 0 9px color-mix(in srgb, var(--cds-interactive, #0f62fe) 24%, transparent);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--cds-interactive) 24%, transparent);
   animation: shimmerPulse 1.9s ease-in-out infinite, hueDrift 7.4s linear infinite;
 
   &:nth-child(2) {
@@ -348,19 +348,15 @@
   }
 }
 
-.shimmerText {
-  margin-left: layout.$spacing-02;
-}
-
 .shimmerBar {
   height: 1.25rem;
   border-radius: 0.125rem;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--cds-layer-accent-01, #e0e0e0) 86%, var(--cds-interactive, #0f62fe)) 0%,
-    color-mix(in srgb, var(--cds-layer-02, #f4f4f4) 88%, var(--cds-support-info, #4589ff)) 36%,
-    color-mix(in srgb, var(--cds-layer-02, #f4f4f4) 88%, var(--cds-support-info, #4589ff)) 64%,
-    color-mix(in srgb, var(--cds-layer-accent-01, #e0e0e0) 86%, var(--cds-support-success, #24a148)) 100%
+    color-mix(in srgb, var(--cds-layer-accent-01) 86%, var(--cds-interactive)) 0%,
+    color-mix(in srgb, var(--cds-layer-02) 88%, var(--cds-support-info)) 36%,
+    color-mix(in srgb, var(--cds-layer-02) 88%, var(--cds-support-info)) 64%,
+    color-mix(in srgb, var(--cds-layer-accent-01) 86%, var(--cds-support-success)) 100%
   );
   background-size: 320% 100%;
   animation: shimmerSweep 2.7s ease-in-out infinite, hueDrift 8.6s linear infinite;

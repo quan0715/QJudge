@@ -171,12 +171,6 @@
     @include type.type-style("label-01");
   }
 
-  &__arrow {
-    flex-shrink: 0;
-    width: 16px;
-    color: $icon-secondary;
-  }
-
   &:hover {
     background-color: $layer-hover-01;
     border-color: $border-subtle-selected-01;

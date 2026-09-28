@@ -68,10 +68,6 @@
   background: var(--cds-background);
 }
 
-.workspaceRosterCollapsed {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .rosterPane {
   min-height: 0;
   min-width: 0;

@@ -55,8 +55,4 @@
     margin: layout.$spacing-02 0 0;
     @include type.type-style("body-compact-01");
   }
-
-  &__skeleton {
-    padding: layout.$spacing-05;
-  }
 }

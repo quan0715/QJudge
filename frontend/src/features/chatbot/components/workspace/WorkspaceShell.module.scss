@@ -78,13 +78,13 @@
   cursor: col-resize;
   z-index: 10;
   background: transparent;
-  border-right: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  border-right: 1px solid var(--cds-border-subtle-01);
   transition: border-color 150ms ease;
   touch-action: none;
 
   &:hover,
   &:active {
-    border-right-color: var(--cds-interactive, #0f62fe);
+    border-right-color: var(--cds-interactive);
     border-right-width: 2px;
   }
 
@@ -173,7 +173,7 @@
   // 與 ChatContainer 內部的 --cds-background 對齊，避免 safe-area / handle 區
   // 與 chat 主體呈現不同色塊。safe-area-inset 由 ComposerBar 自己 padding 處理，
   // 這裡再加會產生雙重 padding 並露出 sheet 底色。
-  background: var(--cds-background, #fff);
+  background: var(--cds-background);
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.2);
   overflow: hidden;
@@ -201,7 +201,7 @@
     transform: translate(-50%, -50%);
     width: 40px;
     height: 4px;
-    background: var(--cds-border-subtle-01, #e0e0e0);
+    background: var(--cds-border-subtle-01);
     border-radius: 2px;
   }
 }
@@ -234,13 +234,13 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--cds-interactive, #0f62fe);
-  color: var(--cds-text-on-color, #fff);
+  background: var(--cds-interactive);
+  color: var(--cds-text-on-color);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: background $chat-motion-duration $chat-motion-easing;
 
   &:hover {
-    background: var(--cds-interactive-hover, #0043ce);
+    background: var(--cds-button-primary-hover);
   }
 }

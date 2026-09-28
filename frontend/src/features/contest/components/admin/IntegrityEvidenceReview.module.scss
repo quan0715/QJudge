@@ -16,7 +16,7 @@
 .heading h5 {
   margin: 0;
   color: var(--cds-text-primary);
-  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .anchor,
@@ -24,7 +24,7 @@
 .playerHeading span,
 .empty {
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
 }
 
 .timeline {
@@ -47,7 +47,7 @@
 
 .sliceHeading strong {
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .players {

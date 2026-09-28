@@ -114,7 +114,7 @@ export const AllIntents: Story = {
         actionIntent="danger"
         active
         value={8}
-        valueColor="var(--cds-support-error, #da1e28)"
+        valueColor="var(--cds-support-error)"
         unit="次"
         cta="前往事件面板"
         notificationDot
@@ -132,7 +132,7 @@ export const WithNotificationDot: Story = {
     actionIntent: "danger",
     active: true,
     value: 18,
-    valueColor: "var(--cds-support-error, #da1e28)",
+    valueColor: "var(--cds-support-error)",
     unit: "次",
     cta: "前往事件面板",
     notificationDot: true,
@@ -204,7 +204,7 @@ export const DashboardGrid: Story = {
         actionIntent="danger"
         active
         value={18}
-        valueColor="var(--cds-support-error, #da1e28)"
+        valueColor="var(--cds-support-error)"
         unit="次"
         cta="前往事件面板"
         notificationDot

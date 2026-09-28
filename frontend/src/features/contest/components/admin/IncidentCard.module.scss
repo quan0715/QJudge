@@ -8,7 +8,7 @@
 }
 
 .cardExpanded {
-  background: var(--cds-layer-02, var(--cds-layer-01));
+  background: var(--cds-layer-02);
 }
 
 /* P0: red accent + subtle background */
@@ -92,14 +92,14 @@
 }
 
 .eventType {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--cds-text-primary);
   white-space: nowrap;
 }
 
 .userName {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -114,7 +114,7 @@
 }
 
 .time {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

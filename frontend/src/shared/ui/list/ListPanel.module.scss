@@ -104,7 +104,7 @@
 
 // Active / selected
 .itemActive {
-  background-color: var(--cds-layer-selected-01, var(--cds-layer-accent-01));
+  background-color: var(--cds-layer-selected-01);
 
   &:hover {
     background-color: var(--cds-layer-selected-hover-01);

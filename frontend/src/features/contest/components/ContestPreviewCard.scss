@@ -8,14 +8,14 @@
   position: relative;
   cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease;
-  background-color: var(--cds-layer-01, var(--cds-layer));
+  background-color: var(--cds-layer-01);
 
   &:hover {
-    background-color: var(--cds-layer-hover-01, var(--cds-layer-hover));
+    background-color: var(--cds-layer-hover-01);
   }
 
   &:active {
-    background-color: var(--cds-layer-active-01, var(--cds-layer-active));
+    background-color: var(--cds-layer-active-01);
   }
 }
 

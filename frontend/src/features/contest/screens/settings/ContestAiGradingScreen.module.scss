@@ -1,12 +1,4 @@
 @use "@carbon/layout";
-.root {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--cds-layer-background-01, var(--cds-layer-01));
-}
 
 .shellRoot {
   height: 100%;
@@ -49,7 +41,4 @@
 }
 
 @media (max-width: 1024px) {
-  .root {
-    grid-template-columns: 1fr;
-  }
 }

@@ -21,7 +21,7 @@
   cursor: pointer;
   touch-action: none;
   user-select: none;
-  background: var(--cds-field, var(--cds-layer-01));
+  background: var(--cds-field);
   border: 1px solid var(--cds-border-subtle-01);
 
   &:focus-visible {
