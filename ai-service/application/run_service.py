@@ -131,6 +131,15 @@ class RunService:
             )
         return run
 
+    async def find_by_idempotency_key(
+        self, principal: Principal, session_id: UUID, idempotency_key: str
+    ) -> Run | None:
+        async with self._uow_factory() as uow:
+            session = await uow.sessions.get_for_owner(principal, session_id)
+            if session is None:
+                return None
+            return await uow.runs.get_by_idempotency_key(session.id, idempotency_key)
+
     async def get(self, principal: Principal, run_id: UUID) -> Run:
         async with self._uow_factory() as uow:
             run = await uow.runs.get_for_owner(principal, run_id)

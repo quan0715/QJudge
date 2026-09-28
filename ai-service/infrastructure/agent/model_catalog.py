@@ -28,6 +28,14 @@ PROBE_RETRY_SECONDS = 60.0
 PROBE_TIMEOUT_SECONDS = 3.0
 
 Probe = Callable[[EndpointSpec, str], dict[str, int]]
+# (limits, or None after a failed probe; when they were fetched)
+_CachedLimits = tuple[dict[str, int] | None, float]
+
+
+def _limit_in(cached: _CachedLimits | None, model: str) -> int | None:
+    if cached is None or cached[0] is None:
+        return None
+    return cached[0].get(model)
 
 
 def probe_max_model_len(
@@ -72,9 +80,9 @@ class ModelCatalog:
         self._env = os.environ if env is None else env
         self._probe = probe
         self._clock = clock
-        self._lock = threading.Lock()
-        # endpoint name -> (limits or None after a failed probe, fetched at)
-        self._limits: dict[str, tuple[dict[str, int] | None, float]] = {}
+        endpoints = config.endpoints if config is not None else {}
+        self._probe_locks = {name: threading.Lock() for name in endpoints}
+        self._limits: dict[str, _CachedLimits] = {}
 
     @classmethod
     def load(cls, path: Path, env: Mapping[str, str] | None = None, **kwargs) -> ModelCatalog:
@@ -82,12 +90,18 @@ class ModelCatalog:
         try:
             return cls(load_model_config(path, env), env=env, **kwargs)
         except ModelConfigInvalid as exc:
-            logger.error(
-                "AI model configuration %s is invalid; AI features are disabled:\n%s",
-                path,
-                "\n".join(f"  - {problem}" for problem in exc.problems),
-            )
-            return cls(None, exc.problems, env=env, **kwargs)
+            problems = exc.problems
+        except Exception as exc:
+            # backend waits for a healthy ai-service, so a loading bug must
+            # disable AI rather than take the whole site down.
+            logger.exception("Loading AI model configuration %s failed", path)
+            problems = (f"{path}: could not be loaded ({type(exc).__name__}: {exc})",)
+        logger.error(
+            "AI model configuration %s is invalid; AI features are disabled:\n%s",
+            path,
+            "\n".join(f"  - {problem}" for problem in problems),
+        )
+        return cls(None, problems, env=env, **kwargs)
 
     def available(self) -> list[ModelSpec]:
         config = self._require_config()
@@ -128,10 +142,17 @@ class ModelCatalog:
         return self._config
 
     def _probed_limit(self, endpoint: EndpointSpec, model: str) -> int | None:
-        with self._lock:
+        cached = self._limits.get(endpoint.name)
+        if not self._needs_probe(cached, model):
+            return _limit_in(cached, model)
+        # One caller probes an endpoint at a time; the others answer from the
+        # cache instead of queueing behind a slow or unreachable server.
+        lock = self._probe_locks[endpoint.name]
+        if not lock.acquire(blocking=False):
+            return _limit_in(cached, model)
+        try:
             cached = self._limits.get(endpoint.name)
-            expired = cached is not None and self._clock() - cached[1] >= PROBE_RETRY_SECONDS
-            if cached is None or (model not in (cached[0] or {}) and expired):
+            if self._needs_probe(cached, model):
                 cached = (self._fetch(endpoint), self._clock())
                 self._limits[endpoint.name] = cached
                 if cached[0] is not None and model not in cached[0]:
@@ -141,8 +162,15 @@ class ModelCatalog:
                         endpoint.base_url,
                         model,
                     )
-        limits = cached[0]
-        return None if limits is None else limits.get(model)
+        finally:
+            lock.release()
+        return _limit_in(cached, model)
+
+    def _needs_probe(self, cached: _CachedLimits | None, model: str) -> bool:
+        if cached is None:
+            return True
+        limits, fetched_at = cached
+        return model not in (limits or {}) and self._clock() - fetched_at >= PROBE_RETRY_SECONDS
 
     def _fetch(self, endpoint: EndpointSpec) -> dict[str, int] | None:
         try:

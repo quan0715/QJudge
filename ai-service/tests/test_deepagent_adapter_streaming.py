@@ -227,7 +227,21 @@ def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
         )
         yield {"type": "run_completed", "run_id": run_id}
 
-    monkeypatch.setattr(runner._runner, "_build_agent", lambda **_kwargs: object())
+    def create_model_off_loop(model_id=None):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return f"model:{model_id}"
+        raise AssertionError("model built on the event loop")
+
+    built: dict = {}
+    monkeypatch.setattr(
+        "infrastructure.agent.deepagent_adapter.ModelFactory.create_model",
+        staticmethod(create_model_off_loop),
+    )
+    monkeypatch.setattr(
+        runner._runner, "_build_agent", lambda **kwargs: built.update(kwargs) or object()
+    )
     monkeypatch.setattr(runner._runner, "_stream_events", fake_stream_events)
 
     async def collect():
@@ -246,6 +260,7 @@ def test_runner_execute_uses_caller_configurable_ids(monkeypatch):
     events = asyncio.run(collect())
 
     assert events == [{"type": "run_completed", "run_id": str(command.run_id)}]
+    assert built["model"] == "model:deepseek-flash"
     assert captured == {
         "agent_input": {"messages": [{"role": "user", "content": "hello"}]},
         "config": {
@@ -310,6 +325,10 @@ def test_runner_resume_operations_keep_caller_ids(
         )
         yield {"type": "run_completed", "run_id": run_id}
 
+    monkeypatch.setattr(
+        "infrastructure.agent.deepagent_adapter.ModelFactory.create_model",
+        staticmethod(lambda model_id=None: object()),
+    )
     monkeypatch.setattr(runner._runner, "_build_agent", lambda **_kwargs: object())
     monkeypatch.setattr(runner._runner, "_stream_events", fake_stream_events)
 

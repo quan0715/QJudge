@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from pathlib import Path
 
 import httpx
@@ -114,6 +115,55 @@ def test_missing_model_does_not_hide_its_endpoint_neighbours():
     clock.now += 60
     assert [m.id for m in c.available()] == ["a", "b"]
     assert probe.calls == 2
+
+
+def test_concurrent_callers_do_not_wait_for_an_in_flight_probe():
+    started, release = threading.Event(), threading.Event()
+    calls = []
+
+    def slow_probe(endpoint, api_key):
+        calls.append(endpoint.name)
+        started.set()
+        release.wait(timeout=5)
+        return {"A": 4096}
+
+    c = catalog(
+        {
+            "models": [
+                {"id": "gpt", "provider": "openai", "max_input_tokens": 1000},
+                {"id": "a", "provider": "lab", "model": "A"},
+            ],
+            "endpoints": LAB,
+        },
+        probe=slow_probe,
+    )
+    first = threading.Thread(target=c.available)
+    first.start()
+    assert started.wait(timeout=5)
+
+    # The probe is still running; this caller answers immediately without it.
+    assert [m.id for m in c.available()] == ["gpt"]
+
+    release.set()
+    first.join(timeout=5)
+    assert [m.id for m in c.available()] == ["gpt", "a"]
+    assert calls == ["lab"]
+
+
+def test_unexpected_load_error_disables_ai_instead_of_crashing(tmp_path: Path, monkeypatch, caplog):
+    path = tmp_path / "models.yml"
+    path.write_text("models: []\n")
+
+    def broken(*args, **kwargs):
+        raise TypeError("profile lookup exploded")
+
+    monkeypatch.setattr("infrastructure.agent.model_catalog.load_model_config", broken)
+    with caplog.at_level(logging.ERROR):
+        c = ModelCatalog.load(path, env={})
+    assert "profile lookup exploded" in caplog.text
+    assert c.default_id() is None
+    with pytest.raises(ModelConfigInvalid):
+        c.available()
 
 
 def test_configured_default_wins_when_available():

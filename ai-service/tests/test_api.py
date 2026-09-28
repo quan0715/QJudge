@@ -150,6 +150,9 @@ class FakeRunService:
         self.start_token = subject_token
         return replace(self.run, model_id=model_id)
 
+    async def find_by_idempotency_key(self, principal, session_id, idempotency_key):
+        return self.run if idempotency_key == "accepted-before" else None
+
     async def get(self, principal, run_id):
         if principal != OWNER or run_id != RUN_ID:
             raise RunNotFound(run_id)
@@ -626,6 +629,25 @@ def test_start_run_rejects_unavailable_model() -> None:
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "MODEL_NOT_AVAILABLE"
     assert response.json()["error"]["retryable"] is False
+
+
+def test_retried_start_returns_the_accepted_run_after_its_model_disappears() -> None:
+    client, _ = make_client(ModelCatalog(None, ("models.yml: not found",)))
+    retried = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "accepted-before"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
+    )
+    assert retried.status_code == 202
+    assert retried.json()["run_id"] == str(RUN_ID)
+
+    fresh = client.post(
+        f"/v1/sessions/{SESSION_ID}/runs",
+        headers={"Idempotency-Key": "new-request"},
+        json={"message": "hello", "model_id": "deepseek-flash"},
+    )
+    assert fresh.status_code == 503
+    assert fresh.json()["error"]["code"] == "MODEL_CONFIG_INVALID"
 
 
 def test_invalid_model_config_is_reported_without_breaking_readiness() -> None:
