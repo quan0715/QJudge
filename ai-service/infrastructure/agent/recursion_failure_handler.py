@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import AnyMessage
 from langgraph.errors import GraphRecursionError
 
+from domain.model_catalog import ModelConfigInvalid, ModelNotAvailable
 from infrastructure.agent.model_factory import ModelFactory
-from infrastructure.agent.model_catalog import process_model_catalog
 
 _DEFAULT_RECURSION_TAIL_MESSAGES = 12
 
@@ -22,7 +23,7 @@ class RecursionFailureHandler:
         *,
         summary_model_id: str | None = None,
         tail_messages: int = _DEFAULT_RECURSION_TAIL_MESSAGES,
-        model_factory: Callable[[str], Any] | None = None,
+        model_factory: Callable[[str | None], Any] | None = None,
     ) -> None:
         self._summary_model_id = summary_model_id
         self._tail_messages = tail_messages
@@ -101,10 +102,12 @@ class RecursionFailureHandler:
         if len(transcript) > 6000:
             transcript = transcript[-6000:]
 
-        model_id = self._summary_model_id or process_model_catalog().default_id()
-        if model_id is None:
+        try:
+            # None selects the catalog default; resolving it may probe a
+            # self-hosted endpoint, so keep it off the event loop.
+            summary_model = await asyncio.to_thread(self._model_factory, self._summary_model_id)
+        except (ModelConfigInvalid, ModelNotAvailable):
             return self.fallback_recursion_summary()
-        summary_model = self._model_factory(model_id)
         summary_prompt = self.build_recursion_summary_prompt(transcript)
         response = await summary_model.ainvoke(summary_prompt)
         content = getattr(response, "content", "")

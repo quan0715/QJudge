@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 import types
@@ -28,6 +29,7 @@ sys.modules.setdefault("langchain_openai", _openai_stub)
 
 from deepagents.backends.composite import CompositeBackend
 
+from domain.model_catalog import ModelNotAvailable
 from infrastructure.agent import deepagent_adapter as runner_mod
 
 
@@ -101,11 +103,7 @@ class _CaptureCreateDeepAgent:
 def _patch_builder_dependencies(monkeypatch):
     capture = _CaptureCreateDeepAgent()
 
-    def _fake_model_factory(model_id: str):
-        return f"model:{model_id}"
-
     monkeypatch.setattr(runner_mod, "create_deep_agent", capture)
-    monkeypatch.setattr(runner_mod.ModelFactory, "create_model", staticmethod(_fake_model_factory))
     monkeypatch.setattr(
         runner_mod,
         "_SafeSummarizationMiddleware",
@@ -119,13 +117,14 @@ def test_build_agent_passes_default_skill_and_memory_paths(monkeypatch):
     runner = _build_adapter()
 
     runner._runner._build_agent(
-        model_id="deepseek-flash",
+        model="model:deepseek-flash",
         system_prompt=None,
         tools=[],
         event_queue=None,
     )
 
     assert capture.kwargs is not None
+    assert capture.kwargs["model"] == "model:deepseek-flash"
     assert capture.kwargs["skills"] == ["/app/.deepagents/skills/"]
     assert capture.kwargs["memory"] == ["/app/.deepagents/AGENTS.md"]
     backend_factory = capture.kwargs["backend"]
@@ -143,7 +142,7 @@ def test_build_agent_default_system_prompt_key_phrases(monkeypatch):
     runner = _build_adapter()
 
     runner._runner._build_agent(
-        model_id="deepseek-flash",
+        model="model:deepseek-flash",
         system_prompt=None,
         tools=[],
         event_queue=None,
@@ -164,7 +163,7 @@ def test_build_agent_respects_custom_skill_and_memory_paths(monkeypatch):
     )
 
     runner._runner._build_agent(
-        model_id="deepseek-flash",
+        model="model:deepseek-flash",
         system_prompt="custom-prompt",
         tools=[],
         event_queue=None,
@@ -188,7 +187,7 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
 
     with caplog.at_level(logging.WARNING, logger=runner_mod.__name__):
         runner._runner._build_agent(
-            model_id="deepseek-flash",
+            model="model:deepseek-flash",
             system_prompt=None,
             tools=[],
             event_queue=None,
@@ -198,3 +197,14 @@ def test_build_agent_warns_when_skill_or_memory_path_missing(monkeypatch, caplog
     warning_text = "\n".join(caplog.messages)
     assert f"DeepAgents path not found: {missing_skill}" in warning_text
     assert f"DeepAgents path not found: {missing_memory}" in warning_text
+
+
+def test_repair_thread_skips_without_an_available_model(monkeypatch):
+    def no_model(model_id=None):
+        raise ModelNotAvailable(model_id)
+
+    monkeypatch.setattr(runner_mod.ModelFactory, "create_model", staticmethod(no_model))
+    runner = _build_adapter()
+    runner._runner._checkpointer = object()
+
+    assert asyncio.run(runner._runner.repair_thread("thread-1")) is False

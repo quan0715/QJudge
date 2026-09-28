@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 
+from domain.model_catalog import ModelNotAvailable
 from domain.models import Principal, Run, RunKind, RunStatus
 from domain.ports import (
     CredentialLease,
@@ -214,6 +215,26 @@ async def test_unrecoverable_mcp_failure_never_calls_model() -> None:
     assert agent.commands == []
     assert runs.run.error_code == "MCP_UNAVAILABLE"
     assert runs.dispatches == [(run.id, "lease:subject", TRACE)]
+
+
+class UnavailableModelAgent(FakeAgent):
+    async def execute(self, command) -> AsyncIterator[dict]:
+        self.commands.append(command)
+        raise ModelNotAvailable(command.model_id)
+        yield {}  # pragma: no cover - makes this an async generator
+
+
+@pytest.mark.asyncio
+async def test_model_removed_before_execution_reports_model_error() -> None:
+    run = make_run()
+    runs = FakeRuns(run, Principal("issuer", "subject"))
+    runtime = WorkerRuntime(
+        runs, FakeCredentials(), UnavailableModelAgent(), FakeCheckpoints()
+    )
+
+    await runtime.execute(run.id, "lease:subject", TRACE)
+
+    assert runs.run.error_code == "MODEL_NOT_AVAILABLE"
 
 
 @pytest.mark.asyncio

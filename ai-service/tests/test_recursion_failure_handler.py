@@ -15,6 +15,7 @@ _openai_stub.ChatOpenAI = type("ChatOpenAI", (), {})
 sys.modules.setdefault("langchain_deepseek", _deepseek_stub)
 sys.modules.setdefault("langchain_openai", _openai_stub)
 
+from domain.model_catalog import ModelNotAvailable
 from infrastructure.agent.recursion_failure_handler import RecursionFailureHandler
 
 
@@ -53,9 +54,35 @@ def test_format_message_for_summary_includes_tool_metadata():
 
 
 def test_summarize_interruption_uses_summary_model_result():
-    handler = RecursionFailureHandler(summary_model_id="summary-model", model_factory=lambda _model_id: _FakeSummaryModel())
+    handler = RecursionFailureHandler(model_factory=lambda _model_id: _FakeSummaryModel())
     agent = _FakeAgent([AIMessage(content="hello")])
 
     result = asyncio.run(handler.summarize_interruption(agent=agent, config={}))
 
     assert result == "摘要完成"
+
+
+def test_summarize_interruption_builds_the_model_off_the_event_loop():
+    def off_loop(_model_id):
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return _FakeSummaryModel()
+        raise AssertionError("model factory ran on the event loop")
+
+    handler = RecursionFailureHandler(model_factory=off_loop)
+    agent = _FakeAgent([AIMessage(content="hello")])
+
+    assert asyncio.run(handler.summarize_interruption(agent=agent, config={})) == "摘要完成"
+
+
+def test_summarize_interruption_falls_back_without_an_available_model():
+    def no_model(model_id):
+        raise ModelNotAvailable(model_id)
+
+    handler = RecursionFailureHandler(model_factory=no_model)
+    agent = _FakeAgent([AIMessage(content="hello")])
+
+    result = asyncio.run(handler.summarize_interruption(agent=agent, config={}))
+
+    assert result == RecursionFailureHandler.fallback_recursion_summary()

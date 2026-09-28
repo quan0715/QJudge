@@ -83,6 +83,22 @@ describe("QJudgeChatPanel", () => {
     expect(screen.getByText(/aiNoModelsConfigured|此站台尚未設定 AI 模型/)).toBeInTheDocument();
   });
 
+  it("lets the user reload the model list after it fails to load", async () => {
+    const transport = new MemoryCopilotTransport();
+    const catalog = new MemoryCopilotModelCatalog();
+    catalog.fail(new Error("AI Service is temporarily unavailable."));
+    renderPanel(transport, null, <QJudgeChatPanel mode="full" />, catalog);
+
+    const input = await screen.findByRole("textbox", { name: /message|輸入/i });
+    await waitFor(() => expect(input).toBeDisabled());
+
+    catalog.replace([{ id: "fast", displayName: "Fast model", isDefault: true }]);
+    fireEvent.click(screen.getByRole("button", { name: /retry|重試/i }));
+
+    await waitFor(() => expect(input).not.toBeDisabled());
+    expect(screen.queryByText(/aiServiceUnavailable|AI 服務暫時無法使用/)).not.toBeInTheDocument();
+  });
+
 
   it("shows message and title skeletons while session bootstrap is pending", async () => {
     const transport = new MemoryCopilotTransport();

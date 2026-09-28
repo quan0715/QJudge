@@ -43,6 +43,11 @@ class FakeSessionRepository:
         session = self.sessions.get(session_id)
         return session if session is not None and session.owner == principal else None
 
+    async def get_for_owner(
+        self, principal: Principal, session_id: UUID
+    ) -> Session | None:
+        return await self.get_for_update(principal, session_id)
+
 
 class FakeRunRepository:
     def __init__(self, runs: dict[UUID, Run], idempotency: dict[tuple[UUID, str], UUID]) -> None:
@@ -237,6 +242,22 @@ async def test_duplicate_idempotency_key_returns_the_same_run(
     assert state.messages.pairs == [(session.id, first.id, "hello")]
     assert len(credential_service.calls) == 2
     assert run_service.dispatcher.commit_counts == [1]
+
+
+async def test_find_by_idempotency_key_is_owner_scoped(
+    run_service: RunService, principal: Principal, state: FakeState
+) -> None:
+    session = next(iter(state.sessions.values()))
+    run = await run_service.start(
+        principal, session.id, "hello", "deepseek-flash", "same-key", "ai-token"
+    )
+
+    assert (
+        await run_service.find_by_idempotency_key(principal, session.id, "same-key")
+    ).id == run.id
+    assert await run_service.find_by_idempotency_key(principal, session.id, "other") is None
+    stranger = Principal("issuer", "someone-else")
+    assert await run_service.find_by_idempotency_key(stranger, session.id, "same-key") is None
 
 
 async def test_second_run_stays_queued_while_session_has_a_blocker(
