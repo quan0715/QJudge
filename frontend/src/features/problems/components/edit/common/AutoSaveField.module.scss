@@ -16,10 +16,3 @@
   right: 0;
   transform: translateY(-50%);
 }
-
-// For fields with labels, position indicator next to the label
-.container--with-label {
-  .indicator {
-    top: layout.$spacing-03;
-  }
-}

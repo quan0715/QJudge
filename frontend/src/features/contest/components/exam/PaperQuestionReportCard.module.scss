@@ -18,7 +18,7 @@
 
 .title {
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -27,7 +27,7 @@
 .meta {
   margin-top: layout.$spacing-02;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
@@ -41,7 +41,7 @@
 .feedbackLabel {
   margin-bottom: layout.$spacing-02;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   line-height: 1.2;
 }
 
@@ -51,13 +51,13 @@
 }
 
 .policyExcluded {
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
   font-size: 0.75rem;
   font-weight: 400;
 }
 
 .policyFullMarks {
-  color: var(--cds-support-success, #198038);
+  color: var(--cds-support-success);
   font-size: 0.75rem;
   font-weight: 400;
 }

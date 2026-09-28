@@ -1,35 +1,5 @@
 @use "@carbon/layout";
-
-.section {
-  width: 100%;
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: layout.$spacing-03;
-}
-
-.sectionTitle {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-03;
-
-  h3 {
-    margin: 0;
-    font-size: var(--cds-heading-compact-02-font-size);
-    font-weight: var(--cds-heading-compact-02-font-weight);
-    line-height: var(--cds-heading-compact-02-line-height);
-    color: var(--cds-text-primary);
-  }
-}
-
-.sectionDesc {
-  margin: 0 0 layout.$spacing-05;
-  font-size: var(--cds-body-compact-01-font-size);
-  color: var(--cds-text-secondary);
-}
+@use "@carbon/type";
 
 .languageAccordion {
   width: 100%;
@@ -56,8 +26,7 @@
 }
 
 .editorLabel {
-  font-size: var(--cds-label-01-font-size);
-  font-weight: var(--cds-label-01-font-weight);
+  @include type.type-style("label-01");
   color: var(--cds-text-secondary);
 }
 
@@ -65,30 +34,6 @@
   border: 1px solid var(--cds-border-subtle-01);
   border-radius: 4px;
   overflow: hidden;
-}
-
-.keywordsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: layout.$spacing-05;
-
-  @media (max-width: 672px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.keywordCard {
-  // Remove padding - let grid handle spacing
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-04;
-}
-
-.keywordCardTitle {
-  margin: 0;
-  display: flex;
-  align-items: center;
 }
 
 .keywordField {
@@ -111,7 +56,7 @@
 }
 
 .keywordEmpty {
-  font-size: var(--cds-body-compact-01-font-size);
+  font-size: 0.875rem;
   color: var(--cds-text-placeholder);
   font-style: italic;
 }

@@ -207,11 +207,3 @@
   object-fit: contain;
   display: block;
 }
-
-.guideHint {
-  display: flex;
-  align-items: center;
-  gap: layout.$spacing-02;
-  color: var(--cds-text-secondary);
-  font-size: 0.8125rem;
-}

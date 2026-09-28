@@ -17,7 +17,7 @@
 
 .chartHeader span {
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .chartHeader strong {
@@ -38,7 +38,7 @@
 
 .emptyState {
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .chartFrame {
@@ -55,7 +55,7 @@
   place-items: center;
   min-height: 13.75rem;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .chartSkeleton {

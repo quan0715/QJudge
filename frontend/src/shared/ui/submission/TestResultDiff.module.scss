@@ -1,9 +1,8 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .diffContainer {
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-  font-size: var(--cds-code-01-font-size, 0.75rem);
+  @include type.type-style("code-01");
   border: 1px solid var(--cds-border-subtle-01);
-  border-radius: var(--cds-border-radius, 0);
   overflow: hidden;
   background-color: var(--cds-layer-01);
 }

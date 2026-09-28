@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { Theme } from "@carbon/react";
 
@@ -57,6 +57,8 @@ const getInitialPreference = (): ThemePreference => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [preference, setPreferenceState] = useState<ThemePreference>(getInitialPreference);
   const [theme, setThemeState] = useState<ThemeType>(() => preferenceToTheme(getInitialPreference()));
+  const carbonThemeRef = useRef<HTMLDivElement>(null);
+  const carbonTokenNames = useRef<string[]>([]);
 
   // Single system theme listener — only active when preference === "system"
   useEffect(() => {
@@ -73,10 +75,25 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [preference]);
 
-  // Sync data-carbon-theme + root background + theme-color (iOS Safari / Android Chrome)
+  // Sync data-carbon-theme + root background + theme-color (iOS Safari / Android Chrome).
+  // Copy Carbon's emitted theme tokens to <html> so body-level portals can use them.
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-carbon-theme", theme);
+    const carbonThemeStyle = carbonThemeRef.current && window.getComputedStyle(carbonThemeRef.current);
+    for (const tokenName of carbonTokenNames.current) {
+      root.style.removeProperty(tokenName);
+    }
+    const nextCarbonTokenNames: string[] = [];
+    if (carbonThemeStyle) {
+      for (let index = 0; index < carbonThemeStyle.length; index += 1) {
+        const tokenName = carbonThemeStyle.item(index);
+        if (!tokenName.startsWith("--cds-")) continue;
+        root.style.setProperty(tokenName, carbonThemeStyle.getPropertyValue(tokenName));
+        nextCarbonTokenNames.push(tokenName);
+      }
+    }
+    carbonTokenNames.current = nextCarbonTokenNames;
     const bg = themeChromeColor(theme);
     root.style.backgroundColor = bg;
     const meta = document.querySelector('meta[name="theme-color"]');
@@ -94,7 +111,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ThemeContext.Provider value={{ theme, preference, setPreference }}>
-      <Theme theme={theme}>
+      <Theme theme={theme} ref={carbonThemeRef}>
         {children}
         <div id="modal-portal-root" />
       </Theme>

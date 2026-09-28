@@ -145,7 +145,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
                       overflow: "auto",
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
-                      fontFamily: "var(--cds-code-font-family, monospace)",
+                      fontFamily: "'IBM Plex Mono', monospace",
                       color: "var(--cds-text-secondary)",
                     }}
                   >

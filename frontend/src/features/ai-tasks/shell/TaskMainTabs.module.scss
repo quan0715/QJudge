@@ -4,7 +4,7 @@
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  background: var(--cds-layer-background-01, var(--cds-layer-01));
+  background: var(--cds-layer-background-01);
 }
 
 .tabBar {
@@ -81,7 +81,7 @@
     right: 0.5rem;
     bottom: -1px;
     height: 2px;
-    background: var(--cds-button-primary, #0f62fe);
+    background: var(--cds-button-primary);
     border-radius: 2px;
   }
 }

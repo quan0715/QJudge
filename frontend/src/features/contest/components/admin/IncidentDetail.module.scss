@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .detail {
   min-height: 0;
   min-width: 0;
@@ -144,7 +145,7 @@
   border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer-02);
   color: var(--cds-text-primary);
-  font-family: var(--cds-code-01-font-family, monospace);
+  font-family: type.font-family("mono");
   font-size: 0.75rem;
   line-height: 1.45;
   white-space: pre-wrap;

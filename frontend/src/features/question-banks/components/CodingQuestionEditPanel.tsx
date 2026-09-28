@@ -370,11 +370,11 @@ const CodingValidationTab = ({ ctx }: { ctx: CodingEditCtx }) => {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
               <div>
                 <p style={{ fontSize: "0.6875rem", color: "var(--cds-text-helper)", marginBottom: "0.125rem" }}>Input</p>
-                <pre style={{ margin: 0, padding: "0.375rem 0.5rem", background: "var(--cds-layer-02)", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "var(--cds-code-01-font-family, monospace)", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: "4rem", overflow: "hidden" }}>{tc.inputData || "—"}</pre>
+                <pre style={{ margin: 0, padding: "0.375rem 0.5rem", background: "var(--cds-layer-02)", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: "4rem", overflow: "hidden" }}>{tc.inputData || "—"}</pre>
               </div>
               <div>
                 <p style={{ fontSize: "0.6875rem", color: "var(--cds-text-helper)", marginBottom: "0.125rem" }}>Output</p>
-                <pre style={{ margin: 0, padding: "0.375rem 0.5rem", background: "var(--cds-layer-02)", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "var(--cds-code-01-font-family, monospace)", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: "4rem", overflow: "hidden" }}>{tc.outputData || "—"}</pre>
+                <pre style={{ margin: 0, padding: "0.375rem 0.5rem", background: "var(--cds-layer-02)", borderRadius: "4px", fontSize: "0.75rem", fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "pre-wrap", wordBreak: "break-all", maxHeight: "4rem", overflow: "hidden" }}>{tc.outputData || "—"}</pre>
               </div>
             </div>
           </div>

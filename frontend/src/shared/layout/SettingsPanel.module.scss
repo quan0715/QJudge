@@ -105,17 +105,3 @@
   align-items: center;
   gap: $spacing-03;
 }
-
-// ── DangerRow ───────────────────────────────────────────────────
-.dangerRow {
-  display: flex;
-  align-items: center;
-  gap: $spacing-06;
-  padding: $spacing-04 0;
-
-  @media (max-width: 671px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: $spacing-03;
-  }
-}

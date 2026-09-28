@@ -50,14 +50,14 @@
 
   &:hover {
     background-color: var(--cds-layer-hover);
-    border-color: var(--cds-border-subtle-00, #6f6f6f);
+    border-color: var(--cds-border-subtle-00);
   }
 
 }
 
 .badgeActive {
-  background-color: var(--cds-layer-03, #393939);
-  border-color: var(--cds-border-subtle-00, #6f6f6f);
+  background-color: var(--cds-layer-03);
+  border-color: var(--cds-border-subtle-00);
 }
 
 .badgeLabel {

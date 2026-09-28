@@ -28,34 +28,8 @@
     background-color: var(--cds-layer-selected-01);
   }
 
-  &__text {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.2;
-  }
-
-  &__name {
-    @include type.type-style("body-compact-01");
-    color: var(--cds-text-primary);
-    font-weight: 500;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__role {
-    @include type.type-style("helper-text-01");
-    color: var(--cds-text-helper);
-  }
-
   @media (max-width: 672px) {
     padding: 0 layout.$spacing-02;
-
-    &__text {
-      display: none;
-    }
   }
 }
 
@@ -91,13 +65,6 @@
   @include type.type-style("label-01");
   color: var(--cds-text-secondary);
   margin-left: auto;
-}
-
-// ===== Dropdown Fields =====
-.user-menu-fields {
-  display: flex;
-  flex-direction: column;
-  gap: layout.$spacing-05;
 }
 
 // ===== Divider =====

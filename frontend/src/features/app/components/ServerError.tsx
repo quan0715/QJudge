@@ -68,7 +68,7 @@ export const ServerError: FC<ServerErrorProps> = ({
               lineHeight: 1,
               marginBottom: "2rem",
               color: theme === "g100" ? "#ef4444" : "#dc2626",
-              fontFamily: "var(--cds-code-font-family, monospace)",
+              fontFamily: "'IBM Plex Mono', monospace",
               letterSpacing: "-0.05em",
             }}
           >
@@ -138,7 +138,7 @@ export const ServerError: FC<ServerErrorProps> = ({
                 marginTop: "2rem",
                 fontSize: "0.75rem",
                 color: "var(--cds-text-helper)",
-                fontFamily: "var(--cds-code-font-family, monospace)",
+                fontFamily: "'IBM Plex Mono', monospace",
               }}
             >
               錯誤時間：{timestamp}

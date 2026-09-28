@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .menuToggle {
   display: none;
 
@@ -37,14 +38,12 @@
 .productLabel {
   margin: 0 0 layout.$spacing-02;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size);
-  line-height: var(--cds-label-01-line-height);
+  @include type.type-style("label-01");
 }
 
 .productTitle {
   margin: 0;
-  font-size: var(--cds-heading-03-font-size);
-  line-height: var(--cds-heading-03-line-height);
+  @include type.type-style("heading-03");
 }
 
 .dashboardLink {
@@ -53,7 +52,7 @@
   gap: layout.$spacing-04;
   padding: layout.$spacing-04 layout.$spacing-05;
   color: var(--cds-link-primary);
-  font-size: var(--cds-body-compact-01-font-size);
+  font-size: 0.875rem;
   text-decoration: none;
 
   &:hover {

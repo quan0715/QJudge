@@ -58,30 +58,6 @@
   line-height: 1.5;
 }
 
-.countdownSection {
-  margin-top: 1.75rem;
-  padding: 1.25rem layout.$spacing-05;
-  border: 1px solid var(--cds-border-subtle-01);
-  background: var(--cds-layer-accent-01);
-}
-
-.countdownLabel {
-  margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.countdownValue {
-  margin: layout.$spacing-03 0 0;
-  color: var(--cds-support-success);
-  font-size: 2rem;
-  font-family: "IBM Plex Mono", monospace;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-}
-
 .noticeSection {
   margin-top: 1.75rem;
   padding: layout.$spacing-05;
@@ -119,9 +95,5 @@
 
   .lockTitle {
     font-size: 1.375rem;
-  }
-
-  .countdownValue {
-    font-size: 1.75rem;
   }
 }

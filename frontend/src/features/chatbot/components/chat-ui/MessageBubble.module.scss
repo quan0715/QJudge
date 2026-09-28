@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 .bubble {
   display: flex;
   box-sizing: border-box;
@@ -51,7 +52,7 @@
 .text {
   margin: 0;
   padding: layout.$spacing-03 layout.$spacing-04;
-  background: var(--cds-layer-accent-01, #e0e0e0);
+  background: var(--cds-layer-accent-01);
   border-radius: 12px 12px 2px 12px;
   font-size: 0.875rem;
   line-height: 1.4;
@@ -63,9 +64,9 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-wrap: anywhere;
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-  line-height: var(--cds-body-compact-02-line-height, 1.5);
-  color: var(--cds-text-primary, #161616);
+  font-size: 0.875rem;
+  line-height: 1.375;
+  color: var(--cds-text-primary);
 
   :global(pre),
   :global(table),
@@ -91,37 +92,25 @@
   :global(h2),
   :global(h3),
   :global(h4) {
-    color: var(--cds-text-primary, #161616);
+    color: var(--cds-text-primary);
     margin-top: layout.$spacing-06;
     margin-bottom: layout.$spacing-04;
   }
 
   :global(h1) {
-    font-size: var(--cds-heading-04-font-size, 1.75rem);
-    font-weight: var(--cds-heading-04-font-weight, 400);
-    line-height: var(--cds-heading-04-line-height, 1.4);
-    letter-spacing: var(--cds-heading-04-letter-spacing, 0);
+    @include type.type-style("heading-04");
   }
 
   :global(h2) {
-    font-size: var(--cds-heading-03-font-size, 1.25rem);
-    font-weight: var(--cds-heading-03-font-weight, 400);
-    line-height: var(--cds-heading-03-line-height, 1.4);
-    letter-spacing: var(--cds-heading-03-letter-spacing, 0);
+    @include type.type-style("heading-03");
   }
 
   :global(h3) {
-    font-size: var(--cds-heading-02-font-size, 1rem);
-    font-weight: var(--cds-heading-02-font-weight, 400);
-    line-height: var(--cds-heading-02-line-height, 1.4);
-    letter-spacing: var(--cds-heading-02-letter-spacing, 0);
+    @include type.type-style("heading-02");
   }
 
   :global(h4) {
-    font-size: var(--cds-heading-01-font-size, 0.875rem);
-    font-weight: var(--cds-heading-01-font-weight, 600);
-    line-height: var(--cds-heading-01-line-height, 1.4);
-    letter-spacing: var(--cds-heading-01-letter-spacing, 0);
+    @include type.type-style("heading-01");
   }
 
   :global(p) {
@@ -144,8 +133,8 @@
   }
 
   :global(code) {
-    font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-    background-color: var(--cds-layer-accent-01, #e0e0e0);
+    font-family: type.font-family("mono");
+    background-color: var(--cds-layer-accent-01);
     padding: layout.$spacing-01 layout.$spacing-02;
     border-radius: 2px;
     font-size: 0.85em;
@@ -164,12 +153,12 @@
   :global(blockquote) {
     margin: layout.$spacing-05 0;
     padding: 0 0 0 layout.$spacing-05;
-    border-left: 2px solid var(--cds-border-subtle-01, #c6c6c6);
-    color: var(--cds-text-secondary, #525252);
+    border-left: 2px solid var(--cds-border-subtle-01);
+    color: var(--cds-text-secondary);
   }
 
   :global(a) {
-    color: var(--cds-link-primary, #0f62fe);
+    color: var(--cds-link-primary);
     text-decoration: none;
     &:hover {
       text-decoration: underline;
@@ -178,19 +167,18 @@
 }
 
 .thinking {
-  --chat-thinking-text: var(--cds-text-helper, #6f6f6f);
-  --chat-thinking-border: var(--cds-border-subtle-01, #e0e0e0);
+  --chat-thinking-text: var(--cds-text-helper);
+  --chat-thinking-border: var(--cds-border-subtle-01);
 
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   color: var(--chat-thinking-text);
   padding: layout.$spacing-03 0;
   margin: layout.$spacing-02 0;
 
   summary {
     cursor: pointer;
+    @include type.type-style("label-01");
     font-weight: 600;
-    font-size: var(--cds-label-01-font-size, 0.75rem);
-    letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
     text-transform: uppercase;
     color: var(--chat-thinking-text);
     user-select: none;
@@ -218,7 +206,7 @@
   margin-top: layout.$spacing-04;
   padding-top: layout.$spacing-04;
   border-top: 1px solid var(--chat-thinking-border);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   line-height: 1.5;
   max-height: 300px;
   overflow-y: auto;
@@ -259,12 +247,12 @@
 
   :global(code) {
     color: inherit;
-    background-color: var(--cds-layer-accent-01, #e0e0e0);
+    background-color: var(--cds-layer-accent-01);
   }
 
   :global(a) {
     color: var(--chat-thinking-text);
-    text-decoration-color: var(--cds-border-strong-01, #8d8d8d);
+    text-decoration-color: var(--cds-border-strong-01);
   }
 }
 
@@ -298,21 +286,12 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--cds-text-secondary, #525252);
+    background: var(--cds-text-secondary);
     animation: dotPulse 1.4s infinite ease-in-out both;
 
     &:nth-child(1) { animation-delay: -0.32s; }
     &:nth-child(2) { animation-delay: -0.16s; }
   }
-}
-
-.runStatus {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: layout.$spacing-01 0;
-  color: var(--cds-text-secondary, #525252);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  line-height: var(--cds-label-01-line-height, 1.34);
 }
 
 @keyframes dotPulse {

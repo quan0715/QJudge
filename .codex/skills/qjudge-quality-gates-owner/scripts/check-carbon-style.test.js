@@ -73,6 +73,14 @@ test("all-scope gate rejects runtime Carbon spacing variables", (t) => {
   assert.match(result.stdout, /invalid-carbon-spacing-variable/);
 });
 
+test("all-scope gate rejects runtime Carbon type variables", (t) => {
+  const result = runFixture(t, {
+    "BadType.module.scss": `.root { font-size: var(--cds-heading-05-font-size); }`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /invalid-carbon-type-variable/);
+});
+
 test("staged gate reads the index instead of a clean working-tree version", (t) => {
   const result = runStagedFixture(
     t,
@@ -109,6 +117,23 @@ test("staged gate rejects invalid spacing variables and accepts Sass tokens", (t
     t,
     '@use "@carbon/layout";\n.root { padding: layout.$spacing-05; }',
     ".root { padding: var(--cds-spacing-05); }",
+  );
+  assert.equal(clean.status, 0, clean.stderr || clean.stdout);
+});
+
+test("staged gate rejects type variables and accepts the type-style mixin", (t) => {
+  const blocked = runStagedFixture(
+    t,
+    ".root { line-height: var(--cds-label-01-line-height); }",
+    '@use "@carbon/type";\n.root { @include type.type-style("label-01"); }',
+  );
+  assert.equal(blocked.status, 1);
+  assert.match(blocked.stderr, /type token runtime variables/);
+
+  const clean = runStagedFixture(
+    t,
+    '@use "@carbon/type";\n.root { @include type.type-style("label-01"); }',
+    ".root { line-height: var(--cds-label-01-line-height); }",
   );
   assert.equal(clean.status, 0, clean.stderr || clean.stdout);
 });

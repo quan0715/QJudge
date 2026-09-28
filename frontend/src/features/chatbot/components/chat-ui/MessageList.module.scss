@@ -52,7 +52,7 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--cds-border-subtle-01, #c6c6c6);
+    background: var(--cds-border-subtle-01);
     border-radius: 3px;
   }
 }
@@ -70,8 +70,8 @@
   border-radius: 50%;
 
   // Subtle background
-  background-color: var(--cds-layer-03, #e0e0e0);
-  border: 1px solid var(--cds-border-subtle-01, #c6c6c6);
+  background-color: var(--cds-layer-03);
+  border: 1px solid var(--cds-border-subtle-01);
   opacity: 0.8;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
@@ -80,7 +80,7 @@
   &:hover {
     transform: translateX(-50%) translateY(-2px);
     opacity: 1;
-    background-color: var(--cds-layer-hover-03, #d1d1d1);
+    background-color: var(--cds-layer-hover-03);
   }
 
   &:active {
@@ -89,7 +89,7 @@
 
   // Carbon icons integration
   svg {
-    fill: var(--cds-icon-secondary, #525252);
+    fill: var(--cds-icon-secondary);
   }
 }
 

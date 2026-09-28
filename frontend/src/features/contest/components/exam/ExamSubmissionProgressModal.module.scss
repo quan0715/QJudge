@@ -28,18 +28,18 @@
 }
 
 .stepLabel {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .hintText {
   margin-top: layout.$spacing-05;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
 }
 
 .errorText {
   margin-top: layout.$spacing-05;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-support-error);
 }
 

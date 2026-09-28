@@ -53,12 +53,12 @@
 .cellScoreExcluded {
   font-variant-numeric: tabular-nums;
   text-decoration: line-through;
-  color: var(--cds-text-helper, #6f6f6f);
+  color: var(--cds-text-helper);
 }
 
 /* Full marks star badge */
 .policyBadgeFullMarks {
-  color: var(--cds-support-success, #198038);
+  color: var(--cds-support-success);
   font-size: 0.75rem;
 }
 
@@ -86,7 +86,7 @@
 .statusCorrect {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--cds-support-success, #24a148);
+  color: var(--cds-support-success);
 }
 
 .statusPartial {
@@ -98,12 +98,12 @@
 .statusIncorrect {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
 }
 
 .statusPending,
 .statusMissing {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--cds-text-helper, #8d8d8d);
+  color: var(--cds-text-helper);
 }

@@ -138,7 +138,7 @@
 }
 
 .miniItemActive {
-  background-color: color-mix(in srgb, var(--cds-layer-selected-01, var(--cds-layer-accent-01)) 56%, transparent);
+  background-color: color-mix(in srgb, var(--cds-layer-selected-01) 56%, transparent);
 }
 
 .item {
@@ -163,7 +163,7 @@
 }
 
 .itemActive {
-  background-color: color-mix(in srgb, var(--cds-layer-selected-01, var(--cds-layer-accent-01)) 56%, transparent);
+  background-color: color-mix(in srgb, var(--cds-layer-selected-01) 56%, transparent);
 
   &:hover {
     background-color: color-mix(in srgb, var(--cds-layer-selected-hover-01) 68%, transparent);

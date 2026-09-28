@@ -37,7 +37,7 @@ export const ExamModeMonitorModal = ({
           />
           <span
             style={{
-              fontSize: "var(--cds-body-compact-01-font-size, 0.875rem)",
+              fontSize: "0.875rem",
               fontWeight: 600,
               color: "var(--cds-text-primary)",
             }}
@@ -50,7 +50,7 @@ export const ExamModeMonitorModal = ({
         <div>
           <p
             style={{
-              fontSize: "var(--cds-body-compact-01-font-size, 0.875rem)",
+              fontSize: "0.875rem",
               fontWeight: 600,
               marginBottom: "0.75rem",
               color: "var(--cds-text-primary)",
@@ -89,7 +89,7 @@ export const ExamModeMonitorModal = ({
             />
             <p
               style={{
-                fontSize: "var(--cds-body-compact-01-font-size, 0.875rem)",
+                fontSize: "0.875rem",
                 color: "var(--cds-text-primary)",
                 margin: 0,
                 lineHeight: 1.5,

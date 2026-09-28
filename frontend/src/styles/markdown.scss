@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 /* 
  * Markdown Styles - Following Carbon Design System Typography
  * https://carbondesignsystem.com/guidelines/typography/overview
@@ -6,72 +7,44 @@
 
 .markdown-body {
   /* Use Carbon's default body font */
-  font-family: var(
-    --cds-body-compact-01-font-family,
-    "IBM Plex Sans",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif
-  );
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-  font-weight: var(--cds-body-compact-01-font-weight, 400);
-  line-height: var(--cds-body-compact-01-line-height, 1.42857);
-  letter-spacing: var(--cds-body-compact-01-letter-spacing, 0.16px);
+  font-family: type.font-family("sans");
+  @include type.type-style("body-compact-01");
   color: var(--cds-text-primary);
 }
 
 /* Headings - Using Carbon productive heading tokens */
 .markdown-body h1 {
-  font-size: var(--cds-productive-heading-05-font-size, 2rem);
-  font-weight: var(--cds-productive-heading-05-font-weight, 400);
-  line-height: var(--cds-productive-heading-05-line-height, 1.25);
-  letter-spacing: var(--cds-productive-heading-05-letter-spacing, 0);
+  @include type.type-style("heading-05");
   margin-top: layout.$spacing-07;
   margin-bottom: layout.$spacing-05;
 }
 
 .markdown-body h2 {
-  font-size: var(--cds-productive-heading-04-font-size, 1.75rem);
-  font-weight: var(--cds-productive-heading-04-font-weight, 400);
-  line-height: var(--cds-productive-heading-04-line-height, 1.28572);
-  letter-spacing: var(--cds-productive-heading-04-letter-spacing, 0);
+  @include type.type-style("heading-04");
   margin-top: layout.$spacing-06;
   margin-bottom: layout.$spacing-04;
 }
 
 .markdown-body h3 {
-  font-size: var(--cds-productive-heading-03-font-size, 1.25rem);
-  font-weight: var(--cds-productive-heading-03-font-weight, 400);
-  line-height: var(--cds-productive-heading-03-line-height, 1.4);
-  letter-spacing: var(--cds-productive-heading-03-letter-spacing, 0);
+  @include type.type-style("heading-03");
   margin-top: 1.25rem;
   margin-bottom: layout.$spacing-03;
 }
 
 .markdown-body h4 {
-  font-size: var(--cds-productive-heading-02-font-size, 1rem);
-  font-weight: var(--cds-productive-heading-02-font-weight, 600);
-  line-height: var(--cds-productive-heading-02-line-height, 1.375);
-  letter-spacing: var(--cds-productive-heading-02-letter-spacing, 0);
+  @include type.type-style("heading-compact-02");
   margin-top: layout.$spacing-05;
   margin-bottom: layout.$spacing-03;
 }
 
 .markdown-body h5 {
-  font-size: var(--cds-productive-heading-01-font-size, 0.875rem);
-  font-weight: var(--cds-productive-heading-01-font-weight, 600);
-  line-height: var(--cds-productive-heading-01-line-height, 1.28572);
-  letter-spacing: var(--cds-productive-heading-01-letter-spacing, 0.16px);
+  @include type.type-style("heading-compact-01");
   margin-top: layout.$spacing-05;
   margin-bottom: layout.$spacing-03;
 }
 
 .markdown-body h6 {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  font-weight: var(--cds-label-01-font-weight, 400);
-  line-height: var(--cds-label-01-line-height, 1.33333);
-  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  @include type.type-style("label-01");
   color: var(--cds-text-secondary);
   margin-top: layout.$spacing-05;
   margin-bottom: layout.$spacing-03;
@@ -79,9 +52,7 @@
 
 /* Paragraphs - Using Carbon body-long-01 */
 .markdown-body p {
-  font-size: var(--cds-body-long-01-font-size, 0.875rem);
-  line-height: var(--cds-body-long-01-line-height, 1.42857);
-  letter-spacing: var(--cds-body-long-01-letter-spacing, 0.16px);
+  @include type.type-style("body-01");
   margin-bottom: layout.$spacing-05;
   color: var(--cds-text-primary);
 }
@@ -122,8 +93,7 @@
 .markdown-body li {
   margin-bottom: layout.$spacing-02;
   display: list-item;
-  font-size: var(--cds-body-long-01-font-size, 0.875rem);
-  line-height: var(--cds-body-long-01-line-height, 1.42857);
+  @include type.type-style("body-01");
 }
 
 .markdown-body ul ul,
@@ -136,14 +106,11 @@
 
 /* Inline Code - Red text only, no border */
 .markdown-body code {
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
-  font-size: var(--cds-code-01-font-size, 0.75rem);
-  line-height: var(--cds-code-01-line-height, 1.33333);
-  letter-spacing: var(--cds-code-01-letter-spacing, 0.32px);
+  @include type.type-style("code-01");
   background-color: var(--cds-layer-01);
   padding: layout.$spacing-01 layout.$spacing-02;
   border-radius: 2px;
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
   font-weight: 400;
 }
 
@@ -213,8 +180,7 @@
   padding: 0;
   border-radius: 0;
   color: inherit;
-  font-size: var(--cds-code-02-font-size, 0.875rem);
-  line-height: var(--cds-code-02-line-height, 1.42857);
+  @include type.type-style("code-02");
   font-weight: 400;
 }
 
@@ -250,7 +216,7 @@
 
 .markdown-body .mermaid-block--error {
   border-left: 3px solid var(--cds-support-error);
-  background: var(--cds-notification-error-background, var(--cds-layer-01));
+  background: var(--cds-notification-background-error);
 }
 
 .markdown-body .mermaid-block--error p {
@@ -316,7 +282,7 @@
 .markdown-body h5 code,
 .markdown-body h6 code {
   background-color: var(--cds-layer-01);
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
   padding: layout.$spacing-01 layout.$spacing-02;
   font-weight: 400;
 }
@@ -356,7 +322,7 @@
   width: 100%;
   margin-bottom: layout.$spacing-05;
   border: none;
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
 }
 
 .markdown-body table th,
@@ -369,10 +335,9 @@
 
 .markdown-body table th {
   background-color: var(--cds-layer-01);
-  font-weight: 600;
   color: var(--cds-text-secondary);
-  font-size: var(--cds-label-01-font-size, 0.75rem);
-  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
+  @include type.type-style("label-01");
+  font-weight: 600;
   text-transform: uppercase;
   border-bottom: 1px solid var(--cds-border-strong-01);
 }
@@ -395,7 +360,7 @@
 }
 
 .markdown-body table tbody tr:nth-child(even) {
-  background-color: var(--cds-layer-accent-01, rgba(0, 0, 0, 0.03));
+  background-color: var(--cds-layer-accent-01);
 }
 
 /* Dark theme table adjustments */
@@ -411,7 +376,7 @@
 
 [data-carbon-theme="g100"] .markdown-body table tbody tr:nth-child(even),
 [data-carbon-theme="g90"] .markdown-body table tbody tr:nth-child(even) {
-  background-color: var(--cds-layer-accent-01, rgba(255, 255, 255, 0.03));
+  background-color: var(--cds-layer-accent-01);
 }
 
 [data-carbon-theme="g100"] .markdown-body table tbody tr:hover,
@@ -476,12 +441,11 @@
   min-height: 3rem; /* 48px */
   padding: layout.$spacing-04 layout.$spacing-05; /* 12px 16px */
   margin: layout.$spacing-05 0;
-  background-color: var(--cds-notification-info-background, #edf5ff);
-  border-left: 3px solid var(--cds-support-info, #0f62fe);
+  background-color: var(--cds-notification-background-info);
+  border-left: 3px solid var(--cds-support-info);
   border-radius: 0;
   color: var(--cds-text-primary);
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
-  line-height: var(--cds-body-compact-01-line-height, 1.42857);
+  @include type.type-style("body-compact-01");
 }
 
 .markdown-body aside p {
@@ -504,9 +468,8 @@
 /* Aside title styling (strong element at the start) */
 .markdown-body aside strong:first-child,
 .markdown-body aside p:first-child strong:first-child {
+  @include type.type-style("heading-compact-01");
   font-weight: 600;
-  font-size: var(--cds-heading-compact-01-font-size, 0.875rem);
-  line-height: var(--cds-heading-compact-01-line-height, 1.28572);
 }
 
 /* Aside variants - IBM Carbon Notification Colors
@@ -517,8 +480,8 @@
 .markdown-body aside[data-type="note"],
 .markdown-body aside.info,
 .markdown-body aside.note {
-  background-color: var(--cds-notification-info-background, #edf5ff);
-  border-left-color: var(--cds-support-info, #0f62fe);
+  background-color: var(--cds-notification-background-info);
+  border-left-color: var(--cds-support-info);
 }
 
 /* Warning - Yellow */
@@ -526,8 +489,8 @@
 .markdown-body aside[data-type="caution"],
 .markdown-body aside.warning,
 .markdown-body aside.caution {
-  background-color: var(--cds-notification-warning-background, #fcf4d6);
-  border-left-color: var(--cds-support-warning, #f1c21b);
+  background-color: var(--cds-notification-background-warning);
+  border-left-color: var(--cds-support-warning);
 }
 
 /* Error/Danger - Red */
@@ -535,8 +498,8 @@
 .markdown-body aside[data-type="danger"],
 .markdown-body aside.error,
 .markdown-body aside.danger {
-  background-color: var(--cds-notification-error-background, #fff1f1);
-  border-left-color: var(--cds-support-error, #da1e28);
+  background-color: var(--cds-notification-background-error);
+  border-left-color: var(--cds-support-error);
 }
 
 /* Success - Green */
@@ -544,14 +507,14 @@
 .markdown-body aside[data-type="tip"],
 .markdown-body aside.success,
 .markdown-body aside.tip {
-  background-color: var(--cds-notification-success-background, #defbe6);
-  border-left-color: var(--cds-support-success, #24a148);
+  background-color: var(--cds-notification-background-success);
+  border-left-color: var(--cds-support-success);
 }
 
 /* Inline code inside aside - keep red styling */
 .markdown-body aside code {
   background-color: rgba(0, 0, 0, 0.05);
-  color: var(--cds-support-error, #da1e28);
+  color: var(--cds-support-error);
 }
 
 /* Lists inside aside */
@@ -569,7 +532,7 @@
 [data-carbon-theme="g90"] .markdown-body aside,
 [data-carbon-theme="g100"] .markdown-body aside {
   background-color: #262626;
-  border-left-color: var(--cds-support-info, #4589ff);
+  border-left-color: var(--cds-support-info);
 }
 
 [data-carbon-theme="g90"] .markdown-body aside[data-type="info"],
@@ -581,7 +544,7 @@
 [data-carbon-theme="g90"] .markdown-body aside.note,
 [data-carbon-theme="g100"] .markdown-body aside.note {
   background-color: #002d9c;
-  border-left-color: var(--cds-support-info, #4589ff);
+  border-left-color: var(--cds-support-info);
 }
 
 [data-carbon-theme="g90"] .markdown-body aside[data-type="warning"],
@@ -593,7 +556,7 @@
 [data-carbon-theme="g90"] .markdown-body aside.caution,
 [data-carbon-theme="g100"] .markdown-body aside.caution {
   background-color: #684e00;
-  border-left-color: var(--cds-support-warning, #f1c21b);
+  border-left-color: var(--cds-support-warning);
 }
 
 [data-carbon-theme="g90"] .markdown-body aside[data-type="error"],
@@ -605,7 +568,7 @@
 [data-carbon-theme="g90"] .markdown-body aside.danger,
 [data-carbon-theme="g100"] .markdown-body aside.danger {
   background-color: #520408;
-  border-left-color: var(--cds-support-error, #fa4d56);
+  border-left-color: var(--cds-support-error);
 }
 
 [data-carbon-theme="g90"] .markdown-body aside[data-type="success"],
@@ -617,13 +580,13 @@
 [data-carbon-theme="g90"] .markdown-body aside.tip,
 [data-carbon-theme="g100"] .markdown-body aside.tip {
   background-color: #044317;
-  border-left-color: var(--cds-support-success, #42be65);
+  border-left-color: var(--cds-support-success);
 }
 
 [data-carbon-theme="g90"] .markdown-body aside code,
 [data-carbon-theme="g100"] .markdown-body aside code {
   background-color: rgba(255, 255, 255, 0.1);
-  color: var(--cds-support-error, #fa4d56);
+  color: var(--cds-support-error);
 }
 
 /* First heading in document - no top margin */
@@ -640,10 +603,7 @@
 /* Problem Title - H0 (Special largest heading with underline) */
 .markdown-body .problem-title,
 .markdown-body h1.problem-title {
-  font-size: var(--cds-productive-heading-05-font-size, 2rem);
-  font-weight: var(--cds-productive-heading-05-font-weight, 400);
-  line-height: var(--cds-productive-heading-05-line-height, 1.25);
-  letter-spacing: var(--cds-productive-heading-05-letter-spacing, 0);
+  @include type.type-style("heading-05");
   margin: 0 0 layout.$spacing-07 0;
   padding-bottom: layout.$spacing-04;
   border-bottom: 2px solid var(--cds-border-strong-01);
@@ -683,12 +643,11 @@
 }
 
 .markdown-body .sample-case__label {
-  font-weight: 600;
   margin: 0 0 layout.$spacing-03 0;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  @include type.type-style("label-01");
+  font-weight: 600;
   color: var(--cds-text-secondary);
   text-transform: uppercase;
-  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
 }
 
 .markdown-body .sample-case__code {
@@ -697,10 +656,9 @@
   border-radius: 4px;
   margin: 0;
   overflow-x: auto;
-  font-size: var(--cds-code-01-font-size, 0.75rem);
+  @include type.type-style("code-01");
   line-height: 1.5;
   border: 1px solid var(--cds-border-subtle);
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
   color: var(--cds-text-primary);
   white-space: pre-wrap;
   word-break: break-all;
@@ -712,11 +670,10 @@
 }
 
 .markdown-body .keyword-group h3 {
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  @include type.type-style("label-01");
   font-weight: 600;
   color: var(--cds-text-secondary);
   text-transform: uppercase;
-  letter-spacing: var(--cds-label-01-letter-spacing, 0.32px);
   margin: 0 0 layout.$spacing-03 0;
 }
 
@@ -731,18 +688,18 @@
   padding: layout.$spacing-02 layout.$spacing-03;
   border-radius: 4px;
   font-size: 0.875rem;
-  font-family: var(--cds-code-01-font-family, "IBM Plex Mono", monospace);
+  font-family: type.font-family("mono");
   background-color: var(--cds-layer-01);
 }
 
 .markdown-body .keyword-tag--success {
-  background-color: var(--cds-tag-background-green, #a7f0ba);
-  color: var(--cds-tag-color-green, #044317);
+  background-color: var(--cds-tag-background-green);
+  color: var(--cds-tag-color-green);
 }
 
 .markdown-body .keyword-tag--error {
-  background-color: var(--cds-tag-background-red, #ffd7d9);
-  color: var(--cds-tag-color-red, #750e13);
+  background-color: var(--cds-tag-background-red);
+  color: var(--cds-tag-color-red);
 }
 
 /* Empty State */

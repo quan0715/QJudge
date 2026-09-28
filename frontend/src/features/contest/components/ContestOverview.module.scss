@@ -29,15 +29,3 @@
 .rulesContent {
   margin-top: layout.$spacing-02;
 }
-
-.reportRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: layout.$spacing-05;
-}
-
-.reportDescription {
-  font-size: 0.875rem;
-  color: var(--cds-text-secondary);
-}

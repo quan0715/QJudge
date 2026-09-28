@@ -35,7 +35,7 @@
 
 .button:hover .dangerBorder,
 .button:focus-visible .dangerBorder {
-  border-color: var(--cds-support-error, #da1e28);
+  border-color: var(--cds-support-error);
   box-shadow: 0 0 0 1px rgba(218, 30, 40, 0.25);
 }
 
@@ -53,7 +53,7 @@
 
 .title {
   margin: 0;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.2;
   color: var(--cds-text-primary);
@@ -63,7 +63,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
-  font-size: var(--cds-heading-04-font-size, 1.5rem);
+  font-size: 1.75rem;
   font-weight: 600;
   color: var(--cds-text-primary);
   font-variant-numeric: tabular-nums;
@@ -71,7 +71,7 @@
 }
 
 .unit {
-  font-size: var(--cds-body-compact-01-font-size, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--cds-text-secondary);
 }
@@ -83,7 +83,7 @@
   gap: layout.$spacing-04;
   margin-top: auto;
   padding-top: layout.$spacing-02;
-  font-size: var(--cds-label-01-font-size, 0.75rem);
+  font-size: 0.75rem;
   color: var(--cds-text-secondary);
   transition: color 160ms ease;
 }
@@ -105,7 +105,7 @@
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: var(--cds-layer-02, #f4f4f4);
+  background: var(--cds-layer-02);
   color: var(--cds-icon-secondary);
   transition:
     background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -127,8 +127,8 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--cds-support-error, #da1e28);
-  border: 1.5px solid var(--cds-layer-02, #f4f4f4);
+  background: var(--cds-support-error);
+  border: 1.5px solid var(--cds-layer-02);
 
   .button:hover &,
   .button:focus-visible & {
@@ -143,24 +143,24 @@
 .intentNavigate {}
 .activeNavigate {
   background: rgba(15, 98, 254, 0.12);
-  color: var(--cds-interactive, #0f62fe);
+  color: var(--cds-interactive);
 }
 
 .intent_navigate:hover .card,
 .intent_navigate:focus-visible .card {
-  border-color: var(--cds-interactive, #0f62fe);
-  box-shadow: 0 0 0 1px var(--cds-interactive, #0f62fe);
+  border-color: var(--cds-interactive);
+  box-shadow: 0 0 0 1px var(--cds-interactive);
 }
 
 .intent_navigate:hover .footer,
 .intent_navigate:focus-visible .footer {
-  color: var(--cds-interactive, #0f62fe);
+  color: var(--cds-interactive);
 }
 
 .intent_navigate:hover .intentNavigate,
 .intent_navigate:focus-visible .intentNavigate {
-  background: var(--cds-interactive, #0f62fe);
-  color: var(--cds-text-on-color, #fff);
+  background: var(--cds-interactive);
+  color: var(--cds-text-on-color);
   transform: scale(1.1);
   box-shadow: 0 2px 6px rgba(15, 98, 254, 0.3);
 }
@@ -172,24 +172,24 @@
 .intentToggle {}
 .activeToggle {
   background: rgba(36, 161, 72, 0.12);
-  color: var(--cds-support-success, #24a148);
+  color: var(--cds-support-success);
 }
 
 .intent_toggle:hover .card,
 .intent_toggle:focus-visible .card {
-  border-color: var(--cds-support-success, #24a148);
-  box-shadow: 0 0 0 1px var(--cds-support-success, #24a148);
+  border-color: var(--cds-support-success);
+  box-shadow: 0 0 0 1px var(--cds-support-success);
 }
 
 .intent_toggle:hover .footer,
 .intent_toggle:focus-visible .footer {
-  color: var(--cds-support-success, #24a148);
+  color: var(--cds-support-success);
 }
 
 .intent_toggle:hover .intentToggle,
 .intent_toggle:focus-visible .intentToggle {
-  background: var(--cds-support-success, #24a148);
-  color: var(--cds-text-on-color, #fff);
+  background: var(--cds-support-success);
+  color: var(--cds-text-on-color);
   transform: scale(1.1);
   box-shadow: 0 2px 6px rgba(36, 161, 72, 0.3);
 
@@ -205,23 +205,23 @@
 .intentDanger {}
 .activeDanger {
   background: rgba(241, 194, 27, 0.12);
-  color: var(--cds-support-warning, #f1c21b);
+  color: var(--cds-support-warning);
 }
 
 .intent_danger:hover .card,
 .intent_danger:focus-visible .card {
-  border-color: var(--cds-support-warning, #f1c21b);
-  box-shadow: 0 0 0 1px var(--cds-support-warning, #f1c21b);
+  border-color: var(--cds-support-warning);
+  box-shadow: 0 0 0 1px var(--cds-support-warning);
 }
 
 .intent_danger:hover .footer,
 .intent_danger:focus-visible .footer {
-  color: var(--cds-support-warning, #f1c21b);
+  color: var(--cds-support-warning);
 }
 
 .intent_danger:hover .intentDanger,
 .intent_danger:focus-visible .intentDanger {
-  background: var(--cds-support-warning, #f1c21b);
+  background: var(--cds-support-warning);
   color: var(--cds-text-primary);
   transform: scale(1.1);
   box-shadow: 0 2px 6px rgba(241, 194, 27, 0.3);
