@@ -6,6 +6,7 @@
  * - Content (fills remaining space, hidden when collapsed)
  */
 @use "@carbon/layout";
+@use "@carbon/type";
 
 .result-panel {
   height: 100%;
@@ -45,17 +46,14 @@
   // Uses Carbon heading-compact-01 type set
   &__empty-title {
     margin: 0;
-    font-size: var(--cds-heading-compact-01-font-size);
-    font-weight: var(--cds-heading-compact-01-font-weight);
-    line-height: var(--cds-heading-compact-01-line-height);
+    @include type.type-style("heading-compact-01");
     color: var(--cds-text-primary);
   }
 
   // Uses Carbon body-compact-01 type set
   &__empty-subtitle {
     margin: layout.$spacing-02 0 0;
-    font-size: var(--cds-body-compact-01-font-size);
-    line-height: var(--cds-body-compact-01-line-height);
+    @include type.type-style("body-compact-01");
   }
 
   &__skeleton {

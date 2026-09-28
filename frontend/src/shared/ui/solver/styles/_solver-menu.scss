@@ -2,6 +2,7 @@
 // ProblemMenu styles
 // 背景色由 Carbon Layer 組件處理
 @use "@carbon/layout";
+@use "@carbon/type";
 
 // ==============================================
 // Shared Variables - 統一尺寸
@@ -95,8 +96,6 @@
 // Problem Label (e.g., "A", "B")
 // Uses Carbon body-compact-02 type set for proper sizing
 .solver-menu__label {
-  font-size: var(--cds-body-compact-02-font-size);
-  font-weight: var(--cds-body-compact-02-font-weight);
-  line-height: var(--cds-body-compact-02-line-height);
+  @include type.type-style("body-compact-02");
   color: inherit;
 }

@@ -1,4 +1,5 @@
 @use "@carbon/layout";
+@use "@carbon/type";
 
 .section {
   width: 100%;
@@ -18,16 +19,14 @@
 
   h3 {
     margin: 0;
-    font-size: var(--cds-heading-compact-02-font-size);
-    font-weight: var(--cds-heading-compact-02-font-weight);
-    line-height: var(--cds-heading-compact-02-line-height);
+    @include type.type-style("heading-compact-02");
     color: var(--cds-text-primary);
   }
 }
 
 .sectionDesc {
   margin: 0 0 layout.$spacing-05;
-  font-size: var(--cds-body-compact-01-font-size);
+  font-size: 0.875rem;
   color: var(--cds-text-secondary);
 }
 
@@ -56,8 +55,7 @@
 }
 
 .editorLabel {
-  font-size: var(--cds-label-01-font-size);
-  font-weight: var(--cds-label-01-font-weight);
+  @include type.type-style("label-01");
   color: var(--cds-text-secondary);
 }
 
@@ -111,7 +109,7 @@
 }
 
 .keywordEmpty {
-  font-size: var(--cds-body-compact-01-font-size);
+  font-size: 0.875rem;
   color: var(--cds-text-placeholder);
   font-style: italic;
 }
