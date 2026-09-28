@@ -676,6 +676,9 @@ mcp = FastMCP(
     auth=AuthSettings(
         issuer_url=OAUTH_ISSUER_URL,
         resource_server_url=MCP_PUBLIC_URL,
+        # Also published as the resource metadata's scopes_supported, so MCP
+        # clients request only "mcp" instead of every scope the issuer offers.
+        required_scopes=["mcp"],
     ),
     token_verifier=QJudgeTokenVerifier(),
 )

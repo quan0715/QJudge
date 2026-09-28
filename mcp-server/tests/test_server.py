@@ -1556,3 +1556,18 @@ def test_django_api_omits_auth_when_request_is_none(monkeypatch):
 
     assert result == {"ok": True}
     assert "Authorization" not in calls[0]["headers"]
+
+
+def test_protected_resource_metadata_advertises_only_mcp_scope():
+    from starlette.testclient import TestClient
+
+    app = server.mcp.streamable_http_app()
+    metadata_path = next(
+        route.path
+        for route in app.routes
+        if route.path.startswith("/.well-known/oauth-protected-resource")
+    )
+    response = TestClient(app).get(metadata_path)
+
+    assert response.status_code == 200
+    assert response.json()["scopes_supported"] == ["mcp"]
