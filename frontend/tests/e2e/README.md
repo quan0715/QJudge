@@ -15,8 +15,8 @@ application's delete/archive APIs, including on failure.
 
 ## CI
 
-`e2e.yml` runs the auth and coding groups on each pull request targeting main (no path filter); exam and contest
-run on manual dispatch only until their specs are updated. The `coding` group calls `e2e-coding.yml`. Dev pull requests and branch pushes do not run E2E. Coding no longer runs `tag-management.e2e.spec.ts`, which tests tag API
+`e2e.yml` runs every Playwright group (auth, exam, contest, coding) on each pull request targeting main (no path
+filter) and on manual dispatch; its `coding` group calls `e2e-coding.yml`. Dev pull requests and branch pushes do not run E2E. Coding no longer runs `tag-management.e2e.spec.ts`, which tests tag API
 permissions rather than student code execution.
 
 The workflow first runs `auth.e2e.spec.ts` to verify login, registration, onboarding,
