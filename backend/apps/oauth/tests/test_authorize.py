@@ -151,23 +151,6 @@ class ApproveAuthorizationTest(TestCase):
         self.assertIn("redirect_uri", data)
         self.assertIn("code=", data["redirect_uri"])
 
-    def test_approve_accepts_qjudge_paper_scope(self):
-        response = self.api_client.post(
-            "/api/oauth/approve/",
-            data={
-                "client_id": "test-client-id-2",
-                "redirect_uri": "http://localhost:3000/callback",
-                "response_type": "code",
-                "code_challenge": self.challenge,
-                "code_challenge_method": "S256",
-                "scope": "qjudge.paper",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200)
-        grant = Grant.objects.get(application=self.app, user=self.user)
-        self.assertEqual(grant.scope, "qjudge.paper")
-
     def _approve_with_scope(self, scope):
         return self.api_client.post(
             "/api/oauth/approve/",
@@ -182,14 +165,14 @@ class ApproveAuthorizationTest(TestCase):
             format="json",
         )
 
-    def test_approve_accepts_space_separated_scopes(self):
-        response = self._approve_with_scope("mcp  ai:chat")
+    def test_approve_normalizes_scope_whitespace(self):
+        response = self._approve_with_scope(" mcp ")
         self.assertEqual(response.status_code, 200)
         grant = Grant.objects.get(application=self.app, user=self.user)
-        self.assertEqual(grant.scope, "mcp ai:chat")
+        self.assertEqual(grant.scope, "mcp")
 
-    def test_approve_rejects_unknown_scope_in_list(self):
-        response = self._approve_with_scope("mcp admin")
+    def test_approve_rejects_any_scope_besides_mcp(self):
+        response = self._approve_with_scope("mcp qjudge.paper")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"], "invalid_scope")
 

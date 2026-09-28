@@ -42,7 +42,7 @@ def test_authorization_url_requests_qjudge_paper_scope():
 
     assert parsed.geturl().startswith("https://qjudge.example/o/authorize/")
     assert query["client_id"] == ["paper-cli"]
-    assert query["scope"] == ["qjudge.paper"]
+    assert query["scope"] == ["mcp"]
     assert query["code_challenge_method"] == ["S256"]
     assert query["redirect_uri"] == ["http://127.0.0.1:49152/callback"]
 

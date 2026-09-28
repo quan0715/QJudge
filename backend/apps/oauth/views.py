@@ -329,7 +329,7 @@ class ApproveAuthorizationView(APIView):
                 status=400,
             )
 
-        # RFC 6749 §3.3: scope is a space-delimited list; MCP clients request several.
+        # RFC 6749 §3.3: scope is a space-delimited list.
         requested_scopes = scope.split() if isinstance(scope, str) else []
         supported_scopes = set(_supported_oauth_scopes())
         if not requested_scopes or not set(requested_scopes) <= supported_scopes:
