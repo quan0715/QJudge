@@ -1,7 +1,8 @@
 /**
  * 雙 BrowserContext + 雙 X-Device-Id：驗證考試進行中於另一裝置無法用同一帳號 email 登入。
  *
- * 依賴 seed：E2E Exam Mode Contest、teacher/student 帳號。
+ * 依賴 seed：E2E Exam Mode Contest、teacher/student2 帳號。
+ * 用 student2：考試進行中其他裝置無法登入，改用 student 會擋住同組平行執行的 spec。
  */
 import { expect, test, type Page } from "@playwright/test";
 import { loginViaAPI } from "../helpers/auth.helper";
@@ -13,6 +14,7 @@ import {
 import { getContestClassroomId } from "../helpers/exam-precheck.helper";
 
 const DEVICE_KEY = "qjudge.device_id.v1";
+const EXAM_USER = TEST_USERS.student2;
 
 async function findExamContestId(page: Page): Promise<string> {
   const token = await page.evaluate(() => localStorage.getItem("token"));
@@ -60,7 +62,7 @@ async function resetSeedStudentParticipantIfPresent(
   if (!pResp.ok()) return null;
   const rows = (await pResp.json()) as { username?: string; user_id?: number }[];
   const list = Array.isArray(rows) ? rows : [];
-  const row = list.find((r) => r.username === TEST_USERS.student.username);
+  const row = list.find((r) => r.username === EXAM_USER.username);
   if (row?.user_id == null) return null;
   await teacherPage.request
     .patch(`/api/v1/contests/${contestId}/update_participant/`, {
@@ -102,7 +104,7 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
     const contestId = await findExamContestId(teacherPage);
     await ensureContestWindowPublished(teacherPage, contestId);
     const classroomId = await getContestClassroomId(teacherPage, contestId);
-    await addClassroomStudentMembers(teacherPage, classroomId);
+    await addClassroomStudentMembers(teacherPage, classroomId, [EXAM_USER.username]);
     const studentUserId = await resetSeedStudentParticipantIfPresent(teacherPage, contestId);
 
     await studentPageA.goto("/", { waitUntil: "domcontentloaded" });
@@ -112,14 +114,14 @@ test.describe("Exam login blocked — dual device (Playwright)", () => {
       },
       [DEVICE_KEY, deviceA] as [string, string],
     );
-    await loginViaAPI(studentPageA, "student");
+    await loginViaAPI(studentPageA, "student2");
     await prepareStudentPaperExamInProgress(studentPageA, teacherPage, contestId);
 
     const studentPageB = await studentCtxB.newPage();
     const loginResp = await studentPageB.request.post(API_ENDPOINTS.auth.login, {
       data: {
-        email: TEST_USERS.student.email,
-        password: TEST_USERS.student.password,
+        identifier: EXAM_USER.email,
+        password: EXAM_USER.password,
       },
     });
     expect(loginResp.status()).toBe(409);

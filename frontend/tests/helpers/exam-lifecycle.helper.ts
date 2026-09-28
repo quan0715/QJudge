@@ -84,7 +84,10 @@ export async function addClassroomStudentMembers(
   expect(resp.ok(), await resp.text().catch(() => "")).toBeTruthy();
 }
 
-/** 無防弊／紙本測驗：註冊、解鎖後開始作答。 */
+/**
+ * 無防弊／紙本測驗：清掉前次作答紀錄、解鎖後開始作答。
+ * 沒有報名步驟：學生須是競賽所屬教室的成員，第一次 exam/start 才建立作答紀錄。
+ */
 export async function prepareStudentPaperExamInProgress(
   studentPage: Page,
   teacherPage: Page,
@@ -94,11 +97,7 @@ export async function prepareStudentPaperExamInProgress(
   const teacherHeaders = await authHeaders(teacherPage);
   const userId = await getMyUserId(studentPage);
 
-  const regResp = await studentPage.request.post(API_ENDPOINTS.contests.register(contestId), {
-    headers,
-  });
-  expect([200, 201, 400, 403]).toContain(regResp.status());
-
+  // 以下教師操作只在重跑（已有作答紀錄）時有作用；首次執行尚無紀錄，回應忽略。
   await teacherPage.request
     .post(`/api/v1/contests/${contestId}/participants/reset_exam_record/`, {
       headers: teacherHeaders,
