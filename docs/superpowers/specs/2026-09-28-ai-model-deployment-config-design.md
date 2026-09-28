@@ -52,8 +52,11 @@ AI 部署檔集中在 `deploy/ai/`，整個目錄以唯讀掛載到 `ai-service`
 default: deepseek-flash         # 選填，未填取第一個可用模型
 
 models:
-  - id: gpt-5-nano
+  - id: gpt-6-luna
     provider: openai
+    display_name: GPT-6 Luna
+    reasoning_effort: medium
+    max_input_tokens: 272000
   - id: deepseek-flash
     provider: deepseek
     display_name: DeepSeek V4.1 Flash
@@ -207,37 +210,24 @@ AI 助教輸入框與 AI 批改畫面依模型目錄狀態顯示 Carbon `InlineN
 
 ## 7. 現有部署轉換
 
-dcslab 的 OpenAI 與自架模型沿用現有 ID；DeepSeek 改用 `deepseek-flash`。歷史紀錄保留原本的模型 ID。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
+dcslab 的三個舊 OpenAI 模型 ID（`openai-nano`、`openai-mini`、`openai-mini-medium`）由單一 `gpt-6-luna` 取代；DeepSeek 改用 `deepseek-flash`。`openai-gemma4-31b` 實際為自架 vLLM，沿用現有 ID。歷史紀錄保留原本的模型 ID。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
 
 ```yaml
 default: deepseek-flash
 
 models:
-  - id: openai-nano
+  - id: gpt-6-luna
     provider: openai
-    model: gpt-5-nano
-    display_name: gpt-5-nano
-    description: 快速且成本低，適合日常教學互動
+    display_name: GPT-6 Luna
+    description: OpenAI 模型，適合日常教學互動與批改
+    reasoning_effort: medium
+    max_input_tokens: 272000
   - id: openai-gemma4-31b
     provider: vllm
     model: Gemma4-31B
     display_name: Gemma4-31B
     description: 自架 vLLM Gemma4-31B，適合校內部署與批改
     max_input_tokens: 131072
-  - id: openai-mini
-    provider: openai
-    model: gpt-5.4-mini
-    display_name: gpt-5.4-mini (low)
-    description: OpenAI 推理模型，低思考強度，平衡速度與品質
-    reasoning_effort: low
-    max_input_tokens: 272000
-  - id: openai-mini-medium
-    provider: openai
-    model: gpt-5.4-mini
-    display_name: gpt-5.4-mini (medium)
-    description: OpenAI 推理模型，中等思考強度，適合複雜批改與推理
-    reasoning_effort: medium
-    max_input_tokens: 272000
   - id: deepseek-flash
     provider: deepseek
     description: DeepSeek V4.1 Flash，1M context，thinking enabled，適合大量批改與日常推理

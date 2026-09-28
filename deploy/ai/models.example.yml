@@ -6,8 +6,11 @@
 # default: deepseek-flash         # optional; first available model otherwise
 #
 # models:
-#   - id: gpt-5-nano              # built-in provider: openai or deepseek
+#   - id: gpt-6-luna              # built-in OpenAI provider
 #     provider: openai
+#     display_name: GPT-6 Luna
+#     reasoning_effort: medium    # uses the Responses API for tool calling
+#     max_input_tokens: 272000    # stays within short-context pricing
 #   - id: deepseek-flash
 #     provider: deepseek
 #     display_name: DeepSeek V4.1 Flash

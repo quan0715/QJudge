@@ -54,6 +54,26 @@ def test_builtin_provider_needs_no_endpoint_and_uses_profile_limit():
     assert config.endpoints["openai"].base_url is None
 
 
+def test_luna_can_use_explicit_short_context_limit():
+    config = parse_model_config(
+        {
+            "default": "deepseek-flash",
+            "models": [
+                {"id": "deepseek-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
+                {"id": "gpt-6-luna", "provider": "openai", "reasoning_effort": "medium",
+                 "max_input_tokens": 272_000},
+            ],
+        },
+        KEYS,
+        no_profile,
+    )
+    assert config.default_id == "deepseek-flash"
+    assert [(model.id, model.model, model.max_input_tokens) for model in config.models] == [
+        ("deepseek-flash", "deepseek-flash", 1_000_000),
+        ("gpt-6-luna", "gpt-6-luna", 272_000),
+    ]
+
+
 def test_builtin_endpoint_can_override_base_url():
     config = parse_model_config(
         {

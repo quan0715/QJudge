@@ -20,6 +20,11 @@ models:
     display_name: DeepSeek V4.1 Flash
     reasoning_effort: high
     max_input_tokens: 1000000
+  - id: gpt-6-luna
+    provider: openai
+    display_name: GPT-6 Luna
+    reasoning_effort: medium
+    max_input_tokens: 272000
   - id: campus-gemma
     provider: campus-vllm
     model: Gemma4-31B
@@ -33,6 +38,8 @@ endpoints:
 `openai` and `deepseek` are built in. Other provider names need a matching `endpoints.<name>.base_url` with an HTTP(S) OpenAI-compatible endpoint. The key name is the uppercased provider name with `-` changed to `_`, then `_API_KEY`: for example `OPENAI_API_KEY` or `CAMPUS_VLLM_API_KEY`. Put these in `deploy/ai/keys.env`, never in YAML. Built-in providers require a nonempty key. A self-hosted endpoint may omit it; the client sends `EMPTY` as the SDK placeholder.
 
 Set `default` to an entry's `id`. If `model` is omitted, the same value is sent to the provider. The configured [`deepseek-flash` API model](https://api-docs.deepseek.com/quick_start/pricing/) serves DeepSeek V4.1 Flash. Old DeepSeek V4 entries should be removed from a host catalog; historical run records retain their original model IDs.
+
+For OpenAI, use [`gpt-6-luna`](https://developers.openai.com/api/docs/models/gpt-6-luna) with `reasoning_effort: medium` to route tool calls through the Responses API. The example limits input to 272,000 tokens to stay within Luna's short-context price tier. Retire `openai-nano`, `openai-mini`, and `openai-mini-medium` from a host catalog when switching to Luna. `openai-gemma4-31b` is a self-hosted vLLM model despite its ID; keep or remove it according to whether that endpoint is still offered. A valid `OPENAI_API_KEY` is required before adding Luna to a live catalog.
 
 `max_input_tokens` must be positive. Built-in providers may omit it only when the installed LangChain profile has a context limit. For a self-hosted model, QJudge checks `/models` for `max_model_len` when no limit is configured; a missing or unreachable model is omitted from the available catalog and retried after 60 seconds. A static validation pass does not establish endpoint connectivity or successful generation.
 

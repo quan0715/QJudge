@@ -60,10 +60,11 @@ def test_openai_without_reasoning_uses_chat_completions():
 def test_openai_reasoning_routes_through_responses_api():
     model = provider_adapters.build_chat_model(
         _endpoint("openai", "openai", "https://proxy.test/v1"),
-        _spec(model="gpt-5.4-mini", reasoning_effort="medium"),
+        _spec(model="gpt-6-luna", reasoning_effort="medium", max_input_tokens=272_000),
         "key",
     )
     assert model.kwargs["base_url"] == "https://proxy.test/v1"
+    assert model.kwargs["model"] == "gpt-6-luna"
     assert model.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
     assert model.kwargs["use_responses_api"] is True
     assert model.kwargs["output_version"] == "responses/v1"

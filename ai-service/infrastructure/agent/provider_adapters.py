@@ -101,9 +101,8 @@ def _openai(endpoint: EndpointSpec, spec: ModelSpec, api_key: str) -> Any:
     if endpoint.base_url:
         kwargs["base_url"] = endpoint.base_url
     if spec.reasoning_effort:
-        # gpt-5.x + function tools + reasoning_effort is rejected by
-        # /v1/chat/completions, so route via the Responses API. `summary=auto`
-        # is required to receive reasoning blocks in the stream, and
+        # OpenAI reasoning models need the Responses API for tool calling.
+        # `summary=auto` returns reasoning blocks in the stream, and
         # `output_version=responses/v1` puts them into message.content.
         kwargs["reasoning"] = {"effort": spec.reasoning_effort, "summary": "auto"}
         kwargs["use_responses_api"] = True

@@ -14,6 +14,8 @@
 
 **Model selection update:** Host examples now use `deepseek-flash` (DeepSeek V4.1 Flash) as the default. The old DeepSeek V4 identifiers remain only where they document prior behavior or migration; they are not deployment choices. The versioned `models.example.yml` stays empty until an operator supplies a provider key.
 
+**OpenAI selection update:** The target host catalog replaces `openai-nano`, `openai-mini`, and `openai-mini-medium` with one `gpt-6-luna` entry using medium reasoning through the Responses API and a 272,000-token input limit. The historical test snippets and fake-provider fixture below still show earlier IDs; use the current operator guide and design spec when configuring a host.
+
 ## Global Constraints
 
 - 在 feature branch 上實作（依 `qjudge-github-workflow-owner`），不要直接 commit 到 `dev`。
@@ -1927,11 +1929,14 @@ Expected: PASS（含 `test_committed_example_matches_schema`）
 # OPENAI_API_KEY, DEEPSEEK_API_KEY or LAB_VLLM_API_KEY for endpoint lab-vllm.
 # Restart ai-service and ai-worker after editing.
 #
-# default: gpt-5-nano            # optional; first available model otherwise
+# default: deepseek-flash         # optional; first available model otherwise
 #
 # models:
-#   - id: gpt-5-nano              # built-in provider: openai or deepseek
+#   - id: gpt-6-luna              # built-in OpenAI provider
 #     provider: openai
+#     display_name: GPT-6 Luna
+#     reasoning_effort: medium
+#     max_input_tokens: 272000
 #   - id: deepseek-flash
 #     provider: deepseek
 #     reasoning_effort: high      # low | medium | high
@@ -2002,7 +2007,7 @@ Expected: `ai-service` 與 `ai-worker` 都有 `target: /etc/qjudge-ai` 的唯讀
 
 - [ ] **Step 7: dev 端到端檢查**
 
-1. 若 `deploy/.env` 仍有六個舊 AI key，照 spec 第 7 節搬到 `deploy/ai/keys.env` 並建立 `deploy/ai/models.yml`（先放一個 `deepseek-flash` 或 `openai-nano`）。
+1. 若 `deploy/.env` 仍有六個舊 AI key，照 spec 第 7 節搬到 `deploy/ai/keys.env` 並建立 `deploy/ai/models.yml`（先放一個 `deepseek-flash`；加入 `gpt-6-luna` 前確認 OpenAI key 有效）。
 2. Run: `.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --force-recreate ai-service ai-worker`
 3. Run: `.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m infrastructure.agent.model_config`
    Expected: `... N model(s) configured`，exit 0

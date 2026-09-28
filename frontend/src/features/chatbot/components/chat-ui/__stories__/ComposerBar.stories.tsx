@@ -38,9 +38,7 @@ const meta: Meta<typeof ComposerBar> = {
     onSend: async () => true,
     canSend: true,
     models: [
-      { id: "openai-nano", displayName: "gpt-5-nano", description: "fast" },
-      { id: "openai-mini", displayName: "gpt-5.4-mini (low)", description: "reasoning low" },
-      { id: "openai-mini-medium", displayName: "gpt-5.4-mini (medium)", description: "reasoning medium" },
+      { id: "gpt-6-luna", displayName: "GPT-6 Luna", description: "OpenAI reasoning" },
       { id: "deepseek-flash", displayName: "DeepSeek V4.1 Flash", description: "reasoning flash", isDefault: true },
     ],
     selectedModelId: "deepseek-flash",
