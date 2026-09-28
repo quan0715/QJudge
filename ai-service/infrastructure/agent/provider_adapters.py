@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, convert_to_messages, convert_to_openai_messages
 from langchain_deepseek import ChatDeepSeek
 from langchain_openai import ChatOpenAI
 
@@ -24,7 +24,41 @@ OPENAI_COMPATIBLE = "openai_compatible"
 MAX_RETRIES = 6
 
 
-class ReasoningPreservingChatDeepSeek(ChatDeepSeek):
+class _ChatCompletionsHistory:
+    """Translate Responses tool blocks when switching a conversation's model."""
+
+    def _get_request_payload(self, input_, *, stop=None, **kwargs):
+        messages = self._convert_input(input_).to_messages()
+        normalized = []
+        for message in messages:
+            if isinstance(message, AIMessage) and isinstance(message.content, list) and any(
+                isinstance(block, dict) and block.get("type") == "function_call"
+                for block in message.content
+            ):
+                converted = convert_to_messages([convert_to_openai_messages(message)])[0]
+                message = message.model_copy(update={
+                    # Core extracts tool_calls but also retains the Responses
+                    # blocks in content. Chat Completions rejects those blocks.
+                    "content": [
+                        block for block in converted.content
+                        if not isinstance(block, dict) or block.get("type") != "function_call"
+                    ] if isinstance(converted.content, list) else converted.content,
+                    "tool_calls": converted.tool_calls,
+                    "invalid_tool_calls": converted.invalid_tool_calls,
+                })
+            normalized.append(message)
+        return super()._get_request_payload(normalized, stop=stop, **kwargs)
+
+
+class HistoryCompatibleChatOpenAI(_ChatCompletionsHistory, ChatOpenAI):
+    pass
+
+
+class HistoryCompatibleChatDeepSeek(_ChatCompletionsHistory, ChatDeepSeek):
+    pass
+
+
+class ReasoningPreservingChatDeepSeek(HistoryCompatibleChatDeepSeek):
     """ChatDeepSeek variant that echoes prior ``reasoning_content``.
 
     DeepSeek V4 thinking mode requires **every** assistant message in the
@@ -107,7 +141,8 @@ def _openai(endpoint: EndpointSpec, spec: ModelSpec, api_key: str) -> Any:
         kwargs["reasoning"] = {"effort": spec.reasoning_effort, "summary": "auto"}
         kwargs["use_responses_api"] = True
         kwargs["output_version"] = "responses/v1"
-    return ChatOpenAI(**kwargs)
+    client = ChatOpenAI if spec.reasoning_effort else HistoryCompatibleChatOpenAI
+    return client(**kwargs)
 
 
 def _deepseek(endpoint: EndpointSpec, spec: ModelSpec, api_key: str) -> Any:
@@ -124,5 +159,5 @@ def _deepseek(endpoint: EndpointSpec, spec: ModelSpec, api_key: str) -> Any:
     if thinking:
         kwargs["reasoning_effort"] = spec.reasoning_effort
     # Thinking requests must echo prior reasoning_content.
-    client = ReasoningPreservingChatDeepSeek if thinking else ChatDeepSeek
+    client = ReasoningPreservingChatDeepSeek if thinking else HistoryCompatibleChatDeepSeek
     return client(**kwargs)
