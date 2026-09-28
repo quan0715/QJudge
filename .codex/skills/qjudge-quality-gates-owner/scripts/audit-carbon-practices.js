@@ -43,7 +43,7 @@ try {
 } catch {
   // The regex fallback still runs when frontend dependencies are not installed.
 }
-// Every --cds-* custom property Carbon React emits; null skips the token-name check.
+// Every --cds-* custom property Carbon React emits; null only outside the strict profile.
 let carbonTokens = null;
 try {
   const frontend = path.resolve(__dirname, "../../../../frontend");
@@ -67,6 +67,10 @@ if (!new Set(["text", "json", "markdown"]).has(format)) {
 }
 if (!new Set(["audit", "strict"]).has(profile)) {
   console.error(`Unsupported profile: ${profile}`);
+  process.exit(2);
+}
+if (profile === "strict" && !carbonTokens) {
+  console.error("Carbon strict gate needs frontend dependencies (sass, @carbon/react); run npm ci in frontend.");
   process.exit(2);
 }
 
@@ -188,7 +192,7 @@ function auditCarbonVariables(file, source, cleanSource) {
         match[0],
       );
     }
-    if (carbonTokens && !carbonTokens.has(match[1]) && !declaredTokens.has(match[1])) {
+    if (carbonTokens && !carbonTokens.has(match[1])) {
       addFinding(
         file,
         source,
@@ -589,12 +593,6 @@ function auditCode(file, source, cleanSource) {
 
 const inventoryFiles = walk(root).sort();
 const sourceFiles = inventoryFiles.filter((file) => supportedExtensions.has(path.extname(file)));
-// Tokens the application defines itself, such as Carbon Charts overrides.
-const declaredTokens = new Set(
-  sourceFiles.flatMap((file) =>
-    [...fs.readFileSync(file, "utf8").matchAll(/(--cds-[a-z0-9-]+)\s*:/g)].map((match) => match[1]),
-  ),
-);
 for (const file of sourceFiles) {
   const extension = path.extname(file);
   const source = fs.readFileSync(file, "utf8");

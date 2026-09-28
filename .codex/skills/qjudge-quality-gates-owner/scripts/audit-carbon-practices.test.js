@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
-const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require("node:fs");
+const { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { dirname, join, resolve } = require("node:path");
 const test = require("node:test");
@@ -241,4 +241,22 @@ test("strict mode exits non-zero only for blocking findings", (t) => {
     ["--profile", "strict"],
   );
   assert.equal(reviewOnly.status, 0, reviewOnly.stderr);
+});
+
+test("strict profile fails closed without the frontend's Carbon dependencies", (t) => {
+  const repo = mkdtempSync(join(tmpdir(), "qjudge-carbon-nodeps-"));
+  t.after(() => rmSync(repo, { recursive: true, force: true }));
+  const scripts = join(repo, ".codex/skills/qjudge-quality-gates-owner/scripts");
+  mkdirSync(scripts, { recursive: true });
+  mkdirSync(join(repo, "src"));
+  copyFileSync(script, join(scripts, "audit-carbon-practices.js"));
+
+  const result = spawnSync(
+    process.execPath,
+    [join(scripts, "audit-carbon-practices.js"), "--root", join(repo, "src"), "--profile", "strict"],
+    { cwd: repo, encoding: "utf8" },
+  );
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /needs frontend dependencies/);
 });
