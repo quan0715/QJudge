@@ -16,7 +16,6 @@ export { ResultPanel } from "./result/ResultPanel";
 export { ResultToolbar } from "./result/ResultToolbar";
 export { ResultsPanel } from "./result/execution";
 export { TestResultHeader } from "./result/execution";
-export { TestCaseResultDetail } from "./result/execution";
 export { EditTestCasesPanel } from "./result/testcases";
 export type { CaseResultDisplay, HeaderInfo } from "./result/execution/utils";
 
