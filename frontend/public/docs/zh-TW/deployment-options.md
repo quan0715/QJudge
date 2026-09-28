@@ -79,7 +79,7 @@ DEFAULT_FROM_EMAIL=qjudge@example.edu
 
 ## AI provider
 
-AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。在主機的 `deploy/ai/models.yml` 列出可用模型及預設模型；OpenAI、DeepSeek 與自架 OpenAI-compatible 端點都在此設定。API key 放在 `deploy/ai/keys.env`，不放進模型清單。沒有可用模型時，AI 功能會顯示設定提示，其他功能不受影響。現有部署的轉換與回滾步驟請參閱專案原始碼的 `docs/operations/ai-model-configuration.md`。
+AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。在主機的 `deploy/ai/models.yml` 列出可用模型及預設模型；OpenAI、DeepSeek 與自架 OpenAI-compatible 端點都在此設定。API key 放在 `deploy/ai/keys.env`，不放進模型清單。沒有可用模型時，AI 功能會顯示設定提示，其他功能不受影響。現有部署需把 `deploy/.env` 中舊的 AI 設定搬到 `deploy/ai/` 並刪除，步驟請參閱專案原始碼的 `docs/operations/ai-model-configuration.md`。
 
 ## Remote MCP
 
