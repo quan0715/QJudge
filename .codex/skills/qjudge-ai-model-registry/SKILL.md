@@ -16,7 +16,7 @@ description: Use when adding a QJudge AI provider adapter, changing how models a
 | Runtime availability and effective default | `ai-service/infrastructure/agent/model_catalog.py` |
 | Public catalog | AI service `GET /v1/models` |
 
-The AI service owns model validation. Django forwards optional model IDs and errors; the frontend reads the catalog. Neither keeps a production model list or default. Self-hosted providers use the OpenAI-compatible adapter and need an endpoint URL. See [AI deployment operations](../../../docs/operations/ai-model-configuration.md).
+The AI service owns model validation. Django forwards optional model IDs and errors; the frontend reads the catalog. Neither keeps a production model list or default. Self-hosted providers use the OpenAI-compatible adapter and need an endpoint URL. See [AI provider deployment](../../../frontend/public/docs/zh-TW/deployment-options.md#ai-provider).
 
 ## Change one host's models
 

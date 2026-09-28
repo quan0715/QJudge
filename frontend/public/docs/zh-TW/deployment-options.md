@@ -79,7 +79,67 @@ DEFAULT_FROM_EMAIL=qjudge@example.edu
 
 ## AI provider
 
-AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。在主機的 `deploy/ai/models.yml` 列出可用模型及預設模型；OpenAI、DeepSeek 與自架 OpenAI-compatible 端點都在此設定。API key 放在 `deploy/ai/keys.env`，不放進模型清單。沒有可用模型時，AI 功能會顯示設定提示，其他功能不受影響。現有部署需把 `deploy/.env` 中舊的 AI 設定搬到 `deploy/ai/` 並刪除，步驟請參閱專案原始碼的 `docs/operations/ai-model-configuration.md`。
+AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。每台主機在 `deploy/ai/` 設定自己提供的模型：
+
+| 檔案 | 用途 |
+| --- | --- |
+| `deploy/ai/models.yml` | 可用模型、預設模型與自架端點；`deploy/qjudge init` 由 `models.example.yml` 建立 |
+| `deploy/ai/keys.env` | Provider API key，只載入 `ai-service` 與 `ai-worker` |
+
+```yaml
+default: deepseek-flash
+models:
+  - id: deepseek-flash
+    provider: deepseek
+    display_name: DeepSeek V4.1 Flash
+    reasoning_effort: high
+    max_input_tokens: 1000000
+  - id: gpt-6-luna
+    provider: openai
+    display_name: GPT-6 Luna
+    reasoning_effort: medium
+    max_input_tokens: 272000
+  - id: campus-gemma
+    provider: campus-vllm
+    model: Gemma4-31B
+    display_name: Campus Gemma
+endpoints:
+  campus-vllm:
+    base_url: http://10.0.0.5:8000/v1
+```
+
+- `openai` 與 `deepseek` 是內建 provider。其他名稱視為自架的 OpenAI-compatible 端點，需要在 `endpoints` 寫 `base_url`。
+- API key 的名稱是 provider 名稱轉大寫、`-` 改成 `_` 再加上 `_API_KEY`，例如 `OPENAI_API_KEY`、`CAMPUS_VLLM_API_KEY`，寫在 `keys.env`，不要寫進 YAML。內建 provider 必須有 key；自架端點沒有開驗證時可以不設。
+- `model` 省略時送出與 `id` 相同的名稱。`default` 可省略；指定的預設模型暫時無法使用時，改用第一個可用模型。`models: []` 會關閉 AI 功能。
+- `max_input_tokens` 是模型的 context 上限。內建 provider 只有在 LangChain 已知該模型時可以省略；自架模型省略時會向端點的 `/models` 讀取 `max_model_len`，讀不到的模型暫時不列出，60 秒後重試。
+- `reasoning_effort` 可設 `low`、`medium` 或 `high`，自架端點不支援。
+
+設定有誤時，其他功能照常運作，AI 助教與 AI 批改會顯示設定錯誤的提示，詳細原因寫在 `ai-service` 的 log。移除某個模型後，歷史紀錄仍保留原本的模型 ID。
+
+修改 `deploy/ai/` 後，以目前版本重新執行 `upgrade` 套用，再重新啟動兩個 AI 服務，讓它們重新讀取模型清單：
+
+```bash
+deploy/qjudge upgrade "$(sed -n 's/^current=//p' deploy/.version)"
+docker compose -p qjudge restart ai-service ai-worker
+```
+
+`upgrade` 在停止任何服務之前就會檢查模型設定，有錯誤時中止並列出所有問題，服務維持原狀。只想檢查、不套用時：
+
+```bash
+docker compose -p qjudge exec ai-service python -m infrastructure.agent.model_config
+```
+
+這個指令只做靜態檢查，不確認端點連線或模型能否實際回應；請再以 AI 助教實際送出一則訊息驗收。
+
+從舊版升級的主機，把 `deploy/.env` 的 AI 設定搬到 `deploy/ai/`：
+
+1. `OPENAI_API_KEY`、`DEEPSEEK_API_KEY` 搬到 `keys.env`。
+2. `OPENAI_BASE_URL`、`DEEPSEEK_BASE_URL` 改寫成 `endpoints.openai.base_url`、`endpoints.deepseek.base_url`。
+3. `VLLM_BASE_URL` 改成一個自架端點。若端點命名為 `vllm`，`VLLM_API_KEY` 可以原樣搬到 `keys.env`。
+4. 想讓歷史紀錄維持熟悉的名稱時，沿用原本的模型 ID。
+5. 從 `deploy/.env` 刪除這六項；還留著時，`deploy/qjudge check` 與 `upgrade` 會拒絕執行。
+
+舊版只從 `deploy/.env` 讀取 AI key，刪除後若 `rollback` 回舊版，AI 功能會沒有 key 可用。
 
 ## Remote MCP
 
