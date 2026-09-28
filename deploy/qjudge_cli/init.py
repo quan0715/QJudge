@@ -30,7 +30,7 @@ def _mode_defaults(env: Mapping[str, str]) -> dict[str, Callable[[], str]]:
         defaults.update({
             "OBJECT_STORAGE_ENDPOINT_URL": lambda: "http://minio:9000",
             "OBJECT_STORAGE_ACCESS_KEY": lambda: "qjudge",
-            "OBJECT_STORAGE_SECRET_KEY": lambda: secrets.token_urlsafe(24),
+            "OBJECT_STORAGE_SECRET_KEY": lambda: "qj-" + secrets.token_urlsafe(24),
             "OBJECT_STORAGE_BUCKET": lambda: "qjudge",
         })
     if env.get("MEDIA_MODE") == "bundled":

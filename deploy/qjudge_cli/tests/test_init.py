@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from qjudge_cli.check import check_env
 from qjudge_cli.envfile import load
@@ -41,6 +42,12 @@ class InitTests(unittest.TestCase):
         self.assertEqual(check_env(env), [])
         self.assertEqual(env["OBJECT_STORAGE_ENDPOINT_URL"], "http://minio:9000")
         self.assertGreaterEqual(len(env["OBJECT_STORAGE_SECRET_KEY"]), 8)
+
+    def test_generated_bundled_storage_secret_does_not_start_with_a_flag(self):
+        with patch("qjudge_cli.init.secrets.token_urlsafe", return_value="-unsafe-secret"):
+            env = build_env(BUNDLED)
+
+        self.assertFalse(env["OBJECT_STORAGE_SECRET_KEY"].startswith("-"))
 
     def test_generated_secrets_differ_and_pass_password_rules(self):
         env = build_env(BUNDLED)
