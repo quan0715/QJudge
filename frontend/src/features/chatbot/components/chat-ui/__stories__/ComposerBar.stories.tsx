@@ -85,3 +85,30 @@ export const WithStatus: Story = {
     sessionNotice: "對話過長，截取摘要中",
   },
 };
+
+export const NoModels: Story = {
+  name: "尚未設定模型",
+  args: {
+    models: [],
+    selectedModelId: null,
+    disabled: true,
+    modelNotice: "此站台尚未設定 AI 模型，請聯絡站台管理員。",
+  },
+};
+
+export const InvalidModelConfig: Story = {
+  name: "模型設定有誤",
+  args: {
+    models: [],
+    selectedModelId: null,
+    disabled: true,
+    modelNotice: "AI 模型設定有誤，AI 功能暫時無法使用。請聯絡站台管理員檢查 AI 模型設定。",
+  },
+};
+
+export const ModelNotAvailable: Story = {
+  name: "所選模型不可用",
+  args: {
+    modelNotice: "所選模型目前無法使用，模型清單已重新整理，請改選其他模型後再送出。",
+  },
+};

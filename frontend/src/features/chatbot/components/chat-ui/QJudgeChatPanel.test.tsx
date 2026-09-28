@@ -49,7 +49,9 @@ const renderPanel = (
   transport: MemoryCopilotTransport,
   sessionId: string | null,
   panel: ReactNode,
-  modelCatalog = new MemoryCopilotModelCatalog(),
+  modelCatalog = new MemoryCopilotModelCatalog([
+    { id: "fast", displayName: "Fast model", isDefault: true },
+  ]),
   location = new MemoryCopilotSessionLocation(sessionId),
 ) =>
   render(
@@ -67,6 +69,20 @@ const renderPanel = (
   );
 
 describe("QJudgeChatPanel", () => {
+  it("blocks the composer when the catalog has no models", async () => {
+    const transport = new MemoryCopilotTransport();
+    renderPanel(
+      transport,
+      null,
+      <QJudgeChatPanel mode="full" />,
+      new MemoryCopilotModelCatalog([]),
+    );
+
+    const input = await screen.findByRole("textbox", { name: /message|輸入/i });
+    await waitFor(() => expect(input).toBeDisabled());
+    expect(screen.getByText(/aiNoModelsConfigured|此站台尚未設定 AI 模型/)).toBeInTheDocument();
+  });
+
 
   it("shows message and title skeletons while session bootstrap is pending", async () => {
     const transport = new MemoryCopilotTransport();
@@ -147,7 +163,9 @@ describe("QJudgeChatPanel", () => {
       transport,
       existing.id,
       <QJudgeChatPanel mode="full" />,
-      new MemoryCopilotModelCatalog(),
+      new MemoryCopilotModelCatalog([
+        { id: "fast", displayName: "Fast model", isDefault: true },
+      ]),
       location,
     );
 

@@ -196,7 +196,6 @@ function parseSuggestions(
   return results;
 }
 
-export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-v4-flash";
 
 export function buildDefaultGradingPrompt(contestId: string, questionId: string): string {
   return buildPrompt(contestId, questionId);
@@ -407,7 +406,7 @@ export function useAiQuestionGrading() {
     startInFlightRef.current = true;
 
     const prompt = options?.prompt?.trim() || buildPrompt(contestId, questionId);
-    const modelId = options?.modelId || AI_GRADING_DEFAULT_MODEL_ID;
+    const modelId = options?.modelId;
     const context = buildTaskContext(contestId, questionId);
 
     setState({
@@ -497,7 +496,7 @@ export function useAiQuestionGrading() {
       const prompt = buildRetryPrompt(contestId, questionId, answerIds, options?.note);
       await withRetry(() =>
         chatbotRepository.startRun(sessionId, prompt, {
-          modelOverride: options?.modelId || AI_GRADING_DEFAULT_MODEL_ID,
+          modelOverride: options?.modelId,
         }),
       );
       return true;

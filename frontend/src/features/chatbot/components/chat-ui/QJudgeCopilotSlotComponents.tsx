@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { InlineNotification } from "@carbon/react";
 import { useTranslation } from "react-i18next";
 
@@ -7,11 +7,13 @@ import {
   useCopilotModels,
   useCopilotRun,
   useCopilotSessions,
+  type CopilotError,
   type CopilotEmptyStateProps,
   type CopilotErrorStateProps,
   type CopilotHeaderProps,
   type CopilotHistorySlotProps,
 } from "@copilot";
+import { MODEL_NOTICE_I18N_KEY, modelAvailabilityNotice } from "@/shared/ai/modelAvailabilityNotice";
 
 import { ChatHistoryPanel } from "./ChatHistoryPanel";
 import { ChatTopBar } from "./ChatTopBar";
@@ -69,6 +71,7 @@ export function QJudgeCopilotHistory({
 }
 
 export function QJudgeCopilotComposer() {
+  const { t } = useTranslation("chatbot");
   const composer = useCopilotComposer();
   const run = useCopilotRun();
   const models = useCopilotModels();
@@ -81,8 +84,23 @@ export function QJudgeCopilotComposer() {
   const sessionAcceptsInput =
     sessions.activeSession.status === "ready" ||
     sessions.activeSession.status === "empty";
+  const runError = run.state.status === "error" ? run.state.error : null;
+  const modelNotice = modelAvailabilityNotice({
+    status: models.status,
+    models: models.models,
+    error: models.error,
+    runError,
+  });
+  const refreshedForRef = useRef<CopilotError | null>(null);
+  const { refresh: refreshModels } = models;
+  useEffect(() => {
+    if (modelNotice?.kind !== "model-not-available" || !runError) return;
+    if (refreshedForRef.current === runError) return;
+    refreshedForRef.current = runError;
+    void refreshModels();
+  }, [modelNotice?.kind, refreshModels, runError]);
   const disabled =
-    !sessionAcceptsInput || isAwaitingHumanInput || composer.isSending;
+    !sessionAcceptsInput || isAwaitingHumanInput || composer.isSending || Boolean(modelNotice?.blocking);
 
   return (
     <ComposerBar
@@ -100,6 +118,7 @@ export function QJudgeCopilotComposer() {
       isStreaming={isStreaming}
       disabled={disabled}
       sessionNotice={run.notice}
+      modelNotice={modelNotice ? t(MODEL_NOTICE_I18N_KEY[modelNotice.kind]) : null}
       messages={sessions.activeSession.data?.messages ?? []}
     />
   );
