@@ -8,7 +8,7 @@ class LintTests(unittest.TestCase):
         self.assertEqual(lint_compose_text("      - ${MINIO_DATA_DIR:-minio-data}:/data\n"), [])
 
     def test_schema_keys_and_empty_defaults_pass(self):
-        text = "A: ${SECRET_KEY}\nB: ${OPENAI_API_KEY:-}\n"
+        text = "A: ${SECRET_KEY}\nB: ${QJUDGE_TRUSTED_PROXIES:-}\n"
         self.assertEqual(lint_compose_text(text), [])
 
     def test_unknown_variable_is_reported(self):

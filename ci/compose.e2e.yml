@@ -9,15 +9,12 @@ x-fake-ai-environment: &fake_ai_environment
   AI_OAUTH_JWKS_URL: http://fake-ai-adapters:8080/.well-known/jwks.json
   MCP_TOKEN_EXCHANGE_URL: http://fake-ai-adapters:8080/token-exchange
   QJUDGE_MCP_URL: http://fake-ai-adapters:8080/mcp
-  OPENAI_API_KEY: fake-test-provider-key
-  OPENAI_BASE_URL: http://fake-ai-adapters:8080/v1
-  DEEPSEEK_API_KEY: fake-test-provider-key
-  DEEPSEEK_BASE_URL: http://fake-ai-adapters:8080/v1
-  VLLM_API_KEY: fake-test-provider-key
-  VLLM_BASE_URL: http://fake-ai-adapters:8080/v1
+  FAKE_API_KEY: fake-test-provider-key
 
 x-fake-ai-service: &fake_ai_service
   environment: *fake_ai_environment
+  volumes:
+    - ../ci/ai:/etc/qjudge-ai:ro
   depends_on:
     fake-ai-adapters:
       condition: service_healthy

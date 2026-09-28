@@ -49,12 +49,6 @@ x-ai-environment: &ai_environment
   OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY}
   OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY}
   OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET}
-  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
-  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
-  DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
-  VLLM_API_KEY: ${VLLM_API_KEY:-}
-  VLLM_BASE_URL: ${VLLM_BASE_URL:-}
 
 services:
   postgres:
@@ -106,6 +100,11 @@ services:
     image: qjudge/ai-service:${QJUDGE_VERSION}
     restart: always
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+    env_file:
+      - path: ./ai/keys.env
+        required: false
+    volumes:
+      - ./ai:/etc/qjudge-ai:ro
     environment: *ai_environment
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--max-time", "8", "http://localhost:8001/health/ready"]
@@ -116,6 +115,11 @@ services:
   ai-worker:
     image: qjudge/ai-service:${QJUDGE_VERSION}
     restart: always
+    env_file:
+      - path: ./ai/keys.env
+        required: false
+    volumes:
+      - ./ai:/etc/qjudge-ai:ro
     healthcheck:
       disable: true
     # -B embeds the AI beat scheduler; run exactly one ai-worker replica.

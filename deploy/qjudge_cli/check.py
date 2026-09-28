@@ -15,9 +15,11 @@ ENUMS = {
 HTTP_URL_KEYS = {
     "OBJECT_STORAGE_ENDPOINT_URL",
     "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL",
-    "OPENAI_BASE_URL",
-    "DEEPSEEK_BASE_URL",
-    "VLLM_BASE_URL",
+}
+MOVED_AI_KEYS = {
+    "OPENAI_API_KEY", "OPENAI_BASE_URL",
+    "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL",
+    "VLLM_API_KEY", "VLLM_BASE_URL",
 }
 URL_SAFE_PASSWORD_KEYS = {"POSTGRES_ADMIN_PASSWORD", "DB_PASSWORD", "AI_DB_PASSWORD"}
 URL_SAFE = re.compile(r"[A-Za-z0-9._~-]+")
@@ -27,7 +29,12 @@ def check_env(env: Env) -> list[str]:
     """Return one message per problem; an empty list means the env is valid."""
     errors: list[str] = []
     for name in sorted(set(env) - set(KEYS_BY_NAME)):
-        errors.append(f"{name}: unknown key; see deploy/.env.example for supported keys")
+        if name in MOVED_AI_KEYS:
+            errors.append(
+                f"{name}: moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
+            )
+        else:
+            errors.append(f"{name}: unknown key; see deploy/.env.example for supported keys")
     for key in KEYS:
         value = env.get(key.name, "").strip()
         if not value:
