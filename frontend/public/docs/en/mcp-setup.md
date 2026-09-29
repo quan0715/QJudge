@@ -1,160 +1,117 @@
-QJudge supports [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) so AI tools can manage exams, questions, and grading directly. Once connected, you can ask your AI assistant to create questions, grade answers, and inspect contest data without manually navigating the web UI.
+# Configuring MCP Connections
 
-## Supported AI tools
+MCP (Model Context Protocol) is an open connection protocol that allows external AI tools to call system functions. For instructors and administrators, its utility is direct: you can inspect classroom information, organize questions, or retrieve submission statistics directly from your preferred AI tools (such as Cursor, Claude Desktop, or MCP-compatible code editors) without having to constantly switch back to your browser.
 
-| Tool | Status |
-|------|--------|
-| Remote MCP-capable AI tools | Fully supported by pasting `https://q-judge.com/mcp` |
-| [Claude Code](https://claude.ai/claude-code) | Fully supported (Streamable HTTP) |
-| [Cursor](https://cursor.com) | Fully supported |
-| [Codex CLI](https://github.com/openai/codex) | Fully supported |
-| [ChatGPT](https://chatgpt.com/) / Claude Desktop / VS Code and similar remote MCP clients | Expected to work with direct remote MCP setup |
-| Other MCP-compatible tools | Should work if they support remote MCP or Streamable HTTP transport |
+MCP is an **optional feature**. If you only author questions, grade submissions, and run evaluations through the QJudge web interface, you do not need to configure it.
 
-## Prerequisites
+## Step 1: Verify the MCP Service Is Ready
 
-- A QJudge account with **teacher** or **TA** permissions
-- One of the AI tools above
-
-QJudge uses OAuth 2.1 for MCP authorization, so you do not need to create API tokens manually.
-
-## Quick connect
-
-If your AI tool has built-in MCP, Connectors, or Integrations settings, prefer that flow. It matches the general pattern used by guides like Notion's "Connect through your AI tool":
-
-1. Add a custom or remote MCP server in the tool settings
-2. Paste the QJudge MCP server URL
-3. Save the configuration and reload the tool
-4. The first time you invoke a QJudge tool, complete the browser OAuth flow
+QJudge natively provides a Remote HTTP MCP endpoint by default, located at your public domain plus `/mcp`:
 
 ```text
-https://q-judge.com/mcp
+https://judge.example.edu/mcp
 ```
 
-This usually applies to ChatGPT, Claude Desktop, VS Code, and other clients that support remote MCP.
+> **Important**: External AI tools (such as Claude Desktop or Cursor) generally require remote endpoints to use **HTTPS**. If your server currently uses only a local IP or has not configured an SSL certificate yet, follow [Deployment Guide](#/docs/deployment) or [Ingress & Optional Features](#/docs/deployment-options) to set up a domain name and HTTPS (for example, using Cloudflare Tunnel or a reverse proxy).
 
-## Installation guides
+## Step 2: Add the Connection in Your AI Tool
 
-### Claude Code
+Different AI tools refer to this feature as MCP, Connectors, Integrations, or External Tools, but the configuration logic remains identical.
 
-Run:
+### Using Claude Desktop
 
-```bash
-claude mcp add --transport http qjudge https://q-judge.com/mcp
-```
-
-After restarting Claude Code, run `/mcp` to confirm that `qjudge` appears in the server list.
-
-### Cursor
-
-Add this to `.cursor/mcp.json`:
+Add an `mcpServers` block to your Claude Desktop configuration file (such as `claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "https://q-judge.com/mcp"
+      "url": "https://judge.example.edu/mcp"
     }
   }
 }
 ```
 
-After restarting Cursor, QJudge tools should be available in Agent mode.
+### Using Cursor
 
-### Codex CLI
+1. Open Cursor **Settings** > **Features** > **MCP Servers**.
+2. Click **Add New MCP Server**.
+3. Set Name to `qjudge` and Type to `http` (or SSE/Remote).
+4. Enter your QJudge MCP URL (e.g. `https://judge.example.edu/mcp`) and save.
 
-Run:
+### Using ChatGPT Desktop (macOS / Windows)
 
-```bash
-codex mcp add --transport http qjudge https://q-judge.com/mcp
-```
+The ChatGPT desktop application supports connecting to external developer tools and MCP services:
 
-## If your tool does not support remote MCP
+1. Open the ChatGPT desktop application.
+2. Click your profile avatar or settings icon to open **Settings**.
+3. Navigate to **Apps & Integrations** or **Developer** > **MCP Servers**.
+4. Click **Add Server**:
+   - **Name**: `qjudge`
+   - **Type**: Select `HTTP` (or Remote)
+   - **URL**: Enter `https://judge.example.edu/mcp`
+5. If using a JSON configuration file, the structure is identical to Claude Desktop:
+   ```json
+   {
+     "mcpServers": {
+      "qjudge": {
+        "type": "http",
+        "url": "https://judge.example.edu/mcp"
+      }
+     }
+   }
+   ```
+6. Save and restart or reload the conversation to enable QJudge actions in chat.
 
-If your AI tool only supports local JSON config files or CLI-based setup, use the Claude Code, Cursor, or Codex CLI examples above. The important part is that every client points to the same remote server URL:
+### Using ChatGPT Web
 
-```text
-https://q-judge.com/mcp
-```
+When using [chatgpt.com](https://chatgpt.com/) in your browser, you can connect using either method depending on feature availability:
 
-## Automatic authorization flow
+#### Method A: Via Connected Apps (Developer / MCP Connections Enabled)
+1. Go to ChatGPT Web, click your profile settings > **Connected Apps** (or **Developer Tools**).
+2. Click **Connect Tool** or **Add MCP Endpoint**.
+3. Enter your QJudge MCP endpoint: `https://judge.example.edu/mcp`.
+4. Click Connect; the browser will open a QJudge OAuth authorization window to complete the connection.
 
-After the MCP server is added, the first tool invocation opens the QJudge login page in your browser. Once authorization completes, the AI tool stores and reuses your credentials automatically.
+#### Method B: Via Custom GPTs (Custom GPT Actions Integration)
+If you want to build a dedicated "Course TA GPT":
+1. Navigate to **Explore GPTs** > click **Create a GPT**.
+2. Switch to the **Configure** tab, scroll to the bottom, and click **Create new action** under **Actions**.
+3. Select **OAuth** under Authentication:
+   - **Authorization URL**: `https://judge.example.edu/o/authorize/`
+   - **Token URL**: `https://judge.example.edu/o/token/`
+   - **Scope**: `read write`
+4. Enter your QJudge endpoint to enable the GPT to query classrooms and draft questions.
 
-## Available capabilities
+> **Security Note**: **Never write usernames, passwords, or secret tokens into configuration files**. QJudge uses a secure OAuth 2.0 flow; connection tokens are dynamically issued via browser authorization, eliminating the need to hard-code credentials.
 
-Once connected, the AI tool can access these QJudge MCP tool groups:
+## Step 3: Initial Authorization and Login
 
-### Discover and browse (`qjudge_discover`)
+After configuring your tool, reload or restart it:
 
-| Action | Description |
-|--------|-------------|
-| `list_classrooms` | List classrooms you manage |
-| `list_contests` | Search contests by name or status |
-| `get_contest` | Inspect contest details |
-| `browse_banks` | List your question banks |
-| `browse_bank_questions` | List questions inside a bank |
-| `create_bank_question` | Create a new bank question, including coding problems |
+1. When the AI tool first attempts to call a QJudge tool, your browser will automatically pop up or prompt you to open the QJudge authorization page.
+2. Log into your QJudge account in the browser.
+3. Review the permissions requested by the tool, and click **Authorize**.
+4. Once authorization succeeds, close the browser window and return to your AI tool.
 
-### Manage exam questions (`qjudge_exam`)
+## Permissions and Security Boundaries
 
-| Action | Description |
-|--------|-------------|
-| `list` | List all exam questions in a contest |
-| `get` | Get one exam question |
-| `create` | Create true/false, single-choice, multi-choice, short-answer, or essay questions |
-| `update` | Update question content |
-| `delete` | Delete a question |
-| `reorder` | Reorder questions |
-| `import_from_bank` | Import questions from a bank |
+The permissions granted to the MCP tool **strictly match your logged-in QJudge account**:
 
-### Manage coding problems (`qjudge_coding_problems`)
+- **Teacher Accounts**: Can only query and manage their own classrooms, assignments, exams, and student rosters; cannot view other instructors' private questions.
+- **Administrator Accounts**: Can query site-level system statuses and global settings.
 
-| Action | Description |
-|--------|-------------|
-| `list` | List coding problems in a contest |
-| `get` | Get coding problem details |
-| `create` | Create a coding problem |
-| `import_from_bank` | Import a coding problem from a bank |
-| `update_score` | Update scoring |
-| `delete` | Delete a coding problem |
-| `test_run` | Run code against built-in or custom test cases |
+MCP does not bypass QJudge's internal permission checks, nor can it access data outside your personal account's authorized scope.
 
-### Review and grade answers (`qjudge_grading`)
+## Step 4: Testing Your First Prompt
 
-| Action | Description |
-|--------|-------------|
-| `list_answers` | List student answers, optionally filtered |
-| `question_detail` | Inspect answer distribution and per-question analysis |
-| `dashboard` | Review grading overview for a contest |
-| `grade` | Grade one answer |
-| `batch_grade` | Grade multiple answers |
-| `ungrade` | Revert grading |
+Once configured, test the connection with a simple read-only query to confirm connectivity and permissions:
 
-## Security notes
+Enter the following into your AI tool's chat prompt:
 
-- MCP uses **OAuth 2.1 with PKCE**
-- The AI tool stores and manages credentials; the exact storage location depends on the client
-- Access tokens expire after 1 hour and refresh automatically
-- Refresh tokens expire after 30 days, after which re-authorization is required
-- AI tools can only access classrooms and contests you are authorized to manage
-- All changes are recorded in the contest activity log
+> "Please check what classrooms I have access to on QJudge."
 
-## Troubleshooting
+If the AI lists your course classroom names and IDs, your MCP connection is fully operational!
 
-### Connection failed
-
-- Verify the MCP server URL is `https://q-judge.com/mcp`
-- Verify your account has teacher or TA permissions
-- If authorization expired, repeat the setup flow and re-authorize
-
-### Permission denied (403)
-
-- Verify you are an owner or manager of the target contest
-- Some updates are blocked after students have started an exam
-
-### Response too large
-
-- Filter by `question_id` when listing answers
-- Prefer `batch_grade` over many individual `grade` calls
+[Previous: Configuring AI Models & Services](#/docs/ai-setup) · [Next: Third-Party Authentication Setup](#/docs/auth-setup)

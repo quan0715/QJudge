@@ -1,76 +1,93 @@
 {
-  "environment": {
-    "cannotSync": "Cannot Sync",
-    "cloud": "Cloud",
-    "cloudDatabase": "Cloud Database",
-    "confirmSwitch": "Data will be synced from {{source}} to {{target}} before switching.\n\n(Database migrations will be applied automatically)\n\nContinue?",
-    "confirmSync": "Are you sure you want to sync data from {{source}} to {{target}}?\n\n(Database migrations will be applied automatically)\n\nThis will overwrite the target database.",
-    "connectionLatency": "Connection Latency",
-    "currentDatabase": "Current Database",
-    "databaseSwitch": "Database Switch (Auto-sync before switch)",
-    "databaseSync": "Database Sync",
-    "inUse": "In Use",
-    "latency": "Latency",
-    "latencyLevel": {
-      "excellent": "Excellent",
-      "good": "Good",
-      "normal": "Normal",
-      "slow": "Slow",
-      "unknown": "Unknown",
-      "verySlow": "Very Slow"
+  "service": {
+    "allUp": "All services up",
+    "component": "Service",
+    "components": {
+      "ai_service": "AI service",
+      "cache": "Cache (Redis)",
+      "celery": "Celery workers",
+      "database": "Database",
+      "integrity_resident": "Integrity resident"
     },
-    "local": "Local",
-    "localDatabase": "Local Database",
-    "needBothConnected": "Both databases need to be connected to sync",
-    "operations": "Operations",
-    "refreshStatus": "Refresh Status",
-    "subtitle": "Manage database connections and sync operations",
-    "switchProgress": "Applying migrations and syncing...",
-    "switchSuccess": "Switched to {{target}} database",
-    "switchSuccessWithMigration": "Switched to {{target}} database (migrations applied)",
-    "switching": "Switching database...",
-    "syncCloudToLocal": "Cloud → Local",
-    "syncDescription": "Sync data from one database to another. Migrations will be applied automatically. Note: This will overwrite the target database.",
-    "syncLocalToCloud": "Local → Cloud",
-    "syncingPleaseWait": "Syncing, please wait...",
-    "title": "Environment Management"
-  },
-  "problem": {
-    "management": {
-      "allProblems": "All Problems",
-      "contestProblems": "Contest Problems",
-      "title": "Problem Management"
-    }
+    "contest": "Contest",
+    "detail": "Detail",
+    "generatedAt": "Probed at",
+    "integrityTitle": "Integrity runs",
+    "lastError": "Last error",
+    "latency": "Latency",
+    "liveRuns": "Live",
+    "loadFailed": "Could not load service status",
+    "neverReported": "Never reported",
+    "noHeartbeat": "No heartbeat",
+    "refresh": "Probe again",
+    "runState": "State",
+    "someDown": "{{count}} service(s) down",
+    "staleHeartbeats": "Stale heartbeat",
+    "staleHint": "A heartbeat older than {{seconds}}s counts as stale.",
+    "status": "Status",
+    "subtitle": "Live probe of the platform's own services. Probed on open and on refresh only — it does not poll.",
+    "title": "Service Status",
+    "unhealthyRuns": "Unhealthy",
+    "worker": "Worker"
   },
   "user": {
     "management": {
+      "activateTeacher": "Activate Teacher Access",
+      "activationInvite": {
+        "copied": "Copied",
+        "copy": "Copy Link",
+        "failed": "Failed to generate teacher activation link",
+        "latest": "Latest Invitation",
+        "send": "Generate Link",
+        "sending": "Generating...",
+        "sent": "Teacher activation link generated",
+        "title": "Teacher Invite Activation"
+      },
       "adminPermissionNote": "After setting as admin, this user will have full system management permissions.",
       "columns": {
         "actions": "Actions",
         "currentRole": "Current Role",
+        "displayName": "Display Name",
         "email": "Email",
+        "lastLogin": "Last Login",
         "loginMethod": "Login Method",
+        "onboarding": "Onboarding",
         "username": "Username"
       },
       "confirmRoleChange": "Confirm Role Change",
       "confirmRoleChangeMessage": "Are you sure you want to change {{username}}'s role from {{oldRole}} to {{newRole}}?",
       "description": "View all users and manage roles (use search to filter)",
+      "filters": {
+        "all": "All"
+      },
       "loadFailed": "Failed to load users",
       "loginMethods": {
         "email": "Password credentials",
-        "password": "Password credentials",
         "github": "GitHub",
         "google": "Google",
+        "password": "Password credentials",
         "sso": "SSO",
         "unknown": "Unknown"
       },
       "minSearchLength": "Please enter at least 2 characters to search",
       "noUsersFound": "No matching users found",
+      "notAvailable": "N/A",
+      "onboarding": {
+        "completed": "Completed",
+        "pending": "Pending"
+      },
+      "revokeTeacher": "Revert to Student",
       "searchFailed": "Search failed",
       "searchFailedRetry": "Search failed. Please try again later.",
       "searchLabel": "Search users (optional)",
       "searchPlaceholder": "Enter username or email to filter...",
       "searchResults": "Search Results ({{count}})",
+      "sendTeacherInvite": "Generate Activation Link",
+      "summary": {
+        "pendingOnboarding": "Pending Onboarding",
+        "teachers": "Activated Teachers",
+        "totalUsers": "Total Users"
+      },
       "title": "User Management",
       "updateFailed": "Update failed",
       "updateFailedRetry": "Update failed. Please try again later."
@@ -80,37 +97,6 @@
       "adminTA": "Admin (TA)",
       "student": "Student",
       "teacher": "Teacher"
-    }
-  },
-  "service": {
-    "title": "Service Status",
-    "subtitle": "Live probe of the platform's own services. Probed on open and on refresh only — it does not poll.",
-    "refresh": "Probe again",
-    "loadFailed": "Could not load service status",
-    "allUp": "All services up",
-    "someDown": "{{count}} service(s) down",
-    "generatedAt": "Probed at",
-    "component": "Service",
-    "status": "Status",
-    "latency": "Latency",
-    "detail": "Detail",
-    "integrityTitle": "Integrity runs",
-    "liveRuns": "Live",
-    "unhealthyRuns": "Unhealthy",
-    "staleHeartbeats": "Stale heartbeat",
-    "neverReported": "Never reported",
-    "staleHint": "A heartbeat older than {{seconds}}s counts as stale.",
-    "contest": "Contest",
-    "runState": "State",
-    "worker": "Worker",
-    "lastError": "Last error",
-    "noHeartbeat": "No heartbeat",
-    "components": {
-      "database": "Database",
-      "cache": "Cache (Redis)",
-      "celery": "Celery workers",
-      "ai_service": "AI service",
-      "integrity_resident": "Integrity resident"
     }
   }
 }

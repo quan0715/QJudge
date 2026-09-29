@@ -9,6 +9,7 @@
 - [語系維護](i18n.md)：前端語系 key 與公開文件翻譯的檢查方式。
 - [壓力測試](loadtest.md)：隔離壓測環境的建立、執行與清理。
 - [Exam Integrity runbook](operations/exam-integrity-runbook.md)：Integrity Run 的營運檢查與復原。
+- [身份模組維護與擴充](identity-auth-extension.md)：OAuth 2.0、SSO 登入與外部帳號連結的內部架構與擴充指引。
 
 ## 公開文件
 

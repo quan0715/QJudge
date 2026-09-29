@@ -1,90 +1,11 @@
 {
-  "button": {
-    "create": "Create"
-  },
   "difficulty": {
     "easy": "Easy",
     "hard": "Hard",
     "medium": "Medium"
   },
-  "edit": {
-    "actions": {
-      "back": "Back",
-      "delete": "Delete",
-      "preview": "Preview",
-      "save": "Save"
-    },
-    "messages": {
-      "deleteFailed": "Delete Failed",
-      "deleteSuccess": "Delete Successful",
-      "deleteSuccessDetail": "Redirecting...",
-      "loadFailed": "Failed to load problem data",
-      "noPermission": "You do not have permission to edit this problem",
-      "noPermissionTitle": "Permission Denied",
-      "notFound": "Problem not found"
-    },
-    "sections": {
-      "basicInfo": "Basic Information",
-      "content": "Problem Content",
-      "languageSettings": "Language Settings",
-      "testCases": "Test Cases"
-    },
-    "status": {
-      "hidden": "Problem hidden",
-      "private": "Problem set to private",
-      "public": "Problem is now public"
-    }
-  },
-  "editor": {
-    "header": "Problem Editor",
-    "selectLanguage": "Select Language"
-  },
-  "filter": {
-    "difficulty": "Difficulty",
-    "noTags": "No tags available",
-    "solved": "Solved",
-    "status": "Status",
-    "tags": "Tags",
-    "unsolved": "Unsolved"
-  },
-  "form": {
-    "placeholder": {
-      "title": "Enter problem title"
-    },
-    "slug": "URL Slug",
-    "title": "Title"
-  },
-  "hero": {
-    "acRate": "AC Rate",
-    "accepted": "Accepted",
-    "memoryLimit": "Memory Limit",
-    "score": "Score",
-    "submissions": "Submissions",
-    "timeLimit": "Time Limit"
-  },
   "list": {
-    "acrRate": "AC Rate",
-    "noResults": "No problems found matching your criteria",
-    "searchPlaceholder": "Search problems...",
-    "subtitle": "Explore various algorithmic challenges across different difficulties.",
-    "title": "Problem Solving",
-    "totalLoaded": "Loaded all {{count}} problems",
-    "tryAdjustFilters": "Please try adjusting your filters"
-  },
-  "management": {
-    "description": "Manage your problems",
-    "problemCount": "{{count}} problems in total"
-  },
-  "modal": {
-    "confirmDelete": "Confirm Delete",
-    "confirmSubmit": "Confirm Submission",
-    "createError": "Failed to create. Please try again later.",
-    "createSuccess": "Problem created successfully!",
-    "createTitle": "Create Problem",
-    "deleteConfirmMessage": "Are you sure you want to delete problem \"{{title}}\"? This action cannot be undone.",
-    "submitConfirmMessage": "This will be evaluated against all hidden test cases.",
-    "submitConfirmTitle": "Are you sure you want to submit?",
-    "submitting": "Submitting..."
+    "acrRate": "AC Rate"
   },
   "sample": {
     "empty": "(empty)",
@@ -101,11 +22,5 @@
     "outputDescription": "Output Description",
     "requiredKeywords": "Required Keywords:",
     "sampleTestCases": "Sample Test Cases"
-  },
-  "tabs": {
-    "code": "Code",
-    "description": "Description",
-    "stats": "Statistics",
-    "submissions": "Submissions"
   }
 }

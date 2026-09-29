@@ -26,21 +26,12 @@
       ]
     },
     {
-      "id": "teacher-guide",
-      "items": [
-        "teacher-adoption-overview",
-        "teacher-assignment-workflow",
-        "teacher-exam-workflow",
-        "teacher-grading-feedback",
-        "exam-grading",
-        "exam-statistics",
-        "exam-proctoring",
-        "mcp-setup"
-      ]
-    },
-    {
       "id": "admin-guide",
-      "items": ["identity-auth-extension"]
+      "items": [
+        "ai-setup",
+        "mcp-setup",
+        "auth-setup"
+      ]
     }
   ],
   "defaultDoc": "overview"

@@ -12,7 +12,6 @@
     },
     "mobileTitle": "コンテスト管理",
     "nav": {
-      "standings": "ランキング",
       "aiGrading": "AI採点",
       "clarifications": "Q&A",
       "examAiGrading": "AI採点",
@@ -24,13 +23,16 @@
       "problemManagement": "問題管理",
       "proctoring": "監視",
       "settings": "設定",
+      "standings": "ランキング",
       "statistics": "統計"
     },
     "title": "管理ダッシュボード"
   },
   "adminOverview": {
     "actions": {
+      "disableAttendanceCheck": "入室を無効化",
       "editSettings": "設定",
+      "enableAttendanceCheck": "入室を有効化",
       "openContestHomepage": "コンテストホームを開く",
       "publishContest": "コンテストを公開",
       "publishContestBody": "公開後、学生はこのコンテストを表示できます。",
@@ -61,12 +63,13 @@
       "strictModeEnableBody": "事前チェック、監視ソース、異常イベント記録を適用します。",
       "strictModeEnableConfirm": "不正対策監視を有効にしますか？",
       "strictModeEnableSuccess": "不正対策監視を有効にしました",
-      "updateFailed": "更新に失敗しました",
-      "disableAttendanceCheck": "入室を無効化",
-      "enableAttendanceCheck": "入室を有効化"
+      "updateFailed": "更新に失敗しました"
     },
     "command": {
       "ariaLabel": "教師管理概要",
+      "clarifications": {
+        "publishAnnouncement": "告知を公開"
+      },
       "connection": {
         "offline": "オフライン",
         "online": "オンライン"
@@ -83,9 +86,6 @@
         "questionStats": "回答分布",
         "standings": "ランキング",
         "submissions": "提出一覧"
-      },
-      "clarifications": {
-        "publishAnnouncement": "告知を公開"
       },
       "eventLog": "イベント記録",
       "examStatusSummary": "試験状態サマリー",
@@ -299,80 +299,80 @@
     },
     "preparation": {
       "ariaLabel": "コンテスト準備の概要",
+      "blockedBySchedule": "公開する前に試験時間を設定してください",
+      "checklistTitle": "未完了",
+      "confirm": {
+        "publishAnyway": "このまま公開",
+        "publishWithoutProblemsBody": "学生には空の問題一覧が表示されます。先に公開して、後から問題を追加できます。",
+        "publishWithoutProblemsTitle": "このコンテストにはまだ問題がありません",
+        "revertToDraftBody": "戻すと学生はすぐにこのコンテストを見られなくなります。",
+        "revertToDraftTitle": "下書きに戻しますか？"
+      },
+      "dangerAction": "危険な操作",
+      "draftHiddenNote": "下書きは学生のコンテスト一覧に表示されません",
+      "info": {
+        "contestType": "問題形式",
+        "participants": "受験者数",
+        "problems": "問題数"
+      },
+      "level": {
+        "blocking": "公開に必須",
+        "done": "完了",
+        "pending": "未完了",
+        "warning": "推奨"
+      },
+      "nextStep": "次のステップ",
+      "participants": {
+        "action": "リストを管理",
+        "done": "{{count}} 人が参加済み",
+        "missing": "受験者がまだ追加されていません",
+        "title": "受験者リスト"
+      },
+      "participantsTitle": "受験者リスト",
+      "previewAsStudent": "受験者視点でプレビュー",
+      "problems": {
+        "action": "問題管理へ",
+        "done": "{{count}} 問を設定済み",
+        "missing": "問題がまだ追加されていません",
+        "title": "問題の準備"
+      },
+      "rules": {
+        "action": "設定を開く",
+        "done": "規則が設定済みです",
+        "missing": "試験規則と注意事項の追加を推奨します",
+        "title": "コンテスト規則"
+      },
+      "schedule": {
+        "action": "時間を設定",
+        "done": "{{start}} - {{end}}",
+        "missing": "未設定です。公開前に必要です",
+        "title": "試験時間"
+      },
+      "startsIn": "開始まで {{value}}",
       "steps": {
-        "title": "コンテスト準備手順",
+        "back": "戻る",
         "information": "コンテスト情報の設定",
         "informationDescription": "ルールと日時",
         "problems": "問題の設定",
-        "review": "確認して公開",
-        "reviewDescription": "設定を確認して学生に公開します",
-        "reviewBlocked": "公開する前にコンテスト情報を設定してください。",
         "published": "公開済み",
-        "back": "戻る"
+        "review": "確認して公開",
+        "reviewBlocked": "公開する前にコンテスト情報を設定してください。",
+        "reviewDescription": "設定を確認して学生に公開します",
+        "title": "コンテスト準備手順"
       },
-      "checklistTitle": "未完了",
-      "participantsTitle": "受験者リスト",
-      "nextStep": "次のステップ",
-      "studentView": "学生に見える表示",
-      "previewAsStudent": "受験者視点でプレビュー",
-      "draftHiddenNote": "下書きは学生のコンテスト一覧に表示されません",
-      "blockedBySchedule": "公開する前に試験時間を設定してください",
-      "startsIn": "開始まで {{value}}",
-      "dangerAction": "危険な操作",
-      "level": {
-        "pending": "未完了",
-        "done": "完了",
-        "warning": "推奨",
-        "blocking": "公開に必須"
-      },
-      "info": {
-        "contestType": "問題形式",
-        "problems": "問題数",
-        "participants": "受験者数"
-      },
-      "schedule": {
-        "title": "試験時間",
-        "done": "{{start}} - {{end}}",
-        "missing": "未設定です。公開前に必要です",
-        "action": "時間を設定"
-      },
-      "problems": {
-        "title": "問題の準備",
-        "done": "{{count}} 問を設定済み",
-        "missing": "問題がまだ追加されていません",
-        "action": "問題管理へ"
-      },
-      "participants": {
-        "title": "受験者リスト",
-        "done": "{{count}} 人が参加済み",
-        "missing": "受験者がまだ追加されていません",
-        "action": "リストを管理"
-      },
-      "rules": {
-        "title": "コンテスト規則",
-        "done": "規則が設定済みです",
-        "missing": "試験規則と注意事項の追加を推奨します",
-        "action": "設定を開く"
-      },
-      "confirm": {
-        "publishWithoutProblemsTitle": "このコンテストにはまだ問題がありません",
-        "publishWithoutProblemsBody": "学生には空の問題一覧が表示されます。先に公開して、後から問題を追加できます。",
-        "publishAnyway": "このまま公開",
-        "revertToDraftTitle": "下書きに戻しますか？",
-        "revertToDraftBody": "戻すと学生はすぐにこのコンテストを見られなくなります。"
-      }
+      "studentView": "学生に見える表示"
     },
     "screen": {
       "actions": {
         "addParticipant": "受験者を追加",
+        "attendanceProjection": "入退室 QR を開く",
         "contestHome": "競賽主頁",
         "export": "匯出成績",
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
-        "studentQrScan": "学生 QR をスキャン",
         "settings": "競賽設定",
-        "attendanceProjection": "入退室 QR を開く"
+        "studentQrScan": "学生 QR をスキャン"
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
@@ -412,6 +412,7 @@
       "remainingLabel": "残り時間"
     },
     "widgets": {
+      "attendanceCheck": "QR 入退室",
       "coding": "プログラミング問題",
       "disabled": "無効",
       "enabled": "有効",
@@ -433,8 +434,7 @@
       "timelineProgress": "時間進捗",
       "title": "コマンドセンター",
       "violationCount": "異常イベント数",
-      "violationCountAria": "異常イベント数、イベントパネルへ移動",
-      "attendanceCheck": "QR 入退室"
+      "violationCountAria": "異常イベント数、イベントパネルへ移動"
     }
   },
   "adminPreparationDashboard": {
@@ -487,35 +487,17 @@
       "backToDashboard": "ダッシュボードに戻る",
       "submitted": "試験が終了し、答案が提出されました。"
     },
+    "group": {
+      "sharedStem": "共通問題文",
+      "totalScore": "小計 {{score}} 点"
+    },
     "loading": "問題を読み込み中...",
     "mark": {
       "toggle": "要再確認としてマーク"
     },
-    "modes": {
-      "all": "全問表示",
-      "single": "1問ずつ表示"
-    },
-    "navigation": {
-      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み",
-      "hideList": "問題リストを非表示",
-      "markedCount": "{{count}} 問マーク済み",
-      "nextQuestion": "次の問題",
-      "prevQuestion": "前の問題",
-      "questionList": "問題リスト",
-      "showList": "問題リストを表示"
-    },
-    "noQuestions": "この試験には問題が設定されていません。",
-    "question": {
-      "answerLabel": "解答欄",
-      "essayPlaceholder": "詳細に回答してください...",
-      "falseOption": "いいえ (False)",
-      "promptEmpty": "（問題文が未入力です）",
-      "shortAnswerPlaceholder": "答えを入力してください...",
-      "trueOption": "はい (True)"
-    },
-    "group": {
-      "sharedStem": "共通問題文",
-      "totalScore": "小計 {{score}} 点"
+    "markdownEditor": {
+      "ariaLabel": "Markdown 解答エディター",
+      "placeholder": "解答を入力してください。Markdown 形式を使用できます。"
     },
     "mathEditor": {
       "ariaLabel": "数学解答エディター",
@@ -545,13 +527,31 @@
         "theta": "シータ"
       }
     },
-    "markdownEditor": {
-      "ariaLabel": "Markdown 解答エディター",
-      "placeholder": "解答を入力してください。Markdown 形式を使用できます。"
+    "modes": {
+      "all": "全問表示",
+      "single": "1問ずつ表示"
     },
+    "navigation": {
+      "answeredProgress": "{{total}} 問中 {{answered}} 問 解答済み",
+      "hideList": "問題リストを非表示",
+      "markedCount": "{{count}} 問マーク済み",
+      "nextQuestion": "次の問題",
+      "prevQuestion": "前の問題",
+      "questionList": "問題リスト",
+      "showList": "問題リストを表示"
+    },
+    "noQuestions": "この試験には問題が設定されていません。",
     "openAnswer": {
       "ariaLabel": "自由記述シート",
       "placeholder": "解法を入力してください。ツールバーまたは / で数式を挿入できます。"
+    },
+    "question": {
+      "answerLabel": "解答欄",
+      "essayPlaceholder": "詳細に回答してください...",
+      "falseOption": "いいえ (False)",
+      "promptEmpty": "（問題文が未入力です）",
+      "shortAnswerPlaceholder": "答えを入力してください...",
+      "trueOption": "はい (True)"
     },
     "questionTypes": {
       "coding": "プログラミング",
@@ -588,6 +588,160 @@
     "error": "アーカイブに失敗しました",
     "title": "コンテストをアーカイブ"
   },
+  "attendance": {
+    "badge": "QR 受付",
+    "confirm": {
+      "description": "内容と写真を確認して送信。",
+      "infoLabel": "受付情報",
+      "photoPreviewAlt": "{{label}}プレビュー",
+      "photoStatus": "写真",
+      "photosLabel": "写真",
+      "scannedAt": "読取時刻",
+      "title": "{{purpose}}確認",
+      "type": "種類",
+      "uploadFailed": "送信失敗"
+    },
+    "cta": {
+      "backToExam": "試験に戻る",
+      "backToScan": "スキャンへ戻る",
+      "capturePurposePhoto": "{{purpose}}写真を撮る",
+      "confirmInfo": "確認",
+      "confirmUpload": "確認して送信",
+      "manualCode": "コード入力",
+      "next": "次へ",
+      "nextPhoto": "次の写真",
+      "realignment": "合わせ直す",
+      "retake": "撮り直す",
+      "retakePhotos": "撮り直す",
+      "retryCamera": "再試行",
+      "retryUpload": "再送信",
+      "scanning": "スキャン中…",
+      "uploading": "アップロード中…",
+      "validating": "検証中…",
+      "waitingCamera": "カメラ待ち…"
+    },
+    "done": {
+      "contest": "コンテスト",
+      "description": "{{purpose}}を記録しました。",
+      "photosLabel": "写真",
+      "resultLabel": "受付結果",
+      "status": "状態",
+      "time": "時刻",
+      "title": "{{purpose}}完了",
+      "uploaded": "送信済"
+    },
+    "errors": {
+      "cameraUnavailable": "カメラ不可",
+      "cameraUnsupported": "このブラウザはカメラ非対応です。教師に確認してください。",
+      "capturePhotoFailed": "撮影に失敗しました。",
+      "checkInAlreadyCompleted": "すでに入室済みです。",
+      "checkInOnlyBeforeStart": "開始後は入室できません。退室 QR を使ってください。",
+      "checkOutAlreadyCompleted": "すでに退室済みです。",
+      "checkoutAfterSubmit": "提出後に退室できます。",
+      "invalidManualCode": "コードが無効または期限切れです。",
+      "invalidToken": "QR が無効です。最新 QR をスキャンしてください。",
+      "manualCodeLength": "6 桁コードを入力してください。",
+      "missingPurpose": "先に入室または退室を選択してください。",
+      "notCheckInTime": "入室時間外です。",
+      "notEnabled": "QR 受付は未有効です。",
+      "photoMissing": "{{label}}未撮影",
+      "photoUploadFailed": "写真送信に失敗しました。",
+      "submitFailed": "送信に失敗しました。",
+      "tokenExpired": "QR が期限切れです。最新 QR をスキャンしてください。",
+      "uploadIntentIncomplete": "必要な写真が不足しています。",
+      "wrongPurposeQr": "{{actual}} QR です。{{expected}} QR を使ってください。"
+    },
+    "header": {
+      "auth": "{{purpose}}認証",
+      "confirm": "{{purpose}}を確認",
+      "done": "{{purpose}}完了",
+      "manual": "{{purpose}}コード",
+      "photo": "{{purpose}}撮影"
+    },
+    "manual": {
+      "cannotContinue": "続行不可",
+      "codeAriaLabel": "{{purpose}}コード",
+      "description": "投影 QR 下の 6 桁コードを入力。",
+      "digitAriaLabel": "{{index}}桁目",
+      "title": "{{purpose}}コード入力"
+    },
+    "photo": {
+      "alignTarget": "{{label}}に合わせる",
+      "cameraUnavailable": "カメラ不可",
+      "cannotComplete": "撮影できません",
+      "captureLabel": "{{label}}を撮影",
+      "nextStepConfirm": "次：確認して送信",
+      "nextStepPhoto": "次：{{title}}",
+      "qrVerifiedChip": "QR 認証済 · {{contest}}",
+      "readyChip": "写真準備済 · {{contest}}",
+      "room": {
+        "description": "教室と端末画面を撮影。",
+        "label": "会場",
+        "rearDescription": "背面カメラで教室と端末画面を撮影。",
+        "title": "会場を撮影"
+      },
+      "selfie": {
+        "description": "前面カメラで本人を撮影。",
+        "label": "本人",
+        "title": "本人を撮影"
+      }
+    },
+    "projection": {
+      "backToAdmin": "管理へ戻る",
+      "countdown": {
+        "ended": "試験終了",
+        "endedTone": "終了",
+        "endsIn": "終了まで",
+        "exam": "試験タイマー",
+        "openCheckIn": "入室受付中",
+        "running": "試験中",
+        "startsIn": "開始まで",
+        "unset": "時間未設定"
+      },
+      "enterFullscreen": "全画面",
+      "examFallback": "試験",
+      "examLabel": "試験",
+      "exitFullscreen": "全画面終了",
+      "guide": {
+        "ariaLabel": "受付手順",
+        "photo": "会場撮影",
+        "scan": "QR スキャン",
+        "upload": "確認して送信"
+      },
+      "loading": "読み込み中",
+      "manualCodeLabel": "カメラ不可時のコード",
+      "marker": {
+        "end": "終了",
+        "now": "現在",
+        "start": "開始"
+      },
+      "mode": {
+        "ariaLabel": "入退室 QR 切替"
+      },
+      "progress": "進行状況",
+      "progressAria": "進行状況 {{progress}}%",
+      "refreshFailed": "QR 更新失敗",
+      "reloadQr": "QR 再読み込み中",
+      "title": "入退室 QR",
+      "unstableSubtitle": "最後の QR を保持して再読み込みします。",
+      "unstableTitle": "QR 読み込み不安定"
+    },
+    "purpose": {
+      "checkIn": "入室",
+      "checkOut": "退室"
+    },
+    "scan": {
+      "alignQr": "投影 QR に合わせる",
+      "cannotComplete": "受付できません",
+      "description": "投影の{{purpose}} QR に合わせてください。",
+      "title": "QR をスキャン",
+      "validating": "検証中…",
+      "waitingCamera": "カメラ許可待ち"
+    },
+    "shell": {
+      "back": "戻る"
+    }
+  },
   "avatar": {
     "admin": "管理者",
     "editContestNickname": "コンテストニックネーム編集",
@@ -622,6 +776,8 @@
   "createModal": {
     "advancedIntro": "監視と参加ルールに基づいて詳細条件を設定してください。",
     "advancedSettings": "詳細条件設定",
+    "attendanceHint": "有効時、学生は試験前に QR 入室が必要です。",
+    "attendanceTitle": "QR 入退室",
     "chooseTypeTitle": "コンテストを作成",
     "configureSchedule": "基本情報を設定",
     "contestName": "コンテスト名",
@@ -670,9 +826,7 @@
       "cannotComputeEndTime": "Cannot compute end time, please check start time and duration",
       "durationPositive": "Duration must be greater than 0 minutes",
       "passwordRequired": "Password is required for private contests"
-    },
-    "attendanceTitle": "QR 入退室",
-    "attendanceHint": "有効時、学生は試験前に QR 入室が必要です。"
+    }
   },
   "dashboard": {
     "acceptedRate": "AC 比率",
@@ -769,9 +923,7 @@
     "settings": "エクスポート設定",
     "title": "コンテストファイルをダウンロード"
   },
-  "duration": "期間",
   "endTime": "終了時間",
-  "enterFullscreen": "フルスクリーン",
   "error": {
     "cannotViewProblem": "問題を閲覧できません",
     "createFailed": "コンテストの作成に失敗しました",
@@ -891,6 +1043,35 @@
     },
     "answerNotSet": "（未設定）",
     "autoSaveEnabled": "自動保存中",
+    "codingPreviewPlaceholder": "未編集",
+    "codingProblemUntitled": "無題の問題",
+    "codingProblemWithLabel": "問題 {{label}}",
+    "codingSourceHint": "問題バンクから選択するか、新しいコーディング問題を作成できます。",
+    "collapseSourcePanel": "問題ソースを閉じる",
+    "confirmDelete": "問題 #{{num}} を削除しますか？",
+    "confirmRemoveProblem": "この問題をコンテストから削除しますか？",
+    "copyFailed": "コピーに失敗しました",
+    "correctAnswer": "正解",
+    "createQuestion": "新しい問題を直接作成",
+    "deleteFailed": "削除に失敗しました",
+    "deleteOption": "選択肢を削除",
+    "explanation": "解説",
+    "explanationNotSet": "（解説未設定）",
+    "explanationPlaceholder": "完全な解法手順、導出、概念説明を入力。採点用の最終解答だけをここに入れないでください",
+    "falseOption": "いいえ (False)",
+    "gradingReferenceAnswer": "採点用参考解答",
+    "gradingReferencePlaceholder": "採点用の要点または最終結論を入力。完全な導出は解説に入れてください",
+    "hideQuestionList": "問題一覧を隠す",
+    "importFromBank": "問題バンクからインポート",
+    "importFrozen": "現在、問題は凍結されており、インポートできません。",
+    "importRollbackFailed": "インポート失敗、ロールバックも失敗",
+    "importRollbackFailedDetail": "ページを更新して問題内容を確認してください",
+    "importRolledBack": "インポート失敗、自動ロールバック済み",
+    "importSuccess": "インポート成功",
+    "importSuccessDetail": "{{count}} 問を上書きしました",
+    "insertHere": "ここに問題を挿入",
+    "loadFailed": "読み込み失敗",
+    "loadFailedDetail": "試験問題の読み込みに失敗しました",
     "lockedSave": {
       "continueEditing": "編集を続ける",
       "discard": "変更を破棄",
@@ -910,35 +1091,7 @@
       "unpublishNotice": "現在の結果公開が解除される場合があります。",
       "unsaved": "未保存"
     },
-    "codingPreviewPlaceholder": "未編集",
-    "codingProblemUntitled": "無題の問題",
-    "codingProblemWithLabel": "問題 {{label}}",
-    "codingSourceHint": "問題バンクから選択するか、新しいコーディング問題を作成できます。",
-    "collapseSourcePanel": "問題ソースを閉じる",
-    "confirmDelete": "問題 #{{num}} を削除しますか？",
-    "confirmRemoveProblem": "この問題をコンテストから削除しますか？",
-    "copyFailed": "コピーに失敗しました",
-    "correctAnswer": "正解",
-    "createQuestion": "新しい問題を直接作成",
-    "deleteFailed": "削除に失敗しました",
-    "deleteOption": "選択肢を削除",
-    "explanation": "解説",
-    "explanationNotSet": "（解説未設定）",
-    "explanationPlaceholder": "完全な解法手順、導出、概念説明を入力。採点用の最終解答だけをここに入れないでください",
-    "falseOption": "いいえ (False)",
-    "hideQuestionList": "問題一覧を隠す",
-    "importFromBank": "問題バンクからインポート",
-    "importFrozen": "現在、問題は凍結されており、インポートできません。",
-    "importRollbackFailed": "インポート失敗、ロールバックも失敗",
-    "importRollbackFailedDetail": "ページを更新して問題内容を確認してください",
-    "importRolledBack": "インポート失敗、自動ロールバック済み",
-    "importSuccess": "インポート成功",
-    "importSuccessDetail": "{{count}} 問を上書きしました",
-    "insertHere": "ここに問題を挿入",
-    "loadFailed": "読み込み失敗",
-    "loadFailedDetail": "試験問題の読み込みに失敗しました",
     "maxScoreFieldLabel": "配点",
-    "tabTestCasesAndScoring": "テストケースと配点",
     "noQuestions": "問題がありません",
     "openBankInbox": "問題バンクインポート",
     "openSourcePanel": "問題ソースを開く",
@@ -956,16 +1109,14 @@
     "questionLockedReason": "学生が本試験を開始したため、問題編集はロックされています。",
     "questionNumber": "第{{num}}問",
     "questionUpdated": "問題が更新されました",
-    "gradingReferenceAnswer": "採点用参考解答",
-    "gradingReferencePlaceholder": "採点用の要点または最終結論を入力。完全な導出は解説に入れてください",
     "referenceAnswer": "参考解答",
     "referenceNotSet": "（参考解答未設定）",
     "referencePlaceholder": "参考解答（任意、Markdown対応）",
     "removeFromContest": "コンテストから削除",
     "saveFailed": "保存に失敗しました",
-    "scoreDescription": "コンテストでこの問題に設定する最高点",
     "saveToBank": "問題バンクに保存",
     "saveToBankAlreadyInBank": "すでに問題バンクに登録済み",
+    "scoreDescription": "コンテストでこの問題に設定する最高点",
     "scoreLabel": "点",
     "scoreUnit": "{{score}} 点",
     "selectQuestionType": "問題タイプを選択",
@@ -987,6 +1138,7 @@
     "sourceTabTypes": "問題タイプ",
     "sourceTabs": "問題ソースタブ",
     "standardAnswer": "標準解答",
+    "tabTestCasesAndScoring": "テストケースと配点",
     "totalScore": "合計 {{score}}",
     "trueOption": "はい (True)",
     "validation": {
@@ -997,7 +1149,6 @@
     },
     "validationFailed": "検証に失敗しました"
   },
-  "examMode": "不正検出",
   "examStatus": {
     "in_progress": "進行中",
     "locked": "ロック中",
@@ -1005,7 +1156,6 @@
     "paused": "一時停止",
     "submitted": "提出済み"
   },
-  "exit": "退出",
   "exitFullscreen": "フルスクリーン解除",
   "exitModal": {
     "confirmExit": "コンテスト退出を確認",
@@ -1249,19 +1399,18 @@
       "ask_question": "質問",
       "auto_submit": "自動提出",
       "clipboard_action": "クリップボード操作",
+      "concurrent_login_detected": "同時ログイン検知",
       "connectivity_restored": "接続復旧",
       "connectivity_suspect": "接続切断の疑い",
-      "concurrent_login_detected": "同時ログイン検知",
+      "connectivity_timeout": "接続タイムアウト",
       "end_exam": "試験終了",
       "enter_contest": "コンテスト入室",
       "exam_entered": "試験画面に入室",
-      "precheck_passed": "事前環境チェック通過",
       "exam_submit_initiated": "提出開始",
       "exit_fullscreen": "全画面終了",
       "exit_fullscreen_triggered": "全画面終了（発生）",
-      "fullscreen_restored": "全画面復旧",
       "forbidden_action": "禁止操作",
-      "connectivity_timeout": "接続タイムアウト",
+      "fullscreen_restored": "全画面復旧",
       "join": "参加",
       "leave": "コンテスト退室",
       "listener_tampered": "監視リスナー改ざん",
@@ -1275,6 +1424,7 @@
       "multiple_displays": "マルチディスプレイ検出",
       "other": "その他",
       "pause_exam": "試験一時停止",
+      "precheck_passed": "事前環境チェック通過",
       "register": "登録",
       "reopen_exam": "試験再開放",
       "reply_question": "質問回答",
@@ -1299,8 +1449,6 @@
       "webcam_stopped": "Webcam 復旧タイムアウト"
     },
     "evidenceAvailable": "証拠あり",
-    "occurrences": "イベント順序",
-    "occurrenceLabel": "{{index}} 回目 · {{time}} · {{seconds}} 秒",
     "filterCategory": "優先度で絞り込み",
     "filterEventType": "イベントタイプでフィルター",
     "groups": {
@@ -1311,9 +1459,9 @@
     },
     "hourlyStats": "1時間ごとの統計",
     "kpi": {
+      "connectivityTimeout": "接続タイムアウト",
       "critical": "高リスクイベント",
       "degraded": "証拠アップロード異常",
-      "connectivityTimeout": "接続タイムアウト",
       "violation": "ペナルティ対象違反"
     },
     "loadedCount": "{{loaded}} / {{total}} 件読み込み済み",
@@ -1329,6 +1477,8 @@
     "noDataToVisualize": "視覚化できるイベントデータがありません",
     "noEvents": "イベントがありません",
     "noMatchingEvents": "フィルター条件に一致するイベントがありません",
+    "occurrenceLabel": "{{index}} 回目 · {{time}} · {{seconds}} 秒",
+    "occurrences": "イベント順序",
     "penalized": "ペナルティ対象",
     "priorityGroups": {
       "critical": "P0 重大",
@@ -1362,8 +1512,6 @@
     "title": "試験監視中",
     "warningMessage": "違反は記録されます。制限を超えると自動的にロックされ、試験を続行できなくなります。"
   },
-  "myContestManagement": "マイコンテスト管理",
-  "notActive": "進行なし",
   "overview": {
     "contestFiles": "コンテストファイル",
     "contestRules": "コンテストルール",
@@ -1402,32 +1550,34 @@
     "loadingDescription": "問題一覧と採点データを取得しています...",
     "loadingTitle": "読み込み中",
     "noFeedback": "フィードバックなし",
-    "notGraded": "未採点",
     "notEligibleDescription": "このクラスのメンバーのみ問題と成績を閲覧できます。",
     "notEligibleTitle": "このクラスのメンバーではありません",
+    "notGraded": "未採点",
     "openingDescription": "行をクリックすると、該当問題位置の解答画面へ移動します。",
     "openingTitle": "問題を閲覧可能",
     "title": "問題と成績",
     "totalScore": "合計 {{score}} / {{total}}"
   },
-  "participantCount": "参加者数",
   "participants": {
     "actions": {
+      "assistedCheckIn": "代理チェックイン",
+      "assistedCheckOut": "代理チェックアウト",
       "download": "レポートダウンロード",
       "edit": "ステータス編集",
       "remove": "参加者削除",
       "reopen": "試験再開",
-      "unlock": "ロック解除",
-      "assistedCheckIn": "代理チェックイン",
-      "assistedCheckOut": "代理チェックアウト",
-      "resetExamRecord": "試験記録をリセット"
+      "resetExamRecord": "試験記録をリセット",
+      "unlock": "ロック解除"
     },
     "add": "追加",
     "addFailed": "参加者の追加に失敗しました",
     "added": "参加者が追加されました",
+    "attendanceReset": "受付記録をリセットしました",
+    "attendanceResetFailed": "受付記録のリセット失敗",
     "confirmExport": "参加者のコンテストデータをエクスポートしますか？",
     "confirmRemove": "参加者 {{name}} を削除しますか？",
     "confirmReopen": "この学生の試験を再開しますか？",
+    "confirmResetAttendance": "受付記録をリセットしますか？解答記録は残ります。",
     "confirmResetExamRecord": "この学生の試験記録をリセットしますか？答案、点数、出席、監督イベントは削除されますが、参加者は削除されません。",
     "confirmUnlock": "この学生のロックを解除しますか？",
     "connection": {
@@ -1436,8 +1586,6 @@
       "online": "オンライン"
     },
     "detailPanel": "参加者詳細",
-    "examRecordReset": "試験記録をリセットしました",
-    "examRecordResetFailed": "試験記録のリセットに失敗しました",
     "displayCount": "{{shown}} / {{total}} 名の参加者を表示",
     "downloadFailed": "レポートのダウンロードに失敗しました",
     "editModal": {
@@ -1447,6 +1595,8 @@
       "save": "変更を保存",
       "selectStatus": "ステータスを選択"
     },
+    "examRecordReset": "試験記録をリセットしました",
+    "examRecordResetFailed": "試験記録のリセットに失敗しました",
     "exportFailed": "エクスポートに失敗しました",
     "filterStatus": "ステータスフィルター",
     "generatingReport": "{{name}} のレポートを生成中...",
@@ -1494,35 +1644,7 @@
     "unlocked": "ロックが解除されました",
     "updateFailed": "更新に失敗しました",
     "viewModeLabel": "参加者表示モード",
-    "viewTitle": "参加者を表示",
-    "confirmResetAttendance": "受付記録をリセットしますか？解答記録は残ります。",
-    "attendanceReset": "受付記録をリセットしました",
-    "attendanceResetFailed": "受付記録のリセット失敗"
-  },
-  "participantsAdmin": {
-    "add": "追加",
-    "addFailed": "追加に失敗しました",
-    "addSuccess": "参加者が追加されました",
-    "allStatus": "すべてのステータス",
-    "downloadFailed": "ダウンロードに失敗しました",
-    "downloadReport": "個人成績レポートをダウンロード",
-    "headers": {
-      "examStatus": "試験状態",
-      "joinedAt": "参加日時",
-      "nickname": "ニックネーム",
-      "score": "スコア",
-      "username": "ユーザー名"
-    },
-    "removeConfirm": "この参加者を削除しますか？",
-    "removeFailed": "削除に失敗しました",
-    "removeSuccess": "参加者が削除されました",
-    "reopenConfirm": "この学生の試験を再開しますか？",
-    "reopenFailed": "再開に失敗しました",
-    "reopenSuccess": "試験が再開されました",
-    "title": "参加者リスト",
-    "unlockConfirm": "この学生のロックを解除しますか？",
-    "unlockFailed": "ロック解除に失敗しました",
-    "unlockSuccess": "ロックが解除されました"
+    "viewTitle": "参加者を表示"
   },
   "placeholder": {
     "contestName": "コンテスト名を入力"
@@ -1569,16 +1691,14 @@
     },
     "environment": {
       "checks": {
-        "graphics": "描画環境の確認",
         "fullscreen": "フルスクリーンテスト",
+        "graphics": "描画環境の確認",
         "interaction": "操作入力の確認",
         "monitor": "モニター数確認",
         "sharing": "画面共有の許可",
         "webcam": "Webcam 権限"
       },
       "errors": {
-        "webglUnavailable": "WebGL を利用できないため、試験に入れません。ローカルのブラウザーでハードウェアアクセラレーションを有効にして再起動してください。改善しない場合は別の端末を使用してください。",
-        "softwareRenderer": "llvmpipe によるソフトウェア描画環境では試験に入れません。ローカルのデスクトップでブラウザーのハードウェアアクセラレーションを有効にするか、別の端末を使用してください。",
         "browserNotSupported": "お使いのブラウザはディスプレイ管理に対応していません。Chrome または Edge を使用してください。",
         "dependencyPrefix": "「{{name}}」を先に通過する必要があります。",
         "focusFailed": "このページに戻ってから再試行してください。",
@@ -1590,14 +1710,16 @@
         "notMonitor": "「画面全体 (monitor)」を共有する必要があります。ウィンドウやタブの共有は許可されていません。",
         "sharingFailed": "画面共有の許可に失敗しました。「画面全体」の共有を許可してください。",
         "sharingInterrupted": "画面共有が中断されました。再度チェックを完了してください。",
+        "softwareRenderer": "llvmpipe によるソフトウェア描画環境では試験に入れません。ローカルのデスクトップでブラウザーのハードウェアアクセラレーションを有効にするか、別の端末を使用してください。",
         "tabletRequiresPwa": "iPad 監視には PWA モードが必要です。ホーム画面に追加し、そこから開き直して再試行してください。",
         "webcamFailed": "Webcam を使用できません。権限を再度許可してください。",
-        "webcamUnsupported": "このブラウザは Webcam をサポートしていません。"
+        "webcamUnsupported": "このブラウザは Webcam をサポートしていません。",
+        "webglUnavailable": "WebGL を利用できないため、試験に入れません。ローカルのブラウザーでハードウェアアクセラレーションを有効にして再起動してください。改善しない場合は別の端末を使用してください。"
       },
       "requirements": {
-        "graphics": "WebGL が必要です。llvmpipe によるソフトウェア描画環境は利用できません。",
         "browser": "最新版 Chrome または Edge を使用してください。",
         "display": "単一モニター限定（外部モニターは外してください）。",
+        "graphics": "WebGL が必要です。llvmpipe によるソフトウェア描画環境は利用できません。",
         "permission": "「ウィンドウとディスプレイの管理」を許可してください。",
         "pwa": "ホーム画面から PWA ウィンドウを起動してください。",
         "sharing": "共有時は必ず「画面全体」を選択してください。",
@@ -1635,23 +1757,6 @@
   },
   "private": "非公開",
   "problemList": "問題一覧",
-  "problemManage": {
-    "add": "追加",
-    "addFailed": "問題の追加に失敗しました。IDまたはタイトルを確認してください",
-    "addHint": "問題ID（ライブラリから追加）または問題タイトル（新規作成）を入力してください。",
-    "addProblem": "コンテスト問題を追加",
-    "added": "問題が追加されました",
-    "adding": "追加中...",
-    "confirmRemove": "この問題をコンテストから削除してもよろしいですか？",
-    "newProblemPlaceholder": "新しい問題名を入力",
-    "orCreateNew": "または新しい空の問題を作成",
-    "removeFailed": "問題の削除に失敗しました",
-    "removed": "問題が削除されました",
-    "reorderFailed": "並べ替えに失敗しました",
-    "searchPlaceholder": "問題IDまたはタイトルを検索...",
-    "selectFromLibrary": "ライブラリとテンプレートから選択（クローン）",
-    "title": "問題管理"
-  },
   "problems": "問題数",
   "proctoringPanel": {
     "backToRoster": "一覧に戻る",
@@ -1671,7 +1776,6 @@
   },
   "progress": "進捗",
   "public": "公開",
-  "refresh": "コンテスト情報を更新",
   "report": {
     "descriptionCoding": "解答統計、ソースコード、および傾向グラフを含むPDFレポートをダウンロードします",
     "descriptionPaper": "各問題の解答、得点、およびTAのコメントを含むPDFレポートをダウンロードします",
@@ -1729,6 +1833,10 @@
       },
       "disabledDesc": "{{device}} 端の制限が無効",
       "enableMonitoring": "監視を有効にする",
+      "enableScreenShare": "画面共有を有効化",
+      "enableScreenShareDesc": "デスクトップの受験者は画面全体を共有して受験の証拠とします。",
+      "enableWebcam": "Webcam を有効化",
+      "enableWebcamDesc": "デスクトップとタブレットの受験者はどちらも Webcam をオンにします。",
       "enabledDesc": "{{device}} 端の不正防止機能が有効",
       "evidencePolicy": "証拠追跡ポリシー",
       "forceEnable": "強制有効",
@@ -1737,22 +1845,28 @@
       "screenShareDesc": "監視証拠として学生の画面をキャプチャする",
       "securityDetectors": "不正検知メカニズム",
       "tabletLabel": "タブレット / iPad 設定",
+      "tabletNoEvidenceHint": "タブレットの受験者には証拠ソースがありません。Webcam を有効にしてください。",
+      "tabletScreenShareUnsupported": "タブレットは現在画面共有を利用できません",
+      "tabletWebcamOnlyHint": "タブレットの受験者は Webcam のみで記録されます。",
       "webcam": "ウェブカメラ (Webcam)",
       "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする",
-      "enableScreenShare": "画面共有を有効化",
-      "enableScreenShareDesc": "デスクトップの受験者は画面全体を共有して受験の証拠とします。",
-      "enableWebcam": "Webcam を有効化",
-      "enableWebcamDesc": "デスクトップとタブレットの受験者はどちらも Webcam をオンにします。",
-      "webcamOnlyTabletDesc": "現在はタブレットのみ Webcam が必要です。切り替えるとデスクトップとタブレットの両方に適用されます。",
       "webcamOnlyDesktopDesc": "現在はデスクトップのみ Webcam が必要です。切り替えるとデスクトップとタブレットの両方に適用されます。",
-      "tabletScreenShareUnsupported": "タブレットは現在画面共有を利用できません",
-      "tabletNoEvidenceHint": "タブレットの受験者には証拠ソースがありません。Webcam を有効にしてください。",
-      "tabletWebcamOnlyHint": "タブレットの受験者は Webcam のみで記録されます。"
+      "webcamOnlyTabletDesc": "現在はタブレットのみ Webcam が必要です。切り替えるとデスクトップとタブレットの両方に適用されます。"
     },
     "archiveContest": "コンテストをアーカイブ",
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",
     "archiveFailed": "アーカイブに失敗しました",
     "archived": "コンテストがアーカイブされました",
+    "attendanceCheck": {
+      "description": "学生は QR スキャンと会場写真送信後に試験を開始できます。",
+      "label": "QR 入退室"
+    },
+    "attendancePhotoPolicy": {
+      "description": "会場写真、または会場写真と本人写真を要求できます。",
+      "label": "受付写真",
+      "room": "背面：会場",
+      "roomAndSelfie": "前面：本人 + 背面：会場"
+    },
     "basicInfo": "基本情報",
     "confirmArchive": "このコンテストをアーカイブしてもよろしいですか？",
     "confirmDelete": "このコンテストを削除してもよろしいですか？この操作は元に戻せません！",
@@ -1760,8 +1874,11 @@
     "confirmEnableExamMode": "デバイスポリシーに基づき、事前チェック、監視ソース、異常イベント記録を適用します。有効にしますか？",
     "contestDescription": "コンテストの説明",
     "contestName": "コンテスト名",
+    "contestOptions": "コンテスト設定",
     "contestRules": "コンテストルール",
     "contestStatus": "コンテストステータス",
+    "contestType": "試験形式",
+    "contestTypeDesc": "試験形式はコンテスト作成時に決まり、作成後は変更できません。",
     "dangerZone": "危険ゾーン",
     "deleteContest": "コンテストを削除",
     "deleteDesc": "この操作は元に戻せません。すべての関連データ（提出記録とランキングを含む）が完全に削除されます。",
@@ -1776,6 +1893,7 @@
     "exportResultsDesc": "コンテストの結果をCSVファイルとしてエクスポートします（順位、アカウント、解決した問題、合計スコア、問題ステータスを含む）。",
     "exportSuccess": "結果が正常にエクスポートされました",
     "joinPassword": "参加パスワード",
+    "modalTitle": "設定",
     "noPassword": "パスワード不要",
     "requiresPassword": "パスワード必須",
     "requiresPasswordHelp": "有効にすると、学生は参加時にパスワード入力が必要です",
@@ -1789,21 +1907,7 @@
     "statusLabel": "ステータス (下書き/公開)",
     "title": "コンテスト設定",
     "updateFailed": "更新に失敗しました。フィールドを確認してください",
-    "updated": "設定が更新されました",
-    "attendanceCheck": {
-      "label": "QR 入退室",
-      "description": "学生は QR スキャンと会場写真送信後に試験を開始できます。"
-    },
-    "attendancePhotoPolicy": {
-      "label": "受付写真",
-      "description": "会場写真、または会場写真と本人写真を要求できます。",
-      "room": "背面：会場",
-      "roomAndSelfie": "前面：本人 + 背面：会場"
-    },
-    "modalTitle": "設定",
-    "contestOptions": "コンテスト設定",
-    "contestType": "試験形式",
-    "contestTypeDesc": "試験形式はコンテスト作成時に決まり、作成後は変更できません。"
+    "updated": "設定が更新されました"
   },
   "standings": {
     "icpcRules": "ICPCルール：解決した問題数を優先し、次に総ペナルティ時間（解決時間 + 誤答につき20分）で順位を決定します。",
@@ -1862,12 +1966,6 @@
     "viewSubmissionSamples": "提出サンプルを見る"
   },
   "studentDashboard": {
-    "codingRecords": {
-      "problem": "問題",
-      "score": "得点／満点",
-      "status": "状態",
-      "count": "提出回数"
-    },
     "actions": {
       "adminPanel": "管理ダッシュボード",
       "backToAnswering": "解答エリアへ",
@@ -1881,10 +1979,6 @@
       "submit": "提出",
       "unavailable": "回答できません",
       "waitingStart": "開始待ち"
-    },
-    "studentQr": {
-      "description": "TA にこの QR を読み取ってもらうと、試験記録をすばやく見つけられます。",
-      "heading": "自分の受験者 QR"
     },
     "announcements": {
       "empty": "現在お知らせはありません。",
@@ -1902,6 +1996,16 @@
       "unanswered": "未回答"
     },
     "ariaLabel": "学生コンテストホーム",
+    "attendance": {
+      "checkIn": "入室する",
+      "checkOut": "退室する"
+    },
+    "codingRecords": {
+      "count": "提出回数",
+      "problem": "問題",
+      "score": "得点／満点",
+      "status": "状態"
+    },
     "contestState": {
       "archived": "アーカイブ済み",
       "draft": "下書き",
@@ -1917,8 +2021,8 @@
     },
     "errors": {
       "announcementsLoadFailed": "お知らせを一時的に読み込めません",
-      "questionsLoadFailed": "問題データを一時的に読み込めません",
       "answersLoadFailed": "解答記録を一時的に読み込めません",
+      "questionsLoadFailed": "問題データを一時的に読み込めません",
       "scoreDistributionLoadFailed": "得点分布を一時的に読み込めません"
     },
     "infoLabel": "コンテスト情報",
@@ -1965,12 +2069,16 @@
       "waitingPublish": "成績公開待ち"
     },
     "rules": {
+      "attendanceRequired": "試験開始には QR 入室が必要です。",
+      "defaultDescription": "追加ルールはありません。",
       "empty": "追加ルールはありません。",
       "noPassword": "このコンテストにはパスワードは不要です。",
       "requiresPassword": "このコンテストにはパスワードが必要です。",
-      "title": "ルール",
-      "attendanceRequired": "試験開始には QR 入室が必要です。",
-      "defaultDescription": "追加ルールはありません。"
+      "title": "ルール"
+    },
+    "studentQr": {
+      "description": "TA にこの QR を読み取ってもらうと、試験記録をすばやく見つけられます。",
+      "heading": "自分の受験者 QR"
     },
     "submitConfirm": {
       "body": "提出後は回答を変更できません。",
@@ -1986,14 +2094,10 @@
       "scoreDistribution": "得点分布"
     },
     "tabs": {
-      "clarifications": "お知らせ・質問",
       "ariaLabel": "コンテスト情報タブ",
+      "clarifications": "お知らせ・質問",
       "records": "回答記録",
       "rules": "ルール"
-    },
-    "attendance": {
-      "checkIn": "入室する",
-      "checkOut": "退室する"
     }
   },
   "studentStatus": {
@@ -2056,163 +2160,8 @@
     "settings": "設定",
     "submissions": "提出履歴"
   },
-  "timeToStart": "開始まで {{time}}",
   "validation": {
     "endBeforeStart": "終了時間は開始時間より後にしてください",
     "invalidDateTime": "有効な開始時間と終了時間を選択してください"
-  },
-  "attendance": {
-    "badge": "QR 受付",
-    "purpose": {
-      "checkIn": "入室",
-      "checkOut": "退室"
-    },
-    "shell": {
-      "back": "戻る"
-    },
-    "scan": {
-      "title": "QR をスキャン",
-      "description": "投影の{{purpose}} QR に合わせてください。",
-      "cannotComplete": "受付できません",
-      "validating": "検証中…",
-      "waitingCamera": "カメラ許可待ち",
-      "alignQr": "投影 QR に合わせる"
-    },
-    "manual": {
-      "title": "{{purpose}}コード入力",
-      "description": "投影 QR 下の 6 桁コードを入力。",
-      "cannotContinue": "続行不可",
-      "codeAriaLabel": "{{purpose}}コード",
-      "digitAriaLabel": "{{index}}桁目"
-    },
-    "photo": {
-      "cannotComplete": "撮影できません",
-      "cameraUnavailable": "カメラ不可",
-      "alignTarget": "{{label}}に合わせる",
-      "qrVerifiedChip": "QR 認証済 · {{contest}}",
-      "readyChip": "写真準備済 · {{contest}}",
-      "nextStepPhoto": "次：{{title}}",
-      "nextStepConfirm": "次：確認して送信",
-      "captureLabel": "{{label}}を撮影",
-      "room": {
-        "label": "会場",
-        "title": "会場を撮影",
-        "description": "教室と端末画面を撮影。",
-        "rearDescription": "背面カメラで教室と端末画面を撮影。"
-      },
-      "selfie": {
-        "label": "本人",
-        "title": "本人を撮影",
-        "description": "前面カメラで本人を撮影。"
-      }
-    },
-    "confirm": {
-      "title": "{{purpose}}確認",
-      "description": "内容と写真を確認して送信。",
-      "uploadFailed": "送信失敗",
-      "infoLabel": "受付情報",
-      "type": "種類",
-      "scannedAt": "読取時刻",
-      "photoStatus": "写真",
-      "photosLabel": "写真",
-      "photoPreviewAlt": "{{label}}プレビュー"
-    },
-    "done": {
-      "title": "{{purpose}}完了",
-      "description": "{{purpose}}を記録しました。",
-      "resultLabel": "受付結果",
-      "contest": "コンテスト",
-      "time": "時刻",
-      "status": "状態",
-      "uploaded": "送信済",
-      "photosLabel": "写真"
-    },
-    "header": {
-      "done": "{{purpose}}完了",
-      "manual": "{{purpose}}コード",
-      "photo": "{{purpose}}撮影",
-      "confirm": "{{purpose}}を確認",
-      "auth": "{{purpose}}認証"
-    },
-    "cta": {
-      "waitingCamera": "カメラ待ち…",
-      "retryCamera": "再試行",
-      "validating": "検証中…",
-      "realignment": "合わせ直す",
-      "scanning": "スキャン中…",
-      "next": "次へ",
-      "capturePurposePhoto": "{{purpose}}写真を撮る",
-      "nextPhoto": "次の写真",
-      "confirmInfo": "確認",
-      "retryUpload": "再送信",
-      "uploading": "アップロード中…",
-      "confirmUpload": "確認して送信",
-      "backToExam": "試験に戻る",
-      "manualCode": "コード入力",
-      "backToScan": "スキャンへ戻る",
-      "retake": "撮り直す",
-      "retakePhotos": "撮り直す"
-    },
-    "errors": {
-      "checkInAlreadyCompleted": "すでに入室済みです。",
-      "checkOutAlreadyCompleted": "すでに退室済みです。",
-      "checkoutAfterSubmit": "提出後に退室できます。",
-      "checkInOnlyBeforeStart": "開始後は入室できません。退室 QR を使ってください。",
-      "notCheckInTime": "入室時間外です。",
-      "tokenExpired": "QR が期限切れです。最新 QR をスキャンしてください。",
-      "invalidToken": "QR が無効です。最新 QR をスキャンしてください。",
-      "invalidManualCode": "コードが無効または期限切れです。",
-      "notEnabled": "QR 受付は未有効です。",
-      "submitFailed": "送信に失敗しました。",
-      "cameraUnsupported": "このブラウザはカメラ非対応です。教師に確認してください。",
-      "cameraUnavailable": "カメラ不可",
-      "wrongPurposeQr": "{{actual}} QR です。{{expected}} QR を使ってください。",
-      "capturePhotoFailed": "撮影に失敗しました。",
-      "missingPurpose": "先に入室または退室を選択してください。",
-      "manualCodeLength": "6 桁コードを入力してください。",
-      "photoMissing": "{{label}}未撮影",
-      "uploadIntentIncomplete": "必要な写真が不足しています。",
-      "photoUploadFailed": "写真送信に失敗しました。"
-    },
-    "projection": {
-      "title": "入退室 QR",
-      "examLabel": "試験",
-      "examFallback": "試験",
-      "progress": "進行状況",
-      "progressAria": "進行状況 {{progress}}%",
-      "loading": "読み込み中",
-      "manualCodeLabel": "カメラ不可時のコード",
-      "reloadQr": "QR 再読み込み中",
-      "backToAdmin": "管理へ戻る",
-      "enterFullscreen": "全画面",
-      "exitFullscreen": "全画面終了",
-      "refreshFailed": "QR 更新失敗",
-      "unstableTitle": "QR 読み込み不安定",
-      "unstableSubtitle": "最後の QR を保持して再読み込みします。",
-      "mode": {
-        "ariaLabel": "入退室 QR 切替"
-      },
-      "countdown": {
-        "exam": "試験タイマー",
-        "unset": "時間未設定",
-        "startsIn": "開始まで",
-        "openCheckIn": "入室受付中",
-        "endsIn": "終了まで",
-        "running": "試験中",
-        "ended": "試験終了",
-        "endedTone": "終了"
-      },
-      "marker": {
-        "start": "開始",
-        "now": "現在",
-        "end": "終了"
-      },
-      "guide": {
-        "scan": "QR スキャン",
-        "photo": "会場撮影",
-        "upload": "確認して送信",
-        "ariaLabel": "受付手順"
-      }
-    }
   }
 }

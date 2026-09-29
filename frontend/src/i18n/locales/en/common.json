@@ -2,16 +2,12 @@
   "action": {
     "adding": "Adding...",
     "deleting": "Deleting...",
-    "downloading": "Downloading...",
     "exporting": "Exporting...",
     "importing": "Importing...",
-    "pleaseWait": "Please wait",
     "processing": "Processing...",
     "refresh": "Refresh",
     "refreshing": "Refreshing...",
-    "syncing": "Syncing...",
-    "uploading": "Uploading...",
-    "viewProblem": "View problem"
+    "uploading": "Uploading..."
   },
   "auth": {
     "callback": {
@@ -38,6 +34,32 @@
       "title": "Campus Authentication",
       "verify": "Verify"
     },
+    "login": {
+      "email": "Email / Username",
+      "emailDivider": "Or login with password credentials",
+      "emailPlaceholder": "Email or username",
+      "failed": "Login failed",
+      "invalidCredentials": "Invalid account or password",
+      "loading": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "oauthFailed": "Failed to initiate login",
+      "password": "Password",
+      "passwordPlaceholder": "Password",
+      "registerNow": "Create account",
+      "schoolAuth": "Campus authentication",
+      "submit": "Login",
+      "subtitle": "Welcome back, please login to your account",
+      "title": "Login"
+    },
+    "logout": {
+      "confirmButton": "Log Out",
+      "confirmMessage": "Log out?",
+      "confirmTitle": "Confirm Logout"
+    },
+    "pendingAction": {
+      "actionLinkSubtitle": "Please log in or register first. The invitation action will complete automatically afterwards.",
+      "actionLinkTitle": "Invitation Link"
+    },
     "providerActions": {
       "loginWith": "Login with {{provider}}",
       "registerWith": "Create account with {{provider}}"
@@ -57,39 +79,13 @@
         "displayName": "Password credentials"
       }
     },
-    "login": {
-      "email": "Email / Username",
-      "emailPlaceholder": "Email or username",
-      "failed": "Login failed",
-      "invalidCredentials": "Invalid account or password",
-      "loading": "Logging in...",
-      "noAccount": "Don't have an account?",
-      "oauthFailed": "Failed to initiate login",
-      "password": "Password",
-      "passwordPlaceholder": "Password",
-      "registerNow": "Create account",
-      "schoolAuth": "Campus authentication",
-      "submit": "Login",
-      "subtitle": "Welcome back, please login to your account",
-      "title": "Login",
-      "emailDivider": "Or login with password credentials"
-    },
-    "logout": {
-      "confirmButton": "Log Out",
-      "confirmMessage": "Log out?",
-      "confirmTitle": "Confirm Logout"
-    },
-    "pendingAction": {
-      "actionLinkSubtitle": "Please log in or register first. The invitation action will complete automatically afterwards.",
-      "actionLinkTitle": "Invitation Link"
-    },
     "register": {
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Re-enter your password",
       "email": "Email",
       "emailDivider": "Or create an account with password credentials",
-      "emailSubmit": "Create account",
       "emailPlaceholder": "Enter your email",
+      "emailSubmit": "Create account",
       "failed": "Registration failed",
       "failedRetry": "Registration failed, please try again later",
       "hasAccount": "Already have an account?",
@@ -141,7 +137,6 @@
       "loadFailed": "Failed to load classrooms",
       "loadFailedHint": "Please try again later",
       "noDescription": "No description set",
-      "selectSubtitle": "Select a classroom to enter its main page",
       "welcomeBack": "Welcome back"
     },
     "classrooms": {
@@ -150,9 +145,6 @@
     },
     "contests": {
       "ended": "Ended",
-      "noContests": "No upcoming contests",
-      "ongoing": "Ongoing contests only",
-      "participated": "Participated",
       "title": "Upcoming Contests",
       "upcoming": "Upcoming"
     },
@@ -209,21 +201,16 @@
   },
   "header": {
     "adminNavigation": "Admin Navigation",
-    "contestManagement": "Contest Management",
     "contestNavigation": "Contest Navigation",
     "createContest": "Create Contest",
-    "environmentSettings": "Environment Settings",
-    "mainNavigation": "Main Navigation",
     "menu": "Menu",
     "platform": "Online Judge Platform",
     "prefix": "System",
     "problemManagement": "Problem Management",
+    "serviceStatus": "Service Status",
     "sideNav": "Side Navigation",
-    "systemSettings": "System Settings",
-    "teacherDashboard": "Teacher Dashboard",
     "userManagement": "User Management",
-    "userMenu": "User Menu",
-    "serviceStatus": "Service Status"
+    "userMenu": "User Menu"
   },
   "image": {
     "galleryTab": "Gallery",
@@ -295,7 +282,6 @@
     }
   },
   "message": {
-    "comingSoon": "Coming Soon",
     "deleteFailed": "Delete failed",
     "error": "An error occurred",
     "loading": "Loading...",
@@ -330,13 +316,10 @@
     }
   },
   "page": {
-    "contestDetail": "Contest Detail",
-    "contestManagement": "Contest Management",
     "contests": "Contest List",
     "createContest": "Create Contest",
     "createProblem": "Create Problem",
     "dashboard": "Dashboard",
-    "editProblem": "Edit Problem",
     "environment": "Environment",
     "login": "Login",
     "problemDetail": "Problem Detail",
@@ -345,7 +328,6 @@
     "questionBanks": "Question Banks",
     "register": "Register",
     "submissions": "Submissions",
-    "teacherDashboard": "Teacher Dashboard",
     "userManagement": "User Management"
   },
   "pagination": {
@@ -473,7 +455,6 @@
   },
   "settings": {
     "description": "Manage profile and preferences.",
-    "descriptionStudent": "Manage your settings.",
     "loginRecords": {
       "current": "Current device",
       "description": "Login history from the last 30 days",
@@ -559,15 +540,15 @@
     }
   },
   "workspaceTopNav": {
-    "closeInfoPanel": "Close information panel",
-    "problemInfo": "Problem details",
-    "submissions": "Submissions",
-    "backToContest": "Back to contest dashboard",
-    "previewMode": "Preview mode",
     "adminConsole": "Admin console",
+    "backToContest": "Back to contest dashboard",
+    "closeInfoPanel": "Close information panel",
     "contestFallback": "Contest",
     "contestHome": "Contest home",
     "contextLabel": "Workspace context",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "previewMode": "Preview mode",
+    "problemInfo": "Problem details",
+    "submissions": "Submissions"
   }
 }

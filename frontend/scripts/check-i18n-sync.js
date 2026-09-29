@@ -20,13 +20,14 @@ const I18N_DIR = path.join(__dirname, "../src/i18n/locales");
 const REFERENCE_LANG = "zh-TW";
 const TARGET_LANGS = ["en", "ja", "ko"];
 const NAMESPACES = [
-  "common",
-  "problem",
-  "contest",
   "admin",
+  "chatbot",
+  "classroom",
+  "common",
+  "contest",
   "docs",
   "landing",
-  "chatbot",
+  "problem",
 ];
 
 const colors = {

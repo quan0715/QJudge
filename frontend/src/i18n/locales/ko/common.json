@@ -2,16 +2,12 @@
   "action": {
     "adding": "추가 중...",
     "deleting": "삭제 중...",
-    "downloading": "다운로드 중...",
     "exporting": "내보내는 중...",
     "importing": "가져오는 중...",
-    "pleaseWait": "잠시만 기다려주세요",
     "processing": "처리 중...",
     "refresh": "새로고침",
     "refreshing": "새로고침 중...",
-    "syncing": "동기화 중...",
-    "uploading": "업로드 중...",
-    "viewProblem": "문제 보기"
+    "uploading": "업로드 중..."
   },
   "auth": {
     "callback": {
@@ -38,6 +34,32 @@
       "title": "캠퍼스 인증",
       "verify": "인증"
     },
+    "login": {
+      "email": "이메일 / 사용자 이름",
+      "emailDivider": "또는 비밀번호 자격 증명으로 로그인",
+      "emailPlaceholder": "이메일 또는 사용자 이름",
+      "failed": "로그인 실패",
+      "invalidCredentials": "계정 또는 비밀번호가 올바르지 않습니다",
+      "loading": "로그인 중...",
+      "noAccount": "계정이 없으신가요?",
+      "oauthFailed": "로그인을 시작할 수 없습니다",
+      "password": "비밀번호",
+      "passwordPlaceholder": "비밀번호",
+      "registerNow": "계정 만들기",
+      "schoolAuth": "캠퍼스 인증",
+      "submit": "로그인",
+      "subtitle": "환영합니다, 계정에 로그인하세요",
+      "title": "로그인"
+    },
+    "logout": {
+      "confirmButton": "로그아웃",
+      "confirmMessage": "현재 계정에서 로그아웃하시겠습니까?",
+      "confirmTitle": "로그아웃 확인"
+    },
+    "pendingAction": {
+      "actionLinkSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 초대 작업이 자동으로 처리됩니다.",
+      "actionLinkTitle": "초대 링크"
+    },
     "providerActions": {
       "loginWith": "{{provider}} 로 로그인",
       "registerWith": "{{provider}} 로 계정 만들기"
@@ -57,39 +79,13 @@
         "displayName": "비밀번호 자격 증명"
       }
     },
-    "login": {
-      "email": "이메일 / 사용자 이름",
-      "emailPlaceholder": "이메일 또는 사용자 이름",
-      "failed": "로그인 실패",
-      "invalidCredentials": "계정 또는 비밀번호가 올바르지 않습니다",
-      "loading": "로그인 중...",
-      "noAccount": "계정이 없으신가요?",
-      "oauthFailed": "로그인을 시작할 수 없습니다",
-      "password": "비밀번호",
-      "passwordPlaceholder": "비밀번호",
-      "registerNow": "계정 만들기",
-      "schoolAuth": "캠퍼스 인증",
-      "submit": "로그인",
-      "subtitle": "환영합니다, 계정에 로그인하세요",
-      "title": "로그인",
-      "emailDivider": "또는 비밀번호 자격 증명으로 로그인"
-    },
-    "logout": {
-      "confirmButton": "로그아웃",
-      "confirmMessage": "현재 계정에서 로그아웃하시겠습니까?",
-      "confirmTitle": "로그아웃 확인"
-    },
-    "pendingAction": {
-      "actionLinkSubtitle": "먼저 로그인 또는 회원가입을 해주세요. 완료 후 초대 작업이 자동으로 처리됩니다.",
-      "actionLinkTitle": "초대 링크"
-    },
     "register": {
       "confirmPassword": "비밀번호 확인",
       "confirmPasswordPlaceholder": "비밀번호 재입력",
       "email": "이메일",
       "emailDivider": "또는 비밀번호 자격 증명으로 계정 만들기",
-      "emailSubmit": "계정 만들기",
       "emailPlaceholder": "이메일 입력",
+      "emailSubmit": "계정 만들기",
       "failed": "가입 실패",
       "failedRetry": "가입 실패, 나중에 다시 시도하세요",
       "hasAccount": "이미 계정이 있으신가요?",
@@ -141,7 +137,6 @@
       "loadFailed": "교실 로딩에 실패했습니다",
       "loadFailedHint": "나중에 다시 시도해주세요",
       "noDescription": "설명이 설정되지 않았습니다",
-      "selectSubtitle": "교실을 선택하여 메인 페이지로 이동",
       "welcomeBack": "돌아오신 것을 환영합니다"
     },
     "classrooms": {
@@ -150,9 +145,6 @@
     },
     "contests": {
       "ended": "종료",
-      "noContests": "예정된 대회가 없습니다",
-      "ongoing": "진행 중인 대회만 표시",
-      "participated": "참가함",
       "title": "예정된 대회",
       "upcoming": "예정"
     },
@@ -209,21 +201,16 @@
   },
   "header": {
     "adminNavigation": "관리 탐색",
-    "contestManagement": "대회 관리",
     "contestNavigation": "대회 탐색",
     "createContest": "대회 생성",
-    "environmentSettings": "환경 설정",
-    "mainNavigation": "기본 탐색",
     "menu": "메뉴",
     "platform": "프로그래밍 평가 플랫폼",
     "prefix": "시스템",
     "problemManagement": "문제 관리",
+    "serviceStatus": "서비스 상태",
     "sideNav": "사이드 탐색",
-    "systemSettings": "시스템 설정",
-    "teacherDashboard": "교사 대시보드",
     "userManagement": "사용자 관리",
-    "userMenu": "사용자 메뉴",
-    "serviceStatus": "서비스 상태"
+    "userMenu": "사용자 메뉴"
   },
   "image": {
     "galleryTab": "갤러리",
@@ -295,7 +282,6 @@
     }
   },
   "message": {
-    "comingSoon": "출시 예정",
     "deleteFailed": "삭제 실패",
     "error": "오류가 발생했습니다",
     "loading": "로딩 중...",
@@ -330,13 +316,10 @@
     }
   },
   "page": {
-    "contestDetail": "대회 상세",
-    "contestManagement": "대회 관리",
     "contests": "대회 목록",
     "createContest": "대회 생성",
     "createProblem": "문제 생성",
     "dashboard": "대시보드",
-    "editProblem": "문제 편집",
     "environment": "환경 설정",
     "login": "로그인",
     "problemDetail": "문제 상세",
@@ -345,7 +328,6 @@
     "questionBanks": "문제집",
     "register": "회원가입",
     "submissions": "제출 기록",
-    "teacherDashboard": "교사 대시보드",
     "userManagement": "사용자 관리"
   },
   "pagination": {
@@ -473,7 +455,6 @@
   },
   "settings": {
     "description": "프로필과 환경설정을 관리합니다.",
-    "descriptionStudent": "환경설정을 관리합니다",
     "loginRecords": {
       "current": "현재 기기",
       "description": "최근 30일 이내에 로그인한 기기",
@@ -559,15 +540,15 @@
     }
   },
   "workspaceTopNav": {
-    "closeInfoPanel": "정보 패널 닫기",
-    "problemInfo": "문제 정보",
-    "submissions": "제출 기록",
-    "backToContest": "대회 대시보드로 돌아가기",
-    "previewMode": "미리보기 모드",
     "adminConsole": "管理後台",
+    "backToContest": "대회 대시보드로 돌아가기",
+    "closeInfoPanel": "정보 패널 닫기",
     "contestFallback": "競賽",
     "contestHome": "競賽主頁",
     "contextLabel": "工作區內容",
-    "expandSidebar": "展開側欄"
+    "expandSidebar": "展開側欄",
+    "previewMode": "미리보기 모드",
+    "problemInfo": "문제 정보",
+    "submissions": "제출 기록"
   }
 }

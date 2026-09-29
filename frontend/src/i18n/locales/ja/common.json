@@ -2,16 +2,12 @@
   "action": {
     "adding": "追加中...",
     "deleting": "削除中...",
-    "downloading": "ダウンロード中...",
     "exporting": "エクスポート中...",
     "importing": "インポート中...",
-    "pleaseWait": "お待ちください",
     "processing": "処理中...",
     "refresh": "更新",
     "refreshing": "更新中...",
-    "syncing": "同期中...",
-    "uploading": "アップロード中...",
-    "viewProblem": "問題を見る"
+    "uploading": "アップロード中..."
   },
   "auth": {
     "callback": {
@@ -38,6 +34,32 @@
       "title": "キャンパス認証",
       "verify": "認証"
     },
+    "login": {
+      "email": "メールアドレス / ユーザー名",
+      "emailDivider": "またはパスワード認証でログイン",
+      "emailPlaceholder": "メールアドレスまたはユーザー名",
+      "failed": "ログインに失敗しました",
+      "invalidCredentials": "アカウントまたはパスワードが正しくありません",
+      "loading": "ログイン中...",
+      "noAccount": "アカウントをお持ちでない方は",
+      "oauthFailed": "ログインを開始できませんでした",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワード",
+      "registerNow": "アカウント作成",
+      "schoolAuth": "キャンパス認証",
+      "submit": "ログイン",
+      "subtitle": "おかえりなさい、アカウントにログインしてください",
+      "title": "ログイン"
+    },
+    "logout": {
+      "confirmButton": "ログアウト",
+      "confirmMessage": "現在のアカウントからログアウトしますか？",
+      "confirmTitle": "ログアウトの確認"
+    },
+    "pendingAction": {
+      "actionLinkSubtitle": "まずログインまたは登録してください。完了後、招待操作が自動的に実行されます。",
+      "actionLinkTitle": "招待リンク"
+    },
     "providerActions": {
       "loginWith": "{{provider}} でログイン",
       "registerWith": "{{provider}} でアカウント作成"
@@ -57,39 +79,13 @@
         "displayName": "パスワード認証"
       }
     },
-    "login": {
-      "email": "メールアドレス / ユーザー名",
-      "emailPlaceholder": "メールアドレスまたはユーザー名",
-      "failed": "ログインに失敗しました",
-      "invalidCredentials": "アカウントまたはパスワードが正しくありません",
-      "loading": "ログイン中...",
-      "noAccount": "アカウントをお持ちでない方は",
-      "oauthFailed": "ログインを開始できませんでした",
-      "password": "パスワード",
-      "passwordPlaceholder": "パスワード",
-      "registerNow": "アカウント作成",
-      "schoolAuth": "キャンパス認証",
-      "submit": "ログイン",
-      "subtitle": "おかえりなさい、アカウントにログインしてください",
-      "title": "ログイン",
-      "emailDivider": "またはパスワード認証でログイン"
-    },
-    "logout": {
-      "confirmButton": "ログアウト",
-      "confirmMessage": "現在のアカウントからログアウトしますか？",
-      "confirmTitle": "ログアウトの確認"
-    },
-    "pendingAction": {
-      "actionLinkSubtitle": "まずログインまたは登録してください。完了後、招待操作が自動的に実行されます。",
-      "actionLinkTitle": "招待リンク"
-    },
     "register": {
       "confirmPassword": "パスワード確認",
       "confirmPasswordPlaceholder": "パスワードを再入力",
       "email": "メールアドレス",
       "emailDivider": "またはパスワード認証でアカウント作成",
-      "emailSubmit": "アカウント作成",
       "emailPlaceholder": "メールアドレスを入力",
+      "emailSubmit": "アカウント作成",
       "failed": "登録に失敗しました",
       "failedRetry": "登録に失敗しました。後でもう一度お試しください",
       "hasAccount": "すでにアカウントをお持ちの方は",
@@ -141,7 +137,6 @@
       "loadFailed": "クラスルームの読み込みに失敗しました",
       "loadFailedHint": "後でもう一度お試しください",
       "noDescription": "説明が設定されていません",
-      "selectSubtitle": "クラスルームを選択してメインページに移動",
       "welcomeBack": "おかえりなさい"
     },
     "classrooms": {
@@ -150,9 +145,6 @@
     },
     "contests": {
       "ended": "終了",
-      "noContests": "近日のコンテストはありません",
-      "ongoing": "開催中のコンテストのみ表示",
-      "participated": "参加済み",
       "title": "近日のコンテスト",
       "upcoming": "開催予定"
     },
@@ -209,21 +201,16 @@
   },
   "header": {
     "adminNavigation": "管理ナビゲーション",
-    "contestManagement": "コンテスト管理",
     "contestNavigation": "コンテストナビゲーション",
     "createContest": "コンテスト作成",
-    "environmentSettings": "環境設定",
-    "mainNavigation": "メインナビゲーション",
     "menu": "メニュー",
     "platform": "プログラミング評価プラットフォーム",
     "prefix": "システム",
     "problemManagement": "問題管理",
+    "serviceStatus": "サービス状態",
     "sideNav": "サイドナビゲーション",
-    "systemSettings": "システム設定",
-    "teacherDashboard": "教師ダッシュボード",
     "userManagement": "ユーザー管理",
-    "userMenu": "ユーザーメニュー",
-    "serviceStatus": "サービス状態"
+    "userMenu": "ユーザーメニュー"
   },
   "image": {
     "galleryTab": "ギャラリー",
@@ -295,7 +282,6 @@
     }
   },
   "message": {
-    "comingSoon": "近日公開",
     "deleteFailed": "削除に失敗しました",
     "error": "エラーが発生しました",
     "loading": "読み込み中...",
@@ -330,13 +316,10 @@
     }
   },
   "page": {
-    "contestDetail": "コンテスト詳細",
-    "contestManagement": "コンテスト管理",
     "contests": "コンテスト一覧",
     "createContest": "コンテストを作成",
     "createProblem": "問題を新規作成",
     "dashboard": "ダッシュボード",
-    "editProblem": "問題を編集",
     "environment": "環境設定",
     "login": "ログイン",
     "problemDetail": "問題詳細",
@@ -345,7 +328,6 @@
     "questionBanks": "問題集",
     "register": "登録",
     "submissions": "提出履歴",
-    "teacherDashboard": "教師ダッシュボード",
     "userManagement": "ユーザー管理"
   },
   "pagination": {
@@ -473,7 +455,6 @@
   },
   "settings": {
     "description": "プロフィールと環境設定を管理します。",
-    "descriptionStudent": "設定を管理します",
     "loginRecords": {
       "current": "現在のデバイス",
       "description": "過去30日間のログイン履歴",
@@ -559,15 +540,15 @@
     }
   },
   "workspaceTopNav": {
-    "closeInfoPanel": "情報パネルを閉じる",
-    "problemInfo": "問題情報",
-    "submissions": "提出履歴",
-    "backToContest": "コンテストダッシュボードに戻る",
-    "previewMode": "プレビューモード",
     "adminConsole": "管理後台",
+    "backToContest": "コンテストダッシュボードに戻る",
+    "closeInfoPanel": "情報パネルを閉じる",
     "contestFallback": "競賽",
     "contestHome": "競賽主頁",
     "contextLabel": "工作區內容",
-    "expandSidebar": "展開側欄"
+    "expandSidebar": "展開側欄",
+    "previewMode": "プレビューモード",
+    "problemInfo": "問題情報",
+    "submissions": "提出履歴"
   }
 }

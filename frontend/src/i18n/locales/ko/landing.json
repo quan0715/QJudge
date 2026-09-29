@@ -65,28 +65,28 @@
     "eyebrow": "FAQ",
     "items": [
       {
-        "question": "QJudge 跟 Google Forms 或其他問卷工具有什麼不同？",
-        "answer": "QJudge 專為考試設計，提供問卷工具缺乏的防作弊機制、鑑別度分析、個人題庫與自動批改。"
+        "answer": "QJudge 專為考試設計，提供問卷工具缺乏的防作弊機制、鑑別度分析、個人題庫與自動批改。",
+        "question": "QJudge 跟 Google Forms 或其他問卷工具有什麼不同？"
       },
       {
-        "question": "支援哪些考試形式？",
-        "answer": "支援 Coding 上機考與考卷題型，可涵蓋選擇、填空、問答等情境，並可依課程需求配置。"
+        "answer": "支援 Coding 上機考與考卷題型，可涵蓋選擇、填空、問答等情境，並可依課程需求配置。",
+        "question": "支援哪些考試形式？"
       },
       {
-        "question": "防作弊機制如何運作？",
-        "answer": "系統會記錄視窗跳離、作答行為與考試環境事件，並在考後產出可追溯的證據鏈報告。"
+        "answer": "系統會記錄視窗跳離、作答行為與考試環境事件，並在考後產出可追溯的證據鏈報告。",
+        "question": "防作弊機制如何運作？"
       },
       {
-        "question": "AI 出題準確嗎？",
-        "answer": "AI 負責生成初稿與加速流程，教師保有完整審核與微調權限，最終品質仍由教師把關。"
+        "answer": "AI 負責生成初稿與加速流程，教師保有完整審核與微調權限，最終品質仍由教師把關。",
+        "question": "AI 出題準確嗎？"
       },
       {
-        "question": "如何開始使用？",
-        "answer": "註冊並選擇學生或教師角色後即可開始使用。"
+        "answer": "註冊並選擇學生或教師角色後即可開始使用。",
+        "question": "如何開始使用？"
       },
       {
-        "question": "資料與題庫安全嗎？",
-        "answer": "教師保有題目與成績資料的控制權，平台則負責提供安全的考試流程與資料管理能力。"
+        "answer": "教師保有題目與成績資料的控制權，平台則負責提供安全的考試流程與資料管理能力。",
+        "question": "資料與題庫安全嗎？"
       }
     ],
     "title": "常見問題"
@@ -118,24 +118,24 @@
     "eyebrow": "完整考試流程",
     "items": [
       {
-        "title": "建立考試與出題",
         "description": "選擇考卷或 Coding 模式，設定題型、時間、作答規則，並完成題目配置與教師審核。",
-        "output": "完成後：可直接發布的正式考試"
+        "output": "完成後：可直接發布的正式考試",
+        "title": "建立考試與出題"
       },
       {
-        "title": "執行與監考",
         "description": "學生開始作答後，教師可掌握進度、線上狀態與異常事件。",
-        "output": "完成後：可追蹤的考試紀錄"
+        "output": "完成後：可追蹤的考試紀錄",
+        "title": "執行與監考"
       },
       {
-        "title": "批改與發佈",
         "description": "考後快速完成批改與結果確認，將分數、答題狀態與回饋發布給教師與學生。",
-        "output": "完成後：可發佈的成績與回饋"
+        "output": "完成後：可發佈的成績與回饋",
+        "title": "批改與發佈"
       },
       {
-        "title": "考後數據分析與改進",
         "description": "將考題、變化題與考後資料回收整理，逐步累積可複用的專屬題庫。",
-        "output": "完成後：跨學期延續的教學資產"
+        "output": "完成後：跨學期延續的教學資產",
+        "title": "考後數據分析與改進"
       }
     ],
     "title": "從出題到分析，正式考試一次串接"
@@ -175,72 +175,18 @@
     "title": "把時間還給教學，從這裡開始"
   },
   "hero": {
-    "badge": {
-      "product": "QJudge",
-      "tagline": "전문 프로그래밍 테스트 플랫폼"
-    },
     "eyebrow": "QJudge",
     "panelCaption": "考試狀態、警示與分析集中管理",
     "panelTitle": "教師後台總覽",
     "primaryCta": "免費開始使用",
-    "register": "회원가입",
     "secondaryCta": "預約 Demo",
-    "signIn": "로그인",
-    "signal": {
-      "realtime": "실시간 평가",
-      "report": "상세 보고서",
-      "sandbox": "샌드박스 실행"
-    },
     "subtitle": "학술 현장을 위해 구축된 고품질 시험 환경. AI 감독 감지, 지필형 문항 및 실시간 평가를 통합하여 모든 시험이 공정성, 효율성 및 심도를 갖추도록 합니다.",
     "title": "下世代的數位學習體驗",
     "trust": {
       "capacity": "150+ 人同時在線驗證",
       "users": "已服務 200+ 位教師與學員",
       "validation": "NYCU 課程合作驗證"
-    },
-    "visual": {
-      "ai_monitoring": "AI 모니터링",
-      "desc": "Code -> Judge -> Verdict",
-      "detection": "탭 감지",
-      "fullscreen": "전체 화면 모드",
-      "proctoring": "감독 상태",
-      "proctoring_video": "화상 감독",
-      "remaining": "남은 시간",
-      "title": "프로그래밍 테스트 프로세스",
-      "violations": "위반 횟수"
     }
-  },
-  "highlights": {
-    "docs": "문서 보기",
-    "eyebrow": "QJudge 이유",
-    "item1": "연습 대회와 진행 추적",
-    "item2": "실시간 대회/랭킹",
-    "item3": "케이스 비교 및 diff",
-    "item4": "토론/공지 통합",
-    "item5": "IBM Carbon 기반의 모던 UI",
-    "title": "교육과 대회를 위해 설계"
-  },
-  "interactive": {
-    "eyebrow": "솔루션 쇼케이스",
-    "items": {
-      "editor": {
-        "desc": "AI 대화로 각 과목의 시험 문제를 빠르게 생성 및 수정. 설정부터 테스트 데이터까지 한 번에 완료.",
-        "label": "AI 출제 지원"
-      },
-      "grading": {
-        "desc": "시각적 성적 개요로 각 학생·각 문항의 답안과 채점 진행 상황을 즉시 파악.",
-        "label": "채점 및 분석"
-      },
-      "proctor": {
-        "desc": "창 이탈, 탭 전환 등 이상 행위를 실시간 감지하여 자동 경고 및 위반 기록.",
-        "label": "감독 및 부정행위 방지"
-      },
-      "stats": {
-        "desc": "명확한 문제 목록과 답안 영역으로 학생이 시험에 집중할 수 있는 환경.",
-        "label": "시험 화면"
-      }
-    },
-    "title": "교육 과정의 모든 세부 사항에 깊이 뿌리 내린 기능"
   },
   "mcp": {
     "description": "在 Claude、ChatGPT、Cursor、Perplexity、Gemini、Notion 中出題、批改、反饋",
@@ -304,35 +250,6 @@
     },
     "title": "QJudge 체험: 문제 읽기, 코딩, 제출, 결과 확인"
   },
-  "modes": {
-    "eyebrow": "다양한 모드",
-    "items": {
-      "adaptive": {
-        "comingSoon": "출시 예정",
-        "desc": "개인화된 학습 경로",
-        "label": "AI 맞춤형 학습"
-      },
-      "coding": {
-        "desc": "전문적인 코딩 평가",
-        "label": "프로그래밍 테스트"
-      },
-      "hackathon": {
-        "comingSoon": "출시 예정",
-        "desc": "협업 경쟁 모드",
-        "label": "팀 해커톤"
-      },
-      "paper": {
-        "desc": "통합 디지털 시험 시스템",
-        "label": "지필형 시험"
-      },
-      "takehome": {
-        "comingSoon": "출시 예정",
-        "desc": "장기 과제 모드",
-        "label": "과제형 프로젝트"
-      }
-    },
-    "title": "다양한 대회 및 학습 모드 지원"
-  },
   "nav": {
     "audience": "適用對象",
     "faq": "常見問題",
@@ -356,34 +273,6 @@
       }
     },
     "title": "為正式考試而設計，不只支援作答，更讓結果真正可用"
-  },
-  "sections": {
-    "antiCheat": {
-      "description": "브라우저 기반의 전방위 감지 기능을 통해 수험생은 플러그인이나 소프트웨어 설치 없이 엄격한 감독 환경에 접속할 수 있습니다. 우리는 모든 노력을 보호하며 시험의 절대적인 공정성을 보장합니다.",
-      "eyebrow": "엄격한 감독",
-      "proctoring": {
-        "ai": "AI Analysis",
-        "audio": "Audio Detection",
-        "face": "Face Identity",
-        "fullscreen": "Fullscreen Lock",
-        "mouseLeave": "Mouse Track",
-        "multiScreen": "Multi-screen Block",
-        "noCopy": "Copy/Paste Disabled",
-        "tabSwitch": "Tab Switch Detection",
-        "video": "Video Evidence"
-      },
-      "title": "설치 불필요, 업계 선두의 부정행위 방지 기술"
-    },
-    "paper": {
-      "description": "객관식, 다지선다, OX, 단답형 문제 지원. 내장된 Markdown 및 LaTeX 에디터로 복잡한 수학 공식과 기술 문서를 정확하게 렌더링하여 교양부터 이공계, 프로그래밍까지 다양한 니즈를 충족합니다.",
-      "eyebrow": "지필형 시험",
-      "title": "코드 그 이상, 완전한 온라인 시험 시스템"
-    },
-    "teacher": {
-      "description": "디지털 채점 경험을 새롭게 정의했습니다. 직관적인 3단 채점 패널, 실시간 감독 대시보드 및 자동 성적 통계 분석을 통해 관리 및 채점 시간을 70% 이상 절약할 수 있습니다.",
-      "eyebrow": "교사 친화적",
-      "title": "교사는 강의에만 집중하세요, 나머지는 QJudge가 해결합니다"
-    }
   },
   "seo": {
     "description": "QJudge 是專為教師設計的 AI 線上考試平台，支援 Coding 上機考、選擇題、問答題等多元題型，具備嚴格防作弊監控與 AI 輔助出題功能，協助學校與補習班快速舉辦安全可靠的線上測驗。",
@@ -421,71 +310,6 @@
     },
     "description": "從大班課堂考試到研究所上機考，QJudge 已能支撐真實教學現場的正式評量流程。",
     "eyebrow": "真實使用場景",
-    "metrics": {
-      "capacity": {
-        "description": "已在正式考試情境中完成穩定驗證。",
-        "label": "人同時在線考試",
-        "value": "150+"
-      },
-      "users": {
-        "description": "來自真實課程與教學場景的持續使用。",
-        "label": "已註冊教師與學員",
-        "value": "200+"
-      },
-      "validation": {
-        "description": "來自國立陽明交通大學的實際課程合作。",
-        "label": "課程合作驗證",
-        "value": "NYCU"
-      }
-    },
     "title": "真實校園應用場景"
-  },
-  "stats": {
-    "problems": "문제",
-    "submissions": "제출",
-    "uptime": "가용성",
-    "users": "활성 사용자"
-  },
-  "steps": {
-    "browse": {
-      "description": "난이도와 태그로 필터링하고 설명/샘플을 확인.",
-      "title": "문제 탐색"
-    },
-    "code": {
-      "description": "구문 강조와 자동 완성을 지원하는 내장 에디터를 사용하세요.",
-      "title": "코드 작성"
-    },
-    "eyebrow": "사용 방법",
-    "improve": {
-      "description": "토론에 참여하고 풀이를 비교하며 대회/랩에 참가.",
-      "title": "실력 향상"
-    },
-    "submit": {
-      "description": "원클릭 제출로 즉시 결과 확인.",
-      "title": "제출 및 채점"
-    },
-    "title": "4단계로 시작"
-  },
-  "testimonials": {
-    "badge": "국립양명교통대학교 정보관리·재무금융학과",
-    "eyebrow": "사용자 후기",
-    "name1": "Wang",
-    "name2": "Lee",
-    "name3": "Chen",
-    "quote1": "실시간 피드백으로 문제를 빠르게 찾을 수 있어 효율적입니다.",
-    "quote2": "차이 비교 기능 덕분에 디버깅이 쉬워졌습니다.",
-    "quote3": "연습 대회가 수업 진행과 잘 맞아 학습 효과가 좋습니다.",
-    "title": "학생들의 이야기",
-    "title1": "NYCU IM/Fin 3학년",
-    "title2": "NYCU IM/Fin 2학년",
-    "title3": "NYCU IM/Fin 3학년"
-  },
-  "visuals": {
-    "continuePractice": "Continue Practice",
-    "live": "LIVE",
-    "mathTitle": "Mathematics Rendering",
-    "personalizedPath": "Personalized Path",
-    "projectMode": "Project Mode",
-    "topics": "Problem Topics"
   }
 }

@@ -1,90 +1,11 @@
 {
-  "button": {
-    "create": "생성"
-  },
   "difficulty": {
     "easy": "쉬움",
     "hard": "어려움",
     "medium": "보통"
   },
-  "edit": {
-    "actions": {
-      "back": "뒤로",
-      "delete": "삭제",
-      "preview": "미리보기",
-      "save": "저장"
-    },
-    "messages": {
-      "deleteFailed": "삭제 실패",
-      "deleteSuccess": "삭제 성공",
-      "deleteSuccessDetail": "리다이렉트 중...",
-      "loadFailed": "문제 데이터를 불러오는 데 실패했습니다",
-      "noPermission": "이 문제를 편집할 권한이 없습니다",
-      "noPermissionTitle": "권한 없음",
-      "notFound": "문제를 찾을 수 없습니다"
-    },
-    "sections": {
-      "basicInfo": "기본 정보",
-      "content": "문제 내용",
-      "languageSettings": "언어 설정",
-      "testCases": "테스트 케이스"
-    },
-    "status": {
-      "hidden": "문제가 숨김 처리되었습니다",
-      "private": "문제가 비공개로 설정되었습니다",
-      "public": "문제가 공개되었습니다"
-    }
-  },
-  "editor": {
-    "header": "코드 에디터",
-    "selectLanguage": "언어 선택"
-  },
-  "filter": {
-    "difficulty": "난이도",
-    "noTags": "사용 가능한 태그가 없습니다",
-    "solved": "해결됨",
-    "status": "상태",
-    "tags": "태그",
-    "unsolved": "미해결"
-  },
-  "form": {
-    "placeholder": {
-      "title": "문제 제목을 입력하세요"
-    },
-    "slug": "URL 슬러그",
-    "title": "제목"
-  },
-  "hero": {
-    "acRate": "정답률",
-    "accepted": "정답",
-    "memoryLimit": "메모리 제한",
-    "score": "점수",
-    "submissions": "제출",
-    "timeLimit": "시간 제한"
-  },
   "list": {
-    "acrRate": "정답률",
-    "noResults": "조건에 맞는 문제를 찾을 수 없습니다",
-    "searchPlaceholder": "문제 검색...",
-    "subtitle": "다양한 난이도의 알고리즘 도전에 참여하여 프로그래밍 능력을 향상시키세요.",
-    "title": "문제 해결 / Problem Solving",
-    "totalLoaded": "총 {{count}}개의 문제를 모두 불러왔습니다",
-    "tryAdjustFilters": "필터를 조정해 보세요"
-  },
-  "management": {
-    "description": "문제를 관리합니다",
-    "problemCount": "총 {{count}}문제"
-  },
-  "modal": {
-    "confirmDelete": "삭제 확인",
-    "confirmSubmit": "제출 확인",
-    "createError": "생성 실패. 나중에 다시 시도해 주세요",
-    "createSuccess": "문제가 생성되었습니다!",
-    "createTitle": "문제 생성",
-    "deleteConfirmMessage": "문제 \"{{title}}\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
-    "submitConfirmMessage": "이 작업은 모든 숨겨진 테스트 케이스를 평가합니다.",
-    "submitConfirmTitle": "답안을 제출하시겠습니까?",
-    "submitting": "제출 중..."
+    "acrRate": "정답률"
   },
   "sample": {
     "empty": "(비어있음)",
@@ -101,11 +22,5 @@
     "outputDescription": "출력 형식",
     "requiredKeywords": "필수 키워드:",
     "sampleTestCases": "샘플 테스트"
-  },
-  "tabs": {
-    "code": "코드",
-    "description": "문제 설명",
-    "stats": "통계",
-    "submissions": "제출 기록"
   }
 }

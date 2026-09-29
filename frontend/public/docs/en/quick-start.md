@@ -1,81 +1,43 @@
-This guide will help you complete your first submission in **5 minutes**.
+# Quick Start
 
-## Quick Start Checklist
+This quick start guide provides a step-by-step reading roadmap from a fresh installation all the way to "the first exam is ready." You can begin wherever you currently are in the process.
 
-Follow these steps to complete your first submission:
+Throughout this guide, we use fictional sample data: Instructor Wang creates the "Midterm Exam 1" for "Fall 2026 Operating Systems", with students under the `example.test` domain. None of this corresponds to real people or courses.
 
-| Step | Task                     | Details                                              |
-| ---- | ------------------------ | ---------------------------------------------------- |
-| 1    | Login to QJudge          | [Step 1: Login](#step-1-login)                       |
-| 2    | Open an assigned contest | [Step 2: Open a Contest](#step-2-open-a-contest)     |
-| 3    | Write and submit code    | [Step 3: Solve and Submit](#step-3-solve-and-submit) |
-| 4    | Check evaluation results | [Step 4: View Results](#step-4-view-results)         |
+## 1. System Not Yet Deployed
 
----
+If you cannot open QJudge in your browser yet, start with [Setup and Deployment](#/docs/deployment). A minimal viable deployment configures a single host, essential services, and file storage; HTTPS, OAuth, AI, and remote MCP can be added later once the core platform is running.
 
-## Step 1: Login
+You know deployment is complete when: you can open the QJudge home page, backend and judge health checks are green, and you can run management commands on the host.
 
-You can login through:
+## 2. Create the First Administrator
 
-| Login Method      | Description                              | Recommended For         |
-| ----------------- | ---------------------------------------- | ----------------------- |
-| **SSO Login**     | Login directly with your NYCU account    | NYCU students & faculty |
-| **Regular Login** | Login with registered email and password | External users          |
+A freshly deployed system has no user with administrative access. Follow [Create an Administrator Account](#/docs/admin-account) to create the initial superuser via the terminal on your host, then log in through your browser.
 
-> **First time using SSO?** The system will automatically create an account for you, no registration needed.
+This account is meant for site maintenance and should not be shared across the entire teaching team.
 
----
+## 3. Manage Teacher Access
 
-## Step 2: Open a Contest
+The instructor first creates a standard user account by signing up or logging in. The administrator then follows [Manage Teacher Access](#/docs/teacher-qualification) to search for that account in the User Management console, verify their identity, and change their role to Teacher.
 
-After logging in, open your classroom and select a contest that your teacher has made available. Programming problems are provided inside contests rather than through a separate practice-problem page.
+Once the role is changed, the administrator logs out. From this point forward, classrooms, rosters, and exams are managed using the instructor's account. This handoff prevents day-to-day teaching activities from relying on overly privileged admin credentials.
 
-> If no contest is available, confirm that you joined the correct classroom and ask your teacher whether the contest has been published.
+## 4. Create a Classroom
 
----
+Instructor Wang logs in with the teacher account and follows [Create a Classroom](#/docs/classroom-setup) to create "Fall 2026 Operating Systems". The classroom represents a course section; all announcements, rosters, and exams for the semester stay here.
 
-## Step 3: Solve and Submit
+## 5. Manage the Student Roster
 
-```
-1. Open the contest → Select a programming problem
-        ↓
-2. Read description and examples
-        ↓
-3. Write code in the editor
-        ↓
-4. Select language (C/C++/Python/Java)
-        ↓
-5. Click "Submit" button
-```
+With the classroom ready, follow [Manage the Student Roster](#/docs/classroom-roster) to add students. Students must have registered a QJudge account first so the instructor can add them by username or email; having a platform account does not automatically enroll a student in any classroom.
 
-### Supported Languages
+The tutorial walks you through importing CSV data, inspecting preview statuses (eligible, duplicates, format errors, and accounts not found), and confirming enrollment.
 
-| Language | Version | Compile/Run Command  |
-| -------- | ------- | -------------------- |
-| C        | GCC 11  | `gcc -O2 -std=c11`   |
-| C++      | G++ 11  | `g++ -O2 -std=c++17` |
-| Python   | 3.10    | `python3`            |
-| Java     | 17      | `javac` + `java`     |
+## 6. Prepare the Exam
 
----
+Once the roster is confirmed, follow [Prepare an Exam](#/docs/exam-preparation) to set up "Midterm Exam 1", configure the exam format, and draft questions with grading rubrics. If AI is enabled, it can help draft questions and criteria; the entire setup can also be completed manually without AI.
 
-## Step 4: View Results
+Finally, visit [Review Exam Content](#/docs/exam-review) to preview question order, score points, exam policies, and what students will see. This stage concludes right before publication, allowing the teaching team to review everything internally.
 
-After submission, the system automatically evaluates your code. Results appear within seconds.
+## What You Have Accomplished
 
-### Evaluation Results Explained
-
-| Result                | Abbr | Description         | Next Action                           |
-| --------------------- | ---- | ------------------- | ------------------------------------- |
-| Accepted              | AC   | Passed all tests    | Congratulations! Try the next problem |
-| Wrong Answer          | WA   | Output is incorrect | Check logic and edge cases            |
-| Time Limit Exceeded   | TLE  | Execution timed out | Optimize algorithm efficiency         |
-| Memory Limit Exceeded | MLE  | Memory exceeded     | Reduce data structure usage           |
-| Runtime Error         | RE   | Crashed during run  | Check array bounds, division by zero  |
-| Compilation Error     | CE   | Failed to compile   | Check syntax errors                   |
-
----
-
-## Done!
-
-Happy coding!
+After completing this path, you have: a functioning administrator account, an authorized instructor account, a classroom with an active student roster, and an exam fully reviewed and ready to publish.

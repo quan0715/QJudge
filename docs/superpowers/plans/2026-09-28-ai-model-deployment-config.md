@@ -10,12 +10,6 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-28-ai-model-deployment-config-design.md`
 
-**Implementation review correction:** Task 7 originally required `qjudge check` to reject legacy AI entries in `deploy/.env`. The release manager can still roll back to a Compose version that reads those entries, so the implemented check permits them during that rollback window. The new Compose file does not pass them to AI containers; remove them once the rollback target also uses `deploy/ai/`. The operator guide and design spec contain the safe migration order.
-
-**Model selection update:** Host examples now use `deepseek-flash` (DeepSeek V4.1 Flash) as the default. The old DeepSeek V4 identifiers remain only where they document prior behavior or migration; they are not deployment choices. The versioned `models.example.yml` stays empty until an operator supplies a provider key.
-
-**OpenAI selection update:** The target host catalog replaces `openai-nano`, `openai-mini`, and `openai-mini-medium` with one `gpt-6-luna` entry using medium reasoning through the Responses API and a 272,000-token input limit. The historical test snippets and fake-provider fixture below still show earlier IDs; use the current operator guide and design spec when configuring a host.
-
 ## Global Constraints
 
 - 在 feature branch 上實作（依 `qjudge-github-workflow-owner`），不要直接 commit 到 `dev`。
@@ -223,7 +217,7 @@ def test_openai_compatible_without_key_sends_empty_placeholder():
 def test_deepseek_reasoning_enables_thinking_with_preserving_client():
     model = provider_adapters.build_chat_model(
         _endpoint("deepseek", "deepseek"),
-        _spec(provider="deepseek", model="deepseek-flash", reasoning_effort="high"),
+        _spec(provider="deepseek", model="deepseek-v4-flash", reasoning_effort="high"),
         "key",
     )
     assert isinstance(model, _ReasoningClient)
@@ -234,7 +228,7 @@ def test_deepseek_reasoning_enables_thinking_with_preserving_client():
 def test_deepseek_without_reasoning_disables_thinking():
     model = provider_adapters.build_chat_model(
         _endpoint("deepseek", "deepseek", "https://ds.test"),
-        _spec(provider="deepseek", model="deepseek-flash"),
+        _spec(provider="deepseek", model="deepseek-v4-flash"),
         "key",
     )
     assert type(model) is _Client
@@ -503,10 +497,10 @@ def test_self_hosted_key_is_optional():
 
 
 def test_builtin_model_without_known_limit_needs_max_input_tokens():
-    problems = problems_of({"models": [{"id": "deepseek-flash", "provider": "deepseek"}]})
+    problems = problems_of({"models": [{"id": "deepseek-v4-flash", "provider": "deepseek"}]})
     assert problems == (
-        "models[0] (deepseek-flash).max_input_tokens: required; "
-        "LangChain has no context limit for deepseek-flash",
+        "models[0] (deepseek-v4-flash).max_input_tokens: required; "
+        "LangChain has no context limit for deepseek-v4-flash",
     )
 
 
@@ -1525,11 +1519,11 @@ def make_catalog() -> ModelCatalog:
     env = {"OPENAI_API_KEY": "k", "DEEPSEEK_API_KEY": "k"}
     config = parse_model_config(
         {
-            "default": "deepseek-flash",
+            "default": "deepseek-v4-flash",
             "models": [
                 {"id": "openai-nano", "provider": "openai", "model": "gpt-5-nano",
                  "display_name": "gpt-5-nano", "max_input_tokens": 400_000},
-                {"id": "deepseek-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
+                {"id": "deepseek-v4-flash", "provider": "deepseek", "max_input_tokens": 1_000_000},
             ],
         },
         env,
@@ -1551,7 +1545,7 @@ def make_client(catalog: ModelCatalog | None = None) -> tuple[TestClient, FakeRu
     assert models.status_code == 200
     assert models.json()["models"] == [
         {"model_id": "openai-nano", "display_name": "gpt-5-nano", "description": "", "is_default": False},
-        {"model_id": "deepseek-flash", "display_name": "deepseek-flash", "description": "",
+        {"model_id": "deepseek-v4-flash", "display_name": "deepseek-v4-flash", "description": "",
          "is_default": True},
     ]
 ```
@@ -1569,7 +1563,7 @@ def test_start_run_accepts_null_model_id_and_uses_default() -> None:
         json={"message": "hello", "model_id": None},
     )
     assert created.status_code == 202
-    assert created.json()["model_id"] == "deepseek-flash"
+    assert created.json()["model_id"] == "deepseek-v4-flash"
 
 
 def test_start_run_rejects_unavailable_model() -> None:
@@ -1929,15 +1923,12 @@ Expected: PASS（含 `test_committed_example_matches_schema`）
 # OPENAI_API_KEY, DEEPSEEK_API_KEY or LAB_VLLM_API_KEY for endpoint lab-vllm.
 # Restart ai-service and ai-worker after editing.
 #
-# default: deepseek-flash         # optional; first available model otherwise
+# default: gpt-5-nano            # optional; first available model otherwise
 #
 # models:
-#   - id: gpt-6-luna              # built-in OpenAI provider
+#   - id: gpt-5-nano              # built-in provider: openai or deepseek
 #     provider: openai
-#     display_name: GPT-6 Luna
-#     reasoning_effort: medium
-#     max_input_tokens: 272000
-#   - id: deepseek-flash
+#   - id: deepseek-v4-flash
 #     provider: deepseek
 #     reasoning_effort: high      # low | medium | high
 #     max_input_tokens: 1000000   # required when LangChain has no profile
@@ -2007,7 +1998,7 @@ Expected: `ai-service` 與 `ai-worker` 都有 `target: /etc/qjudge-ai` 的唯讀
 
 - [ ] **Step 7: dev 端到端檢查**
 
-1. 若 `deploy/.env` 仍有六個舊 AI key，照 spec 第 7 節搬到 `deploy/ai/keys.env` 並建立 `deploy/ai/models.yml`（先放一個 `deepseek-flash`；加入 `gpt-6-luna` 前確認 OpenAI key 有效）。
+1. 若 `deploy/.env` 仍有六個舊 AI key，照 spec 第 7 節搬到 `deploy/ai/keys.env` 並建立 `deploy/ai/models.yml`（先放一個 `deepseek-v4-flash` 或 `openai-nano`）。
 2. Run: `.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev up -d --force-recreate ai-service ai-worker`
 3. Run: `.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T ai-service python -m infrastructure.agent.model_config`
    Expected: `... N model(s) configured`，exit 0
@@ -2287,7 +2278,7 @@ Expected: PASS
 - [ ] **Step 8: 批改畫面改用目錄預設並顯示訊息**
 
 `useAiQuestionGrading.ts`：
-- 刪除舊版 `AI_GRADING_DEFAULT_MODEL_ID` 常數
+- 刪除 `export const AI_GRADING_DEFAULT_MODEL_ID = "deepseek-v4-flash";`
 - 第 410 行改為 `const modelId = options?.modelId;`
 - 第 500 行改為 `modelOverride: options?.modelId,`
 - 若 `modelId` 之後被存入型別為 `string` 的 state，改為 `string | undefined` 或在該處使用 `modelId ?? ""`，以 `npm run typecheck` 為準。
@@ -2333,7 +2324,7 @@ Expected: PASS
 - [ ] **Step 9: 清掉其他引用並跑前端檢查**
 
 Run: `grep -rn "AI_GRADING_DEFAULT_MODEL_ID\|EXCLUDED_MODEL_IDS" frontend/src`
-Expected: 無結果（`chatbot.repository.test.ts`、`ComposerBar.stories.tsx` 中的 `openai-nano`／`deepseek-flash` 只是 fixture，保留即可）
+Expected: 無結果（`chatbot.repository.test.ts`、`ComposerBar.stories.tsx` 中的 `openai-nano`／`deepseek-v4-flash` 只是 fixture，保留即可）
 
 Run: `.codex/skills/qjudge-env-compose-owner/scripts/qjudge-dc.sh dev exec -T frontend npm run typecheck`
 Run: `FE_VITEST src/shared/ai src/features/chatbot/components/chat-ui src/features/contest/screens/settings`
@@ -2424,6 +2415,6 @@ git commit -m "docs(ai): describe per-host model configuration"
 - [ ] `BE_PYTEST apps/ai/tests/test_start_run_serializer.py apps/ai/tests/test_bff_contract.py`：通過
 - [ ] `python3 -m unittest discover -s deploy/qjudge_cli/tests -t deploy`：通過
 - [ ] 前端 `npm run typecheck`、相關 vitest、naming／architecture／Carbon gates：通過
-- [ ] `grep -rn "openai-nano\|deepseek-flash\|gemma" ai-service backend/apps frontend/src --include='*.py' --include='*.ts' --include='*.tsx' | grep -v -i "test\|stories\|fixture\|migrations"`：沒有執行路徑上的寫死 ID
+- [ ] `grep -rn "openai-nano\|deepseek-v4-flash\|gemma" ai-service backend/apps frontend/src --include='*.py' --include='*.ts' --include='*.tsx' | grep -v -i "test\|stories\|fixture\|migrations"`：沒有執行路徑上的寫死 ID
 - [ ] Task 8 Step 10 的四種畫面狀態都已實際看過
 - [ ] CI 的 E2E（`ci/e2e-stack.sh`）在 PR 上通過，確認 fake adapter 搭配 `ci/ai/models.yml` 可正常產生回覆

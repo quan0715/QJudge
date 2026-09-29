@@ -1,7 +1,4 @@
 {
-  "badge": {
-    "aiGenerated": "AI生成"
-  },
   "feedback": {
     "helpful": "役に立った",
     "notHelpful": "改善が必要",
@@ -17,55 +14,33 @@
     "back": "戻る",
     "items": {
       "admin-account": "管理者アカウントを作成",
-      "admin-overview": "管理者機能",
-      "classroom-management": "クラスルーム管理",
+      "ai-setup": "AI モデルとサービスの設定",
+      "auth-setup": "サードパーティ認証の設定",
       "classroom-roster": "学生名簿を管理",
       "classroom-setup": "クラスルームを作成",
-      "contest-extension-architecture": "コンテスト拡張アーキテクチャガイド",
-      "contributing": "コントリビュート",
-      "create-exam": "試験と問題の作成",
       "deployment": "1台のホストからデプロイ",
       "deployment-live-monitoring": "セルフホスト型ライブ監視をデプロイ",
       "deployment-options": "オプション機能を追加",
       "deployment-storage": "ファイルストレージを準備",
       "deployment-troubleshooting": "デプロイのトラブルシューティング",
-      "dev-setup": "開発環境セットアップ",
-      "e2e-testing": "E2Eテストガイド",
-      "exam-grading": "試験の採点と結果公開",
-      "exam-precheck-anticheat": "Exam Pre-check と不正防止シーケンス",
       "exam-preparation": "試験を準備",
-      "exam-proctoring": "試験監督と手動介入",
       "exam-review": "試験内容を確認",
-      "exam-statistics": "試験統計と確認",
-      "identity-auth-extension": "認証モジュールの保守と拡張",
-      "mcp-setup": "MCP AI ツール接続",
-      "nycu-login-showcase": "NYCU Login Showcase",
+      "mcp-setup": "MCP ツール連携の設定",
       "overview": "プラットフォーム概要",
-      "question-bank": "問題バンク管理",
       "quick-start": "クイックスタート",
-      "teacher-adoption-overview": "授業導入の概要",
-      "teacher-assignment-workflow": "課題と練習の導入フロー",
-      "teacher-exam-workflow": "正式試験の導入フロー",
-      "teacher-first-class-setup": "初回授業前の設定",
-      "teacher-grading-feedback": "採点、分析、フィードバック",
-      "teacher-overview": "教師機能概要",
       "teacher-qualification": "教員資格を管理"
     },
     "lastUpdated": "最終更新日",
     "onThisPage": "このページの内容",
     "productLabel": "ドキュメント",
-    "searchPlaceholder": "ドキュメントを検索...",
     "sections": {
       "admin-guide": "管理者ガイド",
-      "developer-guide": "開発者ガイド",
       "deployment": "構築とデプロイ",
       "first-exam": "最初の試験を準備",
-      "getting-started": "はじめに",
-      "teacher-guide": "教師ガイド"
+      "getting-started": "はじめに"
     }
   },
   "page": {
-    "subtitle": "QJudgeプラットフォームの使い方を学ぶ",
     "title": "ドキュメント"
   },
   "quickLinks": {
@@ -73,16 +48,6 @@
       "description": "最初の管理者アカウントを作成し、教員機能を利用できるアカウントを決めます",
       "tag": "ステップ 2",
       "title": "管理者と教員資格を設定"
-    },
-    "admin": {
-      "description": "ユーザー、権限設定、システム構成の管理",
-      "tag": "管理者",
-      "title": "システム管理"
-    },
-    "contestant": {
-      "description": "コンテストのルール、スコアリング、トラブルシューティングについて",
-      "tag": "コンテスト",
-      "title": "プログラミングコンテストに参加"
     },
     "classroom": {
       "description": "教員アカウントでクラスルームを作成し、今学期の学生名簿を追加またはインポートします",
@@ -94,25 +59,10 @@
       "tag": "ステップ 1",
       "title": "構築とデプロイ"
     },
-    "developer": {
-      "description": "開発環境の設定、プロジェクト構造の理解、貢献手順",
-      "tag": "開発者",
-      "title": "コード貢献"
-    },
     "exam": {
       "description": "試験を作成して問題と日程を設定し、公開前にチェックリストを項目ごとに確認します",
       "tag": "ステップ 4",
       "title": "最初の試験を準備"
-    },
-    "student": {
-      "description": "問題を閲覧し、コードを書き、解答を提出する方法を学びます",
-      "tag": "学生",
-      "title": "プログラミング問題を解く"
-    },
-    "teacher": {
-      "description": "コンテストの作成、問題管理、学生の成績確認と統計",
-      "tag": "教員",
-      "title": "コンテストの作成・管理"
     }
   },
   "search": {

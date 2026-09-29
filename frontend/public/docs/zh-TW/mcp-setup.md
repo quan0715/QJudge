@@ -1,104 +1,117 @@
-# 讓 AI 工具連接 QJudge
+# 配置 MCP 工具連線
 
-MCP（Model Context Protocol）是一種讓 AI 工具呼叫外部系統功能的連線方式。對老師與助教而言，它的用途很直接：在熟悉的 AI 工具裡查詢教室、準備題目或協助批改，不必每次都切回 QJudge 網頁。
+MCP（Model Context Protocol）是一種讓外部 AI 工具呼叫系統功能的開放連線協定。對教師與管理者而言，它的用處非常直接：讓你能在平時習慣的 AI 工具（例如 Cursor、Claude Desktop 或支援 MCP 的程式編輯器）中，直接查詢教室資訊、整理題目或取得作答統計，不必每次都手動切換回瀏覽器。
 
-MCP 是選用功能。只使用 QJudge 網頁、提交與評測時，不需要設定它。
+MCP 是**選用功能**。如果你只透過 QJudge 網頁介面出題、批改與評測，完全不需要設定它。
 
-## 開始前先確認兩件事
+## 第 1 步：確認 MCP 服務就緒
 
-第一，你的帳號需要有相對應的教室或競賽管理權限。MCP 不會繞過 QJudge 原本的權限檢查。
-
-第二，向站台管理者取得 **QJudge MCP URL**。網址由每個部署單位決定，不一定是 QJudge 官方網域，通常會長得像：
+QJudge 系統預設已經內建 Remote HTTP MCP 服務，端點路徑固定為公開網域加上 `/mcp`，例如：
 
 ```text
-https://mcp.example.edu/mcp
+https://judge.example.edu/mcp
 ```
 
-若你就是站台管理者，請先完成[加入選用功能](#/docs/deployment-options)中的「Remote MCP」與 HTTPS 設定。只在 QJudge 內部讓 AI Service 呼叫 MCP 時，不需要公開 HTTPS；要讓校外的 AI 工具連進來時，才需要可公開存取的 HTTPS 網址。
+> **重要注意事項**：外部 AI 工具（如 Claude Desktop 或 Cursor）通常要求遠端連線必須採用 **HTTPS**。如果你的主機目前僅使用地端 IP 或尚未設定 SSL 憑證，請先依照[架設與部署](#/docs/deployment)或[加入選用功能](#/docs/deployment-options)設定網域名稱與 HTTPS（例如搭配 Cloudflare Tunnel 或反向代理）。
 
-## 在 AI 工具中加入連線
+## 第 2 步：在 AI 工具中加入連線
 
-不同 AI 工具會把入口稱為 MCP、Connectors、Integrations 或 Tools，但設定流程大致相同：
+不同 AI 工具將此設定稱為 MCP、Connectors、Integrations 或 External Tools，但設定邏輯一致。
 
-1. 打開工具的 MCP 或整合設定。
-2. 新增一個 remote HTTP MCP server。
-3. 名稱填入 `qjudge`，網址填入管理者提供的 MCP URL。
-4. 儲存後重新載入工具。
-5. 第一次使用時，依瀏覽器畫面登入 QJudge 並同意授權。
+### 以 Claude Desktop 為例
 
-若工具使用 JSON 設定，常見的形式如下。實際欄位名稱仍以該工具當前版本的說明為準：
+在 Claude Desktop 的設定檔（例如 `claude_desktop_config.json`）中加入 `mcpServers` 區塊：
 
 ```json
 {
   "mcpServers": {
     "qjudge": {
       "type": "http",
-      "url": "YOUR_QJUDGE_MCP_URL"
+      "url": "https://judge.example.edu/mcp"
     }
   }
 }
 ```
 
-不要把帳號密碼、access token 或 OAuth client secret 寫進這份設定。正常的 remote MCP 流程會在瀏覽器完成 OAuth 授權，再由 AI 工具管理自己的連線憑證。
+### 以 Cursor 為例
 
-## 第一次先做唯讀確認
+1. 打開 Cursor 的 **Settings** > **Features** > **MCP Servers**。
+2. 點擊 **Add New MCP Server**。
+3. 名稱填入 `qjudge`，Type 選擇 `http`（或 SSE/Remote）。
+4. URL 填入你的 QJudge MCP 網址（例如 `https://judge.example.edu/mcp`）並儲存。
 
-連線完成後，不要一開始就請 AI 修改整場考試。先用一個容易核對的查詢確認帳號與權限：
+### 以 ChatGPT 桌面版為例
 
-> 列出我可以管理的教室。
+ChatGPT 桌面版（macOS 與 Windows）支援連接外部開發者工具與 MCP 服務：
 
-接著選一個測試教室，再問：
+1. 開啟 ChatGPT 桌面應用程式。
+2. 點擊個人頭像或齒輪進入 **Settings（設定）**。
+3. 進入 **Apps & Integrations（應用與整合）** 或 **Developer（開發者設定）** > **MCP Servers**。
+4. 點擊 **Add Server（新增伺服器）**：
+   - **名稱（Name）**：`qjudge`
+   - **連線類型（Type）**：選擇 `HTTP`（或 Remote）
+   - **伺服器網址（URL）**：填入 `https://judge.example.edu/mcp`
+5. 若使用 JSON 設定檔，內容與 Claude Desktop 一致：
+   ```json
+   {
+     "mcpServers": {
+       "qjudge": {
+         "type": "http",
+         "url": "https://judge.example.edu/mcp"
+       }
+     }
+   }
+   ```
+6. 儲存後重啟或重新載入對話，即可在聊天中啟用 QJudge 相關操作。
 
-> 列出這個教室中的競賽，先不要修改任何內容。
+### 以 ChatGPT 網頁版為例
 
-如果看到的範圍正確，再開始新增題目或批改。這樣比較容易在真正變更資料前發現登入錯帳號、選錯站台或權限不足。
+在瀏覽器中使用 [chatgpt.com](https://chatgpt.com/) 時，可依功能支援採用以下方式：
 
-## AI 可以使用哪些 QJudge 工具
+#### 方式 A：透過 Connected Apps（已啟用開發者 / MCP 連線）
+1. 進入 ChatGPT 網頁版，點擊個人設定 > **Connected Apps**（或 **Developer Tools**）。
+2. 點擊 **Connect Tool** 或 **Add MCP Endpoint**。
+3. 輸入 QJudge 的 MCP 網址：`https://judge.example.edu/mcp`。
+4. 點擊連線，系統會彈出 QJudge 的 OAuth 登入視窗完成授權。
 
-實際工具清單會由 MCP Server 回傳。目前常用工具如下：
+#### 方式 B：透過自訂 GPT（Custom GPT Actions 整合）
+若希望建立專屬於課程的「課程助教 GPT」：
+1. 進入 **Explore GPTs** > 點擊 **Create a GPT**。
+2. 切換至 **Configure** 分頁，在最下方找到 **Actions** 並點擊 **Create new action**。
+3. 在認證（Authentication）選擇 **OAuth**：
+   - **Authorization URL**：`https://judge.example.edu/o/authorize/`
+   - **Token URL**：`https://judge.example.edu/o/token/`
+   - **Scope**：`read write`
+4. 填入 QJudge 端點，完成後即可讓此 GPT 具備查詢教室與出題能力。
 
-| 工具 | 用途 |
-| --- | --- |
-| `qjudge_browse` | 尋找教室、競賽與工具說明 |
-| `qjudge_contest_manager` | 查看競賽、列出場內題目與調整順序 |
-| `qjudge_exam` | 新增、修改、刪除或匯入紙筆題 |
-| `preview_exam_problem` | 在修改前預覽紙筆題 |
-| `qjudge_coding_problems` | 新增、修改或刪除程式題 |
-| `qjudge_code_runner` | 使用題目已保存的測資執行程式碼 |
-| `qjudge_grading` | 查詢作答、查看統計與執行批改 |
+> **安全提醒**：**請勿在設定檔中填寫帳號密碼或機密 Token**。QJudge 採用安全的 OAuth 2.0 流程，連線憑證由系統在瀏覽器中動態簽發，不需手動寫死在檔案裡。
 
-`qjudge_bank` 目前沒有開放成 MCP 工具。需要從題庫匯入紙筆題時，使用 `qjudge_exam` 的 `import_from_bank`。
+## 第 3 步：首次授權與登入
 
-## 用自然語言交代工作
+完成上述設定後，重新載入或重啟你的 AI 工具：
 
-你不必背工具名稱。先把範圍、目標與限制說清楚，AI 工具會依情況選擇 MCP 操作。例如：
+1. 當 AI 工具首次嘗試呼叫 QJudge 工具時，瀏覽器會自動彈出或提示你開啟 QJudge 授權頁面。
+2. 在網頁上登入你的 QJudge 帳號。
+3. 檢視授權畫面（說明工具即將取得的權限），確認後點擊「同意授權」。
+4. 瀏覽器顯示授權成功後，即可關閉網頁，回到你的 AI 工具。
 
-- 「列出我管理的教室，只查詢，不要修改。」
-- 「找出演算法課的期中考，列出所有題目。」
-- 「先預覽一題 5 分的二元樹是非題，不要立刻新增。」
-- 「查看第五題尚未批改的作答，先整理常見答案。」
-- 「用這題系統內已有的測資執行這段 Python 程式。」
+## 權限與安全界線
 
-要新增、刪除或批量批改時，最好明確要求 AI 先整理預計變更，等你確認後再執行。MCP 仍會受 QJudge 權限與題目狀態限制，但最後的內容判斷仍由授課者負責。
+MCP 工具所具備的權限，完全**等同於你在 QJudge 中的登入帳號**：
 
-## 常見問題
+- **教師帳號**：只能查詢與操作自己所擁有的教室、作業、考卷與學生名冊，無法讀取其他教師的未公開題目。
+- **管理員帳號**：可以查詢站台層級的系統狀態與全域設定。
 
-### 找不到 MCP 設定
+MCP 不會繞過 QJudge 內部的權限校驗，也不會讓 AI 工具取得超出你個人帳號範圍以外的資料。
 
-先確認目前使用的 AI 工具與版本是否支援 remote HTTP MCP。若只支援本機程序，就不能直接使用這個遠端連線方式；請改用支援 remote MCP 的客戶端，或向工具供應商查詢目前的設定方法。
+## 第 4 步：測試第一條指令
 
-### 瀏覽器沒有出現登入頁
+連線設定完成後，建議先從簡單的唯讀查詢開始測試，確認連線與權限正常：
 
-重新載入 MCP 連線，確認網址包含正確的 `/mcp` 路徑，而且可以從你目前的網路開啟。若站台使用校園網路或 VPN，也要先連上相同網路。
+在 AI 工具的對話框中輸入：
 
-### 出現 401、403 或授權失敗
+> 「請幫我查詢我在 QJudge 上有哪些教室？」
 
-401 通常表示登入或授權已失效，可以移除連線後重新授權。403 表示帳號已登入，但沒有操作該教室或競賽的權限；請向課程管理者確認，而不是把 token 貼到設定檔裡。
+如果 AI 能列出你所屬的課程教室名稱與代號，代表 MCP 連線已完全就緒！
 
-### AI 選錯工具
-
-找教室或競賽時先用 `qjudge_browse`；列出場內題目用 `qjudge_contest_manager`；執行程式碼用 `qjudge_code_runner`。你也可以直接在提示中說明「先查詢競賽，再修改紙筆題」，讓步驟更清楚。
-
-### 我是站台管理者，連線仍失敗
-
-依序確認公開 HTTPS、MCP URL、OAuth issuer 與 callback 是否一致，再查看服務日誌。部署端的檢查順序請見[部署故障排除](#/docs/deployment-troubleshooting)。
+[上一步：配置 AI 模型與服務](#/docs/ai-setup) · [下一步：配置第三方登入](#/docs/auth-setup)
