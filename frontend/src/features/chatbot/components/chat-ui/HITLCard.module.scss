@@ -1,12 +1,23 @@
 @use "@carbon/layout";
 @use "@carbon/type";
+// The card sits between the message list and the composer in a height-bound
+// column. Cap it and let only the action list scroll, so the header and the
+// confirm/cancel buttons always stay reachable.
 .wrapper {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
   width: 100%;
+  min-height: 0;
+  max-height: 70%;
   max-width: 42rem;
   padding: layout.$spacing-03 layout.$spacing-05;
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid var(--cds-border-subtle);
   border-radius: 0.5rem;
@@ -14,6 +25,7 @@
 }
 
 .cardHeader {
+  flex: none;
   display: flex;
   align-items: flex-start;
   gap: layout.$spacing-03;
@@ -50,7 +62,11 @@
 
 .actionsContainer {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .actionItem {
@@ -146,6 +162,7 @@
 }
 
 .footer {
+  flex: none;
   display: flex;
   justify-content: flex-end;
   gap: layout.$spacing-03;

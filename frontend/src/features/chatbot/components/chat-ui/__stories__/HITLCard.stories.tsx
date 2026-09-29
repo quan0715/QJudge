@@ -69,3 +69,47 @@ export const NestedArguments: Story = {
     },
   },
 };
+
+const manyActions = Array.from({ length: 6 }, (_, index) => ({
+  name: "qjudge_exam",
+  arguments: {
+    action: "create",
+    question_type: "single_choice",
+    prompt: `第 ${index + 1} 題：請說明下列敘述何者正確，並考慮較長題幹的顯示情形。`,
+    options: ["選項一", "選項二", "選項三", "選項四"],
+    correct_answer: 0,
+    score: 5,
+  },
+}));
+
+export const LongActionsInConstrainedPanel: Story = {
+  name: "多個動作於固定高度面板",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "動作內容超過面板高度時，卡片內的動作清單自行捲動，標題與確認/取消按鈕保持可見可按。",
+      },
+    },
+  },
+  args: {
+    request: {
+      actions: manyActions,
+      allowedDecisions: ["approve", "reject"],
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div
+        className="copilot-conversation"
+        style={{ height: 420, width: 420, border: "1px solid var(--cds-border-subtle)" }}
+      >
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "0.5rem 1rem" }}>
+          對話訊息區
+        </div>
+        <Story />
+        <div style={{ flex: "none", padding: "0.75rem 1rem" }}>輸入框</div>
+      </div>
+    ),
+  ],
+};
