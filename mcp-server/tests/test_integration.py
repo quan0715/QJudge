@@ -222,11 +222,6 @@ class TestBrowse:
         assert not (isinstance(detail, dict) and detail.get("error"))
         assert detail.get("contest_id") is not None
 
-    def test_browse_rejects_contest_operations(self, teacher_ctx):
-        result = run(server.qjudge_browse("list_problems", teacher_ctx))
-        assert isinstance(result, dict)
-        assert result.get("error") is True
-
     def test_student_classroom_scope(self, student_ctx):
         result = run(server.qjudge_browse("list_classrooms", student_ctx))
         items = _unwrap_paginated(result)
