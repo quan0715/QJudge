@@ -18,7 +18,6 @@ from config import (
     OAUTH_ISSUER_URL,
     OAUTH_JWKS_URL,
 )
-from exam_preview import build_exam_problem_preview
 from jwt import PyJWKClient
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
@@ -591,7 +590,6 @@ _TOOL_HELP = {
         "qjudge_browse": "Discovery only: list/get classrooms, list classroom contests, list/get contests, get_help",
         "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder, update settings (requires contest_id UUID)",
         "qjudge_exam": "Paper-exam contest questions: get, create, update, delete, batch_create, import_from_bank (no list/reorder — use qjudge_contest_manager)",
-        "preview_exam_problem": "Read-only paper-exam problem preview: fetch current question and render the proposed student-facing problem UI",
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
         "qjudge_code_runner": "Execute code against a problem's sample test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
@@ -600,7 +598,6 @@ _TOOL_HELP = {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
         "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder/update.",
         "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
-        "preview_before_update": "Use preview_exam_problem before qjudge_exam update when the user should approve the proposed exam problem preview.",
         "code_execution": "Use qjudge_code_runner for running source code.",
     },
     "coding_tools_how_to_choose": {
@@ -707,82 +704,6 @@ mcp = FastMCP(
     ),
     token_verifier=QJudgeTokenVerifier(),
 )
-
-@mcp.tool(
-    title="Preview exam problem",
-    description=(
-        "Use this when the user wants to edit a QJudge paper exam question but "
-        "should review how the proposed exam problem will look before approving the actual update. "
-        "This tool is read-only and does not modify the question."
-    ),
-    annotations=ToolAnnotations(
-        readOnlyHint=True,
-        destructiveHint=False,
-        idempotentHint=True,
-        openWorldHint=False,
-    ),
-)
-async def preview_exam_problem(
-    contest_id: str,
-    question_id: str,
-    ctx: Context,
-    question_type: str | None = None,
-    prompt: str | None = None,
-    explanation: str | None = None,
-    score: int | None = None,
-    options: list[str] | None = None,
-    correct_answer: Any | None = None,
-) -> Any:
-    """Fetch one paper-exam question and render the proposed problem preview."""
-    uuid_error = _require_uuid(
-        contest_id,
-        field_name="contest_id",
-        tool_name="preview_exam_problem",
-        hint="Use qjudge_browse list_contests or list_classroom_contests first to get contest_id.",
-    )
-    if uuid_error:
-        return uuid_error
-    if not question_id:
-        return _tool_error(tool_name="preview_exam_problem", detail="question_id is required")
-
-    patch = _build_exam_question_body(
-        question_type=question_type,
-        prompt=prompt,
-        explanation=explanation,
-        score=score,
-        options=options,
-        correct_answer=correct_answer,
-    )
-    if not patch:
-        return _tool_error(tool_name="preview_exam_problem", detail="No fields to preview")
-
-    type_error = await _ensure_contest_type(
-        contest_id=contest_id,
-        ctx=ctx,
-        expected_type="paper_exam",
-        tool_name="preview_exam_problem",
-        allowed_label="paper_exam",
-        disallowed_tool_name="qjudge_coding_problems",
-    )
-    if type_error:
-        return type_error
-
-    current_question = await django_api(
-        "GET",
-        f"/api/v1/contests/{contest_id}/exam-questions/{_quote(question_id)}/",
-        ctx,
-    )
-    if isinstance(current_question, dict) and current_question.get("error"):
-        return current_question
-    if not isinstance(current_question, dict):
-        return _tool_error(
-            tool_name="preview_exam_problem",
-            detail="Expected an exam question object",
-            status=500,
-        )
-
-    return build_exam_problem_preview(current_question, patch)
-
 
 # ---------------------------------------------------------------------------
 # Tool 1: qjudge_browse — 唯讀查詢教室、競賽、題庫

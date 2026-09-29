@@ -9,7 +9,7 @@
 
 ## Overview
 
-QJudge MCP Server 提供 **7 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
+QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
 
 | Tool | Purpose | Do NOT use for |
 |---|---|---|
@@ -19,7 +19,6 @@ QJudge MCP Server 提供 **7 個工具**（`qjudge_bank` 已自 MCP 移除），
 | `qjudge_coding_problems` | 競賽程式題單題 CRUD | code execution, paper_exam, list 場內題目 |
 | `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
 | `qjudge_grading` | 改卷 | 題目 CRUD |
-| `preview_exam_problem` | 筆試題修改預覽（唯讀，套用 patch 後渲染學生端畫面，不寫入） | 實際更新題目（用 `qjudge_exam update`） |
 
 ---
 
@@ -162,14 +161,6 @@ question_id  → get, update, delete only
 items        → batch_create, import_from_bank only
 mode         → batch_create only
 ```
-
----
-
-## preview_exam_problem
-
-**筆試題修改預覽**（唯讀）。讀取現有題目、套用傳入的欄位後，回傳學生端畫面的預覽，不會寫入。確認後再用 `qjudge_exam update` 實際修改。
-
-參數：`contest_id`、`question_id`，以及要預覽的欄位（`question_type`、`prompt`、`explanation`、`score`、`options`、`correct_answer`，至少一個）。只能用於 `paper_exam` 競賽。
 
 ---
 

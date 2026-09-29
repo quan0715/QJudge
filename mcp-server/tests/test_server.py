@@ -814,80 +814,10 @@ def test_qjudge_exam_update_passes_explanation(monkeypatch):
     }
 
 
-def test_build_exam_problem_preview_applies_patch_and_tracks_update_summary():
-    current = {
-        "id": "eq-1",
-        "question_type": "single_choice",
-        "prompt": "Old prompt",
-        "explanation": "Old explanation",
-        "score": 5,
-        "options": ["A", "B"],
-        "correct_answer": 0,
-    }
-    patch = {
-        "prompt": "New prompt",
-        "score": 8,
-        "options": ["A", "B"],
-    }
-
-    preview = server.build_exam_problem_preview(current, patch)
-
-    assert preview["kind"] == "exam_problem_preview"
-    assert preview["question_id"] == "eq-1"
-    assert preview["preview_problem"]["prompt"] == "New prompt"
-    assert preview["preview_problem"]["score"] == 8
-    assert preview["preview_problem"]["explanation"] == "Old explanation"
-    assert preview["update_summary"] == {
-        "changed_fields": ["prompt", "score"],
-        "changed_labels": {"prompt": "題目敘述", "score": "分數"},
-        "changed_count": 2,
-        "unchanged_count": 4,
-    }
-
-
 def test_widget_resources_and_widget_only_tools_are_removed():
     assert server.mcp._resource_manager._resources == {}
     assert "render_classroom_list" not in server.mcp._tool_manager._tools
     assert "show_qjudge_classrooms_ui" not in server.mcp._tool_manager._tools
-
-
-def test_preview_exam_problem_fetches_current_and_returns_structured_preview(monkeypatch):
-    calls = []
-
-    async def fake_django_api(method, path, ctx, *, json_body=None, timeout=30.0):
-        calls.append((method, path, json_body))
-        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
-            return contest_detail()
-        return {
-            "id": "eq-1",
-            "question_type": "essay",
-            "prompt": "Explain CAP.",
-            "explanation": "Old explanation",
-            "score": 10,
-            "options": None,
-            "correct_answer": None,
-        }
-
-    monkeypatch.setattr(server, "django_api", fake_django_api)
-
-    result = run(
-        server.preview_exam_problem(
-            "11111111-1111-1111-1111-111111111111",
-            "eq-1",
-            DummyContext(),
-            prompt="Explain CAP theorem with an example.",
-            score=12,
-        )
-    )
-
-    assert result["kind"] == "exam_problem_preview"
-    assert result["question_id"] == "eq-1"
-    assert result["preview_problem"]["prompt"] == "Explain CAP theorem with an example."
-    assert result["update_summary"]["changed_count"] == 2
-    assert calls == [
-        ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/", None),
-        ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/eq-1/", None),
-    ]
 
 
 def test_qjudge_exam_batch_create_append(monkeypatch):

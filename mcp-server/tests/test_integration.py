@@ -413,7 +413,7 @@ class TestMCPProtocol:
                 return tool_names
 
         names = run(_test())
-        assert self.EXPECTED_TOOLS.issubset(names), f"Missing tools: {self.EXPECTED_TOOLS - names}"
+        assert names == self.EXPECTED_TOOLS, f"Unexpected or missing tools: {names ^ self.EXPECTED_TOOLS}"
 
     def test_tool_schemas_have_required_fields(self):
         from mcp.shared.memory import create_connected_server_and_client_session
