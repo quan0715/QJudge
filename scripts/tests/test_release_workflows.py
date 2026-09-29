@@ -42,7 +42,15 @@ def test_production_deploy_requires_an_explicit_main_branch_confirmation() -> No
         if step.get("name") == "Verify release CI"
     )
     assert "gh run list" in verify_ci_step["run"]
-    assert "conclusion" in verify_ci_step["run"]
+    assert (
+        'while [[ -z "$ci_run_id" ]] && (( SECONDS < deadline )); do'
+        in verify_ci_step["run"]
+    )
+    assert (
+        'gh run watch "$ci_run_id" --exit-status --interval 15'
+        in verify_ci_step["run"]
+    )
+    assert "deadline=$((SECONDS + 300))" in verify_ci_step["run"]
     assert deploy["permissions"]["actions"] == "read"
 
 
