@@ -28,7 +28,9 @@
       "mcp-setup": "Configure MCP Tool Connections",
       "overview": "Platform Overview",
       "quick-start": "Quick Start",
-      "teacher-qualification": "Manage teacher access"
+      "teacher-qualification": "Manage teacher access",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
     },
     "lastUpdated": "Last updated",
     "onThisPage": "On this page",
@@ -37,7 +39,8 @@
       "admin-guide": "Admin Guide",
       "deployment": "Setup and Deployment",
       "first-exam": "Prepare Your First Exam",
-      "getting-started": "Getting Started"
+      "getting-started": "Getting Started",
+      "legal": "Legal"
     }
   },
   "page": {

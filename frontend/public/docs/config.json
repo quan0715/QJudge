@@ -2,7 +2,10 @@
   "sections": [
     {
       "id": "getting-started",
-      "items": ["overview", "quick-start"]
+      "items": [
+        "overview",
+        "quick-start"
+      ]
     },
     {
       "id": "deployment",
@@ -31,6 +34,13 @@
         "ai-setup",
         "mcp-setup",
         "auth-setup"
+      ]
+    },
+    {
+      "id": "legal",
+      "items": [
+        "privacy",
+        "terms"
       ]
     }
   ],
