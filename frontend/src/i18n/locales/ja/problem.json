@@ -1,90 +1,11 @@
 {
-  "button": {
-    "create": "作成"
-  },
   "difficulty": {
     "easy": "簡単",
     "hard": "難しい",
     "medium": "普通"
   },
-  "edit": {
-    "actions": {
-      "back": "戻る",
-      "delete": "削除",
-      "preview": "プレビュー",
-      "save": "保存"
-    },
-    "messages": {
-      "deleteFailed": "削除失敗",
-      "deleteSuccess": "削除成功",
-      "deleteSuccessDetail": "リダイレクト中...",
-      "loadFailed": "問題データの読み込みに失敗しました",
-      "noPermission": "この問題を編集する権限がありません",
-      "noPermissionTitle": "権限がありません",
-      "notFound": "問題が見つかりません"
-    },
-    "sections": {
-      "basicInfo": "基本情報",
-      "content": "問題内容",
-      "languageSettings": "言語設定",
-      "testCases": "テストケース"
-    },
-    "status": {
-      "hidden": "問題が非表示になりました",
-      "private": "問題が非公開に設定されました",
-      "public": "問題が公開されました"
-    }
-  },
-  "editor": {
-    "header": "問題エディタ",
-    "selectLanguage": "言語を選択"
-  },
-  "filter": {
-    "difficulty": "難易度",
-    "noTags": "利用可能なタグはありません",
-    "solved": "解決済み",
-    "status": "ステータス",
-    "tags": "タグ",
-    "unsolved": "未解決"
-  },
-  "form": {
-    "placeholder": {
-      "title": "問題名を入力してください"
-    },
-    "slug": "URLスラッグ",
-    "title": "タイトル"
-  },
-  "hero": {
-    "acRate": "正答率",
-    "accepted": "正解数",
-    "memoryLimit": "メモリ制限",
-    "score": "配点",
-    "submissions": "提出数",
-    "timeLimit": "時間制限"
-  },
   "list": {
-    "acrRate": "正解率",
-    "noResults": "条件に一致する問題が見つかりませんでした",
-    "searchPlaceholder": "問題を検索...",
-    "subtitle": "様々な難易度のアルゴリズム課題に挑戦し、プログラミング能力を向上させましょう。",
-    "title": "問題解決 / Problem Solving",
-    "totalLoaded": "全 {{count}} 問を読み込みました",
-    "tryAdjustFilters": "フィルターを調整してみてください"
-  },
-  "management": {
-    "description": "問題を管理",
-    "problemCount": "全 {{count}} 問"
-  },
-  "modal": {
-    "confirmDelete": "削除の確認",
-    "confirmSubmit": "提出確認",
-    "createError": "作成に失敗しました。後でもう一度お試しください",
-    "createSuccess": "問題が作成されました！",
-    "createTitle": "問題作成",
-    "deleteConfirmMessage": "問題「{{title}}」を削除してもよろしいですか？この操作は取り消せません。",
-    "submitConfirmMessage": "この操作により、すべての非公開テストケースが評価されます。",
-    "submitConfirmTitle": "解答を提出しますか？",
-    "submitting": "提出中..."
+    "acrRate": "正解率"
   },
   "sample": {
     "empty": "（空）",
@@ -101,11 +22,5 @@
     "outputDescription": "出力形式",
     "requiredKeywords": "必須キーワード：",
     "sampleTestCases": "サンプルテスト"
-  },
-  "tabs": {
-    "code": "コード",
-    "description": "問題文",
-    "stats": "統計",
-    "submissions": "提出履歴"
   }
 }

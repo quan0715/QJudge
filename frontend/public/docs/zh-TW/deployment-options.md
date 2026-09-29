@@ -61,7 +61,7 @@ GITHUB_OAUTH_CLIENT_SECRET=<client secret>
 https://judge.example.edu/auth/<provider>/callback
 ```
 
-`<provider>` 為 `nycu`、`github` 或 `google`。`AUTH_EMAIL_PASSWORD_ENABLED=false` 會關閉 email／密碼登入，只保留第三方登入。
+`<provider>` 為 `nycu`、`github` 或 `google`。`AUTH_EMAIL_PASSWORD_ENABLED=false` 會關閉 email／密碼登入，只保留第三方登入。詳細申請憑證、Callback URL 與設定流程見[配置第三方登入](#/docs/auth-setup)。
 
 ## Email
 
@@ -79,7 +79,7 @@ DEFAULT_FROM_EMAIL=qjudge@example.edu
 
 ## AI provider
 
-AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。每台主機在 `deploy/ai/` 設定自己提供的模型：
+AI 助教由 QJudge 主動呼叫模型服務，只需要主機能連出去，不必公開 QJudge。每台主機在 `deploy/ai/` 設定自己提供的模型（詳細欄位規格、自架端點範例與驗證指令見[配置 AI 模型與服務](#/docs/ai-setup)）：
 
 | 檔案 | 用途 |
 | --- | --- |
@@ -143,4 +143,4 @@ docker compose -p qjudge exec ai-service python -m infrastructure.agent.model_co
 
 ## Remote MCP
 
-外部的 AI 工具以 `<origin>/mcp` 連線，例如 `https://judge.example.edu/mcp`。這條路徑與 OAuth metadata 都由 frontend 分流，不需要額外的網域、port 或設定。使用者端的設定方式見[讓 AI 工具連接 QJudge](mcp-setup.md)。外部工具會經由 QJudge 的 OAuth 授權，實際使用時 origin 應為 HTTPS。
+外部的 AI 工具以 `<origin>/mcp` 連線，例如 `https://judge.example.edu/mcp`。這條路徑與 OAuth metadata 都由 frontend 分流，不需要額外的網域、port 或設定。使用者端的設定方式見[配置 MCP 工具連線](#/docs/mcp-setup)。外部工具會經由 QJudge 的 OAuth 授權，實際使用時 origin 應為 HTTPS。

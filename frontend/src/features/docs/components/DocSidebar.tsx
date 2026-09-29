@@ -5,7 +5,8 @@ import { Layer } from "@carbon/react";
 import {
   Rocket,
   DocumentBlank,
-  Education,
+  BareMetalServer,
+  Document,
   UserAdmin,
   Code,
   ChevronDown,
@@ -30,7 +31,8 @@ interface DocSidebarProps {
 // Section icons mapping
 const sectionIcons: Record<string, React.ElementType> = {
   "getting-started": Rocket,
-  "teacher-guide": Education,
+  "deployment": BareMetalServer,
+  "first-exam": Document,
   "admin-guide": UserAdmin,
   "developer-guide": Code,
 };

@@ -12,7 +12,6 @@
     },
     "mobileTitle": "Contest Admin",
     "nav": {
-      "standings": "Leaderboard",
       "aiGrading": "AI Grading",
       "clarifications": "Q&A",
       "examAiGrading": "AI Grading",
@@ -24,13 +23,16 @@
       "problemManagement": "Problem Management",
       "proctoring": "Proctoring",
       "settings": "Settings",
+      "standings": "Leaderboard",
       "statistics": "Statistics"
     },
     "title": "Admin Dashboard"
   },
   "adminOverview": {
     "actions": {
+      "disableAttendanceCheck": "Disable check-in",
       "editSettings": "Settings",
+      "enableAttendanceCheck": "Enable check-in",
       "openContestHomepage": "Open contest homepage",
       "publishContest": "Publish contest",
       "publishContestBody": "Students will be able to see this contest after publishing.",
@@ -61,12 +63,13 @@
       "strictModeEnableBody": "This will apply pre-checks, monitoring sources, and anomaly event logging.",
       "strictModeEnableConfirm": "Enable anti-cheat monitoring?",
       "strictModeEnableSuccess": "Anti-cheat monitoring enabled",
-      "updateFailed": "Update failed",
-      "disableAttendanceCheck": "Disable check-in",
-      "enableAttendanceCheck": "Enable check-in"
+      "updateFailed": "Update failed"
     },
     "command": {
       "ariaLabel": "Teacher admin overview",
+      "clarifications": {
+        "publishAnnouncement": "Publish announcement"
+      },
       "connection": {
         "offline": "Offline",
         "online": "Online"
@@ -83,9 +86,6 @@
         "questionStats": "Answer distribution",
         "standings": "Leaderboard",
         "submissions": "Submissions"
-      },
-      "clarifications": {
-        "publishAnnouncement": "Publish announcement"
       },
       "eventLog": "Event log",
       "examStatusSummary": "Exam status summary",
@@ -299,80 +299,80 @@
     },
     "preparation": {
       "ariaLabel": "Contest preparation overview",
+      "blockedBySchedule": "Set the exam schedule before publishing",
+      "checklistTitle": "To do",
+      "confirm": {
+        "publishAnyway": "Publish anyway",
+        "publishWithoutProblemsBody": "Students will see an empty problem list. You can publish now and add problems later.",
+        "publishWithoutProblemsTitle": "This contest has no problems yet",
+        "revertToDraftBody": "Students will lose access to this contest immediately.",
+        "revertToDraftTitle": "Revert to draft?"
+      },
+      "dangerAction": "Destructive action",
+      "draftHiddenNote": "Drafts don't appear in the student contest list",
+      "info": {
+        "contestType": "Exam type",
+        "participants": "Participants",
+        "problems": "Problems"
+      },
+      "level": {
+        "blocking": "Required to publish",
+        "done": "Done",
+        "pending": "To do",
+        "warning": "Suggested"
+      },
+      "nextStep": "Next step",
+      "participants": {
+        "action": "Manage list",
+        "done": "{{count}} participants added",
+        "missing": "No participants added yet",
+        "title": "Participants"
+      },
+      "participantsTitle": "Participants",
+      "previewAsStudent": "Preview as student",
+      "problems": {
+        "action": "Open problem editor",
+        "done": "{{count}} problems ready",
+        "missing": "No problems added yet",
+        "title": "Problems"
+      },
+      "rules": {
+        "action": "Open settings",
+        "done": "Rules are set",
+        "missing": "Consider adding rules and reminders",
+        "title": "Contest rules"
+      },
+      "schedule": {
+        "action": "Set schedule",
+        "done": "{{start}} - {{end}}",
+        "missing": "Not set — required before publishing",
+        "title": "Exam schedule"
+      },
+      "startsIn": "Starts in {{value}}",
       "steps": {
-        "title": "Contest setup steps",
+        "back": "Back",
         "information": "Contest information",
         "informationDescription": "Rules and schedule",
         "problems": "Contest problems",
-        "review": "Review and publish",
-        "reviewDescription": "Review the settings before publishing to students",
-        "reviewBlocked": "Complete the contest information before publishing.",
         "published": "Contest published",
-        "back": "Back"
+        "review": "Review and publish",
+        "reviewBlocked": "Complete the contest information before publishing.",
+        "reviewDescription": "Review the settings before publishing to students",
+        "title": "Contest setup steps"
       },
-      "checklistTitle": "To do",
-      "participantsTitle": "Participants",
-      "nextStep": "Next step",
-      "studentView": "What students see",
-      "previewAsStudent": "Preview as student",
-      "draftHiddenNote": "Drafts don't appear in the student contest list",
-      "blockedBySchedule": "Set the exam schedule before publishing",
-      "startsIn": "Starts in {{value}}",
-      "dangerAction": "Destructive action",
-      "level": {
-        "pending": "To do",
-        "done": "Done",
-        "warning": "Suggested",
-        "blocking": "Required to publish"
-      },
-      "info": {
-        "contestType": "Exam type",
-        "problems": "Problems",
-        "participants": "Participants"
-      },
-      "schedule": {
-        "title": "Exam schedule",
-        "done": "{{start}} - {{end}}",
-        "missing": "Not set — required before publishing",
-        "action": "Set schedule"
-      },
-      "problems": {
-        "title": "Problems",
-        "done": "{{count}} problems ready",
-        "missing": "No problems added yet",
-        "action": "Open problem editor"
-      },
-      "participants": {
-        "title": "Participants",
-        "done": "{{count}} participants added",
-        "missing": "No participants added yet",
-        "action": "Manage list"
-      },
-      "rules": {
-        "title": "Contest rules",
-        "done": "Rules are set",
-        "missing": "Consider adding rules and reminders",
-        "action": "Open settings"
-      },
-      "confirm": {
-        "publishWithoutProblemsTitle": "This contest has no problems yet",
-        "publishWithoutProblemsBody": "Students will see an empty problem list. You can publish now and add problems later.",
-        "publishAnyway": "Publish anyway",
-        "revertToDraftTitle": "Revert to draft?",
-        "revertToDraftBody": "Students will lose access to this contest immediately."
-      }
+      "studentView": "What students see"
     },
     "screen": {
       "actions": {
         "addParticipant": "Add participant",
+        "attendanceProjection": "Open attendance projection",
         "contestHome": "Contest home",
         "export": "Export results",
         "exporting": "Exporting",
         "refresh": "Refresh",
         "refreshing": "Refreshing",
-        "studentQrScan": "Scan student QR",
         "settings": "Contest settings",
-        "attendanceProjection": "Open attendance projection"
+        "studentQrScan": "Scan student QR"
       },
       "contestInfoLabel": "Contest info",
       "contestStatus": {
@@ -412,6 +412,7 @@
       "remainingLabel": "Remaining time"
     },
     "widgets": {
+      "attendanceCheck": "QR check-in/out",
       "coding": "Coding problems",
       "disabled": "Disabled",
       "enabled": "Enabled",
@@ -433,8 +434,7 @@
       "timelineProgress": "Time progress",
       "title": "Command Center",
       "violationCount": "Anomaly events",
-      "violationCountAria": "Anomaly events, go to event panel",
-      "attendanceCheck": "QR check-in/out"
+      "violationCountAria": "Anomaly events, go to event panel"
     }
   },
   "adminPreparationDashboard": {
@@ -487,35 +487,17 @@
       "backToDashboard": "Back to Dashboard",
       "submitted": "Exam ended, work submitted successfully."
     },
+    "group": {
+      "sharedStem": "Question group stem",
+      "totalScore": "Subtotal {{score}} pts"
+    },
     "loading": "Loading questions...",
     "mark": {
       "toggle": "Mark for review"
     },
-    "modes": {
-      "all": "All Questions",
-      "single": "Single Question"
-    },
-    "navigation": {
-      "answeredProgress": "{{answered}} / {{total}} answered",
-      "hideList": "Hide question list",
-      "markedCount": "{{count}} marked",
-      "nextQuestion": "Next",
-      "prevQuestion": "Previous",
-      "questionList": "Questions",
-      "showList": "Show question list"
-    },
-    "noQuestions": "No questions set for this exam.",
-    "question": {
-      "answerLabel": "Answer Area",
-      "essayPlaceholder": "Please provide a detailed answer...",
-      "falseOption": "False",
-      "promptEmpty": "(No question content provided)",
-      "shortAnswerPlaceholder": "Enter your answer...",
-      "trueOption": "True"
-    },
-    "group": {
-      "sharedStem": "Question group stem",
-      "totalScore": "Subtotal {{score}} pts"
+    "markdownEditor": {
+      "ariaLabel": "Markdown answer editor",
+      "placeholder": "Write your answer. Markdown formatting is supported."
     },
     "mathEditor": {
       "ariaLabel": "Math answer editor",
@@ -545,13 +527,31 @@
         "theta": "Theta"
       }
     },
-    "markdownEditor": {
-      "ariaLabel": "Markdown answer editor",
-      "placeholder": "Write your answer. Markdown formatting is supported."
+    "modes": {
+      "all": "All Questions",
+      "single": "Single Question"
     },
+    "navigation": {
+      "answeredProgress": "{{answered}} / {{total}} answered",
+      "hideList": "Hide question list",
+      "markedCount": "{{count}} marked",
+      "nextQuestion": "Next",
+      "prevQuestion": "Previous",
+      "questionList": "Questions",
+      "showList": "Show question list"
+    },
+    "noQuestions": "No questions set for this exam.",
     "openAnswer": {
       "ariaLabel": "Open answer sheet",
       "placeholder": "Write your reasoning. Use the toolbar or / to insert formulas."
+    },
+    "question": {
+      "answerLabel": "Answer Area",
+      "essayPlaceholder": "Please provide a detailed answer...",
+      "falseOption": "False",
+      "promptEmpty": "(No question content provided)",
+      "shortAnswerPlaceholder": "Enter your answer...",
+      "trueOption": "True"
     },
     "questionTypes": {
       "coding": "Coding",
@@ -588,6 +588,160 @@
     "error": "Archive failed",
     "title": "Archive Contest"
   },
+  "attendance": {
+    "badge": "QR Attendance",
+    "confirm": {
+      "description": "Upload after confirming the details and photos are clear.",
+      "infoLabel": "Attendance details",
+      "photoPreviewAlt": "{{label}} preview",
+      "photoStatus": "Photo status",
+      "photosLabel": "Evidence photos",
+      "scannedAt": "Scanned at",
+      "title": "Confirm {{purpose}} details",
+      "type": "Type",
+      "uploadFailed": "Upload failed"
+    },
+    "cta": {
+      "backToExam": "Back to exam",
+      "backToScan": "Back to scan",
+      "capturePurposePhoto": "Capture {{purpose}} photo",
+      "confirmInfo": "Confirm details",
+      "confirmUpload": "Confirm and upload",
+      "manualCode": "Enter code manually",
+      "next": "Next",
+      "nextPhoto": "Next photo",
+      "realignment": "Realign",
+      "retake": "Retake",
+      "retakePhotos": "Retake photos",
+      "retryCamera": "Retry camera",
+      "retryUpload": "Retry upload",
+      "scanning": "Scanning…",
+      "uploading": "Uploading…",
+      "validating": "Validating…",
+      "waitingCamera": "Waiting for camera…"
+    },
+    "done": {
+      "contest": "Contest",
+      "description": "The system has recorded your {{purpose}} event.",
+      "photosLabel": "Evidence photos",
+      "resultLabel": "Attendance result",
+      "status": "Status",
+      "time": "Time",
+      "title": "{{purpose}} verified",
+      "uploaded": "Uploaded"
+    },
+    "errors": {
+      "cameraUnavailable": "Camera is not available",
+      "cameraUnsupported": "This browser does not support camera access. Ask the teacher for attendance assistance.",
+      "capturePhotoFailed": "Failed to capture the photo. Please retake it.",
+      "checkInAlreadyCompleted": "You have already checked in.",
+      "checkInOnlyBeforeStart": "You have started or completed the exam and can no longer check in. Scan the check-out QR Code if you need to leave.",
+      "checkOutAlreadyCompleted": "You have already checked out.",
+      "checkoutAfterSubmit": "You can check out only after submitting the exam.",
+      "invalidManualCode": "The code is invalid or expired. Enter the latest code from the projection screen.",
+      "invalidToken": "The QR Code is invalid. Scan the latest QR Code on the projection screen.",
+      "manualCodeLength": "Enter the 6-digit code shown on the projection screen.",
+      "missingPurpose": "Choose check-in or check-out from the contest home page first.",
+      "notCheckInTime": "Check-in is not available right now.",
+      "notEnabled": "QR attendance is not enabled for this exam.",
+      "photoMissing": "{{label}} has not been captured yet",
+      "photoUploadFailed": "Photo upload failed. Please submit again.",
+      "submitFailed": "Failed to submit attendance. Please try again later.",
+      "tokenExpired": "The QR Code has expired. Scan the latest QR Code on the projection screen.",
+      "uploadIntentIncomplete": "The upload task did not include all required photos. Please submit again.",
+      "wrongPurposeQr": "This is a {{actual}} QR Code. Scan the {{expected}} QR Code."
+    },
+    "header": {
+      "auth": "{{purpose}} verification",
+      "confirm": "Confirm {{purpose}}",
+      "done": "{{purpose}} complete",
+      "manual": "Enter {{purpose}} code",
+      "photo": "Capture {{purpose}} photos"
+    },
+    "manual": {
+      "cannotContinue": "Cannot continue",
+      "codeAriaLabel": "{{purpose}} code",
+      "description": "Enter the 6-digit code shown below the QR Code on the teacher projection.",
+      "digitAriaLabel": "Digit {{index}}",
+      "title": "Enter {{purpose}} code"
+    },
+    "photo": {
+      "alignTarget": "Align {{label}}",
+      "cameraUnavailable": "Camera is not available",
+      "cannotComplete": "Unable to complete photo capture",
+      "captureLabel": "Capture {{label}}",
+      "nextStepConfirm": "Next: confirm attendance details and upload",
+      "nextStepPhoto": "Next: {{title}}",
+      "qrVerifiedChip": "QR verified · {{contest}}",
+      "readyChip": "Photos ready · {{contest}}",
+      "room": {
+        "description": "Capture the classroom environment and exam device screen.",
+        "label": "Room photo",
+        "rearDescription": "Use the rear camera to capture the classroom environment and exam device screen.",
+        "title": "Capture room photo"
+      },
+      "selfie": {
+        "description": "Use the front camera to capture your attendance selfie.",
+        "label": "Selfie",
+        "title": "Capture attendance selfie"
+      }
+    },
+    "projection": {
+      "backToAdmin": "Back to admin",
+      "countdown": {
+        "ended": "Exam ended",
+        "endedTone": "Ended",
+        "endsIn": "Ends in",
+        "exam": "Exam countdown",
+        "openCheckIn": "Check-in open",
+        "running": "Exam in progress",
+        "startsIn": "Starts in",
+        "unset": "Time not set"
+      },
+      "enterFullscreen": "Enter fullscreen",
+      "examFallback": "Exam",
+      "examLabel": "Exam",
+      "exitFullscreen": "Exit fullscreen",
+      "guide": {
+        "ariaLabel": "Attendance guide",
+        "photo": "Capture room photo",
+        "scan": "Scan QR Code",
+        "upload": "Confirm and upload"
+      },
+      "loading": "Loading",
+      "manualCodeLabel": "Enter this code if the camera is unavailable",
+      "marker": {
+        "end": "End",
+        "now": "Now",
+        "start": "Start"
+      },
+      "mode": {
+        "ariaLabel": "Switch check-in/check-out QR Code"
+      },
+      "progress": "Exam progress",
+      "progressAria": "Exam progress {{progress}}%",
+      "refreshFailed": "Failed to refresh QR Code",
+      "reloadQr": "Reloading QR Code",
+      "title": "Exam check-in/out",
+      "unstableSubtitle": "The system keeps the last usable QR Code and continues reloading.",
+      "unstableTitle": "QR loading is unstable"
+    },
+    "purpose": {
+      "checkIn": "Check-in",
+      "checkOut": "Check-out"
+    },
+    "scan": {
+      "alignQr": "Align with the projected QR Code",
+      "cannotComplete": "Unable to complete attendance",
+      "description": "Point your camera at the {{purpose}} QR Code on the projection screen.",
+      "title": "Scan QR Code",
+      "validating": "Validating…",
+      "waitingCamera": "Waiting for camera permission"
+    },
+    "shell": {
+      "back": "Back"
+    }
+  },
   "avatar": {
     "admin": "Admin",
     "editContestNickname": "Edit Contest Nickname",
@@ -622,6 +776,8 @@
   "createModal": {
     "advancedIntro": "Configure advanced participation and proctoring conditions.",
     "advancedSettings": "Advanced Conditions",
+    "attendanceHint": "When enabled, students must complete QR check-in on the contest home page before starting the exam.",
+    "attendanceTitle": "QR check-in/out",
     "chooseTypeTitle": "Create Contest",
     "configureSchedule": "Configure Basic Information",
     "contestName": "Contest Name",
@@ -670,9 +826,7 @@
       "cannotComputeEndTime": "Cannot compute end time, please check start time and duration",
       "durationPositive": "Duration must be greater than 0 minutes",
       "passwordRequired": "A join password is required when password protection is enabled"
-    },
-    "attendanceTitle": "QR check-in/out",
-    "attendanceHint": "When enabled, students must complete QR check-in on the contest home page before starting the exam."
+    }
   },
   "dashboard": {
     "acceptedRate": "AC Rate",
@@ -769,9 +923,7 @@
     "settings": "Export Settings",
     "title": "Download Contest File"
   },
-  "duration": "Duration",
   "endTime": "End Time",
-  "enterFullscreen": "Enter Fullscreen",
   "error": {
     "cannotViewProblem": "Cannot View Problem",
     "createFailed": "Failed to create contest",
@@ -891,6 +1043,35 @@
     },
     "answerNotSet": "(Answer not set)",
     "autoSaveEnabled": "Auto-saving",
+    "codingPreviewPlaceholder": "Not edited yet",
+    "codingProblemUntitled": "Untitled problem",
+    "codingProblemWithLabel": "Problem {{label}}",
+    "codingSourceHint": "Pick a problem from the bank or create a new coding problem.",
+    "collapseSourcePanel": "Collapse question sources",
+    "confirmDelete": "Delete question #{{num}}?",
+    "confirmRemoveProblem": "Remove this problem from the contest?",
+    "copyFailed": "Copy failed",
+    "correctAnswer": "Correct Answer",
+    "createQuestion": "Create New Question",
+    "deleteFailed": "Delete failed",
+    "deleteOption": "Delete option",
+    "explanation": "Explanation",
+    "explanationNotSet": "(Explanation not set)",
+    "explanationPlaceholder": "Enter the full solution process, derivation, or concept explanation; do not put only the grading answer here",
+    "falseOption": "False",
+    "gradingReferenceAnswer": "Grading Reference Answer",
+    "gradingReferencePlaceholder": "Enter grading answer points or the final conclusion; put full derivations in Explanation",
+    "hideQuestionList": "Hide question list",
+    "importFromBank": "Import from Question Bank",
+    "importFrozen": "Questions are currently frozen and cannot be imported.",
+    "importRollbackFailed": "Import failed and rollback failed",
+    "importRollbackFailedDetail": "Please refresh the page and check question content",
+    "importRolledBack": "Import failed, auto-rolled back",
+    "importSuccess": "Import successful",
+    "importSuccessDetail": "Replaced {{count}} questions",
+    "insertHere": "Insert question here",
+    "loadFailed": "Load failed",
+    "loadFailedDetail": "Failed to load exam questions",
     "lockedSave": {
       "continueEditing": "Continue editing",
       "discard": "Discard changes",
@@ -910,35 +1091,7 @@
       "unpublishNotice": "This may unpublish the current results.",
       "unsaved": "Unsaved"
     },
-    "codingPreviewPlaceholder": "Not edited yet",
-    "codingProblemUntitled": "Untitled problem",
-    "codingProblemWithLabel": "Problem {{label}}",
-    "codingSourceHint": "Pick a problem from the bank or create a new coding problem.",
-    "collapseSourcePanel": "Collapse question sources",
-    "confirmDelete": "Delete question #{{num}}?",
-    "confirmRemoveProblem": "Remove this problem from the contest?",
-    "copyFailed": "Copy failed",
-    "correctAnswer": "Correct Answer",
-    "createQuestion": "Create New Question",
-    "deleteFailed": "Delete failed",
-    "deleteOption": "Delete option",
-    "explanation": "Explanation",
-    "explanationNotSet": "(Explanation not set)",
-    "explanationPlaceholder": "Enter the full solution process, derivation, or concept explanation; do not put only the grading answer here",
-    "falseOption": "False",
-    "hideQuestionList": "Hide question list",
-    "importFromBank": "Import from Question Bank",
-    "importFrozen": "Questions are currently frozen and cannot be imported.",
-    "importRollbackFailed": "Import failed and rollback failed",
-    "importRollbackFailedDetail": "Please refresh the page and check question content",
-    "importRolledBack": "Import failed, auto-rolled back",
-    "importSuccess": "Import successful",
-    "importSuccessDetail": "Replaced {{count}} questions",
-    "insertHere": "Insert question here",
-    "loadFailed": "Load failed",
-    "loadFailedDetail": "Failed to load exam questions",
     "maxScoreFieldLabel": "Points",
-    "tabTestCasesAndScoring": "Test cases & scoring",
     "noQuestions": "No questions yet",
     "openBankInbox": "Import from Bank",
     "openSourcePanel": "Open question sources",
@@ -956,16 +1109,14 @@
     "questionLockedReason": "A student has started the exam. Questions are locked.",
     "questionNumber": "Q{{num}}",
     "questionUpdated": "Question updated",
-    "gradingReferenceAnswer": "Grading Reference Answer",
-    "gradingReferencePlaceholder": "Enter grading answer points or the final conclusion; put full derivations in Explanation",
     "referenceAnswer": "Reference Answer",
     "referenceNotSet": "(Reference answer not set)",
     "referencePlaceholder": "Reference answer (optional, supports Markdown)",
     "removeFromContest": "Remove from contest",
     "saveFailed": "Save failed",
-    "scoreDescription": "Set the maximum points for this problem in the contest",
     "saveToBank": "Save to question bank",
     "saveToBankAlreadyInBank": "Already in question bank",
+    "scoreDescription": "Set the maximum points for this problem in the contest",
     "scoreLabel": "pts",
     "scoreUnit": "{{score}} pts",
     "selectQuestionType": "Select Question Type",
@@ -987,6 +1138,7 @@
     "sourceTabTypes": "Types",
     "sourceTabs": "Question source tabs",
     "standardAnswer": "Standard Answer",
+    "tabTestCasesAndScoring": "Test cases & scoring",
     "totalScore": "Total {{score}}",
     "trueOption": "True",
     "validation": {
@@ -997,7 +1149,6 @@
     },
     "validationFailed": "Validation failed"
   },
-  "examMode": "Cheat Detection",
   "examStatus": {
     "in_progress": "In Progress",
     "locked": "Locked",
@@ -1005,7 +1156,6 @@
     "paused": "Paused",
     "submitted": "Submitted"
   },
-  "exit": "Exit",
   "exitFullscreen": "Exit Fullscreen",
   "exitModal": {
     "confirmExit": "Confirm Exit Contest",
@@ -1249,19 +1399,18 @@
       "ask_question": "Ask Question",
       "auto_submit": "Auto Submit",
       "clipboard_action": "Clipboard Action",
+      "concurrent_login_detected": "Concurrent Login Detected",
       "connectivity_restored": "Connection Restored",
       "connectivity_suspect": "Connection Suspected Lost",
-      "concurrent_login_detected": "Concurrent Login Detected",
+      "connectivity_timeout": "Connection Timeout",
       "end_exam": "End Exam",
       "enter_contest": "Enter Contest",
       "exam_entered": "Exam Entered",
-      "precheck_passed": "Pre-check Passed",
       "exam_submit_initiated": "Exam Submit Initiated",
       "exit_fullscreen": "Exit Fullscreen",
       "exit_fullscreen_triggered": "Exit Fullscreen (Triggered)",
-      "fullscreen_restored": "Fullscreen Restored",
       "forbidden_action": "Forbidden Action",
-      "connectivity_timeout": "Connection Timeout",
+      "fullscreen_restored": "Fullscreen Restored",
       "join": "Join",
       "leave": "Leave Contest",
       "listener_tampered": "Listener Tampered",
@@ -1275,6 +1424,7 @@
       "multiple_displays": "Multiple Displays",
       "other": "Other",
       "pause_exam": "Pause Exam",
+      "precheck_passed": "Pre-check Passed",
       "register": "Register",
       "reopen_exam": "Reopen Exam",
       "reply_question": "Reply Question",
@@ -1299,8 +1449,6 @@
       "webcam_stopped": "Webcam Recovery Timed Out"
     },
     "evidenceAvailable": "Evidence available",
-    "occurrences": "Occurrences",
-    "occurrenceLabel": "Occurrence {{index}} · {{time}} · {{seconds}} s",
     "filterCategory": "Filter priority",
     "filterEventType": "Filter event type",
     "groups": {
@@ -1311,9 +1459,9 @@
     },
     "hourlyStats": "Hourly statistics",
     "kpi": {
+      "connectivityTimeout": "Connectivity Timeouts",
       "critical": "High-risk Events",
       "degraded": "Evidence Degraded",
-      "connectivityTimeout": "Connectivity Timeouts",
       "violation": "Penalized Violations"
     },
     "loadedCount": "Loaded {{loaded}} / {{total}}",
@@ -1329,6 +1477,8 @@
     "noDataToVisualize": "No event data available for visualization",
     "noEvents": "No events yet",
     "noMatchingEvents": "No events matching filter criteria",
+    "occurrenceLabel": "Occurrence {{index}} · {{time}} · {{seconds}} s",
+    "occurrences": "Occurrences",
     "penalized": "Penalized",
     "priorityGroups": {
       "critical": "P0 Critical",
@@ -1362,8 +1512,6 @@
     "title": "Exam Monitoring",
     "warningMessage": "Violations will be recorded. Exceeding the limit will result in automatic lock and you cannot continue the exam."
   },
-  "myContestManagement": "My Contest Management",
-  "notActive": "Not Running",
   "overview": {
     "contestFiles": "Contest Files",
     "contestRules": "Contest Rules",
@@ -1402,32 +1550,34 @@
     "loadingDescription": "Fetching questions and grading data...",
     "loadingTitle": "Loading",
     "noFeedback": "No feedback",
-    "notGraded": "Not graded",
     "notEligibleDescription": "Only members of this classroom can view questions and results.",
     "notEligibleTitle": "Not in this classroom",
+    "notGraded": "Not graded",
     "openingDescription": "Click a row to open the answering screen at that question.",
     "openingTitle": "Questions are available",
     "title": "Questions & Results",
     "totalScore": "Total {{score}} / {{total}}"
   },
-  "participantCount": "Participants",
   "participants": {
     "actions": {
+      "assistedCheckIn": "Assisted check-in",
+      "assistedCheckOut": "Assisted check-out",
       "download": "Download Report",
       "edit": "Edit Status",
       "remove": "Remove Participant",
       "reopen": "Reopen Exam",
-      "unlock": "Unlock",
-      "assistedCheckIn": "Assisted check-in",
-      "assistedCheckOut": "Assisted check-out",
-      "resetExamRecord": "Reset exam record"
+      "resetExamRecord": "Reset exam record",
+      "unlock": "Unlock"
     },
     "add": "Add",
     "addFailed": "Failed to add participant",
     "added": "Participant added",
+    "attendanceReset": "Attendance records reset",
+    "attendanceResetFailed": "Failed to reset attendance records",
     "confirmExport": "Are you sure you want to export participant data?",
     "confirmRemove": "Are you sure you want to remove participant {{name}}?",
     "confirmReopen": "Are you sure you want to reopen this student's exam?",
+    "confirmResetAttendance": "Reset this student’s attendance test records? This only clears check-in/check-out events and evidence; answer records are not affected.",
     "confirmResetExamRecord": "Are you sure you want to reset this student's exam record? This clears answers, score, attendance, and proctoring events without removing the participant.",
     "confirmUnlock": "Are you sure you want to unlock this student?",
     "connection": {
@@ -1436,8 +1586,6 @@
       "online": "Online"
     },
     "detailPanel": "Participant details",
-    "examRecordReset": "Exam record reset",
-    "examRecordResetFailed": "Failed to reset exam record",
     "displayCount": "Showing {{shown}} / {{total}} participants",
     "downloadFailed": "Failed to download report",
     "editModal": {
@@ -1447,6 +1595,8 @@
       "save": "Save Changes",
       "selectStatus": "Select Status"
     },
+    "examRecordReset": "Exam record reset",
+    "examRecordResetFailed": "Failed to reset exam record",
     "exportFailed": "Export failed",
     "filterStatus": "Filter status",
     "generatingReport": "Generating report for {{name}}...",
@@ -1494,35 +1644,7 @@
     "unlocked": "Unlocked",
     "updateFailed": "Update failed",
     "viewModeLabel": "Participant view mode",
-    "viewTitle": "View Participants",
-    "confirmResetAttendance": "Reset this student’s attendance test records? This only clears check-in/check-out events and evidence; answer records are not affected.",
-    "attendanceReset": "Attendance records reset",
-    "attendanceResetFailed": "Failed to reset attendance records"
-  },
-  "participantsAdmin": {
-    "add": "Add",
-    "addFailed": "Add failed",
-    "addSuccess": "Participant added",
-    "allStatus": "All Status",
-    "downloadFailed": "Download failed",
-    "downloadReport": "Download personal report",
-    "headers": {
-      "examStatus": "Exam Status",
-      "joinedAt": "Joined At",
-      "nickname": "Nickname",
-      "score": "Score",
-      "username": "Username"
-    },
-    "removeConfirm": "Are you sure you want to remove this participant?",
-    "removeFailed": "Remove failed",
-    "removeSuccess": "Participant removed",
-    "reopenConfirm": "Are you sure you want to reopen this student's exam?",
-    "reopenFailed": "Reopen failed",
-    "reopenSuccess": "Exam reopened",
-    "title": "Participants",
-    "unlockConfirm": "Are you sure you want to unlock this student?",
-    "unlockFailed": "Unlock failed",
-    "unlockSuccess": "Unlocked"
+    "viewTitle": "View Participants"
   },
   "placeholder": {
     "contestName": "Enter contest name"
@@ -1569,16 +1691,14 @@
     },
     "environment": {
       "checks": {
-        "graphics": "Graphics environment",
         "fullscreen": "Fullscreen Mode",
+        "graphics": "Graphics environment",
         "interaction": "Interaction Check",
         "monitor": "Display Count",
         "sharing": "Screen Sharing",
         "webcam": "Webcam Access"
       },
       "errors": {
-        "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device.",
-        "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
         "dependencyPrefix": "Requires passing \"{{name}}\".",
         "focusFailed": "Please switch back to this page and try again.",
@@ -1590,14 +1710,16 @@
         "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
         "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
+        "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
         "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again.",
         "webcamFailed": "Webcam is unavailable. Please grant permission again.",
-        "webcamUnsupported": "This browser does not support Webcam."
+        "webcamUnsupported": "This browser does not support Webcam.",
+        "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device."
       },
       "requirements": {
-        "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
         "browser": "Use latest Google Chrome or Microsoft Edge.",
         "display": "Single physical monitor required; disconnect external displays.",
+        "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
         "permission": "Grant \"Window and Display Management\" permission when prompted.",
         "pwa": "Launch the PWA window from the home screen.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
@@ -1635,23 +1757,6 @@
   },
   "private": "Private",
   "problemList": "Problem List",
-  "problemManage": {
-    "add": "Add",
-    "addFailed": "Failed to add problem, please check ID or title",
-    "addHint": "Enter problem ID (from library) or problem title (create new).",
-    "addProblem": "Add Contest Problem",
-    "added": "Problem added",
-    "adding": "Adding...",
-    "confirmRemove": "Are you sure you want to remove this problem from the contest?",
-    "newProblemPlaceholder": "Enter new problem name",
-    "orCreateNew": "Or create a new blank problem",
-    "removeFailed": "Failed to remove problem",
-    "removed": "Problem removed",
-    "reorderFailed": "Failed to reorder",
-    "searchPlaceholder": "Search problem ID or title...",
-    "selectFromLibrary": "Select from Library & Templates (Clone)",
-    "title": "Problem Management"
-  },
   "problems": "Problems",
   "proctoringPanel": {
     "backToRoster": "Back to list",
@@ -1671,7 +1776,6 @@
   },
   "progress": "Progress",
   "public": "Public",
-  "refresh": "Refresh Contest",
   "report": {
     "descriptionCoding": "Download PDF report including stats, source code, and performance trends.",
     "descriptionPaper": "Download PDF report including questions, your responses, scores, and proctor comments.",
@@ -1729,6 +1833,10 @@
       },
       "disabledDesc": "Restrictions disabled for {{device}}",
       "enableMonitoring": "Enable Monitoring",
+      "enableScreenShare": "Enable Screen Share",
+      "enableScreenShareDesc": "Desktop students share their entire screen as exam evidence.",
+      "enableWebcam": "Enable Webcam",
+      "enableWebcamDesc": "Both desktop and tablet students turn on their webcam.",
       "enabledDesc": "Anti-cheat mechanism enabled for {{device}}",
       "evidencePolicy": "Evidence Policy",
       "forceEnable": "Force Enable",
@@ -1737,22 +1845,28 @@
       "screenShareDesc": "Capture student screen as monitoring evidence",
       "securityDetectors": "Violation Detection Mechanism",
       "tabletLabel": "Tablet / iPad Settings",
+      "tabletNoEvidenceHint": "Tablet students currently have no evidence source. Turn on Webcam.",
+      "tabletScreenShareUnsupported": "Tablets cannot share their screen yet",
+      "tabletWebcamOnlyHint": "Tablet students are recorded by webcam only.",
       "webcam": "Video Monitoring (Webcam)",
       "webcamDesc": "Capture student webcam as monitoring evidence",
-      "enableScreenShare": "Enable Screen Share",
-      "enableScreenShareDesc": "Desktop students share their entire screen as exam evidence.",
-      "enableWebcam": "Enable Webcam",
-      "enableWebcamDesc": "Both desktop and tablet students turn on their webcam.",
-      "webcamOnlyTabletDesc": "Only tablets require a webcam right now; switching applies it to both desktop and tablet.",
       "webcamOnlyDesktopDesc": "Only desktops require a webcam right now; switching applies it to both desktop and tablet.",
-      "tabletScreenShareUnsupported": "Tablets cannot share their screen yet",
-      "tabletNoEvidenceHint": "Tablet students currently have no evidence source. Turn on Webcam.",
-      "tabletWebcamOnlyHint": "Tablet students are recorded by webcam only."
+      "webcamOnlyTabletDesc": "Only tablets require a webcam right now; switching applies it to both desktop and tablet."
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
     "archiveFailed": "Archive failed",
     "archived": "Contest archived",
+    "attendanceCheck": {
+      "description": "When enabled, students must scan a QR Code on the contest home page and submit room photos before starting the exam.",
+      "label": "QR check-in/out"
+    },
+    "attendancePhotoPolicy": {
+      "description": "Require either a room photo, or both a room photo and an attendance selfie.",
+      "label": "Attendance evidence photos",
+      "room": "Rear-camera room photo",
+      "roomAndSelfie": "Front-camera selfie + rear-camera room photo"
+    },
     "basicInfo": "Basic Information",
     "confirmArchive": "Are you sure you want to archive this contest?",
     "confirmDelete": "Are you sure you want to delete this contest? This action cannot be undone!",
@@ -1760,8 +1874,11 @@
     "confirmEnableExamMode": "This will apply pre-checks, monitoring sources, and anomaly event logging according to the device policy. Enable it?",
     "contestDescription": "Contest Description",
     "contestName": "Contest Name",
+    "contestOptions": "Contest Settings",
     "contestRules": "Contest Rules",
     "contestStatus": "Contest Status",
+    "contestType": "Exam Type",
+    "contestTypeDesc": "The exam type is chosen when the contest is created and cannot be changed afterwards.",
     "dangerZone": "Danger Zone",
     "deleteContest": "Delete Contest",
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
@@ -1776,6 +1893,7 @@
     "exportResultsDesc": "Export contest results as CSV file, including rank, account, solved problems, total score, and problem status.",
     "exportSuccess": "Results exported successfully",
     "joinPassword": "Join Password",
+    "modalTitle": "Settings",
     "noPassword": "No password",
     "requiresPassword": "Requires Password",
     "requiresPasswordHelp": "When enabled, students must enter a password to join.",
@@ -1789,21 +1907,7 @@
     "statusLabel": "Status (Draft/Published)",
     "title": "Contest Settings",
     "updateFailed": "Update failed, please check fields",
-    "updated": "Settings updated",
-    "attendanceCheck": {
-      "label": "QR check-in/out",
-      "description": "When enabled, students must scan a QR Code on the contest home page and submit room photos before starting the exam."
-    },
-    "attendancePhotoPolicy": {
-      "label": "Attendance evidence photos",
-      "description": "Require either a room photo, or both a room photo and an attendance selfie.",
-      "room": "Rear-camera room photo",
-      "roomAndSelfie": "Front-camera selfie + rear-camera room photo"
-    },
-    "modalTitle": "Settings",
-    "contestOptions": "Contest Settings",
-    "contestType": "Exam Type",
-    "contestTypeDesc": "The exam type is chosen when the contest is created and cannot be changed afterwards."
+    "updated": "Settings updated"
   },
   "standings": {
     "icpcRules": "Ranking Rules: Rankings are based on total score first, then number of problems solved, finally penalty time (solve time + 20 min per wrong attempt).",
@@ -1862,12 +1966,6 @@
     "viewSubmissionSamples": "View submission samples"
   },
   "studentDashboard": {
-    "codingRecords": {
-      "problem": "Problem",
-      "score": "Score / maximum",
-      "status": "Status",
-      "count": "Submissions"
-    },
     "actions": {
       "adminPanel": "Admin dashboard",
       "backToAnswering": "Go to answering area",
@@ -1881,10 +1979,6 @@
       "submit": "Submit",
       "unavailable": "Answering unavailable",
       "waitingStart": "Waiting to start"
-    },
-    "studentQr": {
-      "description": "Let a TA scan this QR to quickly find your exam record.",
-      "heading": "My student QR"
     },
     "announcements": {
       "empty": "No announcements yet.",
@@ -1902,6 +1996,16 @@
       "unanswered": "Unanswered"
     },
     "ariaLabel": "Student contest home",
+    "attendance": {
+      "checkIn": "Go to check-in",
+      "checkOut": "Go to check-out"
+    },
+    "codingRecords": {
+      "count": "Submissions",
+      "problem": "Problem",
+      "score": "Score / maximum",
+      "status": "Status"
+    },
     "contestState": {
       "archived": "Archived",
       "draft": "Draft",
@@ -1917,8 +2021,8 @@
     },
     "errors": {
       "announcementsLoadFailed": "Announcements are temporarily unavailable",
-      "questionsLoadFailed": "Question data is temporarily unavailable",
       "answersLoadFailed": "Answer records are temporarily unavailable",
+      "questionsLoadFailed": "Question data is temporarily unavailable",
       "scoreDistributionLoadFailed": "Score distribution is temporarily unavailable"
     },
     "infoLabel": "Contest information",
@@ -1965,12 +2069,16 @@
       "waitingPublish": "Waiting for results"
     },
     "rules": {
+      "attendanceRequired": "This exam requires QR check-in before you can start answering.",
+      "defaultDescription": "No additional rules.",
       "empty": "No additional rules.",
       "noPassword": "This contest does not require a password.",
       "requiresPassword": "This contest requires a password.",
-      "title": "Rules",
-      "attendanceRequired": "This exam requires QR check-in before you can start answering.",
-      "defaultDescription": "No additional rules."
+      "title": "Rules"
+    },
+    "studentQr": {
+      "description": "Let a TA scan this QR to quickly find your exam record.",
+      "heading": "My student QR"
     },
     "submitConfirm": {
       "body": "You will not be able to change answers after submitting.",
@@ -1986,14 +2094,10 @@
       "scoreDistribution": "Score distribution"
     },
     "tabs": {
-      "clarifications": "Announcements & questions",
       "ariaLabel": "Contest information tabs",
+      "clarifications": "Announcements & questions",
       "records": "Answer records",
       "rules": "Rules"
-    },
-    "attendance": {
-      "checkIn": "Go to check-in",
-      "checkOut": "Go to check-out"
     }
   },
   "studentStatus": {
@@ -2056,163 +2160,8 @@
     "settings": "Settings",
     "submissions": "Submissions"
   },
-  "timeToStart": "Starts in {{time}}",
   "validation": {
     "endBeforeStart": "End time must be after start time",
     "invalidDateTime": "Please select valid start and end times"
-  },
-  "attendance": {
-    "badge": "QR Attendance",
-    "purpose": {
-      "checkIn": "Check-in",
-      "checkOut": "Check-out"
-    },
-    "shell": {
-      "back": "Back"
-    },
-    "scan": {
-      "title": "Scan QR Code",
-      "description": "Point your camera at the {{purpose}} QR Code on the projection screen.",
-      "cannotComplete": "Unable to complete attendance",
-      "validating": "Validating…",
-      "waitingCamera": "Waiting for camera permission",
-      "alignQr": "Align with the projected QR Code"
-    },
-    "manual": {
-      "title": "Enter {{purpose}} code",
-      "description": "Enter the 6-digit code shown below the QR Code on the teacher projection.",
-      "cannotContinue": "Cannot continue",
-      "codeAriaLabel": "{{purpose}} code",
-      "digitAriaLabel": "Digit {{index}}"
-    },
-    "photo": {
-      "cannotComplete": "Unable to complete photo capture",
-      "cameraUnavailable": "Camera is not available",
-      "alignTarget": "Align {{label}}",
-      "qrVerifiedChip": "QR verified · {{contest}}",
-      "readyChip": "Photos ready · {{contest}}",
-      "nextStepPhoto": "Next: {{title}}",
-      "nextStepConfirm": "Next: confirm attendance details and upload",
-      "captureLabel": "Capture {{label}}",
-      "room": {
-        "label": "Room photo",
-        "title": "Capture room photo",
-        "description": "Capture the classroom environment and exam device screen.",
-        "rearDescription": "Use the rear camera to capture the classroom environment and exam device screen."
-      },
-      "selfie": {
-        "label": "Selfie",
-        "title": "Capture attendance selfie",
-        "description": "Use the front camera to capture your attendance selfie."
-      }
-    },
-    "confirm": {
-      "title": "Confirm {{purpose}} details",
-      "description": "Upload after confirming the details and photos are clear.",
-      "uploadFailed": "Upload failed",
-      "infoLabel": "Attendance details",
-      "type": "Type",
-      "scannedAt": "Scanned at",
-      "photoStatus": "Photo status",
-      "photosLabel": "Evidence photos",
-      "photoPreviewAlt": "{{label}} preview"
-    },
-    "done": {
-      "title": "{{purpose}} verified",
-      "description": "The system has recorded your {{purpose}} event.",
-      "resultLabel": "Attendance result",
-      "contest": "Contest",
-      "time": "Time",
-      "status": "Status",
-      "uploaded": "Uploaded",
-      "photosLabel": "Evidence photos"
-    },
-    "header": {
-      "done": "{{purpose}} complete",
-      "manual": "Enter {{purpose}} code",
-      "photo": "Capture {{purpose}} photos",
-      "confirm": "Confirm {{purpose}}",
-      "auth": "{{purpose}} verification"
-    },
-    "cta": {
-      "waitingCamera": "Waiting for camera…",
-      "retryCamera": "Retry camera",
-      "validating": "Validating…",
-      "realignment": "Realign",
-      "scanning": "Scanning…",
-      "next": "Next",
-      "capturePurposePhoto": "Capture {{purpose}} photo",
-      "nextPhoto": "Next photo",
-      "confirmInfo": "Confirm details",
-      "retryUpload": "Retry upload",
-      "uploading": "Uploading…",
-      "confirmUpload": "Confirm and upload",
-      "backToExam": "Back to exam",
-      "manualCode": "Enter code manually",
-      "backToScan": "Back to scan",
-      "retake": "Retake",
-      "retakePhotos": "Retake photos"
-    },
-    "errors": {
-      "checkInAlreadyCompleted": "You have already checked in.",
-      "checkOutAlreadyCompleted": "You have already checked out.",
-      "checkoutAfterSubmit": "You can check out only after submitting the exam.",
-      "checkInOnlyBeforeStart": "You have started or completed the exam and can no longer check in. Scan the check-out QR Code if you need to leave.",
-      "notCheckInTime": "Check-in is not available right now.",
-      "tokenExpired": "The QR Code has expired. Scan the latest QR Code on the projection screen.",
-      "invalidToken": "The QR Code is invalid. Scan the latest QR Code on the projection screen.",
-      "invalidManualCode": "The code is invalid or expired. Enter the latest code from the projection screen.",
-      "notEnabled": "QR attendance is not enabled for this exam.",
-      "submitFailed": "Failed to submit attendance. Please try again later.",
-      "cameraUnsupported": "This browser does not support camera access. Ask the teacher for attendance assistance.",
-      "cameraUnavailable": "Camera is not available",
-      "wrongPurposeQr": "This is a {{actual}} QR Code. Scan the {{expected}} QR Code.",
-      "capturePhotoFailed": "Failed to capture the photo. Please retake it.",
-      "missingPurpose": "Choose check-in or check-out from the contest home page first.",
-      "manualCodeLength": "Enter the 6-digit code shown on the projection screen.",
-      "photoMissing": "{{label}} has not been captured yet",
-      "uploadIntentIncomplete": "The upload task did not include all required photos. Please submit again.",
-      "photoUploadFailed": "Photo upload failed. Please submit again."
-    },
-    "projection": {
-      "title": "Exam check-in/out",
-      "examLabel": "Exam",
-      "examFallback": "Exam",
-      "progress": "Exam progress",
-      "progressAria": "Exam progress {{progress}}%",
-      "loading": "Loading",
-      "manualCodeLabel": "Enter this code if the camera is unavailable",
-      "reloadQr": "Reloading QR Code",
-      "backToAdmin": "Back to admin",
-      "enterFullscreen": "Enter fullscreen",
-      "exitFullscreen": "Exit fullscreen",
-      "refreshFailed": "Failed to refresh QR Code",
-      "unstableTitle": "QR loading is unstable",
-      "unstableSubtitle": "The system keeps the last usable QR Code and continues reloading.",
-      "mode": {
-        "ariaLabel": "Switch check-in/check-out QR Code"
-      },
-      "countdown": {
-        "exam": "Exam countdown",
-        "unset": "Time not set",
-        "startsIn": "Starts in",
-        "openCheckIn": "Check-in open",
-        "endsIn": "Ends in",
-        "running": "Exam in progress",
-        "ended": "Exam ended",
-        "endedTone": "Ended"
-      },
-      "marker": {
-        "start": "Start",
-        "now": "Now",
-        "end": "End"
-      },
-      "guide": {
-        "scan": "Scan QR Code",
-        "photo": "Capture room photo",
-        "upload": "Confirm and upload",
-        "ariaLabel": "Attendance guide"
-      }
-    }
   }
 }

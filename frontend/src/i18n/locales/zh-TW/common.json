@@ -2,16 +2,12 @@
   "action": {
     "adding": "新增中",
     "deleting": "刪除中",
-    "downloading": "下載中",
     "exporting": "匯出中",
     "importing": "匯入中",
-    "pleaseWait": "稍候",
     "processing": "處理中",
     "refresh": "刷新",
     "refreshing": "刷新中",
-    "syncing": "同步中",
-    "uploading": "上傳中",
-    "viewProblem": "查看題目"
+    "uploading": "上傳中"
   },
   "auth": {
     "callback": {
@@ -38,6 +34,32 @@
       "title": "校園身份驗證",
       "verify": "驗證"
     },
+    "login": {
+      "email": "Email / Username",
+      "emailDivider": "或使用帳號密碼登入",
+      "emailPlaceholder": "信箱或使用者名稱",
+      "failed": "登入失敗",
+      "invalidCredentials": "帳號或密碼錯誤",
+      "loading": "登入中...",
+      "noAccount": "還沒有帳號？",
+      "oauthFailed": "無法啟動登入流程",
+      "password": "密碼",
+      "passwordPlaceholder": "密碼",
+      "registerNow": "建立帳號",
+      "schoolAuth": "學校認證",
+      "submit": "登入",
+      "subtitle": "歡迎回來，請登入您的帳號",
+      "title": "登入"
+    },
+    "logout": {
+      "confirmButton": "登出",
+      "confirmMessage": "確定登出？",
+      "confirmTitle": "確認登出"
+    },
+    "pendingAction": {
+      "actionLinkSubtitle": "請先登入或註冊，完成後會自動完成邀請操作。",
+      "actionLinkTitle": "邀請連結"
+    },
     "providerActions": {
       "loginWith": "使用 {{provider}} 登入",
       "registerWith": "使用 {{provider}} 建立帳號"
@@ -57,39 +79,13 @@
         "displayName": "密碼憑證"
       }
     },
-    "login": {
-      "email": "Email / Username",
-      "emailPlaceholder": "信箱或使用者名稱",
-      "failed": "登入失敗",
-      "invalidCredentials": "帳號或密碼錯誤",
-      "loading": "登入中...",
-      "noAccount": "還沒有帳號？",
-      "oauthFailed": "無法啟動登入流程",
-      "password": "密碼",
-      "passwordPlaceholder": "密碼",
-      "registerNow": "建立帳號",
-      "schoolAuth": "學校認證",
-      "submit": "登入",
-      "subtitle": "歡迎回來，請登入您的帳號",
-      "title": "登入",
-      "emailDivider": "或使用帳號密碼登入"
-    },
-    "logout": {
-      "confirmButton": "登出",
-      "confirmMessage": "確定登出？",
-      "confirmTitle": "確認登出"
-    },
-    "pendingAction": {
-      "actionLinkSubtitle": "請先登入或註冊，完成後會自動完成邀請操作。",
-      "actionLinkTitle": "邀請連結"
-    },
     "register": {
       "confirmPassword": "確認密碼",
       "confirmPasswordPlaceholder": "再次輸入密碼",
       "email": "Email",
       "emailDivider": "或使用帳號密碼建立帳號",
-      "emailSubmit": "建立帳號",
       "emailPlaceholder": "輸入您的 Email",
+      "emailSubmit": "建立帳號",
       "failed": "註冊失敗",
       "failedRetry": "註冊失敗，請稍後再試",
       "hasAccount": "已經有帳號？",
@@ -141,7 +137,6 @@
       "loadFailed": "載入教室失敗",
       "loadFailedHint": "請稍後再試",
       "noDescription": "尚未設定教室描述",
-      "selectSubtitle": "選一個教室，直接進入教室主頁",
       "welcomeBack": "歡迎回來"
     },
     "classrooms": {
@@ -150,9 +145,6 @@
     },
     "contests": {
       "ended": "已結束",
-      "noContests": "目前沒有近期比賽",
-      "ongoing": "僅顯示進行中競賽",
-      "participated": "已參加",
       "title": "近期比賽",
       "upcoming": "即將開始"
     },
@@ -209,21 +201,16 @@
   },
   "header": {
     "adminNavigation": "管理導覽",
-    "contestManagement": "競賽管理",
     "contestNavigation": "競賽導覽",
     "createContest": "建立競賽",
-    "environmentSettings": "環境設定",
-    "mainNavigation": "主要導覽",
     "menu": "選單",
     "platform": "QJudge 平台",
     "prefix": "",
     "problemManagement": "題目管理",
+    "serviceStatus": "服務狀態",
     "sideNav": "側邊導航",
-    "systemSettings": "系統設定",
-    "teacherDashboard": "教師後台",
     "userManagement": "使用者管理",
-    "userMenu": "使用者選單",
-    "serviceStatus": "服務狀態"
+    "userMenu": "使用者選單"
   },
   "image": {
     "galleryTab": "圖庫",
@@ -295,7 +282,6 @@
     }
   },
   "message": {
-    "comingSoon": "即將推出",
     "deleteFailed": "刪除失敗",
     "error": "發生錯誤",
     "loading": "載入中...",
@@ -330,13 +316,10 @@
     }
   },
   "page": {
-    "contestDetail": "競賽詳情",
-    "contestManagement": "競賽管理",
     "contests": "競賽列表",
     "createContest": "建立競賽",
     "createProblem": "建立題目",
     "dashboard": "儀表板",
-    "editProblem": "編輯題目",
     "environment": "環境設定",
     "login": "登入",
     "problemDetail": "題目詳情",
@@ -345,7 +328,6 @@
     "questionBanks": "題庫",
     "register": "註冊",
     "submissions": "提交紀錄",
-    "teacherDashboard": "教師後台",
     "userManagement": "使用者管理"
   },
   "pagination": {
@@ -473,7 +455,6 @@
   },
   "settings": {
     "description": "管理個人檔案與偏好設定。",
-    "descriptionStudent": "管理個人設定。",
     "loginRecords": {
       "current": "目前裝置",
       "description": "最近 30 天的登入紀錄",
@@ -559,15 +540,15 @@
     }
   },
   "workspaceTopNav": {
-    "closeInfoPanel": "關閉資訊面板",
-    "problemInfo": "題目資訊",
-    "submissions": "繳交記錄",
-    "backToContest": "返回競賽儀表板",
-    "previewMode": "預覽模式",
     "adminConsole": "管理後台",
+    "backToContest": "返回競賽儀表板",
+    "closeInfoPanel": "關閉資訊面板",
     "contestFallback": "競賽",
     "contestHome": "競賽主頁",
     "contextLabel": "工作區內容",
-    "expandSidebar": "展開側欄"
+    "expandSidebar": "展開側欄",
+    "previewMode": "預覽模式",
+    "problemInfo": "題目資訊",
+    "submissions": "繳交記錄"
   }
 }

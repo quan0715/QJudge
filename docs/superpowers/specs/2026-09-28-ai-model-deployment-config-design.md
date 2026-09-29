@@ -49,17 +49,13 @@ AI 部署檔集中在 `deploy/ai/`，整個目錄以唯讀掛載到 `ai-service`
 ### `deploy/ai/models.yml`
 
 ```yaml
-default: deepseek-flash         # 選填，未填取第一個可用模型
+default: deepseek-v4-flash      # 選填，未填取第一個可用模型
 
 models:
-  - id: gpt-6-luna
+  - id: gpt-5-nano
     provider: openai
-    display_name: GPT-6 Luna
-    reasoning_effort: medium
-    max_input_tokens: 272000
-  - id: deepseek-flash
+  - id: deepseek-v4-flash
     provider: deepseek
-    display_name: DeepSeek V4.1 Flash
     reasoning_effort: high
     max_input_tokens: 1000000
   - id: gemma4-31b
@@ -117,7 +113,7 @@ LAB_VLLM_API_KEY=...        # vLLM 未開 --api-key 時可省略
 | 內建（`openai`、`deepseek`） | 設定錯誤 |
 | 自架 endpoint | 允許，送出 `EMPTY` |
 
-`qjudge_cli/schema.py` 與新版本的 `deploy/compose.yml` 移除 `OPENAI_*`、`DEEPSEEK_*`、`VLLM_*` 六個 key。`deploy/.env` 在可能回滾到舊版時暫時保留這六項；新版本不會將它們傳給 AI 容器。回滾目標也升級為目錄式設定後再刪除，避免回滾時舊版 AI service 失去憑證。
+`deploy/.env`、`qjudge_cli/schema.py` 與 `deploy/compose.yml` 移除 `OPENAI_*`、`DEEPSEEK_*`、`VLLM_*` 六個 key。
 
 ## 3. 內建 adapter
 
@@ -210,27 +206,45 @@ AI 助教輸入框與 AI 批改畫面依模型目錄狀態顯示 Carbon `InlineN
 
 ## 7. 現有部署轉換
 
-dcslab 的三個舊 OpenAI 模型 ID（`openai-nano`、`openai-mini`、`openai-mini-medium`）由單一 `gpt-6-luna` 取代；DeepSeek 改用 `deepseek-flash`。`openai-gemma4-31b` 實際為自架 vLLM，沿用現有 ID。歷史紀錄保留原本的模型 ID。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
+dcslab 沿用現有 ID，歷史紀錄不需改寫。自架 endpoint 命名為 `vllm`，key 名稱恰為原本的 `VLLM_API_KEY`。
 
 ```yaml
-default: deepseek-flash
+default: openai-nano
 
 models:
-  - id: gpt-6-luna
+  - id: openai-nano
     provider: openai
-    display_name: GPT-6 Luna
-    description: OpenAI 模型，適合日常教學互動與批改
-    reasoning_effort: medium
-    max_input_tokens: 272000
+    model: gpt-5-nano
+    display_name: gpt-5-nano
+    description: 快速且成本低，適合日常教學互動
   - id: openai-gemma4-31b
     provider: vllm
     model: Gemma4-31B
     display_name: Gemma4-31B
     description: 自架 vLLM Gemma4-31B，適合校內部署與批改
     max_input_tokens: 131072
-  - id: deepseek-flash
+  - id: openai-mini
+    provider: openai
+    model: gpt-5.4-mini
+    display_name: gpt-5.4-mini (low)
+    description: OpenAI 推理模型，低思考強度，平衡速度與品質
+    reasoning_effort: low
+    max_input_tokens: 272000
+  - id: openai-mini-medium
+    provider: openai
+    model: gpt-5.4-mini
+    display_name: gpt-5.4-mini (medium)
+    description: OpenAI 推理模型，中等思考強度，適合複雜批改與推理
+    reasoning_effort: medium
+    max_input_tokens: 272000
+  - id: deepseek-v4-flash
     provider: deepseek
-    description: DeepSeek V4.1 Flash，1M context，thinking enabled，適合大量批改與日常推理
+    description: DeepSeek V4 Flash，1M context，thinking enabled，適合大量批改與日常推理
+    reasoning_effort: high
+    max_input_tokens: 1000000
+  - id: deepseek-v4-pro
+    provider: deepseek
+    description: DeepSeek V4 Pro，1M context，thinking enabled，適合高品質批改與複雜推理
     reasoning_effort: high
     max_input_tokens: 1000000
 
@@ -242,10 +256,10 @@ endpoints:
 步驟：
 
 1. 建立 `deploy/ai/models.yml`（如上）與 `deploy/ai/keys.env`，把 `.env` 中的 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`VLLM_API_KEY` 搬過去。
-2. 若原本設了 `OPENAI_BASE_URL` 或 `DEEPSEEK_BASE_URL`，另寫入 `endpoints.openai.base_url` 或 `endpoints.deepseek.base_url`。暫留 `.env` 的六個 AI key 供舊版回滾使用。
+2. 刪除 `.env` 的六個 AI key；若原本設了 `OPENAI_BASE_URL` 或 `DEEPSEEK_BASE_URL`，改寫成 `endpoints.openai.base_url` 或 `endpoints.deepseek.base_url`。
 3. 執行 `qjudge upgrade`；模型設定有誤時會在停機前中止。
 
-`qjudge check` 在回滾窗口容許 `.env` 的舊 key；新版本只從 `deploy/ai/` 讀取設定。確認回滾目標也已使用目錄式設定後，移除 `.env` 的舊 key。
+`qjudge check` 對仍留在 `.env` 的舊 key 回報錯誤，並提示搬到 `deploy/ai/`。
 
 dev 使用同一份 `deploy/ai/`；缺檔時 AI 功能顯示設定錯誤訊息，其他服務照常。CI E2E 掛載 `ci/ai/`，指向 fake adapter。
 

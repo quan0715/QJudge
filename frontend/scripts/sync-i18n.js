@@ -6,7 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const I18N_DIR = path.join(__dirname, "../src/i18n/locales");
-const LANGUAGES = ["zh-TW", "en", "ja", "ko"];
+const REFERENCE_LANG = "zh-TW";
+const TARGET_LANGS = ["en", "ja", "ko"];
+const ALL_LANGUAGES = [REFERENCE_LANG, ...TARGET_LANGS];
 const NAMESPACES = ["admin", "chatbot", "classroom", "common", "contest", "docs", "landing", "problem"];
 
 function flattenKeys(obj, prefix = "") {
@@ -49,83 +51,52 @@ function sync() {
   for (const ns of NAMESPACES) {
     console.log(`  Processing namespace: ${ns}`);
     
-    // 1. Collect all keys and their values across all languages
-    const allKeys = new Set();
-    const langData = {};
-
-    for (const lang of LANGUAGES) {
-      const filePath = path.join(I18N_DIR, lang, `${ns}.json`);
-      if (fs.existsSync(filePath)) {
-        try {
-          const content = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-          langData[lang] = flattenKeys(content);
-          Object.keys(langData[lang]).forEach(k => allKeys.add(k));
-        } catch (e) {
-          console.error(`Error reading ${filePath}:`, e);
-          langData[lang] = {};
-        }
-      } else {
-        langData[lang] = {};
-      }
+    const refPath = path.join(I18N_DIR, REFERENCE_LANG, `${ns}.json`);
+    if (!fs.existsSync(refPath)) {
+      console.warn(`    ⚠️ Reference file missing: ${refPath}`);
+      continue;
     }
 
-    // 2. Ensure every language has every key
-    for (const lang of LANGUAGES) {
-      const currentFlat = langData[lang];
-      
-      for (const key of allKeys) {
-        // FORCE SYNC for branding-related keys OR if key is missing
-        const isBrandingKey = 
-          key.includes("QJudge") || 
-          key.includes("NYCU") || 
-          key.includes("陽明") ||
-          key.includes("loadingTitle") ||
-          key.includes("platform") ||
-          key.includes("prefix") ||
-          key.includes("product") ||
-          key.includes("copyright") ||
-          key.includes("hero.title") ||
-          key.includes("seo.title") ||
-          key.includes("seo.description") ||
-          key.includes("testimonials.badge") ||
-          key.includes("university.value");
+    let refFlat = {};
+    try {
+      refFlat = flattenKeys(JSON.parse(fs.readFileSync(refPath, "utf-8")));
+    } catch (e) {
+      console.error(`Error reading ${refPath}:`, e);
+      continue;
+    }
 
-        if (currentFlat[key] === undefined || (lang !== "zh-TW" && isBrandingKey)) {
-          // Find a fallback value (prefer zh-TW for these generalized strings)
-          let fallbackValue = "";
-          if (langData["zh-TW"] && langData["zh-TW"][key] !== undefined) {
-            fallbackValue = langData["zh-TW"][key];
-          } else if (langData["en"] && langData["en"][key] !== undefined) {
-            fallbackValue = langData["en"][key];
-          } else {
-            // Take the first available value
-            for (const l of LANGUAGES) {
-              if (langData[l] && langData[l][key] !== undefined) {
-                fallbackValue = langData[l][key];
-                break;
-              }
-            }
-          }
-          
-          // Only overwrite if it contains branding OR it was missing
-          if (currentFlat[key] === undefined || 
-              (typeof currentFlat[key] === 'string' && 
-               (currentFlat[key].includes("QJudge") || currentFlat[key].includes("NYCU") || currentFlat[key].includes("陽明")))) {
-            
-            // Special case: Keep NYCU SSO provider name
-            if (key === "auth.campusSso.providers.nycu.name") {
-              continue;
-            }
+    const refKeys = Object.keys(refFlat);
 
-            currentFlat[key] = fallbackValue;
-            console.log(`    [${lang}] Overwriting/Adding key to remove branding: ${key}`);
-          }
+    // Write back sorted zh-TW
+    const sortedRef = unflattenKeys(refFlat);
+    fs.writeFileSync(refPath, JSON.stringify(sortedRef, null, 2) + "\n", "utf-8");
+
+    // Sync target languages
+    for (const lang of TARGET_LANGS) {
+      const filePath = path.join(I18N_DIR, lang, `${ns}.json`);
+      let currentFlat = {};
+
+      if (fs.existsSync(filePath)) {
+        try {
+          currentFlat = flattenKeys(JSON.parse(fs.readFileSync(filePath, "utf-8")));
+        } catch (e) {
+          console.error(`Error reading ${filePath}:`, e);
+          currentFlat = {};
         }
       }
 
-      // 3. Save back (sorted and unflattened)
-      const unflattened = unflattenKeys(currentFlat);
-      const filePath = path.join(I18N_DIR, lang, `${ns}.json`);
+      const syncedFlat = {};
+      for (const key of refKeys) {
+        if (currentFlat[key] !== undefined) {
+          syncedFlat[key] = currentFlat[key];
+        } else {
+          // Fallback to zh-TW
+          syncedFlat[key] = refFlat[key];
+          console.log(`    [${lang}] Adding missing key: ${key}`);
+        }
+      }
+
+      const unflattened = unflattenKeys(syncedFlat);
       fs.writeFileSync(filePath, JSON.stringify(unflattened, null, 2) + "\n", "utf-8");
     }
   }

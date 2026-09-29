@@ -1,76 +1,93 @@
 {
-  "environment": {
-    "cannotSync": "同期できません",
-    "cloud": "クラウド",
-    "cloudDatabase": "クラウドデータベース",
-    "confirmSwitch": "切り替え前に{{source}}から{{target}}にデータを同期します。\n\n（データベースマイグレーションが自動的に実行されます）\n\n続行しますか？",
-    "confirmSync": "{{source}}から{{target}}にデータを同期してもよろしいですか？\n\n（データベースマイグレーションが自動的に実行されます）\n\nこれによりターゲットデータベースが上書きされます。",
-    "connectionLatency": "接続遅延",
-    "currentDatabase": "現在のデータベース",
-    "databaseSwitch": "データベース切り替え（切り替え前に自動同期）",
-    "databaseSync": "データベース同期",
-    "inUse": "使用中",
-    "latency": "遅延",
-    "latencyLevel": {
-      "excellent": "優秀",
-      "good": "良好",
-      "normal": "普通",
-      "slow": "遅い",
-      "unknown": "不明",
-      "verySlow": "とても遅い"
+  "service": {
+    "allUp": "すべて正常",
+    "component": "サービス",
+    "components": {
+      "ai_service": "AI サービス",
+      "cache": "キャッシュ (Redis)",
+      "celery": "Celery ワーカー",
+      "database": "データベース",
+      "integrity_resident": "Integrity Resident"
     },
-    "local": "ローカル",
-    "localDatabase": "ローカルデータベース",
-    "needBothConnected": "同期するには両方のデータベースが接続されている必要があります",
-    "operations": "操作",
-    "refreshStatus": "ステータスを更新",
-    "subtitle": "データベース接続と同期操作を管理",
-    "switchProgress": "マイグレーションと同期を実行中...",
-    "switchSuccess": "{{target}}データベースに切り替えました",
-    "switchSuccessWithMigration": "{{target}}データベースに切り替えました（マイグレーションが実行されました）",
-    "switching": "データベースを切り替え中...",
-    "syncCloudToLocal": "クラウド → ローカル",
-    "syncDescription": "あるデータベースから別のデータベースにデータを同期します。マイグレーションは自動的に適用されます。注意：これによりターゲットデータベースが上書きされます。",
-    "syncLocalToCloud": "ローカル → クラウド",
-    "syncingPleaseWait": "同期中、お待ちください...",
-    "title": "環境管理"
-  },
-  "problem": {
-    "management": {
-      "allProblems": "すべての問題",
-      "contestProblems": "コンテスト問題",
-      "title": "問題管理"
-    }
+    "contest": "コンテスト",
+    "detail": "詳細",
+    "generatedAt": "プローブ時刻",
+    "integrityTitle": "試験監視 Run",
+    "lastError": "最終エラー",
+    "latency": "レイテンシ",
+    "liveRuns": "進行中",
+    "loadFailed": "サービス状態を取得できません",
+    "neverReported": "未報告",
+    "noHeartbeat": "ハートビートなし",
+    "refresh": "再プローブ",
+    "runState": "状態",
+    "someDown": "{{count}} 件の異常",
+    "staleHeartbeats": "ハートビート遅延",
+    "staleHint": "ハートビートが {{seconds}} 秒以上更新されない場合は遅延とみなします。",
+    "status": "状態",
+    "subtitle": "プラットフォーム自身のサービスの即時プローブ結果。開いたときと再プローブ時のみ実行し、ポーリングはしません。",
+    "title": "サービス状態",
+    "unhealthyRuns": "unhealthy",
+    "worker": "Worker"
   },
   "user": {
     "management": {
+      "activateTeacher": "教員権限を有効化",
+      "activationInvite": {
+        "copied": "コピーしました",
+        "copy": "リンクをコピー",
+        "failed": "教員有効化リンクの生成に失敗しました",
+        "latest": "最新の招待",
+        "send": "リンクを生成",
+        "sending": "生成中...",
+        "sent": "教員有効化リンクを生成しました",
+        "title": "教員招待による有効化"
+      },
       "adminPermissionNote": "管理者に設定すると、そのユーザーには完全なシステム管理権限が付与されます。",
       "columns": {
         "actions": "操作",
         "currentRole": "現在の役割",
+        "displayName": "表示名",
         "email": "メールアドレス",
+        "lastLogin": "最終ログイン",
         "loginMethod": "ログイン方法",
+        "onboarding": "オンボーディング",
         "username": "ユーザー名"
       },
       "confirmRoleChange": "役割変更の確認",
       "confirmRoleChangeMessage": "{{username}}の役割を{{oldRole}}から{{newRole}}に変更してもよろしいですか？",
       "description": "すべてのユーザーを表示し、役割を管理（検索機能でフィルタリング可能）",
+      "filters": {
+        "all": "すべて"
+      },
       "loadFailed": "ユーザーを読み込めません",
       "loginMethods": {
         "email": "パスワード認証",
-        "password": "パスワード認証",
         "github": "GitHub",
         "google": "Google",
+        "password": "パスワード認証",
         "sso": "SSO",
         "unknown": "不明"
       },
       "minSearchLength": "検索には2文字以上入力してください",
       "noUsersFound": "該当するユーザーが見つかりません",
+      "notAvailable": "データなし",
+      "onboarding": {
+        "completed": "完了",
+        "pending": "未完了"
+      },
+      "revokeTeacher": "学生に戻す",
       "searchFailed": "検索に失敗しました",
       "searchFailedRetry": "検索に失敗しました。後でもう一度お試しください",
       "searchLabel": "ユーザー検索（任意）",
       "searchPlaceholder": "ユーザー名またはメールアドレスでフィルタリング...",
       "searchResults": "検索結果（{{count}}件）",
+      "sendTeacherInvite": "有効化リンクを生成",
+      "summary": {
+        "pendingOnboarding": "未完了オンボーディング",
+        "teachers": "有効化された教員",
+        "totalUsers": "総ユーザー数"
+      },
       "title": "ユーザー管理",
       "updateFailed": "更新に失敗しました",
       "updateFailedRetry": "更新に失敗しました。後でもう一度お試しください"
@@ -80,37 +97,6 @@
       "adminTA": "管理者（TA）",
       "student": "学生",
       "teacher": "教員"
-    }
-  },
-  "service": {
-    "title": "サービス状態",
-    "subtitle": "プラットフォーム自身のサービスの即時プローブ結果。開いたときと再プローブ時のみ実行し、ポーリングはしません。",
-    "refresh": "再プローブ",
-    "loadFailed": "サービス状態を取得できません",
-    "allUp": "すべて正常",
-    "someDown": "{{count}} 件の異常",
-    "generatedAt": "プローブ時刻",
-    "component": "サービス",
-    "status": "状態",
-    "latency": "レイテンシ",
-    "detail": "詳細",
-    "integrityTitle": "試験監視 Run",
-    "liveRuns": "進行中",
-    "unhealthyRuns": "unhealthy",
-    "staleHeartbeats": "ハートビート遅延",
-    "neverReported": "未報告",
-    "staleHint": "ハートビートが {{seconds}} 秒以上更新されない場合は遅延とみなします。",
-    "contest": "コンテスト",
-    "runState": "状態",
-    "worker": "Worker",
-    "lastError": "最終エラー",
-    "noHeartbeat": "ハートビートなし",
-    "components": {
-      "database": "データベース",
-      "cache": "キャッシュ (Redis)",
-      "celery": "Celery ワーカー",
-      "ai_service": "AI サービス",
-      "integrity_resident": "Integrity Resident"
     }
   }
 }

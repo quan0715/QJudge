@@ -12,7 +12,6 @@
     },
     "mobileTitle": "競賽後台",
     "nav": {
-      "standings": "排行榜",
       "aiGrading": "AI 批改",
       "clarifications": "問答",
       "examAiGrading": "AI 批改",
@@ -24,13 +23,16 @@
       "problemManagement": "題目管理",
       "proctoring": "監考",
       "settings": "設定",
+      "standings": "排行榜",
       "statistics": "統計"
     },
     "title": "管理後台"
   },
   "adminOverview": {
     "actions": {
+      "disableAttendanceCheck": "停用簽到",
       "editSettings": "設定",
+      "enableAttendanceCheck": "啟用簽到",
       "openContestHomepage": "開啟競賽主頁",
       "publishContest": "發布競賽",
       "publishContestBody": "發布後學生就可以看到這場競賽。",
@@ -61,12 +63,13 @@
       "strictModeEnableBody": "啟用後會套用考前檢查、監考來源與異常事件記錄。",
       "strictModeEnableConfirm": "確定要啟用防作弊監控嗎？",
       "strictModeEnableSuccess": "已啟用防作弊監控",
-      "updateFailed": "更新失敗",
-      "disableAttendanceCheck": "停用簽到",
-      "enableAttendanceCheck": "啟用簽到"
+      "updateFailed": "更新失敗"
     },
     "command": {
       "ariaLabel": "教師管理總覽",
+      "clarifications": {
+        "publishAnnouncement": "發布公告"
+      },
       "connection": {
         "offline": "離線",
         "online": "在線"
@@ -83,9 +86,6 @@
         "questionStats": "作答分佈",
         "standings": "排行榜",
         "submissions": "提交列表"
-      },
-      "clarifications": {
-        "publishAnnouncement": "發布公告"
       },
       "eventLog": "事件紀錄",
       "examStatusSummary": "考試狀態摘要",
@@ -299,80 +299,80 @@
     },
     "preparation": {
       "ariaLabel": "競賽準備總覽",
+      "blockedBySchedule": "發布前會先請你設定考試時間",
+      "checklistTitle": "待完成",
+      "confirm": {
+        "publishAnyway": "仍要發布",
+        "publishWithoutProblemsBody": "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
+        "publishWithoutProblemsTitle": "這場競賽還沒有題目",
+        "revertToDraftBody": "退回後學生會立刻看不到這場競賽。",
+        "revertToDraftTitle": "確定要退回草稿嗎？"
+      },
+      "dangerAction": "危險操作",
+      "draftHiddenNote": "草稿不會出現在學生的競賽列表",
+      "info": {
+        "contestType": "考卷題型",
+        "participants": "考生人數",
+        "problems": "題目數量"
+      },
+      "level": {
+        "blocking": "發布前必填",
+        "done": "已完成",
+        "pending": "待完成",
+        "warning": "建議設定"
+      },
+      "nextStep": "下一步",
+      "participants": {
+        "action": "管理名單",
+        "done": "已加入 {{count}} 人",
+        "missing": "尚未加入任何考生",
+        "title": "考生名單"
+      },
+      "participantsTitle": "考生名單",
+      "previewAsStudent": "預覽考生視角",
+      "problems": {
+        "action": "前往題目管理",
+        "done": "已設定 {{count}} 題",
+        "missing": "尚未新增題目",
+        "title": "題目準備"
+      },
+      "rules": {
+        "action": "開啟設定",
+        "done": "已設定規則內容",
+        "missing": "建議補上考試規則與注意事項",
+        "title": "競賽規則"
+      },
+      "schedule": {
+        "action": "設定時間",
+        "done": "{{start}} - {{end}}",
+        "missing": "尚未設定，發布前必填",
+        "title": "考試時間"
+      },
+      "startsIn": "距離開考 {{value}}",
       "steps": {
-        "title": "競賽準備步驟",
+        "back": "返回",
         "information": "競賽資訊設定",
         "informationDescription": "規則與時間",
         "problems": "競賽題目設定",
-        "review": "確認資訊並發布競賽",
-        "reviewDescription": "確認設定後發布給學生",
-        "reviewBlocked": "請先完成競賽資訊設定，再發布競賽。",
         "published": "競賽已發布",
-        "back": "返回"
+        "review": "確認資訊並發布競賽",
+        "reviewBlocked": "請先完成競賽資訊設定，再發布競賽。",
+        "reviewDescription": "確認設定後發布給學生",
+        "title": "競賽準備步驟"
       },
-      "checklistTitle": "待完成",
-      "participantsTitle": "考生名單",
-      "nextStep": "下一步",
-      "studentView": "學生看到的樣子",
-      "previewAsStudent": "預覽考生視角",
-      "draftHiddenNote": "草稿不會出現在學生的競賽列表",
-      "blockedBySchedule": "發布前會先請你設定考試時間",
-      "startsIn": "距離開考 {{value}}",
-      "dangerAction": "危險操作",
-      "level": {
-        "pending": "待完成",
-        "done": "已完成",
-        "warning": "建議設定",
-        "blocking": "發布前必填"
-      },
-      "info": {
-        "contestType": "考卷題型",
-        "problems": "題目數量",
-        "participants": "考生人數"
-      },
-      "schedule": {
-        "title": "考試時間",
-        "done": "{{start}} - {{end}}",
-        "missing": "尚未設定，發布前必填",
-        "action": "設定時間"
-      },
-      "problems": {
-        "title": "題目準備",
-        "done": "已設定 {{count}} 題",
-        "missing": "尚未新增題目",
-        "action": "前往題目管理"
-      },
-      "participants": {
-        "title": "考生名單",
-        "done": "已加入 {{count}} 人",
-        "missing": "尚未加入任何考生",
-        "action": "管理名單"
-      },
-      "rules": {
-        "title": "競賽規則",
-        "done": "已設定規則內容",
-        "missing": "建議補上考試規則與注意事項",
-        "action": "開啟設定"
-      },
-      "confirm": {
-        "publishWithoutProblemsTitle": "這場競賽還沒有題目",
-        "publishWithoutProblemsBody": "學生進場後會看到空白的題目列表。你可以先發布，稍後再補題目。",
-        "publishAnyway": "仍要發布",
-        "revertToDraftTitle": "確定要退回草稿嗎？",
-        "revertToDraftBody": "退回後學生會立刻看不到這場競賽。"
-      }
+      "studentView": "學生看到的樣子"
     },
     "screen": {
       "actions": {
         "addParticipant": "新增參賽者",
+        "attendanceProjection": "開啟簽到投屏",
         "contestHome": "競賽主頁",
         "export": "匯出成績",
         "exporting": "匯出中",
         "refresh": "重新整理",
         "refreshing": "重新整理中",
-        "studentQrScan": "掃描學生 QR",
         "settings": "競賽設定",
-        "attendanceProjection": "開啟簽到投屏"
+        "studentQrScan": "掃描學生 QR"
       },
       "contestInfoLabel": "競賽資訊",
       "contestStatus": {
@@ -412,6 +412,7 @@
       "remainingLabel": "剩餘時間"
     },
     "widgets": {
+      "attendanceCheck": "QR 簽到簽退",
       "coding": "程式題",
       "disabled": "未啟用",
       "enabled": "已啟用",
@@ -433,8 +434,7 @@
       "timelineProgress": "時間進度",
       "title": "控制台",
       "violationCount": "異常事件數",
-      "violationCountAria": "異常事件數 前往事件面板",
-      "attendanceCheck": "QR 簽到簽退"
+      "violationCountAria": "異常事件數 前往事件面板"
     }
   },
   "adminPreparationDashboard": {
@@ -487,35 +487,17 @@
       "backToDashboard": "回到競賽主頁",
       "submitted": "考試已結束，試卷已送出"
     },
+    "group": {
+      "sharedStem": "題組題幹",
+      "totalScore": "小計 {{score}} 分"
+    },
     "loading": "載入考試題目中...",
     "mark": {
       "toggle": "標記待複查"
     },
-    "modes": {
-      "all": "全題模式",
-      "single": "逐題模式"
-    },
-    "navigation": {
-      "answeredProgress": "已作答 {{answered}} / {{total}}",
-      "hideList": "隱藏題目列表",
-      "markedCount": "{{count}} 題已標記",
-      "nextQuestion": "下一題",
-      "prevQuestion": "上一題",
-      "questionList": "題目列表",
-      "showList": "顯示題目列表"
-    },
-    "noQuestions": "此考試尚未設定任何題目",
-    "question": {
-      "answerLabel": "作答區",
-      "essayPlaceholder": "請詳細作答...",
-      "falseOption": "否 (False)",
-      "promptEmpty": "（尚未填寫題目敘述）",
-      "shortAnswerPlaceholder": "輸入你的答案...",
-      "trueOption": "是 (True)"
-    },
-    "group": {
-      "sharedStem": "題組題幹",
-      "totalScore": "小計 {{score}} 分"
+    "markdownEditor": {
+      "ariaLabel": "Markdown 解答編輯器",
+      "placeholder": "輸入解答，可使用 Markdown 排版"
     },
     "mathEditor": {
       "ariaLabel": "數學解答編輯器",
@@ -545,13 +527,31 @@
         "theta": "角度 theta"
       }
     },
-    "markdownEditor": {
-      "ariaLabel": "Markdown 解答編輯器",
-      "placeholder": "輸入解答，可使用 Markdown 排版"
+    "modes": {
+      "all": "全題模式",
+      "single": "逐題模式"
     },
+    "navigation": {
+      "answeredProgress": "已作答 {{answered}} / {{total}}",
+      "hideList": "隱藏題目列表",
+      "markedCount": "{{count}} 題已標記",
+      "nextQuestion": "下一題",
+      "prevQuestion": "上一題",
+      "questionList": "題目列表",
+      "showList": "顯示題目列表"
+    },
+    "noQuestions": "此考試尚未設定任何題目",
     "openAnswer": {
       "ariaLabel": "開放題作答紙",
       "placeholder": "輸入解題過程，可用工具列或 / 插入公式"
+    },
+    "question": {
+      "answerLabel": "作答區",
+      "essayPlaceholder": "請詳細作答...",
+      "falseOption": "否 (False)",
+      "promptEmpty": "（尚未填寫題目敘述）",
+      "shortAnswerPlaceholder": "輸入你的答案...",
+      "trueOption": "是 (True)"
     },
     "questionTypes": {
       "coding": "程式題",
@@ -588,6 +588,160 @@
     "error": "封存失敗",
     "title": "封存競賽"
   },
+  "attendance": {
+    "badge": "QR 簽到",
+    "confirm": {
+      "description": "確認資訊與照片清楚後即可上傳。",
+      "infoLabel": "簽到資訊",
+      "photoPreviewAlt": "{{label}}預覽",
+      "photoStatus": "照片狀態",
+      "photosLabel": "佐證照片",
+      "scannedAt": "掃描時間",
+      "title": "確認{{purpose}}資訊",
+      "type": "類型",
+      "uploadFailed": "上傳失敗"
+    },
+    "cta": {
+      "backToExam": "返回考試",
+      "backToScan": "返回掃描",
+      "capturePurposePhoto": "拍攝{{purpose}}照片",
+      "confirmInfo": "確認資訊",
+      "confirmUpload": "確認並上傳",
+      "manualCode": "手動輸入代碼",
+      "next": "下一步",
+      "nextPhoto": "下一張",
+      "realignment": "重新對準",
+      "retake": "重拍",
+      "retakePhotos": "重新拍攝",
+      "retryCamera": "重新嘗試相機",
+      "retryUpload": "重試上傳",
+      "scanning": "正在掃描…",
+      "uploading": "上傳中…",
+      "validating": "驗證中…",
+      "waitingCamera": "等待相機授權…"
+    },
+    "done": {
+      "contest": "競賽",
+      "description": "系統已記錄您的{{purpose}}事件。",
+      "photosLabel": "佐證照片",
+      "resultLabel": "簽到結果",
+      "status": "狀態",
+      "time": "時間",
+      "title": "已完成{{purpose}}認證",
+      "uploaded": "已上傳"
+    },
+    "errors": {
+      "cameraUnavailable": "相機無法使用",
+      "cameraUnsupported": "此瀏覽器不支援相機存取，請改由教師協助簽到。",
+      "capturePhotoFailed": "照片擷取失敗，請重新拍攝。",
+      "checkInAlreadyCompleted": "您已完成簽到。",
+      "checkInOnlyBeforeStart": "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
+      "checkOutAlreadyCompleted": "您已完成簽退。",
+      "checkoutAfterSubmit": "交卷後才可以簽退。",
+      "invalidManualCode": "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。",
+      "invalidToken": "QR Code 無效，請重新掃描投影畫面上的 QR Code。",
+      "manualCodeLength": "請輸入投影畫面上的 6 碼代碼。",
+      "missingPurpose": "請先從競賽主頁選擇簽到或簽退。",
+      "notCheckInTime": "目前不在可簽到時間。",
+      "notEnabled": "此考試尚未開啟 QR Code 簽到簽退。",
+      "photoMissing": "{{label}}尚未拍攝完成",
+      "photoUploadFailed": "照片上傳失敗，請重新送出。",
+      "submitFailed": "簽到資料送出失敗，請稍後再試。",
+      "tokenExpired": "QR Code 已過期，請重新掃描投影畫面上的 QR Code。",
+      "uploadIntentIncomplete": "上傳工作未包含所有必要照片，請重新送出。",
+      "wrongPurposeQr": "這是{{actual}} QR Code，請掃描{{expected}} QR Code。"
+    },
+    "header": {
+      "auth": "{{purpose}}認證",
+      "confirm": "確認{{purpose}}",
+      "done": "{{purpose}}完成",
+      "manual": "輸入{{purpose}}代碼",
+      "photo": "拍照{{purpose}}"
+    },
+    "manual": {
+      "cannotContinue": "無法繼續",
+      "codeAriaLabel": "{{purpose}}代碼",
+      "description": "請輸入教師投影畫面上 QR Code 下方的 6 碼數字代碼。",
+      "digitAriaLabel": "第 {{index}} 碼",
+      "title": "輸入{{purpose}}代碼"
+    },
+    "photo": {
+      "alignTarget": "對準{{label}}",
+      "cameraUnavailable": "相機無法使用",
+      "cannotComplete": "無法完成拍照",
+      "captureLabel": "拍攝{{label}}",
+      "nextStepConfirm": "下一步：確認簽到資訊並上傳",
+      "nextStepPhoto": "下一步：{{title}}",
+      "qrVerifiedChip": "QR 已認證 · {{contest}}",
+      "readyChip": "照片已就緒 · {{contest}}",
+      "room": {
+        "description": "請拍攝教室環境與考試裝置畫面。",
+        "label": "現場照片",
+        "rearDescription": "請使用後鏡頭拍攝教室環境與考試裝置畫面。",
+        "title": "拍攝現場照片"
+      },
+      "selfie": {
+        "description": "請使用前鏡頭拍攝本人到場照片。",
+        "label": "本人照片",
+        "title": "拍攝本人到場照片"
+      }
+    },
+    "projection": {
+      "backToAdmin": "回管理介面",
+      "countdown": {
+        "ended": "考試已結束",
+        "endedTone": "已結束",
+        "endsIn": "距離截止",
+        "exam": "考試倒數",
+        "openCheckIn": "開放簽到",
+        "running": "考試進行中",
+        "startsIn": "距離開始",
+        "unset": "未設定時間"
+      },
+      "enterFullscreen": "進入全螢幕",
+      "examFallback": "考試",
+      "examLabel": "考試",
+      "exitFullscreen": "退出全螢幕",
+      "guide": {
+        "ariaLabel": "簽到說明",
+        "photo": "拍攝現場照片",
+        "scan": "掃描 QR Code",
+        "upload": "確認並上傳"
+      },
+      "loading": "載入中",
+      "manualCodeLabel": "相機無法使用時輸入代碼",
+      "marker": {
+        "end": "結束",
+        "now": "現在",
+        "start": "開始"
+      },
+      "mode": {
+        "ariaLabel": "切換簽到簽退 QR Code"
+      },
+      "progress": "考試進度",
+      "progressAria": "考試進度 {{progress}}%",
+      "refreshFailed": "QR Code 重新載入失敗",
+      "reloadQr": "正在重新載入 QR Code",
+      "title": "考試簽到簽退",
+      "unstableSubtitle": "系統會自動保留上一組可用 QR Code 並持續重新載入。",
+      "unstableTitle": "QR 載入不穩定"
+    },
+    "purpose": {
+      "checkIn": "簽到",
+      "checkOut": "簽退"
+    },
+    "scan": {
+      "alignQr": "對準投影上的 QR Code",
+      "cannotComplete": "無法完成簽到",
+      "description": "請對準投影畫面上的{{purpose}} QR Code。",
+      "title": "掃描 QR Code",
+      "validating": "驗證中…",
+      "waitingCamera": "等待相機授權"
+    },
+    "shell": {
+      "back": "返回"
+    }
+  },
   "avatar": {
     "admin": "管理員",
     "editContestNickname": "編輯比賽暱稱",
@@ -622,6 +776,8 @@
   "createModal": {
     "advancedIntro": "請依監考與參與規範設定進階條件。",
     "advancedSettings": "進階條件設定",
+    "attendanceHint": "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。",
+    "attendanceTitle": "QR 簽到簽退",
     "chooseTypeTitle": "建立競賽",
     "configureSchedule": "設定基本資訊",
     "contestName": "競賽名稱",
@@ -670,9 +826,7 @@
       "cannotComputeEndTime": "無法計算結束時間，請檢查開始時間與比賽長度",
       "durationPositive": "比賽長度必須是大於 0 的分鐘數",
       "passwordRequired": "需要密碼時必須設定加入密碼"
-    },
-    "attendanceTitle": "QR 簽到簽退",
-    "attendanceHint": "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。"
+    }
   },
   "dashboard": {
     "acceptedRate": "通過率",
@@ -769,9 +923,7 @@
     "settings": "匯出設定",
     "title": "下載競賽檔案"
   },
-  "duration": "時長",
   "endTime": "結束時間",
-  "enterFullscreen": "進入全螢幕",
   "error": {
     "cannotViewProblem": "無法查看題目",
     "createFailed": "建立競賽失敗",
@@ -891,6 +1043,35 @@
     },
     "answerNotSet": "（未設定答案）",
     "autoSaveEnabled": "自動儲存中",
+    "codingPreviewPlaceholder": "待編輯",
+    "codingProblemUntitled": "未定標題的程式題",
+    "codingProblemWithLabel": "題目 {{label}}",
+    "codingSourceHint": "可從題庫選題，或直接建立新的程式題。",
+    "collapseSourcePanel": "收起題目來源",
+    "confirmDelete": "確定刪除題目 #{{num}}？",
+    "confirmRemoveProblem": "確定要從競賽移除此題？",
+    "copyFailed": "複製失敗",
+    "correctAnswer": "正確答案",
+    "createQuestion": "直接建立新題目",
+    "deleteFailed": "刪除失敗",
+    "deleteOption": "刪除選項",
+    "explanation": "詳解",
+    "explanationNotSet": "（未設定詳解）",
+    "explanationPlaceholder": "輸入完整解題過程、推導或觀念解析；不要把評分用最終答案只放在這裡",
+    "falseOption": "否 (False)",
+    "gradingReferenceAnswer": "評分參考答案",
+    "gradingReferencePlaceholder": "輸入評分用答案要點或最終結論；完整推導請放在詳解",
+    "hideQuestionList": "隱藏題目列表",
+    "importFromBank": "從題庫匯入",
+    "importFrozen": "目前題目已凍結，無法匯入。",
+    "importRollbackFailed": "匯入失敗且回滾失敗",
+    "importRollbackFailedDetail": "請重新整理頁面後檢查題目內容",
+    "importRolledBack": "匯入失敗，已自動回滾",
+    "importSuccess": "匯入成功",
+    "importSuccessDetail": "已覆蓋 {{count}} 題",
+    "insertHere": "在此插入題目",
+    "loadFailed": "載入失敗",
+    "loadFailedDetail": "載入 Exam 題目失敗",
     "lockedSave": {
       "continueEditing": "繼續編輯",
       "discard": "捨棄變更",
@@ -910,35 +1091,7 @@
       "unpublishNotice": "此操作可能取消目前的成績發布狀態。",
       "unsaved": "尚未儲存"
     },
-    "codingPreviewPlaceholder": "待編輯",
-    "codingProblemUntitled": "未定標題的程式題",
-    "codingProblemWithLabel": "題目 {{label}}",
-    "codingSourceHint": "可從題庫選題，或直接建立新的程式題。",
-    "collapseSourcePanel": "收起題目來源",
-    "confirmDelete": "確定刪除題目 #{{num}}？",
-    "confirmRemoveProblem": "確定要從競賽移除此題？",
-    "copyFailed": "複製失敗",
-    "correctAnswer": "正確答案",
-    "createQuestion": "直接建立新題目",
-    "deleteFailed": "刪除失敗",
-    "deleteOption": "刪除選項",
-    "explanation": "詳解",
-    "explanationNotSet": "（未設定詳解）",
-    "explanationPlaceholder": "輸入完整解題過程、推導或觀念解析；不要把評分用最終答案只放在這裡",
-    "falseOption": "否 (False)",
-    "hideQuestionList": "隱藏題目列表",
-    "importFromBank": "從題庫匯入",
-    "importFrozen": "目前題目已凍結，無法匯入。",
-    "importRollbackFailed": "匯入失敗且回滾失敗",
-    "importRollbackFailedDetail": "請重新整理頁面後檢查題目內容",
-    "importRolledBack": "匯入失敗，已自動回滾",
-    "importSuccess": "匯入成功",
-    "importSuccessDetail": "已覆蓋 {{count}} 題",
-    "insertHere": "在此插入題目",
-    "loadFailed": "載入失敗",
-    "loadFailedDetail": "載入 Exam 題目失敗",
     "maxScoreFieldLabel": "配分",
-    "tabTestCasesAndScoring": "測資與配分",
     "noQuestions": "尚無題目",
     "openBankInbox": "題庫匯入",
     "openSourcePanel": "開啟題目來源",
@@ -956,16 +1109,14 @@
     "questionLockedReason": "已有考生開始作答，競賽內容已鎖定",
     "questionNumber": "第 {{num}} 題",
     "questionUpdated": "題目已更新",
-    "gradingReferenceAnswer": "評分參考答案",
-    "gradingReferencePlaceholder": "輸入評分用答案要點或最終結論；完整推導請放在詳解",
     "referenceAnswer": "參考答案",
     "referenceNotSet": "（未設定參考答案）",
     "referencePlaceholder": "參考答案（可選，支援 Markdown）",
     "removeFromContest": "從競賽移除",
     "saveFailed": "儲存失敗",
-    "scoreDescription": "設定此題在競賽中的最高分",
     "saveToBank": "收錄到題庫",
     "saveToBankAlreadyInBank": "此題已收錄至題庫",
+    "scoreDescription": "設定此題在競賽中的最高分",
     "scoreLabel": "分",
     "scoreUnit": "{{score}} 分",
     "selectQuestionType": "選擇題目類型",
@@ -987,6 +1138,7 @@
     "sourceTabTypes": "題型",
     "sourceTabs": "題目來源分頁",
     "standardAnswer": "標準答案",
+    "tabTestCasesAndScoring": "測資與配分",
     "totalScore": "總分 {{score}}",
     "trueOption": "是 (True)",
     "validation": {
@@ -997,7 +1149,6 @@
     },
     "validationFailed": "驗證失敗"
   },
-  "examMode": "作弊檢查",
   "examStatus": {
     "in_progress": "進行中",
     "locked": "已鎖定",
@@ -1005,7 +1156,6 @@
     "paused": "已暫停",
     "submitted": "已交卷"
   },
-  "exit": "離開",
   "exitFullscreen": "離開全螢幕",
   "exitModal": {
     "confirmExit": "確認離開競賽",
@@ -1249,19 +1399,18 @@
       "ask_question": "提問",
       "auto_submit": "自動提交",
       "clipboard_action": "剪貼簿操作",
+      "concurrent_login_detected": "偵測到多端登入",
       "connectivity_restored": "連線恢復",
       "connectivity_suspect": "連線疑似中斷",
-      "concurrent_login_detected": "偵測到多端登入",
+      "connectivity_timeout": "連線逾時",
       "end_exam": "結束考試",
       "enter_contest": "進入競賽",
       "exam_entered": "進入考試作答",
-      "precheck_passed": "通過考前環境檢測",
       "exam_submit_initiated": "發起交卷",
       "exit_fullscreen": "退出全螢幕",
       "exit_fullscreen_triggered": "退出全螢幕（觸發）",
-      "fullscreen_restored": "全螢幕恢復",
       "forbidden_action": "禁止操作",
-      "connectivity_timeout": "連線逾時",
+      "fullscreen_restored": "全螢幕恢復",
       "join": "加入",
       "leave": "離開競賽",
       "listener_tampered": "監控偵測器遭篡改",
@@ -1275,6 +1424,7 @@
       "multiple_displays": "多螢幕偵測",
       "other": "其他",
       "pause_exam": "暫停考試",
+      "precheck_passed": "通過考前環境檢測",
       "register": "註冊",
       "reopen_exam": "重新開放考試",
       "reply_question": "回覆提問",
@@ -1299,8 +1449,6 @@
       "webcam_stopped": "Webcam 中斷逾時"
     },
     "evidenceAvailable": "有證據",
-    "occurrences": "事件次序",
-    "occurrenceLabel": "第 {{index}} 次 · {{time}} · {{seconds}} 秒",
     "filterCategory": "篩選優先級",
     "filterEventType": "篩選事件類型",
     "groups": {
@@ -1311,9 +1459,9 @@
     },
     "hourlyStats": "每 1 小時統計",
     "kpi": {
+      "connectivityTimeout": "連線逾時",
       "critical": "高風險事件",
       "degraded": "證據異常",
-      "connectivityTimeout": "連線逾時",
       "violation": "計罰違規"
     },
     "loadedCount": "已載入 {{loaded}} / {{total}} 筆",
@@ -1329,6 +1477,8 @@
     "noDataToVisualize": "暫無事件資料可供視覺化",
     "noEvents": "暫無事件紀錄",
     "noMatchingEvents": "無符合篩選條件的事件",
+    "occurrenceLabel": "第 {{index}} 次 · {{time}} · {{seconds}} 秒",
+    "occurrences": "事件次序",
     "penalized": "計罰",
     "priorityGroups": {
       "critical": "P0 嚴重",
@@ -1362,8 +1512,6 @@
     "title": "考試監控中",
     "warningMessage": "違反上述規則將會被系統記錄，超過次數限制將會被自動鎖定並無法繼續考試。"
   },
-  "myContestManagement": "我的競賽管理",
-  "notActive": "非進行中",
   "overview": {
     "contestFiles": "競賽檔案",
     "contestRules": "競賽規則",
@@ -1402,32 +1550,34 @@
     "loadingDescription": "正在取得題目清單與成績資料...",
     "loadingTitle": "載入中",
     "noFeedback": "尚無評語",
-    "notGraded": "未批改",
     "notEligibleDescription": "只有本班成員可以查看題目與成績。",
     "notEligibleTitle": "不在本班名單",
+    "notGraded": "未批改",
     "openingDescription": "點擊題目列可進入作答畫面並定位到該題。",
     "openingTitle": "可檢視題目",
     "title": "題目與成績",
     "totalScore": "總分 {{score}} / {{total}}"
   },
-  "participantCount": "參賽人數",
   "participants": {
     "actions": {
+      "assistedCheckIn": "人工簽到",
+      "assistedCheckOut": "人工簽退",
       "download": "下載報告",
       "edit": "編輯狀態",
       "remove": "移除參賽者",
       "reopen": "重新開放考試",
-      "unlock": "解除鎖定",
-      "assistedCheckIn": "人工簽到",
-      "assistedCheckOut": "人工簽退",
-      "resetExamRecord": "重置考試紀錄"
+      "resetExamRecord": "重置考試紀錄",
+      "unlock": "解除鎖定"
     },
     "add": "新增",
     "addFailed": "新增參賽者失敗",
     "added": "參賽者已新增",
+    "attendanceReset": "已重置簽到測試紀錄",
+    "attendanceResetFailed": "重置簽到測試紀錄失敗",
     "confirmExport": "確定要匯出參賽者競賽資料？",
     "confirmRemove": "確定要移除參賽者 {{name}} 嗎？",
     "confirmReopen": "確定要重新開放此學生考試嗎？",
+    "confirmResetAttendance": "確定要重置此學生的簽到測試紀錄嗎？這只會清除簽到/簽退事件與佐證，不會影響作答紀錄。",
     "confirmResetExamRecord": "確定要重置此學生的考試紀錄嗎？這會清除作答、成績、簽到簽退與監考事件，但不會移除參賽者。",
     "confirmUnlock": "確定要解除此學生的鎖定嗎？",
     "connection": {
@@ -1436,8 +1586,6 @@
       "online": "在線"
     },
     "detailPanel": "參賽者詳細資料",
-    "examRecordReset": "已重置考試紀錄",
-    "examRecordResetFailed": "重置考試紀錄失敗",
     "displayCount": "顯示 {{shown}} / {{total}} 位參賽者",
     "downloadFailed": "下載報告失敗",
     "editModal": {
@@ -1447,6 +1595,8 @@
       "save": "儲存變更",
       "selectStatus": "選擇狀態"
     },
+    "examRecordReset": "已重置考試紀錄",
+    "examRecordResetFailed": "重置考試紀錄失敗",
     "exportFailed": "匯出失敗",
     "filterStatus": "篩選狀態",
     "generatingReport": "正在產生 {{name}} 的報告...",
@@ -1494,35 +1644,7 @@
     "unlocked": "已解除鎖定",
     "updateFailed": "更新失敗",
     "viewModeLabel": "參賽者檢視模式",
-    "viewTitle": "檢視參與者",
-    "confirmResetAttendance": "確定要重置此學生的簽到測試紀錄嗎？這只會清除簽到/簽退事件與佐證，不會影響作答紀錄。",
-    "attendanceReset": "已重置簽到測試紀錄",
-    "attendanceResetFailed": "重置簽到測試紀錄失敗"
-  },
-  "participantsAdmin": {
-    "add": "新增",
-    "addFailed": "新增失敗",
-    "addSuccess": "參賽者已新增",
-    "allStatus": "全部狀態",
-    "downloadFailed": "下載失敗",
-    "downloadReport": "下載個人成績報告",
-    "headers": {
-      "examStatus": "考試狀態",
-      "joinedAt": "加入時間",
-      "nickname": "暱稱",
-      "score": "分數",
-      "username": "使用者"
-    },
-    "removeConfirm": "確定要移除此參賽者嗎？",
-    "removeFailed": "移除失敗",
-    "removeSuccess": "參賽者已移除",
-    "reopenConfirm": "確定要讓此學生重新作答嗎？",
-    "reopenFailed": "重新開放失敗",
-    "reopenSuccess": "已重新開放作答",
-    "title": "參賽者列表",
-    "unlockConfirm": "確定要解除此學生的鎖定嗎？",
-    "unlockFailed": "解除鎖定失敗",
-    "unlockSuccess": "已解除鎖定"
+    "viewTitle": "檢視參與者"
   },
   "placeholder": {
     "contestName": "輸入競賽名稱"
@@ -1569,16 +1691,14 @@
     },
     "environment": {
       "checks": {
-        "graphics": "繪圖環境檢測",
         "fullscreen": "全螢幕模式測試",
+        "graphics": "繪圖環境檢測",
         "interaction": "輸入互動檢測",
         "monitor": "螢幕數量檢測",
         "sharing": "螢幕分享授權",
         "webcam": "Webcam 授權"
       },
       "errors": {
-        "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。",
-        "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
         "dependencyPrefix": "需先通過「{{name}}」。",
         "focusFailed": "請先切回此頁面後重試。",
@@ -1590,14 +1710,16 @@
         "notMonitor": "必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗或分頁。",
         "sharingFailed": "螢幕分享授權失敗，請重新分享並選擇「整個螢幕」。",
         "sharingInterrupted": "螢幕分享已中斷，請重新完成檢查。",
+        "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
         "tabletRequiresPwa": "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。",
         "webcamFailed": "Webcam 無法使用，請重新授權。",
-        "webcamUnsupported": "此瀏覽器不支援 Webcam。"
+        "webcamUnsupported": "此瀏覽器不支援 Webcam。",
+        "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。"
       },
       "requirements": {
-        "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
         "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
         "display": "限單一螢幕，請務必拔除外接顯示器。",
+        "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
         "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
         "pwa": "請從主畫面啟動 PWA 視窗作答。",
         "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。",
@@ -1635,23 +1757,6 @@
   },
   "private": "私有",
   "problemList": "題目列表",
-  "problemManage": {
-    "add": "新增",
-    "addFailed": "新增題目失敗，請確認 ID 或標題正確",
-    "addHint": "請輸入題目 ID (從題庫加入) 或 題目標題 (建立新題目)。",
-    "addProblem": "新增競賽題目",
-    "added": "題目已新增",
-    "adding": "新增中...",
-    "confirmRemove": "確定要從競賽中移除此題目嗎？",
-    "newProblemPlaceholder": "輸入新題目名稱",
-    "orCreateNew": "或者建立空白新題目",
-    "removeFailed": "移除題目失敗",
-    "removed": "題目已移除",
-    "reorderFailed": "調整順序失敗",
-    "searchPlaceholder": "搜尋題目 ID 或標題...",
-    "selectFromLibrary": "從題庫與範本選擇 (Clone)",
-    "title": "題目管理"
-  },
   "problems": "題目數",
   "proctoringPanel": {
     "backToRoster": "返回列表",
@@ -1671,7 +1776,6 @@
   },
   "progress": "考試進度",
   "public": "公開",
-  "refresh": "重新整理競賽資訊",
   "report": {
     "descriptionCoding": "下載包含解題統計、程式碼和趨勢圖的 PDF 報告",
     "descriptionPaper": "下載包含逐題作答、得分與 TA 評語的 PDF 報告",
@@ -1729,6 +1833,10 @@
       },
       "disabledDesc": "{{device}} 端監控未啟用",
       "enableMonitoring": "啟用監控",
+      "enableScreenShare": "啟用螢幕分享",
+      "enableScreenShareDesc": "桌機考生需分享整個螢幕作為作答證據。",
+      "enableWebcam": "啟用 Webcam",
+      "enableWebcamDesc": "桌機與平板考生都需開啟 Webcam。",
       "enabledDesc": "{{device}} 端監控已啟用",
       "evidencePolicy": "證據追蹤政策",
       "forceEnable": "強制開啟",
@@ -1737,22 +1845,28 @@
       "screenShareDesc": "擷取學生螢幕畫面作為監控證據",
       "securityDetectors": "異常事件偵測",
       "tabletLabel": "Tablet / iPad 設定",
+      "tabletNoEvidenceHint": "平板考生目前沒有任何證據來源，建議開啟 Webcam。",
+      "tabletScreenShareUnsupported": "平板暫時無法使用螢幕分享",
+      "tabletWebcamOnlyHint": "平板考生只會以 Webcam 作為作答證據。",
       "webcam": "視訊監控 (Webcam)",
       "webcamDesc": "擷取學生攝像頭畫面作為監控證據",
-      "enableScreenShare": "啟用螢幕分享",
-      "enableScreenShareDesc": "桌機考生需分享整個螢幕作為作答證據。",
-      "enableWebcam": "啟用 Webcam",
-      "enableWebcamDesc": "桌機與平板考生都需開啟 Webcam。",
-      "webcamOnlyTabletDesc": "目前只有平板要求 Webcam；切換後會同時套用到桌機與平板。",
       "webcamOnlyDesktopDesc": "目前只有桌機要求 Webcam；切換後會同時套用到桌機與平板。",
-      "tabletScreenShareUnsupported": "平板暫時無法使用螢幕分享",
-      "tabletNoEvidenceHint": "平板考生目前沒有任何證據來源，建議開啟 Webcam。",
-      "tabletWebcamOnlyHint": "平板考生只會以 Webcam 作為作答證據。"
+      "webcamOnlyTabletDesc": "目前只有平板要求 Webcam；切換後會同時套用到桌機與平板。"
     },
     "archiveContest": "封存競賽 (Archive Contest)",
     "archiveDesc": "封存後競賽將變為唯讀狀態，無法再被啟用。",
     "archiveFailed": "封存失敗",
     "archived": "競賽已封存",
+    "attendanceCheck": {
+      "description": "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。",
+      "label": "QR 簽到簽退"
+    },
+    "attendancePhotoPolicy": {
+      "description": "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
+      "label": "簽到佐證照片",
+      "room": "後鏡頭現場照片",
+      "roomAndSelfie": "前鏡頭本人 + 後鏡頭現場"
+    },
     "basicInfo": "基本資訊",
     "confirmArchive": "確定要封存此競賽嗎？",
     "confirmDelete": "確定要刪除此競賽嗎？此動作無法復原！",
@@ -1760,8 +1874,11 @@
     "confirmEnableExamMode": "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？",
     "contestDescription": "競賽描述",
     "contestName": "競賽名稱",
+    "contestOptions": "競賽設定",
     "contestRules": "競賽規則",
     "contestStatus": "競賽發布狀態",
+    "contestType": "考試型態",
+    "contestTypeDesc": "考試型態在建立競賽時決定，建立後無法變更。",
     "dangerZone": "危險區域 (Danger Zone)",
     "deleteContest": "刪除競賽 (Delete Contest)",
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
@@ -1776,6 +1893,7 @@
     "exportResultsDesc": "匯出競賽成績為 CSV 檔案，包含排名、帳號、解題數、總分、各題目狀態。",
     "exportSuccess": "成績匯出成功",
     "joinPassword": "加入密碼",
+    "modalTitle": "設定",
     "noPassword": "免密碼",
     "requiresPassword": "需要密碼",
     "requiresPasswordHelp": "開啟後，學生加入時需要輸入密碼",
@@ -1789,21 +1907,7 @@
     "statusLabel": "發布狀態 (草稿 / 已發布)",
     "title": "競賽設定",
     "updateFailed": "更新失敗，請檢查欄位",
-    "updated": "設定已更新",
-    "attendanceCheck": {
-      "label": "QR 簽到簽退",
-      "description": "啟用後學生需先在競賽主頁掃描 QR Code 並提交現場照片，完成簽到後才能開始考試。"
-    },
-    "attendancePhotoPolicy": {
-      "label": "簽到佐證照片",
-      "description": "可要求學生拍攝現場環境，或現場環境與本人到場照片各一張。",
-      "room": "後鏡頭現場照片",
-      "roomAndSelfie": "前鏡頭本人 + 後鏡頭現場"
-    },
-    "modalTitle": "設定",
-    "contestOptions": "競賽設定",
-    "contestType": "考試型態",
-    "contestTypeDesc": "考試型態在建立競賽時決定，建立後無法變更。"
+    "updated": "設定已更新"
   },
   "standings": {
     "icpcRules": "排名規則：優先依據總分，其次為解題數，最後為總罰時（解題時間 + 20分鐘/錯誤嘗試）。",
@@ -1862,12 +1966,6 @@
     "viewSubmissionSamples": "查看提交樣本"
   },
   "studentDashboard": {
-    "codingRecords": {
-      "problem": "題目",
-      "score": "得分／滿分",
-      "status": "解題狀態",
-      "count": "繳交次數"
-    },
     "actions": {
       "adminPanel": "管理後台",
       "backToAnswering": "前往作答區",
@@ -1881,10 +1979,6 @@
       "submit": "交卷",
       "unavailable": "不可作答",
       "waitingStart": "等待開始"
-    },
-    "studentQr": {
-      "description": "請讓助教掃描此 QR，以快速找到你的考試資料。",
-      "heading": "我的考生 QR"
     },
     "announcements": {
       "empty": "目前沒有公告。",
@@ -1902,6 +1996,16 @@
       "unanswered": "未作答"
     },
     "ariaLabel": "學生競賽首頁",
+    "attendance": {
+      "checkIn": "前往簽到",
+      "checkOut": "前往簽退"
+    },
+    "codingRecords": {
+      "count": "繳交次數",
+      "problem": "題目",
+      "score": "得分／滿分",
+      "status": "解題狀態"
+    },
     "contestState": {
       "archived": "已封存",
       "draft": "草稿",
@@ -1917,8 +2021,8 @@
     },
     "errors": {
       "announcementsLoadFailed": "公告暫時無法載入",
-      "questionsLoadFailed": "題目資料暫時無法載入",
       "answersLoadFailed": "作答紀錄暫時無法載入",
+      "questionsLoadFailed": "題目資料暫時無法載入",
       "scoreDistributionLoadFailed": "成績分布暫時無法載入"
     },
     "infoLabel": "競賽資訊",
@@ -1965,12 +2069,16 @@
       "waitingPublish": "等待成績發布"
     },
     "rules": {
+      "attendanceRequired": "本考試需要完成 QR 簽到後才能開始作答。",
+      "defaultDescription": "沒有額外規則。",
       "empty": "沒有額外規則。",
       "noPassword": "此競賽不需要密碼。",
       "requiresPassword": "此競賽需要密碼。",
-      "title": "規則說明",
-      "attendanceRequired": "本考試需要完成 QR 簽到後才能開始作答。",
-      "defaultDescription": "沒有額外規則。"
+      "title": "規則說明"
+    },
+    "studentQr": {
+      "description": "請讓助教掃描此 QR，以快速找到你的考試資料。",
+      "heading": "我的考生 QR"
     },
     "submitConfirm": {
       "body": "交卷後將無法繼續修改答案。",
@@ -1986,14 +2094,10 @@
       "scoreDistribution": "成績分布"
     },
     "tabs": {
-      "clarifications": "公告與提問",
       "ariaLabel": "競賽資訊切換",
+      "clarifications": "公告與提問",
       "records": "作答紀錄",
       "rules": "規則說明"
-    },
-    "attendance": {
-      "checkIn": "前往簽到",
-      "checkOut": "前往簽退"
     }
   },
   "studentStatus": {
@@ -2056,163 +2160,8 @@
     "settings": "設定",
     "submissions": "提交紀錄"
   },
-  "timeToStart": "距開始 {{time}}",
   "validation": {
     "endBeforeStart": "結束時間必須晚於開始時間",
     "invalidDateTime": "請選擇有效的開始和結束時間"
-  },
-  "attendance": {
-    "badge": "QR 簽到",
-    "purpose": {
-      "checkIn": "簽到",
-      "checkOut": "簽退"
-    },
-    "shell": {
-      "back": "返回"
-    },
-    "scan": {
-      "title": "掃描 QR Code",
-      "description": "請對準投影畫面上的{{purpose}} QR Code。",
-      "cannotComplete": "無法完成簽到",
-      "validating": "驗證中…",
-      "waitingCamera": "等待相機授權",
-      "alignQr": "對準投影上的 QR Code"
-    },
-    "manual": {
-      "title": "輸入{{purpose}}代碼",
-      "description": "請輸入教師投影畫面上 QR Code 下方的 6 碼數字代碼。",
-      "cannotContinue": "無法繼續",
-      "codeAriaLabel": "{{purpose}}代碼",
-      "digitAriaLabel": "第 {{index}} 碼"
-    },
-    "photo": {
-      "cannotComplete": "無法完成拍照",
-      "cameraUnavailable": "相機無法使用",
-      "alignTarget": "對準{{label}}",
-      "qrVerifiedChip": "QR 已認證 · {{contest}}",
-      "readyChip": "照片已就緒 · {{contest}}",
-      "nextStepPhoto": "下一步：{{title}}",
-      "nextStepConfirm": "下一步：確認簽到資訊並上傳",
-      "captureLabel": "拍攝{{label}}",
-      "room": {
-        "label": "現場照片",
-        "title": "拍攝現場照片",
-        "description": "請拍攝教室環境與考試裝置畫面。",
-        "rearDescription": "請使用後鏡頭拍攝教室環境與考試裝置畫面。"
-      },
-      "selfie": {
-        "label": "本人照片",
-        "title": "拍攝本人到場照片",
-        "description": "請使用前鏡頭拍攝本人到場照片。"
-      }
-    },
-    "confirm": {
-      "title": "確認{{purpose}}資訊",
-      "description": "確認資訊與照片清楚後即可上傳。",
-      "uploadFailed": "上傳失敗",
-      "infoLabel": "簽到資訊",
-      "type": "類型",
-      "scannedAt": "掃描時間",
-      "photoStatus": "照片狀態",
-      "photosLabel": "佐證照片",
-      "photoPreviewAlt": "{{label}}預覽"
-    },
-    "done": {
-      "title": "已完成{{purpose}}認證",
-      "description": "系統已記錄您的{{purpose}}事件。",
-      "resultLabel": "簽到結果",
-      "contest": "競賽",
-      "time": "時間",
-      "status": "狀態",
-      "uploaded": "已上傳",
-      "photosLabel": "佐證照片"
-    },
-    "header": {
-      "done": "{{purpose}}完成",
-      "manual": "輸入{{purpose}}代碼",
-      "photo": "拍照{{purpose}}",
-      "confirm": "確認{{purpose}}",
-      "auth": "{{purpose}}認證"
-    },
-    "cta": {
-      "waitingCamera": "等待相機授權…",
-      "retryCamera": "重新嘗試相機",
-      "validating": "驗證中…",
-      "realignment": "重新對準",
-      "scanning": "正在掃描…",
-      "next": "下一步",
-      "capturePurposePhoto": "拍攝{{purpose}}照片",
-      "nextPhoto": "下一張",
-      "confirmInfo": "確認資訊",
-      "retryUpload": "重試上傳",
-      "uploading": "上傳中…",
-      "confirmUpload": "確認並上傳",
-      "backToExam": "返回考試",
-      "manualCode": "手動輸入代碼",
-      "backToScan": "返回掃描",
-      "retake": "重拍",
-      "retakePhotos": "重新拍攝"
-    },
-    "errors": {
-      "checkInAlreadyCompleted": "您已完成簽到。",
-      "checkOutAlreadyCompleted": "您已完成簽退。",
-      "checkoutAfterSubmit": "交卷後才可以簽退。",
-      "checkInOnlyBeforeStart": "您已開始或完成考試，不能再補簽到；若要離場請掃描簽退 QR Code。",
-      "notCheckInTime": "目前不在可簽到時間。",
-      "tokenExpired": "QR Code 已過期，請重新掃描投影畫面上的 QR Code。",
-      "invalidToken": "QR Code 無效，請重新掃描投影畫面上的 QR Code。",
-      "invalidManualCode": "代碼無效或已過期，請重新輸入投影畫面上的最新代碼。",
-      "notEnabled": "此考試尚未開啟 QR Code 簽到簽退。",
-      "submitFailed": "簽到資料送出失敗，請稍後再試。",
-      "cameraUnsupported": "此瀏覽器不支援相機存取，請改由教師協助簽到。",
-      "cameraUnavailable": "相機無法使用",
-      "wrongPurposeQr": "這是{{actual}} QR Code，請掃描{{expected}} QR Code。",
-      "capturePhotoFailed": "照片擷取失敗，請重新拍攝。",
-      "missingPurpose": "請先從競賽主頁選擇簽到或簽退。",
-      "manualCodeLength": "請輸入投影畫面上的 6 碼代碼。",
-      "photoMissing": "{{label}}尚未拍攝完成",
-      "uploadIntentIncomplete": "上傳工作未包含所有必要照片，請重新送出。",
-      "photoUploadFailed": "照片上傳失敗，請重新送出。"
-    },
-    "projection": {
-      "title": "考試簽到簽退",
-      "examLabel": "考試",
-      "examFallback": "考試",
-      "progress": "考試進度",
-      "progressAria": "考試進度 {{progress}}%",
-      "loading": "載入中",
-      "manualCodeLabel": "相機無法使用時輸入代碼",
-      "reloadQr": "正在重新載入 QR Code",
-      "backToAdmin": "回管理介面",
-      "enterFullscreen": "進入全螢幕",
-      "exitFullscreen": "退出全螢幕",
-      "refreshFailed": "QR Code 重新載入失敗",
-      "unstableTitle": "QR 載入不穩定",
-      "unstableSubtitle": "系統會自動保留上一組可用 QR Code 並持續重新載入。",
-      "mode": {
-        "ariaLabel": "切換簽到簽退 QR Code"
-      },
-      "countdown": {
-        "exam": "考試倒數",
-        "unset": "未設定時間",
-        "startsIn": "距離開始",
-        "openCheckIn": "開放簽到",
-        "endsIn": "距離截止",
-        "running": "考試進行中",
-        "ended": "考試已結束",
-        "endedTone": "已結束"
-      },
-      "marker": {
-        "start": "開始",
-        "now": "現在",
-        "end": "結束"
-      },
-      "guide": {
-        "scan": "掃描 QR Code",
-        "photo": "拍攝現場照片",
-        "upload": "確認並上傳",
-        "ariaLabel": "簽到說明"
-      }
-    }
   }
 }
