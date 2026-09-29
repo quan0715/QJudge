@@ -56,4 +56,4 @@ The ChatGPT Plugin is not directed to children under 13. Do not send their perso
 
 ## Changes
 
-We publish revisions and effective dates here and notify users of material changes as required by law. The [Terms of Service](/docs/terms) also apply.
+We publish revisions and effective dates here and notify users of material changes as required by law. The [Terms of Service](https://q-judge.com/docs/terms) also apply.

@@ -28,7 +28,9 @@
       "mcp-setup": "MCP 도구 연동 설정",
       "overview": "플랫폼 개요",
       "quick-start": "빠른 시작",
-      "teacher-qualification": "교사 자격 관리"
+      "teacher-qualification": "교사 자격 관리",
+      "privacy": "개인정보 처리방침",
+      "terms": "이용약관"
     },
     "lastUpdated": "마지막 업데이트",
     "onThisPage": "이 페이지에서",
@@ -37,7 +39,8 @@
       "admin-guide": "관리자 가이드",
       "deployment": "구축 및 배포",
       "first-exam": "첫 시험 준비",
-      "getting-started": "시작하기"
+      "getting-started": "시작하기",
+      "legal": "법적 정보"
     }
   },
   "page": {

@@ -6,7 +6,7 @@
 
 ## 適用範圍與帳戶
 
-本條款適用於 q-judge.com 提供的網站、MCP 伺服器及 ChatGPT Plugin 整合，面向全球使用者。其他機構自行架設的 QJudge 服務另依其營運者條款辦理。使用本服務前請閱讀本條款及[隱私權政策](/docs/privacy)。代表機構使用者須有權代表該機構接受相關條款及操作資料。
+本條款適用於 q-judge.com 提供的網站、MCP 伺服器及 ChatGPT Plugin 整合，面向全球使用者。其他機構自行架設的 QJudge 服務另依其營運者條款辦理。使用本服務前請閱讀本條款及[隱私權政策](https://q-judge.com/docs/privacy)。代表機構使用者須有權代表該機構接受相關條款及操作資料。
 
 你須提供正確帳戶資訊並保管登入憑證。學校及教師負責適當分配成員權限。連接 ChatGPT 或其他服務前請檢查授權內容；工具操作依 QJudge 帳戶權限執行。發現未授權存取時請立即聯絡我們。
 
@@ -24,7 +24,7 @@ AI 可協助出題、分析及批改，但輸出可能錯誤、不完整或有�
 
 ## 第三方服務
 
-服務可能使用 Cloudflare、Google 郵件，以及你選擇的 Google、GitHub、陽明交通大學登入服務。AI 模型設定包括 DeepSeek、OpenAI 及校園模型端點；ChatGPT 整合由 OpenAI 提供。第三方服務另受其自身條款及隱私政策約束。資料用途與分享詳見[隱私權政策](/docs/privacy)。
+服務可能使用 Cloudflare、Google 郵件，以及你選擇的 Google、GitHub、陽明交通大學登入服務。AI 模型設定包括 DeepSeek、OpenAI 及校園模型端點；ChatGPT 整合由 OpenAI 提供。第三方服務另受其自身條款及隱私政策約束。資料用途與分享詳見[隱私權政策](https://q-judge.com/docs/privacy)。
 
 ## 調整、暫停及終止
 

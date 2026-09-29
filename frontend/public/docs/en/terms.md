@@ -6,7 +6,7 @@ Contact: [quan787887@gmail.com](mailto:quan787887@gmail.com)
 
 ## Scope and accounts
 
-These terms cover the website, MCP server and ChatGPT Plugin integration at q-judge.com, available to users worldwide. QJudge deployments operated by other institutions have their own terms. Read these terms and the [Privacy Policy](/docs/privacy) before using the service. Anyone acting for an institution must have authority to accept relevant terms and operate on its data.
+These terms cover the website, MCP server and ChatGPT Plugin integration at q-judge.com, available to users worldwide. QJudge deployments operated by other institutions have their own terms. Read these terms and the [Privacy Policy](https://q-judge.com/docs/privacy) before using the service. Anyone acting for an institution must have authority to accept relevant terms and operate on its data.
 
 Provide accurate account information and protect credentials. Schools and instructors are responsible for assigning appropriate access. Review authorization before connecting ChatGPT or other services; tools operate within your QJudge account permissions. Report suspected unauthorized access promptly.
 
@@ -24,7 +24,7 @@ AI can assist with authoring, analysis and grading, but may produce incorrect, i
 
 ## Third-party services
 
-The service may use Cloudflare, Google email and your selected Google, GitHub or National Yang Ming Chiao Tung University login provider. Configured AI providers include DeepSeek, OpenAI and a campus model endpoint; OpenAI provides the ChatGPT integration. Third parties operate under their own terms and privacy policies. See the [Privacy Policy](/docs/privacy) for data uses and sharing.
+The service may use Cloudflare, Google email and your selected Google, GitHub or National Yang Ming Chiao Tung University login provider. Configured AI providers include DeepSeek, OpenAI and a campus model endpoint; OpenAI provides the ChatGPT integration. Third parties operate under their own terms and privacy policies. See the [Privacy Policy](https://q-judge.com/docs/privacy) for data uses and sharing.
 
 ## Changes, suspension and termination
 
