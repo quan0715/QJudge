@@ -1,9 +1,9 @@
 """QJudge MCP Server tools."""
 
-import csv
-from pathlib import Path
-from typing import Any
-from urllib.parse import urlencode
+import asyncio
+import time
+from typing import Any, Literal
+from urllib.parse import quote, urlencode
 from uuid import UUID
 
 import httpx
@@ -27,24 +27,51 @@ from mcp.types import ToolAnnotations
 from starlette.routing import Route
 
 
+_HTTP_CLIENT: tuple[asyncio.AbstractEventLoop, httpx.AsyncClient] | None = None
+
+
+def _http_client() -> httpx.AsyncClient:
+    """Return the shared Django client, created once per running event loop."""
+    global _HTTP_CLIENT
+    loop = asyncio.get_running_loop()
+    if _HTTP_CLIENT is None or _HTTP_CLIENT[0] is not loop:
+        _HTTP_CLIENT = (loop, httpx.AsyncClient(timeout=30.0))
+    return _HTTP_CLIENT[1]
+
+
 class DjangoTokenVerifier(TokenVerifier):
-    """Verify OAuth tokens by forwarding to Django backend."""
+    """Verify OAuth tokens by forwarding to Django backend.
+
+    Successful checks are remembered for ``_CACHE_TTL`` seconds so a burst of tool
+    calls does not hit ``/users/me`` for every request.
+    """
+
+    _CACHE_TTL = 30.0
+
+    def __init__(self) -> None:
+        self._verified_until: dict[str, float] = {}
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Check token against Django. Return AccessToken if valid, None if not."""
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(
+        now = time.monotonic()
+        if self._verified_until.get(token, 0.0) <= now:
+            self._verified_until = {
+                cached: expiry for cached, expiry in self._verified_until.items() if expiry > now
+            }
+            try:
+                response = await _http_client().get(
                     f"{DJANGO_BASE_URL}/api/v1/users/me",
                     headers={
                         "Authorization": f"Bearer {token}",
                         "X-Forwarded-Proto": DJANGO_FORWARDED_PROTO,
                     },
+                    timeout=10.0,
                 )
-        except (httpx.RequestError, httpx.TimeoutException):
-            return None
-        if response.status_code != 200:
-            return None
+            except (httpx.RequestError, httpx.TimeoutException):
+                return None
+            if response.status_code != 200:
+                return None
+            self._verified_until[token] = now + self._CACHE_TTL
         return AccessToken(
             token=token,
             client_id="qjudge",
@@ -72,7 +99,10 @@ class QJudgeTokenVerifier(TokenVerifier):
         if not self._is_qjudge_resource_token(token):
             return await self._opaque_fallback.verify_token(token)
         try:
-            signing_key = self._jwks_client.get_signing_key_from_jwt(token).key
+            # PyJWKClient fetches the key set with blocking urllib; keep it off the event loop.
+            signing_key = (
+                await asyncio.to_thread(self._jwks_client.get_signing_key_from_jwt, token)
+            ).key
             claims = jwt.decode(
                 token,
                 signing_key,
@@ -173,13 +203,13 @@ async def django_api(
     url = f"{DJANGO_BASE_URL}{path}"
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.request(
-                method=method,
-                url=url,
-                headers=headers,
-                json=json_body,
-            )
+        response = await _http_client().request(
+            method=method,
+            url=url,
+            headers=headers,
+            json=json_body,
+            timeout=timeout,
+        )
     except httpx.TimeoutException as e:
         return _error(f"Django HTTP timeout after {timeout}s: {e!r}", status=504)
     except httpx.RequestError as e:
@@ -275,6 +305,28 @@ def _extract_results(payload: Any) -> list[dict[str, Any]]:
     return []
 
 
+async def _get_all_rows(path: str, ctx: Context, *, max_pages: int = 20) -> list[dict[str, Any]] | dict[str, Any]:
+    """GET a DRF list endpoint and follow ``page`` until ``next`` is empty.
+
+    Returns the rows, or the error dict of the first failing request.
+    """
+    rows: list[dict[str, Any]] = []
+    separator = "&" if "?" in path else "?"
+    for page in range(1, max_pages + 1):
+        payload = await django_api("GET", path if page == 1 else f"{path}{separator}page={page}", ctx)
+        if isinstance(payload, dict) and payload.get("error"):
+            return payload
+        rows.extend(_extract_results(payload))
+        if not (isinstance(payload, dict) and payload.get("next")):
+            break
+    return rows
+
+
+def _quote(value: Any) -> str:
+    """Make an id safe to use as a single URL path segment."""
+    return quote(str(value), safe="")
+
+
 def _text_match(value: Any, keyword: str) -> bool:
     if not isinstance(value, str):
         return False
@@ -317,6 +369,8 @@ def _compact_contest_from_classroom(row: dict[str, Any], *, classroom_id: str) -
         "bound_classroom_id": classroom_id,
     }
 
+
+_DETAIL_FETCH_CONCURRENCY = 8
 
 _CODE_RUNNER_LANGUAGE_ALIASES: dict[str, str] = {
     "cpp": "cpp",
@@ -468,10 +522,9 @@ async def _ensure_contest_type(
     if actual_type == expected_type:
         return None
 
-    actual_label = "coding" if actual_type == "coding" else "paper_exam"
     return _error(
         f"{tool_name} only supports {allowed_label} contests. "
-        f"This contest is {actual_label}. Use {disallowed_tool_name} instead.",
+        f"This contest is {actual_type}. Use {disallowed_tool_name} instead.",
         status=400,
     )
 
@@ -479,60 +532,32 @@ async def _ensure_contest_type(
 def _normalize_newlines(value: str) -> str:
     """Convert literal backslash-n sequences to real newlines.
 
-    AI models often send ``\\n`` as two-char escape sequences instead of actual
-    line breaks.  This helper normalises them so that stored content renders
-    correctly in the UI.
+    AI models sometimes double-escape line breaks and send ``\\n`` as two
+    characters instead of an actual newline. Only text without any real newline
+    is treated as double-escaped, so multi-line content that legitimately
+    contains ``\\n`` (for example ``printf("\\n")``) is left untouched.
     """
+    if "\n" in value:
+        return value
     return value.replace("\\n", "\n")
 
 
-def _normalize_text_fields(body: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
-    """In-place normalise newline escapes for the given string-valued *keys*."""
-    for k in keys:
-        v = body.get(k)
-        if isinstance(v, str):
-            body[k] = _normalize_newlines(v)
-    return body
-
-
-def _normalize_test_cases(test_cases: list[dict]) -> list[dict]:
-    """Normalise newline escapes inside test-case input/output data."""
-    for tc in test_cases:
-        for field in ("input_data", "output_data"):
-            if isinstance(tc.get(field), str):
-                tc[field] = _normalize_newlines(tc[field])
-    return test_cases
-
-
-def _normalize_translations(translations: list[dict]) -> list[dict]:
-    """Normalise newline escapes inside translation text fields."""
-    text_fields = ("title", "description", "input_description", "output_description", "hint")
-    for tr in translations:
-        for field in text_fields:
-            if isinstance(tr.get(field), str):
-                tr[field] = _normalize_newlines(tr[field])
-    return translations
+_CODING_TEXT_FIELDS = ("description", "input_description", "output_description", "hint")
 
 
 def _normalize_body_text(body: dict[str, Any]) -> dict[str, Any]:
-    """Normalise escaped newlines across all text-bearing fields in a request body.
+    """Normalise escaped newlines in the text fields of a request body (in place).
 
-    Handles top-level ``prompt``, nested ``coding_ext.translations`` /
-    ``coding_ext.test_cases``, and top-level ``translations`` / ``test_cases``.
+    Covers ``prompt``, the coding problem text fields and ``test_cases`` data.
     """
-    _normalize_text_fields(body, ("prompt",))
-    # Top-level (qjudge_coding_problems create)
-    if isinstance(body.get("translations"), list):
-        _normalize_translations(body["translations"])
-    if isinstance(body.get("test_cases"), list):
-        _normalize_test_cases(body["test_cases"])
-    # Nested in coding_ext (bank API payloads; qjudge_bank MCP tool is currently disabled)
-    ext = body.get("coding_ext")
-    if isinstance(ext, dict):
-        if isinstance(ext.get("translations"), list):
-            _normalize_translations(ext["translations"])
-        if isinstance(ext.get("test_cases"), list):
-            _normalize_test_cases(ext["test_cases"])
+    for key in ("prompt", *_CODING_TEXT_FIELDS):
+        value = body.get(key)
+        if isinstance(value, str):
+            body[key] = _normalize_newlines(value)
+    for case in body.get("test_cases") or []:
+        for key in ("input_data", "output_data"):
+            if isinstance(case.get(key), str):
+                case[key] = _normalize_newlines(case[key])
     return body
 
 
@@ -564,17 +589,16 @@ def _build_exam_question_body(
 _TOOL_HELP = {
     "tools": {
         "qjudge_browse": "Discovery only: list/get classrooms, list classroom contests, list/get contests, get_help",
-        "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder (requires contest_id UUID)",
+        "qjudge_contest_manager": "Contest operations: get_detail, list_problems, reorder, update settings (requires contest_id UUID)",
         "qjudge_exam": "Paper-exam contest questions: get, create, update, delete, batch_create, import_from_bank (no list/reorder — use qjudge_contest_manager)",
         "preview_exam_problem": "Read-only paper-exam problem preview: fetch current question and render the proposed student-facing problem UI",
         "qjudge_coding_problems": "Coding contest problems: get, create, update, delete (no list — use qjudge_contest_manager list_problems)",
-        "qjudge_code_runner": "Execute code against test cases: run code, get results",
+        "qjudge_code_runner": "Execute code against a problem's sample test cases: run code, get results",
         "qjudge_grading": "Grading: list_answers, question_detail, dashboard, grade, batch_grade, ungrade",
-        "artifact_csv_delete_rows": "Local CSV row deletion helper: delete by row_index and/or exact match conditions",
     },
     "routing_rules": {
         "unknown_id": "If classroom_id/contest_id is unknown, use qjudge_browse first.",
-        "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder.",
+        "contest_ops": "Once contest_id is known, use qjudge_contest_manager for get_detail/list_problems/reorder/update.",
         "single_item_crud": "Use qjudge_exam (paper_exam) or qjudge_coding_problems (coding) for single-item CRUD.",
         "preview_before_update": "Use preview_exam_problem before qjudge_exam update when the user should approve the proposed exam problem preview.",
         "code_execution": "Use qjudge_code_runner for running source code.",
@@ -583,7 +607,7 @@ _TOOL_HELP = {
         "summary": (
             "Several tools touch contests and code — pick by intent. "
             "qjudge_browse = classroom/contest discovery (find IDs); "
-            "qjudge_contest_manager = get_detail + list_problems + reorder (needs contest_id); "
+            "qjudge_contest_manager = get_detail + list_problems + reorder + update settings (needs contest_id); "
             "qjudge_exam = paper_exam question CRUD; "
             "qjudge_coding_problems = coding problem CRUD; "
             "qjudge_code_runner = execute code. "
@@ -591,20 +615,21 @@ _TOOL_HELP = {
         ),
         "qjudge_coding_problems": {
             "use_when": "You need to CREATE/EDIT/DELETE **coding problems inside a coding contest** (single-item CRUD).",
-            "requires": "contest_id (UUID) of a contest where contest_type is **coding**. problem_id = that contest's coding problem UUID.",
+            "requires": "contest_id (UUID) of a contest where contest_type is **coding**. binding_id = the `id` field (contest binding UUID) of the problem from list_problems — NOT the item's `problem_id` field.",
             "never": "Do NOT run user's source code here. No 'code' parameter. To **list all** problems in the contest, use **qjudge_contest_manager** ``list_problems`` — this tool has no ``list`` action.",
         },
         "qjudge_code_runner": {
             "use_when": "You need to **execute source code** against the problem's **stored** test cases (teacher/test-run).",
-            "requires": "problem_id = **CodingProblem / Problem UUID** (same id as GET /api/v1/management/problems/{id}/). language + code strings.",
-            "behavior": "Runs **all** test cases on the server in order; no sample-only or custom-case flags.",
+            "requires": "problem_id = **CodingProblem / Problem UUID** = the `problem_id` field of a list_problems item (same id as GET /api/v1/management/problems/{id}/). language + code strings.",
+            "behavior": "Runs only the problem's public sample test cases; hidden and non-sample cases never run, and custom cases cannot be passed.",
             "never": "Do NOT use contest_id here. Do NOT create/update problems here.",
         },
-        # qjudge_bank MCP tool disabled — restore entry here when re-enabled.
         "id_confusion": (
-            "contest_id identifies a contest. problem_id in qjudge_coding_problems identifies a **problem row bound to that contest**. "
-            "qjudge_code_runner.problem_id is the **global problem UUID** (management problem id), "
-            "obtainable from qjudge_contest_manager list_problems or qjudge_coding_problems get response — use the `id` field of the coding problem object."
+            "contest_id identifies a contest. binding_id in qjudge_coding_problems identifies a **problem row bound to that contest**. "
+            "qjudge_code_runner.problem_id is the **global problem UUID** (management problem id). "
+            "A qjudge_contest_manager list_problems item has two ids: `id` (contest binding UUID) goes to "
+            "qjudge_coding_problems binding_id (get/update/delete); `problem_id` (CodingProblem UUID) goes to qjudge_code_runner. "
+            "Passing one where the other is expected returns 404."
         ),
     },
     "coding_problem_example": {
@@ -660,7 +685,7 @@ _TOOL_HELP = {
         "run code on qjudge_coding_problems": "NEVER — use qjudge_code_runner(problem_id, language, code) for execution",
         "list problems in contest": "Use qjudge_contest_manager list_problems. Do NOT use list actions on qjudge_exam / qjudge_coding_problems",
         "reorder contest questions": "Use qjudge_contest_manager reorder — qjudge_browse does not reorder",
-        "test_run params removed": "qjudge_code_runner only sends language+code; all stored cases run automatically",
+        "test_run params removed": "qjudge_code_runner only sends language+code; only public sample cases run",
         "javascript in test_run": "Backend judge supports cpp, c, python, java — not javascript for test_run",
         "exam fields on coding": "Do NOT pass paper-exam fields (options, correct_answer, prompt) to qjudge_coding_problems — use description/test_cases; use qjudge_exam for paper_exam contests",
     },
@@ -682,10 +707,6 @@ mcp = FastMCP(
     ),
     token_verifier=QJudgeTokenVerifier(),
 )
-
-def _build_exam_problem_preview(current_question: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
-    return build_exam_problem_preview(current_question, patch)
-
 
 @mcp.tool(
     title="Preview exam problem",
@@ -748,7 +769,7 @@ async def preview_exam_problem(
 
     current_question = await django_api(
         "GET",
-        f"/api/v1/contests/{contest_id}/exam-questions/{question_id}/",
+        f"/api/v1/contests/{contest_id}/exam-questions/{_quote(question_id)}/",
         ctx,
     )
     if isinstance(current_question, dict) and current_question.get("error"):
@@ -760,104 +781,7 @@ async def preview_exam_problem(
             status=500,
         )
 
-    return _build_exam_problem_preview(current_question, patch)
-
-
-@mcp.tool(
-    annotations=ToolAnnotations(
-        readOnlyHint=False,
-        destructiveHint=True,
-        idempotentHint=False,
-        openWorldHint=True,
-    )
-)
-def artifact_csv_delete_rows(
-    file_path: str,
-    row_index: int | None = None,
-    match: dict[str, Any] | None = None,
-    delete_all_matches: bool = True,
-    dry_run: bool = False,
-) -> dict[str, Any]:
-    """Delete rows from a local CSV file.
-
-    Selectors:
-      - row_index: 1-based data-row index (header excluded)
-      - match: exact-match conditions on CSV columns, e.g. {"exam_answer_id": "2088", "score": ""}
-      - You may provide both; in that case, both conditions must match.
-    """
-    if row_index is None and not match:
-        return _error("Provide at least one selector: row_index or match", status=400)
-    if row_index is not None and row_index <= 0:
-        return _error("row_index must be >= 1 (1-based data row index)", status=400)
-
-    csv_path = Path(file_path).expanduser()
-    if not csv_path.exists():
-        return _error(f"CSV file not found: {csv_path}", status=404)
-    if not csv_path.is_file():
-        return _error(f"Path is not a file: {csv_path}", status=400)
-
-    try:
-        with csv_path.open("r", encoding="utf-8", newline="") as f:
-            reader = csv.DictReader(f)
-            fieldnames = list(reader.fieldnames or [])
-            rows = list(reader)
-    except Exception as exc:
-        return _error(f"Failed to read CSV: {exc!r}", status=400)
-
-    if not fieldnames:
-        return _error("CSV has no header row", status=400)
-
-    for key in (match or {}).keys():
-        if key not in fieldnames:
-            return _error(f"Unknown match column: {key}", status=400)
-
-    deleted_rows: list[dict[str, Any]] = []
-    kept_rows: list[dict[str, Any]] = []
-    deleted_any = False
-
-    for idx, row in enumerate(rows, start=1):
-        index_ok = row_index is None or idx == row_index
-        match_ok = True
-        if match:
-            for key, expected in match.items():
-                actual = row.get(key, "")
-                expected_text = "" if expected is None else str(expected)
-                if actual != expected_text:
-                    match_ok = False
-                    break
-        should_delete = index_ok and match_ok
-        if should_delete and (delete_all_matches or not deleted_any):
-            deleted_rows.append(row)
-            deleted_any = True
-            continue
-        kept_rows.append(row)
-
-    if not deleted_rows:
-        return {
-            "status": "no_match",
-            "file_path": str(csv_path),
-            "before_count": len(rows),
-            "deleted_count": 0,
-            "after_count": len(rows),
-        }
-
-    if not dry_run:
-        try:
-            with csv_path.open("w", encoding="utf-8", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(kept_rows)
-        except Exception as exc:
-            return _error(f"Failed to write CSV: {exc!r}", status=500)
-
-    return {
-        "status": "success" if not dry_run else "dry_run",
-        "file_path": str(csv_path),
-        "before_count": len(rows),
-        "deleted_count": len(deleted_rows),
-        "after_count": len(kept_rows),
-        "deleted_rows_preview": deleted_rows[:5],
-    }
+    return build_exam_problem_preview(current_question, patch)
 
 
 # ---------------------------------------------------------------------------
@@ -873,7 +797,14 @@ def artifact_csv_delete_rows(
     )
 )
 async def qjudge_browse(
-    action: str,
+    action: Literal[
+        "list_classrooms",
+        "get_classroom",
+        "list_classroom_contests",
+        "list_contests",
+        "get_contest",
+        "get_help",
+    ],
     ctx: Context,
     search: str | None = None,
     status: str | None = None,
@@ -913,17 +844,15 @@ async def qjudge_browse(
         query = {"scope": "manage"}
         if search:
             query["search"] = search
-        classrooms_res = await django_api("GET", f"/api/v1/classrooms/?{urlencode(query)}", ctx)
-        if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
-            return classrooms_res
-
-        classrooms = _extract_results(classrooms_res)
+        classrooms = await _get_all_rows(f"/api/v1/classrooms/?{urlencode(query)}", ctx)
+        if isinstance(classrooms, dict):
+            return classrooms
         if search and not classrooms:
-            all_classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
-            if isinstance(all_classrooms_res, dict) and all_classrooms_res.get("error"):
-                return all_classrooms_res
+            all_classrooms = await _get_all_rows("/api/v1/classrooms/?scope=manage", ctx)
+            if isinstance(all_classrooms, dict):
+                return all_classrooms
             classrooms = [
-                row for row in _extract_results(all_classrooms_res)
+                row for row in all_classrooms
                 if _matches_keyword(row, search, ("name", "description"))
             ]
         return _items([_compact_classroom(row) for row in classrooms])
@@ -953,10 +882,9 @@ async def qjudge_browse(
         )
         if uuid_error:
             return uuid_error
-        contests_res = await django_api("GET", f"/api/v1/classrooms/{classroom_id}/contests/", ctx)
-        if isinstance(contests_res, dict) and contests_res.get("error"):
-            return contests_res
-        contests = _extract_results(contests_res)
+        contests = await _get_all_rows(f"/api/v1/classrooms/{classroom_id}/contests/", ctx)
+        if isinstance(contests, dict):
+            return contests
         if status:
             contests = [row for row in contests if row.get("contest_status") == status]
         if search:
@@ -972,25 +900,24 @@ async def qjudge_browse(
             query["search"] = search
         if status:
             query["status"] = status
-        contests_res = await django_api("GET", f"/api/v1/contests/?{urlencode(query)}", ctx)
-        if isinstance(contests_res, dict) and contests_res.get("error"):
-            return contests_res
-        contests = _extract_results(contests_res)
+        contests = await _get_all_rows(f"/api/v1/contests/?{urlencode(query)}", ctx)
+        if isinstance(contests, dict):
+            return contests
 
         # If backend name-only search misses, fallback to classroom contests and match name/description.
         if search and not contests:
-            classrooms_res = await django_api("GET", "/api/v1/classrooms/?scope=manage", ctx)
-            if isinstance(classrooms_res, dict) and classrooms_res.get("error"):
-                return classrooms_res
+            rooms = await _get_all_rows("/api/v1/classrooms/?scope=manage", ctx)
+            if isinstance(rooms, dict):
+                return rooms
             merged: dict[str, dict[str, Any]] = {}
-            for room in _extract_results(classrooms_res):
+            for room in rooms:
                 cid = room.get("uuid")
                 if not isinstance(cid, str) or not _is_uuid(cid):
                     continue
-                room_contests = await django_api("GET", f"/api/v1/classrooms/{cid}/contests/", ctx)
-                if isinstance(room_contests, dict) and room_contests.get("error"):
+                room_contests = await _get_all_rows(f"/api/v1/classrooms/{cid}/contests/", ctx)
+                if isinstance(room_contests, dict):
                     continue
-                for row in _extract_results(room_contests):
+                for row in room_contests:
                     compact = _compact_contest_from_classroom(row, classroom_id=cid)
                     contest_uuid = compact.get("contest_id")
                     if not isinstance(contest_uuid, str):
@@ -1009,13 +936,17 @@ async def qjudge_browse(
                     merged[contest_uuid] = compact
             return _items(list(merged.values()))
 
-        import asyncio
-        detail_calls = [
-            django_api("GET", f"/api/v1/contests/{row.get('id')}/", ctx)
-            for row in contests
-            if isinstance(row.get("id"), str)
-        ]
-        details = await asyncio.gather(*detail_calls) if detail_calls else []
+        # The list serializer omits contest_type/delivery_mode, so fetch each detail,
+        # with a cap on concurrent requests.
+        gate = asyncio.Semaphore(_DETAIL_FETCH_CONCURRENCY)
+
+        async def fetch_detail(contest_uuid: str) -> Any:
+            async with gate:
+                return await django_api("GET", f"/api/v1/contests/{contest_uuid}/", ctx)
+
+        details = await asyncio.gather(
+            *(fetch_detail(row["id"]) for row in contests if isinstance(row.get("id"), str))
+        )
         compact = [
             _compact_contest_from_detail(detail)
             for detail in details
@@ -1041,17 +972,6 @@ async def qjudge_browse(
             return _tool_error(tool_name="qjudge_browse", detail="Invalid contest payload", status=500)
         return _compact_contest_from_detail(contest)
 
-    if action in {"get_detail", "list_problems", "reorder"}:
-        return _tool_error(
-            tool_name="qjudge_browse",
-            detail=(
-                f"Action '{action}' is not available on qjudge_browse. "
-                "Use qjudge_contest_manager with contest_id instead."
-            ),
-            status=400,
-        )
-
-    return _tool_error(tool_name="qjudge_browse", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1066,10 +986,22 @@ async def qjudge_browse(
     )
 )
 async def qjudge_contest_manager(
-    action: str,
+    action: Literal["get_detail", "list_problems", "reorder", "update"],
     ctx: Context,
     contest_id: str | None = None,
     question_ids: list[str] | None = None,
+    name: str | None = None,
+    description: str | None = None,
+    rules: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    attendance_check_enabled: bool | None = None,
+    attendance_photo_policy: str | None = None,
+    cheat_detection_enabled: bool | None = None,
+    anticheat_device_policy: dict[str, Any] | None = None,
+    clear_fields: list[Literal["start_time", "end_time"]] | None = None,
+    scoreboard_visible_during_contest: bool | None = None,
+    allow_multiple_joins: bool | None = None,
 ) -> Any:
     """Contest-scoped operations with explicit contest_id.
 
@@ -1077,17 +1009,15 @@ async def qjudge_contest_manager(
       get_detail    — Get contest detail (required: contest_id UUID)
       list_problems — List all contest problems/questions (required: contest_id UUID)
       reorder       — Reorder questions/problems (required: contest_id UUID, question_ids)
+      update        — Partially update contest settings (required: contest_id UUID, at least one
+                      of name, description, rules, start_time, end_time (ISO 8601),
+                      attendance_check_enabled, attendance_photo_policy, cheat_detection_enabled,
+                      anticheat_device_policy (object: {"desktop": {...}, "tablet": {...}}),
+                      scoreboard_visible_during_contest, allow_multiple_joins). To clear
+                      start_time or end_time, list the field in clear_fields (omitted
+                      arguments are never sent). status, contest_type and results_published
+                      are not editable here.
     """
-    valid_actions = {"get_detail", "list_problems", "reorder"}
-    if action not in valid_actions:
-        return _tool_error(
-            tool_name="qjudge_contest_manager",
-            detail=(
-                f"Unknown action: {action!r}. "
-                f"qjudge_contest_manager supports: {sorted(valid_actions)}."
-            ),
-            status=400,
-        )
     uuid_error = _require_uuid(
         contest_id,
         field_name="contest_id",
@@ -1104,6 +1034,35 @@ async def qjudge_contest_manager(
 
     if action == "get_detail":
         return await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
+
+    if action == "update":
+        fields = {
+            "name": name,
+            "description": description,
+            "rules": rules,
+            "start_time": start_time,
+            "end_time": end_time,
+            "attendance_check_enabled": attendance_check_enabled,
+            "attendance_photo_policy": attendance_photo_policy,
+            "cheat_detection_enabled": cheat_detection_enabled,
+            "anticheat_device_policy": anticheat_device_policy,
+            "scoreboard_visible_during_contest": scoreboard_visible_during_contest,
+            "allow_multiple_joins": allow_multiple_joins,
+        }
+        patch = {key: value for key, value in fields.items() if value is not None}
+        for field in clear_fields or []:
+            if field in patch:
+                return _tool_error(
+                    tool_name="qjudge_contest_manager",
+                    detail=f"{field} cannot be both set and listed in clear_fields",
+                )
+            patch[field] = None
+        if not patch:
+            return _tool_error(
+                tool_name="qjudge_contest_manager",
+                detail="update requires at least one contest setting field",
+            )
+        return await django_api("PATCH", f"/api/v1/contests/{contest_id}/", ctx, json_body=patch)
 
     contest = await django_api("GET", f"/api/v1/contests/{contest_id}/", ctx)
     if isinstance(contest, dict) and contest.get("error"):
@@ -1149,220 +1108,6 @@ async def qjudge_contest_manager(
     )
 
 
-# ===========================================================================
-# qjudge_bank — 已自 MCP 停用（未註冊工具）。有需求時取消以下整段註解並還原 @mcp.tool()。
-# ===========================================================================
-# ---------------------------------------------------------------------------
-# Tool 2: qjudge_bank — 題庫題目 CRUD（停用中，僅保留實作供還原）
-# ---------------------------------------------------------------------------
-#
-# @mcp.tool()
-# async def qjudge_bank(
-#     action: str,
-#     ctx: Context,
-#     bank_id: str | None = None,
-#     question_id: str | None = None,
-#     question_type: str | None = None,
-#     title: str | None = None,
-#     prompt: str | None = None,
-#     difficulty: str | None = None,
-#     score: int | None = None,
-#     time_limit: int | None = None,
-#     memory_limit: int | None = None,
-#     options: list[str] | None = None,
-#     correct_answer: Any | None = None,
-#     description: str | None = None,
-#     input_description: str | None = None,
-#     output_description: str | None = None,
-#     hint: str | None = None,
-#     test_cases: list[dict] | None = None,
-#     language_configs: list[dict] | None = None,
-# ) -> Any:
-#     """CRUD operations for question **bank** items (reusable assets), not live contest problems.
-#
-#     Routing (read this first):
-#       • **Contest coding problems** (edit problems inside a contest) → `qjudge_coding_problems`, not qjudge_bank.
-#       • **Contest paper/exam questions** → `qjudge_exam`, not qjudge_bank.
-#       • **Reusable bank questions** (create templates before importing) → this tool.
-#
-#     Do NOT use this tool for contest question management — use qjudge_exam or qjudge_coding_problems instead.
-#
-#     Actions:
-#       create — Create a question in a bank (required: bank_id, question_type, title)
-#       get    — Get a bank question (required: question_id)
-#       update — Update a bank question (required: question_id)
-#       delete — Delete a bank question (required: question_id)
-#
-#     Field format guide (exam questions):
-#       question_type  — "exam" for non-coding questions, "coding" for coding problems.
-#       options        — Plain text list WITHOUT letter prefixes. The UI adds A/B/C/D automatically.
-#                        Good: ["台北", "台中", "高雄"]
-#                        Bad:  ["A. 台北", "B. 台中", "C. 高雄"]
-#       correct_answer — For single_choice: 0-based integer index (e.g. 0 for the first option).
-#                        For multiple_choice: list of 0-based integer indices (e.g. [0, 2]).
-#                        For true_false: boolean (true/false). options should be ["True", "False"].
-#                        For short_answer/essay: string.
-#
-#     Field format guide (coding questions):
-#       description          — Problem description (Markdown)
-#       input_description    — Input format description
-#       output_description   — Output format description
-#       hint                 — Hint text
-#       test_cases           — [{input_data: "...", output_data: "...", is_sample: true/false,
-#                               weight_percent: 25, order: 0}]
-#       language_configs     — [{language: "python", template_code: "", is_enabled: true, order: 0}]
-#     """
-#     valid_actions = {"create", "get", "update", "delete"}
-#     if action not in valid_actions:
-#         return _error(
-#             f"Unknown action: {action!r}. "
-#             f"qjudge_bank supports: {sorted(valid_actions)}"
-#         )
-#
-#     if action == "create":
-#         if not bank_id:
-#             return _error("bank_id is required")
-#         if not question_type:
-#             return _error("question_type is required")
-#         if not title:
-#             return _error("title is required")
-#
-#         # Type-based field validation
-#         warnings: list[str] = []
-#         exam_fields = {k: v for k, v in [("options", options), ("correct_answer", correct_answer)] if v is not None}
-#         coding_fields = {k: v for k, v in [("description", description), ("input_description", input_description),
-#                          ("output_description", output_description), ("test_cases", test_cases),
-#                          ("language_configs", language_configs)] if v is not None}
-#
-#         if question_type == "coding" and exam_fields:
-#             return _error(
-#                 f"Coding questions do not use {', '.join(exam_fields.keys())}. "
-#                 "Use description, test_cases, language_configs, etc. instead."
-#             )
-#         if question_type == "exam" and coding_fields:
-#             return _error(
-#                 f"Exam questions do not use {', '.join(coding_fields.keys())}. "
-#                 "Use prompt, options, correct_answer instead."
-#             )
-#
-#         if question_type == "coding":
-#             if not description:
-#                 warnings.append("missing description — problem will have no description")
-#             if not test_cases:
-#                 warnings.append("missing test_cases — problem will have no test cases")
-#             if not language_configs:
-#                 warnings.append("missing language_configs — problem will have no language enabled")
-#
-#         body: dict[str, Any] = {"question_type": question_type, "title": title}
-#         for key, val in [
-#             ("prompt", prompt),
-#             ("difficulty", difficulty),
-#             ("score", score),
-#             ("time_limit", time_limit),
-#             ("memory_limit", memory_limit),
-#             ("options", options),
-#             ("correct_answer", correct_answer),
-#         ]:
-#             if val is not None:
-#                 body[key] = val
-#
-#         # Assemble coding_ext from top-level params for coding questions
-#         if question_type == "coding":
-#             coding_ext: dict[str, Any] = {}
-#             for key, val in [
-#                 ("description", description),
-#                 ("input_description", input_description),
-#                 ("output_description", output_description),
-#                 ("hint", hint),
-#             ]:
-#                 if val is not None:
-#                     coding_ext[key] = val
-#             if test_cases is not None:
-#                 coding_ext["test_cases"] = test_cases
-#             if language_configs is not None:
-#                 coding_ext["language_configs"] = language_configs
-#             if coding_ext:
-#                 body["coding_ext"] = coding_ext
-#
-#         _normalize_body_text(body)
-#         result = await django_api("POST", f"/api/v1/question-banks/{bank_id}/questions/", ctx, json_body=body)
-#
-#         if warnings and isinstance(result, dict) and not result.get("error"):
-#             result["warnings"] = warnings
-#         return result
-#
-#     if action == "get":
-#         if not question_id:
-#             return _error("question_id is required")
-#         return await django_api("GET", f"/api/v1/question-bank-items/{question_id}/", ctx)
-#
-#     if action == "update":
-#         if not question_id:
-#             return _error("question_id is required")
-#
-#         # MCP-level validation warnings for coding questions
-#         warnings = []
-#         if question_type == "coding":
-#             if not description:
-#                 warnings.append("missing description — problem will have no description")
-#             if not test_cases:
-#                 warnings.append("missing test_cases — problem will have no test cases")
-#             if not language_configs:
-#                 warnings.append("missing language_configs — problem will have no language enabled")
-#
-#         body = {}
-#         for key, val in [
-#             ("question_type", question_type),
-#             ("title", title),
-#             ("prompt", prompt),
-#             ("difficulty", difficulty),
-#             ("score", score),
-#             ("time_limit", time_limit),
-#             ("memory_limit", memory_limit),
-#             ("options", options),
-#             ("correct_answer", correct_answer),
-#         ]:
-#             if val is not None:
-#                 body[key] = val
-#
-#         # Assemble coding_ext from top-level params only for coding questions.
-#         # For update without question_type, infer from presence of coding-specific fields.
-#         is_coding = question_type == "coding"
-#         has_coding_fields = any(v is not None for v in [description, input_description, output_description, hint, test_cases, language_configs])
-#         if is_coding or (action == "update" and has_coding_fields):
-#             coding_ext = {}
-#             for key, val in [
-#                 ("description", description),
-#                 ("input_description", input_description),
-#                 ("output_description", output_description),
-#                 ("hint", hint),
-#             ]:
-#                 if val is not None:
-#                     coding_ext[key] = val
-#             if test_cases is not None:
-#                 coding_ext["test_cases"] = test_cases
-#             if language_configs is not None:
-#                 coding_ext["language_configs"] = language_configs
-#             if coding_ext:
-#                 body["coding_ext"] = coding_ext
-#
-#         if not body:
-#             return _error("No fields to update")
-#         _normalize_body_text(body)
-#         result = await django_api("PATCH", f"/api/v1/question-bank-items/{question_id}/", ctx, json_body=body)
-#
-#         if warnings and isinstance(result, dict) and not result.get("error"):
-#             result["warnings"] = warnings
-#         return result
-#
-#     if action == "delete":
-#         if not question_id:
-#             return _error("question_id is required")
-#         return await django_api("DELETE", f"/api/v1/question-bank-items/{question_id}/", ctx)
-#
-#     return _error(f"Unknown action: {action}")
-#
-#
 # ---------------------------------------------------------------------------
 # Tool 3: qjudge_exam — 競賽筆試題目 CRUD（場內題目列表與順序 → qjudge_contest_manager）
 # ---------------------------------------------------------------------------
@@ -1376,7 +1121,7 @@ async def qjudge_contest_manager(
     )
 )
 async def qjudge_exam(
-    action: str,
+    action: Literal["get", "create", "update", "delete", "import_from_bank", "batch_create"],
     contest_id: str,
     ctx: Context,
     question_id: str | None = None,
@@ -1401,7 +1146,8 @@ async def qjudge_exam(
       delete           — Delete ONE question (required: question_id). No batch delete — call once per question.
       import_from_bank — Import from question bank (required: items — list of {question_bank_id, question_id})
       batch_create     — Create multiple questions at once (required: items — list of question objects;
-                         optional: mode — "append" (default) adds to existing, "overwrite" deletes all existing first)
+                         optional: mode — "append" (default) adds to existing, "overwrite" replaces all existing;
+                         new questions are created first and old ones deleted only after all succeed)
                          Each item in items: {question_type, prompt, options, correct_answer, explanation?, score?}
 
     Use **qjudge_contest_manager** (list_problems, reorder) instead of list/reorder here.
@@ -1412,7 +1158,6 @@ async def qjudge_exam(
       mode         → batch_create only
     """
     base = f"/api/v1/contests/{contest_id}/exam-questions"
-    valid_actions = {"get", "create", "update", "delete", "import_from_bank", "batch_create"}
     uuid_error = _require_uuid(
         contest_id,
         field_name="contest_id",
@@ -1421,15 +1166,6 @@ async def qjudge_exam(
     )
     if uuid_error:
         return uuid_error
-    if action not in valid_actions:
-        return _tool_error(
-            tool_name="qjudge_exam",
-            detail=(
-                f"Unknown action: {action!r}. "
-                f"qjudge_exam supports: {sorted(valid_actions)}"
-            ),
-            status=400,
-        )
     if action in {"get", "update", "delete"} and not question_id:
         return _tool_error(tool_name="qjudge_exam", detail="question_id is required")
     if action == "create":
@@ -1472,7 +1208,7 @@ async def qjudge_exam(
         return type_error
 
     if action == "get":
-        return await django_api("GET", f"{base}/{question_id}/", ctx)
+        return await django_api("GET", f"{base}/{_quote(question_id)}/", ctx)
 
     if action == "create":
         body = _build_exam_question_body(
@@ -1486,49 +1222,79 @@ async def qjudge_exam(
         return await django_api("POST", f"{base}/", ctx, json_body=body)
 
     if action == "update":
-        return await django_api("PATCH", f"{base}/{question_id}/", ctx, json_body=body)
+        return await django_api("PATCH", f"{base}/{_quote(question_id)}/", ctx, json_body=body)
 
     if action == "delete":
-        return await django_api("DELETE", f"{base}/{question_id}/", ctx)
+        return await django_api("DELETE", f"{base}/{_quote(question_id)}/", ctx)
 
     if action == "import_from_bank":
         return await django_api("POST", f"{base}/import-from-bank/", ctx, json_body={"items": items})
 
     if action == "batch_create":
-        deleted_count = 0
+        bodies: list[dict[str, Any]] = []
+        for index, item in enumerate(items, start=1):
+            if not isinstance(item, dict):
+                return _tool_error(tool_name="qjudge_exam", detail=f"items[{index}] must be an object")
+            if not item.get("question_type") or not item.get("prompt"):
+                return _tool_error(
+                    tool_name="qjudge_exam",
+                    detail=f"items[{index}] requires question_type and prompt",
+                )
+            bodies.append(
+                _build_exam_question_body(
+                    question_type=item.get("question_type"),
+                    prompt=item.get("prompt"),
+                    explanation=item.get("explanation"),
+                    score=item.get("score"),
+                    options=item.get("options"),
+                    correct_answer=item.get("correct_answer"),
+                )
+            )
+
+        # Overwrite creates the new questions first and deletes the old ones only
+        # after every create succeeded, so a failure never loses existing questions.
+        old_ids: list[str] = []
         if normalized_mode == "overwrite":
             existing = await django_api("GET", f"{base}/", ctx)
             if isinstance(existing, dict) and existing.get("error"):
                 return existing
             if not isinstance(existing, list):
                 return _tool_error(tool_name="qjudge_exam", detail="Expected exam question list during overwrite", status=500)
-            for existing_item in existing:
-                if not isinstance(existing_item, dict):
-                    continue
-                existing_id = existing_item.get("id")
-                if not existing_id:
-                    continue
-                deleted = await django_api("DELETE", f"{base}/{existing_id}/", ctx)
-                if isinstance(deleted, dict) and deleted.get("error"):
-                    return deleted
-                deleted_count += 1
+            old_ids = [str(row["id"]) for row in existing if isinstance(row, dict) and row.get("id")]
 
         created_items: list[Any] = []
-        for item in items:
-            if not isinstance(item, dict):
-                return _tool_error(tool_name="qjudge_exam", detail="Each batch item must be an object")
-            body = _build_exam_question_body(
-                question_type=item.get("question_type"),
-                prompt=item.get("prompt"),
-                explanation=item.get("explanation"),
-                score=item.get("score"),
-                options=item.get("options"),
-                correct_answer=item.get("correct_answer"),
-            )
+        for body in bodies:
             created = await django_api("POST", f"{base}/", ctx, json_body=body)
             if isinstance(created, dict) and created.get("error"):
+                rolled_back = 0
+                leftover: list[Any] = []
+                for made in created_items:
+                    made_id = made.get("id") if isinstance(made, dict) else None
+                    if not made_id:
+                        continue
+                    cleanup = await django_api("DELETE", f"{base}/{_quote(made_id)}/", ctx)
+                    if isinstance(cleanup, dict) and cleanup.get("error"):
+                        leftover.append(made_id)
+                    else:
+                        rolled_back += 1
+                created["rolled_back"] = rolled_back
+                if leftover:
+                    created["rollback_failed_ids"] = leftover
                 return created
             created_items.append(created)
+
+        deleted_count = 0
+        for old_id in old_ids:
+            deleted = await django_api("DELETE", f"{base}/{_quote(old_id)}/", ctx)
+            if isinstance(deleted, dict) and deleted.get("error"):
+                return {
+                    **deleted,
+                    "created_count": len(created_items),
+                    "deleted_count": deleted_count,
+                    "detail": "New questions were created but removing old questions failed; "
+                    "the contest now holds both.",
+                }
+            deleted_count += 1
 
         return {
             "status": "success",
@@ -1538,7 +1304,6 @@ async def qjudge_exam(
             "items": created_items,
         }
 
-    return _tool_error(tool_name="qjudge_exam", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1554,7 +1319,7 @@ async def qjudge_exam(
     )
 )
 async def qjudge_grading(
-    action: str,
+    action: Literal["list_answers", "question_detail", "dashboard", "grade", "batch_grade", "ungrade"],
     contest_id: str,
     ctx: Context,
     question_id: str | None = None,
@@ -1573,10 +1338,10 @@ async def qjudge_grading(
     Actions: list_answers, question_detail, dashboard, grade, batch_grade, ungrade.
 
     list_answers supports `projection="grading"` which returns a minimal
-    4-field row shape (exam_answer_id / student_id / answer_text /
-    original_score) tailored for the open-ended batch-grading SOP — it
-    can be piped straight into artifact_write_csv_from_records without
-    any column remapping.
+    row shape (index / exam_answer_id / username / answer_text /
+    original_score / original_feedback) tailored for the open-ended
+    batch-grading SOP — it can be piped straight into
+    artifact_write_csv_from_records without any column remapping.
     """
     base = f"/api/v1/contests/{contest_id}/exam-answers"
     uuid_error = _require_uuid(
@@ -1604,7 +1369,7 @@ async def qjudge_grading(
     if action == "question_detail":
         if not question_id:
             return _tool_error(tool_name="qjudge_grading", detail="question_id is required")
-        raw = await django_api("GET", f"{base}/question-detail/?question_id={question_id}", ctx)
+        raw = await django_api("GET", f"{base}/question-detail/?{urlencode({'question_id': question_id})}", ctx)
         return _compact_question_detail(
             raw,
             include_participants=include_participants,
@@ -1623,7 +1388,7 @@ async def qjudge_grading(
         body: dict[str, Any] = {"score": score}
         if feedback is not None:
             body["feedback"] = feedback
-        result = await django_api("POST", f"{base}/{exam_answer_id}/grade/", ctx, json_body=body)
+        result = await django_api("POST", f"{base}/{_quote(exam_answer_id)}/grade/", ctx, json_body=body)
         if isinstance(result, dict) and result.get("error"):
             return result
         return {"status": "success", "exam_answer_id": exam_answer_id, "score": score}
@@ -1639,21 +1404,22 @@ async def qjudge_grading(
         results = result.get("results", [])
         if not isinstance(results, list):
             results = []
+        failed = [item for item in results if isinstance(item, dict) and item.get("status") != "ok"]
         return {
-            "status": "success",
+            "status": "success" if not failed else "partial",
             "graded_count": result.get("graded_count", 0),
-            "error_count": sum(1 for item in results if item.get("status") != "ok"),
+            "error_count": len(failed),
+            "errors": failed,
         }
 
     if action == "ungrade":
         if not exam_answer_id:
             return _tool_error(tool_name="qjudge_grading", detail="exam_answer_id is required")
-        result = await django_api("POST", f"{base}/{exam_answer_id}/ungrade/", ctx)
+        result = await django_api("POST", f"{base}/{_quote(exam_answer_id)}/ungrade/", ctx)
         if isinstance(result, dict) and result.get("error"):
             return result
         return {"status": "success", "exam_answer_id": exam_answer_id}
 
-    return _tool_error(tool_name="qjudge_grading", detail=f"Unknown action: {action}", status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -1669,10 +1435,10 @@ async def qjudge_grading(
     )
 )
 async def qjudge_coding_problems(
-    action: str,
+    action: Literal["get", "create", "update", "delete"],
     ctx: Context,
     contest_id: str | None = None,
-    problem_id: str | None = None,
+    binding_id: str | None = None,
     title: str | None = None,
     difficulty: str | None = None,
     time_limit: int | None = None,
@@ -1689,7 +1455,7 @@ async def qjudge_coding_problems(
 
     ## When to use this tool (vs other tools)
       • Use **`qjudge_contest_manager`** → **get_detail**, **list_problems**, or **reorder** for a contest (needs `contest_id`).
-      • Use **`qjudge_coding_problems`** → create/edit/delete **one** coding problem at a time (needs `contest_id` + `problem_id` for get/update/delete).
+      • Use **`qjudge_coding_problems`** → create/edit/delete **one** coding problem at a time (needs `contest_id` + `binding_id` for get/update/delete).
       • Use **`qjudge_code_runner`** → **run student/teacher code** against an existing problem's tests (needs `problem_id` + `code`). This tool has **no `code` parameter**.
       • **Bank item CRUD** is not exposed via MCP — use the product UI or REST APIs.
       • Use **`qjudge_exam`** → non-coding (paper) contests only.
@@ -1699,15 +1465,15 @@ async def qjudge_coding_problems(
 
     ## ID semantics
       • `contest_id` — UUID of the contest.
-      • `problem_id` — UUID of the **coding problem in that contest** (from **qjudge_contest_manager** ``list_problems`` or ``create`` / ``get``). Same logical problem as Django **Problem** id used by `qjudge_code_runner` when referring to that problem.
+      • `binding_id` — the `id` field of an item from **qjudge_contest_manager** ``list_problems`` (the contest binding UUID). Do **not** pass the item's `problem_id` field here — that is the CodingProblem UUID, which only `qjudge_code_runner` accepts; the contest routes return 404 for it.
 
     ## Actions
-      get     — Get problem detail (required: contest_id, problem_id)
+      get     — Get problem detail (required: contest_id, binding_id)
       create  — Create a new problem (required: contest_id, title; optional: difficulty, time_limit,
                 memory_limit, description, input_description, output_description, hint, test_cases,
                 language_configs, max_score)
-      update  — Update a problem (required: contest_id, problem_id; optional: same fields as create)
-      delete  — Remove problem from contest (required: contest_id, problem_id)
+      update  — Update a problem (required: contest_id, binding_id; optional: same fields as create)
+      delete  — Remove problem from contest (required: contest_id, binding_id)
 
     ## Payload (create/update)
       Pass fields at the **top level** (no `coding_ext` wrapper in MCP).
@@ -1722,17 +1488,6 @@ async def qjudge_coding_problems(
       language_configs     — [{language: "python", template_code: "", is_enabled: true, order: 0}]
       max_score            — Optional numeric cap when supported by API
     """
-    valid_actions = {"get", "create", "update", "delete"}
-    if action not in valid_actions:
-        return _tool_error(
-            tool_name="qjudge_coding_problems",
-            detail=(
-                f"Unknown action: {action!r}. "
-                f"qjudge_coding_problems supports: {sorted(valid_actions)}. "
-                f"For code execution (including test_run), use qjudge_code_runner instead."
-            ),
-            status=400,
-        )
     uuid_error = _require_uuid(
         contest_id,
         field_name="contest_id",
@@ -1743,10 +1498,10 @@ async def qjudge_coding_problems(
         return uuid_error
     if action in {"get", "update", "delete"}:
         pid_error = _require_uuid(
-            problem_id,
-            field_name="problem_id",
+            binding_id,
+            field_name="binding_id",
             tool_name="qjudge_coding_problems",
-            hint="Use qjudge_contest_manager list_problems first to get problem_id.",
+            hint="Use qjudge_contest_manager list_problems first to get binding_id (the item's `id`).",
         )
         if pid_error:
             return pid_error
@@ -1781,7 +1536,7 @@ async def qjudge_coding_problems(
         return result
 
     if action == "get":
-        return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
+        return await django_api("GET", f"/api/v1/contests/{contest_id}/problems/{binding_id}/", ctx)
 
     if action == "create":
         body: dict[str, Any] = {"title": title}
@@ -1823,27 +1578,11 @@ async def qjudge_coding_problems(
         if not body:
             return _tool_error(tool_name="qjudge_coding_problems", detail="No fields to update")
         _normalize_body_text(body)
-        result = await django_api("PATCH", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx, json_body=body)
+        result = await django_api("PATCH", f"/api/v1/contests/{contest_id}/problems/{binding_id}/", ctx, json_body=body)
         return _attach_warnings(result)
 
     if action == "delete":
-        return await django_api("DELETE", f"/api/v1/contests/{contest_id}/problems/{problem_id}/", ctx)
-
-    # Future MCP (backend routes exist; re-enable when product needs them):
-    # if action == "import_from_bank":
-    #     return await django_api(
-    #         "POST", f"/api/v1/contests/{contest_id}/problems/import-from-bank/",
-    #         ctx, json_body={"items": items},
-    #     )
-    # if action == "update_score":
-    #     return await django_api(
-    #         "PATCH",
-    #         f"/api/v1/contests/{contest_id}/problems/{problem_id}/score/",
-    #         ctx,
-    #         json_body={"max_score": max_score},
-    #     )
-
-    return _tool_error(tool_name="qjudge_coding_problems", detail=f"Unknown action: {action}", status=400)
+        return await django_api("DELETE", f"/api/v1/contests/{contest_id}/problems/{binding_id}/", ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -1864,7 +1603,7 @@ async def qjudge_code_runner(
     code: str,
     ctx: Context,
 ) -> Any:
-    """**Run source code** against **all** test cases stored on a **Problem** (management test_run API).
+    """**Run source code** against the **public sample** test cases of a **Problem** (management test_run API).
 
     ## When to use (vs qjudge_coding_problems)
       • **`qjudge_code_runner`** — you have **source code** to execute and want **judge output** (stdout, verdict per case, CE/WA/AC, etc.).
@@ -1872,13 +1611,13 @@ async def qjudge_code_runner(
 
     ## What problem_id means
       • `problem_id` is the **CodingProblem / Problem UUID** — the same string as:
-        - `id` on a problem object from **qjudge_contest_manager** ``list_problems`` or `qjudge_coding_problems` **get**, and
+        - the `problem_id` field (not `id`) of an item from **qjudge_contest_manager** ``list_problems``, and
         - the `{id}` in POST `/api/v1/management/problems/{id}/test_run/`.
       • Do **not** pass `contest_id` here. Do **not** pass bank `question_id` unless that item is the same underlying problem id (usually use contest or management problem id from API responses).
 
     ## Execution model
-      • Sends only `{language, code}` to the server. The backend runs **every** stored test case for that problem, in order.
-      • There is **no** sample-only mode and **no** custom extra test cases in this API.
+      • Sends only `{language, code}` to the server. The backend runs the problem's **public sample** test cases only; hidden and non-sample cases never run here.
+      • This tool does not pass custom extra test cases.
 
     ## Languages (must match Django judge / TestRunSerializer)
       Allowed: **cpp**, **c**, **python**, **java**. (javascript is **not** supported for this endpoint.)
