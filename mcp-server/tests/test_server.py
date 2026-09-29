@@ -1000,6 +1000,36 @@ def test_qjudge_exam_batch_create_overwrite_keeps_old_questions_when_create_fail
     assert ("DELETE", f"{base}/new-1/") in calls
 
 
+def test_qjudge_exam_batch_create_rollback_reports_only_successful_cleanups(monkeypatch):
+    posts = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        if method == "POST":
+            posts.append(json_body)
+            if len(posts) == 3:
+                return {"error": True, "errors": ["bad"], "status": 400}
+            return {"id": f"new-{len(posts)}"}
+        if method == "DELETE" and path.endswith("/new-1/"):
+            return {"error": True, "errors": ["boom"], "status": 500}
+        return {"status": "success"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.qjudge_exam(
+            "batch_create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            items=[{"question_type": "essay", "prompt": f"Q{i}"} for i in range(3)],
+        )
+    )
+
+    assert result["rolled_back"] == 1
+    assert result["rollback_failed_ids"] == ["new-1"]
+
+
 def test_qjudge_exam_batch_create_validates_items_before_any_write(monkeypatch):
     calls = []
 
@@ -1102,6 +1132,52 @@ def test_qjudge_contest_manager_update_patches_only_given_settings(monkeypatch):
         "path": f"/api/v1/contests/{contest_uuid}/",
         "json_body": {"name": "New", "allow_multiple_joins": False},
     }
+
+
+def test_qjudge_contest_manager_update_accepts_policy_object_and_clear_fields(monkeypatch):
+    captured = {}
+    contest_uuid = "33333333-3333-3333-3333-333333333333"
+    policy = {"desktop": {"enabled": True}, "tablet": {"enabled": False}}
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        captured["json_body"] = json_body
+        return {"id": contest_uuid}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_contest_manager(
+            "update",
+            DummyContext(),
+            contest_id=contest_uuid,
+            anticheat_device_policy=policy,
+            clear_fields=["end_time"],
+        )
+    )
+
+    assert captured["json_body"] == {"anticheat_device_policy": policy, "end_time": None}
+
+
+def test_qjudge_contest_manager_update_rejects_setting_and_clearing_the_same_field():
+    result = run(
+        server.qjudge_contest_manager(
+            "update",
+            DummyContext(),
+            contest_id="33333333-3333-3333-3333-333333333333",
+            end_time="2026-10-01T00:00:00Z",
+            clear_fields=["end_time"],
+        )
+    )
+
+    assert result["error"] is True
+    assert "end_time" in result["detail"]
+
+
+def test_update_schema_types_policy_as_object():
+    tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
+    policy = tools["qjudge_contest_manager"].inputSchema["properties"]["anticheat_device_policy"]
+
+    assert any(option.get("type") == "object" for option in policy["anyOf"])
 
 
 def test_qjudge_contest_manager_update_requires_a_field():

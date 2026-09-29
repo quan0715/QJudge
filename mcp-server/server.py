@@ -621,7 +621,7 @@ _TOOL_HELP = {
         "qjudge_code_runner": {
             "use_when": "You need to **execute source code** against the problem's **stored** test cases (teacher/test-run).",
             "requires": "problem_id = **CodingProblem / Problem UUID** = the `problem_id` field of a list_problems item (same id as GET /api/v1/management/problems/{id}/). language + code strings.",
-            "behavior": "Runs **all** test cases on the server in order; no sample-only or custom-case flags.",
+            "behavior": "Runs only the problem's public sample test cases; hidden and non-sample cases never run, and custom cases cannot be passed.",
             "never": "Do NOT use contest_id here. Do NOT create/update problems here.",
         },
         "id_confusion": (
@@ -998,7 +998,8 @@ async def qjudge_contest_manager(
     attendance_check_enabled: bool | None = None,
     attendance_photo_policy: str | None = None,
     cheat_detection_enabled: bool | None = None,
-    anticheat_device_policy: str | None = None,
+    anticheat_device_policy: dict[str, Any] | None = None,
+    clear_fields: list[Literal["start_time", "end_time"]] | None = None,
     scoreboard_visible_during_contest: bool | None = None,
     allow_multiple_joins: bool | None = None,
 ) -> Any:
@@ -1011,8 +1012,10 @@ async def qjudge_contest_manager(
       update        — Partially update contest settings (required: contest_id UUID, at least one
                       of name, description, rules, start_time, end_time (ISO 8601),
                       attendance_check_enabled, attendance_photo_policy, cheat_detection_enabled,
-                      anticheat_device_policy, scoreboard_visible_during_contest,
-                      allow_multiple_joins). status, contest_type and results_published
+                      anticheat_device_policy (object: {"desktop": {...}, "tablet": {...}}),
+                      scoreboard_visible_during_contest, allow_multiple_joins). To clear
+                      start_time or end_time, list the field in clear_fields (omitted
+                      arguments are never sent). status, contest_type and results_published
                       are not editable here.
     """
     uuid_error = _require_uuid(
@@ -1047,6 +1050,13 @@ async def qjudge_contest_manager(
             "allow_multiple_joins": allow_multiple_joins,
         }
         patch = {key: value for key, value in fields.items() if value is not None}
+        for field in clear_fields or []:
+            if field in patch:
+                return _tool_error(
+                    tool_name="qjudge_contest_manager",
+                    detail=f"{field} cannot be both set and listed in clear_fields",
+                )
+            patch[field] = None
         if not patch:
             return _tool_error(
                 tool_name="qjudge_contest_manager",
@@ -1256,10 +1266,20 @@ async def qjudge_exam(
         for body in bodies:
             created = await django_api("POST", f"{base}/", ctx, json_body=body)
             if isinstance(created, dict) and created.get("error"):
+                rolled_back = 0
+                leftover: list[Any] = []
                 for made in created_items:
-                    if isinstance(made, dict) and made.get("id"):
-                        await django_api("DELETE", f"{base}/{_quote(made['id'])}/", ctx)
-                created["rolled_back"] = len(created_items)
+                    made_id = made.get("id") if isinstance(made, dict) else None
+                    if not made_id:
+                        continue
+                    cleanup = await django_api("DELETE", f"{base}/{_quote(made_id)}/", ctx)
+                    if isinstance(cleanup, dict) and cleanup.get("error"):
+                        leftover.append(made_id)
+                    else:
+                        rolled_back += 1
+                created["rolled_back"] = rolled_back
+                if leftover:
+                    created["rollback_failed_ids"] = leftover
                 return created
             created_items.append(created)
 

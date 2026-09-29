@@ -9,7 +9,7 @@
 
 ## Overview
 
-QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
+QJudge MCP Server 提供 **7 個工具**（`qjudge_bank` 已自 MCP 移除），每個工具有明確的職責邊界。
 
 | Tool | Purpose | Do NOT use for |
 |---|---|---|
@@ -19,6 +19,7 @@ QJudge MCP Server 提供 **6 個工具**（`qjudge_bank` 已自 MCP 移除），
 | `qjudge_coding_problems` | 競賽程式題單題 CRUD | code execution, paper_exam, list 場內題目 |
 | `qjudge_code_runner` | 程式碼執行驗證 | 題目 CRUD |
 | `qjudge_grading` | 改卷 | 題目 CRUD |
+| `preview_exam_problem` | 筆試題修改預覽（唯讀，套用 patch 後渲染學生端畫面，不寫入） | 實際更新題目（用 `qjudge_exam update`） |
 
 ---
 
@@ -100,8 +101,14 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | Param | Type | Used by |
 |---|---|---|
 | `action` | string | all |
-| `contest_id` | string(UUID) | get_detail, list_problems, reorder |
+| `contest_id` | string(UUID) | get_detail, list_problems, reorder, update |
 | `question_ids` | list[string]? | reorder |
+| `name` / `description` / `rules` | string? | update |
+| `start_time` / `end_time` | string? (ISO 8601) | update |
+| `attendance_check_enabled` / `cheat_detection_enabled` / `scoreboard_visible_during_contest` / `allow_multiple_joins` | bool? | update |
+| `attendance_photo_policy` | string? (`room` / `room_and_selfie`) | update |
+| `anticheat_device_policy` | object? (`{"desktop": {...}, "tablet": {...}}`) | update |
+| `clear_fields` | list? (`start_time` / `end_time`) | update：把列出的欄位設為 null；未傳的參數一律不送出 |
 
 ### Actions
 
@@ -112,7 +119,7 @@ Django 的 ValidationError 會被轉譯成 `errors[]` list：
 | `reorder` | 重排競賽題目順序 | contest_id, question_ids |
 | `update` | 部分更新競賽設定（PATCH，只送有給的欄位） | contest_id + 至少一個設定欄位 |
 
-`update` 可改欄位：`name`、`description`、`rules`、`start_time`、`end_time`（ISO 8601）、`attendance_check_enabled`、`attendance_photo_policy`、`cheat_detection_enabled`、`anticheat_device_policy`、`scoreboard_visible_during_contest`、`allow_multiple_joins`。`status`、`contest_type`、`results_published` 不開放，權限由後端 `ContestAccessPolicy` 判定。
+`update` 可改欄位見上表。`status`、`contest_type`、`results_published` 不開放，權限由後端 `ContestAccessPolicy` 判定。
 
 ---
 
@@ -155,6 +162,14 @@ question_id  → get, update, delete only
 items        → batch_create, import_from_bank only
 mode         → batch_create only
 ```
+
+---
+
+## preview_exam_problem
+
+**筆試題修改預覽**（唯讀）。讀取現有題目、套用傳入的欄位後，回傳學生端畫面的預覽，不會寫入。確認後再用 `qjudge_exam update` 實際修改。
+
+參數：`contest_id`、`question_id`，以及要預覽的欄位（`question_type`、`prompt`、`explanation`、`score`、`options`、`correct_answer`，至少一個）。只能用於 `paper_exam` 競賽。
 
 ---
 
