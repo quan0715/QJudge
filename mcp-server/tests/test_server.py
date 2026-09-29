@@ -21,6 +21,13 @@ def run(coro):
     return asyncio.run(coro)
 
 
+@pytest.fixture(autouse=True)
+def reset_shared_http_client():
+    server._HTTP_CLIENT = None
+    yield
+    server._HTTP_CLIENT = None
+
+
 def test_oauth_config_canonicalizes_trailing_slash():
     environment = os.environ.copy()
     environment["QJUDGE_PUBLIC_ORIGIN"] = "https://issuer.test/"
@@ -145,6 +152,7 @@ def test_django_api_forwards_auth_header_and_json_body(monkeypatch):
         "url": f"{server.DJANGO_BASE_URL}/api/v1/demo/",
         "headers": {"X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO, "Authorization": "Bearer token"},
         "json": {"hello": "world"},
+        "timeout": 30.0,
     }]
 
 
@@ -276,67 +284,6 @@ def test_answer_snapshot_compatibility_helper_is_removed():
     assert not hasattr(server, "_strip_snapshots")
 
 
-def test_artifact_csv_delete_rows_by_row_index(tmp_path):
-    csv_path = tmp_path / "answers.csv"
-    csv_path.write_text(
-        "index,exam_answer_id,score,reason\n"
-        "1,2088,,\n"
-        "2,2088,2,重複資料，答案完整正確\n"
-        "3,3001,1,ok\n",
-        encoding="utf-8",
-    )
-
-    result = server.artifact_csv_delete_rows(
-        file_path=str(csv_path),
-        row_index=1,
-    )
-
-    assert result["status"] == "success"
-    assert result["deleted_count"] == 1
-    assert result["after_count"] == 2
-    assert csv_path.read_text(encoding="utf-8") == (
-        "index,exam_answer_id,score,reason\n"
-        "2,2088,2,重複資料，答案完整正確\n"
-        "3,3001,1,ok\n"
-    )
-
-
-def test_artifact_csv_delete_rows_by_match(tmp_path):
-    csv_path = tmp_path / "answers.csv"
-    csv_path.write_text(
-        "index,exam_answer_id,score,reason\n"
-        "1,2088,,\n"
-        "2,2088,2,重複資料，答案完整正確\n"
-        "3,2088,,\n",
-        encoding="utf-8",
-    )
-
-    result = server.artifact_csv_delete_rows(
-        file_path=str(csv_path),
-        match={"exam_answer_id": "2088", "score": ""},
-        delete_all_matches=True,
-    )
-
-    assert result["status"] == "success"
-    assert result["deleted_count"] == 2
-    assert result["after_count"] == 1
-    assert csv_path.read_text(encoding="utf-8") == (
-        "index,exam_answer_id,score,reason\n"
-        "2,2088,2,重複資料，答案完整正確\n"
-    )
-
-
-def test_artifact_csv_delete_rows_requires_selector(tmp_path):
-    csv_path = tmp_path / "answers.csv"
-    csv_path.write_text("index,exam_answer_id,score\n1,2088,\n", encoding="utf-8")
-
-    result = server.artifact_csv_delete_rows(file_path=str(csv_path))
-
-    assert result["error"] is True
-    assert result["status"] == 400
-    assert "selector" in result["detail"]
-
-
 def test_qjudge_browse_builds_encoded_query(monkeypatch):
     calls = []
 
@@ -458,7 +405,44 @@ def test_verify_token_uses_canonical_users_me_path(monkeypatch):
             "Authorization": "Bearer token-123",
             "X-Forwarded-Proto": server.DJANGO_FORWARDED_PROTO,
         },
+        "timeout": 10.0,
     }]
+
+
+def test_verify_token_caches_successful_checks(monkeypatch):
+    calls = []
+    response = FakeResponse(200, payload={"id": "user-1"})
+    monkeypatch.setattr(
+        server.httpx,
+        "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+    verifier = server.DjangoTokenVerifier()
+
+    async def verify_twice():
+        return await verifier.verify_token("token-123"), await verifier.verify_token("token-123")
+
+    first, second = run(verify_twice())
+
+    assert first is not None and second is not None
+    assert len(calls) == 1
+
+
+def test_verify_token_does_not_cache_rejections(monkeypatch):
+    calls = []
+    response = FakeResponse(401, payload={})
+    monkeypatch.setattr(
+        server.httpx,
+        "AsyncClient",
+        lambda timeout: FakeAsyncClient(response, calls, timeout=timeout),
+    )
+    verifier = server.DjangoTokenVerifier()
+
+    async def verify_twice():
+        return await verifier.verify_token("bad"), await verifier.verify_token("bad")
+
+    assert run(verify_twice()) == (None, None)
+    assert len(calls) == 2
 
 
 def test_qjudge_exam_returns_fixed_errors():
@@ -471,15 +455,11 @@ def test_qjudge_exam_returns_fixed_errors():
             question_id="q1",
         )
     )
-    unknown = run(server.qjudge_exam("wat", "11111111-1111-1111-1111-111111111111", DummyContext()))
 
     assert missing_question["error"] is True
     assert missing_question["detail"].startswith("question_id is required")
     assert no_update_fields["error"] is True
     assert no_update_fields["detail"].startswith("No fields to update")
-    assert unknown["error"] is True
-    assert "Unknown action: 'wat'" in unknown["detail"]
-    assert "qjudge_exam supports" in unknown["detail"]
 
 
 def test_qjudge_grading_list_answers_returns_compact_projection(monkeypatch):
@@ -673,9 +653,10 @@ def test_qjudge_grading_grade_and_batch_grade_return_minimal_ack(monkeypatch):
         "score": 8,
     }
     assert batch_result == {
-        "status": "success",
+        "status": "partial",
         "graded_count": 1,
         "error_count": 1,
+        "errors": [{"exam_answer_id": "2", "status": "error"}],
     }
 
 
@@ -726,14 +707,6 @@ def test_qjudge_browse_get_help_single_tool():
 # ---------- qjudge_browse tests ----------
 
 
-def test_qjudge_browse_rejects_contest_operations():
-    result = run(server.qjudge_browse("list_problems", DummyContext()))
-    assert result["error"] is True
-    assert result["status"] == 400
-    assert "Action 'list_problems' is not available on qjudge_browse" in result["detail"]
-
-
-# qjudge_bank tests removed while the MCP tool is disabled (implementation kept as comments in server.py).
 
 
 # ---------- qjudge_exam import_from_bank tests ----------
@@ -857,7 +830,7 @@ def test_build_exam_problem_preview_applies_patch_and_tracks_update_summary():
         "options": ["A", "B"],
     }
 
-    preview = server._build_exam_problem_preview(current, patch)
+    preview = server.build_exam_problem_preview(current, patch)
 
     assert preview["kind"] == "exam_problem_preview"
     assert preview["question_id"] == "eq-1"
@@ -982,10 +955,75 @@ def test_qjudge_exam_batch_create_overwrite(monkeypatch):
     assert result["created_count"] == 1
     assert calls == [
         ("GET", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/", None),
+        ("POST", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/", {"question_type": "essay", "prompt": "Fresh question", "score": 10}),
         ("DELETE", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/old-1/", None),
         ("DELETE", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/old-2/", None),
-        ("POST", "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/", {"question_type": "essay", "prompt": "Fresh question", "score": 10}),
     ]
+
+
+def test_qjudge_exam_batch_create_overwrite_keeps_old_questions_when_create_fails(monkeypatch):
+    calls = []
+    posts = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        calls.append((method, path))
+        if method == "GET":
+            return [{"id": "old-1"}]
+        if method == "POST":
+            posts.append(json_body)
+            if len(posts) == 2:
+                return {"error": True, "errors": ["bad question"], "status": 400}
+            return {"id": "new-1"}
+        return {"status": "success"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.qjudge_exam(
+            "batch_create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            mode="overwrite",
+            items=[
+                {"question_type": "essay", "prompt": "Q1"},
+                {"question_type": "essay", "prompt": "Q2"},
+            ],
+        )
+    )
+
+    base = "/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions"
+    assert result["error"] is True
+    assert result["rolled_back"] == 1
+    assert ("DELETE", f"{base}/old-1/") not in calls
+    assert ("DELETE", f"{base}/new-1/") in calls
+
+
+def test_qjudge_exam_batch_create_validates_items_before_any_write(monkeypatch):
+    calls = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        calls.append((method, path))
+        return []
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(
+        server.qjudge_exam(
+            "batch_create",
+            "11111111-1111-1111-1111-111111111111",
+            DummyContext(),
+            mode="overwrite",
+            items=[{"question_type": "essay", "prompt": "Q1"}, {"question_type": "essay"}],
+        )
+    )
+
+    assert result["error"] is True
+    assert "items[2]" in result["detail"]
+    assert calls == []
 
 
 def test_qjudge_exam_batch_create_requires_valid_mode():
@@ -1037,6 +1075,43 @@ def test_qjudge_contest_manager_get_detail(monkeypatch):
 
     assert result == {"id": contest_uuid, "name": "T"}
     assert captured == {"method": "GET", "path": f"/api/v1/contests/{contest_uuid}/"}
+
+
+def test_qjudge_contest_manager_update_patches_only_given_settings(monkeypatch):
+    captured = {}
+    contest_uuid = "33333333-3333-3333-3333-333333333333"
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        captured.update(method=method, path=path, json_body=json_body)
+        return {"id": contest_uuid}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(
+        server.qjudge_contest_manager(
+            "update",
+            DummyContext(),
+            contest_id=contest_uuid,
+            name="New",
+            allow_multiple_joins=False,
+        )
+    )
+
+    assert captured == {
+        "method": "PATCH",
+        "path": f"/api/v1/contests/{contest_uuid}/",
+        "json_body": {"name": "New", "allow_multiple_joins": False},
+    }
+
+
+def test_qjudge_contest_manager_update_requires_a_field():
+    result = run(
+        server.qjudge_contest_manager(
+            "update", DummyContext(), contest_id="33333333-3333-3333-3333-333333333333"
+        )
+    )
+
+    assert result["error"] is True
 
 
 def test_qjudge_contest_manager_list_problems_coding(monkeypatch):
@@ -1102,7 +1177,7 @@ def test_qjudge_coding_problems_get(monkeypatch):
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
-    result = run(server.qjudge_coding_problems("get", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", problem_id="44444444-4444-4444-4444-444444444444"))
+    result = run(server.qjudge_coding_problems("get", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", binding_id="44444444-4444-4444-4444-444444444444"))
 
     assert result == {"id": "44444444-4444-4444-4444-444444444444", "title": "A+B"}
     assert captured == {"method": "GET", "path": "/api/v1/contests/22222222-2222-2222-2222-222222222222/problems/44444444-4444-4444-4444-444444444444/"}
@@ -1112,7 +1187,7 @@ def test_qjudge_coding_problems_get_requires_ids():
     assert run(server.qjudge_coding_problems("get", DummyContext()))["detail"].startswith("contest_id is required")
     assert run(
         server.qjudge_coding_problems("get", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222")
-    )["detail"].startswith("problem_id is required")
+    )["detail"].startswith("binding_id is required")
 
 
 def test_qjudge_coding_problems_create(monkeypatch):
@@ -1185,7 +1260,7 @@ def test_qjudge_coding_problems_update(monkeypatch):
 
     result = run(
         server.qjudge_coding_problems(
-            "update", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", problem_id="44444444-4444-4444-4444-444444444444",
+            "update", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", binding_id="44444444-4444-4444-4444-444444444444",
             description="new desc",
         )
     )
@@ -1198,9 +1273,9 @@ def test_qjudge_coding_problems_update(monkeypatch):
     }
 
 
-def test_qjudge_coding_problems_update_requires_problem_id():
+def test_qjudge_coding_problems_update_requires_binding_id():
     result = run(server.qjudge_coding_problems("update", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222"))
-    assert result["detail"].startswith("problem_id is required")
+    assert result["detail"].startswith("binding_id is required")
 
 
 def test_qjudge_coding_problems_create_requires_fields():
@@ -1222,7 +1297,7 @@ def test_qjudge_coding_problems_delete(monkeypatch):
 
     monkeypatch.setattr(server, "django_api", fake_django_api)
 
-    result = run(server.qjudge_coding_problems("delete", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", problem_id="44444444-4444-4444-4444-444444444444"))
+    result = run(server.qjudge_coding_problems("delete", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222", binding_id="44444444-4444-4444-4444-444444444444"))
 
     assert result == {"status": "success"}
     assert captured == {"method": "DELETE", "path": "/api/v1/contests/22222222-2222-2222-2222-222222222222/problems/44444444-4444-4444-4444-444444444444/"}
@@ -1232,23 +1307,58 @@ def test_qjudge_coding_problems_delete_requires_ids():
     assert run(server.qjudge_coding_problems("delete", DummyContext()))["detail"].startswith("contest_id is required")
     assert run(
         server.qjudge_coding_problems("delete", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222")
-    )["detail"].startswith("problem_id is required")
+    )["detail"].startswith("binding_id is required")
 
 
-def test_qjudge_coding_problems_unknown_action():
-    result = run(server.qjudge_coding_problems("wat", DummyContext(), contest_id="22222222-2222-2222-2222-222222222222"))
-    assert result["error"] is True
-    assert "Unknown action: 'wat'" in result["detail"]
-    assert "qjudge_coding_problems supports" in result["detail"]
-    assert "qjudge_code_runner" in result["detail"]
+def test_tool_schemas_enumerate_supported_actions():
+    tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
+    expected = {
+        "qjudge_browse": {"list_classrooms", "get_classroom", "list_classroom_contests", "list_contests", "get_contest", "get_help"},
+        "qjudge_contest_manager": {"get_detail", "list_problems", "reorder", "update"},
+        "qjudge_exam": {"get", "create", "update", "delete", "import_from_bank", "batch_create"},
+        "qjudge_grading": {"list_answers", "question_detail", "dashboard", "grade", "batch_grade", "ungrade"},
+        "qjudge_coding_problems": {"get", "create", "update", "delete"},
+    }
+    for name, actions in expected.items():
+        assert set(tools[name].inputSchema["properties"]["action"]["enum"]) == actions
 
 
-def test_qjudge_coding_problems_retired_actions_not_exposed():
-    """Backend may still have routes; MCP no longer exposes import_from_bank / update_score."""
-    for action in ("import_from_bank", "update_score"):
-        r = run(server.qjudge_coding_problems(action, DummyContext(), contest_id="22222222-2222-2222-2222-222222222222"))
-        assert r.get("error") is True
-        assert f"Unknown action: '{action}'" in r.get("detail", "")
+def test_browse_list_contests_follows_pagination(monkeypatch):
+    paths = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        paths.append(path)
+        if path == "/api/v1/contests/?scope=manage":
+            return {"results": [{"id": "11111111-1111-1111-1111-111111111111"}], "next": "http://backend/?page=2"}
+        if path == "/api/v1/contests/?scope=manage&page=2":
+            return {"results": [{"id": "22222222-2222-2222-2222-222222222222"}], "next": None}
+        return {"id": path.split("/")[-2], "name": "C", "contest_type": "coding"}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    result = run(server.qjudge_browse("list_contests", DummyContext()))
+
+    assert result["count"] == 2
+    assert [row["contest_id"] for row in result["items"]] == [
+        "11111111-1111-1111-1111-111111111111",
+        "22222222-2222-2222-2222-222222222222",
+    ]
+
+
+def test_exam_ids_are_encoded_as_single_path_segments(monkeypatch):
+    paths = []
+
+    async def fake_django_api(method, path, ctx, *, json_body=None):
+        if path == "/api/v1/contests/11111111-1111-1111-1111-111111111111/":
+            return contest_detail()
+        paths.append(path)
+        return {}
+
+    monkeypatch.setattr(server, "django_api", fake_django_api)
+
+    run(server.qjudge_exam("get", "11111111-1111-1111-1111-111111111111", DummyContext(), question_id="../x"))
+
+    assert paths == ["/api/v1/contests/11111111-1111-1111-1111-111111111111/exam-questions/..%2Fx/"]
 
 
 # ---------------------------------------------------------------------------
@@ -1344,33 +1454,23 @@ def test_normalize_newlines_preserves_real_newlines():
     assert server._normalize_newlines("line1\nline2\n") == "line1\nline2\n"
 
 
-def test_normalize_test_cases():
-    cases = [{"input_data": "1 2\\n3 4\\n", "output_data": "5\\n"}]
-    result = server._normalize_test_cases(cases)
-    assert result[0]["input_data"] == "1 2\n3 4\n"
-    assert result[0]["output_data"] == "5\n"
+def test_normalize_newlines_keeps_escapes_in_multiline_text():
+    text = 'printf("\\n");\nreturn 0;'
+    assert server._normalize_newlines(text) == text
 
 
-def test_normalize_translations():
-    trs = [{"description": "desc\\nline2", "input_description": "in\\nformat", "title": "t"}]
-    result = server._normalize_translations(trs)
-    assert result[0]["description"] == "desc\nline2"
-    assert result[0]["input_description"] == "in\nformat"
-    assert result[0]["title"] == "t"
-
-
-def test_normalize_body_text_handles_coding_ext():
+def test_normalize_body_text_covers_test_cases_and_coding_text():
     body = {
         "prompt": "hello\\nworld",
-        "coding_ext": {
-            "translations": [{"description": "a\\nb"}],
-            "test_cases": [{"input_data": "1\\n", "output_data": "2\\n"}],
-        },
+        "description": "a\\nb",
+        "hint": "h\\ni",
+        "test_cases": [{"input_data": "1\\n", "output_data": "2\\n"}],
     }
     server._normalize_body_text(body)
     assert body["prompt"] == "hello\nworld"
-    assert body["coding_ext"]["translations"][0]["description"] == "a\nb"
-    assert body["coding_ext"]["test_cases"][0]["input_data"] == "1\n"
+    assert body["description"] == "a\nb"
+    assert body["hint"] == "h\ni"
+    assert body["test_cases"][0] == {"input_data": "1\n", "output_data": "2\n"}
 
 
 def test_build_exam_question_body_normalizes_prompt():

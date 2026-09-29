@@ -287,7 +287,7 @@ class TestCoding:
         contest_id, problems = contest_with_problems
         assert len(problems) >= 1
         pid = str(problems[0]["id"])
-        detail = run(server.qjudge_coding_problems("get", admin_ctx, contest_id=contest_id, problem_id=pid))
+        detail = run(server.qjudge_coding_problems("get", admin_ctx, contest_id=contest_id, binding_id=pid))
         assert not (isinstance(detail, dict) and detail.get("error"))
         assert detail.get("id") is not None
 
@@ -333,43 +333,6 @@ class TestToolSplitRegression:
         if not contest_id:
             pytest.skip("No coding contest in seed data")
         return contest_id
-
-    def test_exam_removed_list_action_returns_error(self, admin_ctx, paper_exam_contest_id):
-        result = run(server.qjudge_exam("list", paper_exam_contest_id, admin_ctx))
-        assert isinstance(result, dict)
-        assert result.get("error") is True
-        assert "Unknown action" in result.get("detail", "")
-
-    def test_exam_removed_reorder_action_returns_error(self, admin_ctx, paper_exam_contest_id):
-        result = run(
-            server.qjudge_exam(
-                "reorder",
-                paper_exam_contest_id,
-                admin_ctx,
-                items=[{"question_bank_id": "dummy", "question_id": "dummy"}],
-            )
-        )
-        assert isinstance(result, dict)
-        assert result.get("error") is True
-        assert "Unknown action" in result.get("detail", "")
-
-    def test_coding_removed_list_action_returns_error(self, admin_ctx, coding_contest_id):
-        result = run(server.qjudge_coding_problems("list", admin_ctx, contest_id=coding_contest_id))
-        assert isinstance(result, dict)
-        assert result.get("error") is True
-        assert "Unknown action" in result.get("detail", "")
-
-    def test_coding_removed_reorder_action_returns_error(self, admin_ctx, coding_contest_id):
-        result = run(
-            server.qjudge_coding_problems(
-                "reorder",
-                admin_ctx,
-                contest_id=coding_contest_id,
-            )
-        )
-        assert isinstance(result, dict)
-        assert result.get("error") is True
-        assert "Unknown action" in result.get("detail", "")
 
 
 # ---------------------------------------------------------------------------
@@ -495,9 +458,7 @@ class TestMCPProtocol:
                 return result
 
         result = run(_test())
-        text = result.content[0].text if result.content else ""
-        parsed = json.loads(text) if text else {}
-        assert parsed.get("error"), f"Expected error response, got: {text[:200]}"
+        assert result.isError, "Expected the schema to reject an unknown action"
 
     def test_call_tool_discover_list_classrooms(self, teacher_token):
         from mcp.shared.memory import create_connected_server_and_client_session
