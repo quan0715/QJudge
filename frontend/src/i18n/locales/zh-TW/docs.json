@@ -28,7 +28,9 @@
       "mcp-setup": "配置 MCP 工具連線",
       "overview": "平台概覽",
       "quick-start": "快速入門",
-      "teacher-qualification": "管理教師資格"
+      "teacher-qualification": "管理教師資格",
+      "privacy": "隱私權政策",
+      "terms": "服務條款"
     },
     "lastUpdated": "前次更新",
     "onThisPage": "在此頁面",
@@ -37,7 +39,8 @@
       "admin-guide": "管理員指南",
       "deployment": "架設與部署",
       "first-exam": "準備第一場考試",
-      "getting-started": "快速開始"
+      "getting-started": "快速開始",
+      "legal": "法律與隱私"
     }
   },
   "page": {

@@ -28,7 +28,9 @@
       "mcp-setup": "MCP ツール連携の設定",
       "overview": "プラットフォーム概要",
       "quick-start": "クイックスタート",
-      "teacher-qualification": "教員資格を管理"
+      "teacher-qualification": "教員資格を管理",
+      "privacy": "プライバシーポリシー",
+      "terms": "利用規約"
     },
     "lastUpdated": "最終更新日",
     "onThisPage": "このページの内容",
@@ -37,7 +39,8 @@
       "admin-guide": "管理者ガイド",
       "deployment": "構築とデプロイ",
       "first-exam": "最初の試験を準備",
-      "getting-started": "はじめに"
+      "getting-started": "はじめに",
+      "legal": "法的情報"
     }
   },
   "page": {
