@@ -157,6 +157,9 @@ const ExamPrecheckScreen: React.FC = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [startGuardError, setStartGuardError] = useState<string | null>(null);
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The start effect depends on values that change identity every render, so
+  // without this a re-render during the request would start the exam again.
+  const startingRef = useRef(false);
   const lastInteractionAtRef = useRef<number>(0);
   const statusMeta = createStatusMeta(t);
 
@@ -421,11 +424,16 @@ const ExamPrecheckScreen: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (countdown === null) return;
+    if (countdown === null) {
+      startingRef.current = false;
+      return;
+    }
     if (countdown > 0) {
       countdownRef.current = setTimeout(() => setCountdown((c) => (c ?? 1) - 1), 1000);
       return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
     }
+    if (startingRef.current) return;
+    startingRef.current = true;
     (async () => {
       const { failure: validationFailure, observation } =
         await runStartPreflightValidation(t, {
@@ -433,7 +441,7 @@ const ExamPrecheckScreen: React.FC = () => {
           requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
           requireWebcam: monitoringPlan.precheck.requireWebcam,
           enableWebcam: monitoringPlan.precheck.enableWebcam,
-            });
+        });
       if (validationFailure) {
         applyPreflightFailureToEnvChecks(
           validationFailure,
