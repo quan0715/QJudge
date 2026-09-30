@@ -73,6 +73,39 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         self.assertTrue(resp.data["webcam_required"])
         self.assertFalse(resp.data["integrity_run"]["policy_snapshot"]["webcam_required"])
 
+    def _run_in(self, state):
+        return ExamIntegrityRun.objects.create(
+            contest=self.contest,
+            registry_version="frozen-registry",
+            session_state=state,
+            policy_snapshot=build_integrity_policy_snapshot(self.contest),
+            registry_snapshot={"version": "frozen-registry", "definitions": {}},
+        )
+
+    def test_turning_on_webcam_reaches_a_run_that_has_not_started(self):
+        run = self._run_in("prepared")
+        self.client.force_authenticate(user=self.owner)
+
+        resp = self.client.patch(
+            f"/api/v1/contests/{self.contest.id}/", {"webcam_required": True}, format="json"
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        run.refresh_from_db()
+        self.assertTrue(run.policy_snapshot["webcam_required"])
+
+    def test_turning_on_webcam_never_changes_a_started_run(self):
+        run = self._run_in("active")
+        self.client.force_authenticate(user=self.owner)
+
+        resp = self.client.patch(
+            f"/api/v1/contests/{self.contest.id}/", {"webcam_required": True}, format="json"
+        )
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        run.refresh_from_db()
+        self.assertFalse(run.policy_snapshot["webcam_required"])
+
     def test_update_serializer_accepts_webcam_required(self):
         serializer = ContestCreateUpdateSerializer(
             self.contest, data={"webcam_required": True}, partial=True

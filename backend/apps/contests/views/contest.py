@@ -46,7 +46,10 @@ from ..services.participant_state import (
 from ..services.exam_scoring import ExamScoringService
 from ..services.anti_cheat_session import get_active_session
 from ..services.integrity_presence import get_last_checkpoint
-from ..services.integrity_sessions import prepare_integrity_session
+from ..services.integrity_sessions import (
+    apply_webcam_setting_to_prepared_run,
+    prepare_integrity_session,
+)
 from ..services.participant_dashboard import build_participant_dashboard
 from ..services.live_monitoring_presence import (
     current_live_run,
@@ -212,6 +215,8 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
                 pending_updates=serializer.validated_data,
             )
             instance = serializer.save()
+            if "webcam_required" in serializer.validated_data:
+                apply_webcam_setting_to_prepared_run(instance.id)
             prepare_integrity_session(instance.id, actor_id=self.request.user.id)
         cache.delete(f"contest_anticheat_config:{instance.id}")
 
