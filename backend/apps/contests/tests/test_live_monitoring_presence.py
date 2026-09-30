@@ -65,6 +65,7 @@ class LiveMonitoringPresenceTests(APITestCase):
             contest=self.contest,
             session_state=ExamIntegrityRun.SessionState.ACTIVE,
             registry_version="presence-test",
+            policy_snapshot={"webcam_required": False},
         )
         cache.set(
             active_session_key(self.contest.id, self.student.id),

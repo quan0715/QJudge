@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 from ..managers import ContestQuerySet
-from .policies import default_anticheat_device_policy
 
 User = get_user_model()
 
@@ -92,10 +91,10 @@ class Contest(models.Model):
         verbose_name='啟用防作弊模式',
         help_text='啟用全螢幕與防失焦的嚴格防作弊模式'
     )
-    anticheat_device_policy = models.JSONField(
-        default=default_anticheat_device_policy,
-        verbose_name='防作弊裝置策略',
-        help_text='依裝置定義 sources/detectors 的監考策略'
+    webcam_required = models.BooleanField(
+        default=False,
+        verbose_name='要求 Webcam',
+        help_text='嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam',
     )
     # Scoreboard settings
     scoreboard_visible_during_contest = models.BooleanField(

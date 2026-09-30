@@ -144,7 +144,7 @@ def _expected_identities(
             or not participant.integrity_attempt_id
         ):
             continue
-        allowed_sources = _allowed_sources(contest, run, session)
+        allowed_sources = _allowed_sources(run)
         identity = build_live_identity(
             config=config,
             run_id=str(run.pk),

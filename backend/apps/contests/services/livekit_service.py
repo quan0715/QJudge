@@ -27,7 +27,6 @@ from rest_framework.exceptions import APIException
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun, ExamStatus
 from apps.contests.permissions import can_manage_contest
 from apps.contests.services.anti_cheat_session import get_active_session, get_device_id
-from apps.contests.services.anticheat_config import normalize_anticheat_device_policy
 from apps.contests.services.exam_validation import validate_exam_operation
 
 logger = logging.getLogger(__name__)
@@ -258,25 +257,10 @@ def _current_live_run(contest: Contest) -> ExamIntegrityRun:
     return run
 
 
-def _allowed_sources(contest: Contest, run: ExamIntegrityRun, active_session: Mapping[str, Any]) -> tuple[str, ...]:
-    device_kind = active_session.get("device_kind")
-    if device_kind not in {"desktop", "tablet"}:
-        device_kind = "desktop"
-    snapshot = run.policy_snapshot if isinstance(run.policy_snapshot, dict) else {}
-    device_policy = snapshot.get("device_policy")
-    if not isinstance(device_policy, dict):
-        device_policy = normalize_anticheat_device_policy(contest.anticheat_device_policy)
-    device = device_policy.get(device_kind)
-    if not isinstance(device, dict) or device.get("enabled") is False:
-        return ()
-    sources = device.get("sources")
-    if not isinstance(sources, dict):
-        return ()
-    return tuple(
-        source
-        for source in LIVE_SOURCES
-        if isinstance(sources.get(source), dict) and sources[source].get("enabled") is True
-    )
+def _allowed_sources(run: ExamIntegrityRun) -> tuple[str, ...]:
+    if run.policy_snapshot["webcam_required"]:
+        return LIVE_SOURCES
+    return ("screen_share",)
 
 
 def _publisher_scope(request, contest: Contest, config: LiveKitConfig) -> LiveScope:
@@ -340,7 +324,7 @@ def _publisher_scope(request, contest: Contest, config: LiveKitConfig) -> LiveSc
     ):
         raise LiveMonitoringConflict("The live token must use the active exam device.")
 
-    allowed_sources = _allowed_sources(contest, run, active_session)
+    allowed_sources = _allowed_sources(run)
     identity = build_live_identity(
         config=config,
         run_id=str(run.pk),

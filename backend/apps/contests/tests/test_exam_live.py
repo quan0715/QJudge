@@ -104,6 +104,7 @@ class ExamLiveApiTests(APITestCase):
             contest=self.contest,
             session_state=ExamIntegrityRun.SessionState.ACTIVE,
             registry_version="test-registry",
+            policy_snapshot={"webcam_required": False},
             health=ExamIntegrityRun.Health.HEALTHY,
         )
         cache.set(

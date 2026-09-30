@@ -8,6 +8,7 @@ from rest_framework.test import APITestCase
 
 from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestParticipant, ExamIntegrityRun
+from apps.contests.serializers import ContestCreateUpdateSerializer
 from apps.contests.services.anticheat_config import build_integrity_policy_snapshot
 from apps.users.models import User
 
@@ -44,36 +45,49 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(set(resp.data), {"version", "device_policy"})
-        self.assertEqual(resp.data["version"], 3)
+        self.assertEqual(resp.data, {"webcam_required": False})
 
-        device_policy = resp.data["device_policy"]
-        self.assertIn("desktop", device_policy)
-        self.assertIn("tablet", device_policy)
-        self.assertIn("sources", device_policy["desktop"])
-        self.assertIn("screen_share", device_policy["desktop"]["sources"])
-        self.assertIn("detectors", device_policy["tablet"])
-        self.assertIn("viewport_integrity", device_policy["tablet"]["detectors"])
-        self.assertNotIn(
-            "required", device_policy["desktop"]["sources"]["screen_share"]
+    def test_config_follows_webcam_required(self):
+        self.contest.webcam_required = True
+        self.contest.save(update_fields=["webcam_required"])
+        self.client.force_authenticate(user=self.student)
+
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertEqual(resp.data, {"webcam_required": True})
+
+    def test_running_exam_keeps_its_frozen_webcam_setting(self):
+        ExamIntegrityRun.objects.create(
+            contest=self.contest,
+            registry_version="frozen-registry",
+            session_state="active",
+            policy_snapshot=build_integrity_policy_snapshot(self.contest),
+            registry_snapshot={"version": "frozen-registry", "definitions": {}},
         )
-        self.assertNotIn("required", device_policy["desktop"]["sources"]["webcam"])
-        self.assertNotIn("required", device_policy["tablet"]["sources"]["screen_share"])
-        self.assertNotIn("required", device_policy["tablet"]["sources"]["webcam"])
-        self.assertEqual(
-            set(device_policy["desktop"]["sources"]["screen_share"]), {"enabled"}
+        self.contest.webcam_required = True
+        self.contest.save(update_fields=["webcam_required"])
+        self.client.force_authenticate(user=self.student)
+
+        resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
+
+        self.assertTrue(resp.data["webcam_required"])
+        self.assertFalse(resp.data["integrity_run"]["policy_snapshot"]["webcam_required"])
+
+    def test_update_serializer_accepts_webcam_required(self):
+        serializer = ContestCreateUpdateSerializer(
+            self.contest, data={"webcam_required": True}, partial=True
         )
-        self.assertNotIn("focus", device_policy["desktop"]["detectors"])
-        self.assertNotIn("tab_visibility", device_policy["desktop"]["detectors"])
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        self.contest.refresh_from_db()
+        self.assertTrue(self.contest.webcam_required)
 
     def test_live_integrity_run_returns_its_frozen_snapshots_for_student(self):
         participant = ContestParticipant.objects.get(
             contest=self.contest, user=self.student
         )
-        policy_snapshot = {
-            "version": 1,
-            "device_policy": {"desktop": {"enabled": False}},
-        }
+        policy_snapshot = {"webcam_required": False}
         registry_snapshot = {"version": "frozen-registry", "definitions": {}}
         run = ExamIntegrityRun.objects.create(
             contest=self.contest,
@@ -118,7 +132,9 @@ class ContestAntiCheatConfigApiTests(APITestCase):
     ):
         snapshot = build_integrity_policy_snapshot(self.contest)
 
-        self.assertEqual(snapshot["version"], 1)
+        self.assertIs(snapshot["webcam_required"], False)
+        self.assertNotIn("version", snapshot)
+        self.assertNotIn("device_policy", snapshot)
         self.assertEqual(snapshot["batch_interval_ms"], 5_000)
         self.assertEqual(snapshot["suspect_after_ms"], 15_000)
         self.assertEqual(snapshot["disconnected_after_ms"], 30_000)
@@ -152,7 +168,7 @@ class ContestAntiCheatConfigApiTests(APITestCase):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn("device_policy", resp.data)
+        self.assertIn("webcam_required", resp.data)
 
     def test_anonymous_request_is_rejected(self):
         resp = self.client.get(f"/api/v1/contests/{self.contest.id}/anticheat-config/")

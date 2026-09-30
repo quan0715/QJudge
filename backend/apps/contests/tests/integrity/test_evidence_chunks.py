@@ -123,27 +123,11 @@ def integrity_run(participant):
         created_by=participant.contest.owner,
         session_state="active",
         policy_snapshot={
-            "version": 1,
             "evidence": {
                 "minimum_local_buffer_ms": 60_000,
                 "local_cap_bytes_per_source": 100_000_000,
             },
-            "device_policy": {
-                "desktop": {
-                    "enabled": True,
-                    "sources": {
-                        "screen_share": {"enabled": True},
-                        "webcam": {"enabled": True},
-                    },
-                },
-                "tablet": {
-                    "enabled": True,
-                    "sources": {
-                        "screen_share": {"enabled": False},
-                        "webcam": {"enabled": True},
-                    },
-                },
-            },
+            "webcam_required": True,
         },
         registry_snapshot=registry,
         registry_version=registry["version"],
@@ -748,7 +732,7 @@ def test_spoofed_tablet_user_agent_cannot_narrow_frozen_source_union(
 
 
 @pytest.mark.django_db
-def test_manifest_rejects_source_disabled_by_frozen_policy(
+def test_manifest_rejects_webcam_evidence_when_the_run_does_not_require_it(
     api_client,
     incident_event,
     participant,
@@ -756,15 +740,7 @@ def test_manifest_rejects_source_disabled_by_frozen_policy(
     object_store,
 ):
     policy = dict(integrity_run.policy_snapshot)
-    policy["device_policy"] = {
-        "desktop": {
-            "enabled": True,
-            "sources": {
-                "screen_share": {"enabled": False},
-                "webcam": {"enabled": True},
-            },
-        },
-    }
+    policy["webcam_required"] = False
     integrity_run.policy_snapshot = policy
     integrity_run.save(update_fields=["policy_snapshot"])
     api_client.force_authenticate(participant.user)
@@ -772,7 +748,7 @@ def test_manifest_rejects_source_disabled_by_frozen_policy(
     response = post_manifest(
         api_client,
         incident_event,
-        [descriptor(seq=1, start=1_000_000, end=1_005_000)],
+        [descriptor(seq=1, start=1_000_000, end=1_005_000, source="webcam")],
     )
 
     assert response.status_code == 400
