@@ -404,6 +404,8 @@ INTEGRITY_WORKER_READ_TIMEOUT_SECONDS = 5.0
 OBJECT_STORAGE_ENDPOINT_URL = env("OBJECT_STORAGE_ENDPOINT_URL", "")
 # Browser-facing endpoint used for presigned URLs.
 OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = env("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "")
+if not OBJECT_STORAGE_PUBLIC_ENDPOINT_URL and env("STORAGE_MODE", "") == "bundled":
+    OBJECT_STORAGE_PUBLIC_ENDPOINT_URL = FRONTEND_URL
 OBJECT_STORAGE_REGION = "us-east-1"
 OBJECT_STORAGE_ACCESS_KEY = env("OBJECT_STORAGE_ACCESS_KEY", "")
 OBJECT_STORAGE_SECRET_KEY = env("OBJECT_STORAGE_SECRET_KEY", "")
@@ -418,8 +420,12 @@ MEDIA_MODE = env("MEDIA_MODE", "disabled").lower()
 LIVE_MONITORING_ENABLED = MEDIA_MODE in {"bundled", "external"}
 LIVE_MONITORING_PROVIDER = "livekit" if LIVE_MONITORING_ENABLED else "disabled"
 LIVEKIT_PUBLIC_URL = env("LIVEKIT_PUBLIC_URL", "").rstrip("/")
+if not LIVEKIT_PUBLIC_URL and MEDIA_MODE == "bundled":
+    LIVEKIT_PUBLIC_URL = FRONTEND_URL.replace("http", "ws", 1) + "/livekit"
+# The Python API SDK uses the origin root, so bundled API calls stay internal.
 LIVEKIT_INTERNAL_URL = env(
-    "LIVEKIT_INTERNAL_URL", _livekit_server_url(LIVEKIT_PUBLIC_URL)
+    "LIVEKIT_INTERNAL_URL",
+    "http://livekit:7880" if MEDIA_MODE == "bundled" else _livekit_server_url(LIVEKIT_PUBLIC_URL),
 ).rstrip("/")
 LIVEKIT_API_KEY = env("LIVEKIT_API_KEY", "").strip()
 LIVEKIT_API_SECRET = env("LIVEKIT_API_SECRET", "").strip()

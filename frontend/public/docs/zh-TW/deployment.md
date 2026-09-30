@@ -15,7 +15,7 @@ QJudge 以 Docker Compose 在一台 Linux 主機上執行。設定、安裝、�
 - Git、Python 3（`deploy/qjudge` 只使用標準函式庫）與 curl。
 - 目前帳號可以使用 Docker：`docker info` 會同時顯示 Client 與 Server。
 
-QJudge 對主機只開放一個 HTTP 入口：frontend，預設綁在 `127.0.0.1:8080`。HTTPS 由主機上的反向代理或 Cloudflare Tunnel 提供。依選用的功能準備網域：主站一個；自帶 MinIO 時 storage 一個；自帶 LiveKit 時 LiveKit 與 TURN 各一個。
+QJudge 的主站 HTTP 入口是 frontend，預設綁在 `127.0.0.1:8080`。HTTPS 由主機上的反向代理或 Cloudflare Tunnel 提供。主站、自帶 MinIO 與 LiveKit signaling 預設共用一個網域；自帶 LiveKit 的 TURN 仍須另外準備網域與 TCP／UDP 入口。
 
 ## 2. 取得程式碼
 
@@ -38,7 +38,7 @@ deploy/qjudge init
 | --- | --- |
 | `QJUDGE_PUBLIC_ORIGIN` | 使用者在瀏覽器開啟的網址，例如 `https://judge.example.edu`；只能有 scheme、host 與 port |
 | `STORAGE_MODE` | `bundled` 由 QJudge 執行 MinIO；`external` 使用既有的 S3-compatible 服務。見[設定檔案儲存](deployment-storage.md) |
-| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 瀏覽器連線 storage 的網址；origin 是 HTTPS 時必須是 HTTPS |
+| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | Bundled 可省略，使用主站 origin；external 必填，origin 是 HTTPS 時必須是 HTTPS |
 | `FRONTEND_BIND_ADDRESS`、`QJUDGE_TRUSTED_PROXIES` | 反向代理在同一台主機時留空。在另一台時見[網路入口與選用功能](deployment-options.md) |
 | `MEDIA_MODE` | 即時監看：`disabled`（留空即停用）、`bundled` 或 `external`。見[設定即時監看](deployment-live-monitoring.md) |
 
@@ -49,8 +49,7 @@ deploy/qjudge init
 ```bash
 deploy/qjudge init --non-interactive \
   --set QJUDGE_PUBLIC_ORIGIN=https://judge.example.edu \
-  --set STORAGE_MODE=bundled \
-  --set OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.example.edu
+  --set STORAGE_MODE=bundled
 ```
 
 `deploy/.env` 已存在時 `init` 會拒絕執行。之後要調整設定，直接編輯 `deploy/.env` 再執行 `deploy/qjudge check`。所有可用的 key 與說明列在 `deploy/.env.example`。
@@ -80,7 +79,7 @@ Addon 是獨立的 Compose project（`<project>-storage`、`<project>-media`）�
 deploy/qjudge ingress
 ```
 
-`ingress` 依 `deploy/.env` 列出需要在 QJudge 以外設定的入口：主站反向代理到哪個位址、storage 與 LiveKit 的網域、需要開放的 port，以及 Tunnel 的 route。加上 `--nginx` 會輸出可以修改後使用的 nginx 設定：
+`ingress` 依 `deploy/.env` 列出主站代理位址、storage bucket 路徑、LiveKit signaling 網址、TURN 網域、port 與 Tunnel route。加上 `--nginx` 會輸出可以修改後使用的 nginx 設定：
 
 ```bash
 deploy/qjudge ingress --nginx

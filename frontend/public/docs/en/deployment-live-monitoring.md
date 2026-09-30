@@ -10,20 +10,20 @@ Exam live monitoring uses LiveKit: students publish their screen shares and webc
 | `bundled` | QJudge runs LiveKit as an addon, utilizing LiveKit's built-in TURN server |
 | `external` | Connect to an existing external LiveKit deployment |
 
-Configuration settings required when enabled:
+Configuration settings when enabled:
 
 | Setting | Purpose |
 | --- | --- |
-| `LIVEKIT_PUBLIC_URL` | Public endpoint for browser WebSocket connections, e.g. `wss://live.example.edu` |
+| `LIVEKIT_PUBLIC_URL` | Optional in bundled mode: defaults to `wss://<main host>/livekit` (`ws://` for an HTTP origin). Required in external mode, e.g. `wss://live.example.edu`. |
 | `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | LiveKit API credentials |
 | `LIVEKIT_NODE_IP` | Bundled only: The media IP announced to browsers, usually your server's public IP |
 | `LIVEKIT_TURN_HOST` | Bundled only: TURN domain, resolving directly to your host's IP without CDN proxying |
 
-The backend calls the LiveKit API using a URL derived from `LIVEKIT_PUBLIC_URL` (replacing `wss://` with `https://`). Therefore, the backend container must also be able to reach this address.
+In bundled mode, the frontend forwards HTTP/WebSocket requests under `/livekit` to LiveKit, stripping this prefix. The backend calls the API directly over the internal network at `http://livekit:7880`. In external mode, the API URL is derived from `LIVEKIT_PUBLIC_URL` (replacing `wss://` with `https://`), and the backend container must be able to reach it.
 
 ## Bundled
 
-Set `MEDIA_MODE=bundled`, `LIVEKIT_PUBLIC_URL`, `LIVEKIT_NODE_IP`, and `LIVEKIT_TURN_HOST` in `deploy/.env` (the interactive `init` script will prompt for these if bundled is selected), then run:
+Set `MEDIA_MODE=bundled`, `LIVEKIT_NODE_IP`, and `LIVEKIT_TURN_HOST` in `deploy/.env` (the interactive `init` script will prompt for these if bundled is selected). Leave `LIVEKIT_PUBLIC_URL` blank to share the main domain, then run:
 
 ```bash
 deploy/qjudge addon media init
@@ -33,13 +33,16 @@ deploy/qjudge ingress
 
 - `addon media init` generates API credentials if `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` are blank, writing them to `.env`. It leaves existing values unchanged.
 - `addon media up` generates `deploy/secrets/livekit.json` based on `.env` and starts the service. LiveKit runs in an isolated Compose project (`<project>-media`), so regular QJudge `upgrade` runs will not restart it.
-- Finally, re-run `upgrade` with the current version so the backend loads the new `MEDIA_MODE` (see [Deployment Guide](deployment.md), Section 8).
+- Finally, re-run `upgrade` with the current version so the backend and frontend load the new `MEDIA_MODE` (see [Deployment Guide](deployment.md), Section 8).
+
+The main reverse proxy must forward WebSocket `Upgrade`/`Connection` headers, disable buffering, and allow long connections; `ingress --nginx` includes these settings. Development Vite also forwards `/livekit`.
 
 Run `ingress` to view the necessary network entry points:
 
 | Entry Point | Configuration |
 | --- | --- |
-| `LIVEKIT_PUBLIC_URL` domain | Reverse proxy to `FRONTEND_BIND_ADDRESS:7880` with WebSocket support enabled. When using Cloudflare Tunnel, route to `http://livekit:7880`. |
+| Main site `/livekit` | Forwarded automatically by the frontend. Reuse the main reverse proxy or `http://frontend:80` Tunnel route; no additional signaling domain is needed. |
+| Explicit alternate LiveKit domain | Reverse proxy to `FRONTEND_BIND_ADDRESS:7880` with WebSocket support enabled. When using Cloudflare Tunnel, route to `http://livekit:7880`. |
 | Media & TURN ports | Open TCP `7881`, UDP `50000-50099`, UDP `3478`, and UDP `50300-50399` directly on `LIVEKIT_NODE_IP`, or forward them from your firewall/router. |
 | TURN/TLS | LiveKit announces `turns:<LIVEKIT_TURN_HOST>:443`. The host reverse proxy terminates TLS on port 443 using the TURN domain certificate and forwards raw TCP to `FRONTEND_BIND_ADDRESS:5349`. |
 

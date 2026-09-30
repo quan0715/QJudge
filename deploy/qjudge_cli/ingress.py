@@ -5,7 +5,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 from .media_config import TURN_TCP_PORT
-from .schema import Env
+from .schema import Env, uses_public_origin
 
 MINIO_PORT = 9000
 
@@ -23,14 +23,19 @@ def _bundled_storage(env: Env) -> str:
     """Public storage URL when QJudge runs MinIO itself, else ''."""
     if env.get("STORAGE_MODE", "").strip() != "bundled":
         return ""
-    return env.get("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "").strip().rstrip("/")
+    return (env.get("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "").strip()
+            or env.get("QJUDGE_PUBLIC_ORIGIN", "").strip()).rstrip("/")
 
 
 def _bundled_media(env: Env) -> str:
     """Public LiveKit URL when QJudge runs its media addon, else ''."""
     if env.get("MEDIA_MODE", "").strip() != "bundled":
         return ""
-    return env.get("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+    public = env.get("LIVEKIT_PUBLIC_URL", "").strip().rstrip("/")
+    if public:
+        return public
+    origin = env.get("QJUDGE_PUBLIC_ORIGIN", "").strip().rstrip("/")
+    return origin.replace("http", "ws", 1) + "/livekit"
 
 
 def render_ingress(env: Env) -> str:
@@ -55,13 +60,20 @@ def render_ingress(env: Env) -> str:
     routes = [(origin_parts.hostname, "http://frontend:80")]
     storage = _bundled_storage(env)
     if storage:
-        lines += [
-            "",
-            f"Storage  {storage}",
-            f"  Reverse proxy -> http://{_bind_address(env)}:{MINIO_PORT} "
-            "(MinIO; pass Host unchanged, no body size limit, buffering off)",
-        ]
-        routes.append((urlsplit(storage).hostname, f"http://minio:{MINIO_PORT}"))
+        if uses_public_origin(env, storage):
+            bucket = env.get("OBJECT_STORAGE_BUCKET", "").strip()
+            lines += [
+                "", f"Storage  {storage}/{bucket}/",
+                "  The frontend forwards this bucket path to MinIO automatically; no extra domain or tunnel route.",
+                "  Preserve the original Host (including port) and URI; disable body size limits and request/response buffering.",
+            ]
+        else:
+            lines += [
+                "", f"Storage  {storage}",
+                f"  Reverse proxy -> http://{_bind_address(env)}:{MINIO_PORT} "
+                "(MinIO; pass Host unchanged, no body size limit, buffering off)",
+            ]
+            routes.append((urlsplit(storage).hostname, f"http://minio:{MINIO_PORT}"))
     media = _bundled_media(env)
     if media:
         media_host = urlsplit(media).hostname
@@ -69,7 +81,17 @@ def render_ingress(env: Env) -> str:
         lines += [
             "",
             f"LiveKit  {media}",
-            f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)",
+        ]
+        if uses_public_origin(env, media):
+            lines += [
+                "  The frontend forwards /livekit to LiveKit automatically; no extra signaling domain or tunnel route.",
+                "  The main site's reverse proxy must forward WebSocket Upgrade and allow long connections (300s idle timeout).",
+            ]
+        else:
+            lines.append(f"  Reverse proxy -> http://{_bind_address(env)}:7880 (LiveKit HTTP/WebSocket signaling)")
+            if media_host:
+                routes.append((media_host, "http://livekit:7880"))
+        lines += [
             f"  Open directly on {env.get('LIVEKIT_NODE_IP', '').strip()}: TCP 7881, UDP 50000-50099, "
             "UDP 3478 and UDP 50300-50399 (media, TURN and TURN relay)",
             "",
@@ -77,8 +99,6 @@ def render_ingress(env: Env) -> str:
             f"  TLS termination on 443 -> tcp {_bind_address(env)}:{TURN_TCP_PORT} (LiveKit TURN; forward plain TCP)",
             f"  The proxy host manages the {turn_host} certificate; reload the proxy after renewal.",
         ]
-        if media_host:
-            routes.append((media_host, "http://livekit:7880"))
     profiles = [item.strip() for item in env.get("COMPOSE_PROFILES", "").split(",")]
     if "tunnel" in profiles:
         lines += ["", "Cloudflare Tunnel"]
@@ -87,54 +107,72 @@ def render_ingress(env: Env) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _server_block(host: str, upstream: str, extra: str = "", websocket: bool = False) -> str:
+def _server_block(public_url: str, upstream: str, extra: str = "", websocket: bool = False) -> str:
+    parts = urlsplit(public_url)
+    tls = parts.scheme in {"https", "wss"}
+    port = parts.port or (443 if tls else 80)
     websocket_headers = (
         "        proxy_set_header Upgrade $http_upgrade;\n"
-        '        proxy_set_header Connection "upgrade";'
+        '        proxy_set_header Connection $qjudge_upgrade_connection;'
         if websocket
         else '        proxy_set_header Connection "";'
     )
     return f"""server {{
-    listen 443 ssl;
-    server_name {host};
+    listen {port}{' ssl' if tls else ''};
+    server_name {parts.hostname or '_'};
     # ssl_certificate     /path/to/fullchain.pem;
     # ssl_certificate_key /path/to/privkey.pem;
 {extra}
     location / {{
         proxy_pass {upstream};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 {websocket_headers}
         proxy_buffering off;
+        proxy_request_buffering off;
         proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
     }}
 }}
 """
 
 
 def render_nginx(env: Env) -> str:
-    host = urlsplit(env.get("QJUDGE_PUBLIC_ORIGIN", "")).hostname or "_"
-    blocks = [_server_block(host, _frontend(env))]
+    origin = env.get("QJUDGE_PUBLIC_ORIGIN", "")
     storage = _bundled_storage(env)
-    if storage:
+    same_origin_storage = uses_public_origin(env, storage)
+    media = _bundled_media(env)
+    same_origin_media = uses_public_origin(env, media)
+    blocks = []
+    if media:
+        blocks.append("""# Place the map and HTTP server blocks in the nginx http context.
+map $http_upgrade $qjudge_upgrade_connection {
+    default upgrade;
+    ""      "";
+}
+""")
+    blocks.append(_server_block(origin, _frontend(env),
+                                "    client_max_body_size 0;\n" if same_origin_storage else "",
+                                websocket=same_origin_media))
+    if storage and not same_origin_storage:
         blocks.append(
             _server_block(
-                urlsplit(storage).hostname or "_",
+                storage,
                 f"http://{_bind_address(env)}:{MINIO_PORT}",
                 "    client_max_body_size 0;\n",
             )
         )
-    media = _bundled_media(env)
     if media:
-        blocks.append(
-            _server_block(
-                urlsplit(media).hostname or "_",
-                f"http://{_bind_address(env)}:7880",
-                websocket=True,
+        if not same_origin_media:
+            blocks.append(
+                _server_block(
+                    media,
+                    f"http://{_bind_address(env)}:7880",
+                    websocket=True,
+                )
             )
-        )
         blocks.append(_turn_stream_block(env))
     return "\n".join(blocks)
 

@@ -33,6 +33,29 @@ def error_keys(env):
 
 
 class CheckTests(unittest.TestCase):
+    def test_bundled_public_endpoint_is_optional(self):
+        self.assertEqual(check_env(with_changes(OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=None)), [])
+
+    def test_external_public_endpoint_is_required(self):
+        self.assertEqual(error_keys(with_changes(
+            STORAGE_MODE="external", OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=""
+        )), ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
+
+    def test_bundled_public_endpoint_cannot_add_a_path(self):
+        self.assertEqual(error_keys(with_changes(
+            OBJECT_STORAGE_PUBLIC_ENDPOINT_URL="https://judge.example.edu/storage"
+        )), ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
+
+    def test_bundled_bucket_cannot_conflict_with_main_routes(self):
+        for bucket in ("api", "docs", "admin", "classrooms", "assets"):
+            with self.subTest(bucket=bucket):
+                self.assertEqual(error_keys(with_changes(OBJECT_STORAGE_BUCKET=bucket)), ["OBJECT_STORAGE_BUCKET"])
+
+    def test_bundled_bucket_rejects_unsafe_names(self):
+        for bucket in ("QJudge", "ab", "a" * 64, "qjudge;", "q..judge", "q.-judge"):
+            with self.subTest(bucket=bucket):
+                self.assertEqual(error_keys(with_changes(OBJECT_STORAGE_BUCKET=bucket)), ["OBJECT_STORAGE_BUCKET"])
+
     def test_legacy_ai_keys_point_to_deploy_ai(self):
         moved = "moved; put API keys in deploy/ai/keys.env and base URLs in deploy/ai/models.yml"
         self.assertEqual(

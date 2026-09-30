@@ -10,7 +10,7 @@ from qjudge_cli.envfile import load
 from qjudge_cli.init import build_env, run_init
 
 ORIGIN = {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu"}
-BUNDLED = {**ORIGIN, "STORAGE_MODE": "bundled", "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://files.example.edu"}
+BUNDLED = {**ORIGIN, "STORAGE_MODE": "bundled"}
 
 
 def no_docker(args, **kwargs):
@@ -37,10 +37,11 @@ class InitTests(unittest.TestCase):
                 run_init(deploy, deploy / ".env", BUNDLED, interactive=False, run=no_docker)
             self.assertEqual((deploy / "ai" / "models.yml").read_text(), "default: mine\n")
 
-    def test_bundled_storage_needs_only_origin_and_public_url(self):
+    def test_bundled_storage_needs_only_origin(self):
         env = build_env(BUNDLED)
         self.assertEqual(check_env(env), [])
         self.assertEqual(env["OBJECT_STORAGE_ENDPOINT_URL"], "http://minio:9000")
+        self.assertNotIn("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", env)
         self.assertGreaterEqual(len(env["OBJECT_STORAGE_SECRET_KEY"]), 8)
 
     def test_generated_bundled_storage_secret_does_not_start_with_a_flag(self):
@@ -67,8 +68,7 @@ class InitTests(unittest.TestCase):
 
     def test_interactive_asks_only_missing_required_keys(self):
         asked = []
-        answers = {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu", "STORAGE_MODE": "bundled",
-                   "OBJECT_STORAGE_PUBLIC_ENDPOINT_URL": "https://files.example.edu"}
+        answers = {"QJUDGE_PUBLIC_ORIGIN": "https://judge.example.edu", "STORAGE_MODE": "bundled"}
 
         def ask(key):
             asked.append(key.name)
@@ -78,6 +78,7 @@ class InitTests(unittest.TestCase):
         self.assertEqual(check_env(env), [])
         self.assertNotIn("DB_PASSWORD", asked)
         self.assertNotIn("OBJECT_STORAGE_ENDPOINT_URL", asked)
+        self.assertNotIn("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", asked)
         self.assertIn("STORAGE_MODE", asked)
 
     def test_interactive_offers_optional_keys_once_and_follows_up(self):
