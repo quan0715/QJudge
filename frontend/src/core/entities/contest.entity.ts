@@ -279,6 +279,7 @@ export interface ContestDetail extends Contest {
 
   // Cheat detection
   cheatDetectionEnabled: boolean;
+  webcamRequired: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest: boolean;
 
@@ -420,6 +421,7 @@ export interface ContestIntegrityRun {
   participantId: number | null;
   policySnapshot: Record<string, unknown>;
   devicePolicy: ContestAnticheatDevicePolicy;
+  webcamRequired: boolean;
   registrySnapshot: IntegrityRegistrySnapshot;
 }
 
@@ -447,8 +449,8 @@ export interface ExamRuntimeState {
 }
 
 export interface ContestAnticheatConfig {
-  version: number;
   devicePolicy: ContestAnticheatDevicePolicy;
+  webcamRequired: boolean;
   integrityRun?: ContestIntegrityRun;
 }
 
@@ -627,6 +629,7 @@ export interface ContestUpdateRequest {
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
+  webcamRequired?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;

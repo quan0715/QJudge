@@ -122,7 +122,7 @@ describe("PaperExamAnsweringScreen contest refresh ownership", () => {
     const runId = crypto.randomUUID();
     const attemptId = crypto.randomUUID();
     const run = { id: runId, participantId: 44, sessionState: "active", health: "healthy",
-      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never };
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never, webcamRequired: false };
     let state: ExamRuntimeState | null = null;
     const CaptureRegistration = () => {
       const upload = useIntegrityUploadOwner();

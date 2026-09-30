@@ -17,6 +17,7 @@ export const createMockContest = (
   participantCount: 30,
   contestType: "paper_exam",
   cheatDetectionEnabled: true,
+  webcamRequired: false,
   anticheatDevicePolicy: {
     desktop: {
       enabled: true,

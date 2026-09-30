@@ -125,20 +125,18 @@ const mapIntegrityRun = (value: unknown): ContestIntegrityRun => {
     devicePolicy: mapAnticheatDevicePolicyDto(
       policySnapshot.device_policy as AnticheatDevicePolicyDto | undefined,
     ),
+    webcamRequired: policySnapshot.webcam_required === true,
     registrySnapshot: mapRegistrySnapshot(run.registry_snapshot),
   };
 };
 
 export function mapContestAnticheatConfigDto(dto: unknown): ContestAnticheatConfig {
   const root = ensureObject(dto, "root");
-  if (typeof root.version !== "number" || !Number.isFinite(root.version)) {
-    throw new Error("Invalid anti-cheat config payload: version must be a number");
-  }
   return {
-    version: root.version,
     devicePolicy: mapAnticheatDevicePolicyDto(
       root.device_policy as AnticheatDevicePolicyDto | undefined,
     ),
+    webcamRequired: root.webcam_required === true,
     ...(root.integrity_run === undefined
       ? {}
       : { integrityRun: mapIntegrityRun(root.integrity_run) }),

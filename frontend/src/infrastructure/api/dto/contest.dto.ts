@@ -142,6 +142,7 @@ export interface ContestDetailDto extends ContestDto {
   contest_type?: ContestType;
   cheat_detection_enabled?: boolean;
   anticheat_device_policy?: AnticheatDevicePolicyDto;
+  webcam_required?: boolean;
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
   results_published?: boolean;

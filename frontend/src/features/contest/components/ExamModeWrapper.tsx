@@ -185,8 +185,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const integrityRuntimeEnabled =
     policyConfigRequired &&
     isIntegrityAttemptActive(examStatus) &&
-    anticheatConfig?.version === 3 &&
     !!uploadOwner.resident &&
+    !!anticheatConfig &&
     !!anticheatConfig.integrityRun &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&

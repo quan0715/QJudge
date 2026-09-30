@@ -92,6 +92,7 @@ export function mapContestDetailDto(dto: ContestDetailDto): ContestDetail {
 
     contestType: dto.contest_type ?? "coding",
     cheatDetectionEnabled: !!dto.cheat_detection_enabled,
+    webcamRequired: !!dto.webcam_required,
     anticheatDevicePolicy: mapAnticheatDevicePolicyDto(
       dto.anticheat_device_policy,
     ),
@@ -529,6 +530,7 @@ export function mapContestUpdateRequestToDto(
     attendance_photo_policy: request.attendancePhotoPolicy,
     cheat_detection_enabled: request.cheatDetectionEnabled,
     anticheat_device_policy: anticheatDevicePolicy,
+    webcam_required: request.webcamRequired,
     scoreboard_visible_during_contest: request.scoreboardVisibleDuringContest,
     allow_multiple_joins: request.allowMultipleJoins,
     results_published: request.resultsPublished,

@@ -15,6 +15,7 @@ export interface ContestUpdatePayload {
   attendanceCheckEnabled?: boolean;
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
+  webcamRequired?: boolean;
   anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;

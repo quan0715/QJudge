@@ -140,55 +140,38 @@ describe("contest mapper", () => {
       expect(updateDto).not.toHaveProperty("counts_toward_grade");
     });
 
-    it("maps only device policy and the frozen integrity run", () => {
-      const result = mapContestAnticheatConfigDto({
-        version: 3,
-        device_policy: {
-          desktop: {
-            enabled: true,
-            sources: { screen_share: { enabled: true }, webcam: { enabled: false } },
-            detectors: {
-              pwa_mode: false,
-              fullscreen: true,
-              multi_display: true,
-              mouse_leave: true,
-              viewport_integrity: false,
-            },
-          },
-          tablet: {
-            enabled: true,
-            sources: { screen_share: { enabled: false }, webcam: { enabled: true } },
-            detectors: {
-              pwa_mode: true,
-              fullscreen: false,
-              multi_display: false,
-              mouse_leave: true,
-              viewport_integrity: true,
-            },
-          },
-        },
+    it("maps webcamRequired from the config and from the frozen run separately", () => {
+      const config = mapContestAnticheatConfigDto({
+        webcam_required: true,
         integrity_run: {
           id: "run-1",
           session_state: "active",
           health: "healthy",
           participant_id: "7",
-          policy_snapshot: {
-            device_policy: {
-              desktop: {
-                enabled: false,
-                sources: { screen_share: { enabled: false }, webcam: { enabled: false } },
-                detectors: {},
-              },
-            },
-          },
+          policy_snapshot: { webcam_required: false },
           registry_snapshot: { version: "registry-1", definitions: {} },
         },
       });
 
-      expect(result.version).toBe(3);
-      expect(result.devicePolicy.desktop.sources.screenShare).toEqual({ enabled: true });
-      expect(result.integrityRun?.participantId).toBe(7);
-      expect(result.integrityRun?.devicePolicy.desktop.enabled).toBe(false);
+      expect(config.webcamRequired).toBe(true);
+      expect(config).not.toHaveProperty("version");
+      expect(config.integrityRun?.participantId).toBe(7);
+      expect(config.integrityRun?.webcamRequired).toBe(false);
+    });
+
+    it("maps webcamRequired on contest detail and updates", () => {
+      expect(
+        mapContestDetailDto({
+          id: "contest-1",
+          name: "Exam",
+          webcam_required: true,
+          permissions: {},
+          problems: [],
+        } as any).webcamRequired,
+      ).toBe(true);
+      expect(mapContestUpdateRequestToDto({ webcamRequired: true })).toEqual({
+        webcam_required: true,
+      });
     });
   });
 
