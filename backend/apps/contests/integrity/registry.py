@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Literal, TypeAlias
 
 
-REGISTRY_VERSION = "2026-09-10.1"
+REGISTRY_VERSION = "2026-09-30.1"
 
 Emission = Literal["every", "edge", "sample", "health_snapshot"]
 Origin = Literal["browser", "server"]
@@ -188,23 +188,6 @@ DEFINITIONS = MappingProxyType(
             grace_ms=20_000,
             sources=("webcam",),
             action="pause",
-        ),
-        # Tablet-only (see resolveDeviceMonitoringPlan), where the evidence
-        # source is the webcam -- Split View never interrupts it, so this is
-        # recorded rather than paused. Pre-check cannot verify the condition
-        # either: it has no viewport step, and an iPad PWA window can enter
-        # Split View. The runtime `viewport_restored` signal is what actually
-        # confirms recovery.
-        "viewport": _definition(
-            "viewport",
-            triggered="viewport_interrupted",
-            escalated="viewport_stopped",
-            restored="viewport_restored",
-            emission="edge",
-            family="viewport_integrity",
-            priority=1,
-            grace_ms=5_000,
-            sources=("webcam",),
         ),
         "clipboard": _definition(
             "clipboard",

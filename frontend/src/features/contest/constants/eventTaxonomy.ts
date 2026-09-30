@@ -36,12 +36,7 @@ export const getEventTypeIcon = (eventType: string, priority: number) => {
   if (eventType.includes("screen_share")) return View;
   if (eventType.includes("webcam")) return ImageSearch;
   if (eventType.includes("mouse_leave")) return WarningAlt;
-  if (
-    eventType.includes("multi_display") ||
-    eventType.includes("multiple_displays") ||
-    eventType.includes("split_view") ||
-    eventType.includes("viewport")
-  )
+  if (eventType.includes("multi_display") || eventType.includes("multiple_displays"))
     return View;
   if (eventType.includes("lock")) return Locked;
   if (eventType.includes("restored") || eventType.includes("unlock"))

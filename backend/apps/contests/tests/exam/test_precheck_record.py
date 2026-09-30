@@ -20,7 +20,7 @@ VALID_PAYLOAD = {
     "display_surface": "monitor",
     "fullscreen": True,
     "webcam_granted": False,
-    "policy_version": "2026-09-10.1",
+    "policy_version": "2026-09-30.1",
     "checks": [
         {"id": "singleMonitor", "status": "pass"},
         {"id": "shareScreen", "status": "pass"},

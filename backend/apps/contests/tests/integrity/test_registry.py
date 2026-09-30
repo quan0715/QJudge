@@ -21,7 +21,7 @@ def test_registry_has_every_active_signal_once():
     assert set(signal_ids) == ACTIVE_SIGNAL_IDS
     assert len(signal_ids) == len(set(signal_ids))
     assert snapshot["version"] == REGISTRY_VERSION
-    assert snapshot["version"] == "2026-09-10.1"
+    assert snapshot["version"] == "2026-09-30.1"
 
 
 def test_registry_definitions_are_data_not_core_switches():
@@ -65,7 +65,6 @@ def test_registry_grace_periods_match_recovery_costs():
         "multi_display": 20_000,
         "screen_share": 20_000,
         "webcam": 20_000,
-        "viewport": 5_000,
         "clipboard": 0,
         "forbidden_action": 0,
         "listener_integrity": 0,
@@ -109,31 +108,48 @@ def test_only_evidence_loss_events_send_the_student_back_to_precheck():
         "multi_display",
         "listener_integrity",
     }
-    for recorded in ("fullscreen_integrity", "viewport", "mouse_leave"):
+    for recorded in ("fullscreen_integrity", "mouse_leave"):
         assert snapshot["definitions"][recorded]["action"] == "record_event"
 
 
-def test_incident_evidence_asks_the_source_its_device_actually_captures():
-    """viewport only runs on tablets, whose evidence source is the webcam.
-    Asking for screen share there would request a source the policy disables."""
+def test_incident_evidence_asks_the_source_that_captured_it():
     definitions = build_registry_snapshot()["definitions"]
 
-    assert definitions["viewport"]["evidence"]["sources"] == ["webcam"]
+    assert "viewport" not in definitions
     assert definitions["webcam"]["evidence"]["sources"] == ["webcam"]
     assert definitions["screen_share"]["evidence"]["sources"] == ["screen_share"]
     assert definitions["multi_display"]["evidence"]["sources"] == ["screen_share"]
 
 
-def test_precheck_passed_is_a_server_written_lifecycle_record():
-    definition = build_registry_snapshot()["definitions"]["precheck_passed"]
+# Mirrors FRONTEND_INTEGRITY_SIGNAL_IDS in
+# frontend/src/features/contest/anticheat/integrity/frontendIntegritySignals.ts.
+# The browser refuses to record when a run's registry misses any of these.
+FRONTEND_SIGNALS = {
+    "clipboard_action",
+    "exam_entered",
+    "exam_submit_initiated",
+    "exit_fullscreen_triggered",
+    "forbidden_action",
+    "fullscreen_restored",
+    "listener_tampered",
+    "mouse_leave_restored",
+    "mouse_leave_triggered",
+    "multi_display_restored",
+    "multi_display_triggered",
+    "screen_share_interrupted",
+    "screen_share_restored",
+    "health_snapshot",
+    "webcam_interrupted",
+    "webcam_restored",
+}
 
-    assert definition["origin"] == "server"
-    assert definition["action"] == "record_event"
-    assert definition["incident_family"] == "exam_lifecycle"
-    # priority 3 keeps it out of violation_count, like exam_entered.
-    assert definition["priority"] == 3
-    assert definition["signals"] == {
-        "triggered": "precheck_passed",
-        "escalated": "",
-        "restored": "",
+
+def test_registry_covers_every_frontend_signal():
+    signals = {
+        signal
+        for definition in build_registry_snapshot()["definitions"].values()
+        for signal in definition["signals"].values()
+        if isinstance(signal, str) and signal
     }
+
+    assert FRONTEND_SIGNALS <= signals
