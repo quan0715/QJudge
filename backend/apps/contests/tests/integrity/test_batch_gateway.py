@@ -218,7 +218,7 @@ def running_integrity_run(participant):
         contest=contest,
         created_by=contest.owner,
         session_state=ExamIntegrityRun.SessionState.ACTIVE,
-        policy_snapshot={},
+        policy_snapshot={"webcam_required": False},
         registry_snapshot={"version": "registry-v1", "definitions": {}},
         registry_version="registry-v1",
         scheduled_start_at=contest.start_time,

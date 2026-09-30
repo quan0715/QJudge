@@ -774,10 +774,6 @@
     "success": "成功"
   },
   "createModal": {
-    "advancedIntro": "請依監考與參與規範設定進階條件。",
-    "advancedSettings": "進階條件設定",
-    "attendanceHint": "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。",
-    "attendanceTitle": "QR 簽到簽退",
     "chooseTypeTitle": "建立競賽",
     "configureSchedule": "設定基本資訊",
     "contestName": "競賽名稱",
@@ -803,8 +799,6 @@
     "private": "私人競賽",
     "privateShort": "私人",
     "public": "公開",
-    "rejoinHint": "啟用後，學生離開競賽後可再次加入。",
-    "rejoinTitle": "允許重新加入",
     "requiresPassword": "需要密碼",
     "requiresPasswordShort": "密碼",
     "scheduleIntro": "請填寫競賽基本資訊與應試時段。建立完成後，仍可於競賽管理頁面調整。",
@@ -973,10 +967,7 @@
       "mouse_leave": "滑鼠離開",
       "multiple_displays": "多螢幕",
       "policy_unavailable": "監控需處理",
-      "pwa_required": "需用 PWA",
       "screen_share": "螢幕分享中斷",
-      "split_view": "分割畫面",
-      "viewport": "視窗異常",
       "webcam": "Webcam 中斷"
     },
     "mouseLeaveRecoveryDesc": "請在 {{seconds}} 秒內將滑鼠移回考試視窗，否則將記錄一次違規。",
@@ -999,7 +990,7 @@
     "screenShareLostDesc": "考試監控需要螢幕分享。請重新分享整個螢幕以恢復監控來源。",
     "screenShareLostHeading": "偵測到螢幕分享已停止",
     "screenShareLostTitle": "螢幕分享已中斷",
-    "screenShareUnsupported": "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。",
+    "screenShareUnsupported": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請回到儀表板，改用電腦重新進入。",
     "stayInExamPage": "請保持在考試頁面並維持全螢幕模式。",
     "submitProgress": {
       "checking": "正在檢查作答內容",
@@ -1657,6 +1648,7 @@
     },
     "description": "進入考場前請先完成環境檢測。未通過檢測者將無法作答。",
     "eligibility": {
+      "group": "參賽資格",
       "nextStep": "下一步：環境檢查",
       "participation": "參賽權限檢查",
       "status": {
@@ -1670,15 +1662,6 @@
       "title": "參賽資格確認"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "桌機 / 筆電",
-        "ipad": "平板（iPad）",
-        "tablet": "平板"
-      },
-      "mode": {
-        "browser": "瀏覽器分頁模式",
-        "pwa": "PWA 模式"
-      },
       "monitoring": "監考來源",
       "source": {
         "none": "未啟用監考來源",
@@ -1692,11 +1675,14 @@
     "environment": {
       "checks": {
         "fullscreen": "全螢幕模式測試",
-        "graphics": "繪圖環境檢測",
+        "graphics": "瀏覽器與裝置",
         "interaction": "輸入互動檢測",
-        "monitor": "螢幕數量檢測",
-        "sharing": "螢幕分享授權",
+        "monitor": "螢幕與分享",
+        "sharing": "螢幕與分享",
         "webcam": "Webcam 授權"
+      },
+      "deviceUnsupported": {
+        "screenShareRequired": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請改用電腦重新進入。"
       },
       "errors": {
         "browserNotSupported": "您的瀏覽器不支援螢幕管理檢測，請改用最新版 Chrome / Edge。",
@@ -1710,18 +1696,14 @@
         "notMonitor": "必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗或分頁。",
         "sharingFailed": "螢幕分享授權失敗，請重新分享並選擇「整個螢幕」。",
         "sharingInterrupted": "螢幕分享已中斷，請重新完成檢查。",
-        "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
-        "tabletRequiresPwa": "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。",
+        "softwareRenderer": "此裝置或瀏覽器環境無法用於考試。請確認瀏覽器已開啟硬體加速，重新啟動瀏覽器後再試；仍無法通過請改用其他電腦或聯絡老師。",
         "webcamFailed": "Webcam 無法使用，請重新授權。",
         "webcamUnsupported": "此瀏覽器不支援 Webcam。",
-        "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。"
+        "webglUnavailable": "此裝置或瀏覽器環境無法用於考試。請確認瀏覽器已開啟硬體加速，重新啟動瀏覽器後再試；仍無法通過請改用其他電腦或聯絡老師。"
       },
       "requirements": {
-        "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
-        "display": "限單一螢幕，請務必拔除外接顯示器。",
-        "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
-        "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
-        "pwa": "請從主畫面啟動 PWA 視窗作答。",
+        "browser": "請使用電腦版最新 Chrome 或 Edge，並確認已開啟硬體加速。",
+        "screen": "請使用單一螢幕，允許瀏覽器取得螢幕與視窗管理權限，並在分享時選擇「整個螢幕」。",
         "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。",
         "title": "環境要求：",
         "webcam": "請允許瀏覽器使用 Webcam。"
@@ -1731,21 +1713,17 @@
         "monitorCount": "{{count}} 個螢幕",
         "next": "下一步：確認開始",
         "optionalSkipped": "Webcam 未啟用（可選）",
-        "pwaFullscreenBypass": "PWA 模式：已略過全螢幕檢查",
         "retry": "重新測試",
         "start": "開始環境測試"
       },
       "title": "環境檢測"
     },
     "instruction": {
-      "autoSave": "作答內容<b>即時自動儲存</b>，無需手動存檔。",
-      "autoSubmit": "考試時間結束後，系統將<b>自動交卷</b>。",
-      "clipboardRecorded": "複製與貼上功能<b>開放使用</b>，但所有剪貼簿內容將被<b>完整記錄</b>。",
+      "autoSubmit": "作答內容<b>即時自動儲存</b>，時間結束後<b>自動交卷</b>。",
+      "autoSubmitAt": "作答內容<b>即時自動儲存</b>，{{time}} 截止後<b>自動交卷</b>。",
       "confirmStart": "我已瞭解並確認開始考試",
-      "deadline": "考試截止時間：{{time}}",
-      "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕將被系統<b>靜默記錄</b>為異常行為。",
-      "keepPwaMode": "iPad 請全程使用<b>主畫面啟動的 PWA 視窗</b>作答，離開將被<b>靜默記錄</b>。",
-      "randomInspection": "考試期間，監考人員可能<b>隨機抽查</b>{{sources}}，擷取內容將作為<b>證據來源</b>。",
+      "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕會被記錄。",
+      "recorded": "考試期間會記錄{{sources}}與剪貼簿內容，監考人員可能<b>隨機抽查</b>。",
       "title": "作答規範"
     },
     "steps": {
@@ -1811,13 +1789,6 @@
     "anonymousMode": "參賽者匿名化模式",
     "anonymousModeHelp": "啟用後，參賽者將以自定義暱稱顯示於排行榜，保護個人隱私",
     "anticheat": {
-      "accessPolicy": "作答裝置政策",
-      "allowDesktop": "允許桌機作答",
-      "allowDesktopDesc": "Windows / macOS / Linux 桌面瀏覽器使用這套規則。",
-      "allowDesktopMultiDisplay": "允許桌機多螢幕",
-      "allowDesktopMultiDisplayDesc": "關閉時，桌機會啟用多螢幕偵測並記錄為異常事件。",
-      "allowTablet": "允許平板作答",
-      "allowTabletDesc": "iPad / Android tablet 仍視為 tablet，即使外接鍵盤滑鼠也不會改成 desktop。",
       "desktopLabel": "Desktop / Laptop 設定",
       "detectors": {
         "fullscreen": "全螢幕鎖定",
@@ -1825,33 +1796,19 @@
         "mouseLeave": "滑鼠移出偵測",
         "mouseLeaveDesc": "滑鼠移出考試視窗範圍時記錄異常事件",
         "multiDisplay": "多螢幕偵測",
-        "multiDisplayDesc": "偵測第二個實體螢幕並記錄異常事件",
-        "pwaMode": "PWA 應用程式模式",
-        "pwaModeDesc": "強制以獨立應用程式模式執行，鎖定系統環境",
-        "viewportIntegrity": "視窗完整性檢查",
-        "viewportIntegrityDesc": "禁止 iPad 使用割屏、側拉或小視窗模式"
+        "multiDisplayDesc": "偵測第二個實體螢幕並記錄異常事件"
       },
       "disabledDesc": "{{device}} 端監控未啟用",
       "enableMonitoring": "啟用監控",
-      "enableScreenShare": "啟用螢幕分享",
-      "enableScreenShareDesc": "桌機考生需分享整個螢幕作為作答證據。",
-      "enableWebcam": "啟用 Webcam",
-      "enableWebcamDesc": "桌機與平板考生都需開啟 Webcam。",
       "enabledDesc": "{{device}} 端監控已啟用",
-      "evidencePolicy": "證據追蹤政策",
       "forceEnable": "強制開啟",
       "monitoringSources": "監控來源設定",
+      "requireWebcam": "要求 Webcam",
+      "requireWebcamDesc": "考生除了分享螢幕，也需開啟 Webcam。",
       "screenShare": "螢幕監控 (Screen)",
       "screenShareDesc": "擷取學生螢幕畫面作為監控證據",
       "securityDetectors": "異常事件偵測",
-      "tabletLabel": "Tablet / iPad 設定",
-      "tabletNoEvidenceHint": "平板考生目前沒有任何證據來源，建議開啟 Webcam。",
-      "tabletScreenShareUnsupported": "平板暫時無法使用螢幕分享",
-      "tabletWebcamOnlyHint": "平板考生只會以 Webcam 作為作答證據。",
-      "webcam": "視訊監控 (Webcam)",
-      "webcamDesc": "擷取學生攝像頭畫面作為監控證據",
-      "webcamOnlyDesktopDesc": "目前只有桌機要求 Webcam；切換後會同時套用到桌機與平板。",
-      "webcamOnlyTabletDesc": "目前只有平板要求 Webcam；切換後會同時套用到桌機與平板。"
+      "webcam": "視訊監控 (Webcam)"
     },
     "archiveContest": "封存競賽 (Archive Contest)",
     "archiveDesc": "封存後競賽將變為唯讀狀態，無法再被啟用。",
@@ -1871,7 +1828,7 @@
     "confirmArchive": "確定要封存此競賽嗎？",
     "confirmDelete": "確定要刪除此競賽嗎？此動作無法復原！",
     "confirmDisableExamMode": "關閉後將停用本場考試的防作弊監控，確定關閉？",
-    "confirmEnableExamMode": "啟用後將依裝置政策套用考前檢查、監考來源與異常事件記錄，確定啟用？",
+    "confirmEnableExamMode": "啟用後考生須使用可分享螢幕的電腦作答，確定啟用？",
     "contestDescription": "競賽描述",
     "contestName": "競賽名稱",
     "contestOptions": "競賽設定",
@@ -1884,7 +1841,7 @@
     "deleteDesc": "此動作無法復原。所有相關資料（包含提交紀錄、排名）將被永久刪除。",
     "deleteFailed": "刪除失敗",
     "enableExamMode": "啟用防作弊監控",
-    "enableExamModeDesc": "啟用後會依裝置政策套用考前檢查、監考來源與異常事件記錄。",
+    "enableExamModeDesc": "考生須使用可分享螢幕的電腦作答，並固定偵測全螢幕、多螢幕與滑鼠離開。",
     "examModeSettings": "防作弊監控設定",
     "exportCSV": "匯出 CSV",
     "exportData": "匯出資料",

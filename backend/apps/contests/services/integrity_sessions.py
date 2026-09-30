@@ -52,6 +52,24 @@ def ensure_resident_session(contest_id, *, actor_id=None) -> ExamIntegrityRun | 
         )
 
 
+def apply_webcam_setting_to_prepared_run(contest_id) -> None:
+    """Carry a changed webcam requirement into a run that has not started.
+
+    The run is frozen when the contest is published, before anyone sits it, so
+    a teacher's later change would otherwise never reach it. Started runs keep
+    the value they began with.
+    """
+    with transaction.atomic():
+        contest = Contest.objects.select_for_update().get(pk=contest_id)
+        for run in ExamIntegrityRun.objects.select_for_update().filter(
+            contest=contest, session_state="prepared"
+        ):
+            if run.policy_snapshot.get("webcam_required") == contest.webcam_required:
+                continue
+            run.policy_snapshot = {**run.policy_snapshot, "webcam_required": contest.webcam_required}
+            run.save(update_fields=["policy_snapshot", "updated_at"])
+
+
 def prepare_integrity_session(contest_id, *, actor_id=None) -> ExamIntegrityRun | None:
     """Fail open at exam writes, leaving a visible log for missing preparation.
 

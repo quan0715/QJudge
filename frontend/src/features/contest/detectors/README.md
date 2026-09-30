@@ -2,7 +2,7 @@
 
 考試防作弊的 **瞬時違規攔截器**。每個 detector 封裝一類「發生即結束」的行為（複製、快捷鍵、開新視窗），由 `useExamMonitoring` 統一編排。
 
-> **這裡不放持續狀態型的 sensor。** 全螢幕、螢幕分享、webcam、viewport、滑鼠離開視窗屬於另一類 —— 它們有 `interrupted` / `restored` 兩種狀態、要驅動復原 Modal，`ExamDetector` 介面表達不了。那一類一律寫成 `features/contest/hooks/use*Monitoring.ts`，形狀是 `({ enabled, examSubmitted, emitter }) => { interrupted }`。
+> **這裡不放持續狀態型的 sensor。** 全螢幕、螢幕分享、webcam、滑鼠離開視窗屬於另一類 —— 它們有 `interrupted` / `restored` 兩種狀態、要驅動復原 Modal，`ExamDetector` 介面表達不了。那一類一律寫成 `features/contest/hooks/use*Monitoring.ts`，形狀是 `({ enabled, examSubmitted, emitter }) => { interrupted }`。
 >
 > `MultiDisplayDetector` 是唯一的例外：偵測邏輯（輪詢、debounce、Screen API 健康度）夠複雜、值得脫離 React 單獨測試，所以保留 class，但恢復與健康度是靠介面外的 `onResolved()` / `onApiHealthChange()` 補的，由 `useMultiDisplayMonitoring` 轉成 `interrupted`。新增 sensor 前先確認自己是哪一類。
 

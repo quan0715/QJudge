@@ -774,10 +774,6 @@
     "success": "성공"
   },
   "createModal": {
-    "advancedIntro": "감독 및 참가 규정에 따라 고급 조건을 설정하세요.",
-    "advancedSettings": "고급 조건 설정",
-    "attendanceHint": "켜면 시험 전 QR 입실이 필요합니다.",
-    "attendanceTitle": "QR 입퇴실",
     "chooseTypeTitle": "경진대회 만들기",
     "configureSchedule": "기본 정보 설정",
     "contestName": "경진대회 이름",
@@ -803,8 +799,6 @@
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
-    "rejoinHint": "켜면 학생이 경진대회에서 나간 뒤 다시 참가할 수 있습니다.",
-    "rejoinTitle": "재입장 허용",
     "requiresPassword": "비밀번호 필요",
     "requiresPasswordShort": "비밀번호",
     "scheduleIntro": "경진대회 기본 정보와 응시 시간을 입력하세요. 생성 후에도 관리 화면에서 조정할 수 있습니다.",
@@ -973,10 +967,7 @@
       "mouse_leave": "마우스 이탈",
       "multiple_displays": "다중 화면",
       "policy_unavailable": "모니터링 확인",
-      "pwa_required": "PWA 필요",
       "screen_share": "화면 공유 끊김",
-      "split_view": "분할 화면",
-      "viewport": "창 크기 이상",
       "webcam": "Webcam 끊김"
     },
     "mouseLeaveRecoveryDesc": "{{seconds}}초 이내에 마우스를 시험 창으로 되돌리지 않으면 위반 1회로 기록됩니다.",
@@ -999,7 +990,7 @@
     "screenShareLostDesc": "시험 감시를 위해 화면 공유가 필요합니다. 감시 소스를 복구하려면 전체 화면을 다시 공유해 주세요.",
     "screenShareLostHeading": "화면 공유가 중지되었습니다",
     "screenShareLostTitle": "화면 공유가 중단되었습니다",
-    "screenShareUnsupported": "이 브라우저는 화면 공유를 지원하지 않습니다. 대시보드로 돌아가 환경 검사를 다시 실행하거나 화면 공유를 지원하는 브라우저를 사용하세요.",
+    "screenShareUnsupported": "엄격 시험 모드는 화면 공유가 가능한 컴퓨터 브라우저가 필요합니다. 대시보드로 돌아가 컴퓨터로 다시 입장하세요.",
     "stayInExamPage": "시험 페이지에 머무르고 전체 화면 모드를 유지하세요.",
     "submitProgress": {
       "checking": "답안 내용을 확인하는 중",
@@ -1657,6 +1648,7 @@
     },
     "description": "시험 전 환경 체크를 완료해 주세요. 통과하지 못하면 응시가 제한됩니다.",
     "eligibility": {
+      "group": "응시 자격",
       "nextStep": "다음: 환경 테스트",
       "participation": "참가 권한 확인",
       "status": {
@@ -1670,15 +1662,6 @@
       "title": "참가 자격 확인"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "데스크톱 / 노트북",
-        "ipad": "태블릿 (iPad)",
-        "tablet": "태블릿"
-      },
-      "mode": {
-        "browser": "브라우저 탭 모드",
-        "pwa": "PWA 모드"
-      },
       "monitoring": "모니터링",
       "source": {
         "none": "모니터링 소스 미사용",
@@ -1692,11 +1675,14 @@
     "environment": {
       "checks": {
         "fullscreen": "전체 화면 테스트",
-        "graphics": "그래픽 환경 확인",
+        "graphics": "브라우저 및 기기",
         "interaction": "입력 상호작용 확인",
-        "monitor": "모니터 개수 확인",
-        "sharing": "화면 공유 허가",
+        "monitor": "화면 및 공유",
+        "sharing": "화면 및 공유",
         "webcam": "Webcam 권한"
+      },
+      "deviceUnsupported": {
+        "screenShareRequired": "엄격 시험 모드는 화면 공유가 가능한 컴퓨터 브라우저가 필요합니다. 컴퓨터로 다시 접속해 주세요."
       },
       "errors": {
         "browserNotSupported": "사용 중인 브라우저가 디스플레이 관리를 지원하지 않습니다. Chrome 또는 Edge를 사용해 주세요.",
@@ -1710,18 +1696,14 @@
         "notMonitor": "반드시 '전체 화면 (monitor)'을 공유해야 합니다. 창이나 탭 공유는 허용되지 않습니다.",
         "sharingFailed": "화면 공유 허가에 실패했습니다. '전체 화면' 공유를 허용해 주세요.",
         "sharingInterrupted": "화면 공유가 중단되었습니다. 다시 체크를 완료해 주세요.",
-        "softwareRenderer": "llvmpipe 소프트웨어 렌더링 환경에서는 시험에 입장할 수 없습니다. 로컬 데스크톱에서 브라우저 하드웨어 가속을 켜거나 다른 기기를 사용하세요.",
-        "tabletRequiresPwa": "iPad 감독에는 PWA 모드가 필요합니다. 홈 화면에 추가한 뒤 그곳에서 다시 열고 재시도하세요.",
+        "softwareRenderer": "이 기기 또는 브라우저로는 시험을 볼 수 없습니다. 하드웨어 가속이 켜져 있는지 확인하고 브라우저를 다시 시작한 뒤 재시도하세요. 계속 실패하면 다른 컴퓨터를 사용하거나 담당 교수에게 문의하세요.",
         "webcamFailed": "Webcam을 사용할 수 없습니다. 권한을 다시 허용해주세요.",
         "webcamUnsupported": "이 브라우저는 Webcam을 지원하지 않습니다.",
-        "webglUnavailable": "WebGL을 사용할 수 없어 시험에 입장할 수 없습니다. 로컬 브라우저에서 하드웨어 가속을 켜고 다시 시작하세요. 문제가 계속되면 다른 기기를 사용하세요."
+        "webglUnavailable": "이 기기 또는 브라우저로는 시험을 볼 수 없습니다. 하드웨어 가속이 켜져 있는지 확인하고 브라우저를 다시 시작한 뒤 재시도하세요. 계속 실패하면 다른 컴퓨터를 사용하거나 담당 교수에게 문의하세요."
       },
       "requirements": {
-        "browser": "최신 Chrome 또는 Edge 브라우저만 사용 가능합니다.",
-        "display": "단일 모니터만 허용됩니다 (외부 모니터 분리).",
-        "graphics": "WebGL을 사용할 수 있어야 합니다. llvmpipe 소프트웨어 렌더링 환경은 허용되지 않습니다.",
-        "permission": "'창 및 디스플레이 관리' 권한을 허용해 주세요.",
-        "pwa": "홈 화면에서 PWA 창을 실행하세요.",
+        "browser": "최신 데스크톱 Chrome 또는 Edge를 사용하고 하드웨어 가속을 켜 주세요.",
+        "screen": "모니터는 하나만 사용하고, 브라우저의 화면·창 관리 권한을 허용한 뒤 공유할 때 '전체 화면'을 선택하세요.",
         "sharing": "화면 공유 시 반드시 '전체 화면'을 선택해 주세요.",
         "title": "환경 요구 사항:",
         "webcam": "브라우저에서 Webcam 사용을 허용하세요."
@@ -1731,21 +1713,17 @@
         "monitorCount": "{{count}}개의 모니터",
         "next": "다음: 시작 확인",
         "optionalSkipped": "Webcam 비활성화됨(선택 사항)",
-        "pwaFullscreenBypass": "PWA 모드: 전체 화면 검사를 건너뜀",
         "retry": "재테스트",
         "start": "테스트 시작"
       },
       "title": "환경 테스트"
     },
     "instruction": {
-      "autoSave": "답안은 <b>실시간으로 자동 저장</b>됩니다. 수동 저장은 필요 없습니다.",
-      "autoSubmit": "시험 시간 종료 후 <b>자동으로 제출</b>됩니다.",
-      "clipboardRecorded": "복사 및 붙여넣기가 <b>허용</b>되지만, 모든 클립보드 내용은 <b>완전히 기록</b>됩니다.",
+      "autoSubmit": "답안은 <b>자동 저장</b>되며, 시간이 끝나면 <b>자동 제출</b>됩니다.",
+      "autoSubmitAt": "답안은 <b>자동 저장</b>되며, {{time}}에 <b>자동 제출</b>됩니다.",
       "confirmStart": "이해했습니다. 시험을 시작합니다",
-      "deadline": "시험 종료 시각: {{time}}",
-      "keepFullscreen": "<b>항상 전체 화면을 유지</b>하세요. 전체 화면 해제 시 <b>자동 기록</b>되어 이상 행위로 간주됩니다.",
-      "keepPwaMode": "iPad에서는 <b>홈 화면에서 실행한 PWA</b>로 응시하세요. 이탈 시 <b>자동 기록</b>됩니다.",
-      "randomInspection": "시험 중 감독자가 {{sources}}를 <b>무작위로 확인</b>할 수 있으며, 캡처된 내용은 <b>증거</b>로 사용됩니다.",
+      "keepFullscreen": "시험 내내 <b>전체 화면을 유지</b>하세요. 전체 화면을 벗어나면 기록됩니다.",
+      "recorded": "시험 중에는 {{sources}}과(와) 클립보드 내용이 기록되며, 감독관이 <b>무작위로 확인</b>할 수 있습니다.",
       "title": "응시 규정"
     },
     "steps": {
@@ -1811,13 +1789,6 @@
     "anonymousMode": "익명 모드",
     "anonymousModeHelp": "활성화하면 참가자가 닉네임을 설정할 수 있습니다. 점수판과 제출 목록에 닉네임이 표시됩니다",
     "anticheat": {
-      "accessPolicy": "응시 기기 정책",
-      "allowDesktop": "데스크톱 허용",
-      "allowDesktopDesc": "Windows / macOS / Linux 데스크톱 브라우저에는 이 규칙을 적용합니다.",
-      "allowDesktopMultiDisplay": "데스크톱 다중 화면 허용",
-      "allowDesktopMultiDisplayDesc": "끄면 데스크톱에서 다중 화면 감지가 활성화되고 이상 이벤트로 기록됩니다.",
-      "allowTablet": "태블릿 허용",
-      "allowTabletDesc": "iPad / Android tablet은 외부 키보드나 마우스를 연결해도 tablet으로 분류됩니다.",
       "desktopLabel": "데스크톱 / 노트북 설정",
       "detectors": {
         "fullscreen": "전체 화면 잠금",
@@ -1825,33 +1796,19 @@
         "mouseLeave": "마우스 이탈 감지",
         "mouseLeaveDesc": "마우스가 시험 창 범위를 벗어나면 경고가 발생합니다",
         "multiDisplay": "멀티 디스플레이 감지",
-        "multiDisplayDesc": "시험 중 외부 디스플레이 사용을 금지합니다",
-        "pwaMode": "PWA 앱 모드",
-        "pwaModeDesc": "독립형 앱 모드로 실행을 강제하여 시스템 환경을 잠급니다",
-        "viewportIntegrity": "윈도우 무결성 검사",
-        "viewportIntegrityDesc": "iPad의 스플릿 뷰나 슬라이드 오버 등의 사용을 금지합니다"
+        "multiDisplayDesc": "시험 중 외부 디스플레이 사용을 금지합니다"
       },
       "disabledDesc": "{{device}} 기기의 제한 비활성화됨",
       "enableMonitoring": "모니터링 활성화",
-      "enableScreenShare": "화면 공유 사용",
-      "enableScreenShareDesc": "데스크톱 응시자는 전체 화면을 공유해 응시 증거로 남깁니다.",
-      "enableWebcam": "Webcam 사용",
-      "enableWebcamDesc": "데스크톱과 태블릿 응시자 모두 Webcam을 켭니다.",
       "enabledDesc": "{{device}} 기기의 부정행위 방지 기능 활성화됨",
-      "evidencePolicy": "증거 추적 정책",
       "forceEnable": "강제 활성화",
       "monitoringSources": "모니터링 소스 설정",
+      "requireWebcam": "웹캠 필수",
+      "requireWebcamDesc": "응시자는 화면 공유와 함께 웹캠도 켜야 합니다.",
       "screenShare": "화면 모니터링 (Screen)",
       "screenShareDesc": "모니터링 증거로 학생 화면을 캡처합니다",
       "securityDetectors": "부정행위 감지 메커니즘",
-      "tabletLabel": "태블릿 / iPad 설정",
-      "tabletNoEvidenceHint": "태블릿 응시자에게는 현재 증거 소스가 없습니다. Webcam을 켜 주세요.",
-      "tabletScreenShareUnsupported": "태블릿은 아직 화면 공유를 사용할 수 없습니다",
-      "tabletWebcamOnlyHint": "태블릿 응시자는 Webcam으로만 기록됩니다.",
-      "webcam": "웹캠 모니터링 (Webcam)",
-      "webcamDesc": "모니터링 증거로 학생 웹캠을 캡처합니다",
-      "webcamOnlyDesktopDesc": "현재는 데스크톱만 Webcam이 필요합니다. 전환하면 데스크톱과 태블릿 모두에 적용됩니다.",
-      "webcamOnlyTabletDesc": "현재는 태블릿만 Webcam이 필요합니다. 전환하면 데스크톱과 태블릿 모두에 적용됩니다."
+      "webcam": "웹캠 모니터링 (Webcam)"
     },
     "archiveContest": "대회 보관",
     "archiveDesc": "보관하면 대회가 읽기 전용이 되며 다시 활성화할 수 없습니다.",
@@ -1871,7 +1828,7 @@
     "confirmArchive": "이 대회를 보관하시겠습니까?",
     "confirmDelete": "이 대회를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다!",
     "confirmDisableExamMode": "이 시험의 부정행위 방지 감독을 비활성화합니다. 계속하시겠습니까?",
-    "confirmEnableExamMode": "기기 정책에 따라 사전 점검, 감독 소스 및 이상 이벤트 기록을 적용합니다. 활성화하시겠습니까?",
+    "confirmEnableExamMode": "응시자는 화면 공유가 가능한 컴퓨터가 필요합니다. 켜시겠습니까?",
     "contestDescription": "대회 설명",
     "contestName": "대회 이름",
     "contestOptions": "대회 설정",
@@ -1884,7 +1841,7 @@
     "deleteDesc": "이 작업은 취소할 수 없습니다. 모든 관련 데이터(제출 기록 및 순위 포함)가 영구적으로 삭제됩니다.",
     "deleteFailed": "삭제 실패",
     "enableExamMode": "부정행위 방지 감독 활성화",
-    "enableExamModeDesc": "기기 정책에 따라 사전 점검, 감독 소스 및 이상 이벤트 기록을 적용합니다.",
+    "enableExamModeDesc": "응시자는 화면 공유가 가능한 컴퓨터로 응시해야 하며, 전체 화면·다중 모니터·포인터 이탈을 항상 감지합니다.",
     "examModeSettings": "부정행위 감지 설정",
     "exportCSV": "CSV 내보내기",
     "exportData": "데이터 내보내기",

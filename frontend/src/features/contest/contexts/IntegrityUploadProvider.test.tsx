@@ -41,7 +41,7 @@ it.each(["storage", "network"])("keeps answer DOM/outbox through submit and comp
   vi.mocked(localStorage.getItem).mockReturnValue("device-a");
   const runId = crypto.randomUUID();
   const run = { id: runId, participantId: 44, sessionState: "active", health: "unhealthy",
-    registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never };
+    registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, webcamRequired: false };
   const open = vi.spyOn(IndexedDbIntegrityOutbox, "open");
   const append = vi.spyOn(IndexedDbIntegrityOutbox.prototype, "append");
   let currentOwner: ReturnType<typeof useIntegrityUploadOwner>;

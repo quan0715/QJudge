@@ -64,22 +64,7 @@ def _clean_device(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {}
     device: dict[str, Any] = {}
-    for key in (
-        "device_kind",
-        "pointer_profile",
-        "primary_source_module",
-    ):
-        cleaned = _clean_str(value.get(key))
-        if cleaned is not None:
-            device[key] = cleaned
-    for key in (
-        "is_tablet",
-        "is_ipad_like",
-        "is_pwa_mode",
-        "supports_fine_pointer",
-        "screen_share_supported",
-        "webcam_supported",
-    ):
+    for key in ("screen_share_supported", "webcam_supported"):
         cleaned = _clean_bool(value.get(key))
         if cleaned is not None:
             device[key] = cleaned
@@ -104,7 +89,7 @@ def normalize_precheck_payload(payload: Any) -> dict[str, Any] | None:
         cleaned = _clean_int(payload.get(key))
         if cleaned is not None:
             normalized[key] = cleaned
-    for key in ("is_extended", "fullscreen", "webcam_granted", "pwa_mode"):
+    for key in ("is_extended", "fullscreen", "webcam_granted"):
         cleaned = _clean_bool(payload.get(key))
         if cleaned is not None:
             normalized[key] = cleaned

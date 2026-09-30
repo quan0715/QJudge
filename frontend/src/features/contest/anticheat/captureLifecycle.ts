@@ -4,7 +4,6 @@ export type CaptureStopReason =
   | "contest_ended"
   | "monitor_disabled"
   | "screen_share_timeout_submit"
-  | "viewport_timeout_submit"
   | "fullscreen_exit_submit"
   | "unmount";
 

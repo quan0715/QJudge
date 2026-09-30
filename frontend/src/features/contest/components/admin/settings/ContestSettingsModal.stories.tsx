@@ -9,7 +9,6 @@ import AccessSettingsPanel from "./AccessSettingsPanel";
 import DisplaySettingsPanel from "./DisplaySettingsPanel";
 import CheatDetectionPanel from "./CheatDetectionPanel";
 import ContestSettingsModal from "./ContestSettingsModal";
-import { sanitizeAnticheatPolicy } from "./anticheatPolicyUtils";
 
 /* ── Shared helpers ─────────────────────────────────────────── */
 
@@ -28,7 +27,7 @@ function useFormState() {
     status: mockContest.status,
     attendanceCheckEnabled: mockContest.attendanceCheckEnabled,
     cheatDetectionEnabled: mockContest.cheatDetectionEnabled,
-    anticheatDevicePolicy: mockContest.anticheatDevicePolicy,
+    webcamRequired: mockContest.webcamRequired,
     scoreboardVisibleDuringContest: mockContest.scoreboardVisibleDuringContest,
     allowMultipleJoins: mockContest.allowMultipleJoins,
   });
@@ -279,39 +278,6 @@ export const SectionSaveState: Story = {
               : undefined
           }
         />
-      </div>
-    );
-  },
-};
-
-/* ── Tablet without webcam ───────────────────────────────────── */
-
-export const CheatDetectionTabletWithoutWebcam: Story = {
-  parameters: {
-    docs: {
-      description: {
-        story: "允許平板但未開啟 Webcam：顯示平板暫時無法使用螢幕分享的提示。",
-      },
-    },
-  },
-  render: function TabletWithoutWebcamStory() {
-    const { sharedProps } = useFormState();
-    const policy = sanitizeAnticheatPolicy(mockContest.anticheatDevicePolicy);
-    sharedProps.form = {
-      ...sharedProps.form,
-      cheatDetectionEnabled: true,
-      anticheatDevicePolicy: {
-        ...policy,
-        tablet: {
-          ...policy.tablet,
-          sources: { ...policy.tablet.sources, webcam: { enabled: false } },
-        },
-      },
-    };
-
-    return (
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
-        <CheatDetectionPanel {...sharedProps} />
       </div>
     );
   },

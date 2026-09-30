@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "@carbon/react";
-import { CheckmarkFilled, ScreenOff, VideoOff, FitToScreen } from "@carbon/icons-react";
+import { CheckmarkFilled, ScreenOff, VideoOff } from "@carbon/icons-react";
 import { useTranslation } from "react-i18next";
 import { ModalAlertContent } from "./ModalAlertContent";
 import {
@@ -42,11 +42,8 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
   const activeSource = isSensorRecoverableByModal(recoverySource)
     ? recoverySource
     : null;
-  const isTablet = activeSource === "split_view";
   const showScreenShareRecovery = activeSource === "screen_share";
   const showWebcamRecovery = activeSource === "webcam";
-  const showViewportRecovery =
-    activeSource === "viewport" || activeSource === "split_view";
   const showSensorWarning =
     activeSource === "fullscreen" ||
     activeSource === "mouse_leave" ||
@@ -171,46 +168,6 @@ export const ExamModals: React.FC<ExamModalsProps> = ({
           <div className={styles.warningBox}>
             <p className={styles.warningBoxText}>
               {t("exam.webcamSensorWarning", "請重新授權 Webcam 以恢復監考來源。")}
-            </p>
-          </div>
-        </ModalAlertContent>
-      </Modal>
-
-      {/* Viewport / Split View Recovery Modal */}
-      <Modal
-        data-testid="exam-viewport-recovery-modal"
-        open={showViewportRecovery}
-        modalHeading={
-          isTablet
-            ? t("exam.splitViewDetectedTitle", "偵測到分割畫面")
-            : t("exam.viewportInterruptedTitle", "視窗大小異常")
-        }
-        primaryButtonText={withButtonTestId(
-          "exam-viewport-recovery-btn",
-          t("exam.iUnderstand")
-        )}
-        onRequestSubmit={() => {}}
-        preventCloseOnClickOutside
-        danger
-        size="sm"
-      >
-        <ModalAlertContent
-          icon={<FitToScreen size={40} style={{ color: "var(--cds-support-error)" }} />}
-          variant="error"
-          title={
-            isTablet
-              ? t("exam.splitViewDetectedHeading", "請關閉 Split View / Slide Over")
-              : t("exam.viewportInterruptedHeading", "請恢復考試視窗大小")
-          }
-          description={
-            isTablet
-              ? t("exam.splitViewDetectedDesc", "考試期間不允許使用分割畫面或 Slide Over，請關閉後繼續作答。")
-              : t("exam.viewportInterruptedDesc", "系統偵測到視窗大小或縮放異常，請恢復原始大小。")
-          }
-        >
-          <div className={styles.warningBox}>
-            <p className={styles.warningBoxText}>
-              {t("exam.viewportSensorWarning", "請恢復原始視窗大小或關閉分割畫面。")}
             </p>
           </div>
         </ModalAlertContent>

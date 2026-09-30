@@ -8,14 +8,11 @@ import {
 
 const quiet: ExamSensorSnapshot = {
   policyUnavailable: false,
-  pwaRequired: false,
   screenShareInterrupted: false,
   webcamInterrupted: false,
-  viewportInterrupted: false,
   fullscreenInterrupted: false,
   mouseLeaveInterrupted: false,
   multiDisplayInterrupted: false,
-  isTablet: false,
 };
 
 describe("resolveActiveExamSensorSource", () => {
@@ -38,23 +35,9 @@ describe("resolveActiveExamSensorSource", () => {
       resolveActiveExamSensorSource({
         ...quiet,
         policyUnavailable: true,
-        pwaRequired: true,
         screenShareInterrupted: true,
       }),
     ).toBe("policy_unavailable");
-  });
-
-  it("splits viewport interruption by device class", () => {
-    expect(
-      resolveActiveExamSensorSource({ ...quiet, viewportInterrupted: true }),
-    ).toBe("viewport");
-    expect(
-      resolveActiveExamSensorSource({
-        ...quiet,
-        viewportInterrupted: true,
-        isTablet: true,
-      }),
-    ).toBe("split_view");
   });
 
   it("falls through the full ladder in priority order", () => {
@@ -78,9 +61,7 @@ describe("examSensorTone", () => {
     expect(examSensorTone("screen_share")).toBe("critical");
     expect(examSensorTone("webcam")).toBe("critical");
     expect(examSensorTone("policy_unavailable")).toBe("critical");
-    expect(examSensorTone("pwa_required")).toBe("critical");
     expect(examSensorTone("fullscreen")).toBe("warning");
-    expect(examSensorTone("viewport")).toBe("warning");
     expect(examSensorTone("multiple_displays")).toBe("warning");
   });
 });
@@ -88,7 +69,6 @@ describe("examSensorTone", () => {
 describe("isSensorRecoverableByModal", () => {
   it("leaves the lock-overlay sources to the overlay", () => {
     expect(isSensorRecoverableByModal("policy_unavailable")).toBe(false);
-    expect(isSensorRecoverableByModal("pwa_required")).toBe(false);
     expect(isSensorRecoverableByModal(null)).toBe(false);
   });
 
@@ -96,8 +76,6 @@ describe("isSensorRecoverableByModal", () => {
     for (const source of [
       "screen_share",
       "webcam",
-      "viewport",
-      "split_view",
       "fullscreen",
       "mouse_leave",
       "multiple_displays",

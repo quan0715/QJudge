@@ -207,24 +207,9 @@ def _event_definition(
 
 
 def _enabled_sources(run: ExamIntegrityRun) -> frozenset[str]:
-    policy = run.policy_snapshot
-    if type(policy) is not dict:
-        return frozenset()
-    device_policy = policy.get("device_policy")
-    if type(device_policy) is not dict:
-        return frozenset()
-    enabled = set()
-    for device in device_policy.values():
-        if type(device) is not dict or device.get("enabled") is not True:
-            continue
-        sources = device.get("sources")
-        if type(sources) is not dict:
-            continue
-        for source in _SOURCE_KINDS:
-            source_policy = sources.get(source)
-            if type(source_policy) is dict and source_policy.get("enabled") is True:
-                enabled.add(source)
-    return frozenset(enabled)
+    if run.policy_snapshot["webcam_required"]:
+        return frozenset({"screen_share", "webcam"})
+    return frozenset({"screen_share"})
 
 
 def _raw_window(
@@ -300,9 +285,6 @@ def _evidence_retain_windows_for_events(
         or type(registry.get("definitions")) is not dict
     ):
         raise IntegrityEvidenceRejected("invalid_frozen_registry")
-    policy = run.policy_snapshot
-    if type(policy) is not dict or type(policy.get("device_policy")) is not dict:
-        raise IntegrityEvidenceRejected("invalid_frozen_policy")
     enabled_sources = _enabled_sources(run)
     by_source: dict[str, list[_RawWindow]] = {}
     for event in events:

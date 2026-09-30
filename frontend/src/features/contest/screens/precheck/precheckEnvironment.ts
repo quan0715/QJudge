@@ -121,8 +121,6 @@ export interface EnvironmentCheckFilter {
   requireScreenShare: boolean;
   requireSingleMonitor: boolean;
   enableWebcam: boolean;
-  requirePwaMode: boolean;
-  skipFullscreen: boolean;
 }
 
 export const createEnvironmentChecks = (
@@ -145,12 +143,78 @@ export const createEnvironmentChecks = (
   if (!filter || filter.enableWebcam) {
     checks.push({ id: "webcam", label: t("precheck.environment.checks.webcam", "Webcam"), status: "pending" });
   }
-  if (!filter || !filter.skipFullscreen || filter.requirePwaMode) {
-    checks.push({ id: "fullscreen", label: t("precheck.environment.checks.fullscreen"), status: "pending" });
-  }
+  checks.push({ id: "fullscreen", label: t("precheck.environment.checks.fullscreen"), status: "pending" });
   checks.push({ id: "interaction", label: t("precheck.environment.checks.interaction"), status: "pending" });
   return checks;
 };
+
+interface CheckGroup {
+  id: string;
+  label: string;
+  members: string[];
+  passDetail?: (members: CheckItem[]) => string | undefined;
+}
+
+const mergeGroup = (group: CheckGroup, members: CheckItem[]): CheckItem => {
+  const base = { id: group.id, label: group.label };
+  const failed = members.find((item) => item.status === "fail");
+  if (failed) return { ...base, status: "fail", detail: failed.detail };
+  const running = members.find((item) => item.status === "running");
+  if (running) return { ...base, status: "running", detail: running.detail };
+  const blocked = members.find((item) => item.status === "blocked");
+  if (blocked) return { ...base, status: "blocked", detail: blocked.detail };
+  if (members.every((item) => item.status === "pass")) {
+    return { ...base, status: "pass", detail: group.passDetail?.(members) };
+  }
+  // Part of the group is done and the rest is next in line: still in progress.
+  if (members.some((item) => item.status === "pass")) return { ...base, status: "running" };
+  return { ...base, status: "pending" };
+};
+
+/**
+ * The checks stay separate internally (each has its own failure and is sent to
+ * the server as recorded), but students see them as a few plain steps.
+ */
+const groupChecks = (items: CheckItem[], groups: CheckGroup[]): CheckItem[] => {
+  const rows: CheckItem[] = [];
+  const emitted = new Set<string>();
+  for (const item of items) {
+    const group = groups.find((candidate) => candidate.members.includes(item.id));
+    if (!group) {
+      rows.push(item);
+    } else if (!emitted.has(group.id)) {
+      emitted.add(group.id);
+      rows.push(mergeGroup(group, items.filter((member) => group.members.includes(member.id))));
+    }
+  }
+  return rows;
+};
+
+export const groupEligibilityChecks = (items: CheckItem[], t: TranslateFn): CheckItem[] =>
+  groupChecks(items, [
+    {
+      id: "eligibility",
+      label: t("precheck.eligibility.group"),
+      members: ["participation", "submitted"],
+      // Plain re-entry notes stay visible; the usual case just says it passed.
+      passDetail: (members) => {
+        const submitted = members.find((item) => item.id === "submitted");
+        return submitted?.detail === t("precheck.eligibility.status.noSubmission")
+          ? t("precheck.eligibility.status.passed")
+          : submitted?.detail;
+      },
+    },
+  ]);
+
+export const groupEnvChecks = (items: CheckItem[], t: TranslateFn): CheckItem[] =>
+  groupChecks(items, [
+    { id: "device", label: t("precheck.environment.checks.graphics"), members: ["graphics"] },
+    {
+      id: "screen",
+      label: t("precheck.environment.checks.monitor"),
+      members: ["singleMonitor", "shareScreen"],
+    },
+  ]);
 
 export const createStatusMeta = (t: TranslateFn): Record<
   CheckStatus,
@@ -253,9 +317,6 @@ export const runStartPreflightValidation = async (
     requireSingleMonitor: boolean;
     requireWebcam: boolean;
     enableWebcam?: boolean;
-    requirePwaOnTablet: boolean;
-    isPwaMode: boolean;
-    skipFullscreenCheck: boolean;
   }
 ): Promise<PreflightValidationResult> => {
   const {
@@ -263,9 +324,6 @@ export const runStartPreflightValidation = async (
     requireSingleMonitor,
     requireWebcam,
     enableWebcam,
-    requirePwaOnTablet,
-    isPwaMode,
-    skipFullscreenCheck,
   } = options;
   const observation: PrecheckObservation = { fullscreen: isFullscreen() };
   const fail = (failure: PreflightValidationFailure): PreflightValidationResult => ({
@@ -355,18 +413,8 @@ export const runStartPreflightValidation = async (
     }
   }
 
-  if (requirePwaOnTablet && !isPwaMode) {
-    return fail({
-      checkId: "fullscreen",
-      detail: t(
-        "precheck.environment.errors.tabletRequiresPwa",
-        "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
-      ),
-    });
-  }
-
   observation.fullscreen = isFullscreen();
-  if (!skipFullscreenCheck && !observation.fullscreen) {
+  if (!observation.fullscreen) {
     return fail({
       checkId: "fullscreen",
       detail: t("precheck.environment.errors.fullscreenFailed"),
@@ -383,9 +431,6 @@ interface RunEnvChecksOptions {
   requireSingleMonitor: boolean;
   requireWebcam: boolean;
   enableWebcam: boolean;
-  requirePwaOnTablet: boolean;
-  isPwaMode: boolean;
-  skipFullscreenCheck: boolean;
   checkFilter?: EnvironmentCheckFilter;
   requestMonitorScreenShare: () => Promise<{
     granted: boolean;
@@ -410,9 +455,6 @@ export const runEnvChecks = async ({
   requireSingleMonitor,
   requireWebcam,
   enableWebcam,
-  requirePwaOnTablet,
-  isPwaMode,
-  skipFullscreenCheck,
   checkFilter,
   requestMonitorScreenShare,
   requestWebcamCapture,
@@ -581,56 +623,30 @@ export const runEnvChecks = async ({
       clearPrecheckWebcamHandoff(true);
     }
 
-    if (requirePwaOnTablet && !isPwaMode) {
-      markRunning("fullscreen", t("precheck.environment.status.checking"));
-      await finalizeCheck(
-        "fullscreen",
-        "fail",
-        t(
-          "precheck.environment.errors.tabletRequiresPwa",
-          "iPad 監考需使用 PWA 模式。請先將系統加入主畫面，並從主畫面開啟後重試。"
-        )
+    markRunning("fullscreen", t("precheck.environment.status.checking"));
+    try {
+      const enteredFullscreen = await withTimeout(
+        requestFullscreen(),
+        PRECHECK_FULLSCREEN_TIMEOUT_MS,
+        "requestFullscreen timeout"
       );
-      const depMsg = t("precheck.environment.errors.dependencyPrefix", {
-        name: t("precheck.environment.checks.fullscreen"),
-      });
-      markBlocked("interaction", depMsg);
-      return;
-    }
-
-    if (skipFullscreenCheck) {
-      updateCheck(
-        setEnvChecks,
-        "fullscreen",
-        "pass",
-        t("precheck.environment.status.pwaFullscreenBypass", "PWA 模式：已略過全螢幕檢查")
-      );
-    } else {
-      markRunning("fullscreen", t("precheck.environment.status.checking"));
-      try {
-        const enteredFullscreen = await withTimeout(
-          requestFullscreen(),
-          PRECHECK_FULLSCREEN_TIMEOUT_MS,
-          "requestFullscreen timeout"
-        );
-        if (enteredFullscreen && isFullscreen()) {
-          await finalizeCheck("fullscreen", "pass");
-        } else {
-          await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenFailed"));
-          const depMsg = t("precheck.environment.errors.dependencyPrefix", {
-            name: t("precheck.environment.checks.fullscreen"),
-          });
-          markBlocked("interaction", depMsg);
-          return;
-        }
-      } catch {
-        await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenTimeout"));
+      if (enteredFullscreen && isFullscreen()) {
+        await finalizeCheck("fullscreen", "pass");
+      } else {
+        await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenFailed"));
         const depMsg = t("precheck.environment.errors.dependencyPrefix", {
           name: t("precheck.environment.checks.fullscreen"),
         });
         markBlocked("interaction", depMsg);
         return;
       }
+    } catch {
+      await finalizeCheck("fullscreen", "fail", t("precheck.environment.errors.fullscreenTimeout"));
+      const depMsg = t("precheck.environment.errors.dependencyPrefix", {
+        name: t("precheck.environment.checks.fullscreen"),
+      });
+      markBlocked("interaction", depMsg);
+      return;
     }
 
     markRunning("interaction", t("precheck.environment.status.checking"));

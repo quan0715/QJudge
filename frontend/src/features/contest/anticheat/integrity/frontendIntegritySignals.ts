@@ -20,8 +20,6 @@ export const FRONTEND_INTEGRITY_SIGNAL_IDS = [
   "screen_share_interrupted",
   "screen_share_restored",
   "health_snapshot",
-  "viewport_interrupted",
-  "viewport_restored",
   "webcam_interrupted",
   "webcam_restored",
 ] as const;

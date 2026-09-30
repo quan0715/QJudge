@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
-from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -30,7 +29,6 @@ from apps.contests.integrity_serializers import EvidenceChunkDescriptorSerialize
 from apps.contests.services.anti_cheat_session import (
     active_session_key,
     get_active_session,
-    set_active_session,
 )
 from apps.contests.services import (
     integrity_evidence as integrity_evidence_service,
@@ -91,7 +89,7 @@ def participant(db):
         exam_status=ExamStatus.IN_PROGRESS,
         started_at=now,
     )
-    bind_active_device(participant, "desktop")
+    bind_active_device(participant)
     yield participant
     cache.delete(active_session_key(contest.id, student.id))
 
@@ -111,7 +109,7 @@ def another_participant(participant):
         exam_status=ExamStatus.IN_PROGRESS,
         started_at=timezone.now(),
     )
-    bind_active_device(other, "desktop")
+    bind_active_device(other)
     return other
 
 
@@ -123,27 +121,11 @@ def integrity_run(participant):
         created_by=participant.contest.owner,
         session_state="active",
         policy_snapshot={
-            "version": 1,
             "evidence": {
                 "minimum_local_buffer_ms": 60_000,
                 "local_cap_bytes_per_source": 100_000_000,
             },
-            "device_policy": {
-                "desktop": {
-                    "enabled": True,
-                    "sources": {
-                        "screen_share": {"enabled": True},
-                        "webcam": {"enabled": True},
-                    },
-                },
-                "tablet": {
-                    "enabled": True,
-                    "sources": {
-                        "screen_share": {"enabled": False},
-                        "webcam": {"enabled": True},
-                    },
-                },
-            },
+            "webcam_required": True,
         },
         registry_snapshot=registry,
         registry_version=registry["version"],
@@ -166,7 +148,6 @@ def incident_event(integrity_run, participant):
         event_schema_version=1,
         client_occurred_at_ms=1_005_000,
         metadata={
-            "device_kind": "desktop",
             "integrity": {
                 "definition_id": "fullscreen_integrity",
                 "phase": "escalated",
@@ -289,7 +270,7 @@ def post_manifest(api_client, event, chunks):
     )
 
 
-def bind_active_device(participant, device_kind):
+def bind_active_device(participant):
     cache.set(
         active_session_key(
             participant.contest_id,
@@ -300,7 +281,6 @@ def bind_active_device(participant, device_kind):
             "participant_id": participant.id,
             "user_id": participant.user_id,
             "device_id": "bound-device",
-            "device_kind": device_kind,
         },
         timeout=300,
     )
@@ -313,7 +293,7 @@ def resident_evidence(incident_event, participant, api_client, object_store, res
     run.session_state = "active"
     run.accept_until = participant.contest.end_time + timedelta(seconds=300)
     run.save()
-    bind_active_device(participant, "desktop")
+    bind_active_device(participant)
     admission = IntegrityBatchAdmission.objects.create(run=run, participant=participant,
         batch_id=uuid4(), attempt_id=participant.integrity_attempt_id, device_id="bound-device",
         body_sha256="a" * 64, first_seq=1, last_seq=1, first_received_at=timezone.now())
@@ -336,7 +316,7 @@ def resident_evidence(incident_event, participant, api_client, object_store, res
 
 def trusted_evidence_scope(run, participant, event):
     from apps.contests.models import IntegrityBatchAdmission
-    bind_active_device(participant, "desktop")
+    bind_active_device(participant)
     receipt = IntegrityBatchAdmission.objects.create(run=run, participant=participant,
         batch_id=uuid4(), attempt_id=participant.integrity_attempt_id, device_id="bound-device",
         body_sha256="b" * 64, first_seq=1, last_seq=1, first_received_at=timezone.now())
@@ -629,7 +609,7 @@ def test_final_sequence_waits_for_own_evidence_termination(incident_event, parti
     run.accept_until = participant.contest.end_time + timedelta(seconds=300)
     run.save()
     scope = trusted_evidence_scope(run, participant, incident_event)
-    bind_active_device(participant, "desktop")
+    bind_active_device(participant)
     finalize_submission(participant, submit_reason="manual")
     grant = IntegrityUploadGrant.objects.get(participant=participant)
     grant.final_seq = 0
@@ -662,93 +642,7 @@ def test_closed_resident_evidence_cannot_bypass_upload_scope(api_client, inciden
 
 
 @pytest.mark.django_db
-def test_spoofed_event_device_kind_cannot_suppress_bound_desktop_source(
-    integrity_run,
-    participant,
-    incident_event,
-):
-    metadata = dict(incident_event.metadata)
-    metadata["device_kind"] = "tablet"
-    incident_event.metadata = metadata
-    incident_event.save(update_fields=["metadata"])
-    bind_active_device(participant, "desktop")
-
-    windows = evidence_retain_windows(
-        integrity_run,
-        participant,
-        after_ms=0,
-    )
-
-    assert [window.sources for window in windows] == [("screen_share", "webcam")]
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("bound_device_kind", [None, "unknown"])
-def test_missing_or_unknown_device_binding_cannot_suppress_evidence_source(
-    integrity_run,
-    participant,
-    incident_event,
-    bound_device_kind,
-):
-    metadata = dict(incident_event.metadata)
-    metadata["device_kind"] = "tablet"
-    incident_event.metadata = metadata
-    incident_event.save(update_fields=["metadata"])
-    if bound_device_kind is not None:
-        bind_active_device(participant, bound_device_kind)
-
-    windows = evidence_retain_windows(
-        integrity_run,
-        participant,
-        after_ms=0,
-    )
-
-    assert [window.sources for window in windows] == [("screen_share", "webcam")]
-
-
-@pytest.mark.django_db
-def test_spoofed_tablet_user_agent_cannot_narrow_frozen_source_union(
-    integrity_run,
-    participant,
-    incident_event,
-):
-    metadata = dict(incident_event.metadata)
-    metadata["device_kind"] = "tablet"
-    incident_event.metadata = metadata
-    incident_event.save(update_fields=["metadata"])
-    spoofed_user_agent = (
-        "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) "
-        "AppleWebKit/605.1.15 Mobile/15E148"
-    )
-    request = RequestFactory().post(
-        "/exam/start",
-        HTTP_USER_AGENT=spoofed_user_agent,
-    )
-    set_active_session(
-        participant.contest,
-        participant,
-        request,
-        "spoofed-tablet-device",
-    )
-    assert (
-        get_active_session(
-            participant.contest_id,
-            participant.user_id,
-        )["ua"]
-        == spoofed_user_agent
-    )
-
-    windows = evidence_retain_windows(
-        integrity_run,
-        participant,
-        after_ms=0,
-    )
-
-    assert [window.sources for window in windows] == [("screen_share", "webcam")]
-
-
-@pytest.mark.django_db
-def test_manifest_rejects_source_disabled_by_frozen_policy(
+def test_manifest_rejects_webcam_evidence_when_the_run_does_not_require_it(
     api_client,
     incident_event,
     participant,
@@ -756,15 +650,7 @@ def test_manifest_rejects_source_disabled_by_frozen_policy(
     object_store,
 ):
     policy = dict(integrity_run.policy_snapshot)
-    policy["device_policy"] = {
-        "desktop": {
-            "enabled": True,
-            "sources": {
-                "screen_share": {"enabled": False},
-                "webcam": {"enabled": True},
-            },
-        },
-    }
+    policy["webcam_required"] = False
     integrity_run.policy_snapshot = policy
     integrity_run.save(update_fields=["policy_snapshot"])
     api_client.force_authenticate(participant.user)
@@ -772,7 +658,7 @@ def test_manifest_rejects_source_disabled_by_frozen_policy(
     response = post_manifest(
         api_client,
         incident_event,
-        [descriptor(seq=1, start=1_000_000, end=1_005_000)],
+        [descriptor(seq=1, start=1_000_000, end=1_005_000, source="webcam")],
     )
 
     assert response.status_code == 400
@@ -1266,7 +1152,6 @@ def test_overlapping_incidents_reuse_physical_chunk_and_merge_links(
         event_schema_version=1,
         client_occurred_at_ms=1_008_000,
         metadata={
-            "device_kind": "desktop",
             "integrity": {
                 "definition_id": "fullscreen_integrity",
                 "phase": "escalated",
@@ -1509,7 +1394,6 @@ def test_triggered_and_restored_inside_grace_do_not_request_evidence(
             event_schema_version=1,
             client_occurred_at_ms=occurred_at,
             metadata={
-                "device_kind": "desktop",
                 "integrity": {
                     "definition_id": "fullscreen_integrity",
                     "phase": phase,
@@ -1741,7 +1625,6 @@ def test_manager_review_lists_chunk_associated_through_bulk_manifest_metadata(
         event_schema_version=1,
         client_occurred_at_ms=1_005_000,
         metadata={
-            "device_kind": "desktop",
             "integrity": {
                 "definition_id": "fullscreen_integrity",
                 "phase": "escalated",
@@ -1862,7 +1745,6 @@ def test_retain_windows_merge_overlap_and_split_at_sixty_seconds(
         event_schema_version=1,
         client_occurred_at_ms=1_065_000,
         metadata={
-            "device_kind": "desktop",
             "integrity": {
                 "definition_id": "fullscreen_integrity",
                 "phase": "escalated",
@@ -1925,7 +1807,6 @@ def test_delivery_keeps_multi_source_window_until_every_source_is_terminal(
         event_schema_version=1,
         client_occurred_at_ms=1_005_000,
         metadata={
-            "device_kind": "desktop",
             "integrity": {"definition_id": "listener_integrity"},
         },
     )
@@ -2124,7 +2005,6 @@ def test_bulk_manager_evidence_status_uses_bounded_queries(
             event_schema_version=1,
             client_occurred_at_ms=1_005_000 + offset * 1_000,
             metadata={
-                "device_kind": "desktop",
                 "integrity": {
                     "definition_id": "fullscreen_integrity",
                     "phase": "escalated",

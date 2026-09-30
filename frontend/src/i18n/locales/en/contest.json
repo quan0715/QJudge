@@ -774,10 +774,6 @@
     "success": "Success"
   },
   "createModal": {
-    "advancedIntro": "Configure advanced participation and proctoring conditions.",
-    "advancedSettings": "Advanced Conditions",
-    "attendanceHint": "When enabled, students must complete QR check-in on the contest home page before starting the exam.",
-    "attendanceTitle": "QR check-in/out",
     "chooseTypeTitle": "Create Contest",
     "configureSchedule": "Configure Basic Information",
     "contestName": "Contest Name",
@@ -803,8 +799,6 @@
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
-    "rejoinHint": "When enabled, students can rejoin after leaving the contest.",
-    "rejoinTitle": "Allow rejoin",
     "requiresPassword": "Requires Password",
     "requiresPasswordShort": "Password",
     "scheduleIntro": "Fill in the contest basics and exam window. You can still adjust them later in contest management.",
@@ -973,10 +967,7 @@
       "mouse_leave": "Mouse left",
       "multiple_displays": "Multi-display",
       "policy_unavailable": "Monitoring action",
-      "pwa_required": "PWA required",
       "screen_share": "Screen share lost",
-      "split_view": "Split view",
-      "viewport": "Window issue",
       "webcam": "Webcam lost"
     },
     "mouseLeaveRecoveryDesc": "Move your mouse back into the exam window within {{seconds}} seconds, or this will count as one violation.",
@@ -999,7 +990,7 @@
     "screenShareLostDesc": "Screen sharing is required for exam monitoring. Reshare your entire screen to restore the monitoring source.",
     "screenShareLostHeading": "Screen share has been stopped",
     "screenShareLostTitle": "Screen Share Interrupted",
-    "screenShareUnsupported": "This browser does not support screen sharing. Return to the dashboard and run the environment check again, or use a browser that supports screen sharing.",
+    "screenShareUnsupported": "Strict exam mode needs a computer browser that can share its screen. Return to the dashboard and re-enter from a computer.",
     "stayInExamPage": "Please stay on the exam page and maintain fullscreen mode.",
     "submitProgress": {
       "checking": "Checking your answers",
@@ -1657,6 +1648,7 @@
     },
     "description": "Please complete environment checks before starting. You cannot enter without passing all checks.",
     "eligibility": {
+      "group": "Eligibility",
       "nextStep": "Next: Environment Check",
       "participation": "Participation Status",
       "status": {
@@ -1670,15 +1662,6 @@
       "title": "Eligibility Confirmation"
     },
     "entryDevice": {
-      "kind": {
-        "desktop": "Desktop / Laptop",
-        "ipad": "Tablet (iPad)",
-        "tablet": "Tablet"
-      },
-      "mode": {
-        "browser": "Browser tab mode",
-        "pwa": "PWA mode"
-      },
       "monitoring": "Monitoring",
       "source": {
         "none": "No source enabled",
@@ -1692,11 +1675,14 @@
     "environment": {
       "checks": {
         "fullscreen": "Fullscreen Mode",
-        "graphics": "Graphics environment",
+        "graphics": "Browser and device",
         "interaction": "Interaction Check",
-        "monitor": "Display Count",
-        "sharing": "Screen Sharing",
+        "monitor": "Screen and sharing",
+        "sharing": "Screen and sharing",
         "webcam": "Webcam Access"
+      },
+      "deviceUnsupported": {
+        "screenShareRequired": "Strict exam mode needs a computer browser that can share its screen. Switch to a computer and try again."
       },
       "errors": {
         "browserNotSupported": "Your browser does not support display management. Please use Chrome or Edge.",
@@ -1710,18 +1696,14 @@
         "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
         "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
-        "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
-        "tabletRequiresPwa": "iPad proctoring requires PWA mode. Add QJudge to the home screen, reopen it from there, and try again.",
+        "softwareRenderer": "This device or browser can't be used for the exam. Make sure hardware acceleration is on, restart the browser and try again. If it still fails, use another computer or contact your teacher.",
         "webcamFailed": "Webcam is unavailable. Please grant permission again.",
         "webcamUnsupported": "This browser does not support Webcam.",
-        "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device."
+        "webglUnavailable": "This device or browser can't be used for the exam. Make sure hardware acceleration is on, restart the browser and try again. If it still fails, use another computer or contact your teacher."
       },
       "requirements": {
-        "browser": "Use latest Google Chrome or Microsoft Edge.",
-        "display": "Single physical monitor required; disconnect external displays.",
-        "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
-        "permission": "Grant \"Window and Display Management\" permission when prompted.",
-        "pwa": "Launch the PWA window from the home screen.",
+        "browser": "Use the latest desktop Chrome or Edge, with hardware acceleration turned on.",
+        "screen": "Use a single screen, allow the browser to manage screens and windows, and choose \"Entire Screen\" when sharing.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
         "title": "Environment Requirements:",
         "webcam": "Allow browser access to Webcam."
@@ -1731,21 +1713,17 @@
         "monitorCount": "{{count}} monitor(s)",
         "next": "Next: Confirmation",
         "optionalSkipped": "Webcam not enabled (optional)",
-        "pwaFullscreenBypass": "PWA mode: fullscreen check skipped",
         "retry": "Retry Test",
         "start": "Start Test"
       },
       "title": "Environment Check"
     },
     "instruction": {
-      "autoSave": "Your answers are <b>auto-saved in real time</b> — no manual saving needed.",
-      "autoSubmit": "The exam will be <b>auto-submitted</b> when time is up.",
-      "clipboardRecorded": "Copy and paste are <b>allowed</b>, but all clipboard content will be <b>fully recorded</b>.",
+      "autoSubmit": "Your answers are <b>saved automatically</b>, and submitted <b>automatically</b> when time is up.",
+      "autoSubmitAt": "Your answers are <b>saved automatically</b>, and submitted <b>automatically</b> at {{time}}.",
       "confirmStart": "I understand, start exam",
-      "deadline": "Deadline: {{time}}",
-      "keepFullscreen": "Stay in <b>fullscreen at all times</b>; exiting fullscreen will be <b>silently recorded</b> as anomalous behavior.",
-      "keepPwaMode": "On iPad, use the <b>home-screen PWA</b> throughout the exam; leaving will be <b>silently recorded</b>.",
-      "randomInspection": "During the exam, proctors may <b>randomly inspect</b> {{sources}}; captured content is used as <b>evidence</b>.",
+      "keepFullscreen": "Stay in <b>fullscreen</b> for the whole exam; leaving fullscreen is recorded.",
+      "recorded": "During the exam, {{sources}} and clipboard contents are recorded, and proctors may <b>spot-check</b> them.",
       "title": "Exam Rules"
     },
     "steps": {
@@ -1811,13 +1789,6 @@
     "anonymousMode": "Anonymous Mode",
     "anonymousModeHelp": "When enabled, participants can set nicknames. Scoreboard and submission list will display nicknames",
     "anticheat": {
-      "accessPolicy": "Access Policy",
-      "allowDesktop": "Allow Desktop",
-      "allowDesktopDesc": "Windows, macOS, and Linux desktop browsers use this policy.",
-      "allowDesktopMultiDisplay": "Allow Desktop Multi-display",
-      "allowDesktopMultiDisplayDesc": "When disabled, desktop multi-display detection is enabled and recorded as an anomaly event.",
-      "allowTablet": "Allow Tablet",
-      "allowTabletDesc": "iPad and Android tablets remain classified as tablets, even with an external keyboard or mouse.",
       "desktopLabel": "Desktop / Laptop Settings",
       "detectors": {
         "fullscreen": "Fullscreen Lock",
@@ -1825,33 +1796,19 @@
         "mouseLeave": "Mouse Leave Detection",
         "mouseLeaveDesc": "Trigger warning when the mouse leaves the exam window area",
         "multiDisplay": "Multi-display Detection",
-        "multiDisplayDesc": "Prevent using a second physical monitor during the exam",
-        "pwaMode": "PWA App Mode",
-        "pwaModeDesc": "Force execution in independent app mode to lock the system environment",
-        "viewportIntegrity": "Window Integrity Check",
-        "viewportIntegrityDesc": "Prevent iPad from using split-screen, slide-over, or small window modes"
+        "multiDisplayDesc": "Prevent using a second physical monitor during the exam"
       },
       "disabledDesc": "Restrictions disabled for {{device}}",
       "enableMonitoring": "Enable Monitoring",
-      "enableScreenShare": "Enable Screen Share",
-      "enableScreenShareDesc": "Desktop students share their entire screen as exam evidence.",
-      "enableWebcam": "Enable Webcam",
-      "enableWebcamDesc": "Both desktop and tablet students turn on their webcam.",
       "enabledDesc": "Anti-cheat mechanism enabled for {{device}}",
-      "evidencePolicy": "Evidence Policy",
       "forceEnable": "Force Enable",
       "monitoringSources": "Monitoring Source Settings",
+      "requireWebcam": "Require webcam",
+      "requireWebcamDesc": "Students must turn on their webcam in addition to sharing their screen.",
       "screenShare": "Screen Monitoring (Screen)",
       "screenShareDesc": "Capture student screen as monitoring evidence",
       "securityDetectors": "Violation Detection Mechanism",
-      "tabletLabel": "Tablet / iPad Settings",
-      "tabletNoEvidenceHint": "Tablet students currently have no evidence source. Turn on Webcam.",
-      "tabletScreenShareUnsupported": "Tablets cannot share their screen yet",
-      "tabletWebcamOnlyHint": "Tablet students are recorded by webcam only.",
-      "webcam": "Video Monitoring (Webcam)",
-      "webcamDesc": "Capture student webcam as monitoring evidence",
-      "webcamOnlyDesktopDesc": "Only desktops require a webcam right now; switching applies it to both desktop and tablet.",
-      "webcamOnlyTabletDesc": "Only tablets require a webcam right now; switching applies it to both desktop and tablet."
+      "webcam": "Video Monitoring (Webcam)"
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",
@@ -1871,7 +1828,7 @@
     "confirmArchive": "Are you sure you want to archive this contest?",
     "confirmDelete": "Are you sure you want to delete this contest? This action cannot be undone!",
     "confirmDisableExamMode": "This will disable anti-cheat monitoring for this exam. Disable it?",
-    "confirmEnableExamMode": "This will apply pre-checks, monitoring sources, and anomaly event logging according to the device policy. Enable it?",
+    "confirmEnableExamMode": "Students will need a computer that can share its screen. Turn this on?",
     "contestDescription": "Contest Description",
     "contestName": "Contest Name",
     "contestOptions": "Contest Settings",
@@ -1884,7 +1841,7 @@
     "deleteDesc": "This action cannot be undone. All related data (including submissions and rankings) will be permanently deleted.",
     "deleteFailed": "Delete failed",
     "enableExamMode": "Enable Anti-cheat Monitoring",
-    "enableExamModeDesc": "Apply pre-checks, monitoring sources, and anomaly event logging according to the device policy.",
+    "enableExamModeDesc": "Students must use a computer that can share its screen; fullscreen, multiple displays and the pointer leaving the page are always monitored.",
     "examModeSettings": "Cheat Detection Settings",
     "exportCSV": "Export CSV",
     "exportData": "Export Data",

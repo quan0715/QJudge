@@ -47,25 +47,11 @@ export const evidenceBufferPolicy = (policy: Record<string, unknown> | undefined
   };
 };
 
-// Device classification is browser supplied. Use the frozen policy's enabled
-// union so it can never narrow a source requirement without server attestation.
-export const enabledEvidenceSources = (policy: Record<string, unknown> | undefined): Set<"screen_share" | "webcam"> => {
-  const devicePolicy = policy?.device_policy;
-  if (!devicePolicy || typeof devicePolicy !== "object") return new Set();
-  const enabled = new Set<"screen_share" | "webcam">();
-  for (const device of Object.values(devicePolicy as Record<string, unknown>)) {
-    if (!device || typeof device !== "object" || (device as Record<string, unknown>).enabled !== true) continue;
-    const sources = (device as Record<string, unknown>).sources;
-    if (!sources || typeof sources !== "object") continue;
-    for (const source of ["screen_share", "webcam"] as const) {
-      const sourcePolicy = (sources as Record<string, unknown>)[source];
-      if (sourcePolicy && typeof sourcePolicy === "object" && (sourcePolicy as Record<string, unknown>).enabled === true) {
-        enabled.add(source);
-      }
-    }
-  }
-  return enabled;
-};
+// Screen share always records; the frozen policy only decides the webcam.
+export const enabledEvidenceSources = (
+  policy: Record<string, unknown> | undefined,
+): Set<"screen_share" | "webcam"> =>
+  new Set(policy?.webcam_required === true ? ["screen_share", "webcam"] : ["screen_share"]);
 
 export const initialHealthSnapshot = (): ExamIntegrityHealthSnapshot => ({
   displayApi: { status: "initializing" },
@@ -109,7 +95,6 @@ const contestIntegrityRawSources = import.meta.glob<string>(
     "../../hooks/useMouseLeaveMonitoring.ts",
     "../../hooks/useMultiDisplayMonitoring.ts",
     "../../hooks/useScreenShareMonitoring.ts",
-    "../../hooks/useViewportMonitoring.ts",
     "../../hooks/useWebcamMonitoring.ts",
     "../../hooks/useExamState.ts",
     "../../hooks/useContestExamActions.ts",

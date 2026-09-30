@@ -919,7 +919,7 @@ async def qjudge_contest_manager(
     attendance_check_enabled: bool | None = None,
     attendance_photo_policy: str | None = None,
     cheat_detection_enabled: bool | None = None,
-    anticheat_device_policy: dict[str, Any] | None = None,
+    webcam_required: bool | None = None,
     clear_fields: list[Literal["start_time", "end_time"]] | None = None,
     scoreboard_visible_during_contest: bool | None = None,
     allow_multiple_joins: bool | None = None,
@@ -933,7 +933,7 @@ async def qjudge_contest_manager(
       update        — Partially update contest settings (required: contest_id UUID, at least one
                       of name, description, rules, start_time, end_time (ISO 8601),
                       attendance_check_enabled, attendance_photo_policy, cheat_detection_enabled,
-                      anticheat_device_policy (object: {"desktop": {...}, "tablet": {...}}),
+                      webcam_required (strict mode also requires a webcam),
                       scoreboard_visible_during_contest, allow_multiple_joins). To clear
                       start_time or end_time, list the field in clear_fields (omitted
                       arguments are never sent). status, contest_type and results_published
@@ -966,7 +966,7 @@ async def qjudge_contest_manager(
             "attendance_check_enabled": attendance_check_enabled,
             "attendance_photo_policy": attendance_photo_policy,
             "cheat_detection_enabled": cheat_detection_enabled,
-            "anticheat_device_policy": anticheat_device_policy,
+            "webcam_required": webcam_required,
             "scoreboard_visible_during_contest": scoreboard_visible_during_contest,
             "allow_multiple_joins": allow_multiple_joins,
         }

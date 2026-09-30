@@ -14,7 +14,6 @@ import {
   archiveContest,
   deleteContest,
 } from "@/infrastructure/api/repositories";
-import { sanitizeAnticheatPolicy } from "@/features/contest/components/admin/settings/anticheatPolicyUtils";
 import { ContestSettingsModal } from "@/features/contest/components/admin/settings";
 import type { ContestSettingsSectionId } from "@/features/contest/modules/types";
 
@@ -258,7 +257,7 @@ const ContestSettingsOverlay = ({
       attendanceCheckEnabled: contest.attendanceCheckEnabled ?? false,
       attendancePhotoPolicy: contest.attendancePhotoPolicy ?? "room",
       cheatDetectionEnabled: contest.cheatDetectionEnabled ?? false,
-      anticheatDevicePolicy: sanitizeAnticheatPolicy(contest.anticheatDevicePolicy),
+      webcamRequired: contest.webcamRequired ?? false,
       scoreboardVisibleDuringContest: contest.scoreboardVisibleDuringContest ?? false,
       allowMultipleJoins: contest.allowMultipleJoins ?? false,
     });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IndexedDbIntegrityOutbox } from "@/infrastructure/browser/integrity/indexedDbIntegrityOutbox";
 import { OpfsEvidenceStore } from "@/infrastructure/browser/integrity/opfsEvidenceStore";
-import { applyIntegrityHealthUpdate, contestIntegritySourceFiles, initialHealthSnapshot } from "./useIntegrityRuntime";
+import { applyIntegrityHealthUpdate, contestIntegritySourceFiles, enabledEvidenceSources, initialHealthSnapshot } from "./useIntegrityRuntime";
 import { ResidentIntegritySession } from "./residentIntegritySession";
 import { IntegrityTransport } from "./integrityTransport";
 import integrityRuntimeSource from "./useIntegrityRuntime.ts?raw";
@@ -176,4 +176,12 @@ describe("Resident integrity emitter and shared contract", () => {
     })).toThrow("forbidden_action");
   });
 
+});
+
+
+describe("enabledEvidenceSources", () => {
+  it("always records the screen and adds the webcam only when the run requires it", () => {
+    expect([...enabledEvidenceSources({ webcam_required: false })]).toEqual(["screen_share"]);
+    expect([...enabledEvidenceSources({ webcam_required: true })]).toEqual(["screen_share", "webcam"]);
+  });
 });

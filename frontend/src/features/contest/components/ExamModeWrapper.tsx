@@ -44,7 +44,6 @@ import {
   detectAnticheatCapability,
   resolveDeviceMonitoringPlan,
 } from "@/features/contest/domain/anticheatModulePolicy";
-import { useViewportMonitoring } from "@/features/contest/hooks/useViewportMonitoring";
 import { useWebcamMonitoring } from "@/features/contest/hooks/useWebcamMonitoring";
 import { useScreenShareMonitoring } from "@/features/contest/hooks/useScreenShareMonitoring";
 import { useFullscreenMonitoring } from "@/features/contest/hooks/useFullscreenMonitoring";
@@ -122,11 +121,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const capability = detectAnticheatCapability();
   const monitoringPlan = resolveDeviceMonitoringPlan(
     capability,
-    anticheatConfig?.integrityRun?.devicePolicy ?? anticheatConfig?.devicePolicy,
+    anticheatConfig?.integrityRun?.webcamRequired ?? anticheatConfig?.webcamRequired ?? false,
   );
-  const primarySourceModule = monitoringPlan.primarySourceModule;
-  const effectiveRequiresFullscreen =
-    requiresFullscreen && monitoringPlan.precheck.requireFullscreen;
   const screenModuleRole =
     monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
@@ -140,10 +136,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const policyUnavailable = policyConfigMissing || policyDeviceUnavailable;
   const effectiveMonitoringEnabled =
     policyRequired && !!anticheatConfig && !policyUnavailable;
-  const pwaGuardFailed =
-    effectiveMonitoringEnabled &&
-    monitoringPlan.precheck.requirePwaMode &&
-    !capability.isPwaMode;
 
   const {
     examState,
@@ -170,11 +162,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     shouldMonitorActiveExam &&
     precheckPassed &&
     monitoringPlan.runtime.enableWebcamCapture;
-  const viewportMonitorEnabled =
-    effectiveMonitoringEnabled &&
-    shouldMonitorActiveExam &&
-    precheckPassed &&
-    monitoringPlan.runtime.enableViewportIntegrity;
   const captureSnapshotRef = useRef<{
     screenCapture: IntegrityCaptureState;
     webcamCapture: IntegrityCaptureState;
@@ -185,8 +172,8 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const integrityRuntimeEnabled =
     policyConfigRequired &&
     isIntegrityAttemptActive(examStatus) &&
-    anticheatConfig?.version === 3 &&
     !!uploadOwner.resident &&
+    !!anticheatConfig &&
     !!anticheatConfig.integrityRun &&
     anticheatConfig.integrityRun.participantId !== null &&
     anticheatConfig.integrityRun.participantId !== undefined &&
@@ -325,18 +312,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     emitter: integrity,
   });
 
-  const viewport = useViewportMonitoring({
-    enabled: viewportMonitorEnabled,
-    examSubmitted: examStatus === "submitted",
-    isTablet: capability.isTablet,
-    primarySourceModule,
-    emitter: integrity,
-  });
-
   const fullscreen = useFullscreenMonitoring({
     enabled:
       effectiveMonitoringEnabled &&
-      effectiveRequiresFullscreen &&
+      requiresFullscreen &&
       monitoringPlan.detectors.fullscreen,
     examSubmitted: examStatus === "submitted",
     emitter: integrity,
@@ -344,8 +323,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
 
   const mouseLeave = useMouseLeaveMonitoring({
     enabled: effectiveMonitoringEnabled && monitoringPlan.detectors.mouseLeave,
-    isTablet: capability.isTablet,
-    supportsFinePointer: capability.supportsFinePointer,
     examSubmitted: examStatus === "submitted",
     emitter: integrity,
   });
@@ -524,7 +501,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         if (!await capture.resumeFromRuntimeHandoff()) return;
         screenShare.onStreamRestored();
         if (
-          effectiveRequiresFullscreen &&
+          requiresFullscreen &&
           !fullscreenAdapter.isActive()
         ) {
           void fullscreenAdapter.request();
@@ -533,7 +510,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } finally {
       setIsRequestingScreenShare(false);
     }
-  }, [capture, effectiveRequiresFullscreen, screenShare]);
+  }, [capture, requiresFullscreen, screenShare]);
 
   const handleWebcamReacquire = useCallback(async () => {
     if (!supportsUserMediaApi()) return;
@@ -593,7 +570,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (
       cheatDetectionEnabled &&
       examStatus === "locked" &&
-      effectiveRequiresFullscreen &&
+      requiresFullscreen &&
       isAnsweringPath() &&
       !fullscreenAdapter.isActive()
     ) {
@@ -611,7 +588,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     examStatus,
     cheatDetectionEnabled,
     contestId,
-    effectiveRequiresFullscreen,
+    requiresFullscreen,
     forceStopCapture,
     forceStopWebcamCapture,
     isAnsweringPath,
@@ -628,18 +605,15 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, []);
 
   const handleRecoverFullscreen = useCallback(async () => {
-    if (effectiveRequiresFullscreen) {
+    if (requiresFullscreen) {
       await fullscreenAdapter.request();
     }
-  }, [effectiveRequiresFullscreen]);
+  }, [requiresFullscreen]);
 
   const shouldShowPolicyUnavailableScreen =
     policyUnavailable && isAnsweringPath();
   const shouldShowLockScreen =
-    (examState.isLocked ||
-      shouldShowPolicyUnavailableScreen ||
-      pwaGuardFailed) &&
-    isAnsweringPath();
+    (examState.isLocked || shouldShowPolicyUnavailableScreen) && isAnsweringPath();
   const missingMonitoringSource = monitoringPlan.missingEnabledSources[0];
   const policyUnavailableText = policyConfigMissing
     ? t(
@@ -649,7 +623,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     : missingMonitoringSource === "screen_share"
       ? t(
           "exam.screenShareUnsupported",
-          "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。",
+          "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請回到儀表板，改用電腦重新進入。",
         )
       : missingMonitoringSource === "webcam"
         ? t(
@@ -662,37 +636,25 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
           );
   const lockReasonText = shouldShowPolicyUnavailableScreen
     ? policyUnavailableText
-    : pwaGuardFailed
-      ? t(
-          "exam.pwaRequiredOnTablet",
-          "iPad 監考必須以主畫面啟動的 PWA 模式作答，請返回儀表板重新開啟。",
-        )
-      : examState.lockReason;
+    : examState.lockReason;
   // One ladder for every consumer: the top-nav chip and the recovery modal both
   // read this, so they can never disagree or open two dialogs at once.
   const activeSensorSource = useMemo(
     () =>
       resolveActiveExamSensorSource({
         policyUnavailable: shouldShowPolicyUnavailableScreen,
-        pwaRequired: pwaGuardFailed && isAnsweringPath(),
         screenShareInterrupted: screenShare.reauth.inProgress,
         webcamInterrupted: webcam.interrupted,
-        viewportInterrupted: viewport.interrupted,
         fullscreenInterrupted: fullscreen.interrupted,
         mouseLeaveInterrupted: mouseLeave.interrupted,
         multiDisplayInterrupted: multiDisplay.interrupted,
-        isTablet: capability.isTablet,
       }),
     [
-      capability.isTablet,
-      isAnsweringPath,
       fullscreen.interrupted,
       mouseLeave.interrupted,
       multiDisplay.interrupted,
-      pwaGuardFailed,
       screenShare.reauth.inProgress,
       shouldShowPolicyUnavailableScreen,
-      viewport.interrupted,
       webcam.interrupted,
     ],
   );
