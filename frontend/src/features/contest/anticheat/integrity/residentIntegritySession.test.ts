@@ -67,7 +67,7 @@ it("stops capture after periodic release storage failure without rejecting answe
   const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device", attempt_id: crypto.randomUUID() };
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
-      policySnapshot: { webcam_required: false }, devicePolicy: {} as never, webcamRequired: false },
+      policySnapshot: { webcam_required: false }, webcamRequired: false },
     onGap: vi.fn(), onLocalLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   try {
@@ -98,7 +98,7 @@ it("keeps event upload alive but never starts a capture writer after startup sto
   const scope = { run_id: crypto.randomUUID(), participant_id: 44, device_id: "device", attempt_id: crypto.randomUUID() };
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
-      policySnapshot: { webcam_required: false }, devicePolicy: {} as never, webcamRequired: false },
+      policySnapshot: { webcam_required: false }, webcamRequired: false },
     onGap: vi.fn(), onLocalLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   await session.start();
@@ -140,7 +140,7 @@ it("orders admitted signals before drain while the final recorder callback and s
   }));
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy", registrySnapshot: { version: "v1", definitions: {} },
-      policySnapshot: { webcam_required: false }, devicePolicy: {} as never, webcamRequired: false },
+      policySnapshot: { webcam_required: false }, webcamRequired: false },
     onGap: vi.fn(), onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   await session.start();
@@ -196,7 +196,7 @@ it("cancels stuck evidence PUTs through submit drain and expiry cleanup without 
   }));
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 1,
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy",
-      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never, webcamRequired: false },
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, webcamRequired: false },
     onGap: vi.fn(), onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   await session.start();
@@ -242,7 +242,7 @@ it.each(["network", "append", "open", "capacity", "recorder"])("reports local lo
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy",
       registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {
         webcam_required: false,
-      }, devicePolicy: {} as never, webcamRequired: false },
+      }, webcamRequired: false },
     onGap: vi.fn(), onLocalLoss: localLoss, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   await session.start();
@@ -284,7 +284,7 @@ it("retries a gapped original batch through the real repository and scopes late 
   }));
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 8, mode: "drain",
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy",
-      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never, webcamRequired: false },
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, webcamRequired: false },
     onGap: vi.fn(), onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }) });
   await session.start();
@@ -312,7 +312,7 @@ it("keeps the same durable owner through capture to drain and declares final aft
   const gap = vi.fn();
   const session = new ResidentIntegritySession({ contestId: "1", scope, nextSequence: 7,
     run: { id: scope.run_id, participantId: 44, sessionState: "active", health: "unhealthy",
-      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, devicePolicy: {} as never, webcamRequired: false },
+      registrySnapshot: { version: "v1", definitions: {} }, policySnapshot: {}, webcamRequired: false },
     onGap: gap, onProgress: vi.fn(), snapshotProvider: () => ({ pageVisible: true, online: true,
       fullscreen: false, screenCapture: "disabled", webcamCapture: "disabled", activeSourceDescriptors: [] }),
   });

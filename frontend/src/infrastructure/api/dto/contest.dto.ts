@@ -102,37 +102,6 @@ export interface ContestDto {
   participant_count?: number;
 }
 
-export interface AnticheatDevicePolicyDto {
-  desktop?: {
-    enabled?: boolean;
-    sources?: {
-      screen_share?: { enabled?: boolean };
-      webcam?: { enabled?: boolean };
-    };
-    detectors?: {
-      pwa_mode?: boolean;
-      fullscreen?: boolean;
-      multi_display?: boolean;
-      mouse_leave?: boolean;
-      viewport_integrity?: boolean;
-    };
-  };
-  tablet?: {
-    enabled?: boolean;
-    sources?: {
-      screen_share?: { enabled?: boolean };
-      webcam?: { enabled?: boolean };
-    };
-    detectors?: {
-      pwa_mode?: boolean;
-      fullscreen?: boolean;
-      multi_display?: boolean;
-      mouse_leave?: boolean;
-      viewport_integrity?: boolean;
-    };
-  };
-}
-
 export interface ContestDetailDto extends ContestDto {
   rules?: string;
   rule?: string; // Legacy alias
@@ -141,7 +110,6 @@ export interface ContestDetailDto extends ContestDto {
   bound_classroom_id?: number | string | null;
   contest_type?: ContestType;
   cheat_detection_enabled?: boolean;
-  anticheat_device_policy?: AnticheatDevicePolicyDto;
   webcam_required?: boolean;
   scoreboard_visible_during_contest?: boolean;
   allow_multiple_joins?: boolean;
@@ -179,7 +147,6 @@ export interface ContestDetailDto extends ContestDto {
     can_manage_clarifications?: boolean;
   };
   problems?: ContestProblemSummaryDto[];
-  admins?: Array<{ id?: number | string; username?: string }>;
 }
 
 export interface ContestOverviewMetricsDto {

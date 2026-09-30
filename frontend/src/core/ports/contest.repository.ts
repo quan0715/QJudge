@@ -1,6 +1,5 @@
 import type {
   AttendancePhotoPolicy,
-  ContestAnticheatDevicePolicy,
   ContestStatus,
 } from "@/core/entities/contest.entity";
 
@@ -16,7 +15,6 @@ export interface ContestUpdatePayload {
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   webcamRequired?: boolean;
-  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
 }

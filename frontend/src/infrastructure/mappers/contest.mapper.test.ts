@@ -159,6 +159,32 @@ describe("contest mapper", () => {
       expect(config.integrityRun?.webcamRequired).toBe(false);
     });
 
+    it("no longer maps device policies or contest co-admins", () => {
+      const config = mapContestAnticheatConfigDto({
+        webcam_required: false,
+        integrity_run: {
+          id: "run-1",
+          session_state: "active",
+          health: "healthy",
+          participant_id: "7",
+          policy_snapshot: { webcam_required: false },
+          registry_snapshot: { version: "registry-1", definitions: {} },
+        },
+      });
+      const detail = mapContestDetailDto({
+        id: "contest-1",
+        name: "Exam",
+        admins: [{ id: 1, username: "legacy" }],
+        permissions: {},
+        problems: [],
+      } as any);
+
+      expect(config).not.toHaveProperty("devicePolicy");
+      expect(config.integrityRun).not.toHaveProperty("devicePolicy");
+      expect(detail).not.toHaveProperty("admins");
+      expect(detail).not.toHaveProperty("anticheatDevicePolicy");
+    });
+
     it("maps webcamRequired on contest detail and updates", () => {
       expect(
         mapContestDetailDto({

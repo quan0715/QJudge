@@ -280,7 +280,6 @@ export interface ContestDetail extends Contest {
   // Cheat detection
   cheatDetectionEnabled: boolean;
   webcamRequired: boolean;
-  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest: boolean;
 
   // Advanced settings
@@ -312,8 +311,6 @@ export interface ContestDetail extends Contest {
   permissions: ContestPermissions;
   problems: ContestProblemSummary[];
 
-  // Multi-admin support
-  admins?: Array<{ id: string; username: string }>;
 }
 
 export type ContestOverviewExamStatus = "upcoming" | "running" | "ended";
@@ -335,80 +332,6 @@ export interface ContestOverviewMetrics {
   };
 }
 
-export type AnticheatDeviceKind = "desktop" | "tablet";
-export type AnticheatSourceKind = "screenShare" | "webcam";
-export type AnticheatDetectorKind =
-  | "pwaMode"
-  | "fullscreen"
-  | "multiDisplay"
-  | "mouseLeave"
-  | "viewportIntegrity";
-
-export interface ContestAnticheatSourcePolicy {
-  enabled: boolean;
-}
-
-export interface ContestAnticheatDetectorPolicy {
-  pwaMode: boolean;
-  fullscreen: boolean;
-  multiDisplay: boolean;
-  mouseLeave: boolean;
-  viewportIntegrity: boolean;
-}
-
-export interface ContestAnticheatDevicePolicyItem {
-  enabled: boolean;
-  sources: {
-    screenShare: ContestAnticheatSourcePolicy;
-    webcam: ContestAnticheatSourcePolicy;
-  };
-  detectors: ContestAnticheatDetectorPolicy;
-}
-
-export interface ContestAnticheatDevicePolicy {
-  desktop: ContestAnticheatDevicePolicyItem;
-  tablet: ContestAnticheatDevicePolicyItem;
-}
-
-export const DEFAULT_DEVICE_POLICY: ContestAnticheatDevicePolicy = {
-  desktop: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: true,
-      },
-      webcam: {
-        enabled: false,
-      },
-    },
-    detectors: {
-      pwaMode: false,
-      fullscreen: true,
-      multiDisplay: true,
-      mouseLeave: true,
-      viewportIntegrity: false,
-    },
-  },
-  tablet: {
-    enabled: true,
-    sources: {
-      screenShare: {
-        enabled: false,
-      },
-      webcam: {
-        enabled: true,
-      },
-    },
-    detectors: {
-      pwaMode: true,
-      fullscreen: false,
-      multiDisplay: false,
-      mouseLeave: true,
-      viewportIntegrity: true,
-    },
-  },
-};
-
 export interface IntegrityRegistrySnapshot {
   version: string;
   definitions: Record<string, unknown>;
@@ -420,7 +343,6 @@ export interface ContestIntegrityRun {
   health: string;
   participantId: number | null;
   policySnapshot: Record<string, unknown>;
-  devicePolicy: ContestAnticheatDevicePolicy;
   webcamRequired: boolean;
   registrySnapshot: IntegrityRegistrySnapshot;
 }
@@ -449,7 +371,6 @@ export interface ExamRuntimeState {
 }
 
 export interface ContestAnticheatConfig {
-  devicePolicy: ContestAnticheatDevicePolicy;
   webcamRequired: boolean;
   integrityRun?: ContestIntegrityRun;
 }
@@ -630,7 +551,6 @@ export interface ContestUpdateRequest {
   attendancePhotoPolicy?: AttendancePhotoPolicy;
   cheatDetectionEnabled?: boolean;
   webcamRequired?: boolean;
-  anticheatDevicePolicy?: ContestAnticheatDevicePolicy;
   scoreboardVisibleDuringContest?: boolean;
   allowMultipleJoins?: boolean;
   resultsPublished?: boolean;
