@@ -78,7 +78,7 @@ If user IP addresses in logs always show the reverse proxy's IP, ensure `QJUDGE_
 | Symptom | Check |
 | --- | --- |
 | Browser shows CORS error | Bundled: Re-run `deploy/qjudge addon storage up` after changing origin. External: Bucket CORS must allow `QJUDGE_PUBLIC_ORIGIN` and `GET`, `PUT`, `HEAD`. |
-| `SignatureDoesNotMatch` | Proxy rewrote `Host`, or public URL does not match `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`. Also verify system clock with `date -u`. |
+| `SignatureDoesNotMatch` | Proxy rewrote `Host` (including port) or URI. Bundled defaults to the main origin; an explicit public endpoint must match the browser URL. Do not add and strip a path prefix. Also verify the system clock with `date -u`. |
 | `NoSuchBucket` | Bundled: Run `deploy/qjudge addon storage init`. External: Create the bucket named in `OBJECT_STORAGE_BUCKET`. |
 | `AccessDenied` | Storage credentials do not have read/write permissions for the bucket. |
 
@@ -96,7 +96,7 @@ Code evaluation is executed by `celery` via Docker using the `oj-judge:latest` i
 ## Live Monitoring Not Working
 
 1. Access `/api/v1/contests/<contest_id>/exam/live/config/`: `enabled: false` indicates `MEDIA_MODE` is disabled or `upgrade` was not re-run; `configured: false` indicates missing parameters.
-2. Inspect `docker compose -p qjudge-media logs --tail=200 livekit` and `backend` logs. The backend connects to LiveKit via the HTTPS URL derived from `LIVEKIT_PUBLIC_URL`, so containers must have outbound access to it.
+2. Inspect `docker compose -p qjudge-media logs --tail=200 livekit` and `backend` logs. Bundled backend API calls use `http://livekit:7880`; external calls use the HTTP(S) URL derived from `LIVEKIT_PUBLIC_URL`. For browser connections to the main site's `/livekit`, check WebSocket Upgrade and timeout settings on the main proxy.
 3. If only certain clients cannot connect, inspect UDP/TCP ports on `LIVEKIT_NODE_IP` and verify the port 443 TURN/TLS proxy against `deploy/qjudge ingress`.
 
 ## Reporting Issues

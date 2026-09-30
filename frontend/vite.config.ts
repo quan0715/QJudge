@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import http from 'http'
 import zlib from 'zlib'
@@ -8,6 +8,36 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const storybookTarget = env.VITE_STORYBOOK_TARGET || process.env.VITE_STORYBOOK_TARGET || 'http://localhost:6006'
+  const storageBucket = env.OBJECT_STORAGE_BUCKET || ''
+  const storagePath = storageBucket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const storageProxy: Record<string, ProxyOptions> = env.STORAGE_MODE === 'bundled' && storageBucket ? {
+    [`^/${storagePath}(/|\\?|$)`]: {
+      target: env.VITE_STORAGE_TARGET || 'http://localhost:9000',
+      changeOrigin: false,
+      configure: (proxy) => {
+        proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('cookie'))
+        proxy.on('proxyRes', (proxyRes) => {
+          proxyRes.headers['content-type'] = 'application/octet-stream'
+          proxyRes.headers['content-disposition'] = 'attachment'
+          proxyRes.headers['x-content-type-options'] = 'nosniff'
+          proxyRes.headers['cache-control'] = 'private, no-store'
+          delete proxyRes.headers['set-cookie']
+        })
+      },
+    },
+  } : {}
+  const livekitProxy: Record<string, ProxyOptions> = env.MEDIA_MODE === 'bundled' ? {
+    '^/livekit(/|\\?|$)': {
+      target: env.VITE_LIVEKIT_TARGET || 'http://localhost:7883',
+      changeOrigin: false,
+      ws: true,
+      rewrite: (reqPath) => reqPath.replace(/^\/livekit\/?/, '/'),
+      configure: (proxy) => {
+        proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('cookie'))
+        proxy.on('proxyReqWs', (proxyReq) => proxyReq.removeHeader('cookie'))
+      },
+    },
+  } : {}
   return {
     plugins: [
       react(),
@@ -82,6 +112,8 @@ export default defineConfig(({ mode }) => {
       host: true, // Listen on all addresses
       allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'q-judge.quan.wtf', 'q-judge-dev.quan.wtf'],
       proxy: {
+        ...livekitProxy,
+        ...storageProxy,
         '/api': {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,

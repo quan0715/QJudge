@@ -76,7 +76,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 | 症狀 | 檢查 |
 | --- | --- |
 | 瀏覽器顯示 CORS error | Bundled：修改 origin 後要重新執行 `deploy/qjudge addon storage up`。External：bucket CORS 要允許 `QJUDGE_PUBLIC_ORIGIN` 與 `GET`、`PUT`、`HEAD` |
-| `SignatureDoesNotMatch` | 反向代理改寫了 `Host`，或瀏覽器連線的網址與 `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` 不同；也檢查主機時間 `date -u` |
+| `SignatureDoesNotMatch` | 反向代理改寫了 `Host`（含 port）或 URI。Bundled 預設簽名網址為主站 origin；有設定公開 endpoint 時需與瀏覽器實際網址一致。不要增加再移除路徑前綴；也檢查主機時間 `date -u` |
 | `NoSuchBucket` | Bundled 執行 `deploy/qjudge addon storage init`；External 建立 `OBJECT_STORAGE_BUCKET` 指定的 bucket |
 | `AccessDenied` | Credential 沒有該 bucket 的讀寫權限 |
 
@@ -94,7 +94,7 @@ docker image inspect oj-judge:latest --format '{{.Id}}'
 ## 即時監看無法使用
 
 1. 開啟 `/api/v1/contests/<contest_id>/exam/live/config/`：`enabled` 為 false 表示 `MEDIA_MODE` 未啟用或尚未重新 `upgrade`；`configured` 為 false 表示 LiveKit 設定不完整。
-2. 查看 `docker compose -p qjudge-media logs --tail=200 livekit` 與 `backend` 的 log。Backend 以 `LIVEKIT_PUBLIC_URL` 推導出的 HTTPS 網址呼叫 LiveKit，container 內必須能連到它。
+2. 查看 `docker compose -p qjudge-media logs --tail=200 livekit` 與 `backend` 的 log。Bundled 的 backend API 使用 `http://livekit:7880`；external 使用 `LIVEKIT_PUBLIC_URL` 推導的 HTTP(S) 網址。瀏覽器連主站 `/livekit` 時，檢查主站代理的 WebSocket Upgrade 與逾時設定。
 3. 只有部分網路連不上時，檢查 `LIVEKIT_NODE_IP` 上的 UDP／TCP port 與 443 的 TURN/TLS 轉送，對照 `deploy/qjudge ingress` 的輸出。
 
 ## 回報問題

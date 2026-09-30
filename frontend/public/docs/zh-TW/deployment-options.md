@@ -8,9 +8,10 @@
 
 放在前面的反向代理必須：
 
-- 保留原本的 `Host`。
+- 保留原本的 `Host`（含 port）與 URI。
 - 以附加方式設定 `X-Forwarded-For`，並設定 `X-Forwarded-Proto`。Origin 為 HTTPS 時，backend 依 `X-Forwarded-Proto` 判斷連線是否已加密，缺少時會一直導向 HTTPS。
-- 關閉 buffering，讓串流回應（例如 AI 回覆）即時送達。
+- 關閉 request／response buffering，讓上傳與串流回應即時送達。Bundled storage 使用主站時，代理也需允許其上傳大小（範例設定為 `client_max_body_size 0`）。
+- 使用 bundled LiveKit 時，轉發 WebSocket `Upgrade`／`Connection` header 並允許長連線。
 
 `deploy/qjudge ingress --nginx` 會輸出符合上述條件的 nginx 設定，憑證路徑需自行填入。
 
@@ -42,7 +43,7 @@ COMPOSE_PROFILES=tunnel
 TUNNEL_TOKEN=<Cloudflare 提供的 token>
 ```
 
-`cloudflared` 屬於主要的 Compose project，由 `upgrade` 一起啟動。`deploy/qjudge ingress` 會列出要在 Cloudflare 設定的 public hostname：主站導向 `http://frontend:80`，自帶 MinIO 導向 `http://minio:9000`，自帶 LiveKit 導向 `http://livekit:7880`。
+`cloudflared` 屬於主要的 Compose project，由 `upgrade` 一起啟動。`deploy/qjudge ingress` 會列出要在 Cloudflare 設定的 public hostname：主站導向 `http://frontend:80`，已包含 bundled MinIO 與 LiveKit signaling，不需要額外的 Tunnel route。明確指定另一個 storage 或 LiveKit 網域時才另外設定。
 
 Tunnel 只轉送 HTTP。即時監看的 media 與 TURN port 仍須直接開放，見[設定即時監看](deployment-live-monitoring.md)。
 

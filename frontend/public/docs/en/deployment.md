@@ -15,7 +15,7 @@ Your host needs:
 - Git, Python 3 (the CLI only uses the Python standard library), and curl.
 - Docker access for the current non-root user (`docker info` shows both Client and Server).
 
-QJudge exposes only a single HTTP entrance to the host: `frontend`, bound by default to `127.0.0.1:8080`. HTTPS is provided by a reverse proxy or Cloudflare Tunnel on the host. Prepare your domain names based on the features you enable: one for the main site, one for storage if using bundled MinIO, and domains for LiveKit and TURN if using bundled live monitoring.
+The main QJudge HTTP entry point is `frontend`, bound by default to `127.0.0.1:8080`. HTTPS is provided by a reverse proxy or Cloudflare Tunnel. The main site, bundled MinIO, and LiveKit signaling share one domain by default. Bundled LiveKit still requires a TURN domain and direct TCP/UDP ingress.
 
 ## 2. Clone the Repository
 
@@ -38,7 +38,7 @@ The `init` command prompts for required settings, followed by three optional set
 | --- | --- |
 | `QJUDGE_PUBLIC_ORIGIN` | The URL users open in their browsers (e.g. `https://judge.example.edu`); must include scheme, host, and port only |
 | `STORAGE_MODE` | `bundled` runs MinIO within QJudge; `external` connects to existing S3-compatible storage. See [Prepare File Storage](deployment-storage.md) |
-| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | Public URL for browser uploads; must be HTTPS if the origin is HTTPS |
+| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | Optional for bundled storage (uses the main origin); required for external storage, with HTTPS if the origin is HTTPS |
 | `FRONTEND_BIND_ADDRESS`, `QJUDGE_TRUSTED_PROXIES` | Leave blank when the reverse proxy is on the same host. See [Network Ingress](deployment-options.md) |
 | `MEDIA_MODE` | Live exam monitoring: `disabled` (default), `bundled`, or `external`. See [Deploy Live Monitoring](deployment-live-monitoring.md) |
 
@@ -49,8 +49,7 @@ You can also run non-interactively:
 ```bash
 deploy/qjudge init --non-interactive \
   --set QJUDGE_PUBLIC_ORIGIN=https://judge.example.edu \
-  --set STORAGE_MODE=bundled \
-  --set OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=https://storage.example.edu
+  --set STORAGE_MODE=bundled
 ```
 
 `deploy/.env` and `deploy/secrets/` are not committed to Git. Keep them backed up securely outside the host.
@@ -78,7 +77,7 @@ Addons are separate Compose projects and are not restarted by `upgrade`. Skip th
 deploy/qjudge ingress
 ```
 
-The command outputs the ingress points that must be configured outside QJudge: reverse proxy routing, storage and LiveKit domains, required ports, and tunnel routes. Adding `--nginx` outputs a ready-to-customize nginx configuration:
+The command lists the main proxy address, storage bucket path, LiveKit signaling URL, TURN domain, ports, and tunnel routes. Adding `--nginx` outputs a ready-to-customize nginx configuration:
 
 ```bash
 deploy/qjudge ingress --nginx

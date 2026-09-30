@@ -8,7 +8,7 @@
 | --- | --- |
 | `STORAGE_MODE` | `bundled`：QJudge 執行 MinIO；`external`：使用既有服務 |
 | `OBJECT_STORAGE_ENDPOINT_URL` | Container 連線 storage 的網址；bundled 為 `http://minio:9000` |
-| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | 瀏覽器連線 storage 的網址；origin 是 HTTPS 時必須是 HTTPS |
+| `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` | Bundled 可省略，預設為 `QJUDGE_PUBLIC_ORIGIN`；external 必填，origin 是 HTTPS 時必須是 HTTPS |
 | `OBJECT_STORAGE_ACCESS_KEY`、`OBJECT_STORAGE_SECRET_KEY` | Credential；bundled 時同時是 MinIO 的 root 帳密，secret 至少 8 字元 |
 | `OBJECT_STORAGE_BUCKET` | 保存所有檔案的 bucket |
 | `MINIO_DATA_DIR` | 選填，bundled MinIO 的主機資料目錄；未設定時使用 Docker volume |
@@ -17,7 +17,7 @@ Bucket 維持 private。瀏覽器上傳與讀取檔案時，QJudge 以 `OBJECT_S
 
 ## Bundled：由 QJudge 執行 MinIO
 
-`deploy/qjudge init` 選擇 `STORAGE_MODE=bundled` 時，會填好 endpoint、access key、隨機 secret key 與 bucket `qjudge`，只需要提供公開網址，例如 `https://storage.example.edu`。接著啟動 MinIO 並建立 bucket：
+`deploy/qjudge init` 選擇 `STORAGE_MODE=bundled` 時，會填好 endpoint、access key、隨機 secret key 與 bucket `qjudge`。公開儲存網址預設使用主站 `QJUDGE_PUBLIC_ORIGIN`，不用另外設定 storage 網域。接著啟動 MinIO 並建立 bucket：
 
 ```bash
 deploy/qjudge addon storage up
@@ -25,7 +25,9 @@ deploy/qjudge addon storage init
 ```
 
 - MinIO 在獨立的 Compose project `<project>-storage` 中執行，`upgrade` 不會重啟它。
-- S3 API 綁在 `FRONTEND_BIND_ADDRESS:9000`，由反向代理或 Tunnel 對外提供公開網址；`deploy/qjudge ingress` 會列出設定方式。代理需保留 `Host`、不限制上傳大小並關閉 buffering（`ingress --nginx` 已包含）。
+- Frontend 自動把 `/<OBJECT_STORAGE_BUCKET>/` 轉發到 MinIO，例如 `https://judge.example.edu/qjudge/ai-artifacts/...`，開發環境的 Vite 也使用相同路徑。外部代理只需轉發主站，保留原始 `Host`（含 port）與 URI、不限制上傳大小，並關閉 request／response buffering（`ingress --nginx` 已包含）。不要增加再移除 `/storage` 前綴，這會破壞 S3 簽名。
+- 瀏覽器上傳考試證據與下載 AI 檔案使用主站的短效簽名 URL；Markdown 圖片沿用 `/api/v1/markdown/images/`。儲存路徑上的檔案以附件回應並設定 `nosniff`，避免上傳的 HTML 或腳本在主站執行。
+- 已有的 `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` 仍可指定獨立 storage 入口；改用主站時清空或移除此設定，再更新 app。Bucket、object key 與 MinIO 資料不需要搬移。自訂 bucket 名稱需符合 S3 命名規則，且不能使用 `api`、`docs` 等主站路由名稱。
 - 管理介面只綁在 `127.0.0.1:9001`，需要時以 SSH port forwarding 連線。
 - CORS 由 MinIO 設為 `QJUDGE_PUBLIC_ORIGIN`。修改 origin 後重新執行 `deploy/qjudge addon storage up` 套用。
 - `addon storage init` 可以重複執行，已存在的 bucket 不受影響。
@@ -68,7 +70,7 @@ OBJECT_STORAGE_BUCKET=<bucket>
 ## 驗收
 
 1. 在 Markdown 編輯器上傳一張圖片，儲存後重新開啟仍能顯示。
-2. 在瀏覽器開發者工具確認上傳與讀取的 request 指向 `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL`。
+2. 在瀏覽器開發者工具確認圖片 request 經過主站 `/api/v1/markdown/images/`；bundled 模式的 AI 下載與考試證據上傳使用主站的 `/<bucket>/` 簽名 URL。
 3. 啟用監考或 AI 後，再分別確認監考證據與 AI 產生的檔案可以上傳與下載。
 
 遇到 CORS 或 signature 錯誤時，見[部署故障排除](deployment-troubleshooting.md)。

@@ -82,3 +82,19 @@ def test_artifact_bucket_ignores_legacy_key(monkeypatch):
     monkeypatch.setenv("AI_ARTIFACT_S3_BUCKET", "legacy")
 
     assert Settings(_env_file=None).artifact_s3_bucket == "ai-artifacts"
+
+
+@pytest.mark.parametrize("mode, expected", [
+    ("bundled", "https://judge.example.edu:8443"), ("external", ""),
+])
+def test_public_storage_defaults_to_origin_only_in_bundled_mode(monkeypatch, mode, expected):
+    monkeypatch.setenv("STORAGE_MODE", mode)
+    monkeypatch.setenv("QJUDGE_PUBLIC_ORIGIN", "https://judge.example.edu:8443/")
+    monkeypatch.delenv("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", raising=False)
+    assert Settings(_env_file=None).artifact_storage_public_endpoint_url == expected
+
+
+def test_explicit_public_storage_endpoint_is_kept(monkeypatch):
+    monkeypatch.setenv("STORAGE_MODE", "bundled")
+    monkeypatch.setenv("OBJECT_STORAGE_PUBLIC_ENDPOINT_URL", "https://files.example.edu")
+    assert Settings(_env_file=None).artifact_storage_public_endpoint_url == "https://files.example.edu"
