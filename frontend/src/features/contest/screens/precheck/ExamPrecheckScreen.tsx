@@ -83,7 +83,6 @@ const ExamPrecheckScreen: React.FC = () => {
       false,
   );
   const entryDeviceMetadata = buildExamEntryDeviceMetadata(capability, monitoringPlan);
-  const skipFullscreenCheck = !monitoringPlan.precheck.requireFullscreen;
   const entrySourceLabel = entryDeviceMetadata.active_sources.length
     ? entryDeviceMetadata.active_sources
         .map((source) =>
@@ -137,7 +136,6 @@ const ExamPrecheckScreen: React.FC = () => {
     requireScreenShare: monitoringPlan.precheck.requireScreenShare,
     requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
     enableWebcam: monitoringPlan.precheck.enableWebcam,
-    skipFullscreen: skipFullscreenCheck,
   };
   const [envChecks, setEnvChecks] = useState<CheckItem[]>(() => createEnvironmentChecks(t, checkFilter));
   const [envTestDone, setEnvTestDone] = useState(false);
@@ -154,7 +152,6 @@ const ExamPrecheckScreen: React.FC = () => {
     checkFilter.requireScreenShare,
     checkFilter.requireSingleMonitor,
     checkFilter.enableWebcam,
-    checkFilter.skipFullscreen,
     t,
   ]);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -251,7 +248,7 @@ const ExamPrecheckScreen: React.FC = () => {
   // Keep precheck-gate in sync with server status.
   useEffect(() => {
     if (!contest || !contestId) return;
-    // Do not clear gate on precheck mount to avoid redirect loops on iPad/PWA.
+    // Do not clear gate on precheck mount to avoid redirect loops.
     // Fresh-attempt reset is handled at dashboard start action.
     syncExamPrecheckGateByStatus(contestId, contest.examStatus);
   }, [contest, contestId]);
@@ -348,7 +345,6 @@ const ExamPrecheckScreen: React.FC = () => {
       requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
-      skipFullscreenCheck,
       checkFilter,
       requestMonitorScreenShare,
       requestWebcamCapture,
@@ -369,7 +365,6 @@ const ExamPrecheckScreen: React.FC = () => {
     refreshAnticheatConfig,
     requestMonitorScreenShare,
     requestWebcamCapture,
-    skipFullscreenCheck,
     t,
   ]);
 
@@ -400,7 +395,6 @@ const ExamPrecheckScreen: React.FC = () => {
       requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
       requireWebcam: monitoringPlan.precheck.requireWebcam,
       enableWebcam: monitoringPlan.precheck.enableWebcam,
-      skipFullscreenCheck,
     });
     if (validationFailure) {
       applyPreflightFailureToEnvChecks(
@@ -423,7 +417,6 @@ const ExamPrecheckScreen: React.FC = () => {
     monitoringPlan.precheck.requireSingleMonitor,
     monitoringPlan.precheck.requireWebcam,
     monitoringPlan.precheck.enableWebcam,
-    skipFullscreenCheck,
     t,
   ]);
 
@@ -440,8 +433,7 @@ const ExamPrecheckScreen: React.FC = () => {
           requireSingleMonitor: monitoringPlan.precheck.requireSingleMonitor,
           requireWebcam: monitoringPlan.precheck.requireWebcam,
           enableWebcam: monitoringPlan.precheck.enableWebcam,
-          skipFullscreenCheck,
-        });
+            });
       if (validationFailure) {
         applyPreflightFailureToEnvChecks(
           validationFailure,
@@ -467,7 +459,7 @@ const ExamPrecheckScreen: React.FC = () => {
         precheck_client_occurred_at_ms: Date.now(),
       });
       if (!started || !contestId) { setCountdown(null); return; }
-      if (!skipFullscreenCheck && !isFullscreen()) {
+      if (!isFullscreen()) {
         const enteredFullscreen = await requestFullscreen();
         if (!enteredFullscreen || !isFullscreen()) {
           setStartGuardError(t("precheck.environment.errors.fullscreenFailed"));
@@ -487,7 +479,6 @@ const ExamPrecheckScreen: React.FC = () => {
     monitoringPlan.precheck.requireWebcam,
     getPostPrecheckRoute,
     navigate,
-    skipFullscreenCheck,
     startSession,
     t,
     anticheatConfig?.integrityRun?.registrySnapshot?.version,

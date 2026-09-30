@@ -990,7 +990,7 @@
     "screenShareLostDesc": "試験監視には画面共有が必要です。監視ソースを復元するため、画面全体を再共有してください。",
     "screenShareLostHeading": "画面共有が停止されました",
     "screenShareLostTitle": "画面共有が中断されました",
-    "screenShareUnsupported": "このブラウザは画面共有をサポートしていません。ダッシュボードに戻って環境チェックを再実行するか、画面共有対応ブラウザを使用してください。",
+    "screenShareUnsupported": "厳格試験モードでは画面共有ができるパソコンのブラウザが必要です。ダッシュボードに戻り、パソコンから再度入室してください。",
     "stayInExamPage": "試験ページに留まり、フルスクリーンモードを維持してください。",
     "submitProgress": {
       "checking": "解答内容を確認中",
@@ -1714,7 +1714,6 @@
         "monitorCount": "{{count}} 個のモニター",
         "next": "次へ：開始確認",
         "optionalSkipped": "Webcam は未有効（任意）",
-        "pwaFullscreenBypass": "PWA モード：全画面チェックをスキップしました",
         "retry": "再テスト",
         "start": "テスト開始"
       },
@@ -1800,11 +1799,7 @@
         "mouseLeave": "マウスアウト検知",
         "mouseLeaveDesc": "マウスが試験ウィンドウから離れると警告を表示する",
         "multiDisplay": "マルチディスプレイ検知",
-        "multiDisplayDesc": "試験中の外部ディスプレイの使用を禁止する",
-        "pwaMode": "PWA アプリモード",
-        "pwaModeDesc": "独立したアプリモードで実行を強制し、システム環境をロックする",
-        "viewportIntegrity": "ウィンドウ整合性チェック",
-        "viewportIntegrityDesc": "iPad のスプリットビューやスライドオーバーなどの使用を禁止する"
+        "multiDisplayDesc": "試験中の外部ディスプレイの使用を禁止する"
       },
       "disabledDesc": "{{device}} 端の制限が無効",
       "enableMonitoring": "監視を有効にする",
@@ -1816,9 +1811,7 @@
       "screenShare": "画面共有 (Screen)",
       "screenShareDesc": "監視証拠として学生の画面をキャプチャする",
       "securityDetectors": "不正検知メカニズム",
-      "tabletLabel": "タブレット / iPad 設定",
-      "webcam": "ウェブカメラ (Webcam)",
-      "webcamDesc": "監視証拠として学生のカメラ映像をキャプチャする"
+      "webcam": "ウェブカメラ (Webcam)"
     },
     "archiveContest": "コンテストをアーカイブ",
     "archiveDesc": "アーカイブすると、コンテストは読み取り専用になり、再び有効にすることはできません。",

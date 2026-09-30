@@ -125,7 +125,7 @@ class ContestViewSet(AttendanceMixin, viewsets.ModelViewSet):
 
     def _classroom_roster_admin_gate(self, contest: Contest):
         """
-        Co-admin and manual roster endpoints are disabled for classroom-bound contests;
+        Manual roster endpoints are disabled for classroom-bound contests;
         unbound contests are invalid in production — return a dedicated error.
         """
         if not self._is_classroom_managed_contest(contest):

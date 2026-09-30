@@ -990,7 +990,7 @@
     "screenShareLostDesc": "Screen sharing is required for exam monitoring. Reshare your entire screen to restore the monitoring source.",
     "screenShareLostHeading": "Screen share has been stopped",
     "screenShareLostTitle": "Screen Share Interrupted",
-    "screenShareUnsupported": "This browser does not support screen sharing. Return to the dashboard and run the environment check again, or use a browser that supports screen sharing.",
+    "screenShareUnsupported": "Strict exam mode needs a computer browser that can share its screen. Return to the dashboard and re-enter from a computer.",
     "stayInExamPage": "Please stay on the exam page and maintain fullscreen mode.",
     "submitProgress": {
       "checking": "Checking your answers",
@@ -1714,7 +1714,6 @@
         "monitorCount": "{{count}} monitor(s)",
         "next": "Next: Confirmation",
         "optionalSkipped": "Webcam not enabled (optional)",
-        "pwaFullscreenBypass": "PWA mode: fullscreen check skipped",
         "retry": "Retry Test",
         "start": "Start Test"
       },
@@ -1800,11 +1799,7 @@
         "mouseLeave": "Mouse Leave Detection",
         "mouseLeaveDesc": "Trigger warning when the mouse leaves the exam window area",
         "multiDisplay": "Multi-display Detection",
-        "multiDisplayDesc": "Prevent using a second physical monitor during the exam",
-        "pwaMode": "PWA App Mode",
-        "pwaModeDesc": "Force execution in independent app mode to lock the system environment",
-        "viewportIntegrity": "Window Integrity Check",
-        "viewportIntegrityDesc": "Prevent iPad from using split-screen, slide-over, or small window modes"
+        "multiDisplayDesc": "Prevent using a second physical monitor during the exam"
       },
       "disabledDesc": "Restrictions disabled for {{device}}",
       "enableMonitoring": "Enable Monitoring",
@@ -1816,9 +1811,7 @@
       "screenShare": "Screen Monitoring (Screen)",
       "screenShareDesc": "Capture student screen as monitoring evidence",
       "securityDetectors": "Violation Detection Mechanism",
-      "tabletLabel": "Tablet / iPad Settings",
-      "webcam": "Video Monitoring (Webcam)",
-      "webcamDesc": "Capture student webcam as monitoring evidence"
+      "webcam": "Video Monitoring (Webcam)"
     },
     "archiveContest": "Archive Contest",
     "archiveDesc": "Once archived, the contest will become read-only and cannot be activated again.",

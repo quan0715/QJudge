@@ -41,7 +41,6 @@ export interface DeviceMonitoringPlan {
     requireScreenShare: boolean;
     requireWebcam: boolean;
     enableWebcam: boolean;
-    requireFullscreen: boolean;
     requireSingleMonitor: boolean;
   };
   runtime: {
@@ -95,7 +94,6 @@ export const resolveDeviceMonitoringPlan = (
       requireScreenShare: screenShareActive,
       requireWebcam: webcamActive,
       enableWebcam: webcamActive,
-      requireFullscreen: true,
       requireSingleMonitor: true,
     },
     runtime: {

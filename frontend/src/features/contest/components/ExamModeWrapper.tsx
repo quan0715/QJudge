@@ -123,8 +123,6 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     capability,
     anticheatConfig?.integrityRun?.webcamRequired ?? anticheatConfig?.webcamRequired ?? false,
   );
-  const effectiveRequiresFullscreen =
-    requiresFullscreen && monitoringPlan.precheck.requireFullscreen;
   const screenModuleRole =
     monitoringPlan.sources.screenShare.role ?? "secondary";
   const webcamModuleRole = monitoringPlan.sources.webcam.role ?? "secondary";
@@ -317,7 +315,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   const fullscreen = useFullscreenMonitoring({
     enabled:
       effectiveMonitoringEnabled &&
-      effectiveRequiresFullscreen &&
+      requiresFullscreen &&
       monitoringPlan.detectors.fullscreen,
     examSubmitted: examStatus === "submitted",
     emitter: integrity,
@@ -503,7 +501,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
         if (!await capture.resumeFromRuntimeHandoff()) return;
         screenShare.onStreamRestored();
         if (
-          effectiveRequiresFullscreen &&
+          requiresFullscreen &&
           !fullscreenAdapter.isActive()
         ) {
           void fullscreenAdapter.request();
@@ -512,7 +510,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     } finally {
       setIsRequestingScreenShare(false);
     }
-  }, [capture, effectiveRequiresFullscreen, screenShare]);
+  }, [capture, requiresFullscreen, screenShare]);
 
   const handleWebcamReacquire = useCallback(async () => {
     if (!supportsUserMediaApi()) return;
@@ -572,7 +570,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     if (
       cheatDetectionEnabled &&
       examStatus === "locked" &&
-      effectiveRequiresFullscreen &&
+      requiresFullscreen &&
       isAnsweringPath() &&
       !fullscreenAdapter.isActive()
     ) {
@@ -590,7 +588,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     examStatus,
     cheatDetectionEnabled,
     contestId,
-    effectiveRequiresFullscreen,
+    requiresFullscreen,
     forceStopCapture,
     forceStopWebcamCapture,
     isAnsweringPath,
@@ -607,10 +605,10 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
   }, []);
 
   const handleRecoverFullscreen = useCallback(async () => {
-    if (effectiveRequiresFullscreen) {
+    if (requiresFullscreen) {
       await fullscreenAdapter.request();
     }
-  }, [effectiveRequiresFullscreen]);
+  }, [requiresFullscreen]);
 
   const shouldShowPolicyUnavailableScreen =
     policyUnavailable && isAnsweringPath();
@@ -625,7 +623,7 @@ const ExamModeWrapper: React.FC<ExamModeWrapperProps> = ({
     : missingMonitoringSource === "screen_share"
       ? t(
           "exam.screenShareUnsupported",
-          "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。",
+          "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請回到儀表板，改用電腦重新進入。",
         )
       : missingMonitoringSource === "webcam"
         ? t(

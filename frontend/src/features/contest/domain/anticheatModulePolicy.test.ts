@@ -19,7 +19,6 @@ describe("resolveDeviceMonitoringPlan", () => {
       requireScreenShare: true,
       requireWebcam: false,
       enableWebcam: false,
-      requireFullscreen: true,
       requireSingleMonitor: true,
     });
   });

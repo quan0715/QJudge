@@ -990,7 +990,7 @@
     "screenShareLostDesc": "考試監控需要螢幕分享。請重新分享整個螢幕以恢復監控來源。",
     "screenShareLostHeading": "偵測到螢幕分享已停止",
     "screenShareLostTitle": "螢幕分享已中斷",
-    "screenShareUnsupported": "此瀏覽器不支援螢幕分享，請回到儀表板重新進行環境檢查，或改用支援螢幕分享的瀏覽器。",
+    "screenShareUnsupported": "嚴格考試模式需使用電腦瀏覽器（必須能分享螢幕）。請回到儀表板，改用電腦重新進入。",
     "stayInExamPage": "請保持在考試頁面並維持全螢幕模式。",
     "submitProgress": {
       "checking": "正在檢查作答內容",
@@ -1714,7 +1714,6 @@
         "monitorCount": "{{count}} 個螢幕",
         "next": "下一步：確認開始",
         "optionalSkipped": "Webcam 未啟用（可選）",
-        "pwaFullscreenBypass": "PWA 模式：已略過全螢幕檢查",
         "retry": "重新測試",
         "start": "開始環境測試"
       },
@@ -1800,11 +1799,7 @@
         "mouseLeave": "滑鼠移出偵測",
         "mouseLeaveDesc": "滑鼠移出考試視窗範圍時記錄異常事件",
         "multiDisplay": "多螢幕偵測",
-        "multiDisplayDesc": "偵測第二個實體螢幕並記錄異常事件",
-        "pwaMode": "PWA 應用程式模式",
-        "pwaModeDesc": "強制以獨立應用程式模式執行，鎖定系統環境",
-        "viewportIntegrity": "視窗完整性檢查",
-        "viewportIntegrityDesc": "禁止 iPad 使用割屏、側拉或小視窗模式"
+        "multiDisplayDesc": "偵測第二個實體螢幕並記錄異常事件"
       },
       "disabledDesc": "{{device}} 端監控未啟用",
       "enableMonitoring": "啟用監控",
@@ -1816,9 +1811,7 @@
       "screenShare": "螢幕監控 (Screen)",
       "screenShareDesc": "擷取學生螢幕畫面作為監控證據",
       "securityDetectors": "異常事件偵測",
-      "tabletLabel": "Tablet / iPad 設定",
-      "webcam": "視訊監控 (Webcam)",
-      "webcamDesc": "擷取學生攝像頭畫面作為監控證據"
+      "webcam": "視訊監控 (Webcam)"
     },
     "archiveContest": "封存競賽 (Archive Contest)",
     "archiveDesc": "封存後競賽將變為唯讀狀態，無法再被啟用。",

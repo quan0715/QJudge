@@ -88,10 +88,16 @@ describe("runStartPreflightValidation observation", () => {
     requireSingleMonitor: false,
     requireWebcam: false,
     enableWebcam: false,
-    skipFullscreenCheck: true,
   };
 
+  const enterFullscreen = () =>
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: document.createElement("div"),
+    });
+
   it("reports what it observed on the happy path", async () => {
+    enterFullscreen();
     setPrecheckScreenShareHandoff(fakeScreenStream("monitor"));
 
     const { failure, observation } = await runStartPreflightValidation(t as never, {
@@ -101,6 +107,13 @@ describe("runStartPreflightValidation observation", () => {
 
     expect(failure).toBeNull();
     expect(observation.display_surface).toBe("monitor");
+    expect(observation.fullscreen).toBe(true);
+  });
+
+  it("refuses to start outside fullscreen", async () => {
+    const { failure, observation } = await runStartPreflightValidation(t as never, baseOptions);
+
+    expect(failure?.checkId).toBe("fullscreen");
     expect(observation.fullscreen).toBe(false);
   });
 
@@ -117,15 +130,9 @@ describe("runStartPreflightValidation observation", () => {
   });
 
   it("records the fullscreen state that gated the start", async () => {
-    Object.defineProperty(document, "fullscreenElement", {
-      configurable: true,
-      value: document.createElement("div"),
-    });
+    enterFullscreen();
 
-    const { failure, observation } = await runStartPreflightValidation(t as never, {
-      ...baseOptions,
-      skipFullscreenCheck: false,
-    });
+    const { failure, observation } = await runStartPreflightValidation(t as never, baseOptions);
 
     expect(failure).toBeNull();
     expect(observation.fullscreen).toBe(true);
@@ -138,11 +145,22 @@ describe("graphics environment admission", () => {
     requireSingleMonitor: false,
     requireWebcam: false,
     enableWebcam: false,
-    skipFullscreenCheck: true,
   };
+
+  // Admission runs after the fullscreen gate, so the accepted cases need it.
+  beforeEach(() => {
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: document.createElement("div"),
+    });
+  });
 
   afterEach(() => {
     clearPrecheckScreenShareHandoff(true);
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: null,
+    });
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
