@@ -774,10 +774,6 @@
     "success": "성공"
   },
   "createModal": {
-    "advancedIntro": "감독 및 참가 규정에 따라 고급 조건을 설정하세요.",
-    "advancedSettings": "고급 조건 설정",
-    "attendanceHint": "켜면 시험 전 QR 입실이 필요합니다.",
-    "attendanceTitle": "QR 입퇴실",
     "chooseTypeTitle": "경진대회 만들기",
     "configureSchedule": "기본 정보 설정",
     "contestName": "경진대회 이름",
@@ -803,8 +799,6 @@
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
-    "rejoinHint": "켜면 학생이 경진대회에서 나간 뒤 다시 참가할 수 있습니다.",
-    "rejoinTitle": "재입장 허용",
     "requiresPassword": "비밀번호 필요",
     "requiresPasswordShort": "비밀번호",
     "scheduleIntro": "경진대회 기본 정보와 응시 시간을 입력하세요. 생성 후에도 관리 화면에서 조정할 수 있습니다.",

@@ -774,10 +774,6 @@
     "success": "成功"
   },
   "createModal": {
-    "advancedIntro": "監視と参加ルールに基づいて詳細条件を設定してください。",
-    "advancedSettings": "詳細条件設定",
-    "attendanceHint": "有効時、学生は試験前に QR 入室が必要です。",
-    "attendanceTitle": "QR 入退室",
     "chooseTypeTitle": "コンテストを作成",
     "configureSchedule": "基本情報を設定",
     "contestName": "コンテスト名",
@@ -803,8 +799,6 @@
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
-    "rejoinHint": "有効にすると、学生はコンテスト退出後に再参加できます。",
-    "rejoinTitle": "再入場を許可",
     "requiresPassword": "パスワード必須",
     "requiresPasswordShort": "パスワード",
     "scheduleIntro": "コンテストの基本情報と受験時間を入力してください。作成後も管理画面で調整できます。",

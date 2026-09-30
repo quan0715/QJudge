@@ -774,10 +774,6 @@
     "success": "成功"
   },
   "createModal": {
-    "advancedIntro": "請依監考與參與規範設定進階條件。",
-    "advancedSettings": "進階條件設定",
-    "attendanceHint": "啟用後，學生需在競賽主頁完成 QR 簽到後才能開始考試。",
-    "attendanceTitle": "QR 簽到簽退",
     "chooseTypeTitle": "建立競賽",
     "configureSchedule": "設定基本資訊",
     "contestName": "競賽名稱",
@@ -803,8 +799,6 @@
     "private": "私人競賽",
     "privateShort": "私人",
     "public": "公開",
-    "rejoinHint": "啟用後，學生離開競賽後可再次加入。",
-    "rejoinTitle": "允許重新加入",
     "requiresPassword": "需要密碼",
     "requiresPasswordShort": "密碼",
     "scheduleIntro": "請填寫競賽基本資訊與應試時段。建立完成後，仍可於競賽管理頁面調整。",

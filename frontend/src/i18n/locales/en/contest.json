@@ -774,10 +774,6 @@
     "success": "Success"
   },
   "createModal": {
-    "advancedIntro": "Configure advanced participation and proctoring conditions.",
-    "advancedSettings": "Advanced Conditions",
-    "attendanceHint": "When enabled, students must complete QR check-in on the contest home page before starting the exam.",
-    "attendanceTitle": "QR check-in/out",
     "chooseTypeTitle": "Create Contest",
     "configureSchedule": "Configure Basic Information",
     "contestName": "Contest Name",
@@ -803,8 +799,6 @@
     "private": "Private Contest",
     "privateShort": "Private",
     "public": "Public",
-    "rejoinHint": "When enabled, students can rejoin after leaving the contest.",
-    "rejoinTitle": "Allow rejoin",
     "requiresPassword": "Requires Password",
     "requiresPasswordShort": "Password",
     "scheduleIntro": "Fill in the contest basics and exam window. You can still adjust them later in contest management.",
