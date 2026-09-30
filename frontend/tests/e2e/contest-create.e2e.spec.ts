@@ -53,7 +53,6 @@ test.describe("Contest create E2E", () => {
 
     await expect(page.getByTestId("create-contest-name")).toBeVisible({ timeout: 10000 });
     await page.getByTestId("create-contest-name").fill(`e2e-paper-${Date.now()}`);
-    await clickCreateContestModalPrimary(page);
 
     const postContest = page.waitForResponse(
       (res) =>
@@ -79,7 +78,6 @@ test.describe("Contest create E2E", () => {
 
     await expect(page.getByTestId("create-contest-name")).toBeVisible({ timeout: 10000 });
     await page.getByTestId("create-contest-name").fill(`e2e-coding-${Date.now()}`);
-    await clickCreateContestModalPrimary(page);
 
     const postContest = page.waitForResponse(
       (res) =>
