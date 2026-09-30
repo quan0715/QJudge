@@ -44,6 +44,8 @@ import {
   type CheckItem,
   createEligibilityChecks,
   createEnvironmentChecks,
+  groupEligibilityChecks,
+  groupEnvChecks,
   type EnvironmentCheckFilter,
   createStatusMeta,
   runEnvChecks,
@@ -94,16 +96,7 @@ const ExamPrecheckScreen: React.FC = () => {
     : t("precheck.entryDevice.source.none", "未啟用監考來源");
   const environmentRequirements = [
     t("precheck.environment.requirements.browser"),
-    t("precheck.environment.requirements.graphics"),
-    ...(monitoringPlan.precheck.requireSingleMonitor
-      ? [
-          t("precheck.environment.requirements.permission"),
-          t("precheck.environment.requirements.display"),
-        ]
-      : []),
-    ...(monitoringPlan.precheck.requireScreenShare
-      ? [t("precheck.environment.requirements.sharing")]
-      : []),
+    t("precheck.environment.requirements.screen"),
     ...(monitoringPlan.precheck.enableWebcam
       ? [t("precheck.environment.requirements.webcam", "請允許瀏覽器使用 Webcam。")]
       : []),
@@ -582,7 +575,7 @@ const ExamPrecheckScreen: React.FC = () => {
                 <h4 style={{ marginTop: 0, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   <CursorIcon size={20} /> {t("precheck.eligibility.title")}
                 </h4>
-                {renderCheckList(checks)}
+                {renderCheckList(groupEligibilityChecks(checks, t))}
                 <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--cds-border-subtle)" }}>
                   <div style={{ fontWeight: 600, marginBottom: "0.75rem" }}>
                     {t("precheck.entryDevice.title", "進場資訊")}
@@ -666,7 +659,7 @@ const ExamPrecheckScreen: React.FC = () => {
                     </React.Fragment>
                   ))}
                 </div>
-                {renderCheckList(envChecks)}
+                {renderCheckList(groupEnvChecks(envChecks, t))}
               </Tile>
               <div className={styles.navRow}>
                 <Button
@@ -718,25 +711,20 @@ const ExamPrecheckScreen: React.FC = () => {
                 <h4 style={{ marginTop: 0, marginBottom: "1rem" }}>{t("precheck.instruction.title")}</h4>
                 <ul style={{ paddingLeft: "1.25rem", lineHeight: 1.8 }}>
                   <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.keepFullscreen") }} />
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.clipboardRecorded") }} />
-                  {entryDeviceMetadata.active_sources.length > 0 && (
-                    <li
-                      dangerouslySetInnerHTML={{
-                        __html: t("precheck.instruction.randomInspection", {
-                          sources: entrySourceLabel,
-                        }),
-                      }}
-                    />
-                  )}
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSave") }} />
-                  <li dangerouslySetInnerHTML={{ __html: t("precheck.instruction.autoSubmit") }} />
-                  {contest?.endTime && (
-                    <li>
-                      {t("precheck.instruction.deadline", {
-                        time: new Date(contest.endTime).toLocaleString(),
-                      })}
-                    </li>
-                  )}
+                  <li
+                    dangerouslySetInnerHTML={{
+                      __html: t("precheck.instruction.recorded", { sources: entrySourceLabel }),
+                    }}
+                  />
+                  <li
+                    dangerouslySetInnerHTML={{
+                      __html: contest?.endTime
+                        ? t("precheck.instruction.autoSubmitAt", {
+                            time: new Date(contest.endTime).toLocaleString(),
+                          })
+                        : t("precheck.instruction.autoSubmit"),
+                    }}
+                  />
                 </ul>
               </Tile>
               <div className={styles.navRow}>

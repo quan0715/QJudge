@@ -1648,6 +1648,7 @@
     },
     "description": "Please complete environment checks before starting. You cannot enter without passing all checks.",
     "eligibility": {
+      "group": "Eligibility",
       "nextStep": "Next: Environment Check",
       "participation": "Participation Status",
       "status": {
@@ -1674,10 +1675,10 @@
     "environment": {
       "checks": {
         "fullscreen": "Fullscreen Mode",
-        "graphics": "Graphics environment",
+        "graphics": "Browser and device",
         "interaction": "Interaction Check",
-        "monitor": "Display Count",
-        "sharing": "Screen Sharing",
+        "monitor": "Screen and sharing",
+        "sharing": "Screen and sharing",
         "webcam": "Webcam Access"
       },
       "deviceUnsupported": {
@@ -1695,16 +1696,14 @@
         "notMonitor": "You must share your 'Entire Screen'. Sharing windows or tabs is not permitted.",
         "sharingFailed": "Screen sharing failed. Please allow sharing your 'Entire Screen'.",
         "sharingInterrupted": "Screen sharing interrupted. Please complete the check again.",
-        "softwareRenderer": "This environment uses llvmpipe software rendering and cannot enter the exam. Use a local desktop with browser hardware acceleration enabled, or switch devices.",
+        "softwareRenderer": "This device or browser can't be used for the exam. Make sure hardware acceleration is on, restart the browser and try again. If it still fails, use another computer or contact your teacher.",
         "webcamFailed": "Webcam is unavailable. Please grant permission again.",
         "webcamUnsupported": "This browser does not support Webcam.",
-        "webglUnavailable": "WebGL is unavailable, so you cannot enter the exam. Enable hardware acceleration in a local browser and restart it. If the check still fails, use another device."
+        "webglUnavailable": "This device or browser can't be used for the exam. Make sure hardware acceleration is on, restart the browser and try again. If it still fails, use another computer or contact your teacher."
       },
       "requirements": {
-        "browser": "Use latest Google Chrome or Microsoft Edge.",
-        "display": "Single physical monitor required; disconnect external displays.",
-        "graphics": "WebGL must be available. Environments using llvmpipe software rendering are not allowed.",
-        "permission": "Grant \"Window and Display Management\" permission when prompted.",
+        "browser": "Use the latest desktop Chrome or Edge, with hardware acceleration turned on.",
+        "screen": "Use a single screen, allow the browser to manage screens and windows, and choose \"Entire Screen\" when sharing.",
         "sharing": "Please choose \"Entire Screen\" for screen sharing.",
         "title": "Environment Requirements:",
         "webcam": "Allow browser access to Webcam."
@@ -1720,13 +1719,11 @@
       "title": "Environment Check"
     },
     "instruction": {
-      "autoSave": "Your answers are <b>auto-saved in real time</b> — no manual saving needed.",
-      "autoSubmit": "The exam will be <b>auto-submitted</b> when time is up.",
-      "clipboardRecorded": "Copy and paste are <b>allowed</b>, but all clipboard content will be <b>fully recorded</b>.",
+      "autoSubmit": "Your answers are <b>saved automatically</b>, and submitted <b>automatically</b> when time is up.",
+      "autoSubmitAt": "Your answers are <b>saved automatically</b>, and submitted <b>automatically</b> at {{time}}.",
       "confirmStart": "I understand, start exam",
-      "deadline": "Deadline: {{time}}",
-      "keepFullscreen": "Stay in <b>fullscreen at all times</b>; exiting fullscreen will be <b>silently recorded</b> as anomalous behavior.",
-      "randomInspection": "During the exam, proctors may <b>randomly inspect</b> {{sources}}; captured content is used as <b>evidence</b>.",
+      "keepFullscreen": "Stay in <b>fullscreen</b> for the whole exam; leaving fullscreen is recorded.",
+      "recorded": "During the exam, {{sources}} and clipboard contents are recorded, and proctors may <b>spot-check</b> them.",
       "title": "Exam Rules"
     },
     "steps": {

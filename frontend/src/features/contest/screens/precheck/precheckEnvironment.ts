@@ -148,6 +148,74 @@ export const createEnvironmentChecks = (
   return checks;
 };
 
+interface CheckGroup {
+  id: string;
+  label: string;
+  members: string[];
+  passDetail?: (members: CheckItem[]) => string | undefined;
+}
+
+const mergeGroup = (group: CheckGroup, members: CheckItem[]): CheckItem => {
+  const base = { id: group.id, label: group.label };
+  const failed = members.find((item) => item.status === "fail");
+  if (failed) return { ...base, status: "fail", detail: failed.detail };
+  const running = members.find((item) => item.status === "running");
+  if (running) return { ...base, status: "running", detail: running.detail };
+  const blocked = members.find((item) => item.status === "blocked");
+  if (blocked) return { ...base, status: "blocked", detail: blocked.detail };
+  if (members.every((item) => item.status === "pass")) {
+    return { ...base, status: "pass", detail: group.passDetail?.(members) };
+  }
+  // Part of the group is done and the rest is next in line: still in progress.
+  if (members.some((item) => item.status === "pass")) return { ...base, status: "running" };
+  return { ...base, status: "pending" };
+};
+
+/**
+ * The checks stay separate internally (each has its own failure and is sent to
+ * the server as recorded), but students see them as a few plain steps.
+ */
+const groupChecks = (items: CheckItem[], groups: CheckGroup[]): CheckItem[] => {
+  const rows: CheckItem[] = [];
+  const emitted = new Set<string>();
+  for (const item of items) {
+    const group = groups.find((candidate) => candidate.members.includes(item.id));
+    if (!group) {
+      rows.push(item);
+    } else if (!emitted.has(group.id)) {
+      emitted.add(group.id);
+      rows.push(mergeGroup(group, items.filter((member) => group.members.includes(member.id))));
+    }
+  }
+  return rows;
+};
+
+export const groupEligibilityChecks = (items: CheckItem[], t: TranslateFn): CheckItem[] =>
+  groupChecks(items, [
+    {
+      id: "eligibility",
+      label: t("precheck.eligibility.group"),
+      members: ["participation", "submitted"],
+      // Plain re-entry notes stay visible; the usual case just says it passed.
+      passDetail: (members) => {
+        const submitted = members.find((item) => item.id === "submitted");
+        return submitted?.detail === t("precheck.eligibility.status.noSubmission")
+          ? t("precheck.eligibility.status.passed")
+          : submitted?.detail;
+      },
+    },
+  ]);
+
+export const groupEnvChecks = (items: CheckItem[], t: TranslateFn): CheckItem[] =>
+  groupChecks(items, [
+    { id: "device", label: t("precheck.environment.checks.graphics"), members: ["graphics"] },
+    {
+      id: "screen",
+      label: t("precheck.environment.checks.monitor"),
+      members: ["singleMonitor", "shareScreen"],
+    },
+  ]);
+
 export const createStatusMeta = (t: TranslateFn): Record<
   CheckStatus,
   { label: string; color: string; Icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }> }

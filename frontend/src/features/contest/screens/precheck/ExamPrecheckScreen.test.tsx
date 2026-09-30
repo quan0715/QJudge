@@ -170,3 +170,49 @@ describe("ExamPrecheckScreen starting the exam", () => {
     expect(mocks.navigate).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ExamPrecheckScreen keeps the checklist short", () => {
+  beforeEach(() => {
+    vi.stubGlobal("navigator", {
+      mediaDevices: { getUserMedia: vi.fn(), getDisplayMedia: vi.fn() },
+    });
+  });
+
+  afterEach(() => {
+    mocks.config.webcamRequired = false;
+    vi.unstubAllGlobals();
+  });
+
+  const rows = (container: HTMLElement) => container.querySelectorAll("[class*=\"checkLabelRow\"]").length;
+
+  it("lists one eligibility row and four environment rows", () => {
+    const { container } = render(<ExamPrecheckScreen />);
+    expect(rows(container)).toBe(1);
+
+    fireEvent.click(screen.getByTestId("precheck-step1-next-btn"));
+
+    expect(rows(container)).toBe(4);
+  });
+
+  it("adds a fifth row when the contest requires a webcam", () => {
+    mocks.config.webcamRequired = true;
+    const { container } = render(<ExamPrecheckScreen />);
+
+    fireEvent.click(screen.getByTestId("precheck-step1-next-btn"));
+
+    expect(rows(container)).toBe(5);
+  });
+
+  it("keeps the exam instructions to three points", async () => {
+    render(<ExamPrecheckScreen />);
+
+    fireEvent.click(screen.getByTestId("precheck-step1-next-btn"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("precheck-step2-primary-btn"));
+    });
+    fireEvent.click(screen.getByTestId("precheck-step2-next-btn"));
+
+    const points = screen.getByText("precheck.instruction.title").parentElement!.querySelectorAll("li");
+    expect(points).toHaveLength(3);
+  });
+});

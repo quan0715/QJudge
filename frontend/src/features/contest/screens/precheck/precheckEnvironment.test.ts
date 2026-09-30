@@ -4,6 +4,8 @@ import {
   applyPreflightFailureToEnvChecks,
   createEligibilityChecks,
   createEnvironmentChecks,
+  groupEligibilityChecks,
+  groupEnvChecks,
   runEnvChecks,
   runStartPreflightValidation,
   type CheckItem,
@@ -262,5 +264,97 @@ describe("graphics environment admission", () => {
 
     expect(checks.find((item) => item.id === "graphics")?.status).toBe("fail");
     expect(checks.filter((item) => item.id !== "graphics").every((item) => item.status === "blocked")).toBe(true);
+  });
+});
+
+describe("grouping checks for display", () => {
+  const filter = { requireScreenShare: true, requireSingleMonitor: true, enableWebcam: false };
+  const row = (id: string, status: CheckItem["status"], detail?: string): CheckItem => ({
+    id,
+    label: id,
+    status,
+    detail,
+  });
+  const environment = (overrides: Record<string, Partial<CheckItem>>) =>
+    createEnvironmentChecks(t as never, filter).map((item) => ({ ...item, ...overrides[item.id] }));
+  const byId = (rows: CheckItem[], id: string) => rows.find((item) => item.id === id);
+
+  it("shows four environment rows, or five when a webcam is required", () => {
+    const plain = groupEnvChecks(createEnvironmentChecks(t as never, filter), t as never);
+    const withWebcam = groupEnvChecks(
+      createEnvironmentChecks(t as never, { ...filter, enableWebcam: true }),
+      t as never,
+    );
+
+    expect(plain.map((item) => item.id)).toEqual(["device", "screen", "fullscreen", "interaction"]);
+    expect(withWebcam.map((item) => item.id)).toEqual([
+      "device",
+      "screen",
+      "webcam",
+      "fullscreen",
+      "interaction",
+    ]);
+  });
+
+  it("merges the screen count and screen share into one row", () => {
+    const grouped = (overrides: Record<string, Partial<CheckItem>>) =>
+      byId(groupEnvChecks(environment(overrides), t as never), "screen")!;
+
+    expect(grouped({ singleMonitor: { status: "pass" }, shareScreen: { status: "pass" } }).status).toBe("pass");
+    expect(grouped({ singleMonitor: { status: "pass" }, shareScreen: { status: "pass" } }).detail).toBeUndefined();
+    expect(grouped({ singleMonitor: { status: "pass" } }).status).toBe("running");
+    expect(grouped({ singleMonitor: { status: "running", detail: "checking" } }).status).toBe("running");
+    expect(grouped({}).status).toBe("pending");
+    expect(
+      grouped({ singleMonitor: { status: "pass" }, shareScreen: { status: "blocked", detail: "wait" } }).status,
+    ).toBe("blocked");
+  });
+
+  it("lets a failure win and keeps its detail", () => {
+    const screen = byId(
+      groupEnvChecks(
+        environment({
+          singleMonitor: { status: "fail", detail: "two displays" },
+          shareScreen: { status: "blocked", detail: "blocked by monitor" },
+        }),
+        t as never,
+      ),
+      "screen",
+    )!;
+
+    expect(screen.status).toBe("fail");
+    expect(screen.detail).toBe("two displays");
+  });
+
+  it("names the rows after what the student does, not how it is checked", () => {
+    const grouped = groupEnvChecks(environment({}), t as never);
+
+    expect(grouped.map((item) => item.label)).toEqual([
+      "precheck.environment.checks.graphics",
+      "precheck.environment.checks.monitor",
+      "precheck.environment.checks.fullscreen",
+      "precheck.environment.checks.interaction",
+    ]);
+  });
+
+  it("merges participation and submission into one eligibility row", () => {
+    const grouped = groupEligibilityChecks(
+      [row("participation", "pass"), row("submitted", "pass", "no submission"), row("attendance", "fail", "check in first")],
+      t as never,
+    );
+
+    expect(grouped.map((item) => item.id)).toEqual(["eligibility", "attendance"]);
+    expect(grouped[0].status).toBe("pass");
+    expect(grouped[1].status).toBe("fail");
+  });
+
+  it("reports the submission problem on the eligibility row", () => {
+    const [eligibility] = groupEligibilityChecks(
+      [row("participation", "pass"), row("submitted", "fail", "already submitted")],
+      t as never,
+    );
+
+    expect(eligibility.status).toBe("fail");
+    expect(eligibility.detail).toBe("already submitted");
   });
 });

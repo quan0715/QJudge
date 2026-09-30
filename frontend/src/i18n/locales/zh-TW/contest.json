@@ -1648,6 +1648,7 @@
     },
     "description": "進入考場前請先完成環境檢測。未通過檢測者將無法作答。",
     "eligibility": {
+      "group": "參賽資格",
       "nextStep": "下一步：環境檢查",
       "participation": "參賽權限檢查",
       "status": {
@@ -1674,10 +1675,10 @@
     "environment": {
       "checks": {
         "fullscreen": "全螢幕模式測試",
-        "graphics": "繪圖環境檢測",
+        "graphics": "瀏覽器與裝置",
         "interaction": "輸入互動檢測",
-        "monitor": "螢幕數量檢測",
-        "sharing": "螢幕分享授權",
+        "monitor": "螢幕與分享",
+        "sharing": "螢幕與分享",
         "webcam": "Webcam 授權"
       },
       "deviceUnsupported": {
@@ -1695,16 +1696,14 @@
         "notMonitor": "必須選擇分享「整個螢幕 (monitor)」，不允許僅分享視窗或分頁。",
         "sharingFailed": "螢幕分享授權失敗，請重新分享並選擇「整個螢幕」。",
         "sharingInterrupted": "螢幕分享已中斷，請重新完成檢查。",
-        "softwareRenderer": "目前使用 llvmpipe 軟體繪圖，無法進入考試。請改用本機桌面並啟用瀏覽器硬體加速，或更換裝置。",
+        "softwareRenderer": "此裝置或瀏覽器環境無法用於考試。請確認瀏覽器已開啟硬體加速，重新啟動瀏覽器後再試；仍無法通過請改用其他電腦或聯絡老師。",
         "webcamFailed": "Webcam 無法使用，請重新授權。",
         "webcamUnsupported": "此瀏覽器不支援 Webcam。",
-        "webglUnavailable": "無法啟用 WebGL，暫時無法進入考試。請在本機瀏覽器啟用硬體加速，重新啟動瀏覽器後再試；若仍失敗，請更換裝置。"
+        "webglUnavailable": "此裝置或瀏覽器環境無法用於考試。請確認瀏覽器已開啟硬體加速，重新啟動瀏覽器後再試；仍無法通過請改用其他電腦或聯絡老師。"
       },
       "requirements": {
-        "browser": "限用最新版 Chrome 或 Edge 瀏覽器。",
-        "display": "限單一螢幕，請務必拔除外接顯示器。",
-        "graphics": "瀏覽器須支援 WebGL；不允許使用 llvmpipe 軟體繪圖環境。",
-        "permission": "請授權瀏覽器「管理視窗與顯示器」權限。",
+        "browser": "請使用電腦版最新 Chrome 或 Edge，並確認已開啟硬體加速。",
+        "screen": "請使用單一螢幕，允許瀏覽器取得螢幕與視窗管理權限，並在分享時選擇「整個螢幕」。",
         "sharing": "分享時請務必選擇「整個螢幕 (Entire Screen)」。",
         "title": "環境要求：",
         "webcam": "請允許瀏覽器使用 Webcam。"
@@ -1720,13 +1719,11 @@
       "title": "環境檢測"
     },
     "instruction": {
-      "autoSave": "作答內容<b>即時自動儲存</b>，無需手動存檔。",
-      "autoSubmit": "考試時間結束後，系統將<b>自動交卷</b>。",
-      "clipboardRecorded": "複製與貼上功能<b>開放使用</b>，但所有剪貼簿內容將被<b>完整記錄</b>。",
+      "autoSubmit": "作答內容<b>即時自動儲存</b>，時間結束後<b>自動交卷</b>。",
+      "autoSubmitAt": "作答內容<b>即時自動儲存</b>，{{time}} 截止後<b>自動交卷</b>。",
       "confirmStart": "我已瞭解並確認開始考試",
-      "deadline": "考試截止時間：{{time}}",
-      "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕將被系統<b>靜默記錄</b>為異常行為。",
-      "randomInspection": "考試期間，監考人員可能<b>隨機抽查</b>{{sources}}，擷取內容將作為<b>證據來源</b>。",
+      "keepFullscreen": "請<b>全程維持全螢幕</b>，離開全螢幕會被記錄。",
+      "recorded": "考試期間會記錄{{sources}}與剪貼簿內容，監考人員可能<b>隨機抽查</b>。",
       "title": "作答規範"
     },
     "steps": {
