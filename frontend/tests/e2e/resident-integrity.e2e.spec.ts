@@ -104,16 +104,12 @@ test("resident monitored paper exam survives checkpoint outage and resets to a n
     }));
     const startsAt = Date.now() + 15_000;
     const endsAt = startsAt + 20 * 60_000;
-    const detectors = { pwa_mode: false, fullscreen: false, multi_display: false, mouse_leave: false, viewport_integrity: false };
     await json(await teacher.request.patch(contestPath, {
       headers: teacherHeaders,
       data: {
         status: "published", start_time: new Date(startsAt).toISOString(), end_time: new Date(endsAt).toISOString(),
         cheat_detection_enabled: true,
-        anticheat_device_policy: {
-          desktop: { enabled: true, sources: { screen_share: { enabled: true }, webcam: { enabled: false } }, detectors },
-          tablet: { enabled: false, sources: { screen_share: { enabled: false }, webcam: { enabled: false } }, detectors },
-        },
+        webcam_required: false,
       },
     }));
     // Keep unique fixtures for failed-run inspection; never reset shared exams.

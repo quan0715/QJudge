@@ -1986,7 +1986,12 @@ paths:
   /api/v1/contests/{contest_pk}/exam-answers/my-answers/:
     get:
       operationId: v1_contests_exam_answers_my_answers_retrieve
-      description: Get all answers for the current student in this contest.
+      description: |-
+        Get all answers for the current student in this contest.
+
+        Reading one's own saved answers is not an exam operation, so it is not
+        limited to the exam window: the dashboard shows them after the exam
+        ends, before results are published, like the answer-proof report.
       parameters:
       - in: path
         name: contest_pk
@@ -2022,7 +2027,13 @@ paths:
   /api/v1/contests/{contest_pk}/exam-answers/results/:
     get:
       operationId: v1_contests_exam_answers_results_retrieve
-      description: Get graded results (only when results are published).
+      description: |-
+        Get graded results (only when results are published).
+
+        Returns ``{"data": [...], "meta": {"total_score", "max_total_score"}}``.
+        Each row keeps the raw ``score`` and adds ``effective_score`` /
+        ``effective_max_score`` after score policies, computed by the same
+        breakdown the student PDF report uses, so both show the same numbers.
       parameters:
       - in: path
         name: contest_pk
@@ -3499,43 +3510,6 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/contests/{id}/add_admin/:
-    post:
-      operationId: v1_contests_add_admin_create
-      description: |-
-        Add a user as co-admin for this contest.
-        Only owner (or platform admin) can add co-admins.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
   /api/v1/contests/{id}/add_participant/:
     post:
       operationId: v1_contests_add_participant_create
@@ -3561,30 +3535,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/admins/:
-    get:
-      operationId: v1_contests_admins_retrieve
-      description: Get all admins for this contest.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
       security:
       - cookieJwtAuth: []
       - jwtAuth: []
@@ -3943,43 +3893,6 @@ paths:
     post:
       operationId: v1_contests_participants_reset_exam_record_create
       description: ViewSet for contests.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: string
-          format: uuid
-        description: A UUID string identifying this 考試.
-        required: true
-      tags:
-      - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ContestDetailRequest'
-      security:
-      - cookieJwtAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContestDetail'
-          description: ''
-  /api/v1/contests/{id}/remove_admin/:
-    post:
-      operationId: v1_contests_remove_admin_create
-      description: |-
-        Remove a user from co-admins.
-        Only owner (or platform admin) can remove co-admins.
       parameters:
       - in: path
         name: id
@@ -6056,9 +5969,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -6134,9 +6048,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -6227,9 +6142,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -6289,9 +6205,6 @@ components:
         participant_count:
           type: string
           readOnly: true
-        admins:
-          type: string
-          readOnly: true
         is_classroom_bound:
           type: string
           readOnly: true
@@ -6321,7 +6234,6 @@ components:
           type: string
           readOnly: true
       required:
-      - admins
       - attendance_status
       - bound_classroom_id
       - can_participate
@@ -6410,9 +6322,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7224,9 +7137,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
@@ -7310,9 +7224,10 @@ components:
           type: boolean
           title: 啟用防作弊模式
           description: 啟用全螢幕與防失焦的嚴格防作弊模式
-        anticheat_device_policy:
-          title: 防作弊裝置策略
-          description: 依裝置定義 sources/detectors 的監考策略
+        webcam_required:
+          type: boolean
+          title: 要求 Webcam
+          description: 嚴格考試模式下，考生除了分享螢幕，也須開啟 Webcam
         scoreboard_visible_during_contest:
           type: boolean
           title: 比賽中顯示排行榜
