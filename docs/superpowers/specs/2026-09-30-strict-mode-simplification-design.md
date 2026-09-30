@@ -22,7 +22,8 @@
 | 平板 | 不支援嚴格考試模式。相關邏輯刪除，以 git tag `archive/tablet-anticheat` 保留 |
 | 管理權 | 只看 `owner` 與 classroom 角色；刪除 `Contest.admins` |
 | 建立視窗 | 「選類型」→「名稱＋嚴格考試模式（預設關閉）」；允許重新加入、QR 簽到只在設定視窗 |
-| 凍結的 policy | 維持 `device_policy.desktop` 形狀，只含 `enabled` 與 `sources`；偵測項目固定在前端 |
+| anticheat-config 與凍結的 policy | 只帶 `webcam_required`；拿掉 `version` 與 `device_policy`。偵測項目固定寫在前端 |
+| 舊資料 | 不做相容：migration 不搬舊設定，讀取端不處理舊 snapshot 形狀，不加 fallback |
 
 ### 不做
 
@@ -32,6 +33,7 @@
 - 修改 integrity-service：webcam 保留，來源型別不變。
 - 修改簽到流程：`attendance.py` 的 `device_kind` 是簽到拍照的裝置紀錄，與監考無關。
 - 舊考試紀錄中 `viewport` 事件的專屬顯示；改以一般事件顯示。
+- 舊資料與舊 snapshot 相容、production 部署規劃。
 
 ## 2. 資料模型
 
@@ -43,12 +45,14 @@
 | 刪除 `anticheat_device_policy` | 改由固定規則加 `webcam_required` 產生 |
 | 刪除 `admins` | 管理權只看 `owner` 與 classroom 角色 |
 
-### Migration `contests/0006`
+### Migrations
 
-1. `AddField` `webcam_required`。
-2. `RunPython`：`webcam_required = anticheat_device_policy["desktop"]["sources"]["webcam"]["enabled"] is True`，其他形狀一律 `False`。反向為 no-op。
-3. `RemoveField` `anticheat_device_policy`。
-4. `RemoveField` `admins`。
+`contests/0006_contest_webcam_required`：
+
+1. `AddField` `webcam_required`（現有 contest 一律為 `False`，不搬舊設定）。
+2. `RemoveField` `anticheat_device_policy`。
+
+`contests/0007_remove_contest_admins`：`RemoveField` `admins`。
 
 `0001_baseline.py` 以 `apps.contests.models.default_anticheat_device_policy` 當欄位預設值；改成 `default=dict`（只是 Python 端預設值，不影響資料庫），並刪除 `models/policies.py` 與 `models/__init__.py` 的匯出。
 
@@ -56,37 +60,37 @@
 
 ### Policy 形狀
 
-`/api/v1/contests/{id}/anticheat-config/` 與 `ExamIntegrityRun.policy_snapshot` 的 `device_policy` 改為：
+`/api/v1/contests/{id}/anticheat-config/` 回傳：
 
 ```json
-{
-  "desktop": {
-    "enabled": true,
-    "sources": {
-      "screen_share": { "enabled": true },
-      "webcam": { "enabled": false }
-    }
-  }
-}
+{ "webcam_required": false }
 ```
 
-`webcam.enabled` 取自 `webcam_required`。`anticheat-config` 的 `version` 由 3 改為 4，policy snapshot 的 `version` 由 1 改為 2；目前沒有程式比對這兩個值，只用來標示形狀變更。
+有進行中的完整性檢查時，另帶原本的 `integrity_run`（含凍結的 `policy_snapshot` 與 `registry_snapshot`）。
 
-讀 `device_policy` 的程式有三處。其中兩處逐一走訪各裝置的 `sources`，形狀不變所以不用改，舊考試的 snapshot（含 `tablet` 與 `detectors`）也照常能讀：
+`ExamIntegrityRun.policy_snapshot` 保留既有的 batch／evidence 參數，拿掉 `version` 與 `device_policy`，改帶 `"webcam_required": <bool>`。已開始的考試依自己凍結的值運作，老師中途切換只影響之後建立的 run。
 
-- `services/integrity_evidence.py` 的 `_enabled_sources`
-- 前端 `useIntegrityRuntime.ts`
+版本號：
+- 刪除 `anticheat-config` 的 `version`（原本只給前端 `ExamModeWrapper.tsx` 的 `version === 3` 判斷與 mapper 驗證使用，一併刪除）。
+- 刪除 policy snapshot 的 `version`（沒有任何讀取端）。
+- 保留 `REGISTRY_VERSION`：它存進 `ExamIntegrityRun.registry_version`，證據服務比對它，integrity-service 的 registry schema 也要求它，不是裝飾用的版本號。事件定義內容有變，改為 `2026-09-30.1`。
 
-第三處 `services/livekit_service.py` 的 `_allowed_sources` 原本依 `device_kind` 挑裝置，改為固定讀 `desktop`（見下表）。
+讀 policy 的程式：
+
+- `services/integrity_evidence.py` 的 `_enabled_sources`：`screen_share`，加上 `webcam_required` 為真時的 `webcam`。
+- `services/livekit_service.py` 的 `_allowed_sources(run)`：同上，只讀 run 的 snapshot。
+- 前端 `useIntegrityRuntime.ts` 的 `enabledEvidenceSources`：同上。
+- 前端 `contestAnticheat.mapper.ts`：config 與 `integrity_run.policy_snapshot` 的 `webcam_required` 轉成 `webcamRequired`。
 
 ### 後端
 
 | 檔案 | 變更 |
 |---|---|
-| `services/anticheat_config.py` | 刪除 `DEVICE_KINDS`、`DETECTOR_KINDS`、`normalize_anticheat_device_policy`；改由 `webcam_required` 直接產生上面的形狀 |
-| `services/livekit_service.py` | `_allowed_sources` 不再看 `device_kind`，讀 snapshot 的 `desktop`；沒有 snapshot 時由 contest 產生 |
+| `services/anticheat_config.py` | 刪除 `DEVICE_KINDS`、`DETECTOR_KINDS`、`normalize_anticheat_device_policy` 與兩個 `version`；config 與 snapshot 直接帶 `webcam_required` |
+| `services/livekit_service.py` | `_allowed_sources(run)` 只讀 run 凍結的 `webcam_required`，不看 `device_kind`、不從 contest 補值 |
+| `services/integrity_evidence.py` | `_enabled_sources` 改讀 `webcam_required`；刪除以 `device_policy` 驗證凍結 policy 的檢查 |
 | `services/anti_cheat_session.py` | 刪除 `classify_active_session_device_kind`，active session 不再寫 `device_kind` |
-| `integrity/registry.py` | 刪除 `viewport` 定義，`REGISTRY_VERSION` 改為 `2026-09-30.1`；舊考試使用各自凍結的 `registry_snapshot`，不受影響 |
+| `integrity/registry.py` | 刪除 `viewport` 定義，`REGISTRY_VERSION` 改為 `2026-09-30.1`。前端在 snapshot 缺少任何 `FRONTEND_INTEGRITY_SIGNAL_IDS` 時會停用完整性檢查，所以前端的 `viewport_*` 訊號要先移除 |
 | `services/precheck_record.py` | 允許記錄的欄位移除 `device_kind`、`pointer_profile`、`primary_source_module`、`is_tablet`、`is_ipad_like`、`is_pwa_mode`、`supports_fine_pointer`、`pwa_mode` |
 | `serializers.py` | `anticheat_device_policy` 換成 `webcam_required` |
 | `mcp-server/server.py` | contest manager 工具參數 `anticheat_device_policy` 換成 `webcam_required`，同步更新 `tests/test_server.py` |
@@ -97,7 +101,8 @@
 **資料層**
 
 - `core/entities/contest.entity.ts`、`infrastructure/api/dto/contest.dto.ts`、`infrastructure/mappers/contest.mapper.ts`、`core/ports/contest.repository.ts`：`anticheatDevicePolicy` 換成 `webcamRequired`，刪除 `DEFAULT_DEVICE_POLICY`、`AnticheatDeviceKind` 等型別。
-- `infrastructure/mappers/contestAnticheat.mapper.ts`：從 `device_policy.desktop.sources.webcam.enabled` 讀出 `webcamRequired`，`anticheat-config` 與 `integrity_run.policy_snapshot` 都用同一個轉換。
+- `infrastructure/mappers/contestAnticheat.mapper.ts`：讀 `webcam_required`；刪除 `version` 欄位與驗證。`ContestAnticheatConfig` 只剩 `webcamRequired` 與 `integrityRun`。
+- `useIntegrityRuntime.ts` 的 `enabledEvidenceSources` 改讀 `webcam_required`。
 
 **監考規則**（`features/contest/domain/anticheatModulePolicy.ts`）
 
@@ -116,10 +121,10 @@
 
 **作答中**
 
-- `ExamModeWrapper.tsx`：刪除 PWA guard 與 viewport 監控。
+- `ExamModeWrapper.tsx`：刪除 PWA guard、viewport 監控與 `anticheatConfig?.version === 3` 條件。
 - `examSensorStatus.ts`、`ExamModals.tsx`：刪除 `pwa_required`、`viewport`、`split_view` 與視窗大小／Split View 恢復視窗。
 - `frontendIntegritySignals.ts`：刪除 `viewport_interrupted`、`viewport_restored`；`useIntegrityRuntime.ts` 的來源清單移除 `useViewportMonitoring.ts`。
-- `useExamSessionFlow.ts`、`useContestExamActions.ts`、`screens/paperExam/hooks/useAnticheatWebcamCapture.ts`：webcam 固定為次要來源，刪除「webcam 當主要來源」分支。
+- `useExamSessionFlow.ts`、`useContestExamActions.ts`：主要來源固定為 `screen_share`，不再解析監考計畫。
 - `constants/eventTaxonomy.ts`：刪除 `viewport` 分支。
 
 **設定視窗**（`components/admin/settings/CheatDetectionPanel.tsx`）
@@ -139,7 +144,8 @@
 | 檔案 | 變更 |
 |---|---|
 | `permissions.py` | `_native_contest_scope` 刪除 admins 判斷；`IsContestOwnerOrAdmin` 與 lifecycle 權限類的 `hasattr(obj, 'admins')` 改為 `isinstance(obj, Contest)` |
-| `managers.py` | 刪除 3 處 `Q(admins=user)` |
+| `managers.py` | 刪除 2 處 `Q(admins=user)`（未綁定 classroom 的分支） |
+| `question_bank/bank_workflows.py` | 4 處 `Q(contest__owner=user) \| Q(contest__admins=user)` 改為只看 `contest__owner` |
 | `views/contest.py` | 刪除 `admins`、`add_admin`、`remove_admin` action 與 `prefetch_related("admins")` |
 | `access_policy.py` | 刪除 `'admins'` action 對應 |
 | `serializers.py` | 刪除 `admins` 欄位與 `get_admins` |
@@ -162,43 +168,19 @@ classroom 的 `admins`（`Classroom.admins`）不受影響。
 部分刪除（平板、PWA、viewport 分支）：
 
 - 後端：`anticheat_config.py`、`livekit_service.py`、`anti_cheat_session.py`、`integrity/registry.py`、`precheck_record.py`
-- 前端：`anticheatModulePolicy.ts`、`precheckEnvironment.ts`、`ExamPrecheckScreen.tsx`、`ExamModeWrapper.tsx`、`examSensorStatus.ts`、`ExamModals.tsx`、`frontendIntegritySignals.ts`、`useIntegrityRuntime.ts`、`useExamSessionFlow.ts`、`useContestExamActions.ts`、`useAnticheatWebcamCapture.ts`、`eventTaxonomy.ts`、`CheatDetectionPanel.tsx`
+- 前端：`anticheatModulePolicy.ts`、`precheckEnvironment.ts`、`ExamPrecheckScreen.tsx`、`ExamModeWrapper.tsx`、`useMouseLeaveMonitoring.ts`、`examSensorStatus.ts`、`ExamModals.tsx`、`frontendIntegritySignals.ts`、`useIntegrityRuntime.ts`、`useExamSessionFlow.ts`、`useContestExamActions.ts`、`eventTaxonomy.ts`、`CheatDetectionPanel.tsx`
 
 ## 6. 部署
 
-部署前在 production backend 容器以 `python manage.py shell` 查出會失去管理權的 contest 共同管理者：
-
-```python
-from apps.classrooms.permissions import get_user_role_in_classroom
-from apps.contests.models import Contest
-
-at_risk = []
-for contest in Contest.objects.prefetch_related("admins"):
-    binding = contest.classroom_bindings.order_by("bound_at").first()
-    for user in contest.admins.all():
-        role = get_user_role_in_classroom(user, binding.classroom) if binding else None
-        if user.id != contest.owner_id and role not in {"platform_admin", "owner", "manager"}:
-            at_risk.append((str(contest.id), contest.name, user.username))
-print(at_risk)
-```
-
-- 結果為空：直接部署。
-- 有結果：先把這些人加為對應 classroom 的 manager，再部署。
-
-其他：
-
-- 避開正在進行的嚴格考試；部署會讓作答中的學生重新載入前端。
-- 依 `deploy/qjudge` 一般流程執行 migrate。`0006` 只有加欄位、搬 webcam 設定、刪欄位。
-- MCP server 與 backend 同時部署。
-- `anticheat-config` 快取在 TTL 內仍可能回傳舊形狀，前端 mapper 讀 `desktop` 即可相容。
+不在本次範圍。
 
 ## 7. 測試
 
 **後端**（需資料庫，於 CI 執行）
 
-- migration：`desktop.sources.webcam.enabled` 為 true／false／缺值時的 `webcam_required`。
-- `anticheat_config`：`webcam_required` 開關下 config 與 snapshot 的形狀。
-- `_allowed_sources`：只有螢幕分享；螢幕分享加 webcam；舊 snapshot（含 `tablet`）。
+- `anticheat_config`：`webcam_required` 開關下 config 與 snapshot 的形狀，且不含 `version`、`device_policy`。
+- 進行中的考試：老師切換 `webcam_required` 後，config 反映新值，`integrity_run.policy_snapshot` 維持凍結值。
+- `_allowed_sources`、`_enabled_sources`：依凍結的 `webcam_required` 決定來源；關閉 webcam 時拒收 webcam 證據。
 - 權限：classroom manager 為 co_owner；原本只在 `admins` 的使用者變成 outsider；傳入 Contest 物件的權限類判斷正確。
 - `managers.py` 的可見範圍、`export_service` 排除的教學人員。
 - `precheck_record` 白名單；新的 registry snapshot 不含 `viewport`。
@@ -210,9 +192,9 @@ print(at_risk)
 - 考前檢查：不支援螢幕分享時擋下並顯示說明。
 - `CheatDetectionPanel`：兩個開關；嚴格模式關閉時「要求 Webcam」不可切換。
 - `CreateContestModal`：兩步流程、嚴格模式預設關閉、送出內容。
-- `contestAnticheat.mapper`：新形狀與含 `tablet` 的舊 snapshot 都得到正確的 `webcamRequired`。
+- `contestAnticheat.mapper`：config 與 `integrity_run` 各自得到正確的 `webcamRequired`，不再有 `version`。
 
-**E2E**：`frontend/tests/e2e/resident-integrity.e2e.spec.ts` 建立 contest 時改送 `webcam_required: false`，於 CI 以 `ci/e2e-stack.sh` 執行。
+**E2E**：`frontend/tests/e2e/resident-integrity.e2e.spec.ts` 建立 contest 時改送 `webcam_required: false`。此 spec 不在 CI 的 E2E 群組內（exam 群組只跑 `exam-full-lifecycle`、`exam-login-dual-device`）；偵測項目固定後它不能再關掉全螢幕／多螢幕／滑鼠離開偵測，需在使用者要求時另以 fresh-install stack 驗證。
 
 **Quality gates**：naming、architecture、repository exports lint 與 `check-carbon-style.sh --all`。
 
