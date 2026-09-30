@@ -69,12 +69,8 @@ test.describe("Exam full lifecycle E2E", () => {
 
     await expect(teacherPage.getByTestId("create-contest-name")).toBeVisible({ timeout: 10000 });
     await teacherPage.getByTestId("create-contest-name").fill(`e2e-life-exam-${Date.now()}`);
-    await clickCreateContestModalPrimary(teacherPage);
 
-    // 關閉「考試模式」→ 後端 cheat_detection_enabled 為 false，學生可直接進作答頁。
-    await expect(teacherPage.locator("#contest-exam-mode")).toBeVisible({ timeout: 5000 });
-    await teacherPage.locator("#contest-exam-mode").click({ force: true });
-
+    // 考試模式預設關閉 → 後端 cheat_detection_enabled 為 false，學生可直接進作答頁。
     const postContest = teacherPage.waitForResponse(
       (res) =>
         res.request().method() === "POST" &&
