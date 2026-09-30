@@ -1064,10 +1064,9 @@ def test_qjudge_contest_manager_update_patches_only_given_settings(monkeypatch):
     }
 
 
-def test_qjudge_contest_manager_update_accepts_policy_object_and_clear_fields(monkeypatch):
+def test_qjudge_contest_manager_update_sends_webcam_required_and_clear_fields(monkeypatch):
     captured = {}
     contest_uuid = "33333333-3333-3333-3333-333333333333"
-    policy = {"desktop": {"enabled": True}, "tablet": {"enabled": False}}
 
     async def fake_django_api(method, path, ctx, *, json_body=None):
         captured["json_body"] = json_body
@@ -1080,12 +1079,12 @@ def test_qjudge_contest_manager_update_accepts_policy_object_and_clear_fields(mo
             "update",
             DummyContext(),
             contest_id=contest_uuid,
-            anticheat_device_policy=policy,
+            webcam_required=False,
             clear_fields=["end_time"],
         )
     )
 
-    assert captured["json_body"] == {"anticheat_device_policy": policy, "end_time": None}
+    assert captured["json_body"] == {"webcam_required": False, "end_time": None}
 
 
 def test_qjudge_contest_manager_update_rejects_setting_and_clearing_the_same_field():
@@ -1103,11 +1102,12 @@ def test_qjudge_contest_manager_update_rejects_setting_and_clearing_the_same_fie
     assert "end_time" in result["detail"]
 
 
-def test_update_schema_types_policy_as_object():
+def test_update_schema_replaces_the_device_policy_with_webcam_required():
     tools = {tool.name: tool for tool in run(server.mcp.list_tools())}
-    policy = tools["qjudge_contest_manager"].inputSchema["properties"]["anticheat_device_policy"]
+    properties = tools["qjudge_contest_manager"].inputSchema["properties"]
 
-    assert any(option.get("type") == "object" for option in policy["anyOf"])
+    assert "anticheat_device_policy" not in properties
+    assert any(option.get("type") == "boolean" for option in properties["webcam_required"]["anyOf"])
 
 
 def test_qjudge_contest_manager_update_requires_a_field():
