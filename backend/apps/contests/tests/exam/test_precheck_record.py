@@ -20,7 +20,6 @@ VALID_PAYLOAD = {
     "display_surface": "monitor",
     "fullscreen": True,
     "webcam_granted": False,
-    "pwa_mode": False,
     "policy_version": "2026-09-10.1",
     "checks": [
         {"id": "singleMonitor", "status": "pass"},
@@ -28,9 +27,8 @@ VALID_PAYLOAD = {
         {"id": "fullscreen", "status": "pass"},
     ],
     "device": {
-        "device_kind": "desktop",
-        "is_tablet": False,
-        "is_pwa_mode": False,
+        "screen_share_supported": True,
+        "webcam_supported": False,
         "active_sources": ["screen_share"],
     },
 }
@@ -58,7 +56,7 @@ class PrecheckRecordNormalizeTests(APITestCase):
                     {"id": "shareScreen", "status": "made-up"},
                     "not-a-check",
                 ],
-                "device": {"device_kind": "desktop", "is_tablet": "yes"},
+                "device": {"screen_share_supported": True, "webcam_supported": "yes"},
             }
         )
 
@@ -67,7 +65,28 @@ class PrecheckRecordNormalizeTests(APITestCase):
         self.assertEqual(normalized["display_surface"], "monitor")
         self.assertTrue(normalized["fullscreen"])
         self.assertEqual(normalized["checks"], [{"id": "singleMonitor", "status": "pass"}])
-        self.assertEqual(normalized["device"], {"device_kind": "desktop"})
+        self.assertEqual(normalized["device"], {"screen_share_supported": True})
+
+    def test_tablet_and_pwa_fields_are_not_stored(self):
+        normalized = normalize_precheck_payload(
+            {
+                "fullscreen": True,
+                "pwa_mode": True,
+                "device": {
+                    "device_kind": "tablet",
+                    "is_tablet": True,
+                    "is_ipad_like": True,
+                    "is_pwa_mode": True,
+                    "pointer_profile": "touch_only",
+                    "supports_fine_pointer": False,
+                    "primary_source_module": "webcam",
+                    "screen_share_supported": False,
+                },
+            }
+        )
+
+        self.assertNotIn("pwa_mode", normalized)
+        self.assertEqual(normalized["device"], {"screen_share_supported": False})
 
     def test_booleans_are_not_accepted_as_a_screen_count(self):
         self.assertIsNone(normalize_precheck_payload({"screen_count": True}))

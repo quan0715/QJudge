@@ -73,7 +73,6 @@ class LiveMonitoringPresenceTests(APITestCase):
                 "participant_id": self.participant.id,
                 "user_id": self.student.id,
                 "device_id": "device-a",
-                "device_kind": "desktop",
             },
             timeout=300,
         )

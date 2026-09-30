@@ -41,33 +41,6 @@ def get_device_id(request) -> str:
     )
 
 
-def classify_active_session_device_kind(user_agent: str) -> str | None:
-    """Classify the server-observed User-Agent for the active exam binding."""
-
-    if type(user_agent) is not str or not user_agent.strip():
-        return None
-    normalized = user_agent.lower()
-    is_ipad = "ipad" in normalized or (
-        "macintosh" in normalized and "mobile" in normalized
-    )
-    is_android_tablet = (
-        "android" in normalized and "mobile" not in normalized
-    )
-    if is_ipad or is_android_tablet:
-        return "tablet"
-    desktop_markers = (
-        "windows nt",
-        "macintosh",
-        "x11",
-        "cros",
-    )
-    if any(marker in normalized for marker in desktop_markers) or (
-        "linux" in normalized and "android" not in normalized
-    ):
-        return "desktop"
-    return None
-
-
 def get_client_ip(request) -> str:
     xff = request.META.get("HTTP_X_FORWARDED_FOR")
     if xff:
@@ -152,7 +125,6 @@ def set_active_session(contest: Contest, participant: ContestParticipant, reques
         "participant_id": participant.id,
         "user_id": participant.user_id,
         "device_id": device_id,
-        "device_kind": classify_active_session_device_kind(user_agent),
         "ip": get_client_ip(request),
         "ua": user_agent,
         "jti": get_token_jti(request),
