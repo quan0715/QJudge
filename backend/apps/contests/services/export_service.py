@@ -15,7 +15,7 @@ from ..exporters import (
     sanitize_filename,
 )
 from .exam_scoring import ExamScoringService
-from .participation import attempted_participants
+from .participation import _classroom_staff_ids, attempted_participants, get_contest_classroom
 
 
 class ExportValidationError(Exception):
@@ -119,10 +119,11 @@ def build_paper_exam_sheet_response(
 
 
 def _get_admin_user_ids(contest):
-    """Return a set of user IDs that are owner or co-admin of the contest."""
-    admin_ids = set(contest.admins.values_list('id', flat=True))
-    if contest.owner_id:
-        admin_ids.add(contest.owner_id)
+    """Owner plus the bound classroom's staff: the rows labelled 管理者."""
+    admin_ids = {contest.owner_id} if contest.owner_id else set()
+    classroom = get_contest_classroom(contest)
+    if classroom is not None:
+        admin_ids |= _classroom_staff_ids(classroom)
     return admin_ids
 
 

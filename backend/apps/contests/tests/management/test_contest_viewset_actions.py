@@ -12,7 +12,7 @@ from rest_framework.test import APIClient
 from apps.contests.models import Contest, ContestParticipant, ContestActivity, ExamStatus
 from apps.contests.tests import bind_problem_to_contest
 from apps.question_bank.models import ContestQuestionBinding
-from apps.classrooms.models import Classroom, ClassroomContest
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.views import contest as contest_view_module
 from apps.problems.models import CodingProblem
 from apps.question_bank.models import QuestionAsset, QuestionBank, QuestionBankMembership
@@ -263,12 +263,16 @@ def test_archive_contest_and_reject_second_archive(
 
 
 @pytest.mark.django_db
-def test_destroy_requires_owner_even_for_contest_admin(
+def test_destroy_requires_owner_even_for_classroom_ta(
     api_client: APIClient,
     contest: Contest,
     other_teacher: User,
 ) -> None:
-    contest.admins.add(other_teacher)
+    classroom = Classroom.objects.create(
+        name="Destroy Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=other_teacher, role="ta")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
     api_client.force_authenticate(user=other_teacher)
 
     response = api_client.delete(f"/api/v1/contests/{contest.id}/")
@@ -1145,7 +1149,11 @@ def co_owner_user(contest: Contest) -> User:
         password="pass",
         role="teacher",
     )
-    contest.admins.add(u)
+    classroom = Classroom.objects.create(
+        name="Lifecycle Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=u, role="ta")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
     return u
 
 
@@ -1175,20 +1183,6 @@ def test_co_owner_cannot_archive(
     """co_owner must be blocked from archive (lifecycle-only)."""
     api_client.force_authenticate(user=co_owner_user)
     response = api_client.post(f"/api/v1/contests/{contest.id}/archive/", {}, format="json")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.django_db
-def test_co_owner_cannot_add_admin(
-    api_client: APIClient, contest: Contest, co_owner_user: User
-) -> None:
-    """co_owner must be blocked from add_admin."""
-    api_client.force_authenticate(user=co_owner_user)
-    response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_admin/",
-        {"username": "someone"},
-        format="json",
-    )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -1230,43 +1224,6 @@ def test_platform_admin_can_archive(
     assert response.status_code == status.HTTP_200_OK
     contest.refresh_from_db()
     assert contest.status == "archived"
-
-
-@pytest.mark.django_db
-def test_classroom_bound_contest_blocks_admin_management_endpoints(
-    api_client: APIClient,
-    contest: Contest,
-    owner: User,
-    other_teacher: User,
-) -> None:
-    classroom = Classroom.objects.create(
-        name="Bound Classroom",
-        description="",
-        owner=owner,
-        invite_code=uuid4().hex[:8].upper(),
-    )
-    ClassroomContest.objects.create(classroom=classroom, contest=contest)
-    api_client.force_authenticate(user=owner)
-
-    admins_response = api_client.get(f"/api/v1/contests/{contest.id}/admins/")
-    assert admins_response.status_code == status.HTTP_403_FORBIDDEN
-    assert admins_response.data["error"]["code"] == "contest_managed_by_classroom"
-
-    add_response = api_client.post(
-        f"/api/v1/contests/{contest.id}/add_admin/",
-        {"username": other_teacher.username},
-        format="json",
-    )
-    assert add_response.status_code == status.HTTP_403_FORBIDDEN
-    assert add_response.data["error"]["code"] == "contest_managed_by_classroom"
-
-    remove_response = api_client.post(
-        f"/api/v1/contests/{contest.id}/remove_admin/",
-        {"user_id": other_teacher.id},
-        format="json",
-    )
-    assert remove_response.status_code == status.HTTP_403_FORBIDDEN
-    assert remove_response.data["error"]["code"] == "contest_managed_by_classroom"
 
 
 @pytest.mark.django_db

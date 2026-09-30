@@ -169,11 +169,6 @@ class ContestAccessPolicy(permissions.BasePermission):
         'remove_participant': 'manage_participants',
         'reopen_exam': 'manage_participants',
 
-        # Admin Management (owner-only)
-        'admins': 'manage_contest_lifecycle',
-        'add_admin': 'manage_contest_lifecycle',
-        'remove_admin': 'manage_contest_lifecycle',
-
         # Clarifications
         'reply': 'manage_clarifications',
 

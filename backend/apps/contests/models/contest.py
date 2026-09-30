@@ -120,15 +120,6 @@ class Contest(models.Model):
         verbose_name='參與者'
     )
 
-    # Multiple admins/teachers for contest management
-    admins = models.ManyToManyField(
-        User,
-        related_name='admin_contests',
-        blank=True,
-        verbose_name='管理員',
-        help_text='除 owner 外的其他管理者 (teachers)'
-    )
-
     objects = ContestQuerySet.as_manager()
 
     class Meta:

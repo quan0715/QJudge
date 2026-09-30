@@ -7,6 +7,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from uuid import uuid4
+
+from apps.classrooms.models import Classroom, ClassroomContest, ClassroomMember
 from apps.contests.models import Contest, ContestAnnouncement
 from apps.users.models import User
 
@@ -185,11 +188,15 @@ def test_unauthenticated_cannot_delete_announcement(
 
 
 @pytest.mark.django_db
-def test_co_admin_can_delete_announcement(
+def test_classroom_ta_can_delete_announcement(
     api_client: APIClient, contest: Contest, other_teacher: User, announcement: ContestAnnouncement
 ) -> None:
-    """A co-admin (teacher added to admins M2M) can delete announcements."""
-    contest.admins.add(other_teacher)
+    """A classroom TA of the bound classroom can delete announcements."""
+    classroom = Classroom.objects.create(
+        name="Announcement Room", owner=contest.owner, invite_code=uuid4().hex[:8].upper()
+    )
+    ClassroomMember.objects.create(classroom=classroom, user=other_teacher, role="ta")
+    ClassroomContest.objects.create(classroom=classroom, contest=contest)
     api_client.force_authenticate(user=other_teacher)
     response = api_client.delete(
         f"/api/v1/contests/{contest.id}/announcements/{announcement.id}/"

@@ -156,7 +156,7 @@ def _user_may_ingest_coding_problem(*, user, problem: CodingProblem) -> bool:
         return True
     from apps.question_bank.models import ContestQuestionBinding
     return ContestQuestionBinding.objects.filter(coding_problem=problem).filter(
-        Q(contest__owner=user) | Q(contest__admins=user)
+        Q(contest__owner=user)
     ).exists()
 
 
@@ -360,7 +360,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
         managed_problem_ids = ContestQuestionBinding.objects.filter(
             coding_problem__isnull=False,
         ).filter(
-            Q(contest__owner=user) | Q(contest__admins=user)
+            Q(contest__owner=user)
         ).values_list("coding_problem_id", flat=True)
         coding_rows = (
             CodingProblem.objects.filter(Q(created_by=user) | Q(id__in=managed_problem_ids))
@@ -391,7 +391,7 @@ def list_question_bank_inbox(user, category: str | None = None) -> dict[str, lis
             source_type="exam_question",
         )
         exam_rows = (
-            ExamQuestion.objects.filter(Q(contest__owner=user) | Q(contest__admins=user))
+            ExamQuestion.objects.filter(Q(contest__owner=user))
             .filter(source_bank_id__isnull=True)
             .exclude(id__in=synced)
             .select_related("contest")
@@ -493,7 +493,7 @@ def ingest_question_bank_inbox_items(
 
             source = (
                 ExamQuestion.objects.filter(id=source_id)
-                .filter(Q(contest__owner=user) | Q(contest__admins=user))
+                .filter(Q(contest__owner=user))
                 .first()
             )
             if not source:

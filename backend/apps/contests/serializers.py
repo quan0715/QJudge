@@ -94,7 +94,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     exam_status = serializers.SerializerMethodField()
     problems = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
-    admins = serializers.SerializerMethodField()
     is_classroom_bound = serializers.SerializerMethodField()
     bound_classroom_id = serializers.SerializerMethodField()
     exam_questions_count = serializers.SerializerMethodField()
@@ -143,7 +142,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
             'problems',
             'allow_multiple_joins',
             'participant_count',
-            'admins',
             'is_classroom_bound',
             'bound_classroom_id',
             'results_published',
@@ -251,11 +249,6 @@ class ContestDetailSerializer(serializers.ModelSerializer):
     def get_participant_count(self, obj):
         """Roster size: student members plus anyone who actually sat it."""
         return len(roster_user_ids(obj))
-
-    def get_admins(self, obj):
-        """Get list of admin users for this contest."""
-        admins = obj.admins.all()
-        return [{'id': u.id, 'username': u.username} for u in admins]
 
     def _get_primary_classroom_binding(self, obj):
         return (
