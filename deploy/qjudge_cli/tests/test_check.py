@@ -47,7 +47,11 @@ class CheckTests(unittest.TestCase):
         )), ["OBJECT_STORAGE_PUBLIC_ENDPOINT_URL"])
 
     def test_bundled_bucket_cannot_conflict_with_main_routes(self):
-        for bucket in ("api", "docs", "admin", "classrooms", "assets"):
+        for bucket in (
+            "api", "docs", "admin", "classrooms", "assets", "chat", "brand", "fonts",
+            "illustrations", "logos", "videos", "index.html", "robots.txt", "manifest.json",
+            "sitemap.xml", "pwa-192x192.png", "pwa-512x512.png", "example-1.png", "example-2.png",
+        ):
             with self.subTest(bucket=bucket):
                 self.assertEqual(error_keys(with_changes(OBJECT_STORAGE_BUCKET=bucket)), ["OBJECT_STORAGE_BUCKET"])
 

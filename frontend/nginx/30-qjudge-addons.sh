@@ -11,7 +11,7 @@ if [ "${STORAGE_MODE:-}" = bundled ]; then
   case "$bucket" in
     ''|*[!a-z0-9.-]*|[!a-z0-9]*|*[!a-z0-9]|*..*|*.-*|*-.*)
       echo 'OBJECT_STORAGE_BUCKET must be a valid S3 bucket name' >&2; exit 1 ;;
-    api|admin|django-admin|static|media|mcp|assets|livekit|docs|dev|system|dashboard|classrooms|question-banks|login|register|auth|onboarding|invite|oauth|error|not-found)
+    api|admin|django-admin|static|media|mcp|assets|livekit|docs|dev|system|dashboard|classrooms|question-banks|chat|login|register|auth|onboarding|invite|oauth|error|not-found|brand|fonts|illustrations|logos|videos|index.html|robots.txt|manifest.json|sitemap.xml|pwa-192x192.png|pwa-512x512.png|example-1.png|example-2.png)
       echo 'OBJECT_STORAGE_BUCKET conflicts with a QJudge route; use qjudge' >&2; exit 1 ;;
   esac
   [ "${#bucket}" -ge 3 ] && [ "${#bucket}" -le 63 ] || {

@@ -27,8 +27,11 @@ BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
 # The bucket becomes a top-level path on the main site in bundled mode.
 RESERVED_BUCKET_PATHS = {
     "api", "admin", "django-admin", "static", "media", "mcp", "assets", "livekit",
-    "docs", "dev", "system", "dashboard", "classrooms", "question-banks",
+    "docs", "dev", "system", "dashboard", "classrooms", "question-banks", "chat",
     "login", "register", "auth", "onboarding", "invite", "oauth", "error", "not-found",
+    "brand", "fonts", "illustrations", "logos", "videos", "index.html", "robots.txt",
+    "manifest.json", "sitemap.xml", "pwa-192x192.png", "pwa-512x512.png",
+    "example-1.png", "example-2.png",
 }
 
 
